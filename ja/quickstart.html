@@ -6,7 +6,7 @@
 <link rel="index" title="索引" href="genindex.html"><link rel="search" title="検索" href="search.html"><link rel="next" title="User Guide" href="user_guide/index.html"><link rel="prev" title="Installation" href="installation.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
-        <title>Quick Start - typsphinx 0.4.3</title>
+        <title>クイックスタート - typsphinx 0.4.3</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -220,12 +220,12 @@
     
   </ul>
 </div><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">はじめに</span></p>
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Quick Start</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">クイックスタート</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">ユーザーガイド</span></p>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="user_guide/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/configuration.html">Configuration</a></li>
@@ -237,7 +237,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide/builders.html">ビルダー</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/templates.html">Templates</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">例</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/basic.html">Basic Examples</a></li>
@@ -247,12 +247,12 @@
 <li class="toctree-l1"><a class="reference internal" href="examples/basic.html">Basic Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/advanced.html">高度な例</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">APIリファレンス</span></p>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html#indices-and-tables">Indices and Tables</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">開発</span></p>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -293,18 +293,18 @@
         </div>
         <article role="main" id="furo-main-content">
           <section id="quick-start">
-<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
-<p>This guide will help you get started with typsphinx in just a few minutes.</p>
+<h1>クイックスタート<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
+<p>このガイドでは、数分でtypsphinxを使い始めることができます。</p>
 <section id="basic-setup">
-<h2>Basic Setup<a class="headerlink" href="#basic-setup" title="Link to this heading">¶</a></h2>
+<h2>基本的なセットアップ<a class="headerlink" href="#basic-setup" title="Link to this heading">¶</a></h2>
 <ol class="arabic">
-<li><p><strong>Install typsphinx</strong> (if you haven't already):</p>
+<li><p><a href="#id1"><span class="problematic" id="id2">**</span></a>typsphinxをインストール**（まだの場合）：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>typsphinx
 </pre></div>
 </div>
 </li>
-<li><p><strong>Add to your Sphinx project</strong></p>
-<p>Add <code class="docutils literal notranslate"><span class="pre">typsphinx</span></code> to the <code class="docutils literal notranslate"><span class="pre">extensions</span></code> list in your <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>:</p>
+<li><p><strong>Sphinxプロジェクトに追加</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">conf.py</span></code> の <code class="docutils literal notranslate"><span class="pre">extensions</span></code> リストに <code class="docutils literal notranslate"><span class="pre">typsphinx</span></code> を追加：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extensions</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;typsphinx&quot;</span><span class="p">,</span>
 <span class="p">]</span>
@@ -312,11 +312,10 @@
 </div>
 <div class="admonition note">
 <p class="admonition-title">注釈</p>
-<p>Thanks to entry points, adding to <code class="docutils literal notranslate"><span class="pre">extensions</span></code> is optional.
-The builders are automatically discovered.</p>
+<p>エントリーポイントのおかげで、<code class="docutils literal notranslate"><span class="pre">extensions</span></code> への追加はオプションです。ビルダーは自動的に検出されます。</p>
 </div>
 </li>
-<li><p><strong>Build Typst output</strong>:</p>
+<li><p><strong>Typst出力をビルド</strong>：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate Typst markup</span>
 sphinx-build<span class="w"> </span>-b<span class="w"> </span>typst<span class="w"> </span>source/<span class="w"> </span>build/typst
 
@@ -328,10 +327,10 @@ sphinx-build<span class="w"> </span>-b<span class="w"> </span>typstpdf<span clas
 </ol>
 </section>
 <section id="your-first-pdf">
-<h2>Your First PDF<a class="headerlink" href="#your-first-pdf" title="Link to this heading">¶</a></h2>
-<p>Here's a minimal example to generate your first PDF:</p>
+<h2>初めてのPDF<a class="headerlink" href="#your-first-pdf" title="Link to this heading">¶</a></h2>
+<p>初めてのPDFを生成する最小限の例です：</p>
 <ol class="arabic">
-<li><p>Create a simple <code class="docutils literal notranslate"><span class="pre">index.rst</span></code>:</p>
+<li><p>シンプルな <code class="docutils literal notranslate"><span class="pre">index.rst</span></code> を作成：</p>
 <div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="gh">Welcome to My Documentation</span>
 <span class="gh">===========================</span>
 
@@ -346,17 +345,17 @@ This is a sample document.
 </pre></div>
 </div>
 </li>
-<li><p>Build the PDF:</p>
+<li><p>PDFをビルド：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sphinx-build<span class="w"> </span>-b<span class="w"> </span>typstpdf<span class="w"> </span>source/<span class="w"> </span>build/pdf
 </pre></div>
 </div>
 </li>
-<li><p>Find your PDF in <code class="docutils literal notranslate"><span class="pre">build/pdf/index.pdf</span></code>!</p></li>
+<li><p>PDFは <code class="docutils literal notranslate"><span class="pre">build/pdf/index.pdf</span></code> にあります！</p></li>
 </ol>
 </section>
 <section id="configuration-options">
-<h2>Configuration Options<a class="headerlink" href="#configuration-options" title="Link to this heading">¶</a></h2>
-<p>You can customize the output by adding options to <code class="docutils literal notranslate"><span class="pre">conf.py</span></code>:</p>
+<h2>設定オプション<a class="headerlink" href="#configuration-options" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">conf.py</span></code> にオプションを追加して出力をカスタマイズできます：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Project information</span>
 <span class="n">project</span> <span class="o">=</span> <span class="s2">&quot;My Project&quot;</span>
 <span class="n">author</span> <span class="o">=</span> <span class="s2">&quot;Your Name&quot;</span>
@@ -376,12 +375,12 @@ This is a sample document.
 </div>
 </section>
 <section id="what-s-next">
-<h2>What's Next?<a class="headerlink" href="#what-s-next" title="Link to this heading">¶</a></h2>
+<h2>次のステップ<a class="headerlink" href="#what-s-next" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Learn about <a class="reference internal" href="user_guide/configuration.html"><span class="doc">Configuration</span></a> options</p></li>
-<li><p>Explore <a class="reference internal" href="user_guide/builders.html"><span class="doc">ビルダー</span></a> (typst vs typstpdf)</p></li>
-<li><p>Customize with <a class="reference internal" href="user_guide/templates.html"><span class="doc">Templates</span></a></p></li>
-<li><p>See <a class="reference internal" href="examples/index.html"><span class="doc">Examples</span></a> for more examples</p></li>
+<li><p><a class="reference internal" href="user_guide/configuration.html"><span class="doc">Configuration</span></a> オプションについて学ぶ</p></li>
+<li><p><a class="reference internal" href="user_guide/builders.html"><span class="doc">ビルダー</span></a> を探索（typst vs typstpdf）</p></li>
+<li><p><a class="reference internal" href="user_guide/templates.html"><span class="doc">Templates</span></a> でカスタマイズ</p></li>
+<li><p>より多くの例については <a class="reference internal" href="examples/index.html"><span class="doc">Examples</span></a> を参照</p></li>
 </ul>
 </section>
 </section>
@@ -441,11 +440,11 @@ This is a sample document.
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Quick Start</a><ul>
-<li><a class="reference internal" href="#basic-setup">Basic Setup</a></li>
-<li><a class="reference internal" href="#your-first-pdf">Your First PDF</a></li>
-<li><a class="reference internal" href="#configuration-options">Configuration Options</a></li>
-<li><a class="reference internal" href="#what-s-next">What's Next?</a></li>
+<li><a class="reference internal" href="#">クイックスタート</a><ul>
+<li><a class="reference internal" href="#basic-setup">基本的なセットアップ</a></li>
+<li><a class="reference internal" href="#your-first-pdf">初めてのPDF</a></li>
+<li><a class="reference internal" href="#configuration-options">設定オプション</a></li>
+<li><a class="reference internal" href="#what-s-next">次のステップ</a></li>
 </ul>
 </li>
 </ul>
