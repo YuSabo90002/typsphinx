@@ -220,12 +220,12 @@
     
   </ul>
 </div><div class="sidebar-tree">
-  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+  <p class="caption" role="heading"><span class="caption-text">はじめに</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<p class="caption" role="heading"><span class="caption-text">ユーザーガイド</span></p>
 <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="user_guide/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/configuration.html">Configuration</a></li>
@@ -237,7 +237,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide/builders.html">ビルダー</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/templates.html">Templates</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">例</span></p>
 <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/basic.html">Basic Examples</a></li>
@@ -247,12 +247,12 @@
 <li class="toctree-l1"><a class="reference internal" href="examples/basic.html">Basic Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/advanced.html">高度な例</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">APIリファレンス</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html#indices-and-tables">Indices and Tables</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<p class="caption" role="heading"><span class="caption-text">開発</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -293,36 +293,36 @@
         </div>
         <article role="main" id="furo-main-content">
           <section id="typsphinx-documentation">
-<h1>typsphinx Documentation<a class="headerlink" href="#typsphinx-documentation" title="Link to this heading">¶</a></h1>
-<p><strong>typsphinx</strong> is a Sphinx extension that integrates the Sphinx documentation generator with the Typst typesetting system.</p>
-<p>It combines Sphinx's powerful documentation generation capabilities with Typst's modern typesetting features to create high-quality technical documents.</p>
+<h1>typsphinx ドキュメント<a class="headerlink" href="#typsphinx-documentation" title="Link to this heading">¶</a></h1>
+<p><strong>typsphinx</strong> は、Sphinxドキュメント生成ツールとTypst組版システムを統合するSphinx拡張機能です。</p>
+<p>Sphinxの強力なドキュメント生成機能とTypstのモダンな組版機能を組み合わせて、高品質な技術文書を作成します。</p>
 <section id="key-features">
-<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading">¶</a></h2>
+<h2>主な機能<a class="headerlink" href="#key-features" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>Sphinx to Typst Conversion</strong>: Convert reStructuredText/Markdown to Typst format</p></li>
-<li><p><strong>Dual Builder Integration</strong>:</p>
+<li><p><strong>Sphinx to Typst変換</strong>: reStructuredText/MarkdownをTypst形式に変換</p></li>
+<li><p><strong>デュアルビルダー統合</strong>:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">typst</span></code> builder: Generate Typst markup files</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">typstpdf</span></code> builder: Generate PDF directly (no external Typst CLI required)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">typst</span></code> ビルダー: Typstマークアップファイルを生成</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">typstpdf</span></code> ビルダー: PDFを直接生成（外部のTypst CLIは不要）</p></li>
 </ul>
 </li>
-<li><p><strong>Self-Contained PDF Generation</strong>: Self-contained PDF generation via typst-py</p></li>
-<li><p><strong>Customizable Output</strong>: Customize Typst templates and styles</p></li>
-<li><p><strong>Cross-References</strong>: Reproduce Sphinx cross-references, indexes, and table of contents in Typst</p></li>
-<li><p><strong>Code Highlighting</strong>: Syntax highlighting with codly package</p></li>
-<li><p><strong>Math Support</strong>: LaTeX math via mitex or native Typst math</p></li>
-<li><p><strong>Figure Management</strong>: Embed and reference images, tables, and figures</p></li>
+<li><p><strong>自己完結型PDF生成</strong>: typst-pyによる自己完結型PDF生成</p></li>
+<li><p><strong>カスタマイズ可能な出力</strong>: Typstテンプレートとスタイルをカスタマイズ</p></li>
+<li><p><strong>相互参照</strong>: Sphinxの相互参照、インデックス、目次をTypstで再現</p></li>
+<li><p><strong>コードハイライト</strong>: codlyパッケージによる構文ハイライト</p></li>
+<li><p><strong>数式サポート</strong>: mitexまたはネイティブのTypst数式によるLaTeX数式対応</p></li>
+<li><p><strong>図表管理</strong>: 画像、表、図の埋め込みと参照</p></li>
 </ul>
 </section>
 <section id="quick-links">
-<h2>Quick Links<a class="headerlink" href="#quick-links" title="Link to this heading">¶</a></h2>
+<h2>クイックリンク<a class="headerlink" href="#quick-links" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>GitHub Repository</strong>: <a class="reference external" href="https://github.com/YuSabo90002/typsphinx">https://github.com/YuSabo90002/typsphinx</a></p></li>
-<li><p><strong>PyPI Package</strong>: <a class="reference external" href="https://pypi.org/project/typsphinx/">https://pypi.org/project/typsphinx/</a></p></li>
-<li><p><strong>Issue Tracker</strong>: <a class="reference external" href="https://github.com/YuSabo90002/typsphinx/issues">https://github.com/YuSabo90002/typsphinx/issues</a></p></li>
+<li><p><strong>GitHubリポジトリ</strong>: <a class="reference external" href="https://github.com/YuSabo90002/typsphinx">https://github.com/YuSabo90002/typsphinx</a></p></li>
+<li><p><strong>PyPIパッケージ</strong>: <a class="reference external" href="https://pypi.org/project/typsphinx/">https://pypi.org/project/typsphinx/</a></p></li>
+<li><p><strong>課題トラッカー</strong>: <a class="reference external" href="https://github.com/YuSabo90002/typsphinx/issues">https://github.com/YuSabo90002/typsphinx/issues</a></p></li>
 </ul>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<p class="caption" role="heading"><span class="caption-text">はじめに</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements</a></li>
@@ -343,7 +343,7 @@
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<p class="caption" role="heading"><span class="caption-text">ユーザーガイド</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/index.html">User Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/configuration.html">Configuration</a></li>
@@ -390,7 +390,7 @@
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">例</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/basic.html">Basic Examples</a></li>
@@ -426,7 +426,7 @@
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">APIリファレンス</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/index.html#module-typsphinx.builder">Builders</a></li>
@@ -439,7 +439,7 @@
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<p class="caption" role="heading"><span class="caption-text">開発</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -448,7 +448,7 @@
 </section>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
+<h1>索引と表<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">索引</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">モジュール索引</span></a></p></li>
@@ -501,14 +501,14 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">typsphinx Documentation</a><ul>
-<li><a class="reference internal" href="#key-features">Key Features</a></li>
-<li><a class="reference internal" href="#quick-links">Quick Links</a><ul>
+<li><a class="reference internal" href="#">typsphinx ドキュメント</a><ul>
+<li><a class="reference internal" href="#key-features">主な機能</a></li>
+<li><a class="reference internal" href="#quick-links">クイックリンク</a><ul>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#indices-and-tables">索引と表</a></li>
 </ul>
 
           </div>
