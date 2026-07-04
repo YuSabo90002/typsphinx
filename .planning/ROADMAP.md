@@ -107,7 +107,20 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   2. GitHub Actions versions (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) are verified/refreshed for hosted-runner compatibility.
   3. CI remains green after the tooling refresh, with no regression introduced by any version bump.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 04-01-PLAN.md — Bump black/ruff/tox/tox-uv/pytest/mypy floor+ceiling constraints in lockstep across pyproject.toml [dev] and tox.ini (per-env deps + [tox] requires), regenerate uv.lock minimal-diff, local lint/type/cov pre-check (TOOL-01; D-01/D-02/D-07/D-08)
+- [ ] 04-02-PLAN.md — Bump upload-artifact@v5→@v7 (×7) and download-artifact@v6→@v8 (×3) across ci.yml/docs.yml/release.yml, runtime-verify node24 + check the 3 release/docs-only actions for Node-20 stragglers (TOOL-02; D-03 amended, RESEARCH A2)
+
+**Wave 2** *(blocked on 04-01 — shares pyproject.toml)*
+
+- [ ] 04-03-PLAN.md — Python 3.9→3.10 leftover cleanup: README.md lines 36 & 323 + ruff UP035/UP006 comment text (TOOL-01; D-04)
+
+**Wave 3** *(terminal gate — blocked on 04-01/02/03)*
+
+- [ ] 04-04-PLAN.md — Push PR targeting main, observe ci.yml (3.10–3.13 matrix + lint/type/coverage/build/integration) + docs.yml green, human-verify gate (TOOL-01/TOOL-02; D-05/D-06)
 
 ### Phase 5: Durability Guardrails
 
@@ -133,7 +146,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
-| 4. Refresh Dev Tooling | 0/TBD | Not started | - |
+| 4. Refresh Dev Tooling | 0/4 | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
 
 ---
