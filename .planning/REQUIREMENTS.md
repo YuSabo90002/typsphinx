@@ -11,17 +11,17 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 <!-- The root-cause fix: pin to a known-good, mutually-compatible combination. -->
 
-- [ ] **PIN-01**: `typst` pinned to `>=0.14.1,<0.15` in `pyproject.toml`, resolving the `typst.TypstError: unknown variable: kai` break (mitex 0.2.4 uses `kai`, removed by typst 0.15)
-- [ ] **PIN-02**: `sphinx` upper-bounded `<9` and `docutils` upper-bounded `<0.22` in `pyproject.toml`
-- [ ] **PIN-03**: `uv.lock` regenerated to match the new pins and resolving cleanly across the per-Python-version markers (sphinx ≤8.1.3 on 3.10, up to 8.3.0 on 3.11–3.13)
-- [ ] **PIN-04**: `tox.ini` dependency lists mirror the `pyproject.toml` ceilings so no tox env (test/type) independently re-resolves an unbounded version
-- [ ] **PIN-05**: Dead dependency `sphinx-testing` (unused since 2019) removed
-- [ ] **PIN-06**: The exact typst 0.14.x patch is confirmed empirically green in CI; whether the sphinx/docutils ceilings are load-bearing vs precautionary is documented
+- [x] **PIN-01**: `typst` pinned to `>=0.14.1,<0.15` in `pyproject.toml`, resolving the `typst.TypstError: unknown variable: kai` break (mitex 0.2.4 uses `kai`, removed by typst 0.15)
+- [x] **PIN-02**: `sphinx` upper-bounded `<9` and `docutils` upper-bounded `<0.22` in `pyproject.toml`
+- [x] **PIN-03**: `uv.lock` regenerated to match the new pins and resolving cleanly across the per-Python-version markers (sphinx ≤8.1.3 on 3.10, up to 8.3.0 on 3.11–3.13)
+- [x] **PIN-04**: `tox.ini` dependency lists mirror the `pyproject.toml` ceilings so no tox env (test/type) independently re-resolves an unbounded version
+- [x] **PIN-05**: Dead dependency `sphinx-testing` (unused since 2019) removed
+- [x] **PIN-06**: The exact typst 0.14.x patch is confirmed empirically green in CI; whether the sphinx/docutils ceilings are load-bearing vs precautionary is documented
 
 ### Lint & Format
 
-- [ ] **LINT-01**: `black --check .` exits 0 on the full tree (reformat `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`)
-- [ ] **LINT-02**: `ruff` passes clean on the full tree
+- [x] **LINT-01**: `black --check .` exits 0 on the full tree (reformat `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`)
+- [x] **LINT-02**: `ruff` passes clean on the full tree
 
 ### Tests & Coverage
 
@@ -85,14 +85,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIN-01 | Phase 1 | Pending |
-| PIN-02 | Phase 1 | Pending |
-| PIN-03 | Phase 1 | Pending |
-| PIN-04 | Phase 1 | Pending |
-| PIN-05 | Phase 1 | Pending |
-| PIN-06 | Phase 1 | Pending |
-| LINT-01 | Phase 1 | Pending |
-| LINT-02 | Phase 1 | Pending |
+| PIN-01 | Phase 1 | Complete |
+| PIN-02 | Phase 1 | Complete |
+| PIN-03 | Phase 1 | Complete |
+| PIN-04 | Phase 1 | Complete |
+| PIN-05 | Phase 1 | Complete |
+| PIN-06 | Phase 1 | Complete |
+| LINT-01 | Phase 1 | Complete |
+| LINT-02 | Phase 1 | Complete |
 | TEST-01 | Phase 2 | Pending |
 | TEST-02 | Phase 2 | Pending |
 | TEST-03 | Phase 2 | Pending |
@@ -110,6 +110,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DUR-04 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 23 total
 - Mapped to phases: 23 (5 phases: Phase 1 = 8, Phase 2 = 5, Phase 3 = 4, Phase 4 = 2, Phase 5 = 4)
 - Unmapped: 0 ✓
