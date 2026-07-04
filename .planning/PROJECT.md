@@ -23,14 +23,13 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 - ✓ Master vs. included document handling (`#include()`), image/asset copying, nested directory preservation — existing
 - ✓ i18n scaffolding (sphinx-intl), full pytest suite (~400 tests), tox-based lint/typecheck/coverage, GitHub Actions CI + docs + release workflows — existing
 - ✓ Runtime dependencies pinned to a reproducible known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`); `uv.lock` regenerated and committed; tree lint-clean (`black`/`ruff`) — Validated in Phase 1
+- ✓ Every CI job green across the full 3-OS × Python matrix (12 test lanes + lint/type-check/coverage/build/integration) and `docs.yml` end-to-end incl. the multi-language PDF-copy step, confirmed by an observed Actions run — Validated in Phase 2 (CI run 28702240846)
+- ✓ The 3-way `@preview` version sync (`writer.py`, `template_engine.py`, `templates/base.typ`) guarded by an automated test that fails CI loudly on desync — Validated in Phase 2
 
 ### Active
 
 <!-- This milestone. Building toward green + modernized CI. -->
 
-- [ ] All CI lint checks pass (`black --check`, ruff) on `main`
-- [ ] The full test matrix passes: the `unknown variable: kai` typst-compilation break is resolved by pinning to a known-good dependency combination
-- [ ] Coverage job passes; docs workflow produces a PDF and completes
 - [ ] Supported Python range modernized to 3.10–3.13: `requires-python>=3.10`, drop EOL 3.9, add 3.13, CI matrix updated
 - [ ] Dev tooling modernized: Black/mypy target versions aligned to the new Python floor; CI action versions refreshed as needed
 
@@ -59,7 +58,7 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Pin runtime deps to known-good rather than upgrade forward | Fastest, lowest-risk path to green CI; avoids a large sphinx-9/typst-0.15 porting effort in a maintenance cycle | — Pending |
+| Pin runtime deps to known-good rather than upgrade forward | Fastest, lowest-risk path to green CI; avoids a large sphinx-9/typst-0.15 porting effort in a maintenance cycle | Confirmed: full 3-OS × Python matrix green in Phase 2 (CI run 28702240846) |
 | Pin `typst` to 0.14.x compatible with bundled `@preview` packages | The `kai` break is a typst 0.15 ⇄ package incompatibility; reverting the compiler restores compilation | Confirmed: `typst==0.14.9` (resolved in `uv.lock`); `docs-pdf` builds `index.pdf` locally with no `kai` error (typst 0.15.0 reproduces it) |
 | Modernize Python floor to 3.10–3.13 (drop EOL 3.9, add 3.13) | 3.9 reached EOL Oct 2025; "green + modernize" scope | — Pending |
 | Defer supporting sphinx 9 / typst 0.15 to a future milestone | Explicitly chosen to pin, not port; keeps scope bounded | — Pending |
@@ -83,4 +82,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 after initialization*
+*Last updated: 2026-07-04 after Phase 2 completion*
