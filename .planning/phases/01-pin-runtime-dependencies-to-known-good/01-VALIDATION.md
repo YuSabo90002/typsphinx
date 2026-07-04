@@ -2,7 +2,7 @@
 phase: 1
 slug: pin-runtime-dependencies-to-known-good
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-04
 ---
@@ -44,15 +44,15 @@ created: 2026-07-04
 > concrete task IDs. Every check is a source assertion, a CLI exit code, or a
 > `uv`/lint command — no subjective criteria.
 
-| Success Criterion | Requirement | Test Type | Automated Command / Assertion | Status |
-|-------------------|-------------|-----------|-------------------------------|--------|
-| Runtime three have upper bounds | PIN-01, PIN-02 | static | `grep` in `pyproject.toml`: `typst>=0.14.1,<0.15`, `sphinx>=5.0,<9`, `docutils>=0.18,<0.22` present; none unbounded | ⬜ pending |
-| `uv.lock` regenerated & resolves | PIN-03 | tooling | `uv lock --check` exits 0; lock captures a `typst` 0.14.x patch | ⬜ pending |
-| `tox.ini` ceilings mirrored | PIN-04 | static | `[testenv]`/`[testenv:type]` `deps` carry the same ceilings as `pyproject.toml` (documentation-truth; runner resolves from `uv.lock`) | ⬜ pending |
-| `sphinx-testing` removed | PIN-05 | static | `sphinx-testing` absent from `pyproject.toml`, `tox.ini`, and `uv.lock` | ⬜ pending |
-| typst patch confirmed + ceiling finding recorded | PIN-06 | empirical/CI | confirmed-good `typst` 0.14.x patch (research: 0.14.9; 0.15.0 = `kai` error) + D-03 load-bearing finding recorded in `PROJECT.md` Key Decisions | ⬜ pending |
-| `black --check .` clean | LINT-01 | tooling | `black --check .` exits 0 on full tree (3 files reformatted: `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`) | ⬜ pending |
-| `ruff check .` clean | LINT-02 | tooling | `ruff check .` exits 0 on full tree (⚠️ not verifiable in the planning sandbox — executor must run early) | ⬜ pending |
+| Success Criterion | Requirement | Test Type | Automated Command / Assertion | Task ID | Status |
+|-------------------|-------------|-----------|-------------------------------|---------|--------|
+| Runtime three have upper bounds | PIN-01, PIN-02 | static | `grep` in `pyproject.toml`: `typst>=0.14.1,<0.15`, `sphinx>=5.0,<9`, `docutils>=0.18,<0.22` present; none unbounded | 01-01 / Task 1 | ⬜ pending |
+| `uv.lock` regenerated & resolves | PIN-03 | tooling | `uv lock --check` exits 0; lock captures a `typst` 0.14.x patch | 01-01 / Task 1 | ⬜ pending |
+| `tox.ini` ceilings mirrored | PIN-04 | static | `[testenv]`/`[testenv:type]` `deps` carry the same ceilings as `pyproject.toml` (documentation-truth; runner resolves from `uv.lock`) | 01-01 / Task 1 | ⬜ pending |
+| `sphinx-testing` removed | PIN-05 | static | `sphinx-testing` absent from `pyproject.toml`, `tox.ini`, and `uv.lock` | 01-01 / Task 1 | ⬜ pending |
+| typst patch confirmed + ceiling finding recorded | PIN-06 | empirical/CI | confirmed-good `typst` 0.14.x patch (research: 0.14.9; 0.15.0 = `kai` error) + D-03 load-bearing finding recorded in `PROJECT.md` Key Decisions | 01-01 / Task 2 | ⬜ pending |
+| `black --check .` clean | LINT-01 | tooling | `black --check .` exits 0 on full tree (3 files reformatted: `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`) | 01-02 / Task 1 | ⬜ pending |
+| `ruff check .` clean | LINT-02 | tooling | `ruff check .` exits 0 on full tree (⚠️ not verifiable in the planning sandbox — executor must run early) | 01-02 / Task 2 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -77,11 +77,11 @@ created: 2026-07-04
 
 ## Validation Sign-Off
 
-- [ ] All success criteria have an automated check or a documented manual verification
-- [ ] Sampling continuity: lint/lock checks run after every commit
-- [ ] Wave 0 covers all MISSING references (none — existing infra suffices)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 20s (local checks)
-- [ ] `nyquist_compliant: true` set in frontmatter (set once the planner binds task IDs)
+- [x] All success criteria have an automated check or a documented manual verification
+- [x] Sampling continuity: lint/lock checks run after every commit
+- [x] Wave 0 covers all MISSING references (none — existing infra suffices)
+- [x] No watch-mode flags
+- [x] Feedback latency < 20s (local checks)
+- [x] `nyquist_compliant: true` set in frontmatter (task IDs bound in the Per-Task Verification Map above)
 
-**Approval:** pending
+**Approval:** task IDs bound to plans 01-01 / 01-02 during planning (2026-07-04)

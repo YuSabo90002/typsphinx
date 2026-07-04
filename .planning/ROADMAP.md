@@ -38,7 +38,9 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   3. `tox.ini`'s `[testenv]` and `[testenv:type]` dependency lists mirror the same ceilings as `pyproject.toml` (no independent, unbounded re-resolution path in the `type` env).
   4. The dead `sphinx-testing` dependency is removed from `pyproject.toml`/`uv.lock`.
   5. `black --check .` and `ruff check .` both exit 0 on the full tree, and the confirmed-good typst patch (plus any rejected candidates) is recorded in `PROJECT.md`'s Key Decisions table.
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 01-01-PLAN.md — Pin runtime deps (typst/sphinx/docutils upper bounds), mirror tox ceilings, remove sphinx-testing, regenerate uv.lock, confirm docs-pdf + record typst patch/ceiling finding in PROJECT.md (PIN-01..06)
+- [ ] 01-02-PLAN.md — Lint-clean the tree: black reformat (separate commit per D-04) + ruff clean (LINT-01/02)
 
 ### Phase 2: Verify the Green Baseline
 **Goal**: The Phase 1 pin is confirmed to turn every previously-red CI job green across the full platform/Python matrix, and the 3-way `@preview` version sync hazard is protected by an automated test rather than manual memory.
@@ -92,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Pin Runtime Dependencies to Known-Good | 0/TBD | Not started | - |
+| 1. Pin Runtime Dependencies to Known-Good | 0/2 | Not started | - |
 | 2. Verify the Green Baseline | 0/TBD | Not started | - |
 | 3. Modernize Python Floor (3.10-3.13) | 0/TBD | Not started | - |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
