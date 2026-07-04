@@ -4,6 +4,7 @@
 This script builds English and Japanese versions of the documentation
 and organizes them for GitHub Pages deployment.
 """
+
 import os
 import shutil
 import subprocess

@@ -77,8 +77,7 @@ typst_toctree_defaults = {
 typst_documents = [('index', 'index', 'Test', 'Author')]
 """
     (srcdir / "conf.py").write_text(conf_content)
-    (srcdir / "index.rst").write_text(
-        """
+    (srcdir / "index.rst").write_text("""
 Test Document
 =============
 
@@ -86,8 +85,7 @@ Test Document
    :maxdepth: 2
 
    chapter1
-"""
-    )
+""")
     (srcdir / "chapter1.rst").write_text("Chapter 1\n=========\n")
 
     app = make_app(srcdir=srcdir, buildername="typst")
@@ -123,8 +121,7 @@ typst_documents = [('index', 'index', 'Test', 'Author')]
     (srcdir / "conf.py").write_text(conf_content)
 
     # toctree with explicit maxdepth:2 (should override default maxdepth:4)
-    (srcdir / "index.rst").write_text(
-        """
+    (srcdir / "index.rst").write_text("""
 Test
 ====
 
@@ -133,8 +130,7 @@ Test
    :numbered:
 
    chapter1
-"""
-    )
+""")
     (srcdir / "chapter1.rst").write_text("Chapter\n=======\n")
 
     app = make_app(srcdir=srcdir, buildername="typst")
