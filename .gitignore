@@ -79,3 +79,6 @@ dist/
 # uv
 .uv/
 uv.lock
+
+# gsd-pi project-local npm global prefix (created by the flake devshell)
+/.gsd-pi/

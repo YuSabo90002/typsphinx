@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "gsd-workflow": {
+      "command": "/nix/store/scl9b1j2vsl07pp54ahy455232ka7bz5-nodejs-slim-24.16.0/bin/node",
+      "args": [
+        "/home/yuta/Documents/typsphinx/.gsd-pi/npm-global/lib/node_modules/@opengsd/gsd-pi/packages/mcp-server/dist/cli.js"
+      ],
+      "cwd": "/home/yuta/Documents/typsphinx",
+      "env": {
+        "GSD_CLI_PATH": "/home/yuta/Documents/typsphinx/.gsd-pi/npm-global/bin/gsd",
+        "GSD_BIN_PATH": "/home/yuta/Documents/typsphinx/.gsd-pi/npm-global/bin/gsd",
+        "GSD_WORKFLOW_EXECUTORS_MODULE": "/home/yuta/.gsd/agent/extensions/gsd/tools/workflow-tool-executors.js",
+        "GSD_WORKFLOW_WRITE_GATE_MODULE": "/home/yuta/.gsd/agent/extensions/gsd/bootstrap/write-gate.js",
+        "GSD_PERSIST_WRITE_GATE_STATE": "1",
+        "GSD_WORKFLOW_PROJECT_ROOT": "/home/yuta/Documents/typsphinx"
+      }
+    },
+    "gsd-browser": {
+      "command": "/nix/store/scl9b1j2vsl07pp54ahy455232ka7bz5-nodejs-slim-24.16.0/bin/node",
+      "args": [
+        "/home/yuta/Documents/typsphinx/.gsd-pi/npm-global/lib/node_modules/@opengsd/gsd-pi/node_modules/@opengsd/gsd-browser/bin/gsd-browser",
+        "mcp",
+        "--session",
+        "gsd-typsphinx-e3bd67cc",
+        "--identity-scope",
+        "project",
+        "--identity-key",
+        "gsd-typsphinx-e3bd67cc",
+        "--identity-project",
+        "gsd-typsphinx-e3bd67cc"
+      ],
+      "cwd": "/home/yuta/Documents/typsphinx"
+    }
+  }
+}
