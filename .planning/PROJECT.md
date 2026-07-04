@@ -22,6 +22,7 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 - ✓ Template engine: default template, custom templates, Typst Universe (`@preview/*`) package support — existing
 - ✓ Master vs. included document handling (`#include()`), image/asset copying, nested directory preservation — existing
 - ✓ i18n scaffolding (sphinx-intl), full pytest suite (~400 tests), tox-based lint/typecheck/coverage, GitHub Actions CI + docs + release workflows — existing
+- ✓ Runtime dependencies pinned to a reproducible known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`); `uv.lock` regenerated and committed; tree lint-clean (`black`/`ruff`) — Validated in Phase 1
 
 ### Active
 
@@ -30,7 +31,6 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 - [ ] All CI lint checks pass (`black --check`, ruff) on `main`
 - [ ] The full test matrix passes: the `unknown variable: kai` typst-compilation break is resolved by pinning to a known-good dependency combination
 - [ ] Coverage job passes; docs workflow produces a PDF and completes
-- [ ] Runtime dependencies pinned to a reproducible known-good set: `typst` back to a 0.14.x compatible with the bundled `@preview` packages (codly 1.3.0, codly-languages 0.1.1, mitex 0.2.4, gentle-clues 1.2.0), plus `sphinx`/`docutils` upper bounds
 - [ ] Supported Python range modernized to 3.10–3.13: `requires-python>=3.10`, drop EOL 3.9, add 3.13, CI matrix updated
 - [ ] Dev tooling modernized: Black/mypy target versions aligned to the new Python floor; CI action versions refreshed as needed
 
