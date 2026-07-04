@@ -60,10 +60,10 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that previously errored on a missing PDF.
   5. A new automated test asserts the `@preview` package versions declared in `writer.py`, `template_engine.py`, and `templates/base.typ` are identical, so a future desync fails CI loudly instead of silently.
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
+- [x] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
-| 2. Verify the Green Baseline | 0/2 | Not started | - |
+| 2. Verify the Green Baseline | 1/2 | In Progress|  |
 | 3. Modernize Python Floor (3.10-3.13) | 0/TBD | Not started | - |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Verify the Green Baseline
+current_phase: 02
+current_phase_name: verify-the-green-baseline
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-07-04T07:58:24.182Z"
+last_updated: "2026-07-04T08:22:23.580Z"
 last_activity: 2026-07-04
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 20
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-04)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 01 — pin-runtime-dependencies-to-known-good
+**Current focus:** Phase 02 — verify-the-green-baseline
 
 ## Current Position
 
-Phase: 2 — Verify the Green Baseline
-Plan: Not started
+Phase: 02 (verify-the-green-baseline) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-04 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-07-04 — Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 02 P01 | 5min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Pin runtime deps to known-good rather than port forward to sphinx 9 / typst 0.15 — fastest, lowest-risk path to green CI in a maintenance cycle.
 - [Pre-Phase 1]: Pin `typst` to a 0.14.x line compatible with the bundled `@preview` packages — the exact patch must be empirically confirmed during Phase 1 execution, not assumed.
 - [Pre-Phase 1]: Modernize Python floor to 3.10–3.13 (drop EOL 3.9, add 3.13) as an atomic batch in Phase 3, sequenced after the pin fix is confirmed green.
+- [Phase 02]: Scoped the @preview version-sync regex to actual #import statements only (not bare text matches) to avoid false-positive divergence from docstring examples — The naive regex matched a docstring example (charged-ieee) unrelated to the four essential imports
+- [Phase 02]: Substituted tox -e cov (system Python) for tox -e py311 in the local pre-check — NixOS cannot execute tox-uv's downloaded standalone CPython 3.11 build; unrelated to the Phase 1 pin; GitHub Actions runners are unaffected
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T05:36:12.779Z
+Last session: 2026-07-04T08:21:54.183Z
 Stopped at: Phase 1 context gathered
 Resume file: .planning/phases/01-pin-runtime-dependencies-to-known-good/01-CONTEXT.md

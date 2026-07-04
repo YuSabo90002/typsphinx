@@ -149,3 +149,10 @@ None - no external service configuration required.
 ---
 *Phase: 02-verify-the-green-baseline*
 *Completed: 2026-07-04*
+
+## Self-Check: PASSED
+
+- FOUND: tests/test_preview_version_sync.py
+- FOUND: .planning/phases/02-verify-the-green-baseline/02-01-SUMMARY.md
+- FOUND: e97cd43 (Task 1 commit)
+- FOUND: 4042930 (SUMMARY commit)
