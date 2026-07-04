@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: refresh-dev-tooling
-status: executing
+status: verifying
 stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-04T16:05:16.386Z"
+last_updated: "2026-07-04T16:19:34.812Z"
 last_activity: 2026-07-04
 last_activity_desc: Completed 04-01-PLAN.md
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
-  percent: 60
+  completed_plans: 11
+  percent: 80
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-04)
 
 Phase: 04 (refresh-dev-tooling) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-04 — Completed 04-01-PLAN.md
 
 Progress: [██████░░░░] 60%
@@ -64,6 +64,7 @@ Progress: [██████░░░░] 60%
 | Phase 04 P01 | 5min | 3 tasks | 3 files |
 | Phase 04 P02 | 8min | 2 tasks | 3 files |
 | Phase 04 P03 | 6min | 2 tasks | 2 files |
+| Phase 04 P04 | 40min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 04-02]: Bumped actions/upload-artifact@v5->v7 and actions/download-artifact@v6->v8 (node20->node24) uniformly across ci.yml/docs.yml/release.yml per D-03 amended; left the other four actions untouched — GitHub removes Node 20 from hosted runners 2026-09-16; runtime-verified via action.yml runs.using rather than trusting semver-major currency alone
 - [Phase 04-02]: softprops/action-gh-release@v2 confirmed node20 via runtime check (RESEARCH A2 straggler); recorded as tracked/deferred TOOL-02 item (v3 exists and is node24) rather than fixed in-scope, since Task 1 only authorized upload-artifact/download-artifact edits — Plan Task 2 explicitly requires recording, not silently closing, any A2 straggler found to be node20
 - [Phase 04-03]: Reused Phase 3/04-01's nix run nixpkgs#ruff local-execution workaround to verify the comment-only pyproject.toml edit was inert (NixOS cannot execute the uv-installed ruff binary directly)
+- [Phase ?]: [Phase 04-04]: Opened NEW PR #105 to main (base=main, head d99748d) via gh pr create rather than reopening closed PR #104 (owner decision); titled to reflect the full Phases 2-4 green-baseline integration
+- [Phase ?]: [Phase 04-04]: push->observe gate green — ci.yml run 28711976093 success (18 jobs, full 3.10-3.13 x 3-OS matrix + lint/type/coverage/build/integration) + docs.yml run 28711976097 success (incl. PDF step); developer approved the blocking human-verify gate
+- [Phase ?]: [Phase 04-04]: Repaired main branch protection via gh api PATCH — removed stale required check 'Test Python 3.9 on ubuntu-latest' (Phase-3 leftover, root cause of PR #105 being un-mergeable despite all jobs green) and added 'Test Python 3.13 on ubuntu-latest'; PR #105 now MERGEABLE/CLEAN. Repo-settings change not a git commit
 
 ### Pending Todos
 
@@ -99,6 +103,7 @@ None yet.
 - [Phase 1]: Whether the `sphinx<9` / `docutils<0.22` ceilings are load-bearing or purely precautionary is unconfirmed — resolve by testing whether `typst<0.15` alone is sufficient, and document the finding regardless (PIN-06).
 - [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. REMEDIATED 2026-07-04: both fixed in-batch (commits f2465ff, caf779d), re-pushed, ci.yml (18 jobs) + docs.yml both green on head caf779d. Still do not merge PR #104 -- pending the Task 3 human-verify checkpoint.
 - [Phase 04-02]: softprops/action-gh-release@v2 (docs.yml:67, release.yml:177/212) still declares runs.using: node20 -- ahead of GitHub's 2026-09-16 hosted-runner Node-20 removal. Out of 04-02's scope (Task 1 only authorized upload-artifact/download-artifact edits). Upstream @v3 is node24. Tracked/deferred candidate for Phase 5 (durability-guardrails) or a follow-up bump plan.
+- [Phase 04-04]: PR #105 (base=main, head d99748d) is MERGEABLE/CLEAN with ci.yml(18 jobs)+docs.yml green, but intentionally NOT merged — merge is a separate owner action. After merge owner closes dependabot #96/#97 (duplicate the 04-02 artifact bumps). Node-20 straggler softprops/action-gh-release@v2 carried to Phase 5 (@v3 is node24).
 
 ## Deferred Items
 
@@ -110,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T16:05:16.381Z
+Last session: 2026-07-04T16:19:10.801Z
 Stopped at: Completed 04-03-PLAN.md
 Resume file: None

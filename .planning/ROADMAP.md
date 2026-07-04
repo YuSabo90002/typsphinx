@@ -24,7 +24,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 - [x] **Phase 1: Pin Runtime Dependencies to Known-Good** - Pin typst/sphinx/docutils to a reproducible, mutually-compatible combination and make the tree lint-clean (completed 2026-07-04)
 - [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
 - [x] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch (completed 2026-07-04)
-- [ ] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions
+- [x] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions (completed 2026-07-04)
 - [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
 
 ## Phase Details
@@ -107,7 +107,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   2. GitHub Actions versions (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) are verified/refreshed for hosted-runner compatibility.
   3. CI remains green after the tooling refresh, with no regression introduced by any version bump.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1** *(parallel — no file overlap)*
 
@@ -120,7 +120,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 **Wave 3** *(terminal gate — blocked on 04-01/02/03)*
 
-- [ ] 04-04-PLAN.md — Push PR targeting main, observe ci.yml (3.10–3.13 matrix + lint/type/coverage/build/integration) + docs.yml green, human-verify gate (TOOL-01/TOOL-02; D-05/D-06)
+- [x] 04-04-PLAN.md — Push PR targeting main, observe ci.yml (3.10–3.13 matrix + lint/type/coverage/build/integration) + docs.yml green, human-verify gate (TOOL-01/TOOL-02; D-05/D-06)
 
 ### Phase 5: Durability Guardrails
 
@@ -146,7 +146,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
-| 4. Refresh Dev Tooling | 3/4 | In Progress|  |
+| 4. Refresh Dev Tooling | 4/4 | Complete   | 2026-07-04 |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
 
 ---
