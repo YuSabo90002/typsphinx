@@ -25,7 +25,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Tests & Coverage
 
-- [x] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range
+- [ ] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range <!-- BLOCKED (Phase 2 verify): 9/12 matrix jobs red — ci.yml runs `tox -e py3.10/3.11/3.12` but tox env_list defines dotless `py310` etc. (tox exit 254). Pre-existing (tox-migration 063a2be), unrelated to Phase 1 pin. Fix drafted on gsd/bugfix/github-ci-tox (64cd057). -->
 - [x] **TEST-02**: The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`)
 - [x] **TEST-03**: Coverage job passes and uploads to Codecov
 - [x] **TEST-04**: Type Check and Build Package jobs remain green (currently passing — must not regress)
@@ -93,7 +93,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PIN-06 | Phase 1 | Complete |
 | LINT-01 | Phase 1 | Complete |
 | LINT-02 | Phase 1 | Complete |
-| TEST-01 | Phase 2 | Complete |
+| TEST-01 | Phase 2 | Blocked |
 | TEST-02 | Phase 2 | Complete |
 | TEST-03 | Phase 2 | Complete |
 | TEST-04 | Phase 2 | Complete |
