@@ -85,35 +85,35 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PIN-01 | TBD | Pending |
-| PIN-02 | TBD | Pending |
-| PIN-03 | TBD | Pending |
-| PIN-04 | TBD | Pending |
-| PIN-05 | TBD | Pending |
-| PIN-06 | TBD | Pending |
-| LINT-01 | TBD | Pending |
-| LINT-02 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| DOCS-01 | TBD | Pending |
-| PYVER-01 | TBD | Pending |
-| PYVER-02 | TBD | Pending |
-| PYVER-03 | TBD | Pending |
-| PYVER-04 | TBD | Pending |
-| TOOL-01 | TBD | Pending |
-| TOOL-02 | TBD | Pending |
-| DUR-01 | TBD | Pending |
-| DUR-02 | TBD | Pending |
-| DUR-03 | TBD | Pending |
-| DUR-04 | TBD | Pending |
+| PIN-01 | Phase 1 | Pending |
+| PIN-02 | Phase 1 | Pending |
+| PIN-03 | Phase 1 | Pending |
+| PIN-04 | Phase 1 | Pending |
+| PIN-05 | Phase 1 | Pending |
+| PIN-06 | Phase 1 | Pending |
+| LINT-01 | Phase 1 | Pending |
+| LINT-02 | Phase 1 | Pending |
+| TEST-01 | Phase 2 | Pending |
+| TEST-02 | Phase 2 | Pending |
+| TEST-03 | Phase 2 | Pending |
+| TEST-04 | Phase 2 | Pending |
+| DOCS-01 | Phase 2 | Pending |
+| PYVER-01 | Phase 3 | Pending |
+| PYVER-02 | Phase 3 | Pending |
+| PYVER-03 | Phase 3 | Pending |
+| PYVER-04 | Phase 3 | Pending |
+| TOOL-01 | Phase 4 | Pending |
+| TOOL-02 | Phase 4 | Pending |
+| DUR-01 | Phase 5 | Pending |
+| DUR-02 | Phase 5 | Pending |
+| DUR-03 | Phase 5 | Pending |
+| DUR-04 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 23 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23 (5 phases: Phase 1 = 8, Phase 2 = 5, Phase 3 = 4, Phase 4 = 2, Phase 5 = 4)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-04*
-*Last updated: 2026-07-04 after initial definition*
+*Last updated: 2026-07-04 after roadmap creation — full requirement coverage mapped across 5 dependency-ordered phases*
