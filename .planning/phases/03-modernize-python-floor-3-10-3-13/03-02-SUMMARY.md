@@ -157,7 +157,7 @@ None beyond the two pre-identified RED jobs (both remediated; see Deviations abo
 
 - **PR:** https://github.com/YuSabo90002/typsphinx/pull/104 (OPEN, base `main`, head branch `gsd/phase-2-verify-green-baseline`)
 - **New head SHA:** `caf779da2e891d5a6cbd03a5bc87b802fe83540a`
-- **ci.yml run:** https://github.com/YuSabo90002/typsphinx/actions/runs/28709010375 — conclusion `success`; job-conclusion set `["success"]` across all 18 jobs:
+- **ci.yml run (remediation head, caf779d):** https://github.com/YuSabo90002/typsphinx/actions/runs/28709010375 — conclusion `success`; job-conclusion set `["success"]` across all 18 jobs:
   - 12 test-matrix jobs: Python 3.10/3.11/3.12/3.13 x ubuntu-latest/windows-latest/macos-latest — all `success`, including all three 3.13 lanes (ubuntu, windows, macos) confirming no 3.13 wheel-availability gap
   - Lint and Format Check — `success` (confirms no reformatting regression, D-03 remediation held)
   - Type Check — `success`
@@ -165,12 +165,13 @@ None beyond the two pre-identified RED jobs (both remediated; see Deviations abo
   - Build Package — `success`
   - Integration Test - basic — `success`
   - Integration Test - advanced — `success`
-- **docs.yml run:** https://github.com/YuSabo90002/typsphinx/actions/runs/28709010382 — conclusion `success`; job-conclusion set `["success"]`; `build-docs` job green including the HTML multi-lang build, the PDF build, and the PDF-copy step, all on the Python 3.10 floor (tomli backport confirmed working in CI, not just locally)
+- **docs.yml run (remediation head, caf779d):** https://github.com/YuSabo90002/typsphinx/actions/runs/28709010382 — conclusion `success`; job-conclusion set `["success"]`; `build-docs` job green including the HTML multi-lang build, the PDF build, and the PDF-copy step, all on the Python 3.10 floor (tomli backport confirmed working in CI, not just locally)
 - **release.yml:** not exercised by this PR (tag-push only trigger), per plan — validated by diff-read in Plan 01/03-VALIDATION.md, unchanged by this remediation
+- **Current PR head (5d8e78a, after the docs-only SUMMARY.md/STATE.md commits):** re-fired both workflows automatically on push; re-confirmed green — ci.yml run https://github.com/YuSabo90002/typsphinx/actions/runs/28709196658 (`["success"]`, all 18 jobs) and docs.yml run https://github.com/YuSabo90002/typsphinx/actions/runs/28709196655 (`["success"]`). The PR's current Checks tab reflects this head.
 
 ## PR Diff Scope Note
 
-The PR (`origin/main...caf779d`) carries the full Phase 2 + Phase 3 work since it reuses the `gsd/phase-2-verify-green-baseline` branch (previously logged Option-2 deviation). Within Phase 3's own contribution, the touched surfaces are:
+The PR (`origin/main...caf779d`, code-complete at that commit; `5d8e78a` adds only this SUMMARY.md + STATE.md on top) carries the full Phase 2 + Phase 3 work since it reuses the `gsd/phase-2-verify-green-baseline` branch (previously logged Option-2 deviation). Within Phase 3's own contribution, the touched surfaces are:
 - The six Python-floor config surfaces from Plan 01: `pyproject.toml`, `uv.lock`, `tox.ini`, `.github/workflows/ci.yml`, `.github/workflows/docs.yml`, `.github/workflows/release.yml`
 - Plus this plan's in-batch remediation: `typsphinx/builder.py`, `typsphinx/pdf.py`, `typsphinx/template_engine.py`, `typsphinx/translator.py`, `tests/test_entry_points.py`, `docs/source/conf.py` (annotation modernization and the tomli backport — required to make the floor bump CI-green, not scope creep)
 No unrelated dependency or GitHub Action version bumps rode along in `uv.lock` (verified via `git diff uv.lock` — only the tomli dependency edge was added).
@@ -181,7 +182,7 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 
-- CI is fully green on PR #104's current head (`caf779d`) across the entire 3.10-3.13 matrix plus lint/type-check/coverage/build/integration/docs
+- CI is fully green on PR #104's current head (`5d8e78a`) across the entire 3.10-3.13 matrix plus lint/type-check/coverage/build/integration/docs
 - The PR is NOT merged and Phase 3 is NOT marked done — both are gated on the Task 3 human-verify checkpoint (see below)
 - Once approved, the developer (not this agent) should merge the PR; `release.yml`'s floor reconciliation only fires on the next real `v*` tag push
 
