@@ -82,3 +82,7 @@ uv.lock
 
 # gsd-pi project-local npm global prefix (created by the flake devshell)
 /.gsd-pi/
+
+# GSD (Get Shit Done) — installed per-developer via `npx gsd-core`.
+# The install bakes machine-specific absolute paths, so it stays local.
+.claude/
