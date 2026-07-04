@@ -1668,6 +1668,7 @@ docs = [
     { name = "furo" },
     { name = "sphinx-autodoc-typehints" },
     { name = "sphinx-intl" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 
 [package.dev-dependencies]
@@ -1689,6 +1690,7 @@ requires-dist = [
     { name = "sphinx", specifier = ">=5.0,<9" },
     { name = "sphinx-autodoc-typehints", marker = "extra == 'docs'", specifier = ">=1.0" },
     { name = "sphinx-intl", marker = "extra == 'docs'", specifier = ">=2.0" },
+    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'docs'", specifier = ">=2.0" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "tox-uv", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=5.0" },
