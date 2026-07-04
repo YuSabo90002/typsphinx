@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 3
-current_phase_name: 3.10-3.13
+current_phase: 03
+current_phase_name: modernize-python-floor-3-10-3-13
 status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-07-04T10:33:25.890Z"
+last_updated: "2026-07-04T10:55:22.842Z"
 last_activity: 2026-07-04
-last_activity_desc: Phase 02 complete, transitioned to Phase 3
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
   percent: 40
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-04)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 02 — verify-the-green-baseline
+**Current focus:** Phase 03 — modernize-python-floor-3-10-3-13
 
 ## Current Position
 
-Phase: 3 — Modernize Python Floor (3.10-3.13)
-Plan: Not started
+Phase: 03 (modernize-python-floor-3-10-3-13) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-04 — Phase 02 complete, transitioned to Phase 3
+Last activity: 2026-07-04 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 5min | 2 tasks | 1 files |
 | Phase 02 P02 | 8min | 3 tasks | 1 files |
 | Phase 02 P03 | 6min | 4 tasks | 2 files |
+| Phase 03 P01 | 6min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Auto-fixed a black-formatting bug in Plan 01's sync-guard test (Rule 1) to unblock the Lint job, but left the pre-existing tox env-name mismatch (py3.10 vs py310, 9/12 matrix jobs) unpatched per D-04, surfacing it as a finding with a ready but unmerged fix on gsd/bugfix/github-ci-tox
 - [Phase 02]: Applied the drafted tox-env matrix-mapping fix via git cherry-pick (64cd057) from gsd/bugfix/github-ci-tox rather than reimplementing by hand
 - [Phase 02]: Left the CODECOV_TOKEN-absent codecov tokenless-upload failure unaddressed as pre-existing and out of scope (fail_ci_if_error: false keeps the job green)
+- [Phase 03]: Ran plain uv lock (no --upgrade); verified the diff was only the <3.10 marker-branch collapse + incidental chardet drop, no unrelated version bumps
+- [Phase 03]: black --check . confirmed a no-op both before and after the target-version bump to py310-py313 (D-03 does not trigger); no separate reformat commit needed
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T10:05:08.811Z
+Last session: 2026-07-04T10:54:11.866Z
 Stopped at: Phase 3 context gathered
 Resume file: .planning/phases/03-modernize-python-floor-3-10-3-13/03-CONTEXT.md

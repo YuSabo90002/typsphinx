@@ -38,10 +38,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 <!-- Scope: modernize the Python floor to 3.10–3.13. -->
 
-- [ ] **PYVER-01**: `requires-python` set to `>=3.10`; PyPI classifiers updated (drop 3.9, add 3.13)
-- [ ] **PYVER-02**: CI matrix updated to Python 3.10–3.13; hardcoded `uv python install 3.11` (and similar) lines across `ci.yml`/`docs.yml`/`release.yml` reconciled with the floor
-- [ ] **PYVER-03**: `[tool.black] target-version`, `[tool.ruff] target-version`, and `[tool.mypy] python_version` aligned to the 3.10 floor (removes the "3.11 cannot parse code formatted for 3.12" class of failure)
-- [ ] **PYVER-04**: `tox.ini` `env_list` updated to 3.10–3.13 in lockstep with the CI matrix
+- [x] **PYVER-01**: `requires-python` set to `>=3.10`; PyPI classifiers updated (drop 3.9, add 3.13)
+- [x] **PYVER-02**: CI matrix updated to Python 3.10–3.13; hardcoded `uv python install 3.11` (and similar) lines across `ci.yml`/`docs.yml`/`release.yml` reconciled with the floor
+- [x] **PYVER-03**: `[tool.black] target-version`, `[tool.ruff] target-version`, and `[tool.mypy] python_version` aligned to the 3.10 floor (removes the "3.11 cannot parse code formatted for 3.12" class of failure)
+- [x] **PYVER-04**: `tox.ini` `env_list` updated to 3.10–3.13 in lockstep with the CI matrix
 
 ### Dev Tooling
 
@@ -98,10 +98,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TEST-03 | Phase 2 | Complete |
 | TEST-04 | Phase 2 | Complete |
 | DOCS-01 | Phase 2 | Complete |
-| PYVER-01 | Phase 3 | Pending |
-| PYVER-02 | Phase 3 | Pending |
-| PYVER-03 | Phase 3 | Pending |
-| PYVER-04 | Phase 3 | Pending |
+| PYVER-01 | Phase 3 | Complete |
+| PYVER-02 | Phase 3 | Complete |
+| PYVER-03 | Phase 3 | Complete |
+| PYVER-04 | Phase 3 | Complete |
 | TOOL-01 | Phase 4 | Pending |
 | TOOL-02 | Phase 4 | Pending |
 | DUR-01 | Phase 5 | Pending |

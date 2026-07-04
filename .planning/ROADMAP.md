@@ -86,11 +86,11 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `tox.ini`'s `env_list` is updated to `py310, py311, py312, py313` in lockstep with the CI matrix (no tox env without a CI caller, and vice versa).
   5. The full CI matrix is green again on 3.10-3.13, confirming no reformatting regression or 3.13 wheel-availability gap in dev/docs dependencies.
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Edit all six Python-floor config surfaces as three per-surface commits: pyproject.toml (requires-python >=3.10 + classifiers 3.9→3.13 + black/ruff/mypy target-versions) & regenerated uv.lock, tox.ini env_list py310-py313, and ci.yml/docs.yml/release.yml (matrix 3.10-3.13 + single-version pins → 3.10) (PYVER-01/02/03/04)
+- [x] 03-01-PLAN.md — Edit all six Python-floor config surfaces as three per-surface commits: pyproject.toml (requires-python >=3.10 + classifiers 3.9→3.13 + black/ruff/mypy target-versions) & regenerated uv.lock, tox.ini env_list py310-py313, and ci.yml/docs.yml/release.yml (matrix 3.10-3.13 + single-version pins → 3.10) (PYVER-01/02/03/04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
-| 3. Modernize Python Floor (3.10-3.13) | 0/2 | Not started | - |
+| 3. Modernize Python Floor (3.10-3.13) | 1/2 | In Progress|  |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
 
