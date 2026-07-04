@@ -22,7 +22,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Pin Runtime Dependencies to Known-Good** - Pin typst/sphinx/docutils to a reproducible, mutually-compatible combination and make the tree lint-clean (completed 2026-07-04)
-- [ ] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync
+- [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
 - [ ] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch
 - [ ] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions
 - [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
@@ -60,14 +60,14 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that previously errored on a missing PDF.
   5. A new automated test asserts the `@preview` package versions declared in `writer.py`, `template_engine.py`, and `templates/base.typ` are identical, so a future desync fails CI loudly instead of silently.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 **Wave 1**
 
 - [x] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Push a work branch + PR targeting main and observe ci.yml (12 matrix jobs + lint/type/coverage/build/integration) and docs.yml (end-to-end incl. PDF-copy) green (D-01/D-02)
+- [x] 02-02-PLAN.md — Push a work branch + PR targeting main and observe ci.yml (12 matrix jobs + lint/type/coverage/build/integration) and docs.yml (end-to-end incl. PDF-copy) green (D-01/D-02)
 
 ### Phase 3: Modernize Python Floor (3.10-3.13)
 
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
-| 2. Verify the Green Baseline | 1/2 | In Progress|  |
+| 2. Verify the Green Baseline | 2/2 | Complete   | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 0/TBD | Not started | - |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |

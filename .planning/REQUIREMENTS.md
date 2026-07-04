@@ -25,14 +25,14 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Tests & Coverage
 
-- [ ] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range
-- [ ] **TEST-02**: The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`)
-- [ ] **TEST-03**: Coverage job passes and uploads to Codecov
-- [ ] **TEST-04**: Type Check and Build Package jobs remain green (currently passing — must not regress)
+- [x] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range
+- [x] **TEST-02**: The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`)
+- [x] **TEST-03**: Coverage job passes and uploads to Codecov
+- [x] **TEST-04**: Type Check and Build Package jobs remain green (currently passing — must not regress)
 
 ### Docs Build
 
-- [ ] **DOCS-01**: `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that currently errors on a missing PDF
+- [x] **DOCS-01**: `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that currently errors on a missing PDF
 
 ### Python Modernization
 
@@ -93,11 +93,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PIN-06 | Phase 1 | Complete |
 | LINT-01 | Phase 1 | Complete |
 | LINT-02 | Phase 1 | Complete |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2 | Pending |
-| TEST-03 | Phase 2 | Pending |
-| TEST-04 | Phase 2 | Pending |
-| DOCS-01 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | Complete |
+| TEST-02 | Phase 2 | Complete |
+| TEST-03 | Phase 2 | Complete |
+| TEST-04 | Phase 2 | Complete |
+| DOCS-01 | Phase 2 | Complete |
 | PYVER-01 | Phase 3 | Pending |
 | PYVER-02 | Phase 3 | Pending |
 | PYVER-03 | Phase 3 | Pending |
