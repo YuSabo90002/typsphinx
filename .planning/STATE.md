@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Refresh Dev Tooling
+current_phase: 04
+current_phase_name: refresh-dev-tooling
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-07-04T14:51:51.270Z"
+last_updated: "2026-07-04T15:54:13.673Z"
 last_activity: 2026-07-04
-last_activity_desc: Phase 03 complete, transitioned to Phase 4
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
   percent: 60
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-04)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 03 — modernize-python-floor-3-10-3-13
+**Current focus:** Phase 04 — refresh-dev-tooling
 
 ## Current Position
 
-Phase: 4 — Refresh Dev Tooling
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-04 — Phase 03 complete, transitioned to Phase 4
+Phase: 04 (refresh-dev-tooling) — EXECUTING
+Plan: 2 of 4
+Status: Executing Phase 04 (Plan 1 of 4 complete)
+Last activity: 2026-07-04 — Completed 04-01-PLAN.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P02 | 8min | 3 tasks | 1 files |
 | Phase 02 P03 | 6min | 4 tasks | 2 files |
 | Phase 03 P01 | 6min | 3 tasks | 6 files |
+| Phase 04 P01 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Ran plain uv lock (no --upgrade); verified the diff was only the <3.10 marker-branch collapse + incidental chardet drop, no unrelated version bumps
 - [Phase 03]: black --check . confirmed a no-op both before and after the target-version bump to py310-py313 (D-03 does not trigger); no separate reformat commit needed
 - [Phase 03-02]: Fixed both RED CI jobs in-batch on PR #104: ruff pyupgrade modernization (UP045/UP007/B905 strict=False/UP036) across translator.py/builder.py/pdf.py/template_engine.py/test_entry_points.py, and a tomllib->tomli backport in docs/source/conf.py + pyproject.toml docs group for the 3.10 docs floor — docs.yml setup-python floor drop (3.11->3.10) broke tomllib import; ruff target-version py39->py310 unlocked pyupgrade rules. Re-pushed to PR #104; ci.yml (18 jobs) and docs.yml both green on head caf779d. PR still open pending Task 3 human-verify.
+- [Phase 04-01]: D-01/D-02/D-02b/D-07/D-08 applied verbatim in 04-01: floor+ceiling bounds for pytest/tox/tox-uv/black/ruff/mypy across pyproject.toml+tox.ini
+- [Phase 04-01]: tox.ini [tox] requires uses tox-uv~=1.35 (not literal >=1.35,<2) -- tox ini-list loader splits single-entry requires values on comma, misparsing the ceiling; ~=1.35 is packaging-spec-equivalent and comma-free
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T14:51:51.266Z
+Last session: 2026-07-04T15:50:07.299Z
 Stopped at: Phase 4 context gathered
 Resume file: .planning/phases/04-refresh-dev-tooling/04-CONTEXT.md
