@@ -6,7 +6,7 @@ current_phase: 03
 current_phase_name: modernize-python-floor-3-10-3-13
 status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-07-04T11:08:20.216Z"
+last_updated: "2026-07-04T14:23:53.687Z"
 last_activity: 2026-07-04
 last_activity_desc: Phase 03 execution started
 progress:
@@ -78,6 +78,7 @@ Recent decisions affecting current work:
 - [Phase 02]: Left the CODECOV_TOKEN-absent codecov tokenless-upload failure unaddressed as pre-existing and out of scope (fail_ci_if_error: false keeps the job green)
 - [Phase 03]: Ran plain uv lock (no --upgrade); verified the diff was only the <3.10 marker-branch collapse + incidental chardet drop, no unrelated version bumps
 - [Phase 03]: black --check . confirmed a no-op both before and after the target-version bump to py310-py313 (D-03 does not trigger); no separate reformat commit needed
+- [Phase 03-02]: Fixed both RED CI jobs in-batch on PR #104: ruff pyupgrade modernization (UP045/UP007/B905 strict=False/UP036) across translator.py/builder.py/pdf.py/template_engine.py/test_entry_points.py, and a tomllib->tomli backport in docs/source/conf.py + pyproject.toml docs group for the 3.10 docs floor — docs.yml setup-python floor drop (3.11->3.10) broke tomllib import; ruff target-version py39->py310 unlocked pyupgrade rules. Re-pushed to PR #104; ci.yml (18 jobs) and docs.yml both green on head caf779d. PR still open pending Task 3 human-verify.
 
 ### Pending Todos
 
@@ -87,7 +88,7 @@ None yet.
 
 - [Phase 1]: The exact typst 0.14.x patch that satisfies all four bundled `@preview` packages (codly, codly-languages, mitex, gentle-clues) simultaneously is not yet empirically confirmed — this is Phase 1's core deliverable, not a research-time conclusion. If no single 0.14.x version satisfies all four, the documented fallback is pinning one `@preview` package to an older release instead of moving the typst pin.
 - [Phase 1]: Whether the `sphinx<9` / `docutils<0.22` ceilings are load-bearing or purely precautionary is unconfirmed — resolve by testing whether `typst<0.15` alone is sufficient, and document the finding regardless (PIN-06).
-- [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. Both need remediation before Phase 3 can be marked done. Do not merge PR #104.
+- [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. REMEDIATED 2026-07-04: both fixed in-batch (commits f2465ff, caf779d), re-pushed, ci.yml (18 jobs) + docs.yml both green on head caf779d. Still do not merge PR #104 -- pending the Task 3 human-verify checkpoint.
 
 ## Deferred Items
 
@@ -99,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T10:54:11.866Z
+Last session: 2026-07-04T14:23:03.831Z
 Stopped at: Phase 3 context gathered
 Resume file: .planning/phases/03-modernize-python-floor-3-10-3-13/03-CONTEXT.md
