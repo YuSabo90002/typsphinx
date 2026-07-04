@@ -77,12 +77,10 @@ def test_preview_versions_identical_across_declaration_sites():
         if len(set(per_file_versions.values())) > 1:
             divergences.append((package, per_file_versions))
 
-    assert not divergences, (
-        "@preview version desync detected across declaration sites: "
-        + "; ".join(
-            f"{package}: {per_file_versions}"
-            for package, per_file_versions in divergences
-        )
+    assert (
+        not divergences
+    ), "@preview version desync detected across declaration sites: " + "; ".join(
+        f"{package}: {per_file_versions}" for package, per_file_versions in divergences
     )
 
 
