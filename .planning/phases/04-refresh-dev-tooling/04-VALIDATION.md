@@ -1,8 +1,8 @@
 ---
 phase: 4
 slug: refresh-dev-tooling
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-05
 ---
@@ -85,11 +85,11 @@ resolution step (`uv lock`) and the existing CI jobs (`tests/`, `tox.ini` envs,
 
 ## Validation Sign-Off
 
-- [ ] All requirements have an `<automated>` verify or CI-observation path
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (N/A — no Wave 0 gaps)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s (local pre-check)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All requirements have an `<automated>` verify or CI-observation path
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (N/A — no Wave 0 gaps)
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s (local pre-check)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-05

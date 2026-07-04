@@ -277,19 +277,23 @@ git diff uv.lock   # review before committing; should show only entries tied to 
 
 **If this table is empty:** N/A — see entries above; both are LOW/LOW-MEDIUM risk and independently guarded by the D-05 observed-CI gate.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Should `actions/upload-artifact`/`download-artifact` be bumped in this phase, given D-03 locked "no yaml edits"?**
+> All three resolved 2026-07-05 (user-confirmed, recorded in CONTEXT.md): **OQ1 → bump
+> both artifact actions now in Phase 4** (D-03 AMENDED); **OQ2 → tox-uv IS in scope**
+> (`tox-uv>=1.35,<2`, D-07); **OQ3 → keep mypy's literal `>=1.13,<3.0` floor** (D-08).
+
+1. **[RESOLVED → D-03 AMENDED] Should `actions/upload-artifact`/`download-artifact` be bumped in this phase, given D-03 locked "no yaml edits"?**
    - What we know: D-03's stated premise ("already at latest majors") is empirically false for these two actions specifically, and both currently run on a Node runtime GitHub is actively sunsetting within this project's active window (removed 2026-09-16).
    - What's unclear: Whether the user, on seeing this new evidence, wants to (a) amend D-03 to carve out these two actions for this phase (still "conservative" — it's a drop-in major bump with no reported breaking changes for this repo's usage pattern), or (b) explicitly defer even this to Phase 5 alongside SHA-pinning, accepting the Sept-2026 Node-20-removal risk as a known, tracked item.
    - Recommendation: Surface this to the user/planner before finalizing PLAN.md — this is new factual information CONTEXT.md's author didn't have (or the live check would have caught it). A `checkpoint:human-verify`-style confirmation, or a quick re-touch of discuss-phase, fits the project's established pattern of treating locked decisions as revisable when new evidence emerges (c.f. Phase 3's mid-batch ruff/tomllib fixes).
 
-2. **Is `tox-uv` in scope for the floor+ceiling treatment (D-02), given it has its own tox.ini↔pyproject mirror point?**
+2. **[RESOLVED → D-07: in scope, `tox-uv>=1.35,<2`] Is `tox-uv` in scope for the floor+ceiling treatment (D-02), given it has its own tox.ini↔pyproject mirror point?**
    - What we know: `tox-uv>=1.0` is declared in both `pyproject.toml [dev]` and `tox.ini`'s `[tox] requires`, resolved at 1.35.2, and is the actual mechanism (`uv-venv-lock-runner`) every other bumped tool depends on.
    - What's unclear: D-02's literal wording only names "black, ruff, tox" — tox-uv is arguably "part of tox's operation" or arguably "a separate, unnamed package."
    - Recommendation: Planner picks; leaning toward including it (`tox-uv>=1.35,<2`) for consistency with the anti-drift theme, since leaving it as a bare `>=1.0` floor while everything else gets a ceiling is an odd asymmetry — but this is genuinely Claude's-Discretion-shaped, not a hard finding.
 
-3. **Should mypy's pyproject/tox.ini floor be raised to `>=2` (matching the resolved 2.1.0, consistent with how black/ruff/tox's floors were raised) or kept at the literal `>=1.13` D-01 specifies?**
+3. **[RESOLVED → D-08: keep literal `mypy>=1.13,<3.0`, floor NOT raised to `>=2`] Should mypy's pyproject/tox.ini floor be raised to `>=2` (matching the resolved 2.1.0, consistent with how black/ruff/tox's floors were raised) or kept at the literal `>=1.13` D-01 specifies?**
    - What we know: D-01 gives one exact syntax, `mypy>=1.13,<3.0`, not `mypy>=2,<3`. For pytest, D-01 explicitly offers both a keep-original-floor option (`>=8.4,<10`) and a raise-to-resolved-major option (`>=9,<10`) — for mypy only the keep-original-floor form is given.
    - What's unclear: Whether the omission of a `>=2,<3` alternative for mypy is deliberate (mypy's floor was already close to current, no need to raise it) or an oversight of CONTEXT.md's drafting.
    - Recommendation: Follow D-01's literal syntax (`mypy>=1.13,<3.0`) since it's the one concretely specified boundary in the locked decision — but planner should still verify this doesn't create tension with D-02's general "floor-at-resolved" framing before treating it as final.
