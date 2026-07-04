@@ -7,7 +7,7 @@ for Typst documents (Requirement 8).
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -40,15 +40,15 @@ class TemplateEngine:
 
     def __init__(
         self,
-        template_path: Optional[str] = None,
-        template_name: Optional[str] = None,
-        search_paths: Optional[List[str]] = None,
-        parameter_mapping: Optional[Dict[str, str]] = None,
-        typst_package: Optional[str] = None,
-        typst_template_function: Optional[Any] = None,
-        typst_package_imports: Optional[List[str]] = None,
-        typst_authors: Optional[Dict[str, Dict[str, Any]]] = None,
-        typst_author_params: Optional[Dict[str, Dict[str, Any]]] = None,
+        template_path: str | None = None,
+        template_name: str | None = None,
+        search_paths: List[str] | None = None,
+        parameter_mapping: Dict[str, str] | None = None,
+        typst_package: str | None = None,
+        typst_template_function: Any | None = None,
+        typst_package_imports: List[str] | None = None,
+        typst_authors: Dict[str, Dict[str, Any]] | None = None,
+        typst_author_params: Dict[str, Dict[str, Any]] | None = None,
     ):
         """
         Initialize TemplateEngine.
@@ -404,7 +404,7 @@ class TemplateEngine:
         else:
             return (str(author_value),)
 
-    def _try_load_file(self, file_path: str) -> Optional[str]:
+    def _try_load_file(self, file_path: str) -> str | None:
         """
         Try to load content from file.
 
@@ -420,7 +420,7 @@ class TemplateEngine:
         except (FileNotFoundError, OSError):
             return None
 
-    def _format_authors_with_details(self, authors: Optional[tuple] = None) -> str:
+    def _format_authors_with_details(self, authors: tuple | None = None) -> str:
         """
         Format authors with detailed information as Typst dict tuple.
 

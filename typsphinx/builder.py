@@ -8,7 +8,7 @@ building Typst output from Sphinx documentation.
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Optional, Set
+from typing import Set
 
 from docutils import nodes
 from sphinx.builders import Builder
@@ -57,7 +57,7 @@ class TypstBuilder(Builder):
         for docname in self.env.found_docs:
             yield docname
 
-    def get_target_uri(self, docname: str, typ: Optional[str] = None) -> str:
+    def get_target_uri(self, docname: str, typ: str | None = None) -> str:
         """
         Return the target URI for a document.
 
@@ -88,7 +88,7 @@ class TypstBuilder(Builder):
 
     def write(
         self,
-        build_docnames: Optional[Set[str]],
+        build_docnames: Set[str] | None,
         updated_docnames: Set[str],
         method: str = "update",
     ) -> None:
