@@ -23,7 +23,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 - [x] **Phase 1: Pin Runtime Dependencies to Known-Good** - Pin typst/sphinx/docutils to a reproducible, mutually-compatible combination and make the tree lint-clean (completed 2026-07-04)
 - [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
-- [ ] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch
+- [x] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch (completed 2026-07-04)
 - [ ] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions
 - [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
 
@@ -86,7 +86,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `tox.ini`'s `env_list` is updated to `py310, py311, py312, py313` in lockstep with the CI matrix (no tox env without a CI caller, and vice versa).
   5. The full CI matrix is green again on 3.10-3.13, confirming no reformatting regression or 3.13 wheel-availability gap in dev/docs dependencies.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 **Wave 1**
 
@@ -94,7 +94,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — Push the Phase 3 branch + open a PR targeting main and observe the full ci.yml matrix (3.10-3.13) + docs.yml green (push→observe = done; PYVER-02, SC5)
+- [x] 03-02-PLAN.md — Push the Phase 3 branch + open a PR targeting main and observe the full ci.yml matrix (3.10-3.13) + docs.yml green (push→observe = done; PYVER-02, SC5)
 
 ### Phase 4: Refresh Dev Tooling
 
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
-| 3. Modernize Python Floor (3.10-3.13) | 1/2 | In Progress|  |
+| 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
 
