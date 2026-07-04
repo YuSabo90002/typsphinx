@@ -6,7 +6,7 @@ current_phase: 03
 current_phase_name: modernize-python-floor-3-10-3-13
 status: executing
 stopped_at: Phase 3 context gathered
-last_updated: "2026-07-04T10:55:22.842Z"
+last_updated: "2026-07-04T11:08:20.216Z"
 last_activity: 2026-07-04
 last_activity_desc: Phase 03 execution started
 progress:
@@ -87,6 +87,7 @@ None yet.
 
 - [Phase 1]: The exact typst 0.14.x patch that satisfies all four bundled `@preview` packages (codly, codly-languages, mitex, gentle-clues) simultaneously is not yet empirically confirmed — this is Phase 1's core deliverable, not a research-time conclusion. If no single 0.14.x version satisfies all four, the documented fallback is pinning one `@preview` package to an older release instead of moving the typst pin.
 - [Phase 1]: Whether the `sphinx<9` / `docutils<0.22` ceilings are load-bearing or purely precautionary is unconfirmed — resolve by testing whether `typst<0.15` alone is sufficient, and document the finding regardless (PIN-06).
+- [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. Both need remediation before Phase 3 can be marked done. Do not merge PR #104.
 
 ## Deferred Items
 
