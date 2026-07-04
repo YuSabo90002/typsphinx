@@ -60,7 +60,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that previously errored on a missing PDF.
   5. A new automated test asserts the `@preview` package versions declared in `writer.py`, `template_engine.py`, and `templates/base.typ` are identical, so a future desync fails CI loudly instead of silently.
 
-**Plans**: 3 plans (2 complete, 1 gap-closure pending)
+**Plans**: 3/3 plans complete
 **Wave 1**
 
 - [x] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
@@ -71,7 +71,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 **Wave 3** *(gap closure — blocked on Wave 2 completion)*
 
-- [ ] 02-03-PLAN.md — Apply the tox-env matrix-mapping fix to ci.yml, re-push onto PR #104, observe all 12 matrix jobs green, and re-mark TEST-01 Complete (TEST-01; D-01/D-04)
+- [x] 02-03-PLAN.md — Apply the tox-env matrix-mapping fix to ci.yml, re-push onto PR #104, observe all 12 matrix jobs green, and re-mark TEST-01 Complete (TEST-01; D-01/D-04)
 
 ### Phase 3: Modernize Python Floor (3.10-3.13)
 
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
-| 2. Verify the Green Baseline | 2/2 | Complete   | 2026-07-04 |
+| 2. Verify the Green Baseline | 3/3 | Complete   | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 0/TBD | Not started | - |
 | 4. Refresh Dev Tooling | 0/TBD | Not started | - |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
