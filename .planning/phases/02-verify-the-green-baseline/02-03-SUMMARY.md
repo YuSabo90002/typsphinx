@@ -131,3 +131,12 @@ None - no external service configuration required for this plan. (Note: adding a
 ---
 *Phase: 02-verify-the-green-baseline*
 *Completed: 2026-07-04*
+
+## Self-Check: PASSED
+
+- FOUND: .github/workflows/ci.yml
+- FOUND: .planning/REQUIREMENTS.md
+- FOUND: .planning/phases/02-verify-the-green-baseline/02-03-SUMMARY.md
+- FOUND commit: 3e3acdf (Task 1: ci.yml tox-env matrix-mapping fix, cherry-picked)
+- FOUND commit: fbf02c9 (Task 4: REQUIREMENTS.md TEST-01 re-mark)
+- FOUND commit: fc07a19 (SUMMARY.md)
