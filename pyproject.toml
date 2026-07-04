@@ -34,13 +34,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
+    "pytest>=8.4,<10",
     "pytest-cov>=4.0",
-    "tox>=4.0",
-    "tox-uv>=1.0",
-    "black>=23.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0",
+    "tox>=4.56,<5",
+    "tox-uv>=1.35,<2",
+    "black>=26,<27",
+    "ruff>=0.15,<0.16",
+    "mypy>=1.13,<3.0",
     "pre-commit>=3.0",
     "types-docutils>=0.18",
     "twine>=5.0",
