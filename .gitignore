@@ -78,7 +78,7 @@ dist/
 
 # uv
 .uv/
-uv.lock
+# uv.lock is tracked (PIN-03): the committed lock is the reproducibility source of truth
 
 # gsd-pi project-local npm global prefix (created by the flake devshell)
 /.gsd-pi/
