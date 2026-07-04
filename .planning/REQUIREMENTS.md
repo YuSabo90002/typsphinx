@@ -46,7 +46,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Dev Tooling
 
 - [x] **TOOL-01**: Dev-tooling floors refreshed conservatively — bump black/ruff/tox; stay on `pytest~=8.4` and `mypy>=1.13,<2.0` this cycle to avoid risky default flips
-- [ ] **TOOL-02**: GitHub Actions versions verified/refreshed (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) against hosted-runner compatibility
+- [x] **TOOL-02**: GitHub Actions versions verified/refreshed (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) against hosted-runner compatibility
 
 ### Durability Guardrails
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PYVER-03 | Phase 3 | Complete |
 | PYVER-04 | Phase 3 | Complete |
 | TOOL-01 | Phase 4 | Complete |
-| TOOL-02 | Phase 4 | Pending |
+| TOOL-02 | Phase 4 | Complete |
 | DUR-01 | Phase 5 | Pending |
 | DUR-02 | Phase 5 | Pending |
 | DUR-03 | Phase 5 | Pending |

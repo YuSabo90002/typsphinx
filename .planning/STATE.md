@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: refresh-dev-tooling
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-07-04T15:54:13.673Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-07-04T15:59:57.153Z"
 last_activity: 2026-07-04
-last_activity_desc: Phase 04 execution started
+last_activity_desc: Completed 04-01-PLAN.md
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
   percent: 60
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-04)
 ## Current Position
 
 Phase: 04 (refresh-dev-tooling) — EXECUTING
-Plan: 2 of 4
-Status: Executing Phase 04 (Plan 1 of 4 complete)
+Plan: 3 of 4
+Status: Ready to execute
 Last activity: 2026-07-04 — Completed 04-01-PLAN.md
 
 Progress: [██████░░░░] 60%
@@ -62,6 +62,7 @@ Progress: [██████░░░░] 60%
 | Phase 02 P03 | 6min | 4 tasks | 2 files |
 | Phase 03 P01 | 6min | 3 tasks | 6 files |
 | Phase 04 P01 | 5min | 3 tasks | 3 files |
+| Phase 04 P02 | 8min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 03-02]: Fixed both RED CI jobs in-batch on PR #104: ruff pyupgrade modernization (UP045/UP007/B905 strict=False/UP036) across translator.py/builder.py/pdf.py/template_engine.py/test_entry_points.py, and a tomllib->tomli backport in docs/source/conf.py + pyproject.toml docs group for the 3.10 docs floor — docs.yml setup-python floor drop (3.11->3.10) broke tomllib import; ruff target-version py39->py310 unlocked pyupgrade rules. Re-pushed to PR #104; ci.yml (18 jobs) and docs.yml both green on head caf779d. PR still open pending Task 3 human-verify.
 - [Phase 04-01]: D-01/D-02/D-02b/D-07/D-08 applied verbatim in 04-01: floor+ceiling bounds for pytest/tox/tox-uv/black/ruff/mypy across pyproject.toml+tox.ini
 - [Phase 04-01]: tox.ini [tox] requires uses tox-uv~=1.35 (not literal >=1.35,<2) -- tox ini-list loader splits single-entry requires values on comma, misparsing the ceiling; ~=1.35 is packaging-spec-equivalent and comma-free
+- [Phase 04-02]: Bumped actions/upload-artifact@v5->v7 and actions/download-artifact@v6->v8 (node20->node24) uniformly across ci.yml/docs.yml/release.yml per D-03 amended; left the other four actions untouched — GitHub removes Node 20 from hosted runners 2026-09-16; runtime-verified via action.yml runs.using rather than trusting semver-major currency alone
+- [Phase 04-02]: softprops/action-gh-release@v2 confirmed node20 via runtime check (RESEARCH A2 straggler); recorded as tracked/deferred TOOL-02 item (v3 exists and is node24) rather than fixed in-scope, since Task 1 only authorized upload-artifact/download-artifact edits — Plan Task 2 explicitly requires recording, not silently closing, any A2 straggler found to be node20
 
 ### Pending Todos
 
@@ -93,6 +96,7 @@ None yet.
 - [Phase 1]: The exact typst 0.14.x patch that satisfies all four bundled `@preview` packages (codly, codly-languages, mitex, gentle-clues) simultaneously is not yet empirically confirmed — this is Phase 1's core deliverable, not a research-time conclusion. If no single 0.14.x version satisfies all four, the documented fallback is pinning one `@preview` package to an older release instead of moving the typst pin.
 - [Phase 1]: Whether the `sphinx<9` / `docutils<0.22` ceilings are load-bearing or purely precautionary is unconfirmed — resolve by testing whether `typst<0.15` alone is sufficient, and document the finding regardless (PIN-06).
 - [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. REMEDIATED 2026-07-04: both fixed in-batch (commits f2465ff, caf779d), re-pushed, ci.yml (18 jobs) + docs.yml both green on head caf779d. Still do not merge PR #104 -- pending the Task 3 human-verify checkpoint.
+- [Phase 04-02]: softprops/action-gh-release@v2 (docs.yml:67, release.yml:177/212) still declares runs.using: node20 -- ahead of GitHub's 2026-09-16 hosted-runner Node-20 removal. Out of 04-02's scope (Task 1 only authorized upload-artifact/download-artifact edits). Upstream @v3 is node24. Tracked/deferred candidate for Phase 5 (durability-guardrails) or a follow-up bump plan.
 
 ## Deferred Items
 
@@ -104,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T15:50:07.299Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-refresh-dev-tooling/04-CONTEXT.md
+Last session: 2026-07-04T15:59:19.175Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None
