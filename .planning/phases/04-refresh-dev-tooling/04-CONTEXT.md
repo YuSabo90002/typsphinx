@@ -17,8 +17,12 @@ observed green CI run.
   `deps` (lint=black/ruff, type=mypy, testenv=pytest): bump floors and add
   upper bounds, kept in lockstep across both surfaces.
 - Regenerate `uv.lock` minimal-diff to match the new constraints.
-- Verify GitHub Actions versions for hosted-runner compatibility (no yaml edits
-  expected — already at latest majors).
+- Verify GitHub Actions versions for hosted-runner compatibility. **AMENDED
+  2026-07-05 (post-research, D-03):** the "already at latest majors" premise was
+  live-verified false for two actions — `upload-artifact@v5` and
+  `download-artifact@v6` still run on Node 20 (removed from hosted runners
+  2026-09-16). These two are bumped to `@v7`/`@v8` (Node 24) in this phase; the
+  other four actions need no edit. See D-03 amendment below.
 - Fold in the Phase-3 leftover: remove the two lingering `Python 3.9`
   references in `README.md` and update the stale ruff `UP035`/`UP006` comment
   text.
@@ -77,6 +81,21 @@ observed green CI run.
   `astral-sh/setup-uv@v7`, `actions/upload-artifact@v5`, `codecov/codecov-action@v5`).
   TOOL-02 is satisfied by confirming hosted-runner compatibility; the phase makes
   no workflow-version changes. SHA-pinning is explicitly deferred to Phase 5.
+  - **AMENDED 2026-07-05 (post-research, user-confirmed):** Live verification
+    (`action.yml` `runs.using` + GitHub's Node-20 deprecation changelog) found
+    D-03's "already at latest majors" premise is false for **two** of the six
+    actions: `actions/upload-artifact@v5` and `actions/download-artifact@v6`
+    still declare `runs.using: node20`, and GitHub removes Node 20 from hosted
+    runners on **2026-09-16** — a real, dated hosted-runner-compatibility risk
+    inside TOOL-02's literal wording. Resolution: **bump both now in Phase 4** —
+    `upload-artifact@v5 → @v7`, `download-artifact@v6 → @v8` (both `node24`; no
+    breaking change for this repo's default zip-archive usage). The other four
+    actions (`checkout@v6`, `setup-python@v6`, `setup-uv@v7`, `codecov-action@v5`)
+    stay as-is. The planner must also runtime-check the actions used only in
+    `release.yml`/`docs.yml` (`pypa/gh-action-pypi-publish`, `peaceiris/actions-gh-pages`,
+    `softprops/action-gh-release`) for any additional Node-20 stragglers before
+    closing the phase (RESEARCH assumption A2). SHA-pinning remains Phase 5.
+    Log this D-03 amendment in PROJECT.md's Key Decisions table.
 
 ### Python 3.9 cleanup (Phase 3 leftover, folded in)
 - **D-04:** **Remove the last `Python 3.9` references from `README.md`** — line 36
@@ -99,6 +118,20 @@ observed green CI run.
   pattern): e.g. (1) `pyproject.toml` dev deps + regenerated `uv.lock`, (2)
   `tox.ini` env deps, (3) README + ruff comment cleanup. Keep the `uv.lock`
   regeneration minimal-diff.
+
+### Post-Research Decisions (2026-07-05, user-confirmed)
+- **D-07 (tox-uv in scope):** `tox-uv` gets the same floor+ceiling treatment as
+  black/ruff/tox — `tox-uv>=1.35,<2` (resolved 1.35.2). It is a **fourth mirror
+  point** (`pyproject.toml [dev]` AND `tox.ini` top-level `[tox] requires`), not a
+  `[testenv*] deps` entry — bump both in lockstep. Rationale: leaving tox-uv at a
+  bare `>=1.0` while every other tool gets a guard ceiling is an anti-drift
+  asymmetry; D-07 closes it. This resolves RESEARCH Open Question 2.
+- **D-08 (mypy floor):** Use D-01's literal `mypy>=1.13,<3.0` — do NOT raise the
+  floor to `>=2`. D-01 names the exact boundary and it is the more conservative
+  reading (wider floor, `<3.0` still guards the next major); CI resolves 2.1.0
+  from `uv.lock` regardless of the floor value. This resolves RESEARCH Open
+  Question 3 (D-01's specific syntax wins over D-02's general floor-at-resolved
+  framing for mypy).
 
 ### Claude's Discretion
 - Exact ceiling boundary syntax for each tool (`~=` vs explicit `>=x,<y`) — planner
