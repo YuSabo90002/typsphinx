@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: refresh-dev-tooling
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-07-04T15:59:57.153Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-07-04T16:05:16.386Z"
 last_activity: 2026-07-04
 last_activity_desc: Completed 04-01-PLAN.md
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 60
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-04)
 ## Current Position
 
 Phase: 04 (refresh-dev-tooling) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-04 — Completed 04-01-PLAN.md
 
@@ -63,6 +63,7 @@ Progress: [██████░░░░] 60%
 | Phase 03 P01 | 6min | 3 tasks | 6 files |
 | Phase 04 P01 | 5min | 3 tasks | 3 files |
 | Phase 04 P02 | 8min | 2 tasks | 3 files |
+| Phase 04 P03 | 6min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 04-01]: tox.ini [tox] requires uses tox-uv~=1.35 (not literal >=1.35,<2) -- tox ini-list loader splits single-entry requires values on comma, misparsing the ceiling; ~=1.35 is packaging-spec-equivalent and comma-free
 - [Phase 04-02]: Bumped actions/upload-artifact@v5->v7 and actions/download-artifact@v6->v8 (node20->node24) uniformly across ci.yml/docs.yml/release.yml per D-03 amended; left the other four actions untouched — GitHub removes Node 20 from hosted runners 2026-09-16; runtime-verified via action.yml runs.using rather than trusting semver-major currency alone
 - [Phase 04-02]: softprops/action-gh-release@v2 confirmed node20 via runtime check (RESEARCH A2 straggler); recorded as tracked/deferred TOOL-02 item (v3 exists and is node24) rather than fixed in-scope, since Task 1 only authorized upload-artifact/download-artifact edits — Plan Task 2 explicitly requires recording, not silently closing, any A2 straggler found to be node20
+- [Phase 04-03]: Reused Phase 3/04-01's nix run nixpkgs#ruff local-execution workaround to verify the comment-only pyproject.toml edit was inert (NixOS cannot execute the uv-installed ruff binary directly)
 
 ### Pending Todos
 
@@ -108,6 +110,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T15:59:19.175Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-07-04T16:05:16.381Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None

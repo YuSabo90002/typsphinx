@@ -107,7 +107,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   2. GitHub Actions versions (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) are verified/refreshed for hosted-runner compatibility.
   3. CI remains green after the tooling refresh, with no regression introduced by any version bump.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 **Wave 1** *(parallel — no file overlap)*
 
@@ -116,7 +116,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 **Wave 2** *(blocked on 04-01 — shares pyproject.toml)*
 
-- [ ] 04-03-PLAN.md — Python 3.9→3.10 leftover cleanup: README.md lines 36 & 323 + ruff UP035/UP006 comment text (TOOL-01; D-04)
+- [x] 04-03-PLAN.md — Python 3.9→3.10 leftover cleanup: README.md lines 36 & 323 + ruff UP035/UP006 comment text (TOOL-01; D-04)
 
 **Wave 3** *(terminal gate — blocked on 04-01/02/03)*
 
@@ -146,7 +146,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
-| 4. Refresh Dev Tooling | 2/4 | In Progress|  |
+| 4. Refresh Dev Tooling | 3/4 | In Progress|  |
 | 5. Durability Guardrails | 0/TBD | Not started | - |
 
 ---
