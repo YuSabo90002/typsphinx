@@ -150,3 +150,13 @@ None - `CODECOV_TOKEN`'s absence was confirmed and recorded per the plan's instr
 ---
 *Phase: 02-verify-the-green-baseline*
 *Completed: 2026-07-04*
+
+## Self-Check: PASSED
+
+- FOUND: tests/test_preview_version_sync.py
+- FOUND: .planning/phases/02-verify-the-green-baseline/02-02-SUMMARY.md
+- FOUND: 69ffeda (Task 2 auto-fix commit)
+- FOUND: 553f4e3 (SUMMARY commit)
+- FOUND: PR #104 (https://github.com/YuSabo90002/typsphinx/pull/104)
+- FOUND: CI run 28700980510 (https://github.com/YuSabo90002/typsphinx/actions/runs/28700980510)
+- FOUND: Docs run 28700980497 (https://github.com/YuSabo90002/typsphinx/actions/runs/28700980497)
