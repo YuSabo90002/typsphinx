@@ -1,92 +1,103 @@
 ---
 phase: 02-verify-the-green-baseline
 verified: 2026-07-04T00:00:00Z
-status: gaps_found
-score: 4/5 must-haves verified
+status: passed
+score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "All 12 test-matrix jobs (3 OS x 4 Python versions) pass to completion — not just the ubuntu-only jobs (ROADMAP Phase 2 success criterion 1; TEST-01)"
-    status: failed
-    reason: "ci.yml's test job invokes `uv run tox -e py${{ matrix.python-version }}`, which for matrix.python-version values '3.10'/'3.11'/'3.12' produces the dotted env names `py3.10`/`py3.11`/`py3.12`. tox.ini's env_list only defines the dotless names `py39, py310, py311, py312`. tox exits 254 with `provided environments not found in configuration file: py3.10 - did you mean py310?` before a single test runs. Only the 3 Python-3.9 matrix jobs (ubuntu/macos/windows) succeed — coincidentally, because 3.9's single-digit minor form happens to be accepted. Independently reproduced by fetching job logs directly from GitHub Actions (not taken from SUMMARY narrative): run 28700980510 overall conclusion = failure; per-job conclusions show 9 of 12 `Test Python <ver> on <os>` jobs = failure (all 3.10/3.11/3.12 lanes x 3 OS), 3 = success (all three 3.9 lanes); job 85118834587 (`Test Python 3.10 on ubuntu-latest`) log confirms the exact tox error text and exit code 254. This bug pre-dates the Phase 1 pin (introduced in the tox-migration commit `063a2be`) and is unrelated to typst/sphinx/docutils pinning, but it is still a currently-red CI job, so the phase's own goal statement — 'confirmed to turn every previously-red CI job green across the full platform/Python matrix' — is not true as of this PR."
-    artifacts:
-      - path: ".github/workflows/ci.yml"
-        issue: "The `Run tests with tox` step runs `uv run tox -e py${{ matrix.python-version }}` verbatim against the dotted matrix value, with no name-mapping layer."
-      - path: "tox.ini"
-        issue: "`env_list = py39, py310, py311, py312, ...` uses dotless names that never match the dotted `matrix.python-version` string for any Python other than 3.9."
-    missing:
-      - "Merge (or reimplement) the fix already prepared and sitting unmerged on branch `gsd/bugfix/github-ci-tox` (commit `64cd057`), which adds an explicit `matrix.include` mapping `python-version -> tox-env` (e.g. `3.10 -> py310`) so `tox -e ${{ matrix.tox-env }}` resolves correctly on every lane."
-      - "Re-push/re-observe the full 12-job matrix and confirm all 12 conclude success, per this phase's own D-01 definition of done."
-      - "Correct `.planning/REQUIREMENTS.md`'s TEST-01 row: it is currently checked `[x]` / marked 'Complete' in the traceability table, but ground-truth CI evidence shows this requirement is NOT satisfied. The plan-02 executor's self-marking of REQUIREMENTS.md is inaccurate and must not be trusted as evidence of completion."
+re_verification:
+  previous_status: gaps_found
+  previous_score: 4/5
+  gaps_closed:
+    - "All 12 test-matrix jobs (3 OS x 4 Python versions) pass to completion — not just the ubuntu-only jobs (ROADMAP Phase 2 success criterion 1; TEST-01)"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 2: Verify the Green Baseline Verification Report
 
 **Phase Goal:** The Phase 1 pin is confirmed to turn every previously-red CI job green across the full platform/Python matrix, and the 3-way `@preview` version sync hazard is protected by an automated test rather than manual memory.
 **Verified:** 2026-07-04
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Status:** passed
+**Re-verification:** Yes — after gap closure (plan 02-03)
 
 ## Goal Achievement
 
-### Observable Truths
+### Observable Truths (ROADMAP Success Criteria)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | All 12 test-matrix jobs (3 OS x 4 Python) pass to completion (TEST-01, ROADMAP SC1) | ✗ FAILED | Independently re-queried `gh run view 28700980510`: overall conclusion `failure`; unique job conclusions `["failure","success"]`. Only `Test Python 3.9 on {ubuntu,macos,windows}-latest` succeeded (3/12). All 9 `3.10`/`3.11`/`3.12` x 3-OS jobs failed. Job log for `Test Python 3.10 on ubuntu-latest` (id 85118834587) shows `tox` exiting 254 with `provided environments not found in configuration file: py3.10 - did you mean py310?` — confirms the ci.yml/tox.ini env-name mismatch diagnosis in 02-02-SUMMARY.md D5. |
-| 2 | The PDF-compilation integration tests pass (TEST-02) | ✓ VERIFIED | Ran in the passing `Test Python 3.9 on ubuntu-latest` job log: `====== 402 passed, 447 warnings in 26.78s ======`, and locally confirmed 8 PDF-integration tests pass (per SUMMARY; test count is 8 not the plan's stated "7", a documentation-accuracy note, not a defect). These tests never get a chance to run at all in the 9 red matrix jobs (tox errors before pytest starts) — but the requirement's text asserts the tests themselves pass, which they do wherever tox actually invokes pytest. |
-| 3 | Coverage job passes and uploads to Codecov; Type Check and Build Package remain green (TEST-03, TEST-04) | ✓ VERIFIED | Re-queried `gh run view 28700980510 --json jobs`: `Code Coverage: success`, `Type Check: success`, `Build Package: success`, `Lint and Format Check: success`, `Integration Test - basic: success`, `Integration Test - advanced: success`. `CODECOV_TOKEN` absence is expected/documented (job has `fail_ci_if_error: false`); job green with upload attempted satisfies TEST-03 per the phase's own D-01 context note. |
-| 4 | `docs.yml` completes end-to-end incl. the PDF-copy step (DOCS-01) | ✓ VERIFIED | Re-queried `gh run view 28700980497 --json conclusion,jobs`: overall `success`; `build-docs: success`. SUMMARY additionally documents the `Build PDF documentation (English only)` and `Copy PDF to multi-language build (English version)` steps both succeeded, and Pages-deploy/release-upload both `skipped` (correct for PR mode). |
-| 5 | A new automated test guards the 3-way `@preview` version-sync hazard (ROADMAP SC5, D-03) | ✓ VERIFIED | `tests/test_preview_version_sync.py` exists (105 lines, stdlib-only `re`+`pathlib`, no stub patterns). Ran locally: `uv run pytest tests/test_preview_version_sync.py -v` → 2 passed. Independently confirmed via job log that both tests ran and passed inside a real CI job (`Test Python 3.9 on ubuntu-latest`: `test_preview_versions_identical_across_declaration_sites PASSED`, `test_all_four_packages_declared PASSED`). Independently reproduced the desync-guard behavior myself (not trusting the SUMMARY's claim): temporarily bumped `mitex` to `0.2.5` in `templates/base.typ` only, re-ran the test — it correctly FAILED with diagnostic `@preview version desync detected across declaration sites: mitex: {'writer.py': '0.2.4', 'template_engine.py': '0.2.4', 'base.typ': '0.2.5'}`; file restored, `git status` clean afterward. |
+| 1 | All 12 test-matrix jobs (3 OS x 4 Python versions) pass to completion — not just ubuntu-only | ✓ VERIFIED | Independently re-queried (not taken from SUMMARY narrative): `gh run view 28702240846 --json conclusion,jobs` → overall `success`, headSha `3e3acdfb1053de32d481f81bd497fe61fb23f09c`, 18 total jobs, unique job-conclusion set = `["success"]`. Enumerated all 12 `Test Python <ver> on <os>` job names directly and confirmed each is `success`, including the 9 lanes (3.10/3.11/3.12 × ubuntu/windows/macos) that were red in the prior verification's run 28700980510. Confirmed the previously-red `Test Python 3.10 on macos-latest` lane actually executes the real test suite (not just resolving the tox env) by grepping its job log for individual `PASSED` lines. Root-cause fix confirmed in `.github/workflows/ci.yml`: `git diff main` shows only a `matrix.include` list (python-version → dotless tox-env) added and the run step changed to `uv run tox -e ${{ matrix.tox-env }}` — no other job/step touched, matching the plan's scope-boundary. |
+| 2 | The 7 PDF-compilation integration tests pass (`TestPDFGenerationIntegration`, `TestE2ETypstCompilation`) | ✓ VERIFIED | Grepped the `Test Python 3.9 on ubuntu-latest` job log inside run 28702240846 directly: all 4 `TestPDFGenerationIntegration` tests and all 4 `TestE2ETypstCompilation` tests show `PASSED` (8 tests total — the plan/roadmap text says "7," collection shows 8; a pre-existing documentation-count discrepancy, not a test failure, already flagged in 02-01-SUMMARY.md). Full suite line: `402 passed, 447 warnings in 26.78s`. |
+| 3 | The coverage job passes AND uploads to Codecov; Type Check and Build Package remain green with no regression | ⚠️ SATISFIED WITH CAVEAT (see reasoning below) | `gh run view 28702240846 --json jobs` confirms `Code Coverage: success`, `Type Check: success`, `Build Package: success`, `Lint and Format Check: success`, both `Integration Test - basic`/`advanced: success`. However, independently pulled the raw step log (`gh run view 28702240846 --log`) and confirmed the Codecov **upload itself fails**: `error - Upload queued for processing failed: {"message":"Token required - not valid tokenless upload"}`. Independently confirmed via `gh secret list --repo YuSabo90002/typsphinx` that the repo secrets are only `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN` — **`CODECOV_TOKEN` is genuinely absent**, not merely unset in this run. The job stays green only because `fail_ci_if_error: false` (confirmed in the log: `CC_FAIL_ON_ERROR: false`). See "Criterion 3 reasoning" below for the disposition. |
+| 4 | `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step | ✓ VERIFIED | Independently re-queried `gh run view 28702240814 --json conclusion,jobs` → overall `success`, `build-docs: success`, same headSha `3e3acdfb1053de32d481f81bd497fe61fb23f09c` as the green CI run (same push). Pulled per-step conclusions directly: `Build PDF documentation (English only): success`, `Copy PDF to multi-language build (English version): success` (the exact step that previously errored on a missing PDF under the kai break). `Deploy to GitHub Pages: skipped`, `Upload PDF to Release: skipped` — correct for PR-mode (D-02), confirming no unintended side effects. |
+| 5 | A new automated test asserts the `@preview` package versions in writer.py, template_engine.py, and templates/base.typ are identical | ✓ VERIFIED | `tests/test_preview_version_sync.py` exists (106 lines, stdlib `re`+`pathlib` only, no stub patterns, no debt markers). Re-ran locally as a regression check: `uv run pytest tests/test_preview_version_sync.py -v` → both `test_preview_versions_identical_across_declaration_sites` and `test_all_four_packages_declared` PASSED. (The prior verification already independently reproduced the desync-guard's failure behavior by simulating a single-file version bump; this re-verification performs the lighter-weight regression check per the re-verification optimization rule, since this truth was not part of the closed gap and nothing touched this file since.) Confirmed the test runs inside the real, now-green CI matrix job log (`Test Python 3.9 on ubuntu-latest`) as part of the 402-test run. |
 
-**Score:** 4/5 truths verified (0 present, behavior-unverified)
+**Score:** 5/5 truths verified (0 present, behavior-unverified)
+
+### Criterion 3 reasoning (Codecov upload — judgment call required by task)
+
+The literal text of ROADMAP success criterion 3 is "the coverage job passes AND uploads to Codecov." Ground truth: the **job** passes; the **upload** does not — it fails with `Token required - not valid tokenless upload` because `CODECOV_TOKEN` is absent from repo secrets (confirmed via `gh secret list`, not inferred).
+
+**Disposition: SATISFIED, not a phase-blocking gap.** Reasoning:
+1. **Pre-existing, not introduced by this phase.** The absent `CODECOV_TOKEN` and the resulting tokenless-upload failure were present in the very first observed run of this phase (02-02-SUMMARY.md D3, run 28700980510) and remain identical in the final green run (28702240846). Nothing this phase did caused or could have fixed this — it is a repo-secret configuration gap, not a code defect in scope for Phase 2.
+2. **The phase's own D-01/D-04 context explicitly pre-decided this exact scenario.** 02-CONTEXT.md states: "the coverage job sets `fail_ci_if_error: false` ... so the job passes even if the Codecov upload is skipped/unauthenticated. TEST-03's 'uploads to Codecov' is therefore best-effort at the job level; treat the job going green (with an upload attempt) as the pass condition, and note if the token is absent." This is precisely what happened: job green, upload attempted, absence noted.
+3. **D-04 discipline was followed correctly across all three plans** — each SUMMARY explicitly surfaces this as a finding rather than silently patching or silently ignoring it, and none of them claim the actual Codecov dashboard reflects real coverage.
+4. **Classification:** this is a config/follow-up item (add a `CODECOV_TOKEN` repo secret), not a code defect, and not attributable to the Phase 1 pin or any Phase 2 change. It should NOT block phase completion.
+
+**Recommendation:** Track as a non-blocking WARNING / follow-up backlog item: "Add `CODECOV_TOKEN` repo secret so Codecov uploads actually succeed (job already green via `fail_ci_if_error: false`; only the live coverage dashboard/badge is affected)." This does not gate Phase 2 or Phase 3 and does not need a gap-closure plan.
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `tests/test_preview_version_sync.py` | Guard test for 3-way `@preview` version sync (D-03) | ✓ VERIFIED | Exists, substantive (regex-based cross-file comparison, no hardcoded oracle), wired (collected by standard pytest, confirmed executing and passing inside a real CI job log), and independently proven to fail loudly on a simulated desync. |
-| GitHub PR against `main` with observed ci.yml + docs.yml runs | PR #104, both workflows triggered and observed | ⚠️ MIXED | PR #104 is open, base `main`, head `gsd/phase-2-verify-green-baseline` (`gh pr view 104` confirms). `docs.yml` run 28700980497: fully green. `ci.yml` run 28700980510: overall `failure` — 9/12 matrix jobs red. The artifact (the PR + its runs) exists and was genuinely observed, but the observed *result* for ci.yml does not meet the phase's own success bar. |
+| `tests/test_preview_version_sync.py` | Guard test for 3-way `@preview` version sync (D-03) | ✓ VERIFIED | Exists, substantive, wired (runs under standard pytest collection, confirmed executing inside the now-green CI matrix), no regressions since the prior verification. |
+| `.github/workflows/ci.yml` (matrix.include mapping) | Maps each `python-version` to its dotless `tox-env` so `uv run tox -e ${{ matrix.tox-env }}` resolves on every lane | ✓ VERIFIED | Confirmed present via direct file read and `git diff main`: `matrix.include` list with 4 entries (3.9→py39, 3.10→py310, 3.11→py311, 3.12→py312); run step reads `uv run tox -e ${{ matrix.tox-env }}`. Diff is scoped to exactly this change — no other job/step modified, matching the plan's acceptance criteria. |
+| GitHub PR against `main` with observed ci.yml + docs.yml runs | PR #104, both workflows triggered and observed fully green | ✓ VERIFIED | `gh pr view 104`: state `OPEN`, base `main`, head `gsd/phase-2-verify-green-baseline`. CI run 28702240846: `success`, 18/18 jobs success. Docs run 28702240814: `success`, `build-docs` job success including the PDF-copy step. Both share headSha `3e3acdfb1053de32d481f81bd497fe61fb23f09c` (the gap-closure push). |
+| `.planning/REQUIREMENTS.md` TEST-01 row re-marked `[x]` / Complete | Re-marked only after the new green run was observed, citing the new run ID | ✓ VERIFIED | Line 28: `- [x] **TEST-01**: ... <!-- RESOLVED (Phase 2 gap-closure): 12/12 matrix jobs green in ci.yml run 28702240846 after mapping matrix.python-version to dotless tox env names. -->` — cites the correct new green run (28702240846), **not** the old red run 28700980510. Traceability row (line 96): `| TEST-01 | Phase 2 | Complete |`. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| PR base `main` | `docs.yml` trigger | PR-to-main dispatches docs.yml in PR mode (D-02) | ✓ WIRED | Confirmed: docs run 28700980497 exists and is green; Pages-deploy/release-upload steps skipped as expected in PR mode. |
-| `ci.yml` coverage job | Codecov upload | `fail_ci_if_error:false` lets job pass even with absent token (TEST-03) | ✓ WIRED | `Code Coverage: success`; token absence recorded, consistent with documented semantics. |
-| `ci.yml` 12 matrix jobs | `tox -e py{ver}` → pytest collects `tests/test_preview_version_sync.py` | Standard pytest collection, no separate CI wiring needed (TEST-01) | ⚠️ PARTIAL | WIRED and confirmed passing for the 3 Python-3.9 lanes (job log shows both sync-test cases PASSED). NOT_WIRED for the other 9 lanes: `tox` itself fails to resolve the env name (`py3.10` vs `py310`) and exits before pytest ever starts, so the sync test (and the rest of the 402-test suite) never executes on those 9 jobs. The must-have's own phrasing — "all 12 matrix jobs run tox -e py{ver} which collects the new sync test" — is true for only 3 of the 12 job instances. |
+| `ci.yml` `matrix.include` | `tox.ini` `env_list` | Each mapped `tox-env` (py39/py310/py311/py312) exists in tox.ini's dotless env_list (line 2) | ✓ WIRED | Confirmed by reading `tox.ini` line 2 directly (`env_list = py39, py310, py311, py312, lint, type, cov, docs`) against `ci.yml`'s 4 `matrix.include` entries — exact match, and the observed run proves resolution (no more exit-254 env-not-found errors on any lane). |
+| PR base `main` | `docs.yml` trigger | PR-to-main dispatches docs.yml in PR mode (D-02) | ✓ WIRED | Docs run 28702240814 exists for the same push (headSha match), concludes success; Pages-deploy/release-upload steps confirmed `skipped`. |
+| `ci.yml` 12 matrix jobs | `tox -e ${{ matrix.tox-env }}` → pytest collects `tests/test_preview_version_sync.py` | Standard pytest collection, no separate CI wiring needed | ✓ WIRED | All 12 lanes now resolve a real tox env and run the full 402-test suite (verified by grepping individual `PASSED` lines from multiple lanes' logs, not just the overall conclusion field). |
+| `ci.yml` coverage job | Codecov upload | `fail_ci_if_error:false` lets the job pass even though the upload itself fails tokenless | ⚠️ PARTIAL (accepted — see Criterion 3 reasoning) | Job green; upload genuinely fails (`Token required - not valid tokenless upload`); `CODECOV_TOKEN` confirmed absent from repo secrets via `gh secret list`. Judged non-blocking per Criterion 3 reasoning above. |
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|-------------|-------------|--------|----------|
-| TEST-01 | 02-01, 02-02 | All matrix test jobs pass on ubuntu/macos/windows across the supported Python range | ✗ BLOCKED | 9/12 matrix jobs fail (tox env-name mismatch, pre-existing, unrelated to Phase 1 pin but still currently red). **REQUIREMENTS.md marks this `[x]` Complete — this marking is incorrect and must not be trusted; ground truth from `gh run view` contradicts it.** |
-| TEST-02 | 02-01, 02-02 | The PDF-compilation integration tests pass | ✓ SATISFIED | Confirmed passing both locally and inside a real (Python 3.9) CI job log. |
-| TEST-03 | 02-01, 02-02 | Coverage job passes and uploads to Codecov | ✓ SATISFIED | `Code Coverage: success` observed directly; upload attempted, absence of token documented and consistent with `fail_ci_if_error:false` semantics. |
-| TEST-04 | 02-01, 02-02 | Type Check and Build Package jobs remain green | ✓ SATISFIED | `Type Check: success`, `Build Package: success` observed directly. |
-| DOCS-01 | 02-01, 02-02 | `docs.yml` completes end-to-end incl. the PDF-copy step | ✓ SATISFIED | `docs.yml` run 28700980497 overall `success`, confirmed directly. |
+| Requirement | Source Plan(s) | Description | Status | Evidence |
+|-------------|-----------------|-------------|--------|----------|
+| TEST-01 | 02-01, 02-02, 02-03 | All matrix test jobs pass on ubuntu/macos/windows across the supported Python range | ✓ SATISFIED | 12/12 matrix jobs `success` in run 28702240846, independently confirmed via `gh run view`. REQUIREMENTS.md correctly re-marked `[x]` / Complete citing the correct new green run ID (28702240846), not the stale red run (28700980510). |
+| TEST-02 | 02-01, 02-02 | The PDF-compilation integration tests pass | ✓ SATISFIED | 8/8 tests PASSED in the CI job log (confirmed above); also passing locally per 02-01-SUMMARY.md. |
+| TEST-03 | 02-01, 02-02 | Coverage job passes and uploads to Codecov | ✓ SATISFIED (with recorded caveat) | Job green; upload attempted but rejected tokenless due to absent `CODECOV_TOKEN` — pre-existing, non-blocking, tracked as a follow-up (see Criterion 3 reasoning). |
+| TEST-04 | 02-01, 02-02 | Type Check and Build Package jobs remain green | ✓ SATISFIED | `Type Check: success`, `Build Package: success` confirmed directly in run 28702240846. |
+| DOCS-01 | 02-01, 02-02 | `docs.yml` completes end-to-end incl. the PDF-copy step | ✓ SATISFIED | `build-docs: success`, PDF-copy step `success`, confirmed in run 28702240814. |
 
-No orphaned requirements found — REQUIREMENTS.md's Phase 2 row set (TEST-01..04, DOCS-01) matches exactly what both plans declared.
+**No orphaned requirements found.** REQUIREMENTS.md's Phase 2 traceability rows (TEST-01..04, DOCS-01) match exactly the requirement IDs declared across all three plans' frontmatter (`02-01-PLAN.md`/`02-02-PLAN.md`: all 5; `02-03-PLAN.md`: TEST-01 only, as a gap-closure plan). All 5 rows are now `Complete` in the traceability table, and all 5 checkbox lines under "Tests & Coverage" / "Docs Build" are `[x]`.
 
 ### Anti-Patterns Found
 
-None. The single file modified by this phase (`tests/test_preview_version_sync.py`) contains no debt markers (TBD/FIXME/XXX/TODO/HACK/PLACEHOLDER), no stub returns, and its logic was independently exercised and behaves correctly (see Observable Truth #5).
+None. Files modified across this phase (`tests/test_preview_version_sync.py`, `.github/workflows/ci.yml`, `.planning/REQUIREMENTS.md`) contain no debt markers (TBD/FIXME/XXX/TODO/HACK/PLACEHOLDER), no stub returns, and the `ci.yml` diff against `main` is scoped exactly to the documented fix (a 9-line matrix.include addition + a 1-line run-step change), touching no other job.
+
+### Deferred / Non-Blocking Follow-ups
+
+- **`CODECOV_TOKEN` repo secret absent** (Criterion 3): Codecov uploads fail tokenless on every run; the coverage job itself stays green via `fail_ci_if_error: false`. Confirmed via `gh secret list` that only `PYPI_API_TOKEN`/`TEST_PYPI_API_TOKEN` exist. Recommended as a maintainer follow-up (add the secret), not a phase gap.
+- **`codecov/codecov-action@v5` deprecated `file:` input** (cosmetic): logs a warning that `file` should be `files`; does not affect the job's pass/fail outcome. Noted in 02-02-SUMMARY.md, not fixed, out of scope.
+- **PDF integration test count discrepancy** (documentation-only): ROADMAP/plan text says "7" PDF-compilation integration tests; actual collection is 8 (4 in each of the two named test classes). All 8 pass; this is a stale count in planning docs, not a functional gap.
 
 ### Human Verification Required
 
-None — all must-haves were verifiable directly against `gh run` data and local test execution; no visual/real-time/external-service judgment calls remain open.
+None. All 5 truths, all artifacts, and all key links were verified directly against live `gh run`/`gh secret`/`git diff` output and local test execution — no visual, real-time, or external-service judgment calls remain open.
 
 ### Gaps Summary
 
-**The phase's core claim is not fully true.** Phase 2's stated goal is that the Phase 1 pin "turns every previously-red CI job green across the full platform/Python matrix." The observed ground truth (re-queried independently, not taken from SUMMARY.md) is that `ci.yml` run 28700980510 has overall conclusion **failure**, with **9 of the 12** `Test Python <ver> on <os>` matrix jobs still red. Only the 3 Python-3.9 lanes (ubuntu/macos/windows) are green.
+No gaps. The single gap from the prior verification (Observable Truth #1 / TEST-01: 9 of 12 matrix jobs red due to a `ci.yml`/`tox.ini` env-name mismatch) was closed by plan 02-03: the `matrix.include` mapping fix was applied, re-pushed onto PR #104, and the resulting run (28702240846) was independently confirmed fully green across all 18 jobs (12/12 matrix lanes + lint + type-check + coverage + build + 2 integration jobs), with `docs.yml` (run 28702240814) confirmed still green end-to-end including the PDF-copy step. `REQUIREMENTS.md`'s TEST-01 re-mark correctly cites the new green run ID rather than the stale red one.
 
-The root cause is real and precisely diagnosed by the 02-02-SUMMARY.md finding (independently confirmed here via direct job-log inspection): `ci.yml` invokes `tox -e py${{ matrix.python-version }}`, producing dotted env names (`py3.10`, `py3.11`, `py3.12`) that do not match `tox.ini`'s dotless `env_list` (`py310`, `py311`, `py312`). This is a **pre-existing, unrelated** defect (introduced in the tox-migration commit `063a2be`, well before the Phase 1 pin) — it is not a regression caused by this phase or Phase 1, and the plan's D-04 discipline (surface, don't silently patch) was correctly followed by the executor. A ready-made fix already exists, unmerged, on branch `gsd/bugfix/github-ci-tox` (commit `64cd057`), adding an explicit `matrix.include` python-version→tox-env mapping.
+The one open item — the Codecov upload failing tokenless due to an absent `CODECOV_TOKEN` repo secret — is judged non-blocking (pre-existing, config-only, explicitly pre-anticipated by this phase's own D-01/TEST-03 context notes) and is recorded as a follow-up rather than a phase-blocking gap.
 
-However, "pre-existing and unrelated" does not make the job green, and the phase's own success criterion #1 is explicit: "All 12 test-matrix jobs ... pass to completion — not just the ubuntu-only jobs." That criterion is false today. The remaining 4 truths (PDF integration tests, coverage, type-check/build, docs.yml end-to-end, and the new `@preview` sync-guard test) are all genuinely verified — independently re-confirmed here via direct `gh run view`/job-log queries and a local reproduction of the sync-test's desync-detection behavior, not merely accepted from the SUMMARY narrative.
-
-`.planning/REQUIREMENTS.md` currently marks **TEST-01** as `[x]` / "Complete" in its traceability table. This marking is **not supported by ground truth** and should not be trusted — it must be reverted to reflect the actual blocked state until the 12-job matrix is observed fully green.
-
-**Recommended remediation (not performed by this verifier):** merge (or reimplement) the `gsd/bugfix/github-ci-tox` fix into `ci.yml`, re-push, and re-observe the full 12-job matrix before this phase can be considered to have met its own goal. This is a small, well-scoped, already-drafted fix — likely a single short follow-up plan rather than a full re-plan of the phase.
+**Phase goal achieved.** All 12 matrix jobs are green, the 8 PDF-compilation integration tests pass, coverage/type-check/build remain green with the Codecov caveat noted above, docs.yml completes end-to-end including the PDF-copy step, and the `@preview` version-sync guard test protects the 3-way hazard automatically.
 
 ---
 
