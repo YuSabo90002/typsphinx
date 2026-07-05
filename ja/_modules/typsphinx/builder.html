@@ -296,7 +296,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Set</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">docutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">nodes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sphinx.builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">Builder</span>
@@ -355,7 +355,7 @@
 
 <div class="viewcode-block" id="TypstBuilder.get_target_uri">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.builder.TypstBuilder.get_target_uri">[ドキュメント]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_target_uri</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">typ</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_target_uri</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">typ</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the target URI for a document.</span>
 
@@ -392,7 +392,7 @@
 <a class="viewcode-back" href="../../api/index.html#typsphinx.builder.TypstBuilder.write">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">build_docnames</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">build_docnames</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">updated_docnames</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;update&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
