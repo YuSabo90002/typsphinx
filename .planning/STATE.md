@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 Phase: 05 — durability-guardrails (final phase)
 Plan: 4/4 complete
-Status: Milestone v0.4.4 complete & archived — Phase 5 verified (VERIFICATION.md: passed, 4/4 must-haves); PR #106 merged to main; tagged v0.4.4
-Last activity: 2026-07-05 — v0.4.4 milestone archived (milestones/v0.4.4-ROADMAP.md, v0.4.4-REQUIREMENTS.md); RETROSPECTIVE.md written
+Status: Milestone v0.4.4 SHIPPED — archived + tagged (v0.4.4 on main dae500a) + released to PyPI (typsphinx 0.4.4 wheel+sdist) + GitHub Release. Release run 28731646924 green end-to-end.
+Last activity: 2026-07-05 — v0.4.4 released: fixed a release.yml tomllib-on-3.10 regression (PR #110), re-pointed tag, published to PyPI + GitHub Release; D-11 (softprops@v3) resolved green
 
 Progress: [██████████] 100%
 

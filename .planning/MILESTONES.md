@@ -10,8 +10,14 @@ A historical record of shipped versions. Full detail per milestone lives in `.pl
 **Closeout:** verified_closeout (pre-close artifact audit clear; all 5 phases verified)
 **Phases:** 5 (1–5) · **Plans:** 15 · **Tasks:** ~35
 **Requirements:** 23/23 v1 requirements complete · **Known gaps:** none
-**Git:** milestone work merged to `main` via PRs #104 / #105 / #106; tagged `v0.4.4`
+**Git:** milestone work merged to `main` via PRs #104 / #105 / #106; close + release-prep via #109; tagged `v0.4.4` (on `main` dae500a)
+**Released:** PyPI `typsphinx 0.4.4` (wheel + sdist) + GitHub Release, via release run 28731646924 (green end-to-end)
 **Code delta (milestone scope):** ~15 source/config files, +217 / −1202 lines (net, incl. `uv.lock` collapse)
+
+> **Release note:** The first `v0.4.4` tag push failed at the `release.yml` Validate gate — the
+> version-verify step imported stdlib-only `tomllib` on the 3.10 floor (a PYVER-02 side effect
+> only exercised at tag time). Fixed with a `tomllib`/`tomli` fallback (PR #110), tag re-pointed,
+> release re-run green. This also resolved D-11 (`softprops/action-gh-release@v3` ran green).
 
 **Delivered:** Restored a fully green CI pipeline on `main` — lint, the 3-OS × Python 3.10–3.13 test matrix (19 jobs), coverage, and the docs PDF build — by pinning the runtime dependency graph back to a known-good, reproducible combination, then modernized the Python floor and dev tooling and installed durability guardrails so the drift can't silently recur.
 
