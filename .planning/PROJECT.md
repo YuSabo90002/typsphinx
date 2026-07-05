@@ -33,7 +33,7 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 
 <!-- Milestone v0.4.4 (green + modernized + guarded CI) complete as of Phase 5. -->
 
-_None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is a signed-off deferral to the next release tag, not an open requirement.)_
+_None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is now **resolved**: the `Create GitHub Release` job ran green in the v0.4.4 release run.)_
 
 ### Out of Scope
 
@@ -70,7 +70,8 @@ _None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11
 | Bump artifact actions to node24: upload-artifact@v5→v7, download-artifact@v6→v8 (D-03 AMENDED 2026-07-05, Phase 4) | Post-research: v5/v6 still declare node20, which GitHub removes from hosted runners 2026-09-16; the original "already at latest majors" premise was wrong | Applied across ci.yml/docs.yml/release.yml (7 + 3 occurrences), runtime-verified node24; Phase 4 CI green |
 | Remove stale `Test Python 3.9 on ubuntu-latest` required status check from `main` branch protection, add 3.13 (Phase 4) | Phase-3 leftover: 3.9 was dropped from the CI matrix but the required-check list wasn't updated, leaving a permanent "Expected — waiting for status" pending that blocked PR #105 despite all 18 jobs green | Applied via `gh api PATCH`; PR #105 became MERGEABLE/CLEAN. Required set now ubuntu 3.10–3.13 + Lint/Type/Coverage/Build |
 | `softprops/action-gh-release@v2` node20 straggler tracked, not force-bumped in Phase 4 | Outside 04-02's authorized edit scope (artifact-actions only) and needs its own verification; `@v3` exists and is node24 | Deferred to Phase 5 (durability-guardrails) as a tracked item, not silently closed |
-| Close the milestone with durability guardrails: `--locked` lockfile-currency gate + standalone weekly `drift.yml` + `sphinx-typst-stack` Dependabot group + README CI badge; softprops@v3 (Phase 5, D-01..D-11) | Install anti-drift controls so the silent multi-year rot this milestone fixed cannot recur unnoticed; keep the drift job advisory (never a required check, D-07) so it reports without blocking merges | Confirmed in Phase 5: PR #106 merged green (ci.yml 28730645396 / docs.yml 28730645381); drift.yml validated via post-merge `workflow_dispatch` (run 28730876125 success, no drift issue = no forward drift); D-11 softprops@v3 runtime confirmation signed-off as deferred to next release tag (tag-gated, Pitfall 3) |
+| Close the milestone with durability guardrails: `--locked` lockfile-currency gate + standalone weekly `drift.yml` + `sphinx-typst-stack` Dependabot group + README CI badge; softprops@v3 (Phase 5, D-01..D-11) | Install anti-drift controls so the silent multi-year rot this milestone fixed cannot recur unnoticed; keep the drift job advisory (never a required check, D-07) so it reports without blocking merges | Confirmed in Phase 5: PR #106 merged green (ci.yml 28730645396 / docs.yml 28730645381); drift.yml validated via post-merge `workflow_dispatch` (run 28730876125 success, no drift issue = no forward drift); D-11 softprops@v3 runtime confirmation RESOLVED at the v0.4.4 release: `Create GitHub Release` ran green (release run 28731646924, tag `v0.4.4`) |
+| Fix `release.yml` version-verify step: `import tomllib` → `tomllib`/`tomli` fallback (v0.4.4 release, PR #110) | PYVER-02's 3.10 floor reconciliation left the tag-only Validate step importing stdlib-only `tomllib` on 3.10; it crashed on the first `v0.4.4` tag push (a release-only regression not exercised by any PR CI) | Fixed on `main` (merge dae500a); re-pushed `v0.4.4` tag; release run 28731646924 green end-to-end → PyPI `typsphinx==0.4.4` (wheel+sdist) + GitHub Release published |
 
 ## Evolution
 
@@ -90,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after v0.4.4 milestone — green + modernized + guarded CI shipped across Phases 1–5*
+*Last updated: 2026-07-05 after v0.4.4 milestone — green + modernized + guarded CI shipped across Phases 1–5; released to PyPI (typsphinx 0.4.4) + GitHub Release, tag v0.4.4 on main*
