@@ -31,9 +31,9 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 
 ### Active
 
-<!-- Milestone v1.0 (green + modernized + guarded CI) complete as of Phase 5. -->
+<!-- Milestone v0.4.4 (green + modernized + guarded CI) complete as of Phase 5. -->
 
-_None — all milestone v1.0 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is a signed-off deferral to the next release tag, not an open requirement.)_
+_None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is a signed-off deferral to the next release tag, not an open requirement.)_
 
 ### Out of Scope
 
@@ -90,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after Phase 5 completion — milestone v1.0 (green + modernized + guarded CI) complete*
+*Last updated: 2026-07-05 after v0.4.4 milestone — green + modernized + guarded CI shipped across Phases 1–5*
