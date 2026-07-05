@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify version matches pyproject.toml
         run: |
-          PYPROJECT_VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          PYPROJECT_VERSION=$(uv run python -c "import sys, importlib; tomllib = importlib.import_module('tomllib' if sys.version_info >= (3, 11) else 'tomli'); print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           TAG_VERSION="${{ steps.version.outputs.version }}"
           echo "pyproject.toml version: $PYPROJECT_VERSION"
           echo "Tag version: $TAG_VERSION"
