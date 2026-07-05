@@ -25,7 +25,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 - [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
 - [x] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch (completed 2026-07-04)
 - [x] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions (completed 2026-07-04)
-- [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
+- [x] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur (completed 2026-07-05)
 
 ## Phase Details
 
@@ -134,7 +134,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   3. `dependabot.yml` groups the `sphinx`/`docutils`/`typst` cluster so a lone dependency bump can't reintroduce the `kai`-class break.
   4. A CI status badge is visible on `README.md`, reflecting the now-green, guarded pipeline.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1** *(parallel — no file overlap)*
 
@@ -144,7 +144,7 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 
 **Wave 2** *(terminal gate — blocked on Wave 1)*
 
-- [ ] 05-04-PLAN.md — Push→observe PR targeting main (DUR-01/03/04 green + D-11 syntactic), post-merge `drift.yml` `workflow_dispatch` smoke, assert drift not a required check (D-07), record D-11 tag-gated sign-off (D-10; RESEARCH Pitfall 3)
+- [x] 05-04-PLAN.md — Push→observe PR targeting main (DUR-01/03/04 green + D-11 syntactic), post-merge `drift.yml` `workflow_dispatch` smoke, assert drift not a required check (D-07), record D-11 tag-gated sign-off (D-10; RESEARCH Pitfall 3)
 
 ## Progress
 
@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
 | 4. Refresh Dev Tooling | 4/4 | Complete    | 2026-07-04 |
-| 5. Durability Guardrails | 3/4 | In Progress|  |
+| 5. Durability Guardrails | 4/4 | Complete   | 2026-07-05 |
 
 ---
 *Roadmap created: 2026-07-04*
