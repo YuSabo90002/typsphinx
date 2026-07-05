@@ -411,17 +411,19 @@ gh run view --log  # inspect output; on a deliberately-broken dependency set thi
 
 **If this table is empty:** N/A — see entries above; all are low-risk implementation-detail assumptions, not requirement-level or compliance-level assumptions.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `drift.yml`'s failure step post a fresh comment every week it stays broken, or only comment once and rely on the issue staying open?**
    - What we know: D-06 requires dedup (no duplicate *issues*), not silence on repeat failures.
    - What's unclear: Whether repeated weekly comments on the same open issue are desired (keeps it "bumped"/visible) vs. noisy.
    - Recommendation: Comment on repeat failures (as shown in Pattern 2's skeleton) — this keeps the issue's "last updated" timestamp current so it doesn't look stale/abandoned, while still being exactly one issue (satisfies D-06's core rule). Planner may adjust.
+   - **RESOLVED (planning):** Plan 05-03 implements comment-on-repeat-failure with single-issue dedup.
 
 2. **Does the `docs-pdf` tox env require the `--extra docs` install group, and does the drift job's `uv sync` need `--extra dev --extra docs` to match docs.yml's pattern?**
    - What we know: docs.yml installs `--extra dev --extra docs` before running `docs-pdf`; ci.yml's test jobs only install `--extra dev`.
    - What's unclear: Exact final tox-env selection is Claude's Discretion (see Claude's Discretion note in user_constraints); this affects which `--extra` flags the drift job's `uv sync` needs.
    - Recommendation: If the planner scopes `drift.yml` to include `docs-pdf` (recommended, since that's the exact historically-fragile path), install `--extra dev --extra docs` to match docs.yml's own pattern exactly (Pattern 2's skeleton already does this).
+   - **RESOLVED (planning):** Plan 05-03 scopes the drift job to `cov,docs-pdf` and installs `--extra dev --extra docs --locked`.
 
 ## Call-Site Drift Check
 
