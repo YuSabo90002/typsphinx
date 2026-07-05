@@ -55,11 +55,13 @@ top of the confirmed-green Phase 4 baseline.
   - `docs.yml` line 31 (`uv sync --extra dev --extra docs`).
   - `release.yml` lines 36 and 93 (`uv sync --extra dev`).
   Preserve each line's existing `--extra` flags; append `--locked`.
-- **D-03 (verify the gate actually gates):** `uv sync --locked` fails when
-  `uv.lock` is out of sync with `pyproject.toml`. Because the lock is currently
-  in sync (Phase 4 regenerated it), the green run alone doesn't prove the gate
-  bites. Planner should note this — the proof that it fails-loud is inherent to
-  `--locked` semantics; no need to intentionally desync in CI.
+- **D-03 (verify the gate actually gates) [informational]:** `uv sync --locked`
+  fails when `uv.lock` is out of sync with `pyproject.toml`. Because the lock is
+  currently in sync (Phase 4 regenerated it), the green run alone doesn't prove
+  the gate bites. Planner should note this — the proof that it fails-loud is
+  inherent to `--locked` semantics; no need to intentionally desync in CI.
+  Tagged `[informational]`: no separate implementable action beyond DUR-01's
+  `--locked` edits (already acknowledged in plan 05-01); not separately tracked.
 
 ### DUR-02 — Weekly drift-detection job
 - **D-04:** **Separate `.github/workflows/drift.yml`** (not a `schedule:` +
