@@ -26,12 +26,14 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 - ✓ Every CI job green across the full 3-OS × Python matrix (12 test lanes + lint/type-check/coverage/build/integration) and `docs.yml` end-to-end incl. the multi-language PDF-copy step, confirmed by an observed Actions run — Validated in Phase 2 (CI run 28702240846)
 - ✓ The 3-way `@preview` version sync (`writer.py`, `template_engine.py`, `templates/base.typ`) guarded by an automated test that fails CI loudly on desync — Validated in Phase 2
 - ✓ Supported Python range modernized to 3.10–3.13: `requires-python>=3.10`, 3.9 dropped / 3.13 added across pyproject classifiers, tox `env_list`, and the CI matrix; black/ruff/mypy target-versions aligned to the 3.10 floor; `uv.lock` regenerated minimal-diff — Validated in Phase 3 (green ci.yml run 28709253590 + docs.yml run 28709253571 on PR #104; all four 3.13 lanes + lint green)
+- ✓ Dev tooling floors modernized with guard ceilings (`pytest>=8.4,<10`, `mypy>=1.13,<3.0`, `black>=26,<27`, `ruff>=0.15,<0.16`, `tox>=4.56,<5`, `tox-uv>=1.35,<2`) across pyproject.toml + tox.ini; artifact actions bumped to node24 (upload-artifact@v7 / download-artifact@v8); stale `Test Python 3.9` required-check removed from main protection — Validated in Phase 4 (green ci.yml/docs.yml on PR #105)
+- ✓ Durability guardrails installed: `uv sync --locked` at all 9 sites (DUR-01 lockfile-currency gate), standalone weekly+dispatch `drift.yml` forward-drift detector with deduplicated issue reporting + least-privilege perms (DUR-02), `sphinx-typst-stack` Dependabot group scoped to the runtime trio (DUR-03), README CI status badge (DUR-04); `softprops/action-gh-release` @v2→@v3 node24 bump — Validated in Phase 5 (merged PR #106 green: ci.yml run 28730645396 + docs.yml run 28730645381; drift.yml validated post-merge via workflow_dispatch run 28730876125; drift-check confirmed absent from main's required checks)
 
 ### Active
 
-<!-- This milestone. Building toward green + modernized CI. -->
+<!-- Milestone v0.4.4 (green + modernized + guarded CI) complete as of Phase 5. -->
 
-- [ ] Dev tooling modernized: dev-tooling floors bumped conservatively and CI GitHub Actions versions refreshed as needed (black/ruff/mypy target-versions already aligned to 3.10 in Phase 3)
+_None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is a signed-off deferral to the next release tag, not an open requirement.)_
 
 ### Out of Scope
 
@@ -68,6 +70,7 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 | Bump artifact actions to node24: upload-artifact@v5→v7, download-artifact@v6→v8 (D-03 AMENDED 2026-07-05, Phase 4) | Post-research: v5/v6 still declare node20, which GitHub removes from hosted runners 2026-09-16; the original "already at latest majors" premise was wrong | Applied across ci.yml/docs.yml/release.yml (7 + 3 occurrences), runtime-verified node24; Phase 4 CI green |
 | Remove stale `Test Python 3.9 on ubuntu-latest` required status check from `main` branch protection, add 3.13 (Phase 4) | Phase-3 leftover: 3.9 was dropped from the CI matrix but the required-check list wasn't updated, leaving a permanent "Expected — waiting for status" pending that blocked PR #105 despite all 18 jobs green | Applied via `gh api PATCH`; PR #105 became MERGEABLE/CLEAN. Required set now ubuntu 3.10–3.13 + Lint/Type/Coverage/Build |
 | `softprops/action-gh-release@v2` node20 straggler tracked, not force-bumped in Phase 4 | Outside 04-02's authorized edit scope (artifact-actions only) and needs its own verification; `@v3` exists and is node24 | Deferred to Phase 5 (durability-guardrails) as a tracked item, not silently closed |
+| Close the milestone with durability guardrails: `--locked` lockfile-currency gate + standalone weekly `drift.yml` + `sphinx-typst-stack` Dependabot group + README CI badge; softprops@v3 (Phase 5, D-01..D-11) | Install anti-drift controls so the silent multi-year rot this milestone fixed cannot recur unnoticed; keep the drift job advisory (never a required check, D-07) so it reports without blocking merges | Confirmed in Phase 5: PR #106 merged green (ci.yml 28730645396 / docs.yml 28730645381); drift.yml validated via post-merge `workflow_dispatch` (run 28730876125 success, no drift issue = no forward drift); D-11 softprops@v3 runtime confirmation signed-off as deferred to next release tag (tag-gated, Pitfall 3) |
 
 ## Evolution
 
@@ -87,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after Phase 4 completion*
+*Last updated: 2026-07-05 after v0.4.4 milestone — green + modernized + guarded CI shipped across Phases 1–5*

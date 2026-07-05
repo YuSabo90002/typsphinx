@@ -1,164 +1,37 @@
-# Roadmap: typsphinx (CI-repair + modernize milestone)
+# Roadmap: typsphinx
 
-## Overview
+## Milestones
 
-typsphinx's CI went red because loose, unbounded dependency constraints let a fresh
-resolution jump to `sphinx==9.0.4`, `docutils==0.22.4`, and `typst==0.15.0` — the last of
-which breaks PDF compilation because the hardcoded `@preview/mitex:0.2.4` package uses a
-`kai` symbol that typst 0.15 turned into a hard error. This milestone pins the runtime
-dependency graph back to a known-good, mutually-compatible combination (not a forward port
-to sphinx 9 / typst 0.15), confirms every CI job goes green as a result, then opportunistically
-modernizes the supported Python range (3.10–3.13) and dev tooling, and closes with durability
-guardrails so this exact class of silent drift cannot recur unnoticed. The five phases are
-sequential and each ends with a strictly greener-than-before CI state: the pin fix must land
-alone first so a red/green result is unambiguous, Python-floor and tooling changes ride on top
-of a confirmed-green baseline, and the guardrails close the loop last.
+- ✅ **v0.4.4 — CI-repair + modernize** — Phases 1–5 (shipped 2026-07-05) → [archive](milestones/v0.4.4-ROADMAP.md)
 
 ## Phases
 
-**Phase Numbering:**
+<details>
+<summary>✅ v0.4.4 — CI-repair + modernize (Phases 1–5) — SHIPPED 2026-07-05</summary>
 
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+Restored a fully green CI pipeline on `main` by pinning the runtime dependency graph back to a
+known-good, reproducible combination, then modernized the Python floor (3.10–3.13) and dev tooling
+and installed durability guardrails so the drift cannot silently recur. Full phase detail, success
+criteria, decisions, and tech-debt notes are preserved in
+[`milestones/v0.4.4-ROADMAP.md`](milestones/v0.4.4-ROADMAP.md).
 
-- [x] **Phase 1: Pin Runtime Dependencies to Known-Good** - Pin typst/sphinx/docutils to a reproducible, mutually-compatible combination and make the tree lint-clean (completed 2026-07-04)
-- [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
-- [x] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch (completed 2026-07-04)
-- [x] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions (completed 2026-07-04)
-- [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
+- [x] Phase 1: Pin Runtime Dependencies to Known-Good (2/2 plans) — completed 2026-07-04
+- [x] Phase 2: Verify the Green Baseline (3/3 plans) — completed 2026-07-04
+- [x] Phase 3: Modernize Python Floor (3.10–3.13) (2/2 plans) — completed 2026-07-04
+- [x] Phase 4: Refresh Dev Tooling (4/4 plans) — completed 2026-07-04
+- [x] Phase 5: Durability Guardrails (4/4 plans) — completed 2026-07-05
 
-## Phase Details
-
-### Phase 1: Pin Runtime Dependencies to Known-Good
-
-**Goal**: Runtime dependency versions are pinned to a reproducible, empirically-confirmed, mutually-compatible combination, and the codebase is lint-clean. This is the actual bug fix, landing alone so a red/green result is unambiguous.
-**Depends on**: Nothing (first phase)
-**Requirements**: PIN-01, PIN-02, PIN-03, PIN-04, PIN-05, PIN-06, LINT-01, LINT-02
-**Success Criteria** (what must be TRUE):
-
-  1. Every runtime dependency (`typst`, `sphinx`, `docutils`) has an explicit upper bound in `pyproject.toml` — `typst>=0.14.1,<0.15` empirically confirmed to compile the `docs-pdf` target cleanly, `sphinx<9`, `docutils<0.22` — none left unbounded.
-  2. `uv.lock` is regenerated and committed to match the new pins, resolving cleanly across all supported Python-version markers.
-  3. `tox.ini`'s `[testenv]` and `[testenv:type]` dependency lists mirror the same ceilings as `pyproject.toml` (no independent, unbounded re-resolution path in the `type` env).
-  4. The dead `sphinx-testing` dependency is removed from `pyproject.toml`/`uv.lock`.
-  5. `black --check .` and `ruff check .` both exit 0 on the full tree, and the confirmed-good typst patch (plus any rejected candidates) is recorded in `PROJECT.md`'s Key Decisions table.
-
-**Plans**: 2/2 plans complete
-
-- [x] 01-01-PLAN.md — Pin runtime deps (typst/sphinx/docutils upper bounds), mirror tox ceilings, remove sphinx-testing, regenerate uv.lock, confirm docs-pdf + record typst patch/ceiling finding in PROJECT.md (PIN-01..06)
-- [x] 01-02-PLAN.md — Lint-clean the tree: black reformat (separate commit per D-04) + ruff clean (LINT-01/02)
-
-### Phase 2: Verify the Green Baseline
-
-**Goal**: The Phase 1 pin is confirmed to turn every previously-red CI job green across the full platform/Python matrix, and the 3-way `@preview` version sync hazard is protected by an automated test rather than manual memory.
-**Depends on**: Phase 1
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, DOCS-01
-**Success Criteria** (what must be TRUE):
-
-  1. All 12 test-matrix jobs (3 OS x 4 Python versions) pass to completion — not just the ubuntu-only jobs.
-  2. The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`).
-  3. The coverage job passes and uploads to Codecov; Type Check and Build Package jobs remain green with no regression.
-  4. `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that previously errored on a missing PDF.
-  5. A new automated test asserts the `@preview` package versions declared in `writer.py`, `template_engine.py`, and `templates/base.typ` are identical, so a future desync fails CI loudly instead of silently.
-
-**Plans**: 3/3 plans complete
-**Wave 1**
-
-- [x] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 02-02-PLAN.md — Push a work branch + PR targeting main and observe ci.yml (12 matrix jobs + lint/type/coverage/build/integration) and docs.yml (end-to-end incl. PDF-copy) green (D-01/D-02)
-
-**Wave 3** *(gap closure — blocked on Wave 2 completion)*
-
-- [x] 02-03-PLAN.md — Apply the tox-env matrix-mapping fix to ci.yml, re-push onto PR #104, observe all 12 matrix jobs green, and re-mark TEST-01 Complete (TEST-01; D-01/D-04)
-
-### Phase 3: Modernize Python Floor (3.10-3.13)
-
-**Goal**: The supported Python range is uniformly modernized to 3.10-3.13 across every config surface, landing as one atomic batch on top of a confirmed-green baseline so any new failure is attributable to the Python bump alone.
-**Depends on**: Phase 2
-**Requirements**: PYVER-01, PYVER-02, PYVER-03, PYVER-04
-**Success Criteria** (what must be TRUE):
-
-  1. `requires-python>=3.10` and PyPI classifiers (3.9 dropped, 3.13 added) are set in `pyproject.toml`.
-  2. `ci.yml`'s test matrix covers Python 3.10-3.13, and every hardcoded `uv python install` line across `ci.yml`/`docs.yml`/`release.yml` is reconciled with the new floor.
-  3. `[tool.black]`, `[tool.ruff]`, and `[tool.mypy]` target-versions all align to the 3.10 floor.
-  4. `tox.ini`'s `env_list` is updated to `py310, py311, py312, py313` in lockstep with the CI matrix (no tox env without a CI caller, and vice versa).
-  5. The full CI matrix is green again on 3.10-3.13, confirming no reformatting regression or 3.13 wheel-availability gap in dev/docs dependencies.
-
-**Plans**: 2/2 plans complete
-
-**Wave 1**
-
-- [x] 03-01-PLAN.md — Edit all six Python-floor config surfaces as three per-surface commits: pyproject.toml (requires-python >=3.10 + classifiers 3.9→3.13 + black/ruff/mypy target-versions) & regenerated uv.lock, tox.ini env_list py310-py313, and ci.yml/docs.yml/release.yml (matrix 3.10-3.13 + single-version pins → 3.10) (PYVER-01/02/03/04)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 03-02-PLAN.md — Push the Phase 3 branch + open a PR targeting main and observe the full ci.yml matrix (3.10-3.13) + docs.yml green (push→observe = done; PYVER-02, SC5)
-
-### Phase 4: Refresh Dev Tooling
-
-**Goal**: Dev-tooling floors and CI action versions are refreshed conservatively, without introducing risky default-behavior flips unrelated to the CI-repair goal.
-**Depends on**: Phase 3
-**Requirements**: TOOL-01, TOOL-02
-**Success Criteria** (what must be TRUE):
-
-  1. Black/ruff/tox dev-tooling floors are bumped conservatively; the project deliberately stays on `pytest~=8.4` and `mypy>=1.13,<2.0` this cycle rather than jumping to a new major.
-  2. GitHub Actions versions (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) are verified/refreshed for hosted-runner compatibility.
-  3. CI remains green after the tooling refresh, with no regression introduced by any version bump.
-
-**Plans**: 4/4 plans complete
-
-**Wave 1** *(parallel — no file overlap)*
-
-- [x] 04-01-PLAN.md — Bump black/ruff/tox/tox-uv/pytest/mypy floor+ceiling constraints in lockstep across pyproject.toml [dev] and tox.ini (per-env deps + [tox] requires), regenerate uv.lock minimal-diff, local lint/type/cov pre-check (TOOL-01; D-01/D-02/D-07/D-08)
-- [x] 04-02-PLAN.md — Bump upload-artifact@v5→@v7 (×7) and download-artifact@v6→@v8 (×3) across ci.yml/docs.yml/release.yml, runtime-verify node24 + check the 3 release/docs-only actions for Node-20 stragglers (TOOL-02; D-03 amended, RESEARCH A2)
-
-**Wave 2** *(blocked on 04-01 — shares pyproject.toml)*
-
-- [x] 04-03-PLAN.md — Python 3.9→3.10 leftover cleanup: README.md lines 36 & 323 + ruff UP035/UP006 comment text (TOOL-01; D-04)
-
-**Wave 3** *(terminal gate — blocked on 04-01/02/03)*
-
-- [x] 04-04-PLAN.md — Push PR targeting main, observe ci.yml (3.10–3.13 matrix + lint/type/coverage/build/integration) + docs.yml green, human-verify gate (TOOL-01/TOOL-02; D-05/D-06)
-
-### Phase 5: Durability Guardrails
-
-**Goal**: CI enforces lockfile currency and proactively surfaces future dependency drift, so the silent multi-year rot this milestone fixes cannot recur unnoticed.
-**Depends on**: Phase 4
-**Requirements**: DUR-01, DUR-02, DUR-03, DUR-04
-**Success Criteria** (what must be TRUE):
-
-  1. CI uses `uv sync --locked` (or an equivalent `uv lock --check` gate), so a stale or silently-rewritten lockfile fails the build loudly instead of drifting.
-  2. A weekly, non-blocking scheduled CI job resolves latest dependencies and reports drift early without blocking merges.
-  3. `dependabot.yml` groups the `sphinx`/`docutils`/`typst` cluster so a lone dependency bump can't reintroduce the `kai`-class break.
-  4. A CI status badge is visible on `README.md`, reflecting the now-green, guarded pipeline.
-
-**Plans**: 3/4 plans executed
-
-**Wave 1** *(parallel — no file overlap)*
-
-- [x] 05-01-PLAN.md — Append `--locked` to all 9 `uv sync` sites (ci/docs/release.yml) + bump `softprops/action-gh-release@v2→@v3` (DUR-01; D-01/D-02/D-11)
-- [x] 05-02-PLAN.md — Add the `sphinx-typst-stack` Dependabot group (scoped to exactly sphinx/docutils/typst) + a CI status badge in README (DUR-03/DUR-04; D-08/D-09)
-- [x] 05-03-PLAN.md — New `.github/workflows/drift.yml`: weekly + `workflow_dispatch` drift detector (`uv lock --upgrade` → exercise → deduplicated `gh` issue on failure), least-privilege permissions (DUR-02; D-04/D-05/D-06/D-07/D-10)
-
-**Wave 2** *(terminal gate — blocked on Wave 1)*
-
-- [ ] 05-04-PLAN.md — Push→observe PR targeting main (DUR-01/03/04 green + D-11 syntactic), post-merge `drift.yml` `workflow_dispatch` smoke, assert drift not a required check (D-07), record D-11 tag-gated sign-off (D-10; RESEARCH Pitfall 3)
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
-| 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
-| 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
-| 4. Refresh Dev Tooling | 4/4 | Complete    | 2026-07-04 |
-| 5. Durability Guardrails | 3/4 | In Progress|  |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Pin Runtime Dependencies to Known-Good | v0.4.4 | 2/2 | Complete | 2026-07-04 |
+| 2. Verify the Green Baseline | v0.4.4 | 3/3 | Complete | 2026-07-04 |
+| 3. Modernize Python Floor (3.10–3.13) | v0.4.4 | 2/2 | Complete | 2026-07-04 |
+| 4. Refresh Dev Tooling | v0.4.4 | 4/4 | Complete | 2026-07-04 |
+| 5. Durability Guardrails | v0.4.4 | 4/4 | Complete | 2026-07-05 |
 
 ---
-*Roadmap created: 2026-07-04*
-*Granularity: standard (5 phases, dependency-ordered, matching research's converged phase structure)*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close*

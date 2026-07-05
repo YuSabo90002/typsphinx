@@ -1,45 +1,45 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
+milestone: v0.4.4
+milestone_name: CI-repair + modernize
 current_phase: 05
-current_phase_name: durability-guardrails
-status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-07-05T05:20:16.730Z"
+status: complete
+stopped_at: Phase 5 verified (4/4 must-haves) & complete — milestone v0.4.4 complete (5/5 phases)
+last_updated: "2026-07-05T05:47:03.232Z"
 last_activity: 2026-07-05
-last_activity_desc: Phase 05 execution started
+last_activity_desc: Phase 05 complete
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 14
-  percent: 80
+  completed_plans: 15
+  percent: 100
+current_phase_name: durability-guardrails
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-04)
+See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 05 — durability-guardrails
+**Current focus:** Milestone v0.4.4 complete & archived — all 5 phases done; guarded, green, modernized CI on `main`. Next: `/gsd-new-milestone` when ready.
 
 ## Current Position
 
-Phase: 05 (durability-guardrails) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-05 — Phase 05 execution started
+Phase: 05 — durability-guardrails (final phase)
+Plan: 4/4 complete
+Status: Milestone v0.4.4 complete & archived — Phase 5 verified (VERIFICATION.md: passed, 4/4 must-haves); PR #106 merged to main; tagged v0.4.4
+Last activity: 2026-07-05 — v0.4.4 milestone archived (milestones/v0.4.4-ROADMAP.md, v0.4.4-REQUIREMENTS.md); RETROSPECTIVE.md written
 
-Progress: [██████░░░░] 60%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 15
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -51,6 +51,7 @@ Progress: [██████░░░░] 60%
 | 02 | 3 | - | - |
 | 03 | 2 | - | - |
 | 04 | 4 | - | - |
+| 05 | 4 | - | - |
 
 **Recent Trend:**
 
@@ -69,6 +70,7 @@ Progress: [██████░░░░] 60%
 | Phase 05 P01 | 12min | 2 tasks | 3 files |
 | Phase 05 P02 | 3min | 2 tasks | 2 files |
 | Phase 05 P03 | 3min | 1 tasks | 1 files |
+| Phase 05 P04 | 20min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -99,6 +101,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Isolated Task 1 and Task 2 commits by temporarily reverting the softprops @v3 edit before committing Task 1, then reapplying it for Task 2 -- both tasks touch docs.yml/release.yml so this kept commits atomic per-task.
 - [Phase ?]: [Phase 05-02] Used prefix-anchored globs sphinx*/docutils*/typst* with exclude-patterns for sphinx-autodoc-typehints/sphinx-intl (D-08 scoping); CI badge placed first in README badge row (D-09).
 - [Phase ?]: [Phase 05-03] Implemented drift.yml exactly per RESEARCH.md Pattern 2 skeleton and PATTERNS.md's synthesized version -- no deviation from the plan's specified step order, permissions, or tox env selection.
+- [Phase 05-04]: PR #106 merged to main; ci.yml (19 jobs) + docs.yml both green, empirically confirming DUR-01/03/04 and D-11 syntactic validity
+- [Phase 05-04]: drift.yml validated post-merge via workflow_dispatch (run 28730876125, SUCCESS, no forward drift detected, no issue filed) -- confirms DUR-02 end-to-end
+- [Phase 05-04]: D-11 (softprops/action-gh-release@v3 tag-gated runtime confirmation) deferred to the next real release tag with explicit developer sign-off, rather than smoke-tested via manual release.yml dispatch
 
 ### Pending Todos
 
@@ -122,6 +127,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-05T05:19:49.976Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-durability-guardrails/05-CONTEXT.md
+Last session: 2026-07-05T05:41:02.202Z
+Stopped at: Completed 05-04-PLAN.md (Phase 5 complete, all 4/4 plans)
+Resume file: None
