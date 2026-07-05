@@ -11,6 +11,15 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+    groups:
+      sphinx-typst-stack:
+        patterns:
+          - "sphinx*"
+          - "docutils*"
+          - "typst*"
+        exclude-patterns:
+          - "sphinx-autodoc-typehints"
+          - "sphinx-intl"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
