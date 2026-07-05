@@ -134,7 +134,17 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   3. `dependabot.yml` groups the `sphinx`/`docutils`/`typst` cluster so a lone dependency bump can't reintroduce the `kai`-class break.
   4. A CI status badge is visible on `README.md`, reflecting the now-green, guarded pipeline.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 05-01-PLAN.md — Append `--locked` to all 9 `uv sync` sites (ci/docs/release.yml) + bump `softprops/action-gh-release@v2→@v3` (DUR-01; D-01/D-02/D-11)
+- [ ] 05-02-PLAN.md — Add the `sphinx-typst-stack` Dependabot group (scoped to exactly sphinx/docutils/typst) + a CI status badge in README (DUR-03/DUR-04; D-08/D-09)
+- [ ] 05-03-PLAN.md — New `.github/workflows/drift.yml`: weekly + `workflow_dispatch` drift detector (`uv lock --upgrade` → exercise → deduplicated `gh` issue on failure), least-privilege permissions (DUR-02; D-04/D-05/D-06/D-07/D-10)
+
+**Wave 2** *(terminal gate — blocked on Wave 1)*
+
+- [ ] 05-04-PLAN.md — Push→observe PR targeting main (DUR-01/03/04 green + D-11 syntactic), post-merge `drift.yml` `workflow_dispatch` smoke, assert drift not a required check (D-07), record D-11 tag-gated sign-off (D-10; RESEARCH Pitfall 3)
 
 ## Progress
 
@@ -147,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
 | 4. Refresh Dev Tooling | 4/4 | Complete    | 2026-07-04 |
-| 5. Durability Guardrails | 0/TBD | Not started | - |
+| 5. Durability Guardrails | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-07-04*
