@@ -53,7 +53,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 <!-- Anti-recurrence: make future drift fail loudly instead of silently. -->
 
 - [x] **DUR-01**: CI uses `uv sync --locked` (or a `uv lock --check` gate) so a stale/rewritten lockfile fails the build instead of being silently regenerated
-- [ ] **DUR-02**: A weekly non-blocking scheduled (`schedule:`) drift-detection CI job resolves latest deps and reports breakage early
+- [x] **DUR-02**: A weekly non-blocking scheduled (`schedule:`) drift-detection CI job resolves latest deps and reports breakage early
 - [x] **DUR-03**: `dependabot.yml` groups the `sphinx`/`docutils`/`typst` bumps so a lone `typst` bump can't reintroduce the `kai` break
 - [x] **DUR-04**: CI status badge added to `README.md`
 
@@ -105,7 +105,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOOL-01 | Phase 4 | Complete |
 | TOOL-02 | Phase 4 | Complete |
 | DUR-01 | Phase 5 | Complete |
-| DUR-02 | Phase 5 | Pending |
+| DUR-02 | Phase 5 | Complete |
 | DUR-03 | Phase 5 | Complete |
 | DUR-04 | Phase 5 | Complete |
 
