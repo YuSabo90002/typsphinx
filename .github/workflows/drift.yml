@@ -1,0 +1,52 @@
+name: Dependency Drift Check
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift-check:
+    name: Resolve latest deps and exercise them
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.10
+
+      - name: Resolve latest allowed dependency versions
+        run: uv lock --upgrade
+
+      - name: Install from freshly-resolved (uncommitted) lock
+        run: uv sync --extra dev --extra docs --locked
+
+      - name: Exercise the resolved dependency set
+        run: uv run tox -e cov,docs-pdf
+
+      - name: Report drift via a single deduplicated issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existing=$(gh issue list --label drift --state open --json number --jq '.[0].number')
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Drift check failed again: $run_url"
+          else
+            gh issue create \
+              --title "Dependency drift detected: latest resolvable versions break the build" \
+              --label drift \
+              --body "The weekly drift-detection job resolved to the latest allowed dependency versions and the build/test step failed. Run: $run_url"
+          fi
