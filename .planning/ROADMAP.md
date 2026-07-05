@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
 | 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
 | 4. Refresh Dev Tooling | 4/4 | Complete    | 2026-07-04 |
-| 5. Durability Guardrails | 4/4 | Complete   | 2026-07-05 |
+| 5. Durability Guardrails | 4/4 | Complete    | 2026-07-05 |
 
 ---
 *Roadmap created: 2026-07-04*
