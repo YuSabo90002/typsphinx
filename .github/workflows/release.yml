@@ -33,7 +33,7 @@ jobs:
         run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Extract version from tag
         id: version
@@ -90,7 +90,7 @@ jobs:
 
       - name: Check package
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --locked
           uv run twine check dist/*
 
       - name: List built files

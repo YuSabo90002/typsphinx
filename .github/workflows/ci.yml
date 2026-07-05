@@ -38,7 +38,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run tests with tox
         run: uv run tox -e ${{ matrix.tox-env }}
@@ -68,7 +68,7 @@ jobs:
         run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run lint with tox
         run: uv run tox -e lint
@@ -89,7 +89,7 @@ jobs:
         run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run type check with tox
         run: uv run tox -e type
@@ -110,7 +110,7 @@ jobs:
         run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run coverage with tox
         run: uv run tox -e cov -- --cov-report=xml
@@ -148,7 +148,7 @@ jobs:
 
       - name: Check package
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --locked
           uv run twine check dist/*
 
       - name: Upload package artifacts
@@ -176,7 +176,7 @@ jobs:
         run: uv python install 3.10
 
       - name: Install package and dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Build ${{ matrix.example }} example
         working-directory: examples/${{ matrix.example }}
