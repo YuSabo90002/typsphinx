@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 5
-current_phase_name: Durability Guardrails
+current_phase: 05
+current_phase_name: durability-guardrails
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-07-05T00:31:22.807Z"
-last_activity: 2026-07-04
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+last_updated: "2026-07-05T05:13:43.796Z"
+last_activity: 2026-07-05
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 15
+  completed_plans: 12
   percent: 80
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-04)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 04 — refresh-dev-tooling
+**Current focus:** Phase 05 — durability-guardrails
 
 ## Current Position
 
-Phase: 5 — Durability Guardrails
-Plan: Not started
+Phase: 05 (durability-guardrails) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-04 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-07-05 — Phase 05 execution started
 
 Progress: [██████░░░░] 60%
 
@@ -66,6 +66,7 @@ Progress: [██████░░░░] 60%
 | Phase 04 P02 | 8min | 2 tasks | 3 files |
 | Phase 04 P03 | 6min | 2 tasks | 2 files |
 | Phase 04 P04 | 40min | 3 tasks | 0 files |
+| Phase 05 P01 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04-04]: Opened NEW PR #105 to main (base=main, head d99748d) via gh pr create rather than reopening closed PR #104 (owner decision); titled to reflect the full Phases 2-4 green-baseline integration
 - [Phase ?]: [Phase 04-04]: push->observe gate green — ci.yml run 28711976093 success (18 jobs, full 3.10-3.13 x 3-OS matrix + lint/type/coverage/build/integration) + docs.yml run 28711976097 success (incl. PDF step); developer approved the blocking human-verify gate
 - [Phase ?]: [Phase 04-04]: Repaired main branch protection via gh api PATCH — removed stale required check 'Test Python 3.9 on ubuntu-latest' (Phase-3 leftover, root cause of PR #105 being un-mergeable despite all jobs green) and added 'Test Python 3.13 on ubuntu-latest'; PR #105 now MERGEABLE/CLEAN. Repo-settings change not a git commit
+- [Phase ?]: Isolated Task 1 and Task 2 commits by temporarily reverting the softprops @v3 edit before committing Task 1, then reapplying it for Task 2 -- both tasks touch docs.yml/release.yml so this kept commits atomic per-task.
 
 ### Pending Todos
 
@@ -116,6 +118,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-04T16:36:35.842Z
+Last session: 2026-07-05T05:13:18.290Z
 Stopped at: Phase 5 context gathered
 Resume file: .planning/phases/05-durability-guardrails/05-CONTEXT.md
