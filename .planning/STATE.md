@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 05
-status: verifying
-stopped_at: Completed 05-04-PLAN.md (Phase 5 complete, all 4/4 plans)
+status: complete
+stopped_at: Phase 5 verified (4/4 must-haves) & complete — milestone v1.0 complete (5/5 phases)
 last_updated: "2026-07-05T05:47:03.232Z"
 last_activity: 2026-07-05
 last_activity_desc: Phase 05 complete
@@ -21,17 +21,17 @@ current_phase_name: durability-guardrails
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-04)
+See: .planning/PROJECT.md (updated 2026-07-05)
 
 **Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Phase 05 — durability-guardrails
+**Current focus:** Milestone v1.0 complete — all 5 phases done; guarded, green, modernized CI on `main`
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-07-05 — Phase 05 complete
+Phase: 05 — durability-guardrails (final phase)
+Plan: 4/4 complete
+Status: Milestone v1.0 complete — Phase 5 verified (VERIFICATION.md: passed, 4/4 must-haves); PR #106 merged to main
+Last activity: 2026-07-05 — Phase 05 verified & complete; milestone v1.0 complete
 
 Progress: [██████████] 100%
 
