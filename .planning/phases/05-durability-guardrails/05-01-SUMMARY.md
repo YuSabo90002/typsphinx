@@ -102,3 +102,10 @@ None - no external service configuration required.
 - Plans 05-02 and 05-03 (dependabot grouping, drift.yml) can proceed independently — no shared file conflicts with this plan's edits.
 - Plan 05-04 owns the CI-visible confirmation gate: a PR push->observe run will exercise the `--locked` gate directly, but the softprops `@v3` runtime behavior remains unconfirmed until a real tag push or `workflow_dispatch` (release.yml only) — this is explicitly deferred per the plan's Pitfall 3 note, not a gap in this plan's scope.
 - No blockers.
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/05-durability-guardrails/05-01-SUMMARY.md
+- FOUND: 5e9a643 (Task 1 commit)
+- FOUND: 8e4b4df (Task 2 commit)
+- FOUND: c7e712e (SUMMARY commit)
