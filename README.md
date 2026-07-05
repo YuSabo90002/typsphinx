@@ -1,5 +1,6 @@
 # typsphinx
 
+[![CI](https://github.com/YuSabo90002/typsphinx/actions/workflows/ci.yml/badge.svg)](https://github.com/YuSabo90002/typsphinx/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/typsphinx.svg)](https://badge.fury.io/py/typsphinx)
 [![Python Support](https://img.shields.io/pypi/pyversions/typsphinx.svg)](https://pypi.org/project/typsphinx/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -33,7 +34,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 
 ## Requirements
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Sphinx 5.0 or higher
 - typst-py 0.11.1 or higher
 
@@ -320,4 +321,4 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 ---
 
 **Status**: Stable (v0.4.2) - Production ready
-**Python**: 3.9+ | **Sphinx**: 5.0+ | **Typst**: 0.11.1+
+**Python**: 3.10+ | **Sphinx**: 5.0+ | **Typst**: 0.11.1+

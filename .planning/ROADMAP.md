@@ -22,9 +22,9 @@ of a confirmed-green baseline, and the guardrails close the loop last.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Pin Runtime Dependencies to Known-Good** - Pin typst/sphinx/docutils to a reproducible, mutually-compatible combination and make the tree lint-clean (completed 2026-07-04)
-- [ ] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync
-- [ ] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch
-- [ ] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions
+- [x] **Phase 2: Verify the Green Baseline** - Confirm the pin turns every CI job green and guard the 3-way `@preview` version sync against future desync (completed 2026-07-04)
+- [x] **Phase 3: Modernize Python Floor (3.10-3.13)** - Bump the supported Python range across every config surface as one atomic, CI-verified batch (completed 2026-07-04)
+- [x] **Phase 4: Refresh Dev Tooling** - Conservatively bump dev-tooling floors and verify GitHub Actions versions (completed 2026-07-04)
 - [ ] **Phase 5: Durability Guardrails** - Enforce lockfile currency and add drift detection so the rot cannot silently recur
 
 ## Phase Details
@@ -60,7 +60,18 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that previously errored on a missing PDF.
   5. A new automated test asserts the `@preview` package versions declared in `writer.py`, `template_engine.py`, and `templates/base.typ` are identical, so a future desync fails CI loudly instead of silently.
 
-**Plans**: TBD
+**Plans**: 3/3 plans complete
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Add the `@preview` version-sync guard test (D-03) and run the cheap local pre-check on the pinned tree (D-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 02-02-PLAN.md — Push a work branch + PR targeting main and observe ci.yml (12 matrix jobs + lint/type/coverage/build/integration) and docs.yml (end-to-end incl. PDF-copy) green (D-01/D-02)
+
+**Wave 3** *(gap closure — blocked on Wave 2 completion)*
+
+- [x] 02-03-PLAN.md — Apply the tox-env matrix-mapping fix to ci.yml, re-push onto PR #104, observe all 12 matrix jobs green, and re-mark TEST-01 Complete (TEST-01; D-01/D-04)
 
 ### Phase 3: Modernize Python Floor (3.10-3.13)
 
@@ -75,7 +86,15 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   4. `tox.ini`'s `env_list` is updated to `py310, py311, py312, py313` in lockstep with the CI matrix (no tox env without a CI caller, and vice versa).
   5. The full CI matrix is green again on 3.10-3.13, confirming no reformatting regression or 3.13 wheel-availability gap in dev/docs dependencies.
 
-**Plans**: TBD
+**Plans**: 2/2 plans complete
+
+**Wave 1**
+
+- [x] 03-01-PLAN.md — Edit all six Python-floor config surfaces as three per-surface commits: pyproject.toml (requires-python >=3.10 + classifiers 3.9→3.13 + black/ruff/mypy target-versions) & regenerated uv.lock, tox.ini env_list py310-py313, and ci.yml/docs.yml/release.yml (matrix 3.10-3.13 + single-version pins → 3.10) (PYVER-01/02/03/04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 03-02-PLAN.md — Push the Phase 3 branch + open a PR targeting main and observe the full ci.yml matrix (3.10-3.13) + docs.yml green (push→observe = done; PYVER-02, SC5)
 
 ### Phase 4: Refresh Dev Tooling
 
@@ -88,7 +107,20 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   2. GitHub Actions versions (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) are verified/refreshed for hosted-runner compatibility.
   3. CI remains green after the tooling refresh, with no regression introduced by any version bump.
 
-**Plans**: TBD
+**Plans**: 4/4 plans complete
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [x] 04-01-PLAN.md — Bump black/ruff/tox/tox-uv/pytest/mypy floor+ceiling constraints in lockstep across pyproject.toml [dev] and tox.ini (per-env deps + [tox] requires), regenerate uv.lock minimal-diff, local lint/type/cov pre-check (TOOL-01; D-01/D-02/D-07/D-08)
+- [x] 04-02-PLAN.md — Bump upload-artifact@v5→@v7 (×7) and download-artifact@v6→@v8 (×3) across ci.yml/docs.yml/release.yml, runtime-verify node24 + check the 3 release/docs-only actions for Node-20 stragglers (TOOL-02; D-03 amended, RESEARCH A2)
+
+**Wave 2** *(blocked on 04-01 — shares pyproject.toml)*
+
+- [x] 04-03-PLAN.md — Python 3.9→3.10 leftover cleanup: README.md lines 36 & 323 + ruff UP035/UP006 comment text (TOOL-01; D-04)
+
+**Wave 3** *(terminal gate — blocked on 04-01/02/03)*
+
+- [x] 04-04-PLAN.md — Push PR targeting main, observe ci.yml (3.10–3.13 matrix + lint/type/coverage/build/integration) + docs.yml green, human-verify gate (TOOL-01/TOOL-02; D-05/D-06)
 
 ### Phase 5: Durability Guardrails
 
@@ -102,7 +134,17 @@ of a confirmed-green baseline, and the guardrails close the loop last.
   3. `dependabot.yml` groups the `sphinx`/`docutils`/`typst` cluster so a lone dependency bump can't reintroduce the `kai`-class break.
   4. A CI status badge is visible on `README.md`, reflecting the now-green, guarded pipeline.
 
-**Plans**: TBD
+**Plans**: 3/4 plans executed
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [x] 05-01-PLAN.md — Append `--locked` to all 9 `uv sync` sites (ci/docs/release.yml) + bump `softprops/action-gh-release@v2→@v3` (DUR-01; D-01/D-02/D-11)
+- [x] 05-02-PLAN.md — Add the `sphinx-typst-stack` Dependabot group (scoped to exactly sphinx/docutils/typst) + a CI status badge in README (DUR-03/DUR-04; D-08/D-09)
+- [x] 05-03-PLAN.md — New `.github/workflows/drift.yml`: weekly + `workflow_dispatch` drift detector (`uv lock --upgrade` → exercise → deduplicated `gh` issue on failure), least-privilege permissions (DUR-02; D-04/D-05/D-06/D-07/D-10)
+
+**Wave 2** *(terminal gate — blocked on Wave 1)*
+
+- [ ] 05-04-PLAN.md — Push→observe PR targeting main (DUR-01/03/04 green + D-11 syntactic), post-merge `drift.yml` `workflow_dispatch` smoke, assert drift not a required check (D-07), record D-11 tag-gated sign-off (D-10; RESEARCH Pitfall 3)
 
 ## Progress
 
@@ -112,10 +154,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Pin Runtime Dependencies to Known-Good | 2/2 | Complete    | 2026-07-04 |
-| 2. Verify the Green Baseline | 0/TBD | Not started | - |
-| 3. Modernize Python Floor (3.10-3.13) | 0/TBD | Not started | - |
-| 4. Refresh Dev Tooling | 0/TBD | Not started | - |
-| 5. Durability Guardrails | 0/TBD | Not started | - |
+| 2. Verify the Green Baseline | 3/3 | Complete    | 2026-07-04 |
+| 3. Modernize Python Floor (3.10-3.13) | 2/2 | Complete    | 2026-07-04 |
+| 4. Refresh Dev Tooling | 4/4 | Complete    | 2026-07-04 |
+| 5. Durability Guardrails | 3/4 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-04*

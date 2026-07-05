@@ -8,7 +8,6 @@ using the typst Python package (Requirement 9).
 import logging
 import os
 import tempfile
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +31,8 @@ class TypstCompilationError(Exception):
     def __init__(
         self,
         message: str,
-        typst_error: Optional[Exception] = None,
-        source_location: Optional[str] = None,
+        typst_error: Exception | None = None,
+        source_location: str | None = None,
     ):
         """
         Initialize TypstCompilationError.
@@ -108,7 +107,7 @@ def get_typst_version() -> str:
         return "not installed"
 
 
-def compile_typst_to_pdf(typst_content: str, root_dir: Optional[str] = None) -> bytes:
+def compile_typst_to_pdf(typst_content: str, root_dir: str | None = None) -> bytes:
     """
     Compile Typst content to PDF bytes.
 

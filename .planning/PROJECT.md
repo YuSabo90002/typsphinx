@@ -23,16 +23,15 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 - ✓ Master vs. included document handling (`#include()`), image/asset copying, nested directory preservation — existing
 - ✓ i18n scaffolding (sphinx-intl), full pytest suite (~400 tests), tox-based lint/typecheck/coverage, GitHub Actions CI + docs + release workflows — existing
 - ✓ Runtime dependencies pinned to a reproducible known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`); `uv.lock` regenerated and committed; tree lint-clean (`black`/`ruff`) — Validated in Phase 1
+- ✓ Every CI job green across the full 3-OS × Python matrix (12 test lanes + lint/type-check/coverage/build/integration) and `docs.yml` end-to-end incl. the multi-language PDF-copy step, confirmed by an observed Actions run — Validated in Phase 2 (CI run 28702240846)
+- ✓ The 3-way `@preview` version sync (`writer.py`, `template_engine.py`, `templates/base.typ`) guarded by an automated test that fails CI loudly on desync — Validated in Phase 2
+- ✓ Supported Python range modernized to 3.10–3.13: `requires-python>=3.10`, 3.9 dropped / 3.13 added across pyproject classifiers, tox `env_list`, and the CI matrix; black/ruff/mypy target-versions aligned to the 3.10 floor; `uv.lock` regenerated minimal-diff — Validated in Phase 3 (green ci.yml run 28709253590 + docs.yml run 28709253571 on PR #104; all four 3.13 lanes + lint green)
 
 ### Active
 
 <!-- This milestone. Building toward green + modernized CI. -->
 
-- [ ] All CI lint checks pass (`black --check`, ruff) on `main`
-- [ ] The full test matrix passes: the `unknown variable: kai` typst-compilation break is resolved by pinning to a known-good dependency combination
-- [ ] Coverage job passes; docs workflow produces a PDF and completes
-- [ ] Supported Python range modernized to 3.10–3.13: `requires-python>=3.10`, drop EOL 3.9, add 3.13, CI matrix updated
-- [ ] Dev tooling modernized: Black/mypy target versions aligned to the new Python floor; CI action versions refreshed as needed
+- [ ] Dev tooling modernized: dev-tooling floors bumped conservatively and CI GitHub Actions versions refreshed as needed (black/ruff/mypy target-versions already aligned to 3.10 in Phase 3)
 
 ### Out of Scope
 
@@ -59,11 +58,16 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Pin runtime deps to known-good rather than upgrade forward | Fastest, lowest-risk path to green CI; avoids a large sphinx-9/typst-0.15 porting effort in a maintenance cycle | — Pending |
+| Pin runtime deps to known-good rather than upgrade forward | Fastest, lowest-risk path to green CI; avoids a large sphinx-9/typst-0.15 porting effort in a maintenance cycle | Confirmed: full 3-OS × Python matrix green in Phase 2 (CI run 28702240846) |
 | Pin `typst` to 0.14.x compatible with bundled `@preview` packages | The `kai` break is a typst 0.15 ⇄ package incompatibility; reverting the compiler restores compilation | Confirmed: `typst==0.14.9` (resolved in `uv.lock`); `docs-pdf` builds `index.pdf` locally with no `kai` error (typst 0.15.0 reproduces it) |
-| Modernize Python floor to 3.10–3.13 (drop EOL 3.9, add 3.13) | 3.9 reached EOL Oct 2025; "green + modernize" scope | — Pending |
+| Modernize Python floor to 3.10–3.13 (drop EOL 3.9, add 3.13) | 3.9 reached EOL Oct 2025; "green + modernize" scope | Confirmed in Phase 3: full 3.10–3.13 matrix + `docs.yml` green on PR #104 (no 3.13 wheel gap; D-03 ruff pyupgrade reformat fired and was fixed in-batch; `conf.py` `tomllib`→`tomli` backport for the 3.10 docs floor) |
 | Defer supporting sphinx 9 / typst 0.15 to a future milestone | Explicitly chosen to pin, not port; keeps scope bounded | — Pending |
 | `sphinx<9`/`docutils<0.22` ceilings are precautionary, not load-bearing for the `kai` break (D-03) | The `kai` break is purely the typst 0.15 compiler; per RESEARCH's Linux reproduction, `docs-pdf` builds with `typst` pinned even with sphinx/docutils unbounded. Ceilings still applied per D-03 as guardrails against unrelated sphinx-9 / docutils-0.22 drift | Precautionary (not load-bearing) confirmed on Linux; `docs-pdf` builds green with typst 0.14.9, sphinx 7.4.7/8.1.3, docutils 0.21.2. Full 3-OS × Python-version matrix confirmation is Phase 2's gate |
+| Accept already-green pytest 9.1.1 / mypy 2.1.0 with next-major ceilings, not a rollback to literal `pytest~=8.4`/`mypy<2.0` (D-01, Phase 4) | Phase 3's green CI already resolved pytest 9.1.1 + mypy 2.1.0; rolling back would shrink the confirmed known-good set. Honor TOOL-01's spirit ("no risky major flips") via guard ceilings instead — a deliberate, user-owned deviation from TOOL-01's literal wording | Applied: `pytest>=8.4,<10`, `mypy>=1.13,<3.0` in pyproject.toml + tox.ini; Phase 4 CI green on PR #105 |
+| All refreshed dev tools get `floor+<next-major` guard ceilings, incl. tox-uv (D-02/D-07, Phase 4) | Matches Phase 1's defensive runtime pinning + the anti-drift milestone theme; no bare `>=` floor leaving an unbounded re-resolution path | Applied lockstep across pyproject.toml `[dev]` + tox.ini (4 mirror points incl. `[tox] requires` for tox-uv): black `>=26,<27`, ruff `>=0.15,<0.16`, tox `>=4.56,<5`, tox-uv `>=1.35,<2` |
+| Bump artifact actions to node24: upload-artifact@v5→v7, download-artifact@v6→v8 (D-03 AMENDED 2026-07-05, Phase 4) | Post-research: v5/v6 still declare node20, which GitHub removes from hosted runners 2026-09-16; the original "already at latest majors" premise was wrong | Applied across ci.yml/docs.yml/release.yml (7 + 3 occurrences), runtime-verified node24; Phase 4 CI green |
+| Remove stale `Test Python 3.9 on ubuntu-latest` required status check from `main` branch protection, add 3.13 (Phase 4) | Phase-3 leftover: 3.9 was dropped from the CI matrix but the required-check list wasn't updated, leaving a permanent "Expected — waiting for status" pending that blocked PR #105 despite all 18 jobs green | Applied via `gh api PATCH`; PR #105 became MERGEABLE/CLEAN. Required set now ubuntu 3.10–3.13 + Lint/Type/Coverage/Build |
+| `softprops/action-gh-release@v2` node20 straggler tracked, not force-bumped in Phase 4 | Outside 04-02's authorized edit scope (artifact-actions only) and needs its own verification; `@v3` exists and is node24 | Deferred to Phase 5 (durability-guardrails) as a tracked item, not silently closed |
 
 ## Evolution
 
@@ -83,4 +87,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 after initialization*
+*Last updated: 2026-07-05 after Phase 4 completion*

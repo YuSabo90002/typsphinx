@@ -2,20 +2,13 @@
 Tests for entry points configuration.
 """
 
-import sys
 from importlib.metadata import entry_points
 
 
 def test_entry_point_registration():
     """Test that entry points are defined in pyproject.toml."""
     # Get entry points for sphinx.builders group
-    if sys.version_info >= (3, 10):
-        # Python 3.10+ uses select() method
-        eps = entry_points(group="sphinx.builders")
-    else:
-        # Python 3.9 uses dict-like access
-        all_eps = entry_points()
-        eps = all_eps.get("sphinx.builders", [])
+    eps = entry_points(group="sphinx.builders")
 
     # Convert to list of names
     ep_names = [ep.name for ep in eps]
@@ -32,11 +25,7 @@ def test_entry_point_registration():
 def test_entry_point_value():
     """Test that the entry points point to the correct module."""
     # Get entry points for sphinx.builders group
-    if sys.version_info >= (3, 10):
-        eps = entry_points(group="sphinx.builders")
-    else:
-        all_eps = entry_points()
-        eps = all_eps.get("sphinx.builders", [])
+    eps = entry_points(group="sphinx.builders")
 
     # Find the entry points
     typst_ep = None

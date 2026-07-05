@@ -30,10 +30,10 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Extract version from tag
         id: version
@@ -83,21 +83,21 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Build package
         run: uv build
 
       - name: Check package
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --locked
           uv run twine check dist/*
 
       - name: List built files
         run: ls -lh dist/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: dist-packages
           path: dist/
@@ -113,7 +113,7 @@ jobs:
       url: https://pypi.org/p/typsphinx
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: dist-packages
           path: dist/
@@ -134,7 +134,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: dist-packages
           path: dist/
@@ -174,7 +174,7 @@ jobs:
           echo '```' >> release_notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
@@ -203,7 +203,7 @@ jobs:
       url: https://test.pypi.org/p/typsphinx
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: dist-packages
           path: dist/

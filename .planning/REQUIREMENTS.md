@@ -25,37 +25,37 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Tests & Coverage
 
-- [ ] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range
-- [ ] **TEST-02**: The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`)
-- [ ] **TEST-03**: Coverage job passes and uploads to Codecov
-- [ ] **TEST-04**: Type Check and Build Package jobs remain green (currently passing — must not regress)
+- [x] **TEST-01**: All matrix test jobs pass on ubuntu/macos/windows across the supported Python range <!-- RESOLVED (Phase 2 gap-closure): 12/12 matrix jobs green in ci.yml run 28702240846 after mapping matrix.python-version to dotless tox env names. -->
+- [x] **TEST-02**: The 7 PDF-compilation integration tests pass (`test_integration_advanced.py::TestPDFGenerationIntegration`, `test_integration_nested_toctree.py::TestE2ETypstCompilation`)
+- [x] **TEST-03**: Coverage job passes and uploads to Codecov
+- [x] **TEST-04**: Type Check and Build Package jobs remain green (currently passing — must not regress)
 
 ### Docs Build
 
-- [ ] **DOCS-01**: `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that currently errors on a missing PDF
+- [x] **DOCS-01**: `sphinx-build -b typstpdf` produces a PDF and `docs.yml` completes end-to-end, including the multi-language PDF-copy step that currently errors on a missing PDF
 
 ### Python Modernization
 
 <!-- Scope: modernize the Python floor to 3.10–3.13. -->
 
-- [ ] **PYVER-01**: `requires-python` set to `>=3.10`; PyPI classifiers updated (drop 3.9, add 3.13)
-- [ ] **PYVER-02**: CI matrix updated to Python 3.10–3.13; hardcoded `uv python install 3.11` (and similar) lines across `ci.yml`/`docs.yml`/`release.yml` reconciled with the floor
-- [ ] **PYVER-03**: `[tool.black] target-version`, `[tool.ruff] target-version`, and `[tool.mypy] python_version` aligned to the 3.10 floor (removes the "3.11 cannot parse code formatted for 3.12" class of failure)
-- [ ] **PYVER-04**: `tox.ini` `env_list` updated to 3.10–3.13 in lockstep with the CI matrix
+- [x] **PYVER-01**: `requires-python` set to `>=3.10`; PyPI classifiers updated (drop 3.9, add 3.13)
+- [x] **PYVER-02**: CI matrix updated to Python 3.10–3.13; hardcoded `uv python install 3.11` (and similar) lines across `ci.yml`/`docs.yml`/`release.yml` reconciled with the floor
+- [x] **PYVER-03**: `[tool.black] target-version`, `[tool.ruff] target-version`, and `[tool.mypy] python_version` aligned to the 3.10 floor (removes the "3.11 cannot parse code formatted for 3.12" class of failure)
+- [x] **PYVER-04**: `tox.ini` `env_list` updated to 3.10–3.13 in lockstep with the CI matrix
 
 ### Dev Tooling
 
-- [ ] **TOOL-01**: Dev-tooling floors refreshed conservatively — bump black/ruff/tox; stay on `pytest~=8.4` and `mypy>=1.13,<2.0` this cycle to avoid risky default flips
-- [ ] **TOOL-02**: GitHub Actions versions verified/refreshed (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) against hosted-runner compatibility
+- [x] **TOOL-01**: Dev-tooling floors refreshed conservatively — bump black/ruff/tox; stay on `pytest~=8.4` and `mypy>=1.13,<2.0` this cycle to avoid risky default flips
+- [x] **TOOL-02**: GitHub Actions versions verified/refreshed (`actions/checkout`, `actions/setup-python`, `codecov/codecov-action`) against hosted-runner compatibility
 
 ### Durability Guardrails
 
 <!-- Anti-recurrence: make future drift fail loudly instead of silently. -->
 
-- [ ] **DUR-01**: CI uses `uv sync --locked` (or a `uv lock --check` gate) so a stale/rewritten lockfile fails the build instead of being silently regenerated
-- [ ] **DUR-02**: A weekly non-blocking scheduled (`schedule:`) drift-detection CI job resolves latest deps and reports breakage early
-- [ ] **DUR-03**: `dependabot.yml` groups the `sphinx`/`docutils`/`typst` bumps so a lone `typst` bump can't reintroduce the `kai` break
-- [ ] **DUR-04**: CI status badge added to `README.md`
+- [x] **DUR-01**: CI uses `uv sync --locked` (or a `uv lock --check` gate) so a stale/rewritten lockfile fails the build instead of being silently regenerated
+- [x] **DUR-02**: A weekly non-blocking scheduled (`schedule:`) drift-detection CI job resolves latest deps and reports breakage early
+- [x] **DUR-03**: `dependabot.yml` groups the `sphinx`/`docutils`/`typst` bumps so a lone `typst` bump can't reintroduce the `kai` break
+- [x] **DUR-04**: CI status badge added to `README.md`
 
 ## v2 Requirements
 
@@ -93,21 +93,21 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PIN-06 | Phase 1 | Complete |
 | LINT-01 | Phase 1 | Complete |
 | LINT-02 | Phase 1 | Complete |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2 | Pending |
-| TEST-03 | Phase 2 | Pending |
-| TEST-04 | Phase 2 | Pending |
-| DOCS-01 | Phase 2 | Pending |
-| PYVER-01 | Phase 3 | Pending |
-| PYVER-02 | Phase 3 | Pending |
-| PYVER-03 | Phase 3 | Pending |
-| PYVER-04 | Phase 3 | Pending |
-| TOOL-01 | Phase 4 | Pending |
-| TOOL-02 | Phase 4 | Pending |
-| DUR-01 | Phase 5 | Pending |
-| DUR-02 | Phase 5 | Pending |
-| DUR-03 | Phase 5 | Pending |
-| DUR-04 | Phase 5 | Pending |
+| TEST-01 | Phase 2 | Complete |
+| TEST-02 | Phase 2 | Complete |
+| TEST-03 | Phase 2 | Complete |
+| TEST-04 | Phase 2 | Complete |
+| DOCS-01 | Phase 2 | Complete |
+| PYVER-01 | Phase 3 | Complete |
+| PYVER-02 | Phase 3 | Complete |
+| PYVER-03 | Phase 3 | Complete |
+| PYVER-04 | Phase 3 | Complete |
+| TOOL-01 | Phase 4 | Complete |
+| TOOL-02 | Phase 4 | Complete |
+| DUR-01 | Phase 5 | Complete |
+| DUR-02 | Phase 5 | Complete |
+| DUR-03 | Phase 5 | Complete |
+| DUR-04 | Phase 5 | Complete |
 
 **Coverage:**
 

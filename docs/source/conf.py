@@ -7,7 +7,10 @@ import os
 import sys
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11
+    import tomli as tomllib
 
 # Add typsphinx to path for autodoc
 sys.path.insert(0, os.path.abspath("../.."))

@@ -7,7 +7,7 @@ name = "typsphinx"
 version = "0.4.3"
 description = "Sphinx extension for Typst output"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [
     {name = "YuSabo", email = "yusabo90002@gmail.com"}
@@ -18,10 +18,10 @@ classifiers = [
     "Framework :: Sphinx :: Extension",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Documentation :: Sphinx",
     "Topic :: Software Development :: Documentation",
 ]
@@ -34,13 +34,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
+    "pytest>=8.4,<10",
     "pytest-cov>=4.0",
-    "tox>=4.0",
-    "tox-uv>=1.0",
-    "black>=23.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0",
+    "tox>=4.56,<5",
+    "tox-uv>=1.35,<2",
+    "black>=26,<27",
+    "ruff>=0.15,<0.16",
+    "mypy>=1.13,<3.0",
     "pre-commit>=3.0",
     "types-docutils>=0.18",
     "twine>=5.0",
@@ -50,6 +50,7 @@ docs = [
     "furo>=2024.0",
     "sphinx-autodoc-typehints>=1.0",
     "sphinx-intl>=2.0",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -84,7 +85,7 @@ markers = [
 
 [tool.black]
 line-length = 88
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py310", "py311", "py312", "py313"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -99,7 +100,7 @@ exclude = '''
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20"]
@@ -107,8 +108,8 @@ ignore = [
     "E501",   # Line too long (handled by black)
     "T201",   # print found (used in tests for debugging)
     "B017",   # asserting blind exception in tests
-    "UP035",  # typing.Dict/List/Set deprecation (Python 3.9+ support)
-    "UP006",  # Use dict instead of Dict (Python 3.9+ support)
+    "UP035",  # typing.Dict/List/Set deprecation (Python 3.10+ support)
+    "UP006",  # Use dict instead of Dict (Python 3.10+ support)
     "UP028",  # yield from (minor optimization)
     "N802",   # Function naming (docutils visitor pattern uses PascalCase)
     "A001",   # Shadowing builtins (copyright in conf.py is Sphinx convention)
@@ -116,7 +117,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false

@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List, Optional, Union
+from typing import Any, List
 
 from docutils import nodes
 from sphinx import addnodes
@@ -83,10 +83,10 @@ class TypstTranslator(SphinxTranslator):
 
         # Definition list state
         self.in_definition_list = False
-        self.current_term_buffer: Union[str, List[str], None] = None
-        self.current_definition_buffer: Optional[List[str]] = None
+        self.current_term_buffer: str | List[str] | None = None
+        self.current_definition_buffer: List[str] | None = None
         self.definition_list_items = []  # List of (term, definition) tuples
-        self.saved_body: Optional[List[Any]] = (
+        self.saved_body: List[Any] | None = (
             None  # Used by definition lists for body swapping
         )
 
@@ -1596,7 +1596,7 @@ class TypstTranslator(SphinxTranslator):
             self.add_text("]")
 
     def _compute_relative_include_path(
-        self, target_docname: str, current_docname: Optional[str]
+        self, target_docname: str, current_docname: str | None
     ) -> str:
         """
         Compute relative path for toctree #include() directive.
@@ -1677,7 +1677,7 @@ class TypstTranslator(SphinxTranslator):
 
             # Find common parent by comparing path components
             common_length = 0
-            for i, (c, t) in enumerate(zip(current_parts, target_parts)):
+            for i, (c, t) in enumerate(zip(current_parts, target_parts, strict=False)):
                 if c == t:
                     common_length = i + 1
                 else:
@@ -1707,7 +1707,7 @@ class TypstTranslator(SphinxTranslator):
             return relative_path
 
     def _compute_relative_image_path(
-        self, image_uri: str, current_docname: Optional[str]
+        self, image_uri: str, current_docname: str | None
     ) -> str:
         """
         Compute relative path for image() function.
@@ -1782,7 +1782,7 @@ class TypstTranslator(SphinxTranslator):
 
             # Find common parent by comparing path components
             common_length = 0
-            for i, (c, img) in enumerate(zip(current_parts, image_parts)):
+            for i, (c, img) in enumerate(zip(current_parts, image_parts, strict=False)):
                 if c == img:
                     common_length = i + 1
                 else:

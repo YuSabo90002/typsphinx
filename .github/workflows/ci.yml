@@ -15,7 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+        include:
+          - python-version: '3.10'
+            tox-env: py310
+          - python-version: '3.11'
+            tox-env: py311
+          - python-version: '3.12'
+            tox-env: py312
+          - python-version: '3.13'
+            tox-env: py313
 
     steps:
       - uses: actions/checkout@v6
@@ -29,13 +38,13 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run tests with tox
-        run: uv run tox -e py${{ matrix.python-version }}
+        run: uv run tox -e ${{ matrix.tox-env }}
 
       - name: Upload test results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -56,10 +65,10 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run lint with tox
         run: uv run tox -e lint
@@ -77,10 +86,10 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run type check with tox
         run: uv run tox -e type
@@ -98,10 +107,10 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --locked
 
       - name: Run coverage with tox
         run: uv run tox -e cov -- --cov-report=xml
@@ -114,7 +123,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage HTML
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: htmlcov/
@@ -132,18 +141,18 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Build package
         run: uv build
 
       - name: Check package
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --locked
           uv run twine check dist/*
 
       - name: Upload package artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -164,10 +173,10 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.10
 
       - name: Install package and dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Build ${{ matrix.example }} example
         working-directory: examples/${{ matrix.example }}
@@ -176,7 +185,7 @@ jobs:
           ls -la _build/typst/
 
       - name: Upload example output
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: example-${{ matrix.example }}-output
           path: examples/${{ matrix.example }}/_build/typst/
