@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 6
+current_phase: 06
 current_phase_name: Raise Runtime Pins + Python Floor
-status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-07-09T13:56:13.824Z"
+status: verifying
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-07-09T14:10:05.488Z"
 last_activity: 2026-07-09
-last_activity_desc: v0.5.0 roadmap created; 5 phases (6–10), all 14 v1 requirements mapped, no orphans
+last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** v0.5.0 forward-ecosystem — roadmap created (Phases 6–10, 14/14 requirements mapped). Next: plan Phase 6 (Raise Runtime Pins + Python Floor).
+**Current focus:** Phase 06 — Raise Runtime Pins + Python Floor
 
 ## Current Position
 
-Phase: 6 of 10 (Raise Runtime Pins + Python Floor) — first phase of milestone v0.5.0
-Plan: — of TBD
-Status: Ready to execute
-Last activity: 2026-07-09 — v0.5.0 roadmap created; 5 phases (6–10), all 14 v1 requirements mapped, no orphans
+Phase: 06 (Raise Runtime Pins + Python Floor) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-07-09 — Phase 06 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: — (new milestone, no plans executed yet)
 
 *Updated after each plan completion*
+| Phase 06 P01 | 20 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Recent decisions affecting current work:
 - [v0.5.0 scope]: Python floor → ≥3.12 — Sphinx 9.1's own `requires-python` forces it; drop 3.10 and 3.11 from the matrix (raise sphinx/docutils/python + lockfile in one atomic PR, Phase 6).
 - [v0.5.0 scope]: Bundled `@preview` version bump only — FWD-03 (user-configurable versions) deferred to v2 (CFG-01).
 - [Roadmap]: FWD-02 (typst re-pin + no-`kai` compile) grouped with the `@preview` bump in Phase 7, not the pin-raise, because raising typst without the package bump leaves CI red on `kai` — both must land atomically.
+- [Phase 06]: Non-matrix CI jobs (lint/type-check/coverage/build/integration, release validate/build, drift-check) move to Python 3.12 (not 3.13) per CONTEXT.md discretion default.
+- [Phase 06]: Dropped the dead docs-extra tomli conditional (python_version < '3.11') since it is permanently false at the new 3.12 floor — keeps the PIN-02 grep audit clean.
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T13:30:41.294Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-raise-runtime-pins-python-floor/06-CONTEXT.md
+Last session: 2026-07-09T14:10:05.483Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None

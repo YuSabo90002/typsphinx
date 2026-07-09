@@ -4,6 +4,7 @@
 **Core Value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
 
 **Locked scope decisions (from milestone questioning + research):**
+
 - **Latest-only** — raise pins forward; no Sphinx-8/typst-0.14 compatibility range.
 - **Python floor → ≥3.12** — track latest Sphinx (`sphinx>=9.1`); drop 3.10 and 3.11 from the matrix.
 - **Bundled `@preview` version bump only** — FWD-03 (user-configurable `@preview` versions) stays out of scope.
@@ -15,14 +16,14 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 
 ### Forward Ecosystem (FWD)
 
-- [ ] **FWD-01**: `sphinx` is re-pinned to `>=9.1,<10` (the `<9` ceiling dropped) and the extension builds/imports and registers both builders correctly under Sphinx 9.1
+- [x] **FWD-01**: `sphinx` is re-pinned to `>=9.1,<10` (the `<9` ceiling dropped) and the extension builds/imports and registers both builders correctly under Sphinx 9.1
 - [ ] **FWD-02**: `typst` is re-pinned to `>=0.15.0,<0.16` (the `<0.15` ceiling dropped) and the `typstpdf` builder compiles the project docs to PDF under typst 0.15 with no `kai`-class error
 
 ### Dependency Graph (PIN)
 
-- [ ] **PIN-01**: `docutils` is re-pinned to `>=0.21,<0.23` (Sphinx-9.1-compatible; avoids the unresolvable 0.23)
-- [ ] **PIN-02**: The supported Python range is raised to 3.12–3.13 (3.10 and 3.11 dropped) across `pyproject.toml` `requires-python` + classifiers, `tox.ini` `env_list`, the CI/docs/release workflow matrices, and the black/ruff/mypy target-versions
-- [ ] **PIN-03**: `uv.lock` is regenerated to match the raised pins and `uv sync --locked` stays green at all lockfile-currency gate sites
+- [x] **PIN-01**: `docutils` is re-pinned to `>=0.21,<0.23` (Sphinx-9.1-compatible; avoids the unresolvable 0.23)
+- [x] **PIN-02**: The supported Python range is raised to 3.12–3.13 (3.10 and 3.11 dropped) across `pyproject.toml` `requires-python` + classifiers, `tox.ini` `env_list`, the CI/docs/release workflow matrices, and the black/ruff/mypy target-versions
+- [x] **PIN-03**: `uv.lock` is regenerated to match the raised pins and `uv sync --locked` stays green at all lockfile-currency gate sites
 
 ### @preview Packages (PKG)
 
@@ -72,11 +73,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FWD-01 | Phase 6 | Pending |
+| FWD-01 | Phase 6 | Complete |
 | FWD-02 | Phase 7 | Pending |
-| PIN-01 | Phase 6 | Pending |
-| PIN-02 | Phase 6 | Pending |
-| PIN-03 | Phase 6 | Pending |
+| PIN-01 | Phase 6 | Complete |
+| PIN-02 | Phase 6 | Complete |
+| PIN-03 | Phase 6 | Complete |
 | PKG-01 | Phase 7 | Pending |
 | PKG-02 | Phase 7 | Pending |
 | PKG-03 | Phase 7 | Pending |
@@ -88,11 +89,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | REL-01 | Phase 10 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 14 total
 - Mapped to phases: 14 ✓
 - Unmapped: 0 ✓
 
 **Phase distribution:**
+
 - Phase 6 (Raise Runtime Pins + Python Floor): FWD-01, PIN-01, PIN-02, PIN-03
 - Phase 7 (Bump @preview Packages + typst 0.15): FWD-02, PKG-01, PKG-02, PKG-03
 - Phase 8 (API & Test Compatibility): API-01, API-02
