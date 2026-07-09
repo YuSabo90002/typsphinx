@@ -3,8 +3,15 @@
 ## Milestones
 
 - ✅ **v0.4.4 — CI-repair + modernize** — Phases 1–5 (shipped 2026-07-05) → [archive](milestones/v0.4.4-ROADMAP.md)
+- 🚧 **v0.5.0 — forward-ecosystem** — Phases 6–10 (in progress)
 
 ## Phases
+
+**Phase Numbering:**
+- Integer phases (6, 7, 8): Planned milestone work
+- Decimal phases (7.1, 7.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
 
 <details>
 <summary>✅ v0.4.4 — CI-repair + modernize (Phases 1–5) — SHIPPED 2026-07-05</summary>
@@ -23,7 +30,78 @@ criteria, decisions, and tech-debt notes are preserved in
 
 </details>
 
+### 🚧 v0.5.0 — forward-ecosystem (In Progress)
+
+**Milestone Goal:** Port typsphinx forward from the v0.4.4 known-good pins to the current ecosystem —
+Sphinx 9.1 (FWD-01) and typst 0.15+ (FWD-02) — bumping the bundled `@preview` packages to versions
+that compile cleanly (no `kai`-class breaks), fixing any Sphinx-9 / docutils-0.22 breakage, keeping
+every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility range.
+
+- [ ] **Phase 6: Raise Runtime Pins + Python Floor** - Sphinx 9.1 / docutils 0.22 / Python 3.12–3.13 pins + regenerated lockfile (blocking prerequisite)
+- [ ] **Phase 7: Bump @preview Packages + typst 0.15 (kai fix)** - typst 0.15 pin + four `@preview` bumps; `docs-pdf` compiles with no `kai` (highest-risk phase)
+- [ ] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack
+- [ ] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps
+- [ ] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml`
+
+## Phase Details
+
+### Phase 6: Raise Runtime Pins + Python Floor
+**Goal**: The extension installs, imports, and registers both builders against Sphinx 9.1 + docutils 0.22 on Python 3.12–3.13 with a regenerated lockfile — an atomic pin-raise that stands up the real ecosystem so every downstream phase can diagnose against it. (Expected state after this phase: PDF/`docs-pdf` lanes stay red on the `kai` break — that fix is Phase 7.)
+**Depends on**: Nothing (first phase of milestone; builds on the v0.4.4 green baseline)
+**Requirements**: FWD-01, PIN-01, PIN-02, PIN-03
+**Success Criteria** (what must be TRUE):
+  1. `uv`/`pip` resolves `sphinx>=9.1,<10` and `docutils>=0.21,<0.23` (docutils 0.22.4), and a `sphinx-build` invocation confirms both the `typst` and `typstpdf` builders register under Sphinx 9.1
+  2. The supported Python range reads 3.12–3.13 everywhere — `pyproject.toml` `requires-python`>=3.12 + classifiers, `tox.ini` `env_list`, the CI/docs/release workflow matrices, and the black/ruff/mypy target-versions — with 3.10 and 3.11 removed
+  3. `uv sync --locked` is green at every lockfile-currency gate site against a regenerated, minimal-diff `uv.lock`
+  4. The sphinx + docutils + python-floor + lockfile changes land as one atomic change, so no intermediate state attempts to install Sphinx 9.1 on Python 3.10/3.11
+**Plans**: TBD
+
+### Phase 7: Bump @preview Packages + typst 0.15 (kai fix)
+**Goal**: `typst` is raised to 0.15 and the four bundled `@preview` packages are bumped in lockstep so the `typstpdf` builder compiles the project docs to PDF with zero `kai`-class errors — the empirical root-cause fix and the highest-risk gate of the milestone.
+**Depends on**: Phase 6 (needs the typst-0.15-capable stack installed to reproduce and compile-verify)
+**Requirements**: FWD-02, PKG-01, PKG-02, PKG-03
+**Success Criteria** (what must be TRUE):
+  1. `typst` is pinned `>=0.15.0,<0.16` and a real `docs-pdf` compile produces the PDF with no `unknown variable: kai` (or any other) `TypstError` — verified by an actual compile, not changelog inference
+  2. mitex `0.2.4`→`0.2.7`, gentle-clues `1.2.0`→`1.3.1`, and codly-languages `0.1.1`→`0.1.10` are bumped, and codly `1.3.0` is empirically confirmed to compile under typst 0.15
+  3. The 3-way `@preview` version sync (`writer.py` / `template_engine.py` / `templates/base.typ`) agrees in lockstep and `tests/test_preview_version_sync.py` passes
+**Contingency**: If `kai` persists after the mitex bump, bisect by reverting one package at a time. codly `1.3.0` is the fallback suspect — it is already at the registry ceiling (no newer version exists), so a source-level workaround/patch is the escalation path if it breaks.
+**Plans**: TBD
+
+### Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)
+**Goal**: The translator, writer, builder, and config registration are confirmed compatible with Sphinx 9.1 + docutils 0.22, the soft-deprecated docutils API is modernized, and the full pytest suite — including the now-`kai`-free PDF integration tests — passes on the new stack.
+**Depends on**: Phase 7 (the full pytest suite includes PDF integration tests, which need the `kai` fix landed)
+**Requirements**: API-01, API-02
+**Success Criteria** (what must be TRUE):
+  1. The deprecated `doctree.traverse()` at `template_engine.py:239` is replaced with `doctree.findall()` (consistent with `builder.py`) and no `traverse()` deprecation warnings remain
+  2. The translator / writer / builder / config registration run without `AttributeError`/`TypeError`/deprecation-removal breakage against the resolved Sphinx 9.1 + docutils 0.22 (incl. the docutils 0.22 multi-`<term>` definition-list edge case)
+  3. The full pytest suite (~400 tests, incl. PDF integration) passes locally against the new stack
+  4. The tree is black/ruff/mypy clean after any reformatting surfaced by the target-version bump
+**Plans**: TBD
+
+### Phase 9: Green CI Matrix + Smoke Test + Guardrails
+**Goal**: Every CI lane goes green on an observed Actions run across the full matrix, a `typst compile` smoke test guards against future `kai`-class breaks slipping past the internal-only sync test, and the durability guardrails are bumped to the new majors.
+**Depends on**: Phase 8
+**Requirements**: CI-01, CI-02, CI-03
+**Success Criteria** (what must be TRUE):
+  1. An observed Actions run shows every job green — lint, the 3-OS × Python 3.12–3.13 test matrix, type-check, coverage, build, and `docs.yml` (docs-PDF ubuntu-only)
+  2. A `typst compile` smoke test is wired into CI that would fail loudly on a `kai`-class `@preview` break before release (closing the gap the internal-only version-sync test misses)
+  3. `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
+**Plans**: TBD
+
+### Phase 10: Version-String Fix + v0.5.0 Release
+**Goal**: The `__version__` string is corrected to 0.5.0 in sync with `pyproject.toml`, and v0.5.0 ships to PyPI and GitHub Releases via a green release workflow.
+**Depends on**: Phase 9 (release only after the full CI matrix is confirmed green)
+**Requirements**: REL-01
+**Success Criteria** (what must be TRUE):
+  1. `typsphinx/__init__.py` `__version__` reads `"0.5.0"`, matching `pyproject.toml` `version` (the stale `0.4.3` corrected)
+  2. `release.yml` runs green end-to-end on the `v0.5.0` tag, with the version-verify gate passing
+  3. `typsphinx==0.5.0` is published to PyPI (wheel + sdist) and a GitHub Release is created for `v0.5.0`
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -32,6 +110,11 @@ criteria, decisions, and tech-debt notes are preserved in
 | 3. Modernize Python Floor (3.10–3.13) | v0.4.4 | 2/2 | Complete | 2026-07-04 |
 | 4. Refresh Dev Tooling | v0.4.4 | 4/4 | Complete | 2026-07-04 |
 | 5. Durability Guardrails | v0.4.4 | 4/4 | Complete | 2026-07-05 |
+| 6. Raise Runtime Pins + Python Floor | v0.5.0 | 0/TBD | Not started | - |
+| 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 0/TBD | Not started | - |
+| 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 0/TBD | Not started | - |
+| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 0/TBD | Not started | - |
+| 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09*

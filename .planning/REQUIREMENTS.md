@@ -72,26 +72,33 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FWD-01 | TBD | Pending |
-| FWD-02 | TBD | Pending |
-| PIN-01 | TBD | Pending |
-| PIN-02 | TBD | Pending |
-| PIN-03 | TBD | Pending |
-| PKG-01 | TBD | Pending |
-| PKG-02 | TBD | Pending |
-| PKG-03 | TBD | Pending |
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| CI-01 | TBD | Pending |
-| CI-02 | TBD | Pending |
-| CI-03 | TBD | Pending |
-| REL-01 | TBD | Pending |
+| FWD-01 | Phase 6 | Pending |
+| FWD-02 | Phase 7 | Pending |
+| PIN-01 | Phase 6 | Pending |
+| PIN-02 | Phase 6 | Pending |
+| PIN-03 | Phase 6 | Pending |
+| PKG-01 | Phase 7 | Pending |
+| PKG-02 | Phase 7 | Pending |
+| PKG-03 | Phase 7 | Pending |
+| API-01 | Phase 8 | Pending |
+| API-02 | Phase 8 | Pending |
+| CI-01 | Phase 9 | Pending |
+| CI-02 | Phase 9 | Pending |
+| CI-03 | Phase 9 | Pending |
+| REL-01 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14 ✓
+- Unmapped: 0 ✓
+
+**Phase distribution:**
+- Phase 6 (Raise Runtime Pins + Python Floor): FWD-01, PIN-01, PIN-02, PIN-03
+- Phase 7 (Bump @preview Packages + typst 0.15): FWD-02, PKG-01, PKG-02, PKG-03
+- Phase 8 (API & Test Compatibility): API-01, API-02
+- Phase 9 (Green CI Matrix + Smoke Test + Guardrails): CI-01, CI-02, CI-03
+- Phase 10 (Version-String Fix + v0.5.0 Release): REL-01
 
 ---
 *Requirements defined: 2026-07-09*
-*Last updated: 2026-07-09 after initial definition*
+*Last updated: 2026-07-09 after roadmap creation — traceability mapped (14/14, phases 6–10)*
