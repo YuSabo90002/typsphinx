@@ -54,7 +54,8 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
   2. The supported Python range reads 3.12–3.13 everywhere — `pyproject.toml` `requires-python`>=3.12 + classifiers, `tox.ini` `env_list`, the CI/docs/release workflow matrices, and the black/ruff/mypy target-versions — with 3.10 and 3.11 removed
   3. `uv sync --locked` is green at every lockfile-currency gate site against a regenerated, minimal-diff `uv.lock`
   4. The sphinx + docutils + python-floor + lockfile changes land as one atomic change, so no intermediate state attempts to install Sphinx 9.1 on Python 3.10/3.11
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 06-01-PLAN.md — Atomic pin-raise: pyproject sphinx/docutils/python floor + regenerated uv.lock, then mirror the 3.12 floor into tox.ini + all four CI workflows (single wave, atomic)
 
 ### Phase 7: Bump @preview Packages + typst 0.15 (kai fix)
 **Goal**: `typst` is raised to 0.15 and the four bundled `@preview` packages are bumped in lockstep so the `typstpdf` builder compiles the project docs to PDF with zero `kai`-class errors — the empirical root-cause fix and the highest-risk gate of the milestone.
