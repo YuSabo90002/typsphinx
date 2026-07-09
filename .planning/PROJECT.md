@@ -4,11 +4,22 @@
 
 typsphinx is a Sphinx extension that translates reStructuredText documentation into Typst markup (`.typ`) and compiles it to PDF, via the `sphinx-build -b typst` and `-b typstpdf` builders. It's a mature, PyPI-published Python package for teams who author docs in Sphinx but want Typst-quality typeset PDF output.
 
-This planning cycle is a **maintenance milestone**: the project went unmaintained while its dependency pins stayed loose, so CI now resolves newer major versions of the ecosystem (sphinx 9, docutils 0.22, typst 0.15) and fails across lint, tests, coverage, and the docs PDF build. The goal is to get every CI job green again by pinning back to a known-good dependency combination, and to opportunistically modernize the supported Python range and dev tooling while we're in here.
+This planning cycle is a **forward-compatibility milestone (v0.5.0)**: v0.4.4 pinned the dependency graph back to a known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`) to escape multi-year rot. This cycle moves forward — raising the pins to support Sphinx 9 and typst 0.15+, bumping the bundled `@preview` packages to versions that compile cleanly under typst 0.15, and fixing any translator/writer/API breakage — so the extension tracks the current ecosystem again. Latest-only: older Sphinx/typst support is intentionally dropped; a compatibility range is out of scope.
 
 ## Core Value
 
-Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
+The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
+
+## Current Milestone: v0.5.0 forward-ecosystem
+
+**Goal:** Port typsphinx forward from the v0.4.4 known-good pins to support Sphinx 9 (FWD-01) and typst 0.15+ (FWD-02), keeping every CI job green — latest-only, no compatibility range.
+
+**Target features:**
+- Raise runtime pins — drop the `sphinx<9` / `typst<0.15` ceilings; adopt Sphinx 9 + typst 0.15+
+- Bump bundled `@preview` packages (gentle-clues, codly, codly-languages, mitex) to typst-0.15-compatible versions; update the 3-way version-sync (`writer.py` / `template_engine.py` / `templates/base.typ`)
+- Fix Sphinx 9 / docutils API and typst 0.15 (`kai`-class) breakage across the translator / writer / template layer
+- Update durability guardrails (drift.yml ceilings, Dependabot group) to the new majors; regenerate `uv.lock`
+- Release v0.5.0 to PyPI with green CI across the full matrix
 
 ## Requirements
 
@@ -31,14 +42,16 @@ Every CI job passes again on `main` — lint, the full test matrix, coverage, an
 
 ### Active
 
-<!-- Milestone v0.4.4 (green + modernized + guarded CI) complete as of Phase 5. -->
+<!-- Milestone v0.5.0 (forward-ecosystem). Formal REQ-IDs live in REQUIREMENTS.md. -->
 
-_None — all milestone v0.4.4 requirements validated across Phases 1–5. (D-11 `softprops@v3` tag-gated runtime confirmation is now **resolved**: the `Create GitHub Release` job ran green in the v0.4.4 release run.)_
+- [ ] Support Sphinx 9 (FWD-01) — drop `sphinx<9`, fix docutils/Sphinx API breakage
+- [ ] Support typst 0.15+ (FWD-02) — drop `typst<0.15`, bump bundled `@preview` packages to 0.15-compatible versions
+- [ ] Every CI job green on the new majors and v0.5.0 released to PyPI
 
 ### Out of Scope
 
-- Adapting code/templates to *support* Sphinx 9 / typst 0.15 / newest `@preview` packages — deferred; this cycle pins to known-good rather than upgrading forward
-- Configurable `@preview` package versions (tech-debt item) — not required for green; revisit if it blocks pinning
+- Configurable `@preview` package versions (FWD-03, tech-debt item) — deferred; v0.5.0 bumps the bundled versions in-place rather than making them user-configurable
+- A Sphinx 8/typst 0.14 ⇄ Sphinx 9/typst 0.15+ compatibility range — v0.5.0 is latest-only; supporting both old and new majors simultaneously is out of scope
 - Incremental-build rebuild tracking, translator state-management refactor — orthogonal tech debt, not part of a CI-repair milestone
 - New translation features / new reST constructs — this is a maintenance cycle, not a feature cycle
 
@@ -91,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after v0.4.4 milestone — green + modernized + guarded CI shipped across Phases 1–5; released to PyPI (typsphinx 0.4.4) + GitHub Release, tag v0.4.4 on main*
+*Last updated: 2026-07-09 after v0.5.0 milestone kickoff — forward-ecosystem (Sphinx 9 FWD-01 + typst 0.15+ FWD-02) scoped; latest-only, FWD-03 deferred*

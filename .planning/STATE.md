@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4.4
-milestone_name: CI-repair + modernize
-current_phase: 05
-status: complete
-stopped_at: Phase 5 verified (4/4 must-haves) & complete — milestone v0.4.4 complete (5/5 phases)
-last_updated: "2026-07-05T05:47:03.232Z"
-last_activity: 2026-07-05
-last_activity_desc: Phase 05 complete
+milestone: v0.5.0
+milestone_name: forward-ecosystem
+status: planning
+last_updated: "2026-07-09T12:52:14.231Z"
+last_activity: 2026-07-09
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
-current_phase_name: durability-guardrails
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,12 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-05)
 
 ## Current Position
 
-Phase: 05 — durability-guardrails (final phase)
-Plan: 4/4 complete
-Status: Milestone v0.4.4 SHIPPED — archived + tagged (v0.4.4 on main dae500a) + released to PyPI (typsphinx 0.4.4 wheel+sdist) + GitHub Release. Release run 28731646924 green end-to-end.
-Last activity: 2026-07-05 — v0.4.4 released: fixed a release.yml tomllib-on-3.10 regression (PR #110), re-pointed tag, published to PyPI + GitHub Release; D-11 (softprops@v3) resolved green
-
-Progress: [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-07-09 — Milestone v0.5.0 started
 
 ## Performance Metrics
 
