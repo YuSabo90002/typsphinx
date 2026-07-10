@@ -42,6 +42,11 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = False
         self.in_thead = False  # Track if currently in table header
         self.in_caption = False
+
+        # Table caption state: the ``.. table:: Caption`` directive stores
+        # its caption as a ``title`` child of the ``table`` node
+        self.table_caption: Optional[str] = None
+        self._in_table_caption = False
         self.list_stack = []  # Track list nesting: 'bullet' or 'enumerated'
 
         # Figure-specific state
@@ -183,6 +188,24 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The title node
         """
+        if self.in_table:
+            # A title inside a table is the table caption (from the
+            # ``.. table:: Caption`` directive), not a heading.  Buffer
+            # its children (which may carry inline markup) and emit the
+            # caption as part of a figure() wrapper in depart_table.
+            self._in_table_caption = True
+            # add_text() routes output here while in_table is set
+            self.table_cell_content = []
+            self._caption_saved_list_state = (
+                self.in_list_item,
+                self.list_item_needs_separator,
+            )
+            # The caption is emitted as a {} code block, so children are
+            # newline-separated statements (same handling as list items)
+            self.in_list_item = True
+            self.list_item_needs_separator = False
+            return
+
         # Use heading() function (no # prefix in code mode)
         self.add_text(f"heading(level: {self.section_level}, ")
 
@@ -195,6 +218,17 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The title node
         """
+        if self._in_table_caption:
+            # Harvest the buffered caption for depart_table
+            self.table_caption = "".join(self.table_cell_content).strip()
+            self.table_cell_content = []
+            (
+                self.in_list_item,
+                self.list_item_needs_separator,
+            ) = self._caption_saved_list_state
+            self._in_table_caption = False
+            return
+
         # Close heading() function
         self.add_text(")\n\n")
 
@@ -1197,6 +1231,7 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
+        self.table_caption = None  # Set by depart_title for captioned tables
 
     def _format_table_cell(self, cell: dict, indent: str = "  ") -> str:
         """
@@ -1236,8 +1271,7 @@ class TypstTranslator(SphinxTranslator):
         """
         # Generate Typst table() syntax (no # prefix in unified code mode)
         if self.table_colcount > 0:
-            # Use self.body.append directly to avoid routing to table_cell_content
-            self.body.append(f"table(\n  columns: {self.table_colcount},\n")
+            parts = [f"table(\n  columns: {self.table_colcount},\n"]
 
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
@@ -1247,20 +1281,38 @@ class TypstTranslator(SphinxTranslator):
 
             # Add header cells with table.header() wrapper
             if header_cells:
-                self.body.append("  table.header(\n")
+                parts.append("  table.header(\n")
                 for cell in header_cells:
-                    self.body.append(self._format_table_cell(cell, indent="    "))
-                self.body.append("  ),\n")
+                    parts.append(self._format_table_cell(cell, indent="    "))
+                parts.append("  ),\n")
 
             # Add body cells
             for cell in body_cells:
-                self.body.append(self._format_table_cell(cell, indent="  "))
+                parts.append(self._format_table_cell(cell, indent="  "))
 
-            self.body.append(")\n\n")
+            parts.append(")")
+            table_code = "".join(parts)
+
+            # Use self.body.append directly to avoid routing to table_cell_content
+            if self.table_caption is not None:
+                # Captioned tables are wrapped in a figure so they get
+                # "Table N" numbering
+                self.body.append(
+                    f"figure(\n{table_code},\n"
+                    f"  caption: {{{self.table_caption}}},\n"
+                    f"  kind: table\n)\n\n"
+                )
+            else:
+                self.body.append(f"{table_code}\n\n")
 
         self.in_table = False
         self.table_cells = []
         self.table_colcount = 0
+        self.table_caption = None
+        # Drop the per-cell buffer so stale state cannot swallow output
+        # (e.g. the caption) of a following table
+        if hasattr(self, "table_cell_content"):
+            del self.table_cell_content
 
     def visit_tgroup(self, node: nodes.tgroup) -> None:
         """

@@ -161,6 +161,128 @@ def test_table_conversion(simple_document, mock_builder):
     assert "Cell 2" in output
 
 
+def _build_table(caption_children=None):
+    """
+    Build a 2x2 table doctree like the ``.. table::`` directive produces.
+
+    Args:
+        caption_children: Optional list of inline nodes for the table caption.
+            The directive stores the caption as a ``title`` child of ``table``.
+
+    Returns:
+        The table node
+    """
+    table = nodes.table()
+
+    if caption_children is not None:
+        title = nodes.title()
+        for child in caption_children:
+            title += child
+        table += title
+
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+
+    thead = nodes.thead()
+    header_row = nodes.row()
+    for text in ("Header 1", "Header 2"):
+        entry = nodes.entry()
+        entry += nodes.paragraph(text=text)
+        header_row += entry
+    thead += header_row
+    tgroup += thead
+
+    tbody = nodes.tbody()
+    body_row = nodes.row()
+    for text in ("Cell 1", "Cell 2"):
+        entry = nodes.entry()
+        entry += nodes.paragraph(text=text)
+        body_row += entry
+    tbody += body_row
+    tgroup += tbody
+
+    table += tgroup
+    return table
+
+
+def test_captioned_table_renders_as_figure(simple_document, mock_builder):
+    """Test that a table caption becomes figure(table(...), caption: ...)."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_table(caption_children=[nodes.Text("My caption")])
+    table.walkabout(translator)
+
+    output = translator.astext()
+
+    # The caption must not be rendered as a section heading
+    assert "heading(" not in output
+
+    # The table must be wrapped in a figure with the caption and table kind
+    # so that captioned tables get "Table N" numbering
+    assert "figure(" in output
+    assert 'caption: {text("My caption")}' in output
+    assert "kind: table" in output
+
+    # The table content itself must still be intact
+    assert "table(" in output
+    assert 'text("Header 1")' in output
+    assert 'text("Cell 1")' in output
+
+
+def test_table_caption_supports_inline_markup(simple_document, mock_builder):
+    """Test that inline markup in a table caption is preserved."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    emphasis = nodes.emphasis()
+    emphasis += nodes.Text("important")
+    table = _build_table(caption_children=[nodes.Text("A very "), emphasis])
+    table.walkabout(translator)
+
+    output = translator.astext()
+
+    assert "heading(" not in output
+    assert "figure(" in output
+    assert 'text("A very ")' in output
+    assert 'emph({text("important")})' in output
+
+
+def test_table_caption_not_lost_after_previous_table(simple_document, mock_builder):
+    """Test that a caption is not swallowed by a previous table's cell buffer."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    # First an uncaptioned table: this used to leave a stale
+    # table_cell_content attribute behind, which silently swallowed
+    # the caption of any following table.
+    _build_table().walkabout(translator)
+    _build_table(caption_children=[nodes.Text("Second caption")]).walkabout(translator)
+
+    output = translator.astext()
+
+    assert 'caption: {text("Second caption")}' in output
+    # The caption must appear exactly once (not leak into a table cell)
+    assert output.count('text("Second caption")') == 1
+
+
+def test_uncaptioned_table_not_wrapped_in_figure(simple_document, mock_builder):
+    """Test that tables without a caption are not wrapped in a figure."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    _build_table().walkabout(translator)
+
+    output = translator.astext()
+    assert "figure(" not in output
+    assert "table(" in output
+
+
 def test_unknown_visit_handles_unknown_nodes(simple_document, mock_builder):
     """Test that unknown_visit is called for unknown nodes."""
     from typsphinx.translator import TypstTranslator
