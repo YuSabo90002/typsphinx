@@ -6,14 +6,14 @@ current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
 status: executing
 stopped_at: Phase 08.1 context gathered
-last_updated: "2026-07-11T04:17:11.782Z"
+last_updated: "2026-07-11T04:28:39.783Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 08 complete, transitioned to Phase 08.1
+last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
   percent: 50
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** Phase 08 — api-test-compatibility-sphinx-9-docutils-0-22
+**Current focus:** Phase 08.1 — admonition rendering fix — translator markup/code-mode mismatch
 
 ## Current Position
 
-Phase: 08.1 — admonition rendering fix — translator markup/code-mode mismatch
-Plan: Not started
+Phase: 08.1 (admonition rendering fix — translator markup/code-mode mismatch) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-11 — Phase 08 complete, transitioned to Phase 08.1
+Last activity: 2026-07-11 — Phase 08.1 execution started
 
 Progress: [██████░░░░] 60%
 
@@ -64,6 +64,7 @@ Progress: [██████░░░░] 60%
 | Phase 08 P01 | 8min | 2 tasks | 2 files |
 | Phase 08 P02 | 3min | 2 tasks | 4 files |
 | Phase 08 P03 | 2min | 2 tasks | 1 files |
+| Phase 08.1 P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,7 @@ Recent decisions affecting current work:
 - [Phase 08-02]: Test-assertion-only fixes for builder.app and writer_name deprecations; no runtime source touched, no compatibility branching added.
 - [Phase 08-03]: Escalated both error::DeprecationWarning and error::PendingDeprecationWarning in the permanent pytest filterwarnings guard (D-02) — a documented deviation-with-rationale from CONTEXT.md's literal DeprecationWarning-only text, required to catch Sphinx's RemovedInSphinxNNWarning family which subclasses PendingDeprecationWarning.
 - [Phase 08-03]: Skipped the optional multi-<term> definition-list hardening (Task 2) as forward-looking-only — no current docutils 0.22.4 rST syntax produces a multi-<term> definition_list_item; deferred as a documented follow-up, not silently dropped.
+- [Phase ?]: [Phase 08.1-01]: pypdf's SUS supply-chain legitimacy flag (too-new/unknown-downloads) was human-confirmed as a false positive before install via the blocking-human checkpoint protocol.
 
 ### Pending Todos
 
@@ -113,7 +115,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T03:37:34.840Z
+Last session: 2026-07-11T04:28:15.998Z
 Stopped at: Phase 08.1 context gathered
 Resume file: 
-.planning/phases/08.1-admonition-rendering-fix-translator-markup-code-mode-mismatc/08.1-CONTEXT.md
+None
