@@ -74,3 +74,22 @@ def test_extension_can_be_loaded(temp_sphinx_app):
     app = temp_sphinx_app
     assert app is not None
     assert "typsphinx" in app.extensions
+
+
+def test_version_matches_pyproject_toml():
+    """Test that __version__ matches pyproject.toml [project].version.
+
+    This parses pyproject.toml independently via tomllib, rather than
+    relying on the same importlib.metadata call __version__ itself uses,
+    so it is a genuine drift guard rather than a tautology.
+    """
+    import tomllib
+    from pathlib import Path
+
+    import typsphinx
+
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    with open(pyproject_path, "rb") as f:
+        pyproject_data = tomllib.load(f)
+
+    assert typsphinx.__version__ == pyproject_data["project"]["version"]
