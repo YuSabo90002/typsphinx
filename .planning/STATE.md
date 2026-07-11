@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 08
-current_phase_name: api-test-compatibility-sphinx-9-docutils-0-22
+current_phase: 08.1
+current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
 status: verifying
 stopped_at: Completed 08-03-PLAN.md (final Wave-2 plan, Phase 8 complete)
-last_updated: "2026-07-11T02:53:58.075Z"
+last_updated: "2026-07-11T02:58:06.385Z"
 last_activity: 2026-07-11
-last_activity_desc: Completed 08-01-PLAN.md
+last_activity_desc: Phase 08 complete, transitioned to Phase 08.1
 progress:
   total_phases: 6
   completed_phases: 3
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 08 (api-test-compatibility-sphinx-9-docutils-0-22) — EXECUTING
-Plan: 3 of 3
+Phase: 08.1 — admonition rendering fix — translator markup/code-mode mismatch
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Completed 08-01-PLAN.md
+Last activity: 2026-07-11 — Phase 08 complete, transitioned to Phase 08.1
 
 Progress: [██████░░░░] 60%
 
@@ -49,7 +49,7 @@ Progress: [██████░░░░] 60%
 |-------|-------|-------|----------|
 | 06 | 1 | - | - |
 | 07 | 1 | - | - |
-| 8 | TBD | - | - |
+| 08 | 3 | - | - |
 | 9 | TBD | - | - |
 | 10 | TBD | - | - |
 
