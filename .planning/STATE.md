@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 Phase: 9 — Green CI Matrix + Smoke Test + Guardrails
 Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Phase 08.1 complete, transitioned to Phase 9
+Last activity: 2026-07-11 — Completed quick task 260711-kr2: .mcp.json を追跡対象から除外
 
 Progress: [██████░░░░] 60%
 
@@ -110,6 +110,12 @@ Carried forward from research (SUMMARY.md / PITFALLS.md) — must be resolved du
 - [Phase 7]: The 3-way version-sync hazard — `test_preview_version_sync.py` proves the three files *agree*, not that the versions *compile correctly*. The empirical `docs-pdf` compile (and Phase 9's smoke test) is the real gatekeeper.
 - [Phase 8]: Sphinx 9 changelog audit found no load-bearing API breaks, but re-verify empirically against the resolved deps (runtime AttributeError/TypeError may surface); spot-check the docutils 0.22 multi-`<term>` definition-list edge case.
 - [Phase 07 follow-up]: docs-pdf now compiles clean but exposes a pre-existing (predates Phase 7) translator bug: .. note:: admonitions render literal unevaluated Typst source (par({text(...)})) instead of typeset prose in 4 spots, due to a markup/code-mode mismatch in translator.py::_visit_admonition. Logged in .planning/phases/07-bump-preview-packages-typst-0-15-kai-fix/deferred-items.md; needs a dedicated fix phase.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260711-kr2 | プロジェクトトップレベルにいる .mcp.json は main ブランチに含まれないようにする | 2026-07-11 | 50a2623 | [260711-kr2-mcp-json-main](./quick/260711-kr2-mcp-json-main/) |
 
 ### Roadmap Evolution
 
