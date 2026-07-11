@@ -135,13 +135,13 @@ Plans:
   2. A `typst compile` smoke test is wired into CI that would fail loudly on a `kai`-class `@preview` break before release (closing the gap the internal-only version-sync test misses)
   3. `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — CI-02: `typst compile` smoke test — new `preview_smoke` fixture exercising all four `@preview` packages (incl. a real `.. math::` → mitex) + `tests/test_preview_smoke_gate.py` + documented negative-control proof
+- [x] 09-01-PLAN.md — CI-02: `typst compile` smoke test — new `preview_smoke` fixture exercising all four `@preview` packages (incl. a real `.. math::` → mitex) + `tests/test_preview_smoke_gate.py` + documented negative-control proof
 
 **Wave 2** *(blocked on 09-01)*
 
@@ -175,7 +175,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete    | 2026-07-11 |
-| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 0/TBD | Not started | - |
+| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 1/2 | In Progress|  |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
 ---

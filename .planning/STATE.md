@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 9
+current_phase: 09
 current_phase_name: Green CI Matrix + Smoke Test + Guardrails
 status: executing
 stopped_at: Phase 9 context gathered
-last_updated: "2026-07-11T07:05:41.893Z"
+last_updated: "2026-07-11T07:15:24.835Z"
 last_activity: 2026-07-11
-last_activity_desc: "Completed quick task 260711-kr2: .mcp.json を追跡対象から除外"
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
   percent: 67
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** Phase 08.1 — admonition rendering fix — translator markup/code-mode mismatch
+**Current focus:** Phase 09 — Green CI Matrix + Smoke Test + Guardrails
 
 ## Current Position
 
-Phase: 9 — Green CI Matrix + Smoke Test + Guardrails
-Plan: Not started
+Phase: 09 (Green CI Matrix + Smoke Test + Guardrails) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-11 — Completed quick task 260711-kr2: .mcp.json を追跡対象から除外
+Last activity: 2026-07-11 — Phase 09 execution started
 
 Progress: [██████░░░░] 60%
 
@@ -69,6 +69,7 @@ Progress: [██████░░░░] 60%
 | Phase 08.1 P02 | 6min | 3 tasks | 2 files |
 | Phase 08.1 P03 | 6min | 2 tasks | 2 files |
 | Phase 08.1 P04 | 8min | 3 tasks | 3 files |
+| Phase 09 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 08.1-03]: Generic admonition handler passes no custom_title - directive-supplied title flows through the existing visit_title/depart_title buffer-swap path automatically
 - [Phase ?]: Invoked sphinx-build via sys.executable -m sphinx instead of uv run sphinx-build to avoid a stray non-Nix uv binary in .venv/bin shadowing the correct Nix-provided uv for subprocess children
 - [Phase ?]: Patched .venv/bin/uv ELF interpreter via patchelf to unblock tox -e docs-pdf in this sandbox (local, gitignored, regenerable fix, no repo file touched); incidentally fixed ~45 pre-existing environment-caused test failures, full suite now 411/411 green
+- [Phase ?]: Task 2 (tdd=true) produced a single feat commit: real-compile gate over already-correct behavior; negative-control proof (uncommitted, scratch-only) is the RED-equivalent evidence per the plan's own instruction and 09-RESEARCH.md Open Question 2
 
 ### Pending Todos
 
@@ -132,7 +134,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T06:15:16.517Z
+Last session: 2026-07-11T07:15:12.513Z
 Stopped at: Phase 9 context gathered
 Resume file: 
-.planning/phases/09-green-ci-matrix-smoke-test-guardrails/09-CONTEXT.md
+None
