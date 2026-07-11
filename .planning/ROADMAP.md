@@ -107,7 +107,7 @@ Plans:
 **Goal:** Admonitions (`.. note::`, `.. warning::`, etc.) render typeset prose in the compiled PDF instead of literal, unevaluated Typst source (`par({text(...)})`) — by switching `_visit_admonition` from markup-mode (`clue_type[`) to a code-mode content-block form (`clue_type({ ... })`) at its single choke point in `translator.py`. Scope-widened per user decision: preserve inline markup in admonition titles (buffer-swap, D-02), add the missing types `hint`/`error`/`danger`/`attention` + generic `.. admonition::` (D-06), strengthen the loose unit asserts (D-03), and add a real `docs-pdf` compile + PDF-text-extraction acceptance gate (D-04/D-05).
 **Requirements**: None (scope defined by CONTEXT.md decisions D-01..D-06; no REQ-IDs mapped)
 **Depends on:** Phase 8
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 
@@ -122,7 +122,7 @@ Plans:
 
 **Wave 3** *(blocked on 08.1-01/02/03)*
 
-- [ ] 08.1-04-PLAN.md — Real-render acceptance gate (D-04): minimal fixture + `tests/test_pdf_render_gate.py` (typst.compile + pypdf no-leak assertion) + `tox -e docs-pdf` phase gate
+- [x] 08.1-04-PLAN.md — Real-render acceptance gate (D-04): minimal fixture + `tests/test_pdf_render_gate.py` (typst.compile + pypdf no-leak assertion) + `tox -e docs-pdf` phase gate
 
 ### Phase 9: Green CI Matrix + Smoke Test + Guardrails
 

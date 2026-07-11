@@ -4,17 +4,17 @@ milestone: v0.5.0
 milestone_name: — forward-ecosystem
 current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
-status: executing
+status: verifying
 stopped_at: Completed 08.1-03-PLAN.md
-last_updated: "2026-07-11T04:41:11.642Z"
+last_updated: "2026-07-11T04:49:49.468Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 50
+  completed_plans: 9
+  percent: 67
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 08.1 (admonition rendering fix — translator markup/code-mode mismatch) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-11 — Phase 08.1 execution started
 
 Progress: [██████░░░░] 60%
@@ -67,6 +67,7 @@ Progress: [██████░░░░] 60%
 | Phase 08.1 P01 | 1min | 2 tasks | 2 files |
 | Phase 08.1 P02 | 6min | 3 tasks | 2 files |
 | Phase 08.1 P03 | 6min | 2 tasks | 2 files |
+| Phase 08.1 P04 | 8min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Static custom_title (Important/See Also) stays a plain string argument; only the dynamic node-derived title uses the buffered code-block form
 - [Phase ?]: [Phase 08.1-03]: Used the research-verified D-06 clue mapping exactly: hint->tip, error->error, danger->danger, attention->warning, generic admonition->base clue()
 - [Phase ?]: [Phase 08.1-03]: Generic admonition handler passes no custom_title - directive-supplied title flows through the existing visit_title/depart_title buffer-swap path automatically
+- [Phase ?]: Invoked sphinx-build via sys.executable -m sphinx instead of uv run sphinx-build to avoid a stray non-Nix uv binary in .venv/bin shadowing the correct Nix-provided uv for subprocess children
+- [Phase ?]: Patched .venv/bin/uv ELF interpreter via patchelf to unblock tox -e docs-pdf in this sandbox (local, gitignored, regenerable fix, no repo file touched); incidentally fixed ~45 pre-existing environment-caused test failures, full suite now 411/411 green
 
 ### Pending Todos
 
@@ -122,7 +125,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T04:41:11.637Z
+Last session: 2026-07-11T04:49:04.173Z
 Stopped at: Completed 08.1-03-PLAN.md
 Resume file: 
 None
