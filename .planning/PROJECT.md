@@ -40,13 +40,13 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 - ✓ Dev tooling floors modernized with guard ceilings (`pytest>=8.4,<10`, `mypy>=1.13,<3.0`, `black>=26,<27`, `ruff>=0.15,<0.16`, `tox>=4.56,<5`, `tox-uv>=1.35,<2`) across pyproject.toml + tox.ini; artifact actions bumped to node24 (upload-artifact@v7 / download-artifact@v8); stale `Test Python 3.9` required-check removed from main protection — Validated in Phase 4 (green ci.yml/docs.yml on PR #105)
 - ✓ Durability guardrails installed: `uv sync --locked` at all 9 sites (DUR-01 lockfile-currency gate), standalone weekly+dispatch `drift.yml` forward-drift detector with deduplicated issue reporting + least-privilege perms (DUR-02), `sphinx-typst-stack` Dependabot group scoped to the runtime trio (DUR-03), README CI status badge (DUR-04); `softprops/action-gh-release` @v2→@v3 node24 bump — Validated in Phase 5 (merged PR #106 green: ci.yml run 28730645396 + docs.yml run 28730645381; drift.yml validated post-merge via workflow_dispatch run 28730876125; drift-check confirmed absent from main's required checks)
 - ✓ Runtime pins raised forward to the v0.5.0 target ecosystem: `sphinx>=9.1,<10` (FWD-01), `docutils>=0.21,<0.23` (PIN-01, resolves 0.22.4), Python floor raised to 3.12–3.13 across all 21 declaration sites — pyproject `requires-python`/classifiers, tox `env_list`, the ci/docs/release/drift workflows, and black/ruff/mypy target-versions (PIN-02); `uv.lock` regenerated + `uv sync --locked` green (PIN-03). The extension imports and registers both builders under Sphinx 9.1 and `sphinx-build -b typst` builds green; `typst` intentionally left `>=0.14.1,<0.15` (Phase 7). All work on `release/v0.5.0`, `main` untouched — Validated in Phase 6 (7/7 must-haves; 06-VERIFICATION.md)
+- ✓ typst raised to `>=0.15.0,<0.16` (FWD-02) and the four bundled `@preview` packages bumped in lockstep across the 3 sync sites — mitex 0.2.4→0.2.7 (the actual `kai` fix, mitex CHANGELOG PR #201), gentle-clues 1.2.0→1.3.1, codly-languages 0.1.1→0.1.10, codly 1.3.0 unchanged (registry ceiling, empirically confirmed to compile) (PKG-01/PKG-02/PKG-03); `uv.lock` regenerated (typst 0.14.9→0.15.0), `test_preview_version_sync.py` + full 402-test suite green, `black`/`ruff` clean. **The empirical `kai` gate is closed**: `tox -e docs-pdf` compiles to a 101-page PDF with zero `TypstError`/`unknown variable: kai` (verified by two independent real compiles) — Validated in Phase 7 (4/4 must-haves; 07-VERIFICATION.md)
 
 ### Active
 
 <!-- Milestone v0.5.0 (forward-ecosystem). Formal REQ-IDs live in REQUIREMENTS.md. -->
 
 - [ ] Sphinx 9 / docutils 0.22 API & test compatibility (API-01/API-02) — `traverse()`→`findall()` + full pytest suite green on the new stack (the FWD-01 pin-raise itself landed in Phase 6)
-- [ ] Support typst 0.15+ (FWD-02) — drop `typst<0.15`, bump bundled `@preview` packages to 0.15-compatible versions
 - [ ] Every CI job green on the new majors and v0.5.0 released to PyPI
 
 ### Out of Scope
@@ -62,6 +62,8 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 - **`kai` origin:** the symbol appears nowhere in typsphinx source — it comes from inside a pinned Typst Universe package (likely `gentle-clues:1.2.0` or `codly`) when compiled by typst 0.15. Pinning typst back to the 0.14.x line where those packages compile is the fix.
 - **Codebase map:** `.planning/codebase/` (ARCHITECTURE, STACK, CONCERNS, CONVENTIONS, INTEGRATIONS, STRUCTURE, TESTING) refreshed 2026-07-04.
 - **Tech-debt note (from CONCERNS.md):** hardcoded `@preview` versions live in two places (`typsphinx/writer.py`, `typsphinx/template_engine.py`) plus `typsphinx/templates/base.typ` — keep these three in sync when pinning.
+- **`kai` root cause resolved (Phase 7):** the `unknown variable: kai` break came specifically from **mitex** (fixed in mitex 0.2.6, PR #201), not gentle-clues/codly as originally speculated in the failure evidence above. Bumping mitex 0.2.4→0.2.7 cleared it; codly 1.3.0 compiles clean under typst 0.15.
+- **Known follow-up bug (discovered Phase 7, pre-existing since 2025-10-13):** `.. note::` / admonitions render literal Typst source (`par({text(...)})`) instead of typeset prose — a markup-vs-code-mode mismatch in `typsphinx/translator.py::_visit_admonition`, orthogonal to `@preview` versions (it was simply invisible until `docs-pdf` first compiled post-`kai`-fix). Not a Phase-7 gap (translator.py is out of that phase's scope). Tracked in `.planning/phases/07-.../deferred-items.md`; candidate for the Phase 8 API/translator work or a follow-up plan.
 
 ## Constraints
 
@@ -105,4 +107,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after Phase 6 (Raise Runtime Pins + Python Floor) complete — FWD-01/PIN-01/PIN-02/PIN-03 validated; stack now Sphinx 9.1 / docutils 0.22 / Python 3.12–3.13 on `release/v0.5.0`. Next: Phase 7 (typst 0.15 + @preview bumps, kai fix)*
+*Last updated: 2026-07-11 after Phase 7 (Bump @preview Packages + typst 0.15, kai fix) complete — FWD-02/PKG-01/PKG-02/PKG-03 validated; typst now `>=0.15.0,<0.16` with the four `@preview` packages bumped in lockstep, the empirical `kai` gate closed (docs-pdf compiles clean), full suite green on `release/v0.5.0`. Next: Phase 8 (Sphinx 9 / docutils 0.22 API & test compatibility — `traverse()`→`findall()`); the discovered pre-existing admonition-rendering bug is a tracked follow-up candidate*
