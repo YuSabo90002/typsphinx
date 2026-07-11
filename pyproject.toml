@@ -79,6 +79,19 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
 ]
+filterwarnings = [
+    "error::DeprecationWarning",
+    # Escalated beyond CONTEXT.md's literal "DeprecationWarning" text: Sphinx's own
+    # RemovedInSphinxNNWarning family (e.g. builder.app) subclasses
+    # PendingDeprecationWarning, not DeprecationWarning — without this line, future
+    # Sphinx deprecations would pass through un-gated. See 08-RESEARCH.md Pitfall 2.
+    "error::PendingDeprecationWarning",
+    # No third-party ignore:: entries needed as of Sphinx 9.1.0/docutils 0.22.4/
+    # typst-py 0.15.0 (verified zero third-party warnings in 08-RESEARCH.md). If a
+    # future dependency bump introduces one, add a targeted
+    # ignore::DeprecationWarning:<module> entry here — do not weaken the two `error`
+    # lines above.
+]
 
 [tool.black]
 line-length = 88
