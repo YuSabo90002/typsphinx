@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../../genindex.html"><link rel="search" title="検索" href="../../search.html">
 
-    <!-- Generated with Sphinx 8.1.3 and Furo 2025.12.19 -->
-        <title>typsphinx.translator - typsphinx 0.4.4</title>
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>typsphinx.translator - typsphinx 0.5.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.4.4</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.5.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.4.4</span>
+  <span class="sidebar-brand-text">typsphinx 0.5.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="検索" name="q" aria-label="検索">
@@ -380,6 +380,20 @@
             <span class="kc">None</span>  <span class="c1"># Used by definition lists for body swapping</span>
         <span class="p">)</span>
 
+        <span class="c1"># Admonition title state (buffer-swap idiom, mirrors definition-list terms)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_admonition_title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>  <span class="c1"># Rendered inline content of a dynamic (node-derived) title</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_in_admonition_title</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">False</span>  <span class="c1"># Track if currently buffering an admonition title node</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_saved_body_for_admonition_title</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>  <span class="c1"># Body to restore after buffering an admonition title</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_custom_admonition_title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>  <span class="c1"># Static Python-literal title (e.g. &quot;Important&quot;, &quot;See Also&quot;)</span>
+        <span class="p">)</span>
+
 <div class="viewcode-block" id="TypstTranslator.astext">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.astext">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">astext</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -490,9 +504,23 @@
 <span class="sd">        Generates heading() function call with level parameter.</span>
 <span class="sd">        Child text nodes will be wrapped in text() automatically.</span>
 
+<span class="sd">        Exception: Inside an admonition, the title is not a section heading —</span>
+<span class="sd">        buffer its rendered inline content (via the standard inline visitors)</span>
+<span class="sd">        so it can be attached as a code-block title argument at depart time</span>
+<span class="sd">        instead of emitted here (see _depart_admonition).</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            node: The title node</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Admonition titles are deferred: buffer-swap the body so the title&#39;s</span>
+        <span class="c1"># inline children render through the normal visitors (preserving</span>
+        <span class="c1"># emphasis/literal/etc.) without touching the main output stream.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">nodes</span><span class="o">.</span><span class="n">Admonition</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_saved_body_for_admonition_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_in_admonition_title</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span>
+
         <span class="c1"># Use heading() function (no # prefix in code mode)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;heading(level: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">section_level</span><span class="si">}</span><span class="s2">, &quot;</span><span class="p">)</span></div>
 
@@ -505,9 +533,20 @@
 
 <span class="sd">        Closes heading() function call.</span>
 
+<span class="sd">        Exception: Inside an admonition, capture the buffered inline content</span>
+<span class="sd">        as the pending title and restore the main output stream.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            node: The title node</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_admonition_title</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pending_admonition_title</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saved_body_for_admonition_title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saved_body_for_admonition_title</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_saved_body_for_admonition_title</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_in_admonition_title</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span>
+
         <span class="c1"># Close heading() function</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;)</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
@@ -2804,36 +2843,54 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Helper method to visit any admonition node.</span>
 
+<span class="sd">        Opens a code-mode content-block call (`clue_type({`) so the body</span>
+<span class="sd">        (paragraphs/text/literals emitted downstream as `par({...})`,</span>
+<span class="sd">        `text(...)`, `raw(...)`) evaluates instead of printing as literal</span>
+<span class="sd">        Typst source. A title child, if present, is not read here — docutils</span>
+<span class="sd">        will visit it normally via visit_title&#39;s admonition-aware branch,</span>
+<span class="sd">        which defers the rendered title to `_depart_admonition`.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            node: The admonition node</span>
 <span class="sd">            clue_type: The gentle-clues function name (e.g., &#39;info&#39;, &#39;warning&#39;, &#39;tip&#39;)</span>
-<span class="sd">            custom_title: Optional custom title for the admonition</span>
+<span class="sd">            custom_title: Optional static custom title for the admonition</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Add newline separator if in list item and not first element</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_item_needs_separator</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Check if there&#39;s a title element in the node</span>
-        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">nodes</span><span class="o">.</span><span class="n">title</span><span class="p">):</span>
-                <span class="n">title</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">astext</span><span class="p">()</span>
-                <span class="k">break</span>
+        <span class="c1"># Reset per-admonition title state; stash the static custom title (if</span>
+        <span class="c1"># any) for _depart_admonition to consume once the body has closed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_admonition_title</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_custom_admonition_title</span> <span class="o">=</span> <span class="n">custom_title</span>
 
-        <span class="c1"># Use custom title if provided, otherwise check for title element</span>
-        <span class="c1"># No # prefix in unified code mode</span>
-        <span class="k">if</span> <span class="n">title</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">clue_type</span><span class="si">}</span><span class="s1">(title: &quot;</span><span class="si">{</span><span class="n">title</span><span class="si">}</span><span class="s1">&quot;)[&#39;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">custom_title</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">clue_type</span><span class="si">}</span><span class="s1">(title: &quot;</span><span class="si">{</span><span class="n">custom_title</span><span class="si">}</span><span class="s1">&quot;)[&#39;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clue_type</span><span class="si">}</span><span class="s2">[&quot;</span><span class="p">)</span>
+        <span class="c1"># Open code-mode content-block (NOT markup-mode &quot;[&quot;) so the body</span>
+        <span class="c1"># evaluates in the translator&#39;s unified code mode.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">clue_type</span><span class="si">}</span><span class="s2">(</span><span class="se">{{</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_depart_admonition</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Helper method to depart any admonition node.</span>
+
+<span class="sd">        Closes the code-mode content-block body and attaches the title</span>
+<span class="sd">        argument (if any) — a dynamic, node-derived title takes precedence</span>
+<span class="sd">        over a static custom title. The dynamic title is buffered code-mode</span>
+<span class="sd">        content (from visit_title&#39;s admonition branch) and MUST be wrapped</span>
+<span class="sd">        in a code block `{ ... }`, not a content block `[ ... ]`, so its</span>
+<span class="sd">        inline calls (text(...), emph(...)) evaluate.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;]</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">)</span>
+
+        <span class="n">title_expr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending_admonition_title</span><span class="p">:</span>
+            <span class="n">title_expr</span> <span class="o">=</span> <span class="s2">&quot;{&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending_admonition_title</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_custom_admonition_title</span><span class="p">:</span>
+            <span class="n">title_expr</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_custom_admonition_title</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+
+        <span class="k">if</span> <span class="n">title_expr</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;, title: </span><span class="si">{</span><span class="n">title_expr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;)</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Mark that next element in list item needs separator</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span><span class="p">:</span>
@@ -2920,6 +2977,93 @@
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_seealso">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">depart_seealso</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">addnodes</span><span class="o">.</span><span class="n">seealso</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a seealso admonition.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.visit_hint">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_hint">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">hint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit a hint admonition (converts to #tip[]).</span>
+
+<span class="sd">        gentle-clues 1.3.1 has no dedicated `hint` clue; `tip` is the</span>
+<span class="sd">        verified closest semantic analog (see RESEARCH.md D-06 mapping).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_visit_admonition</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;tip&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.depart_hint">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_hint">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">depart_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">hint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a hint admonition.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.visit_error">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_error">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">error</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit an error admonition (converts to #error[]).&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_visit_admonition</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.depart_error">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_error">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">depart_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">error</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart an error admonition.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.visit_danger">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_danger">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_danger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">danger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit a danger admonition (converts to #danger[]).&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_visit_admonition</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;danger&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.depart_danger">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_danger">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">depart_danger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">danger</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a danger admonition.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.visit_attention">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_attention">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">attention</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit an attention admonition (converts to #warning[]).</span>
+
+<span class="sd">        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is</span>
+<span class="sd">        the verified analog, consistent with the existing `caution`/</span>
+<span class="sd">        `important` → `warning` precedent (see RESEARCH.md D-06 mapping).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_visit_admonition</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;warning&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.depart_attention">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_attention">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">depart_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">attention</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart an attention admonition.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.visit_admonition">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_admonition">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visit_admonition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">admonition</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit a generic ``.. admonition::`` (converts to #clue[]).</span>
+
+<span class="sd">        Maps to the base gentle-clues `clue` function (unstyled — no</span>
+<span class="sd">        predefined icon/accent-color), since the generic directive always</span>
+<span class="sd">        supplies its own directive-derived title (see RESEARCH.md D-06</span>
+<span class="sd">        mapping). The title flows through the existing admonition-aware</span>
+<span class="sd">        `visit_title`/`depart_title` buffer-swap automatically; no</span>
+<span class="sd">        `custom_title` is passed here.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_visit_admonition</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;clue&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TypstTranslator.depart_admonition">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_admonition">[ドキュメント]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">depart_admonition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">admonition</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a generic admonition.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_depart_admonition</span><span class="p">()</span></div>
 
 
@@ -3432,9 +3576,9 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=09698652"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+</div><script src="../../_static/documentation_options.js?v=84cdd6ac"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../_static/translations.js?v=4755f45a"></script>
     </body>
