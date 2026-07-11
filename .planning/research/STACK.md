@@ -1,140 +1,99 @@
 # Stack Research
 
-**Domain:** Sphinx extension forward-compat port (typsphinx v0.5.0 — Sphinx 9 + typst 0.15+, latest-only)
-**Researched:** 2026-07-09
-**Confidence:** MEDIUM (cross-verified against PyPI JSON API + official changelogs + GitHub package registry; one item — the exact origin package of the `kai` compile error — remains LOW/unconfirmed and is flagged as a phase-time verification task, not guessed here)
+**Domain:** Sphinx→Typst translator robustness (v0.6.0, Issue #114 + high-frequency dropped-node support)
+**Researched:** 2026-07-11
+**Confidence:** HIGH
+
+## Bottom Line
+
+**No new runtime dependency and no new `@preview` package is required for v0.6.0.** Every target node type in scope (figure/image units, `versionmodified`, empty-URL refs, autodoc `desc_returns`/`desc_signature_line`/`desc_inline`/`desc_optional`, `footnote`/`footnote_reference`, `transition`, `topic`, `line`/`line_block`) maps onto either a **native Typst 0.15 construct** already reachable from code-mode, or the **already-bundled `gentle-clues` package** via the existing `_visit_admonition`/`_depart_admonition` helper. This is pure `typsphinx/translator.py` work (new `visit_*`/`depart_*` methods + one small unit-conversion helper) — it does not touch `pyproject.toml`, `uv.lock`, `writer.py`'s import list, `template_engine.py`'s import list, or `templates/base.typ`. **The 3-way `@preview` version-sync surface (writer.py / template_engine.py / templates/base.typ) is untouched by this milestone.**
 
 ## Recommended Stack
 
-### Core Technologies (runtime pins to raise)
+### Core Technologies (unchanged from v0.5.0)
 
-| Technology | Current pin (v0.4.4) | New latest release | Why this version |
-|------------|----------------------|---------------------|-------------------|
-| Sphinx | `>=5.0,<9` (resolves ~7-8.x) | **9.1.0** (released 2025-12-31) | Latest Sphinx 9.x. Confirmed via PyPI JSON API (`pypi.org/pypi/Sphinx/9.1.0/json` and the unpinned `/json` endpoint, which shows `9.1.0` as `info.version`). This is the release the milestone targets (FWD-01, latest-only — no compat range). |
-| docutils | `>=0.18,<0.22` | **0.22.4** (NOT 0.23) | Sphinx 9.1.0's own `requires_dist` pins `docutils<0.23,>=0.21`, so `docutils==0.23` (released 2026-05-27) is **excluded by Sphinx itself** — installing it alongside Sphinx 9.1 will fail resolution. The newest docutils release actually resolvable with Sphinx 9.1 is the 0.22.x line, latest patch **0.22.4**. This matches the CI failure evidence already on record in PROJECT.md (loose pins resolved `docutils==0.22.4` on the failing run). |
-| typst (typst-py) | `>=0.14.1,<0.15` | **0.15.0** (released 2026-06-16) | PyPI package `typst` (messense/typst-py) is a 1:1 Python binding to the Rust `typst` compiler — package version tracks compiler version exactly. `0.15.0` is the only `0.15.x` release on PyPI as of research date (no `0.15.1` patch yet); it wraps typst compiler `0.15.0` (released 2026-06-15, per `github.com/typst/typst/releases/tag/v0.15.0` and the official Typst blog post "Typst 0.15 contains multitudes"). **`typst 0.16` does not exist yet** — do not pre-emptively widen the ceiling for it. |
-| Python (floor) | `>=3.10` | **>=3.11 minimum, `>=3.12` recommended** | See the dedicated "Python floor" section below — this is the loudest flag in this research. |
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Sphinx | 9.1 | doctree source | Already pinned; no version change needed for this work |
+| docutils | 0.22.4 | node types (`versionmodified`, `footnote`, `transition`, `topic`, `line_block`, image length attrs) | Already pinned; all target nodes already exist in this docutils/Sphinx version — nothing to upgrade |
+| typst (typst-py) | 0.15.x | compile target | Already pinned; `footnote()`, `line()`, and the length-unit grammar used below are all present and stable in 0.15 (verified against the live typst.app/docs/reference pages, not guessed) |
+| Python | 3.12–3.13 | runtime | Unchanged |
 
-### Bundled `@preview` Typst Universe packages (version-synced across 3 files)
+### Supporting Libraries — **none added**
 
-| Package | Current pin (v0.4.4) | Latest published to registry | Recommended new pin | Rationale |
-|---------|----------------------|-------------------------------|----------------------|-----------|
-| `gentle-clues` | `1.2.0` | **1.3.1** (registry dir list: …, 1.2.0, 1.3.0, 1.3.1 — confirmed via `github.com/typst/packages/tree/main/packages/preview/gentle-clues`) | **`1.3.1`** | Two minor versions ahead of the pinned 1.2.0. The Universe package page states its declared minimum compiler is `typst 0.13.0`, and the 1.3.0 GitHub release note explicitly says "update to typst 0.13" — i.e. this is the version line that was updated *for* newer typst compilers after 1.2.0. Given PROJECT.md's own suspicion that `kai` originates from `gentle-clues:1.2.0` (an un-updated old pin), this is the single highest-priority bump candidate to verify first. |
-| `codly` | `1.3.0` | **1.3.0** (same — registry dir list tops out at 1.3.0; a `v1.3.1` GitHub *tag* exists on `Dherse/codly` but has **not** been published to the `@preview` registry as of research date) | **`1.3.0`** (no registry bump available) | typsphinx is already pinned to codly's registry ceiling — there is nothing newer to move to. A known open upstream issue (`Dherse/codly#131`, opened 2026-06-17: "Text is vertically off-center with highlight(s) in Typst 0.15.0") confirms codly has *some* typst-0.15 rendering friction, but it is a cosmetic misalignment, not a compile-breaking error, and no "kai"/unknown-variable report exists against codly. **If `kai` persists after bumping gentle-clues/mitex/codly-languages, codly is the remaining suspect and has no newer registry release to fall back on** — flag for phase-time empirical bisection (see Pitfalls/PITFALLS.md). |
-| `codly-languages` | `0.1.1` | **0.1.10** (registry dir list: 0.1.0 … 0.1.10, confirmed via `github.com/typst/packages/tree/main/packages/preview/codly-languages`) | **`0.1.10`** | Nine patch releases ahead of the pinned 0.1.1 — the largest version gap of the four bundled packages. This is a plain data package (language name → icon/color mappings) with no typst-version-gating info published, but its sheer staleness relative to registry HEAD makes it a strong second candidate for whatever the `kai` incompatibility turns out to be. |
-| `mitex` | `0.2.4` | **0.2.7** (registry dir list: 0.1.0 … 0.2.7, confirmed via `github.com/typst/packages/tree/main/packages/preview/mitex` and `mitex-rs/mitex` GitHub releases) | **`0.2.7`** | Three patch versions ahead. The `0.2.6` GitHub release note explicitly says it "addressed a deprecation warning for Typst v0.14.0" — i.e. mitex is the one package with a documented history of chasing compiler deprecations, making it plausible it also needs the 0.2.7 bump to compile cleanly under 0.15. |
+No new PyPI package and no new `@preview` package is needed. The four bundled `@preview` packages are reused as-is:
 
-**Update all three version-sync sites in lockstep** (per CLAUDE.md's documented hazard): `typsphinx/writer.py` (lines ~94-97), `typsphinx/template_engine.py` (lines ~313-316), `typsphinx/templates/base.typ` (lines 8-19). `tests/test_preview_version_sync.py` will fail CI if any one of the three drifts from the others — treat that test as the acceptance gate for this bump, not just a lint nicety.
-
-## Python Floor — LOUD FLAG
-
-**Sphinx 9 forces the Python floor up, and it forces it up *twice within the 9.x line itself*:**
-
-- **Sphinx 9.0.0** (2025-11-30): PyPI `requires_python = ">=3.11"` (confirmed via `pypi.org/pypi/Sphinx/9.0.0/json`).
-- **Sphinx 9.1.0** (2025-12-31, the current latest): PyPI `requires_python = ">=3.12"` (confirmed via `pypi.org/pypi/Sphinx/9.1.0/json` and the unpinned `Sphinx/json` endpoint). Classifiers list only `3.12, 3.13, 3.14, 3.15` — **3.11 support was dropped one point-release after being added in 9.0.0.**
-
-This is a hard blocker, not a nice-to-have: **typsphinx's current floor of Python 3.10 (and even 3.11) cannot install Sphinx 9.1.0.** Because the milestone is explicitly latest-only (target Sphinx 9.1.0, not 9.0.0), typsphinx's `requires-python` must rise from `>=3.10` to **`>=3.12`**, dropping both Python 3.10 and 3.11 from the supported/tested matrix (currently 3.10–3.13; would become 3.12–3.13, or 3.12–3.14 if adding the newest interpreter is in scope — that decision belongs to the roadmap, not this research).
-
-Consequences to carry into requirements/roadmap:
-- `pyproject.toml`: `requires-python = ">=3.12"`, drop the `3.10`/`3.11` classifiers, add nothing new unless 3.14 support is separately decided.
-- `tox.ini` `env_list`: drop `py310`, `py311`.
-- CI matrix (`ci.yml`): drop the 3.10 and 3.11 lanes (6 of the current 12 matrix jobs, 2 Python versions × 3 OSes) — required-status-check list on `main` branch protection will need the same PATCH-based cleanup Phase 4 already did for the 3.9 straggler (see PROJECT.md Key Decisions).
-- `black`/`ruff` `target-version`: `py310` → `py312`.
-- `mypy` `python_version`: `"3.10"` → `"3.12"`.
-- `docs` extra's `tomli>=2.0; python_version < '3.11'` shim becomes dead weight once the floor is 3.12 (stdlib `tomllib` covers 3.11+) — can be dropped, though leaving it is harmless.
-
-**If the roadmap prefers a softer landing**, pinning to `sphinx>=9.0,<9.1` instead of `>=9,<10` would only require a `>=3.11` floor (drop 3.10 only, keep 3.11). This contradicts "latest-only" as currently scoped in PROJECT.md, so it is flagged here as an option, not a recommendation — the default recommendation is Python `>=3.12` + Sphinx `9.1.0`/`>=9.1,<10`.
-
-### Supporting Libraries
-
-No new supporting libraries are needed for this milestone — it is a pin-and-fix port, not a features milestone. `sphinxcontrib-*`, `Jinja2`, `Pygments`, `babel`, `alabaster`, `imagesize`, `requests`, `roman-numerals`, `packaging`, `snowballstemmer`, `colorama` are all *transitive* Sphinx 9.1.0 dependencies (per its `requires_dist`) — typsphinx does not declare them directly and shouldn't start now; `uv sync` / `uv lock` will resolve them automatically once the `sphinx` pin is raised.
+| Library | Version | Purpose | Relevance to v0.6.0 |
+|---------|---------|---------|---------------------|
+| `@preview/gentle-clues` | 1.3.1 (unchanged) | boxed callouts | Reused for `versionmodified` (added/changed/deprecated/removed) via the existing `_visit_admonition` helper — **no version bump** |
+| `@preview/codly` | 1.3.0 (unchanged) | code blocks | Not touched by this milestone |
+| `@preview/codly-languages` | 0.1.10 (unchanged) | codly language defs | Not touched |
+| `@preview/mitex` | 0.2.7 (unchanged) | LaTeX math | Not touched |
 
 ### Development Tools
 
-| Tool | Current guard ceiling (v0.4.4) | Needs bumping for Sphinx 9 / Python 3.12 floor? | Notes |
-|------|----------------------------------|--------------------------------------------------|-------|
-| pytest | `>=8.4,<10` | **No** | Already supports 3.12/3.13 fine; ceiling has headroom (pytest 9.x already in range). |
-| mypy | `>=1.13,<3.0` | **No** (config change only) | Version ceiling is fine; only `python_version = "3.12"` in `[tool.mypy]` needs updating, not the pip/uv version range. |
-| black | `>=26,<27` | **No** (config change only) | Ceiling fine; only `target-version` list changes. |
-| ruff | `>=0.15,<0.16` | **No** (config change only) | Ceiling fine; only `target-version = "py312"` changes. |
-| tox / tox-uv | `>=4.56,<5` / `~=1.35` | **No** | Unaffected by Sphinx/Python floor change; `env_list` content changes (drop py310/py311) but the tool versions themselves don't need bumping. |
-| types-docutils | `>=0.18` (pyproject `dev`) / `>=0.22.2.20251006` (`[dependency-groups] dev`) | **Yes, floor** | Should track the new docutils floor — bump the pyproject `dev` extra's `types-docutils>=0.18` up to something like `>=0.22` to match the runtime docutils pin; the `[dependency-groups]` entry is already ahead of this. |
+Unchanged: `uv`, `tox`/`tox-uv`, `black`, `ruff`, `mypy`, `pytest`. No new dev-tool needed; the smoke-gate pattern from Phase 8.1/9 (`tests/test_pdf_render_gate.py`, `tests/test_preview_smoke_gate.py`) is the template to extend with fixtures for the new node types, not a new tool.
 
-**Conclusion: no dev-tooling *version ceiling* needs raising for this milestone.** The Phase 4 (v0.4.4) dev-tooling modernization already landed ceilings with headroom for 3.12+. What changes is *target-version configuration* inside those already-adequate tools (`black`/`ruff`/`mypy` python-version knobs), plus dropping dead CI lanes — not new floors/ceilings in `pyproject.toml`'s dependency specifiers.
+## Node-Type → Typst-Construct Mapping (verified, Typst 0.15)
+
+| Target node | Typst 0.15 construct | New dependency? | Notes |
+|---|---|---|---|
+| `image`/`figure` — `px`/CSS length units | **Native**: convert numerically to `pt` before emitting `image(..., width: <N>pt)` | None | Typst's length grammar supports `pt`, `mm`, `cm`, `in`, `em` (and ratios via `%`) — confirmed on the official Length reference page. **`px` does not exist as a Typst length unit** — a bare `"300px"` string passed through verbatim (today's behavior, `translator.py:1527-1533`) is exactly the Issue #114 fatal-compile bug. Conversion: `1px = 0.75pt` (CSS canonical 96px/in ÷ 72pt/in — cross-verified across multiple independent conversion references, non-controversial CSS-spec fact). `%`/`em` pass through unchanged (both are native Typst relative-length units); `ex`, `pc` (docutils-legal but rare) should convert to `pt`/`em` equivalents or fall back to a safe default with a logged warning rather than emit invalid syntax. |
+| `figure` `:target:`-linked (Issue #114) | **Native**: `#figure(link(<url-or-label>)[#image(...)], caption: [...])` | None | `link()` takes exactly one destination + one content body — juxtaposing `link(url, image(...))` as two positional args (today's implied bug) is invalid syntax. Fix is purely a call-shape correction, no package involved. |
+| `versionmodified` (`versionadded`/`versionchanged`/`deprecated`/`versionremoved`) | **Already-bundled `@preview/gentle-clues` 1.3.1**, reusing the existing `_visit_admonition`/`_depart_admonition` helper (same one that already renders `note`/`warning`/`tip`/`error`/`danger`/generic `admonition`) | None (no version bump) | Confirmed via Sphinx source (`sphinx/domains/changeset.py` `VersionChange.run()`): the node is `class versionmodified(nodes.Admonition, nodes.TextElement)` with `.type` ∈ `{added, changed, deprecated, removed}` and `.version`. Sphinx **already embeds** the "Added in version X" label as an `inline` node inside the versionmodified node's own children (first child of a `paragraph`) — the translator does **not** need to synthesize label text itself, just needs `visit_versionmodified`/`depart_versionmodified` methods that dispatch on `node['type']`. Suggested clue mapping (reusing only clue-function names already proven to compile in this repo per Phase 8.1's validated set — `info`/`tip`/`warning`/`danger`/`error`/base `clue`): `added`→`tip`, `changed`→`info`, `deprecated`→`warning`, `removed`→`danger`. |
+| empty-URL cross-references | **Native** (already partially handled) | None | `visit_reference` (`translator.py:1972-1983`) already detects `refuri == ""` and degrades to plain text with a logged warning — this is not a new-stack problem, it's a translator-logic problem (the milestone goal is "resolve where possible" — e.g. falling back to an internal Typst `label`/anchor when a `refid` exists on the node even though `refuri` is empty — pure Python/tree-walking work, no library). |
+| `desc_returns`, `desc_signature_line`, `desc_inline`, `desc_optional` | **Native** — same pattern as the already-implemented `desc_signature`/`desc_annotation`/`desc_name`/`desc_parameterlist`/`desc_parameter` siblings (`translator.py:2511-2621`), i.e. plain `text()`/`strong()`/passthrough code-mode concatenation | None | These are Sphinx `addnodes` (not docutils core), but they're structurally identical in kind to the already-supported `desc_*` family — no markup beyond what `strong()`/`text()`/inline concatenation already provides. `desc_optional` wraps optional-parameter groups (needs bracket punctuation, same shape as `desc_parameterlist`'s paren handling); `desc_signature_line` is a multi-line-signature grouping wrapper (pass-through block); `desc_inline` is an inline-signature variant (pass-through inline); `desc_returns` is a return-type annotation (render like `desc_annotation`, e.g. prefixed with `" → "`). |
+| `footnote` / `footnote_reference` | **Native**: Typst's `footnote()` function | None | Verified on typst.app/docs/reference/model/footnote: `footnote(numbering: str|function, body: label|content) → content`; footnote text at the definition site can be labeled (`#footnote[...] <fn>`) and re-referenced elsewhere via `footnote(<fn>)`. **Design note (not a stack gap):** docutils keeps `footnote_reference` (use-site) and `footnote` (definition, with matching `ids`/`refid`) as separate tree nodes, whereas Typst wants the full footnote body supplied at the `footnote()` call itself. The translator needs a small pre-pass (index `footnote` definitions by id before/while walking) so `visit_footnote_reference` can emit `footnote[<looked-up body>]<label>` and the later `visit_footnote` for the same id can `raise nodes.SkipNode` (or, for a second reference to the same footnote, emit `footnote(<label>)`). This is a tree-walking/bookkeeping concern, not a dependency concern. |
+| `transition` | **Native**: `line(length: 100%)` | None | Verified on typst.app/docs/reference/visualize/line: `line(start, end, length: relative = 0%+30pt, angle, stroke: ... = 1pt+black)`. `transition` is a leaf node (no children) — emit `line(length: 100%)\n\n` in code mode (no `#` prefix, consistent with the rest of the code-mode body) and `raise nodes.SkipNode` (nothing to descend into). |
+| `topic` | **Native**: `block()` with an inline bold title, e.g. `block(width: 100%, inset: 8pt, radius: 2pt, stroke: 0.5pt + gray)[#strong[<title>]\n<body>]` or simpler — a `text`/`strong` title line followed by the normal block content, no special container needed | None | `topic` is a generic titled container (used for things like a document abstract or a table-of-contents-adjacent aside) — no admonition semantics, so `gentle-clues` is not the right mapping; a plain Typst `block`/`pad` is sufficient and keeps the milestone dependency-free. Treat as parallel to the existing `visit_block_quote`/`visit_container` pattern (`translator.py:1448`, `:299`) rather than the admonition pattern. |
+| `line` / `line_block` | **Native**: preserve breaks with Typst's `linebreak()` (code-mode function call) between each `line` child, wrapped in a left-padded `block`/`pad(left: 1em)[...]` to mirror docutils' indentation semantics | None | No package needed — this is the same category of "preserve author-controlled line breaks" as poetry/addresses; `linebreak()` is core Typst, present since early versions and unchanged in 0.15. |
+| Out-of-scope graphical nodes (`graphviz`, `inheritance_diagram`) | **N/A — explicitly deferred to graceful `logger.warning` + `SkipNode`**, no rendering attempted | None | Milestone scope explicitly excludes rendering these; the only "stack" implication is confirming the existing `unknown_visit`/`unknown_departure` fallback (`translator.py:2038-2059`) already warns-and-continues without raising, so an explicit `visit_graphviz`/`visit_inheritance_diagram` pair that logs a clearer warning and calls `raise nodes.SkipNode` is enough — still zero new dependencies. |
 
 ## Installation
 
 ```bash
-# Runtime — raise pins in pyproject.toml [project.dependencies]
-# sphinx>=9.1,<10
-# docutils>=0.21,<0.23     (Sphinx 9.1's own docutils<0.23 ceiling — do NOT try to allow docutils 0.23)
-# typst>=0.15.0,<0.16      (no 0.16 exists yet; ceiling guards against a future breaking major)
-
-uv lock          # regenerate uv.lock against the new pins
-uv sync --locked # reproducible install matching lockfile
-```
-
-```bash
-# Bundled @preview packages — NOT pip-installable; update the three version-sync
-# sites directly (writer.py, template_engine.py, templates/base.typ):
-#   @preview/gentle-clues:1.3.1     (was 1.2.0)
-#   @preview/codly:1.3.0            (unchanged — already at registry ceiling)
-#   @preview/codly-languages:0.1.10 (was 0.1.1)
-#   @preview/mitex:0.2.7            (was 0.2.4)
+# No installation changes for v0.6.0 — pyproject.toml, uv.lock, and the
+# three @preview-import declaration sites are untouched by this milestone.
+uv sync --extra dev --locked   # unchanged from v0.5.0
 ```
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|--------------------------|
-| `sphinx>=9.1,<10` (latest, Python floor 3.12) | `sphinx>=9.0,<9.1` (Python floor 3.11) | If dropping Python 3.11 support (in addition to 3.10) is judged too disruptive for typsphinx's user base — trades "latest-only" purity for one extra supported Python minor. Explicitly out of scope per PROJECT.md's "latest-only" decision, but documented here since the floor jump is unusually steep for a single major version. |
-| Bump all four `@preview` packages to registry-latest in one shot | Bisect one package at a time, re-running `docs-pdf` after each bump | If CI time/iteration cost matters more than diagnostic clarity, the "bump everything, test once" approach is faster. Recommended alternative (bisect) if the `kai` error *doesn't* disappear after bumping all four — see Pitfalls. |
-| `docutils>=0.21,<0.23` | `docutils==0.22.4` (exact pin) | If reproducibility is prioritized over Dependabot being able to pick up 0.22.x patch releases automatically within the range; an exact pin trades flexibility for zero-surprise builds. |
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| Reuse `gentle-clues` (already bundled) for `versionmodified` | Add a dedicated "changelog"/"version-badge" `@preview` package | Would add a 4th→5th sync point across `writer.py`/`template_engine.py`/`templates/base.typ` for a cosmetic improvement (a colored badge vs. an already-available boxed callout) that the milestone's own bias ("avoid dependency growth" during a maintenance/robustness cycle) argues against. `gentle-clues`'s existing `tip`/`info`/`warning`/`danger` clue functions (already proven to compile clean under typst 0.15 per Phase 7/8.1) cover the four `versionmodified` types with zero new sync risk. |
+| Native `line(length: 100%)` for `transition` | A `@preview` "rule"/divider package | None exists that's simpler than one native function call; adding a package for a single-line primitive is pure overhead. |
+| Native `footnote()` for `footnote`/`footnote_reference` | Manual superscript-number + end-of-page manual list (mimicking pre-Typst LaTeX `\footnotetext`-by-hand approach) | Typst's built-in footnote mechanism already handles numbering, page-breaking, and back-references — reimplementing that logic manually in the translator would be strictly worse and is exactly what the native function exists to avoid. |
+| Numeric `px→pt` conversion (`1px = 0.75pt`) inline in translator | Pull in a units/CSS-length-parsing library (e.g. a `pint`-style dependency) | Massive overkill for a single fixed ratio conversion on a small, closed set of docutils length units (`px, pt, %, em, ex, mm, cm, in, pc`); a ~15-line helper function is sufficient and keeps the "no new dependency" posture for a maintenance milestone. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|--------------|
-| `docutils>=0.22,<0.24` or an unbounded `docutils>=0.22` | Sphinx 9.1.0 itself constrains to `docutils<0.23,>=0.21` — a wider typsphinx ceiling doesn't help and could mislead a reader into thinking 0.23 is viable; it will never resolve because Sphinx blocks it. | `docutils>=0.21,<0.23` (mirrors Sphinx's own constraint) |
-| `typst>=0.15,<1.0` or unbounded `typst>=0.15` | No `typst 0.16` exists yet (verified: PyPI's `typst` package release list tops out at `0.15.0`; no `typst/typst` GitHub release beyond `v0.15.0` as of research date). An overly wide ceiling would silently absorb a future `0.16` compiler bump — which is exactly the kind of unpinned-drift failure mode this whole milestone (and the durability guardrails from the prior milestone) exists to prevent. | `typst>=0.15.0,<0.16` — tight ceiling, let Dependabot/`drift.yml` file an issue when 0.16 lands so it gets a deliberate, tested bump. |
-| Keeping `requires-python = ">=3.10"` while adopting `sphinx>=9.1` | Will fail to resolve entirely — Sphinx 9.1.0 hard-requires Python >=3.12; `uv lock` will error immediately. | `requires-python = ">=3.12"` |
-| Assuming `codly:1.3.0` needs a version bump to fix `kai` | It is already at the registry ceiling — there is no newer `codly` release to pin to. Time spent "looking for a newer codly" is time wasted. | Bump the other three packages first; if `kai` persists, treat codly itself as a suspect requiring source-level investigation (patched fork, `#show`-based workaround, or an upstream issue filed against `Dherse/codly`) rather than a routine version bump — this is exactly the kind of finding that belongs in a phase-specific research flag, not resolved here. |
-
-## Stack Patterns by Variant
-
-**If the roadmap wants to de-risk the Python-floor jump:**
-- Land the `sphinx>=9.1,<10` + `requires-python>=3.12` bump and the `@preview` package bumps as two *separate* phases/PRs (matches this milestone's existing phase-per-concern pattern from v0.4.4: pin phase, then CI-green phase, then Python-modernization phase, then dev-tooling phase, then durability phase).
-- Because CI is currently green on 3.10-3.13 + typst 0.14.9, dropping 3.10/3.11 lanes should happen in the *same* PR that raises the Sphinx pin (they're causally linked — you cannot install Sphinx 9.1 on 3.10/3.11 to test it), not as an afterthought.
-
-**If `kai` is not resolved by the four package bumps:**
-- Bisect: revert to the old pin for gentle-clues/codly-languages/mitex one at a time (keep the other two bumped) and rerun `tox -e docs-pdf` locally with `typst==0.15.0` forced, to isolate which single package still emits `kai`. This is exactly the kind of investigation PROJECT.md already flagged as unresolved ("kai origin ... likely gentle-clues:1.2.0 or codly") — this research narrows the field (codly has no newer release to try; gentle-clues and codly-languages are the biggest version-gap suspects) but cannot fully resolve it without an actual typst-0.15 compile attempt, which is implementation-phase work, not research-phase work.
+| Passing docutils `width`/`height` length strings straight through to `image(width: ...)` (current behavior) | This is the literal Issue #114 fatal bug — Typst has no `px` unit and raises a hard compile error, aborting the whole `typstpdf` build | Parse the docutils length string (`re.match(r'([\d.]+)(px|pt|%|em|ex|mm|cm|in|pc)?', value)`), convert `px`→`pt` (`× 0.75`) and leave already-native units (`pt`, `mm`, `cm`, `in`, `em`, `%`) unchanged; for `ex`/`pc` either convert (`1pc = 12pt`, `1ex ≈ 0.5em` as a documented approximation) or drop the attribute with a logged warning rather than emit invalid syntax |
+| `link(url, image(...))` two-positional-arg juxtaposition for target-linked figures | Not valid Typst `link()` call shape (`link` takes one destination + one content body) — this is the second half of the Issue #114 fatal bug | `link(dest)[#image(...)]` or `#figure(link(dest)[#image(...)], caption: [...])` |
+| A new `@preview` package for anything in this milestone's scope | Every target node type is coverable natively or via the already-bundled `gentle-clues`; adding a package here would grow the 3-way version-sync surface for no functional gain, contradicting the milestone's maintenance/robustness framing | Native Typst 0.15 constructs (`footnote()`, `line()`, `block()`, `linebreak()`, length-unit literals) + the existing `gentle-clues` clue functions |
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|------------------|-------|
-| `sphinx==9.1.0` | `docutils>=0.21,<0.23` | Hard constraint from Sphinx's own `requires_dist`; do not widen typsphinx's docutils ceiling past this. |
-| `sphinx==9.1.0` | `python>=3.12` | Hard constraint from Sphinx's own `requires_python`; this is the floor-forcing fact of this milestone. |
-| `sphinx==9.0.0` (not recommended, listed for context) | `python>=3.11` | One point-release looser than 9.1.0 — only relevant if the roadmap chooses the softer-landing alternative above. |
-| `typst==0.15.0` (PyPI) | typst compiler `0.15.0` | 1:1 version tracking; the PyPI package IS the compiler binding, no separate "compiler version" to reconcile. |
-| `@preview/gentle-clues:1.3.1` | declared min typst `0.13.0` | Declared minimum is not the same as "verified working on 0.15" — treat as necessary-but-not-sufficient; verify by actually compiling `docs-pdf` in the implementation phase. |
-| `@preview/codly:1.3.0` | declared min typst `0.12.0`; known open issue on 0.15.0 rendering (`Dherse/codly#131`, cosmetic only) | No newer registry release exists to address 0.15-specific issues; if a compile-blocking (not just cosmetic) issue is found, it will require a workaround or upstream fix, not a version bump. |
+| typst 0.15.x | `footnote()`, `line()`, native length units (`pt`/`mm`/`cm`/`in`/`em`/`%`) | All verified live against the current typst.app/docs/reference pages (footnote, visualize/line, layout/length) — no `px` unit exists in any typst version to date, this is not a 0.15-specific gap |
+| `@preview/gentle-clues` 1.3.1 | typst 0.15.x | Already confirmed compiling clean under typst 0.15 (Phase 7/8.1 smoke gate); no version change needed to add `versionmodified` support since it reuses the same clue functions already exercised |
+| docutils 0.22.4 length-attribute grammar | Sphinx 9.1 image/figure directives | `width`/`height` option values on `image`/`figure` directives accept `px|pt|%|em|ex|mm|cm|in|pc`-suffixed measures (via `docutils.parsers.rst.directives.length_or_percentage_or_unitless`/`length_or_unitless`) — this is the exact unit set the conversion helper must handle |
 
 ## Sources
 
-- `pypi.org/pypi/Sphinx/9.1.0/json` (PyPI JSON API — official registry data) — `requires_python`, `requires_dist`, upload date. MEDIUM/verified confidence.
-- `pypi.org/pypi/Sphinx/9.0.0/json` — cross-check of the 9.0.0→9.1.0 Python-floor jump (3.11→3.12). MEDIUM/verified confidence.
-- `pypi.org/pypi/Sphinx/json` (unpinned, latest) — confirms 9.1.0 is current latest as of research date. MEDIUM/verified confidence.
-- `raw.githubusercontent.com/sphinx-doc/sphinx/master/pyproject.toml` — cross-check of `requires-python` against PyPI metadata (master/dev branch shows `>=3.12` consistent with the 9.1.0 release). MEDIUM/verified confidence.
-- `www.sphinx-doc.org/en/master/changes/9.0.html` — official Sphinx 9.0 changelog; confirms "Support Docutils 0.22" and lists autodoc-rewrite / builder API breaking changes relevant to translator/writer code. MEDIUM confidence.
-- `pypi.org/pypi/docutils/json` — PyPI JSON API; confirms latest overall (0.23, 2026-05-27) and the full 0.22.x patch list (0.22.4 latest in that line). MEDIUM/verified confidence.
-- `pypi.org/pypi/typst/json` — PyPI JSON API; confirms `typst` package latest is `0.15.0`, no `0.15.x` patches or `0.16` yet, `requires_python>=3.8`. MEDIUM/verified confidence.
-- `github.com/typst/typst/releases/tag/v0.15.0` and `typst.app/blog/2026/typst-0.15/` — official typst 0.15.0 compiler release (2026-06-15) and its blog post enumerating breaking changes (removed deprecated stdlib symbols, variable-font naming, HTML export changes, CSL/citation-style renames). MEDIUM confidence.
-- `github.com/typst/packages/tree/main/packages/preview/{gentle-clues,codly,codly-languages,mitex}` — ground-truth registry version-directory listings (authoritative for "what's actually installable via `@preview/x:version`", more reliable than the Typst Universe web page which showed some staleness/drift against GitHub tags during this research). MEDIUM confidence.
-- `typst.app/universe/package/{gentle-clues,codly,codly-languages,mitex}/` — Typst Universe package pages; used for declared minimum-typst-version metadata. LOW-MEDIUM confidence (one instance of drift observed vs. the GitHub registry directory listing for `codly`, where Universe under-reported relative to `Dherse/codly`'s own GitHub release tags — registry directory listing was treated as ground truth where the two disagreed).
-- `github.com/Dherse/codly/releases` and `github.com/Dherse/codly/issues` — confirms `codly` has no registry-published version beyond 1.3.0, and one open (non-fatal, cosmetic) typst-0.15.0 rendering issue (#131). MEDIUM confidence.
-- `github.com/jomaway/typst-gentle-clues/releases`, `.../issues` and `github.com/mitex-rs/mitex/releases` — release/issue history for the other two bundled packages; no direct "kai" hits found in any upstream issue tracker searched. LOW confidence on the "kai origin" question specifically — **this is an open gap, not resolved by this research**, and should be treated as a phase-time empirical-verification task (compile `docs-pdf` under typst 0.15.0 with each bumped package and observe).
+- https://typst.app/docs/reference/layout/length/ — Length unit grammar (`pt`, `mm`, `cm`, `in`, `em`; no `px`) — HIGH confidence, official Typst reference, fetched live
+- https://typst.app/docs/reference/visualize/line/ — `line()` signature (`length: relative = 0% + 30pt`, `stroke: 1pt + black`) — HIGH confidence, official Typst reference, fetched live
+- https://typst.app/docs/reference/model/footnote/ — `footnote()` signature and label/re-reference pattern — HIGH confidence, official Typst reference, fetched live
+- https://github.com/sphinx-doc/sphinx/blob/master/sphinx/domains/changeset.py — `VersionChange.run()`: confirms `versionmodified` node structure, `.type`/`.version` attributes, and that the "Added/Changed in version X" label is pre-embedded as an `inline` node child — HIGH confidence, primary source (Sphinx's own code), fetched live
+- CSS canonical `96px = 72pt` (⇒ `1px = 0.75pt`) — HIGH confidence, cross-checked across multiple independent conversion references, a long-standing non-controversial CSS-spec-derived constant
+- `/home/yuta/Documents/typsphinx/typsphinx/translator.py` (read directly, lines 1163-2789) — existing `visit_figure`/`visit_image`/`visit_reference`/`_visit_admonition`/`visit_desc_*`/`unknown_visit` implementations — HIGH confidence, first-party source of truth for what's already built vs. what's missing
+- `/home/yuta/Documents/typsphinx/typsphinx/writer.py` and `template_engine.py` (read directly) — confirms the exact 3 `@preview` import lines this milestone must NOT touch (versions: codly 1.3.0, codly-languages 0.1.10, mitex 0.2.7, gentle-clues 1.3.1) — HIGH confidence, first-party
+- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` — Phase 8.1 history confirming which gentle-clues clue-function names (`info`/`warning`/`tip`/`error`/`danger`/base `clue`) are already validated compiling under typst 0.15 in this exact repo — HIGH confidence, first-party validated history
+- Gentle-clues clue-type name list from a general WebSearch — **discarded as unreliable**: the search surfaced an old `0.4.0`-era README (`abstract`/`question`/`memo`/etc.) that does not match this repo's already-verified 1.3.1 usage; the in-repo Phase 8.1 evidence (validated by an actual `typst compile` smoke gate) supersedes it. Do not use `success`/`abstract`/`memo`/etc. clue names without re-verifying against the actual 1.3.1 package source.
 
 ---
-*Stack research for: typsphinx v0.5.0 forward-ecosystem milestone (Sphinx 9 + typst 0.15+, latest-only)*
-*Researched: 2026-07-09*
+*Stack research for: typsphinx v0.6.0 real-world robustness (Issue #114 + high-frequency dropped-node support)*
+*Researched: 2026-07-11*
