@@ -2060,6 +2060,26 @@ class TypstTranslator(SphinxTranslator):
 
         # Get the reference URI
         refuri = node.get("refuri", "")
+        refid = node.get("refid", "")
+
+        # Internal same-document :target: (e.g. a figure/image target)
+        # resolves to an empty/absent refuri with a populated refid instead
+        # of a "#"-prefixed refuri. Handle it before the empty-URL guard so
+        # it doesn't fall through to the plain-text fallback (FIG-02, D-03).
+        if not refuri and refid:
+            prefix = "#" if self._in_markup_mode else ""
+            self.add_text(f"{prefix}link(<{refid}>, ")
+
+            # Replicate the method-end bookkeeping inline since this branch
+            # returns early (mirrors the refuri branches below).
+            if self._in_markup_mode:
+                self._in_markup_mode = False
+            self._in_link = True
+            self._link_has_content = False
+            self._reference_was_list_item_needs_separator = (
+                was_list_item_needs_separator
+            )
+            return
 
         # Handle empty URLs (Typst 0.14+ rejects empty URLs)
         # This can occur with unresolved references, broken cross-references,
