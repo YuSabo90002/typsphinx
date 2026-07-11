@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.5.0
-milestone_name: — forward-ecosystem
-current_phase: 5.0
-status: Awaiting next milestone
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-07-11T12:54:12.316Z"
+milestone: v0.6.0
+milestone_name: real-world robustness
+status: planning
+last_updated: "2026-07-11T14:07:16.285Z"
 last_activity: 2026-07-11
-last_activity_desc: Milestone v0.5.0 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
-current_phase_name: Version-String Fix + v0.5.0 Release
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-11 at v0.5.0 milestone close)
 
 ## Current Position
 
-Phase: Milestone v0.5.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-11 — Milestone v0.5.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-11 — Milestone v0.6.0 started
 
 ## Performance Metrics
 

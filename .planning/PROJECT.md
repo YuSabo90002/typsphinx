@@ -16,14 +16,22 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 **Prior:** v0.4.4 — CI-repair + modernize (shipped 2026-07-05): pinned the dependency graph back to a known-good set and installed durability guardrails.
 
-## Next Milestone (planning)
+## Current Milestone: v0.6.0 real-world robustness
 
-No milestone is active. Candidate scope carried forward as deferred v2 items:
+**Goal:** Compile a large real-world documentation set (Sphinx's own `doc/` tree) through the `typstpdf` builder with no fatal Typst errors, and render the most-frequent previously-unsupported docutils/Sphinx nodes correctly — driven by Issue #114.
 
-- **CFG-01** (was FWD-03): user-configurable `@preview` package versions (`typst_package_imports` / dedicated config) so compiler and package versions can be chosen per project
-- **XOS-01**: extend `docs-pdf` CI coverage to macOS and Windows to catch typst 0.15 font/text-shaping regressions
+**Target features:**
+- **figure/image fatal-bug fix (Issue #114 core):** convert `px`/CSS length units to Typst-valid `pt` (or drop), and fix `:target:`-linked figures — emit `#figure(link(...)[#image(...)], caption: [...])` instead of the invalid `link(url, image(...))text(caption)` juxtaposition
+- **`versionmodified` support** (×972 in Sphinx docs): `.. versionadded` / `versionchanged` / `deprecated`
+- **empty-URL cross-reference handling** (×596): reduce silent plain-text degradation; resolve links where possible
+- **autodoc signature nodes:** `desc_returns`, `desc_signature_line`, `desc_inline`, `desc_optional` (complementing the existing `desc_signature` / `desc_content` support)
+- **other high-frequency nodes:** `footnote` / `footnote_reference`, `transition`, `topic`, `line` / `line_block`
+- **graceful degradation** for graphical/out-of-scope nodes (`graphviz`, `inheritance_diagram`): warn without aborting the compile — full support out of scope
 
-Start the next cycle with `/gsd-new-milestone`.
+**Carried-forward deferred items (still v2, not in this milestone):**
+
+- **CFG-01** (was FWD-03): user-configurable `@preview` package versions
+- **XOS-01**: extend `docs-pdf` CI coverage to macOS and Windows
 
 ## Requirements
 
@@ -50,9 +58,9 @@ Start the next cycle with `/gsd-new-milestone`.
 
 ### Active
 
-<!-- No active milestone. v0.5.0 shipped 2026-07-11; all 14 v1 requirements validated. Start the next cycle with /gsd-new-milestone. -->
+<!-- Milestone v0.6.0 (real-world robustness). Requirements defined in REQUIREMENTS.md; roadmap maps them to phases. -->
 
-*None — v0.5.0 is closed. The REL-01 publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI + GitHub Release) was executed at milestone close, mirroring the v0.4.4 precedent. Next milestone scope (CFG-01, XOS-01) is tracked under "Next Milestone" above and in REQUIREMENTS.md v2 / STATE.md Deferred Items.*
+Building toward v0.6.0 — see `.planning/REQUIREMENTS.md` for scoped REQ-IDs. Focus: fix the Issue #114 figure/image fatal bugs, then add support for the highest-frequency previously-dropped nodes (`versionmodified`, empty-URL refs, autodoc `desc_*`, footnotes, transitions, topics, line blocks) so Sphinx's own docs compile through `typstpdf`.
 
 ### Out of Scope
 
@@ -118,7 +126,10 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 at v0.5.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.5.0 shipped: Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, all 14 v1 requirements validated, milestone audit passed, released to PyPI + GitHub Release. Requirements Active cleared; next-milestone candidates (CFG-01, XOS-01) tracked. Prior footer retained below for history.*
+*Last updated: 2026-07-11 — milestone v0.6.0 (real-world robustness) started via `/gsd-new-milestone`. Scope: Issue #114 figure/image fatal-bug fix + high-frequency dropped-node support so Sphinx's own docs compile through `typstpdf`. Prior footer retained below for history.*
+
+<!-- Prior: 2026-07-11 at v0.5.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.5.0 shipped: Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, all 14 v1 requirements validated, milestone audit passed, released to PyPI + GitHub Release. Requirements Active cleared; next-milestone candidates (CFG-01, XOS-01) tracked. -->
+
 
 <!-- Prior: 2026-07-11 after Phase 10 (Version-String Fix + v0.5.0 Release) complete — the FINAL phase of the v0.5.0 milestone. Phase 10 was re-scoped to release *preparation only* (D-01/D-02): `typsphinx.__version__` is now single-sourced from `importlib.metadata` (reporting `0.5.0`, stale `0.4.3` gone) with a `PackageNotFoundError` fallback; `pyproject.toml` is the sole version literal (`0.5.0`); `uv.lock` regenerated; a genuine `tomllib` drift-guard test added; and a curated `CHANGELOG.md` `[0.5.0]` entry prepared as the single source for the Release body. 6/6 must-haves verified (10-VERIFICATION.md); 413/413 tests green, black/ruff/mypy clean on `release/v0.5.0`. Scope fence held: no tag, no PyPI publish, no GitHub Release, `main` untouched, PR #112 left OPEN. **All v0.5.0 phases (6–10 + 8.1) are complete — the milestone is ready for `/gsd-complete-milestone`, which executes the deferred REL-01 publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI + GitHub Release), mirroring the v0.4.4 precedent.*
 
