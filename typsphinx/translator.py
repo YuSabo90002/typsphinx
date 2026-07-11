@@ -1528,14 +1528,20 @@ class TypstTranslator(SphinxTranslator):
             # No # prefix in code mode
             self.add_text(f'image("{adjusted_uri}"')
 
-        # Add optional attributes
+        # Add optional attributes. Length values from docutils (:width:/:height:)
+        # may use CSS units Typst does not understand (e.g. raw "px"), which
+        # would abort the whole compile (Issue #114, FIG-01). Convert via
+        # _convert_length_to_typst and drop the dimension entirely when the
+        # unit is unsupported (D-02) -- never emit a raw unconverted unit.
         if "width" in node:
-            width = node["width"]
-            self.add_text(f", width: {width}")
+            converted_width = self._convert_length_to_typst(node["width"])
+            if converted_width is not None:
+                self.add_text(f", width: {converted_width}")
 
         if "height" in node:
-            height = node["height"]
-            self.add_text(f", height: {height}")
+            converted_height = self._convert_length_to_typst(node["height"])
+            if converted_height is not None:
+                self.add_text(f", height: {converted_height}")
 
         self.add_text(")")
 
