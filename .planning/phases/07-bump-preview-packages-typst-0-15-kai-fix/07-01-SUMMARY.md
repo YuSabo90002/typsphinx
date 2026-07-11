@@ -158,3 +158,7 @@ None - no external service configuration required.
 ---
 *Phase: 07-bump-preview-packages-typst-0-15-kai-fix*
 *Completed: 2026-07-11*
+
+## Self-Check: PASSED
+
+All created/modified files found on disk; all task commit hashes (2ed64aa, ca4c1ab, 82d573b, 4e37b71) found in git log.
