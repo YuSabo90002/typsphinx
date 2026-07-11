@@ -182,6 +182,10 @@ None - no external service configuration required.
 - Plan 11-03 (GATE-01 real-compile render-gate fixtures) can now exercise both this plan's fixes and Plan 11-02's fixes through a real `typst.compile()` — the fast unit tests here are necessary but (per D-04/Pitfall 9) not sufficient; the real-compile proof is explicitly deferred there, per this plan's own `<verification>` section.
 - No blockers identified.
 
+## Self-Check: PASSED
+
+All task commits (`1849d8a`, `2c04438`, `69cd941`, `8e07d26`) and the summary commit (`22b6961`) verified present in `git log`. `typsphinx/translator.py` verified to contain `_convert_length_to_typst` and `_visit_graphical_placeholder`.
+
 ---
 *Phase: 11-issue-114-fatal-fixes-graceful-degrade-net*
 *Completed: 2026-07-12*

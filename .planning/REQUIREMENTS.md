@@ -13,7 +13,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Figure/Image — Issue #114 fatal bugs
 
-- [ ] **FIG-01**: A `.. figure::` / image whose `:width:`/`:height:` uses `px` or other CSS length units compiles to valid Typst — `px`→`pt` numeric conversion (1px = 0.75pt), `%`/`em`/`pt`/`cm`/`mm`/`in` pass through as valid Typst lengths, unrecognized units are warned-and-dropped rather than emitted verbatim
+- [x] **FIG-01**: A `.. figure::` / image whose `:width:`/`:height:` uses `px` or other CSS length units compiles to valid Typst — `px`→`pt` numeric conversion (1px = 0.75pt), `%`/`em`/`pt`/`cm`/`mm`/`in` pass through as valid Typst lengths, unrecognized units are warned-and-dropped rather than emitted verbatim
 - [ ] **FIG-02**: A `.. figure::` / standalone image with a `:target:` link (with or without a caption) emits valid Typst of the form `#figure(link("url")[#image(...)], caption: [...])` — the caption reaches the figure's `caption:` named argument via a buffer-swap and never leaks as a stray juxtaposed `text(...)` call
 
 ### Cross-references
@@ -46,8 +46,8 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Graceful degradation
 
-- [ ] **DEG-01**: A `graphviz` node renders a visible placeholder block + exactly one controlled warning, with no raw DOT source leaking into the PDF
-- [ ] **DEG-02**: An `inheritance_diagram` node renders the same graceful-degrade placeholder (shared helper with DEG-01)
+- [x] **DEG-01**: A `graphviz` node renders a visible placeholder block + exactly one controlled warning, with no raw DOT source leaking into the PDF
+- [x] **DEG-02**: An `inheritance_diagram` node renders the same graceful-degrade placeholder (shared helper with DEG-01)
 
 ### Validation gate
 
@@ -87,7 +87,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FIG-01 | Phase 11 | Pending |
+| FIG-01 | Phase 11 | Complete |
 | FIG-02 | Phase 11 | Pending |
 | XREF-01 | Phase 12 | Pending |
 | VER-01 | Phase 12 | Pending |
@@ -102,8 +102,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BLK-04 | Phase 12 | Pending |
 | BLK-05 | Phase 12 | Pending |
 | BLK-06 | Phase 12 | Pending |
-| DEG-01 | Phase 11 | Pending |
-| DEG-02 | Phase 11 | Pending |
+| DEG-01 | Phase 11 | Complete |
+| DEG-02 | Phase 11 | Complete |
 | GATE-01 | Phase 11 | Pending |
 | GATE-02 | Phase 15 | Pending |
 
@@ -114,6 +114,7 @@ in every subsequent node-handler phase (12, 13, 14). Each of those phases ships 
 real-compile fixture rather than relying on string-agreement unit tests alone.
 
 **Coverage:**
+
 - v1 requirements: 19 total
 - Mapped to phases: 19 ✓
 - Unmapped: 0 ✓

@@ -4,16 +4,16 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 11
 current_phase_name: "Issue #114 Fatal Fixes + Graceful-Degrade Net"
-status: planning
-stopped_at: Phase 11 context gathered
-last_updated: "2026-07-11T14:56:08.787Z"
+status: executing
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-07-11T23:51:38.977Z"
 last_activity: 2026-07-11
-last_activity_desc: ROADMAP created (5 phases, 11–15; 19/19 v1 requirements mapped)
+last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 11 — Issue #114 fatal figure/image fixes + graceful-degrade net (the blocking prerequisite: a single fatal node aborts the whole PDF, so nothing downstream can be real-compile-validated until this lands).
+**Current focus:** Phase 11 — Issue #114 Fatal Fixes + Graceful-Degrade Net
 
 ## Current Position
 
-Phase: 11 of 15 (Issue #114 Fatal Fixes + Graceful-Degrade Net)
-Plan: — (roadmap created; phase not yet planned)
-Status: Ready to plan Phase 11
-Last activity: 2026-07-11 — ROADMAP created (5 phases, 11–15; 19/19 v1 requirements mapped)
+Phase: 11 (Issue #114 Fatal Fixes + Graceful-Degrade Net) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-11 — Phase 11 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -74,6 +74,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Roadmap]: FN-01 (footnotes) gets its own phase (14), sequenced late — it is the only item needing a genuine doctree pre-pass; independent of Phases 12–13.
 - [Roadmap]: The shared-dispatch `visit_title` change (BLK-02/BLK-03) is isolated in Phase 13 with admonition-title regression fixtures because it edits a load-bearing method every admonition + heading depends on.
 - [Research]: Zero new runtime dependencies / no `@preview` bump — every target node maps to native Typst 0.15 or already-bundled packages; the 3-way version-sync surface stays untouched.
+- [Phase 11-01]: Unit dispatch implemented as allow-list (not deny-list) so the full extended docutils CSS3 unit set falls into one generic warn+drop branch (D-02)
+- [Phase 11-01]: Confirmed live sphinx.ext.graphviz/inheritance_diagram node-class names before finalizing visit_* method names (resolves RESEARCH.md Assumption A1)
 
 ### Pending Todos
 
@@ -102,12 +104,13 @@ Items acknowledged and carried forward from previous milestone closes:
 | Forward-ecosystem | CFG-01 (was FWD-03): user-configurable `@preview` versions | Deferred to v2 | v0.5.0 scoping |
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v2 | v0.5.0 scoping |
 | Styling refinements | TODO-01 (`todo_node` styling), MAN-01 (`:manpage:` role), LEN-01 (generalize CSS-length converter) | Deferred to v0.6.x | v0.6.0 scoping |
+| Phase 11 P01 | 15min | 3 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-07-11T14:56:08.782Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-issue-114-fatal-fixes-graceful-degrade-net/11-CONTEXT.md
+Last session: 2026-07-11T23:51:38.972Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
