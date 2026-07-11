@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 08.1
-current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
+current_phase: 9
+current_phase_name: Green CI Matrix + Smoke Test + Guardrails
 status: verifying
 stopped_at: Completed 08.1-03-PLAN.md
-last_updated: "2026-07-11T04:49:49.468Z"
+last_updated: "2026-07-11T04:56:01.601Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 08.1 execution started
+last_activity_desc: Phase 08.1 complete, transitioned to Phase 9
 progress:
   total_phases: 6
   completed_phases: 4
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 08.1 (admonition rendering fix — translator markup/code-mode mismatch) — EXECUTING
-Plan: 4 of 4
+Phase: 9 — Green CI Matrix + Smoke Test + Guardrails
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Phase 08.1 execution started
+Last activity: 2026-07-11 — Phase 08.1 complete, transitioned to Phase 9
 
 Progress: [██████░░░░] 60%
 
@@ -52,6 +52,7 @@ Progress: [██████░░░░] 60%
 | 08 | 3 | - | - |
 | 9 | TBD | - | - |
 | 10 | TBD | - | - |
+| 08.1 | 4 | - | - |
 
 **Recent Trend:**
 
