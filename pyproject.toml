@@ -43,6 +43,7 @@ dev = [
     "types-docutils>=0.21",
     "twine>=5.0",
     "build>=1.0",
+    "pypdf>=6.14,<7",
 ]
 docs = [
     "furo>=2024.0",
