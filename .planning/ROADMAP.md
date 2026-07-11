@@ -89,14 +89,14 @@ extends.
   3. A document containing a `.. graphviz::` and an `inheritance_diagram` node compiles to a PDF without aborting; each emits exactly one controlled `logger.warning` naming the node, and no raw DOT/diagram source leaks into the output.
   4. A `tests/test_pdf_render_gate.py`-style acceptance fixture (`sphinx-build → typst.compile() → pypdf` text-extraction with negative-control leak signatures) exercises the above and fails loudly on any `TypstCompilationError` — establishing the standing real-compile gate (GATE-01) that every later node-handler phase extends.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 **Wave 1**
 
 - [x] 11-01-PLAN.md — FIG-01 px→pt length converter + DEG-01/02 graphviz/inheritance_diagram graceful-degrade placeholder (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 11-02-PLAN.md — FIG-02 figure caption buffer-swap + internal `:target:` refid branch (wave 2)
+- [x] 11-02-PLAN.md — FIG-02 figure caption buffer-swap + internal `:target:` refid branch (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -191,7 +191,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 8.1 Admonition Rendering Fix (INSERTED) | v0.5.0 | 4/4 | Complete | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
-| 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 1/3 | In Progress|  |
+| 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 2/3 | In Progress|  |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 0/TBD | Not started | - |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 0/TBD | Not started | - |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |

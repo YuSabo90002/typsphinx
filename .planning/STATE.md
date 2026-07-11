@@ -5,15 +5,15 @@ milestone_name: — real-world robustness
 current_phase: 11
 current_phase_name: "Issue #114 Fatal Fixes + Graceful-Degrade Net"
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-07-11T23:51:38.977Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-07-11T23:58:37.792Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 ## Current Position
 
 Phase: 11 (Issue #114 Fatal Fixes + Graceful-Degrade Net) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 11 execution started
 
@@ -76,6 +76,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Research]: Zero new runtime dependencies / no `@preview` bump — every target node maps to native Typst 0.15 or already-bundled packages; the 3-way version-sync surface stays untouched.
 - [Phase 11-01]: Unit dispatch implemented as allow-list (not deny-list) so the full extended docutils CSS3 unit set falls into one generic warn+drop branch (D-02)
 - [Phase 11-01]: Confirmed live sphinx.ext.graphviz/inheritance_diagram node-class names before finalizing visit_* method names (resolves RESEARCH.md Assumption A1)
+- [Phase 11-02]: Figure caption buffer-swap guarded strictly by if self.in_figure: on both visit/depart, leaving the captioned-code-block SkipNode path (which never calls depart_caption) unaffected
+- [Phase 11-02]: refid fallback branch in visit_reference inserted as an early return before the existing empty-URL guard; no sanitization of refid, matching the adjacent #-prefixed refuri branch convention
 
 ### Pending Todos
 
@@ -105,11 +107,12 @@ Items acknowledged and carried forward from previous milestone closes:
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v2 | v0.5.0 scoping |
 | Styling refinements | TODO-01 (`todo_node` styling), MAN-01 (`:manpage:` role), LEN-01 (generalize CSS-length converter) | Deferred to v0.6.x | v0.6.0 scoping |
 | Phase 11 P01 | 15min | 3 tasks | 2 files |
+| Phase 11 P02 | 10min | 2 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-07-11T23:51:38.972Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-07-11T23:58:37.787Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

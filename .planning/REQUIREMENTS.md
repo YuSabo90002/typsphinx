@@ -14,7 +14,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 ### Figure/Image — Issue #114 fatal bugs
 
 - [x] **FIG-01**: A `.. figure::` / image whose `:width:`/`:height:` uses `px` or other CSS length units compiles to valid Typst — `px`→`pt` numeric conversion (1px = 0.75pt), `%`/`em`/`pt`/`cm`/`mm`/`in` pass through as valid Typst lengths, unrecognized units are warned-and-dropped rather than emitted verbatim
-- [ ] **FIG-02**: A `.. figure::` / standalone image with a `:target:` link (with or without a caption) emits valid Typst of the form `#figure(link("url")[#image(...)], caption: [...])` — the caption reaches the figure's `caption:` named argument via a buffer-swap and never leaks as a stray juxtaposed `text(...)` call
+- [x] **FIG-02**: A `.. figure::` / standalone image with a `:target:` link (with or without a caption) emits valid Typst of the form `#figure(link("url")[#image(...)], caption: [...])` — the caption reaches the figure's `caption:` named argument via a buffer-swap and never leaks as a stray juxtaposed `text(...)` call
 
 ### Cross-references
 
@@ -88,7 +88,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FIG-01 | Phase 11 | Complete |
-| FIG-02 | Phase 11 | Pending |
+| FIG-02 | Phase 11 | Complete |
 | XREF-01 | Phase 12 | Pending |
 | VER-01 | Phase 12 | Pending |
 | DESC-01 | Phase 12 | Pending |
