@@ -93,9 +93,13 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 08-01-PLAN.md — Wave 1: API-01 `traverse()`→`findall()` source swap + `test_translator.py` 3× `OptionParser`→`frontend.get_default_settings`
 - [ ] 08-02-PLAN.md — Wave 1: builder.app→_app (test_builder/test_pdf_generation) + `writer_name`→`writer=get_writer_class` (test_documentation_configuration/usage)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 08-03-PLAN.md — Wave 2: permanent `filterwarnings` deprecation guard (pyproject.toml) + optional multi-`<term>` hardening + full-suite/black/ruff/mypy phase gate
 
 ### Phase 08.1: admonition rendering fix — translator markup/code-mode mismatch (INSERTED)

@@ -35,8 +35,8 @@ Requirements covered: **API-01, API-02**.
 ## Implementation Decisions
 
 ### Deprecated-API sweep breadth (discussed)
-- **D-01: Thorough audit — modernize ALL soft-deprecated docutils/Sphinx API, not just the one known
-  `traverse()`.** The user explicitly chose the *徹底監査* (exhaustive) stance over the minimal
+- **D-01: Thorough audit — modernize ALL soft-deprecated docutils/Sphinx API, not just the one known `traverse()`.**
+  The user explicitly chose the *徹底監査* (exhaustive) stance over the minimal
   "fix only what breaks" and the mid "light grep" options. Phase 8's API-modernization scope is
   therefore **expanded beyond API-01's single `template_engine.py:239` call**: proactively find and
   replace every soft-deprecated docutils/Sphinx call the extension uses (e.g. `traverse()`→`findall()`

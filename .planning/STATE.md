@@ -4,17 +4,17 @@ milestone: v0.5.0
 milestone_name: — forward-ecosystem
 current_phase: 8
 current_phase_name: Sphinx 9 / docutils 0.22
-status: verifying
+status: executing
 stopped_at: Phase 8 context gathered
-last_updated: "2026-07-11T01:56:13.905Z"
+last_updated: "2026-07-11T02:35:20.691Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07 complete, transitioned to Phase 8
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 2
   total_plans: 2
   completed_plans: 2
-  percent: 40
+  percent: 33
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 8 — API & Test Compatibility (Sphinx 9 / docutils 0.22)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07 complete, transitioned to Phase 8
 
 Progress: [░░░░░░░░░░] 0%
@@ -90,6 +90,10 @@ Carried forward from research (SUMMARY.md / PITFALLS.md) — must be resolved du
 - [Phase 7]: The 3-way version-sync hazard — `test_preview_version_sync.py` proves the three files *agree*, not that the versions *compile correctly*. The empirical `docs-pdf` compile (and Phase 9's smoke test) is the real gatekeeper.
 - [Phase 8]: Sphinx 9 changelog audit found no load-bearing API breaks, but re-verify empirically against the resolved deps (runtime AttributeError/TypeError may surface); spot-check the docutils 0.22 multi-`<term>` definition-list edge case.
 - [Phase 07 follow-up]: docs-pdf now compiles clean but exposes a pre-existing (predates Phase 7) translator bug: .. note:: admonitions render literal unevaluated Typst source (par({text(...)})) instead of typeset prose in 4 spots, due to a markup/code-mode mismatch in translator.py::_visit_admonition. Logged in .planning/phases/07-bump-preview-packages-typst-0-15-kai-fix/deferred-items.md; needs a dedicated fix phase.
+
+### Roadmap Evolution
+
+- Phase 08.1 inserted after Phase 8: admonition rendering fix — translator markup/code-mode mismatch (URGENT)
 
 ## Deferred Items
 
