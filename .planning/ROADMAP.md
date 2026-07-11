@@ -107,14 +107,14 @@ Plans:
 **Goal:** Admonitions (`.. note::`, `.. warning::`, etc.) render typeset prose in the compiled PDF instead of literal, unevaluated Typst source (`par({text(...)})`) — by switching `_visit_admonition` from markup-mode (`clue_type[`) to a code-mode content-block form (`clue_type({ ... })`) at its single choke point in `translator.py`. Scope-widened per user decision: preserve inline markup in admonition titles (buffer-swap, D-02), add the missing types `hint`/`error`/`danger`/`attention` + generic `.. admonition::` (D-06), strengthen the loose unit asserts (D-03), and add a real `docs-pdf` compile + PDF-text-extraction acceptance gate (D-04/D-05).
 **Requirements**: None (scope defined by CONTEXT.md decisions D-01..D-06; no REQ-IDs mapped)
 **Depends on:** Phase 8
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 
 **Wave 1**
 
 - [x] 08.1-01-PLAN.md — pypdf dev dependency behind a blocking-human legitimacy checkpoint (SUS false-positive), enabling the D-04 PDF-text-extraction gate
-- [ ] 08.1-02-PLAN.md — Core fix: `_visit_admonition`/`_depart_admonition` code-mode content-block body (D-01) + admonition-aware `visit_title` buffer-swap for inline-markup titles (D-02) + strengthened/nested unit tests (D-03/D-05)
+- [x] 08.1-02-PLAN.md — Core fix: `_visit_admonition`/`_depart_admonition` code-mode content-block body (D-01) + admonition-aware `visit_title` buffer-swap for inline-markup titles (D-02) + strengthened/nested unit tests (D-03/D-05)
 
 **Wave 2** *(blocked on 08.1-02)*
 

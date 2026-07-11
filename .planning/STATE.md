@@ -6,14 +6,14 @@ current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
 status: executing
 stopped_at: Phase 08.1 context gathered
-last_updated: "2026-07-11T04:28:39.783Z"
+last_updated: "2026-07-11T04:36:10.722Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 08.1 (admonition rendering fix — translator markup/code-mode mismatch) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 08.1 execution started
 
@@ -65,6 +65,7 @@ Progress: [██████░░░░] 60%
 | Phase 08 P02 | 3min | 2 tasks | 4 files |
 | Phase 08 P03 | 2min | 2 tasks | 1 files |
 | Phase 08.1 P01 | 1min | 2 tasks | 2 files |
+| Phase 08.1 P02 | 6min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase 08-03]: Escalated both error::DeprecationWarning and error::PendingDeprecationWarning in the permanent pytest filterwarnings guard (D-02) — a documented deviation-with-rationale from CONTEXT.md's literal DeprecationWarning-only text, required to catch Sphinx's RemovedInSphinxNNWarning family which subclasses PendingDeprecationWarning.
 - [Phase 08-03]: Skipped the optional multi-<term> definition-list hardening (Task 2) as forward-looking-only — no current docutils 0.22.4 rST syntax produces a multi-<term> definition_list_item; deferred as a documented follow-up, not silently dropped.
 - [Phase ?]: [Phase 08.1-01]: pypdf's SUS supply-chain legitimacy flag (too-new/unknown-downloads) was human-confirmed as a false positive before install via the blocking-human checkpoint protocol.
+- [Phase ?]: Kept _visit_admonition's custom_title parameter unchanged (stashed on self._custom_admonition_title) so the six existing per-type visit_*/depart_* call sites needed zero changes
+- [Phase ?]: Used a dedicated _saved_body_for_admonition_title field instead of reusing the definition-list saved_body field, to avoid state collisions between the two buffer-swap use sites
+- [Phase ?]: Static custom_title (Important/See Also) stays a plain string argument; only the dynamic node-derived title uses the buffered code-block form
 
 ### Pending Todos
 
@@ -115,7 +119,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T04:28:15.998Z
+Last session: 2026-07-11T04:35:50.507Z
 Stopped at: Phase 08.1 context gathered
 Resume file: 
 None
