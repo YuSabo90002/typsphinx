@@ -1373,6 +1373,81 @@ def test_image_relative_path(simple_document, mock_builder):
     assert "../images/logo.png" in output
 
 
+def test_convert_length_px_to_pt(simple_document, mock_builder):
+    """px converts to pt via the CSS-canonical 1px = 0.75pt (FIG-01, D-02)."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("200px") == "150pt"
+
+
+def test_convert_length_bare_unitless_treated_as_px(simple_document, mock_builder):
+    """A bare unitless number is treated as px per the HTML/CSS convention."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("300") == "225pt"
+
+
+def test_convert_length_pc_to_pt(simple_document, mock_builder):
+    """pc (pica) converts to pt: 1pc = 12pt."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("1pc") == "12pt"
+
+
+def test_convert_length_passthrough_units(simple_document, mock_builder):
+    """%, em, pt, cm, mm, in pass through unchanged."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("50%") == "50%"
+    assert translator._convert_length_to_typst("3em") == "3em"
+    assert translator._convert_length_to_typst("2in") == "2in"
+    assert translator._convert_length_to_typst("5cm") == "5cm"
+    assert translator._convert_length_to_typst("3mm") == "3mm"
+    assert translator._convert_length_to_typst("12pt") == "12pt"
+
+
+def test_convert_length_unknown_unit_warns_and_drops(
+    simple_document, mock_builder, caplog
+):
+    """Unknown/unconvertible units emit exactly one warning and return None."""
+    import logging
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    for unit_value in ("1ex", "2ch", "1rem", "10vw", "10vh", "5vmin", "5vmax", "1Q"):
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            result = translator._convert_length_to_typst(unit_value)
+        assert result is None
+        assert len(caplog.records) == 1
+
+
+def test_convert_length_malformed_value_warns_and_drops(
+    simple_document, mock_builder, caplog
+):
+    """A malformed value that fails the regex returns None + one warning."""
+    import logging
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    with caplog.at_level(logging.WARNING):
+        result = translator._convert_length_to_typst("not-a-length!!")
+    assert result is None
+    assert len(caplog.records) == 1
+
+
 def test_figure_with_caption(simple_document, mock_builder):
     """Test that figure with caption is converted to Typst #figure() syntax."""
     from typsphinx.translator import TypstTranslator
