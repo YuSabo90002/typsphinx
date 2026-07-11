@@ -236,7 +236,7 @@ class TemplateEngine:
         from sphinx import addnodes
 
         # Try to find toctree node in doctree
-        toctree_nodes = list(doctree.traverse(addnodes.toctree))
+        toctree_nodes = list(doctree.findall(addnodes.toctree))
 
         if not toctree_nodes:
             # No toctree found - return empty dict
