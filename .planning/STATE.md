@@ -4,9 +4,9 @@ milestone: v0.5.0
 milestone_name: — forward-ecosystem
 current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
-status: verifying
+status: executing
 stopped_at: Phase 08.1 context gathered
-last_updated: "2026-07-11T03:37:34.844Z"
+last_updated: "2026-07-11T04:17:11.782Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 08 complete, transitioned to Phase 08.1
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 08.1 — admonition rendering fix — translator markup/code-mode mismatch
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-11 — Phase 08 complete, transitioned to Phase 08.1
 
 Progress: [██████░░░░] 60%
