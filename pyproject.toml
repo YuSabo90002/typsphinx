@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
     "sphinx>=9.1,<10",
     "docutils>=0.21,<0.23",
-    "typst>=0.14.1,<0.15",
+    "typst>=0.15.0,<0.16",
 ]
 
 [project.optional-dependencies]
