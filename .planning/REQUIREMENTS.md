@@ -87,31 +87,39 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FIG-01 | Phase [N] | Pending |
-| FIG-02 | Phase [N] | Pending |
-| XREF-01 | Phase [N] | Pending |
-| VER-01 | Phase [N] | Pending |
-| DESC-01 | Phase [N] | Pending |
-| DESC-02 | Phase [N] | Pending |
-| DESC-03 | Phase [N] | Pending |
-| DESC-04 | Phase [N] | Pending |
-| FN-01 | Phase [N] | Pending |
-| BLK-01 | Phase [N] | Pending |
-| BLK-02 | Phase [N] | Pending |
-| BLK-03 | Phase [N] | Pending |
-| BLK-04 | Phase [N] | Pending |
-| BLK-05 | Phase [N] | Pending |
-| BLK-06 | Phase [N] | Pending |
-| DEG-01 | Phase [N] | Pending |
-| DEG-02 | Phase [N] | Pending |
-| GATE-01 | Phase [N] | Pending |
-| GATE-02 | Phase [N] | Pending |
+| FIG-01 | Phase 11 | Pending |
+| FIG-02 | Phase 11 | Pending |
+| XREF-01 | Phase 12 | Pending |
+| VER-01 | Phase 12 | Pending |
+| DESC-01 | Phase 12 | Pending |
+| DESC-02 | Phase 12 | Pending |
+| DESC-03 | Phase 12 | Pending |
+| DESC-04 | Phase 12 | Pending |
+| FN-01 | Phase 14 | Pending |
+| BLK-01 | Phase 12 | Pending |
+| BLK-02 | Phase 13 | Pending |
+| BLK-03 | Phase 13 | Pending |
+| BLK-04 | Phase 12 | Pending |
+| BLK-05 | Phase 12 | Pending |
+| BLK-06 | Phase 12 | Pending |
+| DEG-01 | Phase 11 | Pending |
+| DEG-02 | Phase 11 | Pending |
+| GATE-01 | Phase 11 | Pending |
+| GATE-02 | Phase 15 | Pending |
+
+**GATE-01 note:** GATE-01 is a cross-cutting standing mandate. It is mapped to **Phase 11**, where
+the real-compile acceptance-fixture pattern (`sphinx-build → typst.compile() → pypdf`, extending
+`tests/test_pdf_render_gate.py`) is first established, and is echoed as a standing success criterion
+in every subsequent node-handler phase (12, 13, 14). Each of those phases ships or extends its own
+real-compile fixture rather than relying on string-agreement unit tests alone.
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19 ✓
+- Unmapped: 0 ✓
+
+Per-phase mapping: Phase 11 (FIG-01, FIG-02, DEG-01, DEG-02, GATE-01) · Phase 12 (XREF-01, VER-01, DESC-01, DESC-02, DESC-03, DESC-04, BLK-01, BLK-04, BLK-05, BLK-06) · Phase 13 (BLK-02, BLK-03) · Phase 14 (FN-01) · Phase 15 (GATE-02).
 
 ---
 *Requirements defined: 2026-07-11*
-*Last updated: 2026-07-11 after initial definition*
+*Last updated: 2026-07-11 after roadmap creation (Traceability populated, 19/19 mapped)*
