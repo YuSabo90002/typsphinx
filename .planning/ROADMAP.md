@@ -42,7 +42,7 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
 - [x] **Phase 7: Bump @preview Packages + typst 0.15 (kai fix)** - typst 0.15 pin + four `@preview` bumps; `docs-pdf` compiles with no `kai` (highest-risk phase) (completed 2026-07-11)
 - [x] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack (completed 2026-07-11)
 - [x] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps (completed 2026-07-11)
-- [ ] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml`
+- [x] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml` (completed 2026-07-11)
 
 ## Phase Details
 
@@ -160,14 +160,14 @@ Plans:
 
 **Deferred to `/gsd-complete-milestone` (REL-01 publish half):** merge `release/v0.5.0 → main` (PR #112) → tag `v0.5.0` → `release.yml` green end-to-end → `typsphinx==0.5.0` on PyPI (wheel + sdist) + GitHub Release.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 
 **Wave 1** *(parallel — disjoint files, no cross-dependency)*
 
 - [x] 10-01-PLAN.md — Single-source `__version__` via `importlib.metadata` (+ `PackageNotFoundError` fallback), bump `pyproject.toml` `0.4.4`→`0.5.0`, regenerate `uv.lock`, add the independent `tomllib` drift-guard test
-- [ ] 10-02-PLAN.md — Curated `## [0.5.0]` `CHANGELOG.md` entry under the top `## [Unreleased]` header + link-reference fixes
+- [x] 10-02-PLAN.md — Curated `## [0.5.0]` `CHANGELOG.md` entry under the top `## [Unreleased]` header + link-reference fixes
 
 ## Progress
 
@@ -185,7 +185,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete    | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete    | 2026-07-11 |
-| 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 1/2 | In Progress|  |
+| 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete   | 2026-07-11 |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09*

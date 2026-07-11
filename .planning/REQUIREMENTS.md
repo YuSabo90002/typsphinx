@@ -41,7 +41,7 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 - [x] **CI-01**: Every CI job is green — lint, the 3-OS × Python 3.12–3.13 test matrix, type-check, coverage, build, and `docs.yml` (docs-PDF ubuntu-only) — confirmed by an observed Actions run
 - [x] **CI-02**: A `typst compile` smoke test is added that would catch a `kai`-class `@preview` break before release (closes the gap that the internal-only sync test misses)
 - [x] **CI-03**: The durability guardrails are updated to the new majors — `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
-- [ ] **REL-01**: The version string is single-sourced at `0.5.0` — `pyproject.toml` `version` bumped `0.4.4`→`0.5.0` as the sole source, with `typsphinx/__init__.py` `__version__` derived from `importlib.metadata` (retiring the stale `0.4.3`) — and a curated `CHANGELOG.md` v0.5.0 entry is prepared **(Phase 10)**. v0.5.0 is then released to PyPI (wheel + sdist) + GitHub Release with the release workflow green — **release execution (merge PR #112 → tag `v0.5.0` → `release.yml` publish) deferred to milestone completion** (`/gsd-complete-milestone`), mirroring the v0.4.4 precedent
+- [x] **REL-01**: The version string is single-sourced at `0.5.0` — `pyproject.toml` `version` bumped `0.4.4`→`0.5.0` as the sole source, with `typsphinx/__init__.py` `__version__` derived from `importlib.metadata` (retiring the stale `0.4.3`) — and a curated `CHANGELOG.md` v0.5.0 entry is prepared **(Phase 10)**. v0.5.0 is then released to PyPI (wheel + sdist) + GitHub Release with the release workflow green — **release execution (merge PR #112 → tag `v0.5.0` → `release.yml` publish) deferred to milestone completion** (`/gsd-complete-milestone`), mirroring the v0.4.4 precedent
 
 ## v2 Requirements
 
@@ -86,7 +86,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CI-01 | Phase 9 | Complete |
 | CI-02 | Phase 9 | Complete |
 | CI-03 | Phase 9 | Complete |
-| REL-01 | Phase 10 | Pending |
+| REL-01 | Phase 10 | Complete |
 
 **Coverage:**
 

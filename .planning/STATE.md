@@ -4,17 +4,17 @@ milestone: v0.5.0
 milestone_name: — forward-ecosystem
 current_phase: 10
 current_phase_name: Version-String Fix + v0.5.0 Release
-status: executing
+status: verifying
 stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-07-11T11:03:49.608Z"
+last_updated: "2026-07-11T11:07:45.494Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 13
-  completed_plans: 12
-  percent: 83
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 10 (Version-String Fix + v0.5.0 Release) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-11 — Phase 10 execution started
 
 Progress: [██████░░░░] 60%
@@ -72,6 +72,7 @@ Progress: [██████░░░░] 60%
 | Phase 09 P01 | 3min | 2 tasks | 3 files |
 | Phase 09 P02 | 39min | 3 tasks | 0 files |
 | Phase 10 P01 | 5min | 2 tasks | 4 files |
+| Phase 10 P02 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,7 @@ Recent decisions affecting current work:
 - [Phase ?]: PR release/v0.5.0 -> main (#112) opened and observed all-green (13/13 jobs); left OPEN/UNMERGED per D-03 for Phase 10 to add the version-bump commit and merge
 - [Phase 10]: typsphinx.__version__ single-sourced via importlib.metadata.version() with PackageNotFoundError -> 'unknown' fallback; pyproject.toml is now the sole version literal — Root-cause fix for stale 0.4.3 string (D-04/D-05) - version drift becomes structurally impossible
 - [Phase 10]: Added independent tomllib-based test_version_matches_pyproject_toml drift guard alongside the retained test_setup_version_matches — importlib.metadata-based __version__ alone is a tautological check; an independent parse of pyproject.toml is the genuine regression guard
+- [Phase ?]: [Phase 10-02]: Curated CHANGELOG v0.5.0 entry follows [0.4.3]'s subsection shape; no [0.4.4] backfill per RESEARCH.md Pitfall 4
 
 ### Pending Todos
 
@@ -141,6 +143,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T11:03:49.603Z
+Last session: 2026-07-11T11:07:31.946Z
 Stopped at: Completed 10-01-PLAN.md
 Resume file: 
+None
