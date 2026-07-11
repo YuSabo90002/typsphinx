@@ -15,6 +15,11 @@ from sphinx.util.docutils import SphinxTranslator
 
 logger = logging.getLogger(__name__)
 
+# Units docutils may normalize into `:width:`/`:height:` (via
+# length_or_percentage_or_unitless / length_or_unitless) that are already
+# valid Typst length units and should pass through unchanged.
+_TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
+
 
 class TypstTranslator(SphinxTranslator):
     """
@@ -1849,6 +1854,66 @@ class TypstTranslator(SphinxTranslator):
             )
 
             return relative_path
+
+    def _convert_length_to_typst(self, value: str) -> str | None:
+        """
+        Convert a docutils-normalized CSS length string to a Typst-valid length.
+
+        Docutils' `length_or_percentage_or_unitless`/`length_or_unitless` option
+        converters (see docutils/parsers/rst/directives/__init__.py) normalize
+        `:width:`/`:height:` into a single "<value><unit>" string with no space
+        (e.g. "200px", "50%", "300" for bare unitless). This helper rewrites
+        that string into one Typst's length grammar accepts, or returns None if
+        the unit cannot be represented (caller should then omit the attribute
+        entirely, letting the image render at its natural size).
+
+        Args:
+            value: Docutils-normalized length string (e.g. "200px", "50%", "300").
+
+        Returns:
+            A Typst-valid length string, or None if the unit is unsupported.
+
+        Examples:
+            >>> _convert_length_to_typst("200px")
+            "150pt"
+            >>> _convert_length_to_typst("300")
+            "225pt"
+            >>> _convert_length_to_typst("50%")
+            "50%"
+            >>> _convert_length_to_typst("1pc")
+            "12pt"
+            >>> _convert_length_to_typst("2ex")
+            None
+
+        Notes:
+            Implements Issue #114 (FIG-01) per the locked D-02 decision: px
+            converts via the CSS-canonical 1px = 0.75pt; pc converts to pt
+            (1pc = 12pt); %/em/pt/cm/mm/in pass through unchanged; any other
+            unit (ex, ch, rem, vw, vh, vmin, vmax, Q, etc.) is unknown and is
+            dropped with exactly one warning rather than emitted verbatim,
+            which was the FIG-01 fatal Typst-compile-abort case.
+        """
+        match = re.fullmatch(r"(-?[0-9.]+)([a-zA-Zµ%]*)", value)
+        if not match:
+            logger.warning(f"Could not parse length value '{value}'; dropping.")
+            return None
+
+        number_str, unit = match.group(1), match.group(2)
+        number = float(number_str)
+
+        if unit == "" or unit == "px":
+            # CSS canonical: 96px/in, 72pt/in -> 1px = 0.75pt
+            return f"{number * 0.75:g}pt"
+        if unit == "pc":
+            return f"{number * 12:g}pt"  # 1 pica = 12 points
+        if unit in _TYPST_PASSTHROUGH_UNITS:
+            return value  # already Typst-valid, pass through unchanged
+
+        logger.warning(
+            f"Unsupported length unit '{unit}' in '{value}'; "
+            "dropping dimension (image will use its natural size)."
+        )
+        return None
 
     def visit_toctree(self, node: nodes.Node) -> None:
         """
