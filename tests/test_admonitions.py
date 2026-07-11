@@ -272,3 +272,46 @@ class TestAdmonitionConversion:
         assert output.count("Custom Title") == 1
         assert "heading(" not in output  # double-emission bug fixed
         assert 'par({text("Content here.")})' in output
+
+    def test_admonition_title_preserves_inline_markup(
+        self, temp_sphinx_app: SphinxTestApp
+    ):
+        """Test that an admonition title preserves inline markup (D-02).
+
+        The title's rendered content is captured via the buffer-swap idiom
+        (routing through the normal inline visitors) rather than flattened
+        with node.astext(), so an emphasis child inside the title survives
+        as an emph(...) code-mode call instead of being reduced to plain
+        text. This also locks down the title double-emission regression
+        found in RESEARCH.md: heading( must never appear in the output.
+
+        Note: nodes.note() does not carry a title in real rST usage; this
+        is a constructed shape used purely to exercise the admonition-aware
+        visit_title/depart_title branch. The real docutils shape for a
+        title-bearing admonition is nodes.admonition (generic `.. admonition::`),
+        covered by Plan 03's D-06 generic-admonition test.
+        """
+        note = nodes.note()
+        title = nodes.title()
+        title += nodes.Text("Custom ")
+        title += nodes.emphasis(text="Title")
+        para = nodes.paragraph(text="Content here.")
+        note += title
+        note += para
+
+        doc = create_document()
+        doc += note
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "info({" in output
+        assert "info[" not in output
+        assert ", title: {" in output
+        assert "emph({" in output
+        assert output.count("Custom") == 1
+        assert output.count("Title") == 1
+        assert "heading(" not in output  # double-emission bug fixed
