@@ -33,8 +33,8 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 
 ### API Compatibility (API)
 
-- [ ] **API-01**: The deprecated `doctree.traverse()` call at `template_engine.py:239` is replaced with `doctree.findall()` (consistent with `builder.py`)
-- [ ] **API-02**: The translator / writer / builder / config registration are confirmed compatible with Sphinx 9.1 + docutils 0.22 (any deprecation-removal breakage fixed), and the full pytest suite passes
+- [x] **API-01**: The deprecated `doctree.traverse()` call at `template_engine.py:239` is replaced with `doctree.findall()` (consistent with `builder.py`)
+- [x] **API-02**: The translator / writer / builder / config registration are confirmed compatible with Sphinx 9.1 + docutils 0.22 (any deprecation-removal breakage fixed), and the full pytest suite passes
 
 ### CI & Release (CI / REL)
 
@@ -81,8 +81,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PKG-01 | Phase 7 | Complete |
 | PKG-02 | Phase 7 | Complete |
 | PKG-03 | Phase 7 | Complete |
-| API-01 | Phase 8 | Pending |
-| API-02 | Phase 8 | Pending |
+| API-01 | Phase 8 | Complete |
+| API-02 | Phase 8 | Complete |
 | CI-01 | Phase 9 | Pending |
 | CI-02 | Phase 9 | Pending |
 | CI-03 | Phase 9 | Pending |

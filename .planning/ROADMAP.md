@@ -90,12 +90,12 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
   3. The full pytest suite (~400 tests, incl. PDF integration) passes locally against the new stack
   4. The tree is black/ruff/mypy clean after any reformatting surfaced by the target-version bump
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Wave 1: API-01 `traverse()`→`findall()` source swap + `test_translator.py` 3× `OptionParser`→`frontend.get_default_settings`
+- [x] 08-01-PLAN.md — Wave 1: API-01 `traverse()`→`findall()` source swap + `test_translator.py` 3× `OptionParser`→`frontend.get_default_settings`
 - [ ] 08-02-PLAN.md — Wave 1: builder.app→_app (test_builder/test_pdf_generation) + `writer_name`→`writer=get_writer_class` (test_documentation_configuration/usage)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -153,7 +153,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 5. Durability Guardrails | v0.4.4 | 4/4 | Complete | 2026-07-05 |
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
-| 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 0/3 | Not started | - |
+| 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 1/3 | In Progress|  |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 0/TBD | Not started | - |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
