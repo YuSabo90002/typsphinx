@@ -40,7 +40,7 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
 
 - [x] **Phase 6: Raise Runtime Pins + Python Floor** - Sphinx 9.1 / docutils 0.22 / Python 3.12–3.13 pins + regenerated lockfile (blocking prerequisite) (completed 2026-07-09)
 - [x] **Phase 7: Bump @preview Packages + typst 0.15 (kai fix)** - typst 0.15 pin + four `@preview` bumps; `docs-pdf` compiles with no `kai` (highest-risk phase) (completed 2026-07-11)
-- [ ] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack
+- [x] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack (completed 2026-07-11)
 - [ ] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps
 - [ ] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml`
 
@@ -90,7 +90,7 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
   3. The full pytest suite (~400 tests, incl. PDF integration) passes locally against the new stack
   4. The tree is black/ruff/mypy clean after any reformatting surfaced by the target-version bump
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -100,7 +100,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 08-03-PLAN.md — Wave 2: permanent `filterwarnings` deprecation guard (pyproject.toml) + optional multi-`<term>` hardening + full-suite/black/ruff/mypy phase gate
+- [x] 08-03-PLAN.md — Wave 2: permanent `filterwarnings` deprecation guard (pyproject.toml) + optional multi-`<term>` hardening + full-suite/black/ruff/mypy phase gate
 
 ### Phase 08.1: admonition rendering fix — translator markup/code-mode mismatch (INSERTED)
 
@@ -153,7 +153,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 5. Durability Guardrails | v0.4.4 | 4/4 | Complete | 2026-07-05 |
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
-| 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 2/3 | In Progress|  |
+| 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete   | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 0/TBD | Not started | - |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
