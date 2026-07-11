@@ -46,9 +46,9 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "info[" in output
-        assert "This is a note." in output
-        assert "]" in output
+        assert "info({" in output
+        assert "info[" not in output
+        assert 'par({text("This is a note.")})' in output
 
     def test_warning_converts_to_warning(self, temp_sphinx_app: SphinxTestApp):
         """Test that nodes.warning converts to warning[]."""
@@ -65,8 +65,9 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "warning[" in output
-        assert "This is a warning." in output
+        assert "warning({" in output
+        assert "warning[" not in output
+        assert 'par({text("This is a warning.")})' in output
 
     def test_tip_converts_to_tip(self, temp_sphinx_app: SphinxTestApp):
         """Test that nodes.tip converts to tip[]."""
@@ -83,8 +84,9 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "tip[" in output
-        assert "Here's a tip." in output
+        assert "tip({" in output
+        assert "tip[" not in output
+        assert 'par({text("Here\'s a tip.")})' in output
 
     def test_important_converts_to_warning_with_title(
         self, temp_sphinx_app: SphinxTestApp
@@ -103,11 +105,10 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert (
-            'warning(title: "Important")[' in output
-            or "warning(title: 'Important')[" in output
-        )
-        assert "This is important." in output
+        assert "warning({" in output
+        assert "warning[" not in output
+        assert ', title: "Important"' in output
+        assert 'par({text("This is important.")})' in output
 
     def test_caution_converts_to_warning(self, temp_sphinx_app: SphinxTestApp):
         """Test that nodes.caution converts to warning[]."""
@@ -124,8 +125,9 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "warning[" in output
-        assert "Be cautious." in output
+        assert "warning({" in output
+        assert "warning[" not in output
+        assert 'par({text("Be cautious.")})' in output
 
     def test_seealso_converts_to_info_with_title(self, temp_sphinx_app: SphinxTestApp):
         """Test that addnodes.seealso converts to info(title: "See Also")[]."""
@@ -142,10 +144,10 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert (
-            'info(title: "See Also")[' in output or "info(title: 'See Also')[" in output
-        )
-        assert "See related documentation." in output
+        assert "info({" in output
+        assert "info[" not in output
+        assert ', title: "See Also"' in output
+        assert 'par({text("See related documentation.")})' in output
 
     def test_admonition_with_multiple_paragraphs(self, temp_sphinx_app: SphinxTestApp):
         """Test admonition with multiple paragraphs."""
@@ -164,9 +166,10 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "info[" in output
-        assert "First paragraph." in output
-        assert "Second paragraph." in output
+        assert "info({" in output
+        assert "info[" not in output
+        assert 'par({text("First paragraph.")})' in output
+        assert 'par({text("Second paragraph.")})' in output
 
     def test_nested_admonitions(self, temp_sphinx_app: SphinxTestApp):
         """Test nested admonitions."""
@@ -187,10 +190,12 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "info[" in output
-        assert "Outer note." in output
-        assert "warning[" in output
-        assert "Inner warning." in output
+        assert "info({" in output
+        assert "info[" not in output
+        assert 'par({text("Outer note.")})' in output
+        assert "warning({" in output
+        assert "warning[" not in output
+        assert 'par({text("Inner warning.")})' in output
 
     def test_admonition_with_title_in_content(self, temp_sphinx_app: SphinxTestApp):
         """Test admonition with custom title in first paragraph."""
@@ -210,7 +215,11 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        # Should use custom title
-        assert "info(title:" in output
-        assert "Custom Title" in output
-        assert "Content here." in output
+        # Should use the dynamic (node-derived) title buffered as a code
+        # block, emitted exactly once, with the body evaluating in code mode.
+        assert "info({" in output
+        assert "info[" not in output
+        assert ", title: {" in output
+        assert output.count("Custom Title") == 1
+        assert "heading(" not in output  # double-emission bug fixed
+        assert 'par({text("Content here.")})' in output

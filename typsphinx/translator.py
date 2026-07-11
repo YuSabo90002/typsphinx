@@ -90,6 +90,20 @@ class TypstTranslator(SphinxTranslator):
             None  # Used by definition lists for body swapping
         )
 
+        # Admonition title state (buffer-swap idiom, mirrors definition-list terms)
+        self._pending_admonition_title: str | None = (
+            None  # Rendered inline content of a dynamic (node-derived) title
+        )
+        self._in_admonition_title: bool = (
+            False  # Track if currently buffering an admonition title node
+        )
+        self._saved_body_for_admonition_title: List[Any] | None = (
+            None  # Body to restore after buffering an admonition title
+        )
+        self._custom_admonition_title: str | None = (
+            None  # Static Python-literal title (e.g. "Important", "See Also")
+        )
+
     def astext(self) -> str:
         """
         Return the translated text as a string.
@@ -180,9 +194,23 @@ class TypstTranslator(SphinxTranslator):
         Generates heading() function call with level parameter.
         Child text nodes will be wrapped in text() automatically.
 
+        Exception: Inside an admonition, the title is not a section heading —
+        buffer its rendered inline content (via the standard inline visitors)
+        so it can be attached as a code-block title argument at depart time
+        instead of emitted here (see _depart_admonition).
+
         Args:
             node: The title node
         """
+        # Admonition titles are deferred: buffer-swap the body so the title's
+        # inline children render through the normal visitors (preserving
+        # emphasis/literal/etc.) without touching the main output stream.
+        if isinstance(node.parent, nodes.Admonition):
+            self._saved_body_for_admonition_title = self.body
+            self.body = []
+            self._in_admonition_title = True
+            return
+
         # Use heading() function (no # prefix in code mode)
         self.add_text(f"heading(level: {self.section_level}, ")
 
@@ -192,9 +220,20 @@ class TypstTranslator(SphinxTranslator):
 
         Closes heading() function call.
 
+        Exception: Inside an admonition, capture the buffered inline content
+        as the pending title and restore the main output stream.
+
         Args:
             node: The title node
         """
+        if self._in_admonition_title:
+            self._pending_admonition_title = "".join(self.body)
+            if self._saved_body_for_admonition_title is not None:
+                self.body = self._saved_body_for_admonition_title
+            self._saved_body_for_admonition_title = None
+            self._in_admonition_title = False
+            return
+
         # Close heading() function
         self.add_text(")\n\n")
 
@@ -2256,36 +2295,54 @@ class TypstTranslator(SphinxTranslator):
         """
         Helper method to visit any admonition node.
 
+        Opens a code-mode content-block call (`clue_type({`) so the body
+        (paragraphs/text/literals emitted downstream as `par({...})`,
+        `text(...)`, `raw(...)`) evaluates instead of printing as literal
+        Typst source. A title child, if present, is not read here — docutils
+        will visit it normally via visit_title's admonition-aware branch,
+        which defers the rendered title to `_depart_admonition`.
+
         Args:
             node: The admonition node
             clue_type: The gentle-clues function name (e.g., 'info', 'warning', 'tip')
-            custom_title: Optional custom title for the admonition
+            custom_title: Optional static custom title for the admonition
         """
         # Add newline separator if in list item and not first element
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Check if there's a title element in the node
-        title = None
-        for child in node.children:
-            if isinstance(child, nodes.title):
-                title = child.astext()
-                break
+        # Reset per-admonition title state; stash the static custom title (if
+        # any) for _depart_admonition to consume once the body has closed.
+        self._pending_admonition_title = None
+        self._custom_admonition_title = custom_title
 
-        # Use custom title if provided, otherwise check for title element
-        # No # prefix in unified code mode
-        if title:
-            self.add_text(f'{clue_type}(title: "{title}")[')
-        elif custom_title:
-            self.add_text(f'{clue_type}(title: "{custom_title}")[')
-        else:
-            self.add_text(f"{clue_type}[")
+        # Open code-mode content-block (NOT markup-mode "[") so the body
+        # evaluates in the translator's unified code mode.
+        self.add_text(f"{clue_type}({{")
 
     def _depart_admonition(self) -> None:
         """
         Helper method to depart any admonition node.
+
+        Closes the code-mode content-block body and attaches the title
+        argument (if any) — a dynamic, node-derived title takes precedence
+        over a static custom title. The dynamic title is buffered code-mode
+        content (from visit_title's admonition branch) and MUST be wrapped
+        in a code block `{ ... }`, not a content block `[ ... ]`, so its
+        inline calls (text(...), emph(...)) evaluate.
         """
-        self.add_text("]\n\n")
+        self.add_text("}")
+
+        title_expr = None
+        if self._pending_admonition_title:
+            title_expr = "{" + self._pending_admonition_title + "}"
+        elif self._custom_admonition_title:
+            title_expr = f'"{self._custom_admonition_title}"'
+
+        if title_expr:
+            self.add_text(f", title: {title_expr}")
+
+        self.add_text(")\n\n")
 
         # Mark that next element in list item needs separator
         if self.in_list_item:
