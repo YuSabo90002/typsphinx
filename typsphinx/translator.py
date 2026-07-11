@@ -52,6 +52,9 @@ class TypstTranslator(SphinxTranslator):
         # Figure-specific state
         self.figure_content = []
         self.figure_caption = ""
+        self._saved_body_for_figure_caption: List[Any] | None = (
+            None  # Body to restore after buffering a figure caption (buffer-swap idiom)
+        )
 
         # Code block container state (Issue #20)
         self.in_captioned_code_block = False
@@ -1188,9 +1191,13 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The figure node
         """
-        # Close the figure
+        # Close the figure. The buffered caption holds rendered code-mode
+        # output (text(...)/emph(...) calls produced by the buffer-swap in
+        # depart_caption), so it must be wrapped in a {...} code block to be
+        # evaluated -- not [...] markup, which would print the calls
+        # literally instead of evaluating them.
         if self.figure_caption:
-            self.add_text(f",\n  caption: [{self.figure_caption}]")
+            self.add_text(f",\n  caption: {{{self.figure_caption}}}")
 
         # Add label if figure has ids
         if node.get("ids"):
@@ -1216,6 +1223,14 @@ class TypstTranslator(SphinxTranslator):
         # We should skip output to avoid duplicate caption text
         if self.in_captioned_code_block:
             raise nodes.SkipNode
+        # For figures, buffer-swap the body so the caption's inline children
+        # render through the normal visitor chain (preserving emphasis/literal/etc.
+        # and routing text through visit_Text's string-literal escaping) instead
+        # of being re-derived later via node.astext() (mirrors the admonition-title
+        # buffer-swap idiom; see visit_title/depart_title).
+        if self.in_figure:
+            self._saved_body_for_figure_caption = self.body
+            self.body = []
         # For figures, start collecting caption text
         self.in_caption = True
 
@@ -1226,9 +1241,15 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The caption node
         """
-        # Store caption text for figures
+        # Capture the buffered caption content and restore the main output
+        # stream (buffer-swap idiom; never node.astext(), which bypasses the
+        # escaping applied by the normal visitor chain and caused the
+        # double-emission/juxtaposition fatal bug).
         if self.in_figure:
-            self.figure_caption = node.astext()
+            self.figure_caption = "".join(self.body)
+            if self._saved_body_for_figure_caption is not None:
+                self.body = self._saved_body_for_figure_caption
+            self._saved_body_for_figure_caption = None
         self.in_caption = False
 
     def visit_table(self, node: nodes.table) -> None:
