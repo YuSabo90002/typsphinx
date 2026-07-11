@@ -197,6 +197,55 @@ class TestAdmonitionConversion:
         assert "warning[" not in output
         assert 'par({text("Inner warning.")})' in output
 
+    def test_nested_list_in_note(self, temp_sphinx_app: SphinxTestApp):
+        """Test a bullet list nested inside a note (D-05)."""
+        note = nodes.note()
+        bullet_list = nodes.bullet_list()
+        item1 = nodes.list_item()
+        item1 += nodes.paragraph(text="Item one.")
+        item2 = nodes.list_item()
+        item2 += nodes.paragraph(text="Item two.")
+        bullet_list += item1
+        bullet_list += item2
+        note += bullet_list
+
+        doc = create_document()
+        doc += note
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        # The note stays in code-mode content-block form and the nested
+        # list's code-mode form evaluates inside it (no literal-source leak).
+        assert "info({" in output
+        assert "info[" not in output
+        assert "list(" in output
+        assert 'text("Item one.")' in output
+        assert 'text("Item two.")' in output
+
+    def test_nested_code_block_in_note(self, temp_sphinx_app: SphinxTestApp):
+        """Test a literal/code block nested inside a note (D-05)."""
+        note = nodes.note()
+        literal_block = nodes.literal_block(text="x = 1")
+        note += literal_block
+
+        doc = create_document()
+        doc += note
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "info({" in output
+        assert "info[" not in output
+        assert "```" in output
+        assert "x = 1" in output
+
     def test_admonition_with_title_in_content(self, temp_sphinx_app: SphinxTestApp):
         """Test admonition with custom title in first paragraph."""
         # In Sphinx, custom admonitions have the title as the first child
