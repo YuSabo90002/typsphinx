@@ -104,14 +104,25 @@ Plans:
 
 ### Phase 08.1: admonition rendering fix — translator markup/code-mode mismatch (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Admonitions (`.. note::`, `.. warning::`, etc.) render typeset prose in the compiled PDF instead of literal, unevaluated Typst source (`par({text(...)})`) — by switching `_visit_admonition` from markup-mode (`clue_type[`) to a code-mode content-block form (`clue_type({ ... })`) at its single choke point in `translator.py`. Scope-widened per user decision: preserve inline markup in admonition titles (buffer-swap, D-02), add the missing types `hint`/`error`/`danger`/`attention` + generic `.. admonition::` (D-06), strengthen the loose unit asserts (D-03), and add a real `docs-pdf` compile + PDF-text-extraction acceptance gate (D-04/D-05).
+**Requirements**: None (scope defined by CONTEXT.md decisions D-01..D-06; no REQ-IDs mapped)
 **Depends on:** Phase 8
-**Plans:** 3/3 plans complete
+**Plans:** 0/4 plans complete
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 08.1 to break down)
+**Wave 1**
+
+- [ ] 08.1-01-PLAN.md — pypdf dev dependency behind a blocking-human legitimacy checkpoint (SUS false-positive), enabling the D-04 PDF-text-extraction gate
+- [ ] 08.1-02-PLAN.md — Core fix: `_visit_admonition`/`_depart_admonition` code-mode content-block body (D-01) + admonition-aware `visit_title` buffer-swap for inline-markup titles (D-02) + strengthened/nested unit tests (D-03/D-05)
+
+**Wave 2** *(blocked on 08.1-02)*
+
+- [ ] 08.1-03-PLAN.md — New admonition types (D-06): hint→tip, error→error, danger→danger, attention→warning, generic `.. admonition::`→base clue() + per-type tests
+
+**Wave 3** *(blocked on 08.1-01/02/03)*
+
+- [ ] 08.1-04-PLAN.md — Real-render acceptance gate (D-04): minimal fixture + `tests/test_pdf_render_gate.py` (typst.compile + pypdf no-leak assertion) + `tox -e docs-pdf` phase gate
 
 ### Phase 9: Green CI Matrix + Smoke Test + Guardrails
 
