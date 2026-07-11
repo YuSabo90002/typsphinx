@@ -2437,6 +2437,22 @@ class TypstTranslator(SphinxTranslator):
         """Depart an attention admonition."""
         self._depart_admonition()
 
+    def visit_admonition(self, node: nodes.admonition) -> None:
+        """Visit a generic ``.. admonition::`` (converts to #clue[]).
+
+        Maps to the base gentle-clues `clue` function (unstyled — no
+        predefined icon/accent-color), since the generic directive always
+        supplies its own directive-derived title (see RESEARCH.md D-06
+        mapping). The title flows through the existing admonition-aware
+        `visit_title`/`depart_title` buffer-swap automatically; no
+        `custom_title` is passed here.
+        """
+        self._visit_admonition(node, "clue")
+
+    def depart_admonition(self, node: nodes.admonition) -> None:
+        """Depart a generic admonition."""
+        self._depart_admonition()
+
     # Inline nodes (Task 7.4)
     # Requirement 3.1: Inline cross-references and links
 

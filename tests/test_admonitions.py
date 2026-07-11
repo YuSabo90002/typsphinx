@@ -400,3 +400,34 @@ class TestAdmonitionConversion:
         assert "warning({" in output
         assert "warning[" not in output
         assert 'par({text("Pay attention.")})' in output
+
+    def test_generic_admonition_converts_to_clue(self, temp_sphinx_app: SphinxTestApp):
+        """Test that a generic nodes.admonition converts to clue[] (D-06).
+
+        Uses the real docutils shape produced by `.. admonition:: <title>` —
+        a `nodes.admonition` with a real `nodes.title` child — rather than
+        an injected title on an unrelated admonition type. The title flows
+        through the same buffer-swap `visit_title`/`depart_title` path used
+        by all other admonition types.
+        """
+        admonition = nodes.admonition()
+        title = nodes.title(text="My Note")
+        para = nodes.paragraph(text="Generic admonition body.")
+        admonition += title
+        admonition += para
+
+        doc = create_document()
+        doc += admonition
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "clue({" in output
+        assert "clue[" not in output
+        assert ", title: {" in output
+        assert output.count("My Note") == 1
+        assert "heading(" not in output
+        assert 'par({text("Generic admonition body.")})' in output
