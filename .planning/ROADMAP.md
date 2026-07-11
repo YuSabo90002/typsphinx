@@ -86,7 +86,10 @@ extends.
   2. A `.. figure::`/standalone image with a `:target:` link and a caption (including a caption containing `_`, `*`, `` ` ``, `[`, `]`) compiles to a PDF whose caption text is present exactly once, reaches the figure's `caption:` named argument via a buffer-swap, and never leaks as a stray juxtaposed `text(...)` call.
   3. A document containing a `.. graphviz::` and an `inheritance_diagram` node compiles to a PDF without aborting; each emits exactly one controlled `logger.warning` naming the node, and no raw DOT/diagram source leaks into the output.
   4. A `tests/test_pdf_render_gate.py`-style acceptance fixture (`sphinx-build → typst.compile() → pypdf` text-extraction with negative-control leak signatures) exercises the above and fails loudly on any `TypstCompilationError` — establishing the standing real-compile gate (GATE-01) that every later node-handler phase extends.
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 11-01-PLAN.md — FIG-01 px→pt length converter + DEG-01/02 graphviz/inheritance_diagram graceful-degrade placeholder (wave 1)
+- [ ] 11-02-PLAN.md — FIG-02 figure caption buffer-swap + internal `:target:` refid branch (wave 2)
+- [ ] 11-03-PLAN.md — GATE-01 real-compile render gate: 3 fixtures + 3 test classes (wave 3)
 
 ### Phase 12: High-Volume Independent Node Handlers
 **Goal**: The highest-frequency previously-dropped nodes — version directives, same-document
@@ -165,7 +168,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 8.1 Admonition Rendering Fix (INSERTED) | v0.5.0 | 4/4 | Complete | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
-| 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 0/TBD | Not started | - |
+| 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 0/3 | Planned | - |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 0/TBD | Not started | - |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 0/TBD | Not started | - |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
