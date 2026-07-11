@@ -1,10 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v0.6.0
-milestone_name: real-world robustness
+milestone_name: — real-world robustness
+current_phase: 11
+current_phase_name: "Issue #114 Fatal Fixes + Graceful-Degrade Net"
 status: planning
-last_updated: "2026-07-11T14:30:00.000Z"
+stopped_at: Phase 11 context gathered
+last_updated: "2026-07-11T14:56:08.787Z"
 last_activity: 2026-07-11
+last_activity_desc: ROADMAP created (5 phases, 11–15; 19/19 v1 requirements mapped)
 progress:
   total_phases: 5
   completed_phases: 0
@@ -101,9 +105,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-11 — v0.6.0 roadmap created
-Stopped at: ROADMAP.md + REQUIREMENTS.md traceability + STATE.md written; 19/19 requirements mapped
-Resume file: None
+Last session: 2026-07-11T14:56:08.782Z
+Stopped at: Phase 11 context gathered
+Resume file: .planning/phases/11-issue-114-fatal-fixes-graceful-degrade-net/11-CONTEXT.md
 
 ## Operator Next Steps
 
