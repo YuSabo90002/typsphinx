@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 09
-current_phase_name: Green CI Matrix + Smoke Test + Guardrails
+current_phase: 10
+current_phase_name: Version-String Fix + v0.5.0 Release
 status: verifying
 stopped_at: Phase 9 context gathered
-last_updated: "2026-07-11T07:55:51.755Z"
+last_updated: "2026-07-11T08:00:57.157Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 09 execution started
+last_activity_desc: Phase 09 complete, transitioned to Phase 10
 progress:
   total_phases: 6
   completed_phases: 5
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: 09 (Green CI Matrix + Smoke Test + Guardrails) — EXECUTING
-Plan: 2 of 2
+Phase: 10 — Version-String Fix + v0.5.0 Release
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Phase 09 execution started
+Last activity: 2026-07-11 — Phase 09 complete, transitioned to Phase 10
 
 Progress: [██████░░░░] 60%
 
@@ -50,7 +50,7 @@ Progress: [██████░░░░] 60%
 | 06 | 1 | - | - |
 | 07 | 1 | - | - |
 | 08 | 3 | - | - |
-| 9 | TBD | - | - |
+| 09 | 2 | - | - |
 | 10 | TBD | - | - |
 | 08.1 | 4 | - | - |
 

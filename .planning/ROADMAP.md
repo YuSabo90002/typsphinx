@@ -175,7 +175,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete    | 2026-07-11 |
-| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete   | 2026-07-11 |
+| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete    | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
 ---
