@@ -86,3 +86,7 @@ dist/
 # GSD (Get Shit Done) — installed per-developer via `npx gsd-core`.
 # The install bakes machine-specific absolute paths, so it stays local.
 .claude/
+
+# MCP server config — the GSD install writes machine-specific absolute paths
+# (nix store, /home/... prefixes) into it, so it stays local (must not reach main).
+.mcp.json
