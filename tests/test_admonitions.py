@@ -315,3 +315,88 @@ class TestAdmonitionConversion:
         assert output.count("Custom") == 1
         assert output.count("Title") == 1
         assert "heading(" not in output  # double-emission bug fixed
+
+    def test_hint_converts_to_tip(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.hint converts to tip[] (D-06).
+
+        gentle-clues 1.3.1 has no dedicated `hint` clue; `tip` is the
+        verified closest analog.
+        """
+        hint = nodes.hint()
+        para = nodes.paragraph(text="Here's a hint.")
+        hint += para
+
+        doc = create_document()
+        doc += hint
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "tip({" in output
+        assert "tip[" not in output
+        assert 'par({text("Here\'s a hint.")})' in output
+
+    def test_error_converts_to_error(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.error converts to error[] (D-06)."""
+        error = nodes.error()
+        para = nodes.paragraph(text="This is an error.")
+        error += para
+
+        doc = create_document()
+        doc += error
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "error({" in output
+        assert "error[" not in output
+        assert 'par({text("This is an error.")})' in output
+
+    def test_danger_converts_to_danger(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.danger converts to danger[] (D-06)."""
+        danger = nodes.danger()
+        para = nodes.paragraph(text="This is dangerous.")
+        danger += para
+
+        doc = create_document()
+        doc += danger
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "danger({" in output
+        assert "danger[" not in output
+        assert 'par({text("This is dangerous.")})' in output
+
+    def test_attention_converts_to_warning(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.attention converts to warning[] (D-06).
+
+        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is
+        the verified analog, consistent with the existing `caution`/
+        `important` -> `warning` precedent.
+        """
+        attention = nodes.attention()
+        para = nodes.paragraph(text="Pay attention.")
+        attention += para
+
+        doc = create_document()
+        doc += attention
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "warning({" in output
+        assert "warning[" not in output
+        assert 'par({text("Pay attention.")})' in output

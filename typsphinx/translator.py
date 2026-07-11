@@ -2396,6 +2396,47 @@ class TypstTranslator(SphinxTranslator):
         """Depart a seealso admonition."""
         self._depart_admonition()
 
+    def visit_hint(self, node: nodes.hint) -> None:
+        """Visit a hint admonition (converts to #tip[]).
+
+        gentle-clues 1.3.1 has no dedicated `hint` clue; `tip` is the
+        verified closest semantic analog (see RESEARCH.md D-06 mapping).
+        """
+        self._visit_admonition(node, "tip")
+
+    def depart_hint(self, node: nodes.hint) -> None:
+        """Depart a hint admonition."""
+        self._depart_admonition()
+
+    def visit_error(self, node: nodes.error) -> None:
+        """Visit an error admonition (converts to #error[])."""
+        self._visit_admonition(node, "error")
+
+    def depart_error(self, node: nodes.error) -> None:
+        """Depart an error admonition."""
+        self._depart_admonition()
+
+    def visit_danger(self, node: nodes.danger) -> None:
+        """Visit a danger admonition (converts to #danger[])."""
+        self._visit_admonition(node, "danger")
+
+    def depart_danger(self, node: nodes.danger) -> None:
+        """Depart a danger admonition."""
+        self._depart_admonition()
+
+    def visit_attention(self, node: nodes.attention) -> None:
+        """Visit an attention admonition (converts to #warning[]).
+
+        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is
+        the verified analog, consistent with the existing `caution`/
+        `important` → `warning` precedent (see RESEARCH.md D-06 mapping).
+        """
+        self._visit_admonition(node, "warning")
+
+    def depart_attention(self, node: nodes.attention) -> None:
+        """Depart an attention admonition."""
+        self._depart_admonition()
+
     # Inline nodes (Task 7.4)
     # Requirement 3.1: Inline cross-references and links
 
