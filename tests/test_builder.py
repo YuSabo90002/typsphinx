@@ -61,7 +61,7 @@ def test_typst_builder_initialization(temp_sphinx_app):
 
     assert builder is not None
     assert builder.name == "typst"
-    assert builder.app == app
+    assert builder._app == app
 
 
 def test_get_outdated_docs_returns_iterator(temp_sphinx_app):
