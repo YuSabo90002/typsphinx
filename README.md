@@ -20,7 +20,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 - **Convert Sphinx documentation to Typst format**: Seamlessly transform your reStructuredText/Markdown documents
 - **Standard docutils nodes**: Full support for paragraphs, sections, lists, tables, admonitions, and more
 - **Mathematical expressions**:
-  - LaTeX syntax via mitex (`@preview/mitex:0.2.4`)
+  - LaTeX syntax via mitex (`@preview/mitex:0.2.7`)
   - Native Typst math syntax
 - **Code blocks with syntax highlighting**: Using codly package (`@preview/codly:1.3.0`)
   - Automatic line numbering
@@ -34,9 +34,9 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 
 ## Requirements
 
-- Python 3.10 or higher
-- Sphinx 5.0 or higher
-- typst-py 0.11.1 or higher
+- Python 3.12 or higher
+- Sphinx 9.1 or higher
+- typst-py 0.15.0 or higher
 
 ## Installation
 
@@ -220,7 +220,7 @@ This project uses uv for fast package management and follows TDD (Test-Driven De
 # Install with development dependencies
 uv sync --extra dev
 
-# Run tests (375 tests, 91% coverage)
+# Run tests (413 tests)
 uv run pytest
 
 # Run tests with coverage report
@@ -232,7 +232,7 @@ uv run tox
 # Run specific tox environments
 uv run tox -e lint          # Run linters (black, ruff)
 uv run tox -e type          # Run type checking (mypy)
-uv run tox -e py311         # Run tests on Python 3.11
+uv run tox -e py312         # Run tests on Python 3.12
 uv run tox -e docs-html     # Build HTML documentation
 uv run tox -e docs-pdf      # Build PDF documentation
 uv run tox -e docs          # Build both HTML and PDF docs
@@ -240,7 +240,7 @@ uv run tox -e docs          # Build both HTML and PDF docs
 
 ### Testing Strategy
 
-- **Unit tests**: 375 tests covering all major components
+- **Unit tests**: 413 tests covering all major components
 - **Integration tests**: Full build process validation
 - **Example projects**: `examples/basic/` and `examples/advanced/`
 - **Code coverage**: 93% overall
@@ -320,5 +320,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.4.2) - Production ready
-**Python**: 3.10+ | **Sphinx**: 5.0+ | **Typst**: 0.11.1+
+**Status**: Stable (v0.5.0) - Production ready
+**Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+
