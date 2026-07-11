@@ -5,16 +5,16 @@ milestone_name: — forward-ecosystem
 current_phase: 08
 current_phase_name: api-test-compatibility-sphinx-9-docutils-0-22
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-07-11T02:43:24.041Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-07-11T02:48:13.189Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 08 execution started
+last_activity_desc: Completed 08-01-PLAN.md
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 4
+  percent: 33
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 08 (api-test-compatibility-sphinx-9-docutils-0-22) — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 08
+Plan: 3 of 3
+Status: Ready to execute
 Last activity: 2026-07-11 — Completed 08-01-PLAN.md
 
 Progress: [██████░░░░] 60%
@@ -62,6 +62,7 @@ Progress: [██████░░░░] 60%
 | Phase 06 P01 | 20 | 2 tasks | 7 files |
 | Phase 07 P01 | 12min | 3 tasks | 6 files |
 | Phase 08 P01 | 8min | 2 tasks | 2 files |
+| Phase 08 P02 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,7 @@ Recent decisions affecting current work:
 - [Phase 06]: Dropped the dead docs-extra tomli conditional (python_version < '3.11') since it is permanently false at the new 3.12 floor — keeps the PIN-02 grep audit clean.
 - [Phase 07]: Bumped typst + all four @preview packages (mitex 0.2.7 / gentle-clues 1.3.1 / codly-languages 0.1.10, codly unchanged at 1.3.0) atomically in one wave per the locked ROADMAP contingency; empirical docs-pdf compile confirmed clean on first attempt, no bisect needed. — Confirms the mitex 0.2.6+ kai attribution from RESEARCH.md and closes FWD-02/PKG-01/PKG-02/PKG-03.
 - [Phase 08]: Scoped strictly to the plan's locked boundary: only template_engine.py traverse->findall and test_translator.py's 3 OptionParser->frontend.get_default_settings sites landed; the remaining 4 deprecation-fix sites and the filterwarnings guard are reserved for Plans 08-02/08-03. — Preserves D-02 ordering constraint: guard must land after the full sweep, not before.
+- [Phase 08-02]: Test-assertion-only fixes for builder.app and writer_name deprecations; no runtime source touched, no compatibility branching added.
 
 ### Pending Todos
 
@@ -108,6 +110,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T02:42:39.286Z
-Stopped at: Completed 08-01-PLAN.md
-Resume file: None
+Last session: 2026-07-11T02:48:13.183Z
+Stopped at: Completed 08-02-PLAN.md
+Resume file: 
