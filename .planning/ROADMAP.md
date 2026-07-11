@@ -160,13 +160,13 @@ Plans:
 
 **Deferred to `/gsd-complete-milestone` (REL-01 publish half):** merge `release/v0.5.0 → main` (PR #112) → tag `v0.5.0` → `release.yml` green end-to-end → `typsphinx==0.5.0` on PyPI (wheel + sdist) + GitHub Release.
 
-**Plans**: 0/2 plans complete
+**Plans**: 1/2 plans executed
 
 Plans:
 
 **Wave 1** *(parallel — disjoint files, no cross-dependency)*
 
-- [ ] 10-01-PLAN.md — Single-source `__version__` via `importlib.metadata` (+ `PackageNotFoundError` fallback), bump `pyproject.toml` `0.4.4`→`0.5.0`, regenerate `uv.lock`, add the independent `tomllib` drift-guard test
+- [x] 10-01-PLAN.md — Single-source `__version__` via `importlib.metadata` (+ `PackageNotFoundError` fallback), bump `pyproject.toml` `0.4.4`→`0.5.0`, regenerate `uv.lock`, add the independent `tomllib` drift-guard test
 - [ ] 10-02-PLAN.md — Curated `## [0.5.0]` `CHANGELOG.md` entry under the top `## [Unreleased]` header + link-reference fixes
 
 ## Progress
@@ -185,7 +185,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete    | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete    | 2026-07-11 |
-| 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/2 | Not started | - |
+| 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 1/2 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09*

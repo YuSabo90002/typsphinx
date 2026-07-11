@@ -5,15 +5,15 @@ milestone_name: — forward-ecosystem
 current_phase: 10
 current_phase_name: Version-String Fix + v0.5.0 Release
 status: executing
-stopped_at: Phase 10 context gathered
-last_updated: "2026-07-11T10:54:38.486Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-07-11T11:03:49.608Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 09 complete, transitioned to Phase 10
+last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
   percent: 83
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** Phase 09 — Green CI Matrix + Smoke Test + Guardrails
+**Current focus:** Phase 10 — Version-String Fix + v0.5.0 Release
 
 ## Current Position
 
-Phase: 10 — Version-String Fix + v0.5.0 Release
-Plan: Not started
+Phase: 10 (Version-String Fix + v0.5.0 Release) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-11 — Phase 09 complete, transitioned to Phase 10
+Last activity: 2026-07-11 — Phase 10 execution started
 
 Progress: [██████░░░░] 60%
 
@@ -71,6 +71,7 @@ Progress: [██████░░░░] 60%
 | Phase 08.1 P04 | 8min | 3 tasks | 3 files |
 | Phase 09 P01 | 3min | 2 tasks | 3 files |
 | Phase 09 P02 | 39min | 3 tasks | 0 files |
+| Phase 10 P01 | 5min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 2 (tdd=true) produced a single feat commit: real-compile gate over already-correct behavior; negative-control proof (uncommitted, scratch-only) is the RED-equivalent evidence per the plan's own instruction and 09-RESEARCH.md Open Question 2
 - [Phase ?]: Branch-protection required-checks reconciled: core gates + ubuntu 3.12/3.13 legs required; windows/macos legs and docs.yml build-docs observable-but-not-required to avoid merge-blocking on cross-OS runner flakiness
 - [Phase ?]: PR release/v0.5.0 -> main (#112) opened and observed all-green (13/13 jobs); left OPEN/UNMERGED per D-03 for Phase 10 to add the version-bump commit and merge
+- [Phase 10]: typsphinx.__version__ single-sourced via importlib.metadata.version() with PackageNotFoundError -> 'unknown' fallback; pyproject.toml is now the sole version literal — Root-cause fix for stale 0.4.3 string (D-04/D-05) - version drift becomes structurally impossible
+- [Phase 10]: Added independent tomllib-based test_version_matches_pyproject_toml drift guard alongside the retained test_setup_version_matches — importlib.metadata-based __version__ alone is a tautological check; an independent parse of pyproject.toml is the genuine regression guard
 
 ### Pending Todos
 
@@ -138,7 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T10:08:31.087Z
-Stopped at: Phase 10 context gathered
+Last session: 2026-07-11T11:03:49.603Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: 
-.planning/phases/10-version-string-fix-v0-5-0-release/10-CONTEXT.md
