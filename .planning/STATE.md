@@ -5,8 +5,8 @@ milestone_name: — forward-ecosystem
 current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
 status: verifying
-stopped_at: Completed 08-03-PLAN.md (final Wave-2 plan, Phase 8 complete)
-last_updated: "2026-07-11T02:58:06.385Z"
+stopped_at: Phase 08.1 context gathered
+last_updated: "2026-07-11T03:37:34.844Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 08 complete, transitioned to Phase 08.1
 progress:
@@ -113,7 +113,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T02:53:58.071Z
-Stopped at: Completed 08-03-PLAN.md (final Wave-2 plan, Phase 8 complete)
+Last session: 2026-07-11T03:37:34.840Z
+Stopped at: Phase 08.1 context gathered
 Resume file: 
-None
+.planning/phases/08.1-admonition-rendering-fix-translator-markup-code-mode-mismatc/08.1-CONTEXT.md
