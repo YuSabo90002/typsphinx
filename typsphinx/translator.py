@@ -2563,6 +2563,50 @@ class TypstTranslator(SphinxTranslator):
         """Depart an index node."""
         pass
 
+    # Graceful-degrade net for out-of-scope graphical nodes (Issue #114,
+    # DEG-01/DEG-02): unlike visit_index's silent skip, these nodes must
+    # leave a reader-visible trace (D-01) -- a bordered native-Typst
+    # placeholder naming the node, plus exactly one warning -- rather than
+    # silently vanishing or leaking raw DOT/diagram-spec source.
+
+    def _visit_graphical_placeholder(self, node: nodes.Node, node_label: str) -> None:
+        """
+        Shared graceful-degrade helper for out-of-scope graphical nodes.
+
+        Emits a visible bordered placeholder block naming the node type
+        (D-01), logs exactly one warning, and skips the node's children
+        entirely -- graphviz/inheritance_diagram store their real content
+        (DOT source / class-hierarchy spec) as node attributes rather than
+        human-readable Text children, so descending would risk leaking raw
+        source instead of rendering anything useful.
+
+        Uses native Typst rect()/box() (Typst stdlib) rather than the
+        gentle-clues admonition functions used for note/warning/etc, per
+        D-01: a placeholder must not be visually confusable with a real
+        admonition.
+
+        Args:
+            node: The out-of-scope node (graphviz or inheritance_diagram).
+            node_label: Human-readable node-type name for the warning and
+                placeholder text.
+        """
+        logger.warning(
+            f"{node_label} is not supported in Typst output; rendering placeholder"
+        )
+        self.add_text(
+            f'rect(text("[{node_label} diagram omitted]"), '
+            "stroke: 0.5pt, inset: 8pt, radius: 2pt)\n\n"
+        )
+        raise nodes.SkipNode
+
+    def visit_graphviz(self, node: nodes.Node) -> None:
+        """Visit a graphviz node; renders a placeholder (DEG-01, D-01)."""
+        self._visit_graphical_placeholder(node, "graphviz")
+
+    def visit_inheritance_diagram(self, node: nodes.Node) -> None:
+        """Visit an inheritance_diagram node; renders a placeholder (DEG-02, D-01)."""
+        self._visit_graphical_placeholder(node, "inheritance diagram")
+
     def visit_desc(self, node: addnodes.desc) -> None:
         """
         Visit a desc node (API description container).
