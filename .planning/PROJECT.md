@@ -46,7 +46,7 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 <!-- Milestone v0.5.0 (forward-ecosystem). Formal REQ-IDs live in REQUIREMENTS.md. -->
 
-- [ ] Sphinx 9 / docutils 0.22 API & test compatibility (API-01/API-02) — `traverse()`→`findall()` + full pytest suite green on the new stack (the FWD-01 pin-raise itself landed in Phase 6)
+- [x] Sphinx 9 / docutils 0.22 API & test compatibility (API-01/API-02) — `traverse()`→`findall()` + full pytest suite green on the new stack (the FWD-01 pin-raise itself landed in Phase 6). **Validated in Phase 8:** all 6 soft-deprecated docutils/Sphinx call sites modernized, a permanent `filterwarnings` guard (both `DeprecationWarning` + `PendingDeprecationWarning`) installed, in-process suite 357/357 green under the guard, tree black/ruff/mypy clean on `release/v0.5.0`.
 - [ ] Every CI job green on the new majors and v0.5.0 released to PyPI
 
 ### Out of Scope
@@ -107,4 +107,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 after Phase 7 (Bump @preview Packages + typst 0.15, kai fix) complete — FWD-02/PKG-01/PKG-02/PKG-03 validated; typst now `>=0.15.0,<0.16` with the four `@preview` packages bumped in lockstep, the empirical `kai` gate closed (docs-pdf compiles clean), full suite green on `release/v0.5.0`. Next: Phase 8 (Sphinx 9 / docutils 0.22 API & test compatibility — `traverse()`→`findall()`); the discovered pre-existing admonition-rendering bug is a tracked follow-up candidate*
+*Last updated: 2026-07-11 after Phase 8 (API & Test Compatibility, Sphinx 9 / docutils 0.22) complete — API-01/API-02 validated; the resolved stack (Sphinx 9.1.0 + docutils 0.22.4) is confirmed compatible, all 6 soft-deprecated call sites modernized, and a permanent `filterwarnings` deprecation guard (both `DeprecationWarning` + `PendingDeprecationWarning`) now structurally enforces the clean posture. In-process suite 357/357 green under the guard; tree black/ruff/mypy clean on `release/v0.5.0`. Next: Phase 8.1 (admonition-rendering fix — the tracked follow-up), then Phase 9 (CI matrix green) and Phase 10 (v0.5.0 PyPI release)*
