@@ -74,7 +74,9 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
   3. The 3-way `@preview` version sync (`writer.py` / `template_engine.py` / `templates/base.typ`) agrees in lockstep and `tests/test_preview_version_sync.py` passes
 
 **Contingency**: If `kai` persists after the mitex bump, bisect by reverting one package at a time. codly `1.3.0` is the fallback suspect — it is already at the registry ceiling (no newer version exists), so a source-level workaround/patch is the escalation path if it breaks.
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 07-01-PLAN.md — Atomic bump: raise the typst pin (`>=0.15.0,<0.16`) + regenerate uv.lock, bump the four `@preview` versions in lockstep across the 3 sync sites, then prove `docs-pdf` compiles kai-free (single wave, atomic)
 
 ### Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)
 
@@ -129,7 +131,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 4. Refresh Dev Tooling | v0.4.4 | 4/4 | Complete | 2026-07-04 |
 | 5. Durability Guardrails | v0.4.4 | 4/4 | Complete | 2026-07-05 |
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
-| 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 0/TBD | Not started | - |
+| 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 0/1 | Not started | - |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 0/TBD | Not started | - |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 0/TBD | Not started | - |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
