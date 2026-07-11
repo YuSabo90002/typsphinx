@@ -41,7 +41,7 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
 - [x] **Phase 6: Raise Runtime Pins + Python Floor** - Sphinx 9.1 / docutils 0.22 / Python 3.12–3.13 pins + regenerated lockfile (blocking prerequisite) (completed 2026-07-09)
 - [x] **Phase 7: Bump @preview Packages + typst 0.15 (kai fix)** - typst 0.15 pin + four `@preview` bumps; `docs-pdf` compiles with no `kai` (highest-risk phase) (completed 2026-07-11)
 - [x] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack (completed 2026-07-11)
-- [ ] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps
+- [x] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps (completed 2026-07-11)
 - [ ] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml`
 
 ## Phase Details
@@ -135,7 +135,7 @@ Plans:
   2. A `typst compile` smoke test is wired into CI that would fail loudly on a `kai`-class `@preview` break before release (closing the gap the internal-only version-sync test misses)
   3. `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 
@@ -145,7 +145,7 @@ Plans:
 
 **Wave 2** *(blocked on 09-01)*
 
-- [ ] 09-02-PLAN.md — CI-03 guardrail verification (no-op per D-06) + stale `main` branch-protection reconciliation + CI-01 observation: open `release/v0.5.0 → main` PR, observe every job green, do NOT merge (D-03)
+- [x] 09-02-PLAN.md — CI-03 guardrail verification (no-op per D-06) + stale `main` branch-protection reconciliation + CI-01 observation: open `release/v0.5.0 → main` PR, observe every job green, do NOT merge (D-03)
 
 ### Phase 10: Version-String Fix + v0.5.0 Release
 
@@ -175,7 +175,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 6. Raise Runtime Pins + Python Floor | v0.5.0 | 1/1 | Complete    | 2026-07-09 |
 | 7. Bump @preview Packages + typst 0.15 (kai fix) | v0.5.0 | 1/1 | Complete    | 2026-07-11 |
 | 8. API & Test Compatibility (Sphinx 9 / docutils 0.22) | v0.5.0 | 3/3 | Complete    | 2026-07-11 |
-| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 1/2 | In Progress|  |
+| 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete   | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 0/TBD | Not started | - |
 
 ---

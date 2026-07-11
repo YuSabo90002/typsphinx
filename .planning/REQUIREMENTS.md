@@ -38,9 +38,9 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 
 ### CI & Release (CI / REL)
 
-- [ ] **CI-01**: Every CI job is green — lint, the 3-OS × Python 3.12–3.13 test matrix, type-check, coverage, build, and `docs.yml` (docs-PDF ubuntu-only) — confirmed by an observed Actions run
+- [x] **CI-01**: Every CI job is green — lint, the 3-OS × Python 3.12–3.13 test matrix, type-check, coverage, build, and `docs.yml` (docs-PDF ubuntu-only) — confirmed by an observed Actions run
 - [x] **CI-02**: A `typst compile` smoke test is added that would catch a `kai`-class `@preview` break before release (closes the gap that the internal-only sync test misses)
-- [ ] **CI-03**: The durability guardrails are updated to the new majors — `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
+- [x] **CI-03**: The durability guardrails are updated to the new majors — `drift.yml` ceilings and the `sphinx-typst-stack` Dependabot group reflect `sphinx<10` / `typst<0.16` / `docutils<0.23`
 - [ ] **REL-01**: `typsphinx/__init__.py` `__version__` is corrected (`0.4.3`→`0.5.0`) in sync with `pyproject.toml`, and v0.5.0 is released to PyPI (wheel + sdist) + GitHub Release with the release workflow green
 
 ## v2 Requirements
@@ -83,9 +83,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PKG-03 | Phase 7 | Complete |
 | API-01 | Phase 8 | Complete |
 | API-02 | Phase 8 | Complete |
-| CI-01 | Phase 9 | Pending |
+| CI-01 | Phase 9 | Complete |
 | CI-02 | Phase 9 | Complete |
-| CI-03 | Phase 9 | Pending |
+| CI-03 | Phase 9 | Complete |
 | REL-01 | Phase 10 | Pending |
 
 **Coverage:**

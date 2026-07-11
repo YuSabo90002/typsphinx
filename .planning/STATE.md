@@ -4,17 +4,17 @@ milestone: v0.5.0
 milestone_name: — forward-ecosystem
 current_phase: 09
 current_phase_name: Green CI Matrix + Smoke Test + Guardrails
-status: executing
+status: verifying
 stopped_at: Phase 9 context gathered
-last_updated: "2026-07-11T07:15:24.835Z"
+last_updated: "2026-07-11T07:55:51.755Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
-  completed_plans: 10
-  percent: 67
+  completed_plans: 11
+  percent: 83
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 09 (Green CI Matrix + Smoke Test + Guardrails) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-11 — Phase 09 execution started
 
 Progress: [██████░░░░] 60%
@@ -70,6 +70,7 @@ Progress: [██████░░░░] 60%
 | Phase 08.1 P03 | 6min | 2 tasks | 2 files |
 | Phase 08.1 P04 | 8min | 3 tasks | 3 files |
 | Phase 09 P01 | 3min | 2 tasks | 3 files |
+| Phase 09 P02 | 39min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Invoked sphinx-build via sys.executable -m sphinx instead of uv run sphinx-build to avoid a stray non-Nix uv binary in .venv/bin shadowing the correct Nix-provided uv for subprocess children
 - [Phase ?]: Patched .venv/bin/uv ELF interpreter via patchelf to unblock tox -e docs-pdf in this sandbox (local, gitignored, regenerable fix, no repo file touched); incidentally fixed ~45 pre-existing environment-caused test failures, full suite now 411/411 green
 - [Phase ?]: Task 2 (tdd=true) produced a single feat commit: real-compile gate over already-correct behavior; negative-control proof (uncommitted, scratch-only) is the RED-equivalent evidence per the plan's own instruction and 09-RESEARCH.md Open Question 2
+- [Phase ?]: Branch-protection required-checks reconciled: core gates + ubuntu 3.12/3.13 legs required; windows/macos legs and docs.yml build-docs observable-but-not-required to avoid merge-blocking on cross-OS runner flakiness
+- [Phase ?]: PR release/v0.5.0 -> main (#112) opened and observed all-green (13/13 jobs); left OPEN/UNMERGED per D-03 for Phase 10 to add the version-bump commit and merge
 
 ### Pending Todos
 
@@ -134,7 +137,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T07:15:12.513Z
+Last session: 2026-07-11T07:55:23.363Z
 Stopped at: Phase 9 context gathered
 Resume file: 
 None
