@@ -38,13 +38,16 @@ v0.5.0 implementation landed in Phases 6–9 + 8.1.
 - **D-02:** This **overrides Phase 9's D-03**, which had assumed Phase 10 would add the version-bump
   commit to PR #112, merge to `main`, then tag. That assumption is retired by the user's decision.
   PR #112 (`release/v0.5.0 → main`, 13/13 jobs green, observed in Phase 9) remains **open/unmerged**.
-- **D-03:** **Tag-on-release-branch is confirmed feasible** and is the intended publish mechanism at
+- **D-03 [informational]:** **Tag-on-release-branch is confirmed feasible** and is the intended publish mechanism at
   milestone close: git tags can point at any commit (no `main` requirement). `release.yml` fires on
   `v*` push and checks out the *tagged commit*, so tagging `release/v0.5.0` HEAD publishes correctly.
   The `git describe --tags --abbrev=0 v0.5.0^` in `release.yml`'s notes step resolves to `v0.4.4`
   because `release/v0.5.0` descends from the `v0.4.4` tag (92 commits ahead). Branch protection does
   not apply to tags. **Whether the milestone-close step tags the release branch directly or merges
   first is a milestone-close decision, not Phase 10's** — Phase 10 just leaves the branch ready.
+  *(Tagged `[informational]`: this is a milestone-close feasibility finding, deliberately outside
+  Phase 10's plan scope per the scope fence — see D-01/D-02. Not a Phase 10 deliverable, so no plan
+  tracks it; it is captured here as context for `/gsd-complete-milestone`.)*
 
 ### Version string fix + drift prevention
 - **D-04:** **Single-source `__version__` via `importlib.metadata`.** Replace the hardcoded
