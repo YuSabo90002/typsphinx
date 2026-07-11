@@ -17,7 +17,7 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 ### Forward Ecosystem (FWD)
 
 - [x] **FWD-01**: `sphinx` is re-pinned to `>=9.1,<10` (the `<9` ceiling dropped) and the extension builds/imports and registers both builders correctly under Sphinx 9.1
-- [ ] **FWD-02**: `typst` is re-pinned to `>=0.15.0,<0.16` (the `<0.15` ceiling dropped) and the `typstpdf` builder compiles the project docs to PDF under typst 0.15 with no `kai`-class error
+- [x] **FWD-02**: `typst` is re-pinned to `>=0.15.0,<0.16` (the `<0.15` ceiling dropped) and the `typstpdf` builder compiles the project docs to PDF under typst 0.15 with no `kai`-class error
 
 ### Dependency Graph (PIN)
 
@@ -27,9 +27,9 @@ Requirements for the v0.5.0 release. Each maps to a roadmap phase (Traceability 
 
 ### @preview Packages (PKG)
 
-- [ ] **PKG-01**: `mitex` is bumped `0.2.4`→`0.2.7`, empirically resolving the `unknown variable: kai` compile error under typst 0.15 (confirmed by a real `docs-pdf` compile, not changelog alone)
-- [ ] **PKG-02**: `gentle-clues` (`1.2.0`→`1.3.1`) and `codly-languages` (`0.1.1`→`0.1.10`) are bumped, and `codly` `1.3.0` is confirmed to compile under typst 0.15 (no newer version exists as a fallback — a source-level workaround is the contingency if it breaks)
-- [ ] **PKG-03**: The 3-way `@preview` version-sync (`writer.py` / `template_engine.py` / `templates/base.typ`) is updated in lockstep and `tests/test_preview_version_sync.py` passes
+- [x] **PKG-01**: `mitex` is bumped `0.2.4`→`0.2.7`, empirically resolving the `unknown variable: kai` compile error under typst 0.15 (confirmed by a real `docs-pdf` compile, not changelog alone)
+- [x] **PKG-02**: `gentle-clues` (`1.2.0`→`1.3.1`) and `codly-languages` (`0.1.1`→`0.1.10`) are bumped, and `codly` `1.3.0` is confirmed to compile under typst 0.15 (no newer version exists as a fallback — a source-level workaround is the contingency if it breaks)
+- [x] **PKG-03**: The 3-way `@preview` version-sync (`writer.py` / `template_engine.py` / `templates/base.typ`) is updated in lockstep and `tests/test_preview_version_sync.py` passes
 
 ### API Compatibility (API)
 
@@ -74,13 +74,13 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FWD-01 | Phase 6 | Complete |
-| FWD-02 | Phase 7 | Pending |
+| FWD-02 | Phase 7 | Complete |
 | PIN-01 | Phase 6 | Complete |
 | PIN-02 | Phase 6 | Complete |
 | PIN-03 | Phase 6 | Complete |
-| PKG-01 | Phase 7 | Pending |
-| PKG-02 | Phase 7 | Pending |
-| PKG-03 | Phase 7 | Pending |
+| PKG-01 | Phase 7 | Complete |
+| PKG-02 | Phase 7 | Complete |
+| PKG-03 | Phase 7 | Complete |
 | API-01 | Phase 8 | Pending |
 | API-02 | Phase 8 | Pending |
 | CI-01 | Phase 9 | Pending |
