@@ -4,22 +4,26 @@
 
 typsphinx is a Sphinx extension that translates reStructuredText documentation into Typst markup (`.typ`) and compiles it to PDF, via the `sphinx-build -b typst` and `-b typstpdf` builders. It's a mature, PyPI-published Python package for teams who author docs in Sphinx but want Typst-quality typeset PDF output.
 
-This planning cycle is a **forward-compatibility milestone (v0.5.0)**: v0.4.4 pinned the dependency graph back to a known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`) to escape multi-year rot. This cycle moves forward — raising the pins to support Sphinx 9 and typst 0.15+, bumping the bundled `@preview` packages to versions that compile cleanly under typst 0.15, and fixing any translator/writer/API breakage — so the extension tracks the current ecosystem again. Latest-only: older Sphinx/typst support is intentionally dropped; a compatibility range is out of scope.
+As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem: **Sphinx 9.1, docutils 0.22, typst 0.15, Python 3.12–3.13**. v0.4.4 had pinned the dependency graph back to a known-good set (typst 0.14.9, `sphinx<9`, `docutils<0.22`) to escape multi-year rot; v0.5.0 moved forward — raising the pins, bumping the four bundled `@preview` packages in lockstep to versions that compile cleanly under typst 0.15 (closing the `unknown variable: kai` break), modernizing the soft-deprecated docutils/Sphinx API, and fixing a long-latent admonition render bug — so the extension is current again. Latest-only: older Sphinx/typst support is intentionally dropped; a compatibility range is out of scope.
 
 ## Core Value
 
 The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
 
-## Current Milestone: v0.5.0 forward-ecosystem
+## Current State
 
-**Goal:** Port typsphinx forward from the v0.4.4 known-good pins to support Sphinx 9 (FWD-01) and typst 0.15+ (FWD-02), keeping every CI job green — latest-only, no compatibility range.
+**Shipped: v0.5.0 — forward-ecosystem (2026-07-11).** typsphinx now runs on the current stack — Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13 — with the four bundled `@preview` packages (mitex 0.2.7, gentle-clues 1.3.1, codly-languages 0.1.10, codly 1.3.0) compiling cleanly, the soft-deprecated docutils/Sphinx API modernized, the admonition markup/code-mode render bug fixed, a `typst compile` smoke gate guarding all four packages, and the full 3-OS × Python 3.12–3.13 CI matrix green. Released to PyPI (wheel + sdist) + GitHub Release via `release.yml`. All 14 v1 requirements validated; milestone audit passed (14/14 requirements, 5/5 integration seams).
 
-**Target features:**
-- Raise runtime pins — drop the `sphinx<9` / `typst<0.15` ceilings; adopt Sphinx 9 + typst 0.15+
-- Bump bundled `@preview` packages (gentle-clues, codly, codly-languages, mitex) to typst-0.15-compatible versions; update the 3-way version-sync (`writer.py` / `template_engine.py` / `templates/base.typ`)
-- Fix Sphinx 9 / docutils API and typst 0.15 (`kai`-class) breakage across the translator / writer / template layer
-- Update durability guardrails (drift.yml ceilings, Dependabot group) to the new majors; regenerate `uv.lock`
-- Release v0.5.0 to PyPI with green CI across the full matrix
+**Prior:** v0.4.4 — CI-repair + modernize (shipped 2026-07-05): pinned the dependency graph back to a known-good set and installed durability guardrails.
+
+## Next Milestone (planning)
+
+No milestone is active. Candidate scope carried forward as deferred v2 items:
+
+- **CFG-01** (was FWD-03): user-configurable `@preview` package versions (`typst_package_imports` / dedicated config) so compiler and package versions can be chosen per project
+- **XOS-01**: extend `docs-pdf` CI coverage to macOS and Windows to catch typst 0.15 font/text-shaping regressions
+
+Start the next cycle with `/gsd-new-milestone`.
 
 ## Requirements
 
@@ -46,10 +50,9 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 ### Active
 
-<!-- Milestone v0.5.0 (forward-ecosystem). Formal REQ-IDs live in REQUIREMENTS.md. -->
+<!-- No active milestone. v0.5.0 shipped 2026-07-11; all 14 v1 requirements validated. Start the next cycle with /gsd-new-milestone. -->
 
-- [x] Sphinx 9 / docutils 0.22 API & test compatibility (API-01/API-02) — `traverse()`→`findall()` + full pytest suite green on the new stack (the FWD-01 pin-raise itself landed in Phase 6). **Validated in Phase 8:** all 6 soft-deprecated docutils/Sphinx call sites modernized, a permanent `filterwarnings` guard (both `DeprecationWarning` + `PendingDeprecationWarning`) installed, in-process suite 357/357 green under the guard, tree black/ruff/mypy clean on `release/v0.5.0`.
-- *All in-scope v0.5.0 requirements are now validated (see Validated above). REL-01's remaining **publish half** — merge PR #112 (`release/v0.5.0 → main`) → tag `v0.5.0` → `release.yml` green → `typsphinx==0.5.0` on PyPI (wheel + sdist) + GitHub Release — is a `/gsd-complete-milestone` activity, not a separate phase. The milestone is ready to close.*
+*None — v0.5.0 is closed. The REL-01 publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI + GitHub Release) was executed at milestone close, mirroring the v0.4.4 precedent. Next milestone scope (CFG-01, XOS-01) is tracked under "Next Milestone" above and in REQUIREMENTS.md v2 / STATE.md Deferred Items.*
 
 ### Out of Scope
 
@@ -90,6 +93,12 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 | `softprops/action-gh-release@v2` node20 straggler tracked, not force-bumped in Phase 4 | Outside 04-02's authorized edit scope (artifact-actions only) and needs its own verification; `@v3` exists and is node24 | Deferred to Phase 5 (durability-guardrails) as a tracked item, not silently closed |
 | Close the milestone with durability guardrails: `--locked` lockfile-currency gate + standalone weekly `drift.yml` + `sphinx-typst-stack` Dependabot group + README CI badge; softprops@v3 (Phase 5, D-01..D-11) | Install anti-drift controls so the silent multi-year rot this milestone fixed cannot recur unnoticed; keep the drift job advisory (never a required check, D-07) so it reports without blocking merges | Confirmed in Phase 5: PR #106 merged green (ci.yml 28730645396 / docs.yml 28730645381); drift.yml validated via post-merge `workflow_dispatch` (run 28730876125 success, no drift issue = no forward drift); D-11 softprops@v3 runtime confirmation RESOLVED at the v0.4.4 release: `Create GitHub Release` ran green (release run 28731646924, tag `v0.4.4`) |
 | Fix `release.yml` version-verify step: `import tomllib` → `tomllib`/`tomli` fallback (v0.4.4 release, PR #110) | PYVER-02's 3.10 floor reconciliation left the tag-only Validate step importing stdlib-only `tomllib` on 3.10; it crashed on the first `v0.4.4` tag push (a release-only regression not exercised by any PR CI) | Fixed on `main` (merge dae500a); re-pushed `v0.4.4` tag; release run 28731646924 green end-to-end → PyPI `typsphinx==0.4.4` (wheel+sdist) + GitHub Release published |
+| v0.5.0 latest-only forward port; Python floor → ≥3.12 (drop 3.10/3.11) | Sphinx 9.1's own `requires-python` forces ≥3.12; a Sphinx-8/typst-0.14 ⇄ 9/0.15 compatibility range is out of scope for a maintenance cycle | ✓ Good: full 3-OS × Python 3.12–3.13 matrix green (PR #112, 13/13) |
+| Group FWD-02 (typst re-pin + no-`kai` compile) with the `@preview` bump in Phase 7, not the pin-raise | Raising typst without the package bump leaves CI red on `kai`; both must land atomically | ✓ Good: `kai` closed on first real `docs-pdf` compile, no bisect needed — root cause was mitex 0.2.6+, not gentle-clues/codly as originally speculated |
+| Escalate both `DeprecationWarning` and `PendingDeprecationWarning` in the permanent pytest `filterwarnings` guard (Phase 8, deviation from CONTEXT's DeprecationWarning-only text) | Sphinx's `RemovedInSphinxNNWarning` family subclasses `PendingDeprecationWarning`; guarding only `DeprecationWarning` would miss forward-deprecation signals | ✓ Good: suite green under the stricter guard |
+| Insert Phase 8.1 to fix the admonition markup/code-mode render bug mid-milestone | The bug (literal `par({text(...)})` leak) pre-dated the milestone but only became visible once `docs-pdf` first compiled post-`kai`-fix; orthogonal to `@preview` versions | ✓ Good: real `sphinx-build → typst.compile → pypdf` acceptance gate proves the fix; 5 missing admonition types added as scope-widen |
+| Single-source `__version__` via `importlib.metadata`; `pyproject.toml` sole literal (Phase 10) | Root-cause fix for the stale hardcoded `0.4.3` string — version drift becomes structurally impossible; an independent `tomllib` re-parse test guards against the tautology | ✓ Good: importing typsphinx reports `0.5.0`; drift-guard test green |
+| Re-scope Phase 10 to prep-only; defer the publish half (merge PR #112 → tag → PyPI) to `/gsd-complete-milestone` | Mirrors the v0.4.4 precedent — keep the release-execution gate at milestone close so CI-green is confirmed on the exact merge commit before publishing | ✓ Good: executed at v0.5.0 close |
 
 ## Evolution
 
@@ -109,7 +118,9 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 after Phase 10 (Version-String Fix + v0.5.0 Release) complete — the FINAL phase of the v0.5.0 milestone. Phase 10 was re-scoped to release *preparation only* (D-01/D-02): `typsphinx.__version__` is now single-sourced from `importlib.metadata` (reporting `0.5.0`, stale `0.4.3` gone) with a `PackageNotFoundError` fallback; `pyproject.toml` is the sole version literal (`0.5.0`); `uv.lock` regenerated; a genuine `tomllib` drift-guard test added; and a curated `CHANGELOG.md` `[0.5.0]` entry prepared as the single source for the Release body. 6/6 must-haves verified (10-VERIFICATION.md); 413/413 tests green, black/ruff/mypy clean on `release/v0.5.0`. Scope fence held: no tag, no PyPI publish, no GitHub Release, `main` untouched, PR #112 left OPEN. **All v0.5.0 phases (6–10 + 8.1) are complete — the milestone is ready for `/gsd-complete-milestone`, which executes the deferred REL-01 publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI + GitHub Release), mirroring the v0.4.4 precedent.*
+*Last updated: 2026-07-11 at v0.5.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.5.0 shipped: Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, all 14 v1 requirements validated, milestone audit passed, released to PyPI + GitHub Release. Requirements Active cleared; next-milestone candidates (CFG-01, XOS-01) tracked. Prior footer retained below for history.*
+
+<!-- Prior: 2026-07-11 after Phase 10 (Version-String Fix + v0.5.0 Release) complete — the FINAL phase of the v0.5.0 milestone. Phase 10 was re-scoped to release *preparation only* (D-01/D-02): `typsphinx.__version__` is now single-sourced from `importlib.metadata` (reporting `0.5.0`, stale `0.4.3` gone) with a `PackageNotFoundError` fallback; `pyproject.toml` is the sole version literal (`0.5.0`); `uv.lock` regenerated; a genuine `tomllib` drift-guard test added; and a curated `CHANGELOG.md` `[0.5.0]` entry prepared as the single source for the Release body. 6/6 must-haves verified (10-VERIFICATION.md); 413/413 tests green, black/ruff/mypy clean on `release/v0.5.0`. Scope fence held: no tag, no PyPI publish, no GitHub Release, `main` untouched, PR #112 left OPEN. **All v0.5.0 phases (6–10 + 8.1) are complete — the milestone is ready for `/gsd-complete-milestone`, which executes the deferred REL-01 publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI + GitHub Release), mirroring the v0.4.4 precedent.*
 
 <!-- Prior: 2026-07-11 after Phase 9 (Green CI Matrix + Smoke Test + Guardrails) complete — the v0.5.0 stack (Sphinx 9.1 / docutils 0.22 / typst 0.15) is now observed all-green in real CI for the first time: PR #112 (`release/v0.5.0 → main`) shows 13/13 jobs green across the full 3-OS × Python 3.12–3.13 matrix + `docs.yml` build-docs, left **unmerged** for Phase 10 (CI-01). A `typst compile` smoke test (`tests/test_preview_smoke_gate.py` + `tests/fixtures/preview_smoke/`) now guards all four bundled `@preview` packages via real function calls incl. a `.. math::` block through mitex — closing the `kai`-class coverage gap the admonition-only gate missed, proven by a documented negative-control (CI-02). Durability guardrails confirmed already correct (verified no-op, D-06) and the stale `main` branch-protection required-checks reconciled (CI-03 + access-control durability). 8/8 must-haves; 09-VERIFICATION.md; 412/412 tests green; black/ruff/mypy clean on `release/v0.5.0`; `@preview` versions unchanged. Next: Phase 10 (v0.5.0 PyPI release) — add the `__version__` 0.4.3→0.5.0 fix to PR #112, merge, tag, publish.* -->
 

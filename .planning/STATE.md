@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v0.5.0
 milestone_name: — forward-ecosystem
-current_phase: 10
-status: verifying
+current_phase: 5.0
+status: Awaiting next milestone
 stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-07-11T11:12:24.320Z"
+last_updated: "2026-07-11T12:54:12.316Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 10 complete
+last_activity_desc: Milestone v0.5.0 completed and archived
 progress:
   total_phases: 6
   completed_phases: 6
@@ -21,19 +21,17 @@ current_phase_name: Version-String Fix + v0.5.0 Release
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-09)
+See: .planning/PROJECT.md (updated 2026-07-11 at v0.5.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** Phase 10 — Version-String Fix + v0.5.0 Release
+**Current focus:** None — v0.5.0 shipped (Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, released to PyPI + GitHub Release). Start the next cycle with `/gsd-new-milestone`.
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Phase 10 complete
-
-Progress: [██████░░░░] 60%
+Phase: Milestone v0.5.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-11 — Milestone v0.5.0 completed and archived
 
 ## Performance Metrics
 
@@ -147,3 +145,7 @@ Last session: 2026-07-11T11:07:31.946Z
 Stopped at: Completed 10-01-PLAN.md
 Resume file: 
 None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
