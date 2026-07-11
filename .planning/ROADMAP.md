@@ -107,7 +107,7 @@ Plans:
 **Goal:** Admonitions (`.. note::`, `.. warning::`, etc.) render typeset prose in the compiled PDF instead of literal, unevaluated Typst source (`par({text(...)})`) — by switching `_visit_admonition` from markup-mode (`clue_type[`) to a code-mode content-block form (`clue_type({ ... })`) at its single choke point in `translator.py`. Scope-widened per user decision: preserve inline markup in admonition titles (buffer-swap, D-02), add the missing types `hint`/`error`/`danger`/`attention` + generic `.. admonition::` (D-06), strengthen the loose unit asserts (D-03), and add a real `docs-pdf` compile + PDF-text-extraction acceptance gate (D-04/D-05).
 **Requirements**: None (scope defined by CONTEXT.md decisions D-01..D-06; no REQ-IDs mapped)
 **Depends on:** Phase 8
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 
@@ -118,7 +118,7 @@ Plans:
 
 **Wave 2** *(blocked on 08.1-02)*
 
-- [ ] 08.1-03-PLAN.md — New admonition types (D-06): hint→tip, error→error, danger→danger, attention→warning, generic `.. admonition::`→base clue() + per-type tests
+- [x] 08.1-03-PLAN.md — New admonition types (D-06): hint→tip, error→error, danger→danger, attention→warning, generic `.. admonition::`→base clue() + per-type tests
 
 **Wave 3** *(blocked on 08.1-01/02/03)*
 

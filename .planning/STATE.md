@@ -5,15 +5,15 @@ milestone_name: — forward-ecosystem
 current_phase: 08.1
 current_phase_name: admonition rendering fix — translator markup/code-mode mismatch
 status: executing
-stopped_at: Phase 08.1 context gathered
-last_updated: "2026-07-11T04:36:10.722Z"
+stopped_at: Completed 08.1-03-PLAN.md
+last_updated: "2026-07-11T04:41:11.642Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 50
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 08.1 (admonition rendering fix — translator markup/code-mode mismatch) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 08.1 execution started
 
@@ -66,6 +66,7 @@ Progress: [██████░░░░] 60%
 | Phase 08 P03 | 2min | 2 tasks | 1 files |
 | Phase 08.1 P01 | 1min | 2 tasks | 2 files |
 | Phase 08.1 P02 | 6min | 3 tasks | 2 files |
+| Phase 08.1 P03 | 6min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Kept _visit_admonition's custom_title parameter unchanged (stashed on self._custom_admonition_title) so the six existing per-type visit_*/depart_* call sites needed zero changes
 - [Phase ?]: Used a dedicated _saved_body_for_admonition_title field instead of reusing the definition-list saved_body field, to avoid state collisions between the two buffer-swap use sites
 - [Phase ?]: Static custom_title (Important/See Also) stays a plain string argument; only the dynamic node-derived title uses the buffered code-block form
+- [Phase ?]: [Phase 08.1-03]: Used the research-verified D-06 clue mapping exactly: hint->tip, error->error, danger->danger, attention->warning, generic admonition->base clue()
+- [Phase ?]: [Phase 08.1-03]: Generic admonition handler passes no custom_title - directive-supplied title flows through the existing visit_title/depart_title buffer-swap path automatically
 
 ### Pending Todos
 
@@ -119,7 +122,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T04:35:50.507Z
-Stopped at: Phase 08.1 context gathered
+Last session: 2026-07-11T04:41:11.637Z
+Stopped at: Completed 08.1-03-PLAN.md
 Resume file: 
 None
