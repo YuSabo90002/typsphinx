@@ -6,7 +6,7 @@ current_phase: 10
 current_phase_name: Version-String Fix + v0.5.0 Release
 status: verifying
 stopped_at: Phase 10 context gathered
-last_updated: "2026-07-11T10:08:31.092Z"
+last_updated: "2026-07-11T10:14:37.285Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 09 complete, transitioned to Phase 10
 progress:
@@ -125,6 +125,7 @@ Carried forward from research (SUMMARY.md / PITFALLS.md) — must be resolved du
 ### Roadmap Evolution
 
 - Phase 08.1 inserted after Phase 8: admonition rendering fix — translator markup/code-mode mismatch (URGENT)
+- Phase 10 edited: re-scoped to release-prep only (version single-source + CHANGELOG); tag/publish/merge deferred to milestone close; SC #2/#3 moved; REL-01 reworded to reflect the split
 
 ## Deferred Items
 

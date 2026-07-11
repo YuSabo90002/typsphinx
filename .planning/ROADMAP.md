@@ -149,14 +149,16 @@ Plans:
 
 ### Phase 10: Version-String Fix + v0.5.0 Release
 
-**Goal**: The `__version__` string is corrected to 0.5.0 in sync with `pyproject.toml`, and v0.5.0 ships to PyPI and GitHub Releases via a green release workflow.
+**Goal**: Phase 10 *prepares* the v0.5.0 release on `release/v0.5.0` — the version string is corrected to 0.5.0 and single-sourced (`__version__` derived from `importlib.metadata`; `pyproject.toml` `version` bumped `0.4.4`→`0.5.0` as the sole source), and `CHANGELOG.md` gains a curated v0.5.0 entry. The tag, `release.yml` publish (PyPI + GitHub Release), and the `release/v0.5.0 → main` merge (PR #112) are **deferred to milestone completion** (`/gsd-complete-milestone`), mirroring the v0.4.4 precedent.
 **Depends on**: Phase 9 (release only after the full CI matrix is confirmed green)
-**Requirements**: REL-01
+**Requirements**: REL-01 (version-fix half; publish half completes at milestone close)
 **Success Criteria** (what must be TRUE):
 
-  1. `typsphinx/__init__.py` `__version__` reads `"0.5.0"`, matching `pyproject.toml` `version` (the stale `0.4.3` corrected)
-  2. `release.yml` runs green end-to-end on the `v0.5.0` tag, with the version-verify gate passing
-  3. `typsphinx==0.5.0` is published to PyPI (wheel + sdist) and a GitHub Release is created for `v0.5.0`
+  1. `typsphinx/__init__.py` no longer hardcodes a version — `__version__` derives from `importlib.metadata.version("typsphinx")`, `pyproject.toml` `version` is bumped `0.4.4`→`0.5.0` as the single source, importing typsphinx reports `0.5.0`, and the stale `0.4.3` is gone
+  2. `CHANGELOG.md` has a curated `v0.5.0` entry (Sphinx 9.1 + docutils 0.22 / typst 0.15 + `@preview` kai fix / admonition render fix / Python 3.12–3.13 floor / CI smoke-gate + guardrails) — the single source for the eventual GitHub Release body
+  3. The full test suite + `black`/`ruff`/`mypy` stay green on `release/v0.5.0` after single-sourcing (incl. `tests/test_extension.py` reconciled off the tautological assert); no tag pushed, no publish, PR #112 left open
+
+**Deferred to `/gsd-complete-milestone` (REL-01 publish half):** merge `release/v0.5.0 → main` (PR #112) → tag `v0.5.0` → `release.yml` green end-to-end → `typsphinx==0.5.0` on PyPI (wheel + sdist) + GitHub Release.
 
 **Plans**: TBD
 
