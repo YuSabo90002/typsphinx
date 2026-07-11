@@ -73,6 +73,7 @@ acceptance fixture (`sphinx-build → typst.compile() → pypdf`).
 ## Phase Details
 
 ### Phase 11: Issue #114 Fatal Fixes + Graceful-Degrade Net
+
 **Goal**: The two Issue #114 fatal bugs are fixed and the graphical out-of-scope nodes degrade
 gracefully, so a real `typst.compile()` of a figure/image + graphviz fixture produces a PDF with no
 `TypstError`. This unblocks real-compile validation of every downstream node handler (a single fatal
@@ -82,16 +83,27 @@ extends.
 **Depends on**: Nothing (first phase of milestone; builds on the v0.5.0 green baseline)
 **Requirements**: FIG-01, FIG-02, DEG-01, DEG-02, GATE-01
 **Success Criteria** (what must be TRUE):
+
   1. A `.. figure::`/image with `:width: 200px` — plus fixtures covering `50%`, `3em`, a bare unitless number, and `2in` — compiles to a PDF via real `typst.compile()` with no "unknown unit"/`TypstError`; `px`→`pt` converts numerically (1px = 0.75pt), valid units pass through, and unrecognized units are warned-and-dropped rather than emitted verbatim.
   2. A `.. figure::`/standalone image with a `:target:` link and a caption (including a caption containing `_`, `*`, `` ` ``, `[`, `]`) compiles to a PDF whose caption text is present exactly once, reaches the figure's `caption:` named argument via a buffer-swap, and never leaks as a stray juxtaposed `text(...)` call.
   3. A document containing a `.. graphviz::` and an `inheritance_diagram` node compiles to a PDF without aborting; each emits exactly one controlled `logger.warning` naming the node, and no raw DOT/diagram source leaks into the output.
   4. A `tests/test_pdf_render_gate.py`-style acceptance fixture (`sphinx-build → typst.compile() → pypdf` text-extraction with negative-control leak signatures) exercises the above and fails loudly on any `TypstCompilationError` — establishing the standing real-compile gate (GATE-01) that every later node-handler phase extends.
+
 **Plans**: 3 plans
+**Wave 1**
+
 - [ ] 11-01-PLAN.md — FIG-01 px→pt length converter + DEG-01/02 graphviz/inheritance_diagram graceful-degrade placeholder (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 11-02-PLAN.md — FIG-02 figure caption buffer-swap + internal `:target:` refid branch (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 11-03-PLAN.md — GATE-01 real-compile render gate: 3 fixtures + 3 test classes (wave 3)
 
 ### Phase 12: High-Volume Independent Node Handlers
+
 **Goal**: The highest-frequency previously-dropped nodes — version directives, same-document
 cross-references, autodoc signature sub-parts, and the trivial structural nodes — render correctly.
 All reuse already-proven translator patterns with at most one new state variable each and are
@@ -99,14 +111,17 @@ independent of one another, so they group into one phase; each ships a real-comp
 **Depends on**: Phase 11 (needs the Issue #114 fatal fixes landed so fixtures actually compile, and reuses the real-compile gate pattern it established)
 **Requirements**: VER-01, XREF-01, DESC-01, DESC-02, DESC-03, DESC-04, BLK-01, BLK-04, BLK-05, BLK-06
 **Success Criteria** (what must be TRUE):
+
   1. `.. versionadded`/`versionchanged`/`deprecated`/`versionremoved` render as an unboxed italic label + body matching Sphinx's own `versionlabels` wording (e.g. "Added in version 0.6:"), not as a gentle-clues callout box, and the containing document compiles to a PDF.
   2. A same-document internal cross-reference resolved via `refid` (a section anchor or `:term:` link) renders as a working PDF link instead of degrading to plain text; the plain-text fallback fires only when both `refuri` and `refid` are absent, and no path ever emits `link("", …)`.
   3. A typed signature with a return annotation (`-> int`), a multi-line signature, nested optional trailing parameters (`printf(fmt[, args])`), and an inline `:cpp:expr:` fragment all render correctly in a compiled PDF — return arrow present, line breaks between lines, brackets correctly nested, and the inline fragment without the standalone-declaration `strong()` wrapper.
   4. A `----` transition renders as a horizontal rule, a `.. glossary::` renders its underlying definition list, a `.. tabularcolumns::` hint is silently skipped with no leaked content, and an `:abbr:` renders inline as "term (expansion)" — all proven in fixtures that compile cleanly.
   5. Each handler group ships or extends a real-compile acceptance fixture (GATE-01 standing bar), never string-agreement asserts alone.
+
 **Plans**: TBD
 
 ### Phase 13: Shared Dispatch-Point Changes (topic + line blocks)
+
 **Goal**: `visit_title`'s dispatch — a load-bearing method every admonition and section heading
 already depends on — is generalized so a `topic` title renders inline (not as a numbered heading),
 and `line`/`line_block` content renders with verbatim line breaks. Because this edits a shared,
@@ -115,13 +130,16 @@ regression fixtures for the existing admonition titles.
 **Depends on**: Phase 11 (needs the real-compile gate); sequenced after Phase 12 so the `visit_title` generalization lands with several simpler wins behind it
 **Requirements**: BLK-02, BLK-03
 **Success Criteria** (what must be TRUE):
+
   1. A `.. topic:: Title` renders as a titled aside with its title as a bold inline label — not a numbered section heading — so the document's heading/TOC structure is unchanged, with its body typeset below; the document compiles to a PDF.
   2. `line`/`line_block` content (an address, epigraph, or poetry stanza) renders with every line break preserved via `linebreak()`, compiling to a PDF.
   3. Existing admonition titles (`.. note::`, `.. warning::` — the Phase 8.1 behavior) still render correctly after the `visit_title` generalization, proven by a regression fixture inside the same real-compile gate.
   4. A real-compile acceptance fixture (GATE-01 standing bar) covers topic + line_block together with the admonition-title regression.
+
 **Plans**: TBD
 
 ### Phase 14: Footnotes (doctree pre-pass)
+
 **Goal**: `footnote`/`footnote_reference` render via Typst-native `footnote[...]` using a new
 document-order pre-pass that indexes footnote bodies by id — the only architecturally-new item in the
 milestone. Notes appear inline at the reference site (not at the docutils definition location), and a
@@ -131,13 +149,16 @@ of Phases 12–13.
 **Depends on**: Phase 11 (needs the real-compile gate); no dependency on Phases 12–13
 **Requirements**: FN-01
 **Success Criteria** (what must be TRUE):
+
   1. A document with a footnote referenced once renders a single Typst-native `footnote[...]` at the reference site (marker + body) and compiles to a PDF whose body text is present exactly once — with no floating body left at the docutils definition location.
   2. A footnote referenced from two places renders a marker at both sites without duplicating the note body — the second citation reuses the placed note by label.
   3. A footnote body containing inline markup (`emph`/`literal`) and markup-special characters renders correctly (sourced via buffer-swap through the normal visitor chain, never `astext()`), compiling cleanly.
   4. A real-compile acceptance fixture (GATE-01 standing bar) exercises the single-reference, double-reference, and footnote-inside-a-list-item cases.
+
 **Plans**: TBD
 
 ### Phase 15: Full-Corpus Validation
+
 **Goal**: Sphinx's own `doc/` tree compiles end-to-end through the `typstpdf` builder with no fatal
 `TypstCompilationError` — the milestone's stated acceptance bar. The residual `unknown_visit`
 warnings are catalogued by frequency (the next milestone's backlog input) and the empty-URL
@@ -145,9 +166,11 @@ warning-count reduction from the XREF-01 fix is measured before/after against th
 **Depends on**: Phases 11–14 (all node handlers must be in place)
 **Requirements**: GATE-02
 **Success Criteria** (what must be TRUE):
+
   1. A real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree completes with no fatal `TypstCompilationError` — the empirical milestone gate.
   2. The remaining `unknown_visit` warnings from that build are catalogued by frequency and recorded as the next milestone's backlog input (the gate is "no fatal errors," not "zero warnings").
   3. The empty-URL cross-reference warning count is measured before and after the XREF-01 fix against the same corpus, quantifying the reduction rather than assuming it.
+
 **Plans**: TBD
 
 ## Progress
