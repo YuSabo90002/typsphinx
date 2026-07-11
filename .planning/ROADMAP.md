@@ -42,7 +42,7 @@ every CI job green, and releasing v0.5.0 to PyPI. Latest-only, no compatibility 
 - [x] **Phase 7: Bump @preview Packages + typst 0.15 (kai fix)** - typst 0.15 pin + four `@preview` bumps; `docs-pdf` compiles with no `kai` (highest-risk phase) (completed 2026-07-11)
 - [x] **Phase 8: API & Test Compatibility (Sphinx 9 / docutils 0.22)** - `traverse()`→`findall()` swap + full pytest suite green on the new stack (completed 2026-07-11)
 - [x] **Phase 9: Green CI Matrix + Smoke Test + Guardrails** - observed all-green Actions run + `typst compile` smoke test + drift/Dependabot ceiling bumps (completed 2026-07-11)
-- [x] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__`→0.5.0; PyPI wheel+sdist + GitHub Release via green `release.yml` (completed 2026-07-11)
+- [x] **Phase 10: Version-String Fix + v0.5.0 Release** - `__version__` single-sourced→0.5.0 (`importlib.metadata`, stale `0.4.3` retired), `pyproject.toml` `0.4.4`→`0.5.0` sole source, curated `CHANGELOG.md` v0.5.0 entry; **release *prep only* — publish half (merge PR #112 → tag `v0.5.0` → `release.yml` → PyPI wheel+sdist + GitHub Release) deferred to `/gsd-complete-milestone`** (completed 2026-07-11)
 
 ## Phase Details
 
