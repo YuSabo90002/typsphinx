@@ -1603,7 +1603,7 @@ def test_table_no_duplication_all_types(simple_document, mock_builder):
 
     Related: issue #19
     """
-    from docutils.frontend import OptionParser
+    from docutils import frontend
     from docutils.parsers.rst import Parser as RstParser
     from docutils.utils import new_document
 
@@ -1644,7 +1644,7 @@ CellA     CellB
     parser = RstParser()
     for table_type, rst_content in table_types.items():
         # Parse RST content
-        settings = OptionParser(components=(RstParser,)).get_default_values()
+        settings = frontend.get_default_settings(RstParser)
         document = new_document("<test>", settings=settings)
         parser.parse(rst_content, document)
 
@@ -1695,7 +1695,7 @@ def test_comment_skipped(simple_document, mock_builder):
 
     Related: issue #21
     """
-    from docutils.frontend import OptionParser
+    from docutils import frontend
     from docutils.parsers.rst import Parser as RstParser
     from docutils.utils import new_document
 
@@ -1722,7 +1722,7 @@ More text.
 
     # Parse RST content
     parser = RstParser()
-    settings = OptionParser(components=(RstParser,)).get_default_values()
+    settings = frontend.get_default_settings(RstParser)
     document = new_document("<test>", settings=settings)
     parser.parse(rst_content, document)
 
@@ -1816,7 +1816,7 @@ def test_raw_other_formats_skip(simple_document, mock_builder):
 
 def test_raw_multiple_formats(simple_document, mock_builder):
     """Test multiple raw directives with different formats."""
-    from docutils.frontend import OptionParser
+    from docutils import frontend
     from docutils.parsers.rst import Parser as RstParser
     from docutils.utils import new_document
 
@@ -1842,7 +1842,7 @@ After paragraph.
 
     # Parse RST content
     parser = RstParser()
-    settings = OptionParser(components=(RstParser,)).get_default_values()
+    settings = frontend.get_default_settings(RstParser)
     document = new_document("<test>", settings=settings)
     parser.parse(rst_content, document)
 
