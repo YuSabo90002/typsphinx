@@ -1,76 +1,76 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4.4
-milestone_name: CI-repair + modernize
-current_phase: 05
-status: complete
-stopped_at: Phase 5 verified (4/4 must-haves) & complete — milestone v0.4.4 complete (5/5 phases)
-last_updated: "2026-07-05T05:47:03.232Z"
-last_activity: 2026-07-05
-last_activity_desc: Phase 05 complete
+milestone: v0.5.0
+milestone_name: — forward-ecosystem
+current_phase: 5.0
+status: Awaiting next milestone
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-07-11T12:54:12.316Z"
+last_activity: 2026-07-11
+last_activity_desc: Milestone v0.5.0 completed and archived
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 13
+  completed_plans: 13
   percent: 100
-current_phase_name: durability-guardrails
+current_phase_name: Version-String Fix + v0.5.0 Release
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-05)
+See: .planning/PROJECT.md (updated 2026-07-11 at v0.5.0 milestone close)
 
-**Core value:** Every CI job passes again on `main` — lint, the full test matrix, coverage, and the docs PDF build — with a dependency set that is pinned and reproducible so this rot doesn't silently recur.
-**Current focus:** Milestone v0.4.4 complete & archived — all 5 phases done; guarded, green, modernized CI on `main`. Next: `/gsd-new-milestone` when ready.
+**Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
+**Current focus:** None — v0.5.0 shipped (Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, released to PyPI + GitHub Release). Start the next cycle with `/gsd-new-milestone`.
 
 ## Current Position
 
-Phase: 05 — durability-guardrails (final phase)
-Plan: 4/4 complete
-Status: Milestone v0.4.4 SHIPPED — archived + tagged (v0.4.4 on main dae500a) + released to PyPI (typsphinx 0.4.4 wheel+sdist) + GitHub Release. Release run 28731646924 green end-to-end.
-Last activity: 2026-07-05 — v0.4.4 released: fixed a release.yml tomllib-on-3.10 regression (PR #110), re-pointed tag, published to PyPI + GitHub Release; D-11 (softprops@v3) resolved green
-
-Progress: [██████████] 100%
+Phase: Milestone v0.5.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-11 — Milestone v0.5.0 completed and archived
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 15
-- Average duration: - min
-- Total execution time: 0 hours
+- Total plans completed (project cumulative): 15 (all in v0.4.4)
+- v0.5.0 plans completed: 0
+- Average duration: — min
 
-**By Phase:**
+**By Phase (v0.5.0):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 2 | - | - |
-| 02 | 3 | - | - |
-| 03 | 2 | - | - |
-| 04 | 4 | - | - |
-| 05 | 4 | - | - |
+| 06 | 1 | - | - |
+| 07 | 1 | - | - |
+| 08 | 3 | - | - |
+| 09 | 2 | - | - |
+| 10 | 2 | - | - |
+| 08.1 | 4 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans (v0.4.4): 3min, 3min, 20min, 12min, 40min
+- Trend: — (new milestone, no plans executed yet)
 
 *Updated after each plan completion*
-| Phase 02 P01 | 5min | 2 tasks | 1 files |
-| Phase 02 P02 | 8min | 3 tasks | 1 files |
-| Phase 02 P03 | 6min | 4 tasks | 2 files |
-| Phase 03 P01 | 6min | 3 tasks | 6 files |
-| Phase 04 P01 | 5min | 3 tasks | 3 files |
-| Phase 04 P02 | 8min | 2 tasks | 3 files |
-| Phase 04 P03 | 6min | 2 tasks | 2 files |
-| Phase 04 P04 | 40min | 3 tasks | 0 files |
-| Phase 05 P01 | 12min | 2 tasks | 3 files |
-| Phase 05 P02 | 3min | 2 tasks | 2 files |
-| Phase 05 P03 | 3min | 1 tasks | 1 files |
-| Phase 05 P04 | 20min | 3 tasks | 0 files |
+| Phase 06 P01 | 20 | 2 tasks | 7 files |
+| Phase 07 P01 | 12min | 3 tasks | 6 files |
+| Phase 08 P01 | 8min | 2 tasks | 2 files |
+| Phase 08 P02 | 3min | 2 tasks | 4 files |
+| Phase 08 P03 | 2min | 2 tasks | 1 files |
+| Phase 08.1 P01 | 1min | 2 tasks | 2 files |
+| Phase 08.1 P02 | 6min | 3 tasks | 2 files |
+| Phase 08.1 P03 | 6min | 2 tasks | 2 files |
+| Phase 08.1 P04 | 8min | 3 tasks | 3 files |
+| Phase 09 P01 | 3min | 2 tasks | 3 files |
+| Phase 09 P02 | 39min | 3 tasks | 0 files |
+| Phase 10 P01 | 5min | 2 tasks | 4 files |
+| Phase 10 P02 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -79,31 +79,31 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Pre-Phase 1]: Pin runtime deps to known-good rather than port forward to sphinx 9 / typst 0.15 — fastest, lowest-risk path to green CI in a maintenance cycle.
-- [Pre-Phase 1]: Pin `typst` to a 0.14.x line compatible with the bundled `@preview` packages — the exact patch must be empirically confirmed during Phase 1 execution, not assumed.
-- [Pre-Phase 1]: Modernize Python floor to 3.10–3.13 (drop EOL 3.9, add 3.13) as an atomic batch in Phase 3, sequenced after the pin fix is confirmed green.
-- [Phase 02]: Scoped the @preview version-sync regex to actual #import statements only (not bare text matches) to avoid false-positive divergence from docstring examples — The naive regex matched a docstring example (charged-ieee) unrelated to the four essential imports
-- [Phase 02]: Substituted tox -e cov (system Python) for tox -e py311 in the local pre-check — NixOS cannot execute tox-uv's downloaded standalone CPython 3.11 build; unrelated to the Phase 1 pin; GitHub Actions runners are unaffected
-- [Phase 02]: Auto-fixed a black-formatting bug in Plan 01's sync-guard test (Rule 1) to unblock the Lint job, but left the pre-existing tox env-name mismatch (py3.10 vs py310, 9/12 matrix jobs) unpatched per D-04, surfacing it as a finding with a ready but unmerged fix on gsd/bugfix/github-ci-tox
-- [Phase 02]: Applied the drafted tox-env matrix-mapping fix via git cherry-pick (64cd057) from gsd/bugfix/github-ci-tox rather than reimplementing by hand
-- [Phase 02]: Left the CODECOV_TOKEN-absent codecov tokenless-upload failure unaddressed as pre-existing and out of scope (fail_ci_if_error: false keeps the job green)
-- [Phase 03]: Ran plain uv lock (no --upgrade); verified the diff was only the <3.10 marker-branch collapse + incidental chardet drop, no unrelated version bumps
-- [Phase 03]: black --check . confirmed a no-op both before and after the target-version bump to py310-py313 (D-03 does not trigger); no separate reformat commit needed
-- [Phase 03-02]: Fixed both RED CI jobs in-batch on PR #104: ruff pyupgrade modernization (UP045/UP007/B905 strict=False/UP036) across translator.py/builder.py/pdf.py/template_engine.py/test_entry_points.py, and a tomllib->tomli backport in docs/source/conf.py + pyproject.toml docs group for the 3.10 docs floor — docs.yml setup-python floor drop (3.11->3.10) broke tomllib import; ruff target-version py39->py310 unlocked pyupgrade rules. Re-pushed to PR #104; ci.yml (18 jobs) and docs.yml both green on head caf779d. PR still open pending Task 3 human-verify.
-- [Phase 04-01]: D-01/D-02/D-02b/D-07/D-08 applied verbatim in 04-01: floor+ceiling bounds for pytest/tox/tox-uv/black/ruff/mypy across pyproject.toml+tox.ini
-- [Phase 04-01]: tox.ini [tox] requires uses tox-uv~=1.35 (not literal >=1.35,<2) -- tox ini-list loader splits single-entry requires values on comma, misparsing the ceiling; ~=1.35 is packaging-spec-equivalent and comma-free
-- [Phase 04-02]: Bumped actions/upload-artifact@v5->v7 and actions/download-artifact@v6->v8 (node20->node24) uniformly across ci.yml/docs.yml/release.yml per D-03 amended; left the other four actions untouched — GitHub removes Node 20 from hosted runners 2026-09-16; runtime-verified via action.yml runs.using rather than trusting semver-major currency alone
-- [Phase 04-02]: softprops/action-gh-release@v2 confirmed node20 via runtime check (RESEARCH A2 straggler); recorded as tracked/deferred TOOL-02 item (v3 exists and is node24) rather than fixed in-scope, since Task 1 only authorized upload-artifact/download-artifact edits — Plan Task 2 explicitly requires recording, not silently closing, any A2 straggler found to be node20
-- [Phase 04-03]: Reused Phase 3/04-01's nix run nixpkgs#ruff local-execution workaround to verify the comment-only pyproject.toml edit was inert (NixOS cannot execute the uv-installed ruff binary directly)
-- [Phase ?]: [Phase 04-04]: Opened NEW PR #105 to main (base=main, head d99748d) via gh pr create rather than reopening closed PR #104 (owner decision); titled to reflect the full Phases 2-4 green-baseline integration
-- [Phase ?]: [Phase 04-04]: push->observe gate green — ci.yml run 28711976093 success (18 jobs, full 3.10-3.13 x 3-OS matrix + lint/type/coverage/build/integration) + docs.yml run 28711976097 success (incl. PDF step); developer approved the blocking human-verify gate
-- [Phase ?]: [Phase 04-04]: Repaired main branch protection via gh api PATCH — removed stale required check 'Test Python 3.9 on ubuntu-latest' (Phase-3 leftover, root cause of PR #105 being un-mergeable despite all jobs green) and added 'Test Python 3.13 on ubuntu-latest'; PR #105 now MERGEABLE/CLEAN. Repo-settings change not a git commit
-- [Phase ?]: Isolated Task 1 and Task 2 commits by temporarily reverting the softprops @v3 edit before committing Task 1, then reapplying it for Task 2 -- both tasks touch docs.yml/release.yml so this kept commits atomic per-task.
-- [Phase ?]: [Phase 05-02] Used prefix-anchored globs sphinx*/docutils*/typst* with exclude-patterns for sphinx-autodoc-typehints/sphinx-intl (D-08 scoping); CI badge placed first in README badge row (D-09).
-- [Phase ?]: [Phase 05-03] Implemented drift.yml exactly per RESEARCH.md Pattern 2 skeleton and PATTERNS.md's synthesized version -- no deviation from the plan's specified step order, permissions, or tox env selection.
-- [Phase 05-04]: PR #106 merged to main; ci.yml (19 jobs) + docs.yml both green, empirically confirming DUR-01/03/04 and D-11 syntactic validity
-- [Phase 05-04]: drift.yml validated post-merge via workflow_dispatch (run 28730876125, SUCCESS, no forward drift detected, no issue filed) -- confirms DUR-02 end-to-end
-- [Phase 05-04]: D-11 (softprops/action-gh-release@v3 tag-gated runtime confirmation) deferred to the next real release tag with explicit developer sign-off, rather than smoke-tested via manual release.yml dispatch
+- [v0.5.0 scope]: Latest-only forward port — raise pins to Sphinx 9.1 + typst 0.15+; no Sphinx-8/typst-0.14 compatibility range (version-conditional branching is out of scope).
+- [v0.5.0 scope]: Python floor → ≥3.12 — Sphinx 9.1's own `requires-python` forces it; drop 3.10 and 3.11 from the matrix (raise sphinx/docutils/python + lockfile in one atomic PR, Phase 6).
+- [v0.5.0 scope]: Bundled `@preview` version bump only — FWD-03 (user-configurable versions) deferred to v2 (CFG-01).
+- [Roadmap]: FWD-02 (typst re-pin + no-`kai` compile) grouped with the `@preview` bump in Phase 7, not the pin-raise, because raising typst without the package bump leaves CI red on `kai` — both must land atomically.
+- [Phase 06]: Non-matrix CI jobs (lint/type-check/coverage/build/integration, release validate/build, drift-check) move to Python 3.12 (not 3.13) per CONTEXT.md discretion default.
+- [Phase 06]: Dropped the dead docs-extra tomli conditional (python_version < '3.11') since it is permanently false at the new 3.12 floor — keeps the PIN-02 grep audit clean.
+- [Phase 07]: Bumped typst + all four @preview packages (mitex 0.2.7 / gentle-clues 1.3.1 / codly-languages 0.1.10, codly unchanged at 1.3.0) atomically in one wave per the locked ROADMAP contingency; empirical docs-pdf compile confirmed clean on first attempt, no bisect needed. — Confirms the mitex 0.2.6+ kai attribution from RESEARCH.md and closes FWD-02/PKG-01/PKG-02/PKG-03.
+- [Phase 08]: Scoped strictly to the plan's locked boundary: only template_engine.py traverse->findall and test_translator.py's 3 OptionParser->frontend.get_default_settings sites landed; the remaining 4 deprecation-fix sites and the filterwarnings guard are reserved for Plans 08-02/08-03. — Preserves D-02 ordering constraint: guard must land after the full sweep, not before.
+- [Phase 08-02]: Test-assertion-only fixes for builder.app and writer_name deprecations; no runtime source touched, no compatibility branching added.
+- [Phase 08-03]: Escalated both error::DeprecationWarning and error::PendingDeprecationWarning in the permanent pytest filterwarnings guard (D-02) — a documented deviation-with-rationale from CONTEXT.md's literal DeprecationWarning-only text, required to catch Sphinx's RemovedInSphinxNNWarning family which subclasses PendingDeprecationWarning.
+- [Phase 08-03]: Skipped the optional multi-<term> definition-list hardening (Task 2) as forward-looking-only — no current docutils 0.22.4 rST syntax produces a multi-<term> definition_list_item; deferred as a documented follow-up, not silently dropped.
+- [Phase ?]: [Phase 08.1-01]: pypdf's SUS supply-chain legitimacy flag (too-new/unknown-downloads) was human-confirmed as a false positive before install via the blocking-human checkpoint protocol.
+- [Phase ?]: Kept _visit_admonition's custom_title parameter unchanged (stashed on self._custom_admonition_title) so the six existing per-type visit_*/depart_* call sites needed zero changes
+- [Phase ?]: Used a dedicated _saved_body_for_admonition_title field instead of reusing the definition-list saved_body field, to avoid state collisions between the two buffer-swap use sites
+- [Phase ?]: Static custom_title (Important/See Also) stays a plain string argument; only the dynamic node-derived title uses the buffered code-block form
+- [Phase ?]: [Phase 08.1-03]: Used the research-verified D-06 clue mapping exactly: hint->tip, error->error, danger->danger, attention->warning, generic admonition->base clue()
+- [Phase ?]: [Phase 08.1-03]: Generic admonition handler passes no custom_title - directive-supplied title flows through the existing visit_title/depart_title buffer-swap path automatically
+- [Phase ?]: Invoked sphinx-build via sys.executable -m sphinx instead of uv run sphinx-build to avoid a stray non-Nix uv binary in .venv/bin shadowing the correct Nix-provided uv for subprocess children
+- [Phase ?]: Patched .venv/bin/uv ELF interpreter via patchelf to unblock tox -e docs-pdf in this sandbox (local, gitignored, regenerable fix, no repo file touched); incidentally fixed ~45 pre-existing environment-caused test failures, full suite now 411/411 green
+- [Phase ?]: Task 2 (tdd=true) produced a single feat commit: real-compile gate over already-correct behavior; negative-control proof (uncommitted, scratch-only) is the RED-equivalent evidence per the plan's own instruction and 09-RESEARCH.md Open Question 2
+- [Phase ?]: Branch-protection required-checks reconciled: core gates + ubuntu 3.12/3.13 legs required; windows/macos legs and docs.yml build-docs observable-but-not-required to avoid merge-blocking on cross-OS runner flakiness
+- [Phase ?]: PR release/v0.5.0 -> main (#112) opened and observed all-green (13/13 jobs); left OPEN/UNMERGED per D-03 for Phase 10 to add the version-bump commit and merge
+- [Phase 10]: typsphinx.__version__ single-sourced via importlib.metadata.version() with PackageNotFoundError -> 'unknown' fallback; pyproject.toml is now the sole version literal — Root-cause fix for stale 0.4.3 string (D-04/D-05) - version drift becomes structurally impossible
+- [Phase 10]: Added independent tomllib-based test_version_matches_pyproject_toml drift guard alongside the retained test_setup_version_matches — importlib.metadata-based __version__ alone is a tautological check; an independent parse of pyproject.toml is the genuine regression guard
+- [Phase ?]: [Phase 10-02]: Curated CHANGELOG v0.5.0 entry follows [0.4.3]'s subsection shape; no [0.4.4] backfill per RESEARCH.md Pitfall 4
 
 ### Pending Todos
 
@@ -111,11 +111,24 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 1]: The exact typst 0.14.x patch that satisfies all four bundled `@preview` packages (codly, codly-languages, mitex, gentle-clues) simultaneously is not yet empirically confirmed — this is Phase 1's core deliverable, not a research-time conclusion. If no single 0.14.x version satisfies all four, the documented fallback is pinning one `@preview` package to an older release instead of moving the typst pin.
-- [Phase 1]: Whether the `sphinx<9` / `docutils<0.22` ceilings are load-bearing or purely precautionary is unconfirmed — resolve by testing whether `typst<0.15` alone is sufficient, and document the finding regardless (PIN-06).
-- [Phase 3, 03-02]: CI on PR #104 (head ee2f9ae) is RED for the Python-floor bump -- ci.yml 'Lint and Format Check' fails with 25 new ruff errors (20 UP045, 2 UP036, 1 UP007, 2 B905) unlocked by the ruff target-version py39->py310 bump (real D-03 trigger); docs.yml 'build-docs' fails with ModuleNotFoundError: No module named 'tomllib' in docs/source/conf.py because docs.yml's setup-python was lowered 3.11->3.10 and tomllib is stdlib-only on 3.11+. REMEDIATED 2026-07-04: both fixed in-batch (commits f2465ff, caf779d), re-pushed, ci.yml (18 jobs) + docs.yml both green on head caf779d. Still do not merge PR #104 -- pending the Task 3 human-verify checkpoint.
-- [Phase 04-02]: softprops/action-gh-release@v2 (docs.yml:67, release.yml:177/212) still declares runs.using: node20 -- ahead of GitHub's 2026-09-16 hosted-runner Node-20 removal. Out of 04-02's scope (Task 1 only authorized upload-artifact/download-artifact edits). Upstream @v3 is node24. Tracked/deferred candidate for Phase 5 (durability-guardrails) or a follow-up bump plan.
-- [Phase 04-04]: PR #105 (base=main, head d99748d) is MERGEABLE/CLEAN with ci.yml(18 jobs)+docs.yml green, but intentionally NOT merged — merge is a separate owner action. After merge owner closes dependabot #96/#97 (duplicate the 04-02 artifact bumps). Node-20 straggler softprops/action-gh-release@v2 carried to Phase 5 (@v3 is node24).
+Carried forward from research (SUMMARY.md / PITFALLS.md) — must be resolved during execution:
+
+- [Phase 7]: The `kai` root-cause attribution to `mitex` `0.2.6+` is MEDIUM confidence (strong CHANGELOG evidence, not independently reproduced). Phase 7 must confirm via a real `docs-pdf` compile, not changelog inference. If `kai` persists after the mitex bump, bisect package-by-package.
+- [Phase 7]: `codly` `1.3.0` is already at the Typst Universe registry ceiling — no newer version exists as a fallback. If it breaks under typst 0.15, escalate to a source-level workaround/patch/replacement.
+- [Phase 7]: The 3-way version-sync hazard — `test_preview_version_sync.py` proves the three files *agree*, not that the versions *compile correctly*. The empirical `docs-pdf` compile (and Phase 9's smoke test) is the real gatekeeper.
+- [Phase 8]: Sphinx 9 changelog audit found no load-bearing API breaks, but re-verify empirically against the resolved deps (runtime AttributeError/TypeError may surface); spot-check the docutils 0.22 multi-`<term>` definition-list edge case.
+- [Phase 07 follow-up]: docs-pdf now compiles clean but exposes a pre-existing (predates Phase 7) translator bug: .. note:: admonitions render literal unevaluated Typst source (par({text(...)})) instead of typeset prose in 4 spots, due to a markup/code-mode mismatch in translator.py::_visit_admonition. Logged in .planning/phases/07-bump-preview-packages-typst-0-15-kai-fix/deferred-items.md; needs a dedicated fix phase.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260711-kr2 | プロジェクトトップレベルにいる .mcp.json は main ブランチに含まれないようにする | 2026-07-11 | 50a2623 | [260711-kr2-mcp-json-main](./quick/260711-kr2-mcp-json-main/) |
+
+### Roadmap Evolution
+
+- Phase 08.1 inserted after Phase 8: admonition rendering fix — translator markup/code-mode mismatch (URGENT)
+- Phase 10 edited: re-scoped to release-prep only (version single-source + CHANGELOG); tag/publish/merge deferred to milestone close; SC #2/#3 moved; REL-01 reworded to reflect the split
 
 ## Deferred Items
 
@@ -123,10 +136,16 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| Forward-ecosystem | FWD-03 → CFG-01: user-configurable `@preview` versions | Deferred to v2 | v0.4.4 close / v0.5.0 scoping |
+| Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v2 | v0.5.0 scoping |
 
 ## Session Continuity
 
-Last session: 2026-07-05T05:41:02.202Z
-Stopped at: Completed 05-04-PLAN.md (Phase 5 complete, all 4/4 plans)
-Resume file: None
+Last session: 2026-07-11T11:07:31.946Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: 
+None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

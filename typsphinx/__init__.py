@@ -11,12 +11,16 @@ sources using Sphinx, which can then be compiled to PDF using the Typst compiler
 :license: MIT, see LICENSE for details.
 """
 
-__version__ = "0.4.3"
-__author__ = "YuSabo"
-
+import importlib.metadata
 from typing import Any, Dict
 
 from sphinx.application import Sphinx
+
+try:
+    __version__ = importlib.metadata.version("typsphinx")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "unknown"
+__author__ = "YuSabo"
 
 from typsphinx.builder import TypstBuilder, TypstPDFBuilder
 

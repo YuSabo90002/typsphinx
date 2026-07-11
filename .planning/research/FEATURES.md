@@ -1,186 +1,146 @@
 # Feature Research
 
-**Domain:** CI/CD maintenance & dependency-pin repair (Python package, Sphinx extension)
-**Researched:** 2026-07-04
-**Confidence:** HIGH (repo/workflow inspection) / MEDIUM (exact known-good `typst` + `@preview` version combo — needs empirical verification, not just research)
+**Domain:** Sphinx extension (docutils→Typst builder/writer/translator) — forward-compatibility port to Sphinx 9 + typst 0.15+
+**Researched:** 2026-07-09
+**Confidence:** MEDIUM-HIGH (primary-source `typst.toml`/`CHANGELOG.md` pulls from `typst/packages` + upstream repos are HIGH; Sphinx/docutils changelog synthesis via WebSearch is MEDIUM — verify against `sphinx-doc.org/en/master/changes/9.0.html` at implementation time)
 
-This is not a "what features does a docs tool need" landscape — it's a maintenance milestone. "Features" below means **CI/release acceptance items**: the concrete, checkable conditions that let a maintainer say "CI is repaired and durable" and close the milestone.
+> Supersedes the previous (2026-07-04) version of this file, which researched the **v0.4.4 pin-backward** milestone. This version researches the **v0.5.0 forward-ecosystem** milestone (Sphinx 9 FWD-01 + typst 0.15+ FWD-02), which is the opposite direction: raising pins forward instead of pinning back.
+
+This is a maintenance/compatibility milestone, not a product-feature milestone, so "features" below means **behavior-compatibility work items** required (or optional) to run correctly on Sphinx 9 + typst 0.15+. Categorized per the template: table stakes = must-fix-to-compile-and-pass-CI, differentiators = optional modernization while touching the same code, anti-features = scope creep to explicitly reject this cycle.
 
 ## Feature Landscape
 
-### Table Stakes (Must Be True To Call CI Restoration Done)
+### Table Stakes (Must-Fix to Compile/Build Green)
 
-Each row maps 1:1 to an actual job in `.github/workflows/{ci,docs,release}.yml`.
-
-| Feature (acceptance item) | Why Expected | Complexity | Notes |
+| Feature / Fix | Why Required | Complexity | Notes |
 |---------|--------------|------------|-------|
-| `black --check .` exits 0 on full tree | `ci.yml` job `lint` (`tox -e lint`); `release.yml` job `validate` runs the same check | TRIVIAL | 3 files currently fail: `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`. Run `black .` to reformat, then verify `--check`. Do this **after** any black `target-version` bump (see Python modernization row) to avoid reformatting twice. |
-| `ruff check .` exits 0 on full tree | Same `lint` job; same `release.yml validate` job | TRIVIAL | Currently passing per failure evidence (only black flagged 3 files); re-verify after Python floor bump since `UP035/UP006/UP028` ignores are justified by 3.9 support and may become removable (not required, just don't let removal introduce new failures if attempted). |
-| `mypy typsphinx/` exits 0 | `ci.yml` job `type-check`; `release.yml validate` | TRIVIAL–LOW | Currently passing (per PROJECT.md failure evidence: "Type Check ... jobs currently pass"). Must not regress when `python_version` in `[tool.mypy]` is bumped from `"3.9"` to the new floor (`"3.10"`). |
-| All 12 matrix jobs green: `test` (ubuntu/macos/windows × 3.10/3.11/3.12/3.13) | `ci.yml` job `test`; this is the job most directly broken (`unknown variable: kai`) | INVOLVED | Blocked on the `typst`/`@preview` package pin decision (see Dependencies). Also blocked on `tox.ini` env_list update (`py39,py310,...` → drop `py39`, add `py313`) and `ci.yml` matrix `python-version` list update. Cascades from a single root cause (typst 0.15 resolving) — once the pin lands, most of these should go green together. |
-| `coverage` job green (`tox -e cov`) | `ci.yml` job `coverage`; same test suite as above plus coverage instrumentation | INVOLVED | Same root cause as matrix tests — the 7 failing PDF-integration tests invoke `typst` compilation. Blocked by the same pin fix; no independent work once matrix tests pass. |
-| `build` job green (`uv build` + `twine check`) | `ci.yml` job `build`; also duplicated in `release.yml build` | TRIVIAL | Currently passing per failure evidence ("Build Package jobs currently pass"). Must not regress — verify after `requires-python`/classifiers changes (setuptools must still discover package correctly with `requires-python=">=3.10"`). |
-| `integration` job green (basic + advanced examples) | `ci.yml` job `integration` | LOW | Uses `sphinx-build -b typst` (not `-b typstpdf`), so it does **not** invoke the Typst compiler and is likely unaffected by the `kai` compile error — verify this assumption holds; if it already passes, this is a "keep green" item, not a "fix" item. |
-| `docs.yml build-docs` job green: HTML (multilang) + PDF build | Separate workflow, but PDF step (`tox -e docs-pdd`, i.e. `sphinx-build -b typstpdf`) hits the identical `typst` compile path as the failing tests | INVOLVED | Same root-cause dependency as matrix/coverage. `docs-multilang` (HTML) step runs `python build_multilang.py` — this file is one of the 3 needing a black reformat; reformatting must not change its runtime behavior. |
-| `release.yml validate` job stays valid (tests, black, ruff, mypy all run and would pass if triggered) | This job duplicates the same lint/test/type checks inline (not via tox) — it is the release gate; a green `ci.yml` does not guarantee this job is equally green since it invokes tools directly (`uv run pytest`, `uv run black --check .`, `uv run ruff check .`, `uv run mypy typsphinx/`) | LOW | Cannot be exercised end-to-end without pushing a real version tag; treat as "inspect for drift and dry-run the four commands locally/in a scratch branch" rather than a live CI run. No code changes expected here beyond what already fixes `ci.yml`. |
-| Runtime dependencies pinned to a reproducible known-good set (`typst` back to a 0.14.x line compatible with `codly:1.3.0`, `codly-languages:0.1.1`, `mitex:0.2.4`, `gentle-clues:1.2.0`) plus `sphinx`/`docutils` upper bounds | Root cause of the entire breakage: loose `>=` pins let CI silently absorb `sphinx==9.0.4`, `docutils==0.22.4`, `typst==0.15.0` — none compatible with the bundled `@preview` packages | INVOLVED | The riskiest item — requires empirically testing `typst` 0.14.x patch versions against the pinned `@preview` packages (this research pass could not confirm the exact good combination from public docs/search; `kai` doesn't appear in typsphinx source, so it's internal to a `@preview` package as compiled by 0.15 — see PROJECT.md Context). Must land **before** matrix/coverage/docs-PDF jobs can go green. |
-| `uv.lock` regenerated and committed to match the final pin set | Constraint from PROJECT.md: "`uv.lock` must be regenerated to match the new pins; tox/uv drives all CI checks" | TRIVIAL (mechanical) / LOW (verification) | Must be regenerated **once**, after both the runtime-dependency pins AND the Python floor change are decided — regenerating twice wastes a step and risks lock drift between the two changes. |
-| Supported Python range modernized to 3.10–3.13 everywhere it's declared | Active requirement in PROJECT.md; 3.9 reached EOL Oct 2025 | MODERATE | Touches 6 files/locations in lockstep: `pyproject.toml` (`requires-python`, `classifiers`), `tool.black.target-version`, `tool.ruff.target-version`, `tool.mypy.python_version`, `tox.ini` `env_list` (and `[testenv]`/`[testenv:type]` deps), `ci.yml` matrix `python-version` list. Missing any one leaves a stale/inconsistent floor. |
-| `@preview` version references stay in sync across all 3 hardcoded locations | `typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ` all hardcode the same 4 package versions (flagged in CONCERNS.md as tech debt) | LOW | Only relevant if the pin fix requires changing any `@preview` package version (not just the `typst` compiler version) to restore compatibility — if so, all 3 locations must be edited together or the translator and the default template will disagree. |
+| Bump bundled `mitex` from `0.2.4` → `0.2.7` (3-way sync: `writer.py` line 96, `template_engine.py` line 315, `templates/base.typ` line 14) | **Root-cause fix for the `kai` CI failure.** Confirmed via `mitex`'s own `CHANGELOG.md`: v0.2.6 = `"Fix: fix 'kai is deprecated' warning for Typst v0.14.0" (#201)`. typsphinx pins `0.2.4`, which predates that fix and still emits the deprecated `kai` symbol. Typst 0.15's changelog states deprecated stdlib symbols were *removed outright* ("Various previously deprecated symbols have been removed"), turning mitex 0.2.4's warning into a hard `typst.TypstError: unknown variable: kai`. This directly corrects PROJECT.md's speculation that `gentle-clues:1.2.0` or `codly` was the culprit — it is `mitex:0.2.4`. | LOW | No breaking `mi()`/`mitex()` signature change 0.2.4→0.2.7 (confirmed against `mitex-rs/mitex` source); pure version-string swap in the 3 sync points + `tests/test_preview_version_sync.py` assertion update |
+| Bump bundled `gentle-clues` from `1.2.0` → `1.3.1` (same 3-way sync) | Compiler floor rises to a version whose `typst.toml` explicitly declares `compiler = "0.13.0"` — safely below 0.15, but 1.2.0 predates ~2 years of upstream fixes and is the most plausible *secondary* suspect if `kai` isn't fully resolved by the mitex bump alone. Changelog 1.2.0→1.3.1 = translation additions (Czech/Danish/Japanese) + a `quotation` quoting fix only — **no breaking change** to `info`/`warning`/`tip`/`danger`/`error`/`success`/`question` clue functions (all remain `#let x(..args) = _predefined-clue("x", ..args)` per `lib/predefined.typ`). | LOW | `translator.py`'s `_visit_admonition()` calls (`info(title: "...")[...]`, `warning[...]`, `tip[...]`) remain valid unchanged |
+| Bump bundled `codly-languages` from `0.1.1` → `0.1.10` (same 3-way sync) | Multiple years of upstream language/icon-set additions; confirmed via `lib.typ` diff that the sole export (`codly-languages` dict) is unchanged — bump is a same-shape drop-in, only internal icon-rendering tweaked (`image(..., height: 130%, fit: "contain")` replacing the old `height: 0.9em, baseline: 0.05em`) | LOW | Safe; translator/template code never references internals, only the dict via `codly(languages: codly-languages)` |
+| Confirm `codly` stays pinned at `1.3.0` (no bump available on Universe) | `typst/packages` (the actual Universe source-of-truth, queried via GitHub API directory listing) shows codly's latest **published** version is still `1.3.0` — identical to what typsphinx already pins. Upstream `Dherse/codly` git repo already has a `v1.3.1` tag/`typst.toml` not yet submitted to `typst/packages`, so nothing newer is consumable via `@preview` today. `compiler = "0.12.0"` floor is well below 0.15 but that's a floor, not a compatibility guarantee. | LOW (no code change) / MEDIUM (verification risk) | Must be verified empirically by an actual `docs-pdf` build under typst 0.15 in this milestone's phase work — no changelog confirms or denies 0.15 compatibility for codly 1.3.0. If it breaks, there is no simple "bump the pin" fallback (would need a fork/patch or waiting on upstream to publish 1.3.1) — should not be needed based on current evidence, but flag for phase-specific verification |
+| Update `tests/test_preview_version_sync.py` expected versions | The 3-way sync test asserts `writer.py`/`template_engine.py`/`templates/base.typ` agree on `@preview` versions — it will fail the moment any of the three files above are bumped unless the test's expected-version constants are updated in the same change | LOW | Single test file, mechanical update |
+| Audit `translator.py` for docutils 0.22 structural node changes: multi-`<term>` `definition_list_item`, `<figure>` whose first child is now a `<reference>` wrapping a "clickable" `<image>` | docutils 0.22 release notes explicitly flag both as changes "third-party writers may need adaption" for. **Spot-checked and found low-risk**: `visit_figure`/`visit_image`/`visit_reference` (translator.py lines ~1124, 1462, 1891) are all independent visitor methods driven by docutils' generic `walkabout()` traversal (not positional child-indexing), so a `<reference>`-wrapped image inside `<figure>` is walked into naturally — no code change expected. `visit_term`/`visit_definition_list_item` (lines 1027-1082) buffer via a single `self.current_term_buffer`, which assumes exactly one `<term>` per item — needs a positive integration-test check (multi-term definition lists: `term1 : term2\n   definition`) | LOW-MEDIUM | Add a targeted test with a multi-term definition list to confirm `visit_term`'s single-buffer assumption doesn't silently drop the 2nd+ term. Flag for deeper phase-specific research if the audit surfaces breakage |
+| Verify `sphinx.util.logging`, `SphinxTranslator`, `Builder.get_outdated_docs()/write()/write_doc()`, `app.add_config_value()`, `app.add_builder()`, and the `[project.entry-points."sphinx.builders"]` discovery mechanism against Sphinx 9 | Sphinx 9.0's own changelog was reviewed end-to-end (Incompatible Changes + Deprecated sections) — **none of these specific APIs are listed as changed, deprecated, or removed** in 9.0. The only deprecations that touch extension code at all are: public `.app` attributes (`builder.app`, `env.app`, `events.app`, `SphinxTransform.app` — typsphinx's builder/writer/translator never reference `self.app`), `Parser.set_application()`/`.config`/`.env` (typsphinx has no custom `Parser`), and non-UTF-8 source encoding support (irrelevant — typsphinx reads/writes UTF-8 explicitly throughout `builder.py`). Entry-point discovery via `[project.entry-points."sphinx.builders"]` remains Sphinx's documented, unchanged mechanism. | LOW (verification only, expected no-op) | This is good news: the builder/writer/translator/config-registration layer (`builder.py`, `writer.py`, `__init__.py`) needs **no structural changes** for Sphinx 9 itself — the Sphinx-9 half of this milestone is expected to be mostly a version-ceiling change plus a `black`/`ruff`/CI-matrix pass, not an API port. Should still be confirmed empirically against the actual resolved `sphinx==9.0.x` in CI, since WebSearch-derived changelog summaries are MEDIUM confidence |
+| `black --check` reformat under `sphinx>=9`/`docutils>=0.22` resolution (already observed in PROJECT.md's failure evidence: `docs/build_multilang.py`, `tests/test_config_other_options.py`, `tests/test_config_toctree_defaults.py`) | Already reproduced once in CI (2026-07-04 run); trivial lint-formatting delta, unrelated to any Sphinx/docutils/typst API, but blocks the same green-CI gate | LOW | Just re-run `black .` and commit; not a translator/API concern |
 
-### Differentiators / Durability (Prevents Recurrence — Valuable, Not Blocking)
-
-These don't gate "green CI" but directly address why this rot happened silently for a whole maintenance gap.
+### Differentiators (Nice-to-Have While Touching This Code, Not Required)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Scheduled (`cron`) CI run added to `ci.yml` | Root cause of the multi-month silent breakage: `ci.yml` currently only triggers on `push`/`pull_request`/`workflow_dispatch` (no `schedule:`) — if the repo goes quiet again, nobody notices until the next PR resolves newer transitive versions. A weekly cron run re-resolves dependencies and would surface drift within days, not months. | LOW | Add `schedule: - cron: '0 6 * * 1'` (or similar) to `ci.yml`'s `on:` block. Weigh CI-minutes cost against a private/low-traffic repo — weekly is a reasonable default given `dependabot.yml` already runs pip checks weekly. |
-| Version-constraint hygiene: replace bare `>=` with explicit upper bounds on the same 3 critical runtime deps (`sphinx`, `docutils`, `typst`) | This *is* the mechanism that caused the incident — unbounded `>=` let a fresh resolve silently jump two major Sphinx versions and a Typst minor. Upper bounds turn "silent breakage" into "explicit, reviewable dependency PR." | LOW | Already implied by the table-stakes pin item above — call out explicitly as a durability principle (e.g. `sphinx>=5.0,<9.0`, `docutils>=0.18,<0.22`, `typst>=0.14.1,<0.15`) with an inline comment referencing the incident, so a future contributor doesn't "helpfully" loosen it back. |
-| Dependabot grouping for the coupled ecosystem (`sphinx` + `docutils` + `typst` + `@preview`-adjacent) | Current `dependabot.yml` opens up to 5 independent pip PRs/week with no grouping — a maintainer could merge a `typst` bump alone and reintroduce `kai` without realizing `docutils` needs to move in lockstep. Grouping forces "these move together or not at all" review. | LOW–MODERATE | Add a `groups:` block under the pip entry (Dependabot v2 config) bundling the coupled packages; keep GitHub Actions updates ungrouped (they're independent). |
-| CI status badge in `README.md` | README currently has PyPI, License, "Code style: black", and Documentation badges — **no CI/build-status badge** — so a visitor (or maintainer) can't see build health at a glance; this gap likely contributed to the rot going unnoticed. | TRIVIAL | One-line addition once `ci.yml` is green: `![CI](https://github.com/YuSabo90002/typsphinx/actions/workflows/ci.yml/badge.svg)`. |
-| Inline comment/doc note on *why* each pin/upper-bound exists | Prevents a future "just bump it" PR from silently reintroducing the exact same incompatibility class | TRIVIAL | A short comment above the `dependencies` list in `pyproject.toml` (or a CONTRIBUTING note) referencing "pinned after the 2026-07 sphinx-9/typst-0.15 incident" is enough; no new document required. |
-| Typst-version × `@preview`-package compatibility check (smoke test) as a distinct, fast CI/tox check | CONCERNS.md already flags this as a testing gap ("Hardcoded Package Version Resilience... Priority: High"); a minimal check (compile a trivial doc with the pinned packages against the pinned typst version) would catch this class of break before it reaches the full test matrix | MODERATE | Optional stretch — genuinely useful but edges toward "new test infrastructure" rather than pure CI repair. Recommend flagging for a near-future milestone rather than committing to it in this cycle; do not let it block "done." |
+| Replace `template_engine.py`'s `doctree.traverse(addnodes.toctree)` (line 239) with `doctree.findall(addnodes.toctree)` | `traverse()` is docutils' pre-0.18 back-compat shim ("returns a list again to restore backwards compatibility"); `findall()` is the modern iterator-based API and is already used elsewhere in the codebase (`builder.py`'s `post_process_images` uses `doctree.findall(image)`). Using `findall()` everywhere removes the one remaining inconsistency and de-risks a hypothetical future docutils major that drops `traverse()` entirely (not currently scheduled, but the pattern-drift is the kind of thing the milestone's durability guardrails exist to prevent) | LOW | One-line change (`list(doctree.findall(...))` still works — `findall()` also returns an iterator that `list()` consumes identically); purely a modernization, not required for 0.15/Sphinx 9 green CI |
+| Refresh hardcoded `@preview` version strings shown in `docs/`/`README.md` user-facing examples to match the new pins | Once the 3-way sync bumps versions, any docs (README examples, `docs/` `.rst` source showing `#import "@preview/codly:1.3.0"` etc.) that hardcode the old version strings should be refreshed so copy-pasted user snippets don't silently regress to stale/incompatible pins | LOW | Search-and-verify pass across `docs/` and `README.md`; not required for CI green but avoids user-facing drift right after the bump |
+| Add a regression test compiling a doc that exercises the `mitex` construct that previously triggered `kai` | Since the actual trigger construct inside mitex 0.2.4 that emitted `kai` isn't publicly documented in detail (only "fix kai is deprecated warning" in the changelog, no repro snippet), a targeted math/mitex integration test compiled under the new typst pin would give durable regression coverage instead of relying solely on "the version number is high enough" | MEDIUM | Would need to trace `mitex-rs/mitex` PR #201's diff for the exact trigger construct if deeper certainty is wanted; otherwise a broad LaTeX-math smoke test compiled end-to-end under typst 0.15 is a reasonable proxy |
 
-### Anti-Features (Explicitly Deferred This Cycle)
+### Anti-Features (Explicitly Out of Scope This Cycle)
 
-Directly sourced from PROJECT.md "Out of Scope" — listed here so the roadmap doesn't accidentally reintroduce them as "since we're in here anyway" scope creep.
-
-| Feature | Why It Looks Tempting | Why Deferred This Cycle | Alternative |
-|---------|---------------|-----------------|-------------|
-| Porting/adapting code and templates to actually *support* Sphinx 9 / Typst 0.15 / newest `@preview` package majors | "Might as well fix it forward instead of pinning backward" | Large surface area (translator, writer, template engine all touch Sphinx/docutils APIs and Typst syntax); turns a bounded CI-repair cycle into an open-ended porting project; PROJECT.md explicitly chooses pin-backward as the lowest-risk path | Pin to the known-good combination now; open a dedicated future milestone to evaluate forward-porting once pinned CI is stable |
-| Making `@preview` package versions configurable via `app.add_config_value()` (the CONCERNS.md tech-debt fix) | It's the "proper" fix for the exact tech debt that caused this incident, and you're already touching these 3 files to sync versions | Config-surface design work (naming, defaults, back-compat, docs) is feature work, not CI repair; only justified *if* it turns out to be required to unblock the pin (it likely isn't — hardcoded versions can be edited in place) | Only build this if pinning proves impossible without it; otherwise defer to a follow-up milestone |
-| Incremental-build / rebuild-tracking refactor (`get_outdated_docs()` always returns all docs) | Also flagged in CONCERNS.md as tech debt, "High priority" for test coverage | Orthogonal to CI being green — a performance/DX improvement, not a build-breakage fix; refactoring translator/builder state management risks introducing new regressions right when the goal is stability | Track as backlog item for a future performance-focused milestone |
-| New translation features / new reST construct support | Natural temptation once touching translator/writer files for version-sync edits | This is a maintenance cycle, not a feature cycle, per PROJECT.md; any new construct support needs its own test coverage and design discussion | Backlog for a future features milestone |
-| Broader exception-handling cleanup, translator state-management refactor, nested-image-path rewrite (all flagged in CONCERNS.md) | Visible tech debt sitting right next to the files being touched for pin-sync | None of these block any CI job from going green; touching translator/writer beyond version-string edits multiplies the risk of introducing new test failures mid-repair | Leave for dedicated refactor milestones; this cycle's diff footprint should stay minimal (pins + config + version strings) |
+| Feature | Why It Might Seem Appealing | Why Problematic Here | Alternative |
+|---------|---------------|------------------|-------------|
+| Making `@preview` package versions user-configurable (FWD-03) | Natural adjacent improvement while already touching the 3-way sync code for the version bumps | Explicitly out of scope per PROJECT.md/milestone decision (FWD-03 tracked separately); expands surface area of this ecosystem-forward cycle into a design/back-compat feature with its own testing burden | Deferred to its own future milestone (tracked as FWD-03 tech debt) |
+| Supporting both Sphinx 8/typst 0.14 AND Sphinx 9/typst 0.15+ simultaneously (a compat range/shim layer, e.g. conditional imports or version-branching in `translator.py`) | Reduces blast radius / lets users upgrade gradually | Explicitly rejected — "latest-only" is a locked scope decision; a compat range roughly doubles the CI matrix and the mental model of every future translator change ("does this work on both `kai`-era and post-`kai` mitex?") | Raise the floor cleanly; no dual-version branching in source |
+| New reST→Typst translation features or new node coverage (e.g. new admonition types, new directive support) discovered incidentally while auditing `translator.py` | Auditing ~140 visitor methods for docutils 0.22 compat naturally surfaces "hey, we could also support X" ideas | This is a maintenance/compatibility cycle per PROJECT.md ("New translation features / new reST constructs" is explicitly Out of Scope) | File as backlog ideas for a future feature milestone, do not implement now |
+| Rewriting `pdf.py`'s `compile_typst_to_pdf()` around new `typst.compile()` kwargs (`sys_inputs`, `pdf_standards`, `package_path`, `timestamp`) just because they're now available | typst-py's `compile()` signature has grown several optional kwargs over its lifetime; tempting to "modernize" the call site while touching the compile path | No evidence any of these are required for correctness on 0.15 — the existing `typst.compile(temp_file, root=root_dir)` call remains valid per the stable typst-py binding surface; adding unused kwargs is speculative scope creep with no test coverage driving it | Leave `pdf.py` untouched unless a specific 0.15 compile failure demands one of these parameters |
+| Fixing docutils 0.22's `nodes.Text.__init__` `rawsource`-argument deprecation now | It's a listed 0.22-era deprecation, so it's tempting to preempt it | Confirmed removal target is docutils **2.0**, not 0.22 itself; a `grep` across `translator.py` shows typsphinx never constructs `nodes.Text()` directly (it only consumes `Text` nodes docutils itself creates during parsing) — there is no call site to fix | No action needed; note as a non-issue, don't manufacture work |
 
 ## Feature Dependencies
 
 ```
-[Diagnose known-good typst + @preview combo]  (INVOLVED, root-cause work)
-    └──requires──> [Pin sphinx/docutils/typst in pyproject.toml with upper bounds]
-                       └──requires──> [Sync @preview version strings across writer.py /
-                                        template_engine.py / base.typ, IF the fix changes
-                                        any @preview package version]
-                       └──requires──> [Regenerate uv.lock]
-                                          └──enables──> [test matrix job green]
-                                          └──enables──> [coverage job green]
-                                          └──enables──> [docs.yml PDF build green]
+[Bump mitex 0.2.4→0.2.7]
+    └──resolves──> [kai CI failure / typst.TypstError: unknown variable: kai]
 
-[Python floor modernization: pyproject.toml requires-python/classifiers,
- black/ruff/mypy target-version, tox.ini env_list, ci.yml matrix python-version]
-    └──should land together with──> [Pin changes above]
-                       (both changes should be resolved in ONE uv.lock regeneration,
-                        not two, to avoid redundant lock churn)
-    └──requires──> [test matrix job green on py3.10-3.13, drop py3.9]
+[Bump mitex/gentle-clues/codly-languages versions]
+    └──requires──> [Update tests/test_preview_version_sync.py expected constants]
+                       └──gates──> [Every CI job green]
 
-[black/ruff/mypy target-version bump]
-    └──must precede──> [black --check . / running black . to reformat 3 files]
-                        (reformatting before the target-version bump risks a second,
-                         avoidable reformatting pass)
+[Raise typst pin to >=0.15]
+    └──requires──> [All 4 bundled @preview packages compile under 0.15]
+                       └──requires──> [mitex >=0.2.6 (root-cause fix), gentle-clues (any recent),
+                                        codly-languages (any recent), codly 1.3.0-as-is (verify empirically)]
 
-[lint job green] ──independent of──> [test/coverage/docs jobs]
-    (black+ruff fixes are self-contained; don't block on the typst pin)
+[Raise sphinx pin to >=9]
+    └──independent-of──> [typst 0.15 @preview package work]
+    (Sphinx 9 changelog audit found no builder/writer/translator/config-registration API breaks;
+     the two halves of this milestone (FWD-01, FWD-02) do not block each other)
 
-[build job, integration job] ──already green──> [verify no regression only]
-    (not on the critical path; just don't let Python-floor or pin changes break them)
-
-[release.yml validate job] ──mirrors──> [ci.yml lint + test + type-check]
-    (no independent code change needed; passively fixed once ci.yml is green;
-     verify by dry-running its 4 commands, since it can't be triggered without a tag)
-
-[Scheduled CI cron] ──independent, no dependency──> (durability, add anytime)
-[Dependabot grouping] ──independent, no dependency──> (durability, add anytime)
-[CI badge] ──should follow──> [ci.yml actually green]
-    (adding a badge before CI is green is misleading)
+[docutils 0.22 structural node audit: multi-term definition lists, reference-wrapped figures]
+    └──rides-along-with──> [Sphinx 9 support, since docutils>=0.22 is Sphinx 9's transitive floor]
 ```
 
 ### Dependency Notes
 
-- **Everything blocking the `test`, `coverage`, and `docs.yml` PDF jobs traces back to one root-cause fix**: finding and pinning a `typst` version (0.14.x line) compatible with the 4 hardcoded `@preview` packages. This is the highest-complexity, highest-priority item — everything else in Table Stakes is either independent (lint, build, integration) or downstream of this fix (matrix/coverage/docs).
-- **Pin decisions and Python-floor decisions should be resolved together before the one `uv.lock` regeneration** — doing them in two passes means two lock regenerations and two chances for the lock file to drift from what CI actually exercises.
-- **Reformatting (black) should happen after target-version bumps**, not before, since a `target-version` change can itself alter what black considers correctly formatted.
-- **Durability items (cron, Dependabot grouping, badge, comment hygiene) have zero dependency on the pin-fix work** — they can be delivered in parallel or even before the pin fix lands, except the badge, which should only be added once green (a red badge is worse than no badge).
+- **The `kai` fix requires the mitex bump specifically, not gentle-clues or codly:** this corrects PROJECT.md's speculative attribution ("likely `gentle-clues:1.2.0` or `codly`"). Any phase plan should target `mitex` first/primarily and treat the gentle-clues/codly-languages bumps as hygiene, not root-cause fixes.
+- **The version-sync test gates CI green:** bumping the 3 pinned versions without updating `tests/test_preview_version_sync.py` in the same commit will itself fail CI — this is a hard sequencing dependency within a single phase, not across phases.
+- **Sphinx 9 and typst 0.15 work are independent:** based on the changelog audit, nothing in the Sphinx-9 migration touches the `@preview` package layer, and nothing in the typst-0.15/`@preview` migration touches the builder/writer Sphinx-API layer. They can be planned/executed as two largely-parallel-safe phases (FWD-01, FWD-02) rather than a strict sequence, though both must land before "every CI job green" per the milestone's Active requirement.
+- **`codly` has no available upgrade lever — this is a verification risk, not a code-change task:** unlike the other three packages, there's no version bump to reach for if `codly` 1.3.0 turns out incompatible with typst 0.15. If empirical testing in phase work surfaces a break, escalate immediately — the only fallback would be a fork/patch or waiting on upstream `Dherse/codly` to publish its already-tagged `v1.3.1` to `typst/packages`.
 
-## Milestone Definition of Done
+## MVP Definition
 
-### Required To Close This Milestone (Table Stakes)
+### Launch With (v0.5.0)
 
-- [ ] `black --check .` exits 0 on full tree
-- [ ] `ruff check .` exits 0 on full tree
-- [ ] `mypy typsphinx/` exits 0
-- [ ] All 12 `ci.yml` `test` matrix jobs (3 OS × py3.10–3.13) pass
-- [ ] `ci.yml` `coverage` job passes
-- [ ] `ci.yml` `build` job still passes (no regression)
-- [ ] `ci.yml` `integration` job still passes (no regression)
-- [ ] `docs.yml` `build-docs` job passes, including the `typstpdf` PDF build step
-- [ ] `release.yml validate` job's 4 commands verified clean (dry-run; can't trigger without a tag)
-- [ ] `typst`, `sphinx`, `docutils` pinned to a mutually-compatible, upper-bounded set
-- [ ] `@preview` package versions consistent across all 3 hardcoded locations
-- [ ] `uv.lock` regenerated once, matching final pins + Python range
-- [ ] `requires-python`, classifiers, tox env_list, ci.yml matrix, and black/ruff/mypy target-versions all read 3.10–3.13 consistently
+Minimum to close FWD-01 + FWD-02 and get every CI job green:
 
-### Add If Time Allows (Durability — Strongly Recommended, Not Blocking)
+- [ ] Bump `mitex` 0.2.4→0.2.7 across all 3 sync points — resolves the `kai` error (root cause, HIGH confidence)
+- [ ] Bump `gentle-clues` 1.2.0→1.3.1 across all 3 sync points — no API break, safe hygiene bump
+- [ ] Bump `codly-languages` 0.1.1→0.1.10 across all 3 sync points — no API break, safe hygiene bump
+- [ ] Leave `codly` at `1.3.0` (nothing newer published) — but empirically verify it compiles clean under typst>=0.15 as part of this milestone's CI-green gate
+- [ ] Update `tests/test_preview_version_sync.py` expected version constants to match
+- [ ] Drop `sphinx<9` and `typst<0.15` ceilings in `pyproject.toml`; regenerate `uv.lock`
+- [ ] Run `black .` / `ruff check .` fixes for the already-observed reformatting drift under the new resolved deps
+- [ ] Spot-audit `translator.py`'s definition-list-item (multi-`<term>`) handling against docutils 0.22's structural note; add a targeted test if it's found to silently drop terms
+- [ ] Full 3-OS × Python 3.10–3.13 matrix green, `docs.yml` (incl. PDF build) green
 
-- [ ] Scheduled weekly `cron` trigger added to `ci.yml`
-- [ ] Upper-bound version-constraint comments explaining the incident
-- [ ] Dependabot grouping for the sphinx/docutils/typst cluster
-- [ ] CI status badge added to `README.md` (only after green)
+### Add After Validation (not blocking v0.5.0, but cheap to fold in if time allows)
 
-### Explicitly Out of Scope (Do Not Do This Cycle)
+- [ ] Swap `template_engine.py`'s `doctree.traverse()` → `doctree.findall()` for API consistency with the rest of the codebase
+- [ ] Refresh any hardcoded `@preview` version strings in `docs/`/`README.md` examples to match the new pins
+- [ ] Add a regression test specifically exercising the mitex construct that used to emit `kai`, for durable coverage beyond "the version number is high enough"
 
-- [ ] Sphinx 9 / Typst 0.15 / newest `@preview` forward-porting
-- [ ] Configurable `@preview` package versions
-- [ ] Incremental-build / rebuild-tracking refactor
-- [ ] New translation features or reST constructs
-- [ ] Broader exception-handling / translator state-management / image-path refactors
+### Future Consideration (explicitly deferred)
+
+- [ ] FWD-03: configurable `@preview` package versions (already tracked as its own tech-debt item)
+- [ ] Sphinx 8/typst 0.14 ⇄ Sphinx 9/typst 0.15 compatibility range (explicitly rejected — latest-only)
+- [ ] New reST construct / translation feature coverage surfaced incidentally during the docutils 0.22 audit
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value (maintainer/CI-consumer) | Implementation Cost | Priority |
+| Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| typst/sphinx/docutils pin fix | HIGH | HIGH | P1 |
-| Python floor modernization | HIGH | MEDIUM | P1 |
-| black/ruff pass | HIGH | LOW | P1 |
-| uv.lock regeneration | HIGH | LOW | P1 |
-| `@preview` version sync | HIGH | LOW | P1 |
-| release.yml dry-run verification | MEDIUM | LOW | P1 |
-| Scheduled CI cron | HIGH (anti-recurrence) | LOW | P2 |
-| Version-constraint hygiene comments | MEDIUM | LOW | P2 |
-| Dependabot grouping | MEDIUM | LOW-MEDIUM | P2 |
-| CI badge | LOW | TRIVIAL | P2 |
-| Typst/`@preview` compatibility smoke check | MEDIUM | MEDIUM | P3 (future milestone) |
-| Sphinx 9/Typst 0.15 forward-port | N/A this cycle | HIGH | Explicitly excluded |
+| mitex 0.2.4→0.2.7 bump | HIGH (unblocks all PDF-integration tests + docs-pdf) | LOW | P1 |
+| gentle-clues 1.2.0→1.3.1 bump | MEDIUM (hygiene, unlikely to be the sole CI blocker) | LOW | P1 |
+| codly-languages 0.1.1→0.1.10 bump | MEDIUM (hygiene) | LOW | P1 |
+| codly 1.3.0 empirical 0.15 verification | HIGH (no fallback lever if it breaks) | LOW (verification) / unknown if it fails | P1 |
+| version-sync test update | HIGH (gates CI) | LOW | P1 |
+| Sphinx 9 API audit (builder/writer/translator/config) | HIGH (confirms the "no-op" expectation) | LOW (audit) | P1 |
+| docutils 0.22 multi-`<term>` / figure-reference audit | MEDIUM (edge-case correctness) | LOW-MEDIUM | P1/P2 |
+| `traverse()`→`findall()` swap | LOW | LOW | P3 |
+| docs/README version-string refresh | LOW | LOW | P3 |
+| mitex `kai` regression test | MEDIUM (durability) | MEDIUM | P2 |
 
 **Priority key:**
-- P1: Must have to close this milestone
-- P2: Should have, adds durability against recurrence, low cost to include now
-- P3: Nice to have, defer to a future milestone
+- P1: Must have for v0.5.0 green CI
+- P2: Should have, add when possible without expanding scope
+- P3: Nice to have, purely optional polish
 
-## CI Job → Root Cause Mapping
+## Competitor Feature Analysis
 
-| Workflow / Job | Currently | Root Cause | Fix Depends On |
-|------|--------------|--------------|--------------|
-| `ci.yml` / `lint` | FAIL | 3 files need `black` reformat | Nothing (independent, do first) |
-| `ci.yml` / `type-check` | PASS | — | Must not regress on Python-floor bump |
-| `ci.yml` / `test` (12 jobs) | FAIL (matrix-wide) | `typst==0.15.0` resolves; `kai` unknown-variable error from a `@preview` package incompatible with 0.15 | Pin fix + uv.lock regen + tox/ci.yml Python range update |
-| `ci.yml` / `coverage` | FAIL | Same as `test` (7 PDF-integration tests fail) | Same as `test` |
-| `ci.yml` / `build` | PASS | — | Must not regress on `requires-python`/classifiers change |
-| `ci.yml` / `integration` | Likely PASS (uses `-b typst`, not `-b typstpdf`) | N/A — doesn't invoke Typst compiler | Verify assumption; no fix expected |
-| `docs.yml` / `build-docs` | FAIL (PDF step) | Same `typst`/`@preview` incompatibility via `sphinx-build -b typstpdf` | Same pin fix |
-| `release.yml` / `validate` | Not directly observed (no tag pushed) | Mirrors `ci.yml` lint/test/type-check inline | Passively fixed once `ci.yml` green; verify by dry-run |
-| `release.yml` / `build`, `publish-pypi`, `create-release`, `publish-testpypi` | Not directly observed | Depend on `validate` passing first (`needs:`) | No independent code changes expected |
+Not applicable in the traditional sense — this is a compatibility/maintenance milestone for a single tool's dependency graph, not a competitive feature build. The closest analog is "how do other Sphinx→X builders handle bundled third-party package pinning," which is out of scope for a forward-compat feature landscape; pinning-strategy pitfalls belong in PITFALLS.md, not this file.
 
 ## Sources
 
-- `.planning/PROJECT.md` (failure evidence, Active/Out-of-Scope requirements, Context section) — HIGH confidence, primary source of truth for this milestone's scope
-- `.planning/codebase/CONCERNS.md` (tech-debt inventory: hardcoded `@preview` versions, incremental-build gap, dependency-at-risk analysis) — HIGH confidence, direct codebase inspection
-- `.planning/codebase/STACK.md`, `.planning/codebase/TESTING.md`, `.planning/codebase/CONVENTIONS.md` — HIGH confidence, direct codebase inspection
-- `.github/workflows/ci.yml`, `.github/workflows/docs.yml`, `.github/workflows/release.yml` — HIGH confidence, direct inspection of the actual CI configuration this milestone must repair
-- `.github/dependabot.yml`, `README.md` badges — HIGH confidence, direct inspection
-- `pyproject.toml`, `tox.ini` — HIGH confidence, direct inspection of current tool configs (black/ruff/mypy target versions, pytest markers, tox env_list)
-- Web search: "typst 0.15 unknown variable kai error preview package" — LOW confidence, no direct public documentation found describing this specific incompatibility; treat the exact known-good `typst`/`@preview` combination as **unverified, requiring empirical local testing**, not a settled research fact
-- Web search: "black target-version py313 support changelog" — MEDIUM confidence; confirms Black added `py313` as a valid `--target-version` value in a version after 24.8.0 (Oct 2024) — the currently pinned `black>=23.0` floor will resolve a version that supports `py313`, but the exact minimum version needed should be verified when bumping `target-version = [..., "py313"]`
+- [Sphinx 9.0 changelog](https://www.sphinx-doc.org/en/master/changes/9.0.html) — incompatible changes + deprecations (MEDIUM confidence, WebSearch-synthesized; re-verify directly at implementation time)
+- [Sphinx Deprecated APIs reference](https://www.sphinx-doc.org/en/master/extdev/deprecated.html)
+- [Sphinx 8.0/8.1/8.2 changelogs](https://www.sphinx-doc.org/en/master/changes/8.0.html) — pre-9.0 deprecation lead-time context
+- [Docutils Release Notes](https://docutils.sourceforge.io/RELEASE-NOTES.html) — 0.22/0.21/0.18.1 entries (MEDIUM confidence, WebSearch-synthesized)
+- [Typst 0.15.0 changelog](https://typst.app/docs/changelog/0.15.0/) — breaking changes, deprecated-symbol removal (MEDIUM confidence)
+- [Typst 0.15 blog post "Typst 0.15 contains multitudes"](https://typst.app/blog/2026/typst-0.15/)
+- [typst/typst v0.15.0 GitHub release](https://github.com/typst/typst/releases/tag/v0.15.0)
+- [typst-py PyPI page](https://pypi.org/project/typst/) and [messense/typst-py GitHub](https://github.com/messense/typst-py)
+- [mitex-rs/mitex CHANGELOG.md](https://raw.githubusercontent.com/mitex-rs/mitex/main/CHANGELOG.md) — **HIGH confidence, primary source**: confirms the 0.2.6 `kai` deprecation-warning fix
+- [typst/packages GitHub repo](https://github.com/typst/packages) (queried via GitHub API for `packages/preview/{mitex,gentle-clues,codly,codly-languages}` directory listings) — **HIGH confidence, primary source**: ground-truth latest-published-version data, superseding Typst Universe web-page summaries which showed some date inconsistencies
+- [gentle-clues CHANGELOG.md](https://raw.githubusercontent.com/jomaway/typst-gentle-clues/main/CHANGELOG.md) and [lib/predefined.typ](https://raw.githubusercontent.com/jomaway/typst-gentle-clues/main/lib/predefined.typ) — **HIGH confidence, primary source**
+- codly-languages `lib.typ` diff (0.1.1 vs 0.1.10), fetched via `raw.githubusercontent.com/typst/packages/main/packages/preview/codly-languages/` — **HIGH confidence, primary source**
+- Dherse/codly `typst.toml` (main branch, unpublished v1.3.1), fetched via `raw.githubusercontent.com/Dherse/codly/main/typst.toml` — **HIGH confidence, primary source**
+- typsphinx source: `typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, `typsphinx/translator.py`, `typsphinx/builder.py`, `typsphinx/__init__.py`, `typsphinx/pdf.py`, `.planning/PROJECT.md` — direct codebase inspection
 
 ---
-*Feature research for: CI/CD maintenance & dependency-pin repair (typsphinx)*
-*Researched: 2026-07-04*
+*Feature research for: typsphinx v0.5.0 forward-ecosystem milestone (Sphinx 9 + typst 0.15+)*
+*Researched: 2026-07-09*

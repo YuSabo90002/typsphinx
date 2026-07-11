@@ -92,6 +92,7 @@ def test_usage_has_sections():
 def test_usage_is_valid_rst():
     """Test that usage.rst is valid reStructuredText"""
     from docutils.core import publish_string
+    from docutils.writers import get_writer_class
 
     usage_file = Path(__file__).parent.parent / "docs" / "usage.rst"
     content = usage_file.read_text()
@@ -100,7 +101,7 @@ def test_usage_is_valid_rst():
     try:
         publish_string(
             source=content,
-            writer_name="html",
+            writer=get_writer_class("html")(),
             settings_overrides={"report_level": 2},  # Only report errors
         )
     except Exception as e:

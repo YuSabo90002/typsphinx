@@ -92,9 +92,9 @@ class TypstWriter(writers.Writer):
             imports = []
             imports.append("// Essential imports for included document")
             imports.append('#import "@preview/codly:1.3.0": *')
-            imports.append('#import "@preview/codly-languages:0.1.1": *')
-            imports.append('#import "@preview/mitex:0.2.4": mi, mitex')
-            imports.append('#import "@preview/gentle-clues:1.2.0": *')
+            imports.append('#import "@preview/codly-languages:0.1.10": *')
+            imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+            imports.append('#import "@preview/gentle-clues:1.3.1": *')
             imports.append("")
             imports.append("// Initialize codly")
             imports.append("#show: codly-init.with()")

@@ -236,7 +236,7 @@ class TemplateEngine:
         from sphinx import addnodes
 
         # Try to find toctree node in doctree
-        toctree_nodes = list(doctree.traverse(addnodes.toctree))
+        toctree_nodes = list(doctree.findall(addnodes.toctree))
 
         if not toctree_nodes:
             # No toctree found - return empty dict
@@ -311,9 +311,9 @@ class TemplateEngine:
             # Import essential packages (needed for content, not just template)
             output_parts.append("// Essential package imports")
             output_parts.append('#import "@preview/codly:1.3.0": *')
-            output_parts.append('#import "@preview/codly-languages:0.1.1": *')
-            output_parts.append('#import "@preview/mitex:0.2.4": mi, mitex')
-            output_parts.append('#import "@preview/gentle-clues:1.2.0": *')
+            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
             output_parts.append("")  # Blank line
 
             # Import template from separate file

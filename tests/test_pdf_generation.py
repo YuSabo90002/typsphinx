@@ -77,7 +77,7 @@ class TestTypstPDFBuilder:
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
 
         assert builder is not None
-        assert builder.app == temp_sphinx_app
+        assert builder._app == temp_sphinx_app
         assert builder.name == "typstpdf"
 
     def test_builder_finish_generates_pdf(self, temp_sphinx_app, tmp_path):

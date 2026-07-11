@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-11
+
+### Changed
+
+- **Forward-Ecosystem Port**
+  - Sphinx re-pinned to the `>=9.1,<10` line, `docutils` to `>=0.21,<0.23`, and `typst` to
+    the `>=0.15.0,<0.16` line
+  - Python floor raised to 3.12-3.13 (3.10 and 3.11 dropped from the support matrix)
+  - Bundled `@preview` packages bumped in lockstep: `mitex` (`0.2.4`→`0.2.7`, the fix for
+    `unknown variable: kai` under typst 0.15), `gentle-clues` (`1.2.0`→`1.3.1`), and
+    `codly-languages` (`0.1.1`→`0.1.10`); `codly` confirmed to already compile cleanly at `1.3.0`
+
+### Fixed
+
+- **Admonition Rendering** (Phase 8.1)
+  - Fixed a translator markup/code-mode mismatch that caused `.. note::`-style admonitions
+    to render literal, unevaluated Typst source instead of typeset prose
+  - Added coverage for previously-missing admonition types (`hint`, `error`, `danger`,
+    `attention`, generic `.. admonition::`)
+
+### Added
+
+- **CI Durability Guardrails**
+  - Added a `typst compile` smoke test that exercises all bundled `@preview` packages via
+    real function calls, catching `kai`-class breaks before release
+  - Updated `drift.yml` and the Dependabot dependency group to the new major-version ceilings
+
 ## [0.4.3] - 2025-11-01
 
 ### Changed
@@ -525,6 +552,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.5.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.5.0
 [0.4.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.3
 [0.4.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.2
 [0.4.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.1
@@ -534,4 +562,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.5.0...HEAD
