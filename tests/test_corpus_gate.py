@@ -226,3 +226,85 @@ def test_catalogue_unknown_visit_multiline():
     # line-start "WARNING: unknown node type: <" prefix is not counted.
     assert "prose" not in catalogue
     assert sum(catalogue.values()) == 2
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-02 corpus render gate",
+)
+class TestCorpusRenderGate:
+    """
+    Real-compile acceptance gate for GATE-02: Sphinx's own `doc/` tree
+    compiles end-to-end through typsphinx's `typstpdf` builder with no
+    fatal `TypstCompilationError`.
+
+    Requirements: GATE-02 (15-CONTEXT.md D-01..D-05, 15-RESEARCH.md).
+    """
+
+    def test_corpus_compiles_with_no_fatal_error(self, corpus_doc_dir, tmp_path):
+        """
+        Clone (cached), augment, build the FULL corpus (D-02) through
+        `-b typstpdf`, and assert the compiled `index.pdf` exists, is
+        non-empty, and starts with the `%PDF` magic bytes -- never relying
+        on `returncode == 0` alone (RESEARCH Pitfall 1: a missing
+        `typst_documents` entry would make `TypstPDFBuilder.finish()`
+        silently no-op, passing a returncode-only check trivially without
+        ever calling `typst.compile()`).
+
+        As a byproduct of the same build's captured stderr, the SC#2
+        `unknown_visit` catalogue is produced and printed to stdout.
+        """
+        wire_typsphinx_into_corpus_conf(corpus_doc_dir)
+
+        # RESEARCH Pitfall 1 guard: a cheap, loud pre-check that the
+        # append actually landed before spending minutes on a real build.
+        conf_text = (corpus_doc_dir / "conf.py").read_text(encoding="utf-8")
+        assert "typst_documents" in conf_text, (
+            "wire_typsphinx_into_corpus_conf did not append typst_documents "
+            "-- TypstPDFBuilder.finish() would silently no-op and this "
+            "test would pass falsely (RESEARCH Pitfall 1)"
+        )
+
+        # Log the resolved tag and the clone's commit SHA for
+        # reproducibility against a possibly force-moved tag (T-15-01).
+        tag = resolve_corpus_tag()
+        sha_result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=corpus_doc_dir,
+            capture_output=True,
+            text=True,
+        )
+        commit_sha = sha_result.stdout.strip()
+        print(f"Corpus tag: {tag}")
+        print(f"Corpus commit SHA: {commit_sha}")
+
+        outdir = tmp_path / "_build"
+        result = _run_corpus_sphinx_build("typstpdf", corpus_doc_dir, outdir)
+
+        # SC#1 crux: the emitted PDF must actually exist -- docname-based
+        # naming (builder.py:544/560), never the typst_documents "target"
+        # field, never returncode == 0 alone. A fatal
+        # TypstCompilationError raised inside the subprocess build
+        # surfaces here as a nonzero return + a missing/empty PDF, failing
+        # these asserts loudly -- this IS the GATE-02 pass/fail signal.
+        pdf_path = outdir / "index.pdf"
+        assert pdf_path.exists(), (
+            "No index.pdf produced -- check typst_documents wiring landed "
+            f"and no fatal TypstCompilationError occurred:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert pdf_path.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_path, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        # SC#2 byproduct: the unknown_visit frequency catalogue from the
+        # same build's captured stderr.
+        catalogue = catalogue_unknown_visit(result.stderr)
+        assert catalogue, (
+            "Expected the unknown_visit catalogue to be non-empty (SC#2 "
+            "raw material) -- the full corpus is expected to exercise at "
+            "least some not-yet-handled node types"
+        )
+        print(f"Unknown Visit Catalogue: {catalogue.most_common()}")
