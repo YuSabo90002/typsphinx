@@ -23,9 +23,11 @@ clone failure, or an unresolvable tag (D-05).
 
 As a byproduct of the SAME build's captured stderr, the residual
 `unknown_visit` warnings (nodes with no `visit_*`/`depart_*` handler) are
-extractable as a frequency-ranked catalogue via a `re.MULTILINE`-anchored
-regex, since a single warning's node dump can itself span multiple physical
-lines (SC#2).
+extractable as a frequency-ranked catalogue by matching the full literal
+`WARNING: unknown node type: <` prefix (newline-normalized, not line-start
+anchored, so it parses identically across POSIX and Windows-captured
+stderr), since a single warning's node dump can itself span multiple
+physical lines (SC#2).
 """
 
 import os
@@ -175,24 +177,34 @@ def _run_corpus_sphinx_build(
     )
 
 
-# Anchored on the literal line-start warning prefix (never on the full,
-# potentially multi-line node dump `str(node)` can produce) -- see
+# Matched on the full literal warning prefix `WARNING: unknown node type: <`
+# anywhere in the captured stderr -- deliberately NOT `^`-anchored. On Windows
+# CI the corpus build's warning lines carried a leading carriage-return (and
+# can carry a Sphinx source-location prefix), so a `^`-anchored MULTILINE regex
+# silently matched nothing there while working on Linux/macOS -- yielding an
+# empty catalogue and a false SC#2 failure even though the PDF compiled
+# fatal-free. The full literal prefix is specific enough to keep false-positive
+# immunity: prose merely mentioning "unknown node type" (without the exact
+# `WARNING: unknown node type: <` prefix) is still never matched, and a node's
+# own multi-line `str(node)` dump never carries that prefix mid-content. See
 # typsphinx/translator.py's unknown_visit (logger.warning(f"unknown node
-# type: {node}")). re.MULTILINE lets `^` match at the start of every
-# physical line, not just the start of the whole string.
-UNKNOWN_NODE_RE = re.compile(r"^WARNING: unknown node type: <(\w+)", re.MULTILINE)
+# type: {node}")).
+UNKNOWN_NODE_RE = re.compile(r"WARNING: unknown node type: <(\w+)")
 
 
 def catalogue_unknown_visit(stderr_text: str) -> Counter:
     """Frequency-count unknown_visit warnings by outer node tag name.
 
-    Anchored on the literal warning-line prefix (not on the full,
-    potentially multi-line node dump) so embedded newlines in a node's own
-    text content never cause a false split or a missed/duplicated count,
-    and prose merely mentioning "unknown node type" (without the WARNING
-    prefix at line-start) is never counted (false-positive immunity).
+    Line endings are normalized first (`\\r\\n`/`\\r` -> `\\n`) so
+    Windows-captured stderr parses identically to POSIX. Matching on the
+    full literal `WARNING: unknown node type: <` prefix (not anchored to
+    line-start) means embedded newlines in a node's own text content never
+    cause a false split or a missed/duplicated count, and prose merely
+    mentioning "unknown node type" (without the WARNING prefix) is never
+    counted (false-positive immunity).
     """
-    return Counter(UNKNOWN_NODE_RE.findall(stderr_text))
+    normalized = stderr_text.replace("\r\n", "\n").replace("\r", "\n")
+    return Counter(UNKNOWN_NODE_RE.findall(normalized))
 
 
 def test_catalogue_unknown_visit_multiline():
@@ -224,9 +236,35 @@ def test_catalogue_unknown_visit_multiline():
     # TYPE, not a bug).
     assert catalogue["label"] == 1
     # Prose text containing the substring "unknown node type" WITHOUT the
-    # line-start "WARNING: unknown node type: <" prefix is not counted.
+    # "WARNING: unknown node type: <" prefix is not counted.
     assert "prose" not in catalogue
     assert sum(catalogue.values()) == 2
+
+
+def test_catalogue_unknown_visit_windows_crlf_and_prefix():
+    """Regression guard for the Windows CI false-negative (v0.6.0 close).
+
+    The original `^`-anchored MULTILINE regex silently matched nothing on
+    Windows-captured stderr -- warning lines there carried CRLF endings, a
+    leading lone carriage-return, or a Sphinx `path:line:` source-location
+    prefix, none of which start with the literal `WARNING`. The parser now
+    normalizes line endings and matches the full prefix anywhere, so all
+    three POSIX-vs-Windows-divergent shapes count identically.
+    """
+    stderr_text = (
+        # CRLF-terminated line with a Windows source-location prefix (no
+        # longer at line-start -> the old `^WARNING` anchor missed it).
+        "d:\\a\\typsphinx\\usage\\builders.rst:5: "
+        "WARNING: unknown node type: <todo_node ids='todo-1'>\r\n"
+        # Line with a leading lone carriage-return before the prefix.
+        "\rWARNING: unknown node type: <manpage>\r\n"
+        # Plain POSIX line, no prefix, no CR.
+        "WARNING: unknown node type: <todo_node>\n"
+    )
+    catalogue = catalogue_unknown_visit(stderr_text)
+    assert catalogue["todo_node"] == 2
+    assert catalogue["manpage"] == 1
+    assert sum(catalogue.values()) == 3
 
 
 @pytest.mark.slow
@@ -303,12 +341,15 @@ class TestCorpusRenderGate:
         # SC#2 byproduct: the unknown_visit frequency catalogue from the
         # same build's captured stderr.
         catalogue = catalogue_unknown_visit(result.stderr)
+        print(f"Unknown Visit Catalogue: {catalogue.most_common()}")
         assert catalogue, (
             "Expected the unknown_visit catalogue to be non-empty (SC#2 "
             "raw material) -- the full corpus is expected to exercise at "
-            "least some not-yet-handled node types"
+            "least some not-yet-handled node types.\n"
+            "If this fails only on one platform, the parser missed the "
+            "warning format; stderr tail (last 3000 chars) for diagnosis:\n"
+            f"{result.stderr[-3000:]}"
         )
-        print(f"Unknown Visit Catalogue: {catalogue.most_common()}")
 
 
 # ============================================================================
