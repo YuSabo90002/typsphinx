@@ -99,6 +99,13 @@ class TypstTranslator(SphinxTranslator):
         self.in_paragraph = False
         self.paragraph_has_content = False  # Track if paragraph has any content nodes
         self.in_list_item = False  # Track if currently in a list item
+        # Stack of prior in_list_item values, pushed on each visit_list_item
+        # and popped on depart_list_item. A bare boolean loses the outer
+        # item's context when a NESTED list closes (its depart_list_item would
+        # otherwise reset the flag to False), which mis-classifies a paragraph
+        # following a nested list as top-level and emits an unseparated
+        # `par(...)` right after the nested `list(...)` -> `})par(` syntax error.
+        self._list_item_stack: List[bool] = []
         self.in_literal_block = False  # Track if currently in a code block
 
         # Stream-based list rendering state (Issue #61)
@@ -1076,7 +1083,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The list item node
         """
-        # Mark that we're in a list item (disable par() wrapping)
+        # Mark that we're in a list item (disable par() wrapping).
+        # Push the prior value so a nested list's depart_list_item restores
+        # the OUTER item's context instead of clobbering it to False.
+        self._list_item_stack.append(self.in_list_item)
         self.in_list_item = True
 
         # Add comma before 2nd+ items
@@ -1103,7 +1113,15 @@ class TypstTranslator(SphinxTranslator):
         # Close the { } block
         self.add_text("\n}")
 
-        self.in_list_item = False
+        # Restore the prior context: after a nested list item closes we are
+        # still inside the OUTER list item (True), while a top-level item
+        # restores to False. This keeps the existing list_item_needs_separator
+        # machinery driving newline separators for any block that follows a
+        # nested list (list->par, list->list, ...), fixing the `})par(` class.
+        if self._list_item_stack:
+            self.in_list_item = self._list_item_stack.pop()
+        else:
+            self.in_list_item = False
 
     def visit_literal_block(self, node: nodes.literal_block) -> None:
         """
