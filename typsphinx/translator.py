@@ -3115,6 +3115,27 @@ class TypstTranslator(SphinxTranslator):
         refuri = node.get("refuri", "")
         refid = node.get("refid", "")
 
+        # Resolve a LOCAL cross-document refuri (`<relpath><out_suffix>#anchor`)
+        # up-front and decide whether its TARGET document is actually part of
+        # the compiled master's include-set. A resolved cross-document
+        # reference whose target doc is NOT included -- e.g. an ``:orphan:``
+        # doc, excluded from every toctree, whose .typ is written but never
+        # #include()d -- has no anchor in the compiled master; emitting
+        # link(<targetdoc:anchor>) there would hard-fail typst.compile() with
+        # "label ... does not exist". Such a reference must DEGRADE to plain
+        # text (matching the LaTeX builder's undefined-reference behavior),
+        # which means it opens NO link wrapper -- so this decision has to be
+        # made here, before opens_wrapper / the concat-element enter below.
+        # An empty master include-set (no typst_documents, mock/hand-built test
+        # builders) is treated as "unknown" and never degrades, preserving the
+        # existing cross-document behavior for those paths.
+        xref = self._resolve_xref_docname(refuri) if refuri else None
+        degrade_xref_to_text = False
+        if xref is not None:
+            master_included = getattr(self.builder, "master_included_docnames", None)
+            if master_included and xref[0] not in master_included:
+                degrade_xref_to_text = True
+
         # An empty-url reference (no refuri and no refid) opens NO wrapper: it
         # renders its children as plain inline content directly in the outer
         # context, so it must NOT enter/suppress a concat context (its children
@@ -3135,8 +3156,11 @@ class TypstTranslator(SphinxTranslator):
         # expression'. Every other inline visitor (visit_Text / visit_literal /
         # visit_strong / visit_emphasis) already guards its newline this way; do
         # the same here rather than emitting the newline unconditionally.
+        # A degraded cross-document reference renders as plain inline text (no
+        # link wrapper), so like the empty-url path it must NOT enter/suppress a
+        # concat context -- its children participate in the outer context.
         in_concat = self._inline_concat_context() is not None
-        opens_wrapper = bool(refuri or refid)
+        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
         if opens_wrapper:
             self._enter_inline_concat_element()
 
@@ -3212,8 +3236,23 @@ class TypstTranslator(SphinxTranslator):
             # with the current docname so it matches this document's anchor.
             label = self._namespace_label(self._current_docname(), refuri[1:])
             self.add_text(f"{prefix}link(<{label}>, ")
-        elif (xref := self._resolve_xref_docname(refuri)) is not None:
+        elif xref is not None:
             # Resolved CROSS-document reference (`<relpath><out_suffix>#anchor`).
+            if degrade_xref_to_text:
+                # Target document is NOT part of the compiled master (orphan /
+                # excluded from every toctree). Its anchor does not exist in the
+                # master, so emit NO label link -- render the reference's text as
+                # plain inline content (opens_wrapper was False, so no concat
+                # element was entered; this mirrors the empty-url skip-wrapper
+                # path exactly). Warn Sphinx-style so it surfaces in the build
+                # warnings without turning a graceful degradation into a fatal.
+                logger.warning(
+                    f"cross-reference to non-included document '{xref[0]}' "
+                    f"rendered as plain text (typstpdf includes only "
+                    f"toctree-reachable documents): {node.astext()}"
+                )
+                self._skip_link_wrapper = True
+                return
             # In the flattened master this must become a real label link, not a
             # dead string url: namespace with the TARGET docname so it byte-
             # matches the anchor the target document emitted.

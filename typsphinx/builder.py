@@ -72,6 +72,61 @@ class TypstBuilder(Builder):
         # each label defined exactly once so every reference still resolves.
         self._included_docnames: set[str] = set()
 
+        # The SET of docnames whose .typ is physically part of the compiled
+        # master (each master in typst_documents plus the transitive toctree
+        # closure reachable from it). Any doc NOT in this set -- e.g. an
+        # ``:orphan:`` doc, which Sphinx excludes from EVERY toctree -- is
+        # written as a .typ but never #include()d into the master, so the
+        # anchors it emits do not exist in the compiled document. The
+        # translator consults this set (via builder.master_included_docnames)
+        # to DEGRADE a cross-document reference whose target lies outside it
+        # to plain text, rather than emitting a link(<targetdoc:anchor>) label
+        # link that would dangle and hard-fail typst.compile() with
+        # "label ... does not exist". Populated up-front in write() (from the
+        # fully-read env's toctree graph) so it is reliably available before
+        # any reference is emitted; empty until then (an empty set means "no
+        # masters / unknown" and suppresses degradation, preserving behavior
+        # for hand-built test doctrees and mock builders).
+        self.master_included_docnames: set[str] = set()
+
+    def _compute_master_included_docnames(self) -> set[str]:
+        """Compute the transitive toctree closure of the master document(s).
+
+        The compiled master ``.typ`` (one per ``typst_documents`` entry)
+        physically ``#include()``s the transitive closure of toctree entries
+        reachable from its source doc -- exactly the set of documents whose
+        anchors end up in the compiled document. This walks Sphinx's canonical
+        ``env.toctree_includes`` (``dict[str, list[str]]`` mapping each doc to
+        the docs it directly pulls in via ``toctree``) breadth-first from every
+        master source docname, and includes the masters themselves.
+
+        ``env.toctree_includes`` is the read-phase-resolved include graph, so
+        ``:orphan:`` documents (excluded from every toctree) never appear in
+        it -- which is precisely why a cross-reference to one must degrade.
+        Glob toctrees are already expanded to concrete docnames in this map, so
+        the resulting set matches what ``visit_toctree`` actually emits.
+
+        Returns:
+            The set of docnames included in some compiled master, or an empty
+            set when no masters are configured (which the translator treats as
+            "unknown" and does not degrade against).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        masters = [entry[0] for entry in typst_documents if entry]
+        toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
+
+        included: set[str] = set()
+        stack = list(masters)
+        while stack:
+            docname = stack.pop()
+            if docname in included:
+                continue
+            included.add(docname)
+            for child in toctree_includes.get(docname, []):
+                if child not in included:
+                    stack.append(child)
+        return included
+
     def get_outdated_docs(self) -> Iterator[str]:
         """
         Return an iterator of document names that need to be rebuilt.
@@ -150,6 +205,14 @@ class TypstBuilder(Builder):
         # Start each build with a clean include-dedup ledger so re-builds and
         # multiple write() invocations do not carry stale state across masters.
         self._included_docnames = set()
+
+        # Compute the master include-set NOW (the read phase is complete, so
+        # env.toctree_includes is fully populated) rather than lazily during
+        # visit_toctree: a cross-document reference in one document may be
+        # emitted BEFORE the toctree that includes its target is processed, so
+        # the set must be fully known up-front for the degrade decision to be
+        # reliable regardless of document write order.
+        self.master_included_docnames = self._compute_master_included_docnames()
 
         # Write individual documents
         warnings_count = 0
