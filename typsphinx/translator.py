@@ -2780,8 +2780,32 @@ class TypstTranslator(SphinxTranslator):
         self.add_text("  set heading(offset: 1)\n")
 
         # Generate include() for each entry within the scope block
-        # Each included file has its own imports, so block scope is safe
+        # Each included file has its own imports, so block scope is safe.
+        #
+        # Deduplicate by ABSOLUTE docname across the whole master include graph
+        # (the ledger lives on the builder, so it spans every document composing
+        # one master -- not just this one toctree). Sphinx documentation
+        # commonly lists the same document in more than one toctree (e.g.
+        # doc/index.rst lists usage/extensions/index both directly and nested
+        # under usage/index). In HTML each page is its own file, so a repeated
+        # toctree entry is harmless navigation; but Typst's #include() flattens
+        # each file inline, so #including one .typ twice re-emits every Typst
+        # <label> it defines and the compile aborts with "label ... occurs
+        # multiple times". Keeping only the FIRST include() of each docname
+        # leaves every label defined exactly once, so all references (which are
+        # never dropped) still resolve. Mock builders in unit tests have no
+        # ledger; getattr(..., None) falls back to the original no-dedup path.
+        included_docnames = getattr(self.builder, "_included_docnames", None)
         for _title, docname in entries:
+            if included_docnames is not None:
+                if docname in included_docnames:
+                    logger.debug(
+                        f"Skipping duplicate toctree include() for already-"
+                        f"included document: {docname}"
+                    )
+                    continue
+                included_docnames.add(docname)
+
             # Compute relative path for include() (Issue #5 fix)
             relative_path = self._compute_relative_include_path(
                 docname, current_docname

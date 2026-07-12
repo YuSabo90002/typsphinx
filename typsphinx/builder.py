@@ -58,6 +58,20 @@ class TypstBuilder(Builder):
         # Value: destination path (empty string for now, compatible with parent class)
         self.images: dict[str, str] = {}
 
+        # Track absolute docnames already emitted as an #include() across the
+        # WHOLE master include graph, so a document reachable via more than one
+        # toctree path (a "diamond") is physically #included at most ONCE per
+        # build. Sphinx's own doc/index.rst, for example, lists
+        # usage/extensions/index both directly (its "Reference" toctree) and
+        # nested under usage/index (its "User guide" toctree). Since Typst's
+        # #include() flattens each file's content inline, including the same
+        # .typ twice re-emits EVERY Typst <label> that file defines, and Typst
+        # rejects the compiled master with "label ... occurs multiple times".
+        # Deduplicating at include() granularity (the unit that is duplicated
+        # is a whole document, not a single translator-emitted anchor) keeps
+        # each label defined exactly once so every reference still resolves.
+        self._included_docnames: set[str] = set()
+
     def get_outdated_docs(self) -> Iterator[str]:
         """
         Return an iterator of document names that need to be rebuilt.
@@ -132,6 +146,10 @@ class TypstBuilder(Builder):
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
         logger.info("done")
+
+        # Start each build with a clean include-dedup ledger so re-builds and
+        # multiple write() invocations do not carry stale state across masters.
+        self._included_docnames = set()
 
         # Write individual documents
         warnings_count = 0
