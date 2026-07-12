@@ -111,6 +111,10 @@ class TypstTranslator(SphinxTranslator):
         self._custom_admonition_title: str | None = (
             None  # Static Python-literal title (e.g. "Important", "See Also")
         )
+        self._title_section_ids: List[str] = (
+            []  # Parent section's ids, captured in visit_title for the
+            # matching depart_title's anchor emission (see visit_title)
+        )
 
     def astext(self) -> str:
         """
@@ -219,8 +223,23 @@ class TypstTranslator(SphinxTranslator):
             self._in_admonition_title = True
             return
 
-        # Use heading() function (no # prefix in code mode)
-        self.add_text(f"heading(level: {self.section_level}, ")
+        # Sections always carry docutils-assigned ids (auto-slugged from the
+        # title, or merged in from a preceding explicit `.. _label:` target)
+        # -- internal cross-references (e.g. a figure's internal `:target:`,
+        # FIG-02/D-03) resolve to these ids via refid and require a matching
+        # Typst anchor to exist, or the compile aborts with "label does not
+        # exist" (Issue #114 GATE-01 discovery). Typst's `<label>` anchor
+        # syntax is only valid as a markup-mode postfix, so -- exactly like
+        # visit_figure's bracket-wrap fix -- bracket-wrap the heading() call
+        # in markup content when the parent section has ids.
+        self._title_section_ids = (
+            node.parent.get("ids") if isinstance(node.parent, nodes.section) else None
+        ) or []
+        if self._title_section_ids:
+            self.add_text(f"[#heading(level: {self.section_level}, ")
+        else:
+            # Use heading() function (no # prefix in code mode)
+            self.add_text(f"heading(level: {self.section_level}, ")
 
     def depart_title(self, node: nodes.title) -> None:
         """
@@ -242,8 +261,22 @@ class TypstTranslator(SphinxTranslator):
             self._in_admonition_title = False
             return
 
-        # Close heading() function
-        self.add_text(")\n\n")
+        if self._title_section_ids:
+            # Close the heading() call, attach the first id as the markup
+            # anchor, and close the markup bracket opened in visit_title.
+            # Typst only accepts one <label> per content element, so any
+            # additional ids (e.g. both an auto-slugged name and a merged-in
+            # explicit target name) get a zero-width metadata(none) anchor
+            # each, pointing at the same document location.
+            primary_id, *extra_ids = self._title_section_ids
+            self.add_text(f") <{primary_id}>]\n")
+            for extra_id in extra_ids:
+                self.add_text(f"[#metadata(none) <{extra_id}>]\n")
+            self.add_text("\n")
+        else:
+            # Close heading() function
+            self.add_text(")\n\n")
+        self._title_section_ids = []
 
     def visit_subtitle(self, node: nodes.subtitle) -> None:
         """
@@ -1172,7 +1205,19 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a figure node.
 
-        Generates figure() function call (no # prefix in code mode).
+        Generates figure() function call (no # prefix in code mode), unless
+        docutils has assigned the figure an id -- which happens
+        automatically whenever a figure carries a caption, for numref/
+        cross-reference support, regardless of whether the user gave an
+        explicit `:name:` -- in which case the call is bracket-wrapped in
+        markup content (`[#figure(...) <label>]`). Typst's `<label>` anchor
+        syntax is only valid as a markup-mode postfix; attaching it to a
+        bare code-mode statement inside this translator's unified `#{ ... }`
+        code-mode document wrapper is a Typst parse error ("expected
+        semicolon or line break") that aborts the whole compile -- a real
+        fatal bug discovered by Phase 11's GATE-01 real-compile acceptance
+        gate (Issue #114), affecting every captioned figure, not just the
+        FIG-01/FIG-02 cases that phase otherwise targets.
 
         Args:
             node: The figure node
@@ -1181,8 +1226,11 @@ class TypstTranslator(SphinxTranslator):
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
 
-        # Start figure with potential label (no # prefix in code mode)
-        self.add_text("figure(\n")
+        if node.get("ids"):
+            self.add_text("[#figure(\n")
+        else:
+            # Start figure with potential label (no # prefix in code mode)
+            self.add_text("figure(\n")
 
     def depart_figure(self, node: nodes.figure) -> None:
         """
@@ -1199,10 +1247,12 @@ class TypstTranslator(SphinxTranslator):
         if self.figure_caption:
             self.add_text(f",\n  caption: {{{self.figure_caption}}}")
 
-        # Add label if figure has ids
+        # Add label if figure has ids. The trailing `]` closes the markup
+        # bracket opened in visit_figure -- see that method's docstring for
+        # why the label must live inside a markup-mode bracket pair.
         if node.get("ids"):
             label = node["ids"][0]
-            self.add_text(f"\n) <{label}>\n\n")
+            self.add_text(f"\n) <{label}>]\n\n")
         else:
             self.add_text("\n)\n\n")
 
