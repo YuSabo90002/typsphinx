@@ -67,7 +67,7 @@ acceptance fixture (`sphinx-build → typst.compile() → pypdf`).
 - [x] **Phase 11: Issue #114 Fatal Fixes + Graceful-Degrade Net** - px→pt length helper + figure caption/`:target:` buffer-swap fix + graphviz/inheritance_diagram skip overrides; stands up the per-phase real-compile gate (blocking prerequisite for the whole milestone) (completed 2026-07-12)
 - [x] **Phase 12: High-Volume Independent Node Handlers** - versionmodified (×972), empty-URL/`refid` cross-refs (×596), autodoc `desc_*` sub-parts, and the trivial transition/glossary/tabular_col_spec/abbr nodes — all pattern-reuse, one new state var at most (completed 2026-07-12)
 - [x] **Phase 13: Shared Dispatch-Point Changes (topic + line blocks)** - generalize the load-bearing `visit_title` for topic + render `line`/`line_block` with verbatim breaks, landed with admonition-title regression fixtures (completed 2026-07-12)
-- [ ] **Phase 14: Footnotes (doctree pre-pass)** - `footnote`/`footnote_reference` via Typst-native `footnote[...]` — the only architecturally-new item (document-order pre-pass), sequenced late to build confidence
+- [x] **Phase 14: Footnotes (doctree pre-pass)** - `footnote`/`footnote_reference` via Typst-native `footnote[...]` — the only architecturally-new item (document-order pre-pass), sequenced late to build confidence (completed 2026-07-12)
 - [ ] **Phase 15: Full-Corpus Validation** - real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree with no fatal error; catalogue residual warnings + measure empty-URL reduction
 
 ## Phase Details
@@ -183,7 +183,7 @@ of Phases 12–13.
   3. A footnote body containing inline markup (`emph`/`literal`) and markup-special characters renders correctly (sourced via buffer-swap through the normal visitor chain, never `astext()`), compiling cleanly.
   4. A real-compile acceptance fixture (GATE-01 standing bar) exercises the single-reference, double-reference, and footnote-inside-a-list-item cases.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 **Wave 1**
 
@@ -191,7 +191,7 @@ of Phases 12–13.
 
 **Wave 2** *(needs the translator handlers landed to compile real output)*
 
-- [ ] 14-02-PLAN.md — GATE-01 real-compile render gate: `footnote_render_gate` fixture + `TestFootnoteRenderGate` covering single-ref/double-ref/inline-markup/list-item (SC#1–4) (wave 2)
+- [x] 14-02-PLAN.md — GATE-01 real-compile render gate: `footnote_render_gate` fixture + `TestFootnoteRenderGate` covering single-ref/double-ref/inline-markup/list-item (SC#1–4) (wave 2)
 
 ### Phase 15: Full-Corpus Validation
 
@@ -230,7 +230,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
-| 14. Footnotes (doctree pre-pass) | v0.6.0 | 1/2 | In Progress|  |
+| 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete   | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
 
 ---

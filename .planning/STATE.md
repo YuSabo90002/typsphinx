@@ -4,17 +4,17 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 14
 current_phase_name: footnotes-doctree-pre-pass
-status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-07-12T05:36:54.474Z"
+status: verifying
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-07-12T05:47:32.845Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 11
-  percent: 60
+  completed_plans: 12
+  percent: 80
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 14 (footnotes-doctree-pre-pass) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-12 — Phase 14 execution started
 
 Progress: [██████████] 100%
@@ -87,6 +87,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 13-03]: Used a class-scoped GATE-01 fixture to build+compile+extract once per class, shared across three thin assertion-only test methods, avoiding three recompiles
 - [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
 - [Phase 14-01]: Used self.document.findall(nodes.footnote) instead of the deprecated .traverse() -- traverse() raises DeprecationWarning, escalated to a hard failure by this project's strict pytest filter
+- [Phase 14-02]: Fixed a paragraph-state-clobbering bug in visit_footnote_reference's buffer-swap (save/restore in_paragraph/paragraph_has_content around the nested walkabout) -- discovered by the GATE-01 real-compile fixture; without it, any footnote followed by trailing text in the same sentence was a FATAL Typst compile abort
 
 ### Pending Todos
 
@@ -122,12 +123,13 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 13 P02 | 4min | 2 tasks | 2 files |
 | Phase 13 P03 | 7min | 2 tasks | 3 files |
 | Phase 14 P01 | 5min | 2 tasks | 2 files |
+| Phase 14 P02 | 15min | 2 tasks | 4 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T05:36:54.469Z
-Stopped at: Completed 14-01-PLAN.md
-Resume file: 14-02-PLAN.md
+Last session: 2026-07-12T05:47:32.840Z
+Stopped at: Completed 14-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
