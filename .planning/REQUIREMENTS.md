@@ -38,7 +38,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 ### Structural / block nodes
 
 - [x] **BLK-01**: A `transition` (`----` scene break) renders as a horizontal rule (`line(length: 100%)`)
-- [ ] **BLK-02**: A `.. topic::` renders as a titled aside (reusing the admonition helper)
+- [x] **BLK-02**: A `.. topic::` renders as a titled aside (reusing the admonition helper)
 - [ ] **BLK-03**: `line` / `line_block` content renders with verbatim line breaks preserved (`linebreak()`)
 - [x] **BLK-04**: A `.. glossary::` renders as its underlying definition list (pass-through wrapper)
 - [x] **BLK-05**: A `tabular_col_spec` (`.. tabularcolumns::`, LaTeX-only hint) is skipped safely without leaking content
@@ -97,7 +97,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DESC-04 | Phase 12 | Complete |
 | FN-01 | Phase 14 | Pending |
 | BLK-01 | Phase 12 | Complete |
-| BLK-02 | Phase 13 | Pending |
+| BLK-02 | Phase 13 | Complete |
 | BLK-03 | Phase 13 | Pending |
 | BLK-04 | Phase 12 | Complete |
 | BLK-05 | Phase 12 | Complete |

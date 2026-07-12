@@ -152,11 +152,11 @@ regression fixtures for the existing admonition titles.
   3. Existing admonition titles (`.. note::`, `.. warning::` — the Phase 8.1 behavior) still render correctly after the `visit_title` generalization, proven by a regression fixture inside the same real-compile gate.
   4. A real-compile acceptance fixture (GATE-01 standing bar) covers topic + line_block together with the admonition-title regression.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — BLK-02 topic + `visit_title` generalization (D-01/D-02/D-05/D-06 + Pitfall-1 multi-child-title fix) + topic/contents/clamp unit tests (wave 1)
+- [x] 13-01-PLAN.md — BLK-02 topic + `visit_title` generalization (D-01/D-02/D-05/D-06 + Pitfall-1 multi-child-title fix) + topic/contents/clamp unit tests (wave 1)
 
 **Wave 2** *(shares translator.py with Wave 1)*
 
@@ -221,7 +221,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
-| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 0/3 | Not started | - |
+| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 1/3 | In Progress|  |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
 
