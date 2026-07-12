@@ -207,14 +207,14 @@ warning-count reduction from the XREF-01 fix is measured before/after against th
   2. The remaining `unknown_visit` warnings from that build are catalogued by frequency and recorded as the next milestone's backlog input (the gate is "no fatal errors," not "zero warnings").
   3. The empty-URL cross-reference warning count is measured before and after the XREF-01 fix against the same corpus, quantifying the reduction rather than assuming it.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 **Wave 1**
 
 - [x] 15-01-PLAN.md — SC#1 corpus render gate (clone + real-conf append + full-tree `-b typstpdf` fatal-free build) + SC#2 catalogue parser
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 15-02-PLAN.md — SC#3 empty-URL before/after machinery (git-worktree revert of XREF-01 `depart_term`, `-b typst` both sides)
+- [x] 15-02-PLAN.md — SC#3 empty-URL before/after machinery (git-worktree revert of XREF-01 `depart_term`, `-b typst` both sides)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -242,7 +242,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete    | 2026-07-12 |
-| 15. Full-Corpus Validation | v0.6.0 | 1/3 | In Progress|  |
+| 15. Full-Corpus Validation | v0.6.0 | 2/3 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11*

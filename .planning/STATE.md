@@ -5,15 +5,15 @@ milestone_name: — real-world robustness
 current_phase: 15
 current_phase_name: full-corpus-validation
 status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-07-12T07:20:57.664Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-07-12T15:57:38.409Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 14
   percent: 80
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 ## Current Position
 
 Phase: 15 (full-corpus-validation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 15 execution started
 
@@ -90,6 +90,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 14-02]: Fixed a paragraph-state-clobbering bug in visit_footnote_reference's buffer-swap (save/restore in_paragraph/paragraph_has_content around the nested walkabout) -- discovered by the GATE-01 real-compile fixture; without it, any footnote followed by trailing text in the same sentence was a FATAL Typst compile abort
 - [Phase 15-01]: Split the single new tests/test_corpus_gate.py file into two atomic commits matching the plan's two tasks, via staged partial-content writes rather than git add -p (which doesn't cleanly split a brand-new untracked file by hunk)
 - [Phase 15-01]: In-sandbox network happened to be available; the slow TestCorpusRenderGate gate ran for real (did not skip) and correctly caught a genuine pre-existing fatal TypstError -- a missing `_static/python-logo.png` asset in TypstBuilder's image-copy pass -- not caused by this plan's changes, flagged for a follow-up plan/phase rather than fixed inline (out of this plan's tests/test_corpus_gate.py-only scope)
+- [Phase 15-02]: D-07 revert mechanism adjusted to worktree-at-HEAD + targeted depart_term patch (not 79c9d45~1 checkout) to isolate XREF-01 from 55 intervening campaign-fix commits — Preserves D-07's measurement intent while avoiding conflation with unrelated bug fixes
+- [Phase 15-02]: both SC#3 before/after builds use -b typst only (never typstpdf) per RESEARCH Pitfall 2 — Reverted depart_term's dangling :term: glossary label would fatally abort typst.compile()
 
 ### Pending Todos
 
@@ -127,11 +129,12 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 14 P01 | 5min | 2 tasks | 2 files |
 | Phase 14 P02 | 15min | 2 tasks | 4 files |
 | Phase 15 P01 | 15min | 2 tasks | 1 files |
+| Phase 15 P02 | 20min | 2 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T07:20:57.659Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-07-12T15:57:32.796Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
