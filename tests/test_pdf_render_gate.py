@@ -1321,3 +1321,116 @@ class TestFootnoteRenderGate:
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- footnote markup/code-mode regression"
             )
+
+
+# ---------------------------------------------------------------------------
+# GATE-02 corpus fatal #14 (Phase 15): codly's @preview 1.3.0 codly()
+# function has no `start` parameter -- typsphinx emitted `codly(start: N)`
+# for :linenos: code blocks with a known Sphinx `linenostart`, which
+# codly 1.3.0 rejects with `TypstError: unexpected argument: start`. The
+# correct parameter is `offset` (an additive delta: displayed number =
+# line.number + offset, so offset = linenostart - 1). Sphinx's
+# LiteralInclude directive always populates highlight_args['linenostart']
+# (defaulting to 1) even without an explicit :lineno-start: option, so the
+# fix also guards against emitting a spurious offset:0 call for that
+# default case. This is a FAST (non-slow, offline) render gate -- no
+# network/corpus dependency, following the TestAdmonitionPdfRenderGate
+# pattern above rather than the @pytest.mark.slow GATE-01 pattern.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the codly offset render gate",
+)
+class TestCodlyOffsetRenderGate:
+    """
+    Real-compile acceptance gate for the codly `start:` -> `offset:`
+    API-mismatch fix (GATE-02 corpus fatal #14).
+
+    Requirements: GATE-02 (15-CONTEXT.md), Issue #31 (:lineno-start:).
+    """
+
+    def test_codly_offset_pdf_compiles_and_uses_offset_not_start(
+        self, fixtures_dir, temp_build_dir
+    ):
+        """
+        Compile the codly_offset_render_gate fixture (an explicit
+        :lineno-start: 5 code-block, a plain :linenos: code-block, and a
+        plain :linenos: literalinclude -- the exact construct that produced
+        20 fatal occurrences in the real Sphinx doc/ corpus) to PDF and
+        confirm: (1) the emitted .typ source uses `codly(offset: ...)`,
+        never the removed `codly(start: ...)`; (2) no spurious offset call
+        is emitted for the default linenostart=1 case; (3) typst.compile()
+        succeeds (no `unexpected argument: start` TypstError) and all three
+        code blocks' content reaches the extracted PDF text.
+        """
+        source_dir = fixtures_dir / "codly_offset_render_gate"
+
+        result = _run_sphinx_build_typst(source_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        # Source-level check: the removed `start:` parameter must never be
+        # emitted, and the explicit :lineno-start: 5 block must emit the
+        # correct offset (5 - 1 = 4).
+        assert "codly(start:" not in typ_source, (
+            "codly 1.3.0 has no `start` parameter -- emitting it causes "
+            "'TypstError: unexpected argument: start'"
+        )
+        assert "codly(offset: 4)" in typ_source, (
+            "Expected codly(offset: 4) for the :lineno-start: 5 code-block "
+            "(offset = linenostart - 1)"
+        )
+
+        # The plain :linenos: code-block (no explicit :lineno-start:) never
+        # populates highlight_args['linenostart'] in Sphinx, so it must not
+        # emit any offset call either.
+        #
+        # The literalinclude block DOES get linenostart=1 from Sphinx by
+        # default -- this must be guarded against emitting `codly(offset: 0)`
+        # (or the removed `codly(start: 1)`), matching codly's own default.
+        assert "codly(offset: 0)" not in typ_source, (
+            "linenostart=1 (the default) must not emit a spurious "
+            "codly(offset: 0) call"
+        )
+
+        # 2. Compile the emitted .typ to PDF with typst-py, WITHOUT
+        # try/except: a leaked codly(start:...) call must abort the compile
+        # here and fail the test loudly (this is the crux of the fatal).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        # 3. Extract text with pypdf and confirm all three code blocks'
+        # content reached the compiled PDF.
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for sentinel in (
+            "CODLYEXPLICITSTARTSENTINEL",
+            "CODLYPLAINLINENOSSENTINEL",
+            "CODLYLITERALINCLUDESENTINEL",
+        ):
+            assert sentinel in full_text, (
+                f"Expected code-block sentinel '{sentinel}' in extracted " "PDF text"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- codly markup/code-mode regression"
+            )

@@ -937,8 +937,11 @@ def test_literal_block_with_lineno_start(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly(start: 42)
-    assert "codly(start: 42)" in output, "Should generate #codly(start: 42)"
+    # codly 1.3.0 has no `start` parameter -- it uses `offset`, an additive
+    # delta (offset = linenostart - 1) applied to the raw block's 1-indexed
+    # line.number. See translator.py visit_literal_block for the transform.
+    assert "codly(offset: 41)" in output, "Should generate #codly(offset: 41)"
+    assert "codly(start:" not in output, "Should not use the removed start: param"
     assert "```python" in output, "Should still use code block with language"
 
 
@@ -961,12 +964,56 @@ def test_literal_block_with_lineno_start_without_linenos(simple_document, mock_b
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should not generate #codly(start: ...)
+    # Should not generate a line-number-offset call at all (no start: --
+    # removed param -- and no offset: since linenos itself is unset)
     assert (
         "#codly(start:" not in output
     ), "Should not generate start parameter without linenos"
+    assert (
+        "#codly(offset:" not in output
+    ), "Should not generate offset parameter without linenos"
     # Should disable line numbers
     assert "codly(number-format: none)" in output
+    assert "```python" in output
+
+
+def test_literal_block_with_linenos_default_start_no_offset_emitted(
+    simple_document, mock_builder
+):
+    """A :linenos: block whose linenostart is 1 must NOT emit a codly()
+    offset/start call -- this is the default case and matches codly's own
+    default (offset=0).
+
+    Regression test for the GATE-02 corpus fatal: Sphinx's LiteralInclude
+    directive ALWAYS populates highlight_args['linenostart'] (defaulting to
+    1) even without an explicit :lineno-start: option -- unlike CodeBlock,
+    which only sets it when :lineno-start: is given. Before the fix, the
+    `lineno_start is not None` guard alone was too loose and emitted a
+    spurious `codly(start: 1)` (a call codly 1.3.0 rejects outright with
+    "unexpected argument: start") for every plain `:linenos:`
+    literalinclude block -- the exact construct hit 20x across 4 Sphinx
+    tutorial docs in the real corpus.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text="line 1\nline 2\nline 3")
+    literal_block["language"] = "python"
+    literal_block["linenos"] = True
+    # Simulates LiteralIncludeReader's always-present default: linenostart=1
+    # even though no explicit :lineno-start: option was given.
+    literal_block["highlight_args"] = {"linenostart": 1}
+    translator.visit_literal_block(literal_block)
+    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3"))
+    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3"))
+    translator.depart_literal_block(literal_block)
+
+    output = translator.astext()
+    assert "codly(start:" not in output, "Should never emit the removed start: param"
+    assert (
+        "codly(offset:" not in output
+    ), "Should not emit a spurious offset: for the default linenostart=1 case"
     assert "```python" in output
 
 
@@ -1001,8 +1048,10 @@ def test_literal_block_with_lineno_start_and_emphasize(simple_document, mock_bui
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate both #codly(start: 100) and #codly-range(highlight: ...)
-    assert "codly(start: 100)" in output, "Should generate start parameter"
+    # Should generate both #codly(offset: 99) and #codly-range(highlight: ...)
+    # (codly 1.3.0 uses offset = linenostart - 1, not start:)
+    assert "codly(offset: 99)" in output, "Should generate offset parameter"
+    assert "codly(start:" not in output, "Should not use the removed start: param"
     assert "codly-range(highlight:" in output, "Should generate highlight parameter"
     assert "2" in output, "Should include highlighted line number"
     assert "```python" in output
