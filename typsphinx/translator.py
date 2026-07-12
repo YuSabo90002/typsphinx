@@ -160,10 +160,23 @@ class TypstTranslator(SphinxTranslator):
         # saved by _enter_inline_concat_element and restored by
         # _exit_inline_concat_element (or None when no context was active).
         self._inline_concat_stack: List[Tuple[str, str] | None] = []
-        self.definition_list_items = []  # List of (term, definition) tuples
-        self.saved_body: List[Any] | None = (
-            None  # Used by definition lists for body swapping
-        )
+        # (term, definition) pairs for the CURRENT (innermost) definition list.
+        # Aliases the top of _deflist_items_stack so a nested definition list
+        # cannot clobber the enclosing list's collected items.
+        self.definition_list_items: List[Tuple[str, str]] = []
+        # Stacks that make definition-list buffering re-entrant. A definition
+        # may CONTAIN a nested definition list (e.g. an autodoc docstring whose
+        # first block IS a definition list); each level must save/restore its
+        # own body buffer, pending term, and item collection. A single slot
+        # (the old self.saved_body / current_*_buffer) is overwritten by the
+        # inner list, orphaning the outer body -- both the outer definition's
+        # content AND any body written afterward (a desc_signature + its <id>
+        # anchor) are then silently dropped, dangling the cross-reference link
+        # (GATE-02 fatal #18). Mirrors the _list_item_stack (bug #4) and
+        # _inline_concat_stack (bug #5) stack idiom.
+        self._saved_body_stack: List[List[Any]] = []
+        self._deflist_items_stack: List[List[Tuple[str, str]]] = []
+        self._pending_term_stack: List[str | None] = []
 
         # Admonition title state (buffer-swap idiom, mirrors definition-list terms)
         self._pending_admonition_title: str | None = (
@@ -1410,7 +1423,11 @@ class TypstTranslator(SphinxTranslator):
             self.add_text("\n")
             self.list_item_needs_separator = False
         self.in_definition_list = True
-        self.definition_list_items = []
+        # Push a fresh item collection for THIS list and alias
+        # definition_list_items to it, so a definition list nested inside one of
+        # this list's definitions collects into its own frame (bug #18).
+        self._deflist_items_stack.append([])
+        self.definition_list_items = self._deflist_items_stack[-1]
 
     def depart_definition_list(self, node: nodes.definition_list) -> None:
         """
@@ -1421,7 +1438,17 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The definition list node
         """
-        self.in_definition_list = False
+        # Pop THIS list's item collection and restore the enclosing list's
+        # frame (or reset to empty at the top level). in_definition_list stays
+        # True while an enclosing definition list is still open, so a nested
+        # list's depart does not prematurely clear the outer state (bug #18).
+        items = self._deflist_items_stack.pop()
+        if self._deflist_items_stack:
+            self.definition_list_items = self._deflist_items_stack[-1]
+            self.in_definition_list = True
+        else:
+            self.definition_list_items = []
+            self.in_definition_list = False
 
         # Generate terms() function with all items (no # prefix in code mode).
         # The DEFINITION (2nd arg) is wrapped in a `{ ... }` content block: a
@@ -1436,10 +1463,10 @@ class TypstTranslator(SphinxTranslator):
         # auto-joins the statements into one content value -- a valid single
         # argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/
         # bug #3/#5) untouched; we wrap only the definition arg.
-        if self.definition_list_items:
+        if items:
             items_str = ", ".join(
                 f"terms.item({term}, {self._wrap_definition_arg(definition)})"
-                for term, definition in self.definition_list_items
+                for term, definition in items
             )
             self.add_text(f"terms({items_str})\n\n")
         else:
@@ -1449,9 +1476,6 @@ class TypstTranslator(SphinxTranslator):
         # this terms(...) statement.
         if self.in_list_item:
             self.list_item_needs_separator = True
-
-        # Clear collected items
-        self.definition_list_items = []
 
     @staticmethod
     def _is_single_content_block(text: str) -> bool:
@@ -1552,8 +1576,11 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The term node
         """
-        # Start buffering term content
-        self.saved_body = self.body
+        # Start buffering term content. Push the current body onto the stack
+        # (not a single saved_body slot) so a definition list nested inside this
+        # list's definition restores its own level without orphaning this one
+        # (bug #18).
+        self._saved_body_stack.append(self.body)
         self.current_term_buffer = []
         self.body = self.current_term_buffer
 
@@ -1590,10 +1617,8 @@ class TypstTranslator(SphinxTranslator):
         else:
             term_content = ""
 
-        # Restore original body
-        if self.saved_body is not None:
-            self.body = self.saved_body
-        self.saved_body = None
+        # Restore the body saved on entry (stack pop, not single slot).
+        self.body = self._saved_body_stack.pop()
 
         if node.get("ids"):
             label_id = self._sanitize_label(node["ids"][0])
@@ -1611,8 +1636,18 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The definition node
         """
-        # Start buffering definition content
-        self.saved_body = self.body
+        # Start buffering definition content. Push the current body AND capture
+        # the pending term string: a definition list nested inside this
+        # definition would otherwise overwrite the single saved_body /
+        # current_term_buffer slots, dropping THIS definition's content and its
+        # term when it departs (bug #18). The term was set to a str by
+        # depart_term; anything else means no term to pair.
+        self._saved_body_stack.append(self.body)
+        self._pending_term_stack.append(
+            self.current_term_buffer
+            if isinstance(self.current_term_buffer, str)
+            else None
+        )
         self.current_definition_buffer = []
         self.body = self.current_definition_buffer
 
@@ -1625,21 +1660,24 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The definition node
         """
-        # Get buffered definition content
-        definition_content = "".join(self.current_definition_buffer or []).strip()
+        # Read THIS definition's buffered content from self.body. Balanced
+        # nested visit/depart pairs restore self.body to this definition's own
+        # buffer, so it holds the full content (leading paragraph + any nested
+        # terms(...)); the current_definition_buffer slot may have been
+        # reassigned/None'd by a nested definition and can no longer be trusted
+        # (bug #18).
+        definition_content = "".join(self.body).strip()
 
-        # Restore original body
-        if self.saved_body is not None:
-            self.body = self.saved_body
-        self.saved_body = None
+        # Restore the body saved on entry (stack pop, not single slot).
+        self.body = self._saved_body_stack.pop()
 
-        # Pair term and definition
-        if isinstance(self.current_term_buffer, str):
-            self.definition_list_items.append(
-                (self.current_term_buffer, definition_content)
-            )
-            self.current_term_buffer = None
+        # Pair the pending term (captured on entry, before any nested list could
+        # clobber current_term_buffer) with this definition's content.
+        term = self._pending_term_stack.pop()
+        if term is not None:
+            self.definition_list_items.append((term, definition_content))
 
+        self.current_term_buffer = None
         self.current_definition_buffer = None
 
     def visit_figure(self, node: nodes.figure) -> None:
