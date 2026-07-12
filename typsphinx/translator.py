@@ -1709,6 +1709,20 @@ class TypstTranslator(SphinxTranslator):
         if self.in_figure:
             self._saved_body_for_figure_caption = self.body
             self.body = []
+            # A figure caption is a paragraph of inline content that
+            # depart_figure renders into a `{...}` code block. Establish the
+            # paragraph separator context so adjacent inline expressions
+            # (text/emphasis/the reference-with-target markup wrapper/...) are
+            # newline-separated via _add_paragraph_separator -- exactly as in a
+            # real paragraph, which already renders these correctly. Without
+            # it every inline sibling juxtaposes inside the code block
+            # (`text(...)[wrapper]text(...)`, `text(...)emph(...)`), a Typst
+            # parse error ("expected semicolon or line break"). Save/restore
+            # for nesting safety.
+            self._caption_was_in_paragraph = self.in_paragraph
+            self._caption_was_paragraph_has_content = self.paragraph_has_content
+            self.in_paragraph = True
+            self.paragraph_has_content = False
         # For figures, start collecting caption text
         self.in_caption = True
 
@@ -1728,6 +1742,9 @@ class TypstTranslator(SphinxTranslator):
             if self._saved_body_for_figure_caption is not None:
                 self.body = self._saved_body_for_figure_caption
             self._saved_body_for_figure_caption = None
+            # Restore the paragraph separator context saved in visit_caption.
+            self.in_paragraph = self._caption_was_in_paragraph
+            self.paragraph_has_content = self._caption_was_paragraph_has_content
         self.in_caption = False
 
     def visit_footnote(self, node: nodes.footnote) -> None:
@@ -2080,6 +2097,17 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The block quote node
         """
+        # Emit a leading newline separator when this block quote follows a
+        # sibling inside a list item, matching the block-visitor pattern
+        # established in bug #4 (bullet_list/literal_block/definition_list).
+        # Otherwise `quote[`/`quote(` juxtaposes against the preceding inline
+        # expression in the list-item content block -- e.g.
+        # `text(" functions:")quote[` -- a Typst parse error ("expected
+        # semicolon or line break"). block_quote was the one block visitor
+        # omitted from that fix.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+
         # Check if there's an attribution child node
         has_attribution = any(isinstance(child, nodes.attribution) for child in node)
 
@@ -2103,6 +2131,11 @@ class TypstTranslator(SphinxTranslator):
             self.add_text(")\n\n")
         else:
             self.add_text("]\n\n")
+
+        # Mark that a following sibling in the same list item must be separated
+        # (block-visitor pattern, bug #4).
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_attribution(self, node: nodes.attribution) -> None:
         """
