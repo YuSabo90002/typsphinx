@@ -221,7 +221,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
-| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete   | 2026-07-12 |
+| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
 

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
-current_phase: 13
-current_phase_name: shared-dispatch-point-changes-topic-line-blocks
+current_phase: 14
+current_phase_name: doctree pre-pass
 status: verifying
 stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-07-12T04:36:48.676Z"
+last_updated: "2026-07-12T04:42:18.692Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 13 execution started
+last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 5
   completed_phases: 3
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 ## Current Position
 
-Phase: 13 (shared-dispatch-point-changes-topic-line-blocks) — EXECUTING
-Plan: 3 of 3
+Phase: 14 — Footnotes (doctree pre-pass)
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-12 — Phase 13 execution started
+Last activity: 2026-07-12 — Phase 13 complete, transitioned to Phase 14
 
 Progress: [██████████] 100%
 
