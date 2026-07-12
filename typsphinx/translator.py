@@ -129,6 +129,10 @@ class TypstTranslator(SphinxTranslator):
 
         # Definition list state
         self.in_definition_list = False
+        self._in_term = False  # Track if buffering a def-list term for + concatenation
+        self._term_has_content: bool = (
+            False  # Track if the term buffer has content for + separator
+        )
         self.current_term_buffer: str | List[str] | None = None
         self.current_definition_buffer: List[str] | None = None
         self.definition_list_items = []  # List of (term, definition) tuples
@@ -649,6 +653,11 @@ class TypstTranslator(SphinxTranslator):
             # In link(), add + before text (except first)
             if hasattr(self, "_link_has_content") and self._link_has_content:
                 self.add_text(" + ")
+        elif getattr(self, "_in_term", False):
+            # In a def-list term (code-mode 1st arg of terms.item), adjacent
+            # inline expressions must be + concatenated (except the first).
+            if self._term_has_content:
+                self.add_text(" + ")
         elif self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
@@ -663,6 +672,8 @@ class TypstTranslator(SphinxTranslator):
             self._desc_parameter_has_content = True
         elif hasattr(self, "_in_link") and self._in_link:
             self._link_has_content = True
+        elif getattr(self, "_in_term", False):
+            self._term_has_content = True
         elif self.in_list_item:
             self.list_item_needs_separator = True
 
@@ -829,8 +840,15 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Add newline separator if in list item and not first element
-        if self.in_list_item and self.list_item_needs_separator:
+        # Add separator before the raw() expression.
+        # In a def-list term (code-mode 1st arg of terms.item), adjacent inline
+        # expressions must be + concatenated (except the first) -- mirrors the
+        # _in_link / in_desc_parameter concat handling in visit_Text.
+        if getattr(self, "_in_term", False):
+            if self._term_has_content:
+                self.add_text(" + ")
+        elif self.in_list_item and self.list_item_needs_separator:
+            # Add newline separator if in list item and not first element
             self.add_text("\n")
 
         # Get code content directly
@@ -847,8 +865,10 @@ class TypstTranslator(SphinxTranslator):
         # Using string instead of backtick raw literal for compatibility with + operator
         self.add_text(f'raw("{escaped_code}")')
 
-        # Mark that next element in list item needs separator
-        if self.in_list_item:
+        # Mark that content was added / next element needs a separator
+        if getattr(self, "_in_term", False):
+            self._term_has_content = True
+        elif self.in_list_item:
             self.list_item_needs_separator = True
 
         # Skip processing child text nodes (we already got the content)
@@ -1264,6 +1284,12 @@ class TypstTranslator(SphinxTranslator):
         self.current_term_buffer = []
         self.body = self.current_term_buffer
 
+        # Enter term concat context: adjacent inline expressions in the buffer
+        # are + concatenated (the buffer becomes the code-mode 1st arg of
+        # terms.item, where juxtaposition is a Typst syntax error).
+        self._in_term = True
+        self._term_has_content = False
+
     def depart_term(self, node: nodes.term) -> None:
         """
         Depart a term (definition list term) node.
@@ -1281,6 +1307,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The term node
         """
+        # Exit term concat context.
+        self._in_term = False
+        self._term_has_content = False
+
         # Get buffered term content
         if isinstance(self.current_term_buffer, list):
             term_content = "".join(self.current_term_buffer).strip()
