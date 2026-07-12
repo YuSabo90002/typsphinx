@@ -3668,6 +3668,31 @@ class TypstTranslator(SphinxTranslator):
         # Use strong's depart logic
         dummy_strong = nodes.strong()
         self.depart_strong(dummy_strong)
+        # Emit a Typst anchor for every id on the signature so same-document
+        # cross-references resolve to this API declaration. depart_reference's
+        # refid branch emits ``link(<_sanitize_label(refid)>, ...)`` for a
+        # same-document xref, but the anchor it points at was never emitted
+        # here -- unlike visit_target/visit_title/depart_term, desc_signature
+        # (the node type carrying API-declaration ids) emitted none, so every
+        # ``:c:func:``/``:py:func:`` style refid link to a declaration dangled
+        # with Typst's semantic ``label ... does not exist``.
+        #
+        # Mirror the proven target-anchor form -- ``[#metadata(none) <id>]`` --
+        # a zero-content markup block that carries the label and joins cleanly
+        # as its own statement in the surrounding code-mode block (a bare
+        # code-mode ``label("id")`` would juxtapose/fail to join). Route every
+        # id through _sanitize_label so the anchor name byte-matches the
+        # reference side (both sides use the same helper). Multiple ids
+        # (aliases/overloads) each get an anchor; a signature with NO ids emits
+        # nothing (byte-unchanged). ids are globally unique per document
+        # (docutils make_id), so no label is defined twice; dedupe defensively.
+        seen_labels: set[str] = set()
+        for node_id in node.get("ids", []):
+            label_id = self._sanitize_label(node_id)
+            if label_id in seen_labels:
+                continue
+            seen_labels.add(label_id)
+            self.body.append(f"\n[#metadata(none) <{label_id}>]")
         # Add extra spacing after signature
         self.body.append("\n")
 
