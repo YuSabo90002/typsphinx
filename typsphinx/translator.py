@@ -2645,10 +2645,6 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Add newline separator if in list item and not first element
-        if self.in_list_item and self.list_item_needs_separator:
-            self.add_text("\n")
-
         # Get the reference URI
         refuri = node.get("refuri", "")
         refid = node.get("refid", "")
@@ -2662,9 +2658,26 @@ class TypstTranslator(SphinxTranslator):
         # term / link body / desc parameter) is + separated, and that outer
         # context is suppressed for the link body -- handled by the link's own
         # _in_link context -- so no stray '+' leaks inside link(...).
+        #
+        # Concat/newline mutual exclusion (bug #9): capture whether a code-mode
+        # concat context is active BEFORE _enter_inline_concat_element suppresses
+        # its flag. Inside a concat context the '+' operator IS the separator, so
+        # the list-item newline must NOT also fire -- otherwise a wrapper-opening
+        # reference that is the first parameter emits
+        #   text("(") +  <newline>  link(...)
+        # stranding the '+' at end-of-line (no right operand) -> 'expected
+        # expression'. Every other inline visitor (visit_Text / visit_literal /
+        # visit_strong / visit_emphasis) already guards its newline this way; do
+        # the same here rather than emitting the newline unconditionally.
+        in_concat = self._inline_concat_context() is not None
         opens_wrapper = bool(refuri or refid)
         if opens_wrapper:
             self._enter_inline_concat_element()
+
+        # Add list-item newline separator only when NOT in a concat context
+        # (mutually exclusive with the concat '+' separator emitted above).
+        if not in_concat and self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
 
         # Check if next sibling is a target node (for label attachment)
         # This is needed in both list items and paragraphs in unified code mode
