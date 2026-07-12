@@ -34,6 +34,19 @@ class TypstBuilder(Builder):
     out_suffix = ".typ"
     allow_parallel = True
 
+    # Mimetypes Typst's image() function can embed, in preference order
+    # (vector first, then lossless/animated raster, lossy raster last).
+    # Consulted by post_process_images() to resolve a `*`-glob image URI
+    # (e.g. ".. figure:: _static/foo.*") to one concrete candidate file --
+    # mirrors sphinx.builders.html.StandaloneHTMLBuilder's ordering, which
+    # uses the same four formats.
+    supported_image_types: list[str] = [
+        "image/svg+xml",
+        "image/png",
+        "image/gif",
+        "image/jpeg",
+    ]
+
     def init(self) -> None:
         """
         Initialize the builder.
@@ -143,21 +156,78 @@ class TypstBuilder(Builder):
         Collects all image nodes from the document tree and tracks them
         in self.images dictionary for later copying to the output directory.
 
+        For a `*`-glob image URI (e.g. ``.. figure:: _static/foo.*``),
+        Sphinx's read-phase ImageCollector leaves ``node["uri"]`` as the
+        literal, unresolved glob string and instead records the concrete
+        on-disk candidates in ``node["candidates"]`` keyed by mimetype --
+        resolving that to one concrete file is the builder's responsibility
+        (mirrors ``sphinx.builders.Builder.post_process_images``, as done by
+        the HTML/LaTeX builders via their own ``supported_image_types``).
+        This picks the best Typst-embeddable candidate and rewrites
+        ``node["uri"]`` to the resolved path, so both the translator's
+        ``visit_image`` (emits the path into the ``.typ``) and
+        ``copy_image_files()`` (copies the file) see the concrete file.
+
+        Doctrees that never passed through Sphinx's ``ImageCollector`` (e.g.
+        hand-built doctrees in unit tests) have no ``candidates`` attribute
+        at all; those fall back to the original bare-URI tracking so that
+        behavior stays unchanged.
+
         Args:
             doctree: Document tree to process
         """
         from docutils.nodes import image
 
         for node in doctree.findall(image):
-            # Get image URI
-            imguri = node.get("uri", "")
-            if not imguri:
+            candidates = node.get("candidates")
+            if not candidates:
+                # No candidates dict -- doctree never went through Sphinx's
+                # ImageCollector (e.g. a hand-built test doctree). Preserve
+                # the original bare-URI behavior.
+                imguri = node.get("uri", "")
+                if not imguri:
+                    continue
+                if imguri not in self.images:
+                    self.images[imguri] = ""
+                continue
+
+            if "?" in candidates:
+                # Non-local URI (data: URI or remote http(s):// image) --
+                # nothing on disk to resolve or copy.
+                continue
+
+            if "*" in candidates:
+                # Already a single concrete candidate (the common, non-glob
+                # case -- ImageCollector sets candidates["*"] = node["uri"]).
+                resolved_uri = candidates["*"]
+            else:
+                # Glob URI with multiple mimetype-keyed candidates. Pick the
+                # best Typst-supported type, in preference order, and
+                # rewrite node["uri"] to the concrete resolved path.
+                resolved_uri = None
+                for imgtype in self.supported_image_types:
+                    candidate = candidates.get(imgtype)
+                    if candidate:
+                        resolved_uri = candidate
+                        break
+                if resolved_uri is None:
+                    # No candidate matches a Typst-supported mimetype --
+                    # degrade gracefully (warn, skip) rather than crash.
+                    mimetypes = sorted(candidates)
+                    logger.warning(
+                        f"a suitable image for typst builder not found: "
+                        f"{mimetypes} ({node.get('uri', '')})"
+                    )
+                    continue
+                node["uri"] = resolved_uri
+
+            if not resolved_uri:
                 continue
 
             # Track this image
             # Store empty string as value to be compatible with parent class type
-            if imguri not in self.images:
-                self.images[imguri] = ""
+            if resolved_uri not in self.images:
+                self.images[resolved_uri] = ""
 
     def write_doc(self, docname: str, doctree: nodes.document) -> None:
         """
