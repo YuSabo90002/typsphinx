@@ -134,6 +134,20 @@ class TypstTranslator(SphinxTranslator):
             False  # Track if link has content for + separator
         )
 
+        # Block-quote / epigraph attribution code-mode concat context. An
+        # attribution node holds INLINE children directly (Text/emphasis/
+        # literal/reference) -- no wrapping paragraph -- so, like a def-list
+        # term or link body, adjacent children juxtapose in code mode unless
+        # + separated. visit_attribution emits the attribution as a CODE-MODE
+        # `attribution: { ... }` argument (mirroring the code-mode quote body,
+        # bug #15) and activates this context so the children are evaluated
+        # content (`emph({...}) + text(...) + raw(...)`), not literal prose --
+        # a markup-mode `attribution: [ ... ]` argument would leave the
+        # code-mode children as literal source that Typst typesets verbatim
+        # (e.g. `text("Author")` shown as `text(“Author”)`).
+        self._in_attribution = False
+        self._attribution_has_content: bool = False
+
         # Definition list state
         self.in_definition_list = False
         self._in_term = False  # Track if buffering a def-list term for + concatenation
@@ -792,6 +806,7 @@ class TypstTranslator(SphinxTranslator):
         ("_in_link", "_link_has_content"),
         ("_in_term", "_term_has_content"),
         ("_in_field_body", "_field_body_has_content"),
+        ("_in_attribution", "_attribution_has_content"),
     )
 
     def _inline_concat_context(self) -> Tuple[str, str] | None:
@@ -2350,8 +2365,8 @@ class TypstTranslator(SphinxTranslator):
         # code-mode content-block wrapping used by par()/definition (bug #7)),
         # so their string-literal chars are inert. block: true keeps block
         # quotes rendering as block quotes. The attribution, when present,
-        # closes this body block and is appended as a named argument (see
-        # visit_attribution) -- so the opening is identical in both cases.
+        # closes this body block and is appended as a code-mode named argument
+        # (see visit_attribution) -- so the opening is identical in both cases.
         self.add_text("quote(block: true, {")
 
     def depart_block_quote(self, node: nodes.block_quote) -> None:
@@ -2363,7 +2378,7 @@ class TypstTranslator(SphinxTranslator):
         """
         # Check if there's an attribution child node. When present,
         # visit_attribution already closed the body `{` and opened the named
-        # `attribution: [` argument, and depart_attribution closed that `]`;
+        # `attribution: {` argument, and depart_attribution closed that `}`;
         # so here we only close the quote() call. Otherwise we close both the
         # body block and the call.
         has_attribution = any(isinstance(child, nodes.attribution) for child in node)
@@ -2386,10 +2401,28 @@ class TypstTranslator(SphinxTranslator):
             node: The attribution node
         """
         # Close the code-mode quote body block and open the attribution as a
-        # named argument. The body is a positional arg to quote(); the named
-        # attribution follows it -- quote(block: true, { <body> }, attribution:
-        # [ <attr> ]) -- a form Typst accepts (positional then named).
-        self.add_text("}, attribution: [")
+        # named argument -- quote(block: true, { <body> }, attribution: {
+        # <attr> }) -- a form Typst accepts (positional then named).
+        #
+        # The attribution value is a CODE-MODE `{ ... }` content block, NOT a
+        # markup-mode `[ ... ]` block (mirroring the code-mode quote body,
+        # bug #15). An attribution's inline children are emitted through the
+        # code-mode visitors (visit_Text -> `text("...")`, visit_emphasis ->
+        # `emph({...})`, visit_literal -> `raw("...")`, visit_reference ->
+        # `link(...)`), each a bare (un-`#`-prefixed) function call. Inside a
+        # markup `[...]` argument those bytes are LITERAL PROSE, so Typst
+        # typesets them verbatim -- the author name renders as `text(“Author”)`
+        # (curly quotes from smart-quote typography) instead of `Author`, and
+        # a lone markup-special char in a child string literal (e.g. the `_` in
+        # an inline literal ``_t``) opens a stray unclosed emphasis span that
+        # aborts the compile. A `{ ... }` code block EVALUATES the children as
+        # real content. Activating the _in_attribution concat context makes the
+        # inline children + separated (`emph({...}) + text(...) + raw(...)`),
+        # since attribution holds inline children directly (no wrapping
+        # paragraph) that would otherwise juxtapose into a syntax error.
+        self.add_text("}, attribution: {")
+        self._in_attribution = True
+        self._attribution_has_content = False
 
     def depart_attribution(self, node: nodes.attribution) -> None:
         """
@@ -2398,8 +2431,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The attribution node
         """
-        # Close attribution parameter
-        self.add_text("]")
+        # Close the code-mode attribution content block and exit the concat
+        # context. depart_block_quote closes the enclosing quote() call.
+        self._in_attribution = False
+        self.add_text("}")
 
     def visit_image(self, node: nodes.image) -> None:
         """
