@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
-current_phase: 14
-current_phase_name: footnotes-doctree-pre-pass
+current_phase: 15
+current_phase_name: Full-Corpus Validation
 status: verifying
 stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-07-12T05:47:32.845Z"
+last_updated: "2026-07-12T05:52:08.760Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 14 execution started
+last_activity_desc: Phase 14 complete, transitioned to Phase 15
 progress:
   total_phases: 5
   completed_phases: 4
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 ## Current Position
 
-Phase: 14 (footnotes-doctree-pre-pass) — EXECUTING
-Plan: 2 of 2
+Phase: 15 — Full-Corpus Validation
+Plan: Not started
 Status: Phase complete — ready for verification
-Last activity: 2026-07-12 — Phase 14 execution started
+Last activity: 2026-07-12 — Phase 14 complete, transitioned to Phase 15
 
 Progress: [██████████] 100%
 
