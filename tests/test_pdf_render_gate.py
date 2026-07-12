@@ -95,6 +95,12 @@ def trivial_blocks_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def topic_line_block_render_gate_dir(fixtures_dir):
+    """Return the path to the topic_line_block_render_gate fixture project."""
+    return fixtures_dir / "topic_line_block_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -906,5 +912,215 @@ class TestTrivialBlocksRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- trivial-blocks markup/code-mode "
+                "regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 13 (BLK-02/BLK-03): extend the GATE-01 render-gate pattern to prove
+# visit_topic/visit_title's generalized buffer-swap (topic clue box,
+# box-less contents pass-through) and visit_line_block/visit_line
+# (verbatim linebreak() + nested indent) render correctly together in one
+# combined fixture -- alongside the SC#3 admonition-title regression
+# (including a multi-child inline-markup title, the Pitfall-1 fix).
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the topic_line_block render gate -- distinctive,
+# unlikely words chosen so their presence (or, for the outline-leak counts,
+# exact single occurrence) in the extracted PDF text proves each handler
+# behaved correctly. Must match the tokens embedded in
+# topic_line_block_render_gate/index.rst.
+TOPIC_BODY_SENTINEL = "TOPICBODYSENTINEL"
+ADDRESS_LINE_ONE_SENTINEL = "ADDRESSLINEONE"
+ADDRESS_LINE_TWO_SENTINEL = "ADDRESSLINETWO"
+POEM_LINE_ONE_SENTINEL = "POEMLINEONE"
+POEM_NESTED_ONE_SENTINEL = "POEMNESTEDONE"
+POEM_NESTED_TWO_SENTINEL = "POEMNESTEDTWO"
+POEM_LINE_THREE_SENTINEL = "POEMLINETHREE"
+
+
+@pytest.fixture(scope="class")
+def topic_line_block_render_gate_pdf_text(tmp_path_factory):
+    """
+    Build + real-compile the topic_line_block_render_gate fixture ONCE per
+    class and return the pypdf-extracted PDF text.
+
+    Class-scoped so the three thin test methods below (test_topic_*,
+    test_line_block_*, test_admonition_title_regression_*) each assert a
+    disjoint slice of the SAME real-compile artifact rather than re-running
+    sphinx-build/typst.compile() three times. Depends only on
+    `tmp_path_factory` (session-scoped-compatible) -- not on the
+    function-scoped `topic_line_block_render_gate_dir`/`fixtures_dir`
+    fixtures, to avoid a pytest ScopeMismatch (a class-scoped fixture may
+    not depend on a narrower, function-scoped one).
+    """
+    source_dir = Path(__file__).parent / "fixtures" / "topic_line_block_render_gate"
+    build_dir = tmp_path_factory.mktemp("topic_line_block_gate") / "_build"
+
+    result = _run_sphinx_build_typst(source_dir, build_dir)
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+    index_typ = build_dir / "index.typ"
+    assert index_typ.exists(), "index.typ was not generated"
+
+    # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+    # this is the crux of GATE-01 -- any fatal (a level-0 heading, a
+    # multi-child-title concatenation, leaked markup) aborts the ENTIRE
+    # compile here and fails every dependent test method loudly, rather
+    # than merely failing a string-agreement check.
+    pdf_output = build_dir / "index.pdf"
+    typst.compile(str(index_typ), output=str(pdf_output))
+
+    assert pdf_output.exists(), "PDF file was not created"
+    assert pdf_output.stat().st_size > 0, "PDF file is empty"
+    with open(pdf_output, "rb") as f:
+        magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    reader = pypdf.PdfReader(str(pdf_output))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTopicLineBlockRenderGate:
+    """
+    Real-compile acceptance gate for BLK-02/BLK-03: visit_topic/
+    depart_topic (clue box + box-less contents pass-through) and
+    visit_line_block/visit_line (verbatim linebreak() + nested indent),
+    plus the SC#3 admonition-title regression (including a multi-child
+    title, Pitfall 1).
+
+    Requirements: BLK-02, BLK-03, GATE-01 (13-CONTEXT.md D-01..D-06,
+    13-RESEARCH.md Verified Mechanisms 1-3, 13-03-PLAN.md).
+
+    All three test methods share the SAME real-compile artifact via the
+    class-scoped `topic_line_block_render_gate_pdf_text` fixture above --
+    sphinx-build/typst.compile() run exactly once per class, not once per
+    test method.
+    """
+
+    def test_topic_and_contents_render_no_outline_leak(
+        self, topic_line_block_render_gate_pdf_text
+    ):
+        """
+        BLK-02 / SC#1: the topic title and the `.. contents::` title each
+        appear EXACTLY ONCE in the extracted PDF text -- proof neither
+        leaked into Typst's auto-generated outline as a real heading()
+        would (a real heading() always populates the outline, which would
+        make its title text appear a SECOND time as an outline entry).
+        """
+        full_text = topic_line_block_render_gate_pdf_text
+
+        assert full_text.count("A Topic Title") == 1, (
+            "Expected the topic title to appear exactly once in extracted "
+            "PDF text (not duplicated into Typst's auto-outline) -- "
+            "visit_topic/visit_title generalization regression"
+        )
+        assert TOPIC_BODY_SENTINEL in full_text, (
+            f"Expected topic body sentinel '{TOPIC_BODY_SENTINEL}' in "
+            "extracted PDF text -- visit_topic/depart_topic regression"
+        )
+
+        # D-05: contents-topic renders box-less, title + list intact, and
+        # is likewise absent from the auto-outline.
+        assert full_text.count("Table of Contents") == 1, (
+            "Expected the '.. contents::' title to appear exactly once in "
+            "extracted PDF text (bold label, not boxed, not duplicated "
+            "into Typst's auto-outline) -- D-05 box-less pass-through "
+            "regression"
+        )
+
+    def test_line_block_address_and_poem_breaks(
+        self, topic_line_block_render_gate_pdf_text
+    ):
+        """
+        BLK-03 / SC#2: address (flat) and poem (one level of nesting)
+        line_block sentinels each appear as SEPARATE extracted-text lines
+        -- proof a real linebreak() fired for every `line`, not merely a
+        cosmetic source '\\n' (New-Pitfall-11-style proof, DESC-02
+        precedent).
+        """
+        full_text = topic_line_block_render_gate_pdf_text
+
+        for sentinel in (
+            ADDRESS_LINE_ONE_SENTINEL,
+            ADDRESS_LINE_TWO_SENTINEL,
+            POEM_LINE_ONE_SENTINEL,
+            POEM_NESTED_ONE_SENTINEL,
+            POEM_NESTED_TWO_SENTINEL,
+            POEM_LINE_THREE_SENTINEL,
+        ):
+            assert sentinel in full_text, (
+                f"Expected line_block sentinel '{sentinel}' in extracted "
+                "PDF text -- visit_line_block/visit_line regression"
+            )
+
+        concatenated_address = ADDRESS_LINE_ONE_SENTINEL + ADDRESS_LINE_TWO_SENTINEL
+        assert concatenated_address not in full_text, (
+            "The two address line_block sentinels were concatenated with "
+            "no separator in extracted PDF text -- linebreak() did not "
+            "produce a real visual break (New Pitfall 11 regression: a "
+            "source '\\n' alone is cosmetic-only)"
+        )
+
+        concatenated_poem = POEM_LINE_ONE_SENTINEL + POEM_NESTED_ONE_SENTINEL
+        assert concatenated_poem not in full_text, (
+            "The poem line_block's flat and nested sentinels were "
+            "concatenated with no separator in extracted PDF text -- "
+            "nested linebreak()/h() did not produce a real visual break"
+        )
+
+    def test_admonitiontitleregression_multichild(
+        self, topic_line_block_render_gate_pdf_text
+    ):
+        """
+        SC#3 (regression): `.. note::`/`.. warning::`/a generic
+        `.. admonition:: Custom *Title*` (a multi-child inline-markup
+        title) all render correctly inside the same real-compile gate --
+        the Pitfall-1 fix proof on the pre-existing admonition-title path,
+        plus the LEAK_SIGNATURES negative control.
+
+        Named `test_admonitiontitleregression_multichild` (no underscore
+        between the three words) so it is selected verbatim by
+        `-k AdmonitionTitleRegression` (13-VALIDATION.md's per-requirement
+        command) -- pytest's `-k` performs a case-insensitive CONTIGUOUS
+        substring match against the test node id, so an underscore-
+        separated `admonition_title_regression` would NOT match the
+        selector (verified empirically: underscores are literal
+        characters that break substring contiguity, unlike the `Topic`/
+        `LineBlock` selectors above which already match because the
+        enclosing class name `TestTopicLineBlockRenderGate` contains
+        those exact substrings contiguously).
+        """
+        full_text = topic_line_block_render_gate_pdf_text
+
+        assert "ADMONITIONNOTESENTINEL" in full_text, (
+            "Expected the note admonition body sentinel in extracted PDF "
+            "text -- visit_note regression"
+        )
+        assert "ADMONITIONWARNINGSENTINEL" in full_text, (
+            "Expected the warning admonition body sentinel in extracted "
+            "PDF text -- visit_warning regression"
+        )
+        assert "Custom Title" in full_text, (
+            "Expected the multi-child admonition title 'Custom Title' in "
+            "extracted PDF text -- Pitfall-1 multi-child-title regression "
+            "on the pre-existing generic admonition path"
+        )
+        assert "ADMONITIONCUSTOMSENTINEL" in full_text, (
+            "Expected the generic admonition body sentinel in extracted "
+            "PDF text -- visit_admonition regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- topic/line_block markup/code-mode "
                 "regression"
             )
