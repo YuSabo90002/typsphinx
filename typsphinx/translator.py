@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List
+from typing import Any, List, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
@@ -142,6 +142,13 @@ class TypstTranslator(SphinxTranslator):
         )
         self.current_term_buffer: str | List[str] | None = None
         self.current_definition_buffer: List[str] | None = None
+
+        # Stack of the code-mode concat context suppressed while an inline
+        # block element (emphasis/strong/reference) emits its OWN block/argument
+        # content. Each entry is the (flag, has_content) attribute-name pair
+        # saved by _enter_inline_concat_element and restored by
+        # _exit_inline_concat_element (or None when no context was active).
+        self._inline_concat_stack: List[Tuple[str, str] | None] = []
         self.definition_list_items = []  # List of (term, definition) tuples
         self.saved_body: List[Any] | None = (
             None  # Used by definition lists for body swapping
@@ -619,6 +626,110 @@ class TypstTranslator(SphinxTranslator):
         """
         pass
 
+    # ------------------------------------------------------------------
+    # Code-mode inline concatenation (single source of truth)
+    #
+    # A def-list term (the code-mode 1st arg of terms.item), a link body (the
+    # 2nd arg of link()), and a desc parameter list are all Typst code-mode
+    # positions where two juxtaposed expressions are a syntax error
+    # ("expected comma"). Adjacent inline sibling expressions in any of these
+    # contexts must therefore be joined with " + ". The helpers below are the
+    # ONE place that decides "which concat context is active" and "is this the
+    # first sibling or a following one", so every inline visitor -- the leaf
+    # visit_Text / visit_literal AND the block-opening visit_emphasis /
+    # visit_strong / visit_reference -- participates uniformly.
+    # ------------------------------------------------------------------
+
+    #: Code-mode concat contexts as (active-flag, has-content-flag) attribute
+    #: names, highest precedence first (mirrors the historical elif chain in
+    #: visit_Text: desc parameter > link > term).
+    _CONCAT_CONTEXTS: Tuple[Tuple[str, str], ...] = (
+        ("in_desc_parameter", "_desc_parameter_has_content"),
+        ("_in_link", "_link_has_content"),
+        ("_in_term", "_term_has_content"),
+    )
+
+    def _inline_concat_context(self) -> Tuple[str, str] | None:
+        """
+        Return the ``(active-flag, has-content-flag)`` attribute-name pair of
+        the currently active code-mode concat context (def-list term / link
+        body / desc parameter), highest precedence first, or ``None`` when no
+        such context is active.
+        """
+        for flag, has_content in self._CONCAT_CONTEXTS:
+            if getattr(self, flag, False):
+                return (flag, has_content)
+        return None
+
+    def _emit_inline_concat_separator(self) -> bool:
+        """
+        Emit ``" + "`` before the next inline expression when the active
+        code-mode concat context already holds an earlier sibling.
+
+        Returns ``True`` when a concat context is active (so the caller skips
+        the list-item newline separator), ``False`` otherwise.
+        """
+        ctx = self._inline_concat_context()
+        if ctx is None:
+            return False
+        if getattr(self, ctx[1]):
+            self.add_text(" + ")
+        return True
+
+    def _mark_inline_concat_content(self) -> bool:
+        """
+        Record that the active concat context now holds a sibling expression,
+        so the next inline expression is ``" + "`` separated.
+
+        Returns ``True`` when a concat context is active, ``False`` otherwise.
+        """
+        ctx = self._inline_concat_context()
+        if ctx is None:
+            return False
+        setattr(self, ctx[1], True)
+        return True
+
+    def _enter_inline_concat_element(self) -> bool:
+        """
+        Begin an inline element that opens its OWN block/argument (emphasis,
+        strong, reference) and may be a direct sibling in a code-mode concat
+        context.
+
+        Emit the ``" + "`` separator when this element follows an earlier
+        sibling, then SUPPRESS the outer concat context for the duration of the
+        element's own content: inside the element the children are a fresh
+        context (markup content for emph/strong, the link body for a
+        reference), where re-applying the outer ``+`` would leak a stray
+        operator, e.g. ``strong({ + text(...)})``. Always pushes onto
+        ``_inline_concat_stack`` so it pairs 1:1 with
+        :meth:`_exit_inline_concat_element` in the matching ``depart_*``.
+
+        Returns ``True`` when a concat context was active (so the caller skips
+        the list-item newline separator), ``False`` otherwise.
+        """
+        ctx = self._inline_concat_context()
+        self._inline_concat_stack.append(ctx)
+        if ctx is None:
+            return False
+        if getattr(self, ctx[1]):
+            self.add_text(" + ")
+        # Suppress the outer concat context inside this element's own content.
+        setattr(self, ctx[0], False)
+        return True
+
+    def _exit_inline_concat_element(self) -> None:
+        """
+        Close an inline element opened by :meth:`_enter_inline_concat_element`:
+        restore the suppressed outer concat context and record that this
+        element is now a sibling expression, so the NEXT sibling is ``" + "``
+        separated.
+        """
+        ctx = self._inline_concat_stack.pop()
+        if ctx is None:
+            return
+        setattr(self, ctx[0], True)  # un-suppress the outer context flag
+        setattr(self, ctx[1], True)  # this element = a sibling for the next one
+
     def visit_Text(self, node: nodes.Text) -> None:
         """
         Visit a text node.
@@ -645,28 +756,14 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Add separator before text
-        # In list items: use newline separator
-        # In desc_parameter or link: use + operator for concatenation
-        # In paragraphs: handled by _add_paragraph_separator
-        if self.in_desc_parameter:
-            # In desc_parameter, add + before text (except first)
-            if (
-                hasattr(self, "_desc_parameter_has_content")
-                and self._desc_parameter_has_content
-            ):
-                self.add_text(" + ")
-        elif hasattr(self, "_in_link") and self._in_link:
-            # In link(), add + before text (except first)
-            if hasattr(self, "_link_has_content") and self._link_has_content:
-                self.add_text(" + ")
-        elif getattr(self, "_in_term", False):
-            # In a def-list term (code-mode 1st arg of terms.item), adjacent
-            # inline expressions must be + concatenated (except the first).
-            if self._term_has_content:
-                self.add_text(" + ")
-        elif self.in_list_item and self.list_item_needs_separator:
-            self.add_text("\n")
+        # Add separator before text.
+        # In a code-mode concat context (def-list term / link body / desc
+        # parameter): use the + operator between adjacent inline expressions.
+        # In list items: use a newline separator. In paragraphs: handled by
+        # _add_paragraph_separator above.
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
 
         # Determine if we need # prefix (in markup mode)
         prefix = "#" if self._in_markup_mode else ""
@@ -674,15 +771,11 @@ class TypstTranslator(SphinxTranslator):
         # Wrap in text() function (# prefix needed in markup mode)
         self.add_text(f'{prefix}text("{text_content}")')
 
-        # Mark that content was added
-        if self.in_desc_parameter:
-            self._desc_parameter_has_content = True
-        elif hasattr(self, "_in_link") and self._in_link:
-            self._link_has_content = True
-        elif getattr(self, "_in_term", False):
-            self._term_has_content = True
-        elif self.in_list_item:
-            self.list_item_needs_separator = True
+        # Mark that content was added (so the next sibling is + / newline
+        # separated).
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
 
     def depart_Text(self, node: nodes.Text) -> None:
         """
@@ -707,9 +800,13 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Add newline separator if in list item and not first element
-        if self.in_list_item and self.list_item_needs_separator:
-            self.add_text("\n")
+        # If this emphasis is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the emph body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        if not self._enter_inline_concat_element():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
 
         # Temporarily disable paragraph state for children
         was_in_paragraph = self.in_paragraph
@@ -764,6 +861,11 @@ class TypstTranslator(SphinxTranslator):
                 self.list_item_needs_separator = True
             delattr(self, "_emph_was_list_item_needs_separator")
 
+        # Restore the code-mode concat context suppressed for the emph body and
+        # mark this emphasis as a sibling so the next term/link/desc expression
+        # is + separated.
+        self._exit_inline_concat_element()
+
     def visit_strong(self, node: nodes.strong) -> None:
         """
         Visit a strong (bold) node.
@@ -777,9 +879,13 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Add newline separator if in list item and not first element
-        if self.in_list_item and self.list_item_needs_separator:
-            self.add_text("\n")
+        # If this strong is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the strong body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        if not self._enter_inline_concat_element():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
 
         # Temporarily disable paragraph state for children
         was_in_paragraph = self.in_paragraph
@@ -834,6 +940,11 @@ class TypstTranslator(SphinxTranslator):
                 self.list_item_needs_separator = True
             delattr(self, "_strong_was_list_item_needs_separator")
 
+        # Restore the code-mode concat context suppressed for the strong body
+        # and mark this strong as a sibling so the next term/link/desc
+        # expression is + separated.
+        self._exit_inline_concat_element()
+
     def visit_literal(self, node: nodes.literal) -> None:
         """
         Visit a literal (inline code) node.
@@ -848,15 +959,14 @@ class TypstTranslator(SphinxTranslator):
         self._add_paragraph_separator()
 
         # Add separator before the raw() expression.
-        # In a def-list term (code-mode 1st arg of terms.item), adjacent inline
-        # expressions must be + concatenated (except the first) -- mirrors the
-        # _in_link / in_desc_parameter concat handling in visit_Text.
-        if getattr(self, "_in_term", False):
-            if self._term_has_content:
-                self.add_text(" + ")
-        elif self.in_list_item and self.list_item_needs_separator:
-            # Add newline separator if in list item and not first element
-            self.add_text("\n")
+        # In a code-mode concat context (def-list term / link body / desc
+        # parameter), adjacent inline expressions must be + concatenated
+        # (except the first); otherwise a list item uses a newline separator.
+        # Shared with visit_Text via the concat helpers (single source of
+        # truth), so a raw() that is a term/link/desc sibling is + separated.
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
 
         # Get code content directly
         code_content = node.astext()
@@ -873,10 +983,9 @@ class TypstTranslator(SphinxTranslator):
         self.add_text(f'raw("{escaped_code}")')
 
         # Mark that content was added / next element needs a separator
-        if getattr(self, "_in_term", False):
-            self._term_has_content = True
-        elif self.in_list_item:
-            self.list_item_needs_separator = True
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
 
         # Skip processing child text nodes (we already got the content)
         raise nodes.SkipNode
@@ -2407,6 +2516,23 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
+        # Get the reference URI
+        refuri = node.get("refuri", "")
+        refid = node.get("refid", "")
+
+        # An empty-url reference (no refuri and no refid) opens NO wrapper: it
+        # renders its children as plain inline content directly in the outer
+        # context, so it must NOT enter/suppress a concat context (its children
+        # participate in that context themselves). Every wrapper-opening path
+        # (same-doc refid, internal #label, external URL) DOES enter: a link
+        # that is a non-first sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter) is + separated, and that outer
+        # context is suppressed for the link body -- handled by the link's own
+        # _in_link context -- so no stray '+' leaks inside link(...).
+        opens_wrapper = bool(refuri or refid)
+        if opens_wrapper:
+            self._enter_inline_concat_element()
+
         # Check if next sibling is a target node (for label attachment)
         # This is needed in both list items and paragraphs in unified code mode
         next_is_target = False
@@ -2429,10 +2555,6 @@ class TypstTranslator(SphinxTranslator):
         # Save and reset list item separator for children (they're inside this element)
         was_list_item_needs_separator = self.list_item_needs_separator
         self.list_item_needs_separator = False
-
-        # Get the reference URI
-        refuri = node.get("refuri", "")
-        refid = node.get("refid", "")
 
         # Internal same-document :target: (e.g. a figure/image target)
         # resolves to an empty/absent refuri with a populated refid instead
@@ -2512,6 +2634,12 @@ class TypstTranslator(SphinxTranslator):
 
         # Exit link context
         self._in_link = False
+
+        # Restore the outer code-mode concat context suppressed for the link
+        # body (entered only on wrapper-opening paths, so the skip-wrapper
+        # branch above returns before this) and mark the link as a sibling so
+        # the next term/link/desc expression is + separated.
+        self._exit_inline_concat_element()
 
         # Restore and mark that next element needs separator
         if hasattr(self, "_reference_was_list_item_needs_separator"):
