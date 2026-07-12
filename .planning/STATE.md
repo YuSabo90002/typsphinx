@@ -5,15 +5,15 @@ milestone_name: — real-world robustness
 current_phase: 13
 current_phase_name: shared-dispatch-point-changes-topic-line-blocks
 status: executing
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-07-12T04:23:02.183Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-07-12T04:28:52.365Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 ## Current Position
 
 Phase: 13 (shared-dispatch-point-changes-topic-line-blocks) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 13 execution started
 
@@ -81,6 +81,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 11-03]: Fixed a third fatal Typst compile bug (label-in-code-mode) discovered while building GATE-01 fixtures: bracket-wrap labeled figure/heading emissions in markup content — Docutils auto-assigns ids to any captioned figure and internal :target: links require section anchors; without this fix neither figure fixture could compile, blocking GATE-01's own success criteria
 - [Phase 13]: D-01/D-02/D-05/D-06 and the Pitfall-1 fix landed as one atomic task/commit (Task 1), per RESEARCH.md Pitfall 2's atomicity mandate
 - [Phase 13]: Pitfall-1 multi-child-title separator+wrap fix bundled into Plan 01 rather than filed as a separate prerequisite bug fix
+- [Phase 13-02]: line_block nesting tracked with a single integer depth counter (not a stack) -- docutils' own visitor recursion provides the nesting stack for free
+- [Phase 13-02]: h() indent spacer needs no markup-mode bracket-wrap (unlike Phase 11's <label> anchors) -- plain code-mode stdlib call
 
 ### Pending Todos
 
@@ -113,11 +115,12 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 11 P02 | 10min | 2 tasks | 1 files |
 | Phase 11 P03 | ~90min | 2 tasks | 11 files |
 | Phase 13 P01 | 5min | 2 tasks | 3 files |
+| Phase 13 P02 | 4min | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T04:23:02.178Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-07-12T04:28:52.360Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
