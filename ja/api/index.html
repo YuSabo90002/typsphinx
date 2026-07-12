@@ -6,7 +6,7 @@
 <link rel="index" title="索引" href="../genindex.html"><link rel="search" title="検索" href="../search.html"><link rel="next" title="Contributing" href="../contributing.html"><link rel="prev" title="高度な例" href="../examples/advanced.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>API Reference - typsphinx 0.5.0</title>
+        <title>API Reference - typsphinx 0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -170,7 +170,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">typsphinx 0.5.0</div></a>
+      <a href="../index.html"><div class="brand">typsphinx 0.6.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.5.0</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="検索" name="q" aria-label="検索">
@@ -223,7 +223,7 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">クイックスタート</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
@@ -344,6 +344,13 @@ their compatibility with the builder.</p>
 <dd><p>Whether it is safe to make parallel <code class="xref py py-meth docutils literal notranslate"><span class="pre">write_doc()</span></code> calls.</p>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="typsphinx.builder.TypstBuilder.supported_image_types">
+<span class="sig-name descname"><span class="pre">supported_image_types</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['image/svg+xml',</span> <span class="pre">'image/png',</span> <span class="pre">'image/gif',</span> <span class="pre">'image/jpeg']</span></span><a class="headerlink" href="#typsphinx.builder.TypstBuilder.supported_image_types" title="Link to this definition">¶</a></dt>
+<dd><p>The list of MIME types of image formats supported by the builder.
+Image files are searched in the order in which they appear here.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="typsphinx.builder.TypstBuilder.init">
 <span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/builder.html#TypstBuilder.init"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.builder.TypstBuilder.init" title="Link to this definition">¶</a></dt>
@@ -435,6 +442,21 @@ For Typst, we need the original toctree nodes to generate #include() directives.
 <dd><p>Post-process images in the document tree.</p>
 <p>Collects all image nodes from the document tree and tracks them
 in self.images dictionary for later copying to the output directory.</p>
+<p>For a <cite>*</cite>-glob image URI (e.g. <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">figure::</span> <span class="pre">_static/foo.*</span></code>),
+Sphinx's read-phase ImageCollector leaves <code class="docutils literal notranslate"><span class="pre">node[&quot;uri&quot;]</span></code> as the
+literal, unresolved glob string and instead records the concrete
+on-disk candidates in <code class="docutils literal notranslate"><span class="pre">node[&quot;candidates&quot;]</span></code> keyed by mimetype --
+resolving that to one concrete file is the builder's responsibility
+(mirrors <code class="docutils literal notranslate"><span class="pre">sphinx.builders.Builder.post_process_images</span></code>, as done by
+the HTML/LaTeX builders via their own <code class="docutils literal notranslate"><span class="pre">supported_image_types</span></code>).
+This picks the best Typst-embeddable candidate and rewrites
+<code class="docutils literal notranslate"><span class="pre">node[&quot;uri&quot;]</span></code> to the resolved path, so both the translator's
+<code class="docutils literal notranslate"><span class="pre">visit_image</span></code> (emits the path into the <code class="docutils literal notranslate"><span class="pre">.typ</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">copy_image_files()</span></code> (copies the file) see the concrete file.</p>
+<p>Doctrees that never passed through Sphinx's <code class="docutils literal notranslate"><span class="pre">ImageCollector</span></code> (e.g.
+hand-built doctrees in unit tests) have no <code class="docutils literal notranslate"><span class="pre">candidates</span></code> attribute
+at all; those fall back to the original bare-URI tracking so that
+behavior stays unchanged.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>doctree</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">document</span></code></span>) -- Document tree to process</p>
@@ -741,6 +763,37 @@ is applied. For included documents, only the body content is output.</p>
 <p id="module-typsphinx.translator">Typst translator for docutils nodes.</p>
 <p>This module implements the TypstTranslator class, which translates docutils
 nodes to Typst markup.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="typsphinx.translator.escape_typst_string">
+<span class="sig-prename descclassname"><span class="pre">typsphinx.translator.</span></span><span class="sig-name descname"><span class="pre">escape_typst_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#escape_typst_string"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.escape_typst_string" title="Link to this definition">¶</a></dt>
+<dd><p>Escape arbitrary text for embedding inside a Typst <code class="docutils literal notranslate"><span class="pre">&quot;...&quot;</span></code> string literal.</p>
+<p>Typst string literals cannot span physical lines and treat <code class="docutils literal notranslate"><span class="pre">\</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;</span></code>
+specially, so every character that would break the literal (or be
+misinterpreted) must be escaped. This is the single source of truth for
+string-literal escaping across the translator: any site that emits
+<code class="docutils literal notranslate"><span class="pre">raw(&quot;...&quot;)</span></code>, <code class="docutils literal notranslate"><span class="pre">text(&quot;...&quot;)</span></code>, etc. from node-derived text routes through
+this helper so the class of problem is handled consistently.</p>
+<p>Escaping order is significant: backslash MUST be escaped first, otherwise
+the backslashes introduced by the later replacements would themselves be
+doubled.</p>
+<p>The newline/CR/tab escapes turn a literal control character into its
+two-character escape sequence (e.g. a raw <code class="docutils literal notranslate"><span class="pre">\n</span></code> becomes the sequence
+<code class="docutils literal notranslate"><span class="pre">\</span></code> + <code class="docutils literal notranslate"><span class="pre">n</span></code>). Typst decodes that back into the original control character
+when rendering, so the visible content is preserved while the emitted
+<code class="docutils literal notranslate"><span class="pre">.typ</span></code> stays valid single-line syntax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">パラメータ<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) -- Raw text to escape (e.g. <code class="docutils literal notranslate"><span class="pre">node.astext()</span></code>).</p>
+</dd>
+<dt class="field-even">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+<dt class="field-odd">戻り値<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Text safe to embed between double quotes in a Typst string literal.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">typsphinx.translator.</span></span><span class="sig-name descname"><span class="pre">TypstTranslator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">document</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">builder</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator" title="Link to this definition">¶</a></dt>
@@ -789,6 +842,21 @@ corresponding Typst markup.</p>
 <span class="sig-name descname"><span class="pre">visit_document</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_document"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_document" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a document node.</p>
 <p>Generates opening code block wrapper for unified code mode.</p>
+<p>Also builds the FN-01 footnote pre-pass index (D-01): a
+<cite>{docutils-id: footnote-node}</cite> dict built via
+<cite>self.document.findall(nodes.footnote)</cite> BEFORE any body content is
+visited, because footnote <em>definitions</em> are frequently positioned
+AFTER their citing footnote_references in source order (e.g. under
+a trailing <cite>.. rubric:: Footnotes</cite> -- see 14-RESEARCH.md &quot;Verified
+Mechanism 2&quot; finding 5). Uses <cite>self.document</cite>, not the <cite>node</cite>
+argument, per 14-RESEARCH.md Pitfall 4. <cite>findall()</cite> is used instead
+of D-01's literal <cite>traverse()</cite> wording -- <cite>Node.traverse()</cite> is
+deprecated in this repo's pinned docutils and raises under the
+project's strict <cite>error::DeprecationWarning</cite> pytest filter
+(pyproject.toml); <cite>findall()</cite> is its direct, non-deprecated
+replacement with identical semantics for this call. Deviation
+Rule 1 (auto-fixed bug). <cite>self._emitted_footnote_ids</cite> tracks which
+ids have already emitted their definition form (D-03).</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">document</span></code></span>) -- The document node</p>
@@ -848,10 +916,12 @@ corresponding Typst markup.</p>
 <dd><p>Visit a title node.</p>
 <p>Generates heading() function call with level parameter.
 Child text nodes will be wrapped in text() automatically.</p>
-<p>Exception: Inside an admonition, the title is not a section heading —
-buffer its rendered inline content (via the standard inline visitors)
-so it can be attached as a code-block title argument at depart time
-instead of emitted here (see _depart_admonition).</p>
+<p>Exception: Inside an admonition or a topic (D-02), the title is not
+a section heading -- buffer its rendered inline content (via the
+standard inline visitors) so it can be attached as a code-block
+title argument at depart time instead of emitted here (see
+_depart_admonition). A <cite>.. contents::</cite> topic (D-05) additionally
+records the insertion point for its box-less bold label.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">title</span></code></span>) -- The title node</p>
@@ -867,8 +937,11 @@ instead of emitted here (see _depart_admonition).</p>
 <span class="sig-name descname"><span class="pre">depart_title</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_title"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_title" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a title node.</p>
 <p>Closes heading() function call.</p>
-<p>Exception: Inside an admonition, capture the buffered inline content
-as the pending title and restore the main output stream.</p>
+<p>Exception: Inside an admonition or topic, capture the buffered
+inline content as the pending title and restore the main output
+stream. A <cite>.. contents::</cite> topic (D-05) inserts its buffered title
+as a bold label ahead of its already-streamed bullet_list instead
+of consuming it as a box title argument.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">title</span></code></span>) -- The title node</p>
@@ -1038,6 +1111,30 @@ for source-level documentation only.</p>
 <p class="admonition-title">注釈</p>
 <p>This method is not called when SkipNode is raised in visit_comment.</p>
 </div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_substitution_definition">
+<span class="sig-name descname"><span class="pre">visit_substitution_definition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_substitution_definition"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_substitution_definition" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a substitution_definition node.</p>
+<p>Non-rendering; content injected at use sites (substitution_reference,
+resolved by a docutils transform before the writer runs) -- matches
+docutils/Sphinx's HTML and LaTeX writers, which also skip this node.
+Without a handler, the node falls through to unknown_visit (warns but
+does not skip), letting its inline children leak out as juxtaposed
+top-level expressions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">パラメータ<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">substitution_definition</span></code></span>) -- The substitution_definition node</p>
+</dd>
+<dt class="field-even">例外<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>nodes.SkipNode</strong> -- Always raised to skip the definition and its
+    children (the definition itself produces no output)</p>
+</dd>
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1357,8 +1454,9 @@ wrapped in text() automatically.</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_literal_block">
 <span class="sig-name descname"><span class="pre">visit_literal_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_literal_block"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_literal_block" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a literal block (code block) node.</p>
-<p>Implements Task 4.2.2: codly forced usage with #codly-range() for highlighted lines
-Design 3.5: All code blocks use codly, with #codly-range() for highlights
+<p>Implements Task 4.2.2: codly forced usage, with codly(highlights: ...)
+for :emphasize-lines: (codly 1.3.0 has no codly-range(highlight: ...) API)
+Design 3.5: All code blocks use codly; highlighted lines use codly(highlights: ...)
 Requirements 7.3, 7.4: Support line numbers and highlighted lines
 Issue #20: Support :linenos:, :caption:, and :name: options
 Issue #31: Support :lineno-start: and :dedent: options</p>
@@ -1465,7 +1563,15 @@ in unified code mode.</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_term">
 <span class="sig-name descname"><span class="pre">depart_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_term"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_term" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a term (definition list term) node.</p>
-<p>Saves buffered term content.</p>
+<p>Saves buffered term content. If the term carries a docutils-assigned
+id (e.g. a <cite>.. glossary::</cite> entry), emits a Typst <cite>&lt;label&gt;</cite> anchor via
+the bracket-wrap markup form so a same-document <cite>:term:</cite> reference's
+<cite>link(&lt;term-id&gt;, ...)</cite> (visit_reference's refid branch, D-03) has a
+resolvable target instead of aborting the compile with &quot;label does
+not exist&quot; (XREF-01, D-04). Mirrors the visit_title/depart_title
+bracket-wrap anchor pattern (Phase 11) -- never <cite>+</cite>-join a bare
+<cite>label(...)</cite> onto content, which raises <cite>TypstError: cannot add
+content and label</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">term</span></code></span>) -- The term node</p>
@@ -1510,7 +1616,19 @@ in unified code mode.</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_figure">
 <span class="sig-name descname"><span class="pre">visit_figure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_figure"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_figure" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a figure node.</p>
-<p>Generates figure() function call (no # prefix in code mode).</p>
+<p>Generates figure() function call (no # prefix in code mode), unless
+docutils has assigned the figure an id -- which happens
+automatically whenever a figure carries a caption, for numref/
+cross-reference support, regardless of whether the user gave an
+explicit <cite>:name:</cite> -- in which case the call is bracket-wrapped in
+markup content (<cite>[#figure(...) &lt;label&gt;]</cite>). Typst's <cite>&lt;label&gt;</cite> anchor
+syntax is only valid as a markup-mode postfix; attaching it to a
+bare code-mode statement inside this translator's unified <cite>#{ ... }</cite>
+code-mode document wrapper is a Typst parse error (&quot;expected
+semicolon or line break&quot;) that aborts the whole compile -- a real
+fatal bug discovered by Phase 11's GATE-01 real-compile acceptance
+gate (Issue #114), affecting every captioned figure, not just the
+FIG-01/FIG-02 cases that phase otherwise targets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">figure</span></code></span>) -- The figure node</p>
@@ -1557,6 +1675,68 @@ in unified code mode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">パラメータ<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">caption</span></code></span>) -- The caption node</p>
+</dd>
+<dt class="field-even">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_footnote">
+<span class="sig-name descname"><span class="pre">visit_footnote</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_footnote"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_footnote" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a footnote definition node (D-05).</p>
+<p>Emits nothing at the definition's natural (docutils) location -- the
+body is reached only via the D-01 pre-pass index (visit_document)
+plus the D-02 lazy render performed by visit_footnote_reference at
+the citing site. A defined-but-never-referenced footnote is
+therefore silently dropped (D-09), which is the intended behavior.</p>
+<p>No depart_footnote is defined: SkipNode guarantees it never fires.</p>
+<dl class="field-list simple">
+<dt class="field-odd">パラメータ<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">footnote</span></code></span>) -- The footnote definition node</p>
+</dd>
+<dt class="field-even">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_footnote_reference">
+<span class="sig-name descname"><span class="pre">visit_footnote_reference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_footnote_reference"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_footnote_reference" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a footnote_reference node (D-02/D-03/D-04/D-06/D-08).</p>
+<p>The FIRST reference to a given id renders the footnote body lazily
+via the buffer-swap idiom (never node.astext() -- mirrors
+depart_caption above), skipping the footnote node's leading <cite>label</cite>
+child (D-06), and emits the bracket-wrapped, label-attached
+definition form <cite>[#footnote({body}) &lt;fn-id&gt;]</cite>. The bracket-wrap is
+required because Typst's <cite>&lt;label&gt;</cite> attachment postfix is markup-mode
+syntax and is a parse error as a bare statement inside this
+translator's unified <cite>#{ ... }</cite> code-mode wrapper (mirrors
+visit_figure's <cite>[#figure(...) &lt;label&gt;]</cite>; 14-RESEARCH.md Verified
+Mechanism 1).</p>
+<p>Every REPEAT reference to an already-emitted id emits the bare reuse
+form <cite>footnote(&lt;fn-id&gt;)</cite> -- no bracket-wrap, since <cite>&lt;label&gt;</cite> used as
+a plain call ARGUMENT is a code-mode Label value, not markup-mode
+attachment syntax (14-RESEARCH.md Verified Mechanism 1, finding 1).
+Typst's native footnote() auto-numbering owns numbering entirely
+(D-04); no docutils number/symbol is ever forced.</p>
+<p>A dangling refid (not present in the D-01 index) logs a
+logger.warning naming the refid and skips emitting anything --
+emitting a footnote(&lt;missing-label&gt;) call for a label that was
+never attached is a FATAL Typst compile abort (&quot;label <cite>&lt;..&gt;</cite> does
+not exist in the document&quot;), not a cosmetic issue (14-RESEARCH.md
+Pitfall 1); this guard is load-bearing and must run before any
+emission. <cite>citation</cite>/<cite>citation_reference</cite> are untouched (D-07).</p>
+<p>The footnote_reference node's own child (docutils' rendered marker
+number, e.g. &quot;1&quot;/&quot;2&quot;) is never rendered -- Typst supplies its own
+marker via footnote()'s auto-numbering.</p>
+<p>No depart_footnote_reference is defined: SkipNode guarantees it
+never fires.</p>
+<dl class="field-list simple">
+<dt class="field-odd">パラメータ<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">footnote_reference</span></code></span>) -- The footnote_reference node</p>
 </dd>
 <dt class="field-even">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -2401,6 +2581,115 @@ mapping). The title flows through the existing admonition-aware
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_topic">
+<span class="sig-name descname"><span class="pre">visit_topic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_topic"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_topic" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a topic node (BLK-02/D-01/D-02/D-05).</p>
+<p>A <cite>.. topic::</cite> renders as a titled <cite>clue</cite> box, reusing the same
+admonition helper as <cite>.. admonition::</cite> (D-01) -- the widened
+visit_title/depart_title buffer-swap (D-02) is what makes the
+title actually get consumed by _depart_admonition.</p>
+<p>A <cite>.. contents::</cite> topic (carrying the <cite>contents</cite> class) is instead
+box-less pass-through (D-05): its title is rendered as a bold label
+(handled entirely by visit_title/depart_title's insert-index trick)
+and its child bullet_list renders through the existing, unmodified
+list visitors -- no clue box wraps it here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>topic</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_topic">
+<span class="sig-name descname"><span class="pre">depart_topic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_topic"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_topic" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a topic node (BLK-02/D-01/D-02/D-05).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>topic</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_line_block">
+<span class="sig-name descname"><span class="pre">visit_line_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_line_block"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_line_block" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a line_block node (an address, epigraph, or poetry stanza).</p>
+<p>Only the outermost line_block (depth 0) opens the <cite>par({...})</cite>
+wrapper -- a nested line_block (docutils nests these directly, no
+intermediate wrapper node) shares the same wrapper as its parent.
+<cite>self._line_block_depth</cite> is a single integer counter; docutils' own
+visitor recursion already provides the nesting &quot;stack&quot; for free, so
+no separate stack data structure is needed (see 13-RESEARCH.md
+&quot;Don't Hand-Roll&quot;).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>line_block</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_line_block">
+<span class="sig-name descname"><span class="pre">depart_line_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_line_block"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_line_block" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a line_block node, closing the wrapper once depth returns to 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>line_block</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_line">
+<span class="sig-name descname"><span class="pre">visit_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_line"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_line" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a line node (one line inside a line_block).</p>
+<p>Emits a per-depth <cite>h(...)</cite> indent spacer for nested line_blocks
+(D-03/D-04) -- a plain code-mode stdlib call, no markup-mode
+bracket-wrap needed (unlike the Phase 11 <cite>&lt;label&gt;</cite>-anchor case,
+<cite>h()</cite> never carries a label). An empty <cite>line</cite> node (no Text child)
+falls through to depart_line's bare linebreak() for free -- no
+special-casing required.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>line</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_line">
+<span class="sig-name descname"><span class="pre">depart_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_line"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_line" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a line node.</p>
+<p>Emits a REAL <cite>linebreak()</cite> call -- a source 'n' between two
+code-mode statements is cosmetic-only (DESC-02 precedent), so this
+is what actually produces the visible line break.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>line</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_inline">
 <span class="sig-name descname"><span class="pre">visit_inline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_inline"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_inline" title="Link to this definition">¶</a></dt>
 <dd><p>Visit an inline node.</p>
@@ -2408,6 +2697,17 @@ mapping). The title flows through the existing admonition-aware
 They are often used for cross-references with specific CSS classes.</p>
 <p>Task 7.4: Handle inline nodes, especially those with 'xref' class
 Requirement 3.1: Cross-references and links</p>
+<p>VER-01 (Phase 12): Sphinx's <code class="docutils literal notranslate"><span class="pre">VersionChange.run()</span></code> bakes the exact,
+already-localized version-directive label wording directly into the
+doctree as a <code class="docutils literal notranslate"><span class="pre">nodes.inline(classes=[&quot;versionmodified&quot;,</span> <span class="pre">&lt;kind&gt;])</span></code> at
+directive-parse time (confirmed via live doctree dump, 12-RESEARCH.md
+Part 1) -- so no import of Sphinx's internal changeset-domain label
+map, and no label reconstruction, is needed here. This supersedes
+12-CONTEXT.md D-01's speculated import-based mechanism while
+honoring its &quot;sourced from Sphinx, not hardcoded&quot; intent: the
+translator only detects the already-classed inline and italicizes
+it (D-02's unboxed layout) by delegating to the proven
+<cite>visit_emphasis</cite> dummy-node idiom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -2422,12 +2722,42 @@ Requirement 3.1: Cross-references and links</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_inline">
 <span class="sig-name descname"><span class="pre">depart_inline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_inline"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_inline" title="Link to this definition">¶</a></dt>
 <dd><p>Depart an inline node.</p>
+<p>VER-01 (Phase 12): mirrors <cite>visit_inline</cite>'s classed-dispatch branch --
+see that method's docstring for the full rationale.</p>
 <dl class="field-list simple">
 <dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
 </dd>
 <dt class="field-even">パラメータ<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>node</strong> (<em>inline</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_versionmodified">
+<span class="sig-name descname"><span class="pre">visit_versionmodified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_versionmodified"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_versionmodified" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a versionmodified node (transparent pass-through).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.versionmodified" title="(in Sphinx v9.1.1)"><em>versionmodified</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_versionmodified">
+<span class="sig-name descname"><span class="pre">depart_versionmodified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_versionmodified"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_versionmodified" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a versionmodified node (transparent pass-through).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.versionmodified" title="(in Sphinx v9.1.1)"><em>versionmodified</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2462,10 +2792,169 @@ Requirement 3.1: Cross-references and links</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_transition">
+<span class="sig-name descname"><span class="pre">visit_transition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_transition"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_transition" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a transition node (a <cite>----</cite> horizontal rule in RST).</p>
+<p>Emits a full-width Typst rule via <code class="docutils literal notranslate"><span class="pre">line(length:</span> <span class="pre">100%)</span></code> -- a
+genuine content gap otherwise, since a bare transition renders
+nothing today (BLK-01). Self-closing node: no children to
+descend into, so this always raises SkipNode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>transition</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_transition">
+<span class="sig-name descname"><span class="pre">depart_transition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_transition"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_transition" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a transition node (unreached; kept for symmetry).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>transition</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_glossary">
+<span class="sig-name descname"><span class="pre">visit_glossary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_glossary"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_glossary" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a glossary node (<cite>.. glossary::</cite> directive wrapper).</p>
+<p>Transparent pass-through (BLK-04): the wrapped <cite>definition_list</cite>
+child already renders via <cite>visit_definition_list</cite>, and the term
+anchor is provided by the <cite>depart_term</cite> fix from Plan 12-02 --
+do NOT duplicate that anchor logic here.</p>
+<p>A propagated explicit target (<code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">_t:</span></code> before <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">glossary::</span></code>)
+lands its id on THIS glossary node (distinct from the per-term
+anchors); anchor it so a same-document link(&lt;id&gt;, ...) resolves. A
+plain glossary carries no ids -&gt; no-op, byte-unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.glossary" title="(in Sphinx v9.1.1)"><em>glossary</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_glossary">
+<span class="sig-name descname"><span class="pre">depart_glossary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_glossary"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_glossary" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a glossary node (transparent pass-through).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.glossary" title="(in Sphinx v9.1.1)"><em>glossary</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_tabular_col_spec">
+<span class="sig-name descname"><span class="pre">visit_tabular_col_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_tabular_col_spec"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_tabular_col_spec" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a tabular_col_spec node (<cite>.. tabularcolumns::</cite> directive).</p>
+<p>This is a LaTeX-only column-width hint with no Typst equivalent
+(BLK-05). The node is self-closing, so raising SkipNode here
+safely drops it with no risk of leaking the raw column-spec
+content into the compiled output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>Node</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_abbreviation">
+<span class="sig-name descname"><span class="pre">visit_abbreviation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_abbreviation"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_abbreviation" title="Link to this definition">¶</a></dt>
+<dd><p>Visit an abbreviation node (<cite>:abbr:</cite> role).</p>
+<p>No-op: the term's own Text child renders via the normal chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>abbreviation</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_abbreviation">
+<span class="sig-name descname"><span class="pre">depart_abbreviation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_abbreviation"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_abbreviation" title="Link to this definition">¶</a></dt>
+<dd><p>Depart an abbreviation node.</p>
+<p>Appends the expansion inline as &quot; (expansion)&quot; (BLK-06). Stateless
+-- expands on every occurrence, not just the first (D-08). The
+expansion is author-controlled RST, so it is routed through a
+dummy <cite>nodes.Text</cite> delegated to <cite>visit_Text</cite> -- inheriting the
+existing string-escaping regime -- rather than <cite>node.astext()</cite> or
+a raw f-string interpolation (V5 Input Validation, Pitfall 7).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>abbreviation</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_graphviz">
+<span class="sig-name descname"><span class="pre">visit_graphviz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_graphviz"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_graphviz" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a graphviz node; renders a placeholder (DEG-01, D-01).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>Node</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_inheritance_diagram">
+<span class="sig-name descname"><span class="pre">visit_inheritance_diagram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_inheritance_diagram"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_inheritance_diagram" title="Link to this definition">¶</a></dt>
+<dd><p>Visit an inheritance_diagram node; renders a placeholder (DEG-02, D-01).</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>Node</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc">
 <span class="sig-name descname"><span class="pre">visit_desc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a desc node (API description container).</p>
 <p>Desc nodes contain API descriptions (classes, functions, methods, etc.).</p>
+<p>An explicit target (<code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">_target:</span></code>) immediately preceding an
+object-description directive (e.g. <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">option::</span></code>) has its id
+propagated by docutils' <code class="docutils literal notranslate"><span class="pre">PropagateTargets</span></code> transform onto THIS
+outer <code class="docutils literal notranslate"><span class="pre">desc</span></code> container -- a DIFFERENT id than the one on
+<code class="docutils literal notranslate"><span class="pre">desc_signature</span></code> (bug #17 anchors that one). In the overwhelming
+common case (no preceding explicit target) <code class="docutils literal notranslate"><span class="pre">desc</span></code> carries no ids
+at all, so this is a no-op / byte-unchanged for existing output.
+Mirrors the established container-anchor pattern (bug #20) used by
+visit_bullet_list/visit_table/visit_block_quote/etc: anchor BEFORE
+any child (signature/content) is visited.</p>
 <dl class="field-list simple">
 <dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -2521,6 +3010,73 @@ Requirement 3.1: Cross-references and links</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc_returns">
+<span class="sig-name descname"><span class="pre">visit_desc_returns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_returns"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_returns" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a desc_returns node (a signature's return-type annotation).</p>
+<p>Emits a literal ' -&gt; ' arrow before the return type (DESC-01).
+Resolved return-type xref children already stream through the
+unmodified visit_reference refid branch -- no extra code needed
+for that case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_returns" title="(in Sphinx v9.1.1)"><em>desc_returns</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_desc_returns">
+<span class="sig-name descname"><span class="pre">depart_desc_returns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_desc_returns"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_desc_returns" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a desc_returns node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_returns" title="(in Sphinx v9.1.1)"><em>desc_returns</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc_signature_line">
+<span class="sig-name descname"><span class="pre">visit_desc_signature_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_signature_line"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_signature_line" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a desc_signature_line node (one line of a genuine multi-line
+signature, e.g. a C++ template declaration).</p>
+<p>Emits a real Typst linebreak() before every line after the first
+(DESC-02) -- a source 'n' between two code-mode statements is
+proven cosmetic-only (produces zero visual break), so linebreak()
+(Typst stdlib) is required. The first line emits nothing extra,
+keeping the single-line case (one desc_signature_line, or none)
+backward-compatible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_signature_line" title="(in Sphinx v9.1.1)"><em>desc_signature_line</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_desc_signature_line">
+<span class="sig-name descname"><span class="pre">depart_desc_signature_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_desc_signature_line"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_desc_signature_line" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a desc_signature_line node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_signature_line" title="(in Sphinx v9.1.1)"><em>desc_signature_line</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc_content">
 <span class="sig-name descname"><span class="pre">visit_desc_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_content"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_content" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a desc_content node (API description content).</p>
@@ -2544,6 +3100,40 @@ Requirement 3.1: Cross-references and links</p>
 </dd>
 <dt class="field-even">パラメータ<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_content" title="(in Sphinx v9.1.1)"><em>desc_content</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc_inline">
+<span class="sig-name descname"><span class="pre">visit_desc_inline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_inline"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_inline" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a desc_inline node (an inline signature fragment, e.g.
+:cpp:expr:).</p>
+<p>Transparent pass-through (DESC-04, D-06): desc_inline is a distinct
+Sphinx node class from desc_signature, so node-type dispatch alone
+satisfies D-06's strong()-suppression -- do NOT delegate to
+visit_strong the way visit_desc_signature does, that would
+reintroduce the strong() wrapper this requirement forbids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_inline" title="(in Sphinx v9.1.1)"><em>desc_inline</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_desc_inline">
+<span class="sig-name descname"><span class="pre">depart_desc_inline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_desc_inline"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_desc_inline" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a desc_inline node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_inline" title="(in Sphinx v9.1.1)"><em>desc_inline</em></a>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2692,6 +3282,41 @@ Requirement 3.1: Cross-references and links</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_desc_optional">
+<span class="sig-name descname"><span class="pre">visit_desc_optional</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_optional"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_optional" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a desc_optional node (trailing optional parameter group,
+e.g. printf(fmt[, args[, more]])).</p>
+<p>Literal-bracket-wraps the optional group, reusing the existing
+_desc_parameter_has_content flag (DESC-03, zero new state). A
+nested desc_optional is a structural doctree sibling, not a
+parent-child relationship the handler needs to track -- the
+identical handler firing again for the nested node produces
+correctly nested brackets with no depth counter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_optional" title="(in Sphinx v9.1.1)"><em>desc_optional</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_desc_optional">
+<span class="sig-name descname"><span class="pre">depart_desc_optional</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_desc_optional"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_desc_optional" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a desc_optional node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">パラメータ<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<a class="reference external" href="https://www.sphinx-doc.org/en/master/extdev/nodes.html#sphinx.addnodes.desc_optional" title="(in Sphinx v9.1.1)"><em>desc_optional</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_field_list">
 <span class="sig-name descname"><span class="pre">visit_field_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_field_list"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_field_list" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a field_list node (structured fields like Parameters, Returns).</p>
@@ -2781,6 +3406,19 @@ Requirement 3.1: Cross-references and links</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_field_body">
 <span class="sig-name descname"><span class="pre">visit_field_body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_field_body"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_field_body" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a field_body node (field content).</p>
+<p>A field body written inline on its field line (e.g. a confval
+<code class="docutils literal notranslate"><span class="pre">:default:</span> <span class="pre">The</span> <span class="pre">value</span> <span class="pre">of</span> <span class="pre">**html_title**</span></code>) is COLLAPSED by docutils:
+its children are inline nodes (Text/strong/literal/reference) DIRECTLY
+under <code class="docutils literal notranslate"><span class="pre">field_body</span></code>, with no wrapping <code class="docutils literal notranslate"><span class="pre">paragraph</span></code>. Emitted into the
+code-mode content block those adjacent expressions juxtapose
+(<code class="docutils literal notranslate"><span class="pre">text(&quot;The</span> <span class="pre">value</span> <span class="pre">of</span> <span class="pre">&quot;)strong({...})</span></code>) -- a Typst syntax error
+(&quot;expected semicolon or line break&quot;, GATE-02 fatal #8). Activate the
+shared inline-concat context (bug #5 machinery) so they are <code class="docutils literal notranslate"><span class="pre">+</span></code>
+separated into one content value.</p>
+<p>Only an ALL-inline field body needs this. A block field body (real
+<code class="docutils literal notranslate"><span class="pre">paragraph</span></code>/list/literal-block children) already emits valid,
+<code class="docutils literal notranslate"><span class="pre">\n\n</span></code>-separated statements via the normal par() path, so it keeps
+the concat context OFF to avoid a stray <code class="docutils literal notranslate"><span class="pre">+</span></code> around a <code class="docutils literal notranslate"><span class="pre">par(...)</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -2795,7 +3433,8 @@ Requirement 3.1: Cross-references and links</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_field_body">
 <span class="sig-name descname"><span class="pre">depart_field_body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_field_body"><span class="viewcode-link"><span class="pre">[ソース]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_field_body" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a field_body node.</p>
-<p>Add newline after field body.</p>
+<p>Restore the concat context saved by <a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_field_body" title="typsphinx.translator.TypstTranslator.visit_field_body"><code class="xref py py-meth docutils literal notranslate"><span class="pre">visit_field_body()</span></code></a> and add a
+newline after the field body.</p>
 <dl class="field-list simple">
 <dt class="field-odd">戻り値の型<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3377,6 +4016,7 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.format"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.format</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.out_suffix"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.out_suffix</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.allow_parallel"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.allow_parallel</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.supported_image_types"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.supported_image_types</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.init"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.init()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.get_outdated_docs"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.get_outdated_docs()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.builder.TypstBuilder.get_target_uri"><code class="docutils literal notranslate"><span class="pre">TypstBuilder.get_target_uri()</span></code></a></li>
@@ -3414,6 +4054,7 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.writer.TypstWriter.translate"><code class="docutils literal notranslate"><span class="pre">TypstWriter.translate()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#typsphinx.translator.escape_typst_string"><code class="docutils literal notranslate"><span class="pre">escape_typst_string()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator"><code class="docutils literal notranslate"><span class="pre">TypstTranslator</span></code></a><ul>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.astext"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.astext()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.add_text"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.add_text()</span></code></a></li>
@@ -3433,6 +4074,7 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_paragraph"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_paragraph()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_comment"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_comment()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_comment"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_comment()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_substitution_definition"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_substitution_definition()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_raw"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_raw()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_raw"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_raw()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_Text"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_Text()</span></code></a></li>
@@ -3467,6 +4109,8 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_figure"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_figure()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_caption"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_caption()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_caption"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_caption()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_footnote"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_footnote()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_footnote_reference"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_footnote_reference()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_table"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_table()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_table"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_table()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_tgroup"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_tgroup()</span></code></a></li>
@@ -3523,16 +4167,39 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_attention"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_attention()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_admonition"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_admonition()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_admonition"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_admonition()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_topic"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_topic()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_topic"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_topic()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_line_block"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_line_block()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_line_block"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_line_block()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_line"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_line()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_line"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_line()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_inline"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_inline()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_inline"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_inline()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_versionmodified"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_versionmodified()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_versionmodified"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_versionmodified()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_index"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_index()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_index"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_index()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_transition"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_transition()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_transition"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_transition()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_glossary"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_glossary()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_glossary"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_glossary()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_tabular_col_spec"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_tabular_col_spec()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_abbreviation"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_abbreviation()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_abbreviation"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_abbreviation()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_graphviz"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_graphviz()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_inheritance_diagram"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_inheritance_diagram()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_signature"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_signature()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_signature"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_signature()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_returns"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_returns()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_returns"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_returns()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_signature_line"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_signature_line()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_signature_line"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_signature_line()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_content"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_content()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_content"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_content()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_inline"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_inline()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_inline"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_inline()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_annotation"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_annotation"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_addname"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_addname()</span></code></a></li>
@@ -3543,6 +4210,8 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_parameterlist"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_parameterlist()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_parameter"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_parameter()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_parameter"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_parameter()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_desc_optional"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_desc_optional()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_desc_optional"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_desc_optional()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_field_list"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_field_list()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_field_list"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_field_list()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_field"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_field()</span></code></a></li>
@@ -3603,7 +4272,7 @@ Requirement 8.14: #outline() in template, not body</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=84cdd6ac"></script>
+</div><script src="../_static/documentation_options.js?v=16b20847"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

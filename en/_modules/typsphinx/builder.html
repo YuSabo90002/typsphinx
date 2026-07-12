@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>typsphinx.builder - typsphinx 0.5.0</title>
+        <title>typsphinx.builder - typsphinx 0.6.0</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.5.0</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.6.0</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.5.0</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.0</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -324,6 +324,19 @@
     <span class="n">out_suffix</span> <span class="o">=</span> <span class="s2">&quot;.typ&quot;</span>
     <span class="n">allow_parallel</span> <span class="o">=</span> <span class="kc">True</span>
 
+    <span class="c1"># Mimetypes Typst&#39;s image() function can embed, in preference order</span>
+    <span class="c1"># (vector first, then lossless/animated raster, lossy raster last).</span>
+    <span class="c1"># Consulted by post_process_images() to resolve a `*`-glob image URI</span>
+    <span class="c1"># (e.g. &quot;.. figure:: _static/foo.*&quot;) to one concrete candidate file --</span>
+    <span class="c1"># mirrors sphinx.builders.html.StandaloneHTMLBuilder&#39;s ordering, which</span>
+    <span class="c1"># uses the same four formats.</span>
+    <span class="n">supported_image_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image/png&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image/gif&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;image/jpeg&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
 <div class="viewcode-block" id="TypstBuilder.init">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.builder.TypstBuilder.init">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -335,8 +348,77 @@
         <span class="c1"># Initialize images dictionary to track images used in documents</span>
         <span class="c1"># Key: image URI relative to source directory</span>
         <span class="c1"># Value: destination path (empty string for now, compatible with parent class)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
+        <span class="c1"># Track absolute docnames already emitted as an #include() across the</span>
+        <span class="c1"># WHOLE master include graph, so a document reachable via more than one</span>
+        <span class="c1"># toctree path (a &quot;diamond&quot;) is physically #included at most ONCE per</span>
+        <span class="c1"># build. Sphinx&#39;s own doc/index.rst, for example, lists</span>
+        <span class="c1"># usage/extensions/index both directly (its &quot;Reference&quot; toctree) and</span>
+        <span class="c1"># nested under usage/index (its &quot;User guide&quot; toctree). Since Typst&#39;s</span>
+        <span class="c1"># #include() flattens each file&#39;s content inline, including the same</span>
+        <span class="c1"># .typ twice re-emits EVERY Typst &lt;label&gt; that file defines, and Typst</span>
+        <span class="c1"># rejects the compiled master with &quot;label ... occurs multiple times&quot;.</span>
+        <span class="c1"># Deduplicating at include() granularity (the unit that is duplicated</span>
+        <span class="c1"># is a whole document, not a single translator-emitted anchor) keeps</span>
+        <span class="c1"># each label defined exactly once so every reference still resolves.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_included_docnames</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># The SET of docnames whose .typ is physically part of the compiled</span>
+        <span class="c1"># master (each master in typst_documents plus the transitive toctree</span>
+        <span class="c1"># closure reachable from it). Any doc NOT in this set -- e.g. an</span>
+        <span class="c1"># ``:orphan:`` doc, which Sphinx excludes from EVERY toctree -- is</span>
+        <span class="c1"># written as a .typ but never #include()d into the master, so the</span>
+        <span class="c1"># anchors it emits do not exist in the compiled document. The</span>
+        <span class="c1"># translator consults this set (via builder.master_included_docnames)</span>
+        <span class="c1"># to DEGRADE a cross-document reference whose target lies outside it</span>
+        <span class="c1"># to plain text, rather than emitting a link(&lt;targetdoc:anchor&gt;) label</span>
+        <span class="c1"># link that would dangle and hard-fail typst.compile() with</span>
+        <span class="c1"># &quot;label ... does not exist&quot;. Populated up-front in write() (from the</span>
+        <span class="c1"># fully-read env&#39;s toctree graph) so it is reliably available before</span>
+        <span class="c1"># any reference is emitted; empty until then (an empty set means &quot;no</span>
+        <span class="c1"># masters / unknown&quot; and suppresses degradation, preserving behavior</span>
+        <span class="c1"># for hand-built test doctrees and mock builders).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">master_included_docnames</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_master_included_docnames</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the transitive toctree closure of the master document(s).</span>
+
+<span class="sd">        The compiled master ``.typ`` (one per ``typst_documents`` entry)</span>
+<span class="sd">        physically ``#include()``s the transitive closure of toctree entries</span>
+<span class="sd">        reachable from its source doc -- exactly the set of documents whose</span>
+<span class="sd">        anchors end up in the compiled document. This walks Sphinx&#39;s canonical</span>
+<span class="sd">        ``env.toctree_includes`` (``dict[str, list[str]]`` mapping each doc to</span>
+<span class="sd">        the docs it directly pulls in via ``toctree``) breadth-first from every</span>
+<span class="sd">        master source docname, and includes the masters themselves.</span>
+
+<span class="sd">        ``env.toctree_includes`` is the read-phase-resolved include graph, so</span>
+<span class="sd">        ``:orphan:`` documents (excluded from every toctree) never appear in</span>
+<span class="sd">        it -- which is precisely why a cross-reference to one must degrade.</span>
+<span class="sd">        Glob toctrees are already expanded to concrete docnames in this map, so</span>
+<span class="sd">        the resulting set matches what ``visit_toctree`` actually emits.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The set of docnames included in some compiled master, or an empty</span>
+<span class="sd">            set when no masters are configured (which the translator treats as</span>
+<span class="sd">            &quot;unknown&quot; and does not degrade against).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">typst_documents</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_documents&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">masters</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">typst_documents</span> <span class="k">if</span> <span class="n">entry</span><span class="p">]</span>
+        <span class="n">toctree_includes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="s2">&quot;toctree_includes&quot;</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="n">included</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">stack</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">masters</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">stack</span><span class="p">:</span>
+            <span class="n">docname</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">docname</span> <span class="ow">in</span> <span class="n">included</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">included</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">toctree_includes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">docname</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="k">if</span> <span class="n">child</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">included</span><span class="p">:</span>
+                    <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">included</span>
 
 <div class="viewcode-block" id="TypstBuilder.get_outdated_docs">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.builder.TypstBuilder.get_outdated_docs">[docs]</a>
@@ -424,6 +506,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">prepare_writing</span><span class="p">(</span><span class="n">docnames</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;done&quot;</span><span class="p">)</span>
 
+        <span class="c1"># Start each build with a clean include-dedup ledger so re-builds and</span>
+        <span class="c1"># multiple write() invocations do not carry stale state across masters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_included_docnames</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># Compute the master include-set NOW (the read phase is complete, so</span>
+        <span class="c1"># env.toctree_includes is fully populated) rather than lazily during</span>
+        <span class="c1"># visit_toctree: a cross-document reference in one document may be</span>
+        <span class="c1"># emitted BEFORE the toctree that includes its target is processed, so</span>
+        <span class="c1"># the set must be fully known up-front for the degrade decision to be</span>
+        <span class="c1"># reliable regardless of document write order.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">master_included_docnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_master_included_docnames</span><span class="p">()</span>
+
         <span class="c1"># Write individual documents</span>
         <span class="n">warnings_count</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">docname</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">docnames</span><span class="p">):</span>
@@ -450,21 +544,78 @@
 <span class="sd">        Collects all image nodes from the document tree and tracks them</span>
 <span class="sd">        in self.images dictionary for later copying to the output directory.</span>
 
+<span class="sd">        For a `*`-glob image URI (e.g. ``.. figure:: _static/foo.*``),</span>
+<span class="sd">        Sphinx&#39;s read-phase ImageCollector leaves ``node[&quot;uri&quot;]`` as the</span>
+<span class="sd">        literal, unresolved glob string and instead records the concrete</span>
+<span class="sd">        on-disk candidates in ``node[&quot;candidates&quot;]`` keyed by mimetype --</span>
+<span class="sd">        resolving that to one concrete file is the builder&#39;s responsibility</span>
+<span class="sd">        (mirrors ``sphinx.builders.Builder.post_process_images``, as done by</span>
+<span class="sd">        the HTML/LaTeX builders via their own ``supported_image_types``).</span>
+<span class="sd">        This picks the best Typst-embeddable candidate and rewrites</span>
+<span class="sd">        ``node[&quot;uri&quot;]`` to the resolved path, so both the translator&#39;s</span>
+<span class="sd">        ``visit_image`` (emits the path into the ``.typ``) and</span>
+<span class="sd">        ``copy_image_files()`` (copies the file) see the concrete file.</span>
+
+<span class="sd">        Doctrees that never passed through Sphinx&#39;s ``ImageCollector`` (e.g.</span>
+<span class="sd">        hand-built doctrees in unit tests) have no ``candidates`` attribute</span>
+<span class="sd">        at all; those fall back to the original bare-URI tracking so that</span>
+<span class="sd">        behavior stays unchanged.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            doctree: Document tree to process</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">docutils.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">image</span>
 
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">doctree</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
-            <span class="c1"># Get image URI</span>
-            <span class="n">imguri</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;uri&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">imguri</span><span class="p">:</span>
+            <span class="n">candidates</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;candidates&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
+                <span class="c1"># No candidates dict -- doctree never went through Sphinx&#39;s</span>
+                <span class="c1"># ImageCollector (e.g. a hand-built test doctree). Preserve</span>
+                <span class="c1"># the original bare-URI behavior.</span>
+                <span class="n">imguri</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;uri&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">imguri</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">imguri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">imguri</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="s2">&quot;?&quot;</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+                <span class="c1"># Non-local URI (data: URI or remote http(s):// image) --</span>
+                <span class="c1"># nothing on disk to resolve or copy.</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="s2">&quot;*&quot;</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+                <span class="c1"># Already a single concrete candidate (the common, non-glob</span>
+                <span class="c1"># case -- ImageCollector sets candidates[&quot;*&quot;] = node[&quot;uri&quot;]).</span>
+                <span class="n">resolved_uri</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="s2">&quot;*&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Glob URI with multiple mimetype-keyed candidates. Pick the</span>
+                <span class="c1"># best Typst-supported type, in preference order, and</span>
+                <span class="c1"># rewrite node[&quot;uri&quot;] to the concrete resolved path.</span>
+                <span class="n">resolved_uri</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">imgtype</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_image_types</span><span class="p">:</span>
+                    <span class="n">candidate</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">imgtype</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">candidate</span><span class="p">:</span>
+                        <span class="n">resolved_uri</span> <span class="o">=</span> <span class="n">candidate</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="n">resolved_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># No candidate matches a Typst-supported mimetype --</span>
+                    <span class="c1"># degrade gracefully (warn, skip) rather than crash.</span>
+                    <span class="n">mimetypes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;a suitable image for typst builder not found: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mimetypes</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uri&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">node</span><span class="p">[</span><span class="s2">&quot;uri&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved_uri</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">resolved_uri</span><span class="p">:</span>
                 <span class="k">continue</span>
 
             <span class="c1"># Track this image</span>
             <span class="c1"># Store empty string as value to be compatible with parent class type</span>
-            <span class="k">if</span> <span class="n">imguri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">imguri</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
+            <span class="k">if</span> <span class="n">resolved_uri</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">[</span><span class="n">resolved_uri</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="TypstBuilder.write_doc">
@@ -826,6 +977,16 @@
         <span class="c1"># Set current docname for template application logic</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_docname</span> <span class="o">=</span> <span class="n">docname</span>
 
+        <span class="c1"># Post-process images to track them for copying.</span>
+        <span class="c1"># This mirrors TypstBuilder.write_doc(): finish() (via super().finish())</span>
+        <span class="c1"># calls copy_image_files(), which copies every uri tracked in</span>
+        <span class="c1"># self.images from srcdir to outdir. Without this call self.images stays</span>
+        <span class="c1"># empty, copy_image_files() early-returns, and any referenced asset</span>
+        <span class="c1"># (e.g. a `.. figure:: _static/foo.png`) is never copied into the Typst</span>
+        <span class="c1"># output tree -- so the emitted image(&quot;_static/foo.png&quot;) path fails to</span>
+        <span class="c1"># resolve and typst.compile() aborts with &quot;file not found&quot;.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_process_images</span><span class="p">(</span><span class="n">doctree</span><span class="p">)</span>
+
         <span class="c1"># Set the document on the writer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">document</span> <span class="o">=</span> <span class="n">doctree</span>
 
@@ -927,7 +1088,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+</div><script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
