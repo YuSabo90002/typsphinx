@@ -1142,7 +1142,15 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a term (definition list term) node.
 
-        Saves buffered term content.
+        Saves buffered term content. If the term carries a docutils-assigned
+        id (e.g. a `.. glossary::` entry), emits a Typst `<label>` anchor via
+        the bracket-wrap markup form so a same-document `:term:` reference's
+        `link(<term-id>, ...)` (visit_reference's refid branch, D-03) has a
+        resolvable target instead of aborting the compile with "label does
+        not exist" (XREF-01, D-04). Mirrors the visit_title/depart_title
+        bracket-wrap anchor pattern (Phase 11) -- never `+`-join a bare
+        `label(...)` onto content, which raises `TypstError: cannot add
+        content and label`.
 
         Args:
             node: The term node
@@ -1157,6 +1165,10 @@ class TypstTranslator(SphinxTranslator):
         if self.saved_body is not None:
             self.body = self.saved_body
         self.saved_body = None
+
+        if node.get("ids"):
+            label_id = node["ids"][0]
+            term_content = f"[#{{{term_content}}} <{label_id}>]"
 
         # Store term for later (will be paired with definition)
         self.current_term_buffer = term_content
