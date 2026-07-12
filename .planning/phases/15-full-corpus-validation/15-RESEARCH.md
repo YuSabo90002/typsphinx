@@ -750,17 +750,21 @@ relevant "old vs. new" axis is methodological:
 
 **If this table is empty:** N/A — see entries above; none are HIGH risk given the corroborating evidence already gathered.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+Both questions below were resolved during planning; the plans encode the recommended answers. Retained here for the rationale trail.
 
 1. **Should the SC#1 fatal-check test and the SC#2/SC#3 report-generation share one test function, or be split?**
    - What we know: SC#1 (fatal-check) naturally produces the stderr needed for SC#2's catalogue as a byproduct of the same build — no need for a second corpus build just to get warnings. SC#3 (before/after) genuinely needs TWO additional separate builds (before + after, both `-b typst`) beyond the SC#1 `-b typstpdf` build.
    - What's unclear: whether the planner wants SC#3's before/after builds triggered automatically by the same `slow`-marked pytest run (making the full `pytest -m slow` invocation noticeably longer — three corpus-scale Sphinx builds instead of one) or as a documented, separately-invoked one-off script/test (kept out of the routine `slow` suite, run only when producing/refreshing the report).
    - Recommendation: given D-06 frames the report as a one-time milestone artifact (not a regression-guarded number), split SC#3 into a separate, explicitly-invoked test function or small script — not folded into the routine `pytest -m slow` run alongside SC#1. This keeps the routine slow-suite runtime to "one corpus build" instead of "three," while still keeping the D-07 methodology fully reproducible and git-tracked (not a throwaway one-off, satisfying D-04's "loses regression re-runnability" rejection rationale for the OVERALL gate, while SC#3 itself was never meant to be a standing regression gate per D-06).
+   - **RESOLVED:** SC#3's before/after is env-gated (`TYPSPHINX_CORPUS_REPORT=1`) out of the routine `pytest -m slow` run — reproducible and git-tracked, not folded into the standing gate (see `15-02-PLAN.md`).
 
 2. **Exact PDF filename/target string for `typst_documents`'s second tuple element.**
    - What we know: `TypstPDFBuilder.finish()` (verified by reading `builder.py`) actually names the output PDF from `doc_tuple[0]` (the source docname, `"index"`), NOT `doc_tuple[1]` (the nominal "target") — the target field appears vestigial/unused for PDF file naming in the current implementation.
    - What's unclear: whether this is intentional (target reserved for future use) or a latent inconsistency; irrelevant to this phase either way since the test only needs to know the actual output filename (`index.pdf`, per the source docname) to assert existence.
    - Recommendation: the corpus test should assert on `outdir / "index.pdf"` (matching the source docname), not on whatever string is used for the tuple's second element, to avoid a false assumption about naming.
+   - **RESOLVED:** the corpus test asserts on `index.pdf` (docname-based naming) per `15-01-PLAN.md`.
 
 ## Environment Availability
 
