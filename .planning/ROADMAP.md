@@ -208,8 +208,16 @@ warning-count reduction from the XREF-01 fix is measured before/after against th
   3. The empty-URL cross-reference warning count is measured before and after the XREF-01 fix against the same corpus, quantifying the reduction rather than assuming it.
 
 **Plans**: 3 plans
+**Wave 1**
+
 - [ ] 15-01-PLAN.md — SC#1 corpus render gate (clone + real-conf append + full-tree `-b typstpdf` fatal-free build) + SC#2 catalogue parser
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 15-02-PLAN.md — SC#3 empty-URL before/after machinery (git-worktree revert of XREF-01 `depart_term`, `-b typst` both sides)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 15-03-PLAN.md — non-sandbox measurement run + committed `15-CORPUS-REPORT.md` (D-06) + human-verify checkpoint
 
 ## Progress

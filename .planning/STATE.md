@@ -4,9 +4,9 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 15
 current_phase_name: Full-Corpus Validation
-status: verifying
+status: executing
 stopped_at: Phase 15 context gathered
-last_updated: "2026-07-12T06:24:22.847Z"
+last_updated: "2026-07-12T07:08:53.359Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 14 complete, transitioned to Phase 15
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 15 — Full-Corpus Validation
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-12 — Phase 14 complete, transitioned to Phase 15
 
 Progress: [██████████] 100%
