@@ -3802,7 +3802,17 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a field_list node (structured fields like Parameters, Returns).
         """
-        pass
+        # Emit a leading newline separator when this field list follows a
+        # sibling inside a list item, matching the block-visitor pattern
+        # established in bug #4 (bullet_list/literal_block/definition_list/
+        # block_quote). Otherwise visit_field_name's strong( juxtaposes
+        # against the preceding inline expression in the list-item content
+        # block -- e.g. `text("For example:")strong(` -- a Typst parse error
+        # ("expected semicolon or line break", GATE-02 fatal #12). field_list
+        # was the one block visitor omitted from that fix.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+            self.list_item_needs_separator = False
 
     def depart_field_list(self, node: nodes.field_list) -> None:
         """
@@ -3811,6 +3821,11 @@ class TypstTranslator(SphinxTranslator):
         Add spacing after field lists.
         """
         self.body.append("\n")
+
+        # Mark that a following sibling in the same list item must be
+        # separated (block-visitor pattern, bug #4).
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_field(self, node: nodes.field) -> None:
         """
