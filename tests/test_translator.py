@@ -3021,6 +3021,108 @@ def test_desc_parameterlist(simple_document, mock_builder):
     assert 'strong({text("function")' in output and "arg1" in output
 
 
+# desc_signature_line / linebreak() tests (DESC-02, Phase 12 Plan 03)
+
+
+def test_desc_signature_line_multiline_emits_one_linebreak(
+    simple_document, mock_builder
+):
+    """
+    A signature with two genuine desc_signature_line children (the C++/C
+    domain multi-line shape, confirmed via a live doctree dump using
+    `.. cpp:function:: template<typename T> void foo(T t)`) must emit
+    exactly one linebreak() between the two lines, and none before the
+    first line.
+    """
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+    sig = addnodes.desc_signature(is_multiline=True)
+
+    line1 = addnodes.desc_signature_line()
+    line1 += nodes.Text("template<typename T>")
+    sig += line1
+
+    line2 = addnodes.desc_signature_line()
+    line2 += nodes.Text("void foo(T t)")
+    sig += line2
+
+    desc += sig
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    assert output.count("linebreak()") == 1
+    # linebreak() must appear strictly between the two lines' content.
+    idx_line1 = output.index("template<typename T>")
+    idx_break = output.index("linebreak()")
+    idx_line2 = output.index("void foo(T t)")
+    assert idx_line1 < idx_break < idx_line2
+
+
+def test_desc_signature_line_single_line_emits_no_linebreak(
+    simple_document, mock_builder
+):
+    """A single desc_signature_line child must emit NO linebreak() --
+    backward-compatible with the already-correct single-line case."""
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+    sig = addnodes.desc_signature()
+
+    line1 = addnodes.desc_signature_line()
+    line1 += nodes.Text("void foo(int x)")
+    sig += line1
+
+    desc += sig
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    assert "linebreak()" not in output
+
+
+def test_desc_signature_line_resets_per_signature(simple_document, mock_builder):
+    """_is_first_desc_signature_line must reset to True at the start of
+    every visit_desc_signature, so consecutive signatures each start
+    fresh (no stray linebreak() carried over from a prior signature)."""
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+
+    sig1 = addnodes.desc_signature()
+    sig1_line = addnodes.desc_signature_line()
+    sig1_line += nodes.Text("first_sig")
+    sig1 += sig1_line
+    desc += sig1
+
+    sig2 = addnodes.desc_signature()
+    sig2_line = addnodes.desc_signature_line()
+    sig2_line += nodes.Text("second_sig")
+    sig2 += sig2_line
+    desc += sig2
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    # Neither signature is genuinely multi-line, so no linebreak() should
+    # appear at all -- proves the flag reset per-signature rather than
+    # persisting is_first=False across the second signature.
+    assert "linebreak()" not in output
+
+
 def test_field_list_rendering(simple_document, mock_builder):
     """Test field_list rendering with field names and bodies."""
     from typsphinx.translator import TypstTranslator
