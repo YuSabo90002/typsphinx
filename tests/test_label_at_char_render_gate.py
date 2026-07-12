@@ -114,8 +114,12 @@ class TestLabelAtCharRenderGate:
 
     # The anchor-definition and reference label tokens the emitted .typ must
     # carry. `@` (U+0040) sanitizes to `_u40_`, so the raw `myapp.@thing.a`
-    # becomes `myapp._u40_thing.a` at BOTH sites.
-    _SANITIZED = "myapp._u40_thing.a"
+    # becomes `myapp._u40_thing.a` at BOTH sites. Labels are additionally
+    # namespaced per source document (bug #21): this single-doc fixture's
+    # docname is `index`, so the full emitted token is `index:myapp._u40_thing.a`
+    # (the `@`->`_u40_` sanitizer property is preserved under namespacing, and
+    # the `:` separator is a label-valid character left untouched).
+    _SANITIZED = "index:myapp._u40_thing.a"
 
     def test_typstpdf_at_id_anchor_and_ref_sanitize_equal_and_compile(
         self, label_at_char_render_gate_dir, temp_build_dir

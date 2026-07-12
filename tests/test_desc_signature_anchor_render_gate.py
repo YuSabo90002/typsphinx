@@ -149,9 +149,11 @@ class TestDescSignatureAnchorRenderGate:
         assert typ_output.exists(), "index.typ was not emitted"
         typ_text = typ_output.read_text(encoding="utf-8")
 
-        # The clean-id signature must now carry an anchor for its id.
-        assert "[#metadata(none) <c.foo>]" in typ_text, (
-            "The c:function signature did not emit a <c.foo> anchor -- the "
+        # The clean-id signature must now carry an anchor for its id. Labels are
+        # namespaced per source document (bug #21), so the id is emitted as
+        # <index:c.foo> in this single-doc (docname=index) fixture.
+        assert "[#metadata(none) <index:c.foo>]" in typ_text, (
+            "The c:function signature did not emit a <index:c.foo> anchor -- the "
             f"fix is not applied:\n{typ_text}"
         )
 
@@ -170,14 +172,15 @@ class TestDescSignatureAnchorRenderGate:
             "Same-document references with no matching anchor (dangling labels): "
             f"{sorted(dangling)}\nanchors present: {sorted(anchor_names)}\n{typ_text}"
         )
-        # The exact corpus id must be among the resolved pairs.
-        assert "c._u40_alias.data" in link_names, (
-            "Expected the @alias reference c._u40_alias.data to be emitted "
-            f"(the exact corpus fatal id):\n{typ_text}"
+        # The exact corpus id must be among the resolved pairs (now prefixed by
+        # the source docname, bug #21).
+        assert "index:c._u40_alias.data" in link_names, (
+            "Expected the @alias reference index:c._u40_alias.data to be emitted "
+            f"(the exact corpus fatal id, docname-namespaced):\n{typ_text}"
         )
-        assert "c._u40_alias.data" in anchor_names, (
-            "Expected a matching anchor for c._u40_alias.data (@ sanitized to "
-            f"_u40_ on the anchor side, byte-matching the reference):\n{typ_text}"
+        assert "index:c._u40_alias.data" in anchor_names, (
+            "Expected a matching anchor for index:c._u40_alias.data (@ sanitized "
+            f"to _u40_ on the anchor side, byte-matching the reference):\n{typ_text}"
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.

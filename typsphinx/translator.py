@@ -288,9 +288,10 @@ class TypstTranslator(SphinxTranslator):
             return
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
+        docname = self._current_docname()
         seen: set[str] = set()
         for node_id in ids:
-            label_id = self._sanitize_label(node_id)
+            label_id = self._namespace_label(docname, node_id)
             if label_id in seen:
                 continue
             seen.add(label_id)
@@ -485,10 +486,13 @@ class TypstTranslator(SphinxTranslator):
             # additional ids (e.g. both an auto-slugged name and a merged-in
             # explicit target name) get a zero-width metadata(none) anchor
             # each, pointing at the same document location.
+            docname = self._current_docname()
             primary_id, *extra_ids = self._title_section_ids
-            self.add_text(f"}}) <{self._sanitize_label(primary_id)}>]\n")
+            self.add_text(f"}}) <{self._namespace_label(docname, primary_id)}>]\n")
             for extra_id in extra_ids:
-                self.add_text(f"[#metadata(none) <{self._sanitize_label(extra_id)}>]\n")
+                self.add_text(
+                    f"[#metadata(none) <{self._namespace_label(docname, extra_id)}>]\n"
+                )
             self.add_text("\n")
         else:
             # Close heading() function
@@ -1459,12 +1463,16 @@ class TypstTranslator(SphinxTranslator):
             self.add_text("]")
             # Add label if present
             if self.code_block_label:
-                self.add_text(f" <{self._sanitize_label(self.code_block_label)}>")
+                self.add_text(
+                    f" <{self._namespace_label(self._current_docname(), self.code_block_label)}>"
+                )
             self.add_text("\n\n")
         elif node.get("names"):
             # Handle :name: option without :caption: - just add label after code block
             label = node.get("names")[0]
-            self.add_text(f" <{self._sanitize_label(label)}>\n\n")
+            self.add_text(
+                f" <{self._namespace_label(self._current_docname(), label)}>\n\n"
+            )
         else:
             # Normal code block - just add spacing
             self.add_text("\n")
@@ -1700,7 +1708,7 @@ class TypstTranslator(SphinxTranslator):
         self.body = self._saved_body_stack.pop()
 
         if node.get("ids"):
-            label_id = self._sanitize_label(node["ids"][0])
+            label_id = self._namespace_label(self._current_docname(), node["ids"][0])
             term_content = f"[#{{{term_content}}} <{label_id}>]"
 
         # Store term for later (will be paired with definition)
@@ -1809,7 +1817,7 @@ class TypstTranslator(SphinxTranslator):
         # bracket opened in visit_figure -- see that method's docstring for
         # why the label must live inside a markup-mode bracket pair.
         if node.get("ids"):
-            label = self._sanitize_label(node["ids"][0])
+            label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f"\n) <{label}>]\n\n")
         else:
             self.add_text("\n)\n\n")
@@ -1944,10 +1952,13 @@ class TypstTranslator(SphinxTranslator):
             )
             raise nodes.SkipNode
 
-        # Sanitize here at the single derivation point so BOTH the reuse-ref
-        # (footnote(<label>)) and the definition ([#footnote(...) <label>])
-        # branches below emit the identical, Typst-valid label name.
-        label = self._sanitize_label(f"fn-{refid}")
+        # Namespace + sanitize here at the single derivation point so BOTH the
+        # reuse-ref (footnote(<label>)) and the definition
+        # ([#footnote(...) <label>]) branches below emit the identical,
+        # Typst-valid, per-document-unique label name. Footnote definition and
+        # reference are always in the SAME document, so the current docname
+        # namespaces both consistently.
+        label = self._namespace_label(self._current_docname(), f"fn-{refid}")
 
         # Statement-separator convention every other inline child already
         # uses (visit_emphasis/visit_strong/visit_literal all open this way).
@@ -2410,7 +2421,9 @@ class TypstTranslator(SphinxTranslator):
             self._in_markup_mode = True
             # Output label in markup mode (with # prefix in markup mode)
             if node.get("ids"):
-                label_id = self._sanitize_label(node["ids"][0])
+                label_id = self._namespace_label(
+                    self._current_docname(), node["ids"][0]
+                )
                 self.add_text(f'\n#label("{label_id}")')
             # Close the markup block
             self.add_text("]")
@@ -2448,7 +2461,7 @@ class TypstTranslator(SphinxTranslator):
         # juxtaposed expressions need a line break between them (`]par(` and
         # `)label(` are both syntax errors otherwise).
         if node.get("ids"):
-            label_id = self._sanitize_label(node["ids"][0])
+            label_id = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f"\n[#metadata(none) <{label_id}>]\n")
 
         # Mark that next element in list item needs separator
@@ -2490,7 +2503,13 @@ class TypstTranslator(SphinxTranslator):
             # character (e.g. `@`) cannot abort the compile with an unclosed
             # label -- this pending_xref path is only a best-effort fallback
             # for references Sphinx failed to resolve.
-            label = self._sanitize_label(reftarget.replace(".", "-").replace("_", "-"))
+            # Unresolved best-effort fallback: assume a same-document target and
+            # namespace with the current docname so it matches a same-doc anchor
+            # (all real anchors are now docname-namespaced).
+            label = self._namespace_label(
+                self._current_docname(),
+                reftarget.replace(".", "-").replace("_", "-"),
+            )
             self.add_text(f"#link(<{label}>)[")
         # Continue processing children to get the link text
 
@@ -2770,6 +2789,98 @@ class TypstTranslator(SphinxTranslator):
             name,
         )
 
+    def _current_docname(self) -> str | None:
+        """Return the docname currently being written, or ``None``.
+
+        The builder sets ``current_docname`` in ``write_doc`` before the
+        translator runs. Hand-built test doctrees may have no builder docname;
+        callers fall back to a bare (un-namespaced) label in that case.
+        """
+        return getattr(self.builder, "current_docname", None)
+
+    def _namespace_label(self, docname: str | None, raw_id: str) -> str:
+        """Namespace a docutils id/name by its owning document, then sanitize.
+
+        The whole corpus is flattened into ONE Typst master via ``#include()``
+        (each source doc becomes a ``.typ`` the master includes), but docutils
+        ids are unique only WITHIN a document -- two different documents can
+        carry the SAME section slug (e.g. ``info-field-lists``). Emitted as a
+        bare ``<info-field-lists>`` twice, that is a duplicate Typst label, and
+        the compile aborts at the semantic pass with ``label ... occurs
+        multiple times`` as soon as anything references it.
+
+        To keep every label unique per compiled master, every DEFINITION site
+        (anchors, ``label("...")``, ``<label>`` postfixes, footnote labels)
+        prefixes the SOURCE ``docname``; every REFERENCE site
+        (``link(<...>, ...)``) recomputes the SAME namespace from its target's
+        docname -- the current docname for a same-document reference, the
+        TARGET docname (parsed from the cross-document refuri) for a
+        cross-document reference -- so a link still lands on exactly the right
+        anchor. Since the ``docname:id`` string is built identically on both
+        sides and then run through the same ``_sanitize_label`` (docnames'
+        ``/`` -> ``_u2f_``, ``:`` is label-valid and preserved), a definition
+        and its reference always byte-match.
+
+        A ``None`` docname (hand-built test doctrees with no builder docname)
+        falls back to a bare sanitized label so those paths stay unchanged and
+        internally consistent (every site sees the same ``None``).
+
+        Args:
+            docname: The owning document's name, or ``None``.
+            raw_id: A docutils id/name (or a derived label such as ``fn-<id>``).
+
+        Returns:
+            A Typst-valid, per-document-unique label token.
+        """
+        if docname:
+            return self._sanitize_label(f"{docname}:{raw_id}")
+        return self._sanitize_label(raw_id)
+
+    def _resolve_xref_docname(self, refuri: str) -> Tuple[str, str] | None:
+        """Resolve a LOCAL cross-document refuri to ``(target_docname, anchor)``.
+
+        Sphinx's reference resolver renders a resolved cross-document
+        ``pending_xref`` as a ``reference`` whose refuri is
+        ``<relative-path><out_suffix>#<anchor>`` (e.g.
+        ``../domains/python.typ#info-field-lists`` relative to the current
+        document's output path). This inverts that: it joins the relative path
+        onto the current document's output URI, strips the builder's
+        ``out_suffix``, and returns the target docname plus the anchor -- so the
+        reference can be namespaced with the TARGET docname and thus match the
+        anchor that target document emits.
+
+        Returns ``None`` (leaving the caller to render a plain
+        ``link("url", ...)``) for:
+
+        - external URLs (any ``scheme://`` or ``mailto:`` / protocol-relative);
+        - same-document ``#anchor`` refs (handled earlier by the caller);
+        - whole-document refs with no ``#anchor`` (kept as a string-url link,
+          per requirement -- there is no single anchor to target);
+        - refuris whose path does not end in the builder's ``out_suffix``
+          (arbitrary relative asset links), or when the current docname is
+          unknown.
+        """
+        if "#" not in refuri:
+            return None
+        if "://" in refuri or refuri.startswith(("mailto:", "//")):
+            return None
+        path_part, _, anchor = refuri.partition("#")
+        if not anchor or not path_part:
+            return None
+        suffix = getattr(self.builder, "out_suffix", "")
+        if not suffix or not path_part.endswith(suffix):
+            return None
+        current = self._current_docname()
+        if not current:
+            return None
+        import posixpath
+
+        current_uri = self.builder.get_target_uri(current)
+        base_dir = posixpath.dirname(current_uri)
+        target_uri = posixpath.normpath(posixpath.join(base_dir, path_part))
+        target_docname = target_uri[: -len(suffix)]
+        return target_docname, anchor
+
     def _convert_length_to_typst(self, value: str) -> str | None:
         """
         Convert a docutils-normalized CSS length string to a Typst-valid length.
@@ -3006,7 +3117,10 @@ class TypstTranslator(SphinxTranslator):
         # it doesn't fall through to the plain-text fallback (FIG-02, D-03).
         if not refuri and refid:
             prefix = "#" if self._in_markup_mode else ""
-            self.add_text(f"{prefix}link(<{self._sanitize_label(refid)}>, ")
+            # A bare refid is a SAME-document target -> namespace with the
+            # current docname so it matches the anchor that document emitted.
+            label = self._namespace_label(self._current_docname(), refid)
+            self.add_text(f"{prefix}link(<{label}>, ")
 
             # Replicate the method-end bookkeeping inline since this branch
             # returns early (mirrors the refuri branches below).
@@ -3037,11 +3151,21 @@ class TypstTranslator(SphinxTranslator):
 
         # Check if it's an internal reference (starts with #)
         if refuri.startswith("#"):
-            # Internal reference to a label
-            label = self._sanitize_label(refuri[1:])  # Remove the #, sanitize
+            # Internal reference to a label in the SAME document -> namespace
+            # with the current docname so it matches this document's anchor.
+            label = self._namespace_label(self._current_docname(), refuri[1:])
+            self.add_text(f"{prefix}link(<{label}>, ")
+        elif (xref := self._resolve_xref_docname(refuri)) is not None:
+            # Resolved CROSS-document reference (`<relpath><out_suffix>#anchor`).
+            # In the flattened master this must become a real label link, not a
+            # dead string url: namespace with the TARGET docname so it byte-
+            # matches the anchor the target document emitted.
+            target_docname, anchor = xref
+            label = self._namespace_label(target_docname, anchor)
             self.add_text(f"{prefix}link(<{label}>, ")
         else:
-            # External reference (HTTP/HTTPS URL or relative path)
+            # External reference (HTTP/HTTPS URL, whole-document ref, or other
+            # relative path) -> plain string-url link, left unaffected.
             self.add_text(f'{prefix}link("{refuri}", ')
 
         # After outputting link(), turn off markup mode for content (second argument)
@@ -3269,7 +3393,7 @@ class TypstTranslator(SphinxTranslator):
 
         # Task 6.3: Add label if present
         if "ids" in node and node["ids"]:
-            label = self._sanitize_label(node["ids"][0])
+            label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f" <{label}>")
 
         # Skip children to prevent duplicate output of math content
@@ -3324,7 +3448,7 @@ class TypstTranslator(SphinxTranslator):
 
         # Task 6.3: Add label if present
         if "ids" in node and node["ids"]:
-            label = self._sanitize_label(node["ids"][0])
+            label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f" <{label}>")
 
         self.add_text("\n\n")
@@ -3856,9 +3980,10 @@ class TypstTranslator(SphinxTranslator):
         # (aliases/overloads) each get an anchor; a signature with NO ids emits
         # nothing (byte-unchanged). ids are globally unique per document
         # (docutils make_id), so no label is defined twice; dedupe defensively.
+        docname = self._current_docname()
         seen_labels: set[str] = set()
         for node_id in node.get("ids", []):
-            label_id = self._sanitize_label(node_id)
+            label_id = self._namespace_label(docname, node_id)
             if label_id in seen_labels:
                 continue
             seen_labels.add(label_id)

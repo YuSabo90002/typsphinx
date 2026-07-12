@@ -158,13 +158,16 @@ class TestParagraphPropagatedTargetRenderGate:
         typ_text = typ_output.read_text(encoding="utf-8")
 
         # The propagated-target paragraph must now carry an anchor for its id.
-        assert "[#metadata(none) <my-para-target>]" in typ_text, (
-            "The paragraph did not emit a <my-para-target> anchor -- the "
+        # Labels are namespaced per source document (bug #21), so the id is
+        # emitted as <index:my-para-target> in this single-doc (docname=index)
+        # fixture.
+        assert "[#metadata(none) <index:my-para-target>]" in typ_text, (
+            "The paragraph did not emit a <index:my-para-target> anchor -- the "
             f"propagated-target paragraph fix is not applied:\n{typ_text}"
         )
         # The bullet-list extension case must anchor too.
-        assert "[#metadata(none) <my-list-target>]" in typ_text, (
-            "The bullet list did not emit a <my-list-target> anchor -- the "
+        assert "[#metadata(none) <index:my-list-target>]" in typ_text, (
+            "The bullet list did not emit a <index:my-list-target> anchor -- the "
             f"propagated-target list extension is not applied:\n{typ_text}"
         )
 
@@ -172,15 +175,24 @@ class TestParagraphPropagatedTargetRenderGate:
         # (bare-label refid form, distinct from the quoted external link("url"))
         # must have a matching [#metadata(none) <name>] anchor. An unmatched
         # link name is exactly the dangling label that aborts the compile.
-        link_names = set(re.findall(r"link\(<([^>]+)>", typ_text))
-        anchor_names = set(re.findall(r"\[#metadata\(none\) <([^>]+)>\]", typ_text))
+        #
+        # The fixture's own prose deliberately contains inline-literal snippets
+        # like ``link(<my-list-target>, ...)`` (rendered as raw("...") string
+        # literals) to document the emitted form. Those are literal text, NOT
+        # real Typst link expressions, so strip raw("...") segments before
+        # scanning -- otherwise the un-namespaced snippet names would masquerade
+        # as dangling references (a false positive exposed by per-doc
+        # namespacing, bug #21).
+        scan_text = re.sub(r'raw\("(?:[^"\\]|\\.)*"\)', "", typ_text)
+        link_names = set(re.findall(r"link\(<([^>]+)>", scan_text))
+        anchor_names = set(re.findall(r"\[#metadata\(none\) <([^>]+)>\]", scan_text))
         assert link_names, (
             "Expected at least one same-document link(<name>, ...) reference in "
             f"the emitted output:\n{typ_text}"
         )
-        assert {"my-para-target", "my-list-target"} <= link_names, (
+        assert {"index:my-para-target", "index:my-list-target"} <= link_names, (
             "Expected both propagated-target references to be emitted as "
-            f"link(<...>) forms:\n{typ_text}"
+            f"docname-namespaced link(<index:...>) forms:\n{typ_text}"
         )
         dangling = link_names - anchor_names
         assert not dangling, (

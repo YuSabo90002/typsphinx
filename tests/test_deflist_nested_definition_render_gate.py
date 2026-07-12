@@ -194,10 +194,12 @@ class TestDeflistNestedDefinitionRenderGate:
         )
 
         # DANGLING-LABEL direction: the declaration's anchor must survive and
-        # anchor-name == reference-name for EVERY same-document link.
-        assert "[#metadata(none) <WidgetGamma>]" in typ_text, (
-            "The py:class declaration's <WidgetGamma> anchor was dropped -- its "
-            f"desc_signature was written into an orphaned buffer:\n{typ_text}"
+        # anchor-name == reference-name for EVERY same-document link. Labels are
+        # namespaced per source document (bug #21), so the id is emitted as
+        # <index:WidgetGamma> in this single-doc (docname=index) fixture.
+        assert "[#metadata(none) <index:WidgetGamma>]" in typ_text, (
+            "The py:class declaration's <index:WidgetGamma> anchor was dropped -- "
+            f"its desc_signature was written into an orphaned buffer:\n{typ_text}"
         )
         link_names = set(re.findall(r"link\(<([^>]+)>", typ_text))
         anchor_names = set(re.findall(r"\[#metadata\(none\) <([^>]+)>\]", typ_text))
@@ -210,9 +212,9 @@ class TestDeflistNestedDefinitionRenderGate:
             "Same-document references with no matching anchor (dangling labels): "
             f"{sorted(dangling)}\nanchors present: {sorted(anchor_names)}\n{typ_text}"
         )
-        assert "WidgetGamma" in link_names, (
+        assert "index:WidgetGamma" in link_names, (
             "Expected the forward :py:class: reference to WidgetGamma to be "
-            f"emitted as a same-document link:\n{typ_text}"
+            f"emitted as a docname-namespaced same-document link:\n{typ_text}"
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.

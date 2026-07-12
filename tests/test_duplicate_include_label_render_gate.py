@@ -178,14 +178,16 @@ class TestDuplicateIncludeLabelRenderGate:
 
         # The propagated explicit target must be defined exactly once as an
         # anchor, and the same-document :ref: must still be emitted as a
-        # link(<...>) reference that resolves to it.
-        assert shared_text.count("[#metadata(none) <shared-anchor>]") == 1, (
-            "Expected exactly one <shared-anchor> anchor DEFINITION in "
+        # link(<...>) reference that resolves to it. Labels are namespaced per
+        # source document (bug #21): shared.rst's docname is `shared`, so the
+        # anchor/ref token is <shared:shared-anchor>.
+        assert shared_text.count("[#metadata(none) <shared:shared-anchor>]") == 1, (
+            "Expected exactly one <shared:shared-anchor> anchor DEFINITION in "
             f"shared.typ:\n{shared_text}"
         )
-        assert "link(<shared-anchor>" in shared_text, (
+        assert "link(<shared:shared-anchor>" in shared_text, (
             "Expected the same-document :ref: to survive as a "
-            f"link(<shared-anchor>, ...) reference in shared.typ:\n{shared_text}"
+            f"link(<shared:shared-anchor>, ...) reference in shared.typ:\n{shared_text}"
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.

@@ -23,7 +23,7 @@ sibling juxtaposed with no separator"):
     ``target`` node -- rendered as the ``[#link(...) #label(...)]`` markup
     wrapper -- with a trailing ``.)`` text run in the SAME caption::
 
-        caption: {text("...by\n")[#link("...", text("plantuml")) #label("plantuml")]text(".)")}
+        caption: {text("...by\n")[#link("...", text("plantuml")) #label("index:plantuml")]text(".)")}
 
     The wrapper close ``]`` juxtaposed against ``text(".)")`` (and the leading
     text juxtaposed against ``[``). Fix: ``visit_caption``'s figure branch sets
@@ -171,18 +171,22 @@ class TestRefTargetNestedListRenderGate:
         # (a) The reference-with-target wrapper close must NOT juxtapose the
         # following inline text -- this is the exact corpus intl.typ:27 fatal
         # shape.
-        assert '#label("plantuml")]' in typ_text, (
+        # Labels are namespaced per source document (bug #21): this single-doc
+        # fixture's docname is `index`, so the target renders #label("index:plantuml").
+        assert '#label("index:plantuml")]' in typ_text, (
             "The reference-with-target markup wrapper was not emitted -- the "
             f"fixture's named external link did not render a wrapper:\n{typ_text}"
         )
-        assert '#label("plantuml")]text(".)")' not in typ_text, (
+        assert '#label("index:plantuml")]text(".)")' not in typ_text, (
             "The caption's reference-with-target wrapper close juxtaposes the "
             'following text(".)") with NO separator -- the exact '
             "intl.typ:27 'expected semicolon or line break' fatal"
         )
         # ...and the separated form (newline between wrapper close and the next
         # text run) must be present.
-        assert re.search(r'#label\("plantuml"\)\]\s*\ntext\("\.\)"\)', typ_text), (
+        assert re.search(
+            r'#label\("index:plantuml"\)\]\s*\ntext\("\.\)"\)', typ_text
+        ), (
             "Expected a newline separator between the caption wrapper close "
             'and the following text(".)") run -- the paragraph-context fix for '
             "the figure caption did not take effect"
