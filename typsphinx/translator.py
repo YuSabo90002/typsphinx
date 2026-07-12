@@ -1885,11 +1885,28 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Generate Typst label if target has ids
-        # In unified code mode, use label() function instead of <label> syntax
+        # Generate a Typst anchor if the target has ids.
+        #
+        # Emit the anchor as a metadata-carrying markup block --
+        # `[#metadata(none) <id>]` -- exactly like the extra-id anchors in
+        # visit_title/depart_title. A bare code-mode `label("id")` is WRONG in
+        # two ways: (a) two adjacent targets emit `label("id1")label("id2")`
+        # with no separator, a Typst syntax error ("expected semicolon or line
+        # break"); and (b) even a single bare label is a raw label *value*, so
+        # joining it into a content block fails ("cannot join content with
+        # label"). A `[#metadata(none) <id>]` block is genuine *content* with
+        # the label attached, so it joins/concatenates cleanly, works both
+        # singly and consecutively, and stays reachable via link(<id>).
+        #
+        # The surrounding newlines separate this markup block from any adjacent
+        # code-mode expression on BOTH sides -- a preceding one
+        # (text()/raw()/par()/a prior target) and a following one (e.g. the next
+        # `par({...})`) -- which is required inside a `{...}` content block where
+        # juxtaposed expressions need a line break between them (`]par(` and
+        # `)label(` are both syntax errors otherwise).
         if node.get("ids"):
             label_id = node["ids"][0]
-            self.add_text(f'label("{label_id}")')
+            self.add_text(f"\n[#metadata(none) <{label_id}>]\n")
 
         # Mark that next element in list item needs separator
         if self.in_list_item:
