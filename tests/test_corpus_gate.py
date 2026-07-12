@@ -308,3 +308,136 @@ class TestCorpusRenderGate:
             "least some not-yet-handled node types"
         )
         print(f"Unknown Visit Catalogue: {catalogue.most_common()}")
+
+
+# ============================================================================
+# SC#3: empty-URL before/after measurement (D-07)
+# ============================================================================
+#
+# METHODOLOGY ADJUSTMENT (deviates from 15-02-PLAN.md's literal D-07 wording
+# -- see 15-02-SUMMARY.md "Deviations" for the full rationale):
+#
+# The plan's original mechanism was `git worktree add --detach <dir>
+# 79c9d45~1` -- checking out the WHOLE tree as it existed immediately before
+# the XREF-01 fix. That was written before this phase's in-flight campaign
+# fixed 25 pre-existing production bugs to get GATE-02 green: 55 commits
+# landed AFTER 79c9d45, heavily overhauling translator.py's
+# reference/anchor handling AND adding the entire Phase 13-14 node-handler
+# surface. A `79c9d45~1`-vs-HEAD diff today would conflate the XREF-01
+# effect with that whole campaign, violating D-07's actual INTENT
+# ("quantify the reduction delivered by the XREF-01 fix") even though it
+# matches D-07's literal original wording.
+#
+# The faithful isolation (D-07's exact mechanism is Claude's Discretion per
+# CONTEXT.md): the "before" translator is current HEAD with ONLY XREF-01's
+# `depart_term` id-anchor emission disabled. Concretely,
+# `checkout_pre_xref01_translator` creates a `git worktree add --detach
+# <dir> HEAD` (branched from HEAD, NOT `79c9d45~1`), then applies a minimal
+# in-worktree source edit to that worktree's `typsphinx/translator.py`
+# removing exactly the `if node.get("ids"):` label-anchor block XREF-01
+# added to `depart_term` (see `git show 79c9d45`) -- reproducing
+# pre-XREF-01 `depart_term` behavior on top of all current code. The
+# "after" translator is HEAD as-installed, unmodified. This keeps Phases
+# 11-14 and all 25 campaign fixes present in BOTH builds, varying ONLY the
+# XREF-01 `depart_term` anchor -- a clean, single-variable isolation of the
+# XREF-01 effect.
+#
+# `FIX_COMMIT` is retained as a documentation constant naming the commit
+# whose `depart_term` behavior is reverted; it is no longer passed to `git
+# worktree add` directly (that now targets `HEAD`).
+
+FIX_COMMIT = "79c9d45"  # fix(12-02): emit bracket-wrap <label> anchor in depart_term
+
+# The exact `depart_term` block `79c9d45` added (verified via `git show
+# 79c9d45 -- typsphinx/translator.py`), as it stands in the CURRENT source
+# (the `label_id` line gained a `self._namespace_label(...)` wrap in a later
+# campaign commit -- matched verbatim against today's HEAD, not the literal
+# 79c9d45 diff, since the worktree is created FROM HEAD). Matching verbatim
+# means a future refactor of `depart_term` makes
+# `checkout_pre_xref01_translator` fail loudly (ValueError) instead of
+# silently no-op'ing and measuring "before" == "after".
+_DEPART_TERM_LABEL_ANCHOR_BLOCK = (
+    '        if node.get("ids"):\n'
+    '            label_id = self._namespace_label(self._current_docname(), '
+    'node["ids"][0])\n'
+    '            term_content = f"[#{{{term_content}}} <{label_id}>]"\n'
+    "\n"
+    "        # Store term for later (will be paired with definition)\n"
+    "        self.current_term_buffer = term_content"
+)
+
+_DEPART_TERM_REVERTED = (
+    "        # Store term for later (will be paired with definition)\n"
+    "        self.current_term_buffer = term_content"
+)
+
+
+def checkout_pre_xref01_translator(repo_root: Path, worktree_dir: Path) -> None:
+    """Create an isolated worktree at HEAD, then apply a minimal in-place
+    edit reverting ONLY XREF-01's `depart_term` id-anchor emission --
+    reproducing pre-XREF-01 `depart_term` behavior on top of all current
+    code (Phases 11-14 + this phase's 25 campaign fixes). See the
+    METHODOLOGY ADJUSTMENT note above for why this checks out `HEAD`
+    (not `79c9d45~1`).
+
+    The worktree is a fully isolated, read-only-relative-to-the-main-tree
+    checkout (T-15-04) -- NEVER `git stash`, which would mutate the live
+    working tree an agent/user session may still be operating in. The
+    in-worktree source edit only touches the worktree's own copy of
+    `typsphinx/translator.py`; the main working tree's `typsphinx/translator.py`
+    is never opened for writing by this function.
+    """
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", str(worktree_dir), "HEAD"],
+        cwd=repo_root,
+        check=True,
+    )
+
+    translator_py = worktree_dir / "typsphinx" / "translator.py"
+    original_text = translator_py.read_text(encoding="utf-8")
+    if _DEPART_TERM_LABEL_ANCHOR_BLOCK not in original_text:
+        raise ValueError(
+            "checkout_pre_xref01_translator: depart_term's id-anchor block "
+            "was not found verbatim in the worktree's translator.py -- "
+            "translator.py has likely been refactored since this helper "
+            "was written; update _DEPART_TERM_LABEL_ANCHOR_BLOCK to match "
+            "the current source before re-running the SC#3 measurement."
+        )
+    patched_text = original_text.replace(
+        _DEPART_TERM_LABEL_ANCHOR_BLOCK, _DEPART_TERM_REVERTED, 1
+    )
+    translator_py.write_text(patched_text, encoding="utf-8")
+
+
+# Anchored on the literal warning-line prefix emitted in visit_reference
+# (translator.py's empty-URL guard: `logger.warning(f"Reference node has
+# empty URL. ...")`), held constant across both the before and after builds.
+EMPTY_URL_SIGNATURE = "Reference node has empty URL"
+
+
+def count_empty_url_warnings(stderr_text: str) -> int:
+    """Count `Reference node has empty URL` occurrences in captured stderr
+    (SC#3). A plain substring count is safe here -- unlike `unknown_visit`
+    (Pitfall 4), this warning does not embed a multi-line node dump; the
+    counted signature is a fixed prefix on a single logical warning line.
+    """
+    return stderr_text.count(EMPTY_URL_SIGNATURE)
+
+
+def test_count_empty_url_warnings():
+    """
+    Fast (non-slow, no network) unit test for the SC#3 counter: a synthetic
+    3-occurrence stderr string and a zero-occurrence string.
+    """
+    three_occurrences = (
+        "WARNING: Reference node has empty URL. Link will be rendered as "
+        "plain text. Check for broken references in source: foo\n"
+        "WARNING: Reference node has empty URL. Link will be rendered as "
+        "plain text. Check for broken references in source: bar\n"
+        "WARNING: Reference node has empty URL. Link will be rendered as "
+        "plain text. Check for broken references in source: baz\n"
+    )
+    assert count_empty_url_warnings(three_occurrences) == 3
+
+    zero_occurrences = "WARNING: unknown node type: <citation>\n"
+    assert count_empty_url_warnings(zero_occurrences) == 0
