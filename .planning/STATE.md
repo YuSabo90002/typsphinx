@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 13
-current_phase_name: topic + line blocks
+current_phase_name: shared-dispatch-point-changes-topic-line-blocks
 status: executing
 stopped_at: Phase 13 context gathered
-last_updated: "2026-07-12T03:29:32.119Z"
+last_updated: "2026-07-12T04:12:08.922Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 12 complete, transitioned to Phase 13
+last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 7
+  total_plans: 10
   completed_plans: 7
   percent: 40
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 12 — high-volume-independent-node-handlers
+**Current focus:** Phase 13 — shared-dispatch-point-changes-topic-line-blocks
 
 ## Current Position
 
-Phase: 13 — Shared Dispatch-Point Changes (topic + line blocks)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-12 — Phase 12 complete, transitioned to Phase 13
+Phase: 13 (shared-dispatch-point-changes-topic-line-blocks) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 13
+Last activity: 2026-07-12 — Phase 13 execution started
 
 Progress: [██████████] 100%
 
