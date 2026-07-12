@@ -1623,3 +1623,155 @@ class TestBlockQuoteMarkupModeRenderGate:
                 "``_t`` body literal AND the attribution children must render "
                 f"as prose, not leaked source):\n{full_text}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Per-block codly config leak (captioned code block) + codly-range invalid-API
+# fatal. Two related defects string-agreement tests never caught (they never
+# real-compiled): (1) in a captioned code block, emitted as the MARKUP form
+# `figure(caption: [...])[ ... ]`, a bare `codly(number-format: none)` /
+# highlight call is typeset as LITERAL PROSE -- leaking the config text and
+# never applying the highlight (the corpus bug). (2) The highlight call was
+# `codly-range(highlight: (...))`, which is not a codly 1.3.0 API:
+# `codly-range(start, end)` displays a line range and needs a positional
+# `start`, so the call aborts the compile with `missing argument: start` the
+# instant it executes (in ANY code-mode context -- top level, admonition,
+# list). The fix (a) `#`-prefixes the config in markup context so Typst
+# executes it, and (b) replaces codly-range with the correct
+# `codly(highlights: ((line: N, start: 1, end: none, fill: ...), ...))` API.
+# FAST (non-slow, offline) render gate, following the TestCodlyOffsetRenderGate
+# / TestBlockQuoteMarkupModeRenderGate pattern.
+# ---------------------------------------------------------------------------
+
+# codly-config tokens that must NEVER reach the extracted PDF prose -- each is
+# a per-block config call that must be EXECUTED (invisible), not typeset. The
+# fixture's own descriptive prose deliberately avoids naming these so this
+# sweep is unambiguous.
+CODLY_CONFIG_LEAK_SIGNATURES = (
+    "codly(",
+    "codly-range(",
+    "number-format",
+    "highlights:",
+    "highlight:",
+)
+
+
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the codly config leak render gate",
+)
+class TestCodlyConfigLeakRenderGate:
+    """
+    Real-compile acceptance gate for the per-block codly-config markup/
+    code-mode leak (captioned code block) and the codly-range invalid-API
+    compile fatal.
+
+    Requirements: GATE-02 class ("code-mode function call leaks as text"),
+    Sphinx :emphasize-lines: / :caption: support.
+    """
+
+    def test_codly_config_executed_not_leaked_and_highlight_valid(
+        self, fixtures_dir, temp_build_dir
+    ):
+        """
+        Compile the codly_config_leak_render_gate fixture (a captioned code
+        block with :emphasize-lines: -- the MARKUP-context corpus bug -- and a
+        plain top-level code block with :emphasize-lines: -- the code-mode
+        codly-range compile-fatal) to PDF and confirm:
+
+        - (source) the invalid ``codly-range(`` API is NEVER emitted;
+        - (source) the captioned block's config is emitted as EXECUTED markup
+          calls ``#codly(number-format: none)`` and ``#codly(highlights: ...)``
+          (with the leading ``#``), never bare;
+        - (source) the top-level block's highlight is the bare code-mode
+          ``codly(highlights: ...)`` call (no ``#`` inside ``#{ ... }``);
+        - typst.compile() succeeds (no ``missing argument: start`` TypstError);
+        - no codly-config token (``codly(`` / ``codly-range(`` /
+          ``number-format`` / ``highlights:`` / ``highlight:``) leaks into the
+          extracted PDF prose, and no LEAK_SIGNATURES token appears;
+        - every code-block sentinel reaches the compiled PDF.
+        """
+        source_dir = fixtures_dir / "codly_config_leak_render_gate"
+
+        result = _run_sphinx_build_typst(source_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        # The removed invalid API must never be emitted anywhere.
+        assert "codly-range(" not in typ_source, (
+            "codly 1.3.0 has no codly-range(highlight: ...) API -- "
+            "codly-range(start, end) requires a positional `start` and aborts "
+            "the compile with 'missing argument: start' when executed"
+        )
+
+        # Captioned (markup) context: the config must be EXECUTED with a
+        # leading `#`, or it leaks as literal prose inside figure(...)[...].
+        assert "figure(caption:" in typ_source, (
+            "Expected the captioned code block to emit a figure(caption: ...) "
+            "wrapper -- fixture/handler regression"
+        )
+        assert "#codly(number-format: none)" in typ_source, (
+            "The captioned code block's number-format config was not emitted "
+            "as an executed markup call (#codly(...)) -- it would leak as "
+            "literal prose inside figure(...)[...]"
+        )
+        assert "#codly(highlights: ((line: 2, start: 1, end: none," in typ_source, (
+            "The captioned code block's emphasize-lines highlight was not "
+            "emitted as an executed markup call (#codly(highlights: ...)) with "
+            "the correct codly(highlights: ...) API"
+        )
+
+        # Top-level (code-mode) context: the highlight is the bare
+        # codly(highlights: ...) call -- a `#`-prefixed call would be invalid
+        # inside the document's `#{ ... }` code block.
+        assert "\ncodly(highlights: ((line: 3, start: 1, end: none," in typ_source, (
+            "The top-level code block's emphasize-lines highlight was not "
+            "emitted as the bare code-mode codly(highlights: ...) call"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # before the fix the top-level codly-range(highlight: ...) call aborted
+        # the ENTIRE compile here with 'missing argument: start' -- this is the
+        # must-fail-until-fixed guard for the invalid-API fatal.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        # Every code-block sentinel must reach the compiled PDF.
+        for sentinel in (
+            "CODLYCAPFIRSTSENTINEL",
+            "CODLYCAPEMPHSENTINEL",
+            "CODLYCAPTHIRDSENTINEL",
+            "CODLYTOPFIRSTSENTINEL",
+            "CODLYTOPSECONDSENTINEL",
+            "CODLYTOPEMPHSENTINEL",
+        ):
+            assert sentinel in full_text, (
+                f"Expected code-block sentinel '{sentinel}' in extracted PDF "
+                "text -- codly config leak render regression"
+            )
+
+        # No codly-config token may leak into the rendered prose (the exact
+        # captioned-block corpus symptom), and no generic LEAK_SIGNATURES form.
+        for leaked_token in CODLY_CONFIG_LEAK_SIGNATURES + LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"codly-config token '{leaked_token}' leaked into rendered PDF "
+                "text -- the per-block config must be EXECUTED, not typeset as "
+                f"literal prose (captioned markup/code-mode regression):\n{full_text}"
+            )

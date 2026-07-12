@@ -1413,8 +1413,9 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a literal block (code block) node.
 
-        Implements Task 4.2.2: codly forced usage with #codly-range() for highlighted lines
-        Design 3.5: All code blocks use codly, with #codly-range() for highlights
+        Implements Task 4.2.2: codly forced usage, with codly(highlights: ...)
+        for :emphasize-lines: (codly 1.3.0 has no codly-range(highlight: ...) API)
+        Design 3.5: All code blocks use codly; highlighted lines use codly(highlights: ...)
         Requirements 7.3, 7.4: Support line numbers and highlighted lines
         Issue #20: Support :linenos:, :caption:, and :name: options
         Issue #31: Support :lineno-start: and :dedent: options
@@ -1458,12 +1459,34 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item:
             self.add_text("{\n")
 
+        # Per-block codly config (number-format / offset / codly-range) is a
+        # code-mode FUNCTION CALL, and whether it needs a leading `#` depends
+        # on the surrounding Typst mode:
+        #   * Document top level, admonitions (info({...})), list items and
+        #     table cells all place the block in a CODE-mode `{ }` context,
+        #     where a bare `codly(...)` executes -- emit it bare.
+        #   * A CAPTIONED code block opens a MARKUP content block above
+        #     (`figure(caption: [...])[`), where a bare `codly(...)` is typeset
+        #     as LITERAL PROSE -- leaking the config text and, for codly-range,
+        #     never applying the highlight (the corpus bug). There it must
+        #     carry a leading `#` so Typst executes it.
+        # The one exception is a captioned code block that is ALSO in a list
+        # item: the `{ }` wrapper emitted just above re-enters code mode inside
+        # the figure's `[...]`, so it is bare again. Hence: markup (needs `#`)
+        # iff captioned AND not in a list-item `{ }` wrapper. Same markup/
+        # code-mode confusion class as Phase-15 bug #15 (block_quote).
+        in_markup_context = (
+            self.in_captioned_code_block
+            and self.code_block_caption
+            and not self.in_list_item
+        )
+        codly_prefix = "#" if in_markup_context else ""
+
         # Check for :linenos: option (Issue #20)
         # If linenos is not set or False, disable line numbers in codly
         linenos = node.get("linenos", False)
         if not linenos:
-            # No # prefix in code mode
-            self.add_text("codly(number-format: none)\n")
+            self.add_text(f"{codly_prefix}codly(number-format: none)\n")
 
         # Extract highlight_args if present (Task 4.2.2)
         highlight_args = node.get("highlight_args", {})
@@ -1486,17 +1509,27 @@ class TypstTranslator(SphinxTranslator):
         # matching linenostart=1).
         lineno_start = highlight_args.get("linenostart")
         if linenos and lineno_start is not None and lineno_start != 1:
-            # No # prefix in code mode
-            self.add_text(f"codly(offset: {lineno_start - 1})\n")
+            self.add_text(f"{codly_prefix}codly(offset: {lineno_start - 1})\n")
 
-        # Generate codly-range() if highlight lines are specified
+        # Highlight the Sphinx :emphasize-lines: lines. codly 1.3.0 has NO
+        # `codly-range(highlight: ...)` API -- codly-range(start, end) DISPLAYS
+        # a line range and requires a positional `start`, so the old
+        # `codly-range(highlight: (...))` call was invalid Typst that aborted
+        # the compile with "missing argument: start" the moment it executed. It
+        # only ever appeared to "work" in a markup context, where it leaked as
+        # un-executed literal prose (never highlighting anything). The correct
+        # per-line-highlight API is
+        #   codly(highlights: ((line: N, start: 1, end: none, fill: <color>), ...))
+        # -- start: 1 (column 1) + end: none (rest of the line) highlights the
+        # whole emphasized line. codly clears `highlights` after each raw block,
+        # so this is scoped to this block only (no bleed into later blocks).
         if hl_lines:
-            # Convert list of line numbers to Typst array format
-            # Example: [2, 3] -> codly-range(highlight: (2, 3))
-            # Example: [2, 4, 5, 6] -> codly-range(highlight: (2, 4, 5, 6))
-            highlight_str = ", ".join(str(line) for line in hl_lines)
-            # No # prefix in code mode
-            self.add_text(f"codly-range(highlight: ({highlight_str}))\n")
+            highlight_entries = ", ".join(
+                f"(line: {line}, start: 1, end: none, fill: yellow)"
+                for line in hl_lines
+            )
+            # Trailing comma keeps a single-entry highlights tuple a valid array.
+            self.add_text(f"{codly_prefix}codly(highlights: ({highlight_entries},))\n")
 
         # Typst code block syntax: ```language\ncode\n```
         # Extract language if specified

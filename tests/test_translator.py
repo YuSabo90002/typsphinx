@@ -804,10 +804,12 @@ def test_literal_block_with_linenos(simple_document, mock_builder):
 
 def test_literal_block_with_highlight_lines(simple_document, mock_builder):
     """
-    Test that literal blocks with highlight_args generate #codly-range() (Task 4.2.2).
+    Test that literal blocks with highlight_args generate codly(highlights: ...).
 
-    Design 3.5: codly forced usage with #codly-range() for highlighted lines
-    Requirement 7.4: highlight_args should be converted to #codly-range(highlight: (...))
+    codly 1.3.0 has no codly-range(highlight: ...) API -- codly-range(start, end)
+    displays a line range and aborts the compile with "missing argument: start"
+    when executed. :emphasize-lines: must use the codly(highlights: ((line: N,
+    start: 1, end: none, fill: ...), ...)) full-line-highlight API instead.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -823,12 +825,15 @@ def test_literal_block_with_highlight_lines(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly-range() before code block
+    # Should generate the valid codly(highlights: ...) call, never the removed
+    # codly-range(highlight: ...) invalid API.
     assert (
-        "codly-range(" in output
-    ), "Should generate codly-range() for highlighted lines"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    assert "2" in output and "3" in output, "Should include highlighted line numbers"
+        "codly(highlights:" in output
+    ), "Should generate codly(highlights: ...) for highlighted lines"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert (
+        "line: 2" in output and "line: 3" in output
+    ), "Should include highlighted line numbers as codly highlight entries"
     assert "```python" in output, "Should still use code block with language"
 
 
@@ -836,8 +841,9 @@ def test_literal_block_with_linenos_and_highlights(simple_document, mock_builder
     """
     Test literal blocks with both line numbers and highlights (Task 4.2.2).
 
-    Design 3.5: codly provides line numbers by default, use #codly-range() for highlights
-    Requirement 7.3, 7.4: Both linenos and highlight_args should be supported
+    codly provides line numbers by default; :emphasize-lines: uses the
+    codly(highlights: ...) full-line-highlight API (not the invalid
+    codly-range(highlight: ...)).
     """
     from typsphinx.translator import TypstTranslator
 
@@ -854,21 +860,22 @@ def test_literal_block_with_linenos_and_highlights(simple_document, mock_builder
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # codly provides line numbers by default, should generate #codly-range() for highlights
+    # Should generate the valid codly(highlights: ...) call for the highlights.
     assert (
-        "codly-range(" in output
-    ), "Should generate codly-range() for highlighted lines"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    assert "2" in output, "Should include highlighted line number"
+        "codly(highlights:" in output
+    ), "Should generate codly(highlights: ...) for highlighted lines"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert "line: 2" in output, "Should include highlighted line number"
     assert "```python" in output, "Should use code block with language"
 
 
 def test_literal_block_with_highlight_ranges(simple_document, mock_builder):
     """
-    Test literal blocks with highlight ranges (Task 4.2.2).
+    Test literal blocks with multiple highlighted lines (Task 4.2.2).
 
-    Design 3.5: #codly-range() should support both individual lines and ranges
-    Example: #codly-range(highlight: (2, 4-6)) highlights line 2 and lines 4-6
+    Each :emphasize-lines: line becomes its own codly highlight entry
+    ((line: N, start: 1, end: none, fill: ...)) in a single codly(highlights: ...)
+    call.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -887,13 +894,14 @@ def test_literal_block_with_highlight_ranges(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly-range() with highlight parameter
-    assert "codly-range(" in output, "Should generate #codly-range()"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    # Should contain line numbers (exact format depends on implementation)
-    assert (
-        "2" in output or "4" in output
-    ), "Should include some highlighted line numbers"
+    # Should generate a single codly(highlights: ...) call, one entry per line.
+    assert "codly(highlights:" in output, "Should generate codly(highlights: ...)"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    # Each highlighted line is its own (line: N, ...) entry.
+    for line in (2, 4, 5, 6):
+        assert (
+            f"line: {line}" in output
+        ), f"Should include highlight entry for line {line}"
 
 
 def test_literal_block_unsupported_language_warning(simple_document, mock_builder):
@@ -1048,12 +1056,13 @@ def test_literal_block_with_lineno_start_and_emphasize(simple_document, mock_bui
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate both #codly(offset: 99) and #codly-range(highlight: ...)
+    # Should generate both codly(offset: 99) and codly(highlights: ...)
     # (codly 1.3.0 uses offset = linenostart - 1, not start:)
     assert "codly(offset: 99)" in output, "Should generate offset parameter"
     assert "codly(start:" not in output, "Should not use the removed start: param"
-    assert "codly-range(highlight:" in output, "Should generate highlight parameter"
-    assert "2" in output, "Should include highlighted line number"
+    assert "codly(highlights:" in output, "Should generate the highlights call"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert "line: 2" in output, "Should include highlighted line number"
     assert "```python" in output
 
 
@@ -1149,7 +1158,8 @@ def test_literal_block_with_dedent_and_other_options(simple_document, mock_build
     # Should have dedented content with line numbers and highlights
     assert "def inner_function():" in output, "Should have dedented content"
     assert '    return "dedented"' in output, "Should preserve relative indentation"
-    assert "codly-range(highlight:" in output, "Should have highlights"
+    assert "codly(highlights:" in output, "Should have highlights"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
     assert "```python" in output
 
 
@@ -2173,8 +2183,11 @@ def test_code_block_linenos_with_highlights(simple_document, mock_builder):
     assert "```python" in output
     assert "def hello():" in output
 
-    # Should have highlight (already implemented)
-    assert "codly-range(highlight: (1))" in output
+    # Should have highlight via the valid codly(highlights: ...) API
+    assert (
+        "codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
+    )
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
 
     # Should NOT disable line numbers
     assert "number-format: none" not in output
@@ -2328,8 +2341,13 @@ def test_code_block_all_options(simple_document, mock_builder):
 
     # Should have line numbers (no number-format: none)
     assert "number-format: none" not in output
-    # Should have highlights
-    assert "codly-range(highlight: (1))" in output
+    # Should have highlights via the valid codly(highlights: ...) API. This is a
+    # CAPTIONED code block -> emitted inside the markup figure(...)[...] content
+    # block, so the highlight call must be executed with a leading `#`.
+    assert (
+        "#codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
+    )
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
     # Should have figure with caption
     assert "figure(" in output
     # Should have label
