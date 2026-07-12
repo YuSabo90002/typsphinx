@@ -83,6 +83,12 @@ def xref_refid_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def desc_signature_render_gate_dir(fixtures_dir):
+    """Return the path to the desc_signature_render_gate fixture project."""
+    return fixtures_dir / "desc_signature_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -631,4 +637,139 @@ class TestXrefRefidRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- xref/refid markup/code-mode regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 12 (DESC-01..04): extend the GATE-01 render-gate pattern to prove
+# the desc_returns/desc_signature_line/desc_optional/desc_inline handlers
+# (12-03-PLAN.md) render correctly in a real compile -- the return arrow,
+# a GENUINE multi-line linebreak() (proven via real pypdf text-extraction,
+# never a `.typ`-source `"\n"` check, per New Pitfall 11), nested optional
+# brackets, and an inline fragment with no strong() wrapper.
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the DESC-02 multi-line signature case -- distinctive,
+# unlikely words chosen so a real pypdf extraction can prove the two
+# desc_signature_line siblings render on SEPARATE lines (not concatenated
+# with no separator). Must match the tokens embedded in
+# desc_signature_render_gate/index.rst (the template parameter name and the
+# C++ function name of the confirmed multi-line construction).
+DESC_LINE_ONE_SENTINEL = "DESCLINEONESENTINEL4Q1"
+DESC_LINE_TWO_SENTINEL = "DESCLINETWOSENTINEL5Q2"
+
+# Sentinel for the DESC-04 inline :cpp:expr: fragment case.
+DESC_INLINE_FRAGMENT_SENTINEL = "DescInlineExprToken"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestDescSignatureRenderGate:
+    """
+    Real-compile acceptance gate for DESC-01..04: desc_returns (return
+    arrow), desc_signature_line (genuine multi-line linebreak()),
+    desc_optional (nested bracket wrap), and desc_inline (transparent
+    pass-through, no strong() wrapper).
+
+    Requirements: DESC-01, DESC-02, DESC-03, DESC-04, GATE-01
+    (12-CONTEXT.md D-05/D-06, 12-RESEARCH.md Pattern 3, 12-03-PLAN.md).
+    """
+
+    def test_desc_signature_pdf_has_arrow_linebreak_brackets_and_inline(
+        self, desc_signature_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the desc_signature_render_gate fixture to PDF and confirm,
+        via real pypdf text-extraction:
+        - the ' -> ' return arrow is present adjacent to the return type
+          (DESC-01);
+        - the two DESC-02 multi-line sentinels appear in the extracted
+          text on SEPARATE lines (i.e. NOT concatenated with no
+          separator) -- a real-extraction proof per New Pitfall 11, never
+          a .typ-source '\\n' check;
+        - the nested `printf(fmt[, args[, more]])` optional brackets are
+          present, correctly nested (DESC-03);
+        - the inline `:cpp:expr:` fragment token appears inline, with no
+          LEAK_SIGNATURES token (DESC-04).
+
+        Any TypstCompilationError from the uncaught typst.compile() call
+        below must propagate and fail this test loudly -- the DESC-03
+        nested-optional case is the one most likely to expose a bracket
+        mismatch that would abort the whole compile (Pitfall 1).
+        """
+        result = _run_sphinx_build_typst(desc_signature_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test -- a mismatched desc_optional bracket
+        # nesting would abort the ENTIRE compile here (Pitfall 1), not just
+        # fail a string-agreement check (Pitfall 9).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        # DESC-01: the return arrow, adjacent to the return type.
+        assert "-> int" in full_text, (
+            "Expected the ' -> ' return arrow adjacent to the return type "
+            "in extracted PDF text -- desc_returns regression"
+        )
+
+        # DESC-02: both multi-line sentinels present, and NOT concatenated
+        # with no separator -- a real-extraction proof (New Pitfall 11)
+        # that a genuine Typst linebreak() (not a cosmetic source '\n')
+        # separated the two desc_signature_line children.
+        assert DESC_LINE_ONE_SENTINEL in full_text, (
+            f"Expected multi-line sentinel '{DESC_LINE_ONE_SENTINEL}' in "
+            "extracted PDF text -- desc_signature_line regression"
+        )
+        assert DESC_LINE_TWO_SENTINEL in full_text, (
+            f"Expected multi-line sentinel '{DESC_LINE_TWO_SENTINEL}' in "
+            "extracted PDF text -- desc_signature_line regression"
+        )
+        concatenated = DESC_LINE_ONE_SENTINEL + DESC_LINE_TWO_SENTINEL
+        assert concatenated not in full_text, (
+            "The two desc_signature_line sentinels were concatenated with "
+            "no separator in extracted PDF text -- linebreak() did not "
+            "produce a real visual break (New Pitfall 11 regression: a "
+            "source '\\n' alone is cosmetic-only)"
+        )
+
+        # DESC-03: the nested printf(fmt[, args[, more]]) optional brackets.
+        assert "printf(fmt, [args, [more]])" in full_text, (
+            "Expected the nested printf(fmt[, args[, more]]) optional-"
+            "bracket rendering in extracted PDF text -- desc_optional "
+            "regression"
+        )
+
+        # DESC-04: the inline :cpp:expr: fragment token, rendered inline
+        # (transparent pass-through, no strong() wrapper -- D-06).
+        assert DESC_INLINE_FRAGMENT_SENTINEL in full_text, (
+            f"Expected inline fragment sentinel "
+            f"'{DESC_INLINE_FRAGMENT_SENTINEL}' in extracted PDF text -- "
+            "desc_inline regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- desc_signature markup/code-mode "
+                "regression"
             )
