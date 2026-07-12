@@ -1889,6 +1889,23 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The table node
         """
+        # Emit a leading newline separator when this table follows a
+        # sibling inside a list item, matching the block-visitor pattern
+        # established in bug #4 (bullet_list/literal_block/definition_list/
+        # block_quote/field_list). Otherwise depart_table's table( juxtaposes
+        # against the preceding inline expression in the list-item content
+        # block -- e.g. `text("Text styling commands:")table(` -- a Typst
+        # parse error ("expected semicolon or line break"). table was the
+        # one block visitor omitted from that fix. Use self.body.append
+        # directly (NOT self.add_text) -- self.in_table is set True below,
+        # and add_text() would misroute this newline into a stale
+        # table_cell_content list left over from a PRIOR table on this
+        # translator instance (same pitfall depart_table's table( emission
+        # already avoids -- see the comment there).
+        if self.in_list_item and self.list_item_needs_separator:
+            self.body.append("\n")
+            self.list_item_needs_separator = False
+
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
@@ -1956,6 +1973,11 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = False
         self.table_cells = []
         self.table_colcount = 0
+
+        # Mark that a following sibling in the same list item must be
+        # separated (block-visitor pattern, bug #4).
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_tgroup(self, node: nodes.tgroup) -> None:
         """
