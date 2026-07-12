@@ -39,7 +39,7 @@ default for each. Each decision below is locked.
   document indexes its own footnotes). (Rejected: a dedicated pre-walk NodeVisitor — extra
   state-handoff plumbing for no gain; and leaning on docutils' `document.footnotes`/`autofootnotes`
   tables — pickup gaps and version-coupling risk.)
-- **D-02: Render footnote bodies *lazily at the reference site*, not eagerly in the pre-pass.**
+- **D-02: Render footnote bodies lazily at the reference site, not eagerly in the pre-pass.**
   The index holds **node references only**. The first `footnote_reference` reaching a given id
   renders that footnote node's children **through the buffer-swap idiom** (swap `self.body` to a
   fresh list, walk the children via the normal visitor chain, capture, restore) in the natural
@@ -77,8 +77,8 @@ default for each. Each decision below is locked.
 - **D-07: `citation` / `citation_reference` are OUT of scope.** FN-01 covers `footnote` /
   `footnote_reference` only. Existing behavior for citation nodes is retained (degrade net handles
   them if unimplemented); captured as a deferred idea for the backlog.
-- **D-08: A dangling `footnote_reference` (refid not in the index) → `logger.warning` + skip, no
-  fatal.** Emitting a bodyless `footnote()` reference in Typst can error, so on a missing refid we
+- **D-08: A dangling `footnote_reference` (refid not in the index) → `logger.warning` + skip, no fatal.**
+  Emitting a bodyless `footnote()` reference in Typst can error, so on a missing refid we
   log a warning and emit nothing — consistent with the milestone's no-fatal / graceful-degrade net.
 - **D-09: A defined-but-never-referenced footnote is dropped (allowed).** By design bodies appear
   only at reference sites, so an unreferenced footnote's body simply never emits. docutils itself

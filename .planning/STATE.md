@@ -4,9 +4,9 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 14
 current_phase_name: doctree pre-pass
-status: verifying
+status: executing
 stopped_at: Phase 14 context gathered
-last_updated: "2026-07-12T04:58:22.657Z"
+last_updated: "2026-07-12T05:28:26.067Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 14 — Footnotes (doctree pre-pass)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-07-12 — Phase 13 complete, transitioned to Phase 14
 
 Progress: [██████████] 100%
