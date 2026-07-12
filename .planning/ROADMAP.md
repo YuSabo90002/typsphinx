@@ -244,19 +244,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete    | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete   | 2026-07-12 |
 
-## Backlog
-
-### Phase 999.1: typstpdf rendering polish — visual bugs from corpus PDF (BACKLOG)
-
-**Goal:** Fix visual/rendering defects found by eyeballing the generated corpus PDF, post-GATE-02. These are **non-fatal quality issues** — GATE-02 ("no fatal `TypstCompilationError`") is already met — so they target a future rendering-polish milestone (e.g. v0.7.0), not v0.6.0. Accumulate further visual findings from the corpus PDF here (see `BACKLOG-NOTES.md` in the phase dir).
-**Requirements:** TBD
-**Plans:** 0 plans
-
-**Captured visual bugs:**
-- [ ] **codly config leaks into PDF body text** — `codly(number-format: none)` renders as literal prose in the output instead of applying as a codly setting. A code-mode `codly(...)` config call is emitted in markup context (same class as Phase-15 bug #15: block_quote markup/code-mode confusion). Likely site: `typsphinx/translator.py` literal_block / code-block codly-config emit path (the line-number-off / `number-format: none` branch). Repro source: Sphinx `doc/` v9.1.0 corpus PDF (685p). Needs a render-gate test (`tests/test_pdf_render_gate.py` convention) asserting `codly(` / `number-format` never appears in extracted body text.
-
-Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
-
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Backlog 999.1 added: 2026-07-13*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11*
