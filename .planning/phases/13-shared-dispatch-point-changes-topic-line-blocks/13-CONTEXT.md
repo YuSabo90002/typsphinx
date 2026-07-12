@@ -72,8 +72,7 @@ default for each. Each decision below is locked.
   TOC is wrong; and full-skip — dropping a local TOC the author asked for.)
 
 ### shared-dispatch reach (`visit_title`)
-- **D-06: Handle topic/contents explicitly + add a `max(1, section_level)` clamp to the `else`
-  branch.** The `else` branch of `visit_title` currently emits `heading(level: self.section_level,
+- **D-06: Handle topic/contents explicitly + add a `max(1, section_level)` clamp to the `else` branch.** The `else` branch of `visit_title` currently emits `heading(level: self.section_level,
   …)`; a top-level titled non-section (a top-level `topic`, or an out-of-scope `sidebar`) hits
   `section_level == 0` → `heading(level: 0, …)`, which Typst rejects (levels are ≥ 1) — a latent
   fatal at the load-bearing method. Clamp the emitted level to `max(1, self.section_level)` so no
