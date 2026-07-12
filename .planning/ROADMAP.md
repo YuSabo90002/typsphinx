@@ -118,7 +118,7 @@ independent of one another, so they group into one phase; each ships a real-comp
   4. A `----` transition renders as a horizontal rule, a `.. glossary::` renders its underlying definition list, a `.. tabularcolumns::` hint is silently skipped with no leaked content, and an `:abbr:` renders inline as "term (expansion)" — all proven in fixtures that compile cleanly.
   5. Each handler group ships or extends a real-compile acceptance fixture (GATE-01 standing bar), never string-agreement asserts alone.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 **Wave 1**
 
@@ -126,7 +126,7 @@ independent of one another, so they group into one phase; each ships a real-comp
 
 **Wave 2** *(shares translator.py / test_pdf_render_gate.py with Wave 1)*
 
-- [ ] 12-02-PLAN.md — XREF-01 cross-references: required `depart_term` `<label>`-anchor fix (fatal `:term:` bug) + `:ref:`/`:term:` render gate (wave 2)
+- [x] 12-02-PLAN.md — XREF-01 cross-references: required `depart_term` `<label>`-anchor fix (fatal `:term:` bug) + `:ref:`/`:term:` render gate (wave 2)
 
 **Wave 3** *(shares translator.py / test_pdf_render_gate.py with Wave 2)*
 
@@ -208,7 +208,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
-| 12. High-Volume Independent Node Handlers | v0.6.0 | 1/4 | In Progress|  |
+| 12. High-Volume Independent Node Handlers | v0.6.0 | 2/4 | In Progress|  |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 0/TBD | Not started | - |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
