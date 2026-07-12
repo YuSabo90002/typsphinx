@@ -125,6 +125,16 @@ class TypstTranslator(SphinxTranslator):
         # `.. topic::` (rendered as a titled clue box via _visit_admonition)
         self._topic_is_contents: bool = False
 
+        # Line block state (BLK-03/D-03/D-04): a single integer nesting-depth
+        # counter -- docutils' own visitor recursion already provides the
+        # "stack" for nested line_block, so no separate data structure is
+        # needed. The two `_was_*` attributes save/restore the surrounding
+        # in_paragraph/paragraph_has_content state around the outer
+        # par({...}) wrapper (depth 0 only).
+        self._line_block_depth: int = 0
+        self._line_block_was_in_paragraph: bool = False
+        self._line_block_was_paragraph_has_content: bool = False
+
     def astext(self) -> str:
         """
         Return the translated text as a string.
@@ -2712,6 +2722,67 @@ class TypstTranslator(SphinxTranslator):
             self._topic_is_contents = False
             return
         self._depart_admonition()
+
+    # Line block nodes (BLK-03/D-03/D-04)
+
+    def visit_line_block(self, node: nodes.line_block) -> None:
+        """
+        Visit a line_block node (an address, epigraph, or poetry stanza).
+
+        Only the outermost line_block (depth 0) opens the `par({...})`
+        wrapper -- a nested line_block (docutils nests these directly, no
+        intermediate wrapper node) shares the same wrapper as its parent.
+        `self._line_block_depth` is a single integer counter; docutils' own
+        visitor recursion already provides the nesting "stack" for free, so
+        no separate stack data structure is needed (see 13-RESEARCH.md
+        "Don't Hand-Roll").
+        """
+        depth = self._line_block_depth
+        if depth == 0:
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+            self._line_block_was_in_paragraph = self.in_paragraph
+            self._line_block_was_paragraph_has_content = self.paragraph_has_content
+            self.add_text("par({")
+            self.in_paragraph = True
+            self.paragraph_has_content = False
+        self._line_block_depth = depth + 1
+
+    def depart_line_block(self, node: nodes.line_block) -> None:
+        """Depart a line_block node, closing the wrapper once depth returns to 0."""
+        self._line_block_depth -= 1
+        if self._line_block_depth == 0:
+            self.add_text("})\n\n")
+            self.in_paragraph = self._line_block_was_in_paragraph
+            self.paragraph_has_content = self._line_block_was_paragraph_has_content
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+
+    def visit_line(self, node: nodes.line) -> None:
+        """
+        Visit a line node (one line inside a line_block).
+
+        Emits a per-depth `h(...)` indent spacer for nested line_blocks
+        (D-03/D-04) -- a plain code-mode stdlib call, no markup-mode
+        bracket-wrap needed (unlike the Phase 11 `<label>`-anchor case,
+        `h()` never carries a label). An empty `line` node (no Text child)
+        falls through to depart_line's bare linebreak() for free -- no
+        special-casing required.
+        """
+        self._add_paragraph_separator()
+        indent_units = self._line_block_depth - 1
+        if indent_units > 0:
+            self.add_text(f"h({indent_units * 1.5}em)")
+
+    def depart_line(self, node: nodes.line) -> None:
+        """
+        Depart a line node.
+
+        Emits a REAL `linebreak()` call -- a source '\\n' between two
+        code-mode statements is cosmetic-only (DESC-02 precedent), so this
+        is what actually produces the visible line break.
+        """
+        self.add_text("\nlinebreak()")
 
     # Inline nodes (Task 7.4)
     # Requirement 3.1: Inline cross-references and links
