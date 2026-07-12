@@ -4,9 +4,9 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 15
 current_phase_name: full-corpus-validation
-status: executing
+status: completed
 stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-07-12T15:57:38.409Z"
+last_updated: "2026-07-12T19:32:53.711Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 15 execution started
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 15 (full-corpus-validation) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase 15 complete — GATE-02 green
 Last activity: 2026-07-12 — Phase 15 execution started
 
 Progress: [██████████] 100%

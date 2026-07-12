@@ -68,7 +68,7 @@ acceptance fixture (`sphinx-build → typst.compile() → pypdf`).
 - [x] **Phase 12: High-Volume Independent Node Handlers** - versionmodified (×972), empty-URL/`refid` cross-refs (×596), autodoc `desc_*` sub-parts, and the trivial transition/glossary/tabular_col_spec/abbr nodes — all pattern-reuse, one new state var at most (completed 2026-07-12)
 - [x] **Phase 13: Shared Dispatch-Point Changes (topic + line blocks)** - generalize the load-bearing `visit_title` for topic + render `line`/`line_block` with verbatim breaks, landed with admonition-title regression fixtures (completed 2026-07-12)
 - [x] **Phase 14: Footnotes (doctree pre-pass)** - `footnote`/`footnote_reference` via Typst-native `footnote[...]` — the only architecturally-new item (document-order pre-pass), sequenced late to build confidence (completed 2026-07-12)
-- [ ] **Phase 15: Full-Corpus Validation** - real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree with no fatal error; catalogue residual warnings + measure empty-URL reduction
+- [x] **Phase 15: Full-Corpus Validation** - real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree with no fatal error; catalogue residual warnings + measure empty-URL reduction (completed 2026-07-12)
 
 ## Phase Details
 
@@ -207,7 +207,7 @@ warning-count reduction from the XREF-01 fix is measured before/after against th
   2. The remaining `unknown_visit` warnings from that build are catalogued by frequency and recorded as the next milestone's backlog input (the gate is "no fatal errors," not "zero warnings").
   3. The empty-URL cross-reference warning count is measured before and after the XREF-01 fix against the same corpus, quantifying the reduction rather than assuming it.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 **Wave 1**
 
 - [x] 15-01-PLAN.md — SC#1 corpus render gate (clone + real-conf append + full-tree `-b typstpdf` fatal-free build) + SC#2 catalogue parser
@@ -218,7 +218,7 @@ warning-count reduction from the XREF-01 fix is measured before/after against th
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 15-03-PLAN.md — non-sandbox measurement run + committed `15-CORPUS-REPORT.md` (D-06) + human-verify checkpoint
+- [x] 15-03-PLAN.md — non-sandbox measurement run + committed `15-CORPUS-REPORT.md` (D-06) + human-verify checkpoint
 
 ## Progress
 
@@ -242,7 +242,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete    | 2026-07-12 |
-| 15. Full-Corpus Validation | v0.6.0 | 2/3 | In Progress|  |
+| 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete   | 2026-07-12 |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11*
