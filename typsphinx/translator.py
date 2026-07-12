@@ -143,6 +143,17 @@ class TypstTranslator(SphinxTranslator):
         self.current_term_buffer: str | List[str] | None = None
         self.current_definition_buffer: List[str] | None = None
 
+        # Field-body code-mode concat context. A field body written inline on
+        # its field line (e.g. ':default: The value of **x**') is COLLAPSED by
+        # docutils to inline children (Text/strong/literal) directly under
+        # field_body -- no wrapping paragraph. Those juxtapose in code mode
+        # unless + separated (bug #8). Activated by visit_field_body only for
+        # an all-inline field body; _field_body_stack saves the prior value for
+        # nesting safety.
+        self._in_field_body = False
+        self._field_body_has_content: bool = False
+        self._field_body_stack: List[Tuple[bool, bool]] = []
+
         # Stack of the code-mode concat context suppressed while an inline
         # block element (emphasis/strong/reference) emits its OWN block/argument
         # content. Each entry is the (flag, has_content) attribute-name pair
@@ -669,6 +680,7 @@ class TypstTranslator(SphinxTranslator):
         ("in_desc_parameter", "_desc_parameter_has_content"),
         ("_in_link", "_link_has_content"),
         ("_in_term", "_term_has_content"),
+        ("_in_field_body", "_field_body_has_content"),
     )
 
     def _inline_concat_context(self) -> Tuple[str, str] | None:
@@ -1372,6 +1384,18 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The definition list node
         """
+        # A def-list nested in a list item, following a sibling paragraph/block,
+        # must be newline-separated from it: its terms(...) is emitted (in
+        # depart) directly into the outer list item's code-mode content block,
+        # where abutting the preceding statement (e.g. text("...")terms(...))
+        # is a Typst syntax error ("expected semicolon or line break", GATE-02
+        # fatal #8, configuration.typ:2009). Mirror the standard block-visitor
+        # list-item separator (literal_block/bullet_list/...). Emitted here
+        # (not depart) while self.body is still the real body -- visit_term/
+        # visit_definition redirect self.body to buffers in between.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+            self.list_item_needs_separator = False
         self.in_definition_list = True
         self.definition_list_items = []
 
@@ -1407,6 +1431,11 @@ class TypstTranslator(SphinxTranslator):
             self.add_text(f"terms({items_str})\n\n")
         else:
             self.add_text("terms()\n\n")
+
+        # A following sibling in the same list item must newline-separate from
+        # this terms(...) statement.
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
         # Clear collected items
         self.definition_list_items = []
@@ -3719,15 +3748,42 @@ class TypstTranslator(SphinxTranslator):
     def visit_field_body(self, node: nodes.field_body) -> None:
         """
         Visit a field_body node (field content).
+
+        A field body written inline on its field line (e.g. a confval
+        ``:default: The value of **html_title**``) is COLLAPSED by docutils:
+        its children are inline nodes (Text/strong/literal/reference) DIRECTLY
+        under ``field_body``, with no wrapping ``paragraph``. Emitted into the
+        code-mode content block those adjacent expressions juxtapose
+        (``text("The value of ")strong({...})``) -- a Typst syntax error
+        ("expected semicolon or line break", GATE-02 fatal #8). Activate the
+        shared inline-concat context (bug #5 machinery) so they are ``+``
+        separated into one content value.
+
+        Only an ALL-inline field body needs this. A block field body (real
+        ``paragraph``/list/literal-block children) already emits valid,
+        ``\\n\\n``-separated statements via the normal par() path, so it keeps
+        the concat context OFF to avoid a stray ``+`` around a ``par(...)``.
         """
-        pass
+        self._field_body_stack.append(
+            (self._in_field_body, self._field_body_has_content)
+        )
+        all_inline = all(
+            isinstance(child, (nodes.Text, nodes.Inline)) for child in node.children
+        )
+        if all_inline:
+            self._in_field_body = True
+            self._field_body_has_content = False
+        else:
+            self._in_field_body = False
 
     def depart_field_body(self, node: nodes.field_body) -> None:
         """
         Depart a field_body node.
 
-        Add newline after field body.
+        Restore the concat context saved by :meth:`visit_field_body` and add a
+        newline after the field body.
         """
+        self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
         self.body.append("\n")
 
     def visit_rubric(self, node: nodes.rubric) -> None:
