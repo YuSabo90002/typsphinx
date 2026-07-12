@@ -65,7 +65,7 @@ dependencies — all work is in `typsphinx/translator.py`. The standing empirica
 acceptance fixture (`sphinx-build → typst.compile() → pypdf`).
 
 - [x] **Phase 11: Issue #114 Fatal Fixes + Graceful-Degrade Net** - px→pt length helper + figure caption/`:target:` buffer-swap fix + graphviz/inheritance_diagram skip overrides; stands up the per-phase real-compile gate (blocking prerequisite for the whole milestone) (completed 2026-07-12)
-- [ ] **Phase 12: High-Volume Independent Node Handlers** - versionmodified (×972), empty-URL/`refid` cross-refs (×596), autodoc `desc_*` sub-parts, and the trivial transition/glossary/tabular_col_spec/abbr nodes — all pattern-reuse, one new state var at most
+- [x] **Phase 12: High-Volume Independent Node Handlers** - versionmodified (×972), empty-URL/`refid` cross-refs (×596), autodoc `desc_*` sub-parts, and the trivial transition/glossary/tabular_col_spec/abbr nodes — all pattern-reuse, one new state var at most (completed 2026-07-12)
 - [ ] **Phase 13: Shared Dispatch-Point Changes (topic + line blocks)** - generalize the load-bearing `visit_title` for topic + render `line`/`line_block` with verbatim breaks, landed with admonition-title regression fixtures
 - [ ] **Phase 14: Footnotes (doctree pre-pass)** - `footnote`/`footnote_reference` via Typst-native `footnote[...]` — the only architecturally-new item (document-order pre-pass), sequenced late to build confidence
 - [ ] **Phase 15: Full-Corpus Validation** - real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree with no fatal error; catalogue residual warnings + measure empty-URL reduction
@@ -118,7 +118,7 @@ independent of one another, so they group into one phase; each ships a real-comp
   4. A `----` transition renders as a horizontal rule, a `.. glossary::` renders its underlying definition list, a `.. tabularcolumns::` hint is silently skipped with no leaked content, and an `:abbr:` renders inline as "term (expansion)" — all proven in fixtures that compile cleanly.
   5. Each handler group ships or extends a real-compile acceptance fixture (GATE-01 standing bar), never string-agreement asserts alone.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1**
 
@@ -134,7 +134,7 @@ independent of one another, so they group into one phase; each ships a real-comp
 
 **Wave 4** *(shares translator.py / test_pdf_render_gate.py with Wave 3)*
 
-- [ ] 12-04-PLAN.md — BLK-01/04/05/06 trivial structural nodes: `transition`/`glossary`/`tabular_col_spec`/`abbreviation` + render gate (wave 4)
+- [x] 12-04-PLAN.md — BLK-01/04/05/06 trivial structural nodes: `transition`/`glossary`/`tabular_col_spec`/`abbreviation` + render gate (wave 4)
 
 ### Phase 13: Shared Dispatch-Point Changes (topic + line blocks)
 
@@ -208,7 +208,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
-| 12. High-Volume Independent Node Handlers | v0.6.0 | 3/4 | In Progress|  |
+| 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete   | 2026-07-12 |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 0/TBD | Not started | - |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
