@@ -2121,14 +2121,21 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Check if there's an attribution child node
-        has_attribution = any(isinstance(child, nodes.attribution) for child in node)
-
-        if has_attribution:
-            # Will add attribution parameter when we encounter the attribution node
-            self.add_text("quote(")
-        else:
-            self.add_text("quote[")
+        # Emit the block quote as a CODE-MODE body -- quote(block: true, { ... })
+        # -- NOT the markup-mode trailing content block quote[ ... ] (bug #15).
+        # Every body child is a code-mode function call (par({text(...)}),
+        # raw(...), link(...)). Inside a markup `[...]` block those bytes are
+        # treated as LITERAL PROSE, so any markup-special char in a child
+        # string literal -- e.g. the lone `_` in raw("_t") (Sphinx's `_t`
+        # static-template suffix) -- opened a stray inline-emphasis span that
+        # never closed -> "TypstError: unclosed delimiter". The `{ ... }`
+        # content block evaluates the children as real function calls (the same
+        # code-mode content-block wrapping used by par()/definition (bug #7)),
+        # so their string-literal chars are inert. block: true keeps block
+        # quotes rendering as block quotes. The attribution, when present,
+        # closes this body block and is appended as a named argument (see
+        # visit_attribution) -- so the opening is identical in both cases.
+        self.add_text("quote(block: true, {")
 
     def depart_block_quote(self, node: nodes.block_quote) -> None:
         """
@@ -2137,13 +2144,17 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The block quote node
         """
-        # Check if there's an attribution child node
+        # Check if there's an attribution child node. When present,
+        # visit_attribution already closed the body `{` and opened the named
+        # `attribution: [` argument, and depart_attribution closed that `]`;
+        # so here we only close the quote() call. Otherwise we close both the
+        # body block and the call.
         has_attribution = any(isinstance(child, nodes.attribution) for child in node)
 
         if has_attribution:
             self.add_text(")\n\n")
         else:
-            self.add_text("]\n\n")
+            self.add_text("})\n\n")
 
         # Mark that a following sibling in the same list item must be separated
         # (block-visitor pattern, bug #4).
@@ -2157,8 +2168,11 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The attribution node
         """
-        # Close the quote content and add attribution parameter
-        self.add_text("], attribution: [")
+        # Close the code-mode quote body block and open the attribution as a
+        # named argument. The body is a positional arg to quote(); the named
+        # attribution follows it -- quote(block: true, { <body> }, attribution:
+        # [ <attr> ]) -- a form Typst accepts (positional then named).
+        self.add_text("}, attribution: [")
 
     def depart_attribution(self, node: nodes.attribution) -> None:
         """
