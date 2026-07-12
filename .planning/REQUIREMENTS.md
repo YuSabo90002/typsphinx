@@ -18,7 +18,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Cross-references
 
-- [ ] **XREF-01**: A same-document internal cross-reference resolved via `refid` (section anchors, `:term:` links, etc.) renders as a working link instead of degrading to plain text; plain-text fallback fires only when both `refuri` and `refid` are absent
+- [x] **XREF-01**: A same-document internal cross-reference resolved via `refid` (section anchors, `:term:` links, etc.) renders as a working link instead of degrading to plain text; plain-text fallback fires only when both `refuri` and `refid` are absent
 
 ### Version directives
 
@@ -26,10 +26,10 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Autodoc signature nodes
 
-- [ ] **DESC-01**: A function/method return annotation (`desc_returns`, e.g. `-> int`) renders in the signature
-- [ ] **DESC-02**: A multi-line signature (`desc_signature_line`) renders with line breaks between lines
-- [ ] **DESC-03**: Optional trailing parameters (`desc_optional`, e.g. `printf(fmt[, args])`) render bracket-wrapped, including multi-level nesting
-- [ ] **DESC-04**: An inline signature fragment (`desc_inline`, e.g. `:cpp:expr:`) renders inline without the standalone-declaration `strong()` wrapper
+- [x] **DESC-01**: A function/method return annotation (`desc_returns`, e.g. `-> int`) renders in the signature
+- [x] **DESC-02**: A multi-line signature (`desc_signature_line`) renders with line breaks between lines
+- [x] **DESC-03**: Optional trailing parameters (`desc_optional`, e.g. `printf(fmt[, args])`) render bracket-wrapped, including multi-level nesting
+- [x] **DESC-04**: An inline signature fragment (`desc_inline`, e.g. `:cpp:expr:`) renders inline without the standalone-declaration `strong()` wrapper
 
 ### Footnotes
 
@@ -37,12 +37,12 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Structural / block nodes
 
-- [ ] **BLK-01**: A `transition` (`----` scene break) renders as a horizontal rule (`line(length: 100%)`)
+- [x] **BLK-01**: A `transition` (`----` scene break) renders as a horizontal rule (`line(length: 100%)`)
 - [ ] **BLK-02**: A `.. topic::` renders as a titled aside (reusing the admonition helper)
 - [ ] **BLK-03**: `line` / `line_block` content renders with verbatim line breaks preserved (`linebreak()`)
-- [ ] **BLK-04**: A `.. glossary::` renders as its underlying definition list (pass-through wrapper)
-- [ ] **BLK-05**: A `tabular_col_spec` (`.. tabularcolumns::`, LaTeX-only hint) is skipped safely without leaking content
-- [ ] **BLK-06**: An `:abbr:` abbreviation renders inline as "term (expansion)" (no PDF hover equivalent)
+- [x] **BLK-04**: A `.. glossary::` renders as its underlying definition list (pass-through wrapper)
+- [x] **BLK-05**: A `tabular_col_spec` (`.. tabularcolumns::`, LaTeX-only hint) is skipped safely without leaking content
+- [x] **BLK-06**: An `:abbr:` abbreviation renders inline as "term (expansion)" (no PDF hover equivalent)
 
 ### Graceful degradation
 
@@ -89,19 +89,19 @@ Which phases cover which requirements. Populated during roadmap creation.
 |-------------|-------|--------|
 | FIG-01 | Phase 11 | Complete |
 | FIG-02 | Phase 11 | Complete |
-| XREF-01 | Phase 12 | Pending |
+| XREF-01 | Phase 12 | Complete |
 | VER-01 | Phase 12 | Complete |
-| DESC-01 | Phase 12 | Pending |
-| DESC-02 | Phase 12 | Pending |
-| DESC-03 | Phase 12 | Pending |
-| DESC-04 | Phase 12 | Pending |
+| DESC-01 | Phase 12 | Complete |
+| DESC-02 | Phase 12 | Complete |
+| DESC-03 | Phase 12 | Complete |
+| DESC-04 | Phase 12 | Complete |
 | FN-01 | Phase 14 | Pending |
-| BLK-01 | Phase 12 | Pending |
+| BLK-01 | Phase 12 | Complete |
 | BLK-02 | Phase 13 | Pending |
 | BLK-03 | Phase 13 | Pending |
-| BLK-04 | Phase 12 | Pending |
-| BLK-05 | Phase 12 | Pending |
-| BLK-06 | Phase 12 | Pending |
+| BLK-04 | Phase 12 | Complete |
+| BLK-05 | Phase 12 | Complete |
+| BLK-06 | Phase 12 | Complete |
 | DEG-01 | Phase 11 | Complete |
 | DEG-02 | Phase 11 | Complete |
 | GATE-01 | Phase 11 | Complete |
