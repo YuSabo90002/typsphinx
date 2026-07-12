@@ -21,6 +21,40 @@ logger = logging.getLogger(__name__)
 _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
 
 
+def escape_typst_string(text: str) -> str:
+    """Escape arbitrary text for embedding inside a Typst ``"..."`` string literal.
+
+    Typst string literals cannot span physical lines and treat ``\\`` and ``"``
+    specially, so every character that would break the literal (or be
+    misinterpreted) must be escaped. This is the single source of truth for
+    string-literal escaping across the translator: any site that emits
+    ``raw("...")``, ``text("...")``, etc. from node-derived text routes through
+    this helper so the class of problem is handled consistently.
+
+    Escaping order is significant: backslash MUST be escaped first, otherwise
+    the backslashes introduced by the later replacements would themselves be
+    doubled.
+
+    The newline/CR/tab escapes turn a literal control character into its
+    two-character escape sequence (e.g. a raw ``\\n`` becomes the sequence
+    ``\\`` + ``n``). Typst decodes that back into the original control character
+    when rendering, so the visible content is preserved while the emitted
+    ``.typ`` stays valid single-line syntax.
+
+    Args:
+        text: Raw text to escape (e.g. ``node.astext()``).
+
+    Returns:
+        Text safe to embed between double quotes in a Typst string literal.
+    """
+    text = text.replace("\\", "\\\\")  # Backslash (FIRST, avoids double-escaping)
+    text = text.replace('"', '\\"')  # Quote
+    text = text.replace("\n", "\\n")  # Newline
+    text = text.replace("\r", "\\r")  # Carriage return
+    text = text.replace("\t", "\\t")  # Tab
+    return text
+
+
 class TypstTranslator(SphinxTranslator):
     """
     Translator class that converts docutils nodes to Typst markup.
@@ -594,12 +628,8 @@ class TypstTranslator(SphinxTranslator):
             self.add_text(text_content)
             return
 
-        # Escape string content (order matters: backslash first)
-        text_content = text_content.replace("\\", "\\\\")  # Backslash
-        text_content = text_content.replace('"', '\\"')  # Quote
-        text_content = text_content.replace("\n", "\\n")  # Newline
-        text_content = text_content.replace("\r", "\\r")  # Carriage return
-        text_content = text_content.replace("\t", "\\t")  # Tab
+        # Escape string content via the shared helper (order-safe, full set)
+        text_content = escape_typst_string(text_content)
 
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
@@ -806,9 +836,12 @@ class TypstTranslator(SphinxTranslator):
         # Get code content directly
         code_content = node.astext()
 
-        # Escape code content for string parameter
-        escaped_code = code_content.replace("\\", "\\\\")  # Backslash
-        escaped_code = escaped_code.replace('"', '\\"')  # Quote
+        # Escape code content for string parameter via the shared helper.
+        # Must escape newline/CR/tab too (not just backslash+quote): an inline
+        # literal whose source wraps across lines carries an embedded newline,
+        # which would otherwise break the single-line Typst "..." string literal
+        # ("expected semicolon or line break").
+        escaped_code = escape_typst_string(code_content)
 
         # Generate raw() function with string parameter (no # prefix in code mode)
         # Using string instead of backtick raw literal for compatibility with + operator
