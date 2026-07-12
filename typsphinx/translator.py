@@ -248,6 +248,56 @@ class TypstTranslator(SphinxTranslator):
         if self.in_paragraph:
             self.paragraph_has_content = True
 
+    def _emit_id_anchors(self, node: nodes.Node) -> None:
+        """
+        Emit a zero-width ``[#metadata(none) <id>]`` Typst anchor for every id
+        carried on a body element so a same-document ``link(<id>, ...)``
+        reference resolves to it.
+
+        docutils' ``PropagateTargets`` transform moves an explicit
+        ``.. _target:`` id onto the ids of the *following* body element
+        (paragraph, bullet/enumerated list, table, image, admonition,
+        line-block, block-quote, definition-list, ...). Unless that element
+        emits a matching ``<id>`` anchor, a same-document ``:ref:`` -- which
+        ``depart_reference`` renders as ``link(<_sanitize_label(id)>, ...)`` --
+        dangles, and ``typst.compile()`` aborts the ENTIRE document at the
+        semantic label-resolution pass with ``label ... does not exist``.
+
+        Mirrors the proven target-anchor form (``visit_target``, bug #2) and the
+        desc-signature anchor (bug #17): a zero-content markup block that carries
+        the label and joins cleanly as its own statement in the surrounding
+        code-mode block. The surrounding newlines separate it from any adjacent
+        code-mode expression on both sides (a bare code-mode ``label("id")``
+        would juxtapose/fail to join). Every id is routed through
+        ``_sanitize_label`` (bug #10) so the anchor name byte-matches the
+        reference side. Ids are globally unique per document (docutils
+        ``make_id``), so no label is defined twice; dedupe defensively.
+
+        A node with NO ids emits nothing -- byte-for-byte unchanged output, so
+        every existing anchorless-body-element expectation is preserved. Inside
+        a list item the same leading-separator / needs-separator machinery the
+        surrounding block visitors use is driven here, so the anchor and the
+        element's own emission stay newline-separated (never ``]par(`` /
+        ``]list(`` juxtaposition, never a stranded ``+``).
+
+        Args:
+            node: The body-element node whose ``ids`` should be anchored.
+        """
+        ids = node.get("ids") or []
+        if not ids:
+            return
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        seen: set[str] = set()
+        for node_id in ids:
+            label_id = self._sanitize_label(node_id)
+            if label_id in seen:
+                continue
+            seen.add(label_id)
+            self.add_text(f"\n[#metadata(none) <{label_id}>]\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
     def visit_document(self, node: nodes.document) -> None:
         """
         Visit a document node.
@@ -557,6 +607,14 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The paragraph node
         """
+        # A propagated explicit target (docutils PropagateTargets) moves its id
+        # onto the FOLLOWING paragraph's node["ids"]; emit the matching Typst
+        # anchor(s) so a same-document link(<id>, ...) resolves. No ids -> no-op
+        # (byte-unchanged). Emitted at paragraph block level -- before the par()
+        # wrap and outside any inline concat context -- so it never juxtaposes
+        # or strands a `+`. (GATE-02 corpus fatal #20: <xref-modifiers>.)
+        self._emit_id_anchors(node)
+
         # Skip par() wrapping inside list items
         if self.in_list_item:
             self.in_paragraph = False
@@ -1137,6 +1195,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The bullet list node
         """
+        # A propagated explicit target can land its id on this list; anchor it
+        # so a same-document link(<id>, ...) resolves (no ids -> no-op).
+        self._emit_id_anchors(node)
+
         # Add + separator if nested in a list item
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
@@ -1188,6 +1250,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The enumerated list node
         """
+        # A propagated explicit target can land its id on this list; anchor it
+        # so a same-document link(<id>, ...) resolves (no ids -> no-op).
+        self._emit_id_anchors(node)
+
         # Add + separator if nested in a list item
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
@@ -1292,6 +1358,13 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The literal block node
         """
+        # NOTE: literal_block does NOT route through _emit_id_anchors. A
+        # propagated explicit target sets BOTH node["ids"] AND node["names"] on
+        # the block, and depart_literal_block already emits a ` <label>` anchor
+        # from node["names"] (the :name: path). Adding a second metadata anchor
+        # here double-defines the label (and the raw-block ` <label>` postfix
+        # then fails to join -> "cannot join content with label").
+
         # Add newline separator if in list item and not first element
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
@@ -1410,6 +1483,12 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The definition list node
         """
+        # A propagated explicit target can land its id on this definition list;
+        # anchor it so a same-document link(<id>, ...) resolves (no ids ->
+        # no-op). Emitted here while self.body is still the real body -- before
+        # visit_term/visit_definition redirect it to buffers.
+        self._emit_id_anchors(node)
+
         # A def-list nested in a list item, following a sibling paragraph/block,
         # must be newline-separated from it: its terms(...) is emitted (in
         # depart) directly into the outer list item's code-mode content block,
@@ -1927,6 +2006,12 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The table node
         """
+        # A propagated explicit target can land its id on this table; anchor it
+        # so a same-document link(<id>, ...) resolves (no ids -> no-op). Emitted
+        # while self.in_table is still False, so add_text routes to the real
+        # body (not a stale table_cell_content buffer).
+        self._emit_id_anchors(node)
+
         # Emit a leading newline separator when this table follows a
         # sibling inside a list item, matching the block-visitor pattern
         # established in bug #4 (bullet_list/literal_block/definition_list/
@@ -2170,6 +2255,10 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The block quote node
         """
+        # A propagated explicit target can land its id on this block quote;
+        # anchor it so a same-document link(<id>, ...) resolves (no ids -> no-op).
+        self._emit_id_anchors(node)
+
         # Emit a leading newline separator when this block quote follows a
         # sibling inside a list item, matching the block-visitor pattern
         # established in bug #4 (bullet_list/literal_block/definition_list).
@@ -2254,6 +2343,14 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The image node
         """
+        # A propagated explicit target can land its id on a standalone (block)
+        # image; anchor it so a same-document link(<id>, ...) resolves (no ids
+        # -> no-op). Skipped inside a figure: the figure node owns the caption
+        # id and emits its own `[#figure(...) <label>]` anchor, and an image
+        # nested in a figure never carries a propagated block target.
+        if not self.in_figure:
+            self._emit_id_anchors(node)
+
         uri = node.get("uri", "")
 
         # Get current document name for path adjustment (Issue #69)
@@ -3266,6 +3363,11 @@ class TypstTranslator(SphinxTranslator):
             clue_type: The gentle-clues function name (e.g., 'info', 'warning', 'tip')
             custom_title: Optional static custom title for the admonition
         """
+        # A propagated explicit target can land its id on this admonition
+        # (note/warning/generic/topic); anchor it so a same-document
+        # link(<id>, ...) resolves (no ids -> no-op).
+        self._emit_id_anchors(node)
+
         # Add newline separator if in list item and not first element
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
@@ -3454,6 +3556,12 @@ class TypstTranslator(SphinxTranslator):
         """
         depth = self._line_block_depth
         if depth == 0:
+            # A propagated explicit target can land its id on the outermost
+            # line_block; anchor it so a same-document link(<id>, ...) resolves
+            # (no ids -> no-op). Only at depth 0, before the par({ wrapper --
+            # a nested line_block shares the parent's wrapper and never carries
+            # a propagated block target.
+            self._emit_id_anchors(node)
             if self.in_list_item and self.list_item_needs_separator:
                 self.add_text("\n")
             self._line_block_was_in_paragraph = self.in_paragraph
