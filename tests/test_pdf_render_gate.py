@@ -77,6 +77,12 @@ def version_modified_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def xref_refid_render_gate_dir(fixtures_dir):
+    """Return the path to the xref_refid_render_gate fixture project."""
+    return fixtures_dir / "xref_refid_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -518,4 +524,111 @@ class TestVersionModifiedRenderGate:
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- the version label must be typeset "
                 'italic prose, never leaked text("/par({ source'
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 12 (XREF-01): extend the GATE-01 render-gate pattern to prove that a
+# same-document `:ref:` section-anchor cross-reference AND a `:term:`
+# glossary cross-reference both resolve to working Typst links in a real
+# compile. The `:term:` case is the must-fail-until-fixed guard for the
+# depart_term bracket-wrap <label> anchor fix -- without it, Typst aborts
+# the ENTIRE compile with "label <term-Widget> does not exist" (12-RESEARCH.md
+# Part 2).
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the xref/refid render gate -- distinctive, unlikely
+# words chosen so their presence in the extracted PDF text proves each
+# cross-reference's surrounding prose reached the compiled PDF. Must match
+# the sentinel tokens embedded in xref_refid_render_gate/index.rst.
+REF_SECTION_SENTINEL = "REFSECTIONSENTINEL"
+TERM_SENTINEL = "TERMSENTINEL"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestXrefRefidRenderGate:
+    """
+    Real-compile acceptance gate for XREF-01: the depart_term bracket-wrap
+    <label> anchor fix, and confirmation that visit_reference's refid branch
+    (D-03) resolves both a `:ref:` section anchor and a `:term:` glossary
+    reference to working links.
+
+    Requirements: XREF-01, GATE-01 (12-CONTEXT.md D-03/D-04, 12-RESEARCH.md
+    Part 2).
+    """
+
+    def test_xref_refid_pdf_has_working_links_and_no_empty_link(
+        self, xref_refid_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the xref_refid render-gate fixture to PDF and confirm both
+        the `:ref:` section anchor and the `:term:` glossary reference
+        resolve to working links -- with no `link("", ...)` leak (D-04) and
+        no fatal abort on the (previously dangling) `:term:` anchor.
+        """
+        result = _run_sphinx_build_typst(xref_refid_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        typ_source = index_typ.read_text()
+        assert "link(<" in typ_source, (
+            "Expected at least one refid link(<...>, ...) anchor reference "
+            "in the generated Typst source -- the :ref:/:term: refid branch "
+            "may have regressed"
+        )
+        assert 'link("",' not in typ_source, (
+            'Found link("", ...) in generated Typst source -- the '
+            'never-link("", ...) contract (D-04) has regressed'
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test. Before the depart_term anchor fix,
+        # the :term: reference's link(<term-Widget>, ...) pointed at an
+        # undefined label and Typst aborted the ENTIRE compile here with
+        # "label <term-Widget> does not exist" -- so this call is the
+        # must-fail-until-fixed guard for the anchor bug.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        # Both the :ref: and the :term: cross-reference's surrounding
+        # sentinel prose, plus the link text itself, must have reached the
+        # compiled PDF.
+        assert REF_SECTION_SENTINEL in full_text, (
+            f"Expected sentinel '{REF_SECTION_SENTINEL}' in extracted PDF "
+            "text -- :ref: section-anchor cross-reference regression"
+        )
+        assert TERM_SENTINEL in full_text, (
+            f"Expected sentinel '{TERM_SENTINEL}' in extracted PDF text -- "
+            ":term: glossary cross-reference regression"
+        )
+        assert "Target Section" in full_text, (
+            "Expected the :ref: link text ('Target Section') in extracted " "PDF text"
+        )
+        assert (
+            "Widget" in full_text
+        ), "Expected the :term: link text ('Widget') in extracted PDF text"
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- xref/refid markup/code-mode regression"
             )

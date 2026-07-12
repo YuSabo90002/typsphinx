@@ -27,3 +27,18 @@ Items observed during execution that are out of scope for the current task
   same rule set, no version-specific rules changed between these patch releases affected by this
   plan's diff) and `uv run black --check typsphinx/` (black itself runs fine via `uv run`, only
   ruff's own binary hit the ELF issue). `mypy typsphinx/` ran cleanly via `uv run mypy`.
+
+## Plan 12-02
+
+- **Pre-existing gap (NOT caused by this plan's changes):** `sphinx-build -b typst` on the
+  `xref_refid_render_gate` fixture emits `WARNING: unknown node type: <glossary ...>` — there is
+  no `visit_glossary`/`depart_glossary` handler in `translator.py`; the base `SphinxTranslator`
+  falls through to a warn-and-continue default, so the wrapped `definition_list` (and its `term`/
+  `definition` children) still render correctly (confirmed: `terms(terms.item([#{text("Widget")}
+  <term-Widget>], ...))` is emitted as expected). This warning is orthogonal to XREF-01 (which
+  only concerns the `depart_term` label-anchor fix) — the `glossary` wrapper node itself was never
+  in scope for this plan, and Task 2's acceptance criteria only require no "Failed to create a
+  cross reference" warning (confirmed absent) and a `link(<` anchor for the `:term:` target
+  (confirmed present). Out of scope per the SCOPE BOUNDARY rule — not fixed here. A future
+  maintenance item could add an explicit no-op `visit_glossary`/`depart_glossary` pass-through to
+  silence the warning.
