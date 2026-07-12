@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 15
-current_phase_name: Full-Corpus Validation
+current_phase_name: full-corpus-validation
 status: executing
-stopped_at: Phase 15 context gathered
-last_updated: "2026-07-12T07:08:53.359Z"
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-07-12T07:20:57.664Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 14 complete, transitioned to Phase 15
+last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 15
+  completed_plans: 13
   percent: 80
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 14 — footnotes-doctree-pre-pass
+**Current focus:** Phase 15 — full-corpus-validation
 
 ## Current Position
 
-Phase: 15 — Full-Corpus Validation
-Plan: Not started
+Phase: 15 (full-corpus-validation) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-12 — Phase 14 complete, transitioned to Phase 15
+Last activity: 2026-07-12 — Phase 15 execution started
 
 Progress: [██████████] 100%
 
@@ -88,6 +88,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
 - [Phase 14-01]: Used self.document.findall(nodes.footnote) instead of the deprecated .traverse() -- traverse() raises DeprecationWarning, escalated to a hard failure by this project's strict pytest filter
 - [Phase 14-02]: Fixed a paragraph-state-clobbering bug in visit_footnote_reference's buffer-swap (save/restore in_paragraph/paragraph_has_content around the nested walkabout) -- discovered by the GATE-01 real-compile fixture; without it, any footnote followed by trailing text in the same sentence was a FATAL Typst compile abort
+- [Phase 15-01]: Split the single new tests/test_corpus_gate.py file into two atomic commits matching the plan's two tasks, via staged partial-content writes rather than git add -p (which doesn't cleanly split a brand-new untracked file by hunk)
+- [Phase 15-01]: In-sandbox network happened to be available; the slow TestCorpusRenderGate gate ran for real (did not skip) and correctly caught a genuine pre-existing fatal TypstError -- a missing `_static/python-logo.png` asset in TypstBuilder's image-copy pass -- not caused by this plan's changes, flagged for a follow-up plan/phase rather than fixed inline (out of this plan's tests/test_corpus_gate.py-only scope)
 
 ### Pending Todos
 
@@ -124,12 +126,13 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 13 P03 | 7min | 2 tasks | 3 files |
 | Phase 14 P01 | 5min | 2 tasks | 2 files |
 | Phase 14 P02 | 15min | 2 tasks | 4 files |
+| Phase 15 P01 | 15min | 2 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T06:24:22.842Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-full-corpus-validation/15-CONTEXT.md
+Last session: 2026-07-12T07:20:57.659Z
+Stopped at: Completed 15-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

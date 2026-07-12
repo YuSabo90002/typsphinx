@@ -52,7 +52,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 ### Validation gate
 
 - [x] **GATE-01**: Each node-handler group ships a real-compile acceptance fixture (`sphinx-build → typst.compile() → pypdf` text extraction), not string-agreement unit tests alone (extends `tests/test_pdf_render_gate.py`)
-- [ ] **GATE-02**: Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal `TypstCompilationError`; the remaining `unknown_visit` warnings are catalogued by frequency and the empty-URL warning-count reduction is measured before/after
+- [x] **GATE-02**: Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal `TypstCompilationError`; the remaining `unknown_visit` warnings are catalogued by frequency and the empty-URL warning-count reduction is measured before/after
 
 ## Future Requirements
 
@@ -105,7 +105,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DEG-01 | Phase 11 | Complete |
 | DEG-02 | Phase 11 | Complete |
 | GATE-01 | Phase 11 | Complete |
-| GATE-02 | Phase 15 | Pending |
+| GATE-02 | Phase 15 | Complete |
 
 **GATE-01 note:** GATE-01 is a cross-cutting standing mandate. It is mapped to **Phase 11**, where
 the real-compile acceptance-fixture pattern (`sphinx-build → typst.compile() → pypdf`, extending
