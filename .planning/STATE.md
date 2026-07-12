@@ -2,38 +2,36 @@
 gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
-current_phase: 15
-current_phase_name: full-corpus-validation
-status: completed
+current_phase: 6.0
+status: Awaiting next milestone
 stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-07-12T19:32:53.711Z"
+last_updated: "2026-07-12T21:36:36.873Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 15 execution started
+last_activity_desc: Milestone v0.6.0 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 14
-  percent: 80
+  completed_plans: 15
+  percent: 100
+current_phase_name: full-corpus-validation
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
+See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 15 — full-corpus-validation
+**Current focus:** v0.6.0 shipped (real-world robustness) — planning next milestone. Next backlog input: the 13 acknowledged rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers (see Deferred Items).
 
 ## Current Position
 
-Phase: 15 (full-corpus-validation) — EXECUTING
-Plan: 3 of 3
-Status: Phase 15 complete — GATE-02 green
-Last activity: 2026-07-12 — Phase 15 execution started
-
-Progress: [██████████] 100%
+Phase: Milestone v0.6.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-12 — Milestone v0.6.0 completed and archived
 
 ## Roadmap Summary (v0.6.0 — Phases 11–15)
 
@@ -131,6 +129,30 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 15 P01 | 15min | 2 tasks | 1 files |
 | Phase 15 P02 | 20min | 2 tasks | 1 files |
 
+### Acknowledged at v0.6.0 close (2026-07-13) — post-GATE-02 rendering-polish debug sessions
+
+Non-fatal `typstpdf` render-quality bugs discovered by the 2026-07-13 polish
+campaign **after** GATE-02 went green. Outside v0.6.0's definition of done (the
+gate was "no fatal `TypstCompilationError`" + the 19 named requirements — all
+met). Acknowledged and deferred to the next milestone's backlog. Session files
+in `.planning/debug/`.
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | confval-field-body-inline-juxtaposition | fixing |
+| debug | deflist-definition-multiblock-unwrapped-arg | fixing |
+| debug | deflist-nested-definition-body-clobber | fixing |
+| debug | deflist-term-adjacent-inline-concat | fixing |
+| debug | desc-signature-missing-anchor-dangling-label | investigating |
+| debug | desc-signature-newline-concat-stray-plus | fixing |
+| debug | duplicate-module-label-corpus | investigating |
+| debug | label-ref-at-char-unclosed-label | fixing |
+| debug | list-item-nested-block-adjacency | fixing |
+| debug | paragraph-propagated-target-missing-anchor | fixing |
+| debug | ref-with-target-and-nested-list-juxtaposition | fixing |
+| debug | rubric-propagated-target-missing-anchor | investigating |
+| debug | typst-string-literal-newline-escape | awaiting_human_verify |
+
 ## Session Continuity
 
 Last session: 2026-07-12T15:57:32.796Z
@@ -139,4 +161,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 11 with `/gsd-plan-phase 11`
+- Start the next milestone with /gsd-new-milestone
