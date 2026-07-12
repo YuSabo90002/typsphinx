@@ -1305,19 +1305,25 @@ def test_block_quote_with_attribution(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a block quote
+    # Build a realistic tree: the attribution is a CHILD of the block quote
+    # (as docutils produces it), so depart_block_quote's has_attribution check
+    # detects it and closes only the quote() call (the body/attribution blocks
+    # are closed by visit/depart_attribution).
     block_quote = nodes.block_quote()
+    para = nodes.paragraph(text="To be or not to be.")
+    attribution = nodes.attribution(text="Shakespeare")
+    block_quote += para
+    block_quote += attribution
+
     translator.visit_block_quote(block_quote)
 
     # Paragraph inside block quote
-    para = nodes.paragraph(text="To be or not to be.")
     translator.visit_paragraph(para)
     translator.visit_Text(nodes.Text("To be or not to be."))
     translator.depart_Text(nodes.Text("To be or not to be."))
     translator.depart_paragraph(para)
 
     # Attribution
-    attribution = nodes.attribution(text="Shakespeare")
     translator.visit_attribution(attribution)
     translator.visit_Text(nodes.Text("Shakespeare"))
     translator.depart_Text(nodes.Text("Shakespeare"))
@@ -1327,12 +1333,16 @@ def test_block_quote_with_attribution(simple_document, mock_builder):
 
     output = translator.astext()
     # Typst block quote with attribution: the code-mode body block is closed
-    # and the attribution appended as a named argument --
-    # quote(block: true, { <body> }, attribution: [ <attr> ]) (bug #15).
+    # and the attribution appended as a CODE-MODE named argument --
+    # quote(block: true, { <body> }, attribution: { <attr> }). The attribution
+    # MUST be a code-mode `{ ... }` block (not the markup-mode `[ ... ]`), so
+    # its inline children are EVALUATED content, not literal Typst source that
+    # would leak into the rendered PDF (the attribution source-leak bug).
     assert "quote(block: true, {" in output
     assert "To be or not to be." in output
-    assert "attribution:" in output and "Shakespeare" in output
-    assert "]" in output
+    assert "}, attribution: {" in output
+    assert "Shakespeare" in output
+    assert "}, attribution: [" not in output
 
 
 def test_nested_block_quote(simple_document, mock_builder):

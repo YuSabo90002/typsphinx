@@ -1482,13 +1482,17 @@ class TestBlockQuoteMarkupModeRenderGate:
         - (source) bug #11's list-item leading separator still fires: the
           list-item lead-in text and the following ``quote(block: true, {``
           are newline-separated, never juxtaposed;
-        - (source) the attribution is appended as a named argument on the
-          same quote() call: ``}, attribution: [``;
+        - (source) the attribution is appended as a CODE-MODE named argument
+          on the same quote() call: ``}, attribution: {`` (never the
+          markup-mode ``}, attribution: [``, whose code-mode children Typst
+          typesets as literal prose);
         - typst.compile() succeeds (no ``unclosed delimiter`` TypstError)
-          and every block quote's body sentinel -- plus the attribution
-          text -- reaches the extracted PDF text, with no LEAK_SIGNATURES
-          token (proof the ``_t`` literal rendered as prose, not leaked
-          Typst source).
+          and every block quote's body sentinel reaches the extracted PDF
+          text, the attribution renders as the clean ``-- Author`` prose form
+          (NOT a leaked ``text("Author")``/typeset ``text(“Author”)``
+          wrapper), and no leak signature -- straight OR curly quoted --
+          appears (proof the ``_t`` literal AND the attribution children
+          rendered as prose, not leaked Typst source).
         """
         source_dir = fixtures_dir / "block_quote_markup_render_gate"
 
@@ -1537,11 +1541,22 @@ class TestBlockQuoteMarkupModeRenderGate:
             "did not fire"
         )
 
-        # The attribution must be appended as a named argument on the same
-        # quote() call (positional body first, then named attribution).
-        assert "}, attribution: [" in typ_source, (
-            "The block-quote attribution was not appended as a named argument "
-            "on the code-mode quote() call"
+        # The attribution must be appended as a CODE-MODE named argument on the
+        # same quote() call (positional body first, then named attribution),
+        # where its inline children are evaluated function calls. The
+        # markup-mode `}, attribution: [` form must NEVER be emitted: inside a
+        # markup `[...]` argument the code-mode children (text(...)/emph({...})/
+        # raw(...)) are literal prose that Typst typesets verbatim (the
+        # attribution source-leak) and a lone markup-special char aborts the
+        # compile.
+        assert "}, attribution: {" in typ_source, (
+            "The block-quote attribution was not appended as a CODE-MODE named "
+            "argument on the quote() call (`}, attribution: {`)"
+        )
+        assert "}, attribution: [" not in typ_source, (
+            "The block-quote attribution was emitted as the markup-mode "
+            "`}, attribution: [` argument -- its code-mode children are literal "
+            "prose there (the attribution source-leak regression)"
         )
 
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
@@ -1568,14 +1583,43 @@ class TestBlockQuoteMarkupModeRenderGate:
                 f"Expected block-quote body sentinel '{sentinel}' in "
                 "extracted PDF text -- block-quote render regression"
             )
-        assert "William Shakespeare" in full_text, (
-            "Expected the attribution text 'William Shakespeare' in extracted "
-            "PDF text -- depart_attribution regression"
+        # The attribution author must render as CLEAN PROSE on the em-dash
+        # attribution line -- `— William Shakespeare` -- NOT wrapped in a
+        # leaked `text(...)` call. A bare `"William Shakespeare" in full_text`
+        # substring check is a BLIND SPOT: it is trivially true even when the
+        # attribution leaked as `— text(“William Shakespeare”)`,
+        # since the author name is a substring of that wrapper. Asserting the
+        # exact em-dash + author line form rejects the leaked wrapper (the
+        # leaked line reads `— text(“William...`, so the clean form is
+        # absent), and the explicit wrapper checks below name the exact leak.
+        assert "— William Shakespeare" in full_text, (
+            "The block-quote attribution did not render as the clean prose form "
+            "'— William Shakespeare' -- its inline child leaked as literal "
+            f"source (attribution markup/code-mode regression):\n{full_text}"
         )
+        for wrapper in ('text("William Shakespeare', "text(“William Shakespeare"):
+            assert wrapper not in full_text, (
+                f"The attribution author leaked wrapped in '{wrapper}...' -- the "
+                "inline child was emitted as literal Typst source, not "
+                f"evaluated content:\n{full_text}"
+            )
 
-        for leaked_token in LEAK_SIGNATURES:
+        # Leak-signature sweep. Typst applies smart-quote typography, so a
+        # leaked `text("...")` is TYPESET as `text(“...”)` in the
+        # extracted PDF -- the straight-quote LEAK_SIGNATURES alone are a BLIND
+        # SPOT for an attribution leak (which is exactly why the original test
+        # false-passed). Sweep BOTH the straight-quote signatures AND the
+        # curly-quote / bare function-call forms the attribution children would
+        # typeset into.
+        hardened_leak_signatures = LEAK_SIGNATURES + (
+            "text(“",
+            "raw(“",
+            "emph(",
+        )
+        for leaked_token in hardened_leak_signatures:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into rendered "
                 "PDF text -- block-quote markup/code-mode regression (the "
-                "``_t`` literal must render as prose, not leaked source)"
+                "``_t`` body literal AND the attribution children must render "
+                f"as prose, not leaked source):\n{full_text}"
             )
