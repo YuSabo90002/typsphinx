@@ -183,7 +183,15 @@ of Phases 12–13.
   3. A footnote body containing inline markup (`emph`/`literal`) and markup-special characters renders correctly (sourced via buffer-swap through the normal visitor chain, never `astext()`), compiling cleanly.
   4. A real-compile acceptance fixture (GATE-01 standing bar) exercises the single-reference, double-reference, and footnote-inside-a-list-item cases.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+**Wave 1**
+
+- [ ] 14-01-PLAN.md — FN-01 footnote handlers: `visit_document` pre-pass index (D-01) + `visit_footnote` SkipNode (D-05) + `visit_footnote_reference` definition/reuse/dangling (D-02/D-03/D-06/D-08) + `tests/test_footnotes.py` unit module (wave 1)
+
+**Wave 2** *(needs the translator handlers landed to compile real output)*
+
+- [ ] 14-02-PLAN.md — GATE-01 real-compile render gate: `footnote_render_gate` fixture + `TestFootnoteRenderGate` covering single-ref/double-ref/inline-markup/list-item (SC#1–4) (wave 2)
 
 ### Phase 15: Full-Corpus Validation
 
@@ -222,7 +230,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
-| 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
+| 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/2 | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
 
 ---
