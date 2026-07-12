@@ -2709,6 +2709,81 @@ class TypstTranslator(SphinxTranslator):
         """Depart an index node."""
         pass
 
+    # Trivial structural node handlers (Phase 12, BLK-01/04/05/06): four
+    # small additive handlers reusing already-proven idioms from elsewhere
+    # in this file (emit-then-SkipNode, pass-through, bare SkipNode, and
+    # dummy-Text-node delegation respectively).
+
+    def visit_transition(self, node: nodes.transition) -> None:
+        """
+        Visit a transition node (a `----` horizontal rule in RST).
+
+        Emits a full-width Typst rule via ``line(length: 100%)`` -- a
+        genuine content gap otherwise, since a bare transition renders
+        nothing today (BLK-01). Self-closing node: no children to
+        descend into, so this always raises SkipNode.
+        """
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text("line(length: 100%)\n\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+        raise nodes.SkipNode
+
+    def depart_transition(self, node: nodes.transition) -> None:
+        """Depart a transition node (unreached; kept for symmetry)."""
+        pass
+
+    def visit_glossary(self, node: addnodes.glossary) -> None:
+        """
+        Visit a glossary node (`.. glossary::` directive wrapper).
+
+        Transparent pass-through (BLK-04): the wrapped `definition_list`
+        child already renders via `visit_definition_list`, and the term
+        anchor is provided by the `depart_term` fix from Plan 12-02 --
+        do NOT duplicate that anchor logic here.
+        """
+        pass
+
+    def depart_glossary(self, node: addnodes.glossary) -> None:
+        """Depart a glossary node (transparent pass-through)."""
+        pass
+
+    def visit_tabular_col_spec(self, node: nodes.Node) -> None:
+        """
+        Visit a tabular_col_spec node (`.. tabularcolumns::` directive).
+
+        This is a LaTeX-only column-width hint with no Typst equivalent
+        (BLK-05). The node is self-closing, so raising SkipNode here
+        safely drops it with no risk of leaking the raw column-spec
+        content into the compiled output.
+        """
+        raise nodes.SkipNode
+
+    def visit_abbreviation(self, node: nodes.abbreviation) -> None:
+        """
+        Visit an abbreviation node (`:abbr:` role).
+
+        No-op: the term's own Text child renders via the normal chain.
+        """
+        pass
+
+    def depart_abbreviation(self, node: nodes.abbreviation) -> None:
+        """
+        Depart an abbreviation node.
+
+        Appends the expansion inline as " (expansion)" (BLK-06). Stateless
+        -- expands on every occurrence, not just the first (D-08). The
+        expansion is author-controlled RST, so it is routed through a
+        dummy `nodes.Text` delegated to `visit_Text` -- inheriting the
+        existing string-escaping regime -- rather than `node.astext()` or
+        a raw f-string interpolation (V5 Input Validation, Pitfall 7).
+        """
+        explanation = node.get("explanation", "")
+        if explanation:
+            dummy_text = nodes.Text(f" ({explanation})")
+            self.visit_Text(dummy_text)
+
     # Graceful-degrade net for out-of-scope graphical nodes (Issue #114,
     # DEG-01/DEG-02): unlike visit_index's silent skip, these nodes must
     # leave a reader-visible trace (D-01) -- a bordered native-Typst

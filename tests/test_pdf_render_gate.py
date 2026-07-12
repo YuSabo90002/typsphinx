@@ -89,6 +89,12 @@ def desc_signature_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def trivial_blocks_render_gate_dir(fixtures_dir):
+    """Return the path to the trivial_blocks_render_gate fixture project."""
+    return fixtures_dir / "trivial_blocks_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -771,5 +777,134 @@ class TestDescSignatureRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- desc_signature markup/code-mode "
+                "regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 12 (BLK-01/04/05/06): extend the GATE-01 render-gate pattern to
+# prove the transition/glossary/tabular_col_spec/abbreviation handlers
+# (12-04-PLAN.md) render/skip correctly in a real compile -- a transition
+# rule, a glossary definition list, a safely-skipped tabularcolumns hint
+# (no leak), and an inline abbreviation expansion.
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the trivial-blocks render gate -- distinctive,
+# unlikely words chosen so their presence (or, for the tabularcolumns
+# case, deliberate absence) in the extracted PDF text proves each handler
+# behaved correctly. Must match the tokens embedded in
+# trivial_blocks_render_gate/index.rst.
+GLOSSARY_DEF_SENTINEL = "GLOSSARYDEFSENTINEL"
+LEAK_COL_SPEC_SENTINEL = "LEAKCOLSPECSENTINEL"
+ABBR_EXPANSION_SENTINEL = "ABBREXPANSIONSENTINEL"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTrivialBlocksRenderGate:
+    """
+    Real-compile acceptance gate for BLK-01/04/05/06: visit_transition,
+    visit_glossary/depart_glossary, visit_tabular_col_spec, and
+    visit_abbreviation/depart_abbreviation.
+
+    Requirements: BLK-01, BLK-04, BLK-05, BLK-06, GATE-01 (12-CONTEXT.md
+    D-07/D-08, 12-RESEARCH.md Part 4, 12-04-PLAN.md).
+    """
+
+    def test_trivial_blocks_pdf_renders_rule_glossary_and_abbr_no_leak(
+        self, trivial_blocks_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the trivial_blocks_render_gate fixture to PDF and confirm,
+        via the generated .typ source and real pypdf text-extraction:
+        - the transition compiled to a `line(length: 100%)` horizontal
+          rule (BLK-01) -- a horizontal rule has no reliable extracted-text
+          signature, so this is asserted in the emitted source, backed by
+          a successful compile;
+        - the glossary term and its definition text appear in the
+          extracted PDF text (BLK-04);
+        - the distinctive tabularcolumns column-spec token is ABSENT from
+          the extracted PDF text -- the SkipNode no-leak proof (BLK-05);
+        - the abbreviation renders inline as "term (expansion)": both the
+          term and the parenthesized expansion sentinel appear in the
+          extracted text (BLK-06).
+
+        Any TypstCompilationError from the uncaught typst.compile() call
+        below must propagate and fail this test loudly.
+        """
+        result = _run_sphinx_build_typst(trivial_blocks_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        # BLK-01: the transition compiled to a real horizontal rule -- a
+        # rule has no reliable extracted-text signature, so assert it in
+        # the emitted source (backed by the successful compile below).
+        typ_source = index_typ.read_text()
+        assert "line(length: 100%)" in typ_source, (
+            "Expected 'line(length: 100%)' in generated Typst source -- "
+            "visit_transition regression"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT
+        # try/except: this is the crux of the test -- any regression in
+        # the transition/glossary/tabular_col_spec/abbreviation handlers
+        # that emitted invalid Typst source would abort the ENTIRE compile
+        # here (Pitfall 1), not just fail a string-agreement check.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        # BLK-04: the glossary term and its definition text reached the
+        # compiled PDF.
+        assert "Widget" in full_text, (
+            "Expected the glossary term 'Widget' in extracted PDF text -- "
+            "visit_glossary/depart_glossary regression"
+        )
+        assert GLOSSARY_DEF_SENTINEL in full_text, (
+            f"Expected glossary definition sentinel '{GLOSSARY_DEF_SENTINEL}' "
+            "in extracted PDF text -- visit_glossary/depart_glossary "
+            "regression"
+        )
+
+        # BLK-05: the tabularcolumns column-spec token must NOT leak into
+        # the compiled PDF text -- the SkipNode no-leak proof.
+        assert LEAK_COL_SPEC_SENTINEL not in full_text, (
+            f"Tabularcolumns column-spec token '{LEAK_COL_SPEC_SENTINEL}' "
+            "leaked into rendered PDF text -- visit_tabular_col_spec "
+            "SkipNode regression"
+        )
+
+        # BLK-06: the abbreviation renders inline as "term (expansion)".
+        assert "API" in full_text, (
+            "Expected the abbreviation term 'API' in extracted PDF text -- "
+            "visit_abbreviation regression"
+        )
+        assert ABBR_EXPANSION_SENTINEL in full_text, (
+            f"Expected abbreviation expansion sentinel "
+            f"'{ABBR_EXPANSION_SENTINEL}' in extracted PDF text -- "
+            "depart_abbreviation regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- trivial-blocks markup/code-mode "
                 "regression"
             )
