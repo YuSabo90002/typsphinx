@@ -1,207 +1,325 @@
 # Pitfalls Research
 
-**Domain:** Forward-porting a Sphinx builder/writer extension (typsphinx) to Sphinx 9 + typst 0.15+, with bundled Typst Universe `@preview` packages
-**Researched:** 2026-07-09
-**Confidence:** MEDIUM (mix of HIGH-confidence primary-source facts — PyPI package metadata — and MEDIUM/LOW-confidence web-search findings on `@preview` package changelogs that should be re-verified at execution time)
+**Domain:** Sphinx→Typst translator node-handler development (typsphinx v0.6.0, "real-world robustness")
+**Researched:** 2026-07-11
+**Confidence:** HIGH (grounded in direct read of `typsphinx/translator.py`, `tests/test_pdf_render_gate.py`, `.planning/PROJECT.md`, `.planning/codebase/CONCERNS.md`, and official Typst documentation)
 
 ## Critical Pitfalls
 
-### Pitfall 1: The `@preview` package trap — bumping one package silently breaks under the same compiler
+### Pitfall 1: One bad node aborts the ENTIRE PDF — there is no partial-compile fallback
 
 **What goes wrong:**
-Typst Universe packages declare only a *minimum* compiler version in their manifest (`compiler = "0.12.0"` etc.) — never a maximum or a "last tested against" version. A package can therefore claim to be installable under typst 0.15 while still calling a stdlib symbol, function, or CSL style name that typst 0.15 removed or renamed as part of its normal deprecation-cycle cleanup. That is exactly what happened in the v0.4.4 break: `typst.TypstError: unknown variable: kai` was not a typsphinx bug — it came from inside a bundled package's own Typst source. Bumping only the one package everyone assumes is the culprit (the CONTEXT note in PROJECT.md guessed "likely `gentle-clues:1.2.0` or `codly`") without confirming the real source risks bumping the wrong package, leaving the real one still broken, or worse, bumping a package to a version that introduces *its own* new incompatibility (e.g. codly 1.2.0 changed line-reference numbering from zero- to one-indexed and reworked its ref system — a breaking change unrelated to typst-version compatibility).
+`typst.compile()` (in `pdf.py`) is a single all-or-nothing call over the whole master document (and everything it `#include()`s). If **any** node handler anywhere in the tree emits syntactically invalid Typst — one bad `width:`, one unescaped caption, one malformed `link()` — the entire `typstpdf` build fails with `TypstCompilationError`, not just the offending page. This is categorically different from the `typst` (markup-only) builder or the HTML builder, where a bad node degrades one region of output. For a large corpus like Sphinx's own `doc/` tree (the v0.6.0 acceptance target), a single rare node instance (e.g. one `versionchanged` inside one obscure page) is fatal to the whole run.
 
 **Why it happens:**
-The four packages (`codly`, `codly-languages`, `mitex`, `gentle-clues`) are developed independently by different maintainers on different release cadences. typsphinx pins exact versions in three source locations and treats "the bundle" as one unit, but each package's typst-0.15 readiness is only knowable by actually compiling with it — static version numbers tell you nothing about runtime compatibility.
+Node-handler work is naturally done and tested one node type at a time (unit tests, small fixtures). It is easy to ship a handler that is correct for the common case tested but produces invalid syntax on an edge-case attribute value (a percentage width, an empty title, a caption containing `_` or `[`) that only appears somewhere deep in a 900-page real corpus — and that one instance takes down the whole compile.
 
 **How to avoid:**
-1. **Identify the actual origin before bumping anything.** Research for this milestone traced the `kai` deprecation specifically to **mitex** — its own changelog for v0.2.6 reads *"Fix: fix 'kai is deprecated' warning for Typst v0.14.0"* (mitex bundled today is 0.2.4, which predates that fix). This is a MEDIUM-confidence finding (single changelog source, not independently reproduced by compiling) and must be confirmed by actually compiling a `kai`-triggering document with `mitex>=0.2.6` under typst 0.15 before trusting it — but it means the fix is very likely "bump mitex," not "bump gentle-clues," contradicting the milestone's prior guess.
-2. **Bump one package at a time and compile after each bump**, not all four simultaneously — if you bump all four together and it works, you don't know which one mattered (and if it fails, you don't know which one broke it).
-3. Add a CI/dev step that actually invokes `typst compile` against a `.typ` fixture exercising every bundled package's key entry points (codly code block, codly-languages icon lookup, mitex inline+block math, gentle-clues admonition) — not just a static string-match test. `tests/test_preview_version_sync.py` only asserts the three declaration sites *agree with each other*; it cannot catch a case where all three agree on a version that is itself broken under the target compiler.
-4. Pin exact tested versions (not floors) for all four packages once verified — this is a "known-good bundle," same philosophy as the runtime-pin decision already made for `typst`/`sphinx`/`docutils` in this project.
+- Treat "does it compile" as the primary correctness signal for every new/changed handler, not "does the string look right" (see Pitfall 9).
+- Add the real Sphinx `doc/` corpus (or a growing subset of it) as a standing `typst.compile()` regression fixture as soon as Issue #114 is fixed — every phase after that should compile it and fail loudly on any `TypstError`, the same way `tests/test_preview_smoke_gate.py` already does for the four `@preview` packages.
+- Prefer handlers that are structurally incapable of emitting invalid syntax (e.g. always closing what they open, always going through a single length-normalization helper) over handlers that are merely tested against today's known inputs.
 
 **Warning signs:**
-- `typst.TypstError: unknown variable: <name>` or `unknown variable: <name> is deprecated` in PDF-integration tests or `docs-pdf` build, where `<name>` does not appear anywhere in typsphinx source (`grep -rn "<name>" typsphinx/` returns nothing) — this is the signature of a package-internal deprecated-symbol removal, not a typsphinx bug.
-- A package version bump "fixes" the reported symptom locally but a *different* PDF-integration test starts failing — sign that the bump introduced its own breaking change (e.g. codly's ref/line-numbering rework).
+- A new visitor method with `add_text` calls that are conditionally skipped (`if X: skip`) without a matching skip on the paired `depart_`/closing text — orphaned open parens/brackets compile fine on the happy path and only break on the conditional branch.
+- Any handler that trusts a docutils attribute value (`width`, `refuri`, caption text) to already be Typst-safe.
 
-**Phase to address:**
-The FWD-02 (typst 0.15+) phase — specifically as its own verification step, sequenced *after* the typst compiler ceiling is raised and *before* the `@preview` version-sync files are edited, so the phase can prove causally which package(s) actually needed bumping.
+**Phase to address:** Every phase in this milestone — this is the standing acceptance bar, not a one-time fix. The Issue #114 fix phase should also stand up the real-corpus compile gate described in Pitfall 9, since every subsequent node-handler phase depends on it to catch fatal regressions.
 
 ---
 
-### Pitfall 2: The Python-floor trap — Sphinx 9 requires Python ≥3.11, but typsphinx's floor is still 3.10
+### Pitfall 2: Markup-mode vs. code-mode mismatch (the v0.5.0 admonition precedent, recurring)
 
 **What goes wrong:**
-PyPI package metadata (authoritative, checked directly against the registry — HIGH confidence) shows Sphinx 9.0.4 declares `requires_python = ">=3.11"`. typsphinx currently declares `requires-python = ">=3.10"` in `pyproject.toml`, and CI's matrix (`ci.yml`), `tox.ini` `env_list`, and the classifiers list all still include a `py310` lane. If the sphinx pin is raised to `sphinx>=9` (or `sphinx>=9,<10`) without also raising `requires-python` to `>=3.11` and dropping the 3.10 lane everywhere, dependency resolution on the 3.10 CI job will have no valid solution — `uv sync --locked` (or plain `pip install`) will hard-fail on that lane with a resolution error, not silently downgrade to an older Sphinx. This is a total lane failure, not a subtle behavioral bug, so it will be loud — but if discovered late (e.g. mid-PR after the lockfile is already regenerated against 3.11+ only) it forces an awkward re-triage of "is this a real regression or just the known floor mismatch."
+typsphinx's translator runs in "unified code mode": function calls are emitted bare at the top level (`heading(...)`, `figure(...)`, `image(...)`) with `#` only required inside markup content blocks (`[...]`). A handler that assumes the wrong mode for its position either (a) emits literal, uncompiled-looking Typst source into the output as inert text (the exact v0.5.0 admonition bug: admonition bodies rendered as literal `par({text(...)})` because `_visit_admonition` opened a markup block `[` where the body's `par({...})`/`text(...)` calls needed code-mode evaluation instead), or (b) emits a bare `#`-prefixed call inside code mode, which is itself invalid syntax there.
 
 **Why it happens:**
-Sphinx's own minimum-Python bar has been rising release-over-release (Sphinx 9.1 reportedly drops 3.11 support entirely per community reporting — track this if the milestone slips past a Sphinx 9.1 release). typsphinx's Python floor was deliberately modernized to 3.10 in the *previous* milestone (dropping EOL 3.9), which was correct at the time but is now stale relative to Sphinx 9's own requirement. The two floors (typsphinx's Python floor, Sphinx's Python floor) are declared independently and nothing currently checks that typsphinx's floor is `>=` whatever the pinned Sphinx major actually requires.
+The two modes look almost identical in the emitted string and both "look plausible" to a human skimming the generated `.typ`, so this class of bug survives casual review and even passes loose substring assertions (`"info[" in output`). It was *invisible for months* in typsphinx — the admonition bug predated the milestone that finally exposed it, because nothing had ever actually compiled the code path to PDF before.
 
 **How to avoid:**
-1. Before raising the sphinx pin, run `curl -s https://pypi.org/pypi/Sphinx/<planned-version>/json | python3 -c "import json,sys;print(json.load(sys.stdin)['info']['requires_python'])"` and treat that as the new floor — don't assume 3.10 still works.
-2. Raise `requires-python` in `pyproject.toml`, drop the `py310` env from `tox.ini` `env_list`, drop `'3.10'` from the CI matrix `python-version` list in `ci.yml`, drop the `Programming Language :: Python :: 3.10` classifier, and re-check `black`/`ruff` `target-version`/mypy `python_version` for the new floor — all in the same commit as the sphinx-pin bump, not as a follow-up.
-3. Also check `docutils`'s own constraint on Sphinx: Sphinx 9.0.4 pins `docutils<0.23,>=0.20`, which is *tighter* than typsphinx's current `docutils>=0.18,<0.22` ceiling — these two ranges have an empty intersection above 0.22, meaning typsphinx's docutils ceiling must also move (to something like `>=0.20,<0.23`) or `uv sync` will report an unsatisfiable dependency conflict between typsphinx's own constraint and Sphinx 9's.
-4. Re-run `drift.yml`'s `uv python install 3.10` line update in lockstep — the weekly drift job pins Python 3.10 explicitly; if the floor moves to 3.11 and this line isn't updated, the *drift detector itself* stops reflecting the supported floor.
+- Whenever adding a handler that opens a *content-taking* construct (figure caption, footnote body, admonition title, table cell, line-block line), decide explicitly: is this position code-mode (bare function calls, no `#`) or markup-mode (needs `#` prefix, `[...]` content blocks)? Write that decision down in the docstring, as `_visit_admonition`/`visit_title` already do.
+- Follow the established buffer-swap pattern (see `visit_title`/`depart_title` around line 190–235, and `_visit_admonition`/`_depart_admonition` around line 2292–2345) for any new construct that needs to defer or transform inline content: swap `self.body` to a private list, let the normal visitor chain render into it (so `emph`/`literal`/etc. still work), then read the buffer back and re-emit it in the correct mode/argument position.
+- Never build new inline content by calling `node.astext()` and interpolating the plain string directly (see Pitfall 3, Pitfall 7) — that bypasses the mode question entirely and silently reintroduces both the escaping bug and the double-emission bug at once.
 
 **Warning signs:**
-- `uv sync` / `pip install` reporting "No solution found when resolving dependencies" or "Because typsphinx depends on sphinx>=9 and sphinx>=9 depends on Python>=3.11, typsphinx requires Python>=3.11" on the 3.10 CI lane specifically (other lanes green).
-- A "successful" resolution that quietly picks an *older* sphinx (e.g. 8.x) on the 3.10 lane while 3.11+ lanes get 9.x — this can happen if the sphinx constraint is left as a loose `>=5.0` rather than the intended `>=9`, defeating the entire purpose of the milestone on that one lane without erroring at all. Check the resolved `sphinx` version per-lane in CI logs, not just "job passed."
+- A visitor that does `self.add_text(f"...[{something}]...")` where `something` came from `node.astext()` rather than from a buffer populated by the normal visit chain.
+- Generated `.typ` where a construct's body reads as Typst source text rather than typeset prose when eyeballed in a real compiled PDF (not just the `.typ` file).
 
-**Phase to address:**
-The FWD-01 (Sphinx 9) phase, as the very first sub-step — establish the correct Python floor from Sphinx 9's own PyPI metadata before touching any other pin, since it gates which CI lanes are even valid for the rest of the milestone.
+**Phase to address:** Every node-handler phase in this milestone (figure/caption, footnote, versionmodified, line_block, topic all introduce new content-taking constructs). Call this out explicitly in each phase's plan review checklist.
 
 ---
 
-### Pitfall 3: Sphinx 9 / docutils 0.22 removed (not just deprecated) APIs still in use
+### Pitfall 3: The figure-caption leak — a NEW, not-yet-fixed instance of the exact double-emission bug class (found during this research)
 
 **What goes wrong:**
-`typsphinx/template_engine.py:239` calls `doctree.traverse(addnodes.toctree)`. `Node.traverse()` has been soft-deprecated since docutils 0.18 (with `nodes.Node.findall()` as the recommended iterator replacement) and docutils' release history shows a pattern of aggressively removing previously-deprecated methods each release (0.21 removed `nodes.reprunicode`, `Element.set_class()`, and several others; 0.22 removed `Publisher.setup_option_parser()`, `OptionParser.set_defaults_from_dict()`, and other transform/utility functions; 0.23 removed more). `traverse()` has not been removed as of the docutils versions checked in this research, but it is exactly the kind of long-deprecated call docutils has been removing on a rolling basis — every release is a candidate for it finally going away, and it is inconsistent with the rest of the codebase, which already uses `findall()` correctly in `builder.py:151` (`doctree.findall(image)`). Sphinx 9 itself also changed `SphinxComponentRegistry.create_source_parser` to drop its `app` parameter (now takes `config` and `env` instead) — not directly used in this codebase today, but a signal that Sphinx 9's internal registry/component APIs shifted shape, and any code reaching into Sphinx internals beyond the stable `SphinxTranslator`/`Builder`/`Writer` base classes is at risk.
+Reading `visit_caption`/`depart_caption` (translator.py ~1201–1227) against `visit_Text` (~443–473) shows the admonition-title bug's sibling is still live for figure captions. `depart_caption` extracts the caption via `self.figure_caption = node.astext()` for later use as `caption: [...]` in `depart_figure` — but it never suppresses the normal visitor traversal of the caption's children. Those children (plain `Text` nodes) still get visited by `visit_Text`, which unconditionally appends `text("...")` into whatever `self.body` currently is (there's no `self.in_caption` check there). Net effect: the caption's text is emitted **twice** — once as a stray `text("caption text")` call juxtaposed directly after the preceding sibling (e.g. right after `image(...)` or after `link(url, image(...))`, with no `+` or newline separator — itself independently invalid, see Pitfall 4), and once, correctly, later as the `caption: [...]` argument. This is very likely the literal mechanism behind the milestone's cited buggy output `link(url, image(...))text(caption)`.
 
 **Why it happens:**
-`TypstTranslator` subclasses `sphinx.util.docutils.SphinxTranslator` (a stable, documented extension point), which insulates most of the translator from churn — but `template_engine.py` reaches directly into `doctree.traverse()`, a raw docutils `Node` method, not a Sphinx-stabilized API. Code paths that go around the documented extension surface are the ones that break silently when the underlying library evolves.
+`depart_caption` was written to grab the *plain-text* caption via `astext()` (probably to avoid dealing with inline markup), but nothing turns off or buffers the *actual* visitor traversal of the caption's children, so both paths fire. It is the same root cause the admonition-title fix (Phase 8.1) closed for `visit_title`/`depart_title` — but that fix was never generalized to `visit_caption`.
 
 **How to avoid:**
-1. Replace `doctree.traverse(addnodes.toctree)` with `list(doctree.findall(addnodes.toctree))` before touching the Sphinx/docutils pins — this is a zero-risk, backward-compatible change (`findall()` has existed since 0.18.1) that removes one known deprecated call regardless of what docutils 0.22 turns out to actually break.
-2. Grep the full translator/builder/writer/template_engine surface for other raw docutils/Sphinx internals reached outside the `SphinxTranslator`/`Builder`/`Writer` contract: `grep -rn "\.traverse(\|Publisher\|OptionParser\|set_defaults_from_dict\|setup_option_parser\|reprunicode\|ensure_str\|set_class(" typsphinx/` — none of these hit today except `traverse()`, but re-run this check after every dependency bump in this milestone, since new code written during the port could reintroduce a raw-internals call.
-3. Treat `mypy typsphinx/` and the full pytest suite run against the *actual* resolved Sphinx 9 / docutils 0.22 (not the pinned known-good set) as the real signal — deprecated-API removals surface as `AttributeError`/`TypeError` at runtime, not at type-check time, since these are dynamically-typed docutils APIs; don't rely on mypy alone to catch this class of break.
-4. Because Sphinx 9's changelog documents the autodoc subsystem as "substantially rewritten" with an `autodoc_use_legacy_class_based` escape hatch, if `sphinx.ext.autodoc` is exercised anywhere in the extension's own docs build (it likely isn't — typsphinx doesn't autodoc Python code, it *is* a builder extension) confirm that assumption explicitly rather than skipping this check.
+- Apply the exact same buffer-swap pattern already used for admonition titles: in `visit_caption`, swap `self.body` to a private buffer *before* children are visited (not after, in `depart_caption`); in `depart_caption`, read the buffer back as the rendered caption content and restore `self.body`. This also fixes the inline-markup loss (`astext()` throws away any `emph`/`literal` inside a caption) as a side benefit.
+- Ensure `depart_figure`'s `caption: [...]` interpolation uses the *rendered* buffered content (which is already markup-mode-safe if visited through the normal chain) rather than a raw string requiring separate escaping.
 
 **Warning signs:**
-- `AttributeError: 'document' object has no attribute 'traverse'` (or a `DeprecationWarning`/`FutureWarning` promoted to an error under `pytest -W error`) is the direct signature of this pitfall.
-- Test failures concentrated in `test_config_toctree_defaults.py`-style tests (toctree option extraction) rather than spread across the whole suite — `extract_toctree_options()` is the one call site that uses `traverse()`.
+- Any `depart_*` that computes content via `node.astext()` while the node's children were *not* explicitly skipped (no `raise nodes.SkipNode`, no buffer swap in the matching `visit_*`).
+- A compiled PDF where figure captions with a `:target:` link show duplicated or garbled text near the image.
 
-**Phase to address:**
-The FWD-01 (Sphinx 9) phase — fix `traverse()` → `findall()` as a preparatory, low-risk commit before raising any pins, then re-scan for other raw-internals calls as part of the same phase's verification.
+**Phase to address:** The Issue #114 figure/image fix phase — this is squarely in scope and should be fixed alongside the length-unit and link-juxtaposition work, using the real-compile acceptance gate (Pitfall 9) to prove it, exactly as Phase 8.1 did for admonitions.
 
 ---
 
-### Pitfall 4: The three-way `@preview` version-sync desync trap, now made worse by a new *fourth* class of drift
+### Pitfall 4: Function-call juxtaposition — sibling code-mode expressions need an explicit `+` (or newline/semicolon), never bare concatenation
 
 **What goes wrong:**
-`writer.py`, `template_engine.py`, and `templates/base.typ` each independently hardcode the same four `#import "@preview/<pkg>:<version>"` lines, guarded today by `tests/test_preview_version_sync.py`. That test is solid for its narrow job (catching a human editing one of the three files and forgetting the other two) — but this milestone adds a related, *not yet guarded* failure mode: editing all three files consistently to the *wrong* version (a version that doesn't actually compile under typst 0.15). The existing test only proves internal agreement, not external correctness; it will pass cleanly on a synchronized-but-broken bump.
+Typst's scripting/code-mode syntax requires expressions in a code block to be separated by a line break or `;` (confirmed via the official Typst syntax/scripting reference). Two function calls placed back-to-back with nothing between them (`image(...)text(...)`, or a caption's stray `text(...)` landing right after a closing `)`) is a parse error, not silently-ignored text. The existing, correct pattern for this in typsphinx is visible in `visit_desc_parameterlist`/`visit_desc_parameter`/`depart_desc_parameter` (~2577–2621): every sibling is explicitly joined with `' + '` and a `_desc_parameter_has_content`-style flag tracks whether a separator is needed before the next one. Any new handler that emits sibling content (figure body + caption, footnote marker + body, a new `desc_returns`/`desc_optional` sibling next to existing `desc_parameter`s) must plug into this same join-with-`+` discipline or reintroduce this exact class of bug.
 
 **Why it happens:**
-The version-sync test was written to catch the *previous* incident's failure mode (single-file edits going out of sync) — a reasonable scope at the time. This milestone's failure mode is different: someone deliberately edits all three sites in lockstep (correctly, per the test) to a set of versions that hasn't actually been proven to mutually compile under the new typst compiler ceiling.
+It's easy to write a new `visit_X`/`depart_X` pair that "looks right" in isolation — each function call is individually well-formed — and forget that in code mode, *placement next to a sibling* is itself a syntax decision. This is invisible until a real value from a real corpus places two such siblings adjacent to each other (e.g. an image directly followed by a caption, or a signature followed by a new `desc_returns` node).
 
 **How to avoid:**
-1. Keep `test_preview_version_sync.py` as-is (it's still correctly guarding its original hazard) but treat it as necessary, not sufficient.
-2. Add a companion check — either a new pytest integration test or a dedicated `docs-pdf`-style tox env — that actually compiles a fixture `.typ` document exercising all four packages using `typst-py` pinned to the *new* floor (0.15+), and runs it in CI as a required check, not just in the advisory `drift.yml` job. This is the test that would have caught the original `kai` break before it reached a release, since `drift.yml` is intentionally advisory (D-07, never a required check) and the milestone's own regular CI wasn't resolving unpinned versions at the time of the original incident.
-3. When bumping, update all three sites plus verify the *fourth* implicit site: any example/fixture `.typ` files under `tests/roots/` or `examples/` that might have their own hardcoded `@preview` imports copy-pasted from the template rather than generated — grep for `@preview/` across the whole repo (not just the three known files) before considering the sync complete: `grep -rln "@preview/" --include="*.typ" --include="*.py" .`
+- For every new node type that can appear as a *sibling* inside an existing code-mode sequence (figure content, desc_signature line, footnote content), explicitly decide and implement the separator: reuse the `_desc_parameter_has_content`-style boolean-flag pattern, or wrap the new content in an explicit content-block `[...]` argument to a named parameter (e.g. `caption:`, `title:`) so it's never juxtaposed as a bare sibling expression at all.
+- Prefer routing new content through a *named argument* (`figure(..., caption: [...])`, `clue({...}, title: {...})`) over positional/sequential juxtaposition wherever the target function supports it — named arguments sidestep the separator problem entirely.
+- For the `:target:`-linked figure specifically: the correct target shape per the milestone is `figure(link(...)[#image(...)], caption: [...])` — note `image(...)` here is inside a markup content block (`[#image(...)]`) as the link's *body argument*, not code-mode juxtaposed after it. Confirm which of `link`'s two forms (content-block second argument vs. code-mode second positional argument) is used, and don't mix the two conventions within the same call.
 
 **Warning signs:**
-- `test_preview_versions_identical_across_declaration_sites` and `test_all_four_packages_declared` both green, but `docs-pdf` / PDF-integration tests still fail — direct evidence the sync test's scope (agreement) is insufficient and the compile-correctness gap (Pitfall 1) is what's actually broken.
-- A `grep -rn "@preview/" .` turning up a `@preview/...` reference in a file not in `{writer.py, template_engine.py, templates/base.typ}` — an undocumented fourth site that the existing test structurally cannot see.
+- Any place a new visitor's `add_text` output would end up directly adjacent (no `+`, no newline, no comma) to another function call's closing `)` in the same code-mode context.
+- Compile errors mentioning "expected semicolon" or "expected expression" near a figure/signature line in the generated `.typ`.
 
-**Phase to address:**
-The FWD-02 (typst 0.15+) phase, as part of the same work that edits the three sync sites — add the compile-verification check in the same commit/PR that performs the version bump, so the bump can never land "sync-passing but compile-broken."
+**Phase to address:** Issue #114 figure/image fix phase (for `link`+`image`+caption); the autodoc `desc_returns`/`desc_signature_line`/`desc_inline`/`desc_optional` phase (for signature siblings) — both must be reviewed against this pattern explicitly, not just against unit-string output.
 
 ---
 
-### Pitfall 5: CI/matrix, cross-OS, and docs-PDF traps specific to a new compiler major
+### Pitfall 5: px→pt is not 1:1 — naive unit pass-through emits units Typst doesn't understand
 
 **What goes wrong:**
-Several failure modes are specific to *this* CI topology (3-OS × 4-Python matrix, plus a separate `docs.yml` PDF build) rather than to the port itself:
-- The `sphinx>=5.0,<9` and `docutils>=0.18,<0.22` ceilings are duplicated across **eight** call sites today (`pyproject.toml` ×3, `tox.ini` ×4 — `[testenv]`, `[testenv:type]` twice for sphinx+docutils), not just the well-known three `@preview` sites. Missing one during the bump (e.g. updating `pyproject.toml` but leaving `tox.ini`'s `[testenv:type]` `docutils>=0.18,<0.22`) produces a *type-check* job that silently keeps testing against the old docutils stub types (`types-docutils>=0.18`) while the runtime tests exercise the new one — a split-brain CI where `mypy` and `pytest` are validating against different dependency universes and neither catches it.
-- `docs.yml`'s PDF job (`docs-pdf` tox env) is the single place that exercises `typstpdf` end-to-end against a real, non-trivial document (the project's own docs) including admonitions (gentle-clues), code blocks (codly), and math (mitex) all in one build — this is precisely the fixture that would reproduce a `kai`-class error, but it currently only runs on `ubuntu-latest` in `docs.yml`. If the `@preview` bump behaves differently across OS-specific font/Unicode handling (typst's text-shaping and font-fallback logic is a known source of macOS/Windows-vs-Linux rendering differences) that divergence won't be caught, because PDF compilation is never exercised on macOS or Windows — only the matrix's Python-level `pytest` suite runs there.
-- `drift.yml` is the only workflow that resolves *unpinned* latest versions and is explicitly advisory (never a required check, per D-07 in PROJECT.md's Key Decisions) — meaning even after this milestone lands, a future `@preview`-ecosystem or Sphinx/typst drift will again only be reported as a non-blocking issue, not caught before merge, unless this milestone also tightens that decision for the newly-adopted majors.
+`visit_image` (translator.py ~1527–1533) currently does `self.add_text(f", width: {width}")` with **zero unit handling** — whatever string docutils put in `node["width"]` (e.g. `"200px"`, `"50%"`, `"3em"`, `"2in"`, `"1pc"`, or a bare unitless number) is interpolated verbatim into the Typst source. Typst's length type supports only `pt`, `mm`, `cm`, `in`, and `em` (font-relative) — **`px` is not a valid Typst unit** (confirmed via the official Typst length reference and an open Typst feature request to add one). `:width: 200px` therefore emits `width: 200px`, which is a hard compile error, aborting the whole document (Pitfall 1). `pc` (pica) is similarly unsupported natively. `%` alone is fine as-is (Typst's ratio/relative-length type accepts a bare `50%` for `width:`/`height:` directly), and `em` passes through unchanged since Typst supports it natively — but only if the surrounding code doesn't also try to re-append a unit suffix.
 
 **Why it happens:**
-The matrix was built incrementally across several prior phases (Python-floor modernization, tooling-floor modernization, durability guardrails) each of which added its own duplication point without a single source of truth for "what sphinx/docutils/typst range is currently supported" — the same structural pattern that caused the `@preview` 3-way sync problem, just wider (8 sites instead of 3) and currently *unguarded* by any test (unlike the `@preview` versions, there is no `test_dependency_ceiling_sync.py` equivalent).
+Docutils' `:width:`/`:height:` directive options accept CSS-style length strings (`%`, `em`, `ex`, `px`, `in`, `cm`, `mm`, `pt`, `pc`, or unitless) and preserve them as-is without any conversion — docutils itself never converts units, it only validates the syntax. It's tempting to assume "docutils already validated it, so it's a safe length string" and pass it straight through, but "syntactically valid CSS length" and "syntactically valid Typst length" are different, only-partially-overlapping grammars.
 
 **How to avoid:**
-1. Before starting, enumerate every ceiling site with `grep -rn "sphinx>=5.0,<9\|sphinx<9\|docutils>=0.18,<0.22\|docutils<0.22\|typst>=0.14.1,<0.15\|typst<0.15" --include="*.toml" --include="*.ini"` and treat that list as the literal edit checklist for the phase's plan/PR description — don't rely on memory or on `pyproject.toml` alone.
-2. Consider adding a lightweight sync test analogous to `test_preview_version_sync.py` for the sphinx/docutils/typst ceilings across `pyproject.toml` and `tox.ini`, so this class of partial-bump mistake gets the same loud-CI-failure treatment the `@preview` versions already have, instead of relying on a human checklist alone.
-3. Since `docs-pdf` is the only end-to-end reproduction of the actual `kai`-class failure mode and it only runs on ubuntu, explicitly decide (and document the decision) whether this milestone needs to add a Windows and/or macOS PDF-compile smoke check — even a minimal one-OS-extra addition specifically for the typst-0.15 cutover, given font/text-shaping is a documented typst 0.15 change area (variable-font family-name trimming was called out as a "minor breaking change" in the 0.15 release notes) — rather than assuming Linux green implies cross-OS green.
-4. Revisit whether `drift.yml` should temporarily become a required check (or at minimum be run manually via `workflow_dispatch` and reviewed) during the first few weeks after this milestone ships, since the entire purpose of this milestone is escaping a rot cycle that an advisory-only drift detector already failed to prevent once.
+Write one shared length-normalization helper (analogous to `_compute_relative_image_path`) used by every place a `width`/`height` value reaches Typst output, with this mapping:
+
+| Docutils unit | Typst handling | Conversion |
+|---|---|---|
+| `%` | pass through unchanged | none — `50%` is valid Typst ratio syntax as-is |
+| `em` | pass through unchanged | none — Typst supports `em` natively as a font-relative length |
+| `in`, `cm`, `mm` | pass through unchanged | none — all three are native Typst absolute units |
+| `pt` | pass through unchanged | none — already the Typst native unit |
+| `px` | **convert to `pt`** | `pt = px * 0.75` (CSS reference pixel: 96px/in ÷ 72pt/in = 0.75) |
+| unitless bare number | treat as `px` (docutils/HTML convention), then convert | same as `px` above |
+| `pc` (pica) | **convert to `pt`** | `pt = pc * 12` (1 pica = 12 points, no native Typst unit) |
+| `ex` | no Typst equivalent | approximate as `0.5em` (typical x-height/em-height ratio) or drop with a `logger.warning`, never pass through raw |
+
+Never string-strip a trailing unit suffix blindly (e.g. `width[:-2]`) — `%`, `em`, `pt`, `in`, `cm`, `mm` are 2 characters but `px`/`pc` are also 2, and blind stripping either double-strips a valid unit's letters or fails to recognize which suffix was present at all. Parse the unit suffix explicitly (regex match on the trailing alpha run), don't assume length.
 
 **Warning signs:**
-- CI green on `type-check` but red on the matrix `test` jobs (or vice versa) after a dependency-ceiling PR — the split-brain signature described above.
-- `docs.yml`'s `docs-pdf` step green while a Windows/macOS-specific bug report surfaces post-release — the cross-OS PDF gap made concrete.
-- Any future `drift.yml` run failing and only producing a GitHub issue (per its current design) rather than blocking a merge — expected behavior today, but worth re-confirming is still the desired posture once the newly-adopted majors are in place.
+- Any `width`/`height` interpolation without a length-normalization call in front of it.
+- `TypstError` mentioning "unknown unit" or a numeric-parse failure anywhere near an `image(...)` or `figure(...)` call, when compiling a corpus that contains `:width: NNpx` (very common in hand-authored Sphinx docs, including likely several in Sphinx's own `doc/` tree).
+- A "fix" that only handles `%` (because that's the example in the bug report) and ignores `px`/`pc`/`ex`/unitless, which are just as common in a large real corpus.
 
-**Phase to address:**
-Split across FWD-01/FWD-02 (fix the 8-site ceiling duplication as part of the pin-raising work, with the enumerate-first grep as a plan-level checklist item) and a closing "CI green across full matrix" phase (verify the docs-pdf cross-OS question explicitly, and decide on drift.yml's required-check posture) — mirroring how the previous milestone sequenced pin-raising then a dedicated full-matrix-verification phase.
+**Phase to address:** Issue #114 figure/image fix phase (this is the explicit REQ target — "convert `px`/CSS length units to Typst-valid `pt` (or drop)"). Verification should include at least one fixture image with `:width: 200px`, one with `:width: 50%`, one with `:width: 3em`, and one with a bare unitless number, each proven to compile via the real-render gate (Pitfall 9), not just a string assertion.
+
+---
+
+### Pitfall 6: Footnote modeling mismatch — docutils' split footnote/footnote_reference vs. Typst's single inline `footnote[...]`
+
+**What goes wrong:**
+Docutils represents a footnote as **two separate, disconnected nodes**: a `footnote_reference` (the inline superscript marker at the point of use, which may appear multiple times for the same footnote if referenced twice) and a `footnote` node (the footnote's actual body content, which docutils places as a sibling block — often at the end of the section/document, not adjacent to the reference — and which is visited by the translator entirely separately from its reference(s)). Typst's model is the opposite: `footnote[body]` is a **single inline call at the point of reference** — it simultaneously inserts the superscript marker *and* carries the body content, and Typst's layout engine automatically places the rendered note at the bottom of the page and auto-numbers it (confirmed via the official Typst footnote documentation). A naive one-visitor-per-docutils-node-type port (`visit_footnote_reference` emits a marker, `visit_footnote` separately emits the body wherever docutils put that node in the tree) will produce one of:
+- the footnote body rendered as an ordinary floating paragraph wherever docutils placed the `footnote` node (often visually disconnected from its reference, sometimes at the very end of the document), with **no** auto-numbered marker tying it to its reference(s), or
+- if a naive `footnote[...]` call is emitted at *both* the reference and the body's docutils location, a **doubled** footnote (two numbered notes for one logical footnote), or
+- for a footnote referenced from two places (`footnote_reference` appearing twice pointing at the same `footnote` id) — a genuine one-to-many relationship docutils supports natively but Typst's `footnote[]` doesn't directly model (Typst has no native "same footnote referenced twice" primitive without manually reusing a label/counter).
+
+**Why it happens:**
+This is a structural, not cosmetic, mismatch between the two document models — it's the same category of issue as the title/caption double-emission bugs (Pitfall 2/3), but arising from the *source* format's structure rather than a translator bug, so it can't be fixed with a simple buffer swap alone; it needs a deliberate design decision up front. Confirmed via direct code search: no `visit_footnote*` methods exist anywhere in `translator.py` today — this is entirely greenfield work, not a bug fix.
+
+**How to avoid:**
+- Do NOT visit the `footnote` node's body independently and separately visit each `footnote_reference`. Instead, resolve `footnote_reference`'s target `refid`, look up the corresponding `footnote` node's content at the reference site, and emit a single `footnote[...]` call inline at each `footnote_reference` occurrence — buffering the footnote body's rendered content (same buffer-swap pattern as Pitfall 2) so it can be replayed inline wherever it's referenced.
+- Explicitly decide (and test) the "referenced twice" case: either accept a duplicate note per Typst's model (simplest, and arguably correct visually — Typst will just show the number twice, once per reference, which is standard behavior even in LaTeX), or investigate Typst's footnote re-use idiom (a labeled counter) only if the corpus (Sphinx's own docs) actually exercises this case.
+- Make sure the docutils `footnote` node itself is a documented no-op / `SkipNode` at its *own* tree location once its content has been captured for inline replay — otherwise its body renders a second time wherever docutils physically placed it.
+
+**Warning signs:**
+- A compiled PDF with footnote numbers that don't match, or footnote text appearing at the very end of the document collected together rather than per-page.
+- Any implementation that emits `footnote[...]` inside `visit_footnote` (the body node) rather than at `visit_footnote_reference` (the inline marker node).
+
+**Phase to address:** The footnote/footnote_reference support phase (new node handlers, currently entirely unimplemented). This needs its own design note before implementation, not just an incremental patch.
+
+---
+
+### Pitfall 7: Escaping — three DIFFERENT escaping regimes exist, and using the wrong one for new content is invisible until compile
+
+**What goes wrong:**
+typsphinx already has (at least) two distinct escaping regimes in active use, and a new handler that borrows the wrong one — or bypasses both via `astext()` — silently produces either broken syntax or a security-adjacent injection-style bug (arbitrary user doc content reinterpreted as Typst markup):
+1. **String-literal escaping** (`visit_Text`, ~456–468): backslash, then quote, then `\n`/`\r`/`\t`, in that exact order, for content going inside a `"..."` string argument to `text(...)`. Order matters — escaping backslash *after* quote would double-escape.
+2. **Markup-mode escaping**: content going inside a bare `[...]` content block is NOT a string literal — Typst markup-special characters (`_`, `*`, `` ` ``, `#`, `[`, `]`, `<`, `@`, leading `-` for lists, etc.) are live syntax there, not literal text. The `visit_caption`/`depart_figure` path (Pitfall 3) is a live example of the trap: `self.figure_caption = node.astext()` grabs *raw* plain text and later interpolates it directly into `caption: [{self.figure_caption}]` — a markup content block — with **zero markup escaping**. A caption like `"Config_file (draft) [v2]"` will have `_file` trigger emphasis and `[v2]` parse as bracketed content, corrupting or breaking the layout, because `astext()` bypasses both escaping regimes entirely.
+3. **Label/identifier constraints** (`visit_target`, `label(...)`) — Typst labels accept a fairly restrictive character set; docutils-generated `ids` (from heading slugs) are usually ASCII+hyphen and safe, but any handler that builds a label from *user-supplied* text (rather than docutils' own sanitized `ids` list) risks emitting a label Typst's parser rejects outright.
+
+**Why it happens:**
+Escaping-regime choice is implicit in *where* a value is being interpolated (string argument vs. markup content block vs. label), and that's easy to get wrong when adding a new handler by analogy to an existing one that happens to interpolate in the other regime. `astext()` is especially seductive because it "just works" for the common case (plain ASCII words with no markup-special characters) and only breaks on the corpus-scale edge case.
+
+**How to avoid:**
+- Never use `node.astext()` to source content that will be interpolated into generated Typst output, for *any* new handler — always let the normal visit/depart chain render it (through a buffer swap if it needs to be deferred/repositioned), so it automatically inherits whichever escaping regime the destination code path already applies consistently.
+- When adding a genuinely new interpolation site (e.g. a footnote label, a `versionmodified` version string), explicitly identify which of the three regimes applies and either reuse the existing helper (`visit_Text`'s escape sequence) or write a matching one — don't ad-hoc a partial subset of escaping "for now."
+
+**Warning signs:**
+- Any new `f"...{value}..."` where `value` came from `.astext()`, `.get(...)`, or a raw docutils attribute rather than a rendered/escaped buffer.
+- Test fixtures that only use plain-ASCII-word captions/labels/titles — they will not exercise this class of bug at all; fixtures need at least one caption/title containing `_`, `*`, `` ` ``, `[`, or `]`.
+
+**Phase to address:** Figure/caption fix phase (Pitfall 3's fix must apply markup escaping, not `astext()`), and as a standing review item for every new content-emitting handler this milestone (versionmodified strings, footnote text, topic titles, line-block lines).
+
+---
+
+### Pitfall 8: "Fixing" empty-URL references by emitting `link("", ...)` — Typst rejects it, and the fix must generalize to every new reference-like path
+
+**What goes wrong:**
+`visit_reference` (~1976–1983) already has the correct fix for plain `reference` nodes: an empty `refuri` sets `_skip_link_wrapper = True` and falls through to plain-text rendering instead of emitting `link("", ...)`, which Typst's `link` function rejects outright (empty URLs are invalid `link` destinations as of the typst-py version this project pins — this is the codebase's own documented rationale, referencing the historical Issue #77 empty-URL fix). The trap for this milestone is that "empty-URL cross-reference handling" is explicitly a v0.6.0 target for *new* node paths — and each new path that builds its own `link(...)` call (rather than delegating to the existing `visit_reference`) can reintroduce the exact same bug if it doesn't independently guard the empty-URL case. Any new autodoc/`desc_*` cross-reference handling, or `pending_xref`-derived internal reference nodes not already routed through `visit_reference`, is at risk.
+
+**Why it happens:**
+The guard lives in one specific method (`visit_reference`); it's easy to forget it needs to be duplicated (or better, centralized) for any other code path that also ends up building a `link(...)` call — e.g. if the empty-URL cross-reference work adds a *different* resolution attempt (trying to resolve the target before giving up) that has its own separate call site emitting `link(...)`.
+
+**How to avoid:**
+- Centralize link-emission behind a single helper (`_emit_link(url, content)`) that internally applies the empty-URL guard once, and have every reference-like handler — present and future — call through it, rather than each handler reimplementing the `if not refuri: ...` check inline.
+- For the "resolve where possible" half of this REQ (reduce silent plain-text degradation): resolution failures should still degrade to the *existing* plain-text fallback path, not a new, unguarded `link("", ...)` attempt as a "best effort."
+
+**Warning signs:**
+- A new handler with its own `f'link("{url}", ...'` construction that doesn't check for falsy `url` first.
+- `TypstError` messages referencing an invalid/empty link destination surfacing only on a large real corpus (broken cross-references are common at scale, rare in small hand-written fixtures).
+
+**Phase to address:** The empty-URL cross-reference handling phase (explicit v0.6.0 target, REQ frequency ×596 in Sphinx docs — meaning this WILL be exercised heavily by the real-corpus compile gate).
+
+---
+
+### Pitfall 9: Testing with string-agreement asserts alone proves nothing about whether the output compiles
+
+**What goes wrong:**
+The admonition bug (Phase 8.1) is the project's own proof of this: loose in-process substring assertions like `"info[" in output` passed for months while the *actual* rendered PDF showed literal, uncompiled Typst source text (`par({text(...)})`) instead of typeset prose — because the assertion checked that a *substring pattern* appeared somewhere in the generated string, not that the generated string, when compiled, produced the intended visual result. A pure string/AST-level unit test cannot distinguish "syntactically valid Typst that happens to contain this substring" from "Typst that compiles and typesets correctly" from "Typst that fails to compile at all" — it can only tell you the string looks like what a human expected, not what the compiler will do with it.
+
+**Why it happens:**
+Unit tests on translator output are fast, hermetic, and easy to write against the translator in isolation, so they're the natural first (and often only) layer of testing added for a new node handler. Wiring up a real `sphinx-build → typst.compile() → pypdf text-extraction` round trip is more setup, so it's tempting to treat string-level tests as sufficient — but they test the wrong contract (has the string got the shape I expect) rather than the one that actually matters (does this compile, and does the compiled PDF contain the intended text).
+
+**How to avoid:**
+Follow — and extend — the precedent already established in `tests/test_pdf_render_gate.py` (D-04, Phase 8.1) for every new node handler in this milestone:
+1. `sphinx-build -b typst` a small real fixture project exercising the new node.
+2. `typst.compile()` the emitted `.typ` — this is the acceptance gate; a `TypstCompilationError` here is an unconditional test failure, regardless of what any string assertion says.
+3. Extract text with `pypdf` and assert the intended prose is present *and* that known literal-leak signatures (`"par({"`, `'text("'`, `'raw("'`, or any other raw-source-looking substring) are **absent** — a negative-control assertion, matching the existing `LEAK_SIGNATURES` pattern.
+4. Reserve pure string/unit-level translator tests for fast, fine-grained regression coverage *in addition to*, never *instead of*, the real-compile gate for any node that emits new syntax shapes (new function calls, new nesting, new argument positions).
+
+**Warning signs:**
+- A PR/plan that adds a new `visit_*`/`depart_*` pair with only `assert "some_string" in output`-style tests and no `typst.compile()` step anywhere in its test additions.
+- CI green on a feature branch with no `docs-pdf`/real-corpus compile step exercised for that specific node type.
+
+**Phase to address:** Every node-handler phase this milestone should ship its own `test_pdf_render_gate.py`-style fixture (or extend the existing one) exercising the new node through a real compile — not just the final "compile Sphinx's own docs" acceptance phase at the end.
+
+---
+
+### Pitfall 10: Graceful degradation done wrong — silent swallowing, or a fallback that itself can't compile
+
+**What goes wrong:**
+The milestone explicitly wants `graphviz`/`inheritance_diagram` (and other out-of-scope graphical nodes) to "warn without aborting the compile." Two distinct wrong ways to implement this: (a) a bare `except Exception: pass` / a `raise nodes.SkipNode` with no `logger.warning` at all — silently dropping content with no trace, which is exactly the "Broad Exception Handling" tech-debt pattern already flagged project-wide in `.planning/codebase/CONCERNS.md` (broad `except Exception` in `builder.py`/`pdf.py`); and (b) a fallback that *does* warn correctly but emits a "safe-looking" placeholder that is itself invalid Typst in some contexts — e.g. emitting a bare content block `[Graphviz diagram omitted]` at a position where the surrounding code expects a code-mode expression (reintroducing Pitfall 2's mode mismatch inside the very code meant to prevent fatal errors), or emitting an opening call with no matching close if the node's `visit_*` degrades but its `depart_*` doesn't know it degraded (reintroducing Pitfall 1's orphaned-state hazard).
+
+**Why it happens:**
+"Graceful degradation" is often implemented reactively, at the point something is observed to throw, rather than designed as a deliberate no-op path with its own state-safety guarantees; and the project's existing broad-`except Exception` pattern (already documented tech debt) makes it the path of least resistance to copy.
+
+**How to avoid:**
+- Always pair a degradation with an explicit `logger.warning(...)` naming the node type and location (mirroring the existing empty-URL warning at `visit_reference` ~1977) — never silent.
+- Design the degraded fallback as a *no-content* `raise nodes.SkipNode` in `visit_*` wherever possible (skip cleanly before any output/state is touched), rather than opening a construct in `visit_*` and trying to close it safely in `depart_*` after something went wrong — the safest degradation opens nothing.
+- If a placeholder string is emitted at all, emit it through the *same* code path (code-mode `text("...")` call) as ordinary text at that position, never a bespoke ad-hoc string that hasn't been checked against the current mode (Pitfall 2).
+- Cover the degraded path with the same real-compile acceptance gate (Pitfall 9) as any other handler — "doesn't crash the translator" is not the same as "the compile still succeeds."
+
+**Warning signs:**
+- A new `visit_graphviz`/`visit_inheritance_diagram` with a `try/except Exception: pass` body and no logger call.
+- A degradation path with no dedicated test asserting the surrounding document still compiles when the degraded node is present.
+
+**Phase to address:** The graceful-degradation phase for graphical/out-of-scope nodes (explicit v0.6.0 target).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|--------------------|-----------------|------------------|
-| Bump all four `@preview` packages together "to be safe" without isolating which one caused `kai` | Faster to land one PR | Can't attribute a future regression to a specific package; may mask that one bump introduced its own breaking change (e.g. codly's ref/numbering rework) | Never for this milestone — the whole point is understanding root cause after the last cycle's guesswork ("likely gentle-clues or codly") turned out to be unconfirmed |
-| Leave `sphinx<9`/`docutils<0.22` duplicated across 8 sites without a sync test | Saves writing one more test file | Repeats the exact class of mistake `test_preview_version_sync.py` was built to prevent, just for a different dependency set | Acceptable only if the enumerate-and-checklist discipline (Pitfall 5, prevention #1) is followed rigorously every time; a sync test is still the more durable fix |
-| Skip cross-OS PDF compile verification for this cutover ("Linux green is good enough, matches last milestone's approach") | Less CI to add/maintain | typst 0.15's own release notes flag font/text-shaping changes as a breaking-change category; a macOS/Windows-only PDF bug ships silently to users on those platforms | Acceptable short-term if explicitly documented as a known gap in PROJECT.md, not acceptable as a silent omission |
-| Treat `test_preview_version_sync.py` passing as proof the `@preview` bump is "done" | One green test suite is a satisfying finish line | The test only proves internal agreement, not that typst 0.15 actually compiles the bundle (Pitfall 4) | Never — always pair with an actual `typst compile` smoke test of a fixture exercising all four packages |
+|----------|-------------------|-----------------|------------------|
+| Using `node.astext()` instead of buffer-swapping through the real visit chain | Fast to write, works for plain-ASCII-word test fixtures | Silently drops inline markup, bypasses both escaping regimes (Pitfall 3, 7) | Never for new content-emitting handlers in this milestone |
+| String-only unit assertions (`"X" in output`) as the only test for a new handler | Fast, no `typst`/`pypdf` dependency needed | Cannot detect literal-source leaks or syntax errors — proven false-negative by the admonition bug | Acceptable only as a *supplement* to a real-compile gate, never standalone |
+| Bare `except Exception: pass` for graceful degradation | Quick to add, unblocks the immediate crash | Silent content loss with no diagnostic trail; masks the next real bug (CONCERNS.md already flags this pattern project-wide) | Never — always pair with `logger.warning` |
+| Passing docutils length strings straight through without unit normalization | Zero code for the "already looks numeric" case | Fatal compile break on the very first `px`/`pc`/bare-unitless value in a large corpus | Never — always route through one shared length helper |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|-----------------|-------------------|
-| Typst Universe `@preview` packages | Trusting a package's declared minimum-compiler-version (`compiler = "0.12.0"`) as proof of forward compatibility with 0.15+ | Minimum-version declarations say nothing about upper-bound compatibility; the package must actually be compiled with the target typst version — GitHub release changelogs (not the Universe listing page) are the more reliable source for explicit version-specific fixes, and even those (as seen with codly's GitHub-releases-vs-Universe-page version discrepancy found in this research) can disagree and need direct verification |
-| `typst-py` (the Python wrapper) | Assuming `typst-py`'s own version ceiling (`typst>=0.14.1,<0.15`) is the only thing gating the compiler version — forgetting that `typst-py` itself must also be bumped to a release that bundles/targets the typst 0.15 compiler binary | Check `typst-py`'s own PyPI `requires_python`/changelog for which typst-core version each `typst-py` release embeds before assuming "just remove the `<0.15` ceiling" is sufficient |
-| Sphinx's own `docutils` pin | Bumping typsphinx's `sphinx` ceiling without checking Sphinx's *own* transitive `docutils` constraint (Sphinx 9.0.4 requires `docutils<0.23,>=0.20`, tighter than typsphinx's current `>=0.18,<0.22`) | Always fetch the target Sphinx version's own `requires_dist` from PyPI JSON metadata before setting typsphinx's own docutils range, so the two ranges have a non-empty intersection |
-| GitHub Actions artifact/action versions vs. new dependency majors | Assuming a dependency-pin milestone is unrelated to CI action versions | Not directly required by this milestone, but the prior milestone's D-03 amendment (artifact actions on node20 getting removed from hosted runners) is a reminder that GitHub's own runner deprecations run on an independent clock from this project's dependency pins — worth a quick recheck that nothing new has landed since Phase 4/5 closed |
+|-------------|----------------|-------------------|
+| docutils `image`/`figure` `:width:`/`:height:` options | Assume the string is already Typst-safe because docutils "validated" it | Route through a dedicated CSS-length→Typst-length normalizer (Pitfall 5) before interpolation |
+| docutils `footnote`/`footnote_reference` split-node model | Port 1:1 as two independent visitors | Resolve the reference→body relationship explicitly and emit a single inline `footnote[...]` per reference (Pitfall 6) |
+| `typst-py` (`pdf.py`) compile call | Treat a `TypstCompilationError` on one node as a scoped/local failure | Treat it as fatal for the entire document/build — design every handler assuming zero tolerance (Pitfall 1) |
+| gentle-clues / mitex / codly `@preview` packages | Bump one version without checking the other two sync points | `writer.py` / `template_engine.py` / `templates/base.typ` must stay in lockstep — guarded by `test_preview_version_sync.py`, but a *new* sync point (e.g. a new package for graphviz rendering) needs the same guard added explicitly |
 
 ## Performance Traps
 
-Not the focus of this milestone (a CI/compatibility port, not a scale-sensitive feature), but two items carry over from the existing `CONCERNS.md` and interact with the port:
-
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|------------------|
-| `TypstBuilder.get_outdated_docs()` always rebuilds every document | Full CI matrix + docs-pdf builds take longer than necessary while iterating on the `@preview`/pin bumps during this milestone | Out of scope for this milestone (explicitly listed as "orthogonal tech debt" in PROJECT.md) — just be aware iteration loops during the port will be slower than an incremental-aware builder would allow | Already true today; not new to this milestone |
-| Template content reloaded/reprocessed on every document write (`template_engine.py`) | Marginal; not expected to change behaviorally under Sphinx 9/typst 0.15 | No action needed for this milestone | N/A |
+|------|----------|------------|-----------------|
+| Full always-rebuild strategy (`get_outdated_docs()` returns everything) combined with a large corpus | Every debug iteration on a single-node fix recompiles all of Sphinx's `doc/` tree | Out of scope for this milestone per PROJECT.md, but worth budgeting extra CI/dev-loop time for the "compile Sphinx's own docs" acceptance phase specifically | Noticeable once the corpus reaches Sphinx's own doc-tree scale (hundreds of files) — exactly this milestone's target |
+| Accumulating `self.body` as a single in-memory list for the whole master document | Memory grows linearly with document size; not a blocker at Sphinx-doc scale but worth knowing | No action needed this milestone; flagged as a pre-existing scaling limit in CONCERNS.md | 10k+ page documents (well beyond this milestone's target) |
 
 ## Security Mistakes
 
-Not a primary concern for this milestone (a dependency-porting task with no new user-facing surface), but one item is directly relevant to the port:
-
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Bumping `@preview` package versions from Typst Universe without checking the package's own repository/maintainer activity | Typst Universe packages are community-published; an abandoned or compromised package version could be pulled into the "known-good bundle" without scrutiny beyond "does it compile" | When selecting the exact pinned versions for `codly`/`codly-languages`/`mitex`/`gentle-clues`, spot-check that the chosen version corresponds to a tagged release in the package's own GitHub repo (not just a Universe listing) before pinning it as the new known-good bundle |
+| Interpolating raw caption/title/label text into a markup `[...]` block without escaping markup-special characters | Any Sphinx author's prose can accidentally (or, in a shared-doc-source setting, deliberately) inject Typst markup/behavior via ordinary-looking text (`_`, `*`, `#`, `[`) that reaches an unescaped interpolation site | Never skip markup escaping for any interpolation into a `[...]` content block; treat this as an injection class of bug, not just a cosmetic one (Pitfall 7) |
+| Emitting `link(refuri, ...)` for external URLs without any scheme/format check | Malformed or unexpected schemes in `refuri` reaching `typst.compile()` unfiltered — low severity here since Typst itself will reject genuinely malformed links, but still worth a defensive check given this is user/author-controlled content flowing into a compiler | Keep the existing empty-URL guard (Pitfall 8) and consider it the template for any additional URL-shape validation added alongside the empty-URL REQ work |
+
+## UX Pitfalls
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-------------------|
+| Silent degradation with no warning (Pitfall 10) | Author writes a `.. graphviz::` diagram, gets a PDF with no error but also no diagram and no indication anything was skipped — discovered only by manual proofreading of a 900-page PDF | Always log a `logger.warning` naming the doc/node so it's visible in `sphinx-build` output, matching the existing empty-URL warning precedent |
+| A single obscure node deep in a 900-page corpus aborts the *entire* build with a raw `TypstCompilationError` traceback | Author gets no indication of *which* Sphinx source file/line caused it — Typst's own error message references `.typ` line numbers, not the original `.rst` | Not literally a v0.6.0 REQ, but worth threading the source docname through to the warning/error path wherever a new degradation or fallback is added, so failures are diagnosable at real-corpus scale |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Sphinx 9 pin raised:** Verify `requires-python` was *also* raised to match Sphinx 9's actual floor (`>=3.11` per PyPI metadata at research time — re-check against whatever Sphinx version is actually pinned) — a green `pip install`/`uv sync` on 3.11+ lanes alone does not prove the 3.10 lane was correctly removed everywhere (classifiers, tox env_list, CI matrix, mypy/black/ruff target-version).
-- [ ] **`@preview` packages bumped:** Verify the bump was isolated/attributed (Pitfall 1) — not just "all four bumped, tests are green" — and that a real `typst compile` was exercised against typst 0.15+, not only the static version-sync test.
-- [ ] **`traverse()` → `findall()`:** Verify no other raw docutils/Sphinx-internal calls were missed — re-run the grep checklist from Pitfall 3 after all other changes in the milestone land, not just once at the start.
-- [ ] **Dependency ceilings synced:** Verify all eight `sphinx`/`docutils`/`typst` ceiling sites (not just the three well-known `@preview` sites) were updated together — `grep` the old ceiling strings repo-wide and confirm zero matches remain.
-- [ ] **CI green "across the matrix":** Verify this means the *actual* target matrix (post Python-floor change) is green, not that the old 3.10-inclusive matrix happens to still pass by accident (e.g. because the sphinx constraint was left loose enough to silently resolve pre-9 on 3.10) — check the resolved `sphinx`/`typst`/`docutils` versions per-lane in CI logs.
-- [ ] **`docs-pdf` build:** Verify it was actually exercised against the newly bumped `@preview` versions and typst 0.15+ (not against a stale local install) before calling this milestone done — and consider whether cross-OS PDF verification is an explicit accepted gap or an oversight (Pitfall 5).
+- [ ] **Figure/image width fix:** Often missing the `px`/`pc`/unitless/`ex` cases — verify with fixtures covering all of `%`, `em`, `px`, `pc`, `in`, `cm`, `mm`, and a bare unitless number, each proven via real compile (not just the `%` case from the bug report)
+- [ ] **Figure caption fix:** Often missing the escaping half of the fix — verify a caption containing `_`, `*`, `` ` ``, `[`, `]` compiles and renders those characters literally, not as markup
+- [ ] **Footnote support:** Often missing the "referenced twice" case and the "footnote appears at the correct page position, not just at the document's original docutils tree position" case — verify with a fixture that references the same footnote from two places
+- [ ] **Empty-URL cross-reference handling:** Often only the plain `reference` node path is guarded — verify every new/other reference-emitting path added this milestone (autodoc `desc_*` cross-refs, etc.) independently rejects empty URLs
+- [ ] **Graceful degradation (graphviz/inheritance_diagram):** Often missing the `logger.warning` half of "warn without aborting" — verify the build log, not just the exit code, shows the skip
+- [ ] **versionmodified/desc_returns/desc_optional/desc_inline/transition/topic/line_block:** Often tested only with string-level asserts — verify each has at least one real-compile (`typst.compile()`) test, not just a translator-output unit test
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|-----------------|------------------|
-| Wrong package bumped, `kai`-class error persists | LOW | Bisect by reverting to one-package-at-a-time bumps (Pitfall 1, prevention #2); the mitex-changelog lead (v0.2.6 fixes "kai is deprecated") is the strongest starting hypothesis found in this research |
-| Python-floor mismatch discovered mid-PR (3.10 lane failing to resolve) | LOW | Raise `requires-python`, drop the 3.10 lane from `tox.ini`/`ci.yml`/classifiers/mypy-black-ruff target-version in a single follow-up commit; no data loss, just a CI-red state until fixed |
-| `@preview` version-sync test green but `docs-pdf` still fails (compile-correctness gap) | MEDIUM | Add the missing compile-verification step (Pitfall 4, prevention #2) before attempting further version churn — otherwise every subsequent bump attempt repeats the same blind-guessing failure mode as the original incident |
-| Ceiling desync discovered late (mypy and pytest validating against different docutils universes) | MEDIUM | Re-grep all eight sites (Pitfall 5), fix in one commit, re-run full matrix; consider adding the sync test at this point rather than deferring again |
-| Cross-OS PDF regression discovered post-release (font/text-shaping divergence) | HIGH | Requires a patch release; retroactively add the Windows/macOS `docs-pdf` CI job that should have caught it, then bisect the specific `@preview` package/typst version combination causing the OS-specific rendering difference |
+|---------|---------------|-----------------|
+| Figure-caption double emission (Pitfall 3) reaches a released version | LOW | Same fix pattern as the admonition-title fix (buffer-swap in `visit_caption`/`depart_caption`); small, isolated, well-precedented change |
+| px→pt unit bug ships and breaks a downstream user's build | LOW–MEDIUM | Single shared length-normalization helper; retrofit is mechanical once written, but requires a version bump / changelog entry since it changes rendered output size for existing `:width:` values |
+| Footnote model chosen turns out wrong for the "referenced twice" case after ship | MEDIUM | Requires revisiting the buffering design (Pitfall 6) — cheaper to get the design review right before implementation than to patch after, since it affects how footnote content is threaded through the tree |
+| A one-off `TypstCompilationError` slips through into the real-corpus acceptance phase at the very end of the milestone | HIGH (time) | This is exactly why Pitfall 1/9's per-phase real-compile gates exist — recovery cost balloons if the first real-compile check happens only at the final "compile Sphinx's own docs" phase instead of incrementally per node-handler phase |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|-------------------|----------------|
-| `@preview` package trap (wrong package bumped / mutual-compile not verified) | FWD-02 (typst 0.15+) | A fixture `.typ` exercising all four packages actually compiles via `typst-py` pinned to the new floor, run as a required CI check — not just `test_preview_version_sync.py` passing |
-| Python-floor trap | FWD-01 (Sphinx 9), first sub-step | `requires-python`, tox `env_list`, CI matrix, classifiers, and mypy/black/ruff target-version all agree; `uv sync --locked` succeeds on every declared lane with the intended Sphinx major actually resolved (check logged version, not just exit code) |
-| Removed/deprecated docutils API (`traverse()` etc.) | FWD-01 (Sphinx 9), preparatory commit | `grep` checklist (Pitfall 3) returns zero hits; full pytest suite green against actual (not pinned-back) Sphinx 9 / docutils 0.22 |
-| Three-way (now effectively N-way) `@preview` sync desync | FWD-02 (typst 0.15+), same PR as the version bump | `test_preview_version_sync.py` green AND the new compile-verification check (above) green AND a repo-wide `grep -rn "@preview/"` shows no undocumented fourth site |
-| 8-site dependency-ceiling desync + cross-OS/CI matrix gaps | FWD-01/FWD-02 plus a closing full-matrix-verification phase | Repo-wide grep for old ceiling strings returns zero hits; CI green on the *actual* target matrix with resolved versions confirmed in logs; explicit decision recorded (in PROJECT.md, as this milestone's other decisions have been) on cross-OS PDF verification and `drift.yml`'s required/advisory posture |
+| 1. One bad node aborts the whole compile | Standing bar for every phase; formalized by phase 1 (Issue #114 fix) standing up the real-corpus compile gate | Every phase's plan includes a real `typst.compile()` step, not just unit tests |
+| 2. Markup/code-mode mismatch | Every content-emitting handler phase | Docstring states which mode the handler assumes; reviewed against the buffer-swap precedent |
+| 3. Figure-caption leak | Issue #114 figure/image fix phase | `test_pdf_render_gate.py`-style fixture with a captioned, `:target:`-linked figure; asserts no leaked `text(` substring near the caption |
+| 4. Function-call juxtaposition | Issue #114 fix phase (link+image+caption) and the autodoc `desc_*` phase | Compile-gate fixtures for both a linked figure and a signature with a new `desc_returns`/`desc_optional` sibling |
+| 5. px→pt unit conversion | Issue #114 fix phase | Fixtures for `%`, `em`, `px`, `pc`, `in`, `cm`, `mm`, unitless — each compiles and yields the expected rendered size |
+| 6. Footnote modeling | Footnote/footnote_reference phase | Fixture with a single footnote referenced twice; compiles and both references show a marker |
+| 7. Escaping regimes | Figure/caption phase + standing review for every new interpolation site | Fixtures include markup-special characters (`_`, `*`, `` ` ``, `[`, `]`) in captions/titles/version strings |
+| 8. Empty-URL `link("", ...)` trap | Empty-URL cross-reference handling phase | Every new reference-emitting code path has its own empty-URL-guard test |
+| 9. String-agreement-only testing | Standing bar for every phase | Each phase ships or extends a `test_pdf_render_gate.py`-style real-compile fixture |
+| 10. Graceful-degradation done wrong | Graphviz/inheritance_diagram degradation phase | Build-log assertion that a warning was logged; compile-gate fixture proves the surrounding document still compiles |
 
 ## Sources
 
-- `pyproject.toml`, `tox.ini`, `.github/workflows/ci.yml`, `.github/workflows/docs.yml`, `.github/workflows/drift.yml` — direct repo inspection (HIGH confidence, primary source)
-- `typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, `typsphinx/builder.py`, `typsphinx/translator.py` — direct repo inspection (HIGH confidence, primary source)
-- `tests/test_preview_version_sync.py` — direct repo inspection (HIGH confidence, primary source)
-- `.planning/PROJECT.md`, `.planning/codebase/CONCERNS.md`, `.planning/codebase/INTEGRATIONS.md` — direct repo inspection (HIGH confidence, primary source)
-- PyPI JSON API, `Sphinx` 9.0.4 metadata (`requires_python`, `requires_dist`) — fetched directly via `pypi.org/pypi/Sphinx/9.0.4/json` (HIGH confidence, primary/official registry source)
-- PyPI JSON API, `docutils` 0.22.4 and `typst` 0.15.0 metadata — fetched directly via `pypi.org/pypi/<pkg>/<ver>/json` (HIGH confidence, primary/official registry source)
-- `mitex-rs/mitex` `CHANGELOG.md` (github.com) — v0.2.6 "fix 'kai is deprecated' warning for Typst v0.14.0" entry (MEDIUM confidence — single-source changelog claim, not independently reproduced by compiling in this research pass; **must be verified by actually compiling** before being treated as confirmed root cause)
-- `jomaway/typst-gentle-clues` GitHub releases page, and `typst.app/universe/package/gentle-clues` — version/compatibility claims (LOW confidence — the two sources disagreed on the latest version number, 1.2.0 vs 1.3.1; re-verify at execution time)
-- `Dherse/codly` GitHub releases page, and `typst.app/universe/package/codly` — version/compatibility claims (LOW confidence — same cross-source disagreement pattern; re-verify at execution time)
-- `typst.app/docs/changelog/0.15.0/` and `typst.app/blog/2026/typst-0.15/` — typst 0.15 release notes, breaking-changes summary (MEDIUM confidence, web search synthesis of official changelog content)
-- `docutils.sourceforge.io/RELEASE-NOTES.html` — docutils 0.21/0.22/0.23 API-removal history (MEDIUM confidence, web-fetched synthesis of official release notes)
+- `typsphinx/translator.py` — direct read of `visit_image`/`depart_image` (~1501–1546), `visit_figure`/`depart_figure` (~1163–1199), `visit_caption`/`depart_caption` (~1201–1227), `visit_reference`/`depart_reference` (~1930–2036), `visit_title`/`depart_title` (~190–238), `_visit_admonition`/`_depart_admonition` (~2292–2345), `visit_desc_parameterlist`/`visit_desc_parameter`/`depart_desc_parameter` (~2577–2621), `visit_Text` (~443–473) — HIGH confidence (primary source)
+- `.planning/PROJECT.md` — v0.5.0 admonition markup/code-mode bug precedent, `kai` break history, v0.6.0 milestone scope — HIGH confidence (primary source)
+- `.planning/codebase/CONCERNS.md` — broad-exception-handling tech debt, translator state-management fragility — HIGH confidence (primary source)
+- `tests/test_pdf_render_gate.py` — the existing D-04 real-compile acceptance-gate precedent (`sphinx-build → typst.compile() → pypdf` text-extraction with negative-control leak signatures) — HIGH confidence (primary source)
+- [Length – Typst Documentation](https://typst.app/docs/reference/layout/length/) — confirms Typst's native length units are `pt`, `mm`, `cm`, `in`, `em` (no `px`) — HIGH confidence (official docs)
+- [Add a `px` unit for length · Issue #6849 · typst/typst](https://github.com/typst/typst/issues/6849) — confirms `px` is not currently a Typst unit (open feature request) — HIGH confidence (official upstream repo)
+- [Relative Length – Typst Documentation](https://typst.app/docs/reference/layout/relative/) and [Ratio Type – Typst Documentation](https://typst.app/docs/reference/layout/ratio/) — confirms bare `50%` is valid Typst syntax for `width:`/`height:` — HIGH confidence (official docs)
+- [Footnote – Typst Documentation](https://typst.app/docs/reference/model/footnote/) — confirms Typst's inline `footnote[...]` auto-numbering/auto-placement model — HIGH confidence (official docs)
+- [Syntax – Typst Documentation](https://typst.app/docs/reference/syntax/) and [Scripting – Typst Documentation](https://typst.app/docs/reference/scripting/) — confirms code-mode expressions require line-break/semicolon separation (juxtaposition is a parse error) — HIGH confidence (official docs)
+- CSS px→pt conversion factor (96px/in ÷ 72pt/in = 0.75pt/px) — standard, well-established typographic constant — HIGH confidence (widely documented convention, e.g. W3C CSS length reference)
+- Docutils `length_or_percentage_or_unitless` directive-option convention (accepts `%`, `em`, `ex`, `px`, `in`, `cm`, `mm`, `pt`, `pc`, or bare unitless) — MEDIUM confidence (standard, long-established docutils convention, consistent with the milestone's own problem statement, not independently re-verified against docutils 0.22 source in this pass)
 
 ---
-*Pitfalls research for: Sphinx builder/writer extension forward-porting (typsphinx v0.5.0, Sphinx 9 + typst 0.15+)*
-*Researched: 2026-07-09*
+*Pitfalls research for: typsphinx v0.6.0 real-world robustness (Sphinx→Typst node-handler development)*
+*Researched: 2026-07-11*

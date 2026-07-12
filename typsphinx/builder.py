@@ -34,6 +34,19 @@ class TypstBuilder(Builder):
     out_suffix = ".typ"
     allow_parallel = True
 
+    # Mimetypes Typst's image() function can embed, in preference order
+    # (vector first, then lossless/animated raster, lossy raster last).
+    # Consulted by post_process_images() to resolve a `*`-glob image URI
+    # (e.g. ".. figure:: _static/foo.*") to one concrete candidate file --
+    # mirrors sphinx.builders.html.StandaloneHTMLBuilder's ordering, which
+    # uses the same four formats.
+    supported_image_types: list[str] = [
+        "image/svg+xml",
+        "image/png",
+        "image/gif",
+        "image/jpeg",
+    ]
+
     def init(self) -> None:
         """
         Initialize the builder.
@@ -44,6 +57,75 @@ class TypstBuilder(Builder):
         # Key: image URI relative to source directory
         # Value: destination path (empty string for now, compatible with parent class)
         self.images: dict[str, str] = {}
+
+        # Track absolute docnames already emitted as an #include() across the
+        # WHOLE master include graph, so a document reachable via more than one
+        # toctree path (a "diamond") is physically #included at most ONCE per
+        # build. Sphinx's own doc/index.rst, for example, lists
+        # usage/extensions/index both directly (its "Reference" toctree) and
+        # nested under usage/index (its "User guide" toctree). Since Typst's
+        # #include() flattens each file's content inline, including the same
+        # .typ twice re-emits EVERY Typst <label> that file defines, and Typst
+        # rejects the compiled master with "label ... occurs multiple times".
+        # Deduplicating at include() granularity (the unit that is duplicated
+        # is a whole document, not a single translator-emitted anchor) keeps
+        # each label defined exactly once so every reference still resolves.
+        self._included_docnames: set[str] = set()
+
+        # The SET of docnames whose .typ is physically part of the compiled
+        # master (each master in typst_documents plus the transitive toctree
+        # closure reachable from it). Any doc NOT in this set -- e.g. an
+        # ``:orphan:`` doc, which Sphinx excludes from EVERY toctree -- is
+        # written as a .typ but never #include()d into the master, so the
+        # anchors it emits do not exist in the compiled document. The
+        # translator consults this set (via builder.master_included_docnames)
+        # to DEGRADE a cross-document reference whose target lies outside it
+        # to plain text, rather than emitting a link(<targetdoc:anchor>) label
+        # link that would dangle and hard-fail typst.compile() with
+        # "label ... does not exist". Populated up-front in write() (from the
+        # fully-read env's toctree graph) so it is reliably available before
+        # any reference is emitted; empty until then (an empty set means "no
+        # masters / unknown" and suppresses degradation, preserving behavior
+        # for hand-built test doctrees and mock builders).
+        self.master_included_docnames: set[str] = set()
+
+    def _compute_master_included_docnames(self) -> set[str]:
+        """Compute the transitive toctree closure of the master document(s).
+
+        The compiled master ``.typ`` (one per ``typst_documents`` entry)
+        physically ``#include()``s the transitive closure of toctree entries
+        reachable from its source doc -- exactly the set of documents whose
+        anchors end up in the compiled document. This walks Sphinx's canonical
+        ``env.toctree_includes`` (``dict[str, list[str]]`` mapping each doc to
+        the docs it directly pulls in via ``toctree``) breadth-first from every
+        master source docname, and includes the masters themselves.
+
+        ``env.toctree_includes`` is the read-phase-resolved include graph, so
+        ``:orphan:`` documents (excluded from every toctree) never appear in
+        it -- which is precisely why a cross-reference to one must degrade.
+        Glob toctrees are already expanded to concrete docnames in this map, so
+        the resulting set matches what ``visit_toctree`` actually emits.
+
+        Returns:
+            The set of docnames included in some compiled master, or an empty
+            set when no masters are configured (which the translator treats as
+            "unknown" and does not degrade against).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        masters = [entry[0] for entry in typst_documents if entry]
+        toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
+
+        included: set[str] = set()
+        stack = list(masters)
+        while stack:
+            docname = stack.pop()
+            if docname in included:
+                continue
+            included.add(docname)
+            for child in toctree_includes.get(docname, []):
+                if child not in included:
+                    stack.append(child)
+        return included
 
     def get_outdated_docs(self) -> Iterator[str]:
         """
@@ -120,6 +202,18 @@ class TypstBuilder(Builder):
         self.prepare_writing(docnames)
         logger.info("done")
 
+        # Start each build with a clean include-dedup ledger so re-builds and
+        # multiple write() invocations do not carry stale state across masters.
+        self._included_docnames = set()
+
+        # Compute the master include-set NOW (the read phase is complete, so
+        # env.toctree_includes is fully populated) rather than lazily during
+        # visit_toctree: a cross-document reference in one document may be
+        # emitted BEFORE the toctree that includes its target is processed, so
+        # the set must be fully known up-front for the degrade decision to be
+        # reliable regardless of document write order.
+        self.master_included_docnames = self._compute_master_included_docnames()
+
         # Write individual documents
         warnings_count = 0
         for docname in sorted(docnames):
@@ -143,21 +237,78 @@ class TypstBuilder(Builder):
         Collects all image nodes from the document tree and tracks them
         in self.images dictionary for later copying to the output directory.
 
+        For a `*`-glob image URI (e.g. ``.. figure:: _static/foo.*``),
+        Sphinx's read-phase ImageCollector leaves ``node["uri"]`` as the
+        literal, unresolved glob string and instead records the concrete
+        on-disk candidates in ``node["candidates"]`` keyed by mimetype --
+        resolving that to one concrete file is the builder's responsibility
+        (mirrors ``sphinx.builders.Builder.post_process_images``, as done by
+        the HTML/LaTeX builders via their own ``supported_image_types``).
+        This picks the best Typst-embeddable candidate and rewrites
+        ``node["uri"]`` to the resolved path, so both the translator's
+        ``visit_image`` (emits the path into the ``.typ``) and
+        ``copy_image_files()`` (copies the file) see the concrete file.
+
+        Doctrees that never passed through Sphinx's ``ImageCollector`` (e.g.
+        hand-built doctrees in unit tests) have no ``candidates`` attribute
+        at all; those fall back to the original bare-URI tracking so that
+        behavior stays unchanged.
+
         Args:
             doctree: Document tree to process
         """
         from docutils.nodes import image
 
         for node in doctree.findall(image):
-            # Get image URI
-            imguri = node.get("uri", "")
-            if not imguri:
+            candidates = node.get("candidates")
+            if not candidates:
+                # No candidates dict -- doctree never went through Sphinx's
+                # ImageCollector (e.g. a hand-built test doctree). Preserve
+                # the original bare-URI behavior.
+                imguri = node.get("uri", "")
+                if not imguri:
+                    continue
+                if imguri not in self.images:
+                    self.images[imguri] = ""
+                continue
+
+            if "?" in candidates:
+                # Non-local URI (data: URI or remote http(s):// image) --
+                # nothing on disk to resolve or copy.
+                continue
+
+            if "*" in candidates:
+                # Already a single concrete candidate (the common, non-glob
+                # case -- ImageCollector sets candidates["*"] = node["uri"]).
+                resolved_uri = candidates["*"]
+            else:
+                # Glob URI with multiple mimetype-keyed candidates. Pick the
+                # best Typst-supported type, in preference order, and
+                # rewrite node["uri"] to the concrete resolved path.
+                resolved_uri = None
+                for imgtype in self.supported_image_types:
+                    candidate = candidates.get(imgtype)
+                    if candidate:
+                        resolved_uri = candidate
+                        break
+                if resolved_uri is None:
+                    # No candidate matches a Typst-supported mimetype --
+                    # degrade gracefully (warn, skip) rather than crash.
+                    mimetypes = sorted(candidates)
+                    logger.warning(
+                        f"a suitable image for typst builder not found: "
+                        f"{mimetypes} ({node.get('uri', '')})"
+                    )
+                    continue
+                node["uri"] = resolved_uri
+
+            if not resolved_uri:
                 continue
 
             # Track this image
             # Store empty string as value to be compatible with parent class type
-            if imguri not in self.images:
-                self.images[imguri] = ""
+            if resolved_uri not in self.images:
+                self.images[resolved_uri] = ""
 
     def write_doc(self, docname: str, doctree: nodes.document) -> None:
         """
@@ -500,6 +651,16 @@ class TypstPDFBuilder(TypstBuilder):
 
         # Set current docname for template application logic
         self.current_docname = docname
+
+        # Post-process images to track them for copying.
+        # This mirrors TypstBuilder.write_doc(): finish() (via super().finish())
+        # calls copy_image_files(), which copies every uri tracked in
+        # self.images from srcdir to outdir. Without this call self.images stays
+        # empty, copy_image_files() early-returns, and any referenced asset
+        # (e.g. a `.. figure:: _static/foo.png`) is never copied into the Typst
+        # output tree -- so the emitted image("_static/foo.png") path fails to
+        # resolve and typst.compile() aborts with "file not found".
+        self.post_process_images(doctree)
 
         # Set the document on the writer
         self.writer.document = doctree

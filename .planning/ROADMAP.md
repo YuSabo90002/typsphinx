@@ -4,13 +4,14 @@
 
 - ✅ **v0.4.4 — CI-repair + modernize** — Phases 1–5 (shipped 2026-07-05) → [archive](milestones/v0.4.4-ROADMAP.md)
 - ✅ **v0.5.0 — forward-ecosystem** — Phases 6–10 + 8.1 (shipped 2026-07-11) → [archive](milestones/v0.5.0-ROADMAP.md)
+- ✅ **v0.6.0 — real-world robustness** — Phases 11–15 (shipped 2026-07-13) → [archive](milestones/v0.6.0-ROADMAP.md)
 
 ## Phases
 
 **Phase Numbering:**
 
-- Integer phases (6, 7, 8): Planned milestone work
-- Decimal phases (7.1, 7.2): Urgent insertions (marked with INSERTED)
+- Integer phases (11, 12, 13): Planned milestone work
+- Decimal phases (11.1, 11.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
@@ -52,7 +53,33 @@ decisions, and tech-debt notes are preserved in
 
 </details>
 
+<details>
+<summary>✅ v0.6.0 — real-world robustness (Phases 11–15) — SHIPPED 2026-07-13</summary>
+
+Compiled a large real-world documentation set (Sphinx's own `doc/` tree) end-to-end through the
+`typstpdf` builder with no fatal Typst errors (GATE-02: ~14.4 MiB PDF, 0 errors), and added correct,
+compilable rendering for the most-frequent previously-dropped docutils/Sphinx nodes. Driven by
+Issue #114: fixed the two fatal figure/image bugs first (px→pt length conversion + `:target:`/caption
+buffer-swap), stood up a standing real-`typst.compile()` acceptance gate (GATE-01) extended by every
+node-handler phase, then landed the high-frequency handlers (versionmodified, `refid` cross-refs,
+autodoc `desc_*`, footnotes via a doctree pre-pass, transition/topic/line_block/glossary/
+tabular_col_spec/abbr) and a graphviz/inheritance_diagram graceful-degrade net. Zero new runtime
+dependencies; the 3-way `@preview` version-sync surface untouched. Full phase detail, success
+criteria, decisions, and tech-debt notes are preserved in
+[`milestones/v0.6.0-ROADMAP.md`](milestones/v0.6.0-ROADMAP.md).
+
+- [x] Phase 11: Issue #114 Fatal Fixes + Graceful-Degrade Net (3/3 plans) — completed 2026-07-12
+- [x] Phase 12: High-Volume Independent Node Handlers (4/4 plans) — completed 2026-07-12
+- [x] Phase 13: Shared Dispatch-Point Changes (topic + line blocks) (3/3 plans) — completed 2026-07-12
+- [x] Phase 14: Footnotes (doctree pre-pass) (2/2 plans) — completed 2026-07-12
+- [x] Phase 15: Full-Corpus Validation (3/3 plans) — completed 2026-07-12
+
+</details>
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -67,6 +94,11 @@ decisions, and tech-debt notes are preserved in
 | 8.1 Admonition Rendering Fix (INSERTED) | v0.5.0 | 4/4 | Complete | 2026-07-11 |
 | 9. Green CI Matrix + Smoke Test + Guardrails | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
+| 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete | 2026-07-12 |
+| 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete | 2026-07-12 |
+| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete | 2026-07-12 |
+| 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
+| 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close*

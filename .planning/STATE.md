@@ -1,109 +1,95 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.5.0
-milestone_name: — forward-ecosystem
-current_phase: 5.0
+milestone: v0.6.0
+milestone_name: — real-world robustness
+current_phase: 6.0
 status: Awaiting next milestone
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-07-11T12:54:12.316Z"
-last_activity: 2026-07-11
-last_activity_desc: Milestone v0.5.0 completed and archived
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-07-12T21:36:36.873Z"
+last_activity: 2026-07-12
+last_activity_desc: Milestone v0.6.0 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 13
-  completed_plans: 13
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 15
+  completed_plans: 15
   percent: 100
-current_phase_name: Version-String Fix + v0.5.0 Release
+current_phase_name: full-corpus-validation
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-11 at v0.5.0 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.0 milestone close)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the current ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
-**Current focus:** None — v0.5.0 shipped (Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, released to PyPI + GitHub Release). Start the next cycle with `/gsd-new-milestone`.
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
+**Current focus:** v0.6.0 shipped (real-world robustness) — planning next milestone. Next backlog input: the 13 acknowledged rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers (see Deferred Items).
 
 ## Current Position
 
-Phase: Milestone v0.5.0 complete
+Phase: Milestone v0.6.0 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-07-11 — Milestone v0.5.0 completed and archived
+Last activity: 2026-07-12 — Milestone v0.6.0 completed and archived
+
+## Roadmap Summary (v0.6.0 — Phases 11–15)
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 11 — Issue #114 Fatal Fixes + Graceful-Degrade Net | Fix px→pt + figure caption/`:target:` buffer-swap + graphviz/inheritance skip; stand up the real-compile gate | FIG-01, FIG-02, DEG-01, DEG-02, GATE-01 |
+| 12 — High-Volume Independent Node Handlers | versionmodified, empty-URL/`refid` refs, autodoc `desc_*`, transition/glossary/tabular_col_spec/abbr | XREF-01, VER-01, DESC-01..04, BLK-01, BLK-04, BLK-05, BLK-06 |
+| 13 — Shared Dispatch-Point Changes | Generalize `visit_title` for topic + line/line_block, with admonition-title regression fixtures | BLK-02, BLK-03 |
+| 14 — Footnotes (doctree pre-pass) | Typst-native `footnote[...]` via id-keyed pre-pass; the only architecturally-new item | FN-01 |
+| 15 — Full-Corpus Validation | Real `-b typstpdf` of Sphinx's own `doc/` tree; catalogue warnings + measure empty-URL reduction | GATE-02 |
+
+Standing bar (GATE-01): every node-handler phase (11–14) ships or extends a real `typst.compile()` acceptance fixture — string-agreement asserts alone never suffice.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 15 (all in v0.4.4)
-- v0.5.0 plans completed: 0
+- Total plans completed (project cumulative): 28 (15 in v0.4.4, 13 in v0.5.0)
+- v0.6.0 plans completed: 0
 - Average duration: — min
-
-**By Phase (v0.5.0):**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 06 | 1 | - | - |
-| 07 | 1 | - | - |
-| 08 | 3 | - | - |
-| 09 | 2 | - | - |
-| 10 | 2 | - | - |
-| 08.1 | 4 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans (v0.4.4): 3min, 3min, 20min, 12min, 40min
+- Last 5 plans (v0.5.0): 3min, 39min, 5min, 5min (Phase 9–10)
 - Trend: — (new milestone, no plans executed yet)
 
 *Updated after each plan completion*
-| Phase 06 P01 | 20 | 2 tasks | 7 files |
-| Phase 07 P01 | 12min | 3 tasks | 6 files |
-| Phase 08 P01 | 8min | 2 tasks | 2 files |
-| Phase 08 P02 | 3min | 2 tasks | 4 files |
-| Phase 08 P03 | 2min | 2 tasks | 1 files |
-| Phase 08.1 P01 | 1min | 2 tasks | 2 files |
-| Phase 08.1 P02 | 6min | 3 tasks | 2 files |
-| Phase 08.1 P03 | 6min | 2 tasks | 2 files |
-| Phase 08.1 P04 | 8min | 3 tasks | 3 files |
-| Phase 09 P01 | 3min | 2 tasks | 3 files |
-| Phase 09 P02 | 39min | 3 tasks | 0 files |
-| Phase 10 P01 | 5min | 2 tasks | 4 files |
-| Phase 10 P02 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decisions for v0.6.0:
 
-- [v0.5.0 scope]: Latest-only forward port — raise pins to Sphinx 9.1 + typst 0.15+; no Sphinx-8/typst-0.14 compatibility range (version-conditional branching is out of scope).
-- [v0.5.0 scope]: Python floor → ≥3.12 — Sphinx 9.1's own `requires-python` forces it; drop 3.10 and 3.11 from the matrix (raise sphinx/docutils/python + lockfile in one atomic PR, Phase 6).
-- [v0.5.0 scope]: Bundled `@preview` version bump only — FWD-03 (user-configurable versions) deferred to v2 (CFG-01).
-- [Roadmap]: FWD-02 (typst re-pin + no-`kai` compile) grouped with the `@preview` bump in Phase 7, not the pin-raise, because raising typst without the package bump leaves CI red on `kai` — both must land atomically.
-- [Phase 06]: Non-matrix CI jobs (lint/type-check/coverage/build/integration, release validate/build, drift-check) move to Python 3.12 (not 3.13) per CONTEXT.md discretion default.
-- [Phase 06]: Dropped the dead docs-extra tomli conditional (python_version < '3.11') since it is permanently false at the new 3.12 floor — keeps the PIN-02 grep audit clean.
-- [Phase 07]: Bumped typst + all four @preview packages (mitex 0.2.7 / gentle-clues 1.3.1 / codly-languages 0.1.10, codly unchanged at 1.3.0) atomically in one wave per the locked ROADMAP contingency; empirical docs-pdf compile confirmed clean on first attempt, no bisect needed. — Confirms the mitex 0.2.6+ kai attribution from RESEARCH.md and closes FWD-02/PKG-01/PKG-02/PKG-03.
-- [Phase 08]: Scoped strictly to the plan's locked boundary: only template_engine.py traverse->findall and test_translator.py's 3 OptionParser->frontend.get_default_settings sites landed; the remaining 4 deprecation-fix sites and the filterwarnings guard are reserved for Plans 08-02/08-03. — Preserves D-02 ordering constraint: guard must land after the full sweep, not before.
-- [Phase 08-02]: Test-assertion-only fixes for builder.app and writer_name deprecations; no runtime source touched, no compatibility branching added.
-- [Phase 08-03]: Escalated both error::DeprecationWarning and error::PendingDeprecationWarning in the permanent pytest filterwarnings guard (D-02) — a documented deviation-with-rationale from CONTEXT.md's literal DeprecationWarning-only text, required to catch Sphinx's RemovedInSphinxNNWarning family which subclasses PendingDeprecationWarning.
-- [Phase 08-03]: Skipped the optional multi-<term> definition-list hardening (Task 2) as forward-looking-only — no current docutils 0.22.4 rST syntax produces a multi-<term> definition_list_item; deferred as a documented follow-up, not silently dropped.
-- [Phase ?]: [Phase 08.1-01]: pypdf's SUS supply-chain legitimacy flag (too-new/unknown-downloads) was human-confirmed as a false positive before install via the blocking-human checkpoint protocol.
-- [Phase ?]: Kept _visit_admonition's custom_title parameter unchanged (stashed on self._custom_admonition_title) so the six existing per-type visit_*/depart_* call sites needed zero changes
-- [Phase ?]: Used a dedicated _saved_body_for_admonition_title field instead of reusing the definition-list saved_body field, to avoid state collisions between the two buffer-swap use sites
-- [Phase ?]: Static custom_title (Important/See Also) stays a plain string argument; only the dynamic node-derived title uses the buffered code-block form
-- [Phase ?]: [Phase 08.1-03]: Used the research-verified D-06 clue mapping exactly: hint->tip, error->error, danger->danger, attention->warning, generic admonition->base clue()
-- [Phase ?]: [Phase 08.1-03]: Generic admonition handler passes no custom_title - directive-supplied title flows through the existing visit_title/depart_title buffer-swap path automatically
-- [Phase ?]: Invoked sphinx-build via sys.executable -m sphinx instead of uv run sphinx-build to avoid a stray non-Nix uv binary in .venv/bin shadowing the correct Nix-provided uv for subprocess children
-- [Phase ?]: Patched .venv/bin/uv ELF interpreter via patchelf to unblock tox -e docs-pdf in this sandbox (local, gitignored, regenerable fix, no repo file touched); incidentally fixed ~45 pre-existing environment-caused test failures, full suite now 411/411 green
-- [Phase ?]: Task 2 (tdd=true) produced a single feat commit: real-compile gate over already-correct behavior; negative-control proof (uncommitted, scratch-only) is the RED-equivalent evidence per the plan's own instruction and 09-RESEARCH.md Open Question 2
-- [Phase ?]: Branch-protection required-checks reconciled: core gates + ubuntu 3.12/3.13 legs required; windows/macos legs and docs.yml build-docs observable-but-not-required to avoid merge-blocking on cross-OS runner flakiness
-- [Phase ?]: PR release/v0.5.0 -> main (#112) opened and observed all-green (13/13 jobs); left OPEN/UNMERGED per D-03 for Phase 10 to add the version-bump commit and merge
-- [Phase 10]: typsphinx.__version__ single-sourced via importlib.metadata.version() with PackageNotFoundError -> 'unknown' fallback; pyproject.toml is now the sole version literal — Root-cause fix for stale 0.4.3 string (D-04/D-05) - version drift becomes structurally impossible
-- [Phase 10]: Added independent tomllib-based test_version_matches_pyproject_toml drift guard alongside the retained test_setup_version_matches — importlib.metadata-based __version__ alone is a tautological check; an independent parse of pyproject.toml is the genuine regression guard
-- [Phase ?]: [Phase 10-02]: Curated CHANGELOG v0.5.0 entry follows [0.4.3]'s subsection shape; no [0.4.4] backfill per RESEARCH.md Pitfall 4
+- [Roadmap]: Issue #114 fatal fixes (FIG-01/FIG-02) are Phase 11 (first) — they BLOCK all real-compile validation of everything else, since a single fatal node aborts the whole PDF.
+- [Roadmap]: DEG-01/DEG-02 (graphviz/inheritance skip overrides) placed in Phase 11 too — the graceful-degrade net is what makes a full-corpus compile run usable as a feedback tool without aborting on the first out-of-scope node.
+- [Roadmap]: GATE-01 mapped to Phase 11 (where the real-compile fixture pattern is first established) and echoed as a standing success criterion across Phases 12–14.
+- [Roadmap]: FN-01 (footnotes) gets its own phase (14), sequenced late — it is the only item needing a genuine doctree pre-pass; independent of Phases 12–13.
+- [Roadmap]: The shared-dispatch `visit_title` change (BLK-02/BLK-03) is isolated in Phase 13 with admonition-title regression fixtures because it edits a load-bearing method every admonition + heading depends on.
+- [Research]: Zero new runtime dependencies / no `@preview` bump — every target node maps to native Typst 0.15 or already-bundled packages; the 3-way version-sync surface stays untouched.
+- [Phase 11-01]: Unit dispatch implemented as allow-list (not deny-list) so the full extended docutils CSS3 unit set falls into one generic warn+drop branch (D-02)
+- [Phase 11-01]: Confirmed live sphinx.ext.graphviz/inheritance_diagram node-class names before finalizing visit_* method names (resolves RESEARCH.md Assumption A1)
+- [Phase 11-02]: Figure caption buffer-swap guarded strictly by if self.in_figure: on both visit/depart, leaving the captioned-code-block SkipNode path (which never calls depart_caption) unaffected
+- [Phase 11-02]: refid fallback branch in visit_reference inserted as an early return before the existing empty-URL guard; no sanitization of refid, matching the adjacent #-prefixed refuri branch convention
+- [Phase 11-03]: Fixed a third fatal Typst compile bug (label-in-code-mode) discovered while building GATE-01 fixtures: bracket-wrap labeled figure/heading emissions in markup content — Docutils auto-assigns ids to any captioned figure and internal :target: links require section anchors; without this fix neither figure fixture could compile, blocking GATE-01's own success criteria
+- [Phase 13]: D-01/D-02/D-05/D-06 and the Pitfall-1 fix landed as one atomic task/commit (Task 1), per RESEARCH.md Pitfall 2's atomicity mandate
+- [Phase 13]: Pitfall-1 multi-child-title separator+wrap fix bundled into Plan 01 rather than filed as a separate prerequisite bug fix
+- [Phase 13-02]: line_block nesting tracked with a single integer depth counter (not a stack) -- docutils' own visitor recursion provides the nesting stack for free
+- [Phase 13-02]: h() indent spacer needs no markup-mode bracket-wrap (unlike Phase 11's <label> anchors) -- plain code-mode stdlib call
+- [Phase 13-03]: Rendered the epigraph shape as a plain top-level line_block under a titled section (no .. epigraph:: directive) per Pitfall 4 -- sidesteps a pre-existing block_quote/attribution bug
+- [Phase 13-03]: Used a class-scoped GATE-01 fixture to build+compile+extract once per class, shared across three thin assertion-only test methods, avoiding three recompiles
+- [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
+- [Phase 14-01]: Used self.document.findall(nodes.footnote) instead of the deprecated .traverse() -- traverse() raises DeprecationWarning, escalated to a hard failure by this project's strict pytest filter
+- [Phase 14-02]: Fixed a paragraph-state-clobbering bug in visit_footnote_reference's buffer-swap (save/restore in_paragraph/paragraph_has_content around the nested walkabout) -- discovered by the GATE-01 real-compile fixture; without it, any footnote followed by trailing text in the same sentence was a FATAL Typst compile abort
+- [Phase 15-01]: Split the single new tests/test_corpus_gate.py file into two atomic commits matching the plan's two tasks, via staged partial-content writes rather than git add -p (which doesn't cleanly split a brand-new untracked file by hunk)
+- [Phase 15-01]: In-sandbox network happened to be available; the slow TestCorpusRenderGate gate ran for real (did not skip) and correctly caught a genuine pre-existing fatal TypstError -- a missing `_static/python-logo.png` asset in TypstBuilder's image-copy pass -- not caused by this plan's changes, flagged for a follow-up plan/phase rather than fixed inline (out of this plan's tests/test_corpus_gate.py-only scope)
+- [Phase 15-02]: D-07 revert mechanism adjusted to worktree-at-HEAD + targeted depart_term patch (not 79c9d45~1 checkout) to isolate XREF-01 from 55 intervening campaign-fix commits — Preserves D-07's measurement intent while avoiding conflation with unrelated bug fixes
+- [Phase 15-02]: both SC#3 before/after builds use -b typst only (never typstpdf) per RESEARCH Pitfall 2 — Reverted depart_term's dangling :term: glossary label would fatally abort typst.compile()
 
 ### Pending Todos
 
@@ -111,40 +97,67 @@ None yet.
 
 ### Blockers/Concerns
 
-Carried forward from research (SUMMARY.md / PITFALLS.md) — must be resolved during execution:
+Carried forward from research (SUMMARY.md / ARCHITECTURE.md / PITFALLS.md) — resolve during execution:
 
-- [Phase 7]: The `kai` root-cause attribution to `mitex` `0.2.6+` is MEDIUM confidence (strong CHANGELOG evidence, not independently reproduced). Phase 7 must confirm via a real `docs-pdf` compile, not changelog inference. If `kai` persists after the mitex bump, bisect package-by-package.
-- [Phase 7]: `codly` `1.3.0` is already at the Typst Universe registry ceiling — no newer version exists as a fallback. If it breaks under typst 0.15, escalate to a source-level workaround/patch/replacement.
-- [Phase 7]: The 3-way version-sync hazard — `test_preview_version_sync.py` proves the three files *agree*, not that the versions *compile correctly*. The empirical `docs-pdf` compile (and Phase 9's smoke test) is the real gatekeeper.
-- [Phase 8]: Sphinx 9 changelog audit found no load-bearing API breaks, but re-verify empirically against the resolved deps (runtime AttributeError/TypeError may surface); spot-check the docutils 0.22 multi-`<term>` definition-list edge case.
-- [Phase 07 follow-up]: docs-pdf now compiles clean but exposes a pre-existing (predates Phase 7) translator bug: .. note:: admonitions render literal unevaluated Typst source (par({text(...)})) instead of typeset prose in 4 spots, due to a markup/code-mode mismatch in translator.py::_visit_admonition. Logged in .planning/phases/07-bump-preview-packages-typst-0-15-kai-fix/deferred-items.md; needs a dedicated fix phase.
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260711-kr2 | プロジェクトトップレベルにいる .mcp.json は main ブランチに含まれないようにする | 2026-07-11 | 50a2623 | [260711-kr2-mcp-json-main](./quick/260711-kr2-mcp-json-main/) |
+- [Phase 11]: **One bad node aborts the ENTIRE PDF** — `typst.compile()` is all-or-nothing over the master doc + everything it `#include()`s. Treat "does it compile" as the primary correctness signal for every handler, not "does the string look right." Fixtures must cover edge-case attribute values (`%`, `em`, `px`, `pc`, unitless width; captions containing `_`/`*`/`` ` ``/`[`/`]`).
+- [Phase 11]: **Fix `visit_caption`/`depart_caption` via buffer-swap, NOT `astext()`** — `astext()` bypasses both escaping regimes and drops inline markup (the mechanism behind the `link(url,image)text(caption)` leak). Emit the caption as a code-mode `{...}` block, not a markup `[...]` block (the v0.5.0 admonition-bug class).
+- [Phase 12]: **`versionmodified` child shape is MEDIUM confidence** — build a throwaway `doctree.pformat()` dump to confirm children are inline-direct vs. nested in a `paragraph` before finalizing the handler.
+- [Phase 12]: **Empty-URL reduction must be MEASURED, not assumed** — the ×596 figure is a strong `refid`-gap signal, but the residual genuinely-broken count needs a real before/after build diff (finalized in Phase 15).
+- [Phase 14]: **Footnote `refid` cross-link attribute + `label`-child-skip + re-citation syntax are MEDIUM confidence** — confirm all three against a live doctree dump + a real `typst compile` spot-check before locking the pre-pass design.
 
 ### Roadmap Evolution
 
-- Phase 08.1 inserted after Phase 8: admonition rendering fix — translator markup/code-mode mismatch (URGENT)
-- Phase 10 edited: re-scoped to release-prep only (version single-source + CHANGELOG); tag/publish/merge deferred to milestone close; SC #2/#3 moved; REL-01 reworded to reflect the split
+- 2026-07-11: v0.6.0 roadmap created — Phases 11–15, derived from 19 v1 requirements (Issue #114 + high-frequency dropped-node support). Phase numbering continues from v0.5.0 (6–10 + 8.1).
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and carried forward from previous milestone closes:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Forward-ecosystem | FWD-03 → CFG-01: user-configurable `@preview` versions | Deferred to v2 | v0.4.4 close / v0.5.0 scoping |
+| Forward-ecosystem | CFG-01 (was FWD-03): user-configurable `@preview` versions | Deferred to v2 | v0.5.0 scoping |
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v2 | v0.5.0 scoping |
+| Styling refinements | TODO-01 (`todo_node` styling), MAN-01 (`:manpage:` role), LEN-01 (generalize CSS-length converter) | Deferred to v0.6.x | v0.6.0 scoping |
+| Phase 11 P01 | 15min | 3 tasks | 2 files |
+| Phase 11 P02 | 10min | 2 tasks | 1 files |
+| Phase 11 P03 | ~90min | 2 tasks | 11 files |
+| Phase 13 P01 | 5min | 2 tasks | 3 files |
+| Phase 13 P02 | 4min | 2 tasks | 2 files |
+| Phase 13 P03 | 7min | 2 tasks | 3 files |
+| Phase 14 P01 | 5min | 2 tasks | 2 files |
+| Phase 14 P02 | 15min | 2 tasks | 4 files |
+| Phase 15 P01 | 15min | 2 tasks | 1 files |
+| Phase 15 P02 | 20min | 2 tasks | 1 files |
+
+### Acknowledged at v0.6.0 close (2026-07-13) — post-GATE-02 rendering-polish debug sessions
+
+Non-fatal `typstpdf` render-quality bugs discovered by the 2026-07-13 polish
+campaign **after** GATE-02 went green. Outside v0.6.0's definition of done (the
+gate was "no fatal `TypstCompilationError`" + the 19 named requirements — all
+met). Acknowledged and deferred to the next milestone's backlog. Session files
+in `.planning/debug/`.
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | confval-field-body-inline-juxtaposition | fixing |
+| debug | deflist-definition-multiblock-unwrapped-arg | fixing |
+| debug | deflist-nested-definition-body-clobber | fixing |
+| debug | deflist-term-adjacent-inline-concat | fixing |
+| debug | desc-signature-missing-anchor-dangling-label | investigating |
+| debug | desc-signature-newline-concat-stray-plus | fixing |
+| debug | duplicate-module-label-corpus | investigating |
+| debug | label-ref-at-char-unclosed-label | fixing |
+| debug | list-item-nested-block-adjacency | fixing |
+| debug | paragraph-propagated-target-missing-anchor | fixing |
+| debug | ref-with-target-and-nested-list-juxtaposition | fixing |
+| debug | rubric-propagated-target-missing-anchor | investigating |
+| debug | typst-string-literal-newline-escape | awaiting_human_verify |
 
 ## Session Continuity
 
-Last session: 2026-07-11T11:07:31.946Z
-Stopped at: Completed 10-01-PLAN.md
-Resume file: 
-None
+Last session: 2026-07-12T15:57:32.796Z
+Stopped at: Completed 15-02-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-13
+
+Real-world robustness: compile a large real-world documentation set (Sphinx's
+own `doc/` tree) through the `typstpdf` builder with no fatal Typst errors, and
+render the most-frequent previously-dropped docutils/Sphinx nodes correctly.
+Driven by Issue #114. Zero new runtime dependencies — all work is in
+`typsphinx/translator.py`; the bundled `@preview` version-sync surface is
+untouched.
+
+### Fixed
+
+- **Issue #114 — fatal figure/image bugs**
+  - `.. figure::`/image `:width:`/`:height:` in `px` (or other CSS length units)
+    now converts to valid Typst — `px`→`pt` numeric conversion (1px = 0.75pt),
+    `%`/`em`/`pt`/`cm`/`mm`/`in` pass through, unrecognized units are
+    warned-and-dropped instead of emitted verbatim (FIG-01)
+  - `.. figure::`/standalone image with a `:target:` link now emits valid
+    `#figure(link(...)[#image(...)], caption: [...])` — the caption reaches the
+    `caption:` argument via a buffer-swap and no longer leaks as a stray
+    juxtaposed `text(...)` call (FIG-02)
+  - Fixed additional latent fatals surfaced by the real-compile gate: labels
+    attached to code-mode statements, a dangling `:term:` glossary anchor, and a
+    footnote-buffer-swap paragraph-state clobber
+
+### Added
+
+- **High-frequency previously-dropped node handlers** (all with real-compile
+  acceptance fixtures)
+  - `refid` same-document cross-references (`:ref:` section anchors, `:term:`
+    glossary links) render as working links instead of degrading to plain text
+    (XREF-01)
+  - `versionadded`/`versionchanged`/`deprecated`/`versionremoved` render as an
+    unboxed italic Sphinx-worded label, not a callout box (VER-01)
+  - Autodoc signature sub-parts: `desc_returns`, `desc_signature_line`,
+    `desc_optional`, `desc_inline` (DESC-01…04)
+  - `footnote`/`footnote_reference` via Typst-native `footnote[...]` using a
+    document-order doctree pre-pass — first cite defines, repeat cites reuse by
+    label (FN-01)
+  - `transition` → horizontal rule, `.. topic::` → titled aside, `line`/
+    `line_block` → verbatim `linebreak()`, `.. glossary::` → definition list,
+    `.. tabularcolumns::` safely skipped, `:abbr:` → "term (expansion)"
+    (BLK-01…06)
+- **Graceful degradation** — `graphviz` and `inheritance_diagram` render a
+  visible placeholder block + exactly one warning, with no raw source leaking
+  (DEG-01/DEG-02)
+- **Validation gates**
+  - Standing real-compile acceptance-fixture pattern
+    (`sphinx-build → typst.compile() → pypdf`) extended by every node-handler
+    group (GATE-01)
+  - Full-corpus gate: Sphinx's own `doc/` tree compiles end-to-end through
+    `-b typstpdf` with no fatal `TypstCompilationError` (~14.4 MiB PDF,
+    0 errors); residual `unknown_visit` warnings catalogued and the empty-URL
+    reduction measured before/after (GATE-02)
+
 ## [0.5.0] - 2026-07-11
 
 ### Changed

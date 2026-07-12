@@ -80,7 +80,7 @@ def test_translator_heading_level_generation(simple_document, mock_builder):
     translator.depart_Text(nodes.Text("Level 1"))
     translator.depart_title(title1)
     output1 = translator.astext()
-    assert 'heading(level: 1, text("Level 1"))' in output1
+    assert 'heading(level: 1, {text("Level 1")})' in output1
 
     # Clear output for next test
     translator.body = []
@@ -94,7 +94,7 @@ def test_translator_heading_level_generation(simple_document, mock_builder):
     translator.depart_Text(nodes.Text("Level 2"))
     translator.depart_title(title2)
     output2 = translator.astext()
-    assert 'heading(level: 2, text("Level 2"))' in output2
+    assert 'heading(level: 2, {text("Level 2")})' in output2
 
 
 def test_table_conversion(simple_document, mock_builder):
@@ -804,10 +804,12 @@ def test_literal_block_with_linenos(simple_document, mock_builder):
 
 def test_literal_block_with_highlight_lines(simple_document, mock_builder):
     """
-    Test that literal blocks with highlight_args generate #codly-range() (Task 4.2.2).
+    Test that literal blocks with highlight_args generate codly(highlights: ...).
 
-    Design 3.5: codly forced usage with #codly-range() for highlighted lines
-    Requirement 7.4: highlight_args should be converted to #codly-range(highlight: (...))
+    codly 1.3.0 has no codly-range(highlight: ...) API -- codly-range(start, end)
+    displays a line range and aborts the compile with "missing argument: start"
+    when executed. :emphasize-lines: must use the codly(highlights: ((line: N,
+    start: 1, end: none, fill: ...), ...)) full-line-highlight API instead.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -823,12 +825,15 @@ def test_literal_block_with_highlight_lines(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly-range() before code block
+    # Should generate the valid codly(highlights: ...) call, never the removed
+    # codly-range(highlight: ...) invalid API.
     assert (
-        "codly-range(" in output
-    ), "Should generate codly-range() for highlighted lines"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    assert "2" in output and "3" in output, "Should include highlighted line numbers"
+        "codly(highlights:" in output
+    ), "Should generate codly(highlights: ...) for highlighted lines"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert (
+        "line: 2" in output and "line: 3" in output
+    ), "Should include highlighted line numbers as codly highlight entries"
     assert "```python" in output, "Should still use code block with language"
 
 
@@ -836,8 +841,9 @@ def test_literal_block_with_linenos_and_highlights(simple_document, mock_builder
     """
     Test literal blocks with both line numbers and highlights (Task 4.2.2).
 
-    Design 3.5: codly provides line numbers by default, use #codly-range() for highlights
-    Requirement 7.3, 7.4: Both linenos and highlight_args should be supported
+    codly provides line numbers by default; :emphasize-lines: uses the
+    codly(highlights: ...) full-line-highlight API (not the invalid
+    codly-range(highlight: ...)).
     """
     from typsphinx.translator import TypstTranslator
 
@@ -854,21 +860,22 @@ def test_literal_block_with_linenos_and_highlights(simple_document, mock_builder
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # codly provides line numbers by default, should generate #codly-range() for highlights
+    # Should generate the valid codly(highlights: ...) call for the highlights.
     assert (
-        "codly-range(" in output
-    ), "Should generate codly-range() for highlighted lines"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    assert "2" in output, "Should include highlighted line number"
+        "codly(highlights:" in output
+    ), "Should generate codly(highlights: ...) for highlighted lines"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert "line: 2" in output, "Should include highlighted line number"
     assert "```python" in output, "Should use code block with language"
 
 
 def test_literal_block_with_highlight_ranges(simple_document, mock_builder):
     """
-    Test literal blocks with highlight ranges (Task 4.2.2).
+    Test literal blocks with multiple highlighted lines (Task 4.2.2).
 
-    Design 3.5: #codly-range() should support both individual lines and ranges
-    Example: #codly-range(highlight: (2, 4-6)) highlights line 2 and lines 4-6
+    Each :emphasize-lines: line becomes its own codly highlight entry
+    ((line: N, start: 1, end: none, fill: ...)) in a single codly(highlights: ...)
+    call.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -887,13 +894,14 @@ def test_literal_block_with_highlight_ranges(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly-range() with highlight parameter
-    assert "codly-range(" in output, "Should generate #codly-range()"
-    assert "highlight:" in output, "Should specify highlight parameter"
-    # Should contain line numbers (exact format depends on implementation)
-    assert (
-        "2" in output or "4" in output
-    ), "Should include some highlighted line numbers"
+    # Should generate a single codly(highlights: ...) call, one entry per line.
+    assert "codly(highlights:" in output, "Should generate codly(highlights: ...)"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    # Each highlighted line is its own (line: N, ...) entry.
+    for line in (2, 4, 5, 6):
+        assert (
+            f"line: {line}" in output
+        ), f"Should include highlight entry for line {line}"
 
 
 def test_literal_block_unsupported_language_warning(simple_document, mock_builder):
@@ -937,8 +945,11 @@ def test_literal_block_with_lineno_start(simple_document, mock_builder):
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate #codly(start: 42)
-    assert "codly(start: 42)" in output, "Should generate #codly(start: 42)"
+    # codly 1.3.0 has no `start` parameter -- it uses `offset`, an additive
+    # delta (offset = linenostart - 1) applied to the raw block's 1-indexed
+    # line.number. See translator.py visit_literal_block for the transform.
+    assert "codly(offset: 41)" in output, "Should generate #codly(offset: 41)"
+    assert "codly(start:" not in output, "Should not use the removed start: param"
     assert "```python" in output, "Should still use code block with language"
 
 
@@ -961,12 +972,56 @@ def test_literal_block_with_lineno_start_without_linenos(simple_document, mock_b
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should not generate #codly(start: ...)
+    # Should not generate a line-number-offset call at all (no start: --
+    # removed param -- and no offset: since linenos itself is unset)
     assert (
         "#codly(start:" not in output
     ), "Should not generate start parameter without linenos"
+    assert (
+        "#codly(offset:" not in output
+    ), "Should not generate offset parameter without linenos"
     # Should disable line numbers
     assert "codly(number-format: none)" in output
+    assert "```python" in output
+
+
+def test_literal_block_with_linenos_default_start_no_offset_emitted(
+    simple_document, mock_builder
+):
+    """A :linenos: block whose linenostart is 1 must NOT emit a codly()
+    offset/start call -- this is the default case and matches codly's own
+    default (offset=0).
+
+    Regression test for the GATE-02 corpus fatal: Sphinx's LiteralInclude
+    directive ALWAYS populates highlight_args['linenostart'] (defaulting to
+    1) even without an explicit :lineno-start: option -- unlike CodeBlock,
+    which only sets it when :lineno-start: is given. Before the fix, the
+    `lineno_start is not None` guard alone was too loose and emitted a
+    spurious `codly(start: 1)` (a call codly 1.3.0 rejects outright with
+    "unexpected argument: start") for every plain `:linenos:`
+    literalinclude block -- the exact construct hit 20x across 4 Sphinx
+    tutorial docs in the real corpus.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text="line 1\nline 2\nline 3")
+    literal_block["language"] = "python"
+    literal_block["linenos"] = True
+    # Simulates LiteralIncludeReader's always-present default: linenostart=1
+    # even though no explicit :lineno-start: option was given.
+    literal_block["highlight_args"] = {"linenostart": 1}
+    translator.visit_literal_block(literal_block)
+    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3"))
+    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3"))
+    translator.depart_literal_block(literal_block)
+
+    output = translator.astext()
+    assert "codly(start:" not in output, "Should never emit the removed start: param"
+    assert (
+        "codly(offset:" not in output
+    ), "Should not emit a spurious offset: for the default linenostart=1 case"
     assert "```python" in output
 
 
@@ -1001,10 +1056,13 @@ def test_literal_block_with_lineno_start_and_emphasize(simple_document, mock_bui
     translator.depart_literal_block(literal_block)
 
     output = translator.astext()
-    # Should generate both #codly(start: 100) and #codly-range(highlight: ...)
-    assert "codly(start: 100)" in output, "Should generate start parameter"
-    assert "codly-range(highlight:" in output, "Should generate highlight parameter"
-    assert "2" in output, "Should include highlighted line number"
+    # Should generate both codly(offset: 99) and codly(highlights: ...)
+    # (codly 1.3.0 uses offset = linenostart - 1, not start:)
+    assert "codly(offset: 99)" in output, "Should generate offset parameter"
+    assert "codly(start:" not in output, "Should not use the removed start: param"
+    assert "codly(highlights:" in output, "Should generate the highlights call"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
+    assert "line: 2" in output, "Should include highlighted line number"
     assert "```python" in output
 
 
@@ -1100,7 +1158,8 @@ def test_literal_block_with_dedent_and_other_options(simple_document, mock_build
     # Should have dedented content with line numbers and highlights
     assert "def inner_function():" in output, "Should have dedented content"
     assert '    return "dedented"' in output, "Should preserve relative indentation"
-    assert "codly-range(highlight:" in output, "Should have highlights"
+    assert "codly(highlights:" in output, "Should have highlights"
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
     assert "```python" in output
 
 
@@ -1241,10 +1300,13 @@ def test_block_quote_conversion(simple_document, mock_builder):
     translator.depart_block_quote(block_quote)
 
     output = translator.astext()
-    # Typst block quote syntax: #quote[...]
-    assert "quote[" in output
+    # Typst block quote syntax: quote(block: true, { ... }) -- a CODE-MODE
+    # body content block, NOT the markup-mode quote[...] trailing content
+    # block (bug #15: markup mode treats the code-mode par()/raw() children as
+    # literal prose, so a markup-special char opens an unclosed span).
+    assert "quote(block: true, {" in output
     assert "This is a quoted text." in output
-    assert "]" in output
+    assert "})" in output
 
 
 def test_block_quote_with_attribution(simple_document, mock_builder):
@@ -1253,19 +1315,25 @@ def test_block_quote_with_attribution(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a block quote
+    # Build a realistic tree: the attribution is a CHILD of the block quote
+    # (as docutils produces it), so depart_block_quote's has_attribution check
+    # detects it and closes only the quote() call (the body/attribution blocks
+    # are closed by visit/depart_attribution).
     block_quote = nodes.block_quote()
+    para = nodes.paragraph(text="To be or not to be.")
+    attribution = nodes.attribution(text="Shakespeare")
+    block_quote += para
+    block_quote += attribution
+
     translator.visit_block_quote(block_quote)
 
     # Paragraph inside block quote
-    para = nodes.paragraph(text="To be or not to be.")
     translator.visit_paragraph(para)
     translator.visit_Text(nodes.Text("To be or not to be."))
     translator.depart_Text(nodes.Text("To be or not to be."))
     translator.depart_paragraph(para)
 
     # Attribution
-    attribution = nodes.attribution(text="Shakespeare")
     translator.visit_attribution(attribution)
     translator.visit_Text(nodes.Text("Shakespeare"))
     translator.depart_Text(nodes.Text("Shakespeare"))
@@ -1274,11 +1342,17 @@ def test_block_quote_with_attribution(simple_document, mock_builder):
     translator.depart_block_quote(block_quote)
 
     output = translator.astext()
-    # Typst block quote with attribution
-    assert "quote[" in output
+    # Typst block quote with attribution: the code-mode body block is closed
+    # and the attribution appended as a CODE-MODE named argument --
+    # quote(block: true, { <body> }, attribution: { <attr> }). The attribution
+    # MUST be a code-mode `{ ... }` block (not the markup-mode `[ ... ]`), so
+    # its inline children are EVALUATED content, not literal Typst source that
+    # would leak into the rendered PDF (the attribution source-leak bug).
+    assert "quote(block: true, {" in output
     assert "To be or not to be." in output
-    assert "attribution:" in output and "Shakespeare" in output
-    assert "]" in output
+    assert "}, attribution: {" in output
+    assert "Shakespeare" in output
+    assert "}, attribution: [" not in output
 
 
 def test_nested_block_quote(simple_document, mock_builder):
@@ -1313,8 +1387,9 @@ def test_nested_block_quote(simple_document, mock_builder):
     translator.depart_block_quote(outer_quote)
 
     output = translator.astext()
-    # Nested quotes should both use #quote[]
-    assert output.count("quote[") == 2
+    # Nested quotes should both use the code-mode quote(block: true, { ... })
+    # body form (bug #15), not the markup-mode quote[...] form.
+    assert output.count("quote(block: true, {") == 2
     assert "Outer quote." in output
     assert "Inner quote." in output
 
@@ -1371,6 +1446,81 @@ def test_image_relative_path(simple_document, mock_builder):
     # Should preserve relative path
     assert "image(" in output
     assert "../images/logo.png" in output
+
+
+def test_convert_length_px_to_pt(simple_document, mock_builder):
+    """px converts to pt via the CSS-canonical 1px = 0.75pt (FIG-01, D-02)."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("200px") == "150pt"
+
+
+def test_convert_length_bare_unitless_treated_as_px(simple_document, mock_builder):
+    """A bare unitless number is treated as px per the HTML/CSS convention."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("300") == "225pt"
+
+
+def test_convert_length_pc_to_pt(simple_document, mock_builder):
+    """pc (pica) converts to pt: 1pc = 12pt."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("1pc") == "12pt"
+
+
+def test_convert_length_passthrough_units(simple_document, mock_builder):
+    """%, em, pt, cm, mm, in pass through unchanged."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    assert translator._convert_length_to_typst("50%") == "50%"
+    assert translator._convert_length_to_typst("3em") == "3em"
+    assert translator._convert_length_to_typst("2in") == "2in"
+    assert translator._convert_length_to_typst("5cm") == "5cm"
+    assert translator._convert_length_to_typst("3mm") == "3mm"
+    assert translator._convert_length_to_typst("12pt") == "12pt"
+
+
+def test_convert_length_unknown_unit_warns_and_drops(
+    simple_document, mock_builder, caplog
+):
+    """Unknown/unconvertible units emit exactly one warning and return None."""
+    import logging
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    for unit_value in ("1ex", "2ch", "1rem", "10vw", "10vh", "5vmin", "5vmax", "1Q"):
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            result = translator._convert_length_to_typst(unit_value)
+        assert result is None
+        assert len(caplog.records) == 1
+
+
+def test_convert_length_malformed_value_warns_and_drops(
+    simple_document, mock_builder, caplog
+):
+    """A malformed value that fails the regex returns None + one warning."""
+    import logging
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    with caplog.at_level(logging.WARNING):
+        result = translator._convert_length_to_typst("not-a-length!!")
+    assert result is None
+    assert len(caplog.records) == 1
 
 
 def test_figure_with_caption(simple_document, mock_builder):
@@ -1463,8 +1613,13 @@ def test_target_label_generation(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Check that Typst label is generated (using label() function in unified code mode)
-    assert 'label("my-label")' in output
+    # A target must emit a metadata-carrying markup anchor -- [#metadata(none)
+    # <id>] -- NOT a bare code-mode `label("id")`. A bare label is a raw label
+    # value that cannot stand alone in a content block (two adjacent targets
+    # are a Typst syntax error; a single one "cannot join content with label"),
+    # whereas the metadata block is real content with the label attached and is
+    # still reachable via link(<id>). See visit_target.
+    assert "[#metadata(none) <my-label>]" in output
 
 
 def test_reference_to_target(simple_document, mock_builder):
@@ -1732,7 +1887,7 @@ More text.
     output = translator.astext()
 
     # Check that heading is present
-    assert 'heading(level: 1, text("Test Comments"))' in output
+    assert 'heading(level: 1, {text("Test Comments")})' in output
 
     # Check that comment text does NOT appear in output
     assert "This is a comment" not in output
@@ -2028,8 +2183,11 @@ def test_code_block_linenos_with_highlights(simple_document, mock_builder):
     assert "```python" in output
     assert "def hello():" in output
 
-    # Should have highlight (already implemented)
-    assert "codly-range(highlight: (1))" in output
+    # Should have highlight via the valid codly(highlights: ...) API
+    assert (
+        "codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
+    )
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
 
     # Should NOT disable line numbers
     assert "number-format: none" not in output
@@ -2107,16 +2265,30 @@ def test_code_block_with_caption_and_name(simple_document, mock_builder):
     assert "```python" in output
 
 
-def test_code_block_with_name_only(simple_document, mock_builder):
-    """Test code block with :name: option only (no caption)."""
+def test_code_block_with_name_only_emits_joinable_id_anchor(
+    simple_document, mock_builder
+):
+    """Test code block with :name: option only (no caption).
+
+    A ``:name:`` (like a propagated ``.. _t:`` target) makes docutils assign
+    BOTH ``names`` AND ``ids`` to the literal_block, and a same-document
+    ``:ref:`` resolves to the sanitized ID. The block must therefore emit a
+    Typst anchor for its ID. It is emitted as the clean, joinable
+    ``[#metadata(none) <id>]`` markup block -- NOT the old bare ` <label>`
+    postfix, which appended a label directly after a code-mode raw block and
+    aborted the compile with "cannot join content with label" (and anchored
+    the name rather than the id). See the rubric/missing-anchor sweep.
+    """
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
-    # Create literal_block with name but no caption (no container wrapper)
+    # Create literal_block with name+id but no caption (no container wrapper).
+    # Real docutils assigns both when :name: is given; mirror that here.
     literal_block = nodes.literal_block()
     literal_block["language"] = "python"
     literal_block["names"].append("code-example")  # :name: option
+    literal_block["ids"].append("code-example")  # docutils make_id() companion
     literal_block += nodes.Text("def example():\n    pass")
 
     simple_document += literal_block
@@ -2127,8 +2299,13 @@ def test_code_block_with_name_only(simple_document, mock_builder):
 
     # Should NOT wrap in #figure() (no caption)
     assert "#figure(" not in output
-    # Should contain label after code block
-    assert "<code-example>" in output
+    # Should anchor the ID via the clean, joinable metadata-block form
+    # (docname is None in this unit context, so the label is un-namespaced).
+    assert "[#metadata(none) <code-example>]" in output
+    # The old broken bare-postfix form must NOT be emitted: a ` <label>`
+    # immediately after the closing code fence does not join in code mode.
+    assert "``` <code-example>" not in output
+    assert "```\n <code-example>" not in output
     # Should contain code block
     assert "```python" in output
 
@@ -2164,8 +2341,13 @@ def test_code_block_all_options(simple_document, mock_builder):
 
     # Should have line numbers (no number-format: none)
     assert "number-format: none" not in output
-    # Should have highlights
-    assert "codly-range(highlight: (1))" in output
+    # Should have highlights via the valid codly(highlights: ...) API. This is a
+    # CAPTIONED code block -> emitted inside the markup figure(...)[...] content
+    # block, so the highlight call must be executed with a leading `#`.
+    assert (
+        "#codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
+    )
+    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
     # Should have figure with caption
     assert "figure(" in output
     # Should have label
@@ -2946,6 +3128,108 @@ def test_desc_parameterlist(simple_document, mock_builder):
     assert 'strong({text("function")' in output and "arg1" in output
 
 
+# desc_signature_line / linebreak() tests (DESC-02, Phase 12 Plan 03)
+
+
+def test_desc_signature_line_multiline_emits_one_linebreak(
+    simple_document, mock_builder
+):
+    """
+    A signature with two genuine desc_signature_line children (the C++/C
+    domain multi-line shape, confirmed via a live doctree dump using
+    `.. cpp:function:: template<typename T> void foo(T t)`) must emit
+    exactly one linebreak() between the two lines, and none before the
+    first line.
+    """
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+    sig = addnodes.desc_signature(is_multiline=True)
+
+    line1 = addnodes.desc_signature_line()
+    line1 += nodes.Text("template<typename T>")
+    sig += line1
+
+    line2 = addnodes.desc_signature_line()
+    line2 += nodes.Text("void foo(T t)")
+    sig += line2
+
+    desc += sig
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    assert output.count("linebreak()") == 1
+    # linebreak() must appear strictly between the two lines' content.
+    idx_line1 = output.index("template<typename T>")
+    idx_break = output.index("linebreak()")
+    idx_line2 = output.index("void foo(T t)")
+    assert idx_line1 < idx_break < idx_line2
+
+
+def test_desc_signature_line_single_line_emits_no_linebreak(
+    simple_document, mock_builder
+):
+    """A single desc_signature_line child must emit NO linebreak() --
+    backward-compatible with the already-correct single-line case."""
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+    sig = addnodes.desc_signature()
+
+    line1 = addnodes.desc_signature_line()
+    line1 += nodes.Text("void foo(int x)")
+    sig += line1
+
+    desc += sig
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    assert "linebreak()" not in output
+
+
+def test_desc_signature_line_resets_per_signature(simple_document, mock_builder):
+    """_is_first_desc_signature_line must reset to True at the start of
+    every visit_desc_signature, so consecutive signatures each start
+    fresh (no stray linebreak() carried over from a prior signature)."""
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    desc = addnodes.desc()
+
+    sig1 = addnodes.desc_signature()
+    sig1_line = addnodes.desc_signature_line()
+    sig1_line += nodes.Text("first_sig")
+    sig1 += sig1_line
+    desc += sig1
+
+    sig2 = addnodes.desc_signature()
+    sig2_line = addnodes.desc_signature_line()
+    sig2_line += nodes.Text("second_sig")
+    sig2 += sig2_line
+    desc += sig2
+
+    desc.walkabout(translator)
+    output = translator.astext()
+
+    # Neither signature is genuinely multi-line, so no linebreak() should
+    # appear at all -- proves the flag reset per-signature rather than
+    # persisting is_first=False across the second signature.
+    assert "linebreak()" not in output
+
+
 def test_field_list_rendering(simple_document, mock_builder):
     """Test field_list rendering with field names and bodies."""
     from typsphinx.translator import TypstTranslator
@@ -3100,7 +3384,8 @@ def test_image_path_adjustment_root(simple_document, mock_builder):
     # Root document: path should NOT be adjusted
     assert 'image("images/logo.png"' in output
     assert "../images" not in output
-    assert "width: 200px" in output
+    # FIG-01/D-02: px converts to pt (1px = 0.75pt), never emitted raw
+    assert "width: 150pt" in output
 
 
 def test_image_path_adjustment_nested(simple_document, mock_builder):
@@ -3124,7 +3409,8 @@ def test_image_path_adjustment_nested(simple_document, mock_builder):
 
     # Nested document: path should be adjusted
     assert 'image("../images/logo.png"' in output
-    assert "width: 200px" in output
+    # FIG-01/D-02: px converts to pt (1px = 0.75pt), never emitted raw
+    assert "width: 150pt" in output
 
 
 def test_image_path_adjustment_deep_nested(simple_document, mock_builder):
@@ -3216,5 +3502,6 @@ def test_image_path_adjustment_subdirectory(simple_document, mock_builder):
 
     # Subdirectory: img/diagram.jpeg (relative to current directory)
     assert 'image("img/diagram.jpeg"' in output
-    assert "width: 250px" in output
+    # FIG-01/D-02: px converts to pt (1px = 0.75pt), never emitted raw
+    assert "width: 187.5pt" in output
     assert "../" not in output  # No need to go up

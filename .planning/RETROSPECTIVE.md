@@ -85,6 +85,47 @@
 
 ---
 
+## Milestone: v0.6.0 — real-world robustness
+
+**Shipped:** 2026-07-13
+**Phases:** 5 (11–15) | **Plans:** 15 | **Sessions:** ~2 days (2026-07-12 → 2026-07-13)
+
+### What Was Built
+- Issue #114's two fatal figure/image bugs fixed: `_convert_length_to_typst()` (px→pt / CSS-length conversion) wired into `visit_image` (FIG-01), and a caption buffer-swap + `:target:` `refid` branch emitting valid `#figure(link(...)[#image(...)], caption: [...])` (FIG-02).
+- The highest-frequency previously-dropped nodes now render correctly and compilably: version directives (VER-01), `refid` cross-references (XREF-01), autodoc `desc_*` signature sub-parts (DESC-01…04), transition/topic/line_block/glossary/tabular_col_spec/abbr (BLK-01…06), and footnotes via a document-order doctree pre-pass with Typst-native `footnote[...]` (FN-01, the one architecturally-new item).
+- A graceful-degrade net for out-of-scope graphical nodes (`graphviz`/`inheritance_diagram`): a bordered placeholder + one warning + `SkipNode`, never leaking source or aborting (DEG-01/02).
+- A standing real-`typst.compile()` acceptance gate (GATE-01) extended by every node-handler phase, plus the full-corpus gate (GATE-02): Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal error (~14.4 MiB PDF, 0 errors), with an `unknown_visit` frequency catalogue and an empty-URL before/after measurement.
+
+### What Worked
+- **Fatal-fixes-first sequencing.** Phase 11 landed the Issue #114 fatals *before* any other handler, because a single fatal node aborts the whole PDF — nothing downstream could be validated against a real compile until #114 was green. This mirrors v0.4.4's "land the fix alone" discipline.
+- **The real-compile gate earned its keep.** GATE-01's `sphinx-build → typst.compile() → pypdf` methodology caught three *additional* latent fatals that no unit assert would have surfaced: labels attached to code-mode statements, a dangling `:term:` glossary anchor, and a footnote buffer-swap paragraph-state clobber. Each was a real "aborts the whole PDF" bug hiding behind green unit tests.
+- **Corpus-as-the-gate.** Making Phase 15 a real build of Sphinx's own full `doc/` tree (not a synthetic fixture) is what turned "we think it's robust" into a measured 0-errors PDF — and it honestly surfaced the long-tail residual (`todo_node`/`manpage`) as backlog rather than pretending zero warnings.
+- **Native-model over literal port.** FN-01 used Typst's native `footnote[]` numbering/placement instead of re-implementing docutils' HTML-style backref plumbing — less code, fewer failure modes.
+
+### What Was Inefficient
+- **Scope creep into a post-gate polish campaign.** After GATE-02 went green, a same-day "rendering polish" campaign opened 13 non-fatal debug sessions (deflist/desc concat, dangling labels, propagated-target anchors). Valuable work, but it blurred the milestone boundary — it had to be explicitly acknowledged/deferred at close rather than being cleanly scoped as the next milestone from the start.
+- **Branch/main drift returned — worse.** The *entire* v0.6.0 milestone (173 commits) accumulated on local `main`, unpushed, while `origin/main` sat at the v0.5.0 merge. This is the exact v0.4.4 lesson ("fast-forward main after each merge") un-applied; a single release PR at close now carries the whole milestone's diff instead of incremental observed-green merges.
+- **Sandbox friction, still.** The NixOS `uv`-in-subprocess failures (~45 environment-caused) continued to tax per-phase verification, exactly as in v0.5.0 — still undocumented as a reusable shim.
+- **VALIDATION.md drafts still non-compliant.** Every phase again carries a `nyquist_compliant: false` draft; the hook is inactive so they don't gate, but the audit-noise lesson from v0.5.0 went un-actioned.
+
+### Patterns Established
+- **Compile-gate every render-layer node handler.** The empirical bar for a node handler is a real `typst.compile()` of a fixture exercising it — extended, not re-invented, per phase. String-agreement asserts never suffice for a tool where one bad node aborts the whole document.
+- **Graceful-degrade net for out-of-scope nodes.** Rather than crash or leak source, unsupported graphical nodes emit a visible placeholder + one warning + `SkipNode` — keeps a full-corpus compile usable as a feedback tool.
+- **Real-corpus milestone gate.** Validate robustness against a real large downstream project's docs, not a synthetic corpus, and catalogue the residual long tail as explicit next-milestone input.
+
+### Key Lessons
+1. **One fatal node aborts the entire PDF — so "does it compile" is the only real correctness signal.** A green unit suite proved nothing here; the compile gate caught every one of the three latent fatals.
+2. **A real downstream corpus is the honest robustness test.** Sphinx's own `doc/` tree surfaced both the fixed fatals and the deferred long tail; a synthetic fixture would have flattered the result.
+3. **Draw the milestone boundary before polishing.** The 13 post-gate debug sessions should have been scoped as the next milestone at the moment GATE-02 went green, not accumulated against a shipped one.
+4. **Apply the fast-forward-main discipline every merge, not at close.** Letting 173 commits pile up unpushed re-created the v0.4.4 drift at 2× scale.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~2 calendar days; the milestone phases (11–15) completed 2026-07-12, with the corpus measurement + polish campaign on 2026-07-13.
+- Notable: the standing real-compile gate paid for itself by catching 3 latent fatals that would each have been a whole-PDF abort in a real user's build.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -93,6 +134,7 @@
 |-----------|----------|--------|------------|
 | v0.4.4 | ~2 days | 5 | First GSD-managed milestone; established push→observe terminal gates and floor+ceiling dependency discipline |
 | v0.5.0 | ~6 days | 6 (incl. 1 inserted) | Forward-port to Sphinx 9.1/typst 0.15; added real-render acceptance gates + a mid-milestone inserted phase; audit-then-publish for the irreversible release |
+| v0.6.0 | ~2 days | 5 | Translator robustness (Issue #114 + high-freq nodes); standing real-compile gate extended per phase; a real full-corpus (Sphinx `doc/`) build as the milestone gate |
 
 ### Cumulative Quality
 
@@ -100,6 +142,7 @@
 |-----------|-------|----------|-------------------|
 | v0.4.4 | ~400 (existing suite) + `@preview` sync guard | uploaded to Codecov (green) | 0 new runtime deps |
 | v0.5.0 | 413 (added smoke gate, PDF-render gate, version drift-guard, admonition structural asserts) | green (13/13 CI jobs on PR #112) | 0 new runtime deps (pypdf is dev-only) |
+| v0.6.0 | 476 fast + 18 GATE-01 real-compile classes + corpus gate (`test_corpus_gate.py`) | fast suite green; GATE-02 full-corpus PDF fatal-free | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -108,3 +151,5 @@
 3. Confirm dependency root causes by reproduction, not changelog inference. *(v0.5.0 — overturned the v0.4.4-era `kai` attribution)*
 4. A green unit suite doesn't prove correct rendered output — render-layer fixes need a compile→extract→assert acceptance gate. *(v0.5.0)*
 5. Split reversible prep from the irreversible publish; gate the point-of-no-return at milestone close on a confirmed-green commit. *(v0.4.4 precedent, formalized v0.5.0)*
+6. For a tool where one bad node aborts the whole output, "does it compile" is the only real correctness signal — compile-gate every render-layer handler against a fixture, and validate the milestone against a real downstream corpus. *(v0.6.0)*
+7. Draw the milestone boundary before polishing, and fast-forward `main` after every merge — v0.6.0 re-created v0.4.4's branch/main drift at 2× scale by deferring both. *(v0.4.4, re-learned v0.6.0)*
