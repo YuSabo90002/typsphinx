@@ -2783,6 +2783,25 @@ class TypstTranslator(SphinxTranslator):
         # Add extra spacing after signature
         self.body.append("\n")
 
+    def visit_desc_returns(self, node: addnodes.desc_returns) -> None:
+        """
+        Visit a desc_returns node (a signature's return-type annotation).
+
+        Emits a literal ' -> ' arrow before the return type (DESC-01).
+        Resolved return-type xref children already stream through the
+        unmodified visit_reference refid branch -- no extra code needed
+        for that case.
+        """
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text('text(" -> ")')
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
+    def depart_desc_returns(self, node: addnodes.desc_returns) -> None:
+        """Depart a desc_returns node."""
+        pass
+
     def visit_desc_content(self, node: addnodes.desc_content) -> None:
         """
         Visit a desc_content node (API description content).
@@ -2791,6 +2810,23 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_desc_content(self, node: addnodes.desc_content) -> None:
         """Depart a desc_content node."""
+        pass
+
+    def visit_desc_inline(self, node: addnodes.desc_inline) -> None:
+        """
+        Visit a desc_inline node (an inline signature fragment, e.g.
+        :cpp:expr:).
+
+        Transparent pass-through (DESC-04, D-06): desc_inline is a distinct
+        Sphinx node class from desc_signature, so node-type dispatch alone
+        satisfies D-06's strong()-suppression -- do NOT delegate to
+        visit_strong the way visit_desc_signature does, that would
+        reintroduce the strong() wrapper this requirement forbids.
+        """
+        pass
+
+    def depart_desc_inline(self, node: addnodes.desc_inline) -> None:
+        """Depart a desc_inline node."""
         pass
 
     def visit_desc_annotation(self, node: addnodes.desc_annotation) -> None:
@@ -2876,6 +2912,28 @@ class TypstTranslator(SphinxTranslator):
         if node.next_node(descend=False, siblings=True):
             self.body.append(' + text(", ")')
             self._desc_parameter_has_content = True
+
+    def visit_desc_optional(self, node: addnodes.desc_optional) -> None:
+        """
+        Visit a desc_optional node (trailing optional parameter group,
+        e.g. printf(fmt[, args[, more]])).
+
+        Literal-bracket-wraps the optional group, reusing the existing
+        _desc_parameter_has_content flag (DESC-03, zero new state). A
+        nested desc_optional is a structural doctree sibling, not a
+        parent-child relationship the handler needs to track -- the
+        identical handler firing again for the nested node produces
+        correctly nested brackets with no depth counter.
+        """
+        if self._desc_parameter_has_content:
+            self.add_text(" + ")
+        self.add_text('text("[")')
+        self._desc_parameter_has_content = True
+
+    def depart_desc_optional(self, node: addnodes.desc_optional) -> None:
+        """Depart a desc_optional node."""
+        self.add_text(' + text("]")')
+        self._desc_parameter_has_content = True
 
     def visit_field_list(self, node: nodes.field_list) -> None:
         """
