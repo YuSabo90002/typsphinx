@@ -1312,11 +1312,24 @@ class TypstTranslator(SphinxTranslator):
         hl_lines = highlight_args.get("hl_lines", [])
 
         # Issue #31: Support :lineno-start: option
-        # Sphinx stores lineno-start in highlight_args['linenostart']
+        # Sphinx stores lineno-start in highlight_args['linenostart']. Note
+        # that Sphinx's LiteralInclude directive ALWAYS populates
+        # linenostart (defaulting to 1) even without an explicit
+        # :lineno-start: option (see LiteralIncludeReader.__init__), so the
+        # `!= 1` guard below is required to avoid a spurious codly() call
+        # for the common "plain :linenos:" case.
+        #
+        # codly's @preview 1.3.0 codly() function has no `start` parameter
+        # -- it accepts `offset` (int), an ADDITIVE delta applied as
+        # `line.number + offset` where `line.number` is the raw block's
+        # 1-indexed line number (see codly/1.3.0/src/lib.typ). To make the
+        # first displayed line number equal Sphinx's `linenostart`, the
+        # offset must be `linenostart - 1` (offset=0 is codly's default,
+        # matching linenostart=1).
         lineno_start = highlight_args.get("linenostart")
-        if linenos and lineno_start is not None:
+        if linenos and lineno_start is not None and lineno_start != 1:
             # No # prefix in code mode
-            self.add_text(f"codly(start: {lineno_start})\n")
+            self.add_text(f"codly(offset: {lineno_start - 1})\n")
 
         # Generate codly-range() if highlight lines are specified
         if hl_lines:
