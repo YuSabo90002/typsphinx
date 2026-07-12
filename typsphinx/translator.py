@@ -120,6 +120,11 @@ class TypstTranslator(SphinxTranslator):
             # matching depart_title's anchor emission (see visit_title)
         )
 
+        # Topic state (BLK-02/D-01/D-02/D-05): distinguishes a box-less
+        # `.. contents::` topic (bullet_list pass-through) from a generic
+        # `.. topic::` (rendered as a titled clue box via _visit_admonition)
+        self._topic_is_contents: bool = False
+
     def astext(self) -> str:
         """
         Return the translated text as a string.
@@ -210,18 +215,46 @@ class TypstTranslator(SphinxTranslator):
         Generates heading() function call with level parameter.
         Child text nodes will be wrapped in text() automatically.
 
-        Exception: Inside an admonition, the title is not a section heading —
-        buffer its rendered inline content (via the standard inline visitors)
-        so it can be attached as a code-block title argument at depart time
-        instead of emitted here (see _depart_admonition).
+        Exception: Inside an admonition or a topic (D-02), the title is not
+        a section heading -- buffer its rendered inline content (via the
+        standard inline visitors) so it can be attached as a code-block
+        title argument at depart time instead of emitted here (see
+        _depart_admonition). A `.. contents::` topic (D-05) additionally
+        records the insertion point for its box-less bold label.
 
         Args:
             node: The title node
         """
-        # Admonition titles are deferred: buffer-swap the body so the title's
-        # inline children render through the normal visitors (preserving
-        # emphasis/literal/etc.) without touching the main output stream.
-        if isinstance(node.parent, nodes.Admonition):
+        # Pitfall-1 fix: a title's own children (Text, emphasis, strong,
+        # ...) currently concatenate with NO separator, because a title's
+        # child-stream sets neither in_paragraph nor in_list_item. Treat
+        # this title's own children like list_item content -- mirrors the
+        # exact idiom visit_emphasis/visit_strong already use for their own
+        # children ("treat it like list_item"). Restored in depart_title on
+        # EVERY return path below.
+        self._title_was_in_list_item = self.in_list_item
+        self._title_was_list_item_needs_separator = self.list_item_needs_separator
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
+        # D-02: admonition titles AND topic titles are deferred via
+        # buffer-swap -- nodes.topic is NOT a subclass of nodes.Admonition,
+        # so this is a literal additive `or`, never an MRO trick. The
+        # existing Admonition path body is untouched; only more parent
+        # types now enter it.
+        if isinstance(node.parent, nodes.Admonition) or isinstance(
+            node.parent, nodes.topic
+        ):
+            # D-05: a `.. contents::` topic's title must be inserted BEFORE
+            # the already-streaming bullet_list, not appended after (the
+            # list is the topic's second child and streams to self.body
+            # before depart_title/depart_topic run) -- record the insertion
+            # point now, since nothing has been emitted for this topic yet
+            # (title is always a topic's first child).
+            if isinstance(node.parent, nodes.topic) and "contents" in (
+                node.parent.get("classes", []) or []
+            ):
+                self._contents_title_insert_at = len(self.body)
             self._saved_body_for_admonition_title = self.body
             self.body = []
             self._in_admonition_title = True
@@ -239,11 +272,19 @@ class TypstTranslator(SphinxTranslator):
         self._title_section_ids = (
             node.parent.get("ids") if isinstance(node.parent, nodes.section) else None
         ) or []
+        # D-06: clamp to a minimum of level 1 -- a top-level titled
+        # non-section (section_level == 0) would otherwise emit
+        # heading(level: 0, ...), which Typst rejects (levels are >= 1).
+        emitted_level = max(1, self.section_level)
+        # Pitfall-1 fix: wrap the title content in a code block {...} so
+        # multi-child title content is one expression, not several
+        # juxtaposed statements (mirrors _depart_admonition's existing
+        # {...} wrap of the buffered admonition title).
         if self._title_section_ids:
-            self.add_text(f"[#heading(level: {self.section_level}, ")
+            self.add_text(f"[#heading(level: {emitted_level}, {{")
         else:
             # Use heading() function (no # prefix in code mode)
-            self.add_text(f"heading(level: {self.section_level}, ")
+            self.add_text(f"heading(level: {emitted_level}, {{")
 
     def depart_title(self, node: nodes.title) -> None:
         """
@@ -251,8 +292,11 @@ class TypstTranslator(SphinxTranslator):
 
         Closes heading() function call.
 
-        Exception: Inside an admonition, capture the buffered inline content
-        as the pending title and restore the main output stream.
+        Exception: Inside an admonition or topic, capture the buffered
+        inline content as the pending title and restore the main output
+        stream. A `.. contents::` topic (D-05) inserts its buffered title
+        as a bold label ahead of its already-streamed bullet_list instead
+        of consuming it as a box title argument.
 
         Args:
             node: The title node
@@ -263,6 +307,16 @@ class TypstTranslator(SphinxTranslator):
                 self.body = self._saved_body_for_admonition_title
             self._saved_body_for_admonition_title = None
             self._in_admonition_title = False
+            self.in_list_item = self._title_was_in_list_item
+            self.list_item_needs_separator = self._title_was_list_item_needs_separator
+
+            if hasattr(self, "_contents_title_insert_at"):
+                # D-05: insert (not append) the bold label at the recorded
+                # index so it lands ABOVE the already-streamed bullet_list.
+                label = f"strong({{{self._pending_admonition_title}}})\n\n"
+                self.body.insert(self._contents_title_insert_at, label)
+                self._pending_admonition_title = None
+                del self._contents_title_insert_at
             return
 
         if self._title_section_ids:
@@ -273,14 +327,16 @@ class TypstTranslator(SphinxTranslator):
             # explicit target name) get a zero-width metadata(none) anchor
             # each, pointing at the same document location.
             primary_id, *extra_ids = self._title_section_ids
-            self.add_text(f") <{primary_id}>]\n")
+            self.add_text(f"}}) <{primary_id}>]\n")
             for extra_id in extra_ids:
                 self.add_text(f"[#metadata(none) <{extra_id}>]\n")
             self.add_text("\n")
         else:
             # Close heading() function
-            self.add_text(")\n\n")
+            self.add_text("})\n\n")
         self._title_section_ids = []
+        self.in_list_item = self._title_was_in_list_item
+        self.list_item_needs_separator = self._title_was_list_item_needs_separator
 
     def visit_subtitle(self, node: nodes.subtitle) -> None:
         """
@@ -2629,6 +2685,32 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_admonition(self, node: nodes.admonition) -> None:
         """Depart a generic admonition."""
+        self._depart_admonition()
+
+    def visit_topic(self, node: nodes.topic) -> None:
+        """Visit a topic node (BLK-02/D-01/D-02/D-05).
+
+        A `.. topic::` renders as a titled `clue` box, reusing the same
+        admonition helper as `.. admonition::` (D-01) -- the widened
+        visit_title/depart_title buffer-swap (D-02) is what makes the
+        title actually get consumed by _depart_admonition.
+
+        A `.. contents::` topic (carrying the `contents` class) is instead
+        box-less pass-through (D-05): its title is rendered as a bold label
+        (handled entirely by visit_title/depart_title's insert-index trick)
+        and its child bullet_list renders through the existing, unmodified
+        list visitors -- no clue box wraps it here.
+        """
+        self._topic_is_contents = "contents" in (node.get("classes", []) or [])
+        if self._topic_is_contents:
+            return
+        self._visit_admonition(node, "clue")
+
+    def depart_topic(self, node: nodes.topic) -> None:
+        """Depart a topic node (BLK-02/D-01/D-02/D-05)."""
+        if self._topic_is_contents:
+            self._topic_is_contents = False
+            return
         self._depart_admonition()
 
     # Inline nodes (Task 7.4)

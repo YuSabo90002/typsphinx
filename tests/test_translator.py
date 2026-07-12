@@ -80,7 +80,7 @@ def test_translator_heading_level_generation(simple_document, mock_builder):
     translator.depart_Text(nodes.Text("Level 1"))
     translator.depart_title(title1)
     output1 = translator.astext()
-    assert 'heading(level: 1, text("Level 1"))' in output1
+    assert 'heading(level: 1, {text("Level 1")})' in output1
 
     # Clear output for next test
     translator.body = []
@@ -94,7 +94,7 @@ def test_translator_heading_level_generation(simple_document, mock_builder):
     translator.depart_Text(nodes.Text("Level 2"))
     translator.depart_title(title2)
     output2 = translator.astext()
-    assert 'heading(level: 2, text("Level 2"))' in output2
+    assert 'heading(level: 2, {text("Level 2")})' in output2
 
 
 def test_table_conversion(simple_document, mock_builder):
@@ -1807,7 +1807,7 @@ More text.
     output = translator.astext()
 
     # Check that heading is present
-    assert 'heading(level: 1, text("Test Comments"))' in output
+    assert 'heading(level: 1, {text("Test Comments")})' in output
 
     # Check that comment text does NOT appear in output
     assert "This is a comment" not in output
