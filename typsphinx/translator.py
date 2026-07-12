@@ -248,7 +248,9 @@ class TypstTranslator(SphinxTranslator):
         if self.in_paragraph:
             self.paragraph_has_content = True
 
-    def _emit_id_anchors(self, node: nodes.Node) -> None:
+    def _emit_id_anchors(
+        self, node: nodes.Node, skip_ids: set[str] | None = None
+    ) -> None:
         """
         Emit a zero-width ``[#metadata(none) <id>]`` Typst anchor for every id
         carried on a body element so a same-document ``link(<id>, ...)``
@@ -280,21 +282,41 @@ class TypstTranslator(SphinxTranslator):
         element's own emission stay newline-separated (never ``]par(`` /
         ``]list(`` juxtaposition, never a stranded ``+``).
 
+        ``skip_ids`` lets a caller that ALREADY anchors one of the node's ids
+        by another mechanism suppress a duplicate definition here. The sole
+        user is ``depart_figure``: a captioned figure self-anchors ``ids[0]``
+        inside its own ``[#figure(...) <label>]`` markup block, but a
+        PROPAGATED explicit target lands a DIFFERENT id in ``ids[1:]`` that
+        would otherwise dangle -- so the figure passes ``skip_ids={ids[0]}`` to
+        anchor only the propagated remainder. When every id is skipped the
+        method is a no-op (list-item bookkeeping is untouched), keeping output
+        byte-for-byte identical.
+
         Args:
             node: The body-element node whose ``ids`` should be anchored.
+            skip_ids: Raw docutils ids to NOT anchor here (already anchored by
+                the caller). Defaults to anchoring every id.
         """
         ids = node.get("ids") or []
         if not ids:
             return
-        if self.in_list_item and self.list_item_needs_separator:
-            self.add_text("\n")
+        skip = skip_ids or set()
         docname = self._current_docname()
         seen: set[str] = set()
+        pending: list[str] = []
         for node_id in ids:
+            if node_id in skip:
+                continue
             label_id = self._namespace_label(docname, node_id)
             if label_id in seen:
                 continue
             seen.add(label_id)
+            pending.append(label_id)
+        if not pending:
+            return
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        for label_id in pending:
             self.add_text(f"\n[#metadata(none) <{label_id}>]\n")
         if self.in_list_item:
             self.list_item_needs_separator = True
@@ -548,8 +570,11 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The compound node
         """
-        # Compound nodes are just containers, process their children
-        pass
+        # A propagated explicit target (``.. _t:`` before a ``.. toctree::``,
+        # which docutils wraps in a ``compound``) lands its id here; anchor it
+        # so a same-document link(<id>, ...) resolves. A plain toctree compound
+        # carries no ids -> no-op, byte-unchanged.
+        self._emit_id_anchors(node)
 
     def depart_compound(self, node: nodes.compound) -> None:
         """
@@ -570,6 +595,17 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The container node
         """
+        # A referenceable target lands its id on the container: either an
+        # explicit ``:name:`` on a captioned code block (the id sits on the
+        # outer ``literal-block-wrapper`` container, NOT the inner
+        # literal_block) or a propagated ``.. _t:`` before a
+        # ``.. container::``. Anchor it so a same-document link(<id>, ...)
+        # resolves. Guarded on ``names`` so the AUTO id docutils assigns to
+        # every captioned code block for numref (ids present, names absent,
+        # never referenced) is NOT anchored -- keeping the common
+        # captioned-block output byte-for-byte unchanged.
+        if node.get("names"):
+            self._emit_id_anchors(node)
         # Check if this is a literal-block-wrapper (captioned code block)
         if "literal-block-wrapper" in node.get("classes", []):
             self.in_captioned_code_block = True
@@ -1327,6 +1363,15 @@ class TypstTranslator(SphinxTranslator):
         # Reset separator flag for item content
         self.list_item_needs_separator = False
 
+        # A propagated explicit target (``.. _t:`` placed BETWEEN list items)
+        # lands its id on the FOLLOWING list_item node -- not the bullet_list
+        # (whose own ids are anchored in visit_bullet_list/visit_enumerated_list)
+        # and not the item's inner paragraph. Anchor it here, inside the item's
+        # ``{ }`` block, so a same-document link(<id>, ...) resolves. No ids ->
+        # no-op; the helper drives the in-list-item separator machinery so the
+        # anchor and the item's first content element stay newline-separated.
+        self._emit_id_anchors(node)
+
     def depart_list_item(self, node: nodes.list_item) -> None:
         """
         Depart a list item node.
@@ -1362,12 +1407,20 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The literal block node
         """
-        # NOTE: literal_block does NOT route through _emit_id_anchors. A
-        # propagated explicit target sets BOTH node["ids"] AND node["names"] on
-        # the block, and depart_literal_block already emits a ` <label>` anchor
-        # from node["names"] (the :name: path). Adding a second metadata anchor
-        # here double-defines the label (and the raw-block ` <label>` postfix
-        # then fails to join -> "cannot join content with label").
+        # Anchor node["ids"] via the shared markup-block helper. Both a
+        # ``:name:`` and a propagated ``.. _t:`` before the block set
+        # node["ids"] (and names) on the literal_block; the reference side
+        # resolves to the sanitized ID, so anchoring ids -- not names -- is
+        # what a link(<id>, ...) needs. This REPLACES the old
+        # depart_literal_block ` <label>` postfix (removed below): a bare
+        # ` <label>` after a code-mode raw block does not join ("cannot join
+        # content with label"), and it anchored the NAME, which diverges from
+        # the id whenever the name contains characters docutils rewrites (e.g.
+        # a space). Captioned ``:name:`` blocks carry the id on the outer
+        # literal-block-wrapper CONTAINER (handled in visit_container), so the
+        # inner literal_block has no ids there -> no-op, no double-define. A
+        # plain code block has no ids -> no-op, byte-unchanged.
+        self._emit_id_anchors(node)
 
         # Add newline separator if in list item and not first element
         if self.in_list_item and self.list_item_needs_separator:
@@ -1467,14 +1520,11 @@ class TypstTranslator(SphinxTranslator):
                     f" <{self._namespace_label(self._current_docname(), self.code_block_label)}>"
                 )
             self.add_text("\n\n")
-        elif node.get("names"):
-            # Handle :name: option without :caption: - just add label after code block
-            label = node.get("names")[0]
-            self.add_text(
-                f" <{self._namespace_label(self._current_docname(), label)}>\n\n"
-            )
         else:
-            # Normal code block - just add spacing
+            # Normal code block - just add spacing. Any :name:/propagated-target
+            # id is anchored by _emit_id_anchors in visit_literal_block (the old
+            # ` <label>` postfix here failed to join a code-mode raw block with
+            # a label and anchored the name instead of the id).
             self.add_text("\n")
 
         # Mark that next element in list item needs separator
@@ -1821,6 +1871,13 @@ class TypstTranslator(SphinxTranslator):
             self.add_text(f"\n) <{label}>]\n\n")
         else:
             self.add_text("\n)\n\n")
+
+        # A captioned figure self-anchors ONLY ids[0] (its own caption/numref
+        # id) in the ``) <label>]`` postfix above. A PROPAGATED explicit target
+        # (``.. _t:`` before ``.. figure::``) lands a DIFFERENT id in ids[1:]
+        # that would otherwise dangle -- anchor the remainder, skipping ids[0]
+        # so it is not defined twice. Empty/single-id figures -> no-op.
+        self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
 
         self.in_figure = False
         self.figure_content = []
@@ -3426,6 +3483,16 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The block math node
         """
+        # Anchor node["ids"] (a ``:label:`` equation id such as
+        # ``equation-euler``, or a propagated ``.. _t:`` target before the
+        # ``.. math::``) via the shared markup-block helper, BEFORE the
+        # equation. This REPLACES the old ` <label>` postfix (removed below):
+        # a bare ` <label>` after a code-mode ``$ ... $`` / ``mitex(...)``
+        # expression does not parse ("expected semicolon or line break") and
+        # aborts the compile. A same-document ``:eq:``/``:ref:`` renders
+        # link(<id>, ...) and resolves to this anchor. No ids -> no-op.
+        self._emit_id_anchors(node)
+
         # Extract math content
         math_content = node.astext()
 
@@ -3446,11 +3513,8 @@ class TypstTranslator(SphinxTranslator):
             # Requirement 4.2: LaTeX math via mitex (no # prefix in code mode)
             self.add_text(f"mitex(`{math_content}`)")
 
-        # Task 6.3: Add label if present
-        if "ids" in node and node["ids"]:
-            label = self._namespace_label(self._current_docname(), node["ids"][0])
-            self.add_text(f" <{label}>")
-
+        # Task 6.3: the equation label/id is anchored by _emit_id_anchors above
+        # (a code-mode ` <label>` postfix on the equation failed to parse).
         self.add_text("\n\n")
 
         # Skip children to prevent duplicate output of math content
@@ -3654,6 +3718,10 @@ class TypstTranslator(SphinxTranslator):
         """
         self._topic_is_contents = "contents" in (node.get("classes", []) or [])
         if self._topic_is_contents:
+            # The clue-box path (_visit_admonition) anchors node['ids'] for a
+            # normal topic; the box-less contents path returns early, so anchor
+            # a propagated target's id here too (no ids -> no-op).
+            self._emit_id_anchors(node)
             return
         self._visit_admonition(node, "clue")
 
@@ -3823,6 +3891,10 @@ class TypstTranslator(SphinxTranslator):
         nothing today (BLK-01). Self-closing node: no children to
         descend into, so this always raises SkipNode.
         """
+        # A propagated explicit target (``.. _t:`` before a ``----`` rule)
+        # lands its id on the transition; anchor it so a same-document
+        # link(<id>, ...) resolves (no ids -> no-op, byte-unchanged).
+        self._emit_id_anchors(node)
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
         self.add_text("line(length: 100%)\n\n")
@@ -3842,8 +3914,13 @@ class TypstTranslator(SphinxTranslator):
         child already renders via `visit_definition_list`, and the term
         anchor is provided by the `depart_term` fix from Plan 12-02 --
         do NOT duplicate that anchor logic here.
+
+        A propagated explicit target (``.. _t:`` before ``.. glossary::``)
+        lands its id on THIS glossary node (distinct from the per-term
+        anchors); anchor it so a same-document link(<id>, ...) resolves. A
+        plain glossary carries no ids -> no-op, byte-unchanged.
         """
-        pass
+        self._emit_id_anchors(node)
 
     def depart_glossary(self, node: addnodes.glossary) -> None:
         """Depart a glossary node (transparent pass-through)."""
@@ -4290,6 +4367,10 @@ class TypstTranslator(SphinxTranslator):
 
         Rubrics are rendered as subsection headings using strong({}) wrapper.
         """
+        # A propagated explicit target (``.. _t:`` immediately before a
+        # ``.. rubric::``) lands its id on this rubric node; anchor it so a
+        # same-/cross-document link(<id>, ...) resolves (no ids -> no-op).
+        self._emit_id_anchors(node)
         # Add newline before rubric
         self.body.append("\n")
         # Create a dummy strong node and use its visitor logic

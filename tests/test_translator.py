@@ -2242,16 +2242,30 @@ def test_code_block_with_caption_and_name(simple_document, mock_builder):
     assert "```python" in output
 
 
-def test_code_block_with_name_only(simple_document, mock_builder):
-    """Test code block with :name: option only (no caption)."""
+def test_code_block_with_name_only_emits_joinable_id_anchor(
+    simple_document, mock_builder
+):
+    """Test code block with :name: option only (no caption).
+
+    A ``:name:`` (like a propagated ``.. _t:`` target) makes docutils assign
+    BOTH ``names`` AND ``ids`` to the literal_block, and a same-document
+    ``:ref:`` resolves to the sanitized ID. The block must therefore emit a
+    Typst anchor for its ID. It is emitted as the clean, joinable
+    ``[#metadata(none) <id>]`` markup block -- NOT the old bare ` <label>`
+    postfix, which appended a label directly after a code-mode raw block and
+    aborted the compile with "cannot join content with label" (and anchored
+    the name rather than the id). See the rubric/missing-anchor sweep.
+    """
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
-    # Create literal_block with name but no caption (no container wrapper)
+    # Create literal_block with name+id but no caption (no container wrapper).
+    # Real docutils assigns both when :name: is given; mirror that here.
     literal_block = nodes.literal_block()
     literal_block["language"] = "python"
     literal_block["names"].append("code-example")  # :name: option
+    literal_block["ids"].append("code-example")  # docutils make_id() companion
     literal_block += nodes.Text("def example():\n    pass")
 
     simple_document += literal_block
@@ -2262,8 +2276,13 @@ def test_code_block_with_name_only(simple_document, mock_builder):
 
     # Should NOT wrap in #figure() (no caption)
     assert "#figure(" not in output
-    # Should contain label after code block
-    assert "<code-example>" in output
+    # Should anchor the ID via the clean, joinable metadata-block form
+    # (docname is None in this unit context, so the label is un-namespaced).
+    assert "[#metadata(none) <code-example>]" in output
+    # The old broken bare-postfix form must NOT be emitted: a ` <label>`
+    # immediately after the closing code fence does not join in code mode.
+    assert "``` <code-example>" not in output
+    assert "```\n <code-example>" not in output
     # Should contain code block
     assert "```python" in output
 
