@@ -1124,3 +1124,200 @@ class TestTopicLineBlockRenderGate:
                 "rendered PDF text -- topic/line_block markup/code-mode "
                 "regression"
             )
+
+
+# ---------------------------------------------------------------------------
+# Phase 14 (FN-01, GATE-01): extend the render-gate pattern to prove the
+# Plan 14-01 footnote pre-pass handlers (visit_document's id->node index,
+# visit_footnote's SkipNode suppression, and visit_footnote_reference's
+# definition/reuse emission) render correctly through a real
+# sphinx-build -> typst.compile() -> pypdf round-trip -- single-reference
+# (SC#1), double-reference no-duplication (SC#2), inline-markup body (SC#3),
+# and footnote-inside-a-list-item (SC#4).
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the footnote render gate -- distinctive, unlikely
+# ALLCAPS-no-space words chosen so `full_text.count(...)` can prove each
+# footnote's body reached the compiled PDF exactly once (guarding against
+# the D-03 double-emission fatal). Must match the sentinel tokens embedded
+# in footnote_render_gate/index.rst.
+FOOTNOTE_SINGLE_SENTINEL = "FOOTNOTESINGLESENTINEL"
+FOOTNOTE_DOUBLE_SENTINEL = "FOOTNOTEDOUBLESENTINEL"
+FOOTNOTE_MARKUP_SENTINEL = "FOOTNOTEMARKUPSENTINEL"
+FOOTNOTE_LIST_SENTINEL = "FOOTNOTELISTSENTINEL"
+
+
+@pytest.fixture(scope="class")
+def footnote_render_gate_pdf_text(tmp_path_factory):
+    """
+    Build + real-compile the footnote_render_gate fixture ONCE per class and
+    return the pypdf-extracted PDF text.
+
+    Class-scoped so the four thin test methods below (one per SC) each
+    assert a disjoint slice of the SAME real-compile artifact rather than
+    re-running sphinx-build/typst.compile() four times. Depends only on
+    `tmp_path_factory` (session-scoped-compatible) -- not on a
+    function-scoped fixtures-dir fixture, to avoid a pytest ScopeMismatch (a
+    class-scoped fixture may not depend on a narrower, function-scoped one).
+    """
+    source_dir = Path(__file__).parent / "fixtures" / "footnote_render_gate"
+    build_dir = tmp_path_factory.mktemp("footnote_gate") / "_build"
+
+    result = _run_sphinx_build_typst(source_dir, build_dir)
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+    index_typ = build_dir / "index.typ"
+    assert index_typ.exists(), "index.typ was not generated"
+
+    # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+    # this is the crux of GATE-01 -- any fatal (a leaked bodyless/duplicate-
+    # label footnote call, a missing statement separator) aborts the ENTIRE
+    # compile here and fails every dependent test method loudly, rather than
+    # merely failing a string-agreement check. This is the verification that
+    # the Plan 14-01 D-08 dangling-refid guard and D-03 emitted-ids set()
+    # gate hold under a real compile.
+    pdf_output = build_dir / "index.pdf"
+    typst.compile(str(index_typ), output=str(pdf_output))
+
+    assert pdf_output.exists(), "PDF file was not created"
+    assert pdf_output.stat().st_size > 0, "PDF file is empty"
+    with open(pdf_output, "rb") as f:
+        magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    reader = pypdf.PdfReader(str(pdf_output))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestFootnoteRenderGate:
+    """
+    Real-compile acceptance gate for FN-01: visit_document's id->node
+    pre-pass index, visit_footnote's SkipNode suppression, and
+    visit_footnote_reference's definition/reuse emission.
+
+    Requirements: FN-01, GATE-01 (14-CONTEXT.md D-01..D-09, 14-RESEARCH.md
+    Verified Mechanisms 1-3, 14-02-PLAN.md).
+
+    All four test methods share the SAME real-compile artifact via the
+    class-scoped `footnote_render_gate_pdf_text` fixture above --
+    sphinx-build/typst.compile() run exactly once per class, not once per
+    test method.
+    """
+
+    def test_single_reference_body_once(self, footnote_render_gate_pdf_text):
+        """
+        SC#1: a footnote referenced ONCE renders its body sentinel EXACTLY
+        ONCE in the extracted PDF text -- no floating body left at the
+        docutils definition location.
+        """
+        full_text = footnote_render_gate_pdf_text
+
+        assert full_text.count(FOOTNOTE_SINGLE_SENTINEL) == 1, (
+            f"Expected single-reference footnote body sentinel "
+            f"'{FOOTNOTE_SINGLE_SENTINEL}' to appear exactly once in "
+            "extracted PDF text -- visit_footnote_reference regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- footnote markup/code-mode regression"
+            )
+
+    def test_double_reference_body_not_duplicated(self, footnote_render_gate_pdf_text):
+        """
+        SC#2: a footnote referenced from TWO paragraphs renders a marker at
+        both sites while its body sentinel appears exactly once -- the
+        second citation reuses the placed note by label (D-03), it does not
+        duplicate the body.
+        """
+        full_text = footnote_render_gate_pdf_text
+
+        assert full_text.count(FOOTNOTE_DOUBLE_SENTINEL) == 1, (
+            f"Expected double-reference footnote body sentinel "
+            f"'{FOOTNOTE_DOUBLE_SENTINEL}' to appear exactly once in "
+            "extracted PDF text (not duplicated by the reuse citation) -- "
+            "D-03 set()-gated reuse-form regression"
+        )
+        assert (
+            full_text.count("A footnote referenced from this first paragraph") == 1
+        ), (
+            "Expected the double-reference SC#2 first citing paragraph "
+            "exactly once in extracted PDF text"
+        )
+        assert (
+            full_text.count(
+                "A second, separate paragraph citing the very same footnote again"
+            )
+            == 1
+        ), (
+            "Expected the double-reference SC#2 second citing paragraph "
+            "exactly once in extracted PDF text -- both citation sites must "
+            "be present even though the body renders only once"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- footnote markup/code-mode regression"
+            )
+
+    def test_body_inline_markup_and_special_chars(self, footnote_render_gate_pdf_text):
+        """
+        SC#3: a footnote body containing `emph`/`literal` and markup-special
+        characters (`@ # $ _ * < >`) renders correctly in the compiled
+        PDF -- proof the buffer-swap through the normal visitor chain
+        preserved inline markup and escaping.
+        """
+        full_text = footnote_render_gate_pdf_text
+
+        assert FOOTNOTE_MARKUP_SENTINEL in full_text, (
+            f"Expected inline-markup footnote body sentinel "
+            f"'{FOOTNOTE_MARKUP_SENTINEL}' in extracted PDF text -- "
+            "visit_footnote_reference buffer-swap regression"
+        )
+        assert "emphasis" in full_text, (
+            "Expected the *emphasis* footnote-body content in extracted "
+            "PDF text -- buffer-swap inline-markup regression"
+        )
+        assert "literal" in full_text, (
+            "Expected the ``literal`` footnote-body content in extracted "
+            "PDF text -- buffer-swap inline-markup regression"
+        )
+        assert "@ # $ _ * < >" in full_text, (
+            "Expected the markup-special-character footnote-body content "
+            "'@ # $ _ * < >' in extracted PDF text -- buffer-swap escaping "
+            "regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- footnote markup/code-mode regression"
+            )
+
+    def test_footnote_inside_list_item(self, footnote_render_gate_pdf_text):
+        """
+        SC#4: a footnote cited from inside a bullet-list item compiles
+        cleanly and its body sentinel is present.
+        """
+        full_text = footnote_render_gate_pdf_text
+
+        assert FOOTNOTE_LIST_SENTINEL in full_text, (
+            f"Expected list-item footnote body sentinel "
+            f"'{FOOTNOTE_LIST_SENTINEL}' in extracted PDF text -- "
+            "footnote-inside-list-item regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- footnote markup/code-mode regression"
+            )
