@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 14
-current_phase_name: doctree pre-pass
+current_phase_name: footnotes-doctree-pre-pass
 status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-07-12T05:28:26.067Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-07-12T05:36:54.474Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 13 complete, transitioned to Phase 14
+last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 12
+  completed_plans: 11
   percent: 60
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 13 — shared-dispatch-point-changes-topic-line-blocks
+**Current focus:** Phase 14 — footnotes-doctree-pre-pass
 
 ## Current Position
 
-Phase: 14 — Footnotes (doctree pre-pass)
-Plan: Not started
+Phase: 14 (footnotes-doctree-pre-pass) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-12 — Phase 13 complete, transitioned to Phase 14
+Last activity: 2026-07-12 — Phase 14 execution started
 
 Progress: [██████████] 100%
 
@@ -86,6 +86,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 13-03]: Rendered the epigraph shape as a plain top-level line_block under a titled section (no .. epigraph:: directive) per Pitfall 4 -- sidesteps a pre-existing block_quote/attribution bug
 - [Phase 13-03]: Used a class-scoped GATE-01 fixture to build+compile+extract once per class, shared across three thin assertion-only test methods, avoiding three recompiles
 - [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
+- [Phase 14-01]: Used self.document.findall(nodes.footnote) instead of the deprecated .traverse() -- traverse() raises DeprecationWarning, escalated to a hard failure by this project's strict pytest filter
 
 ### Pending Todos
 
@@ -120,12 +121,13 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 13 P01 | 5min | 2 tasks | 3 files |
 | Phase 13 P02 | 4min | 2 tasks | 2 files |
 | Phase 13 P03 | 7min | 2 tasks | 3 files |
+| Phase 14 P01 | 5min | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T04:58:22.651Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-footnotes-doctree-pre-pass/14-CONTEXT.md
+Last session: 2026-07-12T05:36:54.469Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: 14-02-PLAN.md
 
 ## Operator Next Steps
 

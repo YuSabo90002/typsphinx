@@ -33,7 +33,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Footnotes
 
-- [ ] **FN-01**: `footnote` / `footnote_reference` render via Typst-native `footnote[...]` — a doctree pre-pass indexes footnote bodies by id, the reference site emits the note inline, and a footnote cited more than once reuses the placed note by label rather than duplicating it
+- [x] **FN-01**: `footnote` / `footnote_reference` render via Typst-native `footnote[...]` — a doctree pre-pass indexes footnote bodies by id, the reference site emits the note inline, and a footnote cited more than once reuses the placed note by label rather than duplicating it
 
 ### Structural / block nodes
 
@@ -95,7 +95,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DESC-02 | Phase 12 | Complete |
 | DESC-03 | Phase 12 | Complete |
 | DESC-04 | Phase 12 | Complete |
-| FN-01 | Phase 14 | Pending |
+| FN-01 | Phase 14 | Complete |
 | BLK-01 | Phase 12 | Complete |
 | BLK-02 | Phase 13 | Complete |
 | BLK-03 | Phase 13 | Complete |
