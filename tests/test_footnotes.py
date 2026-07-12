@@ -150,9 +150,7 @@ def test_repeat_reference_reuse_form(temp_sphinx_app: SphinxTestApp):
     assert output.count("REPEATBODYMARKER") == 1
 
 
-def test_dangling_reference_warns(
-    temp_sphinx_app: SphinxTestApp, caplog
-):
+def test_dangling_reference_warns(temp_sphinx_app: SphinxTestApp, caplog):
     """D-08: a dangling footnote_reference (refid absent from the index)
     logs a logger.warning naming the refid and skips, emitting no
     footnote(...) call at all.

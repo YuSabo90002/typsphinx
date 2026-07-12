@@ -178,9 +178,32 @@ class TypstTranslator(SphinxTranslator):
 
         Generates opening code block wrapper for unified code mode.
 
+        Also builds the FN-01 footnote pre-pass index (D-01): a
+        `{docutils-id: footnote-node}` dict built via
+        `self.document.findall(nodes.footnote)` BEFORE any body content is
+        visited, because footnote *definitions* are frequently positioned
+        AFTER their citing footnote_references in source order (e.g. under
+        a trailing `.. rubric:: Footnotes` -- see 14-RESEARCH.md "Verified
+        Mechanism 2" finding 5). Uses `self.document`, not the `node`
+        argument, per 14-RESEARCH.md Pitfall 4. `findall()` is used instead
+        of D-01's literal `traverse()` wording -- `Node.traverse()` is
+        deprecated in this repo's pinned docutils and raises under the
+        project's strict `error::DeprecationWarning` pytest filter
+        (pyproject.toml); `findall()` is its direct, non-deprecated
+        replacement with identical semantics for this call. Deviation
+        Rule 1 (auto-fixed bug). `self._emitted_footnote_ids` tracks which
+        ids have already emitted their definition form (D-03).
+
         Args:
             node: The document node
         """
+        self._footnote_index = {
+            n["ids"][0]: n
+            for n in self.document.findall(nodes.footnote)
+            if n.get("ids")
+        }
+        self._emitted_footnote_ids: set = set()
+
         # Start code block for unified code mode (all content uses function syntax without # prefix)
         self.add_text("#{\n")
 
@@ -1383,6 +1406,108 @@ class TypstTranslator(SphinxTranslator):
                 self.body = self._saved_body_for_figure_caption
             self._saved_body_for_figure_caption = None
         self.in_caption = False
+
+    def visit_footnote(self, node: nodes.footnote) -> None:
+        """
+        Visit a footnote definition node (D-05).
+
+        Emits nothing at the definition's natural (docutils) location -- the
+        body is reached only via the D-01 pre-pass index (visit_document)
+        plus the D-02 lazy render performed by visit_footnote_reference at
+        the citing site. A defined-but-never-referenced footnote is
+        therefore silently dropped (D-09), which is the intended behavior.
+
+        No depart_footnote is defined: SkipNode guarantees it never fires.
+
+        Args:
+            node: The footnote definition node
+        """
+        raise nodes.SkipNode
+
+    def visit_footnote_reference(self, node: nodes.footnote_reference) -> None:
+        """
+        Visit a footnote_reference node (D-02/D-03/D-04/D-06/D-08).
+
+        The FIRST reference to a given id renders the footnote body lazily
+        via the buffer-swap idiom (never node.astext() -- mirrors
+        depart_caption above), skipping the footnote node's leading `label`
+        child (D-06), and emits the bracket-wrapped, label-attached
+        definition form `[#footnote({body}) <fn-id>]`. The bracket-wrap is
+        required because Typst's `<label>` attachment postfix is markup-mode
+        syntax and is a parse error as a bare statement inside this
+        translator's unified `#{ ... }` code-mode wrapper (mirrors
+        visit_figure's `[#figure(...) <label>]`; 14-RESEARCH.md Verified
+        Mechanism 1).
+
+        Every REPEAT reference to an already-emitted id emits the bare reuse
+        form `footnote(<fn-id>)` -- no bracket-wrap, since `<label>` used as
+        a plain call ARGUMENT is a code-mode Label value, not markup-mode
+        attachment syntax (14-RESEARCH.md Verified Mechanism 1, finding 1).
+        Typst's native footnote() auto-numbering owns numbering entirely
+        (D-04); no docutils number/symbol is ever forced.
+
+        A dangling refid (not present in the D-01 index) logs a
+        logger.warning naming the refid and skips emitting anything --
+        emitting a footnote(<missing-label>) call for a label that was
+        never attached is a FATAL Typst compile abort ("label `<..>` does
+        not exist in the document"), not a cosmetic issue (14-RESEARCH.md
+        Pitfall 1); this guard is load-bearing and must run before any
+        emission. `citation`/`citation_reference` are untouched (D-07).
+
+        The footnote_reference node's own child (docutils' rendered marker
+        number, e.g. "1"/"2") is never rendered -- Typst supplies its own
+        marker via footnote()'s auto-numbering.
+
+        No depart_footnote_reference is defined: SkipNode guarantees it
+        never fires.
+
+        Args:
+            node: The footnote_reference node
+        """
+        refid = node.get("refid")
+        footnote_node = self._footnote_index.get(refid)
+
+        if footnote_node is None:
+            logger.warning(
+                "Dangling footnote reference: refid=%r not found in document",
+                refid,
+            )
+            raise nodes.SkipNode
+
+        label = f"fn-{refid}"
+
+        # Statement-separator convention every other inline child already
+        # uses (visit_emphasis/visit_strong/visit_literal all open this way).
+        self._add_paragraph_separator()
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+
+        if refid in self._emitted_footnote_ids:
+            # D-03 reuse branch: a bare code-mode call, no bracket-wrap --
+            # <label> as a function ARGUMENT is a plain code-mode Label
+            # value (unlike the definition form's label-ATTACHMENT postfix).
+            self.add_text(f"footnote(<{label}>)")
+        else:
+            # D-03 definition branch: bracket-wrap for the <label>
+            # attachment postfix (Phase 11 precedent). Body sourced via
+            # buffer-swap through the normal visitor chain (D-02), never
+            # node.astext() -- skip only the footnote node's leading
+            # `label` child by position (D-06/14-RESEARCH.md Pitfall 3).
+            self._emitted_footnote_ids.add(refid)
+            saved_body = self.body
+            self.body = []
+            for child in footnote_node.children[1:]:
+                child.walkabout(self)
+            body_content = "".join(self.body)
+            self.body = saved_body
+            self.add_text(f"[#footnote({{{body_content}}}) <{label}>]")
+
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
+        # D-06: the footnote_reference's OWN child (docutils' rendered
+        # marker Text, e.g. "1"/"2") must never render.
+        raise nodes.SkipNode
 
     def visit_table(self, node: nodes.table) -> None:
         """
