@@ -5,8 +5,8 @@ milestone_name: — real-world robustness
 current_phase: 15
 current_phase_name: Full-Corpus Validation
 status: verifying
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-07-12T05:52:08.760Z"
+stopped_at: Phase 15 context gathered
+last_updated: "2026-07-12T06:24:22.847Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 14 complete, transitioned to Phase 15
 progress:
@@ -127,9 +127,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-12T05:47:32.840Z
-Stopped at: Completed 14-02-PLAN.md
-Resume file: None
+Last session: 2026-07-12T06:24:22.842Z
+Stopped at: Phase 15 context gathered
+Resume file: .planning/phases/15-full-corpus-validation/15-CONTEXT.md
 
 ## Operator Next Steps
 
