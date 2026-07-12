@@ -3933,8 +3933,19 @@ class TypstTranslator(SphinxTranslator):
         Visit a desc node (API description container).
 
         Desc nodes contain API descriptions (classes, functions, methods, etc.).
+
+        An explicit target (``.. _target:``) immediately preceding an
+        object-description directive (e.g. ``.. option::``) has its id
+        propagated by docutils' ``PropagateTargets`` transform onto THIS
+        outer ``desc`` container -- a DIFFERENT id than the one on
+        ``desc_signature`` (bug #17 anchors that one). In the overwhelming
+        common case (no preceding explicit target) ``desc`` carries no ids
+        at all, so this is a no-op / byte-unchanged for existing output.
+        Mirrors the established container-anchor pattern (bug #20) used by
+        visit_bullet_list/visit_table/visit_block_quote/etc: anchor BEFORE
+        any child (signature/content) is visited.
         """
-        pass
+        self._emit_id_anchors(node)
 
     def depart_desc(self, node: addnodes.desc) -> None:
         """
