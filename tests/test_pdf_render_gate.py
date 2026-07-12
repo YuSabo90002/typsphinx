@@ -13,6 +13,7 @@ paragraph-call / text-call / raw-call open-paren forms) appear in the
 extracted PDF prose.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -1433,4 +1434,148 @@ class TestCodlyOffsetRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- codly markup/code-mode regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# GATE-02 corpus fatal #15 (Phase 15): visit_block_quote emitted the
+# markup-mode trailing content block `quote[ ... ]`, but every body child is
+# a code-mode function call (par({text(...)}), raw(...), link(...)). Inside a
+# markup `[...]` block those bytes are treated as LITERAL PROSE, so a lone
+# markup-special char in a child string literal -- e.g. the `_` in an inline
+# literal ``_t`` (Sphinx's `_t` static-template suffix) -- opens a stray
+# inline-emphasis span that never closes and aborts the whole compile with
+# `TypstError: unclosed delimiter`. The fix emits a CODE-MODE body,
+# quote(block: true, { ... }), where the children are real function calls and
+# their string-literal chars are inert. This is a FAST (non-slow, offline)
+# render gate -- no network/corpus dependency, following the
+# TestAdmonitionPdfRenderGate / TestCodlyOffsetRenderGate pattern.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the block-quote render gate",
+)
+class TestBlockQuoteMarkupModeRenderGate:
+    """
+    Real-compile acceptance gate for the block-quote markup-mode ->
+    code-mode body fix (GATE-02 corpus fatal #15).
+
+    Requirements: GATE-02 (15-CONTEXT.md). Composes with bug #11 (the
+    block-quote list-item leading separator) and the attribution handler.
+    """
+
+    def test_block_quote_pdf_compiles_with_markup_special_body(
+        self, fixtures_dir, temp_build_dir
+    ):
+        """
+        Compile the block_quote_markup_render_gate fixture (a plain block
+        quote, a block quote nested inside a list item, and a block quote
+        with an attribution -- each carrying an inline literal ``_t`` whose
+        lone underscore would open a stray emphasis span in markup mode) to
+        PDF and confirm:
+
+        - (source) each block quote is emitted as the code-mode
+          ``quote(block: true, { ... })`` body form, never the markup-mode
+          ``quote[par(`` / ``quote[`` form -- the exact fatal shape;
+        - (source) bug #11's list-item leading separator still fires: the
+          list-item lead-in text and the following ``quote(block: true, {``
+          are newline-separated, never juxtaposed;
+        - (source) the attribution is appended as a named argument on the
+          same quote() call: ``}, attribution: [``;
+        - typst.compile() succeeds (no ``unclosed delimiter`` TypstError)
+          and every block quote's body sentinel -- plus the attribution
+          text -- reaches the extracted PDF text, with no LEAK_SIGNATURES
+          token (proof the ``_t`` literal rendered as prose, not leaked
+          Typst source).
+        """
+        source_dir = fixtures_dir / "block_quote_markup_render_gate"
+
+        result = _run_sphinx_build_typst(source_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        # Source-level: the markup-mode trailing content block form must never
+        # be emitted -- inside `[...]` the code-mode par()/raw() children are
+        # literal prose and a lone markup-special char aborts the compile.
+        assert "quote[par(" not in typ_source, (
+            "Block quote emitted the markup-mode quote[par(...] form -- inside "
+            "markup the code-mode children are literal prose and a lone "
+            "markup-special char opens an unclosed emphasis span (fatal #15)"
+        )
+        # ...and the code-mode body form must be present (three block quotes).
+        assert typ_source.count("quote(block: true, {") == 3, (
+            "Expected three code-mode quote(block: true, {...}) block quotes "
+            f"in the generated source:\n{typ_source}"
+        )
+
+        # bug #11 interaction: the block quote inside the list item must NOT
+        # juxtapose the preceding list-item lead-in text -- the leading
+        # separator must keep them apart.
+        assert (
+            'text(" helpers BLOCKQUOTELISTSENTINEL:")quote(block: true, {'
+            not in typ_source
+        ), (
+            "The list-item block quote juxtaposes the preceding lead-in text "
+            "with NO separator -- bug #11's list-item separator regressed"
+        )
+        assert re.search(
+            r"BLOCKQUOTELISTSENTINEL:\"\)\s*\nquote\(block: true, \{",
+            typ_source,
+        ), (
+            "Expected a newline separator between the list-item lead-in text "
+            "and the following block quote -- bug #11's list-item separator "
+            "did not fire"
+        )
+
+        # The attribution must be appended as a named argument on the same
+        # quote() call (positional body first, then named attribution).
+        assert "}, attribution: [" in typ_source, (
+            "The block-quote attribution was not appended as a named argument "
+            "on the code-mode quote() call"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a leaked markup-mode quote[...] body with the ``_t`` literal aborts
+        # the compile here with `unclosed delimiter` -- the crux of the fatal.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for sentinel in (
+            "BLOCKQUOTEPLAINSENTINEL",
+            "BLOCKQUOTELISTSENTINEL",
+            "BLOCKQUOTEATTRSENTINEL",
+        ):
+            assert sentinel in full_text, (
+                f"Expected block-quote body sentinel '{sentinel}' in "
+                "extracted PDF text -- block-quote render regression"
+            )
+        assert "William Shakespeare" in full_text, (
+            "Expected the attribution text 'William Shakespeare' in extracted "
+            "PDF text -- depart_attribution regression"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into rendered "
+                "PDF text -- block-quote markup/code-mode regression (the "
+                "``_t`` literal must render as prose, not leaked source)"
             )

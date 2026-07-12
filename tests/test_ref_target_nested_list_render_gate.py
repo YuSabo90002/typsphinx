@@ -189,12 +189,17 @@ class TestRefTargetNestedListRenderGate:
         )
 
         # (b) The block quote must NOT juxtapose the preceding list-item text --
-        # this is the exact corpus changes/6.1.typ:143 fatal shape.
-        assert "quote[" in typ_text, (
-            "No block quote (quote[...]) was emitted -- the fixture's "
-            f"over-indented sub-block did not render a block_quote:\n{typ_text}"
+        # this is the exact corpus changes/6.1.typ:143 fatal shape. The block
+        # quote is now emitted as the code-mode quote(block: true, { ... }) body
+        # form (bug #15), not the markup-mode quote[...] form.
+        assert "quote(block: true, {" in typ_text, (
+            "No block quote (quote(block: true, {...})) was emitted -- the "
+            f"fixture's over-indented sub-block did not render a block_quote:\n"
+            f"{typ_text}"
         )
-        assert 'text("NESTEDBLOCKSENTINEL functions:")quote[' not in typ_text, (
+        assert (
+            'text("NESTEDBLOCKSENTINEL functions:")quote(block: true, {' not in typ_text
+        ), (
             "The block quote juxtaposes the preceding list-item text with NO "
             "separator -- the exact changes/6.1.typ:143 'expected semicolon or "
             "line break' fatal"
@@ -202,7 +207,8 @@ class TestRefTargetNestedListRenderGate:
         # ...and the separated form (newline between the list-item text and the
         # block quote) must be present.
         assert re.search(
-            r'text\("NESTEDBLOCKSENTINEL functions:"\)\s*\nquote\[', typ_text
+            r'text\("NESTEDBLOCKSENTINEL functions:"\)\s*\nquote\(block: true, \{',
+            typ_text,
         ), (
             "Expected a newline separator between the list-item text and the "
             "following block quote -- the block_quote list-item separator fix "
