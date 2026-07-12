@@ -4,17 +4,17 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 11
 current_phase_name: "Issue #114 Fatal Fixes + Graceful-Degrade Net"
-status: executing
+status: verifying
 stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-07-11T23:58:37.792Z"
+last_updated: "2026-07-12T00:21:59.780Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 20
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 11 (Issue #114 Fatal Fixes + Graceful-Degrade Net) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
-Last activity: 2026-07-11 — Phase 11 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-07-12 — Completed 11-03-PLAN.md (GATE-01)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Roadmap Summary (v0.6.0 — Phases 11–15)
 
@@ -78,6 +78,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 11-01]: Confirmed live sphinx.ext.graphviz/inheritance_diagram node-class names before finalizing visit_* method names (resolves RESEARCH.md Assumption A1)
 - [Phase 11-02]: Figure caption buffer-swap guarded strictly by if self.in_figure: on both visit/depart, leaving the captioned-code-block SkipNode path (which never calls depart_caption) unaffected
 - [Phase 11-02]: refid fallback branch in visit_reference inserted as an early return before the existing empty-URL guard; no sanitization of refid, matching the adjacent #-prefixed refuri branch convention
+- [Phase 11-03]: Fixed a third fatal Typst compile bug (label-in-code-mode) discovered while building GATE-01 fixtures: bracket-wrap labeled figure/heading emissions in markup content — Docutils auto-assigns ids to any captioned figure and internal :target: links require section anchors; without this fix neither figure fixture could compile, blocking GATE-01's own success criteria
 
 ### Pending Todos
 
@@ -108,10 +109,11 @@ Items acknowledged and carried forward from previous milestone closes:
 | Styling refinements | TODO-01 (`todo_node` styling), MAN-01 (`:manpage:` role), LEN-01 (generalize CSS-length converter) | Deferred to v0.6.x | v0.6.0 scoping |
 | Phase 11 P01 | 15min | 3 tasks | 2 files |
 | Phase 11 P02 | 10min | 2 tasks | 1 files |
+| Phase 11 P03 | ~90min | 2 tasks | 11 files |
 
 ## Session Continuity
 
-Last session: 2026-07-11T23:58:37.787Z
+Last session: 2026-07-12T00:21:05.815Z
 Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 
