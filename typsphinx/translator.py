@@ -85,6 +85,10 @@ class TypstTranslator(SphinxTranslator):
         self._desc_parameter_has_content: bool = (
             False  # Track if desc_parameter has content for + separator
         )
+        self._is_first_desc_signature_line: bool = (
+            True  # Track if next desc_signature_line is the first (DESC-02);
+            # reset per signature in visit_desc_signature
+        )
         self._link_has_content: bool = (
             False  # Track if link has content for + separator
         )
@@ -2774,6 +2778,9 @@ class TypstTranslator(SphinxTranslator):
         # Create a dummy strong node and use its visitor logic
         dummy_strong = nodes.strong()
         self.visit_strong(dummy_strong)
+        # Reset per signature (DESC-02): each desc_signature starts fresh,
+        # so consecutive signatures don't carry over a stray linebreak().
+        self._is_first_desc_signature_line = True
 
     def depart_desc_signature(self, node: addnodes.desc_signature) -> None:
         """Depart a desc_signature node."""
@@ -2800,6 +2807,30 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_desc_returns(self, node: addnodes.desc_returns) -> None:
         """Depart a desc_returns node."""
+        pass
+
+    def visit_desc_signature_line(self, node: addnodes.desc_signature_line) -> None:
+        """
+        Visit a desc_signature_line node (one line of a genuine multi-line
+        signature, e.g. a C++ template declaration).
+
+        Emits a real Typst linebreak() before every line after the first
+        (DESC-02) -- a source '\\n' between two code-mode statements is
+        proven cosmetic-only (produces zero visual break), so linebreak()
+        (Typst stdlib) is required. The first line emits nothing extra,
+        keeping the single-line case (one desc_signature_line, or none)
+        backward-compatible.
+        """
+        if not self._is_first_desc_signature_line:
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+            self.add_text("linebreak()")
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+        self._is_first_desc_signature_line = False
+
+    def depart_desc_signature_line(self, node: addnodes.desc_signature_line) -> None:
+        """Depart a desc_signature_line node."""
         pass
 
     def visit_desc_content(self, node: addnodes.desc_content) -> None:
