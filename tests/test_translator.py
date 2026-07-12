@@ -1538,8 +1538,13 @@ def test_target_label_generation(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Check that Typst label is generated (using label() function in unified code mode)
-    assert 'label("my-label")' in output
+    # A target must emit a metadata-carrying markup anchor -- [#metadata(none)
+    # <id>] -- NOT a bare code-mode `label("id")`. A bare label is a raw label
+    # value that cannot stand alone in a content block (two adjacent targets
+    # are a Typst syntax error; a single one "cannot join content with label"),
+    # whereas the metadata block is real content with the label attached and is
+    # still reachable via link(<id>). See visit_target.
+    assert "[#metadata(none) <my-label>]" in output
 
 
 def test_reference_to_target(simple_document, mock_builder):
