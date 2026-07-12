@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.0 milestone close)
 
 ## Current Position
 
-Phase: Milestone v0.6.0 complete
+Phase: Milestone v0.6.0 complete + released
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-07-12 — Milestone v0.6.0 completed and archived
+Last activity: 2026-07-13 — v0.6.0 shipped: PR #115 merged (closes #114), tagged v0.6.0, PyPI + GitHub Release published via release.yml (run 29210840198)
 
 ## Roadmap Summary (v0.6.0 — Phases 11–15)
 
