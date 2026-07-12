@@ -588,6 +588,28 @@ class TypstTranslator(SphinxTranslator):
         """
         pass
 
+    def visit_substitution_definition(
+        self, node: nodes.substitution_definition
+    ) -> None:
+        """
+        Visit a substitution_definition node.
+
+        Non-rendering; content injected at use sites (substitution_reference,
+        resolved by a docutils transform before the writer runs) -- matches
+        docutils/Sphinx's HTML and LaTeX writers, which also skip this node.
+        Without a handler, the node falls through to unknown_visit (warns but
+        does not skip), letting its inline children leak out as juxtaposed
+        top-level expressions.
+
+        Args:
+            node: The substitution_definition node
+
+        Raises:
+            nodes.SkipNode: Always raised to skip the definition and its
+                children (the definition itself produces no output)
+        """
+        raise nodes.SkipNode
+
     def visit_raw(self, node: nodes.raw) -> None:
         """
         Visit a raw node.
