@@ -501,6 +501,16 @@ class TypstPDFBuilder(TypstBuilder):
         # Set current docname for template application logic
         self.current_docname = docname
 
+        # Post-process images to track them for copying.
+        # This mirrors TypstBuilder.write_doc(): finish() (via super().finish())
+        # calls copy_image_files(), which copies every uri tracked in
+        # self.images from srcdir to outdir. Without this call self.images stays
+        # empty, copy_image_files() early-returns, and any referenced asset
+        # (e.g. a `.. figure:: _static/foo.png`) is never copied into the Typst
+        # output tree -- so the emitted image("_static/foo.png") path fails to
+        # resolve and typst.compile() aborts with "file not found".
+        self.post_process_images(doctree)
+
         # Set the document on the writer
         self.writer.document = doctree
 
