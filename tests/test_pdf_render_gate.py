@@ -71,6 +71,12 @@ def graphviz_degrade_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def version_modified_render_gate_dir(fixtures_dir):
+    """Return the path to the version_modified_render_gate fixture project."""
+    return fixtures_dir / "version_modified_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -409,3 +415,107 @@ class TestGraphvizDegradeRenderGate:
             "Raw DOT edge-arrow syntax leaked into rendered PDF text -- "
             "DEG-01 SkipNode regression"
         )
+
+
+# ---------------------------------------------------------------------------
+# Phase 12 (VER-01): extend the GATE-01 render-gate pattern to prove the
+# versionmodified pass-through + visit_inline classed-dispatch fix -- all
+# four version directives must render as unboxed italic, Sphinx-worded
+# labels (never a gentle-clues callout box) plus their inline body, proven
+# through a real sphinx-build -> typst.compile() -> pypdf round-trip.
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the version_modified render gate -- distinctive,
+# unlikely single words chosen so their presence in the extracted PDF text
+# proves each body-bearing directive's content reached the compiled PDF.
+# Must match the sentinel tokens embedded in
+# version_modified_render_gate/index.rst.
+VERADDED_BODY_SENTINEL = "VERADDEDBODYSENTINEL7Q1"
+VERCHANGED_BODY_SENTINEL = "VERCHANGEDBODYSENTINEL8Q2"
+VERDEPRECATED_BODY_SENTINEL = "VERDEPRECATEDBODYSENTINEL9Q3"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestVersionModifiedRenderGate:
+    """
+    Real-compile acceptance gate for the VER-01 versionmodified pass-through
+    + visit_inline classed-dispatch fix.
+
+    Requirements: VER-01, GATE-01 (12-CONTEXT.md D-01/D-02, 12-RESEARCH.md
+    Pattern 1).
+    """
+
+    def test_version_modified_pdf_has_labels_bodies_and_no_source_leak(
+        self, version_modified_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the version_modified render-gate fixture to PDF and confirm
+        all four Sphinx-computed label wordings, plus every body sentinel,
+        appear in the extracted text -- proving the classed inline rendered
+        as unboxed italic prose (never dropped, never a raw source token,
+        never a gentle-clues callout box) -- with no LEAK_SIGNATURES token
+        present.
+        """
+        result = _run_sphinx_build_typst(
+            version_modified_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+
+        # Any TypstCompilationError must propagate and fail this test
+        # loudly -- this is the only way to prove the classed-inline
+        # dispatch never emits invalid Typst source.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        # The four Sphinx-computed label wordings, by their stable prefixes
+        # (D-01/D-02) -- proving the classed inline rendered as prose, not
+        # dropped and not a raw source token.
+        for expected_label in (
+            "Added in version",
+            "Changed in version",
+            "Deprecated",
+            "Removed in version",
+        ):
+            assert expected_label in full_text, (
+                f"Expected version-directive label '{expected_label}' "
+                "in extracted PDF text -- versionmodified/visit_inline "
+                "classed-dispatch regression"
+            )
+
+        # Every body sentinel from the fixture must reach the compiled PDF.
+        for sentinel in (
+            VERADDED_BODY_SENTINEL,
+            VERCHANGED_BODY_SENTINEL,
+            VERDEPRECATED_BODY_SENTINEL,
+        ):
+            assert sentinel in full_text, (
+                f"Expected body sentinel '{sentinel}' in extracted PDF "
+                "text -- version-directive body content regression"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- the version label must be typeset "
+                'italic prose, never leaked text("/par({ source'
+            )

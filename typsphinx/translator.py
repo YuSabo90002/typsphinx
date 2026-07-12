@@ -2627,7 +2627,23 @@ class TypstTranslator(SphinxTranslator):
 
         Task 7.4: Handle inline nodes, especially those with 'xref' class
         Requirement 3.1: Cross-references and links
+
+        VER-01 (Phase 12): Sphinx's ``VersionChange.run()`` bakes the exact,
+        already-localized version-directive label wording directly into the
+        doctree as a ``nodes.inline(classes=["versionmodified", <kind>])`` at
+        directive-parse time (confirmed via live doctree dump, 12-RESEARCH.md
+        Part 1) -- so no import of Sphinx's internal changeset-domain label
+        map, and no label reconstruction, is needed here. This supersedes
+        12-CONTEXT.md D-01's speculated import-based mechanism while
+        honoring its "sourced from Sphinx, not hardcoded" intent: the
+        translator only detects the already-classed inline and italicizes
+        it (D-02's unboxed layout) by delegating to the proven
+        `visit_emphasis` dummy-node idiom.
         """
+        if "versionmodified" in node.get("classes", []):
+            dummy_emph = nodes.emphasis()
+            self.visit_emphasis(dummy_emph)
+            return
         # Inline nodes are transparent containers - we just process their children
         # The CSS classes (like 'xref', 'doc', 'std-ref') are mainly for HTML/CSS styling
         # For Typst output, we simply render the text content
@@ -2636,7 +2652,30 @@ class TypstTranslator(SphinxTranslator):
     def depart_inline(self, node: nodes.inline) -> None:
         """
         Depart an inline node.
+
+        VER-01 (Phase 12): mirrors `visit_inline`'s classed-dispatch branch --
+        see that method's docstring for the full rationale.
         """
+        if "versionmodified" in node.get("classes", []):
+            dummy_emph = nodes.emphasis()
+            self.depart_emphasis(dummy_emph)
+            return
+        pass
+
+    # Version-change directives (Phase 12, VER-01): `versionadded` /
+    # `versionchanged` / `deprecated` / `versionremoved` all parse to a
+    # single `addnodes.versionmodified` wrapping a paragraph whose first
+    # child is the classed `nodes.inline` handled above. This pass-through
+    # pair exists purely to silence the ×972 unknown_visit warning -- the
+    # child paragraph already renders correctly through the existing
+    # visit_paragraph chain (see 12-RESEARCH.md Pattern 1).
+
+    def visit_versionmodified(self, node: addnodes.versionmodified) -> None:
+        """Visit a versionmodified node (transparent pass-through)."""
+        pass
+
+    def depart_versionmodified(self, node: addnodes.versionmodified) -> None:
+        """Depart a versionmodified node (transparent pass-through)."""
         pass
 
     # API description nodes (Issue #55)

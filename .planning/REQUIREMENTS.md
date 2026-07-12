@@ -22,7 +22,7 @@ Requirements for the v0.6.0 release. Each maps to roadmap phases (see Traceabili
 
 ### Version directives
 
-- [ ] **VER-01**: `.. versionadded` / `versionchanged` / `deprecated` / `versionremoved` render as an unboxed italic label + body (matching Sphinx's own HTML/LaTeX wording via the `versionlabels` map), not as a gentle-clues callout box
+- [x] **VER-01**: `.. versionadded` / `versionchanged` / `deprecated` / `versionremoved` render as an unboxed italic label + body (matching Sphinx's own HTML/LaTeX wording via the `versionlabels` map), not as a gentle-clues callout box
 
 ### Autodoc signature nodes
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FIG-01 | Phase 11 | Complete |
 | FIG-02 | Phase 11 | Complete |
 | XREF-01 | Phase 12 | Pending |
-| VER-01 | Phase 12 | Pending |
+| VER-01 | Phase 12 | Complete |
 | DESC-01 | Phase 12 | Pending |
 | DESC-02 | Phase 12 | Pending |
 | DESC-03 | Phase 12 | Pending |
