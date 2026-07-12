@@ -28,6 +28,7 @@ regex, since a single warning's node dump can itself span multiple physical
 lines (SC#2).
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -358,7 +359,7 @@ FIX_COMMIT = "79c9d45"  # fix(12-02): emit bracket-wrap <label> anchor in depart
 # silently no-op'ing and measuring "before" == "after".
 _DEPART_TERM_LABEL_ANCHOR_BLOCK = (
     '        if node.get("ids"):\n'
-    '            label_id = self._namespace_label(self._current_docname(), '
+    "            label_id = self._namespace_label(self._current_docname(), "
     'node["ids"][0])\n'
     '            term_content = f"[#{{{term_content}}} <{label_id}>]"\n'
     "\n"
@@ -441,3 +442,75 @@ def test_count_empty_url_warnings():
 
     zero_occurrences = "WARNING: unknown node type: <citation>\n"
     assert count_empty_url_warnings(zero_occurrences) == 0
+
+
+@pytest.mark.slow
+def test_empty_url_before_after(corpus_doc_dir, tmp_path):
+    """
+    SC#3: measure the empty-URL cross-reference warning-count reduction
+    delivered by the XREF-01 fix, by rebuilding the SAME corpus twice --
+    once with `depart_term`'s XREF-01 label-anchor emission disabled (the
+    "before" translator, see `checkout_pre_xref01_translator`'s
+    METHODOLOGY ADJUSTMENT note above), once as-shipped HEAD (the "after"
+    translator) -- diffing the `Reference node has empty URL` warning
+    counts. Both builds use `-b typst` (translate-phase only, NEVER `-b
+    typstpdf`/`typst.compile()`) so the reverted `depart_term`'s dangling
+    `:term:` glossary label cannot fatally abort the measurement (RESEARCH
+    Pitfall 2 -- the glossary IS in the corpus's toctree).
+
+    Env-gated behind `TYPSPHINX_CORPUS_REPORT=1` so this does NOT add two
+    extra corpus builds to a routine `pytest -m slow` run (RESEARCH Open
+    Question 1) -- reproducible and git-tracked, but not folded into the
+    standing SC#1 gate. No new pytest marker is introduced (pyproject.toml's
+    `--strict-markers` would reject an unregistered one); the env var is
+    the gate instead.
+    """
+    if os.environ.get("TYPSPHINX_CORPUS_REPORT") != "1":
+        pytest.skip(
+            "SC#3 before/after measurement is env-gated -- set "
+            "TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)"
+        )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    worktree_dir = tmp_path / "pre-xref01-worktree"
+    checkout_pre_xref01_translator(repo_root, worktree_dir)
+    try:
+        # Idempotent -- both builds share the same wired corpus conf.py.
+        wire_typsphinx_into_corpus_conf(corpus_doc_dir)
+
+        # BEFORE: PYTHONPATH prepended (our override wins over any
+        # pre-existing PYTHONPATH in the inherited environment) so the
+        # worktree's patched translator shadows the installed typsphinx for
+        # THIS subprocess only (T-15-05) -- the after build and the rest of
+        # the process are unaffected.
+        before_env = {**os.environ, "PYTHONPATH": str(worktree_dir)}
+        before_result = _run_corpus_sphinx_build(
+            "typst", corpus_doc_dir, tmp_path / "before", env=before_env
+        )
+
+        # AFTER: as-installed typsphinx, no PYTHONPATH override.
+        after_result = _run_corpus_sphinx_build(
+            "typst", corpus_doc_dir, tmp_path / "after"
+        )
+
+        before = count_empty_url_warnings(before_result.stderr)
+        after = count_empty_url_warnings(after_result.stderr)
+        delta = before - after
+        print(f"Empty-URL warnings BEFORE (XREF-01 anchor disabled): {before}")
+        print(f"Empty-URL warnings AFTER  (as-shipped HEAD):         {after}")
+        print(f"Delta (reduction): {delta}")
+
+        # The fix cannot INCREASE empty-URL warnings. No exact-magnitude
+        # assertion -- the corpus is external and may drift (SC#3 wording).
+        assert after <= before, (
+            "XREF-01 fix should not increase empty-URL warnings: "
+            f"before={before}, after={after}"
+        )
+    finally:
+        # Cleanup regardless of outcome (T-15-04) -- never leave a stray
+        # worktree registered against the main repo.
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(worktree_dir)],
+            cwd=repo_root,
+            check=False,
+        )
