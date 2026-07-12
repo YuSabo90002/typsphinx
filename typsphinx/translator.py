@@ -1496,10 +1496,27 @@ class TypstTranslator(SphinxTranslator):
             self._emitted_footnote_ids.add(refid)
             saved_body = self.body
             self.body = []
+            # Save/restore in_paragraph + paragraph_has_content around the
+            # nested walkabout (established convention: visit_emphasis/
+            # visit_strong/visit_subscript/visit_superscript all do this
+            # identically). Without this, the footnote body's own
+            # `paragraph` child unconditionally resets both flags to
+            # False/False on depart -- silently clobbering the OUTER
+            # paragraph's separator state and dropping the "\n" statement
+            # separator the next sibling (e.g. a trailing ".") needs,
+            # which is a FATAL "expected semicolon or line break" Typst
+            # compile abort (14-RESEARCH.md Pitfall 1 / t8), not a
+            # cosmetic issue. Discovered via the GATE-01 real-compile
+            # fixture (Rule 1 auto-fix).
+            was_in_paragraph = self.in_paragraph
+            was_paragraph_has_content = self.paragraph_has_content
+            self.in_paragraph = False
             for child in footnote_node.children[1:]:
                 child.walkabout(self)
             body_content = "".join(self.body)
             self.body = saved_body
+            self.in_paragraph = was_in_paragraph
+            self.paragraph_has_content = was_paragraph_has_content
             self.add_text(f"[#footnote({{{body_content}}}) <{label}>]")
 
         if self.in_list_item:
