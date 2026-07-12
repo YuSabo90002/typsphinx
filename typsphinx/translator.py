@@ -423,9 +423,9 @@ class TypstTranslator(SphinxTranslator):
             # explicit target name) get a zero-width metadata(none) anchor
             # each, pointing at the same document location.
             primary_id, *extra_ids = self._title_section_ids
-            self.add_text(f"}}) <{primary_id}>]\n")
+            self.add_text(f"}}) <{self._sanitize_label(primary_id)}>]\n")
             for extra_id in extra_ids:
-                self.add_text(f"[#metadata(none) <{extra_id}>]\n")
+                self.add_text(f"[#metadata(none) <{self._sanitize_label(extra_id)}>]\n")
             self.add_text("\n")
         else:
             # Close heading() function
@@ -1360,12 +1360,12 @@ class TypstTranslator(SphinxTranslator):
             self.add_text("]")
             # Add label if present
             if self.code_block_label:
-                self.add_text(f" <{self.code_block_label}>")
+                self.add_text(f" <{self._sanitize_label(self.code_block_label)}>")
             self.add_text("\n\n")
         elif node.get("names"):
             # Handle :name: option without :caption: - just add label after code block
             label = node.get("names")[0]
-            self.add_text(f" <{label}>\n\n")
+            self.add_text(f" <{self._sanitize_label(label)}>\n\n")
         else:
             # Normal code block - just add spacing
             self.add_text("\n")
@@ -1583,7 +1583,7 @@ class TypstTranslator(SphinxTranslator):
         self.saved_body = None
 
         if node.get("ids"):
-            label_id = node["ids"][0]
+            label_id = self._sanitize_label(node["ids"][0])
             term_content = f"[#{{{term_content}}} <{label_id}>]"
 
         # Store term for later (will be paired with definition)
@@ -1679,7 +1679,7 @@ class TypstTranslator(SphinxTranslator):
         # bracket opened in visit_figure -- see that method's docstring for
         # why the label must live inside a markup-mode bracket pair.
         if node.get("ids"):
-            label = node["ids"][0]
+            label = self._sanitize_label(node["ids"][0])
             self.add_text(f"\n) <{label}>]\n\n")
         else:
             self.add_text("\n)\n\n")
@@ -1797,7 +1797,10 @@ class TypstTranslator(SphinxTranslator):
             )
             raise nodes.SkipNode
 
-        label = f"fn-{refid}"
+        # Sanitize here at the single derivation point so BOTH the reuse-ref
+        # (footnote(<label>)) and the definition ([#footnote(...) <label>])
+        # branches below emit the identical, Typst-valid label name.
+        label = self._sanitize_label(f"fn-{refid}")
 
         # Statement-separator convention every other inline child already
         # uses (visit_emphasis/visit_strong/visit_literal all open this way).
@@ -2190,7 +2193,7 @@ class TypstTranslator(SphinxTranslator):
             self._in_markup_mode = True
             # Output label in markup mode (with # prefix in markup mode)
             if node.get("ids"):
-                label_id = node["ids"][0]
+                label_id = self._sanitize_label(node["ids"][0])
                 self.add_text(f'\n#label("{label_id}")')
             # Close the markup block
             self.add_text("]")
@@ -2228,7 +2231,7 @@ class TypstTranslator(SphinxTranslator):
         # juxtaposed expressions need a line break between them (`]par(` and
         # `)label(` are both syntax errors otherwise).
         if node.get("ids"):
-            label_id = node["ids"][0]
+            label_id = self._sanitize_label(node["ids"][0])
             self.add_text(f"\n[#metadata(none) <{label_id}>]\n")
 
         # Mark that next element in list item needs separator
@@ -2264,8 +2267,13 @@ class TypstTranslator(SphinxTranslator):
 
         if reftarget:
             # Generate a link to the target
-            # Sanitize the target for Typst label format
-            label = reftarget.replace(".", "-").replace("_", "-")
+            # Sanitize the target for Typst label format. The legacy
+            # `.`/`_`->`-` transform is kept for backward compatibility, then
+            # routed through _sanitize_label so any remaining Typst-invalid
+            # character (e.g. `@`) cannot abort the compile with an unclosed
+            # label -- this pending_xref path is only a best-effort fallback
+            # for references Sphinx failed to resolve.
+            label = self._sanitize_label(reftarget.replace(".", "-").replace("_", "-"))
             self.add_text(f"#link(<{label}>)[")
         # Continue processing children to get the link text
 
@@ -2496,6 +2504,55 @@ class TypstTranslator(SphinxTranslator):
 
             return relative_path
 
+    @staticmethod
+    def _sanitize_label(name: str) -> str:
+        """
+        Sanitize a docutils id/name into a valid Typst label token.
+
+        Typst's ``<label>`` anchor syntax, its ``label("...")`` value, and the
+        ``link(<label>, ...)`` reference form all accept only a restricted
+        character set for the label NAME. Empirically (typst 0.15) the only
+        characters valid inside a ``<...>`` label are ``[A-Za-z0-9_.:-]``;
+        every other character (notably ``@``, but also ``/ + # * ? ! ~ % & =``
+        whitespace, brackets, quotes, etc.) makes Typst fail to close the
+        label with ``error: unclosed label``, which aborts the ENTIRE compile.
+
+        Docutils/Sphinx ids can contain such characters. In particular
+        Sphinx's C-domain anonymous entities (``@data`` / ``@alias``) produce
+        ids like ``c.Data.@data.a`` -- the ``@`` is what triggered the corpus
+        ``unclosed label`` fatal. This helper maps every character outside the
+        valid set to a collision-resistant token ``_u{codepoint:x}_`` (e.g.
+        ``@`` -> ``_u40_``). That encoding:
+
+        - uses only characters valid in a Typst label (``_``, digits, letters),
+          and is safe as a leading character (starts with ``_``);
+        - is deterministic and injective on the offending character (distinct
+          characters map to distinct codepoint tokens), so it is collision-
+          resistant -- unlike replacing every invalid char with a bare ``_``,
+          which would collide ``a@b`` with ``a?b``;
+        - leaves ids that are ALREADY valid byte-for-byte unchanged, so the
+          vast majority of existing anchors/links (which already compile) are
+          not churned and keep their exact current names.
+
+        CRITICAL CORRECTNESS PROPERTY: this must be applied at every site that
+        emits a label NAME -- both where a label is DEFINED (anchors,
+        ``label("...")``) and where it is REFERENCED (``link(<...>, ...)``,
+        ``footnote(<...>)``) -- so a definition and its reference sanitize to
+        the SAME string and cross-references keep resolving.
+
+        Args:
+            name: A docutils id/name (or a derived label such as ``fn-<id>``).
+
+        Returns:
+            The same string with every Typst-label-invalid character replaced
+            by a ``_u{codepoint:x}_`` token.
+        """
+        return re.sub(
+            r"[^A-Za-z0-9_.:-]",
+            lambda m: f"_u{ord(m.group(0)):x}_",
+            name,
+        )
+
     def _convert_length_to_typst(self, value: str) -> str | None:
         """
         Convert a docutils-normalized CSS length string to a Typst-valid length.
@@ -2708,7 +2765,7 @@ class TypstTranslator(SphinxTranslator):
         # it doesn't fall through to the plain-text fallback (FIG-02, D-03).
         if not refuri and refid:
             prefix = "#" if self._in_markup_mode else ""
-            self.add_text(f"{prefix}link(<{refid}>, ")
+            self.add_text(f"{prefix}link(<{self._sanitize_label(refid)}>, ")
 
             # Replicate the method-end bookkeeping inline since this branch
             # returns early (mirrors the refuri branches below).
@@ -2740,7 +2797,7 @@ class TypstTranslator(SphinxTranslator):
         # Check if it's an internal reference (starts with #)
         if refuri.startswith("#"):
             # Internal reference to a label
-            label = refuri[1:]  # Remove the #
+            label = self._sanitize_label(refuri[1:])  # Remove the #, sanitize
             self.add_text(f"{prefix}link(<{label}>, ")
         else:
             # External reference (HTTP/HTTPS URL or relative path)
@@ -2971,7 +3028,7 @@ class TypstTranslator(SphinxTranslator):
 
         # Task 6.3: Add label if present
         if "ids" in node and node["ids"]:
-            label = node["ids"][0]
+            label = self._sanitize_label(node["ids"][0])
             self.add_text(f" <{label}>")
 
         # Skip children to prevent duplicate output of math content
@@ -3026,7 +3083,7 @@ class TypstTranslator(SphinxTranslator):
 
         # Task 6.3: Add label if present
         if "ids" in node and node["ids"]:
-            label = node["ids"][0]
+            label = self._sanitize_label(node["ids"][0])
             self.add_text(f" <{label}>")
 
         self.add_text("\n\n")
