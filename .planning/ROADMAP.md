@@ -66,7 +66,7 @@ acceptance fixture (`sphinx-build → typst.compile() → pypdf`).
 
 - [x] **Phase 11: Issue #114 Fatal Fixes + Graceful-Degrade Net** - px→pt length helper + figure caption/`:target:` buffer-swap fix + graphviz/inheritance_diagram skip overrides; stands up the per-phase real-compile gate (blocking prerequisite for the whole milestone) (completed 2026-07-12)
 - [x] **Phase 12: High-Volume Independent Node Handlers** - versionmodified (×972), empty-URL/`refid` cross-refs (×596), autodoc `desc_*` sub-parts, and the trivial transition/glossary/tabular_col_spec/abbr nodes — all pattern-reuse, one new state var at most (completed 2026-07-12)
-- [ ] **Phase 13: Shared Dispatch-Point Changes (topic + line blocks)** - generalize the load-bearing `visit_title` for topic + render `line`/`line_block` with verbatim breaks, landed with admonition-title regression fixtures
+- [x] **Phase 13: Shared Dispatch-Point Changes (topic + line blocks)** - generalize the load-bearing `visit_title` for topic + render `line`/`line_block` with verbatim breaks, landed with admonition-title regression fixtures (completed 2026-07-12)
 - [ ] **Phase 14: Footnotes (doctree pre-pass)** - `footnote`/`footnote_reference` via Typst-native `footnote[...]` — the only architecturally-new item (document-order pre-pass), sequenced late to build confidence
 - [ ] **Phase 15: Full-Corpus Validation** - real `sphinx-build -b typstpdf` of Sphinx's own `doc/` tree with no fatal error; catalogue residual warnings + measure empty-URL reduction
 
@@ -152,7 +152,7 @@ regression fixtures for the existing admonition titles.
   3. Existing admonition titles (`.. note::`, `.. warning::` — the Phase 8.1 behavior) still render correctly after the `visit_title` generalization, proven by a regression fixture inside the same real-compile gate.
   4. A real-compile acceptance fixture (GATE-01 standing bar) covers topic + line_block together with the admonition-title regression.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 **Wave 1**
 
@@ -164,7 +164,7 @@ regression fixtures for the existing admonition titles.
 
 **Wave 3** *(needs both impls landed)*
 
-- [ ] 13-03-PLAN.md — GATE-01 combined real-compile render gate: topic + contents + address + poem + admonition-title regression fixture + `TestTopicLineBlockRenderGate` (wave 3)
+- [x] 13-03-PLAN.md — GATE-01 combined real-compile render gate: topic + contents + address + poem + admonition-title regression fixture + `TestTopicLineBlockRenderGate` (wave 3)
 
 ### Phase 14: Footnotes (doctree pre-pass)
 
@@ -221,7 +221,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14 → 15
 | 10. Version-String Fix + v0.5.0 Release | v0.5.0 | 2/2 | Complete | 2026-07-11 |
 | 11. Issue #114 Fatal Fixes + Graceful-Degrade Net | v0.6.0 | 3/3 | Complete    | 2026-07-12 |
 | 12. High-Volume Independent Node Handlers | v0.6.0 | 4/4 | Complete    | 2026-07-12 |
-| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 2/3 | In Progress|  |
+| 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete   | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 0/TBD | Not started | - |
 | 15. Full-Corpus Validation | v0.6.0 | 0/TBD | Not started | - |
 

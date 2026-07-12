@@ -4,17 +4,17 @@ milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 13
 current_phase_name: shared-dispatch-point-changes-topic-line-blocks
-status: executing
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-07-12T04:28:52.365Z"
+status: verifying
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-07-12T04:36:48.676Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
-  percent: 40
+  completed_plans: 10
+  percent: 60
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 Phase: 13 (shared-dispatch-point-changes-topic-line-blocks) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-12 — Phase 13 execution started
 
 Progress: [██████████] 100%
@@ -83,6 +83,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decision
 - [Phase 13]: Pitfall-1 multi-child-title separator+wrap fix bundled into Plan 01 rather than filed as a separate prerequisite bug fix
 - [Phase 13-02]: line_block nesting tracked with a single integer depth counter (not a stack) -- docutils' own visitor recursion provides the nesting stack for free
 - [Phase 13-02]: h() indent spacer needs no markup-mode bracket-wrap (unlike Phase 11's <label> anchors) -- plain code-mode stdlib call
+- [Phase 13-03]: Rendered the epigraph shape as a plain top-level line_block under a titled section (no .. epigraph:: directive) per Pitfall 4 -- sidesteps a pre-existing block_quote/attribution bug
+- [Phase 13-03]: Used a class-scoped GATE-01 fixture to build+compile+extract once per class, shared across three thin assertion-only test methods, avoiding three recompiles
+- [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
 
 ### Pending Todos
 
@@ -116,11 +119,12 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 11 P03 | ~90min | 2 tasks | 11 files |
 | Phase 13 P01 | 5min | 2 tasks | 3 files |
 | Phase 13 P02 | 4min | 2 tasks | 2 files |
+| Phase 13 P03 | 7min | 2 tasks | 3 files |
 
 ## Session Continuity
 
-Last session: 2026-07-12T04:28:52.360Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-07-12T04:36:48.671Z
+Stopped at: Completed 13-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
