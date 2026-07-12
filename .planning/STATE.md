@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.0
 milestone_name: — real-world robustness
 current_phase: 12
-current_phase_name: High-Volume Independent Node Handlers
+current_phase_name: high-volume-independent-node-handlers
 status: executing
 stopped_at: Phase 12 context gathered
-last_updated: "2026-07-12T01:28:16.156Z"
+last_updated: "2026-07-12T01:57:25.935Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
+last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 7
+  completed_plans: 4
   percent: 20
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11 — milestone v0.6.0 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** Phase 11 — Issue #114 Fatal Fixes + Graceful-Degrade Net
+**Current focus:** Phase 12 — high-volume-independent-node-handlers
 
 ## Current Position
 
-Phase: 12 — High-Volume Independent Node Handlers
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-12 — Phase 11 complete, transitioned to Phase 12
+Phase: 12 (high-volume-independent-node-handlers) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 12
+Last activity: 2026-07-12 — Phase 12 execution started
 
 Progress: [██████████] 100%
 
