@@ -1386,10 +1386,22 @@ class TypstTranslator(SphinxTranslator):
         """
         self.in_definition_list = False
 
-        # Generate terms() function with all items (no # prefix in code mode)
+        # Generate terms() function with all items (no # prefix in code mode).
+        # The DEFINITION (2nd arg) is wrapped in a `{ ... }` content block: a
+        # definition may hold several block-level children (a paragraph, then a
+        # code fence, then a list), which depart_definition assembles as bare,
+        # blank-line-separated statements. Blank-line separation of sequential
+        # content is valid only at document top level; as a bare function
+        # argument Typst reads the first statement (e.g. par({...})) as the
+        # WHOLE argument and then expects a comma at the next statement
+        # (codly(...)/a fence/list({...})) -> "expected comma" (GATE-02 fatal
+        # #7, directives.typ:1718 + ~16 corpus files). Inside `{ }` Typst
+        # auto-joins the statements into one content value -- a valid single
+        # argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/
+        # bug #3/#5) untouched; we wrap only the definition arg.
         if self.definition_list_items:
             items_str = ", ".join(
-                f"terms.item({term}, {definition})"
+                f"terms.item({term}, {self._wrap_definition_arg(definition)})"
                 for term, definition in self.definition_list_items
             )
             self.add_text(f"terms({items_str})\n\n")
@@ -1398,6 +1410,76 @@ class TypstTranslator(SphinxTranslator):
 
         # Clear collected items
         self.definition_list_items = []
+
+    @staticmethod
+    def _is_single_content_block(text: str) -> bool:
+        """
+        Return True if ``text`` is exactly one balanced ``{ ... }`` content
+        block (its opening brace matches the final character), ignoring braces
+        inside Typst double-quoted string literals.
+
+        Used by :meth:`_wrap_definition_arg` to avoid double-wrapping a
+        definition buffer that is already a single content value. No current
+        translator emission produces such a buffer (definition children all
+        start with a function name or a backtick fence), so this is a defensive
+        guard, but it keeps the wrap idempotent.
+
+        Args:
+            text: The assembled definition buffer.
+
+        Returns:
+            True if ``text`` is a single ``{...}`` content block.
+        """
+        if len(text) < 2 or text[0] != "{" or text[-1] != "}":
+            return False
+        depth = 0
+        in_string = False
+        escaped = False
+        for i, ch in enumerate(text):
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                # A close returning to depth 0 before the last char means the
+                # buffer holds more than one top-level block -> must wrap.
+                if depth == 0 and i != len(text) - 1:
+                    return False
+        return depth == 0
+
+    def _wrap_definition_arg(self, definition: str) -> str:
+        """
+        Wrap a definition buffer so it is a single valid ``terms.item`` 2nd
+        argument.
+
+        A definition with multiple block-level children is assembled as bare,
+        blank-line-separated statements, which are only valid at document top
+        level. Enclosing them in a ``{ ... }`` content block makes Typst
+        auto-join them into one content value. A single-block definition (a
+        lone ``par({...})``) wraps to ``{par({...})}`` and renders identically.
+        An empty definition becomes ``{}`` (valid empty content). Already
+        single-``{...}`` buffers are returned unchanged to avoid double-wrapping.
+
+        Args:
+            definition: The assembled definition buffer.
+
+        Returns:
+            The definition as a single ``{ ... }``-wrapped argument.
+        """
+        if not definition:
+            return "{}"
+        if self._is_single_content_block(definition):
+            return definition
+        return f"{{{definition}}}"
 
     def visit_definition_list_item(self, node: nodes.definition_list_item) -> None:
         """
