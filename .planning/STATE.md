@@ -1,10 +1,14 @@
 ---
 gsd_state_version: 1.0
 milestone: v0.6.1
-milestone_name: rendering-fidelity
+milestone_name: — rendering fidelity
+current_phase: 16
+current_phase_name: Silent-Drop Node Handlers + Length-Converter Refactor
 status: planning
-last_updated: "2026-07-13T13:00:00.000Z"
+stopped_at: Phase 16 context gathered
+last_updated: "2026-07-13T13:05:42.080Z"
 last_activity: 2026-07-13
+last_activity_desc: v0.6.1 roadmap created (Phases 16–18, continuing from v0.6.0's Phase 15)
 progress:
   total_phases: 3
   completed_phases: 0
@@ -95,9 +99,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-13T13:00:00.000Z
-Stopped at: Created v0.6.1 roadmap (ROADMAP.md, STATE.md, REQUIREMENTS.md traceability)
-Resume file: None
+Last session: 2026-07-13T13:05:42.076Z
+Stopped at: Phase 16 context gathered
+Resume file: .planning/phases/16-silent-drop-node-handlers-length-converter-refactor/16-CONTEXT.md
 
 ## Operator Next Steps
 
