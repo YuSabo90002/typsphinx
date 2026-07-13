@@ -12,6 +12,18 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct output and every CI job stays green on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward and the bundled `@preview` packages compiling cleanly (no `kai`-class breaks).
 
+## Current Milestone: v0.6.1 rendering fidelity
+
+**Goal:** Move typstpdf output from "compiles fatal-free" (achieved in v0.6.0) to "renders faithfully" — implement the last silently-dropped nodes and discover-and-fix the *silent* mis-render issues (correct-compiling output that doesn't match the source) that a fatal-free gate cannot catch.
+
+**Target features:**
+- **TODO-01** — render `todo_node` (currently `unknown_visit`-dropped ×10 in the Sphinx corpus) instead of silently discarding it
+- **MAN-01** — render the `manpage` node / `:manpage:` role (currently dropped ×10) as its literal page text
+- **LEN-01** — generalize the CSS-length → Typst-length converter (tech-debt from v0.6.0's `visit_image` px→pt fix)
+- **Fidelity audit → fix campaign** — visually diff the compiled Sphinx-`doc/` corpus PDF against source to catalogue silent mis-render issues (no warning emitted), then fix them
+
+**Key context:** v0.6.0 already fixed every fatal (GATE-02 green, re-confirmed 2026-07-13: `index.pdf`, 0 errors, 66 warnings). A warning audit of that build showed the *only* typsphinx content-drops are `todo_node`/`manpage`; the remaining 64 warnings are Sphinx-side (autodoc/py:meth ×35) or intentional graceful-degrade (graphviz/inheritance ×6) or spec-appropriate degradation (non-included-doc xref / empty-URL ×5). So warnings alone are nearly exhausted — the milestone's discovery value is the **visual** audit, which needs a real typst compile + human inspection (the local env now supports this).
+
 ## Current State
 
 **Shipped: v0.6.0 — real-world robustness (2026-07-13).** Sphinx's own full `doc/` tree now compiles end-to-end through the `typstpdf` builder with no fatal `TypstCompilationError` (GATE-02: ~14.4 MiB PDF, 0 errors) — closing Issue #114. Delivered across Phases 11–15: the Issue #114 figure/image fatal bugs fixed (px→pt length conversion + `:target:`/caption buffer-swap) with a graceful-degrade net for graphviz/inheritance_diagram and a standing real-`typst.compile()` acceptance gate (Phase 11); the highest-frequency previously-dropped nodes render correctly and compilably (Phase 12 — versionmodified, `refid` cross-refs, autodoc `desc_*`, transition/glossary/tabular_col_spec/abbr); the load-bearing `visit_title` dispatch generalized so `.. topic::`/`.. contents::` render correctly while `line`/`line_block` keep verbatim breaks (Phase 13 — BLK-02/03); footnotes via a document-order doctree pre-pass with Typst-native `footnote[...]`, first-cite-defines/repeat-cites-reuse (Phase 14 — FN-01); and full-corpus validation with the `unknown_visit` catalogue + empty-URL before/after measurement (Phase 15 — GATE-02). All 19 v1 requirements validated; milestone audit passed (19/19 requirements, 16/16 integration seams wired, 5/5 E2E flows). Zero new runtime dependencies; the 3-way `@preview` version-sync surface untouched. Released to PyPI + GitHub Release via `release.yml`.
@@ -24,7 +36,7 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 **v0.6.0 real-world robustness — SHIPPED 2026-07-13.** Goal achieved: Sphinx's own `doc/` tree compiles through `typstpdf` with no fatal Typst errors (Issue #114 closed) and the most-frequent previously-unsupported nodes render correctly. Details below retained for reference.
 
-**Next milestone: not yet defined.** The documented open backlog is thin: the SC#2 `todo_node`/`manpage` unknown-visit handlers (TODO-01/MAN-01) and LEN-01. A broader "rendering fidelity" pass (finding non-fatal compiles-but-renders-wrong issues) would need a discovery/audit step first — no such list exists yet. The "13 post-GATE-02 debug sessions" once cited here were already-fixed *fatal* corpus bugs (see the Current State correction), not open polish work. Run `/gsd-new-milestone` to scope.
+**Next milestone: v0.6.1 rendering fidelity — SCOPING (started 2026-07-13).** See the Current Milestone section at the top. Known items: TODO-01 (`todo_node`), MAN-01 (`:manpage:`), LEN-01 (CSS-length converter); plus a visual fidelity audit of the corpus PDF to discover-and-fix silent mis-render issues. The "13 post-GATE-02 debug sessions" once cited here were already-fixed *fatal* corpus bugs (see the Current State correction), not open polish work.
 
 **Original v0.6.0 goal (for reference):** Compile a large real-world documentation set (Sphinx's own `doc/` tree) through the `typstpdf` builder with no fatal Typst errors, and render the most-frequent previously-unsupported docutils/Sphinx nodes correctly — driven by Issue #114.
 
@@ -72,9 +84,12 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 ### Active
 
-<!-- v0.6.0 shipped 2026-07-13. No milestone currently active. -->
+<!-- v0.6.1 rendering-fidelity milestone — scoped 2026-07-13. Formal REQ-IDs in REQUIREMENTS.md. -->
 
-**None — v0.6.0 shipped; awaiting next milestone.** All 19 v1 requirements are validated (see above). The next milestone is not yet scoped; run `/gsd-new-milestone`. Documented open backlog: the SC#2 `todo_node`/`manpage` handlers (TODO-01/MAN-01) + LEN-01. (The "13 post-GATE-02 debug sessions" once cited here were actually already-fixed *fatal* corpus bugs — see the Current State correction.)
+- [ ] **TODO-01**: `todo_node` renders its content (not silently dropped)
+- [ ] **MAN-01**: `manpage` node / `:manpage:` role renders as literal page text
+- [ ] **LEN-01**: CSS-length → Typst-length converter generalized and reused
+- [ ] **Fidelity audit + fixes**: silent mis-render issues found by visual corpus-PDF vs. source diffing are catalogued and fixed (specific REQ-IDs emerge from the audit phase)
 
 ### Out of Scope
 
@@ -143,7 +158,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-13 at v0.6.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.6.0 (real-world robustness) shipped: Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors (Issue #114 closed), all 19 v1 requirements validated, milestone audit passed (19/19 requirements, 16/16 integration seams wired, 5/5 E2E flows), zero new runtime dependencies. Requirements Active cleared; 13 post-GATE-02 rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers acknowledged as next-milestone backlog. Delivered via a release PR (`release/v0.6.0 → main`, closes #114) → tag `v0.6.0` → PyPI. Prior footer retained below for history.*
+*Last updated: 2026-07-13 — started milestone v0.6.1 (rendering fidelity): reconciled stale debug-session metadata (13 files → `resolved`), corrected the v0.6.0 backlog framing, re-confirmed GATE-02 green via a real corpus rebuild + a full warning audit (66 warnings, only `todo_node`/`manpage` are typsphinx content-drops), and scoped v0.6.1 = TODO-01/MAN-01/LEN-01 + a visual fidelity audit. Prior: 2026-07-13 at v0.6.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.6.0 (real-world robustness) shipped: Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors (Issue #114 closed), all 19 v1 requirements validated, milestone audit passed (19/19 requirements, 16/16 integration seams wired, 5/5 E2E flows), zero new runtime dependencies. Requirements Active cleared; 13 post-GATE-02 rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers acknowledged as next-milestone backlog. Delivered via a release PR (`release/v0.6.0 → main`, closes #114) → tag `v0.6.0` → PyPI. Prior footer retained below for history.*
 
 <!-- Prior: 2026-07-11 at v0.5.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.5.0 shipped: Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13, all 14 v1 requirements validated, milestone audit passed, released to PyPI + GitHub Release. Requirements Active cleared; next-milestone candidates (CFG-01, XOS-01) tracked. -->
 

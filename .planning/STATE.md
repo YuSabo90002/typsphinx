@@ -1,37 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.0
-milestone_name: — real-world robustness
-current_phase: 6.0
-status: Awaiting next milestone
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-07-12T21:36:36.873Z"
-last_activity: 2026-07-12
-last_activity_desc: Milestone v0.6.0 completed and archived
+milestone: v0.6.1
+milestone_name: rendering-fidelity
+status: planning
+last_updated: "2026-07-13T12:32:16.336Z"
+last_activity: 2026-07-13
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
-current_phase_name: full-corpus-validation
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.0 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.1 rendering-fidelity started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** v0.6.0 shipped (real-world robustness) — planning next milestone. Next backlog input: the 13 acknowledged rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers (see Deferred Items).
+**Current focus:** v0.6.1 (rendering fidelity) — scoping. Known items: TODO-01 (`todo_node`), MAN-01 (`:manpage:`), LEN-01 (CSS-length converter); plus a visual fidelity audit of the corpus PDF to discover-and-fix silent mis-render issues. (The 13 "post-GATE-02 debug sessions" were already-fixed fatal corpus bugs — reconciled 2026-07-13.)
 
 ## Current Position
 
-Phase: Milestone v0.6.0 complete + released
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-13 — v0.6.0 shipped: PR #115 merged (closes #114), tagged v0.6.0, PyPI + GitHub Release published via release.yml (run 29210840198)
+Status: Defining requirements
+Last activity: 2026-07-13 — Milestone v0.6.1 started
 
 ## Roadmap Summary (v0.6.0 — Phases 11–15)
 
