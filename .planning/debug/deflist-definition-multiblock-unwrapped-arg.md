@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #7: TypstError: expected comma at usage/restructuredtext/directives.typ:1718:237 — a def-list DEFINITION with multiple block children (par + code fence + list) passed UNWRAPPED as terms.item's 2nd arg; Typst reads par({...}) as the whole arg then expects a comma."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

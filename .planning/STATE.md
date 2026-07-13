@@ -129,29 +129,35 @@ Items acknowledged and carried forward from previous milestone closes:
 | Phase 15 P01 | 15min | 2 tasks | 1 files |
 | Phase 15 P02 | 20min | 2 tasks | 1 files |
 
-### Acknowledged at v0.6.0 close (2026-07-13) — post-GATE-02 rendering-polish debug sessions
+### RECONCILED 2026-07-13 — these 13 were already-fixed FATAL corpus bugs, not open polish items
 
-Non-fatal `typstpdf` render-quality bugs discovered by the 2026-07-13 polish
-campaign **after** GATE-02 went green. Outside v0.6.0's definition of done (the
-gate was "no fatal `TypstCompilationError`" + the 19 named requirements — all
-met). Acknowledged and deferred to the next milestone's backlog. Session files
-in `.planning/debug/`.
+An earlier version of this section listed 13 "non-fatal `typstpdf` rendering-polish
+debug sessions discovered *after* GATE-02 went green." **That was inaccurate.** A
+2026-07-13 code+git audit confirmed all 13 are the sequential *fatal* corpus
+compile bugs (`TypstError`: expected comma / unclosed label / label does not
+exist / occurs multiple times) that Phase 15 fixed *to make* GATE-02 green — each
+with a `fix(15):` commit reachable on `main` and a landed `*_render_gate.py`
+regression test. Their `.planning/debug/` frontmatter was merely left stale at
+`fixing`/`investigating`/`awaiting_human_verify`; it has been reconciled to
+`resolved`. **There is no open work among these 13.** The genuine open backlog is
+the Styling-refinements row above (TODO-01 `todo_node`, MAN-01 `:manpage:`,
+LEN-01 CSS-length converter).
 
-| Category | Item | Status |
-|----------|------|--------|
-| debug | confval-field-body-inline-juxtaposition | fixing |
-| debug | deflist-definition-multiblock-unwrapped-arg | fixing |
-| debug | deflist-nested-definition-body-clobber | fixing |
-| debug | deflist-term-adjacent-inline-concat | fixing |
-| debug | desc-signature-missing-anchor-dangling-label | investigating |
-| debug | desc-signature-newline-concat-stray-plus | fixing |
-| debug | duplicate-module-label-corpus | investigating |
-| debug | label-ref-at-char-unclosed-label | fixing |
-| debug | list-item-nested-block-adjacency | fixing |
-| debug | paragraph-propagated-target-missing-anchor | fixing |
-| debug | ref-with-target-and-nested-list-juxtaposition | fixing |
-| debug | rubric-propagated-target-missing-anchor | investigating |
-| debug | typst-string-literal-newline-escape | awaiting_human_verify |
+| Debug session (all now `status: resolved`) | Fixed by (on `main`) |
+|--------------------------------------------|----------------------|
+| confval-field-body-inline-juxtaposition | `37bebeb` |
+| deflist-definition-multiblock-unwrapped-arg | `2f99f40` |
+| deflist-nested-definition-body-clobber | `8e18d77` |
+| deflist-term-adjacent-inline-concat | `faf7d38`/`49db2f0` |
+| desc-signature-newline-concat-stray-plus | `3833041` |
+| label-ref-at-char-unclosed-label | `e0b2916` |
+| list-item-nested-block-adjacency | `852cc2f` |
+| paragraph-propagated-target-missing-anchor | `418a2b0` |
+| ref-with-target-and-nested-list-juxtaposition | `a87755b` |
+| desc-signature-missing-anchor-dangling-label | `e9e01cd` |
+| duplicate-module-label-corpus | `9add92b` |
+| rubric-propagated-target-missing-anchor | `2a9fc5d` |
+| typst-string-literal-newline-escape | `b1283da`/`d521461` |
 
 ## Session Continuity
 

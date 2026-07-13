@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #9: TypstError: expected expression at usage/domains/c.typ:107 (also cpp.typ) — C/C++ domain multi-line function signature rendered via strong({...}) + _inline_concat_* path emits a malformed leading '+' (' + link(...)') after a NEWLINE-terminated sibling. Concat separator mixed with signature-line newlines produces a '+' with no left operand."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

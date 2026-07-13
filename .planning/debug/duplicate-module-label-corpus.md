@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: "Corpus gate fatal #19 (semantic): TypstError: label `<module-sphinx.ext.apidoc>` occurs multiple times in the document. One .. py:module:: sphinx.ext.apidoc directive, included once, yet the module-... id is emitted as a Typst <label> DEFINITION >=2 times in the compiled master; Typst rejects the 2nd."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

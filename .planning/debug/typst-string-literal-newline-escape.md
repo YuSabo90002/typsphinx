@@ -1,5 +1,5 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "Corpus gate fatal: TypstError: expected semicolon or line break. translator emits raw()/text() Typst string literals containing an UNESCAPED literal newline when inline-literal/text source wraps across a physical line (~31 occurrences across ≥6 generated files)."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

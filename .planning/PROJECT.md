@@ -18,13 +18,13 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 **Prior: v0.5.0 — forward-ecosystem (shipped 2026-07-11).** typsphinx moved to the current stack — Sphinx 9.1 / docutils 0.22 / typst 0.15 / Python 3.12–3.13 — with the four bundled `@preview` packages (mitex 0.2.7, gentle-clues 1.3.1, codly-languages 0.1.10, codly 1.3.0) compiling cleanly, the soft-deprecated API modernized, the admonition render bug fixed, and a `typst compile` smoke gate; all 14 v1 requirements validated, released to PyPI. **Earlier: v0.4.4 — CI-repair + modernize (shipped 2026-07-05):** pinned the dependency graph back to a known-good set and installed durability guardrails.
 
-**Known deferred (next-milestone backlog):** 13 acknowledged non-fatal `typstpdf` rendering-polish debug sessions discovered *after* GATE-02 went green (deflist/desc concat, dangling labels, propagated-target anchors — see STATE.md Deferred Items); the SC#2 `todo_node`/`manpage` unknown-visit handlers; a pre-existing missing-`_static/python-logo.png` builder asset-copy bug.
+**Known deferred (next-milestone backlog):** the SC#2 `todo_node`/`manpage` unknown-visit handlers (each ×10 in the Sphinx corpus, currently silently dropped — TODO-01/MAN-01) and LEN-01 (generalize the CSS-length converter). **Correction (2026-07-13):** an earlier version of this note listed "13 non-fatal `typstpdf` rendering-polish debug sessions discovered *after* GATE-02 went green" — that framing was inaccurate. Those 13 (deflist/desc concat, dangling labels, propagated-target anchors) were the sequential *fatal* corpus compile bugs that Phase 15 fixed *to make* GATE-02 green; all shipped in v0.6.0 with `fix(15):` commits on `main` and `*_render_gate.py` regression tests, their `.planning/debug/` frontmatter merely left stale at `fixing`/`investigating` and reconciled to `resolved` on 2026-07-13. The `_static/python-logo.png` asset-copy bug is likewise resolved (`test_static_asset_copy_gate.py`).
 
 ## Milestone History / Next
 
 **v0.6.0 real-world robustness — SHIPPED 2026-07-13.** Goal achieved: Sphinx's own `doc/` tree compiles through `typstpdf` with no fatal Typst errors (Issue #114 closed) and the most-frequent previously-unsupported nodes render correctly. Details below retained for reference.
 
-**Next milestone: not yet defined.** Strongest backlog candidate is a rendering-polish pass over the 13 acknowledged post-GATE-02 debug sessions (deflist/desc concat, dangling labels, propagated-target anchors) plus the SC#2 `todo_node`/`manpage` handlers — run `/gsd-new-milestone` to scope it.
+**Next milestone: not yet defined.** The documented open backlog is thin: the SC#2 `todo_node`/`manpage` unknown-visit handlers (TODO-01/MAN-01) and LEN-01. A broader "rendering fidelity" pass (finding non-fatal compiles-but-renders-wrong issues) would need a discovery/audit step first — no such list exists yet. The "13 post-GATE-02 debug sessions" once cited here were already-fixed *fatal* corpus bugs (see the Current State correction), not open polish work. Run `/gsd-new-milestone` to scope.
 
 **Original v0.6.0 goal (for reference):** Compile a large real-world documentation set (Sphinx's own `doc/` tree) through the `typstpdf` builder with no fatal Typst errors, and render the most-frequent previously-unsupported docutils/Sphinx nodes correctly — driven by Issue #114.
 
@@ -74,7 +74,7 @@ The `typst`/`typstpdf` builders produce correct output and every CI job stays gr
 
 <!-- v0.6.0 shipped 2026-07-13. No milestone currently active. -->
 
-**None — v0.6.0 shipped; awaiting next milestone.** All 19 v1 requirements are validated (see above). The next milestone is not yet scoped; run `/gsd-new-milestone`. Strongest backlog candidate: a rendering-polish pass over the 13 acknowledged post-GATE-02 debug sessions + the SC#2 `todo_node`/`manpage` handlers.
+**None — v0.6.0 shipped; awaiting next milestone.** All 19 v1 requirements are validated (see above). The next milestone is not yet scoped; run `/gsd-new-milestone`. Documented open backlog: the SC#2 `todo_node`/`manpage` handlers (TODO-01/MAN-01) + LEN-01. (The "13 post-GATE-02 debug sessions" once cited here were actually already-fixed *fatal* corpus bugs — see the Current State correction.)
 
 ### Out of Scope
 

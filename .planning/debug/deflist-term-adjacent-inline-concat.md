@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #3: TypstError: expected comma at tutorial/getting-started.typ:127:147 — terms.item(raw(\"make.bat\")text(\" and \")raw(\"Makefile\"), par({...})). Def-list term inline nodes juxtaposed with no + concatenation."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00
