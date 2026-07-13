@@ -57,18 +57,23 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUD-01 | Phase [N] | Pending |
-| TODO-01 | Phase [N] | Pending |
-| MAN-01 | Phase [N] | Pending |
-| LEN-01 | Phase [N] | Pending |
-| FID-01 | Phase [N] | Pending |
-| GATE-03 | Phase [N] | Pending |
+| TODO-01 | Phase 16 | Pending |
+| MAN-01 | Phase 16 | Pending |
+| LEN-01 | Phase 16 | Pending |
+| AUD-01 | Phase 17 | Pending |
+| FID-01 | Phase 18 | Pending |
+| GATE-03 | Phase 18 | Pending |
 
 **Coverage:**
-- v1 requirements: 6 named (FID-01 expands after AUD-01)
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 6 ⚠️
+- v1 requirements: 6 named (FID-01 expands to FID-01a, FID-01b, … after AUD-01)
+- Mapped to phases: 6/6 ✓
+- Unmapped: 0 ✓
+
+**Phase mapping notes:**
+- Phase 16 (Silent-Drop Node Handlers + Length-Converter Refactor): TODO-01, MAN-01, LEN-01 — independent, additive, low-risk translator changes; do not depend on the audit.
+- Phase 17 (Rendering-Fidelity Audit): AUD-01 — discovery; produces the severity-rated catalogue and appends the FID-01a… fix backlog here.
+- Phase 18 (Fidelity Fixes + Regression-Gate Close): FID-01 (audit-enumerated), GATE-03 — discovery-sized; GATE-03 is the closing regression gate folded in as Phase 18's success criteria rather than a standalone thin phase.
 
 ---
 *Requirements defined: 2026-07-13*
-*Last updated: 2026-07-13 after initial v0.6.1 definition*
+*Last updated: 2026-07-13 after roadmap creation (Phases 16–18 mapped; 6/6 coverage)*

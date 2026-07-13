@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.6.1
 milestone_name: rendering-fidelity
 status: planning
-last_updated: "2026-07-13T12:32:16.336Z"
+last_updated: "2026-07-13T13:00:00.000Z"
 last_activity: 2026-07-13
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,42 +17,41 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.1 rendering-fidelity started)
+See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.1 rendering-fidelity roadmap created)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors, and the highest-frequency previously-dropped nodes render correctly.
-**Current focus:** v0.6.1 (rendering fidelity) — scoping. Known items: TODO-01 (`todo_node`), MAN-01 (`:manpage:`), LEN-01 (CSS-length converter); plus a visual fidelity audit of the corpus PDF to discover-and-fix silent mis-render issues. (The 13 "post-GATE-02 debug sessions" were already-fixed fatal corpus bugs — reconciled 2026-07-13.)
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
+**Current focus:** v0.6.1 (rendering fidelity), Phase 16 — implement the last two silently-dropped nodes (`todo_node`, `manpage`) + generalize the CSS-length converter (LEN-01), before the visual fidelity audit.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-13 — Milestone v0.6.1 started
+Phase: 16 of 18 (Silent-Drop Node Handlers + Length-Converter Refactor)
+Plan: — (roadmap approved; ready to plan Phase 16)
+Status: Ready to plan
+Last activity: 2026-07-13 — v0.6.1 roadmap created (Phases 16–18, continuing from v0.6.0's Phase 15)
 
-## Roadmap Summary (v0.6.0 — Phases 11–15)
+Progress: [░░░░░░░░░░] 0%
+
+## Roadmap Summary (v0.6.1 — Phases 16–18)
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
-| 11 — Issue #114 Fatal Fixes + Graceful-Degrade Net | Fix px→pt + figure caption/`:target:` buffer-swap + graphviz/inheritance skip; stand up the real-compile gate | FIG-01, FIG-02, DEG-01, DEG-02, GATE-01 |
-| 12 — High-Volume Independent Node Handlers | versionmodified, empty-URL/`refid` refs, autodoc `desc_*`, transition/glossary/tabular_col_spec/abbr | XREF-01, VER-01, DESC-01..04, BLK-01, BLK-04, BLK-05, BLK-06 |
-| 13 — Shared Dispatch-Point Changes | Generalize `visit_title` for topic + line/line_block, with admonition-title regression fixtures | BLK-02, BLK-03 |
-| 14 — Footnotes (doctree pre-pass) | Typst-native `footnote[...]` via id-keyed pre-pass; the only architecturally-new item | FN-01 |
-| 15 — Full-Corpus Validation | Real `-b typstpdf` of Sphinx's own `doc/` tree; catalogue warnings + measure empty-URL reduction | GATE-02 |
+| 16 — Silent-Drop Node Handlers + Length-Converter Refactor | Render `todo_node` (admonition-style) + `manpage` (literal page text); generalize v0.6.0's px→pt converter into one shared, reused helper | TODO-01, MAN-01, LEN-01 |
+| 17 — Rendering-Fidelity Audit (discovery) | Human-assisted visual diff of the compiled corpus PDF vs. source → a severity-rated catalogue of *silent* mis-render issues; appends the FID-01a… fix backlog to REQUIREMENTS.md | AUD-01 |
+| 18 — Fidelity Fixes + Regression-Gate Close (discovery-sized) | Fix every high-severity AUD-01 issue with a real-compile regression fixture, then close on GATE-03 (corpus still fatal-free; `todo_node`/`manpage` gone from the `unknown_visit` catalogue) | FID-01, GATE-03 |
 
-Standing bar (GATE-01): every node-handler phase (11–14) ships or extends a real `typst.compile()` acceptance fixture — string-agreement asserts alone never suffice.
+**Coverage:** 6/6 named v1 requirements mapped (FID-01 expands to FID-01a… after AUD-01). No orphans.
+
+**Standing bar (GATE-01):** every node-handler change (Phases 16, 18) ships or extends a real `typst.compile()` acceptance fixture — string-agreement asserts alone never suffice. Local env can run real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
+
+**Milestone invariant:** zero new runtime deps, no `@preview` bump expected — the 3-way version-sync surface stays untouched. Flag during planning if a phase needs otherwise.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 28 (15 in v0.4.4, 13 in v0.5.0)
-- v0.6.0 plans completed: 0
-- Average duration: — min
-
-**Recent Trend:**
-
-- Last 5 plans (v0.5.0): 3min, 39min, 5min, 5min (Phase 9–10)
-- Trend: — (new milestone, no plans executed yet)
+- Total plans completed (project cumulative): 43 (15 in v0.4.4, 13 in v0.5.0, 15 in v0.6.0)
+- v0.6.1 plans completed: 0
+- Average duration: — (new milestone, no plans executed yet)
 
 *Updated after each plan completion*
 
@@ -60,32 +59,13 @@ Standing bar (GATE-01): every node-handler phase (11–14) ships or extends a re
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table. Roadmap-shaping decisions for v0.6.0:
+Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 
-- [Roadmap]: Issue #114 fatal fixes (FIG-01/FIG-02) are Phase 11 (first) — they BLOCK all real-compile validation of everything else, since a single fatal node aborts the whole PDF.
-- [Roadmap]: DEG-01/DEG-02 (graphviz/inheritance skip overrides) placed in Phase 11 too — the graceful-degrade net is what makes a full-corpus compile run usable as a feedback tool without aborting on the first out-of-scope node.
-- [Roadmap]: GATE-01 mapped to Phase 11 (where the real-compile fixture pattern is first established) and echoed as a standing success criterion across Phases 12–14.
-- [Roadmap]: FN-01 (footnotes) gets its own phase (14), sequenced late — it is the only item needing a genuine doctree pre-pass; independent of Phases 12–13.
-- [Roadmap]: The shared-dispatch `visit_title` change (BLK-02/BLK-03) is isolated in Phase 13 with admonition-title regression fixtures because it edits a load-bearing method every admonition + heading depends on.
-- [Research]: Zero new runtime dependencies / no `@preview` bump — every target node maps to native Typst 0.15 or already-bundled packages; the 3-way version-sync surface stays untouched.
-- [Phase 11-01]: Unit dispatch implemented as allow-list (not deny-list) so the full extended docutils CSS3 unit set falls into one generic warn+drop branch (D-02)
-- [Phase 11-01]: Confirmed live sphinx.ext.graphviz/inheritance_diagram node-class names before finalizing visit_* method names (resolves RESEARCH.md Assumption A1)
-- [Phase 11-02]: Figure caption buffer-swap guarded strictly by if self.in_figure: on both visit/depart, leaving the captioned-code-block SkipNode path (which never calls depart_caption) unaffected
-- [Phase 11-02]: refid fallback branch in visit_reference inserted as an early return before the existing empty-URL guard; no sanitization of refid, matching the adjacent #-prefixed refuri branch convention
-- [Phase 11-03]: Fixed a third fatal Typst compile bug (label-in-code-mode) discovered while building GATE-01 fixtures: bracket-wrap labeled figure/heading emissions in markup content — Docutils auto-assigns ids to any captioned figure and internal :target: links require section anchors; without this fix neither figure fixture could compile, blocking GATE-01's own success criteria
-- [Phase 13]: D-01/D-02/D-05/D-06 and the Pitfall-1 fix landed as one atomic task/commit (Task 1), per RESEARCH.md Pitfall 2's atomicity mandate
-- [Phase 13]: Pitfall-1 multi-child-title separator+wrap fix bundled into Plan 01 rather than filed as a separate prerequisite bug fix
-- [Phase 13-02]: line_block nesting tracked with a single integer depth counter (not a stack) -- docutils' own visitor recursion provides the nesting stack for free
-- [Phase 13-02]: h() indent spacer needs no markup-mode bracket-wrap (unlike Phase 11's <label> anchors) -- plain code-mode stdlib call
-- [Phase 13-03]: Rendered the epigraph shape as a plain top-level line_block under a titled section (no .. epigraph:: directive) per Pitfall 4 -- sidesteps a pre-existing block_quote/attribution bug
-- [Phase 13-03]: Used a class-scoped GATE-01 fixture to build+compile+extract once per class, shared across three thin assertion-only test methods, avoiding three recompiles
-- [Phase 13-03]: Named the admonition-regression test method without an underscore between the three words (test_admonitiontitleregression_multichild) after discovering pytest -k does a contiguous substring match
-- [Phase 14-01]: Used self.document.findall(nodes.footnote) instead of the deprecated .traverse() -- traverse() raises DeprecationWarning, escalated to a hard failure by this project's strict pytest filter
-- [Phase 14-02]: Fixed a paragraph-state-clobbering bug in visit_footnote_reference's buffer-swap (save/restore in_paragraph/paragraph_has_content around the nested walkabout) -- discovered by the GATE-01 real-compile fixture; without it, any footnote followed by trailing text in the same sentence was a FATAL Typst compile abort
-- [Phase 15-01]: Split the single new tests/test_corpus_gate.py file into two atomic commits matching the plan's two tasks, via staged partial-content writes rather than git add -p (which doesn't cleanly split a brand-new untracked file by hunk)
-- [Phase 15-01]: In-sandbox network happened to be available; the slow TestCorpusRenderGate gate ran for real (did not skip) and correctly caught a genuine pre-existing fatal TypstError -- a missing `_static/python-logo.png` asset in TypstBuilder's image-copy pass -- not caused by this plan's changes, flagged for a follow-up plan/phase rather than fixed inline (out of this plan's tests/test_corpus_gate.py-only scope)
-- [Phase 15-02]: D-07 revert mechanism adjusted to worktree-at-HEAD + targeted depart_term patch (not 79c9d45~1 checkout) to isolate XREF-01 from 55 intervening campaign-fix commits — Preserves D-07's measurement intent while avoiding conflation with unrelated bug fixes
-- [Phase 15-02]: both SC#3 before/after builds use -b typst only (never typstpdf) per RESEARCH Pitfall 2 — Reverted depart_term's dangling :term: glossary label would fatally abort typst.compile()
+- [Roadmap]: TODO-01/MAN-01/LEN-01 grouped into one early Phase 16 — independent, additive, low-risk translator changes (two new `visit_*` handlers + one converter refactor); they do NOT depend on the audit.
+- [Roadmap]: AUD-01 is an isolated **discovery** phase (17) — warnings only surface *dropped* content, so a human-assisted visual audit is the only way to find *silent* mis-renders; its output is a written catalogue artifact.
+- [Roadmap]: FID-01 (Phase 18) is sequenced AFTER AUD-01 and is **discovery-sized** — the concrete per-issue fix list is unknown until the audit enumerates it; success criterion is "every high-severity issue fixed with a real-compile fixture," not a fixed count. Plan count TBD until AUD-01 completes.
+- [Roadmap]: GATE-03 folded into Phase 18 as its closing success criteria (not a standalone thin gate phase) — it validates the whole milestone: corpus still fatal-free (GATE-02 non-regression) AND `todo_node`/`manpage` gone from the `unknown_visit` catalogue.
+- [Roadmap]: Phase 17 depends on Phase 16 — audit the corpus with the new handlers already landed, so the audit surfaces genuinely-silent divergence, not the already-scheduled `todo_node`/`manpage` drops.
 
 ### Pending Todos
 
@@ -93,17 +73,14 @@ None yet.
 
 ### Blockers/Concerns
 
-Carried forward from research (SUMMARY.md / ARCHITECTURE.md / PITFALLS.md) — resolve during execution:
-
-- [Phase 11]: **One bad node aborts the ENTIRE PDF** — `typst.compile()` is all-or-nothing over the master doc + everything it `#include()`s. Treat "does it compile" as the primary correctness signal for every handler, not "does the string look right." Fixtures must cover edge-case attribute values (`%`, `em`, `px`, `pc`, unitless width; captions containing `_`/`*`/`` ` ``/`[`/`]`).
-- [Phase 11]: **Fix `visit_caption`/`depart_caption` via buffer-swap, NOT `astext()`** — `astext()` bypasses both escaping regimes and drops inline markup (the mechanism behind the `link(url,image)text(caption)` leak). Emit the caption as a code-mode `{...}` block, not a markup `[...]` block (the v0.5.0 admonition-bug class).
-- [Phase 12]: **`versionmodified` child shape is MEDIUM confidence** — build a throwaway `doctree.pformat()` dump to confirm children are inline-direct vs. nested in a `paragraph` before finalizing the handler.
-- [Phase 12]: **Empty-URL reduction must be MEASURED, not assumed** — the ×596 figure is a strong `refid`-gap signal, but the residual genuinely-broken count needs a real before/after build diff (finalized in Phase 15).
-- [Phase 14]: **Footnote `refid` cross-link attribute + `label`-child-skip + re-citation syntax are MEDIUM confidence** — confirm all three against a live doctree dump + a real `typst compile` spot-check before locking the pre-pass design.
+- [Phase 16]: `manpage` node child shape / `:manpage:` role output — confirm the literal page-reference text (e.g. `ls(1)`) against a live doctree dump before locking the handler.
+- [Phase 16]: LEN-01 is a refactor of load-bearing code (`visit_image`'s px→pt fix from v0.6.0) — the shared helper must be behavior-preserving at the `visit_image` call site; the real-compile figure fixture guards this.
+- [Phase 17]: AUD-01 is human-assisted (visual page-by-page inspection). Scope discipline: catalogue only in-scope fidelity bugs typsphinx owns, excluding known out-of-scope degradations (graphviz/inheritance placeholders, non-included-doc xrefs, Sphinx-side autodoc/`py:meth` warnings).
 
 ### Roadmap Evolution
 
-- 2026-07-11: v0.6.0 roadmap created — Phases 11–15, derived from 19 v1 requirements (Issue #114 + high-frequency dropped-node support). Phase numbering continues from v0.5.0 (6–10 + 8.1).
+- 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements (TODO-01, MAN-01, LEN-01, AUD-01, FID-01, GATE-03). Phase numbering continues from v0.6.0 (ended at Phase 15). A focused 3-phase polish shape: node handlers + LEN-01 → fidelity audit → audit-driven fixes + gate close.
+- 2026-07-11: v0.6.0 roadmap created — Phases 11–15, derived from 19 v1 requirements. Continued from v0.5.0.
 
 ## Deferred Items
 
@@ -112,55 +89,16 @@ Items acknowledged and carried forward from previous milestone closes:
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
 | Forward-ecosystem | CFG-01 (was FWD-03): user-configurable `@preview` versions | Deferred to v2 | v0.5.0 scoping |
-| Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v2 | v0.5.0 scoping |
-| Styling refinements | TODO-01 (`todo_node` styling), MAN-01 (`:manpage:` role), LEN-01 (generalize CSS-length converter) | Deferred to v0.6.x | v0.6.0 scoping |
-| Phase 11 P01 | 15min | 3 tasks | 2 files |
-| Phase 11 P02 | 10min | 2 tasks | 1 files |
-| Phase 11 P03 | ~90min | 2 tasks | 11 files |
-| Phase 13 P01 | 5min | 2 tasks | 3 files |
-| Phase 13 P02 | 4min | 2 tasks | 2 files |
-| Phase 13 P03 | 7min | 2 tasks | 3 files |
-| Phase 14 P01 | 5min | 2 tasks | 2 files |
-| Phase 14 P02 | 15min | 2 tasks | 4 files |
-| Phase 15 P01 | 15min | 2 tasks | 1 files |
-| Phase 15 P02 | 20min | 2 tasks | 1 files |
-
-### RECONCILED 2026-07-13 — these 13 were already-fixed FATAL corpus bugs, not open polish items
-
-An earlier version of this section listed 13 "non-fatal `typstpdf` rendering-polish
-debug sessions discovered *after* GATE-02 went green." **That was inaccurate.** A
-2026-07-13 code+git audit confirmed all 13 are the sequential *fatal* corpus
-compile bugs (`TypstError`: expected comma / unclosed label / label does not
-exist / occurs multiple times) that Phase 15 fixed *to make* GATE-02 green — each
-with a `fix(15):` commit reachable on `main` and a landed `*_render_gate.py`
-regression test. Their `.planning/debug/` frontmatter was merely left stale at
-`fixing`/`investigating`/`awaiting_human_verify`; it has been reconciled to
-`resolved`. **There is no open work among these 13.** The genuine open backlog is
-the Styling-refinements row above (TODO-01 `todo_node`, MAN-01 `:manpage:`,
-LEN-01 CSS-length converter).
-
-| Debug session (all now `status: resolved`) | Fixed by (on `main`) |
-|--------------------------------------------|----------------------|
-| confval-field-body-inline-juxtaposition | `37bebeb` |
-| deflist-definition-multiblock-unwrapped-arg | `2f99f40` |
-| deflist-nested-definition-body-clobber | `8e18d77` |
-| deflist-term-adjacent-inline-concat | `faf7d38`/`49db2f0` |
-| desc-signature-newline-concat-stray-plus | `3833041` |
-| label-ref-at-char-unclosed-label | `e0b2916` |
-| list-item-nested-block-adjacency | `852cc2f` |
-| paragraph-propagated-target-missing-anchor | `418a2b0` |
-| ref-with-target-and-nested-list-juxtaposition | `a87755b` |
-| desc-signature-missing-anchor-dangling-label | `e9e01cd` |
-| duplicate-module-label-corpus | `9add92b` |
-| rubric-propagated-target-missing-anchor | `2a9fc5d` |
-| typst-string-literal-newline-escape | `b1283da`/`d521461` |
+| Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
+| Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
+| Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.1 | v0.6.1 scoping |
 
 ## Session Continuity
 
-Last session: 2026-07-12T15:57:32.796Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-07-13T13:00:00.000Z
+Stopped at: Created v0.6.1 roadmap (ROADMAP.md, STATE.md, REQUIREMENTS.md traceability)
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 16 with `/gsd-plan-phase 16` (TODO-01 + MAN-01 + LEN-01).
