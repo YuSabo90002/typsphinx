@@ -3764,6 +3764,38 @@ class TypstTranslator(SphinxTranslator):
         """Depart a hint admonition."""
         self._depart_admonition()
 
+    def visit_todo_node(self, node: nodes.Element) -> None:
+        """
+        Visit a todo_node (sphinx.ext.todo). Converts to #task[] (gentle-clues).
+
+        Gated on `config.todo_include_todos`, mirroring every official
+        Sphinx builder (html/latex/text/man/texinfo in sphinx/ext/todo.py),
+        which each raise `nodes.SkipNode` when the config is False (the
+        Sphinx default) -- internal author work-notes must never silently
+        leak into published output (TODO-01, T-16-01). Unlike those
+        builders, typsphinx does not register a dedicated node handler via
+        `app.add_node`; docutils dispatches this method purely by the node
+        class NAME (`todo_node`), so no import of `sphinx.ext.todo` is
+        needed here.
+
+        Note: todo_node carries its own `nodes.title` child (inserted by
+        `sphinx.ext.todo.Todo.run()` at parse time), which visit_title's
+        admonition-aware branch buffers and `_depart_admonition` prefers
+        over `custom_title` -- the static "Todo" below is an inert,
+        non-i18n fallback, not the actual title source (16-RESEARCH.md
+        Pitfall 2).
+
+        `task` is verified present in the pinned gentle-clues 1.3.1
+        (D-01a) -- no base-`clue` fallback is required.
+        """
+        if not self.config.todo_include_todos:
+            raise nodes.SkipNode
+        self._visit_admonition(node, "task", custom_title="Todo")
+
+    def depart_todo_node(self, node: nodes.Element) -> None:
+        """Depart a todo_node."""
+        self._depart_admonition()
+
     def visit_error(self, node: nodes.error) -> None:
         """Visit an error admonition (converts to #error[])."""
         self._visit_admonition(node, "error")
