@@ -121,7 +121,7 @@ low-risk translator changes that do NOT depend on the later audit)
   3. The CSS-length → Typst-length conversion lives in one shared helper reused at every length-bearing site (`visit_image` now calls the shared helper), with no duplicated or divergent conversion logic remaining.
   4. Each of the three changes ships or extends a real `typst.compile()` acceptance fixture (GATE-01 pattern) proving the node renders / the converter round-trips through an actual compile — string-agreement asserts alone do not suffice.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -134,7 +134,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 16-03-PLAN.md — Wire `_convert_length_to_typst` into figure `:figwidth:` + table `:width:` via `block(width:)` wrappers (LEN-01) + figwidth/table-width real-compile fixtures
+- [x] 16-03-PLAN.md — Wire `_convert_length_to_typst` into figure `:figwidth:` + table `:width:` via `block(width:)` wrappers (LEN-01) + figwidth/table-width real-compile fixtures
 
 ### Phase 17: Rendering-Fidelity Audit
 
@@ -206,7 +206,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
-| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 2/3 | In Progress|  |
+| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | In Progress|  |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 0/TBD | Not started | - |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 0/TBD | Not started | - |
 
