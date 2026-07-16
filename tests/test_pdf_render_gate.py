@@ -40,6 +40,13 @@ except ImportError:
 # literals -- they are NOT expected in any source file's body prose.
 LEAK_SIGNATURES = ("par({", 'text("', 'raw("')
 
+# Sentinel token for the TODO-01 todo-render-gate fixture -- distinctive,
+# unlikely token chosen so `full_text.count(...)`/`in full_text` can prove
+# the `.. todo::` body reached (or, in the disabled case, never reached) the
+# compiled output. Must match the sentinel token embedded in
+# todo_render_gate/index.rst.
+TODO_BODY_SENTINEL = "TODOBODYSENTINEL9X4"
+
 
 @pytest.fixture
 def fixtures_dir():
@@ -102,13 +109,19 @@ def topic_line_block_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def todo_render_gate_dir(fixtures_dir):
+    """Return the path to the todo_render_gate fixture project."""
+    return fixtures_dir / "todo_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
 
 
 def _run_sphinx_build_typst(
-    source_dir: Path, build_dir: Path
+    source_dir: Path, build_dir: Path, extra_args: tuple = ()
 ) -> subprocess.CompletedProcess:
     """
     Run `sphinx-build -b typst` as a subprocess and return the completed
@@ -125,6 +138,11 @@ def _run_sphinx_build_typst(
     executable") when invoked from inside a pytest-launched subprocess, even
     though the same command succeeds when run directly in a shell.
     `sys.executable -m sphinx` sidesteps that PATH-shadowing hazard entirely.
+
+    `extra_args` is an optional tuple of additional sphinx-build CLI
+    arguments (e.g. `("-D", "todo_include_todos=0")`) spliced into the
+    command list before the source dir -- default `()` keeps every
+    pre-existing call site unchanged.
     """
     return subprocess.run(
         [
@@ -133,6 +151,7 @@ def _run_sphinx_build_typst(
             "sphinx",
             "-b",
             "typst",
+            *extra_args,
             str(source_dir),
             str(build_dir),
         ],
@@ -1775,3 +1794,147 @@ class TestCodlyConfigLeakRenderGate:
                 "text -- the per-block config must be EXECUTED, not typeset as "
                 f"literal prose (captioned markup/code-mode regression):\n{full_text}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (TODO-01, GATE-01): extend the GATE-01 render-gate pattern to
+# prove visit_todo_node/depart_todo_node -- a `.. todo::` body renders inside
+# a gentle-clues task() box titled "Todo" in the compiled PDF when
+# todo_include_todos=True (D-01), gated on config.todo_include_todos exactly
+# like every official Sphinx builder (planner decision per 16-RESEARCH.md
+# Open Question 1 / Assumption A2). Before the handler exists, todo_node is
+# silently unknown_visit-dropped with an "unknown node type" warning -- this
+# is the TODO-01 corpus symptom (x10).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTodoRenderGate:
+    """
+    Real-compile acceptance gate for TODO-01: visit_todo_node/
+    depart_todo_node rendering as a gentle-clues task() box titled "Todo",
+    gated on config.todo_include_todos.
+
+    Requirements: TODO-01, GATE-01 (16-CONTEXT.md, 16-RESEARCH.md D-01/D-01a,
+    16-01-PLAN.md).
+    """
+
+    def test_todo_pdf_renders_body_and_title(
+        self, todo_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the todo_render_gate fixture (todo_include_todos=True, the
+        fixture's own default) to PDF and confirm, via the generated .typ
+        source and real pypdf text-extraction:
+        - no "unknown node type" warning on stderr (the TODO-01 warning is
+          eliminated);
+        - the emitted .typ source contains the task() clue's code-mode open
+          ("task({");
+        - typst.compile() succeeds;
+        - the body sentinel and the box title ("Todo", exactly once --
+          sourced only from the node's own dynamic title child, per
+          16-RESEARCH.md Pitfall 2) both reach the extracted PDF text;
+        - no LEAK_SIGNATURES token leaked into the rendered PDF text.
+        """
+        result = _run_sphinx_build_typst(todo_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr -- the "
+            f"TODO-01 warning should be eliminated:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "task({" in typ_source, (
+            "Expected the task() clue's code-mode content-block open "
+            "('task({') in the generated Typst source -- "
+            "visit_todo_node/_visit_admonition regression"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test -- any invalid Typst source emitted
+        # by visit_todo_node would abort the compile here.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        assert TODO_BODY_SENTINEL in full_text, (
+            f"Expected todo body sentinel '{TODO_BODY_SENTINEL}' in "
+            "extracted PDF text -- visit_todo_node/depart_todo_node "
+            "regression"
+        )
+        assert full_text.count("Todo") == 1, (
+            "Expected the box title 'Todo' to appear exactly once in "
+            "extracted PDF text (from the node's own dynamic title child) "
+            f"-- fixture contains no other 'Todo' source:\n{full_text}"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- todo markup/code-mode regression"
+            )
+
+    def test_todo_typ_omits_body_when_todo_include_todos_false(
+        self, todo_render_gate_dir, temp_build_dir
+    ):
+        """
+        Build the SAME fixture with -D todo_include_todos=0 (the Sphinx
+        default False) and confirm the generated .typ contains neither the
+        body sentinel nor a task( call -- mirroring every official Sphinx
+        builder's SkipNode gating (16-RESEARCH.md A2). No compile needed --
+        absence is a .typ-level proof; test_todo_pdf_renders_body_and_title
+        owns the compile.
+
+        This is a permanent regression guard for the internal-work-notes
+        prohibition (T-16-01): draft `.. todo::` content must never leak
+        into published output when todo_include_todos is False.
+        """
+        result = _run_sphinx_build_typst(
+            todo_render_gate_dir,
+            temp_build_dir,
+            extra_args=("-D", "todo_include_todos=0"),
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr even when "
+            f"todo_include_todos is False:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert TODO_BODY_SENTINEL not in typ_source, (
+            f"Todo body sentinel '{TODO_BODY_SENTINEL}' leaked into "
+            "generated Typst source with todo_include_todos=False -- "
+            "internal work-notes must never leak into published output "
+            "(T-16-01)"
+        )
+        assert "task({" not in typ_source, (
+            "Found the task() clue's code-mode open in generated Typst "
+            "source with todo_include_todos=False -- the "
+            "config.todo_include_todos SkipNode gate regressed"
+        )
