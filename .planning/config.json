@@ -6,7 +6,7 @@
   "brave_search": false,
   "firecrawl": false,
   "exa_search": false,
-  "tavily_search": false,
+  "tavily_search": true,
   "ref_search": false,
   "perplexity": false,
   "jina": false,

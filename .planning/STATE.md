@@ -6,13 +6,13 @@ current_phase: 16
 current_phase_name: Silent-Drop Node Handlers + Length-Converter Refactor
 status: executing
 stopped_at: Phase 16 context gathered
-last_updated: "2026-07-16T12:27:10.666Z"
-last_activity: 2026-07-13
-last_activity_desc: v0.6.1 roadmap created (Phases 16–18, continuing from v0.6.0's Phase 15)
+last_updated: "2026-07-16T12:29:47.830Z"
+last_activity: 2026-07-16
+last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.1 rendering-fidelity roadmap created)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** v0.6.1 (rendering fidelity), Phase 16 — implement the last two silently-dropped nodes (`todo_node`, `manpage`) + generalize the CSS-length converter (LEN-01), before the visual fidelity audit.
+**Current focus:** Phase 16 — Silent-Drop Node Handlers + Length-Converter Refactor
 
 ## Current Position
 
-Phase: 16 of 18 (Silent-Drop Node Handlers + Length-Converter Refactor)
-Plan: — (roadmap approved; ready to plan Phase 16)
-Status: Ready to execute
-Last activity: 2026-07-13 — v0.6.1 roadmap created (Phases 16–18, continuing from v0.6.0's Phase 15)
+Phase: 16 (Silent-Drop Node Handlers + Length-Converter Refactor) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 16
+Last activity: 2026-07-16 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
