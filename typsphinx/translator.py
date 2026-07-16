@@ -89,6 +89,12 @@ class TypstTranslator(SphinxTranslator):
         self._saved_body_for_figure_caption: List[Any] | None = (
             None  # Body to restore after buffering a figure caption (buffer-swap idiom)
         )
+        self._figure_block_width: str | None = (
+            None  # Converted :figwidth: value (LEN-01); set in visit_figure,
+            # consumed + reset in depart_figure. Typst's figure() rejects a
+            # direct width: kwarg, so a non-None value means the whole
+            # figure() call is wrapped in block(width: ...)[...] (D-03/Pitfall 3).
+        )
 
         # Code block container state (Issue #20)
         self.in_captioned_code_block = False
@@ -1921,7 +1927,24 @@ class TypstTranslator(SphinxTranslator):
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
 
-        if node.get("ids"):
+        # LEN-01: :figwidth: is assigned to node["width"] by docutils' Figure
+        # directive. Convert here ONLY (depart_figure must not re-convert, or
+        # the drop-warning would fire twice, breaking the one-warning-per-
+        # occurrence contract). Typst's figure() rejects a direct width:
+        # kwarg (verified real-compile failure), so a converted value wraps
+        # the WHOLE figure() call in block(width: ...)[...] instead
+        # (16-RESEARCH.md Pitfall 3) -- never passed as a figure() argument.
+        # The block()'s own trailing [...] markup block hosts the #figure(
+        # call for BOTH the ids and no-ids branches (the ids branch's
+        # <label> close still lands inside it -- see depart_figure).
+        figwidth = node.get("width")
+        self._figure_block_width = (
+            self._convert_length_to_typst(figwidth) if figwidth else None
+        )
+
+        if self._figure_block_width is not None:
+            self.add_text(f"block(width: {self._figure_block_width})[#figure(\n")
+        elif node.get("ids"):
             self.add_text("[#figure(\n")
         else:
             # Start figure with potential label (no # prefix in code mode)
@@ -1944,10 +1967,19 @@ class TypstTranslator(SphinxTranslator):
 
         # Add label if figure has ids. The trailing `]` closes the markup
         # bracket opened in visit_figure -- see that method's docstring for
-        # why the label must live inside a markup-mode bracket pair.
+        # why the label must live inside a markup-mode bracket pair. This
+        # close is ALREADY correct when the LEN-01 block(width:)[...] wrapper
+        # is open too: the block()'s own trailing `[...]` markup block is
+        # what the `]` here closes (visit_figure opened exactly one bracket
+        # in either case -- see that method).
         if node.get("ids"):
             label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f"\n) <{label}>]\n\n")
+        elif self._figure_block_width is not None:
+            # LEN-01: the no-ids branch normally has no markup bracket to
+            # close, but the block(width: ...)[...] wrapper opened one in
+            # visit_figure -- close it here.
+            self.add_text("\n)]\n\n")
         else:
             self.add_text("\n)\n\n")
 
@@ -1957,6 +1989,8 @@ class TypstTranslator(SphinxTranslator):
         # that would otherwise dangle -- anchor the remainder, skipping ids[0]
         # so it is not defined twice. Empty/single-id figures -> no-op.
         self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+
+        self._figure_block_width = None
 
         self.in_figure = False
         self.figure_content = []
@@ -2218,8 +2252,27 @@ class TypstTranslator(SphinxTranslator):
         """
         # Generate Typst table() syntax (no # prefix in unified code mode)
         if self.table_colcount > 0:
+            # LEN-01: :width: is assigned to node["width"] by docutils'
+            # Table.set_table_width(), shared by RSTTable/CSVTable/ListTable
+            # -- one wiring covers all three directive types (they all
+            # converge on nodes.table). Typst's table() rejects a direct
+            # width: kwarg (verified real-compile failure, same as figure),
+            # so a converted value wraps the WHOLE table() call in
+            # block(width: ...)[...] instead (16-RESEARCH.md Pitfall 3).
+            # Use self.body.append directly (NEVER self.add_text) at this
+            # site -- see the comment below about the stale
+            # table_cell_content buffer misrouting hazard.
+            width = node.get("width")
+            converted_width = self._convert_length_to_typst(width) if width else None
+
             # Use self.body.append directly to avoid routing to table_cell_content
-            self.body.append(f"table(\n  columns: {self.table_colcount},\n")
+            if converted_width is not None:
+                self.body.append(
+                    f"block(width: {converted_width})[#table(\n"
+                    f"  columns: {self.table_colcount},\n"
+                )
+            else:
+                self.body.append(f"table(\n  columns: {self.table_colcount},\n")
 
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
@@ -2238,7 +2291,10 @@ class TypstTranslator(SphinxTranslator):
             for cell in body_cells:
                 self.body.append(self._format_table_cell(cell, indent="  "))
 
-            self.body.append(")\n\n")
+            if converted_width is not None:
+                self.body.append(")]\n\n")
+            else:
+                self.body.append(")\n\n")
 
         self.in_table = False
         self.table_cells = []

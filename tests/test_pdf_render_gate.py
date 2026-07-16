@@ -121,6 +121,12 @@ def manpage_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def table_width_render_gate_dir(fixtures_dir):
+    """Return the path to the table_width_render_gate fixture project."""
+    return fixtures_dir / "table_width_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -2033,4 +2039,217 @@ class TestManpageRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- manpage delegation regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (LEN-01, GATE-01): extend the GATE-01 render-gate pattern to prove
+# the figwidth wiring in visit_figure/depart_figure -- a :figwidth: length
+# now routes through the single shared _convert_length_to_typst() helper and
+# wraps the whole figure() call in a block(width: ...)[...] wrapper (Typst's
+# figure() rejects a direct width: kwarg -- 16-RESEARCH.md Pitfall 3). Before
+# this wiring, :figwidth: was silently ignored (no wrapper, no warning).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestFigureFigwidthRenderGate:
+    """
+    Real-compile acceptance gate for LEN-01: the visit_figure/depart_figure
+    :figwidth: wiring through _convert_length_to_typst(), wrapped in the
+    verified-by-real-compile block(width: ...)[#figure(...)] shape.
+
+    Requirements: LEN-01, GATE-01 (16-RESEARCH.md Pitfall 3, 16-03-PLAN.md).
+    """
+
+    def test_figwidth_pdf_wraps_block_and_compiles(
+        self, figure_length_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the (extended) figure_length_render_gate fixture to PDF and
+        confirm, via the generated .typ source and stderr:
+        - the 400px :figwidth: case wraps block(width: 300pt)[#figure( (the
+          exact CSS-canonical 0.75 px->pt ratio);
+        - the 75% :figwidth: case wraps block(width: 75%)[#figure( (pass
+          through unchanged);
+        - neither the raw "5ex" unit nor the raw "400px" unit ever reaches
+          the generated Typst source;
+        - exactly 2 "Unsupported length unit" warnings fire on stderr (the
+          pre-existing :width: 1ex image case + the new :figwidth: 5ex
+          case) -- proving no double-conversion at the new call site;
+        - typst.compile() succeeds without try/except.
+        """
+        result = _run_sphinx_build_typst(figure_length_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "block(width: 300pt)[#figure(" in typ_source, (
+            "Expected the :figwidth: 400px case to wrap "
+            "'block(width: 300pt)[#figure(' in the generated Typst source -- "
+            "visit_figure figwidth wiring regression"
+        )
+        assert "block(width: 75%)[#figure(" in typ_source, (
+            "Expected the :figwidth: 75% case to wrap "
+            "'block(width: 75%)[#figure(' in the generated Typst source -- "
+            "visit_figure figwidth wiring regression"
+        )
+        assert "5ex" not in typ_source, (
+            "Raw unconverted 'ex' unit leaked into generated Typst source "
+            "from the :figwidth: 5ex case"
+        )
+        assert "400px" not in typ_source, (
+            "Raw unconverted 'px' unit leaked into generated Typst source "
+            "from the :figwidth: 400px case"
+        )
+
+        assert result.stderr.count("Unsupported length unit") == 2, (
+            "Expected exactly 2 'Unsupported length unit' warnings (the "
+            "pre-existing :width: 1ex image case + the new :figwidth: 5ex "
+            f"case):\n{result.stderr}"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a mismatched block(width: ...)[...] wrapper would abort the
+        # compile here (Pitfall 3).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (LEN-01, GATE-01): extend the GATE-01 render-gate pattern to prove
+# the width wiring in depart_table -- a :width: length on .. table::/
+# .. csv-table::/.. list-table:: (all converging on the single nodes.table
+# type via Table.set_table_width()) now routes through
+# _convert_length_to_typst() and wraps the whole table() call in a
+# block(width: ...)[#table(...)] wrapper (Typst's table() also rejects a
+# direct width: kwarg -- 16-RESEARCH.md Pitfall 3).
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the table-width render gate -- distinctive, unlikely
+# words chosen so their presence in the extracted PDF text proves each
+# table's content reached the compiled PDF, inside or without the width
+# wrapper. Must match the sentinel tokens embedded in
+# table_width_render_gate/index.rst.
+TABLEPXSENTINEL7Q4 = "TABLEPXSENTINEL7Q4"
+TABLELISTSENTINEL8Q5 = "TABLELISTSENTINEL8Q5"
+TABLECSVSENTINEL9Q6 = "TABLECSVSENTINEL9Q6"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTableWidthRenderGate:
+    """
+    Real-compile acceptance gate for LEN-01: the depart_table :width: wiring
+    through _convert_length_to_typst(), covering .. table::/.. csv-table::/
+    .. list-table:: uniformly through the single nodes.table type, wrapped
+    in the verified-by-real-compile block(width: ...)[#table(...)] shape.
+
+    Requirements: LEN-01, GATE-01 (16-RESEARCH.md Pitfall 3, 16-03-PLAN.md).
+    """
+
+    def test_table_width_pdf_wraps_block_and_compiles(
+        self, table_width_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the table_width_render_gate fixture to PDF and confirm, via
+        the generated .typ source, stderr, and real pypdf text-extraction:
+        - the .. table:: :width: 200px case wraps
+          block(width: 150pt)[#table( (the CSS-canonical 0.75 px->pt ratio);
+        - the .. list-table:: :width: 50% case wraps
+          block(width: 50%)[#table( (pass through unchanged);
+        - neither the raw "1ex" unit nor the raw "200px" unit ever reaches
+          the generated Typst source;
+        - exactly 1 "Unsupported length unit" warning fires on stderr (the
+          .. csv-table:: :width: 1ex case, warn-and-drop, no wrapper);
+        - typst.compile() succeeds without try/except;
+        - all three sentinel tokens (proving the table content itself
+          renders, inside or without the wrapper) reach the extracted PDF
+          text, with no LEAK_SIGNATURES token present.
+        """
+        result = _run_sphinx_build_typst(table_width_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "block(width: 150pt)[#table(" in typ_source, (
+            "Expected the .. table:: :width: 200px case to wrap "
+            "'block(width: 150pt)[#table(' in the generated Typst source -- "
+            "depart_table width wiring regression"
+        )
+        assert "block(width: 50%)[#table(" in typ_source, (
+            "Expected the .. list-table:: :width: 50% case to wrap "
+            "'block(width: 50%)[#table(' in the generated Typst source -- "
+            "depart_table width wiring regression"
+        )
+        assert "1ex" not in typ_source, (
+            "Raw unconverted 'ex' unit leaked into generated Typst source "
+            "from the .. csv-table:: :width: 1ex case"
+        )
+        assert "200px" not in typ_source, (
+            "Raw unconverted 'px' unit leaked into generated Typst source "
+            "from the .. table:: :width: 200px case"
+        )
+
+        assert result.stderr.count("Unsupported length unit") == 1, (
+            "Expected exactly 1 'Unsupported length unit' warning (the "
+            f".. csv-table:: :width: 1ex case):\n{result.stderr}"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a mismatched block(width: ...)[...] wrapper would abort the
+        # compile here (Pitfall 3).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for sentinel in (
+            TABLEPXSENTINEL7Q4,
+            TABLELISTSENTINEL8Q5,
+            TABLECSVSENTINEL9Q6,
+        ):
+            assert sentinel in full_text, (
+                f"Expected table sentinel '{sentinel}' in extracted PDF "
+                "text -- table content must render inside/without the "
+                "width wrapper"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- table-width markup/code-mode "
+                "regression"
             )
