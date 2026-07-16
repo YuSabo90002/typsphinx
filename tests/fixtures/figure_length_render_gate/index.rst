@@ -100,3 +100,14 @@ error that aborts the entire compile.
      :figwidth: 40%
 
      Figwidth figure nested as the second element inside a list item.
+
+Figwidth Without Caption
+--------------------------
+
+A ``:figwidth:`` figure with NO caption below has no docutils-assigned
+``ids`` (docutils only auto-assigns a figure id when it carries a
+caption), so ``depart_figure``'s ``elif self._figure_block_width is not
+None:`` no-label branch is the only one reachable here (WR-01):
+
+.. figure:: image.png
+   :figwidth: 60%

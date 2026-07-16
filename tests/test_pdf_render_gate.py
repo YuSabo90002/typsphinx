@@ -2081,6 +2081,13 @@ class TestFigureFigwidthRenderGate:
         - exactly 2 "Unsupported length unit" warnings fire on stderr (the
           pre-existing :width: 1ex image case + the new :figwidth: 5ex
           case) -- proving no double-conversion at the new call site;
+        - (WR-01) the captionless 60% :figwidth: case -- which has no
+          docutils-assigned ``ids`` and so takes depart_figure's `elif
+          self._figure_block_width is not None:` no-label branch -- wraps
+          the no-label `block(width: 60%)[#figure(\n  image(...)\n)]` shape
+          (no trailing `<label>`), proving that branch is reachable and
+          correct, not just the `ids`-and-width branch every other fixture
+          case exercises;
         - typst.compile() succeeds without try/except.
         """
         result = _run_sphinx_build_typst(figure_length_render_gate_dir, temp_build_dir)
@@ -2111,6 +2118,18 @@ class TestFigureFigwidthRenderGate:
         assert "400px" not in typ_source, (
             "Raw unconverted 'px' unit leaked into generated Typst source "
             "from the :figwidth: 400px case"
+        )
+
+        # WR-01: the captionless 60% :figwidth: case has no `ids`, so it
+        # takes depart_figure's no-label `elif self._figure_block_width is
+        # not None:` branch -- the only fixture case that does, proving that
+        # branch (as opposed to the `ids`-and-width branch every other case
+        # exercises) is reachable and emits the correct no-label shape.
+        assert 'block(width: 60%)[#figure(\n  image("image.png")\n)]' in typ_source, (
+            "Expected the captionless :figwidth: 60% case to wrap the "
+            "no-label 'block(width: 60%)[#figure(\\n  image(...)\\n)]' shape "
+            "in the generated Typst source -- depart_figure's no-ids "
+            "figwidth branch regression"
         )
 
         assert result.stderr.count("Unsupported length unit") == 2, (
