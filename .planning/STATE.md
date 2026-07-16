@@ -2,38 +2,38 @@
 gsd_state_version: 1.0
 milestone: v0.6.1
 milestone_name: rendering fidelity
-current_phase: 16
-current_phase_name: Silent-Drop Node Handlers + Length-Converter Refactor
-status: executing
-stopped_at: Phase 16 context gathered
-last_updated: "2026-07-16T12:29:47.830Z"
+current_phase: 17
+current_phase_name: Rendering-Fidelity Audit
+status: planning
+stopped_at: Phase 16 complete, ready to plan Phase 17
+last_updated: "2026-07-16T13:33:24.993Z"
 last_activity: 2026-07-16
-last_activity_desc: Phase 16 execution started
+last_activity_desc: Phase 16 complete, transitioned to Phase 17
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-13 — v0.6.1 rendering-fidelity roadmap created)
+See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 16 — Silent-Drop Node Handlers + Length-Converter Refactor
+**Current focus:** Phase 17 — Rendering-Fidelity Audit (discovery)
 
 ## Current Position
 
-Phase: 16 (Silent-Drop Node Handlers + Length-Converter Refactor) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 16
-Last activity: 2026-07-16 — Phase 16 execution started
+Phase: 17 — Rendering-Fidelity Audit
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-16 — Phase 16 complete, transitioned to Phase 17
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -53,9 +53,9 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 43 (15 in v0.4.4, 13 in v0.5.0, 15 in v0.6.0)
-- v0.6.1 plans completed: 0
-- Average duration: — (new milestone, no plans executed yet)
+- Total plans completed (project cumulative): 46 (15 in v0.4.4, 13 in v0.5.0, 15 in v0.6.0, 3 in v0.6.1)
+- v0.6.1 plans completed: 3 (Phase 16: 16-01 todo_node 6min, 16-02 manpage 6min, 16-03 length-converter)
+- Average duration: ~6min/plan (Phase 16)
 
 *Updated after each plan completion*
 
@@ -70,6 +70,9 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Roadmap]: FID-01 (Phase 18) is sequenced AFTER AUD-01 and is **discovery-sized** — the concrete per-issue fix list is unknown until the audit enumerates it; success criterion is "every high-severity issue fixed with a real-compile fixture," not a fixed count. Plan count TBD until AUD-01 completes.
 - [Roadmap]: GATE-03 folded into Phase 18 as its closing success criteria (not a standalone thin gate phase) — it validates the whole milestone: corpus still fatal-free (GATE-02 non-regression) AND `todo_node`/`manpage` gone from the `unknown_visit` catalogue.
 - [Roadmap]: Phase 17 depends on Phase 16 — audit the corpus with the new handlers already landed, so the audit surfaces genuinely-silent divergence, not the already-scheduled `todo_node`/`manpage` drops.
+- [Phase 16]: `visit_todo_node` gated on `config.todo_include_todos` via `raise nodes.SkipNode`, mirroring every official Sphinx builder — draft notes never leak into published PDFs.
+- [Phase 16]: `visit_manpage`/`depart_manpage` = 100% delegation to `visit_emphasis`/`depart_emphasis` (duck-typed, no bespoke state machine); no linkification with `manpages_url` unset.
+- [Phase 16]: computed widths on `figure()`/`table()` must use the `block(width: ...)[...]` wrapper — both functions reject a direct `width:` kwarg; convert once at visit, consume at depart (one warning per occurrence).
 
 ### Pending Todos
 
@@ -77,8 +80,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 16]: `manpage` node child shape / `:manpage:` role output — confirm the literal page-reference text (e.g. `ls(1)`) against a live doctree dump before locking the handler.
-- [Phase 16]: LEN-01 is a refactor of load-bearing code (`visit_image`'s px→pt fix from v0.6.0) — the shared helper must be behavior-preserving at the `visit_image` call site; the real-compile figure fixture guards this.
 - [Phase 17]: AUD-01 is human-assisted (visual page-by-page inspection). Scope discipline: catalogue only in-scope fidelity bugs typsphinx owns, excluding known out-of-scope degradations (graphviz/inheritance placeholders, non-included-doc xrefs, Sphinx-side autodoc/`py:meth` warnings).
 
 ### Roadmap Evolution
@@ -99,10 +100,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-13T13:05:42.076Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-silent-drop-node-handlers-length-converter-refactor/16-CONTEXT.md
+Last session: 2026-07-16T15:40:00Z
+Stopped at: Phase 16 complete (UAT 1/1 passed, security 7/7 closed), ready to plan Phase 17
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 16 with `/gsd-plan-phase 16` (TODO-01 + MAN-01 + LEN-01).
+- Plan Phase 17 with `/gsd-plan-phase 17` (AUD-01 — rendering-fidelity audit; human-assisted visual corpus diff).

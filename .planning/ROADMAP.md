@@ -99,7 +99,7 @@ the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/
 untouched. Every target maps to native Typst 0.15 or already-bundled packages. Flag it during
 planning if a phase is found to need otherwise.
 
-- [ ] **Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor** - Render `todo_node` and `manpage`, generalize the CSS-length → Typst-length helper
+- [x] **Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor** - Render `todo_node` and `manpage`, generalize the CSS-length → Typst-length helper (completed 2026-07-16)
 - [ ] **Phase 17: Rendering-Fidelity Audit** - Human-assisted visual diff of the corpus PDF vs. source → a severity-rated catalogue of silent mis-render issues (discovery)
 - [ ] **Phase 18: Fidelity Fixes + Regression-Gate Close** - Fix every high-severity AUD-01 issue with real-compile fixtures, then close on the full-corpus regression gate
 
@@ -206,7 +206,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
-| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | In Progress|  |
+| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 0/TBD | Not started | - |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 0/TBD | Not started | - |
 

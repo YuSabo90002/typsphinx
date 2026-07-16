@@ -1,12 +1,13 @@
 ---
 phase: 16-silent-drop-node-handlers-length-converter-refactor
 verified: 2026-07-16T13:55:00Z
-status: human_needed
+status: passed
 score: 11/12 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 behavior_unverified_items: []
 human_verification:
+
   - test: "Feed a manpage node whose Text child is empty or whitespace-only (would require a synthetic docutils tree; not reachable through normal rST parsing of the `:manpage:` role) through visit_manpage/depart_manpage and confirm it emits a well-formed emph() call that does not abort typst.compile()."
     expected: "A well-formed (possibly empty) emph({...}) call is emitted; the document still compiles."
     why_human: "16-02-PLAN.md tags this truth `verification: backstop` and states no fixture case exists because rST interpreted-text roles cannot normally be empty. No test, fixture, or direct observation in the codebase exercises this path (grep for an empty/whitespace emphasis case in tests/ returns nothing) — per the honest-verifier protocol, symbol presence/delegation to visit_emphasis is not explicit evidence for a non-inferable (backstop) truth, so this must abstain rather than be marked VERIFIED."

@@ -11,12 +11,12 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 Nodes the v0.6.0 warning audit confirmed are still silently `unknown_visit`-dropped in the Sphinx corpus.
 
-- [ ] **TODO-01**: A `.. todo::` directive (`todo_node`) renders its body content in the PDF (as an admonition-style block) instead of being silently dropped — the `unknown node type: <todo_node>` warning is eliminated (×10 in the corpus).
-- [ ] **MAN-01**: The `:manpage:` role (`manpage` node) renders as its literal page reference text (e.g. `ls(1)`) instead of being silently dropped — the `unknown node type: <manpage>` warning is eliminated (×10 in the corpus).
+- [x] **TODO-01**: A `.. todo::` directive (`todo_node`) renders its body content in the PDF (as an admonition-style block) instead of being silently dropped — the `unknown node type: <todo_node>` warning is eliminated (×10 in the corpus).
+- [x] **MAN-01**: The `:manpage:` role (`manpage` node) renders as its literal page reference text (e.g. `ls(1)`) instead of being silently dropped — the `unknown node type: <manpage>` warning is eliminated (×10 in the corpus).
 
 ### Length Handling
 
-- [ ] **LEN-01**: The CSS-length → Typst-length conversion (introduced in v0.6.0 as a `visit_image`-local px→pt fix) is generalized into a single shared helper and reused at every length-bearing site, so any node carrying a CSS length attribute converts consistently (no duplicated/divergent conversion logic).
+- [x] **LEN-01**: The CSS-length → Typst-length conversion (introduced in v0.6.0 as a `visit_image`-local px→pt fix) is generalized into a single shared helper and reused at every length-bearing site, so any node carrying a CSS length attribute converts consistently (no duplicated/divergent conversion logic).
 
 ### Rendering Fidelity Audit
 
@@ -57,19 +57,21 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TODO-01 | Phase 16 | Pending |
-| MAN-01 | Phase 16 | Pending |
-| LEN-01 | Phase 16 | Pending |
+| TODO-01 | Phase 16 | Complete |
+| MAN-01 | Phase 16 | Complete |
+| LEN-01 | Phase 16 | Complete |
 | AUD-01 | Phase 17 | Pending |
 | FID-01 | Phase 18 | Pending |
 | GATE-03 | Phase 18 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 6 named (FID-01 expands to FID-01a, FID-01b, … after AUD-01)
 - Mapped to phases: 6/6 ✓
 - Unmapped: 0 ✓
 
 **Phase mapping notes:**
+
 - Phase 16 (Silent-Drop Node Handlers + Length-Converter Refactor): TODO-01, MAN-01, LEN-01 — independent, additive, low-risk translator changes; do not depend on the audit.
 - Phase 17 (Rendering-Fidelity Audit): AUD-01 — discovery; produces the severity-rated catalogue and appends the FID-01a… fix backlog here.
 - Phase 18 (Fidelity Fixes + Regression-Gate Close): FID-01 (audit-enumerated), GATE-03 — discovery-sized; GATE-03 is the closing regression gate folded in as Phase 18's success criteria rather than a standalone thin phase.
