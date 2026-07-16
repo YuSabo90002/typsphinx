@@ -56,3 +56,31 @@ Unknown Unit Width
 
    Unknown/unconvertible-unit figure case (must warn and drop, never leak
    the raw unit into Typst output).
+
+Figwidth Pixel
+--------------
+
+.. figure:: image.png
+   :figwidth: 400px
+
+   Figwidth-pixel figure case (LEN-01): must wrap
+   ``block(width: 300pt)[#figure(``.
+
+Figwidth Percentage
+--------------------
+
+.. figure:: image.png
+   :figwidth: 75%
+
+   Figwidth-percentage figure case (LEN-01): must wrap
+   ``block(width: 75%)[#figure(`` (pass-through, unchanged).
+
+Figwidth Unknown Unit
+-----------------------
+
+.. figure:: image.png
+   :figwidth: 5ex
+
+   Figwidth unknown-unit figure case (LEN-01): must warn and drop, never
+   leak the raw unit into Typst output, and never wrap in a block(width:)
+   -- no dimension is applied.
