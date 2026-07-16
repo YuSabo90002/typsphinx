@@ -10,8 +10,8 @@ Pitfall 4): a plain paragraph (code-mode default), a bullet list item, and a
 figure caption (markup-mode context, exercising the ``#`` prefix toggle).
 
 This file intentionally contains NO other emphasis/italic markup -- the test
-counts ``emph({`` occurrences in the generated Typst source and the three
-``:manpage:`` uses below must be the only source of that wrapper.
+counts italic-wrapper occurrences in the generated Typst source and the
+three ``:manpage:`` uses below must be the only source of that wrapper.
 
 Plain Paragraph
 ----------------
