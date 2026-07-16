@@ -5,8 +5,8 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: Rendering-Fidelity Audit
 status: planning
-stopped_at: Phase 16 complete, ready to plan Phase 17
-last_updated: "2026-07-16T13:33:24.993Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-07-16T13:56:26.524Z"
 last_activity: 2026-07-16
 last_activity_desc: Phase 16 complete, transitioned to Phase 17
 progress:
@@ -100,9 +100,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-16T15:40:00Z
-Stopped at: Phase 16 complete (UAT 1/1 passed, security 7/7 closed), ready to plan Phase 17
-Resume file: None
+Last session: 2026-07-16T13:56:26.519Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-rendering-fidelity-audit/17-CONTEXT.md
 
 ## Operator Next Steps
 
