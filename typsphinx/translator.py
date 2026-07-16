@@ -1026,6 +1026,37 @@ class TypstTranslator(SphinxTranslator):
         # is + separated.
         self._exit_inline_concat_element()
 
+    def visit_manpage(self, node: addnodes.manpage) -> None:
+        """
+        Visit a manpage node (:manpage: role).
+
+        Renders the literal page-reference text (e.g. "ls(1)") italic,
+        Sphinx-HTML-faithful (D-02), by delegating to visit_emphasis so the
+        paragraph-separator / list-item / inline-concat-context /
+        _in_markup_mode state machine is reused verbatim -- a manpage node
+        duck-types fine since visit_emphasis performs no isinstance check on
+        its argument, only reading self.* state (16-RESEARCH.md Pattern 2).
+
+        No linkification per D-02a: with manpages_url unset, the node's
+        single child stays a plain nodes.Text -- a reference child cannot
+        occur in this configuration, so no link() is ever fabricated.
+
+        Args:
+            node: The manpage node
+        """
+        self.visit_emphasis(node)
+
+    def depart_manpage(self, node: addnodes.manpage) -> None:
+        """
+        Depart a manpage node.
+
+        Delegates to depart_emphasis (see visit_manpage).
+
+        Args:
+            node: The manpage node
+        """
+        self.depart_emphasis(node)
+
     def visit_strong(self, node: nodes.strong) -> None:
         """
         Visit a strong (bold) node.
