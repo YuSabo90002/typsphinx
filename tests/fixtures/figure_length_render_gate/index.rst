@@ -84,3 +84,19 @@ Figwidth Unknown Unit
    Figwidth unknown-unit figure case (LEN-01): must warn and drop, never
    leak the raw unit into Typst output, and never wrap in a block(width:)
    -- no dimension is applied.
+
+Figwidth Figure As Non-First List-Item Element
+------------------------------------------------
+
+The bullet list item below has a lead-in paragraph FOLLOWED BY a
+``:figwidth:`` figure (CR-01 regression): the figure must not juxtapose
+against the preceding lead-in text's emitted expression inside the
+list-item content block -- a missing separator here is a hard Typst parse
+error that aborts the entire compile.
+
+* List item with a figure FIGURELISTSENTINEL2R6:
+
+  .. figure:: image.png
+     :figwidth: 40%
+
+     Figwidth figure nested as the second element inside a list item.

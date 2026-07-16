@@ -2131,6 +2131,67 @@ class TestFigureFigwidthRenderGate:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
 
+    def test_figwidth_figure_as_list_item_non_first_element_compiles(
+        self, figure_length_render_gate_dir, temp_build_dir
+    ):
+        """
+        Real-compile regression gate for CR-01 (16-REVIEW.md): a
+        ``:figwidth:`` figure that is NOT the first element inside a list
+        item's content block must not juxtapose against the preceding
+        sibling's emitted expression. Before the fix, visit_figure's
+        ``block(width: ...)[#figure(`` emission had no in-list-item
+        separator check (unlike visit_table/visit_bullet_list/
+        visit_enumerated_list/_visit_admonition), so the generated source
+        read ``text("...")block(width: 40%)[#figure(`` with no separating
+        newline -- a hard Typst parse error ("expected semicolon or line
+        break") that aborted the ENTIRE document compile, not just the
+        affected figure.
+
+        Confirms, via the generated .typ source and a real
+        ``typst.compile()`` call (no try/except):
+        - the list-item lead-in text and the following
+          ``block(width: 40%)[#figure(`` are newline-separated, never
+          juxtaposed;
+        - typst.compile() succeeds without raising TypstCompilationError;
+        - the list-item lead-in sentinel and the figure both reach the
+          compiled PDF.
+        """
+        result = _run_sphinx_build_typst(figure_length_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert 'FIGURELISTSENTINEL2R6:")block(width: 40%)[#figure(' not in typ_source, (
+            "The list-item figure juxtaposes the preceding lead-in text with "
+            "NO separator -- CR-01's list-item separator regressed"
+        )
+        assert re.search(
+            r"FIGURELISTSENTINEL2R6:\"\)\s*\nblock\(width: 40%\)\[#figure\(",
+            typ_source,
+        ), (
+            "Expected a newline separator between the list-item lead-in text "
+            "and the following block(width: 40%)[#figure( -- CR-01's "
+            "list-item separator did not fire"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a missing separator here reproduces the verified CR-01
+        # "expected semicolon or line break" parse-abort.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
 
 # ---------------------------------------------------------------------------
 # Phase 16 (LEN-01, GATE-01): extend the GATE-01 render-gate pattern to prove

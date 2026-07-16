@@ -1927,6 +1927,20 @@ class TypstTranslator(SphinxTranslator):
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
 
+        # Emit a leading newline separator when this figure follows a
+        # sibling inside a list item, matching the block-visitor pattern
+        # used by visit_table/visit_bullet_list/visit_enumerated_list/
+        # _visit_admonition (bug #4). Without this, a figure that is not
+        # the first element inside a list item's content block juxtaposes
+        # directly against the preceding sibling's emitted expression --
+        # e.g. `text("...")block(width: 40%)[#figure(` -- a Typst parse
+        # error ("expected semicolon or line break") that aborts the whole
+        # compile. This was previously missing here (CR-01), unlike every
+        # other block-level visitor in this file.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+            self.list_item_needs_separator = False
+
         # LEN-01: :figwidth: is assigned to node["width"] by docutils' Figure
         # directive. Convert here ONLY (depart_figure must not re-convert, or
         # the drop-warning would fire twice, breaking the one-warning-per-
@@ -1995,6 +2009,12 @@ class TypstTranslator(SphinxTranslator):
         self.in_figure = False
         self.figure_content = []
         self.figure_caption = ""
+
+        # Mark that a following sibling in the same list item must be
+        # separated (block-visitor pattern, bug #4; mirrors depart_table's
+        # trailing block).
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_caption(self, node: nodes.caption) -> None:
         """
