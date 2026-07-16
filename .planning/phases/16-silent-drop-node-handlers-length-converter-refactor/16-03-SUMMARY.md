@@ -129,3 +129,7 @@ LEN-01 is closed: the exhaustive docutils audit (image/figure/table — the only
 ---
 *Phase: 16-silent-drop-node-handlers-length-converter-refactor*
 *Completed: 2026-07-16*
+
+## Self-Check: PASSED
+
+All created/modified files confirmed present on disk (`typsphinx/translator.py`, `tests/test_pdf_render_gate.py`, `tests/fixtures/figure_length_render_gate/index.rst`, `tests/fixtures/table_width_render_gate/conf.py`, `tests/fixtures/table_width_render_gate/index.rst`, this SUMMARY.md). All three task/summary commit hashes (`ee0b4b0`, `eaa691d`, `55d07d2`) confirmed present in `git log --oneline --all`.
