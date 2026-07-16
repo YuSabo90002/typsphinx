@@ -118,12 +118,12 @@ low-risk translator changes that do NOT depend on the later audit)
   2. A `:manpage:` role (`manpage` node) renders as its literal page-reference text (e.g. `ls(1)`) instead of being silently dropped.
   3. The CSS-length → Typst-length conversion lives in one shared helper reused at every length-bearing site (`visit_image` now calls the shared helper), with no duplicated or divergent conversion logic remaining.
   4. Each of the three changes ships or extends a real `typst.compile()` acceptance fixture (GATE-01 pattern) proving the node renders / the converter round-trips through an actual compile — string-agreement asserts alone do not suffice.
-**Plans**: TBD (~2–3)
+**Plans**: 3 plans
 
 Plans:
-- [ ] 16-01: `todo_node` admonition-style handler (TODO-01) + real-compile fixture
-- [ ] 16-02: `manpage` literal-text handler (MAN-01) + real-compile fixture
-- [ ] 16-03: Generalize `_convert_length_to_typst()` into a shared, reused helper (LEN-01)
+- [ ] 16-01-PLAN.md — `todo_node` admonition-style `task` handler gated on `todo_include_todos` (TODO-01) + todo_render_gate real-compile fixture
+- [ ] 16-02-PLAN.md — `manpage` italic literal-text handler via `visit_emphasis` delegation (MAN-01) + manpage_render_gate real-compile fixture
+- [ ] 16-03-PLAN.md — Wire `_convert_length_to_typst` into figure `:figwidth:` + table `:width:` via `block(width:)` wrappers (LEN-01) + figwidth/table-width real-compile fixtures
 
 ### Phase 17: Rendering-Fidelity Audit
 **Goal**: Produce a written, severity-rated catalogue of *silent* mis-render issues — output that
