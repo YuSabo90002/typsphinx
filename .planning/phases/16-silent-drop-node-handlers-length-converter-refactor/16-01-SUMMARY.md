@@ -133,3 +133,7 @@ None - no external service configuration required.
 ---
 *Phase: 16-silent-drop-node-handlers-length-converter-refactor*
 *Completed: 2026-07-16*
+
+## Self-Check: PASSED
+
+All created/modified files exist on disk and all referenced commit hashes (e1c77e2, 5f3ec4c, 0b2cd7f) are present in git log.
