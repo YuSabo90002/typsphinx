@@ -115,6 +115,12 @@ def todo_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def manpage_render_gate_dir(fixtures_dir):
+    """Return the path to the manpage_render_gate fixture project."""
+    return fixtures_dir / "manpage_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -1938,3 +1944,93 @@ class TestTodoRenderGate:
             "source with todo_include_todos=False -- the "
             "config.todo_include_todos SkipNode gate regressed"
         )
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestManpageRenderGate:
+    """
+    Real-compile acceptance gate for MAN-01: visit_manpage/depart_manpage
+    delegating to visit_emphasis/depart_emphasis so the :manpage: role
+    renders its literal page-reference text italic, in all three
+    separator/mode contexts a manpage role can appear in.
+
+    Requirements: MAN-01, GATE-01 (16-CONTEXT.md D-02/D-02a,
+    16-RESEARCH.md Pattern 2 / Pitfall 4, 16-02-PLAN.md).
+    """
+
+    def test_manpage_pdf_renders_italic_text(
+        self, manpage_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the manpage_render_gate fixture to PDF and confirm, via the
+        generated .typ source and real pypdf text-extraction:
+        - no "unknown node type" warning on stderr (the MAN-01 warning is
+          eliminated);
+        - the emitted .typ source contains exactly 3 emph({ wrappers (one
+          per :manpage: use -- the fixture contains no other emphasis
+          source) and no link( (D-02a: no linkification);
+        - typst.compile() succeeds without try/except (proving the mode
+          toggle/separator state machine is correct in all three contexts:
+          paragraph, list item, figure caption);
+        - "ls(1)", "grep(1)", and "tar(1)" each appear in the extracted PDF
+          text;
+        - no LEAK_SIGNATURES token leaked into the rendered PDF text.
+        """
+        result = _run_sphinx_build_typst(manpage_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr -- the "
+            f"MAN-01 warning should be eliminated:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert typ_source.count("emph({") == 3, (
+            "Expected exactly 3 emph({ wrappers in the generated Typst "
+            "source (one per :manpage: use) -- visit_manpage/depart_manpage "
+            f"regression; got {typ_source.count('emph({')}"
+        )
+        assert "link(" not in typ_source, (
+            "Found a link( call in generated Typst source -- D-02a "
+            "prohibits linkification; the fixture has no manpages_url "
+            "configured and contains no references, so any link( is a "
+            "fabricated URL"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test -- any invalid Typst source emitted
+        # by visit_manpage (e.g. a mishandled mode toggle inside the figure
+        # caption's markup-mode context) would abort the compile here.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for manpage_text in ("ls(1)", "grep(1)", "tar(1)"):
+            assert manpage_text in full_text, (
+                f"Expected manpage text '{manpage_text}' in extracted PDF "
+                "text -- visit_manpage/depart_manpage regression"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- manpage delegation regression"
+            )
