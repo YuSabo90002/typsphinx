@@ -167,7 +167,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 — human gate, autonomous: false)*
 
-- [ ] 17-03-PLAN.md — Central human gate (D-01a): human confirms ALL candidates + spot-checks the clean set; record accept/reject + final severity + miss-rate
+- [x] 17-03-PLAN.md — Central human gate (D-01a): human confirms ALL candidates + spot-checks the clean set; record accept/reject + final severity + miss-rate
 
 **Wave 4** *(blocked on Wave 3)*
 

@@ -5,15 +5,15 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 COMPLETE (151/151 audited); next 17-03 human confirmation gate
-last_updated: "2026-07-19T11:28:03.701Z"
+stopped_at: 17-03 COMPLETE — human confirmation gate passed (14 accepted, 1 rejected [F4]; spot-check 0/6 miss); next 17-04 (append FID-01a backlog)
+last_updated: "2026-07-19T12:35:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 17 execution resumed (wave continue)
+last_activity_desc: 17-03 human confirmation gate PASSED (D-01a) — catalogue human-confirmed & severity-final (14 accepted, F4 rejected, clean-set spot-check 0 miss)
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 33
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 ## Current Position
 
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
-Plan: 3 of 4 (17-02 COMPLETE — 151/151 docnames audited, Task 2 classification/severity/re-sort done, SUMMARY written; next up: 17-03 human confirmation gate)
-Status: Ready to execute 17-03
+Plan: 4 of 4 (17-03 COMPLETE — human confirmation gate passed: 14 accepted, F4 rejected, clean-set spot-check 0/6 miss; next up: 17-04 backlog append)
+Status: Ready to execute 17-04 (final plan — group high-severity rows, append FID-01a… to REQUIREMENTS)
 Last activity: 2026-07-19 — Plan 17-02 finished this session (final 18 docnames: changes/1.7 through changes/0.1, plus examples; Task 2 complete)
 
 **17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
