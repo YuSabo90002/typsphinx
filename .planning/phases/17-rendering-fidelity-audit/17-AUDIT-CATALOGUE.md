@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 84 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 88 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -431,10 +431,10 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/extensions/duration` | ⚠️ AUDITED — 2 issue(s) (F5, F9) |
 | `usage/extensions/extlinks` | ⚠️ AUDITED — 2 issue(s) (F5, F9) |
 | `usage/extensions/githubpages` | ✅ AUDITED — no issues |
-| `usage/extensions/graphviz` | 🔲 NOT YET AUDITED |
-| `usage/extensions/ifconfig` | 🔲 NOT YET AUDITED |
-| `usage/extensions/imgconverter` | 🔲 NOT YET AUDITED |
-| `usage/extensions/inheritance` | 🔲 NOT YET AUDITED |
+| `usage/extensions/graphviz` | ✅ AUDITED — no issues [note: every `.. graphviz::`/`.. graph::`/`.. digraph::` example on this page is shown as LITERAL rst syntax (`.. highlight:: rst` sets `::`-blocks to literal display), not an actual invocation — no real graphviz directive is ever compiled here, so the SC#3 `dot` degrade placeholder never appears on this docname; nothing out-of-scope to confirm] |
+| `usage/extensions/ifconfig` | ✅ AUDITED — no issues |
+| `usage/extensions/imgconverter` | ✅ AUDITED — no issues |
+| `usage/extensions/inheritance` | ✅ AUDITED — no issues [SC#3 confirmed: "[inheritance diagram diagram omitted]" placeholder appears exactly as expected at every `.. inheritance-diagram::` invocation, pp.425+; out-of-scope, not an issue-table candidate] |
 | `usage/extensions/intersphinx` | 🔲 NOT YET AUDITED |
 | `usage/extensions/linkcode` | 🔲 NOT YET AUDITED |
 | `usage/extensions/math` | 🔲 NOT YET AUDITED |
