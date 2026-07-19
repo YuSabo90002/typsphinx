@@ -116,6 +116,7 @@ currently active; the next one is scoped via `/gsd-new-milestone`.
 - **Compatibility**: `@preview` package versions and the typst compiler version must be mutually compatible — this is the crux of the fix
 - **Reproducibility**: `uv.lock` must be regenerated to match the new pins; tox/uv drives all CI checks
 - **Platforms**: CI runs ubuntu/macos/windows — pins must produce green on all three
+- **Release process (from v0.6.2 onward — decided 2026-07-20):** the ship unit is the **milestone**, not the phase (`branching_strategy: milestone`). Every PyPI-published milestone MUST include an explicit **final Release phase** that bumps `pyproject.toml` version + adds the `CHANGELOG.md` `[X.Y.Z]` entry (the v0.5.0 Phase 10 pattern); the milestone's phases execute on a `gsd/vX.Y-*` branch and `gsd-ship vX.Y` opens one observation/release PR (CI observed green before merge). The irreversible publish — tag `vX.Y` → `release.yml` → PyPI — is executed at `/gsd-complete-milestone` (audit-then-publish) on the confirmed-green merge commit. **Push `main` to `origin` at every milestone close** to prevent the recurring branch/main drift (retrospective lesson #7). *(v0.6.1 shipped without this: pyproject stayed at 0.6.0, no CHANGELOG entry, tag `v0.6.1` and the milestone commits are held local-only — no PyPI release.)*
 
 ## Key Decisions
 
