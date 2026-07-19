@@ -477,10 +477,10 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/3.2` | ⚠️ AUDITED — 1 issue(s) (F9) [p.563 "C, add possibility of parsing..." bullet — 4 semantic-line-break sentences within ONE paragraph (no blank lines in source) render as 4 hard-broken lines, confirming F9 recurs in changelog bullet items too, not just prose paragraphs] |
 | `changes/3.1` | ✅ AUDITED — no issues |
 | `changes/3.0` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
-| `changes/2.4` | 🔲 NOT YET AUDITED |
-| `changes/2.3` | 🔲 NOT YET AUDITED |
-| `changes/2.2` | 🔲 NOT YET AUDITED |
-| `changes/2.1` | 🔲 NOT YET AUDITED |
+| `changes/2.4` | ✅ AUDITED — no issues |
+| `changes/2.3` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
+| `changes/2.2` | ✅ AUDITED — no issues |
+| `changes/2.1` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
 | `changes/2.0` | 🔲 NOT YET AUDITED |
 | `changes/1.8` | 🔲 NOT YET AUDITED |
 | `changes/1.7` | 🔲 NOT YET AUDITED |
