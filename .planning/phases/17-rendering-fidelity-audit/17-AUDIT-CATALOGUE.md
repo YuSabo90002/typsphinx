@@ -486,8 +486,8 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/1.7` | ✅ AUDITED — no issues [7pp; long dense bugfix/deprecation bullet lists, no F1/F9 recurrences] |
 | `changes/1.6` | ✅ AUDITED — no issues [9pp; F8 recurs (external hyperlink flattened, extra-space artifact after link text "RTD  PDF builds…" p.606) — same pattern as F8's stray-space-before-period, here stray space after link before next word] |
 | `changes/1.5` | ✅ AUDITED — no issues [8pp; dense bugfix/feature bullet lists, no F1/F9 recurrences] |
-| `changes/1.4` | 🔲 NOT YET AUDITED |
-| `changes/1.3` | 🔲 NOT YET AUDITED |
+| `changes/1.4` | ✅ AUDITED — no issues [9pp; dense bugfix/feature bullet lists, no F1/F9 recurrences] |
+| `changes/1.3` | ✅ AUDITED — no issues [11pp; dense bugfix/feature bullet lists incl. nested sub-bullets, no F1/F9 recurrences] |
 | `changes/1.2` | 🔲 NOT YET AUDITED |
 | `changes/1.1` | 🔲 NOT YET AUDITED |
 | `changes/1.0` | 🔲 NOT YET AUDITED |
