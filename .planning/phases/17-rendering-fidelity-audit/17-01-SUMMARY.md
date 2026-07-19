@@ -128,3 +128,10 @@ None - no external service configuration required.
 ---
 *Phase: 17-rendering-fidelity-audit*
 *Completed: 2026-07-19*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`
+- FOUND: `.planning/phases/17-rendering-fidelity-audit/17-01-SUMMARY.md`
+- FOUND commit: `00df8be` (catalogue skeleton)
+- FOUND commit: `3765954` (this summary)
