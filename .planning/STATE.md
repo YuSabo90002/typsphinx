@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 105/151 docnames audited; resume at changes/7.3 (PDF p.519)
+stopped_at: 17-02 PARTIAL — 112/151 docnames audited; resume at changes/5.3 (PDF p.535)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,7 +33,13 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer (latest):** docnames 101–105 also COMPLETE this session: `glossary` (clean,
+**17-02 resume pointer (latest):** docnames 106–112 also COMPLETE this session: `changes/7.3`,
+`changes/7.2`, `changes/7.1`, `changes/7.0` (all clean), `changes/6.2`, `changes/6.1` (clean),
+`changes/6.0` (F1 recurs — multi-paragraph bullet-item concat, jQuery-removal entry p.534,
+confirms F1 is NOT limited to `usage/*` docs). **Resume at the NEXT docname: `changes/5.3`**
+(docname 115, PDF p.535). Remaining: `changes/5.2` through `changes/0.1` (~35 more changelog
+docnames, pp.535–674), then `examples` (675–684, last).
+Prior pointer (docnames 101–105): `glossary` (clean,
 contrast case for F14 confirmed — non-nested definition list renders term-on-own-line correctly),
 `changes/index`, `changes/9.0`, `changes/8.2`, `changes/8.1`, `changes/8.0`, `changes/7.4` (all
 clean — dense changelog bullet/nested-bullet lists render with correct line separation throughout,
@@ -173,7 +179,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 105/151 docnames audited; resume at changes/7.3 (PDF p.519)
+Stopped at: 17-02 PARTIAL — 112/151 docnames audited; resume at changes/5.3 (PDF p.535)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
