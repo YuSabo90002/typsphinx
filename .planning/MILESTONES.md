@@ -1,5 +1,28 @@
 # Milestones: typsphinx
 
+## v0.6.1 rendering fidelity (Shipped: 2026-07-19)
+
+**Closeout:** override_closeout (pre-close artifact audit clear; Phase 16 & 18 verified `passed`; Phase 17 — a pure audit/documentation phase — has no machine `VERIFICATION.md`, so `init.manager` could not certify `verified_closeout`. Its verification was instead the human confirmation gate 17-03 (D-01a: 14 accepted / 1 rejected of the 15 candidate findings, final severities signed off) plus `17-VALIDATION.md` (five mechanical consistency checks PASS), and its output — FID-01a — was proven downstream by Phase 18's real-compile regression fixture + the closing full-corpus gate. Verification override accepted by operator at close.)
+**Phases:** 3 (16–18) · **Plans:** 9 · **Tasks:** 18
+**Requirements:** 6/6 v1 requirements complete (TODO-01, MAN-01, LEN-01, AUD-01, FID-01→FID-01a, GATE-03) · **Known gaps:** none (13 medium/low audit findings recorded in `17-AUDIT-CATALOGUE.md` as a Future-Requirements pointer, not milestone-blocking)
+**Git:** milestone work on `main` (branching strategy `none`), commits from `dcd03eb` (2026-07-13) through `cc7c64a` (2026-07-19); tagged `v0.6.1`
+**Code delta (milestone scope):** ~15 source/test files, +1229 / −13 lines (`typsphinx/translator.py` + `tests/`); zero new runtime dependencies; the 3-way `@preview` version-sync surface untouched
+
+**Delivered:** Moved `typstpdf` output from "compiles fatal-free" (v0.6.0) to "renders faithfully" — implemented the last two silently-dropped nodes (`todo_node`, `manpage`), generalized the CSS-length converter into one shared helper (LEN-01), ran a full 151/151-docname human-assisted visual audit of the Sphinx v9.1.0 `doc/` corpus PDF against its `-b html` baseline (15 findings catalogued, human-confirmed), fixed the sole high-severity finding (F12 wide-table overflow → FID-01a) with a real-compile regression fixture, and closed on the full ~684-page corpus regression gate (fatal-free, `unknown_visit` catalogue empty).
+
+**Key accomplishments:**
+
+- `.. todo::` now renders as a gentle-clues `task()` box with its own dynamic title, gated on `todo_include_todos` via `nodes.SkipNode` exactly like every official Sphinx builder — proven through a real `sphinx-build -> typst.compile() -> pypdf` round trip in both the enabled and disabled configurations.
+- `visit_manpage`/`depart_manpage` delegate wholesale to `visit_emphasis`/`depart_emphasis`, rendering `:manpage:` page-reference text (e.g. `ls(1)`) italic in every separator/mode context, proven by a real `typst.compile()` + pypdf GATE-01 fixture spanning a paragraph, a list item, and a figure caption.
+- Wired `_convert_length_to_typst` into `visit_figure`/`depart_figure` (`:figwidth:`) and `depart_table` (`:width:`, covering `.. table::`/`.. csv-table::`/`.. list-table::`), closing LEN-01 as the single shared CSS-length -> Typst-length helper used at every length-bearing docutils site.
+- Built the rendering-fidelity audit scaffold — three same-corpus baselines (typstpdf/html/text), a corrected exact docname-to-page mapping for all 151 docnames, and the committed `17-AUDIT-CATALOGUE.md` skeleton with fresh provenance, so Plan 17-02's page-by-page visual pass can start immediately.
+- Full 151/151-docname visual audit of the sphinx-doc/sphinx v9.1.0 corpus PDF vs. its `-b html` baseline complete, yielding 15 classified systemic findings (1 high / 12 medium / 2 low severity) ready for the Plan 17-03 human confirmation gate.
+- Grouped the human-confirmed catalogue's single high-severity finding (F12, wide-table overflow) into `FID-01a`, appended it plus a medium/low pointer to REQUIREMENTS.md, and passed all five mechanical consistency checks against a freshly rebuilt corpus.
+- depart_table now emits fr-weighted `columns: (Nfr, ...)` from docutils colwidth, and visit_literal injects U+200B after `.`/`_` in in-table raw() content, closing the audit's sole high-severity wide-table collision bug.
+- Re-ran the real ~684-page Sphinx v9.1.0 corpus through `-b typstpdf` post-FID-01a: fatal-free (689-page `index.pdf`, valid `%PDF` magic), `unknown_visit` catalogue empty, and the SC#4 no-new-deps/no-`@preview`-bump invariant confirmed untouched — milestone v0.6.1's regression gate is closed.
+
+---
+
 ## v0.6.0 real-world robustness (Shipped: 2026-07-13)
 
 **Closeout:** override_closeout (milestone audit passed — 19/19 requirements, 16/16 integration seams wired, 5/5 E2E flows; pre-close artifact audit found 13 open debug sessions — non-fatal post-GATE-02 rendering-polish, acknowledged and deferred to the next milestone, see STATE.md Deferred Items)

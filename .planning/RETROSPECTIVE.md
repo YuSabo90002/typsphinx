@@ -126,6 +126,47 @@
 
 ---
 
+## Milestone: v0.6.1 — rendering fidelity
+
+**Shipped:** 2026-07-19
+**Phases:** 3 (16–18) | **Plans:** 9 | **Sessions:** ~6 days (2026-07-13 → 2026-07-19)
+
+### What Was Built
+- The last two silently-dropped nodes render: `.. todo::` as a gentle-clues `task()` box gated on `todo_include_todos` via `nodes.SkipNode` (TODO-01), and `:manpage:` as italic literal page text via 100% delegation to `visit_emphasis`/`depart_emphasis` (MAN-01) — each proven by a real `sphinx-build → typst.compile() → pypdf` GATE-01 fixture.
+- LEN-01: v0.6.0's `visit_image`-local px→pt fix generalized into one shared `_convert_length_to_typst` helper reused at every length-bearing figure/table site via the `block(width: ...)[...]` wrapper.
+- AUD-01: a full 151/151-docname human-assisted visual audit of the compiled Sphinx v9.1.0 `doc/` corpus PDF against its `-b html` authority baseline, yielding a severity-rated catalogue of 15 systemic silent mis-render findings (1 high / 12 medium / 2 low), human-confirmed at a central gate (14 accepted / 1 rejected).
+- FID-01a/GATE-03: the sole high-severity finding (F12 wide-table glyph collision + right-margin clip) fixed via fr-weighted `columns: (Nfr, …)` from docutils colwidth + in-table U+200B break injection in `visit_literal`, proven by a `wide_table_render_gate` collision-absence fixture; then the full ~684-page corpus re-run fatal-free (689-page `index.pdf`), `unknown_visit` catalogue empty, SC#4 no-new-deps/no-`@preview`-bump invariant held.
+
+### What Worked
+- **This milestone *was* the properly-scoped polish campaign.** v0.6.0's lesson #7 ("draw the milestone boundary before polishing") was applied directly: the rendering-quality work that blurred v0.6.0's close was scoped as its own milestone from the start, with a clean discovery→fix→gate arc.
+- **Machine-catalogue → single human confirmation gate.** For subjective visual findings, Claude ran the page-by-page pass biased toward false-positives (Phase 17-02), then one human gate (17-03) ruled accept/reject + final severity in a single pass. Clean separation of automated cataloguing from human judgment — the model never had to be the final arbiter of severity.
+- **Severity-gated backlog kept DoD bounded.** Only the high-severity finding became a requirement (FID-01a); the 13 medium/low findings were recorded as a single Future-Requirements pointer, not enumerated as 13 requirements — so the milestone shipped without scope-ballooning yet lost nothing.
+- **The real-compile gate again proved a fix half-wrong.** fr-weighted columns alone still overflowed on long unbroken dotted API paths; the `wide_table_render_gate` fixture forced the second half (ZWSP break injection), exactly the "compile is the only real signal" pattern from v0.6.0.
+- **Discovery-sized Phase 18 honored.** Its plan count was deliberately left TBD until AUD-01 enumerated the fix list — the roadmap didn't pre-commit to a count it couldn't know.
+
+### What Was Inefficient
+- **Audit/docs phases don't fit the code-verifier model.** Phase 17 produces a catalogue, not code, so `init.manager` couldn't certify it — forcing an `override_closeout` at milestone close. Its real verification (human gate 17-03 + `17-VALIDATION.md` + downstream FID-01a proof) exists but lives outside the machine `VERIFICATION.md` the readiness check expects. A recurring structural mismatch, not a real coverage gap.
+- **The 151-docname visual pass was a long serial human-in-the-loop slog.** Phase 17-02 spanned multiple sessions with explicit stop-discipline resume pointers (docname-by-docname), the single longest-wall-clock activity of the milestone — inherent to a human visual audit, but not parallelizable.
+- **VALIDATION.md `nyquist_compliant: false` drafts persisted again.** The same audit-noise lesson carried forward un-actioned from v0.5.0/v0.6.0; the hook stays inactive so they don't gate, but the drafts remain misleading.
+
+### Patterns Established
+- **Machine-catalogue → single human confirmation gate** for subjective/visual findings: bias the automated pass toward false-positives, then let one human gate rule accept/reject + final severity. Don't ask the model to be the severity arbiter.
+- **Severity-gated backlog:** only high-severity findings are promoted to requirements; medium/low are recorded as a pointer to the catalogue, not enumerated — bounds the definition of done.
+- **Verification-by-proxy for audit/docs phases:** a phase whose output is a document (not code) is "verified" by its human confirmation gate + downstream real-compile consumption, closed as `override_closeout` with the proxy chain recorded explicitly.
+
+### Key Lessons
+1. **For subjective/visual correctness, separate machine cataloguing from human judgment.** Bias the model's pass toward false-positives and give a human a single accept/reject + severity gate — far more reliable than asking the model to self-certify severity.
+2. **Gate the backlog by severity.** Fix high, record low, enumerate only what materially breaks the deliverable as requirements — otherwise polish findings balloon the milestone.
+3. **Scope the polish campaign as its own milestone up front** — v0.6.1 validated v0.6.0's hardest-won lesson by doing exactly this.
+4. **Audit/docs phases will trip `verified_closeout`** — expect an override and record the proxy verification (human gate + downstream proof) rather than treating the missing `VERIFICATION.md` as a gap.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~6 calendar days (2026-07-13 → 2026-07-19); the 151-docname visual audit (Phase 17-02) dominated wall-clock as a serial human-in-the-loop pass across multiple sessions.
+- Notable: the severity-gated catalogue turned an open-ended "make it render better" into a bounded, shippable milestone — 1 high-severity fix + a recorded 13-item backlog, no scope creep.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -135,6 +176,7 @@
 | v0.4.4 | ~2 days | 5 | First GSD-managed milestone; established push→observe terminal gates and floor+ceiling dependency discipline |
 | v0.5.0 | ~6 days | 6 (incl. 1 inserted) | Forward-port to Sphinx 9.1/typst 0.15; added real-render acceptance gates + a mid-milestone inserted phase; audit-then-publish for the irreversible release |
 | v0.6.0 | ~2 days | 5 | Translator robustness (Issue #114 + high-freq nodes); standing real-compile gate extended per phase; a real full-corpus (Sphinx `doc/`) build as the milestone gate |
+| v0.6.1 | ~6 days | 3 | Rendering fidelity: machine-catalogue → single human confirmation gate for a 151-docname visual audit; severity-gated backlog; first `override_closeout` driven by an audit/docs phase's missing machine verification |
 
 ### Cumulative Quality
 
@@ -143,6 +185,7 @@
 | v0.4.4 | ~400 (existing suite) + `@preview` sync guard | uploaded to Codecov (green) | 0 new runtime deps |
 | v0.5.0 | 413 (added smoke gate, PDF-render gate, version drift-guard, admonition structural asserts) | green (13/13 CI jobs on PR #112) | 0 new runtime deps (pypdf is dev-only) |
 | v0.6.0 | 476 fast + 18 GATE-01 real-compile classes + corpus gate (`test_corpus_gate.py`) | fast suite green; GATE-02 full-corpus PDF fatal-free | 0 new runtime deps |
+| v0.6.1 | + `wide_table_render_gate` real-compile class; todo/manpage/figwidth/table-width GATE-01 fixtures | fast suite green; GATE-03 full-corpus PDF fatal-free, `unknown_visit` catalogue empty | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -152,4 +195,5 @@
 4. A green unit suite doesn't prove correct rendered output — render-layer fixes need a compile→extract→assert acceptance gate. *(v0.5.0)*
 5. Split reversible prep from the irreversible publish; gate the point-of-no-return at milestone close on a confirmed-green commit. *(v0.4.4 precedent, formalized v0.5.0)*
 6. For a tool where one bad node aborts the whole output, "does it compile" is the only real correctness signal — compile-gate every render-layer handler against a fixture, and validate the milestone against a real downstream corpus. *(v0.6.0)*
-7. Draw the milestone boundary before polishing, and fast-forward `main` after every merge — v0.6.0 re-created v0.4.4's branch/main drift at 2× scale by deferring both. *(v0.4.4, re-learned v0.6.0)*
+7. Draw the milestone boundary before polishing, and fast-forward `main` after every merge — v0.6.0 re-created v0.4.4's branch/main drift at 2× scale by deferring both. *(v0.4.4, re-learned v0.6.0; validated v0.6.1 — the polish was scoped as its own milestone up front)*
+8. For subjective/visual correctness, separate machine cataloguing (biased toward false-positives) from human judgment (one accept/reject + severity gate), and gate the resulting backlog by severity — promote only high-severity findings to requirements. *(v0.6.1)*

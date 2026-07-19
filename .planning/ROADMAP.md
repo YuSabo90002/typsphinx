@@ -5,7 +5,7 @@
 - ✅ **v0.4.4 — CI-repair + modernize** — Phases 1–5 (shipped 2026-07-05) → [archive](milestones/v0.4.4-ROADMAP.md)
 - ✅ **v0.5.0 — forward-ecosystem** — Phases 6–10 + 8.1 (shipped 2026-07-11) → [archive](milestones/v0.5.0-ROADMAP.md)
 - ✅ **v0.6.0 — real-world robustness** — Phases 11–15 (shipped 2026-07-13) → [archive](milestones/v0.6.0-ROADMAP.md)
-- 🚧 **v0.6.1 — rendering fidelity** — Phases 16–18 (planning, started 2026-07-13)
+- ✅ **v0.6.1 — rendering fidelity** — Phases 16–18 (shipped 2026-07-19) → [archive](milestones/v0.6.1-ROADMAP.md)
 
 ## Phases
 
@@ -15,7 +15,7 @@
 - Decimal phases (16.1, 16.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order. Numbering is
-**continuous across milestones** — v0.6.1 continues from v0.6.0's Phase 15, so it starts at Phase 16
+**continuous across milestones** — each milestone continues from the prior one's last phase
 (never resets to 1).
 
 <details>
@@ -79,132 +79,31 @@ criteria, decisions, and tech-debt notes are preserved in
 
 </details>
 
-### 🚧 v0.6.1 — rendering fidelity (Phases 16–18) — IN PROGRESS
+<details>
+<summary>✅ v0.6.1 — rendering fidelity (Phases 16–18) — SHIPPED 2026-07-19</summary>
 
-**Milestone Goal:** Move `typstpdf` output from "compiles fatal-free" (achieved in v0.6.0) to
-"renders faithfully" — implement the last two silently-dropped nodes (`todo_node`, `manpage`),
-generalize the CSS-length converter (LEN-01 tech-debt), then run a human-assisted visual audit of the
-compiled Sphinx-`doc/` corpus PDF against source to discover-and-fix the *silent* mis-render issues
-(output that compiles fatal-free AND emits no warning, yet diverges from source) that a fatal-free
-gate cannot catch.
+Moved `typstpdf` output from "compiles fatal-free" (achieved in v0.6.0) to "renders faithfully":
+implemented the last two silently-dropped nodes (`todo_node` → gentle-clues `task()` box gated on
+`todo_include_todos`; `manpage` → italic literal page text via `visit_emphasis` delegation),
+generalized v0.6.0's `visit_image`-local px→pt fix into one shared `_convert_length_to_typst` helper
+reused at every length-bearing figure/table site (LEN-01), then ran a full 151/151-docname
+human-assisted visual audit of the Sphinx v9.1.0 `doc/` corpus PDF against its `-b html` baseline —
+15 systemic findings catalogued, human-confirmed (14 accepted / 1 rejected), the sole high-severity
+finding (F12 wide-table glyph collision + right-margin clip) fixed via fr-weighted `columns:` from
+docutils colwidth + in-table U+200B break injection (FID-01a) with a real-compile regression fixture,
+and the milestone closed on the full ~684-page corpus regression gate (fatal-free, `unknown_visit`
+catalogue empty). Zero new runtime dependencies; the 3-way `@preview` version-sync surface untouched.
+The 13 medium/low audit findings are recorded as a Future-Requirements pointer. Full phase detail,
+success criteria, decisions, and tech-debt notes are preserved in
+[`milestones/v0.6.1-ROADMAP.md`](milestones/v0.6.1-ROADMAP.md).
 
-**Standing bar (inherited GATE-01 convention):** every phase that changes a node handler ships or
-extends a real `typst.compile()` acceptance fixture (the pattern in `tests/test_pdf_render_gate.py` /
-`tests/test_corpus_gate.py`) — string-agreement asserts alone never suffice. The local environment
-can run real typst compiles (typst 0.15.0 present; corpus cached at
-`~/.cache/typsphinx-corpus-gate`), so real-compile success criteria are achievable.
+- [x] Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor (3/3 plans) — completed 2026-07-16
+- [x] Phase 17: Rendering-Fidelity Audit (4/4 plans) — completed 2026-07-19
+- [x] Phase 18: Fidelity Fixes + Regression-Gate Close (2/2 plans) — completed 2026-07-19
 
-**Milestone invariant:** zero new runtime dependencies and no `@preview` version bump are expected —
-the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) stays
-untouched. Every target maps to native Typst 0.15 or already-bundled packages. Flag it during
-planning if a phase is found to need otherwise.
-
-- [x] **Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor** - Render `todo_node` and `manpage`, generalize the CSS-length → Typst-length helper (completed 2026-07-16)
-- [x] **Phase 17: Rendering-Fidelity Audit** - Human-assisted visual diff of the corpus PDF vs. source → a severity-rated catalogue of silent mis-render issues (discovery) (completed 2026-07-19)
-- [x] **Phase 18: Fidelity Fixes + Regression-Gate Close** - Fix every high-severity AUD-01 issue with real-compile fixtures, then close on the full-corpus regression gate (completed 2026-07-19)
-
-## Phase Details
-
-### Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor
-
-**Goal**: The last two node types the v0.6.0 warning audit confirmed are still silently
-`unknown_visit`-dropped in the Sphinx corpus (`todo_node` ×10, `manpage` ×10) render their content,
-and v0.6.0's `visit_image`-local px→pt conversion is generalized into a single shared helper reused
-at every length-bearing site.
-**Depends on**: Nothing (first phase of the milestone; all three items are independent, additive,
-low-risk translator changes that do NOT depend on the later audit)
-**Requirements**: TODO-01, MAN-01, LEN-01
-**Success Criteria** (what must be TRUE):
-
-  1. A `.. todo::` directive (`todo_node`) renders its body content as an admonition-style block in the compiled PDF instead of being silently dropped.
-  2. A `:manpage:` role (`manpage` node) renders as its literal page-reference text (e.g. `ls(1)`) instead of being silently dropped.
-  3. The CSS-length → Typst-length conversion lives in one shared helper reused at every length-bearing site (`visit_image` now calls the shared helper), with no duplicated or divergent conversion logic remaining.
-  4. Each of the three changes ships or extends a real `typst.compile()` acceptance fixture (GATE-01 pattern) proving the node renders / the converter round-trips through an actual compile — string-agreement asserts alone do not suffice.
-
-**Plans**: 3/3 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 16-01-PLAN.md — `todo_node` admonition-style `task` handler gated on `todo_include_todos` (TODO-01) + todo_render_gate real-compile fixture
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 16-02-PLAN.md — `manpage` italic literal-text handler via `visit_emphasis` delegation (MAN-01) + manpage_render_gate real-compile fixture
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 16-03-PLAN.md — Wire `_convert_length_to_typst` into figure `:figwidth:` + table `:width:` via `block(width:)` wrappers (LEN-01) + figwidth/table-width real-compile fixtures
-
-### Phase 17: Rendering-Fidelity Audit
-
-**Goal**: Produce a written, severity-rated catalogue of *silent* mis-render issues — output that
-compiles fatal-free AND emits no warning, yet diverges from the source — by visually diffing the
-compiled Sphinx-`doc/` corpus PDF against the rendered HTML / rST source. This is the discovery core
-of the milestone; warnings only surface *dropped* content, so a human-assisted visual audit is the
-only way to find silent divergence. The phase's output is a catalogue artifact, not code.
-**Depends on**: Phase 16 (audit the corpus with the new `todo_node`/`manpage` handlers already
-landed, so the audit surfaces genuinely-silent mis-renders rather than re-flagging the two drops
-already scheduled for fixing)
-**Requirements**: AUD-01
-**Success Criteria** (what must be TRUE):
-
-  1. The full Sphinx-`doc/` corpus is compiled to PDF via `typstpdf` and visually compared, page by page, against the rendered HTML / rST source.
-  2. A written catalogue artifact exists listing every silent mis-render issue with its location (docname + node kind), a source-vs-output description, and a severity rating (high / medium / low).
-  3. Genuine in-scope silent mis-renders are distinguished from already-known out-of-scope degradations (graphviz/inheritance placeholders, non-included-doc xrefs, Sphinx-side autodoc/`py:meth` warnings), so the FID-01 backlog targets only fidelity bugs typsphinx owns.
-  4. Every issue rated "high" (content lost, unreadable, or grossly mis-structured) is enumerated as the FID-01 fix backlog and appended to `REQUIREMENTS.md` as `FID-01a`, `FID-01b`, … for Phase 18 to consume.
-
-**Plans**: 1/4 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 17-01-PLAN.md — Build the three corpus baselines (typstpdf/html/text) from the pinned corpus, derive the docname→page-range mapping, write the `17-AUDIT-CATALOGUE.md` skeleton (fresh provenance + D-09 issue schema + per-docname progress tracker)
-
-**Wave 2** *(blocked on Wave 1)*
-
-- [x] 17-02-PLAN.md — Claude's first pass: per-docname rasterize + read pages, cross-check the `-b html` authority, record candidate issues (bias false-positive, "uncertain" flags), classify against the Out-of-Scope table
-
-**Wave 3** *(blocked on Wave 2 — human gate, autonomous: false)*
-
-- [x] 17-03-PLAN.md — Central human gate (D-01a): human confirms ALL candidates + spot-checks the clean set; record accept/reject + final severity + miss-rate
-
-**Wave 4** *(blocked on Wave 3)*
-
-- [x] 17-04-PLAN.md — Group high-severity rows by root cause, append `FID-01a`… to REQUIREMENTS.md (high only), add the medium/low Future-Requirements pointer, run the five mechanical consistency checks
-
-### Phase 18: Fidelity Fixes + Regression-Gate Close
-
-**Goal**: Fix every high-severity issue in the AUD-01 catalogue — each fix proven by a real
-`typst.compile()` regression fixture — then close the milestone by re-running the full-corpus gate to
-confirm fatal-free non-regression and the elimination of the `todo_node`/`manpage` drops. This phase
-is intentionally **discovery-sized**: its exact task list is enumerated by Phase 17 (AUD-01), so its
-success criterion is "every high-severity issue fixed with a real-compile regression fixture," not a
-fixed count, and its plan count stays TBD until the audit completes.
-**Depends on**: Phase 17 (the concrete per-issue fix list IS the AUD-01 high-severity catalogue)
-**Requirements**: FID-01 (expands to FID-01a, FID-01b, … from AUD-01), GATE-03
-**Success Criteria** (what must be TRUE):
-
-  1. Every AUD-01 issue at severity "high" is fixed in the translator, and each fix ships a real `typst.compile()` regression fixture (GATE-01 pattern) that would fail without the fix.
-  2. The full Sphinx-`doc/` corpus still compiles fatal-free through `typstpdf` — GATE-02 non-regression: `index.pdf` produced, 0 errors (GATE-03).
-  3. The re-run `unknown_visit` catalogue no longer contains `todo_node` or `manpage`, confirming Phase 16's handlers eliminated both drops on the real corpus (GATE-03).
-  4. Zero new runtime dependencies and no `@preview` version bump — the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) is unchanged.
-
-**Plans**: 2/2 plans executed
-
-Plans:
-**Wave 1**
-
-- [x] 18-01-PLAN.md — FID-01a wide-table fix: `columns: (Nfr, …)` from colwidth (D-01/D-02) + in-table ZWSP injection in `visit_literal` (the fr-alone-insufficient other half) + new `wide_table_render_gate` collision-absence real-compile fixture + updated `table_in_list_item` assertion
-
-**Wave 2** *(blocked on Wave 1 — fix must land before the corpus re-run)*
-
-- [x] 18-02-PLAN.md — GATE-03 close: SC#4 invariant guard (no new deps / no `@preview` bump) + re-run the full-corpus gate (fatal-free + `unknown_visit` clear of `todo_node`/`manpage`)
+</details>
 
 ## Progress
-
-**Execution Order:**
-Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -224,9 +123,9 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 13. Shared Dispatch-Point Changes (topic + line blocks) | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
-| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
-| 17. Rendering-Fidelity Audit | v0.6.1 | 1/4 | In Progress|  |
-| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete    | 2026-07-19 |
+| 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete | 2026-07-16 |
+| 17. Rendering-Fidelity Audit | v0.6.1 | 4/4 | Complete | 2026-07-19 |
+| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close*
