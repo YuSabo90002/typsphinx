@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 44 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F9 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 55 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F10 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -90,6 +90,7 @@ check).
 | 7 | `usage/domains/python`, `usage/domains/cpp`, `usage/domains/c`, `usage/domains/restructuredtext` (systemic) | `desc_signature` (multiple sibling signatures / overloads / options in one directive) | When one object directive declares multiple signatures (overloads, `c/cpp:alias` with several entries, `py:function` with several forms, or `rst:directive` with option children), HTML stacks them on separate lines. PDF concatenates them on one line with no break: "compile(source)compile(source, filename)compile(source, filename, symbol)"; "intavoidf(doubled)constvoidf(doubled)voidf(inti)voidf()"; "toctree:::caption: caption of ToC:glob:options:type: …". Signatures/options run together. | medium | 74, 81, 86, 97, 102 | systemic — wherever a directive has multiple signature/option lines | `.. py:function:: compile(source)`⏎`                 compile(source, filename)` → "compile(source)compile(source, filename)" | no |
 | 8 | `usage/theming` (watch corpus-wide) | `reference` (external / named hyperlink) | External named-reference hyperlinks ("Python 2 documentation", "Jinja documentation", "Haiku OS user guide", "sphinxdoc theme") render as plain, visually-undistinguished text and leave a stray space before the following period: "based on the Jinja documentation ." / "looks like the Python 2 documentation .". HTML renders styled links with no stray space. (D-06: link flattened to plain text is meaning-bearing; the stray space is the concrete symptom.) | low | 109, 110 | several pp.109-111; likely corpus-wide for external links | a paragraph with an external named hyperlink immediately followed by a period, e.g. ``the `Jinja documentation <https://…>`_ .`` | yes |
 | 9 | systemic — corpus-wide; first seen `development/tutorials/adding_domain` + `development/tutorials/autodoc_ext` | `Text` / `paragraph` (intra-paragraph soft/"semantic" line breaks) | A paragraph written with reStructuredText **semantic line breaks** (one clause per source line) renders with a HARD line break at *every* source-line boundary — ragged short lines with large right-margin gaps — instead of the reflowed, wrapped paragraph the HTML/text authority (D-04) produces. **Independent of content**: reproduced in plain-text, inline-literal-only, AND cross-reference paragraphs alike (initial custom-text-`:ref:` correlation was a red herring — the trigger is the soft newline itself). The artifact is only *visible* where source clauses are short; where the author's source lines run near the fill width the hard breaks coincide with natural wrap points and look normal (e.g. adding_domain "Moving on…", source lines 66–80 chars, renders flowing). Root cause (provisional): the translator preserves intra-paragraph source newlines as hard line breaks rather than collapsing them to a space (docutils/HTML/Typst-markup all collapse them). Text content + order preserved; paragraph reflow/justification lost. | medium | 142, 147, 151, 153, 154 | systemic — corpus-wide; latent in every soft-wrapped paragraph; ≥8 visibly-broken paragraphs across the 2 tutorial docnames seen so far | `There are several different documenter classes such as ``MethodDocumenter```⏎`or ``AttributeDocumenter`` available in the autodoc extension but`⏎… (autodoc_ext.rst L72-75, NO refs) → 4 forced short lines; contrast adding_domain.rst L158-161 (long source lines) renders flowing | no |
+| 10 | `extdev/envapi`, `extdev/builderapi`, `extdev/domainapi` (systemic — every Python signature with a `*` keyword-only (PEP 3102) or `/` positional-only (PEP 570) separator; likely all `abbreviation`/`:abbr:` nodes) | `abbreviation` / `desc_sig_operator` (the `*` / `/` separator's `<abbr>` title) | A Python-domain signature's bare `*` (keyword-only) or `/` (positional-only) separator carries an `<abbr title="…parameters separator (PEP 3102/570)">` in HTML — the visible text is only `*` / `/`, the explanation is a hover tooltip; the `-b text` authority likewise shows only `*,` / `/,`. The PDF renders the abbr title INLINE — `* (Keyword-only parameters separator (PEP 3102))` and `/ (Positional-only parameter separator (PEP 570))` — injecting verbose internal API-doc metadata into the visible signature. More generally, `abbreviation`-node hover-title text is emitted as visible inline text. (For a genuine `:abbr:` role this inline expansion may be acceptable print behaviour since print has no hover; for the auto-generated `*`/`/` separators it clutters signatures — hence uncertain, human to judge.) | low | 204, 206, 218 | systemic — every signature with a `*` (PEP 3102) or `/` (PEP 570) separator; recurs corpus-wide in API docs (esp. extdev/*) | authority `note_dependency(filename: str \| PathLike[str], *, docname: …)` → PDF `… * (Keyword-only parameters separator (PEP 3102)), …`; `ObjType(lname: str, /, *roles, **attrs)` → `… / (Positional-only parameter separator (PEP 570)), …` | yes |
 
 ## Docname → Page-Range Mapping
 
@@ -380,17 +381,17 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `development/html_themes/templating` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `extdev/index` | ⚠️ AUDITED — 1 issue(s) (F9) [+ out-of-scope graphviz placeholder p.174, SC#3] |
 | `extdev/appapi` | ⚠️ AUDITED — 4 issue(s) (F2, F3, F7, F9) |
-| `extdev/event_callbacks` | 🔲 NOT YET AUDITED |
-| `extdev/projectapi` | 🔲 NOT YET AUDITED |
-| `extdev/envapi` | 🔲 NOT YET AUDITED |
-| `extdev/builderapi` | 🔲 NOT YET AUDITED |
-| `extdev/eventapi` | 🔲 NOT YET AUDITED |
-| `extdev/collectorapi` | 🔲 NOT YET AUDITED |
-| `extdev/markupapi` | 🔲 NOT YET AUDITED |
-| `extdev/domainapi` | 🔲 NOT YET AUDITED |
-| `extdev/parserapi` | 🔲 NOT YET AUDITED |
-| `extdev/nodes` | 🔲 NOT YET AUDITED |
-| `extdev/logging` | 🔲 NOT YET AUDITED |
+| `extdev/event_callbacks` | ⚠️ AUDITED — 2 issue(s) (F7, F9) [+ out-of-scope graphviz placeholder p.196, SC#3] |
+| `extdev/projectapi` | ⚠️ AUDITED — 3 issue(s) (F2, F3, F9) |
+| `extdev/envapi` | ⚠️ AUDITED — 4 issue(s) (F2, F3, F9, F10) |
+| `extdev/builderapi` | ⚠️ AUDITED — 4 issue(s) (F2, F3, F9, F10) [+ out-of-scope graphviz placeholder p.205, SC#3] |
+| `extdev/eventapi` | ⚠️ AUDITED — 4 issue(s) (F2, F3, F7, F9) |
+| `extdev/collectorapi` | ⚠️ AUDITED — 3 issue(s) (F2, F3, F9) |
+| `extdev/markupapi` | ⚠️ AUDITED — 3 issue(s) (F2, F7, F9) |
+| `extdev/domainapi` | ⚠️ AUDITED — 5 issue(s) (F2, F3, F7, F9, F10) |
+| `extdev/parserapi` | ⚠️ AUDITED — 3 issue(s) (F2, F3, F9) |
+| `extdev/nodes` | ⚠️ AUDITED — 3 issue(s) (F2, F3, F9) |
+| `extdev/logging` | ⚠️ AUDITED — 3 issue(s) (F2, F7, F9) |
 | `extdev/i18n` | 🔲 NOT YET AUDITED |
 | `extdev/utils` | 🔲 NOT YET AUDITED |
 | `extdev/testing` | 🔲 NOT YET AUDITED |

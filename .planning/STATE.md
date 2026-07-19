@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 44/151 docnames audited; resume from extdev/event_callbacks
-last_updated: "2026-07-19T05:40:00.000Z"
+stopped_at: 17-02 PARTIAL — 55/151 docnames audited; resume from extdev/i18n
+last_updated: "2026-07-19T06:30:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: 17-02 visual audit in progress (multi-session) — 44/151 docnames, findings F1–F9
+last_activity_desc: 17-02 visual audit in progress (multi-session) — 55/151 docnames, findings F1–F10 (F10 new)
 progress:
   total_phases: 3
   completed_phases: 1
@@ -31,16 +31,19 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
 Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet by design)
 Status: Executing Phase 17 — 17-02 partial pass
-Last activity: 2026-07-19 — 17-02 visual audit: 44/151 docnames audited (findings F1–F9)
+Last activity: 2026-07-19 — 17-02 visual audit: 55/151 docnames audited (findings F1–F10; F10 new)
 
 **17-02 resume pointer:** Resume the visual pass from the first "🔲 NOT YET AUDITED" entry in
-`17-AUDIT-CATALOGUE.md`'s progress tracker = `extdev/event_callbacks` (PDF pp.195–201). Remaining in the
-extdev cluster: event_callbacks(195-201), projectapi(202), envapi(203-204), builderapi(205-207),
-eventapi(208-209), collectorapi(210), markupapi(211-214), domainapi(215-221), parserapi(222),
-nodes(223-228), logging(229), i18n(230-232), utils(233-237), testing(238), deprecated(239-249).
-Just-completed batch: docnames 43–44 (extdev/index, extdev/appapi — the 18-page Application API ref).
-extdev/appapi confirmed F2+F3+F7+F9 with NO new finding kind across all 18 pages; extdev/index has an
-out-of-scope graphviz placeholder (p.174, SC#3). Tables render correctly (positive).
+`17-AUDIT-CATALOGUE.md`'s progress tracker = `extdev/i18n` (PDF pp.230–232). Remaining in the
+extdev cluster: i18n(230-232), utils(233-237), testing(238), deprecated(239-249); then latex(250-281),
+support/internals/*, faq, authors, man/*, and the big usage/configuration(313-374, 62pp).
+Just-completed batch: docnames 45–55 (extdev event_callbacks..logging). **F10 new** = a Python signature's
+bare `*` (keyword-only, PEP 3102) or `/` (positional-only, PEP 570) separator leaks its `<abbr>` hover-title
+text INLINE into the visible signature (HTML/text authority show only `*`/`/`); marked uncertain (inline abbr
+expansion may be acceptable print behaviour). All other extdev findings are recurrences: F2 (prefix-space loss —
+now also static/final/abstractmethod/property/exception prefixes), F3 (Python signature inter-token spacing),
+F7 (sibling signatures/`.. event::` signature+`Parameters:` concatenated), F9. Tables + code blocks + footnotes
+render correctly. graphviz placeholders (out-of-scope SC#3) at pp.174/196/205.
 Reusable scratch (baselines + PDF cached, no rebuild needed) at
 `/tmp/nix-shell.xfyTmL/claude-1000/-home-yuta-Documents-typsphinx/bb467912-9dc4-4f19-866f-28d8a46238c3/scratchpad/17-audit/`
 (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
@@ -125,7 +128,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 44/151 docnames audited; resume from extdev/event_callbacks
+Stopped at: 17-02 PARTIAL — 55/151 docnames audited; resume from extdev/i18n
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
