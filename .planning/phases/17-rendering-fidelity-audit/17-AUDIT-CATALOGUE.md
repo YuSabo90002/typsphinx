@@ -436,11 +436,11 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/extensions/imgconverter` | ✅ AUDITED — no issues |
 | `usage/extensions/inheritance` | ✅ AUDITED — no issues [SC#3 confirmed: "[inheritance diagram diagram omitted]" placeholder appears exactly as expected at every `.. inheritance-diagram::` invocation, pp.425+; out-of-scope, not an issue-table candidate] |
 | `usage/extensions/intersphinx` | ⚠️ AUDITED — 2 issue(s) (F5, F7) |
-| `usage/extensions/linkcode` | 🔲 NOT YET AUDITED |
-| `usage/extensions/math` | 🔲 NOT YET AUDITED |
-| `usage/extensions/napoleon` | 🔲 NOT YET AUDITED |
-| `usage/extensions/todo` | 🔲 NOT YET AUDITED |
-| `usage/extensions/viewcode` | 🔲 NOT YET AUDITED |
+| `usage/extensions/linkcode` | ⚠️ AUDITED — 1 issue(s) (F5) |
+| `usage/extensions/math` | ⚠️ AUDITED — 1 issue(s) (F5) [admonitions (Tip/Info/Warning) render correctly] |
+| `usage/extensions/napoleon` | ⚠️ AUDITED — 1 issue(s) (F5) [11pp; Google/NumPy code-block comparisons + admonitions all render correctly; no new findings] |
+| `usage/extensions/todo` | ⚠️ AUDITED — 1 issue(s) (F5) |
+| `usage/extensions/viewcode` | ⚠️ AUDITED — 1 issue(s) (F5) [Warning admonitions render correctly] |
 | `usage/restructuredtext/index` | 🔲 NOT YET AUDITED |
 | `usage/restructuredtext/basics` | 🔲 NOT YET AUDITED |
 | `usage/restructuredtext/roles` | 🔲 NOT YET AUDITED |
