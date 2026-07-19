@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 100/151 docnames audited; resume at glossary (PDF p.498)
+stopped_at: 17-02 PARTIAL — 105/151 docnames audited; resume at changes/7.3 (PDF p.519)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,7 +33,14 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer (latest):** docnames 90–100 COMPLETE this session: `usage/extensions/linkcode`,
+**17-02 resume pointer (latest):** docnames 101–105 also COMPLETE this session: `glossary` (clean,
+contrast case for F14 confirmed — non-nested definition list renders term-on-own-line correctly),
+`changes/index`, `changes/9.0`, `changes/8.2`, `changes/8.1`, `changes/8.0`, `changes/7.4` (all
+clean — dense changelog bullet/nested-bullet lists render with correct line separation throughout,
+no F1/F9 issues observed in this docname family so far). **Resume at the NEXT docname:
+`changes/7.3`** (docname 108, PDF p.519). Remaining after that: `changes/7.2` through `changes/0.1`
+(~40 more small changelog docnames, pp.524–674), then `examples` (675–684, last).
+Prior pointer (docnames 90–100): docnames 90–100 COMPLETE this session: `usage/extensions/linkcode`,
 `math`, `napoleon`, `todo`, `viewcode` (all F5-only, clean otherwise; napoleon 11pp confirmed no new
 findings), then `usage/restructuredtext/index`, `basics`, `roles` (all clean), `directives` (29pp —
 F13 and F7 recur HEAVILY: F13 as "Options:optionname:" rubric+field concat at ~10 spots; F7 as
@@ -166,7 +173,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 100/151 docnames audited; resume at glossary (PDF p.498)
+Stopped at: 17-02 PARTIAL — 105/151 docnames audited; resume at changes/7.3 (PDF p.519)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps

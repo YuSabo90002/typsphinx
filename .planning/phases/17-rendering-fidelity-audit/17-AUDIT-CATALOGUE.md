@@ -447,13 +447,13 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/restructuredtext/directives` | ⚠️ AUDITED — 2 issue(s) (F13, F7) [29pp; F13 recurs heavily as "Options:optionname:" (rubric+field concat) — pp.469,478(x2),480(x2),482,483,484,487,489,494; F7 recurs as directive-alias-signature concat — pp.476,477,480(code-block/sourcecode/code)] |
 | `usage/restructuredtext/field-lists` | ✅ AUDITED — no issues |
 | `usage/restructuredtext/domains` | ✅ AUDITED — no issues [stub redirect page, minimal content] |
-| `glossary` | 🔲 NOT YET AUDITED |
-| `changes/index` | 🔲 NOT YET AUDITED |
-| `changes/9.0` | 🔲 NOT YET AUDITED |
-| `changes/8.2` | 🔲 NOT YET AUDITED |
-| `changes/8.1` | 🔲 NOT YET AUDITED |
-| `changes/8.0` | 🔲 NOT YET AUDITED |
-| `changes/7.4` | 🔲 NOT YET AUDITED |
+| `glossary` | ✅ AUDITED — no issues [definition list NOT nested in list_item — term-on-own-line contrast case confirmed correct] |
+| `changes/index` | ✅ AUDITED — no issues [minimal stub page] |
+| `changes/9.0` | ✅ AUDITED — no issues [dense changelog bullet lists; every bullet's "Patch by X" line renders as a correctly-separated continuation, no F1 concat] |
+| `changes/8.2` | ✅ AUDITED — no issues |
+| `changes/8.1` | ✅ AUDITED — no issues |
+| `changes/8.0` | ✅ AUDITED — no issues [nested sub-bullets (`▸`) render correctly] |
+| `changes/7.4` | ✅ AUDITED — no issues |
 | `changes/7.3` | 🔲 NOT YET AUDITED |
 | `changes/7.2` | 🔲 NOT YET AUDITED |
 | `changes/7.1` | 🔲 NOT YET AUDITED |
