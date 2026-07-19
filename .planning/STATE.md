@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 132/151 docnames audited; resume at changes/1.8 (PDF p.588)
+stopped_at: 17-02 PARTIAL — 133/151 docnames audited; resume at changes/1.7 (PDF p.596)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,10 +33,19 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer (latest):** docname 132 also COMPLETE this session: `changes/2.0` (clean,
-6pp). **Resume at the NEXT docname: `changes/1.8`** (docname 136, PDF p.588). Remaining:
-`changes/1.7` through `changes/0.1` (~18 more changelog docnames, pp.596–674), then `examples`
-(675–684, last).
+**17-02 resume pointer (latest, session end):** docname 133 also COMPLETE this session:
+`changes/1.8` (clean, 8pp — deprecation-list bullets with long dotted API paths render fine).
+**SESSION STOPPED HERE per stop-discipline (context headroom). Resume at the NEXT docname:
+`changes/1.7`** (docname 137, PDF p.596). Remaining: `changes/1.6` through `changes/0.1` (~17
+more changelog docnames, pp.603–674), then `examples` (675–684, last — final docname). Pattern
+for ALL remaining `changes/*` docnames observed this session: uniformly clean except two isolated
+F1 recurrences (`changes/6.0` p.534, `changes/5.0` p.539 — both the same jQuery-removal
+multi-paragraph bullet) and one F9 recurrence (`changes/3.2` p.563, semantic-line-break sentences
+in a bullet body). No new finding KINDS surfaced in `usage/extensions/*`, `usage/restructuredtext/*`,
+`glossary`, or `changes/*` this session — only F1/F5/F7/F9/F13 recurrences plus two new
+occurrence-count extensions to F1 and F9's known descriptions. `usage/restructuredtext/directives`
+(29pp) was the one dense finding-recurrence docname — F13 and F7 both recur heavily there (~10
+and ~4 spots respectively), now reflected in those findings' Occurrence Count / page lists.
 Prior pointer (docnames 128–131): `changes/2.4`,
 `changes/2.3`, `changes/2.2`, `changes/2.1` (all clean). **Resume at the NEXT docname:
 `changes/2.0`** (docname 135, PDF p.582). Remaining: `changes/1.8` through `changes/0.1` (~19
@@ -203,7 +212,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 132/151 docnames audited; resume at changes/1.8 (PDF p.588)
+Stopped at: 17-02 PARTIAL — 133/151 docnames audited; resume at changes/1.7 (PDF p.596)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps

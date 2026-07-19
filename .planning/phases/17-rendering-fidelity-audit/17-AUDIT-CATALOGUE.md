@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 89 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 133 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -482,7 +482,7 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/2.2` | ✅ AUDITED — no issues |
 | `changes/2.1` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
 | `changes/2.0` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
-| `changes/1.8` | 🔲 NOT YET AUDITED |
+| `changes/1.8` | ✅ AUDITED — no issues [8pp; deprecation-list bullets (long dotted API-path names) render correctly, no wrapping/overflow issues] |
 | `changes/1.7` | 🔲 NOT YET AUDITED |
 | `changes/1.6` | 🔲 NOT YET AUDITED |
 | `changes/1.5` | 🔲 NOT YET AUDITED |
