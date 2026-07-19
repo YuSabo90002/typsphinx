@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 60/151 docnames audited; resume from support
-last_updated: "2026-07-19T08:10:00.000Z"
+stopped_at: 17-02 PARTIAL — 73/151 docnames audited; resume from usage/configuration
+last_updated: "2026-07-19T09:00:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: 17-02 visual audit in progress (multi-session) — 60/151 docnames, findings F1–F12 (latex done; no new kinds)
+last_activity_desc: 17-02 visual audit in progress (multi-session) — 73/151 docnames, findings F1–F13 (F13 new)
 progress:
   total_phases: 3
   completed_phases: 1
@@ -31,18 +31,18 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
 Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet by design)
 Status: Executing Phase 17 — 17-02 partial pass
-Last activity: 2026-07-19 — 17-02 visual audit: 60/151 docnames audited (findings F1–F12; no new kinds this batch)
+Last activity: 2026-07-19 — 17-02 visual audit: 73/151 docnames audited (findings F1–F13; F13 new)
 
 **17-02 resume pointer:** Resume the visual pass from the first "🔲 NOT YET AUDITED" entry in
-`17-AUDIT-CATALOGUE.md`'s progress tracker = `support` (PDF p.282). Remaining: support(282), internals/*(282-290),
-faq(291-296), authors(297-299), man/*(300-312), then the big usage/configuration(313-374, 62pp),
+`17-AUDIT-CATALOGUE.md`'s progress tracker = `usage/configuration` (PDF pp.313–374, 62pp — the big config
+reference with many confval tables; WATCH for F12 wide-table overflow here). Remaining after it:
 usage/extensions/*(375-449), usage/restructuredtext/*(451-497), glossary(498), and changes/*(499-684, ~50 docnames).
-Just-completed batch: docname 60 (`latex`, pp.250-281, 32pp — LaTeX customization). NO new finding kinds:
-F9 pervasive + **F1 pervasive** (consecutive `versionadded`/`versionchanged` notes and sentences merge with no
-separation — e.g. "output.Changed", "Bjarne.Changed"; F1 is broader than list-items, worth noting for Phase 18).
-All tables in latex are narrow and render CORRECTLY — reconfirms F12 is triggered specifically by table width
-exceeding the text block (watch the big usage/configuration tables next). Code blocks, admonitions, Unicode
-(Greek/Cyrillic/math α) all render fine.
+Just-completed batch: docnames 61–73 (support, internals/*, faq, authors, man/*). **F13 new** = a `.. rubric::`
+option-group heading immediately followed by an `.. option::` renders CONCATENATED onto the first option
+("Structure Options--sep") — verified vs -b text authority; seen in man/sphinx-quickstart (man/sphinx-build/apidoc
+list options without rubric groups, so no F13 there). Everything else F9 + a few F1 (numbered-step sentence
+merges). Small tables (Date/Python) render fine; directory-tree/console/jinja/elisp code blocks and Unicode
+contributor names all render correctly; no F11 (no captioned code inside lists in these docs).
 Reusable scratch (baselines + PDF cached, no rebuild needed) at
 `/tmp/nix-shell.xfyTmL/claude-1000/-home-yuta-Documents-typsphinx/bb467912-9dc4-4f19-866f-28d8a46238c3/scratchpad/17-audit/`
 (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
@@ -127,7 +127,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 60/151 docnames audited; resume from support
+Stopped at: 17-02 PARTIAL — 73/151 docnames audited; resume from usage/configuration
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps

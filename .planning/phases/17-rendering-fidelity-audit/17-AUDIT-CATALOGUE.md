@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 60 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F12 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 73 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F13 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -95,6 +95,8 @@ check).
 | 11 | `extdev/i18n` (systemic — every captioned code-block nested inside a list item / other markup context) | `literal_block` with `:caption:` (codly per-block config wrapper) | A code block that has BOTH a `:caption:` (→ Typst `figure(caption: […])[…]`) AND sits inside a list item (→ the translator's `{ … }` list-item wrapper, translator.py ~1495) leaks its codly config wrapper as **literal visible text**: `{ codly(number-format: none)` renders above the block and `}` below it (seen bracketing Listings 38/39/40). The translator explicitly knows this hazard (translator.py 1504-1520: "a bare `codly(...)` is typeset as LITERAL PROSE — leaking the config text"; the `codly_prefix = "#"` fix) but it fails for the combined list-item + caption case. HTML/text authority show only the captioned code, never the wrapper. Code content is preserved but spurious raw-markup garbage surrounds every such listing (and the codly config likely does not take effect). | medium | 232 | systemic — every captioned code-block inside a list item; recurs wherever numbered/bulleted steps embed captioned code (how-to/tutorial/config docs) | `.. code-block:: python`⏎`   :caption: src/init.py` inside a numbered-list step → renders `{ codly(number-format: none)` + code + `}` + "Listing N: src/init.py" | no |
 
 | 12 | `extdev/deprecated` (systemic — any table too wide for the text block) | `table` / `tgroup` (multi-column table with long cell content) | A wide multi-column table whose cells hold long content overflows catastrophically: (a) long Target-column text spills past its column and **COLLIDES** with the Deprecated/Removed columns, interleaving glyphs into unreadable runs (`sphinx.environment.BuildEnvironment`**`anpp`**, `CheckExternalLinksBuilder.anchors 8.0 5.0 N/A`**`rs_ignore`**), and (b) the rightmost Alternatives column **overflows the right PAGE margin and is clipped** (`…format_exception_cut_f` cut off). The HTML authority (D-04) lays the table out with fitting/wrapping columns and loses nothing. Large portions of the table are rendered unreadable. Contrast: small narrow tables (transform-priority tables, appapi pp.186-188) render correctly — the failure is triggered by long cell content / total table width exceeding the text block. Related to F6 (right-margin clip) but table-specific and adds inter-column collision. | high | 239, 240, 241 | systemic — every table too wide for the text block (long dotted paths / many columns); recurs corpus-wide (e.g. `usage/configuration` tables) | the multi-page "deprecated APIs" grid table (`extdev/deprecated`, pp.239-249) → columns collide + right-edge clip; contrast the narrow appapi transform-priority tables which render fine | no |
+
+| 13 | `man/sphinx-quickstart` (systemic — any `.. rubric::` immediately followed by an `.. option::`/block; esp. man-page option groups) | `rubric` + `desc`/`option` (option-group heading + following option) | A `.. rubric::` used as an option-group heading, immediately followed by an `.. option::` directive, renders with the rubric text CONCATENATED onto the first option with no separation: "Structure Options**--sep**", "Project Basic Options**-p PROJECT, --project=PROJECT**", "Extension Options**--ext-autodoc**", "Makefile and Batchfile Creation Options**--use-make-mode (-m)…**". The `-b text` authority renders the rubric on its own line (`-[ Structure Options ]-`) then the option separately; HTML likewise separates them. The option-group heading is no longer distinct from the option. Likely shares the F1 / block-separation root cause (consecutive block elements emitted with no inter-block break) but in a distinct node context (rubric→option). | medium | 300, 301 | systemic — every rubric-headed option group; recurs across all man/* pages (sphinx-quickstart/build/apidoc/autogen) | `.. rubric:: Structure Options`⏎`.. option:: --sep` → renders "Structure Options--sep" (authority: `-[ Structure Options ]-` then `--sep`) | no |
 
 ## Docname → Page-Range Mapping
 
@@ -401,19 +403,19 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `extdev/testing` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `extdev/deprecated` | ⚠️ AUDITED — 1 issue(s) (F12) [big multi-page deprecated-APIs table; F2/F3 also present in cell text] |
 | `latex` | ⚠️ AUDITED — 2 issue(s) (F1, F9) [F1 pervasive via stacked versionadded/versionchanged notes; all narrow tables render fine] |
-| `support` | 🔲 NOT YET AUDITED |
-| `internals/index` | 🔲 NOT YET AUDITED |
-| `internals/contributing` | 🔲 NOT YET AUDITED |
-| `internals/release-process` | 🔲 NOT YET AUDITED |
-| `internals/organization` | 🔲 NOT YET AUDITED |
-| `internals/code-of-conduct` | 🔲 NOT YET AUDITED |
-| `faq` | 🔲 NOT YET AUDITED |
-| `authors` | 🔲 NOT YET AUDITED |
-| `man/index` | 🔲 NOT YET AUDITED |
-| `man/sphinx-quickstart` | 🔲 NOT YET AUDITED |
-| `man/sphinx-build` | 🔲 NOT YET AUDITED |
-| `man/sphinx-apidoc` | 🔲 NOT YET AUDITED |
-| `man/sphinx-autogen` | 🔲 NOT YET AUDITED |
+| `support` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `internals/index` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `internals/contributing` | ⚠️ AUDITED — 2 issue(s) (F1, F9) |
+| `internals/release-process` | ⚠️ AUDITED — 1 issue(s) (F9) [small Date/Python table renders fine] |
+| `internals/organization` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `internals/code-of-conduct` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `faq` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `authors` | ⚠️ AUDITED — 1 issue(s) (F9) [long bullet lists; Unicode names render fine] |
+| `man/index` | ✅ AUDITED — no issues |
+| `man/sphinx-quickstart` | ⚠️ AUDITED — 2 issue(s) (F13, F9) |
+| `man/sphinx-build` | ⚠️ AUDITED — 1 issue(s) (F9) [options not rubric-grouped → no F13] |
+| `man/sphinx-apidoc` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `man/sphinx-autogen` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `usage/configuration` | 🔲 NOT YET AUDITED |
 | `usage/extensions/index` | 🔲 NOT YET AUDITED |
 | `usage/extensions/apidoc` | 🔲 NOT YET AUDITED |
