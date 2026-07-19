@@ -101,7 +101,7 @@ planning if a phase is found to need otherwise.
 
 - [x] **Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor** - Render `todo_node` and `manpage`, generalize the CSS-length → Typst-length helper (completed 2026-07-16)
 - [x] **Phase 17: Rendering-Fidelity Audit** - Human-assisted visual diff of the corpus PDF vs. source → a severity-rated catalogue of silent mis-render issues (discovery) (completed 2026-07-19)
-- [ ] **Phase 18: Fidelity Fixes + Regression-Gate Close** - Fix every high-severity AUD-01 issue with real-compile fixtures, then close on the full-corpus regression gate
+- [x] **Phase 18: Fidelity Fixes + Regression-Gate Close** - Fix every high-severity AUD-01 issue with real-compile fixtures, then close on the full-corpus regression gate (completed 2026-07-19)
 
 ## Phase Details
 
@@ -226,7 +226,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 1/4 | In Progress|  |
-| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | In Progress|  |
+| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete    | 2026-07-19 |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13*
