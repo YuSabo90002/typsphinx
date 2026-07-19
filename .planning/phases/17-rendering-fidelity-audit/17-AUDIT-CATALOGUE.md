@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 74 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F14 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 79 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F14 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -419,11 +419,11 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `man/sphinx-apidoc` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `man/sphinx-autogen` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `usage/configuration` | ⚠️ AUDITED — 4 issue(s) (F5, F7, F9, F14) [F14 new — definition-list term/nested-term concatenation; no F12: all tables on this doc are narrow and render fine] |
-| `usage/extensions/index` | 🔲 NOT YET AUDITED |
-| `usage/extensions/apidoc` | 🔲 NOT YET AUDITED |
-| `usage/extensions/autodoc` | 🔲 NOT YET AUDITED |
-| `usage/extensions/autosectionlabel` | 🔲 NOT YET AUDITED |
-| `usage/extensions/autosummary` | 🔲 NOT YET AUDITED |
+| `usage/extensions/index` | ✅ AUDITED — no issues |
+| `usage/extensions/apidoc` | ⚠️ AUDITED — 2 issue(s) (F5, F9) |
+| `usage/extensions/autodoc` | ⚠️ AUDITED — 4 issue(s) (F1, F5, F9, F13) [F13 = "Options:no-index:" rubric+option concat, recurs many times] |
+| `usage/extensions/autosectionlabel` | ✅ AUDITED — no issues |
+| `usage/extensions/autosummary` | ⚠️ AUDITED — 2 issue(s) (F1, F9) [F1 = "templates.The" enumerated-list paragraph concat] |
 | `usage/extensions/coverage` | 🔲 NOT YET AUDITED |
 | `usage/extensions/doctest` | 🔲 NOT YET AUDITED |
 | `usage/extensions/duration` | 🔲 NOT YET AUDITED |

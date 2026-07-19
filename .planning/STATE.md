@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 74/151 docnames audited; resume at usage/extensions/index (PDF p.375)
+stopped_at: 17-02 PARTIAL — 79/151 docnames audited; resume at usage/extensions/coverage (PDF p.407)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,12 +33,18 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer:** `usage/configuration` (docname 74) is now COMPLETE — flipped to
-`⚠️ AUDITED — 4 issue(s) (F5, F7, F9, F14)`. **Resume at the NEXT docname: `usage/extensions/index`**
-(docname 75, PDF p.375 — shared page — then its second fragment at p.450; the bulk of the
-`usage/extensions/*` family runs pp.375–449). After `usage/extensions/*`: `usage/restructuredtext/*`
-(451–497), `glossary` (498), `changes/*` (499–684, ~48 docnames), `examples` (675–684, last).
-Rasterize a fresh batch via `raster.sh` starting at p.375 — no mid-docname carryover this time.
+**17-02 resume pointer:** docnames 74–79 are COMPLETE this session: `usage/configuration` (F5,F7,F9,F14),
+`usage/extensions/index` (clean), `usage/extensions/apidoc` (F5,F9), `usage/extensions/autodoc`
+(F1,F5,F9,F13), `usage/extensions/autosectionlabel` (clean), `usage/extensions/autosummary` (F1,F9).
+**Resume at the NEXT docname: `usage/extensions/coverage`** (docname 80, PDF pp.407–408). Remaining
+`usage/extensions/*` family: doctest(409-415), duration(416), extlinks(417), githubpages(418),
+graphviz(419-421, OUT-OF-SCOPE placeholder check only), ifconfig(422), imgconverter(423),
+inheritance(423-425, OUT-OF-SCOPE placeholder check only), intersphinx(426-430), linkcode(431),
+math(432-436), napoleon(437-447), todo(448), viewcode(448-449), then `usage/extensions/index`'s
+2nd fragment (p.450, already effectively covered — just confirm nothing new). After that:
+`usage/restructuredtext/*` (451–497), `glossary` (498), `changes/*` (499–684, ~48 docnames),
+`examples` (675–684, last). Rasterize a fresh batch via `raster.sh` starting at p.407 — no
+mid-docname carryover.
 **F14 new** (this session) = a `definition_list` `term` loses its line-break separation from what
 immediately follows it in two related sub-patterns: (a) when the WHOLE definition_list is nested
 inside a bullet `list_item`, every term in it merges onto the same line as the first line of its
@@ -138,7 +144,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 74/151 docnames audited; resume at usage/extensions/index (PDF p.375)
+Stopped at: 17-02 PARTIAL — 79/151 docnames audited; resume at usage/extensions/coverage (PDF p.407)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
