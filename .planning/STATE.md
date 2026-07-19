@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 73/151 docnames audited; resume from usage/configuration
-last_updated: "2026-07-19T09:00:00.000Z"
+stopped_at: 17-02 PARTIAL — 73/151 docnames audited; resume MID-DOCNAME in usage/configuration at PDF p.335
+last_updated: "2026-07-19T10:00:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: 17-02 visual audit in progress (multi-session) — 73/151 docnames, findings F1–F13 (F13 new)
+last_activity_desc: 17-02 visual audit in progress (multi-session) — 73/151 done + usage/configuration pp.313-334 read (F5/F7/F9 only), findings F1–F13
 progress:
   total_phases: 3
   completed_phases: 1
@@ -33,16 +33,18 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17 — 17-02 partial pass
 Last activity: 2026-07-19 — 17-02 visual audit: 73/151 docnames audited (findings F1–F13; F13 new)
 
-**17-02 resume pointer:** Resume the visual pass from the first "🔲 NOT YET AUDITED" entry in
-`17-AUDIT-CATALOGUE.md`'s progress tracker = `usage/configuration` (PDF pp.313–374, 62pp — the big config
-reference with many confval tables; WATCH for F12 wide-table overflow here). Remaining after it:
-usage/extensions/*(375-449), usage/restructuredtext/*(451-497), glossary(498), and changes/*(499-684, ~50 docnames).
-Just-completed batch: docnames 61–73 (support, internals/*, faq, authors, man/*). **F13 new** = a `.. rubric::`
-option-group heading immediately followed by an `.. option::` renders CONCATENATED onto the first option
-("Structure Options--sep") — verified vs -b text authority; seen in man/sphinx-quickstart (man/sphinx-build/apidoc
-list options without rubric groups, so no F13 there). Everything else F9 + a few F1 (numbered-step sentence
-merges). Small tables (Date/Python) render fine; directory-tree/console/jinja/elisp code blocks and Unicode
-contributor names all render correctly; no F11 (no captioned code inside lists in these docs).
+**17-02 resume pointer:** MID-DOCNAME in `usage/configuration` (docname 74, PDF pp.313–374, 62pp).
+**Pages 313–334 already read** (through §"76.4.1 Options for HTML output"); resume by rasterizing **from PDF p.335**
+(do NOT re-read 313–334). `usage/configuration` is still 🔲 NOT YET AUDITED in the tracker — flip it to
+`⚠️ AUDITED — N issue(s) (F5, F7, F9[, …])` only after p.374 is reached. So far this doc is UNIFORM: every confval
+shows **F5** (Type/Default concatenation, e.g. "project Type:strDefault:'…'"), **F7** on multi-name confvals
+("copyright project_copyright", "master_doc root_doc", "today today_fmt"), and **F9**; NO tables yet so **no F12**
+and no new finding kind through p.334. WATCH the remaining html_* / latex_* / man_* option sections (pp.335-374)
+for confval TABLES (F12 risk) and html_sidebars-style dict examples. After usage/configuration: usage/extensions/*
+(375-449), usage/restructuredtext/*(451-497), glossary(498), changes/*(499-684, ~50 docnames).
+Prior batch (docnames 61–73): **F13 new** = a `.. rubric::` option-group heading immediately followed by an
+`.. option::` renders CONCATENATED ("Structure Options--sep"); seen in man/sphinx-quickstart. Everything else was
+F9 + a few F1. Code blocks/small tables/Unicode all render correctly.
 Reusable scratch (baselines + PDF cached, no rebuild needed) at
 `/tmp/nix-shell.xfyTmL/claude-1000/-home-yuta-Documents-typsphinx/bb467912-9dc4-4f19-866f-28d8a46238c3/scratchpad/17-audit/`
 (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
@@ -127,7 +129,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 73/151 docnames audited; resume from usage/configuration
+Stopped at: 17-02 PARTIAL — 73/151 docnames audited; resume MID-DOCNAME in usage/configuration at PDF p.335
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
