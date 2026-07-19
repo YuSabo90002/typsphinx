@@ -312,18 +312,18 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 
 | Docname | Status |
 |---------|--------|
-| `index` | 🔲 NOT YET AUDITED |
-| `usage/installation` | 🔲 NOT YET AUDITED |
-| `usage/quickstart` | 🔲 NOT YET AUDITED |
-| `tutorial/index` | 🔲 NOT YET AUDITED |
-| `tutorial/getting-started` | 🔲 NOT YET AUDITED |
-| `tutorial/first-steps` | 🔲 NOT YET AUDITED |
-| `tutorial/more-sphinx-customization` | 🔲 NOT YET AUDITED |
-| `tutorial/narrative-documentation` | 🔲 NOT YET AUDITED |
-| `tutorial/describing-code` | 🔲 NOT YET AUDITED |
-| `tutorial/automatic-doc-generation` | 🔲 NOT YET AUDITED |
-| `tutorial/deploying` | 🔲 NOT YET AUDITED |
-| `tutorial/end` | 🔲 NOT YET AUDITED |
+| `index` | ✅ AUDITED — no issues |
+| `usage/installation` | ✅ AUDITED — no issues |
+| `usage/quickstart` | ✅ AUDITED — no issues |
+| `tutorial/index` | ✅ AUDITED — no issues |
+| `tutorial/getting-started` | ✅ AUDITED — no issues |
+| `tutorial/first-steps` | ✅ AUDITED — no issues |
+| `tutorial/more-sphinx-customization` | ✅ AUDITED — no issues |
+| `tutorial/narrative-documentation` | ✅ AUDITED — no issues |
+| `tutorial/describing-code` | ✅ AUDITED — no issues |
+| `tutorial/automatic-doc-generation` | ✅ AUDITED — no issues |
+| `tutorial/deploying` | ✅ AUDITED — no issues |
+| `tutorial/end` | ✅ AUDITED — no issues |
 | `usage/index` | 🔲 NOT YET AUDITED |
 | `usage/markdown` | 🔲 NOT YET AUDITED |
 | `usage/referencing` | 🔲 NOT YET AUDITED |
