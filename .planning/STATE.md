@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 79/151 docnames audited; resume at usage/extensions/coverage (PDF p.407)
+stopped_at: 17-02 PARTIAL — 84/151 docnames audited; resume at usage/extensions/graphviz (PDF p.419)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,18 +33,30 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer:** docnames 74–79 are COMPLETE this session: `usage/configuration` (F5,F7,F9,F14),
+**17-02 resume pointer:** docnames 74–84 are COMPLETE this session: `usage/configuration` (F5,F7,F9,F14),
 `usage/extensions/index` (clean), `usage/extensions/apidoc` (F5,F9), `usage/extensions/autodoc`
-(F1,F5,F9,F13), `usage/extensions/autosectionlabel` (clean), `usage/extensions/autosummary` (F1,F9).
-**Resume at the NEXT docname: `usage/extensions/coverage`** (docname 80, PDF pp.407–408). Remaining
-`usage/extensions/*` family: doctest(409-415), duration(416), extlinks(417), githubpages(418),
-graphviz(419-421, OUT-OF-SCOPE placeholder check only), ifconfig(422), imgconverter(423),
-inheritance(423-425, OUT-OF-SCOPE placeholder check only), intersphinx(426-430), linkcode(431),
-math(432-436), napoleon(437-447), todo(448), viewcode(448-449), then `usage/extensions/index`'s
-2nd fragment (p.450, already effectively covered — just confirm nothing new). After that:
-`usage/restructuredtext/*` (451–497), `glossary` (498), `changes/*` (499–684, ~48 docnames),
-`examples` (675–684, last). Rasterize a fresh batch via `raster.sh` starting at p.407 — no
-mid-docname carryover.
+(F1,F5,F9,F13), `usage/extensions/autosectionlabel` (clean), `usage/extensions/autosummary` (F1,F9),
+`usage/extensions/coverage` (F5,F7,**F15 new**), `usage/extensions/doctest` (F5,F7,F9),
+`usage/extensions/duration` (F5,F9), `usage/extensions/extlinks` (F5,F9), `usage/extensions/githubpages`
+(clean). **Resume at the NEXT docname: `usage/extensions/graphviz`** (docname 85, PDF pp.419-421 — note
+`usage/extensions/graphviz` pp.419-421 and `usage/extensions/imgconverter` p.423(shared) are NOT yet
+done — graphviz still needs its OUT-OF-SCOPE placeholder confirmation pass per SC#3, imgconverter
+needs a normal pass; do graphviz+imgconverter alongside ifconfig+inheritance in the next batch since
+they're adjacent pp.419-425). Remaining `usage/extensions/*` family after that: intersphinx(426-430),
+linkcode(431), math(432-436), napoleon(437-447), todo(448), viewcode(448-449), then
+`usage/extensions/index`'s 2nd fragment (p.450, already effectively covered — just confirm nothing
+new). After that: `usage/restructuredtext/*` (451–497), `glossary` (498), `changes/*` (499–684,
+~48 docnames), `examples` (675–684, last). Rasterize a fresh batch via `raster.sh` starting at
+p.419 (to catch graphviz first) — no mid-docname carryover.
+**F15 new** (this session) = consecutive `confval` directives with NO body/description text (only
+`:type:`/`:default:` fields) lose ALL inter-block separation and concatenate into one unbroken line
+— e.g. 4 distinct confvals (`coverage_c_path`, `coverage_c_regexes`, `coverage_ignore_c_items`,
+`coverage_write_headline`) merged onto a single line in `usage/extensions/coverage` p.408. Distinct
+from F5 (Type/Default concat within ONE confval) and F7 (multi-name single confval) — this is
+MULTIPLE separate desc/confval nodes losing separation because none has body content to anchor a
+break. Also confirmed this session: the Phase-16 `todo_node` "Todo" admonition renders correctly
+(coverage.rst p.407 has a literal `.. todo:: Write this section.` directive, rendered as a proper
+Todo admonition box) — good regression confirmation, not a finding.
 **F14 new** (this session) = a `definition_list` `term` loses its line-break separation from what
 immediately follows it in two related sub-patterns: (a) when the WHOLE definition_list is nested
 inside a bullet `list_item`, every term in it merges onto the same line as the first line of its
@@ -63,7 +75,7 @@ F9 + a few F1. Code blocks/small tables/Unicode all render correctly.
 Reusable scratch (baselines + PDF cached, no rebuild needed) at
 `/tmp/nix-shell.xfyTmL/claude-1000/-home-yuta-Documents-typsphinx/bb467912-9dc4-4f19-866f-28d8a46238c3/scratchpad/17-audit/`
 (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
-`~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc/`). 14 systemic/candidate findings (F1–F14).
+`~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc/`). 15 systemic/candidate findings (F1–F15).
 Also logged a mapping-table boundary note (html_themes/index vs
 templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Task 2 (out-of-scope classification
 
@@ -144,7 +156,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 79/151 docnames audited; resume at usage/extensions/coverage (PDF p.407)
+Stopped at: 17-02 PARTIAL — 84/151 docnames audited; resume at usage/extensions/graphviz (PDF p.419)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps

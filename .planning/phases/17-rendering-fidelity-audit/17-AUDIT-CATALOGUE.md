@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 79 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F14 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 84 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -99,6 +99,8 @@ check).
 | 13 | `man/sphinx-quickstart` (systemic — any `.. rubric::` immediately followed by an `.. option::`/block; esp. man-page option groups) | `rubric` + `desc`/`option` (option-group heading + following option) | A `.. rubric::` used as an option-group heading, immediately followed by an `.. option::` directive, renders with the rubric text CONCATENATED onto the first option with no separation: "Structure Options**--sep**", "Project Basic Options**-p PROJECT, --project=PROJECT**", "Extension Options**--ext-autodoc**", "Makefile and Batchfile Creation Options**--use-make-mode (-m)…**". The `-b text` authority renders the rubric on its own line (`-[ Structure Options ]-`) then the option separately; HTML likewise separates them. The option-group heading is no longer distinct from the option. Likely shares the F1 / block-separation root cause (consecutive block elements emitted with no inter-block break) but in a distinct node context (rubric→option). | medium | 300, 301 | systemic — every rubric-headed option group; recurs across all man/* pages (sphinx-quickstart/build/apidoc/autogen) | `.. rubric:: Structure Options`⏎`.. option:: --sep` → renders "Structure Options--sep" (authority: `-[ Structure Options ]-` then `--sep`) | no |
 
 | 14 | `usage/configuration` (systemic — two related sub-patterns, both `definition_list` `term`+`definition`) | `definition_list` (`term` immediately followed by `definition`, or by a nested list's first `term`) | Two related divergences, both losing the line break between a bold definition-list **term** and whatever follows it, unlike the HTML/text authority which always places the term on its own line: **(a)** when an entire `definition_list` is nested inside a bullet `list_item`, EVERY term in that list merges onto the same line as the first line of its own definition — e.g. `'paragraphindent'` **Number of spaces to indent the first line of each paragraph,** (authority: term alone on one line, definition indented below); same for `'exampleindent'`, `'preamble'`, `'copying'` in the same nested list (texinfo_elements confval, "Keys that you may want to override include:" bullet). **(b)** when a `definition_list` term's own definition body begins with a NESTED list (another `definition_list` or a `field_list`), the OUTER term merges onto the same line as the nested list's FIRST term only (its own subsequent siblings separate correctly) — e.g. `Options for 'mecab':`**dic_enc:** (authority: `Options for 'mecab':` on its own line, then the nested field list's `dic_enc:` on the next). Contrast: definition lists NOT nested inside a bullet list_item, whose definition body is a plain paragraph (e.g. `'sphinx.search.ja.DefaultSplitter'`), render correctly with the term on its own line. Text content is preserved but the term/definition (and term/nested-term) boundary is visually lost. | medium | 343, 364, 365 | ≥2 confvals on this docname (`html_search_options`, `texinfo_elements`); likely recurs wherever a definition list is nested inside a bullet list_item, or a term's definition opens with a nested list, corpus-wide | `- Keys...:`⏎⏎ &nbsp;&nbsp;``'paragraphindent'``⏎&nbsp;&nbsp;&nbsp;&nbsp;Number of spaces to indent the first line... → renders "'paragraphindent'  Number of spaces to indent the first line..." on one line | no |
+
+| 15 | `usage/extensions/coverage` (watch other confval-only pages) | `desc` (`confval` directive with NO body/description content) | When two or more `confval` directives with only `:type:`/`:default:` fields (no descriptive body paragraph) appear back-to-back, they concatenate into a single unbroken line with no visual separation at all between the confval names themselves: `coverage_c_path Type:Sequence[str]Default:()coverage_c_regexes Type:dict[str, str]Default:{}coverage_ignore_c_items Type:dict[str, Sequence[str]]Default:{}coverage_write_headline Type:bool Default:True` — four DISTINCT confvals merge into one blob. The HTML authority renders each as its own `<dl class="std confval">` block, visually separated even with an empty body. Related to F5 (Type/Default concat within one confval) and F7 (multi-name single confval) but distinct: here it's MULTIPLE SEPARATE desc/confval nodes with no body content losing their inter-block separation entirely. | medium | 408 | 1 confirmed occurrence (4 confvals merged); likely recurs wherever 2+ body-less confvals appear consecutively, corpus-wide | `.. confval:: coverage_c_path`⏎`   :type: ...`⏎`   :default: ...`⏎⏎`.. confval:: coverage_c_regexes`⏎... (coverage.rst L88-102, no body text on any of the 4) → all 4 headers run together on one line | no |
 
 ## Docname → Page-Range Mapping
 
@@ -424,11 +426,11 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/extensions/autodoc` | ⚠️ AUDITED — 4 issue(s) (F1, F5, F9, F13) [F13 = "Options:no-index:" rubric+option concat, recurs many times] |
 | `usage/extensions/autosectionlabel` | ✅ AUDITED — no issues |
 | `usage/extensions/autosummary` | ⚠️ AUDITED — 2 issue(s) (F1, F9) [F1 = "templates.The" enumerated-list paragraph concat] |
-| `usage/extensions/coverage` | 🔲 NOT YET AUDITED |
-| `usage/extensions/doctest` | 🔲 NOT YET AUDITED |
-| `usage/extensions/duration` | 🔲 NOT YET AUDITED |
-| `usage/extensions/extlinks` | 🔲 NOT YET AUDITED |
-| `usage/extensions/githubpages` | 🔲 NOT YET AUDITED |
+| `usage/extensions/coverage` | ⚠️ AUDITED — 3 issue(s) (F5, F7, F15) [F15 new — todo_node "Todo" admonition confirmed rendering correctly on this page too] |
+| `usage/extensions/doctest` | ⚠️ AUDITED — 3 issue(s) (F5, F7, F9) |
+| `usage/extensions/duration` | ⚠️ AUDITED — 2 issue(s) (F5, F9) |
+| `usage/extensions/extlinks` | ⚠️ AUDITED — 2 issue(s) (F5, F9) |
+| `usage/extensions/githubpages` | ✅ AUDITED — no issues |
 | `usage/extensions/graphviz` | 🔲 NOT YET AUDITED |
 | `usage/extensions/ifconfig` | 🔲 NOT YET AUDITED |
 | `usage/extensions/imgconverter` | 🔲 NOT YET AUDITED |
