@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Infrastructure ready (Plan 17-01 complete) — page-by-page visual pass NOT yet started (Plan 17-02+)
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 35 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F8 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -71,7 +71,11 @@ either side of the comparison (RESEARCH Pitfall 4):
 
 ## Issue Table (D-09 schema)
 
-Empty — the page-by-page visual pass (Plan 17-02+) has not started yet. Columns are the exact
+Populated as the multi-session visual pass proceeds (Plan 17-02, IN PROGRESS). Rows below use
+the D-09 schema. Systemic (translator-level) findings are recorded once with a representative
+docname/page set and an "Occurrence Count" noting the corpus-wide scope; Task 2 (out-of-scope
+classification + severity finalization + deterministic re-sort) runs after every docname is
+audited. Columns are the exact
 D-09 required fields; every future row must have all 8 populated (SC#2 schema/completeness
 check).
 
@@ -353,7 +357,7 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `development/index` | ✅ AUDITED — no issues |
 | `development/tutorials/index` | ✅ AUDITED — no issues |
 | `development/tutorials/extending_syntax` | ⚠️ AUDITED — 1 issue(s) (F8) |
-| `development/tutorials/extending_build` | 🔲 NOT YET AUDITED |
+| `development/tutorials/extending_build` | ⚠️ AUDITED — 1 issue(s) (F1) |
 | `development/tutorials/adding_domain` | 🔲 NOT YET AUDITED |
 | `development/tutorials/autodoc_ext` | 🔲 NOT YET AUDITED |
 | `development/howtos/index` | 🔲 NOT YET AUDITED |
