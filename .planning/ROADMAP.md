@@ -163,7 +163,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 17-02-PLAN.md — Claude's first pass: per-docname rasterize + read pages, cross-check the `-b html` authority, record candidate issues (bias false-positive, "uncertain" flags), classify against the Out-of-Scope table
+- [x] 17-02-PLAN.md — Claude's first pass: per-docname rasterize + read pages, cross-check the `-b html` authority, record candidate issues (bias false-positive, "uncertain" flags), classify against the Out-of-Scope table
 
 **Wave 3** *(blocked on Wave 2 — human gate, autonomous: false)*
 

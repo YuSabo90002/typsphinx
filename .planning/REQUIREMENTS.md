@@ -22,7 +22,7 @@ Nodes the v0.6.0 warning audit confirmed are still silently `unknown_visit`-drop
 
 The discovery core of this milestone: warnings only surface *dropped* content; *silent* mis-renders (output that compiles cleanly and emits no warning, yet diverges from the source) require a visual audit.
 
-- [x] **AUD-01**: The compiled Sphinx-`doc/` corpus PDF is visually audited against the rendered HTML / rST source, and every silent mis-render issue found is catalogued with location (docname + node kind), a source-vs-output description, and a severity rating.
+- [ ] **AUD-01**: The compiled Sphinx-`doc/` corpus PDF is visually audited against the rendered HTML / rST source, and every silent mis-render issue found is catalogued with location (docname + node kind), a source-vs-output description, and a severity rating.
 - [ ] **FID-01**: Every AUD-01 issue at severity "high" (content lost, unreadable, or grossly mis-structured) is fixed, each fix proven by a real `typst.compile()` regression fixture (GATE-01 pattern). The concrete per-issue list is enumerated by AUD-01 and appended here as `FID-01a`, `FID-01b`, … once the audit completes.
 
 ### Regression Gate
@@ -60,7 +60,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TODO-01 | Phase 16 | Complete |
 | MAN-01 | Phase 16 | Complete |
 | LEN-01 | Phase 16 | Complete |
-| AUD-01 | Phase 17 | Complete |
+| AUD-01 | Phase 17 | In Progress |
 | FID-01 | Phase 18 | Pending |
 | GATE-03 | Phase 18 | Pending |
 
