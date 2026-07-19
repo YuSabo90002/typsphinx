@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 37 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F9 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 42 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F9 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -297,6 +297,18 @@ still satisfies D-02's actual need: "for any docname, look up where its content 
 | 151 | `examples` | 675-684 | 153 Projects using Sphinx |  |
 
 
+### Mapping note (observed during Plan 17-02 visual pass — infra, not an AUD-01 finding)
+
+- **`development/html_themes/index` ↔ `development/html_themes/templating` boundary:** The Full Table
+  above splits these as html_themes/index = `156-160; 169-172` and templating = `161-168`. The visual
+  pass found the real split differs: html_themes/index's own content ends at its `42.4 Templating`
+  heading on **p.161**, and the included `templating` doc (chapter 43, `43 Templating` … `43.5.9 Inject
+  JavaScript…`) actually runs **161-172** (not 161-168). Pages 169-172 are templating `43.5.x` content,
+  NOT an html_themes/index second fragment. The *outer* span 156-172 is correct and BOTH docnames were
+  fully visually audited (every page 156-172 was read); only the internal per-docname attribution in the
+  mapping table is inaccurate. Flagged as a possible 17-01 mapping-table fix (D-07 infra) — this is not a
+  typsphinx rendering divergence, so it is intentionally NOT added to the Issue Table.
+
 ## Per-Docname Progress Tracker (D-02)
 
 Tracks audit progress per docname (.rst source file), giving clean session-resume boundaries
@@ -361,11 +373,11 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `development/tutorials/extending_build` | ⚠️ AUDITED — 1 issue(s) (F1) |
 | `development/tutorials/adding_domain` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `development/tutorials/autodoc_ext` | ⚠️ AUDITED — 1 issue(s) (F9) |
-| `development/howtos/index` | 🔲 NOT YET AUDITED |
-| `development/howtos/setup_extension` | 🔲 NOT YET AUDITED |
-| `development/howtos/builders` | 🔲 NOT YET AUDITED |
-| `development/html_themes/index` | 🔲 NOT YET AUDITED |
-| `development/html_themes/templating` | 🔲 NOT YET AUDITED |
+| `development/howtos/index` | ✅ AUDITED — no issues |
+| `development/howtos/setup_extension` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `development/howtos/builders` | ⚠️ AUDITED — 1 issue(s) (F9) |
+| `development/html_themes/index` | ⚠️ AUDITED — 2 issue(s) (F9, F1) |
+| `development/html_themes/templating` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `extdev/index` | 🔲 NOT YET AUDITED |
 | `extdev/appapi` | 🔲 NOT YET AUDITED |
 | `extdev/event_callbacks` | 🔲 NOT YET AUDITED |

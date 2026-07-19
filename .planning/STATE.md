@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 35/151 docnames audited; resume from development/tutorials/adding_domain
-last_updated: "2026-07-19T04:00:01.723Z"
+stopped_at: 17-02 PARTIAL — 42/151 docnames audited; resume from extdev/index
+last_updated: "2026-07-19T05:00:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: 17-02 visual audit in progress (multi-session) — 35/151 docnames, findings F1–F8
+last_activity_desc: 17-02 visual audit in progress (multi-session) — 42/151 docnames, findings F1–F9 (F9 new)
 progress:
   total_phases: 3
   completed_phases: 1
@@ -31,15 +31,19 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
 Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet by design)
 Status: Executing Phase 17 — 17-02 partial pass
-Last activity: 2026-07-19 — 17-02 visual audit: 35/151 docnames audited (findings F1–F8)
+Last activity: 2026-07-19 — 17-02 visual audit: 42/151 docnames audited (findings F1–F9; F9 new)
 
 **17-02 resume pointer:** Resume the visual pass from the first "🔲 NOT YET AUDITED" entry in
-`17-AUDIT-CATALOGUE.md`'s progress tracker = `development/tutorials/adding_domain` (PDF pp.141–151).
+`17-AUDIT-CATALOGUE.md`'s progress tracker = `extdev/index` (PDF pp.173–176). Just-completed batch:
+docnames 36–42 (development/tutorials/adding_domain..autodoc_ext, development/howtos/*, development/html_themes/*).
 Reusable scratch (baselines + PDF cached, no rebuild needed) at
-`/tmp/nix-shell.xfyTmL/.../scratchpad/17-audit/` (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/,
-findings.md, raster.sh, mark.py). 8 systemic/candidate findings recorded (F1–F8); Task 2 (out-of-scope
-classification + severity finalize + deterministic re-sort) and 17-02-SUMMARY.md are deferred until all
-151 docnames are audited.
+`/tmp/nix-shell.xfyTmL/claude-1000/-home-yuta-Documents-typsphinx/bb467912-9dc4-4f19-866f-28d8a46238c3/scratchpad/17-audit/`
+(index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
+`~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc/`). 9 systemic/candidate findings (F1–F9); **F9 new**
+= every intra-paragraph reStructuredText semantic (soft) line break renders as a HARD line break (visible
+only where source clauses are short). Also logged a mapping-table boundary note (html_themes/index vs
+templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Task 2 (out-of-scope classification
++ severity finalize + deterministic re-sort) and 17-02-SUMMARY.md are deferred until all 151 docnames audited.
 
 Progress: [██████░░░░] 57% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
@@ -116,7 +120,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 35/151 docnames audited; resume from development/tutorials/adding_domain
+Stopped at: 17-02 PARTIAL — 42/151 docnames audited; resume from extdev/index
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
