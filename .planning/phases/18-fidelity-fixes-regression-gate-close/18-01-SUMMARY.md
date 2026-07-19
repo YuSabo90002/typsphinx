@@ -156,6 +156,11 @@ None - no external service configuration required.
 - Plan 18-02 (GATE-03 corpus close) can now proceed: re-run `tests/test_corpus_gate.py::TestCorpusRenderGate -m slow` against the full ~684-page corpus to confirm the fr-columns change (applied to every table, D-02) does not introduce a NEW fatal error corpus-wide, and that the `unknown_visit` catalogue stays empty of `todo_node`/`manpage`.
 - Known residual risk (documented in 18-RESEARCH.md Assumption A2, explicitly out of Phase 18's locked scope): a corpus table OTHER than `extdev/deprecated` with similarly unbroken long literal content could still collide after this fix — GATE-03's corpus re-run only catches fatal-error regressions, not a new silent collision instance. Any such finding would be a future-audit candidate, not a Phase 18 regression.
 
+## Self-Check: PASSED
+
+All created/modified files confirmed present on disk; all 4 commits
+(`c55bab8`, `a86536e`, `6b0ab2b`, `1bed215`) confirmed present in `git log`.
+
 ---
 *Phase: 18-fidelity-fixes-regression-gate-close*
 *Completed: 2026-07-19*
