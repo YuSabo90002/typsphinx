@@ -481,7 +481,7 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/2.3` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
 | `changes/2.2` | ✅ AUDITED — no issues |
 | `changes/2.1` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
-| `changes/2.0` | 🔲 NOT YET AUDITED |
+| `changes/2.0` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
 | `changes/1.8` | 🔲 NOT YET AUDITED |
 | `changes/1.7` | 🔲 NOT YET AUDITED |
 | `changes/1.6` | 🔲 NOT YET AUDITED |
