@@ -28,7 +28,7 @@ The discovery core of this milestone: warnings only surface *dropped* content; *
 
 ### Regression Gate
 
-- [ ] **GATE-03**: After all v0.6.1 changes, the full Sphinx-`doc/` corpus still compiles fatal-free through `typstpdf` (GATE-02 non-regression), and the `unknown_visit` catalogue no longer contains `todo_node` or `manpage`.
+- [x] **GATE-03**: After all v0.6.1 changes, the full Sphinx-`doc/` corpus still compiles fatal-free through `typstpdf` (GATE-02 non-regression), and the `unknown_visit` catalogue no longer contains `todo_node` or `manpage`.
 
 ## Future Requirements
 
@@ -67,7 +67,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | LEN-01 | Phase 16 | Complete |
 | AUD-01 | Phase 17 | Complete |
 | FID-01 | Phase 18 | Complete |
-| GATE-03 | Phase 18 | Pending |
+| GATE-03 | Phase 18 | Complete |
 
 **Coverage:**
 

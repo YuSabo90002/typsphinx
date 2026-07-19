@@ -4,17 +4,17 @@ milestone: v0.6.1
 milestone_name: rendering fidelity
 current_phase: 18
 current_phase_name: fidelity-fixes-regression-gate-close
-status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-07-19T13:56:08.345Z"
+status: verifying
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-07-19T14:01:09.469Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 67
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 Phase: 18 (fidelity-fixes-regression-gate-close) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-19 — Phase 18 execution started
 
 **17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
@@ -146,7 +146,7 @@ templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Tas
 classification + severity finalize + deterministic re-sort) is now COMPLETE and
 17-02-SUMMARY.md has been written — see the "17-02 FINAL" note above.
 
-Progress: [█████████░] 89% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
+Progress: [██████████] 100% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -179,6 +179,7 @@ Progress: [█████████░] 89% (3/3 Phase-16 plans; Phases 17–
 | Phase 17 P02 | 25min | 2 tasks | 2 files |
 | Phase 17 P04 | 25min | 2 tasks | 2 files |
 | Phase 18 P01 | 20min | 3 tasks | 5 files |
+| Phase 18 P02 | 20min | 2 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -200,6 +201,7 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Phase ?]: [Phase 17-04]: F12 is the sole high-severity root cause; grouped as FID-01a per D-10, with F6 noted as a related-but-distinct medium overflow kinship (not promoted).
 - [Phase ?]: [Phase 17-04]: All five mechanical consistency checks (SC#1-4, D-07) passed genuinely against a fresh corpus rebuild; no environmental limitation hit this session.
 - [Phase ?]: [Phase 18-01]: Redesigned the wide-table fixture's collision-absence assertion to check the actual observed cell-boundary text (target-tail + deprecated value), since the plan/research's literal sentinel-concatenation string never matches this fixture's real content shape.
+- [Phase ?]: [Phase 18-02]: GATE-03 confirmed green in the full local env (not deferred) -- 689-page corpus fatal-free, unknown_visit catalogue empty, SC#4 invariants (no new deps, no @preview bump) intact. Milestone v0.6.1 regression gate closed.
 
 ### Pending Todos
 
@@ -227,8 +229,8 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-19T13:56:08.338Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-07-19T14:01:09.462Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
