@@ -1,16 +1,20 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-03 COMPLETE — human confirmation gate PASSED (D-01a). Plan 17-02 delivered
-all 151 of 151 docnames visually audited (Task 1) and the candidate list classified,
-severity-finalized, and deterministically re-sorted (Task 2).
+**Status:** Plan 17-04 COMPLETE — phase 17 (AUD-01) DONE. `FID-01a` (F12, the sole high-severity
+root cause) appended to `.planning/REQUIREMENTS.md` §"Rendering Fidelity Audit"; the medium/low
+pointer added under §"Future Requirements"; all five mechanical checks PASS (see "Validation
+(Plan 17-04 mechanical checks)" below). Plan 17-03 COMPLETE — human confirmation gate PASSED
+(D-01a). Plan 17-02 delivered all 151 of 151 docnames visually audited (Task 1) and the candidate
+list classified, severity-finalized, and deterministically re-sorted (Task 2).
 Findings F1–F15 recorded below (no new finding KINDS surfaced in this session's
 changelog/examples pass; F8's occurrence list extended to `examples` pp.675,678). 15 candidate
 rows were recorded. **Plan 17-03 human confirmation gate PASSED (2026-07-19, D-01a):** 14 rows
 human-ACCEPTED (1 high [F12], 11 medium, 2 low [F8, F10]); 1 candidate REJECTED (F4 — see
 "Rejected candidates" below); 0 excluded rows needed (out-of-scope sightings recorded inline
 on tracker rows during Task 1). Clean-set spot-check: 6 pages / 4 clean docnames, 0 misses
-(miss-rate 0%). Severities final; Phase 18 (FID-01) fixes the high-severity accepted rows (F12).
+(miss-rate 0%). Severities final; Phase 18 (FID-01) fixes the high-severity accepted rows (F12)
+via `FID-01a`.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -140,6 +144,24 @@ fix and a later F6 fix, without conflating them into one requirement.
 **Medium/low severity (13 rows: F1, F2, F3, F5, F6, F7, F8, F9, F10, F11, F13, F14, F15):** stay
 fully recorded in this catalogue only, referenced by the single Future Requirements pointer added
 to `REQUIREMENTS.md` (D-11) — never enumerated as individual `FID-01x` requirements.
+
+## Validation (Plan 17-04 mechanical checks)
+
+All five mechanical checks from RESEARCH's Validation Architecture (Phase Requirements →
+Validation Map) were run against a **fresh** rebuild in this session (2026-07-19), not against
+stale artifacts. Fresh build reused `tests/test_corpus_gate.py`'s unmodified helpers
+(`get_or_clone_corpus` + `wire_typsphinx_into_corpus_conf` + `_run_corpus_sphinx_build("typstpdf",
+...)`), same cached corpus tree (tag `v9.1.0`, SHA `cc7c6f435ad37bb12264f8118c8461b230e6830c`) as
+the Provenance header above.
+
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| 1 | **SC#1 coverage** — progress tracker's docname set == corpus toctree closure (fresh recursive `#include()`/`include()` walk of a freshly-rebuilt `index.typ`, 151 docnames found, zero duplicates) | **PASS** | Fresh-walk docname set and the Per-Docname Progress Tracker's docname set are set-equal (151 == 151; symmetric difference is empty). Zero rows anywhere in the tracker carry the `🔲 NOT YET AUDITED` marker (the sole remaining match for that literal string in the whole file is the legend text defining the marker, not a live row). |
+| 2 | **SC#2 schema** — every active Issue Table row (14 rows, F1–F3,F5–F15 minus F4-rejected) has all 8 D-09 columns + the `#` column non-empty (9 columns total) | **PASS** | Parsed all 14 active rows by cell-splitting on ` \| `; every row has exactly 9 non-empty cells. Zero blank-column rows. |
+| 3 | **SC#3 classification** — no ACTIVE issue row (scoped to the Issue Table only, excluding "Excluded (out-of-scope)" and "Rejected candidates" subsections, per the plan's stated false-positive avoidance) matches `graphviz`/`inheritance_diagram`/`py:meth` | **PASS** | `grep -iE "graphviz\|inheritance.diagram\|py:meth"` over the 14 active-row lines only: zero matches. (An unscoped grep over the whole file DOES match — inside the "Excluded (out-of-scope)" and "Out-of-Scope Classification" sections, which is expected and correct; those sections exist specifically to document exclusions, so an unscoped grep is the known false-positive this check must avoid, per the plan's explicit note.) |
+| 4 | **SC#4 backlog** — distinct `FID-01[a-z]` requirement entries in REQUIREMENTS.md == distinct high-severity root-cause group count | **PASS (1 == 1)** | `grep -oE '^\s*- \[.\] \*\*FID-01[a-z]+\*\*' .planning/REQUIREMENTS.md` → exactly one match, `FID-01a`. Root-cause groups table above lists exactly 1 high-severity group (F12). (A broader, unscoped `FID-01[a-z]+` regex over the whole REQUIREMENTS.md also matches the pre-existing narrative mentions "`FID-01a`, `FID-01b`, …" inside FID-01's own description and the Coverage/Phase-mapping notes — those are template prose, not appended requirement entries, and are excluded by scoping the check to actual `- [ ] **FID-01<letter>**` checkbox lines.) |
+| 5 | **D-07 freshness** — re-run `pytest tests/test_corpus_gate.py::TestCorpusRenderGate -m slow` and confirm the reported PDF size / empty `unknown_visit` catalogue still match this catalogue's provenance header | **PASS (genuine, not environmentally-limited this session)** | `pytest tests/test_corpus_gate.py::TestCorpusRenderGate -m slow -q` → `1 passed in 13.67s`. A separate, identically-wired fresh build (same helpers, same corpus tree) was also produced to get a persistent `index.pdf`/`index.typ` for check #1's walk: `index.pdf` size = **15,153,646 bytes** (byte-for-byte match to the Provenance header above), `unknown_visit` catalogue = `{}` (empty, matches header). No sandbox ELF-exec limitation was hit this session (contrast the plan's documented contingency for that failure mode) — real `typst.compile()` ran end-to-end. |
+| 6 (bonus, plan Task 2 item 6) | No `.png`/`.pdf`/scratch build artifact staged for commit | **PASS** | `git status --porcelain` at Plan 17-04 finalization shows only `.planning/REQUIREMENTS.md` and this catalogue file modified (plus a pre-existing unrelated `.planning/config.json` change from before this plan started, left untouched per the executor's scope). No image/PDF paths appear. All fresh-build scratch (PDF, `.typ`, page images) lives outside the repo under the session scratchpad, never `git add`ed. |
 
 ## Rejected candidates (Plan 17-03 human confirmation, D-01a)
 
