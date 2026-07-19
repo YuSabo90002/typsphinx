@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: phase-complete
-stopped_at: Phase 17 COMPLETE — AUD-01 satisfied; FID-01a backlog appended; next milestone step is Phase 18 (needs planning)
-last_updated: "2026-07-19T12:55:00.000Z"
+stopped_at: Phase 18 context gathered
+last_updated: "2026-07-19T13:00:21.522Z"
 last_activity: 2026-07-19
-last_activity_desc: "Phase 17 COMPLETE — 17-04 appended FID-01a (F12 wide-table overflow) high-severity backlog; all 5 mechanical checks passed; AUD-01 marked complete"
+last_activity_desc: "Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates"
 progress:
   total_phases: 3
   completed_phases: 2
@@ -225,9 +225,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-19T12:42:34.068Z
-Stopped at: 17-04 COMPLETE — FID-01a backlog appended; phase 17 plans all done
-Resume file: None
+Last session: 2026-07-19T13:00:21.516Z
+Stopped at: Phase 18 context gathered
+Resume file: .planning/phases/18-fidelity-fixes-regression-gate-close/18-CONTEXT.md
 
 ## Operator Next Steps
 
