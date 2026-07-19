@@ -5,15 +5,15 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 133/151 docnames audited; resume at changes/1.7 (PDF p.596)
-last_updated: "2026-07-19T10:15:03.484Z"
+stopped_at: 17-02 COMPLETE (151/151 audited); next 17-03 human confirmation gate
+last_updated: "2026-07-19T11:28:03.701Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
   percent: 33
 ---
 
@@ -29,11 +29,20 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 ## Current Position
 
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
-Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet by design)
-Status: Executing Phase 17
-Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
+Plan: 3 of 4 (17-02 COMPLETE — 151/151 docnames audited, Task 2 classification/severity/re-sort done, SUMMARY written; next up: 17-03 human confirmation gate)
+Status: Ready to execute 17-03
+Last activity: 2026-07-19 — Plan 17-02 finished this session (final 18 docnames: changes/1.7 through changes/0.1, plus examples; Task 2 complete)
 
-**17-02 resume pointer (latest, session end):** docname 133 also COMPLETE this session:
+**17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
+systemic findings cataloged (F1–F15: 1 high, 12 medium, 2 low severity), zero out-of-scope
+signatures leaked into the active Issue Table (5 graphviz/inheritance_diagram sightings
+recorded inline for auditability, never promoted to rows), rows deterministically re-sorted
+by (docname/toctree order, then PDF page). See
+`.planning/phases/17-rendering-fidelity-audit/17-02-SUMMARY.md` for full detail. Next:
+Plan 17-03 (human confirmation gate — accept/reject + final severity sign-off on the 15
+findings), then Plan 17-04 uses the catalogue to seed Phase 18's FID-01a... fix backlog.
+
+**17-02 resume pointer (superseded — plan now complete; kept for session history):** docname 133 also COMPLETE this session:
 `changes/1.8` (clean, 8pp — deprecation-list bullets with long dotted API paths render fine).
 **SESSION STOPPED HERE per stop-discipline (context headroom). Resume at the NEXT docname:
 `changes/1.7`** (docname 137, PDF p.596). Remaining: `changes/1.6` through `changes/0.1` (~17
@@ -133,11 +142,11 @@ Reusable scratch (baselines + PDF cached, no rebuild needed) at
 (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/, findings.md, mark.py; corpus rST source at
 `~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc/`). 15 systemic/candidate findings (F1–F15).
 Also logged a mapping-table boundary note (html_themes/index vs
-templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Task 2 (out-of-scope classification
+templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Task 2 (out-of-scope
+classification + severity finalize + deterministic re-sort) is now COMPLETE and
+17-02-SUMMARY.md has been written — see the "17-02 FINAL" note above.
 
-+ severity finalize + deterministic re-sort) and 17-02-SUMMARY.md are deferred until all 151 docnames audited.
-
-Progress: [██████░░░░] 57% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
+Progress: [███████░░░] 71% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -167,6 +176,7 @@ Progress: [██████░░░░] 57% (3/3 Phase-16 plans; Phases 17–
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 17 P01 | 13min | 3 tasks | 1 files |
+| Phase 17 P02 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -184,6 +194,7 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Phase 16]: computed widths on `figure()`/`table()` must use the `block(width: ...)[...]` wrapper — both functions reject a direct `width:` kwarg; convert once at visit, consume at depart (one warning per occurrence).
 - [Phase ?]: [Phase 17-01]: Corrected the docname->page mapping to a position-ordered interleaved heading/include walk after the mandated spot-check caught a real misattribution in multi-toctree-group landing pages (index, usage/domains/index, development/html_themes/index, man/index, usage/extensions/index).
 - [Phase ?]: [Phase 17-01]: Represented the 5 non-contiguous docnames with multiple page-range fragments per row rather than an artificial single contiguous range.
+- [Phase ?]: Plan 17-02 complete: full 151/151 docname visual audit, F1-F15 finalized (1 high/12 medium/2 low), out-of-scope sweep clean, deterministic re-sort applied
 
 ### Pending Todos
 
@@ -211,10 +222,12 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 133/151 docnames audited; resume at changes/1.7 (PDF p.596)
-Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
+Last session: 2026-07-19T11:28:03.694Z
+Stopped at: 17-02 COMPLETE (151/151 audited); next 17-03 human confirmation gate
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 17 with `/gsd-plan-phase 17` (AUD-01 — rendering-fidelity audit; human-assisted visual corpus diff).
+- Plan 17-02 is complete (151/151 docnames audited, catalogue finalized). Proceed to Plan
+  17-03 — the human confirmation gate over the 15 findings (F1-F15) in
+  `.planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`.
