@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 121/151 docnames audited; resume at changes/3.5 (PDF p.553)
+stopped_at: 17-02 PARTIAL — 125/151 docnames audited; resume at changes/3.1 (PDF p.564)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,7 +33,13 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer (latest):** docnames 113–121 also COMPLETE this session: `changes/5.3`,
+**17-02 resume pointer (latest):** docnames 122–125 also COMPLETE this session: `changes/3.5`,
+`changes/3.4`, `changes/3.3` (clean), `changes/3.2` (F9 recurs — semantic-line-break sentences
+inside a bullet list-item body hard-break, p.563, confirming F9 is not limited to top-level prose
+paragraphs). **Resume at the NEXT docname: `changes/3.1`** (docname 129, PDF p.564). Remaining:
+`changes/3.0` through `changes/0.1` (~25 more changelog docnames, pp.568–674), then `examples`
+(675–684, last).
+Prior pointer (docnames 113–121): `changes/5.3`,
 `changes/5.2`, `changes/5.1` (clean), `changes/5.0` (F1 recurs again — same jQuery-removal
 multi-paragraph bullet, p.539), `changes/4.5`, `changes/4.4`, `changes/4.3`, `changes/4.2`,
 `changes/4.1`, `changes/4.0` (all clean). **Resume at the NEXT docname: `changes/3.5`** (docname
@@ -185,7 +191,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 121/151 docnames audited; resume at changes/3.5 (PDF p.553)
+Stopped at: 17-02 PARTIAL — 125/151 docnames audited; resume at changes/3.1 (PDF p.564)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
