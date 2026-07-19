@@ -4,9 +4,9 @@ milestone: v0.6.1
 milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
-status: phase-complete
+status: executing
 stopped_at: Phase 18 context gathered
-last_updated: "2026-07-19T13:00:21.522Z"
+last_updated: "2026-07-19T13:43:47.955Z"
 last_activity: 2026-07-19
 last_activity_desc: "Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates"
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 Phase: 17 (rendering-fidelity-audit) — ✅ COMPLETE (all 4 plans; AUD-01 satisfied)
 Plan: 4 of 4 done (17-01 infra, 17-02 visual audit 151/151, 17-03 human gate passed, 17-04 FID-01a backlog + 5 checks)
-Status: Phase 17 complete — next milestone step is **Phase 18** (Fidelity Fixes + Regression-Gate Close), which needs planning (`/gsd-plan-phase 18`)
+Status: Ready to execute
 Last activity: 2026-07-19 — Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates
 
 **17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
