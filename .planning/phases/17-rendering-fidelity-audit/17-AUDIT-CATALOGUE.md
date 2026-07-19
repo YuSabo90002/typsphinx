@@ -83,6 +83,7 @@ check).
 | 4 | `usage/domains/c` (watch other domains) | `desc` / `desc_content` field labels (object-description metadata) | The rendered `c:function` object description shows leading "No-contents-entry:No-index-entry:Parameters:" before the parameter list; HTML/text authoritative render shows only "Parameters:" (+ Returns / Return values). "No-contents-entry"/"No-index-entry" appear to be internal flags (`nocontentsentry`/`noindexentry`) leaking as visible field labels, and the field labels run together with no separation. | medium | 72 | ≥1 (verify recurrence in other object descriptions) | any `c:function` with default options renders leading "No-contents-entry:No-index-entry:" before "Parameters:" | yes |
 | 5 | `usage/domains/standard` (systemic — object-description field lists) | `field_list` / `field` inside `desc_content` (confval `:type:`/`:default:`) | A confval's `:type:`/`:default:` fields render (text baseline) as a definition list ("Type:" then value indented; "Default:" then value). PDF renders them inline with no separation and no space after the colon: "the_answer Type:int (a number)Default:42" ("Type:int" no space; "number)Default:42" fields merged). Field-list structure lost + boundary merge. (Same class also seen in the `c:alias` `:options:` field "Options:maxdepth: int".) | medium | 70, 74 | systemic to object-description field lists | `.. confval:: the_answer`⏎`   :type: ``int`` (a *number*)`⏎`   :default: **42**` → "the_answer Type:int (a number)Default:42" | no |
 | 6 | `usage/domains/cpp` (watch other long inline-literal runs) | `literal` (long run of inline `:role:` literals on one line) | The C++ cross-reference role list ":cpp:any: :cpp:class: … :cpp:enum: :cpp:enumerator: …" is a long line of inline literals. HTML wraps it; PDF overflows the right text margin and is clipped mid-token ("…:cpp:enum: :cpp:er" then cut off), so trailing roles are not visible = content loss. | medium | 85 | ≥1; likely wherever long inline-literal runs occur | a paragraph of many space-separated inline literals longer than one line, e.g. `` :cpp:any: `` `` :cpp:class: `` … | yes |
+| 7 | `usage/domains/python`, `usage/domains/cpp`, `usage/domains/c`, `usage/domains/restructuredtext` (systemic) | `desc_signature` (multiple sibling signatures / overloads / options in one directive) | When one object directive declares multiple signatures (overloads, `c/cpp:alias` with several entries, `py:function` with several forms, or `rst:directive` with option children), HTML stacks them on separate lines. PDF concatenates them on one line with no break: "compile(source)compile(source, filename)compile(source, filename, symbol)"; "intavoidf(doubled)constvoidf(doubled)voidf(inti)voidf()"; "toctree:::caption: caption of ToC:glob:options:type: …". Signatures/options run together. | medium | 74, 81, 86, 97, 102 | systemic — wherever a directive has multiple signature/option lines | `.. py:function:: compile(source)`⏎`                 compile(source, filename)` → "compile(source)compile(source, filename)" | no |
 
 ## Docname → Page-Range Mapping
 
@@ -337,10 +338,10 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/domains/standard` | ⚠️ AUDITED — 1 issue(s) (F5) |
 | `usage/domains/c` | ⚠️ AUDITED — 2 issue(s) (F3, F4) |
 | `usage/domains/cpp` | ⚠️ AUDITED — 2 issue(s) (F3, F6) |
-| `usage/domains/javascript` | 🔲 NOT YET AUDITED |
-| `usage/domains/mathematics` | 🔲 NOT YET AUDITED |
-| `usage/domains/python` | 🔲 NOT YET AUDITED |
-| `usage/domains/restructuredtext` | 🔲 NOT YET AUDITED |
+| `usage/domains/javascript` | ⚠️ AUDITED — 2 issue(s) (F2, F3) |
+| `usage/domains/mathematics` | ✅ AUDITED — no issues |
+| `usage/domains/python` | ⚠️ AUDITED — 3 issue(s) (F2, F3, F7) |
+| `usage/domains/restructuredtext` | ⚠️ AUDITED — 2 issue(s) (F5, F7) |
 | `usage/theming` | 🔲 NOT YET AUDITED |
 | `usage/advanced/intl` | 🔲 NOT YET AUDITED |
 | `usage/advanced/websupport/index` | 🔲 NOT YET AUDITED |
