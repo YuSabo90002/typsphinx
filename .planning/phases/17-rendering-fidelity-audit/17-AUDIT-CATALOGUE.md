@@ -77,7 +77,8 @@ check).
 
 | # | Docname | Node Kind | Source-vs-Output Description | Severity | PDF Page | Occurrence Count | Minimal Repro (snippet or source-line pointer) | Uncertain? |
 |---|---------|-----------|-------------------------------|----------|----------|-------------------|--------------------------------------------------|------------|
-| _(none yet)_ | | | | | | | | |
+| 1 | `usage/referencing`, `usage/builders/index` (systemic — translator-level, corpus-wide) | `paragraph` (consecutive paragraphs inside a `list_item`) | Two or more blank-line-separated paragraphs within a single bullet/list item are concatenated with **no separator and no space**; HTML (D-04) renders each as its own `<p>` (vertical separation). The last word of paragraph 1 collides with the first word of paragraph 2, e.g. "…the role." + "For example…" → "role.**F**or example"; also "generated.This", "option.Custom", "files.Automatic". Paragraph structure inside the item is lost. Root cause confirmed in `typsphinx/translator.py`: `visit_paragraph`/`depart_paragraph` early-return when `self.in_list_item` is `True`, emitting neither a `par()` wrap nor any inter-paragraph separator (lines ~678–704). | medium | 50, 51, 54 (first observed; systemic) | systemic — ≥5 observed pp.50–54; recurs at every multi-paragraph list item corpus-wide | Bullet item with two paragraphs: `- keeps the visual output of the role.`⏎⏎`  For example, writing …` → renders "role.For example" | no |
+| 2 | `usage/builders/index` (systemic — every Python-domain class/exception signature corpus-wide) | `desc_annotation` (Python-domain `class `/`exception ` keyword prefix) | The leading keyword annotation "class " / "exception " on a `py:class`/`py:exception`/`autoclass` signature loses its **trailing space**, merging with the qualified name: PDF shows "classsphinx.builders.html.StandaloneHTMLBuilder" vs. the authoritative "class sphinx.builders.html.StandaloneHTMLBuilder" (`-b text` baseline line 64). The "class"/"exception" keyword annotation is no longer a distinct token. | medium | 55–67 (first observed; systemic) | systemic — ~20 observed pp.55–67; recurs at every `py:class`/`py:exception`/`autoclass` signature corpus-wide | `.. py:class:: sphinx.builders.html.StandaloneHTMLBuilder` → renders "classsphinx.builders.html.StandaloneHTMLBuilder" | no |
 
 ## Docname → Page-Range Mapping
 
@@ -324,10 +325,10 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `tutorial/automatic-doc-generation` | ✅ AUDITED — no issues |
 | `tutorial/deploying` | ✅ AUDITED — no issues |
 | `tutorial/end` | ✅ AUDITED — no issues |
-| `usage/index` | 🔲 NOT YET AUDITED |
-| `usage/markdown` | 🔲 NOT YET AUDITED |
-| `usage/referencing` | 🔲 NOT YET AUDITED |
-| `usage/builders/index` | 🔲 NOT YET AUDITED |
+| `usage/index` | ✅ AUDITED — no issues |
+| `usage/markdown` | ✅ AUDITED — no issues |
+| `usage/referencing` | ⚠️ AUDITED — 1 issue(s) (F1) |
+| `usage/builders/index` | ⚠️ AUDITED — 2 issue(s) (F1, F2) |
 | `usage/domains/index` | 🔲 NOT YET AUDITED |
 | `usage/domains/standard` | 🔲 NOT YET AUDITED |
 | `usage/domains/c` | 🔲 NOT YET AUDITED |
