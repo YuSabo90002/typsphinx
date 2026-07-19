@@ -105,6 +105,42 @@ check).
 | 14 | `usage/configuration` (systemic — two related sub-patterns, both `definition_list` `term`+`definition`) | `definition_list` (`term` immediately followed by `definition`, or by a nested list's first `term`) | Two related divergences, both losing the line break between a bold definition-list **term** and whatever follows it, unlike the HTML/text authority which always places the term on its own line: **(a)** when an entire `definition_list` is nested inside a bullet `list_item`, EVERY term in that list merges onto the same line as the first line of its own definition — e.g. `'paragraphindent'` **Number of spaces to indent the first line of each paragraph,** (authority: term alone on one line, definition indented below); same for `'exampleindent'`, `'preamble'`, `'copying'` in the same nested list (texinfo_elements confval, "Keys that you may want to override include:" bullet). **(b)** when a `definition_list` term's own definition body begins with a NESTED list (another `definition_list` or a `field_list`), the OUTER term merges onto the same line as the nested list's FIRST term only (its own subsequent siblings separate correctly) — e.g. `Options for 'mecab':`**dic_enc:** (authority: `Options for 'mecab':` on its own line, then the nested field list's `dic_enc:` on the next). Contrast: definition lists NOT nested inside a bullet list_item, whose definition body is a plain paragraph (e.g. `'sphinx.search.ja.DefaultSplitter'`), render correctly with the term on its own line. Text content is preserved but the term/definition (and term/nested-term) boundary is visually lost. | medium | 343, 364, 365 | ≥2 confvals on this docname (`html_search_options`, `texinfo_elements`); likely recurs wherever a definition list is nested inside a bullet list_item, or a term's definition opens with a nested list, corpus-wide | `- Keys...:`⏎⏎ &nbsp;&nbsp;``'paragraphindent'``⏎&nbsp;&nbsp;&nbsp;&nbsp;Number of spaces to indent the first line... → renders "'paragraphindent'  Number of spaces to indent the first line..." on one line | accepted |
 | 15 | `usage/extensions/coverage` (watch other confval-only pages) | `desc` (`confval` directive with NO body/description content) | When two or more `confval` directives with only `:type:`/`:default:` fields (no descriptive body paragraph) appear back-to-back, they concatenate into a single unbroken line with no visual separation at all between the confval names themselves: `coverage_c_path Type:Sequence[str]Default:()coverage_c_regexes Type:dict[str, str]Default:{}coverage_ignore_c_items Type:dict[str, Sequence[str]]Default:{}coverage_write_headline Type:bool Default:True` — four DISTINCT confvals merge into one blob. The HTML authority renders each as its own `<dl class="std confval">` block, visually separated even with an empty body. Related to F5 (Type/Default concat within one confval) and F7 (multi-name single confval) but distinct: here it's MULTIPLE SEPARATE desc/confval nodes with no body content losing their inter-block separation entirely. | medium | 408 | 1 confirmed occurrence (4 confvals merged); likely recurs wherever 2+ body-less confvals appear consecutively, corpus-wide | `.. confval:: coverage_c_path`⏎`   :type: ...`⏎`   :default: ...`⏎⏎`.. confval:: coverage_c_regexes`⏎... (coverage.rst L88-102, no body text on any of the 4) → all 4 headers run together on one line | accepted |
 
+## Root-cause groups (D-10)
+
+Plan 17-04 backlog-generation grouping, run against the human-confirmed, severity-final active
+Issue Table above. Grouping key = (node kind, failure mode) — the same root cause recurring
+across N docnames/occurrences is ONE group, never one group per occurrence (D-10; RESEARCH
+Pitfall 6).
+
+**High-severity groups (→ FID-01x, D-11):**
+
+| Order | FID-01 ID | Finding | Root cause (node kind + failure mode) | Occurrences (docname, pp.) |
+|---|---|---|---|---|
+| 1 | FID-01a | F12 | `table`/`tgroup` — wide multi-column table whose cell content collides between columns AND whose rightmost column clips off the right page margin, when the table's total width exceeds the text block | `extdev/deprecated` pp.239,240,241 (systemic — recurs for any table too wide for the text block, corpus-wide) |
+
+Severity tally confirmed from the active table above: **1 high (F12)**, 2 low (F8, F10), 11
+medium (F1, F2, F3, F5, F6, F7, F9, F11, F13, F14, F15) = 14 accepted rows. Exactly one
+high-severity root-cause group exists, so exactly one `FID-01x` is assigned: `FID-01a`.
+Deterministic order (ordering edge, so re-runs/appends reproduce the same lettering): catalogue's
+active Issue Table row order (ascending row #, itself docname/toctree-then-PDF-page ascending per
+Plan 17-02 Task 2's deterministic re-sort) — F12 is the sole high row, so `FID-01a` is the only ID
+this pass assigns; a future audit pass adding a second high root cause would append `FID-01b` next
+in that same row-order sequence, never renumbering `FID-01a`.
+
+**Root-cause kinship note (Phase 18 awareness, non-binding):** F6 (medium — a long run of inline
+`literal` roles overflows and clips at the right text margin, `usage/domains/cpp` p.85) is a
+RELATED overflow family — both F12 and F6 are right-edge/margin-overflow symptoms — but F6 is a
+DIFFERENT node kind (`literal` inline run vs. `table`/`tgroup`) and stays medium per the D-08
+rubric (content is clipped/unreadable in both, but F6's blast radius is one inline run, not a
+whole multi-column data table). F6 therefore does NOT enter FID-01a or any FID-01x; it remains
+recorded only via the medium/low pointer below. Flagging the kinship here purely so Phase 18's
+planner can consider whether a shared "avoid right-margin overflow" primitive serves both F12's
+fix and a later F6 fix, without conflating them into one requirement.
+
+**Medium/low severity (13 rows: F1, F2, F3, F5, F6, F7, F8, F9, F10, F11, F13, F14, F15):** stay
+fully recorded in this catalogue only, referenced by the single Future Requirements pointer added
+to `REQUIREMENTS.md` (D-11) — never enumerated as individual `FID-01x` requirements.
+
 ## Rejected candidates (Plan 17-03 human confirmation, D-01a)
 
 The operator ruled accept/reject + final severity on every candidate at the 17-03 gate. One
