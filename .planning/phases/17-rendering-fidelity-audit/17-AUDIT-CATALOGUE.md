@@ -461,16 +461,16 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/6.2` | ✅ AUDITED — no issues [code-block example (HTML) renders fine] |
 | `changes/6.1` | ✅ AUDITED — no issues [nested sub-bullets render correctly] |
 | `changes/6.0` | ⚠️ AUDITED — 1 issue(s) (F1) [multi-paragraph bullet items concat — "frameworks.These", "below.The first option", "extension.The second option" — jQuery-removal changelog entry; code-block (Jinja/HTML) renders fine] |
-| `changes/5.3` | 🔲 NOT YET AUDITED |
-| `changes/5.2` | 🔲 NOT YET AUDITED |
-| `changes/5.1` | 🔲 NOT YET AUDITED |
-| `changes/5.0` | 🔲 NOT YET AUDITED |
-| `changes/4.5` | 🔲 NOT YET AUDITED |
-| `changes/4.4` | 🔲 NOT YET AUDITED |
-| `changes/4.3` | 🔲 NOT YET AUDITED |
-| `changes/4.2` | 🔲 NOT YET AUDITED |
-| `changes/4.1` | 🔲 NOT YET AUDITED |
-| `changes/4.0` | 🔲 NOT YET AUDITED |
+| `changes/5.3` | ✅ AUDITED — no issues |
+| `changes/5.2` | ✅ AUDITED — no issues |
+| `changes/5.1` | ✅ AUDITED — no issues |
+| `changes/5.0` | ⚠️ AUDITED — 1 issue(s) (F1) [same jQuery-removal multi-paragraph bullet item as changes/6.0, "below.To re-add jQuery" concat, p.539; rubric-style version labels ("5.0.0 b1"/"5.0.0 final") render on own line correctly] |
+| `changes/4.5` | ✅ AUDITED — no issues |
+| `changes/4.4` | ✅ AUDITED — no issues |
+| `changes/4.3` | ✅ AUDITED — no issues |
+| `changes/4.2` | ✅ AUDITED — no issues |
+| `changes/4.1` | ✅ AUDITED — no issues [nested sub-sub-bullets render correctly] |
+| `changes/4.0` | ✅ AUDITED — no issues [rubric-style version labels ("4.0.0b1"/"4.0.0b2") render on own line correctly] |
 | `changes/3.5` | 🔲 NOT YET AUDITED |
 | `changes/3.4` | 🔲 NOT YET AUDITED |
 | `changes/3.3` | 🔲 NOT YET AUDITED |
