@@ -5,16 +5,16 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-03 COMPLETE — human confirmation gate passed (14 accepted, 1 rejected [F4]; spot-check 0/6 miss); next 17-04 (append FID-01a backlog)
-last_updated: "2026-07-19T12:35:00.000Z"
+stopped_at: 17-04 COMPLETE — FID-01a backlog appended; phase 17 plans all done
+last_updated: "2026-07-19T12:42:34.074Z"
 last_activity: 2026-07-19
-last_activity_desc: 17-03 human confirmation gate PASSED (D-01a) — catalogue human-confirmed & severity-final (14 accepted, F4 rejected, clean-set spot-check 0 miss)
+last_activity_desc: "Plan 17-02 finished this session (final 18 docnames: changes/1.7 through changes/0.1, plus examples; Task 2 complete)"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 33
+  completed_plans: 7
+  percent: 67
 ---
 
 # Project State
@@ -146,7 +146,7 @@ templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Tas
 classification + severity finalize + deterministic re-sort) is now COMPLETE and
 17-02-SUMMARY.md has been written — see the "17-02 FINAL" note above.
 
-Progress: [███████░░░] 71% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
+Progress: [██████████] 100% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -177,6 +177,7 @@ Progress: [███████░░░] 71% (3/3 Phase-16 plans; Phases 17–
 |------|----------|-------|-------|
 | Phase 17 P01 | 13min | 3 tasks | 1 files |
 | Phase 17 P02 | 25min | 2 tasks | 2 files |
+| Phase 17 P04 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -195,6 +196,8 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Phase ?]: [Phase 17-01]: Corrected the docname->page mapping to a position-ordered interleaved heading/include walk after the mandated spot-check caught a real misattribution in multi-toctree-group landing pages (index, usage/domains/index, development/html_themes/index, man/index, usage/extensions/index).
 - [Phase ?]: [Phase 17-01]: Represented the 5 non-contiguous docnames with multiple page-range fragments per row rather than an artificial single contiguous range.
 - [Phase ?]: Plan 17-02 complete: full 151/151 docname visual audit, F1-F15 finalized (1 high/12 medium/2 low), out-of-scope sweep clean, deterministic re-sort applied
+- [Phase ?]: [Phase 17-04]: F12 is the sole high-severity root cause; grouped as FID-01a per D-10, with F6 noted as a related-but-distinct medium overflow kinship (not promoted).
+- [Phase ?]: [Phase 17-04]: All five mechanical consistency checks (SC#1-4, D-07) passed genuinely against a fresh corpus rebuild; no environmental limitation hit this session.
 
 ### Pending Todos
 
@@ -222,8 +225,8 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-19T11:28:03.694Z
-Stopped at: 17-02 COMPLETE (151/151 audited); next 17-03 human confirmation gate
+Last session: 2026-07-19T12:42:34.068Z
+Stopped at: 17-04 COMPLETE — FID-01a backlog appended; phase 17 plans all done
 Resume file: None
 
 ## Operator Next Steps
