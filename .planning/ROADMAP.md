@@ -154,11 +154,24 @@ already scheduled for fixing)
   3. Genuine in-scope silent mis-renders are distinguished from already-known out-of-scope degradations (graphviz/inheritance placeholders, non-included-doc xrefs, Sphinx-side autodoc/`py:meth` warnings), so the FID-01 backlog targets only fidelity bugs typsphinx owns.
   4. Every issue rated "high" (content lost, unreadable, or grossly mis-structured) is enumerated as the FID-01 fix backlog and appended to `REQUIREMENTS.md` as `FID-01a`, `FID-01b`, … for Phase 18 to consume.
 
-**Plans**: TBD (~1; human-assisted discovery)
+**Plans**: 4 plans (human-assisted discovery; fully serial — each touches the catalogue, and the human gate splits Wave 3)
 
 Plans:
+**Wave 1**
 
-- [ ] 17-01: Compile corpus, visual source-vs-output diff, write the severity-rated catalogue + append FID-01a… to REQUIREMENTS.md
+- [ ] 17-01-PLAN.md — Build the three corpus baselines (typstpdf/html/text) from the pinned corpus, derive the docname→page-range mapping, write the `17-AUDIT-CATALOGUE.md` skeleton (fresh provenance + D-09 issue schema + per-docname progress tracker)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 17-02-PLAN.md — Claude's first pass: per-docname rasterize + read pages, cross-check the `-b html` authority, record candidate issues (bias false-positive, "uncertain" flags), classify against the Out-of-Scope table
+
+**Wave 3** *(blocked on Wave 2 — human gate, autonomous: false)*
+
+- [ ] 17-03-PLAN.md — Central human gate (D-01a): human confirms ALL candidates + spot-checks the clean set; record accept/reject + final severity + miss-rate
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 17-04-PLAN.md — Group high-severity rows by root cause, append `FID-01a`… to REQUIREMENTS.md (high only), add the medium/low Future-Requirements pointer, run the five mechanical consistency checks
 
 ### Phase 18: Fidelity Fixes + Regression-Gate Close
 
@@ -207,7 +220,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
-| 17. Rendering-Fidelity Audit | v0.6.1 | 0/TBD | Not started | - |
+| 17. Rendering-Fidelity Audit | v0.6.1 | 0/4 | Not started | - |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 0/TBD | Not started | - |
 
 ---
