@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 88 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 89 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F15 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -435,7 +435,7 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/extensions/ifconfig` | ✅ AUDITED — no issues |
 | `usage/extensions/imgconverter` | ✅ AUDITED — no issues |
 | `usage/extensions/inheritance` | ✅ AUDITED — no issues [SC#3 confirmed: "[inheritance diagram diagram omitted]" placeholder appears exactly as expected at every `.. inheritance-diagram::` invocation, pp.425+; out-of-scope, not an issue-table candidate] |
-| `usage/extensions/intersphinx` | 🔲 NOT YET AUDITED |
+| `usage/extensions/intersphinx` | ⚠️ AUDITED — 2 issue(s) (F5, F7) |
 | `usage/extensions/linkcode` | 🔲 NOT YET AUDITED |
 | `usage/extensions/math` | 🔲 NOT YET AUDITED |
 | `usage/extensions/napoleon` | 🔲 NOT YET AUDITED |

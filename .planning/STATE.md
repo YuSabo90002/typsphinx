@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 88/151 docnames audited; resume at usage/extensions/intersphinx (PDF p.426)
+stopped_at: 17-02 PARTIAL — 89/151 docnames audited; resume at usage/extensions/linkcode (PDF p.431)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -42,13 +42,13 @@ Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 LITERAL rst syntax, never an actual invocation, so the `dot` degrade placeholder never appears here),
 `usage/extensions/ifconfig` (clean), `usage/extensions/imgconverter` (clean), `usage/extensions/inheritance`
 (clean — SC#3 CONFIRMED: "[inheritance diagram diagram omitted]" placeholder appears at every
-`.. inheritance-diagram::` invocation as expected, out-of-scope). **Resume at the NEXT docname:
-`usage/extensions/intersphinx`** (docname 89, PDF pp.426–430). Remaining `usage/extensions/*` family
-after that: linkcode(431), math(432-436), napoleon(437-447), todo(448), viewcode(448-449), then
-`usage/extensions/index`'s 2nd fragment (p.450, already effectively covered — just confirm nothing
+`.. inheritance-diagram::` invocation as expected, out-of-scope), `usage/extensions/intersphinx` (F5,F7).
+**Resume at the NEXT docname: `usage/extensions/linkcode`** (docname 90, PDF p.431). Remaining
+`usage/extensions/*` family after that: math(432-436), napoleon(437-447), todo(448), viewcode(448-449),
+then `usage/extensions/index`'s 2nd fragment (p.450, already effectively covered — just confirm nothing
 new). After that: `usage/restructuredtext/*` (451–497), `glossary` (498), `changes/*` (499–684,
 ~48 docnames), `examples` (675–684, last). Rasterize a fresh batch via `raster.sh` starting at
-p.426 — no mid-docname carryover.
+p.431 — no mid-docname carryover.
 **F15 new** (this session) = consecutive `confval` directives with NO body/description text (only
 `:type:`/`:default:` fields) lose ALL inter-block separation and concatenate into one unbroken line
 — e.g. 4 distinct confvals (`coverage_c_path`, `coverage_c_regexes`, `coverage_ignore_c_items`,
@@ -157,7 +157,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 88/151 docnames audited; resume at usage/extensions/intersphinx (PDF p.426)
+Stopped at: 17-02 PARTIAL — 89/151 docnames audited; resume at usage/extensions/linkcode (PDF p.431)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
