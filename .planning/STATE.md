@@ -5,10 +5,10 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-07-19T03:21:42.747Z"
+stopped_at: 17-02 PARTIAL — 35/151 docnames audited; resume from development/tutorials/adding_domain
+last_updated: "2026-07-19T04:00:01.723Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 17 execution started
+last_activity_desc: 17-02 visual audit in progress (multi-session) — 35/151 docnames, findings F1–F8
 progress:
   total_phases: 3
   completed_phases: 1
@@ -29,9 +29,17 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 ## Current Position
 
 Phase: 17 (rendering-fidelity-audit) — EXECUTING
-Plan: 2 of 4
-Status: Ready to execute
-Last activity: 2026-07-19 — Phase 17 execution started
+Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet by design)
+Status: Executing Phase 17 — 17-02 partial pass
+Last activity: 2026-07-19 — 17-02 visual audit: 35/151 docnames audited (findings F1–F8)
+
+**17-02 resume pointer:** Resume the visual pass from the first "🔲 NOT YET AUDITED" entry in
+`17-AUDIT-CATALOGUE.md`'s progress tracker = `development/tutorials/adding_domain` (PDF pp.141–151).
+Reusable scratch (baselines + PDF cached, no rebuild needed) at
+`/tmp/nix-shell.xfyTmL/.../scratchpad/17-audit/` (index.pdf 15,153,646 B, corpus_html_build/, corpus_text_build/,
+findings.md, raster.sh, mark.py). 8 systemic/candidate findings recorded (F1–F8); Task 2 (out-of-scope
+classification + severity finalize + deterministic re-sort) and 17-02-SUMMARY.md are deferred until all
+151 docnames are audited.
 
 Progress: [██████░░░░] 57% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
@@ -108,8 +116,8 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: Completed 17-01-PLAN.md
-Resume file: None
+Stopped at: 17-02 PARTIAL — 35/151 docnames audited; resume from development/tutorials/adding_domain
+Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
 
