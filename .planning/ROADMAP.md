@@ -100,7 +100,7 @@ untouched. Every target maps to native Typst 0.15 or already-bundled packages. F
 planning if a phase is found to need otherwise.
 
 - [x] **Phase 16: Silent-Drop Node Handlers + Length-Converter Refactor** - Render `todo_node` and `manpage`, generalize the CSS-length → Typst-length helper (completed 2026-07-16)
-- [ ] **Phase 17: Rendering-Fidelity Audit** - Human-assisted visual diff of the corpus PDF vs. source → a severity-rated catalogue of silent mis-render issues (discovery)
+- [x] **Phase 17: Rendering-Fidelity Audit** - Human-assisted visual diff of the corpus PDF vs. source → a severity-rated catalogue of silent mis-render issues (discovery) (completed 2026-07-19)
 - [ ] **Phase 18: Fidelity Fixes + Regression-Gate Close** - Fix every high-severity AUD-01 issue with real-compile fixtures, then close on the full-corpus regression gate
 
 ## Phase Details
@@ -171,7 +171,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 17-04-PLAN.md — Group high-severity rows by root cause, append `FID-01a`… to REQUIREMENTS.md (high only), add the medium/low Future-Requirements pointer, run the five mechanical consistency checks
+- [x] 17-04-PLAN.md — Group high-severity rows by root cause, append `FID-01a`… to REQUIREMENTS.md (high only), add the medium/low Future-Requirements pointer, run the five mechanical consistency checks
 
 ### Phase 18: Fidelity Fixes + Regression-Gate Close
 

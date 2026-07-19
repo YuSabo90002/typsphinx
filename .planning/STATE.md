@@ -4,11 +4,11 @@ milestone: v0.6.1
 milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
-status: executing
-stopped_at: 17-04 COMPLETE — FID-01a backlog appended; phase 17 plans all done
-last_updated: "2026-07-19T12:42:34.074Z"
+status: phase-complete
+stopped_at: Phase 17 COMPLETE — AUD-01 satisfied; FID-01a backlog appended; next milestone step is Phase 18 (needs planning)
+last_updated: "2026-07-19T12:55:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: "Plan 17-02 finished this session (final 18 docnames: changes/1.7 through changes/0.1, plus examples; Task 2 complete)"
+last_activity_desc: "Phase 17 COMPLETE — 17-04 appended FID-01a (F12 wide-table overflow) high-severity backlog; all 5 mechanical checks passed; AUD-01 marked complete"
 progress:
   total_phases: 3
   completed_phases: 2
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 ## Current Position
 
-Phase: 17 (rendering-fidelity-audit) — EXECUTING
-Plan: 4 of 4 (17-03 COMPLETE — human confirmation gate passed: 14 accepted, F4 rejected, clean-set spot-check 0/6 miss; next up: 17-04 backlog append)
-Status: Ready to execute 17-04 (final plan — group high-severity rows, append FID-01a… to REQUIREMENTS)
-Last activity: 2026-07-19 — Plan 17-02 finished this session (final 18 docnames: changes/1.7 through changes/0.1, plus examples; Task 2 complete)
+Phase: 17 (rendering-fidelity-audit) — ✅ COMPLETE (all 4 plans; AUD-01 satisfied)
+Plan: 4 of 4 done (17-01 infra, 17-02 visual audit 151/151, 17-03 human gate passed, 17-04 FID-01a backlog + 5 checks)
+Status: Phase 17 complete — next milestone step is **Phase 18** (Fidelity Fixes + Regression-Gate Close), which needs planning (`/gsd-plan-phase 18`)
+Last activity: 2026-07-19 — Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates
 
 **17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
 systemic findings cataloged (F1–F15: 1 high, 12 medium, 2 low severity), zero out-of-scope
