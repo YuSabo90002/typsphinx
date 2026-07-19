@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.1
 milestone_name: rendering fidelity
 current_phase: 17
-current_phase_name: Rendering-Fidelity Audit
+current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: Phase 17 context gathered
-last_updated: "2026-07-19T02:40:43.700Z"
-last_activity: 2026-07-16
-last_activity_desc: Phase 16 complete, transitioned to Phase 17
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-07-19T03:21:42.747Z"
+last_activity: 2026-07-19
+last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 7
+  completed_plans: 4
   percent: 33
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 17 — Rendering-Fidelity Audit (discovery)
+**Current focus:** Phase 17 — rendering-fidelity-audit
 
 ## Current Position
 
-Phase: 17 — Rendering-Fidelity Audit
-Plan: Not started
+Phase: 17 (rendering-fidelity-audit) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-16 — Phase 16 complete, transitioned to Phase 17
+Last activity: 2026-07-19 — Phase 17 execution started
 
-Progress: [███░░░░░░░] 33% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
+Progress: [██████░░░░] 57% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -58,6 +58,11 @@ Progress: [███░░░░░░░] 33% (3/3 Phase-16 plans; Phases 17–
 - Average duration: ~6min/plan (Phase 16)
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 17 P01 | 13min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -73,6 +78,8 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Phase 16]: `visit_todo_node` gated on `config.todo_include_todos` via `raise nodes.SkipNode`, mirroring every official Sphinx builder — draft notes never leak into published PDFs.
 - [Phase 16]: `visit_manpage`/`depart_manpage` = 100% delegation to `visit_emphasis`/`depart_emphasis` (duck-typed, no bespoke state machine); no linkification with `manpages_url` unset.
 - [Phase 16]: computed widths on `figure()`/`table()` must use the `block(width: ...)[...]` wrapper — both functions reject a direct `width:` kwarg; convert once at visit, consume at depart (one warning per occurrence).
+- [Phase ?]: [Phase 17-01]: Corrected the docname->page mapping to a position-ordered interleaved heading/include walk after the mandated spot-check caught a real misattribution in multi-toctree-group landing pages (index, usage/domains/index, development/html_themes/index, man/index, usage/extensions/index).
+- [Phase ?]: [Phase 17-01]: Represented the 5 non-contiguous docnames with multiple page-range fragments per row rather than an artificial single contiguous range.
 
 ### Pending Todos
 
@@ -100,9 +107,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-16T13:56:26.519Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-rendering-fidelity-audit/17-CONTEXT.md
+Last session: 2026-07-19T03:21:42.742Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

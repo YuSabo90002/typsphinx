@@ -154,12 +154,12 @@ already scheduled for fixing)
   3. Genuine in-scope silent mis-renders are distinguished from already-known out-of-scope degradations (graphviz/inheritance placeholders, non-included-doc xrefs, Sphinx-side autodoc/`py:meth` warnings), so the FID-01 backlog targets only fidelity bugs typsphinx owns.
   4. Every issue rated "high" (content lost, unreadable, or grossly mis-structured) is enumerated as the FID-01 fix backlog and appended to `REQUIREMENTS.md` as `FID-01a`, `FID-01b`, … for Phase 18 to consume.
 
-**Plans**: 4 plans (human-assisted discovery; fully serial — each touches the catalogue, and the human gate splits Wave 3)
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 17-01-PLAN.md — Build the three corpus baselines (typstpdf/html/text) from the pinned corpus, derive the docname→page-range mapping, write the `17-AUDIT-CATALOGUE.md` skeleton (fresh provenance + D-09 issue schema + per-docname progress tracker)
+- [x] 17-01-PLAN.md — Build the three corpus baselines (typstpdf/html/text) from the pinned corpus, derive the docname→page-range mapping, write the `17-AUDIT-CATALOGUE.md` skeleton (fresh provenance + D-09 issue schema + per-docname progress tracker)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -220,7 +220,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 14. Footnotes (doctree pre-pass) | v0.6.0 | 2/2 | Complete | 2026-07-12 |
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
-| 17. Rendering-Fidelity Audit | v0.6.1 | 0/4 | Not started | - |
+| 17. Rendering-Fidelity Audit | v0.6.1 | 1/4 | In Progress|  |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 0/TBD | Not started | - |
 
 ---
