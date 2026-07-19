@@ -618,3 +618,19 @@ already-accepted systemic F9 (soft-wrap), never a false "clean" call:
 4. Once every docname is audited, group "high"-severity rows by root cause (D-10) and append
    `FID-01a`, `FID-01b`, … to `.planning/REQUIREMENTS.md` (Plan 17-04); add a single
    medium/low pointer under Future Requirements (D-11).
+
+## Post-Phase-17 Additions (surfaced during Phase 18 UAT — backlog, next milestone)
+
+These findings were NOT part of the original F1–F15 audit set and do NOT alter the frozen
+Phase-17 tally/ordering logic above. They are recorded here as the canonical F-series home for
+backlog triage.
+
+| Finding | Node kind + failure mode | Occurrences (docname, pp.) | Severity | Origin |
+|---|---|---|---|---|
+| F16 | `table`/`tgroup` **header row** — a header cell's plain-text label (no `.`/`_` break points, so ZWSP injection does not apply) overflows a narrow fr-sized column and collides with the adjacent header label. Introduced by Phase 18's `FID-01a` fr-column change (D-02): sizing columns to HTML `colwidth` % makes numeric/short-value columns narrow, and their wider header words (`Deprecated`, `Removed`) overflow. The prior equal-width `columns: {colcount}` sizing gave each header enough width, so this is a NEW regression the fr-column fix traded in for the body-cell fix. | `extdev/deprecated` pp.239, 242, 245 — header reads `DeprecatedRemoved` (systemic: recurs for any table whose header labels are wider than their content-proportioned fr column) | medium | Phase 18 UAT (2026-07-19), user-triaged to backlog |
+
+**Fix direction (non-binding, for a future phase):** the fr-column primitive needs to protect a
+column from clipping its own header — candidate approaches: a minimum column width floor, allowing
+header text to wrap (word-break / soft-hyphen or ZWSP applied to header cells too, not only
+`raw()` literal body content), or sizing fr weights from `max(header, body)` intrinsic width
+rather than body `colwidth` alone. Kin to F12/F6's right-margin-overflow family.
