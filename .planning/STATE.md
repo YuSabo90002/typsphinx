@@ -5,7 +5,7 @@ milestone_name: rendering fidelity
 current_phase: 17
 current_phase_name: rendering-fidelity-audit
 status: executing
-stopped_at: 17-02 PARTIAL — 89/151 docnames audited; resume at usage/extensions/linkcode (PDF p.431)
+stopped_at: 17-02 PARTIAL — 100/151 docnames audited; resume at glossary (PDF p.498)
 last_updated: "2026-07-19T10:15:03.484Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 17 execution resumed (wave continue)
@@ -33,7 +33,16 @@ Plan: 2 of 4 (17-02 IN PROGRESS — multi-session visual audit, NO SUMMARY yet b
 Status: Executing Phase 17
 Last activity: 2026-07-19 — Phase 17 execution resumed (wave continue)
 
-**17-02 resume pointer:** docnames 74–84 are COMPLETE this session: `usage/configuration` (F5,F7,F9,F14),
+**17-02 resume pointer (latest):** docnames 90–100 COMPLETE this session: `usage/extensions/linkcode`,
+`math`, `napoleon`, `todo`, `viewcode` (all F5-only, clean otherwise; napoleon 11pp confirmed no new
+findings), then `usage/restructuredtext/index`, `basics`, `roles` (all clean), `directives` (29pp —
+F13 and F7 recur HEAVILY: F13 as "Options:optionname:" rubric+field concat at ~10 spots; F7 as
+directive-alias-signature concat e.g. ".. version-added:: ... .. versionadded:: ..." and multi-field
+option-list concat ":start-at: ... :start-after: ..."), `field-lists` (clean), `domains` (clean, stub
+redirect page). **Resume at the NEXT docname: `glossary`** (docname 101, PDF p.498). Then `changes/*`
+(~48 changelog docnames, pp.499–684 — expect mostly F9 recurrences per plan guidance), `examples`
+(675–684, last).
+Prior pointer (docnames 74–84) for historical reference: `usage/configuration` (F5,F7,F9,F14),
 `usage/extensions/index` (clean), `usage/extensions/apidoc` (F5,F9), `usage/extensions/autodoc`
 (F1,F5,F9,F13), `usage/extensions/autosectionlabel` (clean), `usage/extensions/autosummary` (F1,F9),
 `usage/extensions/coverage` (F5,F7,**F15 new**), `usage/extensions/doctest` (F5,F7,F9),
@@ -157,7 +166,7 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-19T03:21:42.742Z
-Stopped at: 17-02 PARTIAL — 89/151 docnames audited; resume at usage/extensions/linkcode (PDF p.431)
+Stopped at: 17-02 PARTIAL — 100/151 docnames audited; resume at glossary (PDF p.498)
 Resume file: .planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md (progress tracker = resume boundary)
 
 ## Operator Next Steps
