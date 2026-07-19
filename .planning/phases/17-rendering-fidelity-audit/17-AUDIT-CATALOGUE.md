@@ -345,14 +345,14 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `usage/domains/restructuredtext` | ⚠️ AUDITED — 2 issue(s) (F5, F7) |
 | `usage/theming` | ⚠️ AUDITED — 2 issue(s) (F1, F8) |
 | `usage/advanced/intl` | ⚠️ AUDITED — 1 issue(s) (F1) |
-| `usage/advanced/websupport/index` | 🔲 NOT YET AUDITED |
-| `usage/advanced/websupport/quickstart` | 🔲 NOT YET AUDITED |
-| `usage/advanced/websupport/api` | 🔲 NOT YET AUDITED |
-| `usage/advanced/websupport/searchadapters` | 🔲 NOT YET AUDITED |
-| `usage/advanced/websupport/storagebackends` | 🔲 NOT YET AUDITED |
-| `development/index` | 🔲 NOT YET AUDITED |
-| `development/tutorials/index` | 🔲 NOT YET AUDITED |
-| `development/tutorials/extending_syntax` | 🔲 NOT YET AUDITED |
+| `usage/advanced/websupport/index` | ✅ AUDITED — no issues |
+| `usage/advanced/websupport/quickstart` | ✅ AUDITED — no issues |
+| `usage/advanced/websupport/api` | ⚠️ AUDITED — 1 issue(s) (F2) |
+| `usage/advanced/websupport/searchadapters` | ⚠️ AUDITED — 1 issue(s) (F2) |
+| `usage/advanced/websupport/storagebackends` | ⚠️ AUDITED — 1 issue(s) (F2) |
+| `development/index` | ✅ AUDITED — no issues |
+| `development/tutorials/index` | ✅ AUDITED — no issues |
+| `development/tutorials/extending_syntax` | ⚠️ AUDITED — 1 issue(s) (F8) |
 | `development/tutorials/extending_build` | 🔲 NOT YET AUDITED |
 | `development/tutorials/adding_domain` | 🔲 NOT YET AUDITED |
 | `development/tutorials/autodoc_ext` | 🔲 NOT YET AUDITED |
