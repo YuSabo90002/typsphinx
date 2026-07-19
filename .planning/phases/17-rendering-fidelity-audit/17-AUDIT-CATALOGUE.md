@@ -1,7 +1,7 @@
 # Phase 17 Audit Catalogue: Rendering-Fidelity Issues
 
 **Requirement:** AUD-01 (17-CONTEXT.md D-01..D-11, 17-RESEARCH.md)
-**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 42 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F9 recorded below.
+**Status:** Plan 17-02 IN PROGRESS (multi-session visual pass) — 44 of 151 docnames audited so far; resume from the first "NOT YET AUDITED" entry in the progress tracker. Findings F1–F9 recorded below.
 
 This is the D-07 deliverable: a single committed Markdown catalogue of every *silent*
 rendering-fidelity issue found by visually diffing the compiled Sphinx-`doc/` corpus PDF
@@ -378,8 +378,8 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `development/howtos/builders` | ⚠️ AUDITED — 1 issue(s) (F9) |
 | `development/html_themes/index` | ⚠️ AUDITED — 2 issue(s) (F9, F1) |
 | `development/html_themes/templating` | ⚠️ AUDITED — 1 issue(s) (F9) |
-| `extdev/index` | 🔲 NOT YET AUDITED |
-| `extdev/appapi` | 🔲 NOT YET AUDITED |
+| `extdev/index` | ⚠️ AUDITED — 1 issue(s) (F9) [+ out-of-scope graphviz placeholder p.174, SC#3] |
+| `extdev/appapi` | ⚠️ AUDITED — 4 issue(s) (F2, F3, F7, F9) |
 | `extdev/event_callbacks` | 🔲 NOT YET AUDITED |
 | `extdev/projectapi` | 🔲 NOT YET AUDITED |
 | `extdev/envapi` | 🔲 NOT YET AUDITED |
