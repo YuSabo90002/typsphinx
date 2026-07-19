@@ -79,6 +79,10 @@ class TypstTranslator(SphinxTranslator):
         self.section_level = 0
         self.in_figure = False
         self.in_table = False
+        self.table_colwidths: List[Any] = (
+            []
+        )  # Per-column colwidth accumulator (FID-01a D-01); init in
+        # visit_table, consumed + reset in depart_table.
         self.in_thead = False  # Track if currently in table header
         self.in_caption = False
         self.list_stack = []  # Track list nesting: 'bullet' or 'enumerated'
@@ -1168,6 +1172,20 @@ class TypstTranslator(SphinxTranslator):
         # Get code content directly
         code_content = node.astext()
 
+        if self.in_table:
+            # Zero-width space (U+200B) at natural break points so Typst's
+            # line-breaker can wrap long unbroken dotted/underscored
+            # identifiers inside a narrow fr-column table cell -- fr
+            # columns alone do not wrap a single unbroken token (FID-01a
+            # "Critical Finding", 18-RESEARCH.md). Gated on self.in_table
+            # so prose/code-block literals stay byte-unchanged (F6 out of
+            # scope). Inserted BEFORE escape_typst_string() -- U+200B is
+            # not a character that helper treats specially.
+            zwsp = chr(0x200B)  # zero-width space
+            code_content = code_content.replace(".", "." + zwsp).replace(
+                "_", "_" + zwsp
+            )
+
         # Escape code content for string parameter via the shared helper.
         # Must escape newline/CR/tab too (not just backslash+quote): an inline
         # literal whose source wraps across lines carries an embedded newline,
@@ -2233,6 +2251,28 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
+        self.table_colwidths = []  # Per-column colwidth accumulator (D-01)
+
+    def _build_columns_fr_arg(self) -> str:
+        """
+        Build the Typst ``columns: (...)`` argument from captured colwidth
+        values (FID-01a D-01/D-02).
+
+        Falls back to equal 1fr-per-column when colwidth data is missing,
+        all zero, or its length does not match table_colcount (defensive
+        path -- not observed in any real docutils output tested during
+        research, but nodes.colspec['colwidth'] is technically Optional
+        per the docutils API).
+
+        Returns:
+            A Typst fr-weighted columns tuple string, e.g. "(1fr, 1fr)".
+        """
+        widths = self.table_colwidths
+        n = self.table_colcount
+        valid = len(widths) == n and n > 0 and all(w and w > 0 for w in widths)
+        if not valid:
+            widths = [1] * n
+        return "(" + ", ".join(f"{w}fr" for w in widths) + ")"
 
     def _format_table_cell(self, cell: dict, indent: str = "  ") -> str:
         """
@@ -2289,10 +2329,12 @@ class TypstTranslator(SphinxTranslator):
             if converted_width is not None:
                 self.body.append(
                     f"block(width: {converted_width})[#table(\n"
-                    f"  columns: {self.table_colcount},\n"
+                    f"  columns: {self._build_columns_fr_arg()},\n"
                 )
             else:
-                self.body.append(f"table(\n  columns: {self.table_colcount},\n")
+                self.body.append(
+                    f"table(\n  columns: {self._build_columns_fr_arg()},\n"
+                )
 
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
@@ -2319,6 +2361,7 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = False
         self.table_cells = []
         self.table_colcount = 0
+        self.table_colwidths = []
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
@@ -2351,7 +2394,9 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The colspec node
         """
-        # Column specifications are handled by tgroup
+        # Capture colwidth instead of discarding it (FID-01a D-01) --
+        # consumed by _build_columns_fr_arg() at depart_table.
+        self.table_colwidths.append(node.get("colwidth"))
         raise nodes.SkipNode
 
     def depart_colspec(self, node: nodes.colspec) -> None:
