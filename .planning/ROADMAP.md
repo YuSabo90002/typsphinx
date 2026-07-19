@@ -190,12 +190,12 @@ fixed count, and its plan count stays TBD until the audit completes.
   3. The re-run `unknown_visit` catalogue no longer contains `todo_node` or `manpage`, confirming Phase 16's handlers eliminated both drops on the real corpus (GATE-03).
   4. Zero new runtime dependencies and no `@preview` version bump — the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) is unchanged.
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 18-01-PLAN.md — FID-01a wide-table fix: `columns: (Nfr, …)` from colwidth (D-01/D-02) + in-table ZWSP injection in `visit_literal` (the fr-alone-insufficient other half) + new `wide_table_render_gate` collision-absence real-compile fixture + updated `table_in_list_item` assertion
+- [x] 18-01-PLAN.md — FID-01a wide-table fix: `columns: (Nfr, …)` from colwidth (D-01/D-02) + in-table ZWSP injection in `visit_literal` (the fr-alone-insufficient other half) + new `wide_table_render_gate` collision-absence real-compile fixture + updated `table_in_list_item` assertion
 
 **Wave 2** *(blocked on Wave 1 — fix must land before the corpus re-run)*
 
@@ -226,7 +226,7 @@ Active milestone (v0.6.1) phases execute in numeric order: 16 → 17 → 18
 | 15. Full-Corpus Validation | v0.6.0 | 3/3 | Complete | 2026-07-12 |
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete    | 2026-07-16 |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 1/4 | In Progress|  |
-| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 0/2 | Planned | - |
+| 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 1/2 | In Progress|  |
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13*

@@ -23,8 +23,8 @@ Nodes the v0.6.0 warning audit confirmed are still silently `unknown_visit`-drop
 The discovery core of this milestone: warnings only surface *dropped* content; *silent* mis-renders (output that compiles cleanly and emits no warning, yet diverges from the source) require a visual audit.
 
 - [x] **AUD-01**: The compiled Sphinx-`doc/` corpus PDF is visually audited against the rendered HTML / rST source, and every silent mis-render issue found is catalogued with location (docname + node kind), a source-vs-output description, and a severity rating.
-- [ ] **FID-01**: Every AUD-01 issue at severity "high" (content lost, unreadable, or grossly mis-structured) is fixed, each fix proven by a real `typst.compile()` regression fixture (GATE-01 pattern). The concrete per-issue list is enumerated by AUD-01 and appended here as `FID-01a`, `FID-01b`, … once the audit completes.
-  - [ ] **FID-01a**: `table`/`tgroup` wide-table rendering — a multi-column table whose cell content exceeds the text-block width renders with inter-column glyph collision (long cell text bleeds into the adjacent column, e.g. `sphinx.environment.BuildEnvironment` + `anpp` merging) AND the rightmost column clips off the right page margin (e.g. `…format_exception_cut_f` cut off mid-word). Occurrences: `extdev/deprecated` pp.239,240,241 (systemic — recurs for any table too wide for the text block, corpus-wide). Minimal repro / Phase 18 fixture input: the multi-page "Deprecated APIs" grid table on `extdev/deprecated` (`doc/extdev/deprecated.rst`, compiled output pp.239-249) — contrast with the narrow `extdev/appapi` transform-priority tables (pp.186-188), which render correctly, isolating the trigger to total table width vs. text-block width rather than tables generically. Root cause: `typsphinx/translator.py`'s `table`/`tgroup` handling has no column-fitting/wrapping strategy for wide tables — full detail in `.planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md` (F12, "Root-cause groups (D-10)").
+- [x] **FID-01**: Every AUD-01 issue at severity "high" (content lost, unreadable, or grossly mis-structured) is fixed, each fix proven by a real `typst.compile()` regression fixture (GATE-01 pattern). The concrete per-issue list is enumerated by AUD-01 and appended here as `FID-01a`, `FID-01b`, … once the audit completes.
+  - [x] **FID-01a**: `table`/`tgroup` wide-table rendering — a multi-column table whose cell content exceeds the text-block width renders with inter-column glyph collision (long cell text bleeds into the adjacent column, e.g. `sphinx.environment.BuildEnvironment` + `anpp` merging) AND the rightmost column clips off the right page margin (e.g. `…format_exception_cut_f` cut off mid-word). Occurrences: `extdev/deprecated` pp.239,240,241 (systemic — recurs for any table too wide for the text block, corpus-wide). Minimal repro / Phase 18 fixture input: the multi-page "Deprecated APIs" grid table on `extdev/deprecated` (`doc/extdev/deprecated.rst`, compiled output pp.239-249) — contrast with the narrow `extdev/appapi` transform-priority tables (pp.186-188), which render correctly, isolating the trigger to total table width vs. text-block width rather than tables generically. Root cause: `typsphinx/translator.py`'s `table`/`tgroup` handling has no column-fitting/wrapping strategy for wide tables — full detail in `.planning/phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md` (F12, "Root-cause groups (D-10)").
 
 ### Regression Gate
 
@@ -66,7 +66,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MAN-01 | Phase 16 | Complete |
 | LEN-01 | Phase 16 | Complete |
 | AUD-01 | Phase 17 | Complete |
-| FID-01 | Phase 18 | Pending |
+| FID-01 | Phase 18 | Complete |
 | GATE-03 | Phase 18 | Pending |
 
 **Coverage:**

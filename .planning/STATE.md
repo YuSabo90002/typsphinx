@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v0.6.1
 milestone_name: rendering fidelity
-current_phase: 17
-current_phase_name: rendering-fidelity-audit
+current_phase: 18
+current_phase_name: fidelity-fixes-regression-gate-close
 status: executing
-stopped_at: Phase 18 context gathered
-last_updated: "2026-07-19T13:43:47.955Z"
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-07-19T13:56:08.345Z"
 last_activity: 2026-07-19
-last_activity_desc: "Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates"
+last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 67
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-16 after Phase 16 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 17 — rendering-fidelity-audit
+**Current focus:** Phase 18 — fidelity-fixes-regression-gate-close
 
 ## Current Position
 
-Phase: 17 (rendering-fidelity-audit) — ✅ COMPLETE (all 4 plans; AUD-01 satisfied)
-Plan: 4 of 4 done (17-01 infra, 17-02 visual audit 151/151, 17-03 human gate passed, 17-04 FID-01a backlog + 5 checks)
+Phase: 18 (fidelity-fixes-regression-gate-close) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-19 — Phase 17 finished: FID-01a (F12 wide-table overflow) appended as Phase 18's high-severity fix backlog; medium/low (13 findings) recorded as next-milestone candidates
+Last activity: 2026-07-19 — Phase 18 execution started
 
 **17-02 FINAL:** All 151 docnames visually audited against the `-b html` baseline. 15
 systemic findings cataloged (F1–F15: 1 high, 12 medium, 2 low severity), zero out-of-scope
@@ -146,7 +146,7 @@ templating, pp.161–172) in the catalogue — infra, not an AUD-01 finding. Tas
 classification + severity finalize + deterministic re-sort) is now COMPLETE and
 17-02-SUMMARY.md has been written — see the "17-02 FINAL" note above.
 
-Progress: [██████████] 100% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
+Progress: [█████████░] 89% (3/3 Phase-16 plans; Phases 17–18 plan counts TBD)
 
 ## Roadmap Summary (v0.6.1 — Phases 16–18)
 
@@ -178,6 +178,7 @@ Progress: [██████████] 100% (3/3 Phase-16 plans; Phases 17�
 | Phase 17 P01 | 13min | 3 tasks | 1 files |
 | Phase 17 P02 | 25min | 2 tasks | 2 files |
 | Phase 17 P04 | 25min | 2 tasks | 2 files |
+| Phase 18 P01 | 20min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -198,6 +199,7 @@ Roadmap-shaping decisions for v0.6.1 (full log in PROJECT.md Key Decisions):
 - [Phase ?]: Plan 17-02 complete: full 151/151 docname visual audit, F1-F15 finalized (1 high/12 medium/2 low), out-of-scope sweep clean, deterministic re-sort applied
 - [Phase ?]: [Phase 17-04]: F12 is the sole high-severity root cause; grouped as FID-01a per D-10, with F6 noted as a related-but-distinct medium overflow kinship (not promoted).
 - [Phase ?]: [Phase 17-04]: All five mechanical consistency checks (SC#1-4, D-07) passed genuinely against a fresh corpus rebuild; no environmental limitation hit this session.
+- [Phase ?]: [Phase 18-01]: Redesigned the wide-table fixture's collision-absence assertion to check the actual observed cell-boundary text (target-tail + deprecated value), since the plan/research's literal sentinel-concatenation string never matches this fixture's real content shape.
 
 ### Pending Todos
 
@@ -225,9 +227,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-19T13:00:21.516Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-fidelity-fixes-regression-gate-close/18-CONTEXT.md
+Last session: 2026-07-19T13:56:08.338Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
