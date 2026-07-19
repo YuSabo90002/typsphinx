@@ -493,10 +493,10 @@ to sample from. Recorded here as a placeholder so the schema is visible before t
 | `changes/1.0` | ✅ AUDITED — no issues [6pp; dense bugfix/feature bullet lists, no F1/F9 recurrences] |
 | `changes/0.6` | ✅ AUDITED — no issues [6pp; dense nested bullet lists incl. a code-block with codly caption badge, no F1/F9/F11 recurrences] |
 | `changes/0.5` | ✅ AUDITED — no issues [4pp; dense nested bullet lists incl. a nested dash-sublist of translator credits, renders correctly] |
-| `changes/0.4` | 🔲 NOT YET AUDITED |
-| `changes/0.3` | 🔲 NOT YET AUDITED |
-| `changes/0.2` | 🔲 NOT YET AUDITED |
-| `changes/0.1` | 🔲 NOT YET AUDITED |
+| `changes/0.4` | ✅ AUDITED — no issues [3pp; dense nested bullet lists, no F1/F9 recurrences] |
+| `changes/0.3` | ✅ AUDITED — no issues [1pp; short bullet list] |
+| `changes/0.2` | ✅ AUDITED — no issues [2pp; nested bullet lists incl. a multi-line code-block, renders correctly with codly caption badge] |
+| `changes/0.1` | ✅ AUDITED — no issues [1pp; short bullet list, spans two "Sphinx 0.1" sub-releases] |
 | `examples` | 🔲 NOT YET AUDITED |
 
 
