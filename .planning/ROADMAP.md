@@ -185,7 +185,7 @@ block-separation cluster so the separator idiom is settled before token-level sp
   3. `field_list` `:type:`/`:default:` object-description fields render with colon-space and preserved field boundaries ("Type:int (a number)Default:42" → "Type: int (a number)  Default: 42") (FID-09).
   4. Each spacing fix ships or extends a real `typst.compile()` regression fixture (GATE-01); zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 
 Plans:
 **Wave 1**
@@ -194,7 +194,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1; same-file `translator.py`)*
 
-- [ ] 20-02-PLAN.md — `depart_field_name` colon-space + `depart_field` inter-field double-space (FID-09 `:type:`/`:default:`, pinned "Type: int (a number)  Default: 42") + new render gate + update the one pre-existing locked colon assertion
+- [x] 20-02-PLAN.md — `depart_field_name` colon-space + `depart_field` inter-field double-space (FID-09 `:type:`/`:default:`, pinned "Type: int (a number)  Default: 42") + new render gate + update the one pre-existing locked colon assertion
 
 ### Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)
 
@@ -289,7 +289,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 17. Rendering-Fidelity Audit | v0.6.1 | 4/4 | Complete | 2026-07-19 |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
 | 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
-| 20. Signature Token Spacing (Cluster B) | v0.6.2 | 1/2 | In Progress|  |
+| 20. Signature Token Spacing (Cluster B) | v0.6.2 | 2/2 | In Progress|  |
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 0/TBD | Not started | - |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |

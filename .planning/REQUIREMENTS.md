@@ -21,7 +21,7 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 - [x] **FID-07** (F2): The `desc_annotation` "class "/"exception " keyword prefix keeps its trailing space ("classsphinx.builders…" → "class sphinx.builders…"). Every `py:class`/`py:exception`/`autoclass`.
 - [x] **FID-08** (F3): C/C++ `desc_signature` and inline `c/cpp:expr` preserve all inter-token spaces (around `*`/`&`, type↔identifier, after keyword prefix): "Py_ssize_tnitems" → "Py_ssize_t nitems".
-- [ ] **FID-09** (F5): `field_list` `:type:`/`:default:` object-description fields render with colon-space and preserved field boundaries ("Type:int (a number)Default:42" → "Type: int (a number)  Default: 42").
+- [x] **FID-09** (F5): `field_list` `:type:`/`:default:` object-description fields render with colon-space and preserved field boundaries ("Type:int (a number)Default:42" → "Type: int (a number)  Default: 42").
 
 ### Margin Overflow (Cluster C — right-margin overflow / no wrapping; kin to the fixed F12)
 
@@ -82,7 +82,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-06 | Phase 19 (Block Separation — Cluster A) | Complete |
 | FID-07 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
 | FID-08 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
-| FID-09 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
+| FID-09 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
 | FID-10 | Phase 21 (Residual Fidelity — Cluster C) | Pending |
 | FID-11 | Phase 21 (Residual Fidelity — Cluster D) | Pending |
 | FID-12 | Phase 21 (Residual Fidelity — Cluster E) | Pending |
