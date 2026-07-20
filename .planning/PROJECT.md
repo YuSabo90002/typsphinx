@@ -14,15 +14,24 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free.
 
-## Current Milestone: none — v0.6.1 shipped 2026-07-19
+## Current Milestone: v0.6.2 rendering fidelity round 2
 
-The v0.6.1 "rendering fidelity" milestone is complete (see Current State below). No milestone is
-currently active; the next one is scoped via `/gsd-new-milestone`.
+**Goal:** Resolve the 13 medium/low silent mis-render findings the v0.6.1 audit left open (F1–F15 minus the fixed high-severity F12 and the rejected F4), delivered as one coherent series of translator fixes grouped by root cause (clusters A–F), and fix the Issue #117 `typstpdf` PDF-naming bug (source docname → `typst_documents` target name) in the same milestone.
 
-**Candidate next-milestone work:**
-- **Medium/low fidelity backlog** — the 13 medium/low silent mis-render findings from the v0.6.1 audit (F1–F15 minus the fixed high-severity F12 and the rejected F4), catalogued in `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`, remain as a discover-and-fix backlog.
-- **CFG-01** (was FWD-03) — user-configurable `@preview` package versions (still v2, out of scope through v0.6.1).
-- **XOS-01** — extend `docs-pdf` CI coverage to macOS and Windows.
+**Target features:**
+- **Cluster A — lost inter-block separation** (F1, F7, F13, F14, F15): adjacent block / sibling elements emit with no separator (paragraphs in list items, sibling `desc_signature`s, rubric/option headings, definition-list term↔definition, back-to-back `confval` `desc`s)
+- **Cluster B — lost intra-signature token spacing** (F2, F3, F5): `desc_annotation` "class "/"exception " prefix, C/C++ inter-token spaces, `field_list` `:type:`/`:default:` colon-space
+- **Cluster C — right-margin overflow / no wrapping** (F6): long inline-`literal` runs clipped mid-token (content loss); kin to the fixed F12
+- **Cluster D — paragraph reflow lost** (F9): intra-paragraph soft newlines render as hard breaks instead of collapsing to a space
+- **Cluster E — codly config wrapper leak** (F11): `literal_block` with `:caption:` AND nested in a `list_item` leaks its codly config wrapper as visible text
+- **Cluster F — meaning-bearing inline styling, low severity** (F8, F10): external `reference` links flatten to plain text; `*`/`/` PEP separators inject hover-title text inline
+- **Issue #117** — `TypstPDFBuilder.finish()` PDF-name derivation fixed to honor the `typst_documents` target name
+
+**Key context:** Every finding is root-caused with docname + node kind + file/line in `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md` (D-01a human-confirmed, severity-final). Milestone invariant carried forward: zero new runtime deps, no `@preview` version bump, the 3-way version-sync surface stays untouched. Standing GATE-01 bar: every node-handler change ships or extends a real `typst.compile()` regression fixture. Ship unit is the milestone (`branching_strategy: milestone`); a final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complete-milestone`.
+
+**Carried-forward deferred items (still out of this milestone):**
+- **CFG-01** (was FWD-03) — user-configurable `@preview` package versions (still v2)
+- **XOS-01** — extend `docs-pdf` CI coverage to macOS and Windows
 
 ## Current State
 
@@ -89,10 +98,10 @@ currently active; the next one is scoped via `/gsd-new-milestone`.
 
 ### Active
 
-<!-- v0.6.1 rendering-fidelity milestone SHIPPED 2026-07-19 — all 6 requirements validated (TODO-01/MAN-01/LEN-01 Phase 16; AUD-01 Phase 17; FID-01a/GATE-03 Phase 18). -->
-<!-- No active milestone. Next milestone scoped via /gsd-new-milestone. Candidate backlog below. -->
+<!-- v0.6.2 rendering-fidelity-round-2 milestone STARTED 2026-07-20. Scoped: §999.1 (13 medium/low audit findings, clusters A–F) + §999.2 (Issue #117 typstpdf target-name bug). Requirements defined in REQUIREMENTS.md; roadmap in ROADMAP.md. -->
 
-- [ ] **Rendering-Fidelity Round 2** (13 medium/low findings from the v0.6.1 audit): the 11 medium + 2 low silent mis-render findings, now **enumerated and grouped by root cause (clusters A–F)** in `ROADMAP.md` §Backlog 999.1 for pickup as one coherent series of translator fixes — source of record `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`. Not yet scoped into a milestone; promote via `/gsd-review-backlog` or fold into the next `/gsd-new-milestone`.
+- [ ] **Rendering-Fidelity Round 2** (13 medium/low findings from the v0.6.1 audit): the 11 medium + 2 low silent mis-render findings, grouped by root cause (clusters A–F), delivered as one coherent series of translator fixes — source of record `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`. Active in v0.6.2.
+- [ ] **Issue #117 — typstpdf target-name PDF bug**: `TypstPDFBuilder.finish()` emits the PDF named after the source docname (`index.pdf`) instead of the `typst_documents` target (`manual.pdf`). Active in v0.6.2.
 
 ### Out of Scope
 
@@ -169,7 +178,10 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-19 at v0.6.1 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.6.1 (rendering fidelity) shipped: `typstpdf` output now renders faithfully, not merely compiles fatal-free. All 6 v1 requirements validated (TODO-01/MAN-01/LEN-01 Phase 16; AUD-01 Phase 17 — full 151-docname human-assisted visual audit → 15-finding catalogue; FID-01a/GATE-03 Phase 18 — wide-table fix + full-corpus regression gate). Closeout `override_closeout` (Phase 17 audit-phase verification via human gate + validation + downstream real-compile proof, operator-accepted). Zero new runtime dependencies; the 3-way `@preview` version-sync surface untouched. Requirements Active cleared; the 13 medium/low audit findings + CFG-01/XOS-01 tracked as next-milestone backlog. Next milestone scoped via `/gsd-new-milestone`. Prior footer retained below.*
+*Last updated: 2026-07-20 — started milestone v0.6.2 (rendering fidelity round 2) via `/gsd-new-milestone`. Scoped from §999.1 (the 13 medium/low v0.6.1 audit findings, grouped by root cause into clusters A–F) + §999.2 (Issue #117 typstpdf target-name PDF bug). Milestone invariant carried forward: zero new runtime deps, no `@preview` bump, 3-way version-sync surface untouched; standing GATE-01 real-`typst.compile()` bar applies to every node-handler change. Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.*
+
+<!-- Prior: 2026-07-19 at v0.6.1 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.6.1 (rendering fidelity) shipped: `typstpdf` output now renders faithfully, not merely compiles fatal-free. All 6 v1 requirements validated (TODO-01/MAN-01/LEN-01 Phase 16; AUD-01 Phase 17 — full 151-docname human-assisted visual audit → 15-finding catalogue; FID-01a/GATE-03 Phase 18 — wide-table fix + full-corpus regression gate). Closeout `override_closeout` (Phase 17 audit-phase verification via human gate + validation + downstream real-compile proof, operator-accepted). Zero new runtime dependencies; the 3-way `@preview` version-sync surface untouched. Requirements Active cleared; the 13 medium/low audit findings + CFG-01/XOS-01 tracked as next-milestone backlog. Next milestone scoped via `/gsd-new-milestone`. Prior footer retained below. -->
+
 
 <!-- Prior: 2026-07-13 — started milestone v0.6.1 (rendering fidelity): reconciled stale debug-session metadata (13 files → `resolved`), corrected the v0.6.0 backlog framing, re-confirmed GATE-02 green via a real corpus rebuild + a full warning audit (66 warnings, only `todo_node`/`manpage` are typsphinx content-drops), and scoped v0.6.1 = TODO-01/MAN-01/LEN-01 + a visual fidelity audit. Prior: 2026-07-13 at v0.6.0 milestone close (`/gsd-complete-milestone`) — full evolution review complete. v0.6.0 (real-world robustness) shipped: Sphinx's own `doc/` tree compiles end-to-end through `typstpdf` with no fatal Typst errors (Issue #114 closed), all 19 v1 requirements validated, milestone audit passed (19/19 requirements, 16/16 integration seams wired, 5/5 E2E flows), zero new runtime dependencies. Requirements Active cleared; 13 post-GATE-02 rendering-polish debug sessions + SC#2 `todo_node`/`manpage` handlers acknowledged as next-milestone backlog. Delivered via a release PR (`release/v0.6.0 → main`, closes #114) → tag `v0.6.0` → PyPI. Prior footer retained below for history.* -->
 
