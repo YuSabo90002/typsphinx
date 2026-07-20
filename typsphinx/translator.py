@@ -1580,9 +1580,24 @@ class TypstTranslator(SphinxTranslator):
             # No # prefix in code mode
             self.add_text(f"figure(caption: [{escaped_caption}])[\n")
 
-        # If in list item, wrap codly() calls and code block in { } to make it an expression
+        # If in list item, wrap codly() calls and code block in { } to make
+        # it an expression. FID-12: when this list-item wrapper is ALSO
+        # opened immediately inside a captioned figure's markup-mode [...]
+        # content (see the `figure(caption: [...])[` block above), a bare
+        # '{' is parsed as LITERAL TEXT in Typst markup mode -- it does NOT
+        # re-enter code mode, and the per-block codly config call that
+        # follows leaks as visible prose instead of executing. Only '#{'
+        # re-enters code mode from markup mode. When NOT captioned, we are
+        # already in a CODE-mode context (top level, admonition, table
+        # cell, or the enum()/list argument position), so the wrapper stays
+        # bare, byte-unchanged from before.
         if self.in_list_item:
-            self.add_text("{\n")
+            wrapper_prefix = (
+                "#"
+                if (self.in_captioned_code_block and self.code_block_caption)
+                else ""
+            )
+            self.add_text(f"{wrapper_prefix}{{\n")
 
         # Per-block codly config (number-format / offset / codly-range) is a
         # code-mode FUNCTION CALL, and whether it needs a leading `#` depends
