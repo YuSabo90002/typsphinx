@@ -80,8 +80,10 @@ None.
 ### Blockers/Concerns
 
 None open (the Phase 17 human-assisted-audit scope-discipline concern was resolved at the 17-03
-confirmation gate). Next-milestone backlog: 13 medium/low audit findings (in
-`milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`), CFG-01, XOS-01.
+confirmation gate). Next-milestone backlog: the 13 medium/low audit findings are now enumerated and
+grouped by root cause (clusters A–F) in `ROADMAP.md` §Backlog 999.1 (source of record:
+`milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`) — ready to promote as
+one coherent "Rendering-Fidelity Round 2" series; plus CFG-01, XOS-01.
 
 ### Roadmap Evolution
 

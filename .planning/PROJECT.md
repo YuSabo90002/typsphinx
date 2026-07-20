@@ -92,7 +92,7 @@ currently active; the next one is scoped via `/gsd-new-milestone`.
 <!-- v0.6.1 rendering-fidelity milestone SHIPPED 2026-07-19 — all 6 requirements validated (TODO-01/MAN-01/LEN-01 Phase 16; AUD-01 Phase 17; FID-01a/GATE-03 Phase 18). -->
 <!-- No active milestone. Next milestone scoped via /gsd-new-milestone. Candidate backlog below. -->
 
-- [ ] **Medium/low fidelity backlog**: the 13 medium/low silent mis-render findings from the v0.6.1 audit (catalogued in `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`) — discover-and-fix backlog, not yet scoped into a milestone
+- [ ] **Rendering-Fidelity Round 2** (13 medium/low findings from the v0.6.1 audit): the 11 medium + 2 low silent mis-render findings, now **enumerated and grouped by root cause (clusters A–F)** in `ROADMAP.md` §Backlog 999.1 for pickup as one coherent series of translator fixes — source of record `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`. Not yet scoped into a milestone; promote via `/gsd-review-backlog` or fold into the next `/gsd-new-milestone`.
 
 ### Out of Scope
 
