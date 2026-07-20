@@ -158,8 +158,16 @@ cause the rest of the translator series builds on)
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 19-01-PLAN.md — Shared `_emit_forced_break` helper + the two `parbreak()` sites (FID-02 paragraphs-in-list-item, FID-06 back-to-back body-less confvals)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 19-02-PLAN.md — The two `linebreak()` sibling sites (FID-03 sibling desc_signatures, FID-04 rubric/option heading)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 19-03-PLAN.md — The `terms(separator: linebreak())` site (FID-05 definition_list term/definition; the non-helper fix)
 
 ### Phase 20: Signature Token Spacing (Cluster B)
@@ -180,6 +188,7 @@ block-separation cluster so the separator idiom is settled before token-level sp
 **Plans**: TBD
 
 Plans:
+
 - [ ] TBD (enumerated at `/gsd-plan-phase 20`)
 
 ### Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)
@@ -201,6 +210,7 @@ small-blast-radius edits that land after the two large clusters)
 **Plans**: TBD
 
 Plans:
+
 - [ ] TBD (enumerated at `/gsd-plan-phase 21`)
 
 ### Phase 22: typstpdf Target-Name PDF Fix (Issue #117)
@@ -221,6 +231,7 @@ after the translator series and before Release.
 **Plans**: TBD
 
 Plans:
+
 - [ ] TBD (enumerated at `/gsd-plan-phase 22`)
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
@@ -243,6 +254,7 @@ the closing corpus re-run)
 **Plans**: TBD
 
 Plans:
+
 - [ ] TBD (enumerated at `/gsd-plan-phase 23`)
 
 ## Progress
@@ -300,6 +312,7 @@ node-handler change ships/extends a real `typst.compile()` regression fixture).
 **Cluster A — Lost inter-block / inter-element separation** (the dominant root cause; adjacent block
 or sibling elements emitted with no separator/break — very likely a small shared set of
 `visit_*`/`depart_*` separator fixes):
+
 - [ ] **F1** (medium) — consecutive `paragraph`s inside a `list_item` concatenate with no space ("role.For example"); `visit_paragraph`/`depart_paragraph` early-return when `in_list_item` (translator.py ~678–704). Corpus-wide.
 - [ ] **F7** (medium) — multiple sibling `desc_signature`s (overloads / `alias` groups / multi-option directives) run together on one line with no break.
 - [ ] **F13** (medium) — `rubric` option-group heading concatenates onto the first following `option`; directive-option "Options" heading merges onto the first `:field:`. Likely shares F1's block-separation root cause in a different node context.
@@ -307,21 +320,26 @@ or sibling elements emitted with no separator/break — very likely a small shar
 - [ ] **F15** (medium) — back-to-back body-less `confval` `desc` nodes concatenate into one unbroken blob (4 confvals merged on `usage/extensions/coverage`).
 
 **Cluster B — Lost intra-signature token spacing** (space swallowed inside/around signature tokens):
+
 - [ ] **F2** (medium) — `desc_annotation` "class "/"exception " keyword prefix loses its trailing space ("classsphinx.builders…"). Every `py:class`/`py:exception`/`autoclass`.
 - [ ] **F3** (medium) — C/C++ `desc_signature` & inline `c/cpp:expr` lose ALL inter-token spaces (around `*`/`&`, type↔identifier, after keyword prefix): "Py_ssize_tnitems".
 - [ ] **F5** (medium) — `field_list` `:type:`/`:default:` (object-description fields) render inline with no colon-space and merged field boundaries ("Type:int (a number)Default:42").
 
 **Cluster C — Right-margin overflow / no wrapping** (kin to the fixed F12; a shared "avoid right-margin
 overflow" primitive may serve both — see catalogue D-10 kinship note):
+
 - [ ] **F6** (medium) — a long run of inline `literal` roles overflows the right text margin and is clipped mid-token (trailing roles lost = content loss). `usage/domains/cpp` p.85.
 
 **Cluster D — Paragraph reflow lost:**
+
 - [ ] **F9** (medium) — reST semantic/soft line breaks inside a paragraph render as HARD line breaks (ragged short lines) instead of collapsing to a space; the translator preserves intra-paragraph source newlines. Systemic, corpus-wide.
 
 **Cluster E — codly config wrapper leak:**
+
 - [ ] **F11** (medium) — a `literal_block` with BOTH a `:caption:` AND nested in a `list_item` leaks its codly config wrapper as literal visible text (`{ codly(number-format: none)` … `}`). The `codly_prefix="#"` guard (translator.py ~1504–1520) misses the combined caption+list-item case.
 
 **Cluster F — Meaning-bearing inline styling (low severity):**
+
 - [ ] **F8** (low) — external named `reference` hyperlinks flatten to plain, undistinguished text (+ a stray boundary space where adjacent inline text exists). Link styling is meaning-bearing (D-06). Corpus-wide.
 - [ ] **F10** (low) — `abbreviation`/`desc_sig_operator` for `*` (PEP 3102) and `/` (PEP 570) separators inject the hover-title text inline ("* (Keyword-only parameters separator …)"), cluttering every keyword-only/positional-only signature.
 
@@ -341,6 +359,7 @@ Source: [Issue #117](https://github.com/YuSabo90002/typsphinx/issues/117) (`bug`
 **Reported behavior:** With `typst_documents = [('index', 'manual.typ', 'User Manual', 'Development Team')]`, running `sphinx-build -b typstpdf` emits the PDF named after the **source** docname (`index.pdf`) instead of the **target** name declared in `typst_documents` (`manual.pdf`). The `.typ` filename mapping appears honored; the PDF-compile step in `TypstPDFBuilder.finish()` likely re-derives the output name from the source docname rather than the target tuple. Investigate `builder.py` (`TypstPDFBuilder.finish()` / master-doc → PDF path derivation) and confirm against `pdf.py`.
 
 Plans:
+
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
