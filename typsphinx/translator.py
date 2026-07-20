@@ -1234,6 +1234,27 @@ class TypstTranslator(SphinxTranslator):
             code_content = code_content.replace(".", "." + zwsp).replace(
                 "_", "_" + zwsp
             )
+        elif code_content and code_content[0] in ":;,)]}!?":
+            # FID-10: a long run of colon-leading inline literal role tokens
+            # (e.g. ``:cpp:any:`` ``:cpp:class:`` ...) overflows the page's
+            # right margin instead of wrapping at the space between tokens.
+            # Typst's line-breaker honors Unicode UAX14 rule LB13 ("do not
+            # break before class CL/CP/EX/IS/SY, even after a space") for a
+            # token starting with one of these no-break-before characters --
+            # suppressing the break opportunity that would otherwise exist
+            # right before the token, even though the preceding text(" ")
+            # is real, breakable content (21-RESEARCH.md Pattern 1 /
+            # Pitfall 1). A leading zero-width space gives the line-breaker
+            # an explicit break opportunity at the token boundary without
+            # touching a single visible glyph (D-04 -- boundary-only, never
+            # break inside a token). Gated to this narrow character class so
+            # the many existing exact-match raw("...") assertions elsewhere
+            # (none of which start a literal with one of these characters)
+            # stay byte-unchanged (Pitfall 1 / Assumption A1). This is a
+            # NEW, independent elif sibling -- the self.in_table primitive
+            # above stays completely isolated (D-05).
+            zwsp = chr(0x200B)  # zero-width space
+            code_content = zwsp + code_content
 
         # Escape code content for string parameter via the shared helper.
         # Must escape newline/CR/tab too (not just backslash+quote): an inline
@@ -1559,9 +1580,24 @@ class TypstTranslator(SphinxTranslator):
             # No # prefix in code mode
             self.add_text(f"figure(caption: [{escaped_caption}])[\n")
 
-        # If in list item, wrap codly() calls and code block in { } to make it an expression
+        # If in list item, wrap codly() calls and code block in { } to make
+        # it an expression. FID-12: when this list-item wrapper is ALSO
+        # opened immediately inside a captioned figure's markup-mode [...]
+        # content (see the `figure(caption: [...])[` block above), a bare
+        # '{' is parsed as LITERAL TEXT in Typst markup mode -- it does NOT
+        # re-enter code mode, and the per-block codly config call that
+        # follows leaks as visible prose instead of executing. Only '#{'
+        # re-enters code mode from markup mode. When NOT captioned, we are
+        # already in a CODE-mode context (top level, admonition, table
+        # cell, or the enum()/list argument position), so the wrapper stays
+        # bare, byte-unchanged from before.
         if self.in_list_item:
-            self.add_text("{\n")
+            wrapper_prefix = (
+                "#"
+                if (self.in_captioned_code_block and self.code_block_caption)
+                else ""
+            )
+            self.add_text(f"{wrapper_prefix}{{\n")
 
         # Per-block codly config (number-format / offset / codly-range) is a
         # code-mode FUNCTION CALL, and whether it needs a leading `#` depends
