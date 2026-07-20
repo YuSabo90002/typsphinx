@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #10: TypstError: unclosed label at usage/domains/c.typ:311 (also directives.typ, authors.typ). C-domain anonymous entities (@data/@alias) produce docutils ids containing '@' (e.g. c.Data.@data.a); translator emits them verbatim as Typst labels/refs. '@' is invalid in a Typst label token -> unclosed label."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

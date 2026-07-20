@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: "TypstError: label `<man_u2f_sphinx-build:makefile-options>` does not exist in the document (23rd corpus fatal, GATE-02) — explicit-target-before-`.. rubric::` propagated id on the rubric node; plus exhaustive body/container-visitor anchor sweep to end the missing-anchor sub-class."
 created: 2026-07-13
 updated: 2026-07-13

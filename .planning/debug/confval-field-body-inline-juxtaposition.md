@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #8: TypstError: expected semicolon or line break at usage/configuration.typ:217:21 (representative) — 16 occurrences ALL in usage/configuration.typ. 15x a confval :default: FIELD BODY emitted as juxtaposed inline exprs text(\"The value of \")strong({...}) (no +/newline); 1x (line 2009) a paragraph abutting a following terms(...) inside a bullet-list item."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

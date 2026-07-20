@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: "Corpus gate fatal #17 (first SEMANTIC/non-parse fatal): TypstError: label `<c._u40_alias.data>` does not exist in the document. desc_signature emits no <label> anchor for node['ids'] so refid link(<...>) references to API declarations dangle."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

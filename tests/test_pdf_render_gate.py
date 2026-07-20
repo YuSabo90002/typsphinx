@@ -40,6 +40,13 @@ except ImportError:
 # literals -- they are NOT expected in any source file's body prose.
 LEAK_SIGNATURES = ("par({", 'text("', 'raw("')
 
+# Sentinel token for the TODO-01 todo-render-gate fixture -- distinctive,
+# unlikely token chosen so `full_text.count(...)`/`in full_text` can prove
+# the `.. todo::` body reached (or, in the disabled case, never reached) the
+# compiled output. Must match the sentinel token embedded in
+# todo_render_gate/index.rst.
+TODO_BODY_SENTINEL = "TODOBODYSENTINEL9X4"
+
 
 @pytest.fixture
 def fixtures_dir():
@@ -102,13 +109,31 @@ def topic_line_block_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def todo_render_gate_dir(fixtures_dir):
+    """Return the path to the todo_render_gate fixture project."""
+    return fixtures_dir / "todo_render_gate"
+
+
+@pytest.fixture
+def manpage_render_gate_dir(fixtures_dir):
+    """Return the path to the manpage_render_gate fixture project."""
+    return fixtures_dir / "manpage_render_gate"
+
+
+@pytest.fixture
+def table_width_render_gate_dir(fixtures_dir):
+    """Return the path to the table_width_render_gate fixture project."""
+    return fixtures_dir / "table_width_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
 
 
 def _run_sphinx_build_typst(
-    source_dir: Path, build_dir: Path
+    source_dir: Path, build_dir: Path, extra_args: tuple = ()
 ) -> subprocess.CompletedProcess:
     """
     Run `sphinx-build -b typst` as a subprocess and return the completed
@@ -125,6 +150,11 @@ def _run_sphinx_build_typst(
     executable") when invoked from inside a pytest-launched subprocess, even
     though the same command succeeds when run directly in a shell.
     `sys.executable -m sphinx` sidesteps that PATH-shadowing hazard entirely.
+
+    `extra_args` is an optional tuple of additional sphinx-build CLI
+    arguments (e.g. `("-D", "todo_include_todos=0")`) spliced into the
+    command list before the source dir -- default `()` keeps every
+    pre-existing call site unchanged.
     """
     return subprocess.run(
         [
@@ -133,6 +163,7 @@ def _run_sphinx_build_typst(
             "sphinx",
             "-b",
             "typst",
+            *extra_args,
             str(source_dir),
             str(build_dir),
         ],
@@ -1774,4 +1805,531 @@ class TestCodlyConfigLeakRenderGate:
                 f"codly-config token '{leaked_token}' leaked into rendered PDF "
                 "text -- the per-block config must be EXECUTED, not typeset as "
                 f"literal prose (captioned markup/code-mode regression):\n{full_text}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (TODO-01, GATE-01): extend the GATE-01 render-gate pattern to
+# prove visit_todo_node/depart_todo_node -- a `.. todo::` body renders inside
+# a gentle-clues task() box titled "Todo" in the compiled PDF when
+# todo_include_todos=True (D-01), gated on config.todo_include_todos exactly
+# like every official Sphinx builder (planner decision per 16-RESEARCH.md
+# Open Question 1 / Assumption A2). Before the handler exists, todo_node is
+# silently unknown_visit-dropped with an "unknown node type" warning -- this
+# is the TODO-01 corpus symptom (x10).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTodoRenderGate:
+    """
+    Real-compile acceptance gate for TODO-01: visit_todo_node/
+    depart_todo_node rendering as a gentle-clues task() box titled "Todo",
+    gated on config.todo_include_todos.
+
+    Requirements: TODO-01, GATE-01 (16-CONTEXT.md, 16-RESEARCH.md D-01/D-01a,
+    16-01-PLAN.md).
+    """
+
+    def test_todo_pdf_renders_body_and_title(
+        self, todo_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the todo_render_gate fixture (todo_include_todos=True, the
+        fixture's own default) to PDF and confirm, via the generated .typ
+        source and real pypdf text-extraction:
+        - no "unknown node type" warning on stderr (the TODO-01 warning is
+          eliminated);
+        - the emitted .typ source contains the task() clue's code-mode open
+          ("task({");
+        - typst.compile() succeeds;
+        - the body sentinel and the box title ("Todo", exactly once --
+          sourced only from the node's own dynamic title child, per
+          16-RESEARCH.md Pitfall 2) both reach the extracted PDF text;
+        - no LEAK_SIGNATURES token leaked into the rendered PDF text.
+        """
+        result = _run_sphinx_build_typst(todo_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr -- the "
+            f"TODO-01 warning should be eliminated:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "task({" in typ_source, (
+            "Expected the task() clue's code-mode content-block open "
+            "('task({') in the generated Typst source -- "
+            "visit_todo_node/_visit_admonition regression"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test -- any invalid Typst source emitted
+        # by visit_todo_node would abort the compile here.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        assert TODO_BODY_SENTINEL in full_text, (
+            f"Expected todo body sentinel '{TODO_BODY_SENTINEL}' in "
+            "extracted PDF text -- visit_todo_node/depart_todo_node "
+            "regression"
+        )
+        assert full_text.count("Todo") == 1, (
+            "Expected the box title 'Todo' to appear exactly once in "
+            "extracted PDF text (from the node's own dynamic title child) "
+            f"-- fixture contains no other 'Todo' source:\n{full_text}"
+        )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- todo markup/code-mode regression"
+            )
+
+    def test_todo_typ_omits_body_when_todo_include_todos_false(
+        self, todo_render_gate_dir, temp_build_dir
+    ):
+        """
+        Build the SAME fixture with -D todo_include_todos=0 (the Sphinx
+        default False) and confirm the generated .typ contains neither the
+        body sentinel nor a task( call -- mirroring every official Sphinx
+        builder's SkipNode gating (16-RESEARCH.md A2). No compile needed --
+        absence is a .typ-level proof; test_todo_pdf_renders_body_and_title
+        owns the compile.
+
+        This is a permanent regression guard for the internal-work-notes
+        prohibition (T-16-01): draft `.. todo::` content must never leak
+        into published output when todo_include_todos is False.
+        """
+        result = _run_sphinx_build_typst(
+            todo_render_gate_dir,
+            temp_build_dir,
+            extra_args=("-D", "todo_include_todos=0"),
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr even when "
+            f"todo_include_todos is False:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert TODO_BODY_SENTINEL not in typ_source, (
+            f"Todo body sentinel '{TODO_BODY_SENTINEL}' leaked into "
+            "generated Typst source with todo_include_todos=False -- "
+            "internal work-notes must never leak into published output "
+            "(T-16-01)"
+        )
+        assert "task({" not in typ_source, (
+            "Found the task() clue's code-mode open in generated Typst "
+            "source with todo_include_todos=False -- the "
+            "config.todo_include_todos SkipNode gate regressed"
+        )
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestManpageRenderGate:
+    """
+    Real-compile acceptance gate for MAN-01: visit_manpage/depart_manpage
+    delegating to visit_emphasis/depart_emphasis so the :manpage: role
+    renders its literal page-reference text italic, in all three
+    separator/mode contexts a manpage role can appear in.
+
+    Requirements: MAN-01, GATE-01 (16-CONTEXT.md D-02/D-02a,
+    16-RESEARCH.md Pattern 2 / Pitfall 4, 16-02-PLAN.md).
+    """
+
+    def test_manpage_pdf_renders_italic_text(
+        self, manpage_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the manpage_render_gate fixture to PDF and confirm, via the
+        generated .typ source and real pypdf text-extraction:
+        - no "unknown node type" warning on stderr (the MAN-01 warning is
+          eliminated);
+        - the emitted .typ source contains exactly 3 emph({ wrappers (one
+          per :manpage: use -- the fixture contains no other emphasis
+          source) and no link( (D-02a: no linkification);
+        - typst.compile() succeeds without try/except (proving the mode
+          toggle/separator state machine is correct in all three contexts:
+          paragraph, list item, figure caption);
+        - "ls(1)", "grep(1)", and "tar(1)" each appear in the extracted PDF
+          text;
+        - no LEAK_SIGNATURES token leaked into the rendered PDF text.
+        """
+        result = _run_sphinx_build_typst(manpage_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "unknown node type" not in result.stderr, (
+            "Expected no 'unknown node type' warning on stderr -- the "
+            f"MAN-01 warning should be eliminated:\n{result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert typ_source.count("emph({") == 3, (
+            "Expected exactly 3 emph({ wrappers in the generated Typst "
+            "source (one per :manpage: use) -- visit_manpage/depart_manpage "
+            f"regression; got {typ_source.count('emph({')}"
+        )
+        assert "link(" not in typ_source, (
+            "Found a link( call in generated Typst source -- D-02a "
+            "prohibits linkification; the fixture has no manpages_url "
+            "configured and contains no references, so any link( is a "
+            "fabricated URL"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # this is the crux of the test -- any invalid Typst source emitted
+        # by visit_manpage (e.g. a mishandled mode toggle inside the figure
+        # caption's markup-mode context) would abort the compile here.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for manpage_text in ("ls(1)", "grep(1)", "tar(1)"):
+            assert manpage_text in full_text, (
+                f"Expected manpage text '{manpage_text}' in extracted PDF "
+                "text -- visit_manpage/depart_manpage regression"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- manpage delegation regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (LEN-01, GATE-01): extend the GATE-01 render-gate pattern to prove
+# the figwidth wiring in visit_figure/depart_figure -- a :figwidth: length
+# now routes through the single shared _convert_length_to_typst() helper and
+# wraps the whole figure() call in a block(width: ...)[...] wrapper (Typst's
+# figure() rejects a direct width: kwarg -- 16-RESEARCH.md Pitfall 3). Before
+# this wiring, :figwidth: was silently ignored (no wrapper, no warning).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestFigureFigwidthRenderGate:
+    """
+    Real-compile acceptance gate for LEN-01: the visit_figure/depart_figure
+    :figwidth: wiring through _convert_length_to_typst(), wrapped in the
+    verified-by-real-compile block(width: ...)[#figure(...)] shape.
+
+    Requirements: LEN-01, GATE-01 (16-RESEARCH.md Pitfall 3, 16-03-PLAN.md).
+    """
+
+    def test_figwidth_pdf_wraps_block_and_compiles(
+        self, figure_length_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the (extended) figure_length_render_gate fixture to PDF and
+        confirm, via the generated .typ source and stderr:
+        - the 400px :figwidth: case wraps block(width: 300pt)[#figure( (the
+          exact CSS-canonical 0.75 px->pt ratio);
+        - the 75% :figwidth: case wraps block(width: 75%)[#figure( (pass
+          through unchanged);
+        - neither the raw "5ex" unit nor the raw "400px" unit ever reaches
+          the generated Typst source;
+        - exactly 2 "Unsupported length unit" warnings fire on stderr (the
+          pre-existing :width: 1ex image case + the new :figwidth: 5ex
+          case) -- proving no double-conversion at the new call site;
+        - (WR-01) the captionless 60% :figwidth: case -- which has no
+          docutils-assigned ``ids`` and so takes depart_figure's `elif
+          self._figure_block_width is not None:` no-label branch -- wraps
+          the no-label `block(width: 60%)[#figure(\n  image(...)\n)]` shape
+          (no trailing `<label>`), proving that branch is reachable and
+          correct, not just the `ids`-and-width branch every other fixture
+          case exercises;
+        - typst.compile() succeeds without try/except.
+        """
+        result = _run_sphinx_build_typst(figure_length_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "block(width: 300pt)[#figure(" in typ_source, (
+            "Expected the :figwidth: 400px case to wrap "
+            "'block(width: 300pt)[#figure(' in the generated Typst source -- "
+            "visit_figure figwidth wiring regression"
+        )
+        assert "block(width: 75%)[#figure(" in typ_source, (
+            "Expected the :figwidth: 75% case to wrap "
+            "'block(width: 75%)[#figure(' in the generated Typst source -- "
+            "visit_figure figwidth wiring regression"
+        )
+        assert "5ex" not in typ_source, (
+            "Raw unconverted 'ex' unit leaked into generated Typst source "
+            "from the :figwidth: 5ex case"
+        )
+        assert "400px" not in typ_source, (
+            "Raw unconverted 'px' unit leaked into generated Typst source "
+            "from the :figwidth: 400px case"
+        )
+
+        # WR-01: the captionless 60% :figwidth: case has no `ids`, so it
+        # takes depart_figure's no-label `elif self._figure_block_width is
+        # not None:` branch -- the only fixture case that does, proving that
+        # branch (as opposed to the `ids`-and-width branch every other case
+        # exercises) is reachable and emits the correct no-label shape.
+        assert 'block(width: 60%)[#figure(\n  image("image.png")\n)]' in typ_source, (
+            "Expected the captionless :figwidth: 60% case to wrap the "
+            "no-label 'block(width: 60%)[#figure(\\n  image(...)\\n)]' shape "
+            "in the generated Typst source -- depart_figure's no-ids "
+            "figwidth branch regression"
+        )
+
+        assert result.stderr.count("Unsupported length unit") == 2, (
+            "Expected exactly 2 'Unsupported length unit' warnings (the "
+            "pre-existing :width: 1ex image case + the new :figwidth: 5ex "
+            f"case):\n{result.stderr}"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a mismatched block(width: ...)[...] wrapper would abort the
+        # compile here (Pitfall 3).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    def test_figwidth_figure_as_list_item_non_first_element_compiles(
+        self, figure_length_render_gate_dir, temp_build_dir
+    ):
+        """
+        Real-compile regression gate for CR-01 (16-REVIEW.md): a
+        ``:figwidth:`` figure that is NOT the first element inside a list
+        item's content block must not juxtapose against the preceding
+        sibling's emitted expression. Before the fix, visit_figure's
+        ``block(width: ...)[#figure(`` emission had no in-list-item
+        separator check (unlike visit_table/visit_bullet_list/
+        visit_enumerated_list/_visit_admonition), so the generated source
+        read ``text("...")block(width: 40%)[#figure(`` with no separating
+        newline -- a hard Typst parse error ("expected semicolon or line
+        break") that aborted the ENTIRE document compile, not just the
+        affected figure.
+
+        Confirms, via the generated .typ source and a real
+        ``typst.compile()`` call (no try/except):
+        - the list-item lead-in text and the following
+          ``block(width: 40%)[#figure(`` are newline-separated, never
+          juxtaposed;
+        - typst.compile() succeeds without raising TypstCompilationError;
+        - the list-item lead-in sentinel and the figure both reach the
+          compiled PDF.
+        """
+        result = _run_sphinx_build_typst(figure_length_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert 'FIGURELISTSENTINEL2R6:")block(width: 40%)[#figure(' not in typ_source, (
+            "The list-item figure juxtaposes the preceding lead-in text with "
+            "NO separator -- CR-01's list-item separator regressed"
+        )
+        assert re.search(
+            r"FIGURELISTSENTINEL2R6:\"\)\s*\nblock\(width: 40%\)\[#figure\(",
+            typ_source,
+        ), (
+            "Expected a newline separator between the list-item lead-in text "
+            "and the following block(width: 40%)[#figure( -- CR-01's "
+            "list-item separator did not fire"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a missing separator here reproduces the verified CR-01
+        # "expected semicolon or line break" parse-abort.
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+# ---------------------------------------------------------------------------
+# Phase 16 (LEN-01, GATE-01): extend the GATE-01 render-gate pattern to prove
+# the width wiring in depart_table -- a :width: length on .. table::/
+# .. csv-table::/.. list-table:: (all converging on the single nodes.table
+# type via Table.set_table_width()) now routes through
+# _convert_length_to_typst() and wraps the whole table() call in a
+# block(width: ...)[#table(...)] wrapper (Typst's table() also rejects a
+# direct width: kwarg -- 16-RESEARCH.md Pitfall 3).
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the table-width render gate -- distinctive, unlikely
+# words chosen so their presence in the extracted PDF text proves each
+# table's content reached the compiled PDF, inside or without the width
+# wrapper. Must match the sentinel tokens embedded in
+# table_width_render_gate/index.rst.
+TABLEPXSENTINEL7Q4 = "TABLEPXSENTINEL7Q4"
+TABLELISTSENTINEL8Q5 = "TABLELISTSENTINEL8Q5"
+TABLECSVSENTINEL9Q6 = "TABLECSVSENTINEL9Q6"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestTableWidthRenderGate:
+    """
+    Real-compile acceptance gate for LEN-01: the depart_table :width: wiring
+    through _convert_length_to_typst(), covering .. table::/.. csv-table::/
+    .. list-table:: uniformly through the single nodes.table type, wrapped
+    in the verified-by-real-compile block(width: ...)[#table(...)] shape.
+
+    Requirements: LEN-01, GATE-01 (16-RESEARCH.md Pitfall 3, 16-03-PLAN.md).
+    """
+
+    def test_table_width_pdf_wraps_block_and_compiles(
+        self, table_width_render_gate_dir, temp_build_dir
+    ):
+        """
+        Compile the table_width_render_gate fixture to PDF and confirm, via
+        the generated .typ source, stderr, and real pypdf text-extraction:
+        - the .. table:: :width: 200px case wraps
+          block(width: 150pt)[#table( (the CSS-canonical 0.75 px->pt ratio);
+        - the .. list-table:: :width: 50% case wraps
+          block(width: 50%)[#table( (pass through unchanged);
+        - neither the raw "1ex" unit nor the raw "200px" unit ever reaches
+          the generated Typst source;
+        - exactly 1 "Unsupported length unit" warning fires on stderr (the
+          .. csv-table:: :width: 1ex case, warn-and-drop, no wrapper);
+        - typst.compile() succeeds without try/except;
+        - all three sentinel tokens (proving the table content itself
+          renders, inside or without the wrapper) reach the extracted PDF
+          text, with no LEAK_SIGNATURES token present.
+        """
+        result = _run_sphinx_build_typst(table_width_render_gate_dir, temp_build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        index_typ = temp_build_dir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        typ_source = index_typ.read_text(encoding="utf-8")
+
+        assert "block(width: 150pt)[#table(" in typ_source, (
+            "Expected the .. table:: :width: 200px case to wrap "
+            "'block(width: 150pt)[#table(' in the generated Typst source -- "
+            "depart_table width wiring regression"
+        )
+        assert "block(width: 50%)[#table(" in typ_source, (
+            "Expected the .. list-table:: :width: 50% case to wrap "
+            "'block(width: 50%)[#table(' in the generated Typst source -- "
+            "depart_table width wiring regression"
+        )
+        assert "1ex" not in typ_source, (
+            "Raw unconverted 'ex' unit leaked into generated Typst source "
+            "from the .. csv-table:: :width: 1ex case"
+        )
+        assert "200px" not in typ_source, (
+            "Raw unconverted 'px' unit leaked into generated Typst source "
+            "from the .. table:: :width: 200px case"
+        )
+
+        assert result.stderr.count("Unsupported length unit") == 1, (
+            "Expected exactly 1 'Unsupported length unit' warning (the "
+            f".. csv-table:: :width: 1ex case):\n{result.stderr}"
+        )
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # a mismatched block(width: ...)[...] wrapper would abort the
+        # compile here (Pitfall 3).
+        pdf_output = temp_build_dir / "index.pdf"
+        typst.compile(str(index_typ), output=str(pdf_output))
+
+        assert pdf_output.exists(), "PDF file was not created"
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for sentinel in (
+            TABLEPXSENTINEL7Q4,
+            TABLELISTSENTINEL8Q5,
+            TABLECSVSENTINEL9Q6,
+        ):
+            assert sentinel in full_text, (
+                f"Expected table sentinel '{sentinel}' in extracted PDF "
+                "text -- table content must render inside/without the "
+                "width wrapper"
+            )
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- table-width markup/code-mode "
+                "regression"
             )

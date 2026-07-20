@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #11: TypstError: expected semicolon or line break. TWO sub-constructs: (a) reference-with-adjacent-target markup wrapper (_in_reference_with_target) at usage/advanced/intl.typ:27 [#link(...) #label(...)]text(...) juxtaposed with no separator; (b) nested list(...) inside list item juxtaposed with following sibling at changes/6.1.typ:143."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "GATE-02 corpus fatal #18: TypstError: label `<sphinx.domains.Domain>` does not exist. autoclass Domain whose docstring begins with a nested definition list; single-slot saved_body/current_term_buffer/current_definition_buffer clobbered by the inner list, dropping the outer definition's content + the desc_signature anchor."
 created: 2026-07-12
 updated: 2026-07-12

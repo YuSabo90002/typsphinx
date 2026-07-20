@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "Corpus gate fatal #4: TypstError: expected semicolon or line break at changes/1.6.typ:856 — `})par(` — a nested list({...}) immediately followed by a sibling par({...}) inside a list item, with no statement separator. 17 occurrences across 8 files, all identical `})par(`."
 created: 2026-07-12T00:00:00
 updated: 2026-07-12T00:00:00

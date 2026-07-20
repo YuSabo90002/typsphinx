@@ -79,6 +79,10 @@ class TypstTranslator(SphinxTranslator):
         self.section_level = 0
         self.in_figure = False
         self.in_table = False
+        self.table_colwidths: List[Any] = (
+            []
+        )  # Per-column colwidth accumulator (FID-01a D-01); init in
+        # visit_table, consumed + reset in depart_table.
         self.in_thead = False  # Track if currently in table header
         self.in_caption = False
         self.list_stack = []  # Track list nesting: 'bullet' or 'enumerated'
@@ -88,6 +92,12 @@ class TypstTranslator(SphinxTranslator):
         self.figure_caption = ""
         self._saved_body_for_figure_caption: List[Any] | None = (
             None  # Body to restore after buffering a figure caption (buffer-swap idiom)
+        )
+        self._figure_block_width: str | None = (
+            None  # Converted :figwidth: value (LEN-01); set in visit_figure,
+            # consumed + reset in depart_figure. Typst's figure() rejects a
+            # direct width: kwarg, so a non-None value means the whole
+            # figure() call is wrapped in block(width: ...)[...] (D-03/Pitfall 3).
         )
 
         # Code block container state (Issue #20)
@@ -1026,6 +1036,37 @@ class TypstTranslator(SphinxTranslator):
         # is + separated.
         self._exit_inline_concat_element()
 
+    def visit_manpage(self, node: addnodes.manpage) -> None:
+        """
+        Visit a manpage node (:manpage: role).
+
+        Renders the literal page-reference text (e.g. "ls(1)") italic,
+        Sphinx-HTML-faithful (D-02), by delegating to visit_emphasis so the
+        paragraph-separator / list-item / inline-concat-context /
+        _in_markup_mode state machine is reused verbatim -- a manpage node
+        duck-types fine since visit_emphasis performs no isinstance check on
+        its argument, only reading self.* state (16-RESEARCH.md Pattern 2).
+
+        No linkification per D-02a: with manpages_url unset, the node's
+        single child stays a plain nodes.Text -- a reference child cannot
+        occur in this configuration, so no link() is ever fabricated.
+
+        Args:
+            node: The manpage node
+        """
+        self.visit_emphasis(node)
+
+    def depart_manpage(self, node: addnodes.manpage) -> None:
+        """
+        Depart a manpage node.
+
+        Delegates to depart_emphasis (see visit_manpage).
+
+        Args:
+            node: The manpage node
+        """
+        self.depart_emphasis(node)
+
     def visit_strong(self, node: nodes.strong) -> None:
         """
         Visit a strong (bold) node.
@@ -1130,6 +1171,20 @@ class TypstTranslator(SphinxTranslator):
 
         # Get code content directly
         code_content = node.astext()
+
+        if self.in_table:
+            # Zero-width space (U+200B) at natural break points so Typst's
+            # line-breaker can wrap long unbroken dotted/underscored
+            # identifiers inside a narrow fr-column table cell -- fr
+            # columns alone do not wrap a single unbroken token (FID-01a
+            # "Critical Finding", 18-RESEARCH.md). Gated on self.in_table
+            # so prose/code-block literals stay byte-unchanged (F6 out of
+            # scope). Inserted BEFORE escape_typst_string() -- U+200B is
+            # not a character that helper treats specially.
+            zwsp = chr(0x200B)  # zero-width space
+            code_content = code_content.replace(".", "." + zwsp).replace(
+                "_", "_" + zwsp
+            )
 
         # Escape code content for string parameter via the shared helper.
         # Must escape newline/CR/tab too (not just backslash+quote): an inline
@@ -1890,7 +1945,38 @@ class TypstTranslator(SphinxTranslator):
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
 
-        if node.get("ids"):
+        # Emit a leading newline separator when this figure follows a
+        # sibling inside a list item, matching the block-visitor pattern
+        # used by visit_table/visit_bullet_list/visit_enumerated_list/
+        # _visit_admonition (bug #4). Without this, a figure that is not
+        # the first element inside a list item's content block juxtaposes
+        # directly against the preceding sibling's emitted expression --
+        # e.g. `text("...")block(width: 40%)[#figure(` -- a Typst parse
+        # error ("expected semicolon or line break") that aborts the whole
+        # compile. This was previously missing here (CR-01), unlike every
+        # other block-level visitor in this file.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+            self.list_item_needs_separator = False
+
+        # LEN-01: :figwidth: is assigned to node["width"] by docutils' Figure
+        # directive. Convert here ONLY (depart_figure must not re-convert, or
+        # the drop-warning would fire twice, breaking the one-warning-per-
+        # occurrence contract). Typst's figure() rejects a direct width:
+        # kwarg (verified real-compile failure), so a converted value wraps
+        # the WHOLE figure() call in block(width: ...)[...] instead
+        # (16-RESEARCH.md Pitfall 3) -- never passed as a figure() argument.
+        # The block()'s own trailing [...] markup block hosts the #figure(
+        # call for BOTH the ids and no-ids branches (the ids branch's
+        # <label> close still lands inside it -- see depart_figure).
+        figwidth = node.get("width")
+        self._figure_block_width = (
+            self._convert_length_to_typst(figwidth) if figwidth else None
+        )
+
+        if self._figure_block_width is not None:
+            self.add_text(f"block(width: {self._figure_block_width})[#figure(\n")
+        elif node.get("ids"):
             self.add_text("[#figure(\n")
         else:
             # Start figure with potential label (no # prefix in code mode)
@@ -1913,10 +1999,19 @@ class TypstTranslator(SphinxTranslator):
 
         # Add label if figure has ids. The trailing `]` closes the markup
         # bracket opened in visit_figure -- see that method's docstring for
-        # why the label must live inside a markup-mode bracket pair.
+        # why the label must live inside a markup-mode bracket pair. This
+        # close is ALREADY correct when the LEN-01 block(width:)[...] wrapper
+        # is open too: the block()'s own trailing `[...]` markup block is
+        # what the `]` here closes (visit_figure opened exactly one bracket
+        # in either case -- see that method).
         if node.get("ids"):
             label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f"\n) <{label}>]\n\n")
+        elif self._figure_block_width is not None:
+            # LEN-01: the no-ids branch normally has no markup bracket to
+            # close, but the block(width: ...)[...] wrapper opened one in
+            # visit_figure -- close it here.
+            self.add_text("\n)]\n\n")
         else:
             self.add_text("\n)\n\n")
 
@@ -1927,9 +2022,17 @@ class TypstTranslator(SphinxTranslator):
         # so it is not defined twice. Empty/single-id figures -> no-op.
         self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
 
+        self._figure_block_width = None
+
         self.in_figure = False
         self.figure_content = []
         self.figure_caption = ""
+
+        # Mark that a following sibling in the same list item must be
+        # separated (block-visitor pattern, bug #4; mirrors depart_table's
+        # trailing block).
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_caption(self, node: nodes.caption) -> None:
         """
@@ -2148,6 +2251,28 @@ class TypstTranslator(SphinxTranslator):
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
+        self.table_colwidths = []  # Per-column colwidth accumulator (D-01)
+
+    def _build_columns_fr_arg(self) -> str:
+        """
+        Build the Typst ``columns: (...)`` argument from captured colwidth
+        values (FID-01a D-01/D-02).
+
+        Falls back to equal 1fr-per-column when colwidth data is missing,
+        all zero, or its length does not match table_colcount (defensive
+        path -- not observed in any real docutils output tested during
+        research, but nodes.colspec['colwidth'] is technically Optional
+        per the docutils API).
+
+        Returns:
+            A Typst fr-weighted columns tuple string, e.g. "(1fr, 1fr)".
+        """
+        widths = self.table_colwidths
+        n = self.table_colcount
+        valid = len(widths) == n and n > 0 and all(w and w > 0 for w in widths)
+        if not valid:
+            widths = [1] * n
+        return "(" + ", ".join(f"{w}fr" for w in widths) + ")"
 
     def _format_table_cell(self, cell: dict, indent: str = "  ") -> str:
         """
@@ -2187,8 +2312,29 @@ class TypstTranslator(SphinxTranslator):
         """
         # Generate Typst table() syntax (no # prefix in unified code mode)
         if self.table_colcount > 0:
+            # LEN-01: :width: is assigned to node["width"] by docutils'
+            # Table.set_table_width(), shared by RSTTable/CSVTable/ListTable
+            # -- one wiring covers all three directive types (they all
+            # converge on nodes.table). Typst's table() rejects a direct
+            # width: kwarg (verified real-compile failure, same as figure),
+            # so a converted value wraps the WHOLE table() call in
+            # block(width: ...)[...] instead (16-RESEARCH.md Pitfall 3).
+            # Use self.body.append directly (NEVER self.add_text) at this
+            # site -- see the comment below about the stale
+            # table_cell_content buffer misrouting hazard.
+            width = node.get("width")
+            converted_width = self._convert_length_to_typst(width) if width else None
+
             # Use self.body.append directly to avoid routing to table_cell_content
-            self.body.append(f"table(\n  columns: {self.table_colcount},\n")
+            if converted_width is not None:
+                self.body.append(
+                    f"block(width: {converted_width})[#table(\n"
+                    f"  columns: {self._build_columns_fr_arg()},\n"
+                )
+            else:
+                self.body.append(
+                    f"table(\n  columns: {self._build_columns_fr_arg()},\n"
+                )
 
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
@@ -2207,11 +2353,15 @@ class TypstTranslator(SphinxTranslator):
             for cell in body_cells:
                 self.body.append(self._format_table_cell(cell, indent="  "))
 
-            self.body.append(")\n\n")
+            if converted_width is not None:
+                self.body.append(")]\n\n")
+            else:
+                self.body.append(")\n\n")
 
         self.in_table = False
         self.table_cells = []
         self.table_colcount = 0
+        self.table_colwidths = []
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
@@ -2244,7 +2394,9 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The colspec node
         """
-        # Column specifications are handled by tgroup
+        # Capture colwidth instead of discarding it (FID-01a D-01) --
+        # consumed by _build_columns_fr_arg() at depart_table.
+        self.table_colwidths.append(node.get("colwidth"))
         raise nodes.SkipNode
 
     def depart_colspec(self, node: nodes.colspec) -> None:
@@ -3762,6 +3914,38 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_hint(self, node: nodes.hint) -> None:
         """Depart a hint admonition."""
+        self._depart_admonition()
+
+    def visit_todo_node(self, node: nodes.Element) -> None:
+        """
+        Visit a todo_node (sphinx.ext.todo). Converts to #task[] (gentle-clues).
+
+        Gated on `config.todo_include_todos`, mirroring every official
+        Sphinx builder (html/latex/text/man/texinfo in sphinx/ext/todo.py),
+        which each raise `nodes.SkipNode` when the config is False (the
+        Sphinx default) -- internal author work-notes must never silently
+        leak into published output (TODO-01, T-16-01). Unlike those
+        builders, typsphinx does not register a dedicated node handler via
+        `app.add_node`; docutils dispatches this method purely by the node
+        class NAME (`todo_node`), so no import of `sphinx.ext.todo` is
+        needed here.
+
+        Note: todo_node carries its own `nodes.title` child (inserted by
+        `sphinx.ext.todo.Todo.run()` at parse time), which visit_title's
+        admonition-aware branch buffers and `_depart_admonition` prefers
+        over `custom_title` -- the static "Todo" below is an inert,
+        non-i18n fallback, not the actual title source (16-RESEARCH.md
+        Pitfall 2).
+
+        `task` is verified present in the pinned gentle-clues 1.3.1
+        (D-01a) -- no base-`clue` fallback is required.
+        """
+        if not self.config.todo_include_todos:
+            raise nodes.SkipNode
+        self._visit_admonition(node, "task", custom_title="Todo")
+
+    def depart_todo_node(self, node: nodes.Element) -> None:
+        """Depart a todo_node."""
         self._depart_admonition()
 
     def visit_error(self, node: nodes.error) -> None:

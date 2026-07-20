@@ -171,7 +171,7 @@ class TestTableInListItemRenderGate:
         assert (
             'text("A table at the top level (not nested in a list item) '
             'must stay\\nbyte-unchanged by this fix.")})\n\ntable(\n'
-            "  columns: 2,\n" in typ_text
+            "  columns: (50fr, 50fr),\n" in typ_text
         ), (
             "The top-level table's rendering changed -- the list-item "
             f"separator fix must not touch it:\n{typ_text}"

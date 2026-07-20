@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "TypstError: label `<xref-modifiers>` does not exist in the document (20th corpus fatal, GATE-02)"
 created: 2026-07-12
 updated: 2026-07-12

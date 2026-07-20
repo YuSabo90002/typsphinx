@@ -340,14 +340,24 @@ class TestCorpusRenderGate:
 
         # SC#2 byproduct: the unknown_visit frequency catalogue from the
         # same build's captured stderr.
+        #
+        # Originally (v0.6.0 / Phase 15) this asserted the catalogue was
+        # NON-empty -- the corpus still exercised not-yet-handled node
+        # types (todo_node x10, manpage) and the catalogue was the SC#2
+        # raw material. Phase 16 implemented handlers for those last two
+        # (TODO-01, MAN-01), so the expected steady state flipped: an
+        # empty catalogue IS the GATE-03 criterion ("todo_node/manpage
+        # gone from the unknown_visit catalogue"), and any entry here is
+        # a silent-drop regression.
         catalogue = catalogue_unknown_visit(result.stderr)
         print(f"Unknown Visit Catalogue: {catalogue.most_common()}")
-        assert catalogue, (
-            "Expected the unknown_visit catalogue to be non-empty (SC#2 "
-            "raw material) -- the full corpus is expected to exercise at "
-            "least some not-yet-handled node types.\n"
-            "If this fails only on one platform, the parser missed the "
-            "warning format; stderr tail (last 3000 chars) for diagnosis:\n"
+        assert not catalogue, (
+            "Expected the unknown_visit catalogue to be EMPTY -- Phase 16 "
+            "implemented the last silently-dropped corpus node types "
+            "(todo_node per TODO-01, manpage per MAN-01), so any entry "
+            "is a GATE-03 regression.\n"
+            f"Catalogue: {catalogue.most_common()}\n"
+            "stderr tail (last 3000 chars) for diagnosis:\n"
             f"{result.stderr[-3000:]}"
         )
 
