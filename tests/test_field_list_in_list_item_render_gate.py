@@ -49,6 +49,13 @@ try:
 except ImportError:
     TYPST_AVAILABLE = False
 
+try:
+    import pypdf
+
+    PYPDF_AVAILABLE = True
+except ImportError:
+    PYPDF_AVAILABLE = False
+
 
 @pytest.fixture
 def field_list_in_list_item_render_gate_dir():
@@ -173,6 +180,37 @@ class TestFieldListInListItemRenderGate:
             f"list-item separator fix must not touch it:\n{typ_text}"
         )
 
+        # CR-01 regression: both fields of the top-level :Author:/:Version:
+        # list are paragraph-wrapped (block field bodies), so the FID-09
+        # inter-field text("  ") separator must NOT appear between them --
+        # that separator is only correct for the collapsed-inline field-body
+        # form (see test_confval_field_spacing_render_gate.py). Prior to the
+        # CR-01 fix this landed as a stray leading two-space indent glued to
+        # the "Version" label.
+        author_par_idx = typ_text.index('par({text("Test Author")})')
+        version_strong_idx = typ_text.index('strong(text("Version")', author_par_idx)
+        between_author_and_version = typ_text[author_par_idx:version_strong_idx]
+        assert 'text("  ")' not in between_author_and_version, (
+            'A stray inter-field text("  ") separator was emitted between '
+            "the paragraph-wrapped Author and Version fields (CR-01 "
+            f"regression):\n{typ_text}"
+        )
+
+        # Same CR-01 check for the nested :Organization ID:/:Project ID:/
+        # :Project URL: field list inside the enumerated-list item -- none
+        # of these paragraph-wrapped fields should gain the inline-only
+        # separator either.
+        org_id_idx = typ_text.index('strong(text("Organization ID")')
+        project_url_idx = typ_text.index('text("Project URL")')
+        between_nested_fields = typ_text[
+            org_id_idx : project_url_idx + len('text("Project URL")')
+        ]
+        assert 'text("  ")' not in between_nested_fields, (
+            'A stray inter-field text("  ") separator was emitted within '
+            "the nested Organization ID/Project ID/Project URL field list "
+            f"(CR-01 regression):\n{typ_text}"
+        )
+
         # The emitted .typ must have compiled to a real, non-empty PDF.
         pdf_output = temp_build_dir / "index.pdf"
         assert pdf_output.exists(), (
@@ -183,3 +221,49 @@ class TestFieldListInListItemRenderGate:
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    @pytest.mark.skipif(
+        not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+        reason=(
+            "typst-py and pypdf are both required for the field-list "
+            "block-body CR-01 pypdf adjacency gate"
+        ),
+    )
+    def test_pdf_extracted_text_has_no_stray_version_indent(
+        self, field_list_in_list_item_render_gate_dir, temp_build_dir
+    ):
+        """
+        CR-01 regression (WR-01 coverage gap): the top-level ``:Author:``/
+        ``:Version:`` field list has paragraph-wrapped (block) field bodies,
+        so the FID-09 inline-only inter-field separator must not apply.
+        Confirm the pypdf-extracted text contains ``"Version:"`` but never
+        the stray two-space-indented ``"  Version"`` shape the pre-fix
+        translator produced (the inter-field ``text("  ")`` landing in front
+        of the next field's label instead of between same-line values).
+        """
+        result = _run_sphinx_build_typstpdf(
+            field_list_in_list_item_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced -- typst.compile() aborted:\n"
+            f"stderr: {result.stderr}"
+        )
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        assert "Version:" in full_text, (
+            "Expected the Version field label in the extracted PDF text:\n"
+            f"{full_text!r}"
+        )
+        assert "  Version" not in full_text, (
+            "Found a stray two-space-indented 'Version' in the extracted "
+            f"PDF text (CR-01 regression):\n{full_text!r}"
+        )
