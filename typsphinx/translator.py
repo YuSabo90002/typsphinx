@@ -4363,8 +4363,16 @@ class TypstTranslator(SphinxTranslator):
         Depart a desc node.
 
         Add spacing after API description blocks.
+
+        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back
+        body-less desc siblings (e.g. confvals with only :type:/:default:
+        fields, no body paragraph) previously concatenated onto one running
+        line because a bare cosmetic "\\n\\n" produces no visual break in
+        Typst code mode. Applying parbreak() unconditionally (even when the
+        desc's last content already ends in a par()) is verified harmless --
+        no double-gap artifact -- so no body-less-detection guard is needed.
         """
-        self.body.append("\n\n")
+        self._emit_forced_break("parbreak()")
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
