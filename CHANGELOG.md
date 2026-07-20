@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-20
+
+Rendering fidelity: move `typstpdf` output from "compiles fatal-free" (achieved
+in v0.6.0) to "renders faithfully to the source". Implements the last two
+silently-dropped nodes, unifies length conversion across all figure/table
+sites, and — driven by a full human-assisted visual audit of the Sphinx `doc/`
+corpus — fixes the sole high-severity mis-render. Zero new runtime dependencies;
+the bundled `@preview` version-sync surface is untouched.
+
+### Added
+
+- `todo_node` now renders as a gentle-clues `task()` box, gated on Sphinx's
+  `todo_include_todos` config so draft work-notes never leak into published PDFs
+  (TODO-01)
+- `manpage` roles now render as italic literal page text via delegation to the
+  emphasis handler (MAN-01)
+
+### Changed
+
+- Generalized v0.6.0's `visit_image`-local px→pt conversion into one shared
+  `_convert_length_to_typst` helper, reused at every length-bearing figure and
+  table site (LEN-01)
+
+### Fixed
+
+- **Wide-table glyph collision + right-margin clip (FID-01a)** — multi-column
+  tables whose cell content exceeded the text block previously collided glyphs
+  between columns and clipped the rightmost column off the page margin. Fixed by
+  emitting fr-weighted `columns: (Nfr, …)` derived from docutils colwidth in
+  `depart_table` and injecting U+200B break points after `.`/`_` in in-table
+  content, proven by a real-compile `wide_table_render_gate` regression fixture
+
+### Verified
+
+- Full 151/151-docname human-assisted rendering-fidelity audit of the Sphinx
+  v9.1.0 `doc/` corpus PDF against its `-b html` baseline (AUD-01); 15 systemic
+  findings catalogued and human-confirmed. The 13 medium/low findings are
+  tracked as backlog for a future milestone
+- Closing corpus regression gate (GATE-03): the full ~684-page corpus re-run
+  through `-b typstpdf` remains fatal-free with the `unknown_visit` catalogue
+  empty of `todo_node`/`manpage`
+
 ## [0.6.0] - 2026-07-13
 
 Real-world robustness: compile a large real-world documentation set (Sphinx's
@@ -606,6 +648,8 @@ untouched.
 
 ---
 
+[0.6.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.1
+[0.6.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.0
 [0.5.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.5.0
 [0.4.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.3
 [0.4.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.2
@@ -616,4 +660,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.1...HEAD
