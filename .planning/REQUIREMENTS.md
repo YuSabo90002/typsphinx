@@ -11,11 +11,11 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 ### Block Separation (Cluster A — lost inter-block / inter-element separation)
 
-- [ ] **FID-02** (F1): Consecutive `paragraph`s inside a `list_item` render with visible separation instead of concatenating ("role.For example" → "role. For example"). Corpus-wide.
-- [ ] **FID-03** (F7): Multiple sibling `desc_signature`s (overloads / `alias` groups / multi-option directives) render on separate lines instead of running together on one line.
-- [ ] **FID-04** (F13): A `rubric` option-group heading (and a directive-option "Options" heading) renders separated from the first following `option`/`:field:` instead of merging onto it.
-- [ ] **FID-05** (F14): A `definition_list` `term` renders separated from its `definition` when the list is nested in a `list_item` or the definition body opens with a nested list.
-- [ ] **FID-06** (F15): Back-to-back body-less `confval` `desc` nodes render as distinct, separated entries instead of concatenating into one unbroken blob.
+- [x] **FID-02** (F1): Consecutive `paragraph`s inside a `list_item` render with visible separation instead of concatenating ("role.For example" → "role. For example"). Corpus-wide.
+- [x] **FID-03** (F7): Multiple sibling `desc_signature`s (overloads / `alias` groups / multi-option directives) render on separate lines instead of running together on one line.
+- [x] **FID-04** (F13): A `rubric` option-group heading (and a directive-option "Options" heading) renders separated from the first following `option`/`:field:` instead of merging onto it.
+- [x] **FID-05** (F14): A `definition_list` `term` renders separated from its `definition` when the list is nested in a `list_item` or the definition body opens with a nested list.
+- [x] **FID-06** (F15): Back-to-back body-less `confval` `desc` nodes render as distinct, separated entries instead of concatenating into one unbroken blob.
 
 ### Signature Spacing (Cluster B — lost intra-signature token spacing)
 
@@ -75,11 +75,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FID-02 | Phase 19 (Block Separation — Cluster A) | Pending |
-| FID-03 | Phase 19 (Block Separation — Cluster A) | Pending |
-| FID-04 | Phase 19 (Block Separation — Cluster A) | Pending |
-| FID-05 | Phase 19 (Block Separation — Cluster A) | Pending |
-| FID-06 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-02 | Phase 19 (Block Separation — Cluster A) | Complete |
+| FID-03 | Phase 19 (Block Separation — Cluster A) | Complete |
+| FID-04 | Phase 19 (Block Separation — Cluster A) | Complete |
+| FID-05 | Phase 19 (Block Separation — Cluster A) | Complete |
+| FID-06 | Phase 19 (Block Separation — Cluster A) | Complete |
 | FID-07 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
 | FID-08 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
 | FID-09 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
@@ -91,6 +91,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Pending |
 
 **Coverage:**
+
 - v1 requirements: 14 total
 - Mapped to phases: 14 ✓
 - Unmapped: 0 ✓

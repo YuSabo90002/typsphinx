@@ -131,7 +131,7 @@ milestone. The final Phase 23 is a prep-only Release phase (version bump + CHANG
 regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → PyPI) runs later at
 `/gsd-complete-milestone`, mirroring the v0.5.0 Phase 10 / v0.6.1 pattern.
 
-- [ ] **Phase 19: Block Separation Fixes (Cluster A)** - Restore lost inter-block/inter-element separation across paragraphs-in-list-items, sibling signatures, rubric/option headings, definition terms, and back-to-back confvals — the dominant audit root cause (FID-02..FID-06)
+- [x] **Phase 19: Block Separation Fixes (Cluster A)** - Restore lost inter-block/inter-element separation across paragraphs-in-list-items, sibling signatures, rubric/option headings, definition terms, and back-to-back confvals — the dominant audit root cause (FID-02..FID-06) (completed 2026-07-20)
 - [ ] **Phase 20: Signature Token Spacing (Cluster B)** - Restore lost intra-signature token spacing: the `class `/`exception ` annotation prefix, C/C++ inter-token spaces, and `:type:`/`:default:` colon-space (FID-07..FID-09)
 - [ ] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14)
 - [ ] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01)
@@ -283,7 +283,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete | 2026-07-16 |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 4/4 | Complete | 2026-07-19 |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
-| 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | In Progress|  |
+| 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 0/TBD | Not started | - |
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 0/TBD | Not started | - |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
