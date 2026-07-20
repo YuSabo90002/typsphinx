@@ -155,12 +155,12 @@ cause the rest of the translator series builds on)
   4. A `definition_list` `term` renders on its own line, separated from its `definition`, when the list is nested in a `list_item` or the definition body opens with a nested list (FID-05); and back-to-back body-less `confval` `desc` nodes render as distinct, separated entries instead of one unbroken blob (FID-06).
   5. Every separator fix ships or extends a real `typst.compile()` regression fixture (GATE-01) that would fail without the fix; zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 19-01-PLAN.md — Shared `_emit_forced_break` helper + the two `parbreak()` sites (FID-02 paragraphs-in-list-item, FID-06 back-to-back body-less confvals)
+- [x] 19-01-PLAN.md — Shared `_emit_forced_break` helper + the two `parbreak()` sites (FID-02 paragraphs-in-list-item, FID-06 back-to-back body-less confvals)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -283,7 +283,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 16. Silent-Drop Node Handlers + Length-Converter Refactor | v0.6.1 | 3/3 | Complete | 2026-07-16 |
 | 17. Rendering-Fidelity Audit | v0.6.1 | 4/4 | Complete | 2026-07-19 |
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
-| 19. Block Separation Fixes (Cluster A) | v0.6.2 | 0/3 | Not started | - |
+| 19. Block Separation Fixes (Cluster A) | v0.6.2 | 1/3 | In Progress|  |
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 0/TBD | Not started | - |
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 0/TBD | Not started | - |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
