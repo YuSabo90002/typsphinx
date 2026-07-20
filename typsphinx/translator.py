@@ -260,6 +260,36 @@ class TypstTranslator(SphinxTranslator):
         else:
             self.body.append(text)
 
+    def _emit_forced_break(self, break_token: str) -> None:
+        """
+        Emit a real Typst stdlib break (``parbreak()``/``linebreak()``) as its
+        own code-mode statement between two adjacent siblings.
+
+        A source ``\\n`` between two code-mode statements is COSMETIC ONLY
+        (proven at ``visit_desc_signature_line``) -- it satisfies the Typst
+        parser but produces NO visual break, because bare ``text()``/
+        ``strong()`` results are inline content that simply concatenates.
+        This helper generalizes that idiom, but fixes a gap in the original:
+        ``visit_desc_signature_line``'s break always fires INSIDE an
+        already-open ``strong({...})`` block, where ``visit_strong`` has
+        locally forced ``in_list_item = True`` for its children, so its
+        trailing separator comes "for free" from the next child's own
+        ``list_item_needs_separator`` check. A SIBLING-boundary break (between
+        ``desc_signature``s, after a ``rubric``, after a ``desc``) usually is
+        NOT inside such a block, so this helper appends its OWN unconditional
+        trailing newline -- omitting it reproduces the "expected semicolon or
+        line break" Typst fatal at sibling boundaries.
+
+        Args:
+            break_token: The Typst stdlib break call to emit, e.g.
+                ``"parbreak()"`` or ``"linebreak()"``.
+        """
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text(f"{break_token}\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
     def _add_paragraph_separator(self) -> None:
         """
         Add + operator for concatenation in paragraph if not first node.
@@ -666,7 +696,11 @@ class TypstTranslator(SphinxTranslator):
         Code mode doesn't auto-recognize paragraph breaks from blank lines.
 
         Exception: Inside list items, paragraphs are not wrapped in par()
-        to avoid syntax like "- par(text(...))" which is invalid.
+        to avoid syntax like "- par(text(...))" which is invalid. A 2nd+
+        paragraph in a list item instead gets a real Typst parbreak()
+        (FID-02) -- a bare source '\\n' between code-mode statements is
+        cosmetic only and produces no visual break, so consecutive
+        list-item paragraphs otherwise concatenate onto one running line.
 
         Args:
             node: The paragraph node
@@ -679,8 +713,12 @@ class TypstTranslator(SphinxTranslator):
         # or strands a `+`. (GATE-02 corpus fatal #20: <xref-modifiers>.)
         self._emit_id_anchors(node)
 
-        # Skip par() wrapping inside list items
+        # Skip par() wrapping inside list items; emit a real parbreak()
+        # between the 2nd+ paragraph and its predecessor (FID-02). This is a
+        # no-op for the FIRST paragraph in a list item, since
+        # list_item_needs_separator is reset to False in visit_list_item.
         if self.in_list_item:
+            self._emit_forced_break("parbreak()")
             self.in_paragraph = False
             return
 
@@ -698,8 +736,13 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The paragraph node
         """
-        # Skip closing if inside list items
+        # Skip closing if inside list items; mark that a paragraph separator
+        # is now needed before the next list-item sibling (FID-02) -- this is
+        # the piece that was previously MISSING, so the helper in
+        # visit_paragraph never actually fired a leading "\n" before the
+        # 2nd+ paragraph's parbreak().
         if self.in_list_item:
+            self.list_item_needs_separator = True
             return
 
         # Close par({}) content block and add spacing
@@ -4320,8 +4363,16 @@ class TypstTranslator(SphinxTranslator):
         Depart a desc node.
 
         Add spacing after API description blocks.
+
+        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back
+        body-less desc siblings (e.g. confvals with only :type:/:default:
+        fields, no body paragraph) previously concatenated onto one running
+        line because a bare cosmetic "\\n\\n" produces no visual break in
+        Typst code mode. Applying parbreak() unconditionally (even when the
+        desc's last content already ends in a par()) is verified harmless --
+        no double-gap artifact -- so no body-less-detection guard is needed.
         """
-        self.body.append("\n\n")
+        self._emit_forced_break("parbreak()")
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
