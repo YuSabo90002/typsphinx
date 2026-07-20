@@ -212,7 +212,7 @@ small-blast-radius edits that land after the two large clusters)
   4. External named `reference` hyperlinks render with distinguishing styling and correct boundary spacing — no stray space where adjacent inline text exists (FID-13); and `*`/`/` PEP 3102/570 separators render without injecting their hover-title text inline ("* (Keyword-only parameters separator …)" → "*") (FID-14).
   5. Every fix ships or extends a real `typst.compile()` regression fixture (GATE-01); zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 Plans:
 **Wave 1**
@@ -221,7 +221,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1; same-file `translator.py`)*
 
-- [ ] 21-02-PLAN.md — FID-11 collapse intra-paragraph soft newline in visit_Text (paragraph reflow, Cluster D) + FID-14 narrow-scope abbr-title suppression in depart_abbreviation (`*`/`/` PEP separators, Cluster F)
+- [x] 21-02-PLAN.md — FID-11 collapse intra-paragraph soft newline in visit_Text (paragraph reflow, Cluster D) + FID-14 narrow-scope abbr-title suppression in depart_abbreviation (`*`/`/` PEP separators, Cluster F)
 
 **Wave 3** *(blocked on Wave 2; same-file `translator.py`)*
 
@@ -299,7 +299,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
 | 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 2/2 | Complete    | 2026-07-20 |
-| 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 1/3 | In Progress|  |
+| 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 2/3 | In Progress|  |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
