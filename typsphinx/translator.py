@@ -4362,9 +4362,18 @@ class TypstTranslator(SphinxTranslator):
         dummy `nodes.Text` delegated to `visit_Text` -- inheriting the
         existing string-escaping regime -- rather than `node.astext()` or
         a raw f-string interpolation (V5 Input Validation, Pitfall 7).
+
+        FID-14: the auto-generated PEP 3102 keyword-only ("*") and PEP 570
+        positional-only ("/") signature separators are represented as an
+        `abbreviation` node whose OWN visible text is exactly "*" or "/" --
+        the sole reliable, narrow-scope signal (no distinguishing
+        classes/ids exist). Suppress the appended explanation ONLY for
+        those two exact cases; a genuine `:abbr:` role's acronym text is
+        never bare "*"/"/", so it keeps its inline expansion unchanged
+        (D-Disc-3).
         """
         explanation = node.get("explanation", "")
-        if explanation:
+        if explanation and node.astext() not in ("*", "/"):
             dummy_text = nodes.Text(f" ({explanation})")
             self.visit_Text(dummy_text)
 
