@@ -177,6 +177,12 @@ class TypstTranslator(SphinxTranslator):
         self._in_field_body = False
         self._field_body_has_content: bool = False
         self._field_body_stack: List[Tuple[bool, bool]] = []
+        # Whether the most recently departed field_body used the collapsed
+        # inline form (see visit_field_body). depart_field reads this to
+        # decide whether the FID-09 inter-field "  " separator applies --
+        # it is only correct for inline-collapsed bodies, not block-wrapped
+        # (par(...)) bodies (CR-01).
+        self._last_field_body_was_inline = False
 
         # Stack of the code-mode concat context suppressed while an inline
         # block element (emphasis/strong/reference) emits its OWN block/argument
@@ -4678,8 +4684,19 @@ class TypstTranslator(SphinxTranslator):
         AND a trailing newline so it never juxtaposes with the neighboring
         strong(...) call on one physical source line -- a leading-only
         newline is a real Typst "expected semicolon or line break" fatal.
+
+        Only applies when the field body just closed used the collapsed
+        inline form (see visit_field_body/depart_field_body). A
+        paragraph-wrapped / block field body (the common ``:param:``/
+        ``:type:``/``:returns:`` docstring case, and any field value on its
+        own blank-line-separated line) already gets adequate separation from
+        depart_field_body's trailing newline plus the next field's fresh
+        strong( statement -- adding "  " there lands as a stray leading
+        two-space indent glued to the next field's label (CR-01).
         """
-        if node.next_node(descend=False, siblings=True):
+        if self._last_field_body_was_inline and node.next_node(
+            descend=False, siblings=True
+        ):
             self.body.append('\ntext("  ")\n')
 
     def visit_field_name(self, node: nodes.field_name) -> None:
@@ -4749,6 +4766,10 @@ class TypstTranslator(SphinxTranslator):
         Restore the concat context saved by :meth:`visit_field_body` and add a
         newline after the field body.
         """
+        # Remember whether THIS field body was collapsed-inline, for
+        # depart_field's separator decision (CR-01), before popping back to
+        # the parent's saved state.
+        self._last_field_body_was_inline = self._in_field_body
         self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
         self.body.append("\n")
 
