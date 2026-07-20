@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 21
-current_phase_name: Clusters C/D/E/F
+current_phase_name: Residual Fidelity Fixes (Clusters C/D/E/F
 status: executing
 stopped_at: Phase 21 context gathered
-last_updated: "2026-07-20T13:16:45.773Z"
+last_updated: "2026-07-20T13:19:27.073Z"
 last_activity: 2026-07-20
-last_activity_desc: Phase 20 complete, transitioned to Phase 21
+last_activity_desc: Phase 21 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
+  total_plans: 8
   completed_plans: 5
   percent: 40
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 20 — signature-token-spacing-cluster-b
+**Current focus:** Phase 21 — Residual Fidelity Fixes (Clusters C/D/E/F)
 
 ## Current Position
 
-Phase: 21 — Residual Fidelity Fixes (Clusters C/D/E/F)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-20 — Phase 20 complete, transitioned to Phase 21
+Phase: 21 (Residual Fidelity Fixes (Clusters C/D/E/F)) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 21
+Last activity: 2026-07-20 — Phase 21 execution started
 
 Progress: [██████████] 100%
 
