@@ -4811,14 +4811,10 @@ class TypstTranslator(SphinxTranslator):
 
     def visit_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
         """Visit a desc_sig_space node (whitespace in signatures)."""
-        # Output space directly, not as separate text() node
-        self.body.append(" ")
-        # Don't set list_item_needs_separator - space is connector
-        raise nodes.SkipNode
+        pass
 
     def depart_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
         """Depart a desc_sig_space node."""
-        # Handled in visit
         pass
 
     def visit_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:
