@@ -25,20 +25,20 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 ### Margin Overflow (Cluster C — right-margin overflow / no wrapping; kin to the fixed F12)
 
-- [ ] **FID-10** (F6): A long run of inline `literal` roles wraps within the text margin instead of overflowing and clipping mid-token (clipping = content loss). `usage/domains/cpp` p.85.
+- [x] **FID-10** (F6): A long run of inline `literal` roles wraps within the text margin instead of overflowing and clipping mid-token (clipping = content loss). `usage/domains/cpp` p.85.
 
 ### Paragraph Reflow (Cluster D)
 
-- [ ] **FID-11** (F9): reST semantic/soft line breaks inside a paragraph collapse to a single space instead of rendering as HARD line breaks (ragged short lines). Systemic, corpus-wide.
+- [x] **FID-11** (F9): reST semantic/soft line breaks inside a paragraph collapse to a single space instead of rendering as HARD line breaks (ragged short lines). Systemic, corpus-wide.
 
 ### Codly Config Leak (Cluster E)
 
-- [ ] **FID-12** (F11): A `literal_block` with BOTH a `:caption:` AND nested in a `list_item` does not leak its codly config wrapper as literal visible text (`{ codly(number-format: none)` … `}`); the `codly_prefix="#"` guard covers the combined caption+list-item case.
+- [x] **FID-12** (F11): A `literal_block` with BOTH a `:caption:` AND nested in a `list_item` does not leak its codly config wrapper as literal visible text (`{ codly(number-format: none)` … `}`); the `codly_prefix="#"` guard covers the combined caption+list-item case.
 
 ### Inline Styling (Cluster F — meaning-bearing inline styling, low severity)
 
-- [ ] **FID-13** (F8): External named `reference` hyperlinks render with distinguishing styling (link is meaning-bearing, D-06) and correct boundary spacing (no stray space where adjacent inline text exists). Corpus-wide.
-- [ ] **FID-14** (F10): `*` (PEP 3102 keyword-only) and `/` (PEP 570 positional-only) separators render without injecting their hover-title text inline ("* (Keyword-only parameters separator …)" → "*"). Every affected signature.
+- [x] **FID-13** (F8): External named `reference` hyperlinks render with distinguishing styling (link is meaning-bearing, D-06) and correct boundary spacing (no stray space where adjacent inline text exists). Corpus-wide.
+- [x] **FID-14** (F10): `*` (PEP 3102 keyword-only) and `/` (PEP 570 positional-only) separators render without injecting their hover-title text inline ("* (Keyword-only parameters separator …)" → "*"). Every affected signature.
 
 ### PDF Naming (Issue #117)
 
@@ -83,11 +83,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-07 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
 | FID-08 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
 | FID-09 | Phase 20 (Signature Token Spacing — Cluster B) | Complete |
-| FID-10 | Phase 21 (Residual Fidelity — Cluster C) | Pending |
-| FID-11 | Phase 21 (Residual Fidelity — Cluster D) | Pending |
-| FID-12 | Phase 21 (Residual Fidelity — Cluster E) | Pending |
-| FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Pending |
-| FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Pending |
+| FID-10 | Phase 21 (Residual Fidelity — Cluster C) | Complete |
+| FID-11 | Phase 21 (Residual Fidelity — Cluster D) | Complete |
+| FID-12 | Phase 21 (Residual Fidelity — Cluster E) | Complete |
+| FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
+| FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Pending |
 
 **Coverage:**

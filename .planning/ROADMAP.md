@@ -133,7 +133,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 
 - [x] **Phase 19: Block Separation Fixes (Cluster A)** - Restore lost inter-block/inter-element separation across paragraphs-in-list-items, sibling signatures, rubric/option headings, definition terms, and back-to-back confvals — the dominant audit root cause (FID-02..FID-06) (completed 2026-07-20)
 - [x] **Phase 20: Signature Token Spacing (Cluster B)** - Restore lost intra-signature token spacing: the `class `/`exception ` annotation prefix, C/C++ inter-token spaces, and `:type:`/`:default:` colon-space (FID-07..FID-09) (completed 2026-07-20)
-- [ ] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14)
+- [x] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14) (completed 2026-07-20)
 - [ ] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
@@ -299,7 +299,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 18. Fidelity Fixes + Regression-Gate Close | v0.6.1 | 2/2 | Complete | 2026-07-19 |
 | 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 2/2 | Complete    | 2026-07-20 |
-| 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | In Progress|  |
+| 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
