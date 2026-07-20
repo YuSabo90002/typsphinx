@@ -24,6 +24,18 @@
 // Configure codly with codly-languages for comprehensive language support
 #codly(languages: codly-languages)
 
+// FID-13: distinguish external hyperlinks with color + underline (D-01).
+// Scoped to external URLs only -- `it.dest` is a `str` for an external
+// `link("url", ...)` call and a `label` for an internal cross-reference
+// (`link(<label>, ...)`), so internal refs stay unstyled (D-02).
+#show link: it => {
+  if type(it.dest) == str {
+    underline(text(fill: blue, it.body))
+  } else {
+    it
+  }
+}
+
 #let project(
   title: "",
   authors: (),
