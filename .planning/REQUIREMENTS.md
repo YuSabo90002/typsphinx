@@ -75,26 +75,30 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FID-02 | Phase [N] | Pending |
-| FID-03 | Phase [N] | Pending |
-| FID-04 | Phase [N] | Pending |
-| FID-05 | Phase [N] | Pending |
-| FID-06 | Phase [N] | Pending |
-| FID-07 | Phase [N] | Pending |
-| FID-08 | Phase [N] | Pending |
-| FID-09 | Phase [N] | Pending |
-| FID-10 | Phase [N] | Pending |
-| FID-11 | Phase [N] | Pending |
-| FID-12 | Phase [N] | Pending |
-| FID-13 | Phase [N] | Pending |
-| FID-14 | Phase [N] | Pending |
-| PDF-01 | Phase [N] | Pending |
+| FID-02 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-03 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-04 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-05 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-06 | Phase 19 (Block Separation — Cluster A) | Pending |
+| FID-07 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
+| FID-08 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
+| FID-09 | Phase 20 (Signature Token Spacing — Cluster B) | Pending |
+| FID-10 | Phase 21 (Residual Fidelity — Cluster C) | Pending |
+| FID-11 | Phase 21 (Residual Fidelity — Cluster D) | Pending |
+| FID-12 | Phase 21 (Residual Fidelity — Cluster E) | Pending |
+| FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Pending |
+| FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Pending |
+| PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14 ✓
+- Unmapped: 0 ✓
+
+Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF requirement — it is the
+prep-only release/close phase (version bump + CHANGELOG + closing full-corpus regression gate); all
+14 v1 requirements are delivered by Phases 19–22.
 
 ---
 *Requirements defined: 2026-07-20*
-*Last updated: 2026-07-20 after initial definition (milestone v0.6.2)*
+*Last updated: 2026-07-20 — traceability populated at roadmap creation (14/14 mapped to Phases 19–22; milestone v0.6.2)*

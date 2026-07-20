@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 status: planning
-last_updated: "2026-07-20T07:24:28.710Z"
+last_updated: "2026-07-20T00:00:00.000Z"
 last_activity: 2026-07-20
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,57 +17,55 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-19 at v0.6.1 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and now, output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Planning next milestone (v0.6.1 shipped 2026-07-19; scope the next via `/gsd-new-milestone`)
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
+**Current focus:** Phase 19 — Block Separation Fixes (Cluster A), ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 19 (first of the 5 v0.6.2 phases, 19–23) — Block Separation Fixes (Cluster A)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-20 — Milestone v0.6.2 started
+Status: Ready to plan
+Last activity: 2026-07-20 — v0.6.2 roadmap created (Phases 19–23)
 
-## Roadmap Summary (v0.6.1 — Phases 16–18)
+Progress: [░░░░░░░░░░] 0%
+
+## Roadmap Summary (v0.6.2 — Phases 19–23)
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
-| 16 — Silent-Drop Node Handlers + Length-Converter Refactor | Render `todo_node` (admonition-style) + `manpage` (literal page text); generalize v0.6.0's px→pt converter into one shared, reused helper | TODO-01, MAN-01, LEN-01 |
-| 17 — Rendering-Fidelity Audit (discovery) | Human-assisted visual diff of the compiled corpus PDF vs. source → a severity-rated catalogue of *silent* mis-render issues; appends the FID-01a… fix backlog to REQUIREMENTS.md | AUD-01 |
-| 18 — Fidelity Fixes + Regression-Gate Close (discovery-sized) | Fix every high-severity AUD-01 issue with a real-compile regression fixture, then close on GATE-03 (corpus still fatal-free; `todo_node`/`manpage` gone from the `unknown_visit` catalogue) | FID-01, GATE-03 |
+| 19 — Block Separation Fixes (Cluster A) | Restore lost inter-block/inter-element separation (paragraphs-in-list-items, sibling signatures, rubric/option headings, definition terms, back-to-back confvals) — the dominant audit root cause, one coherent set of separator fixes | FID-02, FID-03, FID-04, FID-05, FID-06 |
+| 20 — Signature Token Spacing (Cluster B) | Restore lost intra-signature token spacing: `class `/`exception ` prefix, C/C++ inter-token spaces, `:type:`/`:default:` colon-space | FID-07, FID-08, FID-09 |
+| 21 — Residual Fidelity Fixes (Clusters C/D/E/F) | The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, codly config-wrapper leak, meaning-bearing inline styling | FID-10, FID-11, FID-12, FID-13, FID-14 |
+| 22 — typstpdf Target-Name PDF Fix (Issue #117) | Independent `builder.py`/`pdf.py` fix: `TypstPDFBuilder.finish()` names the PDF after the `typst_documents` target, not the source docname | PDF-01 |
+| 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
 
-**Coverage:** 6/6 named v1 requirements mapped (FID-01 expands to FID-01a… after AUD-01). No orphans.
+**Coverage:** 14/14 v1 requirements mapped (FID-02..FID-14 + PDF-01) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
 
-**Standing bar (GATE-01):** every node-handler change (Phases 16, 18) ships or extends a real `typst.compile()` acceptance fixture — string-agreement asserts alone never suffice. Local env can run real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
+**Standing bar (GATE-01):** every node-handler change (Phases 19, 20, 21) — and Phase 22 in its builder-test form — ships or extends a real `typst.compile()` regression fixture. String-agreement asserts alone never suffice. Local env runs real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
 
-**Milestone invariant:** zero new runtime deps, no `@preview` bump expected — the 3-way version-sync surface stays untouched. Flag during planning if a phase needs otherwise.
+**Milestone invariant (every phase):** zero new runtime deps, no `@preview` version bump — the 3-way version-sync surface (`writer.py`/`template_engine.py`/`templates/base.typ`) stays untouched. Flag during planning if a phase needs otherwise (none expected).
+
+**Ship unit = milestone** (`branching_strategy: milestone`): Phase 23 is prep-only; the irreversible publish (tag `v0.6.2` → `release.yml` → PyPI) executes at `/gsd-complete-milestone`.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 46 (15 in v0.4.4, 13 in v0.5.0, 15 in v0.6.0, 3 in v0.6.1)
-- v0.6.1 plans completed: 3 (Phase 16: 16-01 todo_node 6min, 16-02 manpage 6min, 16-03 length-converter)
-- Average duration: ~6min/plan (Phase 16)
+- Total plans completed (project cumulative): 55 (15 v0.4.4, 13 v0.5.0, 15 v0.6.0, 9 v0.6.1, 3 additional v0.6.1 plans counted in-milestone; v0.6.2: 0 so far)
+- v0.6.2 plans completed: 0 (roadmap just created)
 
 *Updated after each plan completion*
-**Per-Plan Metrics:**
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 17 P01 | 13min | 3 tasks | 1 files |
-| Phase 17 P02 | 25min | 2 tasks | 2 files |
-| Phase 17 P04 | 25min | 2 tasks | 2 files |
-| Phase 18 P01 | 20min | 3 tasks | 5 files |
-| Phase 18 P02 | 20min | 2 tasks | 0 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-v0.6.1 shipped 2026-07-19 — all milestone decisions archived to PROJECT.md Key Decisions and
-`milestones/v0.6.1-ROADMAP.md`. No carry-forward decisions for the next milestone.
+Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
+
+- 2026-07-20: `branching_strategy: milestone` — ship unit is the milestone; the final phase is a prep-only Release phase, publish deferred to `/gsd-complete-milestone`. Push `main` to `origin` at every milestone close.
+- v0.6.1: FID findings root-caused into clusters A–F in `17-AUDIT-CATALOGUE.md`; v0.6.2 delivers the 13 medium/low findings as one coherent translator-fix series.
 
 ### Pending Todos
 
@@ -75,16 +73,12 @@ None.
 
 ### Blockers/Concerns
 
-None open (the Phase 17 human-assisted-audit scope-discipline concern was resolved at the 17-03
-confirmation gate). Next-milestone backlog: the 13 medium/low audit findings are now enumerated and
-grouped by root cause (clusters A–F) in `ROADMAP.md` §Backlog 999.1 (source of record:
-`milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`) — ready to promote as
-one coherent "Rendering-Fidelity Round 2" series; plus CFG-01, XOS-01.
+None open. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fidelity work, NOT frontend UI — no `### UI hint` annotations were added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them).
 
 ### Roadmap Evolution
 
-- 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements (TODO-01, MAN-01, LEN-01, AUD-01, FID-01, GATE-03). Phase numbering continues from v0.6.0 (ended at Phase 15). A focused 3-phase polish shape: node handlers + LEN-01 → fidelity audit → audit-driven fixes + gate close.
-- 2026-07-11: v0.6.0 roadmap created — Phases 11–15, derived from 19 v1 requirements. Continued from v0.5.0.
+- 2026-07-20: v0.6.2 roadmap created — Phases 19–23, derived from 14 v1 requirements (FID-02..FID-14 + PDF-01). Phase numbering continues from v0.6.1 (ended at Phase 18). Shape: 3 root-cause-clustered translator-fix phases (A / B / C-D-E-F) + 1 independent builder-bug phase (Issue #117) + 1 prep-only Release/close phase.
+- 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements. Continued from v0.6.0.
 
 ## Deferred Items
 
@@ -95,14 +89,14 @@ Items acknowledged and carried forward from previous milestone closes:
 | Forward-ecosystem | CFG-01 (was FWD-03): user-configurable `@preview` versions | Deferred to v2 | v0.5.0 scoping |
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
 | Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
-| Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.1 | v0.6.1 scoping |
+| Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.2 | v0.6.1 scoping |
 
 ## Session Continuity
 
-Last session: 2026-07-19T14:01:09.462Z
-Stopped at: Completed 18-02-PLAN.md
+Last session: 2026-07-20
+Stopped at: v0.6.2 roadmap created (ROADMAP.md Phases 19–23; STATE.md; REQUIREMENTS.md traceability 14/14)
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan the first phase with `/gsd-plan-phase 19`
