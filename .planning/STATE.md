@@ -5,8 +5,8 @@ milestone_name: rendering fidelity round 2
 current_phase: 21
 current_phase_name: Clusters C/D/E/F
 status: planning
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-07-20T11:59:57.497Z"
+stopped_at: Phase 21 context gathered
+last_updated: "2026-07-20T12:26:41.756Z"
 last_activity: 2026-07-20
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
@@ -111,9 +111,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-20T11:35:39.400Z
-Stopped at: Completed 20-02-PLAN.md
-Resume file: None
+Last session: 2026-07-20T12:26:41.750Z
+Stopped at: Phase 21 context gathered
+Resume file: .planning/phases/21-residual-fidelity-fixes-clusters-c-d-e-f/21-CONTEXT.md
 
 ## Operator Next Steps
 
