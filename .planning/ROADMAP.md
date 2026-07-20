@@ -173,5 +173,18 @@ overflow" primitive may serve both — see catalogue D-10 kinship note):
 
 **Not backlog (recorded for context):** F4 was REJECTED at the 17-03 gate (Sphinx-side, builder-independent — not a typsphinx bug). F12 is DONE (FID-01a, Phase 18).
 
+### 999.2 — Issue #117: typstpdf PDF uses source name instead of target name (BACKLOG)
+
+**Goal:** [Captured for future planning]
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Source: [Issue #117](https://github.com/YuSabo90002/typsphinx/issues/117) (`bug`, OPEN, reported 2026-07-19 against v0.6.0 / Sphinx 9.1 / Python 3.14).
+
+**Reported behavior:** With `typst_documents = [('index', 'manual.typ', 'User Manual', 'Development Team')]`, running `sphinx-build -b typstpdf` emits the PDF named after the **source** docname (`index.pdf`) instead of the **target** name declared in `typst_documents` (`manual.pdf`). The `.typ` filename mapping appears honored; the PDF-compile step in `TypstPDFBuilder.finish()` likely re-derives the output name from the source docname rather than the target tuple. Investigate `builder.py` (`TypstPDFBuilder.finish()` / master-doc → PDF path derivation) and confirm against `pdf.py`.
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20*
