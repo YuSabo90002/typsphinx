@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 19
-current_phase_name: first of the 5 v0.6.2 phases, 19–23
+current_phase_name: Block Separation Fixes (Cluster A
 status: executing
 stopped_at: Phase 19 context gathered
-last_updated: "2026-07-20T08:45:19.293Z"
+last_updated: "2026-07-20T08:52:07.497Z"
 last_activity: 2026-07-20
-last_activity_desc: v0.6.2 roadmap created (Phases 19–23)
+last_activity_desc: Phase 19 execution started
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 19 — Block Separation Fixes (Cluster A), ready to plan
+**Current focus:** Phase 19 — Block Separation Fixes (Cluster A)
 
 ## Current Position
 
-Phase: 19 (first of the 5 v0.6.2 phases, 19–23) — Block Separation Fixes (Cluster A)
-Plan: —
-Status: Ready to execute
-Last activity: 2026-07-20 — v0.6.2 roadmap created (Phases 19–23)
+Phase: 19 (Block Separation Fixes (Cluster A)) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 19
+Last activity: 2026-07-20 — Completed quick task 260720-p2w (worktree-isolated exec provisioning docs); Phase 19 execution pending
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -78,6 +78,12 @@ None.
 ### Blockers/Concerns
 
 None open. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fidelity work, NOT frontend UI — no `### UI hint` annotations were added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them).
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260720-p2w | Document worktree-isolated executor env provisioning (uv sync + uv run) in CLAUDE.md | 2026-07-20 | cc21f47 | [260720-p2w-add-a-worktree-isolated-execution-subsec](./quick/260720-p2w-add-a-worktree-isolated-execution-subsec/) |
 
 ### Roadmap Evolution
 
