@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 20
-current_phase_name: Cluster B
+current_phase_name: signature-token-spacing-cluster-b
 status: executing
-stopped_at: Phase 20 context gathered
-last_updated: "2026-07-20T11:16:45.280Z"
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-07-20T11:27:19.863Z"
 last_activity: 2026-07-20
-last_activity_desc: Phase 19 complete, transitioned to Phase 20
+last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 20
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 19 — Block Separation Fixes (Cluster A)
+**Current focus:** Phase 20 — signature-token-spacing-cluster-b
 
 ## Current Position
 
-Phase: 20 — Signature Token Spacing (Cluster B)
-Plan: Not started
+Phase: 20 (signature-token-spacing-cluster-b) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-20 — Phase 19 complete, transitioned to Phase 20
+Last activity: 2026-07-20 — Phase 20 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 80%
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -61,6 +61,11 @@ Progress: [░░░░░░░░░░] 0%
 - v0.6.2 plans completed: 0 (roadmap just created)
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 20 P01 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -70,6 +75,7 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 - 2026-07-20: `branching_strategy: milestone` — ship unit is the milestone; the final phase is a prep-only Release phase, publish deferred to `/gsd-complete-milestone`. Push `main` to `origin` at every milestone close.
 - v0.6.1: FID findings root-caused into clusters A–F in `17-AUDIT-CATALOGUE.md`; v0.6.2 delivers the 13 medium/low findings as one coherent translator-fix series.
+- [Phase ?]: Phase 20 Plan 01: reused visit_Text dispatch (pass/pass) instead of a new space-emission helper for desc_sig_space, matching sibling desc_sig_* handlers
 
 ### Pending Todos
 
@@ -103,9 +109,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-20T10:33:35.257Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-signature-token-spacing-cluster-b/20-CONTEXT.md
+Last session: 2026-07-20T11:27:19.858Z
+Stopped at: Completed 20-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
