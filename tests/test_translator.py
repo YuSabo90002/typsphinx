@@ -3200,7 +3200,20 @@ def test_desc_signature_line_single_line_emits_no_linebreak(
 def test_desc_signature_line_resets_per_signature(simple_document, mock_builder):
     """_is_first_desc_signature_line must reset to True at the start of
     every visit_desc_signature, so consecutive signatures each start
-    fresh (no stray linebreak() carried over from a prior signature)."""
+    fresh (no stray SECOND linebreak() carried over from a prior
+    signature's own desc_signature_line handling).
+
+    Updated for FID-03 (Phase 19): two sibling desc_signatures now
+    correctly emit exactly ONE linebreak() between them (the sibling
+    separator, from visit_desc_signature's _is_first_desc_signature check)
+    -- this was the missing fix this test's own docstring described as a
+    gap ("sibling desc_signatures render on separate lines"). What this
+    test specifically still proves is that _is_first_desc_signature_line
+    resets correctly: neither signature is genuinely MULTI-LINE (each has
+    exactly one desc_signature_line child), so the desc_signature_line-level
+    mechanism must contribute ZERO additional linebreak()s -- the total
+    count must be exactly 1 (the sibling separator alone), not 2 (which
+    would mean the per-line flag leaked stale state across signatures)."""
     from sphinx import addnodes
 
     from typsphinx.translator import TypstTranslator
@@ -3224,10 +3237,11 @@ def test_desc_signature_line_resets_per_signature(simple_document, mock_builder)
     desc.walkabout(translator)
     output = translator.astext()
 
-    # Neither signature is genuinely multi-line, so no linebreak() should
-    # appear at all -- proves the flag reset per-signature rather than
-    # persisting is_first=False across the second signature.
-    assert "linebreak()" not in output
+    # Exactly one linebreak() -- the FID-03 sibling-boundary separator
+    # between sig1 and sig2. If _is_first_desc_signature_line leaked
+    # across signatures, a second (per-line) linebreak() would also
+    # appear, since neither signature is genuinely multi-line.
+    assert output.count("linebreak()") == 1
 
 
 def test_field_list_rendering(simple_document, mock_builder):

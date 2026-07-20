@@ -4357,6 +4357,16 @@ class TypstTranslator(SphinxTranslator):
         any child (signature/content) is visited.
         """
         self._emit_id_anchors(node)
+        # Reset per desc (FID-03): tracks whether the NEXT desc_signature
+        # child is this desc's first, so sibling signatures (overloads /
+        # alias groups / multi-option directives) get a leading linebreak()
+        # while a lone signature stays byte-unchanged. A plain scalar (not a
+        # stack) is safe here -- a desc's own desc_signature children are
+        # always fully processed (doctree order) before its desc_content
+        # (which may hold nested desc children) is entered, so a nested
+        # desc's own reset never races the outer desc's already-completed
+        # signature loop.
+        self._is_first_desc_signature = True
 
     def depart_desc(self, node: addnodes.desc) -> None:
         """
@@ -4379,7 +4389,20 @@ class TypstTranslator(SphinxTranslator):
         Visit a desc_signature node (API element signature).
 
         Signatures are rendered in bold using strong({}) wrapper.
+
+        Sibling desc_signatures (overloads / alias groups / multi-option
+        directives) emit a real Typst linebreak() BEFORE every signature
+        after the first (FID-03) -- a source '\\n' between two code-mode
+        statements is cosmetic-only (produces zero visual break), so
+        linebreak() (via the shared _emit_forced_break helper) is required
+        to stack them on separate lines rather than concatenating onto one
+        running line. A desc with a single signature (the overwhelming
+        common case) emits zero extra bytes (the flag stays True through
+        the only signature) -- byte-for-byte unchanged.
         """
+        if not self._is_first_desc_signature:
+            self._emit_forced_break("linebreak()")
+        self._is_first_desc_signature = False
         # Create a dummy strong node and use its visitor logic
         dummy_strong = nodes.strong()
         self.visit_strong(dummy_strong)
@@ -4720,12 +4743,32 @@ class TypstTranslator(SphinxTranslator):
         self.visit_strong(dummy_strong)
 
     def depart_rubric(self, node: nodes.rubric) -> None:
-        """Depart a rubric node."""
+        """
+        Depart a rubric node.
+
+        Emits a real Typst linebreak() unconditionally after the rubric
+        heading (FID-04) -- a rubric option-group heading (and the
+        directive-option "Options" heading) previously merged onto the same
+        line as the first following option/field because a bare cosmetic
+        "\\n" produces no visual break in Typst code mode (both the rubric
+        and whatever follows render via strong()). A rubric always needs
+        separation from what follows, so this fires unconditionally --
+        verified harmless at true end-of-document (nothing follows the
+        trailing linebreak()): no compile error, no visible artifact.
+        """
         # Use strong's depart logic
         dummy_strong = nodes.strong()
         self.depart_strong(dummy_strong)
-        # Add extra spacing after rubric
-        self.body.append("\n")
+        # depart_strong's closing "})" carries no trailing separator of its
+        # own (unlike depart_desc_signature, whose unconditional trailing
+        # "\n" is what makes FID-03's leading-linebreak() placement safe at
+        # the NEXT signature). Without this explicit "\n" here, linebreak()
+        # would directly abut "})" with zero whitespace between two
+        # code-mode statements -- confirmed via a real compile this session
+        # to fail with "expected semicolon or line break" (Pitfall 1's
+        # class of bug, encountered at the LEADING boundary this time).
+        self.add_text("\n")
+        self._emit_forced_break("linebreak()")
 
     def visit_title_reference(self, node: nodes.title_reference) -> None:
         """
