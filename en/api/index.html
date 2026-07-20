@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Contributing" href="../contributing.html"><link rel="prev" title="Advanced Examples" href="../examples/advanced.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>API Reference - typsphinx 0.6.0</title>
+        <title>API Reference - typsphinx 0.6.1</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -170,7 +170,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">typsphinx 0.6.0</div></a>
+      <a href="../index.html"><div class="brand">typsphinx 0.6.1</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.0</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -1229,6 +1229,44 @@ wrapped in text() automatically.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">emphasis</span></code></span>) – The emphasis node</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_manpage">
+<span class="sig-name descname"><span class="pre">visit_manpage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_manpage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_manpage" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a manpage node (:manpage: role).</p>
+<p>Renders the literal page-reference text (e.g. “ls(1)”) italic,
+Sphinx-HTML-faithful (D-02), by delegating to visit_emphasis so the
+paragraph-separator / list-item / inline-concat-context /
+_in_markup_mode state machine is reused verbatim – a manpage node
+duck-types fine since visit_emphasis performs no isinstance check on
+its argument, only reading self.* state (16-RESEARCH.md Pattern 2).</p>
+<p>No linkification per D-02a: with manpages_url unset, the node’s
+single child stays a plain nodes.Text – a reference child cannot
+occur in this configuration, so no link() is ever fabricated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">manpage</span></code></span>) – The manpage node</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_manpage">
+<span class="sig-name descname"><span class="pre">depart_manpage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_manpage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_manpage" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a manpage node.</p>
+<p>Delegates to depart_emphasis (see visit_manpage).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">manpage</span></code></span>) – The manpage node</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -2455,6 +2493,51 @@ verified closest semantic analog (see RESEARCH.md D-06 mapping).</p>
 </dd>
 <dt class="field-even">Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>node</strong> (<em>hint</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_todo_node">
+<span class="sig-name descname"><span class="pre">visit_todo_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_todo_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_todo_node" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a todo_node (sphinx.ext.todo). Converts to #task[] (gentle-clues).</p>
+<p>Gated on <cite>config.todo_include_todos</cite>, mirroring every official
+Sphinx builder (html/latex/text/man/texinfo in sphinx/ext/todo.py),
+which each raise <cite>nodes.SkipNode</cite> when the config is False (the
+Sphinx default) – internal author work-notes must never silently
+leak into published output (TODO-01, T-16-01). Unlike those
+builders, typsphinx does not register a dedicated node handler via
+<cite>app.add_node</cite>; docutils dispatches this method purely by the node
+class NAME (<cite>todo_node</cite>), so no import of <cite>sphinx.ext.todo</cite> is
+needed here.</p>
+<p>Note: todo_node carries its own <cite>nodes.title</cite> child (inserted by
+<cite>sphinx.ext.todo.Todo.run()</cite> at parse time), which visit_title’s
+admonition-aware branch buffers and <cite>_depart_admonition</cite> prefers
+over <cite>custom_title</cite> – the static “Todo” below is an inert,
+non-i18n fallback, not the actual title source (16-RESEARCH.md
+Pitfall 2).</p>
+<p><cite>task</cite> is verified present in the pinned gentle-clues 1.3.1
+(D-01a) – no base-<cite>clue</cite> fallback is required.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>Element</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_todo_node">
+<span class="sig-name descname"><span class="pre">depart_todo_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_todo_node"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_todo_node" title="Link to this definition">¶</a></dt>
+<dd><p>Depart a todo_node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>node</strong> (<em>Element</em>)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4081,6 +4164,8 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_Text"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_Text()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_emphasis"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_emphasis()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_emphasis"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_emphasis()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_manpage"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_manpage()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_manpage"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_manpage()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_strong"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_strong()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_strong"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_strong()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_literal"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_literal()</span></code></a></li>
@@ -4159,6 +4244,8 @@ Requirement 8.14: #outline() in template, not body</p>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_seealso"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_seealso()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_hint"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_hint()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_hint"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_hint()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_todo_node"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_todo_node()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_todo_node"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_todo_node()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_error"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_error()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.depart_error"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.depart_error()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.translator.TypstTranslator.visit_danger"><code class="docutils literal notranslate"><span class="pre">TypstTranslator.visit_danger()</span></code></a></li>
@@ -4272,7 +4359,7 @@ Requirement 8.14: #outline() in template, not body</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
+</div><script src="../_static/documentation_options.js?v=2bd037f0"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
