@@ -17,8 +17,23 @@ a ``str`` (an external URL) -- an internal cross-reference's dest is a
 in the rendered ``_template.typ``, and the external reference emits a
 ``link("http...`` call in ``index.typ``.
 
-This module also carries the FID-13 boundary (D-03) tests -- see the second
-class below, added alongside the ``visit_target`` one-line fix.
+FID-13 boundary (D-03, structural + pypdf adjacency per D-09): docutils
+generates a ``reference`` node followed by a sibling ``target`` node for
+every *named* external hyperlink (```` `text <url>`_ ````). ``visit_target``'s
+handling of that sibling wraps the reference in a markup-mode ``[...]`` block
+for ``#label(...)`` attachment and previously prepended a leading ``\\n``
+before that invisible call. A newline inside Typst MARKUP mode renders as a
+visible SPACE, which combined with the genuinely-source-present following
+space to produce a stray DOUBLE space before the next word/period -- exactly
+reproducing the audit catalogue's "RTD  PDF" (two spaces) observation. Fix:
+drop the leading ``\\n`` -- the preceding content is always the closing ``)``
+of the ``link(...)`` call, so ``)#label(`` is unambiguous with no separator.
+
+Confirmed both directions this session (real ``sphinx-build -b typstpdf``
+compiles, both pre-fix and post-fix): pre-fix, the extracted PDF text reads
+``"FIDTHIRTEENSENTINEL external reference  ."`` (two spaces before the
+period); post-fix it reads ``"FIDTHIRTEENSENTINEL external reference ."``
+(one space).
 """
 
 import subprocess
@@ -33,6 +48,13 @@ try:
     TYPST_AVAILABLE = True
 except ImportError:
     TYPST_AVAILABLE = False
+
+try:
+    import pypdf
+
+    PYPDF_AVAILABLE = True
+except ImportError:
+    PYPDF_AVAILABLE = False
 
 
 @pytest.fixture
@@ -150,3 +172,132 @@ class TestExternalLinkStyleRenderGate:
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the external-link boundary render gate",
+)
+class TestExternalLinkBoundaryRenderGate:
+    """
+    Real-compile regression gate proving a named external reference followed
+    by a period renders with a single space, not a stray double space
+    (FID-13 boundary, D-03).
+
+    Requirements: FID-13, GATE-01.
+    """
+
+    def test_typstpdf_boundary_no_leading_newline_before_label(
+        self, external_link_style_render_gate_dir, temp_build_dir
+    ):
+        """
+        Build the fixture through ``-b typstpdf`` and confirm, at the
+        SOURCE (``.typ``) level:
+
+        - the build exits cleanly and did not report a compile failure;
+        - the reference-with-target markup wrapper attaches its
+          ``#label(...)`` call directly after the closing ``)`` of the
+          ``link(...)`` call it decorates -- no ``\\n`` sits between them
+          (D-03: a leading ``\\n`` there renders as a visible space in
+          Typst MARKUP mode, the boundary bug's root cause).
+        """
+        result = _run_sphinx_build_typstpdf(
+            external_link_style_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "Typst compilation failed" not in result.stderr, (
+            "TypstPDFBuilder.finish() logged a compilation failure:\n"
+            f"stderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        assert typ_output.exists(), "index.typ was not emitted"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        assert ")\n#label(" not in typ_text, (
+            "Found a leading '\\n' between the link(...) call's closing "
+            "')' and the following '#label(' -- the FID-13 boundary fix is "
+            f"not applied (D-03):\n{typ_text}"
+        )
+        assert ")#label(" in typ_text, (
+            "Expected the reference-with-target wrapper to attach "
+            "'#label(...)' directly after the link(...) call's closing "
+            f"')' with no separator:\n{typ_text}"
+        )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+        )
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    @pytest.mark.skipif(
+        not PYPDF_AVAILABLE,
+        reason="pypdf is required for the extracted-text adjacency assert",
+    )
+    def test_pdf_extracted_text_has_single_space_boundary(
+        self, external_link_style_render_gate_dir, temp_build_dir
+    ):
+        """
+        Build the fixture through ``-b typstpdf``, extract the compiled
+        PDF's text with pypdf, and confirm (D-09 required adjacency
+        asserts):
+
+        - the single-space form ``"FIDTHIRTEENSENTINEL external reference ."``
+          is present (a real, single rendered space before the period);
+        - the pre-fix double-space form
+          ``"FIDTHIRTEENSENTINEL external reference  ."`` (two spaces) is
+          ABSENT;
+        - the same-document internal reference (``"Internal Target
+          Section."``) is unaffected -- a single space, proving the fix is
+          scoped to the reference-with-target wrapper only, not a global
+          change to internal-reference rendering.
+
+        This is the real, rendered-glyph-level proof: a structural ``.typ``
+        assert alone cannot distinguish a genuinely single space from a
+        Typst markup newline collapsing into an extra one, but a rendered
+        PDF can (Phase 20's proven adjacency-assert pattern -- confirmed
+        this session via a real, temporary pre-fix build: the pre-fix
+        extracted text reads
+        ``"FIDTHIRTEENSENTINEL external reference  ."`` with two spaces).
+        """
+        result = _run_sphinx_build_typstpdf(
+            external_link_style_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+        )
+
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        assert "FIDTHIRTEENSENTINEL external reference ." in full_text, (
+            "Expected a single rendered space before the period after the "
+            f"named external reference -- FID-13 boundary fix regression:\n"
+            f"{full_text}"
+        )
+        assert "FIDTHIRTEENSENTINEL external reference  ." not in full_text, (
+            "Found the pre-fix stray DOUBLE space before the period -- the "
+            f"FID-13 boundary fix (D-03) is not in effect:\n{full_text}"
+        )
+
+        # Internal cross-reference rendering (unstyled, un-fixed) stays
+        # unaffected -- a plain single space precedes its trailing period.
+        assert "Internal Target Section." in full_text, (
+            "Expected the same-document internal reference to render "
+            f"unaffected by the boundary fix:\n{full_text}"
+        )

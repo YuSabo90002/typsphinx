@@ -2817,7 +2817,15 @@ class TypstTranslator(SphinxTranslator):
                 label_id = self._namespace_label(
                     self._current_docname(), node["ids"][0]
                 )
-                self.add_text(f'\n#label("{label_id}")')
+                # FID-13 fix: no leading '\n'. The preceding content is
+                # always the closing ')' of the reference's link(...) call
+                # -- '#' unambiguously starts a new markup-embedded
+                # expression with no separator needed. A leading '\n' here
+                # renders as a visible space in Typst MARKUP mode (a
+                # newline in markup content collapses to a space), which
+                # combines with the genuinely-source-present following
+                # space to produce a stray double space (D-03).
+                self.add_text(f'#label("{label_id}")')
             # Close the markup block
             self.add_text("]")
             # Clear the flags
