@@ -230,9 +230,7 @@ class TestAbbrPepSeparatorRenderGate:
         )
 
         # The genuine :abbr: usage must keep its inline expansion.
-        assert (
-            "ABBRSENTINELACRONYM (ABBRSENTINELEXPANSIONPHRASE)" in full_text
-        ), (
+        assert "ABBRSENTINELACRONYM (ABBRSENTINELEXPANSIONPHRASE)" in full_text, (
             "Expected the genuine :abbr: role's inline expansion to remain "
             f"present -- the FID-14 fix must not suppress it:\n{full_text}"
         )

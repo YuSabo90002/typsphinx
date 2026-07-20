@@ -171,8 +171,8 @@ class TestParagraphSoftNewlineRenderGate:
         method_idx = typ_text.index('raw("MethodDocumenter")')
         attribute_idx = typ_text.index('raw("AttributeDocumenter")')
         assert attribute_idx > method_idx, (
-            "Expected raw(\"AttributeDocumenter\") to follow "
-            f"raw(\"MethodDocumenter\") in the emitted .typ:\n{typ_text}"
+            'Expected raw("AttributeDocumenter") to follow '
+            f'raw("MethodDocumenter") in the emitted .typ:\n{typ_text}'
         )
         between_literals_span = typ_text[method_idx:attribute_idx]
         assert newline_escape not in between_literals_span, (
