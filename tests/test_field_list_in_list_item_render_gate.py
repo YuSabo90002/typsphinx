@@ -160,9 +160,15 @@ class TestFieldListInListItemRenderGate:
         )
 
         # A top-level field list (not nested in a list item) must stay
-        # byte-unchanged: no list-item separator applies outside a list item,
-        # so field_name's strong( must NOT gain a spurious leading newline.
-        assert 'strong(text("Author") + text(":"))' in typ_text, (
+        # unchanged with respect to the LIST-ITEM SEPARATOR fix under test
+        # here: no list-item separator applies outside a list item, so
+        # field_name's strong( must NOT gain a spurious leading newline.
+        # The trailing colon form below is intentionally the FID-09
+        # colon-space form (a space after the colon inside text(...)),
+        # not the old no-space colon -- that change is a deliberate,
+        # codebase-wide edit to depart_field_name (Phase 20 Plan 02), not a
+        # regression of the list-item separator this test actually verifies.
+        assert 'strong(text("Author") + text(": "))' in typ_text, (
             "The top-level field list's field-name rendering changed -- the "
             f"list-item separator fix must not touch it:\n{typ_text}"
         )

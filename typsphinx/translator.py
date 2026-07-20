@@ -4669,8 +4669,18 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def depart_field(self, node: nodes.field) -> None:
-        """Depart a field node."""
-        pass
+        """
+        Depart a field node.
+
+        Emit an inter-field double-space separator (FID-09) when this field
+        has a following sibling, mirroring depart_desc_parameter's "am I the
+        last sibling" idiom. The double space is wrapped in BOTH a leading
+        AND a trailing newline so it never juxtaposes with the neighboring
+        strong(...) call on one physical source line -- a leading-only
+        newline is a real Typst "expected semicolon or line break" fatal.
+        """
+        if node.next_node(descend=False, siblings=True):
+            self.body.append('\ntext("  ")\n')
 
     def visit_field_name(self, node: nodes.field_name) -> None:
         """
@@ -4690,8 +4700,11 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_field_name(self, node: nodes.field_name) -> None:
         """Depart a field_name node."""
-        # Close strong() and add colon
-        self.body.append(' + text(":"))\n')
+        # Close strong() and add a colon followed by a breakable space
+        # (FID-09) -- the space is a real content value inside the +-joined
+        # strong() expression, restoring the "Type: int" colon-space that
+        # was previously emitted as a bare colon with no trailing space.
+        self.body.append(' + text(": "))\n')
 
         # Restore paragraph state
         if hasattr(self, "_field_name_was_in_paragraph"):
