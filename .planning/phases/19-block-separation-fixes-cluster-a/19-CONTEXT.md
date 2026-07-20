@@ -79,7 +79,7 @@ C/C++ inter-token, `:type:`/`:default:` colon-space), and all Cluster C/D/E/F fi
   token → the assert fails; post-fix it passes. This mirrors the established repo idiom in
   `tests/test_desc_signature_concat_render_gate.py` (assert on emitted `.typ` structure +
   real-compile PDF magic).
-- **D-06:** Rejected rasterize-and-check-glyph-position (poppler-dependent, brittle, slow,
+- **D-06 [informational]:** Rejected rasterize-and-check-glyph-position (poppler-dependent, brittle, slow,
   inconsistent with the milestone's other gates) and did NOT adopt pypdf text-extraction as a
   requirement (the lighter structural-assert path was chosen). A planner MAY optionally add a
   pypdf extracted-text adjacency check (e.g. absence of "role.For") for the observable cases
