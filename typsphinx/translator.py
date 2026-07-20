@@ -1746,14 +1746,27 @@ class TypstTranslator(SphinxTranslator):
         # auto-joins the statements into one content value -- a valid single
         # argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/
         # bug #3/#5) untouched; we wrap only the definition arg.
+        # FID-05: terms()'s built-in `separator` parameter defaults to a WEAK
+        # h(0.6em) horizontal space, not a line break -- when a definition's
+        # first content is bare inline (e.g. nested in a list_item, where
+        # visit_paragraph early-returns per FID-02, or when the definition
+        # opens with a nested list/field-list whose own first content is also
+        # inline), nothing forces a break and the term flows onto the same
+        # line as its definition. Setting separator: linebreak() unconditionally
+        # fixes both sub-cases and is a no-op-visual-change for the
+        # already-correct par()-wrapped case (a block cannot share a line with
+        # preceding inline flow regardless of the separator). This is a
+        # terms()-call-PARAMETER change -- NOT routed through the shared
+        # _emit_forced_break helper (Pitfall 3): the bug is a Typst-layout
+        # default, not a missing statement-boundary.
         if items:
             items_str = ", ".join(
                 f"terms.item({term}, {self._wrap_definition_arg(definition)})"
                 for term, definition in items
             )
-            self.add_text(f"terms({items_str})\n\n")
+            self.add_text(f"terms(separator: linebreak(), {items_str})\n\n")
         else:
-            self.add_text("terms()\n\n")
+            self.add_text("terms(separator: linebreak())\n\n")
 
         # A following sibling in the same list item must newline-separate from
         # this terms(...) statement.
