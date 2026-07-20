@@ -4743,12 +4743,32 @@ class TypstTranslator(SphinxTranslator):
         self.visit_strong(dummy_strong)
 
     def depart_rubric(self, node: nodes.rubric) -> None:
-        """Depart a rubric node."""
+        """
+        Depart a rubric node.
+
+        Emits a real Typst linebreak() unconditionally after the rubric
+        heading (FID-04) -- a rubric option-group heading (and the
+        directive-option "Options" heading) previously merged onto the same
+        line as the first following option/field because a bare cosmetic
+        "\\n" produces no visual break in Typst code mode (both the rubric
+        and whatever follows render via strong()). A rubric always needs
+        separation from what follows, so this fires unconditionally --
+        verified harmless at true end-of-document (nothing follows the
+        trailing linebreak()): no compile error, no visible artifact.
+        """
         # Use strong's depart logic
         dummy_strong = nodes.strong()
         self.depart_strong(dummy_strong)
-        # Add extra spacing after rubric
-        self.body.append("\n")
+        # depart_strong's closing "})" carries no trailing separator of its
+        # own (unlike depart_desc_signature, whose unconditional trailing
+        # "\n" is what makes FID-03's leading-linebreak() placement safe at
+        # the NEXT signature). Without this explicit "\n" here, linebreak()
+        # would directly abut "})" with zero whitespace between two
+        # code-mode statements -- confirmed via a real compile this session
+        # to fail with "expected semicolon or line break" (Pitfall 1's
+        # class of bug, encountered at the LEADING boundary this time).
+        self.add_text("\n")
+        self._emit_forced_break("linebreak()")
 
     def visit_title_reference(self, node: nodes.title_reference) -> None:
         """
