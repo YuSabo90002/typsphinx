@@ -969,6 +969,24 @@ class TypstTranslator(SphinxTranslator):
             self.add_text(text_content)
             return
 
+        # FID-11: a paragraph authored with reST soft/semantic source line
+        # breaks and no inline markup at the wrap point is merged by
+        # docutils into a SINGLE Text node carrying a literal '\n' where the
+        # source line wrapped. escape_typst_string would otherwise turn that
+        # embedded '\n' into the two-char "\n" escape inside the emitted
+        # text("...") string, which Typst decodes back into a literal
+        # control character -- forcing a HARD line break in the rendered
+        # paragraph instead of the single-space reflow HTML/print
+        # conventionally use for a soft wrap. Collapse to a single space
+        # here, strictly BEFORE escaping (D-Disc-1, Pattern 2), so this does
+        # not bypass or weaken escape_typst_string's own escaping. The
+        # guard set is safe: in_literal_block already early-returned above;
+        # line_block/line content uses a structural linebreak() via
+        # depart_line, never an embedded '\n' in a line's own Text child;
+        # inline raw()/literal content never routes through visit_Text at
+        # all (visit_literal escapes node.astext() directly).
+        text_content = text_content.replace("\n", " ")
+
         # Escape string content via the shared helper (order-safe, full set)
         text_content = escape_typst_string(text_content)
 
@@ -4344,9 +4362,18 @@ class TypstTranslator(SphinxTranslator):
         dummy `nodes.Text` delegated to `visit_Text` -- inheriting the
         existing string-escaping regime -- rather than `node.astext()` or
         a raw f-string interpolation (V5 Input Validation, Pitfall 7).
+
+        FID-14: the auto-generated PEP 3102 keyword-only ("*") and PEP 570
+        positional-only ("/") signature separators are represented as an
+        `abbreviation` node whose OWN visible text is exactly "*" or "/" --
+        the sole reliable, narrow-scope signal (no distinguishing
+        classes/ids exist). Suppress the appended explanation ONLY for
+        those two exact cases; a genuine `:abbr:` role's acronym text is
+        never bare "*"/"/", so it keeps its inline expansion unchanged
+        (D-Disc-3).
         """
         explanation = node.get("explanation", "")
-        if explanation:
+        if explanation and node.astext() not in ("*", "/"):
             dummy_text = nodes.Text(f" ({explanation})")
             self.visit_Text(dummy_text)
 
