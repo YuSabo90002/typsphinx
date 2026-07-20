@@ -4357,6 +4357,16 @@ class TypstTranslator(SphinxTranslator):
         any child (signature/content) is visited.
         """
         self._emit_id_anchors(node)
+        # Reset per desc (FID-03): tracks whether the NEXT desc_signature
+        # child is this desc's first, so sibling signatures (overloads /
+        # alias groups / multi-option directives) get a leading linebreak()
+        # while a lone signature stays byte-unchanged. A plain scalar (not a
+        # stack) is safe here -- a desc's own desc_signature children are
+        # always fully processed (doctree order) before its desc_content
+        # (which may hold nested desc children) is entered, so a nested
+        # desc's own reset never races the outer desc's already-completed
+        # signature loop.
+        self._is_first_desc_signature = True
 
     def depart_desc(self, node: addnodes.desc) -> None:
         """
@@ -4379,7 +4389,20 @@ class TypstTranslator(SphinxTranslator):
         Visit a desc_signature node (API element signature).
 
         Signatures are rendered in bold using strong({}) wrapper.
+
+        Sibling desc_signatures (overloads / alias groups / multi-option
+        directives) emit a real Typst linebreak() BEFORE every signature
+        after the first (FID-03) -- a source '\\n' between two code-mode
+        statements is cosmetic-only (produces zero visual break), so
+        linebreak() (via the shared _emit_forced_break helper) is required
+        to stack them on separate lines rather than concatenating onto one
+        running line. A desc with a single signature (the overwhelming
+        common case) emits zero extra bytes (the flag stays True through
+        the only signature) -- byte-for-byte unchanged.
         """
+        if not self._is_first_desc_signature:
+            self._emit_forced_break("linebreak()")
+        self._is_first_desc_signature = False
         # Create a dummy strong node and use its visitor logic
         dummy_strong = nodes.strong()
         self.visit_strong(dummy_strong)
