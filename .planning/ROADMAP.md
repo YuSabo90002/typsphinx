@@ -239,7 +239,7 @@ after the translator series and before Release.
 **Success Criteria** (what must be TRUE):
 
   1. With `typst_documents = [('index', 'manual.typ', 'User Manual', 'Development Team')]`, `sphinx-build -b typstpdf` emits `manual.pdf` (the target name), not `index.pdf` (the source docname) (PDF-01).
-  2. `TypstPDFBuilder.finish()` derives the output PDF name from the `typst_documents` target tuple, consistent with the already-correct `.typ` filename mapping (Issue #117).
+  2. `TypstPDFBuilder.finish()` and both `write_doc()` sites derive the output filename from the `typst_documents` target element via one shared helper (`TypstBuilder._resolve_output_stem`), so the compiled `.pdf` and the emitted `.typ` always agree (Issue #117). (Corrected in Phase 22 Plan 03: the original wording asserted a pre-existing correct `.typ` mapping — false, since `doc_tuple[1]` was read nowhere in the package before this phase; per D-01 the phase scope is both filenames.)
   3. A regression test asserts the emitted PDF filename matches the configured `typst_documents` target (extends the builder / render-gate test pattern) and would fail against the pre-fix `index.pdf` behavior.
   4. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
@@ -306,7 +306,7 @@ the closing corpus re-run)
 **Success Criteria** (what must be TRUE):
 
   1. `pyproject.toml` version is bumped `0.6.1` → `0.6.2` as the sole version literal, and `uv.lock` is regenerated in lockstep (`uv sync --locked` green).
-  2. `CHANGELOG.md` carries a curated `## [0.6.2]` entry (the single source for the eventual Release body) covering the 13 fidelity fixes (clusters A–F) and the Issue #117 target-name fix.
+  2. `CHANGELOG.md` carries a curated `## [0.6.2]` entry (the single source for the eventual Release body) covering the 13 fidelity fixes (clusters A–F) and the Issue #117 target-name fix. Per the Phase 22 Plan 03 D-09 hand-off, the Issue #117 fix MUST be presented as a **user-visible output filename change** — users whose CI references a docname-named build artifact must be able to see it — not buried among internal fixes.
   3. The full ~684-page Sphinx `doc/` corpus re-run through `-b typstpdf` is fatal-free (valid `%PDF` magic, 0 errors) and the `unknown_visit` catalogue is still clean — the closing regression gate, mirroring v0.6.1's GATE-03.
   4. The milestone invariant is confirmed held: zero new runtime dependencies, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
   5. Scope fence held — no tag, no PyPI publish, no GitHub Release in this phase (deferred to `/gsd-complete-milestone`).

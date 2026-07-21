@@ -35,6 +35,13 @@ This gate proves CORRECTNESS, not merely compilation:
    never ``pagea``'s.
 3. SAME-DOC REF: a ``:ref:`` within ``pagea`` still resolves (refid path
    regression guard).
+4. RENAMED-MASTER NON-REGRESSION (Phase 22): the fixture's master
+   ``typst_documents`` target (``namespace-gate``) differs from its docname
+   (``index``). Labels stay namespaced by SOURCE docname (the ``pagea:`` /
+   ``pageb:`` prefixes asserted in concerns 1-3 above) even though the
+   master's OUTPUT filename is ``namespace-gate``, and the compile is
+   fatal-free -- exactly what would break if ``get_target_uri`` had followed
+   the write-path rename instead of staying docname-based.
 
 Drives the full ``-b typstpdf`` path -- NOT ``-b typst`` -- on purpose: the
 label-uniqueness fatal only fires inside ``TypstPDFBuilder.finish()``'s
@@ -219,12 +226,21 @@ class TestCrossDocLabelNamespaceRenderGate:
             f"its same-doc reference would dangle:\n{pagea_text}"
         )
 
-        # (4) The emitted master must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # (4) The emitted master must have compiled to a real, non-empty PDF,
+        # named after its typst_documents target ("namespace-gate"), not its
+        # docname ("index") -- the Phase 22 renamed-master proof.
+        pdf_output = temp_build_dir / "namespace-gate.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
-            f"on the duplicated <shared-topic> label:\nstderr: {result.stderr}"
+            "namespace-gate.pdf was not produced -- typst.compile() aborted, "
+            "most likely on the duplicated <shared-topic> label:\n"
+            f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
             assert f.read(4) == b"%PDF", "Generated file is not a valid PDF"
+        assert not (temp_build_dir / "index.pdf").exists(), (
+            "index.pdf must NOT exist -- the master's compiled artifact must "
+            "follow the fixture's typst_documents target name "
+            "('namespace-gate'), not its docname (D-08 clean break, no "
+            "compatibility shim)."
+        )
