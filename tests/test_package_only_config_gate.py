@@ -53,7 +53,7 @@ from pathlib import Path
 import pytest
 
 try:
-    import typst  # noqa: F401
+    import typst
 
     TYPST_AVAILABLE = True
 except ImportError:
@@ -293,3 +293,246 @@ class TestPackageOnlyConfigGate:
         with open(pdf_path, "rb") as f:
             magic = f.read(4)
         assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 pre-fix-basis failure proof",
+)
+class TestPreFixBasisFailureProof:
+    """
+    Standing pre-fix-basis failure proof (D-06, D-09): reconstructs each of
+    three pre-fix defect shapes FROM the post-fix emitted master (built
+    once, shared read-only across all three reconstructions) and proves a
+    real ``typst.compile()`` RAISES against each one. This stays meaningful
+    after the original buggy code is deleted, because each reconstruction
+    is derived mechanically from the current emitted output rather than
+    hand-authored to match a historical bug.
+
+    Only ``pytest.raises`` is asserted -- never the exception's message
+    text (D-06). Manually weakening any ONE of these three reconstructions
+    (e.g. commenting out its single mutation) makes that reconstruction
+    compile successfully instead of raising, which turns exactly that one
+    test red -- this was confirmed manually while writing this module and
+    is recorded in the plan's SUMMARY rather than re-asserted here as a
+    standing test (a test that verifies its own absence is not
+    expressible).
+
+    Requirements: CONF-02, CONF-03, D-06.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def emitted_master_text(tmp_path_factory):
+        """
+        Build the GATE-01 fixture ONCE via the faster ``-b typst`` builder
+        (no compile needed to obtain the source text these reconstructions
+        mutate) and return the emitted master's text.
+
+        ``@staticmethod`` for the same reason as ``TestPackageOnlyConfigGate
+        .build`` above: this fixture returns a plain value rather than
+        mutating ``self``, so it is correct (not just warning-silencing)
+        under this project's ``error::DeprecationWarning`` filter.
+        """
+        build_dir = tmp_path_factory.mktemp("prefix_basis_source_build")
+        result = _run_sphinx_build(GATE_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return typ_path.read_text(encoding="utf-8")
+
+    def test_bug_a_basis_shared_template_import_raises(
+        self, emitted_master_text, tmp_path
+    ):
+        """
+        BUG-A basis: prepend a shared-template import line referencing a
+        file that is never written anywhere in this temporary directory.
+        Reproduces the pre-fix shape where a package-alone master
+        unconditionally imported ``_template.typ``.
+        """
+        reconstructed = '#import "_template.typ": project\n' + emitted_master_text
+        target = tmp_path / "bug_a_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
+
+    def test_bug_b_basis_unrequested_date_argument_raises(
+        self, emitted_master_text, tmp_path
+    ):
+        """
+        BUG-B basis: insert an unrequested ``date`` argument into the
+        show-rule call. Reproduces the pre-fix unconditional back-fill of
+        ``date`` into a package function that never asked for it.
+        """
+        lines = emitted_master_text.split("\n")
+        opening = [i for i, line in enumerate(lines) if "#show: ieee.with(" in line]
+        assert (
+            len(opening) == 1
+        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
+        lines.insert(opening[0] + 1, "  date: none,")
+        reconstructed = "\n".join(lines)
+        assert "date: none," in reconstructed
+
+        target = tmp_path / "bug_b_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
+
+    def test_bug_c_basis_authors_as_string_tuple_raises(
+        self, emitted_master_text, tmp_path
+    ):
+        """
+        BUG-C basis: replace the authors array-of-dictionaries with a bare
+        tuple of author-name strings. Reproduces the pre-fix shape where
+        ``typst_authors`` was rendered as (or replaced by) a plain string
+        rather than a dict the package's own ``ieee`` function maps over
+        reading a ``name`` field -- which fails precisely because a string
+        has no such field.
+        """
+        lines = emitted_master_text.split("\n")
+        authors_lines = [
+            i for i, line in enumerate(lines) if line.strip().startswith("authors: (")
+        ]
+        assert len(authors_lines) == 1, (
+            f"Expected exactly one authors assignment line, found "
+            f"{len(authors_lines)}"
+        )
+        lines[authors_lines[0]] = '  authors: ("Ada Fixture Researcher",),'
+        reconstructed = "\n".join(lines)
+        assert 'authors: ("Ada Fixture Researcher",),' in reconstructed
+
+        target = tmp_path / "bug_c_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 config->output difference matrix",
+)
+class TestConfigOutputDifferenceMatrix:
+    """
+    D-10 / CONF-03: proves that each configuration value this phase touches
+    provably CHANGES THE EMITTED OUTPUT between two configurations -- never
+    merely that a value is registered, or that a build succeeds. Each test
+    below builds a second, minimally-varied project (derived from the SAME
+    real fixture config via ``_write_variant_project``) and asserts a
+    concrete difference against the unmodified fixture's own emitted output.
+
+    Uses ``-b typst`` (not ``-b typstpdf``): these tests compare *emitted
+    source text*, so a real compile is not needed here -- it is already
+    covered by ``TestPackageOnlyConfigGate.test_real_compile_produces_valid_pdf``
+    above.
+
+    Requirements: CONF-03, D-10.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def baseline_text(tmp_path_factory):
+        build_dir = tmp_path_factory.mktemp("diff_matrix_baseline_build")
+        result = _run_sphinx_build(GATE_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst (baseline) failed:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return typ_path.read_text(encoding="utf-8")
+
+    def test_removing_package_config_changes_output(self, baseline_text, tmp_path):
+        """
+        Removing ``typst_package`` changes the emitted output: the package
+        import line disappears, and a shared-template import reappears
+        (the routing this phase's plan 04 repaired).
+        """
+        variant_dir = _write_variant_project(
+            tmp_path / "no_package_variant", removals=["typst_package"]
+        )
+        build_dir = tmp_path / "no_package_build"
+        result = _run_sphinx_build(variant_dir, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst (no-package variant) failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+
+        assert '#import "@preview/charged-ieee:0.1.4"' in baseline_text
+        assert '#import "@preview/charged-ieee:0.1.4"' not in variant_text
+
+        assert "_template.typ" not in baseline_text
+        assert "_template.typ" in variant_text
+        assert variant_text != baseline_text
+
+    def test_removing_authors_config_changes_output(self, baseline_text, tmp_path):
+        """
+        Removing ``typst_authors`` changes the emitted authors value: the
+        array-of-dictionaries no longer appears, and (because the package
+        path never back-fills a default) no ``authors`` argument is emitted
+        at all.
+        """
+        variant_dir = _write_variant_project(
+            tmp_path / "no_authors_variant", removals=["typst_authors"]
+        )
+        build_dir = tmp_path / "no_authors_build"
+        result = _run_sphinx_build(variant_dir, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst (no-authors variant) failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+
+        baseline_region = _show_rule_call_region(baseline_text)
+        variant_region = _show_rule_call_region(variant_text)
+
+        assert "authors: (" in baseline_region
+        assert "authors:" not in variant_region
+        assert variant_text != baseline_text
+
+    def test_changing_template_function_param_changes_output(
+        self, baseline_text, tmp_path
+    ):
+        """
+        Changing one ``typst_template_function["params"]`` value (here:
+        ``abstract``) changes THAT value in the emitted call -- proving the
+        params dict is not merely accepted but actually threaded through
+        to the rendered output.
+        """
+        original_values = _load_fixture_conf_values()
+        original_function = original_values["typst_template_function"]
+        new_abstract = (
+            "A DELIBERATELY DIFFERENT abstract proving the "
+            "typst_template_function params dict changes the emitted "
+            "output rather than being silently ignored."
+        )
+        changed_function = dict(original_function)
+        changed_function["params"] = dict(original_function["params"])
+        changed_function["params"]["abstract"] = new_abstract
+        assert (
+            changed_function["params"]["abstract"]
+            != original_function["params"]["abstract"]
+        )
+
+        variant_dir = _write_variant_project(
+            tmp_path / "changed_param_variant",
+            overrides={"typst_template_function": changed_function},
+        )
+        build_dir = tmp_path / "changed_param_build"
+        result = _run_sphinx_build(variant_dir, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst (changed-param variant) failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+
+        assert new_abstract in variant_text
+        assert new_abstract not in baseline_text
+        assert original_function["params"]["abstract"] in baseline_text
+        assert original_function["params"]["abstract"] not in variant_text
