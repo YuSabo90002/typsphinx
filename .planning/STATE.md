@@ -6,14 +6,14 @@ current_phase: 22.1
 current_phase_name: typstpdf Compile-Root Alignment for Nested Masters
 status: executing
 stopped_at: Phase 22.1 context gathered
-last_updated: "2026-07-21T15:26:32.296Z"
+last_updated: "2026-07-21T18:29:55.417Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.1 execution started
+last_activity_desc: Phase 22.1 execution resumed (wave continue)
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 11
+  total_plans: 14
+  completed_plans: 13
   percent: 67
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 Phase: 22.1 (typstpdf Compile-Root Alignment for Nested Masters) — EXECUTING
 Plan: 1 of 2
 Status: Executing Phase 22.1
-Last activity: 2026-07-22 — Phase 22.1 execution started
+Last activity: 2026-07-22 — Phase 22.1 execution resumed (wave continue)
 
 Progress: [████████████████████] 11/11 plans (100%)
 
