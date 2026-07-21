@@ -107,9 +107,62 @@ def get_typst_version() -> str:
         return "not installed"
 
 
+def compile_typst_file_to_pdf(typ_path: str, root_dir: str | None = None) -> bytes:
+    """
+    Compile a Typst FILE (already on disk) to PDF bytes.
+
+    Unlike compile_typst_to_pdf(), this takes a path directly -- no temporary
+    file is created. The caller is responsible for ``typ_path`` already being
+    at its real, intended location so that relative ``#include()`` /
+    ``image()`` / ``read()`` paths inside it resolve correctly: Typst
+    resolves relative paths against the file containing the call, not
+    against ``root_dir``.
+
+    Args:
+        typ_path: Path to an existing .typ file to compile.
+        root_dir: Typst project root (bounds relative/absolute path escape).
+
+    Returns:
+        PDF content as bytes.
+
+    Raises:
+        ImportError: If typst package not available.
+        TypstCompilationError: If compilation fails. ``source_location`` is
+            the real ``typ_path`` (not a temporary filename), so error
+            locations are actionable for users.
+
+    Requirement 9.2: Execute Typst compilation within Python environment
+    Requirement 9.4: Generate PDF from Typst markup
+    Requirement 10.3: Error detection and handling
+    """
+    check_typst_available()
+
+    import typst
+
+    try:
+        pdf_bytes = typst.compile(typ_path, root=root_dir)
+        return pdf_bytes
+    except Exception as typst_error:
+        error_msg = _parse_typst_error(typst_error)
+
+        logger.error(f"Typst compilation failed at {typ_path}: {error_msg}")
+
+        raise TypstCompilationError(
+            message=error_msg, typst_error=typst_error, source_location=typ_path
+        ) from typst_error
+
+
 def compile_typst_to_pdf(typst_content: str, root_dir: str | None = None) -> bytes:
     """
     Compile Typst content to PDF bytes.
+
+    .. deprecated::
+        Internal/legacy entry point, scheduled for removal in v0.7 (see the
+        CHANGELOG ``[0.6.2]`` entry). New code MUST use
+        :func:`compile_typst_file_to_pdf`. Because the temporary file this
+        function creates lands at ``root_dir``, relative paths in content
+        authored for a master that does not sit at ``root_dir`` will NOT
+        resolve correctly.
 
     Args:
         typst_content: Typst markup content
@@ -128,8 +181,6 @@ def compile_typst_to_pdf(typst_content: str, root_dir: str | None = None) -> byt
     """
     check_typst_available()
 
-    import typst
-
     # Create a temporary file for the Typst content
     # typst.compile() requires a file path, not string content
     temp_file = None
@@ -143,21 +194,8 @@ def compile_typst_to_pdf(typst_content: str, root_dir: str | None = None) -> byt
             f.write(typst_content)
             temp_file = f.name
 
-        # Compile Typst file to PDF
-        # The typst.compile() function takes a file path and returns PDF bytes
-        try:
-            pdf_bytes = typst.compile(temp_file, root=root_dir)
-            return pdf_bytes
-        except Exception as typst_error:
-            # Parse and wrap the error with more context
-            error_msg = _parse_typst_error(typst_error)
-            source_loc = temp_file if temp_file else "unknown"
-
-            logger.error(f"Typst compilation failed at {source_loc}: {error_msg}")
-
-            raise TypstCompilationError(
-                message=error_msg, typst_error=typst_error, source_location=source_loc
-            ) from typst_error
+        # Compile the temp file via the new file-path entry point.
+        return compile_typst_file_to_pdf(temp_file, root_dir=root_dir)
 
     finally:
         # Clean up temporary file
