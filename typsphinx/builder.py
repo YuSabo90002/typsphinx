@@ -5,6 +5,7 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import os
 import shutil
 from collections.abc import Iterator
 from os import path
@@ -126,6 +127,99 @@ class TypstBuilder(Builder):
                 if child not in included:
                     stack.append(child)
         return included
+
+    def _resolve_output_stem(self, docname: str) -> str:
+        """Resolve the output filename stem for a document.
+
+        ``typst_documents``' target name (tuple element ``[1]``, published as
+        the "Target name" contract at ``docs/configuration.rst:43``) governs
+        the filename a master document is written and compiled under --
+        ``typst_documents = [('index', 'manual.typ', ...)]`` must emit
+        ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``
+        (Issue #117). This is the single place that normalization rule is
+        implemented; every write/read-back site calls this method rather
+        than re-deriving the rule.
+
+        Args:
+            docname: The Sphinx document name being written.
+
+        Returns:
+            The filename stem (no suffix) to use for this document's output.
+            When ``docname`` has no matching ``typst_documents`` entry, the
+            docname itself is returned unchanged (D-02) -- this is the
+            common case for every document that is not a compiled master.
+            When the matched target name is unusable (a path, an absolute
+            path, or empty/whitespace/non-str after suffix stripping), a
+            ``logger.warning`` is emitted and a safe fallback is returned
+            instead -- ``path.basename`` of the offending stem for a
+            path-bearing target (D-06/D-07), or the docname itself for a
+            degenerate target (edge: empty).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+
+        entry_found = False
+        target: object = None
+        for entry in typst_documents:
+            if entry and len(entry) >= 2 and entry[0] == docname:
+                target = entry[1]
+                entry_found = True
+                break
+
+        if not entry_found:
+            # D-02: toctree-included children (and any docname with no
+            # typst_documents entry) keep docname + suffix. Silent -- this
+            # is the overwhelmingly common case (every non-master document).
+            return docname
+
+        if isinstance(target, str):
+            # D-04: strip only a literal trailing ".typ" -- an extension-
+            # splitting helper would truncate "v1.2-manual" to "v1", which
+            # is forbidden.
+            stem = target[:-4] if target.endswith(".typ") else target
+
+            # D-06/D-07 path guard: detect a path-bearing, traversal-bearing,
+            # absolute, or drive-qualified target BEFORE it reaches
+            # path.join(self.outdir, ...). The unconditional "/" and "\\"
+            # (not just os.sep/os.altsep) is what makes a Windows-authored
+            # "sub\\manual.typ" detectable on POSIX, where os.sep is "/" and
+            # os.altsep is None.
+            separators = {"/", "\\", os.sep}
+            if os.altsep:
+                separators.add(os.altsep)
+            segments = stem.replace("\\", "/").split("/")
+            is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+            is_guarded = (
+                any(sep in stem for sep in separators)
+                or ".." in segments
+                or path.isabs(stem)
+                or is_drive_qualified
+            )
+            if is_guarded:
+                fallback_source = stem[2:] if is_drive_qualified else stem
+                fallback = path.basename(fallback_source.replace("\\", "/"))
+                logger.warning(
+                    "a path is not supported in a typst_documents target "
+                    f"name: {target!r} -- using {fallback!r} instead"
+                )
+                stem = fallback
+        else:
+            stem = ""
+
+        if not isinstance(target, str) or not stem.strip():
+            # edge: empty -- the target was non-str, or its stem is empty
+            # or whitespace-only after suffix stripping / the path guard.
+            # Fall back to the docname wholesale (no silent mangling) so no
+            # file is ever written literally named ".typ" / ".pdf".
+            logger.warning(
+                "empty typst_documents target name for docname "
+                f"{docname!r} -- falling back to {docname!r}"
+            )
+            return docname
+
+        # No Unicode normalization, case folding, or transliteration -- a
+        # non-ASCII stem such as "マニュアル" survives byte-for-byte
+        # (edge: encoding).
+        return stem
 
     def get_outdated_docs(self) -> Iterator[str]:
         """
