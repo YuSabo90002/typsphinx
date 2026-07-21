@@ -135,7 +135,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 20: Signature Token Spacing (Cluster B)** - Restore lost intra-signature token spacing: the `class `/`exception ` annotation prefix, C/C++ inter-token spaces, and `:type:`/`:default:` colon-space (FID-07..FID-09) (completed 2026-07-20)
 - [x] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14) (completed 2026-07-20)
 - [x] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01) (completed 2026-07-21)
-- [ ] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02)
+- [x] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02) (completed 2026-07-22)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
 ## Phase Details
@@ -288,7 +288,7 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 4/4 plans executed
+**Plans:** 4/4 plans complete
 
 **Wave 1**
 

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 22.1
-current_phase_name: typstpdf Compile-Root Alignment for Nested Masters
-status: executing
+current_phase: 23
+current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
+status: planning
 stopped_at: Phase 22.1 context gathered
-last_updated: "2026-07-21T18:29:55.417Z"
+last_updated: "2026-07-21T19:38:30.281Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.1 execution resumed (wave continue)
+last_activity_desc: Phase 22.1 complete, transitioned to Phase 23
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 13
-  percent: 67
+  completed_phases: 5
+  total_plans: 15
+  completed_plans: 15
+  percent: 83
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 ## Current Position
 
-Phase: 22.1 (typstpdf Compile-Root Alignment for Nested Masters) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 22.1
-Last activity: 2026-07-22 — Phase 22.1 execution resumed (wave continue)
+Phase: 23 — v0.6.2 Release Prep + Regression-Gate Close
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-22 — Phase 22.1 complete, transitioned to Phase 23
 
 Progress: [████████████████████] 11/11 plans (100%)
 
