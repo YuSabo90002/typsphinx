@@ -5,16 +5,16 @@ milestone_name: rendering fidelity round 2
 current_phase: 22.2
 current_phase_name: Dead Config-Value Sweep (INSERTED)
 status: planning
-stopped_at: Phase 22.2 promoted from backlog, not yet discussed
-last_updated: "2026-07-21T19:38:30.281Z"
+stopped_at: Phase 22.2 context gathered
+last_updated: "2026-07-21T20:14:32.758Z"
 last_activity: 2026-07-22
-last_activity_desc: Backlog reviewed — 999.4 (absorbing 999.3) promoted to Phase 22.2 inside v0.6.2; 999.1/999.2 removed as delivered; 999.5 added
+last_activity_desc: backlog reviewed; 999.4 promoted into v0.6.2 as Phase 22.2, ahead of the Phase 23 release prep
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 15
   completed_plans: 15
-  percent: 83
+  percent: 71
 ---
 
 # Project State
@@ -122,9 +122,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-21T14:43:33.269Z
-Stopped at: Phase 22.2 promoted from backlog, not yet discussed
-Resume file: (none — start with `/gsd-discuss-phase 22.2`)
+Last session: 2026-07-21T20:14:32.752Z
+Stopped at: Phase 22.2 context gathered
+Resume file: .planning/phases/22.2-dead-config-value-sweep/22.2-CONTEXT.md
 
 ## Operator Next Steps
 
