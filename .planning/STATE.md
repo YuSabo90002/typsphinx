@@ -8,9 +8,9 @@ status: planning
 stopped_at: Phase 22.2 context gathered
 last_updated: "2026-07-21T20:14:32.758Z"
 last_activity: 2026-07-22
-last_activity_desc: backlog reviewed; 999.4 promoted into v0.6.2 as Phase 22.2, ahead of the Phase 23 release prep
+last_activity_desc: backlog reviewed (2nd pass); 999.5 promoted into v0.6.2 as Phase 22.3, backlog now empty
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 5
   total_plans: 15
   completed_plans: 15
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 Phase: 22.2 — Dead Config-Value Sweep (INSERTED)
 Plan: Not started
 Status: Ready to discuss/plan
-Last activity: 2026-07-22 — backlog reviewed; 999.4 promoted into v0.6.2 as Phase 22.2, ahead of the Phase 23 release prep
+Last activity: 2026-07-22 — backlog reviewed (2nd pass); 999.5 promoted into v0.6.2 as Phase 22.3 (WR-01/WR-02), sequenced after 22.2 and before the Phase 23 release prep; backlog now empty
 
 Progress: [████████████████████] 11/11 plans (100%)
 
@@ -45,9 +45,10 @@ Progress: [████████████████████] 11/11 p
 | 22 — typstpdf Target-Name PDF Fix (Issue #117) | Independent `builder.py`/`pdf.py` fix: `TypstPDFBuilder.finish()` names the PDF after the `typst_documents` target, not the source docname | PDF-01 |
 | 22.1 — typstpdf Compile-Root Alignment for Nested Masters (INSERTED) | `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders (temp file next to the master's `.typ`); no output moves | PDF-02 |
 | 22.2 — Dead Config-Value Sweep (INSERTED) | Delete the dead `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end (BUG-A..BUG-D), and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature | CONF-01, CONF-02, CONF-03 |
+| 22.3 — typstpdf Builder Warning Hardening (INSERTED) | Close the two Phase 22.1 review warnings: `finish()` no longer "succeeds" while silently emitting no PDF for a master whose `.typ` is missing (behavioral-vs-docstring resolution open, decided at discuss), and the nested-master render gate stops asserting on `typst-py` error-message substrings | WR-01, WR-02 |
 | 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
 
-**Coverage:** 18/18 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
+**Coverage:** 20/20 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03 + WR-01, WR-02) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
 
 **Standing bar (GATE-01):** every node-handler change (Phases 19, 20, 21) — and Phase 22 in its builder-test form — ships or extends a real `typst.compile()` regression fixture. String-agreement asserts alone never suffice. Local env runs real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
 
@@ -86,11 +87,12 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-3 pending (`.planning/todos/pending/`):
+4 pending (`.planning/todos/pending/`):
 
 - **死んだ設定 `typst_output_dir`** (builder) — **2026-07-21 決定: 即削除**（登録・ドキュメント・登録専用テスト・examples 一式を撤去、非推奨期間なし）。着手先は **Phase 22.2 の scope 要素 1**（旧バックログ 999.4 を 2026-07-22 に昇格）。元は A/B/C 3件の todo で、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は不採用として削除**。
 - **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — **バックログ 999.4 の scope 要素 2**（旧 999.3 を merge）。BUG-A..BUG-D の証拠は ROADMAP §999.3 に残置。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
+- **WR-01 マスター `.typ` 欠損時の無言スキップ / WR-02 テストが typst-py エラー文言に結合** (builder, tests) — **Phase 22.3 の scope**（旧バックログ 999.5 を 2026-07-22 に昇格）。WR-01 の「ビルド失敗にするか docstring を実態に合わせるか」は未決、`/gsd-discuss-phase 22.3` で決定する。
 
 ### Blockers/Concerns
 
@@ -108,6 +110,7 @@ None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threa
 - 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements. Continued from v0.6.0.
 - Phase 22.1 inserted after Phase 22: typstpdf compile-root alignment for nested masters (PDF-02) — split from the master-output-layout todo (item A only; B/C stay deferred) (URGENT)
 - 2026-07-22: backlog reviewed (`/gsd-review-backlog`) — 999.1 and 999.2 removed as delivered (Phases 19–21 / 22); 999.3 folded into 999.4; **999.4 promoted into v0.6.2 as Phase 22.2** (owner: 今マイルストーンで変更する), sequenced before the Phase 23 release prep so the `typst_output_dir` removal lands in the `[0.6.2]` CHANGELOG; 999.5 opened for the Phase 22.1 WR-01/WR-02 warnings
+- 2026-07-22: backlog reviewed again (`/gsd-review-backlog`, 2nd pass) — the sole remaining item **999.5 promoted into v0.6.2 as Phase 22.3** (owner decision), sequenced after 22.2 (shared `builder.py` / render-gate surface) and before the Phase 23 release prep so any WR-01 behavior change lands in the `[0.6.2]` CHANGELOG. WR-01/WR-02 added to `REQUIREMENTS.md` (20/20 mapped). **The backlog is now empty.**
 
 ## Deferred Items
 

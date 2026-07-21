@@ -73,3 +73,13 @@ typsphinx 側に何の問題も無いのにテストが赤くなる。
 
 v0.6.2 のスコープ外。Phase 22.1 は CR-01（G-22.1-4）のみ対応して閉じる。
 着手は `/gsd-review-backlog` で昇格させたとき。
+
+## 昇格 (2026-07-22)
+
+`/gsd-review-backlog` 2 回目のレビューで、バックログ **999.5 は v0.6.2 内の Phase 22.3
+「typstpdf Builder Warning Hardening」として昇格**（オーナー判断）。Phase 22.2 の後、
+Phase 23 リリース準備の前に配置（`builder.py` / nested-master render gate を 22.2 と共有するため）。
+要件 ID は `WR-01` / `WR-02` として `.planning/REQUIREMENTS.md` に登録済み。
+
+WR-01 の未決事項（ビルド失敗にする破壊的変更 か docstring を実態に合わせる か）は
+`/gsd-discuss-phase 22.3` で決定する。

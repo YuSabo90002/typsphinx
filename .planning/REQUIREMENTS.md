@@ -54,6 +54,11 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 - [ ] **CONF-02**: The `typst_package` (Typst Universe) path works end-to-end — a project configured with `typst_package` **alone** builds under `-b typstpdf` and compiles with zero Typst errors. Covers BUG-A (`_template.typ` imported but never written), BUG-B (unconditional `title`/`authors`/`date` injection), BUG-C (`typst_authors`/`typst_author_params` silently ignored — dead `_format_authors_with_details()`), and BUG-D (the wrong `docs/source/examples/advanced.rst` examples and important-note).
 - [ ] **CONF-03**: A config→output regression fixture asserts that setting a config value **changes the emitted output**, not merely that it is registered — covering both CONF-01 and CONF-02, with a real `typst.compile()` where the config affects compilable output (GATE-01). Registration-only assertions are insufficient going forward.
 
+### Builder Warning Hardening (Phase 22.3, promoted from backlog 999.5 on 2026-07-22)
+
+- [ ] **WR-01**: `TypstPDFBuilder.finish()` no longer reports a successful build while silently emitting no PDF for a configured master. The missing-`.typ` branch (`builder.py:895-897`, a bare `logger.warning(...); continue` that never reaches `failures`) is aligned with the compile-failure path, the adjacent malformed-`doc_tuple` skip is treated consistently (or its exemption is recorded), and the `finish()` docstring's D-04 "no silent success" claim matches implemented behavior. Whether the resolution is behavioral (build failure) or documentary (narrow the docstring to compile failures) is **open** and decided at `/gsd-discuss-phase 22.3`.
+- [ ] **WR-02**: The nested-master render gate (`tests/test_nested_master_render_gate.py`, SC#2 / `G-22.1-2`) proves its property without asserting on `typst-py` error-message literals (`"escape"`, `"not found"`, `"usage.typ"`, `"_template.typ"`) — those are not a contracted upstream API, so a rewording upstream currently turns CI red with no typsphinx regression.
+
 ## v2 Requirements
 
 Deferred to a future milestone. Tracked but not in this roadmap.
@@ -103,17 +108,19 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONF-01 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
 | CONF-02 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
 | CONF-03 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
+| WR-01 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
+| WR-02 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
 
 **Coverage:**
 
-- v1 requirements: 18 total
-- Mapped to phases: 18 ✓
+- v1 requirements: 20 total
+- Mapped to phases: 20 ✓
 - Unmapped: 0 ✓
 
 Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF requirement — it is the
 prep-only release/close phase (version bump + CHANGELOG + closing full-corpus regression gate); all
-18 v1 requirements are delivered by Phases 19–22.2.
+20 v1 requirements are delivered by Phases 19–22.3.
 
 ---
 *Requirements defined: 2026-07-20*
-*Last updated: 2026-07-22 — CONF-01..CONF-03 added with the Phase 22.2 insertion (dead config-value sweep, promoted from backlog 999.4 which had absorbed 999.3); 18/18 mapped to Phases 19–22.2; milestone v0.6.2*
+*Last updated: 2026-07-22 — WR-01/WR-02 added with the Phase 22.3 insertion (typstpdf builder warning hardening, promoted from backlog 999.5); 20/20 mapped to Phases 19–22.3; milestone v0.6.2*

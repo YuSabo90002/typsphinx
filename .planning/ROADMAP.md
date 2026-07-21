@@ -137,6 +137,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01) (completed 2026-07-21)
 - [x] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02) (completed 2026-07-22)
 - [ ] **Phase 22.2: Dead Config-Value Sweep (INSERTED)** - Two documented config values that never affect output: delete `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end, and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature (CONF-01..CONF-03) (promoted from backlog 999.4/999.3 on 2026-07-22)
+- [ ] **Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)** - Close the two Phase 22.1 review warnings: a master whose `.typ` is missing is silently skipped so the build "succeeds" with no PDF (WR-01), and the render-gate tests assert on `typst-py` error-message substrings that upstream can rephrase at will (WR-02) (promoted from backlog 999.5 on 2026-07-22)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
 ## Phase Details
@@ -361,15 +362,48 @@ Plans:
 
 - [ ] TBD (enumerated at `/gsd-plan-phase 22.2`)
 
+### Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)
+
+**Goal**: The two warnings the Phase 22.1 `/gsd-code-review` raised — deferred at the Wave 4 UAT gate
+by owner ruling, then backlogged as 999.5 — are closed. `TypstPDFBuilder.finish()` no longer reports a
+successful build while silently emitting no PDF for a configured master, and the nested-master render
+gate stops depending on `typst-py`'s uncontracted error wording. Promoted from backlog 999.5 on
+2026-07-22 (owner decision); lands **inside v0.6.2**, before the release phase, so any behavior change
+is carried by the `[0.6.2]` CHANGELOG entry Phase 23 curates.
+**Depends on**: Phase 22.2 (shares `typsphinx/builder.py` and the `tests/test_nested_master_render_gate.py`
+/ config-fixture surface that 22.2 touches — sequenced after so the two changes don't collide).
+Independent of Phases 19–21 (translator-only).
+**Requirements**: WR-01, WR-02
+**Success Criteria** (what must be TRUE):
+
+  1. `sphinx-build -b typstpdf` on a project with a configured master whose `.typ` file was never generated no longer exits 0 with no PDF — the missing-master branch (`builder.py:895-897`, the bare `logger.warning(...); continue`) is aligned with the compile-failure path, and the `finish()` docstring's D-04 "no silent success" claim matches the implemented behavior exactly (WR-01).
+  2. The same alignment decision is applied (or explicitly ruled out, with the reason recorded) for the adjacent malformed-`doc_tuple` skip around `builder.py:885-890`, so the two skip branches are not left asymmetric by accident (WR-01).
+  3. Whether the fix is behavioral (a build failure) or documentary (weakening the docstring to "compile failures only") is decided at `/gsd-discuss-phase 22.3` — it is **open going in**. If behavioral, the user-visible change is staged for the Phase 23 `[0.6.2]` CHANGELOG entry (WR-01).
+  4. `tests/test_nested_master_render_gate.py` (SC#2 / `G-22.1-2`) no longer asserts on `typst-py` error-message literals (`"escape"`, `"not found"`, `"usage.typ"`, `"_template.typ"`); the gate proves the same property through a contract the upstream owns (exit status / raised exception type / emitted-path inspection), so an upstream rewording cannot turn CI red without a real regression (WR-02).
+  5. Whatever new behavior lands is pinned by a test that **fails against the pre-fix code**; zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
+
+Source of record for both warnings:
+[`todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md`](todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md)
+(with the full repro and the open WR-01 decision), raised as `WR-01`/`WR-02` in
+[`phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md`](phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md).
+The same review's Critical `CR-01` was ruled 今直す and already closed inside Phase 22.1 as gap
+`G-22.1-4` — it is **not** in this phase's scope.
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] TBD (enumerated at `/gsd-plan-phase 22.3`)
+
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
 **Goal**: Prepare the v0.6.2 release — bump the version and curate the CHANGELOG — and close the
 milestone on a full-corpus regression gate. **Prep-only:** the irreversible publish (tag `v0.6.2` →
 `release.yml` → PyPI) is executed later at `/gsd-complete-milestone`, mirroring the v0.5.0 Phase 10 /
 v0.6.1 pattern.
-**Depends on**: Phases 19, 20, 21, 22, 22.1, 22.2 (all fidelity, Issue #117, and config-sweep fixes
-land before the version bump and the closing corpus re-run)
-**Requirements**: (none — release/close phase; all v1 requirements are delivered by Phases 19–22.2)
+**Depends on**: Phases 19, 20, 21, 22, 22.1, 22.2, 22.3 (all fidelity, Issue #117, config-sweep, and
+builder-warning fixes land before the version bump and the closing corpus re-run)
+**Requirements**: (none — release/close phase; all v1 requirements are delivered by Phases 19–22.3)
 **Success Criteria** (what must be TRUE):
 
   1. `pyproject.toml` version is bumped `0.6.1` → `0.6.2` as the sole version literal, and `uv.lock` is regenerated in lockstep (`uv sync --locked` green).
@@ -387,7 +421,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 22.1 → 22.2 → 23
+Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 22.1 → 22.2 → 22.3 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -416,6 +450,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
+| 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
@@ -431,24 +466,12 @@ and [Issue #117](https://github.com/YuSabo90002/typsphinx/issues/117)). 999.3 wa
 999.4 was **promoted into v0.6.2 as Phase 22.2** (owner decision) — the BUG-A..BUG-D evidence now lives
 in the Phase 22.2 detail above. 999.5 added for the Phase 22.1 review warnings.
 
-### 999.5 - Phase 22.1 review warnings: silent missing-PDF skip + typst-error substring coupling (BACKLOG)
+**Reviewed 2026-07-22 (second pass)** (`/gsd-review-backlog`): 999.5 was **promoted into v0.6.2 as
+Phase 22.3** (owner decision) — the WR-01/WR-02 detail now lives in the Phase 22.3 detail above, and
+the open WR-01 decision (behavioral failure vs. weakening the docstring) is deferred to
+`/gsd-discuss-phase 22.3`.
 
-**Goal:** [Captured for future planning]
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Source of record:
-[`todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md`](todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md)
-(owner deferred both at the Phase 22.1 Wave 4 gate; `22.1-04-SUMMARY.md` records them as untouched and
-backlogged). Raised as `WR-01`/`WR-02` in
-[`phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md`](phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md).
-
-- [ ] **WR-01** - a master whose `.typ` file is missing is silently skipped by `TypstPDFBuilder.finish()`, so the build reports success while emitting no PDF. Should surface as a failure (or at minimum a warning) rather than a silent no-op.
-- [ ] **WR-02** - tests assert against `typst-py` error-message substrings, coupling the suite to upstream wording; a typst release that rephrases its diagnostics turns the gate red for no behavioral reason.
-
-Plans:
-
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+**The backlog is currently empty.** New items land here as `999.x` entries.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21 · Phase 22.1 inserted (typstpdf compile-root alignment, PDF-02): 2026-07-21 · Backlog item 999.4 added and 999.3 merged into it (dead config-value sweep): 2026-07-21 · Backlog reviewed (/gsd-review-backlog): 999.1/999.2 removed as delivered, 999.4 (absorbing 999.3) promoted to Phase 22.2 inside v0.6.2, 999.5 added for the Phase 22.1 WR-01/WR-02 warnings: 2026-07-22*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21 · Phase 22.1 inserted (typstpdf compile-root alignment, PDF-02): 2026-07-21 · Backlog item 999.4 added and 999.3 merged into it (dead config-value sweep): 2026-07-21 · Backlog reviewed (/gsd-review-backlog): 999.1/999.2 removed as delivered, 999.4 (absorbing 999.3) promoted to Phase 22.2 inside v0.6.2, 999.5 added for the Phase 22.1 WR-01/WR-02 warnings: 2026-07-22 · Backlog reviewed again (/gsd-review-backlog): 999.5 promoted to Phase 22.3 inside v0.6.2, backlog now empty: 2026-07-22*
