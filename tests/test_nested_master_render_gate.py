@@ -61,36 +61,86 @@ emission is its established, already-tested basis), treating the template
 file as a top-level ``"_template"`` docname -- for the nested fixture this
 now emits ``#import "../_template.typ": project``.
 
+Two independent outdir-root-relative references, one masking the other:
+the emitted master carries the template import at line 7 AND the sibling
+include at line 33 AND the upward image at line 40, all resolved against
+the compile basis. The template import is EARLIER in the file, so a
+verbatim copy at the outdir root always fails on IT first, before the
+compiler ever reaches the sibling include or image. Proving the
+include/image class in isolation therefore requires neutralizing the
+earlier-failing template reference first -- which is exactly why this
+module needs TWO pre-fix-basis tests, not one, each pinned to a single,
+distinct failure class (gap ``G-22.1-2``).
+
 Confirmed both directions:
 
-- **FAILS** against the pre-fix compile basis. ``test_outdir_root_compile_
-  basis_still_fails`` reproduces that basis directly -- copying the emitted
-  ``api/index.typ`` to a file at the outdir *root* and compiling that copy
-  with ``root=outdir`` -- and captures the real Typst error:
+- **FAILS** against the pre-fix compile basis, in TWO complementary
+  proofs -- one per masking reference:
 
-      TypstError: path `"../_template.typ"` would escape the project root
+  - **Template-reference class.** ``test_outdir_root_compile_basis_
+    still_fails`` reproduces the pre-fix basis VERBATIM -- copying the
+    emitted ``api/index.typ`` to a file at the outdir *root*, with no
+    rewriting at all, and compiling that copy with ``root=outdir`` -- and
+    captures the real Typst error:
 
-  The real emitted ``api/index.typ`` opens with the relative reference
-  ``#import "../_template.typ": project`` -- correct only from
-  ``outdir/api/``, where it resolves to ``outdir/_template.typ`` (safely
-  inside the compile root). Copied verbatim to the outdir root and compiled
-  with ``root=outdir``, that SAME reference would have to resolve one
-  directory ABOVE ``outdir`` -- outside the compile root entirely -- so
-  Typst's own root-boundary enforcement rejects it before the compiler ever
-  reaches the sibling ``include("usage.typ")`` or the image reference. This
-  is still a direct, real proof of the outdir-root vs. outdir/api divergence
-  (Common Pitfall 2 in ``22.1-RESEARCH.md`` anticipated exactly this error
-  class), and it is a **standing** test, not a one-time manual verification,
-  so the gate can never start passing vacuously after a future refactor
-  reintroduces an intermediate copy at the outdir root.
-- **PASSES** with the fix.
-  ``test_typstpdf_nested_master_resolves_include_and_image`` drives the real
-  ``-b typstpdf`` path end-to-end and asserts the compiled ``api/index.pdf``
-  exists with the ``%PDF`` magic prefix.
-  ``test_typst_builder_output_compiles_manually`` additionally compiles the
-  ``-b typst`` output directly via ``typst.compile()``, mirroring exactly
-  what a user running ``typst compile`` by hand does (SC#3 / D-09) -- pinning
-  that the two builders now share the identical compile-root basis.
+        TypstError: path `"../_template.typ"` would escape the project root
+
+    The real emitted ``api/index.typ`` opens with the relative reference
+    ``#import "../_template.typ": project`` -- correct only from
+    ``outdir/api/``, where it resolves to ``outdir/_template.typ`` (safely
+    inside the compile root). Copied verbatim to the outdir root and
+    compiled with ``root=outdir``, that SAME reference would have to
+    resolve one directory ABOVE ``outdir`` -- outside the compile root
+    entirely -- so Typst's own root-boundary enforcement rejects it before
+    the compiler ever reaches the sibling ``include("usage.typ")`` or the
+    image reference. This is a direct, real proof of the outdir-root
+    vs. outdir/api divergence for the template-reference class (Common
+    Pitfall 2 in ``22.1-RESEARCH.md`` anticipated exactly this error
+    class).
+
+  - **Include/image class (closes G-22.1-2).**
+    ``test_sibling_include_fails_at_outdir_root_and_resolves_in_place``
+    neutralizes ONLY the template import first -- rewriting the single
+    ``#import "../_template.typ"`` occurrence to the outdir-root-correct
+    ``#import "_template.typ"``, leaving ``include("usage.typ")`` and
+    ``image("../logo.png")`` byte-identical -- then compiles that
+    template-neutralized copy from the outdir root, at which point the
+    compiler reaches (and fails on) the sibling include instead. The real
+    captured Typst error:
+
+        file not found (searched at <outdir>/usage.typ)
+
+    This is the class ROADMAP SC#2's "file-not-found" wording literally
+    names, proven in isolation from the template-reference class rather
+    than merely masked behind it. The error names ``usage.typ``
+    specifically, does NOT name ``_template.typ`` (proving the masking
+    reference was fully neutralized), and does NOT carry the ``api/``
+    path segment (proving Typst searched at the outdir root, not the
+    master's real directory).
+
+  Both are **standing** tests, not one-time manual verifications, so the
+  gate can never start passing vacuously after a future refactor
+  reintroduces an intermediate copy at the outdir root -- and because each
+  test is pinned to a single failure class, a future drift between the two
+  classes turns exactly one of them red, naming which class moved.
+- **PASSES** with the fix, in TWO complementary proofs -- one per
+  reference class:
+
+  - ``test_typstpdf_nested_master_resolves_include_and_image`` drives the
+    real ``-b typstpdf`` path end-to-end and asserts the compiled
+    ``api/index.pdf`` exists with the ``%PDF`` magic prefix.
+    ``test_typst_builder_output_compiles_manually`` additionally compiles
+    the ``-b typst`` output directly via ``typst.compile()``, mirroring
+    exactly what a user running ``typst compile`` by hand does (SC#3 /
+    D-09) -- pinning that the two builders now share the identical
+    compile-root basis.
+  - ``test_sibling_include_fails_at_outdir_root_and_resolves_in_place``'s
+    own GREEN half is the explicit counterpart of its RED half, at the
+    SAME build: it asserts the unmodified master, compiled at its real
+    location (``outdir/api/index.typ``, ``root=outdir``), produces a valid
+    PDF -- proving the identical ``include("usage.typ")`` and
+    ``image("../logo.png")`` references that failed to resolve from the
+    outdir root DO resolve in place.
 """
 
 import shutil
@@ -328,6 +378,179 @@ class TestNestedMasterRenderGate:
             "'_template.typ' reference -- the one relative import whose "
             "resolution differs entirely based on the compiled file's "
             f"directory depth:\n{error_text!r}"
+        )
+
+    def test_sibling_include_fails_at_outdir_root_and_resolves_in_place(
+        self, nested_master_render_gate_dir, temp_build_dir_typst
+    ):
+        """
+        Closes gap ``G-22.1-2``; discharges ROADMAP Phase 22.1 SC#2 in the
+        literal "file not found" shape its wording names -- the
+        INCLUDE/IMAGE half of the pre-fix-basis proof, complementing
+        ``test_outdir_root_compile_basis_still_fails`` above (the
+        TEMPLATE-reference half).
+
+        The emitted ``api/index.typ`` carries THREE outdir-root-relative
+        references: ``#import "../_template.typ"`` at line 7,
+        ``include("usage.typ")`` at line 33, and ``image("../logo.png")`` at
+        line 40. Copying the master verbatim to the outdir root (as the
+        sibling test above does) makes Typst abort on the line-7 template
+        import BEFORE it ever reaches the sibling include or the image
+        reference -- so the include/image failure mode that PDF-02's
+        canonical refs literally describe (a missing-file break, not a
+        root-escape) is never directly exercised in isolation by any
+        standing test unless the earlier-failing reference is neutralized
+        first.
+
+        This test neutralizes ONLY the template import -- rewriting the
+        single occurrence of ``#import "../_template.typ"`` to
+        ``#import "_template.typ"``, which is the CORRECT reference from the
+        outdir root (the build already wrote ``_template.typ`` there) -- and
+        leaves ``include("usage.typ")`` and ``image("../logo.png")``
+        byte-identical. That isolates the include/image class cleanly: the
+        RED half below fails specifically on the sibling include, and the
+        error text is asserted to NOT name ``_template.typ`` (proving the
+        masking reference is fully neutralized) and to NOT carry the
+        ``api/`` path segment (proving Typst searched at the outdir root,
+        not at the master's real directory).
+
+        Both halves are driven from the SAME ``-b typst`` build -- one red,
+        one green -- so the two directions are provably talking about
+        byte-identical emitted output rather than two separately-built trees
+        that could silently drift apart.
+        """
+        # Step 1: build. One -b typst build serves both halves.
+        result = _run_sphinx_build(
+            nested_master_render_gate_dir, temp_build_dir_typst, "typst"
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        # Step 2: preconditions on the emitted master -- hard assertions,
+        # not skips. If the emitted shape ever changes, this test must go
+        # red loudly, because its whole premise is the file's structure.
+        typ_source = temp_build_dir_typst / "api" / "index.typ"
+        assert typ_source.exists(), (
+            f"api/index.typ was not emitted by -b typst:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        original_text = typ_source.read_text(encoding="utf-8")
+        assert '#import "../_template.typ"' in original_text, (
+            "Expected the emitted master to carry the relative "
+            "'../_template.typ' template import -- the reference this test "
+            f"neutralizes before isolating the include/image class:\n"
+            f"{original_text}"
+        )
+        assert 'include("usage.typ")' in original_text, (
+            "Expected the emitted master to carry the sibling "
+            f"'include(\"usage.typ\")' reference this test isolates:\n"
+            f"{original_text}"
+        )
+        assert 'image("../logo.png")' in original_text, (
+            "Expected the emitted master to carry the upward "
+            f"'image(\"../logo.png\")' reference:\n{original_text}"
+        )
+
+        # Step 3: neutralize ONLY the template import (the RED half's
+        # setup). "#import \"_template.typ\"" is the CORRECT reference from
+        # the outdir root -- the build already wrote _template.typ there.
+        occurrences = original_text.count('#import "../_template.typ"')
+        assert occurrences == 1, (
+            "Expected exactly one occurrence of the relative template "
+            f"import to neutralize, found {occurrences}:\n{original_text}"
+        )
+        neutralized_text = original_text.replace(
+            '#import "../_template.typ"', '#import "_template.typ"'
+        )
+        assert neutralized_text != original_text, (
+            "Expected the template-import rewrite to actually change the "
+            "text -- a no-op rewrite would silently invalidate this test's "
+            "isolation."
+        )
+        assert "../_template.typ" not in neutralized_text, (
+            "Expected the relative '../_template.typ' form to be fully "
+            f"absent after neutralization:\n{neutralized_text}"
+        )
+        # Pins the isolation the reviewer demanded: precisely one reference
+        # was altered -- the sibling include and upward image reference
+        # must survive the rewrite byte-identical.
+        assert 'include("usage.typ")' in neutralized_text, (
+            "Expected the sibling include reference to survive the "
+            f"template-import rewrite unchanged:\n{neutralized_text}"
+        )
+        assert 'image("../logo.png")' in neutralized_text, (
+            "Expected the upward image reference to survive the "
+            f"template-import rewrite unchanged:\n{neutralized_text}"
+        )
+
+        # Write the neutralized copy at the OUTDIR ROOT -- a leading-
+        # underscore name that cannot collide with any docname-derived
+        # artifact the builders emit, and distinct from the sibling test's
+        # "_prefix_basis_copy.typ".
+        neutralized_copy = temp_build_dir_typst / "_prefix_basis_neutralized.typ"
+        neutralized_copy.write_text(neutralized_text, encoding="utf-8")
+
+        # Step 4: RED. Compile the template-neutralized copy from the
+        # OUTDIR ROOT -- the template import now resolves correctly, so
+        # Typst reaches the sibling include next and fails on THAT
+        # reference instead.
+        with pytest.raises(Exception) as exc_info:
+            typst.compile(str(neutralized_copy), root=str(temp_build_dir_typst))
+
+        error_text = str(exc_info.value)
+        lowered = error_text.lower()
+        assert "usage.typ" in error_text, (
+            "Expected the error to name the sibling include target "
+            "'usage.typ' -- the assertion that makes this test specific "
+            f"to the class PDF-02 canonically describes:\n{error_text!r}"
+        )
+        assert "not found" in lowered, (
+            "Expected a missing-file signature (Typst's exact wording is "
+            "not a contract, but the failure CLASS is) reproducing the "
+            f"include/image compile-basis divergence:\n{error_text!r}"
+        )
+        assert "_template.typ" not in error_text, (
+            "Expected the error to NOT name '_template.typ' -- proof the "
+            "masking template reference is fully neutralized and is not "
+            f"what failed:\n{error_text!r}"
+        )
+        api_usage_segment = str(Path("api") / "usage.typ")
+        assert api_usage_segment not in error_text, (
+            f"Expected the error to NOT contain the '{api_usage_segment}' "
+            "path segment -- proof Typst searched at the OUTDIR ROOT (the "
+            "wrong-directory compile basis), not at the master's real "
+            f"directory:\n{error_text!r}"
+        )
+
+        # Step 5: GREEN, same build. The identical include("usage.typ") and
+        # image("../logo.png") references that could not resolve from the
+        # outdir root DO resolve from outdir/api/ -- the master's real
+        # location, unmodified.
+        usage_output = temp_build_dir_typst / "api" / "usage.typ"
+        assert usage_output.exists(), (
+            "Expected the sibling include target 'api/usage.typ' to exist "
+            "on disk -- the file the RED half above proved unreachable "
+            "from the outdir root."
+        )
+        logo_output = temp_build_dir_typst / "logo.png"
+        assert logo_output.exists(), (
+            "Expected the root-level image asset 'logo.png' to exist on "
+            "disk -- the file the upward image('../logo.png') reference "
+            "climbs to."
+        )
+
+        pdf_bytes = typst.compile(
+            str(temp_build_dir_typst / "api" / "index.typ"),
+            root=str(temp_build_dir_typst),
+        )
+        assert pdf_bytes.startswith(b"%PDF"), (
+            "Expected the UNMODIFIED master at its REAL location "
+            "(outdir/api/index.typ) to compile to a valid PDF -- proving "
+            'the identical include("usage.typ") and image("../logo.png") '
+            "references that failed to resolve from the outdir root DO "
+            f"resolve in place, got {pdf_bytes[:20]!r}"
         )
 
     def test_typst_builder_output_compiles_manually(
