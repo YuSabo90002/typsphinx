@@ -376,5 +376,29 @@ Plans:
 
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
+### 999.3 — typst_package (Typst Universe) path broken end-to-end (BACKLOG)
+
+**Goal:** [Captured for future planning]
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Source: captured 2026-07-21 while verifying a docs question (`typst_template_function = {"name": "ieee"}` — that value is *correct*). Full evidence, repro, and proposed scope in
+[`todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md`](todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md).
+
+**Verified behavior** (real `sphinx-build -b typst` + real `typst.compile()`, typst 0.15.0): the entire `typst_package` (Typst Universe external template) path fails to compile. The documented "Using Typst Universe Packages" examples in `docs/source/examples/advanced.rst` are non-functional as written.
+
+- **BUG-A (fatal):** `writer.py:151-153` always passes `template_file="_template.typ"`, so `#import "_template.typ": <func>` is always emitted — but `builder.py:371-374` early-returns from `_write_template_file()` whenever `typst_package` is set, so the file is never written → `file not found (searched at .../_template.typ)`. Note this fires with `typst_package` **alone**; the `advanced.rst:126-133` important-note blames combining it with `typst_template`, which does not match the observed cause.
+- **BUG-B:** `template_engine.py:186-191` injects `title`/`authors`/`date` unconditionally. `charged-ieee`'s `ieee()` takes no `date` → `unexpected argument: date` once BUG-A is worked around. Any package function not accepting all three is unusable.
+- **BUG-C:** `typst_authors` / `typst_author_params` are silently ignored — `_format_authors_with_details()` (`template_engine.py:423`) is dead code with no callers. Output is a bare `authors: ("Name",)` string tuple, not the documented dicts.
+- **BUG-D (docs):** `advanced.rst:59` modern-cv example is doubly wrong — `"name": "modern-cv"` → `unresolved import` (entry function is `resume`, `lib.typ:193`), and `resume` accepts neither `title` nor `authors`, so BUG-B kills it anyway. Its `params` are `author`-dict fields, not `resume` arguments.
+
+**Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path, so it shipped broken. Any fix must land one (GATE-01).
+
+The "Custom Template Wrapping" path (`typst_template` pointing at a wrapper whose `project(title:, authors:, date:, body)` absorbs the injected params) is the only package-consuming route believed to work — unverified.
+
+Plans:
+
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21*
