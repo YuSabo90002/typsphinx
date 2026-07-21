@@ -356,7 +356,7 @@ route believed to work — unverified; confirming it is in scope for the fixture
 **Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path,
 so it shipped broken. Any fix must land one (GATE-01).
 
-**Plans**: 4/6 plans executed
+**Plans**: 5/6 plans executed
 
 Plans:
 
@@ -369,7 +369,7 @@ Plans:
 
 **Wave 2** *(depends on 22.2-03 — shares `writer.py` / `builder.py`)*
 
-- [ ] 22.2-04-PLAN.md — package/template routing: `writer.py` passes `template_file=None` when a package is configured alone so no `_template.typ` reference is emitted (D-01/BUG-A), `builder._write_template_file()`'s early return narrows to "package set AND template unset" with a once-per-build warning naming both configs and `typst_template` winning (D-03), the template+function combination is left first-class (D-04), and no new Typst-error-string coupling is introduced (D-06)
+- [x] 22.2-04-PLAN.md — package/template routing: `writer.py` passes `template_file=None` when a package is configured alone so no `_template.typ` reference is emitted (D-01/BUG-A), `builder._write_template_file()`'s early return narrows to "package set AND template unset" with a once-per-build warning naming both configs and `typst_template` winning (D-03), the template+function combination is left first-class (D-04), and no new Typst-error-string coupling is introduced (D-06)
 
 **Wave 3** *(depends on 22.2-02, 22.2-03, 22.2-04, 22.2-06)*
 
@@ -462,7 +462,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
-| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 4/6 | In Progress|  |
+| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 5/6 | In Progress|  |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
