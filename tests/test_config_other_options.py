@@ -138,47 +138,6 @@ extensions = ['typsphinx']
     assert app.config.typst_template_function is None
 
 
-def test_typst_output_dir_config_registered(make_app, tmp_path):
-    """Test that typst_output_dir is registered as a config value"""
-    # Arrange: Create conf.py with typst_output_dir setting
-    conf_py = tmp_path / "conf.py"
-    conf_py.write_text("""
-extensions = ['typsphinx']
-typst_output_dir = '_custom/typst'
-""")
-
-    # Create minimal index.rst
-    index_rst = tmp_path / "index.rst"
-    index_rst.write_text("Test\n====\n\nContent.")
-
-    # Act: Create Sphinx app
-    app = make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
-
-    # Assert: Config value should be accessible and correct
-    assert hasattr(app.config, "typst_output_dir")
-    assert app.config.typst_output_dir == "_custom/typst"
-
-
-def test_typst_output_dir_default_value(make_app, tmp_path):
-    """Test that typst_output_dir defaults to '_build/typst' when not set"""
-    # Arrange: Create conf.py without typst_output_dir
-    conf_py = tmp_path / "conf.py"
-    conf_py.write_text("""
-extensions = ['typsphinx']
-""")
-
-    # Create minimal index.rst
-    index_rst = tmp_path / "index.rst"
-    index_rst.write_text("Test\n====\n\nContent.")
-
-    # Act: Create Sphinx app
-    app = make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
-
-    # Assert: Default should be '_build/typst'
-    assert hasattr(app.config, "typst_output_dir")
-    assert app.config.typst_output_dir == "_build/typst"
-
-
 def test_typst_debug_config_registered(make_app, tmp_path):
     """Test that typst_debug is registered as a config value"""
     # Arrange: Create conf.py with typst_debug setting

@@ -64,7 +64,7 @@ The four Typst Universe `@preview` package versions (`codly`, `codly-languages`,
 
 ## Configuration surface
 
-User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_authors` / `typst_author_params`, `typst_template_assets`, `typst_output_dir`, and `typst_debug`.
+User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_authors`, `typst_template_assets`, and `typst_debug`.
 
 ## Tests
 

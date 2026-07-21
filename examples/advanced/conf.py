@@ -96,11 +96,6 @@ typst_toctree_defaults = {
 #     '#import "@preview/gentle-clues:0.3.0": *',
 # ]
 
-# Output directory (optional)
-# Customize where Typst files are written
-# Default: '_build/typst'
-# typst_output_dir = '_build/typst'
-
 # Debug mode (optional)
 # Enable detailed logging for troubleshooting
 # Can also be enabled via SPHINX_TYPST_DEBUG=1 environment variable

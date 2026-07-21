@@ -259,9 +259,6 @@ typst_toctree_defaults = {
 #     '#import "@preview/gentle-clues:0.3.0": *',
 # ]
 
-# Output directory (optional)
-# typst_output_dir = '_build/typst'
-
 # Debug mode (optional)
 # Enable for detailed logging
 # typst_debug = False
