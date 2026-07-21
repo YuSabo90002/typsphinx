@@ -47,25 +47,6 @@ Use the charged-ieee package for IEEE-style papers:
        }
    }
 
-modern-cv Template
-~~~~~~~~~~~~~~~~~~
-
-Create a CV/resume with modern-cv:
-
-.. code-block:: python
-
-   typst_package = "@preview/modern-cv:0.7.0"
-
-   typst_template_function = {
-       "name": "modern-cv",
-       "params": {
-           "name": "John Doe",
-           "job-title": "Software Engineer",
-           "email": "john@example.com",
-           "github": "johndoe",
-       }
-   }
-
 Custom Template Wrapping
 -------------------------
 
@@ -126,10 +107,10 @@ Wrap external packages with custom logic:
 
    Do **not** also set ``typst_package`` here. The wrapping template already
    declares ``#import "@preview/charged-ieee:0.1.4": ieee`` itself, and setting
-   ``typst_package`` switches typsphinx to the package-only path: the custom
-   template is then never emitted as ``_template.typ`` into the output
-   directory, so the generated document fails to compile with
-   ``file not found (searched at .../_template.typ)``.
+   both ``typst_package`` and ``typst_template`` together is unsupported:
+   typsphinx emits a build warning naming both config values, ignores the
+   ``typst_package`` setting, and honours ``typst_template`` — so the wrapper
+   is written and imported as before.
 
    Use ``typst_package`` **or** ``typst_template`` — not both.
 
