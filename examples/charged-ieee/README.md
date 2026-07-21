@@ -99,7 +99,7 @@ typst_template_function = {
 
 ```bash
 cd approach1
-sphinx-build -b typst source build/typst
+sphinx-build -b typst -c . source build/typst
 cd build/typst
 typst compile paper.typ output.pdf
 ```
@@ -108,7 +108,7 @@ typst compile paper.typ output.pdf
 
 ```bash
 cd approach2
-sphinx-build -b typst source build/typst
+sphinx-build -b typst -c . source build/typst
 cd build/typst
 typst compile paper.typ output.pdf
 ```
@@ -149,4 +149,6 @@ typst compile paper.typ output.pdf
 - Both approaches produce identical output when configured correctly
 - Approach 1 is recommended for most use cases
 - Approach 2 provides an escape hatch for complex requirements
-- You can mix both approaches (use custom template with `typst_authors` configuration)
+- `typst_authors` (the author-details configuration) can be combined with the
+  custom-template route in Approach 2 — but `typst_package` and `typst_template`
+  are mutually exclusive and cannot be set together
