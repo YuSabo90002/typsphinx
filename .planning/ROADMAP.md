@@ -288,7 +288,7 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 
 **Wave 1**
 
@@ -296,7 +296,7 @@ remove, tracked in the pending todo
 
 **Wave 2** *(blocked on 22.1-01 — the gate is red until the fix lands)*
 
-- [ ] 22.1-02-PLAN.md — GATE-01 nested-master render gate: new `tests/fixtures/nested_master_render_gate/` (sole master at docname `api/index`, sibling `#include()`, upward `image("../logo.png")`) and `tests/test_nested_master_render_gate.py` covering SC#1 (real `-b typstpdf` compile), SC#2 (standing pre-fix-basis failure proof, D-08a) and SC#3 (`-b typst` output compiled by hand, D-09)
+- [x] 22.1-02-PLAN.md — GATE-01 nested-master render gate: new `tests/fixtures/nested_master_render_gate/` (sole master at docname `api/index`, sibling `#include()`, upward `image("../logo.png")`) and `tests/test_nested_master_render_gate.py` covering SC#1 (real `-b typstpdf` compile), SC#2 (standing pre-fix-basis failure proof, D-08a) and SC#3 (`-b typst` output compiled by hand, D-09)
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
