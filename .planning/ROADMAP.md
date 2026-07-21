@@ -288,7 +288,7 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed
 
 **Wave 1**
 
@@ -304,7 +304,7 @@ remove, tracked in the pending todo
 
 **Wave 4** *(gap closure — UAT `G-22.1-4`, source CR-01 in `22.1-REVIEW.md`; owner ruled 今直す)*
 
-- [ ] 22.1-04-PLAN.md — production gap closure for `G-22.1-4`: `typsphinx/writer.py` computes the master's `_template.typ` import from the docname's own directory DEPTH to the outdir root instead of relativizing against a synthetic `"_template"` sentinel target (which collided with a real path component and emitted malformed stem-less references for masters under a `_template/` directory); pinned by a parametrized 7-case matrix (3 repaired + 4 byte-identical anti-regression fence rows) and a new GATE-01 real-compile gate over `tests/fixtures/template_named_dir_master/` (masters at depth 1 and depth 2 under a literal `_template` directory, both compiled for real with `root=outdir`). `typsphinx/translator.py` untouched; WR-01/WR-02 stay deferred to the backlog
+- [x] 22.1-04-PLAN.md — production gap closure for `G-22.1-4`: `typsphinx/writer.py` computes the master's `_template.typ` import from the docname's own directory DEPTH to the outdir root instead of relativizing against a synthetic `"_template"` sentinel target (which collided with a real path component and emitted malformed stem-less references for masters under a `_template/` directory); pinned by a parametrized 7-case matrix (3 repaired + 4 byte-identical anti-regression fence rows) and a new GATE-01 real-compile gate over `tests/fixtures/template_named_dir_master/` (masters at depth 1 and depth 2 under a literal `_template` directory, both compiled for real with `root=outdir`). `typsphinx/translator.py` untouched; WR-01/WR-02 stay deferred to the backlog
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
