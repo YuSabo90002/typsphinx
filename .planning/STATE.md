@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 22
-current_phase_name: "Issue #117"
+current_phase_name: "typstpdf Target-Name PDF Fix (Issue #117"
 status: executing
 stopped_at: Phase 22 context gathered
-last_updated: "2026-07-21T13:30:17.274Z"
-last_activity: 2026-07-20
-last_activity_desc: Phase 21 complete, transitioned to Phase 22
+last_updated: "2026-07-21T13:31:41.953Z"
+last_activity: 2026-07-21
+last_activity_desc: Phase 22 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 8
+  total_plans: 11
   completed_plans: 8
   percent: 50
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 21 — Residual Fidelity Fixes (Clusters C/D/E/F)
+**Current focus:** Phase 22 — typstpdf Target-Name PDF Fix (Issue #117)
 
 ## Current Position
 
-Phase: 22 — typstpdf Target-Name PDF Fix (Issue #117)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-20 — Phase 21 complete, transitioned to Phase 22
+Phase: 22 (typstpdf Target-Name PDF Fix (Issue #117)) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 22
+Last activity: 2026-07-21 — Phase 22 execution started
 
 Progress: [██████████] 100%
 

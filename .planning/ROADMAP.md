@@ -243,18 +243,18 @@ after the translator series and before Release.
   3. A regression test asserts the emitted PDF filename matches the configured `typst_documents` target (extends the builder / render-gate test pattern) and would fail against the pre-fix `index.pdf` behavior.
   4. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Plans**: 3 plans
+**Plans**: 3/3 plans executed
 
 Plans:
 
 **Wave 1**
 
-- [ ] 22-01-PLAN.md — `TypstBuilder._resolve_output_stem` (D-03/D-04/D-06/D-07 normalization + degenerate-target fallback) and the three rewired output-path sites; `get_target_uri` deliberately unchanged
+- [x] 22-01-PLAN.md — `TypstBuilder._resolve_output_stem` (D-03/D-04/D-06/D-07 normalization + degenerate-target fallback) and the three rewired output-path sites; `get_target_uri` deliberately unchanged
 
 **Wave 2** *(both blocked on 22-01; no file overlap, run in parallel)*
 
-- [ ] 22-02-PLAN.md — GATE-01 real-compile render gate driven by `tests/roots/test-basic`: `output.typ`/`output.pdf` present AND `index.typ`/`index.pdf` absent
-- [ ] 22-03-PLAN.md — consumer + prose closure: corpus-gate assertion (D-12), renamed-master cross-reference proof, user-guide corrections, SC#2 correction, D-09 CHANGELOG hand-off
+- [x] 22-02-PLAN.md — GATE-01 real-compile render gate driven by `tests/roots/test-basic`: `output.typ`/`output.pdf` present AND `index.typ`/`index.pdf` absent
+- [x] 22-03-PLAN.md — consumer + prose closure: corpus-gate assertion (D-12), renamed-master cross-reference proof, user-guide corrections, SC#2 correction, D-09 CHANGELOG hand-off
 
 ### Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)
 
@@ -346,7 +346,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 19. Block Separation Fixes (Cluster A) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 2/2 | Complete    | 2026-07-20 |
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
-| 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 0/TBD | Not started | - |
+| 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | In Progress|  |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
@@ -484,6 +484,7 @@ feature is dead. Fixing them together lets one regression fixture close both esc
    config is also structurally unimplementable as documented — `outdir` comes from the
    `sphinx-build` CLI argument and is managed by Sphinx itself, which is why no other builder ships
    a `latex_output_dir` / `html_output_dir`.
+
 2. **Repair the `typst_package` path end-to-end** — BUG-A..BUG-D as catalogued in §999.3 above.
 3. **Land a config→output regression fixture** — assert that setting a config value *changes the
    emitted output*, not merely that it is registered. Cover both (1) and (2). Per the standing
