@@ -42,7 +42,7 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 ### PDF Naming (Issue #117)
 
-- [ ] **PDF-01** (Issue #117): `sphinx-build -b typstpdf` names the compiled PDF after the `typst_documents` target name (`manual.pdf`), not the source docname (`index.pdf`); `TypstPDFBuilder.finish()` derives the output name from the target tuple.
+- [x] **PDF-01** (Issue #117): `sphinx-build -b typstpdf` names the compiled PDF after the `typst_documents` target name (`manual.pdf`), not the source docname (`index.pdf`); `TypstPDFBuilder.finish()` derives the output name from the target tuple.
 
 ### PDF Compile Root (nested masters)
 
@@ -92,7 +92,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-12 | Phase 21 (Residual Fidelity — Cluster E) | Complete |
 | FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
-| PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Pending |
+| PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Complete |
 | PDF-02 | Phase 22.1 (typstpdf Compile-Root Alignment, INSERTED) | Pending |
 
 **Coverage:**

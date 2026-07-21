@@ -5,6 +5,7 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import os
 import shutil
 from collections.abc import Iterator
 from os import path
@@ -127,6 +128,129 @@ class TypstBuilder(Builder):
                     stack.append(child)
         return included
 
+    def _resolve_output_stem(self, docname: str) -> str:
+        """Resolve the output filename stem for a document.
+
+        ``typst_documents``' target name (tuple element ``[1]``, published as
+        the "Target name" contract at ``docs/configuration.rst:43``) governs
+        the filename a master document is written and compiled under --
+        ``typst_documents = [('index', 'manual.typ', ...)]`` must emit
+        ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``
+        (Issue #117). This is the single place that normalization rule is
+        implemented; every write/read-back site calls this method rather
+        than re-deriving the rule.
+
+        Args:
+            docname: The Sphinx document name being written.
+
+        Returns:
+            The filename stem (no suffix) to use for this document's output.
+            When ``docname`` has no matching ``typst_documents`` entry, the
+            docname itself is returned unchanged (D-02) -- this is the
+            common case for every document that is not a compiled master.
+            When the matched target name is unusable (a path, an absolute
+            path, or empty/whitespace/non-str after suffix stripping), a
+            ``logger.warning`` is emitted and a safe fallback is returned
+            instead -- ``path.basename`` of the offending stem for a
+            path-bearing target (D-06/D-07), or the docname itself for a
+            degenerate target (edge: empty).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+
+        entry_found = False
+        target: object = None
+        for entry in typst_documents:
+            if entry and len(entry) >= 2 and entry[0] == docname:
+                target = entry[1]
+                entry_found = True
+                break
+
+        if not entry_found:
+            # D-02: toctree-included children (and any docname with no
+            # typst_documents entry) keep docname + suffix. Silent -- this
+            # is the overwhelmingly common case (every non-master document).
+            return docname
+
+        if isinstance(target, str):
+            # D-04: strip only a literal trailing ".typ" -- an extension-
+            # splitting helper would truncate "v1.2-manual" to "v1", which
+            # is forbidden.
+            stem = target[:-4] if target.endswith(".typ") else target
+
+            # D-06/D-07 path guard: detect a path-bearing, traversal-bearing,
+            # absolute, or drive-qualified target BEFORE it reaches
+            # path.join(self.outdir, ...). The unconditional "/" and "\\"
+            # (not just os.sep/os.altsep) is what makes a Windows-authored
+            # "sub\\manual.typ" detectable on POSIX, where os.sep is "/" and
+            # os.altsep is None.
+            separators = {"/", "\\", os.sep}
+            if os.altsep:
+                separators.add(os.altsep)
+            segments = stem.replace("\\", "/").split("/")
+            is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+            is_guarded = (
+                any(sep in stem for sep in separators)
+                or ".." in segments
+                or path.isabs(stem)
+                or is_drive_qualified
+            )
+            if is_guarded:
+                fallback_source = stem[2:] if is_drive_qualified else stem
+                fallback = path.basename(fallback_source.replace("\\", "/"))
+                logger.warning(
+                    "a path is not supported in a typst_documents target "
+                    f"name: {target!r} -- using {fallback!r} instead"
+                )
+                stem = fallback
+        else:
+            stem = ""
+
+        if not isinstance(target, str) or not stem.strip():
+            # edge: empty -- the target was non-str, or its stem is empty
+            # or whitespace-only after suffix stripping / the path guard.
+            # Fall back to the docname wholesale (no silent mangling) so no
+            # file is ever written literally named ".typ" / ".pdf".
+            logger.warning(
+                "empty typst_documents target name for docname "
+                f"{docname!r} -- falling back to {docname!r}"
+            )
+            return docname
+
+        # No Unicode normalization, case folding, or transliteration -- a
+        # non-ASCII stem such as "マニュアル" survives byte-for-byte
+        # (edge: encoding).
+        return stem
+
+    def _directory_preserving_relpath(self, docname: str, stem: str) -> str:
+        """Combine a resolved output stem with the docname's own directory.
+
+        ``_resolve_output_stem`` returns only a basename-safe stem (D-06/
+        D-07 already reduced any path-bearing target to its basename), so a
+        nested docname's typst_documents target must stay inside that
+        docname's own directory rather than being written at outdir's root
+        -- ``('sub/index', 'manual.typ', ...)`` must emit
+        ``outdir/sub/manual.typ``, not ``outdir/manual.typ`` (D-05). When no
+        typst_documents entry matched, or a degenerate/guarded target fell
+        back to the docname itself, ``stem`` already equals ``docname`` and
+        already carries its own directory -- prepending
+        ``path.dirname(docname)`` again would double it, so that case
+        returns ``stem`` untouched.
+
+        Args:
+            docname: The Sphinx document name being written.
+            stem: The value returned by ``_resolve_output_stem(docname)``.
+
+        Returns:
+            An outdir-relative path (no suffix) preserving the docname's
+            directory structure.
+        """
+        if stem == docname:
+            return stem
+        directory = path.dirname(docname)
+        if directory:
+            return path.join(directory, path.basename(stem))
+        return stem
+
     def get_outdated_docs(self) -> Iterator[str]:
         """
         Return an iterator of document names that need to be rebuilt.
@@ -142,6 +266,24 @@ class TypstBuilder(Builder):
     def get_target_uri(self, docname: str, typ: str | None = None) -> str:
         """
         Return the target URI for a document.
+
+        Deliberately stays docname-based and does NOT follow the
+        typst_documents target-name rename that ``_resolve_output_stem``
+        applies to the on-disk filename (Phase 22 / Issue #117). Its only
+        consumer is ``translator.py:_resolve_xref_docname``, which uses this
+        method as a round-trip identity to recover a cross-referenced
+        document's DOCNAME from a refuri that Sphinx itself computed via
+        ``Builder.get_relative_uri`` -- i.e.
+        ``relative_uri(get_target_uri(from_), get_target_uri(to))``, so both
+        endpoints pass through this same function. Every emitted Typst
+        label is namespaced by SOURCE DOCNAME via
+        ``translator.py:_namespace_label``, never by output filename.
+        Making this method target-name-aware would desynchronize the
+        recovered docname from the label namespace and break every
+        cross-document link into or out of a renamed master with a Typst
+        "label ... does not exist" compile fatal. This is a deliberate
+        Phase 22 decision -- do not "fix" it in sympathy with the
+        write-path rename.
 
         Args:
             docname: Name of the document
@@ -325,8 +467,12 @@ class TypstBuilder(Builder):
             docname: Name of the document
             doctree: Document tree to be written
         """
-        # Get the output file path
-        destination = path.join(self.outdir, docname + self.out_suffix)
+        # Resolve the typst_documents target-name stem (Issue #117) and
+        # preserve the docname's own directory (D-05) before deriving the
+        # output file path.
+        stem = self._resolve_output_stem(docname)
+        relative_path = self._directory_preserving_relpath(docname, stem)
+        destination = path.join(self.outdir, relative_path + self.out_suffix)
 
         # Ensure the directory for this specific file exists
         # This handles nested paths like "chapter1/section"
@@ -642,8 +788,12 @@ class TypstPDFBuilder(TypstBuilder):
             docname: Name of the document
             doctree: Document tree to be written
         """
-        # Generate .typ file (not .pdf)
-        typ_destination = path.join(self.outdir, docname + ".typ")
+        # Generate .typ file (not .pdf). Resolve the typst_documents
+        # target-name stem (Issue #117) -- self.out_suffix is ".pdf" on this
+        # builder, so the literal ".typ" suffix is used here regardless.
+        stem = self._resolve_output_stem(docname)
+        relative_path = self._directory_preserving_relpath(docname, stem)
+        typ_destination = path.join(self.outdir, relative_path + ".typ")
 
         # Ensure the directory exists
         dest_dir = path.dirname(typ_destination)
@@ -701,9 +851,13 @@ class TypstPDFBuilder(TypstBuilder):
         logger.info(f"Compiling {len(typst_documents)} master document(s) to PDF...")
 
         for doc_tuple in typst_documents:
-            # doc_tuple format: (sourcename, targetname, title, author)
+            # doc_tuple format: (sourcename, targetname, title, author).
+            # Resolve the stem ONCE so the .typ read-back path and the .pdf
+            # write path can never drift from each other (Issue #117).
             docname = doc_tuple[0]
-            typ_file = path.join(self.outdir, docname + ".typ")
+            stem = self._resolve_output_stem(docname)
+            relative_path = self._directory_preserving_relpath(docname, stem)
+            typ_file = path.join(self.outdir, relative_path + ".typ")
 
             if not path.exists(typ_file):
                 logger.warning(f"Master document not found: {typ_file}")
@@ -718,7 +872,7 @@ class TypstPDFBuilder(TypstBuilder):
                 pdf_bytes = compile_typst_to_pdf(typst_content, root_dir=self.outdir)
 
                 # Write PDF file
-                pdf_file = path.join(self.outdir, docname + ".pdf")
+                pdf_file = path.join(self.outdir, relative_path + ".pdf")
                 with open(pdf_file, "wb") as f:
                     f.write(pdf_bytes)
 
