@@ -236,23 +236,33 @@ class TestNestedMasterRenderGate:
         self, nested_master_render_gate_dir, temp_build_dir_typst
     ):
         """
-        SC#2 / D-08(a): Reproduce the PRE-FIX compile basis directly -- copy
-        the emitted ``api/index.typ`` to a file at the outdir ROOT and
-        compile that copy with ``typst.compile(copy, root=outdir)`` -- and
-        confirm it still fails on a reference that only breaks when compiled
-        from the WRONG directory.
+        SC#2 / D-08(a) -- TEMPLATE-REFERENCE half of the pre-fix-basis proof.
 
-        The real emitted ``api/index.typ`` opens with
-        ``#import "../_template.typ": project`` (a relative reference,
-        correct only from ``outdir/api/`` -- see the ``writer.py`` deviation
-        recorded in the plan Summary). Copied verbatim to the outdir ROOT and
-        compiled with ``root=outdir``, that SAME relative reference would
-        have to resolve one directory ABOVE outdir -- outside the compile
-        root entirely -- so Typst's own root-boundary enforcement rejects it
-        before the compiler ever reaches the sibling ``include("usage.typ")``
-        or the image reference. This is still a direct, real proof of the
-        outdir-root vs. outdir/api divergence: the identical relative
-        reference is safe from one location and unsafe from the other.
+        Reproduces the PRE-FIX compile basis VERBATIM -- copy the emitted
+        ``api/index.typ`` to a file at the outdir ROOT, with NO rewriting at
+        all, and compile that copy with ``typst.compile(copy, root=outdir)``.
+
+        Because the emitted master's very FIRST reference is the relative
+        ``#import "../_template.typ": project`` (correct only from
+        ``outdir/api/``, where it resolves to ``outdir/_template.typ``),
+        Typst's own root-boundary enforcement rejects that import line before
+        the compiler ever reaches the sibling ``include("usage.typ")`` (line
+        33) or the ``image("../logo.png")`` reference (line 40) further down
+        the file. This test is therefore deliberately scoped to ONE failure
+        class only -- the template-reference root-escape -- and asserts
+        exactly that class, not a disjunction that would also accept the
+        include/image failure mode.
+
+        The include/image half -- the class ROADMAP SC#2's "file-not-found"
+        wording literally names -- is proven separately by
+        ``test_sibling_include_fails_at_outdir_root_and_resolves_in_place``
+        below, which neutralizes this template import FIRST so the compiler
+        can reach the sibling include/image references and fail on THEM
+        instead. The two tests deliberately partition the failure space: a
+        future drift between the two classes (e.g. the template import
+        disappearing) turns exactly one of them red, naming which class
+        moved, rather than leaving both passing vacuously through a shared
+        tolerant assertion.
 
         This is a STANDING test, not a one-time manual verification, so the
         gate can never start passing vacuously after a future refactor
@@ -285,7 +295,8 @@ class TestNestedMasterRenderGate:
         # OUTDIR ROOT (never a real docname-derived artifact -- the
         # leading-underscore name cannot collide with anything the builders
         # emit) and compiled with root=outdir, exactly as the pre-fix
-        # NamedTemporaryFile(dir=root_dir) placement did.
+        # NamedTemporaryFile(dir=root_dir) placement did. NO rewriting --
+        # byte-identical to the emitted master.
         basis_copy = temp_build_dir_typst / "_prefix_basis_copy.typ"
         shutil.copy2(typ_source, basis_copy)
 
@@ -293,17 +304,20 @@ class TestNestedMasterRenderGate:
             typst.compile(str(basis_copy), root=str(temp_build_dir_typst))
 
         error_text = str(exc_info.value)
-        # Tolerant of Typst's exact wording (per D-08(a)), but the error MUST
-        # be one of the two signatures a wrong-directory compile produces:
-        # either a plain missing-file error (the sibling include/image class
-        # PDF-02's canonical refs describe) or a root-escape error (the
-        # relative-import class this fixture's real _template.typ reference
-        # actually triggers first) -- both are proof the outdir-root basis
-        # is broken, never a false pass.
+        # Pinned to the SINGLE failure class this test provably produces:
+        # the root-escape rejection of the relative '../_template.typ'
+        # import. This is the TEMPLATE-reference half of the SC#2 proof; the
+        # include/image half lives in
+        # test_sibling_include_fails_at_outdir_root_and_resolves_in_place.
+        # If this assertion goes red, check whether the template-reference
+        # class moved to a different error shape -- do not widen this back
+        # into a disjunction with a missing-file signature.
         lowered = error_text.lower()
-        assert "not found" in lowered or "escape" in lowered, (
-            "Expected a missing-file or root-escape error reproducing the "
-            f"pre-fix compile basis, got: {error_text!r}"
+        assert "escape" in lowered, (
+            "Expected a root-escape error reproducing the pre-fix compile "
+            "basis (the TEMPLATE-reference half of the SC#2 proof -- see "
+            "test_sibling_include_fails_at_outdir_root_and_resolves_in_place "
+            f"for the include/image half), got: {error_text!r}"
         )
         # The discriminating detail: the SAME relative reference
         # ('../_template.typ') that resolves safely from the master's real
