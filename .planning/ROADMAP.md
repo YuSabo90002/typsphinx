@@ -288,11 +288,15 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 0 plans
+**Plans:** 2 plans
 
-Plans:
+**Wave 1**
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 22.1`)
+- [ ] 22.1-01-PLAN.md — the fix: `compile_typst_file_to_pdf()` in `pdf.py` (no temp copy), `finish()` compiles the master's own `.typ` at its real location with `root_dir=self.outdir`, and the failure swallow becomes attempt-all-then-raise (`ExtensionError`); the two stale `tests/test_pdf_generation.py` cases repaired plus the D-08(b) path-basis unit test
+
+**Wave 2** *(blocked on 22.1-01 — the gate is red until the fix lands)*
+
+- [ ] 22.1-02-PLAN.md — GATE-01 nested-master render gate: new `tests/fixtures/nested_master_render_gate/` (sole master at docname `api/index`, sibling `#include()`, upward `image("../logo.png")`) and `tests/test_nested_master_render_gate.py` covering SC#1 (real `-b typstpdf` compile), SC#2 (standing pre-fix-basis failure proof, D-08a) and SC#3 (`-b typst` output compiled by hand, D-09)
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
