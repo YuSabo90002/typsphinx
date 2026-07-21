@@ -5,6 +5,7 @@ This module implements the TypstWriter class, which converts docutils
 document trees to Typst markup.
 """
 
+from pathlib import PurePosixPath
 from typing import Any
 
 from docutils import writers
@@ -56,6 +57,54 @@ class TypstWriter(writers.Writer):
                 return True
 
         return False
+
+    @staticmethod
+    def _compute_template_import_path(docname: str) -> str:
+        """
+        Compute the master document's import path for the shared
+        ``_template.typ`` file, from the master's docname alone.
+
+        `_write_template_file()` (``typsphinx/builder.py``) always writes
+        ``_template.typ`` at the OUTDIR ROOT, unconditionally, regardless of
+        where any given master document lives. The reference a master needs
+        is therefore purely "climb from my own directory to the outdir root,
+        then name the file" -- a function of nesting depth alone, with no
+        dependence on string equality against the reserved ``_template``
+        basename.
+
+        Args:
+            docname: Master document name (e.g. ``"index"``,
+                ``"api/index"``, or ``"_template/index"``).
+
+        Returns:
+            The complete relative import path, including the ``.typ``
+            suffix, e.g. ``"_template.typ"`` or ``"../_template.typ"``.
+
+        Examples:
+            >>> TypstWriter._compute_template_import_path("index")
+            '_template.typ'
+            >>> TypstWriter._compute_template_import_path("api/index")
+            '../_template.typ'
+            >>> TypstWriter._compute_template_import_path("_template/index")
+            '../_template.typ'
+
+        Notes:
+            Closes gap ``G-22.1-4`` / review finding CR-01: the previous
+            implementation relativized the master's docname against a
+            synthetic sentinel target docname (the literal string
+            ``"_template"``) via the translator's docname-to-docname
+            relativization helper. When the master's own directory portion
+            was ITSELF literally named ``_template``, that sentinel collided
+            with a real path component, and the helper's same-directory
+            resolution logic produced a stem-less result that, once
+            concatenated with ``".typ"``, was malformed (e.g. a bare
+            ``"..typ"`` or ``"../.typ"``). Computing the upward-segment count
+            directly from the master's own directory depth removes the
+            string-equality dependence entirely, so no directory name can
+            ever collide with or impersonate the reserved basename.
+        """
+        depth = len(PurePosixPath(docname).parent.parts)
+        return "".join(["../"] * depth) + "_template.typ"
 
     def translate(self) -> None:
         """
@@ -157,10 +206,13 @@ class TypstWriter(writers.Writer):
         # resolve relative to the master's own directory ("api/_template.typ")
         # -- a file that was never written -- exactly the same docname-
         # relative-vs-outdir-root basis mismatch PDF-02 fixes for #include()/
-        # image(). Reuse the translator's own relative-path computation
-        # (docname-relative emission is its established, tested basis) by
-        # treating the template file as a top-level "_template" docname.
-        template_file = (
-            self.visitor._compute_relative_include_path("_template", docname) + ".typ"
-        )
+        # image(). Reusing the translator's docname-to-docname relativizer
+        # with a synthetic "_template" sentinel target was the CR-01 defect
+        # (gap G-22.1-4): the sentinel can collide with a real directory
+        # component of the master's own path (a master whose directory is
+        # itself literally named "_template"), producing a malformed
+        # reference. The depth-based computation below has no such string
+        # dependence -- it is a pure function of the master's own nesting
+        # depth to the outdir root.
+        template_file = TypstWriter._compute_template_import_path(docname)
         self.output = template_engine.render(params, body, template_file=template_file)
