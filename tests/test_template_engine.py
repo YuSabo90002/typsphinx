@@ -751,6 +751,49 @@ class TestTypstTemplateFunctionDictFormat:
         assert 'abstract: "This is the abstract text."' in result
         assert 'index-terms: ("Keyword1", "Keyword2",)' in result
 
+    def test_explicit_template_function_params_win_on_colliding_key(self):
+        """D-08: explicit typst_template_function['params'] values beat
+        auto-derived Sphinx metadata on a colliding key (BUG-E)"""
+        engine = TemplateEngine(
+            typst_template_function={
+                "name": "ieee",
+                "params": {"title": "Explicit Title"},
+            }
+        )
+
+        params = {"title": "Auto Derived Title", "authors": ()}
+        body = "Content"
+
+        result = engine.render(params, body)
+
+        assert 'title: "Explicit Title"' in result
+        assert 'title: "Auto Derived Title"' not in result
+
+    def test_colliding_key_emission_is_deterministic_and_single(self):
+        """D-08 (edge/ordering, CONF-02): the colliding key is emitted exactly
+        once, and repeated renders of identical inputs are byte-identical"""
+        engine = TemplateEngine(
+            typst_template_function={
+                "name": "ieee",
+                "params": {"title": "Explicit Title"},
+            }
+        )
+
+        params = {"title": "Auto Derived Title", "authors": ()}
+        body = "Content"
+
+        result_1 = engine.render(params, body)
+        result_2 = engine.render(params, body)
+
+        assert result_1 == result_2
+
+        # Scope the count to the emitted call region (between the #show:
+        # line and its closing paren), not the whole document.
+        call_start = result_1.index("#show: ieee.with(")
+        call_end = result_1.index(")", call_start)
+        call_region = result_1[call_start:call_end]
+        assert call_region.count("title:") == 1
+
 
 class TestTypstAuthorsConfig:
     """Test typst_authors configuration for detailed author information (Issue #13)"""

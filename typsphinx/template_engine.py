@@ -350,10 +350,14 @@ class TemplateEngine:
         template_func = self.typst_template_function_name or "project"
         output_parts.append(f"#show: {template_func}.with(")
 
-        # Merge template-specific params with standard params
+        # Merge template-specific params with standard params.
+        # D-08: auto-derived Sphinx metadata is the fallback; explicit
+        # typst_template_function["params"] configuration is authoritative
+        # and wins on a key collision. Applies on both the template path and
+        # the package path.
         all_params = {}
-        all_params.update(self.typst_template_params)  # Template-specific params first
-        all_params.update(params)  # Standard params (can override if needed)
+        all_params.update(params)  # Auto-derived params first (fallback)
+        all_params.update(self.typst_template_params)  # Explicit config wins
 
         # Format parameters
         for key, value in all_params.items():
