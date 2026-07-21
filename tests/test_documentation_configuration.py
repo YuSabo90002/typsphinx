@@ -43,7 +43,6 @@ def test_configuration_documents_all_config_values():
         "typst_package",
         "typst_package_imports",
         "typst_template_function",
-        "typst_output_dir",
         "typst_debug",
     ]
 

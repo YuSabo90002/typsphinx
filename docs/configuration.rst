@@ -249,25 +249,6 @@ Allows fine-grained control over package imports.
        '#import "@preview/tablex:0.1.0": tablex, cellx',
    ]
 
-Output Configuration
---------------------
-
-typst_output_dir
-~~~~~~~~~~~~~~~~
-
-Output directory for generated Typst files.
-
-:Type: ``str``
-:Default: ``'_build/typst'``
-
-**Example:**
-
-.. code-block:: python
-
-   typst_output_dir = '_custom/typst'
-
-**Note:** Path is relative to the build directory specified in sphinx-build command.
-
 Debug and Development
 ---------------------
 
@@ -343,9 +324,6 @@ Here's a complete ``conf.py`` example with common settings:
    typst_package_imports = [
        '#import "@preview/codly:0.1.0": *',
    ]
-
-   # Output configuration
-   typst_output_dir = '_build/typst'
 
 Building Documents
 ==================
