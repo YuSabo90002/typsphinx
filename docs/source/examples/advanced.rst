@@ -121,7 +121,17 @@ Wrap external packages with custom logic:
 .. code-block:: python
 
    typst_template = "_templates/custom_ieee.typ"
-   typst_package = "@preview/charged-ieee:0.1.4"
+
+.. important::
+
+   Do **not** also set ``typst_package`` here. The wrapping template already
+   declares ``#import "@preview/charged-ieee:0.1.4": ieee`` itself, and setting
+   ``typst_package`` switches typsphinx to the package-only path: the custom
+   template is then never emitted as ``_template.typ`` into the output
+   directory, so the generated document fails to compile with
+   ``file not found (searched at .../_template.typ)``.
+
+   Use ``typst_package`` **or** ``typst_template`` — not both.
 
 Multi-Document Projects
 ------------------------
