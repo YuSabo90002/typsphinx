@@ -356,11 +356,23 @@ route believed to work — unverified; confirming it is in scope for the fixture
 **Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path,
 so it shipped broken. Any fix must land one (GATE-01).
 
-**Plans**: TBD
+**Plans**: 5 plans (3 waves)
 
 Plans:
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 22.2`)
+**Wave 1** *(parallel — disjoint file sets)*
+
+- [ ] 22.2-01-PLAN.md — CONF-01 dead-config sweep: delete the `typst_output_dir` and `typst_author_params` registrations (D-13, D-07 registration half), purge `typst_output_dir` from `docs/configuration.rst`, `examples/advanced/*`, `CLAUDE.md`, the two registration-only tests and the `required_configs` list, and stage the Phase 23 `### Removed` note so it names BOTH removals
+- [ ] 22.2-02-PLAN.md — docs/example correction: delete the modern-cv package example rather than repair it (D-11), align the `advanced.rst` both-set important-note with post-D-03 behavior, and make `examples/charged-ieee/approach1` + its README describe a build that actually works (D-12) — including removal of the `bibliography: "refs.bib"` param, whose target file exists nowhere in the repo
+- [ ] 22.2-03-PLAN.md — `template_engine.py` repair: hoist the four `@preview` imports + `codly-init` out of the `template_file` branch so every master gets them (D-02/BUG-F), stop package-path parameter injection at BOTH sites — the ctor `parameter_mapping` default AND the fill-if-missing back-fill (D-05/BUG-B), wire `typst_authors` as a native `list[dict]` through `map_parameters()` (D-07/BUG-C), invert parameter precedence so explicit config wins (D-08/BUG-E), and delete the `typst_author_params` ctor arg, legacy branch, both `getattr` call sites and its backward-compat test
+
+**Wave 2** *(depends on 22.2-03 — shares `writer.py` / `builder.py`)*
+
+- [ ] 22.2-04-PLAN.md — package/template routing: `writer.py` passes `template_file=None` when a package is configured alone so no `_template.typ` reference is emitted (D-01/BUG-A), `builder._write_template_file()`'s early return narrows to "package set AND template unset" with a once-per-build warning naming both configs and `typst_template` winning (D-03), the template+function combination is left first-class (D-04), and no new Typst-error-string coupling is introduced (D-06)
+
+**Wave 3** *(depends on 22.2-02, 22.2-03, 22.2-04)*
+
+- [ ] 22.2-05-PLAN.md — CONF-02/CONF-03 gates: new `tests/fixtures/package_only_config_gate/` (charged-ieee alone, colliding-key params) plus `tests/test_package_only_config_gate.py` with one named assertion per BUG-A/B/C/E/F, a real `-b typstpdf` compile, a standing pre-fix-basis failure proof trio (raises-only, no error-text matching), a config→output difference matrix (D-10), and `tests/test_examples_charged_ieee_gate.py` proving the shipped bundled sample builds end-to-end (D-12)
 
 ### Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)
 
