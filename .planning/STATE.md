@@ -2,38 +2,38 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 22
-current_phase_name: "typstpdf Target-Name PDF Fix (Issue #117"
-status: executing
-stopped_at: Phase 22 executed + verified (human_needed — 1 backstop UAT item open)
-last_updated: "2026-07-21T13:31:41.953Z"
+current_phase: 22.1
+current_phase_name: typstpdf Compile-Root Alignment for Nested Masters
+status: planning
+stopped_at: Phase 22 complete (UAT 1/1 passed, security verified), ready to plan Phase 22.1
+last_updated: "2026-07-21T14:22:06.001Z"
 last_activity: 2026-07-21
-last_activity_desc: Phase 22 executed (3/3 plans), verified human_needed, code review issues_found (0 critical)
+last_activity_desc: Phase 22 complete, transitioned to Phase 22.1
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 8
-  percent: 50
+  completed_plans: 11
+  percent: 67
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-20 at v0.6.2 milestone start)
+See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 22 — typstpdf Target-Name PDF Fix (Issue #117)
+**Current focus:** Phase 22.1 — typstpdf Compile-Root Alignment for Nested Masters (PDF-02)
 
 ## Current Position
 
-Phase: 22 (typstpdf Target-Name PDF Fix (Issue #117)) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 22
-Last activity: 2026-07-21 — Phase 22 execution started
+Phase: 22.1 — typstpdf Compile-Root Alignment for Nested Masters
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-21 — Phase 22 complete, transitioned to Phase 22.1
 
-Progress: [██████████] 100%
+Progress: [████████████████████] 11/11 plans (100%)
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -79,6 +79,9 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 - v0.6.1: FID findings root-caused into clusters A–F in `17-AUDIT-CATALOGUE.md`; v0.6.2 delivers the 13 medium/low findings as one coherent translator-fix series.
 - [Phase ?]: Phase 20 Plan 01: reused visit_Text dispatch (pass/pass) instead of a new space-emission helper for desc_sig_space, matching sibling desc_sig_* handlers
 - [Phase ?]: Phase 20 Plan 02: reused depart_desc_parameter's am-I-last-sibling idiom for the field-list inter-field boundary; kept the colon-space edit inside the strong(...) content expression (single call site, no concat-context needed)
+- 2026-07-21 [Phase 22]: `TypstBuilder._resolve_output_stem` is the single source of the `typst_documents` target-name rule, called from both builders' `write_doc` and from `TypstPDFBuilder.finish`; only a literal trailing `.typ` is stripped (never `os.path.splitext`, which would truncate `v1.2-manual` to `v1`).
+- 2026-07-21 [Phase 22]: path-bearing / absolute / drive-qualified / `..` targets warn and reduce to `path.basename`; degenerate targets fall back to the docname — warn-and-degrade, never raise (`conf.py` is already executed code, so this is accident-defense + a UX signal).
+- 2026-07-21 [Phase 22 UAT]: macOS/Linux filesystem Unicode normalization (HFS+/APFS NFD vs. byte-preserving NFC) accepted as an out-of-scope OS behavior; the typsphinx-controlled half (verbatim non-ASCII pass-through) is proven by `test_resolve_output_stem_preserves_non_ascii_target`. Adjacent to the standing XOS-01 item.
 
 ### Pending Todos
 
@@ -90,7 +93,7 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Blockers/Concerns
 
-None open. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fidelity work, NOT frontend UI — no `### UI hint` annotations were added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them).
+None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threats_open: 0`); its 3 code-review findings are fixed (`22-REVIEW-FIX.md`). Phase 21's 3 advisory review warnings (WR-01/02/03 in `21-REVIEW.md`) remain non-blocking release-polish candidates. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fidelity work, NOT frontend UI — no `### UI hint` annotations were added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them).
 
 ### Quick Tasks Completed
 
@@ -117,9 +120,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-21T12:18:50.304Z
-Stopped at: Phase 22 context gathered
-Resume file: .planning/phases/22-typstpdf-target-name-pdf-fix-issue-117/22-CONTEXT.md
+Last session: 2026-07-21
+Stopped at: Phase 22 complete (UAT 1/1 passed, security verified), ready to plan Phase 22.1
+Resume file: None
 
 ## Operator Next Steps
 
