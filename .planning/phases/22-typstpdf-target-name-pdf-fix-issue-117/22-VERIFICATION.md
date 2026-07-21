@@ -1,12 +1,13 @@
 ---
 phase: 22-typstpdf-target-name-pdf-fix-issue-117
 verified: 2026-07-21T14:07:13Z
-status: human_needed
+status: passed
 score: 27/28 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 behavior_unverified_items: []
 human_verification:
+
   - test: "Confirm on an actual macOS filesystem (HFS+/APFS, NFD-normalizing) that a non-ASCII typst_documents target name (e.g. 'マニュアル.typ') round-trips to the SAME bytes on read-back as it does on Linux (byte-preserving NFC), or explicitly accept that typsphinx does not control this and the risk is documented, not mitigated."
     expected: "Either: (a) the filename is usable on both platforms without silent mojibake/duplicate-file creation, or (b) the project explicitly accepts this as an inherent OS-level limitation outside typsphinx's control (which is what 22-01-PLAN.md's `verification: backstop` marker already states in its own text)."
     why_human: "This is a `verification: backstop` truth (22-01-PLAN.md must_haves.truths, the 8th entry) — it is explicitly NOT asserted by any test in the corpus (there is no macOS CI runner and no cross-platform filesystem-encoding test), and the plan's own wording says 'is not asserted.' Per the backstop-truth contract this verifier abstains rather than silently passing it; the truth is present in the codebase only as an acknowledged, deliberately-unverified risk, not as a proven fact. A human with access to a real macOS filesystem (or an accepted policy decision) is needed to close it — grep/code-reading cannot produce OS-level filesystem-encoding evidence."

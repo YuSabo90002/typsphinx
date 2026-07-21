@@ -1,22 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 22-typstpdf-target-name-pdf-fix-issue-117
 source: [22-VERIFICATION.md]
 started: 2026-07-21T14:10:00Z
-updated: 2026-07-21T14:10:00Z
+updated: 2026-07-21T15:05:00Z
 ---
 
 ## Current Test
 
-number: 1
-name: Non-ASCII filesystem round-trip across macOS/Linux (backstop truth)
-expected: |
-  Either (a) a non-ASCII `typst_documents` target name is usable and consistent enough across
-  macOS (HFS+/APFS, NFD-normalizing) and Linux (byte-preserving NFC) that no silent duplicate or
-  corrupted file is produced, or (b) the project explicitly accepts this as an inherent OS-level
-  limitation outside typsphinx's control — which is what 22-01-PLAN.md's `verification: backstop`
-  marker already states in prose, but which no code or test enforces or proves.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -26,7 +18,15 @@ expected: On a real macOS filesystem, configure `typst_documents = [("index", "�
 run `sphinx-build -b typstpdf`, and compare the on-disk filename bytes against the same build on
 Linux. Pass if the filenames are usable and consistent across platforms, OR if the project records an
 explicit decision to accept this as out of scope.
-result: [pending]
+result: pass
+resolution: |
+  Option (b) accepted by the project owner (2026-07-21): filesystem-level Unicode normalization
+  (macOS HFS+/APFS NFD vs. Linux byte-preserving NFC) is an inherent OS behavior outside
+  typsphinx's control and is explicitly out of scope for this phase. This matches the
+  `verification: backstop` prose already in 22-01-PLAN.md. The part typsphinx does control —
+  verbatim pass-through of a non-ASCII target with no normalization, case folding, or
+  transliteration — remains proven by
+  `tests/test_builder_output_stem.py::test_resolve_output_stem_preserves_non_ascii_target`.
 
 why_human: This is a `verification: backstop` truth (22-01-PLAN.md `must_haves.truths`, 8th entry).
 The plan's own text says filesystem-level Unicode normalization "is outside typsphinx's control and
@@ -46,9 +46,9 @@ out-of-scope OS behavior. That matches the plan's existing prose and requires no
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
