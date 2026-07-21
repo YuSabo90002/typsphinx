@@ -136,6 +136,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14) (completed 2026-07-20)
 - [x] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01) (completed 2026-07-21)
 - [x] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02) (completed 2026-07-22)
+- [ ] **Phase 22.2: Dead Config-Value Sweep (INSERTED)** - Two documented config values that never affect output: delete `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end, and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature (CONF-01..CONF-03) (promoted from backlog 999.4/999.3 on 2026-07-22)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
 ## Phase Details
@@ -306,19 +307,73 @@ remove, tracked in the pending todo
 
 - [x] 22.1-04-PLAN.md — production gap closure for `G-22.1-4`: `typsphinx/writer.py` computes the master's `_template.typ` import from the docname's own directory DEPTH to the outdir root instead of relativizing against a synthetic `"_template"` sentinel target (which collided with a real path component and emitted malformed stem-less references for masters under a `_template/` directory); pinned by a parametrized 7-case matrix (3 repaired + 4 byte-identical anti-regression fence rows) and a new GATE-01 real-compile gate over `tests/fixtures/template_named_dir_master/` (masters at depth 1 and depth 2 under a literal `_template` directory, both compiled for real with `root=outdir`). `typsphinx/translator.py` untouched; WR-01/WR-02 stay deferred to the backlog
 
+### Phase 22.2: Dead Config-Value Sweep (INSERTED)
+
+**Goal**: Two user-facing config values are registered and documented but never affect output —
+`typst_output_dir` does nothing at all, and the entire `typst_package` (Typst Universe) path fails to
+compile. Both are the *same* escape: the existing tests assert only that the value is **registered**
+(`tests/test_config_other_options.py:141-179`) or that its name **appears in the docs**
+(`tests/test_documentation_configuration.py:46`), which stays green while the feature is dead. Fix
+both together so one regression fixture — asserting a config value **changes the emitted output** —
+closes both escapes. Promoted from backlog 999.4 (which absorbed 999.3) on 2026-07-22; the owner
+ruled it lands **inside v0.6.2**, before the release phase, so the `typst_output_dir` removal is
+carried by the `[0.6.2]` CHANGELOG entry Phase 23 curates.
+
+**Depends on**: Phase 22.1 (shares the `builder.py` / `writer.py` / `template_engine.py` surface that
+22.1-04 just touched for the `_template.typ` import path — sequenced after so the two changes don't
+collide). Independent of Phases 19–21 (translator-only).
+**Requirements**: CONF-01, CONF-02, CONF-03
+**Success Criteria** (what must be TRUE):
+
+  1. `typst_output_dir` is gone from every surface: the registration (`__init__.py:60`), the `docs/configuration.rst` "Output Configuration" section (255-269) and its line in the full config example (348), the two registration-only tests (`tests/test_config_other_options.py:141-179`), the `required_configs` entry (`tests/test_documentation_configuration.py:46`), the commented-out lines in `examples/advanced/conf.py:102` and `examples/advanced/README.md:263`, and the mention in `CLAUDE.md:67`. A `### Removed` note is staged for the `[0.6.2]` CHANGELOG entry (CONF-01).
+  2. A Sphinx project configured with `typst_package` alone (no `typst_template`) builds under `-b typstpdf` and compiles with **zero** Typst errors, via a real `typst.compile()` (GATE-01 form) — BUG-A..BUG-D below are each demonstrably fixed, and the fixture **fails** against the pre-fix code (CONF-02).
+  3. The "Using Typst Universe Packages" examples in `docs/source/examples/advanced.rst` are corrected to match verified behavior — including the `advanced.rst:126-133` important-note (which currently blames combining `typst_package` with `typst_template`, not the observed cause) and the `advanced.rst:59` modern-cv example (CONF-02).
+  4. A config→output regression fixture exists that asserts a config value **changes the emitted output**, covering both (1) and (2); registration-only assertions are treated as insufficient going forward (CONF-03).
+  5. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
+
+**No deprecation period for `typst_output_dir`** — decided 2026-07-21 (owner). Sphinx silently ignores
+unregistered `conf.py` variables (verified 2026-07-21: a bogus setting under `sphinx-build -W
+--keep-going` produced no warning), so removal is behaviorally invisible; a deprecation warning would
+only tell users to delete a line that has no effect either way. The config is also structurally
+unimplementable as documented — `outdir` comes from the `sphinx-build` CLI argument and is managed by
+Sphinx itself, which is why no other builder ships a `latex_output_dir` / `html_output_dir`.
+
+**`typst_package` defect catalogue** (verified 2026-07-21 with a real `sphinx-build -b typst` + real
+`typst.compile()`, typst 0.15.0; captured while checking a docs question — `typst_template_function =
+{"name": "ieee"}` is *correct*). Full evidence and repro:
+[`todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md`](todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md).
+
+- **BUG-A (fatal):** `writer.py:151-153` always passes `template_file="_template.typ"`, so `#import "_template.typ": <func>` is always emitted — but `builder.py:371-374` early-returns from `_write_template_file()` whenever `typst_package` is set, so the file is never written → `file not found (searched at .../_template.typ)`. Fires with `typst_package` **alone**.
+- **BUG-B:** `template_engine.py:186-191` injects `title`/`authors`/`date` unconditionally. `charged-ieee`'s `ieee()` takes no `date` → `unexpected argument: date` once BUG-A is worked around. Any package function not accepting all three is unusable.
+- **BUG-C:** `typst_authors` / `typst_author_params` are silently ignored — `_format_authors_with_details()` (`template_engine.py:423`) is dead code with no callers. Output is a bare `authors: ("Name",)` string tuple, not the documented dicts.
+- **BUG-D (docs):** `advanced.rst:59` modern-cv example is doubly wrong — `"name": "modern-cv"` → `unresolved import` (the entry function is `resume`, `lib.typ:193`), and `resume` accepts neither `title` nor `authors`, so BUG-B kills it anyway. Its `params` are `author`-dict fields, not `resume` arguments.
+
+The "Custom Template Wrapping" path (`typst_template` pointing at a wrapper whose
+`project(title:, authors:, date:, body)` absorbs the injected params) is the only package-consuming
+route believed to work — unverified; confirming it is in scope for the fixture.
+
+**Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path,
+so it shipped broken. Any fix must land one (GATE-01).
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] TBD (enumerated at `/gsd-plan-phase 22.2`)
+
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
 **Goal**: Prepare the v0.6.2 release — bump the version and curate the CHANGELOG — and close the
 milestone on a full-corpus regression gate. **Prep-only:** the irreversible publish (tag `v0.6.2` →
 `release.yml` → PyPI) is executed later at `/gsd-complete-milestone`, mirroring the v0.5.0 Phase 10 /
 v0.6.1 pattern.
-**Depends on**: Phases 19, 20, 21, 22 (all fidelity + Issue #117 fixes land before the version bump and
-the closing corpus re-run)
-**Requirements**: (none — release/close phase; all 14 v1 requirements are delivered by Phases 19–22)
+**Depends on**: Phases 19, 20, 21, 22, 22.1, 22.2 (all fidelity, Issue #117, and config-sweep fixes
+land before the version bump and the closing corpus re-run)
+**Requirements**: (none — release/close phase; all v1 requirements are delivered by Phases 19–22.2)
 **Success Criteria** (what must be TRUE):
 
   1. `pyproject.toml` version is bumped `0.6.1` → `0.6.2` as the sole version literal, and `uv.lock` is regenerated in lockstep (`uv sync --locked` green).
-  2. `CHANGELOG.md` carries a curated `## [0.6.2]` entry (the single source for the eventual Release body) covering the 13 fidelity fixes (clusters A–F) and the Issue #117 target-name fix. Per the Phase 22 Plan 03 D-09 hand-off, the Issue #117 fix MUST be presented as a **user-visible output filename change** — users whose CI references a docname-named build artifact must be able to see it — not buried among internal fixes.
+  2. `CHANGELOG.md` carries a curated `## [0.6.2]` entry (the single source for the eventual Release body) covering the 13 fidelity fixes (clusters A–F) and the Issue #117 target-name fix. Per the Phase 22 Plan 03 D-09 hand-off, the Issue #117 fix MUST be presented as a **user-visible output filename change** — users whose CI references a docname-named build artifact must be able to see it — not buried among internal fixes. The entry MUST also carry a `### Removed` section for the `typst_output_dir` deletion (Phase 22.2 CONF-01) and a fix note for the `typst_package`-path repair (CONF-02) — both user-visible.
   3. The full ~684-page Sphinx `doc/` corpus re-run through `-b typstpdf` is fatal-free (valid `%PDF` magic, 0 errors) and the `unknown_visit` catalogue is still clean — the closing regression gate, mirroring v0.6.1's GATE-03.
   4. The milestone invariant is confirmed held: zero new runtime dependencies, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
   5. Scope fence held — no tag, no PyPI publish, no GitHub Release in this phase (deferred to `/gsd-complete-milestone`).
@@ -332,7 +387,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 23
+Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 22.1 → 22.2 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -359,153 +414,41 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 20. Signature Token Spacing (Cluster B) | v0.6.2 | 2/2 | Complete    | 2026-07-20 |
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
+| 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
+| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
 
 Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-backlog`, or
-pull the whole rendering-fidelity cluster into the next milestone via `/gsd-new-milestone`.
+pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-### 999.1 — Rendering-Fidelity Round 2 (v0.6.1 audit follow-up: the 13 medium/low findings)
+**Reviewed 2026-07-22** (`/gsd-review-backlog`): 999.1 and 999.2 removed as delivered (999.1 -> Phases
+19/20/21, 999.2 -> Phase 22, all Complete; source of record remains
+[`milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`](milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md)
+and [Issue #117](https://github.com/YuSabo90002/typsphinx/issues/117)). 999.3 was folded into 999.4 and
+999.4 was **promoted into v0.6.2 as Phase 22.2** (owner decision) — the BUG-A..BUG-D evidence now lives
+in the Phase 22.2 detail above. 999.5 added for the Phase 22.1 review warnings.
 
-Source of record: [`milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`](milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md)
-(D-01a human-confirmed, severity-final). v0.6.1 fixed only the sole **high** finding (F12 → FID-01a,
-wide-table collision/clip). The remaining **11 medium + 2 low** silent mis-render findings are
-enumerated below, grouped by root cause so they land as **one coherent series of translator fixes**,
-not 13 unrelated tickets. Each retains its catalogue F-number for traceability. All share the
-milestone invariant (zero new runtime deps, no `@preview` bump) and the standing GATE-01 bar (every
-node-handler change ships/extends a real `typst.compile()` regression fixture).
-
-> **Promoted to v0.6.2 (2026-07-20):** cluster A → Phase 19 (FID-02..FID-06), cluster B → Phase 20
-> (FID-07..FID-09), clusters C/D/E/F → Phase 21 (FID-10..FID-14). Retained here as the source-of-record
-> cluster grouping; the active roadmap entries live under §Phases / §Phase Details above.
-
-**Cluster A — Lost inter-block / inter-element separation** (the dominant root cause; adjacent block
-or sibling elements emitted with no separator/break — very likely a small shared set of
-`visit_*`/`depart_*` separator fixes):
-
-- [ ] **F1** (medium) — consecutive `paragraph`s inside a `list_item` concatenate with no space ("role.For example"); `visit_paragraph`/`depart_paragraph` early-return when `in_list_item` (translator.py ~678–704). Corpus-wide.
-- [ ] **F7** (medium) — multiple sibling `desc_signature`s (overloads / `alias` groups / multi-option directives) run together on one line with no break.
-- [ ] **F13** (medium) — `rubric` option-group heading concatenates onto the first following `option`; directive-option "Options" heading merges onto the first `:field:`. Likely shares F1's block-separation root cause in a different node context.
-- [ ] **F14** (medium) — `definition_list` `term` merges onto its `definition` (when the list is nested in a `list_item`, or the definition body opens with a nested list).
-- [ ] **F15** (medium) — back-to-back body-less `confval` `desc` nodes concatenate into one unbroken blob (4 confvals merged on `usage/extensions/coverage`).
-
-**Cluster B — Lost intra-signature token spacing** (space swallowed inside/around signature tokens):
-
-- [ ] **F2** (medium) — `desc_annotation` "class "/"exception " keyword prefix loses its trailing space ("classsphinx.builders…"). Every `py:class`/`py:exception`/`autoclass`.
-- [ ] **F3** (medium) — C/C++ `desc_signature` & inline `c/cpp:expr` lose ALL inter-token spaces (around `*`/`&`, type↔identifier, after keyword prefix): "Py_ssize_tnitems".
-- [ ] **F5** (medium) — `field_list` `:type:`/`:default:` (object-description fields) render inline with no colon-space and merged field boundaries ("Type:int (a number)Default:42").
-
-**Cluster C — Right-margin overflow / no wrapping** (kin to the fixed F12; a shared "avoid right-margin
-overflow" primitive may serve both — see catalogue D-10 kinship note):
-
-- [ ] **F6** (medium) — a long run of inline `literal` roles overflows the right text margin and is clipped mid-token (trailing roles lost = content loss). `usage/domains/cpp` p.85.
-
-**Cluster D — Paragraph reflow lost:**
-
-- [ ] **F9** (medium) — reST semantic/soft line breaks inside a paragraph render as HARD line breaks (ragged short lines) instead of collapsing to a space; the translator preserves intra-paragraph source newlines. Systemic, corpus-wide.
-
-**Cluster E — codly config wrapper leak:**
-
-- [ ] **F11** (medium) — a `literal_block` with BOTH a `:caption:` AND nested in a `list_item` leaks its codly config wrapper as literal visible text (`{ codly(number-format: none)` … `}`). The `codly_prefix="#"` guard (translator.py ~1504–1520) misses the combined caption+list-item case.
-
-**Cluster F — Meaning-bearing inline styling (low severity):**
-
-- [ ] **F8** (low) — external named `reference` hyperlinks flatten to plain, undistinguished text (+ a stray boundary space where adjacent inline text exists). Link styling is meaning-bearing (D-06). Corpus-wide.
-- [ ] **F10** (low) — `abbreviation`/`desc_sig_operator` for `*` (PEP 3102) and `/` (PEP 570) separators inject the hover-title text inline ("* (Keyword-only parameters separator …)"), cluttering every keyword-only/positional-only signature.
-
-**Not backlog (recorded for context):** F4 was REJECTED at the 17-03 gate (Sphinx-side, builder-independent — not a typsphinx bug). F12 is DONE (FID-01a, Phase 18).
-
-### 999.2 — Issue #117: typstpdf PDF uses source name instead of target name (BACKLOG)
+### 999.5 - Phase 22.1 review warnings: silent missing-PDF skip + typst-error substring coupling (BACKLOG)
 
 **Goal:** [Captured for future planning]
 **Requirements:** TBD
 **Plans:** 0 plans
 
-Source: [Issue #117](https://github.com/YuSabo90002/typsphinx/issues/117) (`bug`, OPEN, reported 2026-07-19 against v0.6.0 / Sphinx 9.1 / Python 3.14).
+Source of record:
+[`todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md`](todos/pending/2026-07-22-wr01-silent-missing-pdf-wr02-typst-error-substring-coupling.md)
+(owner deferred both at the Phase 22.1 Wave 4 gate; `22.1-04-SUMMARY.md` records them as untouched and
+backlogged). Raised as `WR-01`/`WR-02` in
+[`phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md`](phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/22.1-REVIEW.md).
 
-> **Promoted to v0.6.2 (2026-07-20):** → Phase 22 (PDF-01). Retained here as the source-of-record
-> issue description; the active roadmap entry lives under §Phases / §Phase Details above.
-
-**Reported behavior:** With `typst_documents = [('index', 'manual.typ', 'User Manual', 'Development Team')]`, running `sphinx-build -b typstpdf` emits the PDF named after the **source** docname (`index.pdf`) instead of the **target** name declared in `typst_documents` (`manual.pdf`). The `.typ` filename mapping appears honored; the PDF-compile step in `TypstPDFBuilder.finish()` likely re-derives the output name from the source docname rather than the target tuple. Investigate `builder.py` (`TypstPDFBuilder.finish()` / master-doc → PDF path derivation) and confirm against `pdf.py`.
-
-Plans:
-
-- [ ] TBD (promote with /gsd-review-backlog when ready)
-
-### 999.3 — typst_package (Typst Universe) path broken end-to-end (BACKLOG)
-
-**Goal:** [Captured for future planning]
-**Requirements:** TBD
-**Plans:** 0 plans
-
-> **Merged into 999.4 (2026-07-21):** this item is now scope element **2** of
-> §999.4 (Dead Config-Value Sweep) — same root cause as the dead `typst_output_dir`
-> (a documented config value with no regression fixture proving it affects output).
-> Retained here as the source-of-record for the BUG-A..BUG-D evidence below; plan it
-> via 999.4, not as a standalone item.
-
-Source: captured 2026-07-21 while verifying a docs question (`typst_template_function = {"name": "ieee"}` — that value is *correct*). Full evidence, repro, and proposed scope in
-[`todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md`](todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md).
-
-**Verified behavior** (real `sphinx-build -b typst` + real `typst.compile()`, typst 0.15.0): the entire `typst_package` (Typst Universe external template) path fails to compile. The documented "Using Typst Universe Packages" examples in `docs/source/examples/advanced.rst` are non-functional as written.
-
-- **BUG-A (fatal):** `writer.py:151-153` always passes `template_file="_template.typ"`, so `#import "_template.typ": <func>` is always emitted — but `builder.py:371-374` early-returns from `_write_template_file()` whenever `typst_package` is set, so the file is never written → `file not found (searched at .../_template.typ)`. Note this fires with `typst_package` **alone**; the `advanced.rst:126-133` important-note blames combining it with `typst_template`, which does not match the observed cause.
-- **BUG-B:** `template_engine.py:186-191` injects `title`/`authors`/`date` unconditionally. `charged-ieee`'s `ieee()` takes no `date` → `unexpected argument: date` once BUG-A is worked around. Any package function not accepting all three is unusable.
-- **BUG-C:** `typst_authors` / `typst_author_params` are silently ignored — `_format_authors_with_details()` (`template_engine.py:423`) is dead code with no callers. Output is a bare `authors: ("Name",)` string tuple, not the documented dicts.
-- **BUG-D (docs):** `advanced.rst:59` modern-cv example is doubly wrong — `"name": "modern-cv"` → `unresolved import` (entry function is `resume`, `lib.typ:193`), and `resume` accepts neither `title` nor `authors`, so BUG-B kills it anyway. Its `params` are `author`-dict fields, not `resume` arguments.
-
-**Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path, so it shipped broken. Any fix must land one (GATE-01).
-
-The "Custom Template Wrapping" path (`typst_template` pointing at a wrapper whose `project(title:, authors:, date:, body)` absorbs the injected params) is the only package-consuming route believed to work — unverified.
-
-Plans:
-
-- [ ] TBD (plan via 999.4)
-
-### 999.4 — Dead Config-Value Sweep (`typst_output_dir` + `typst_package` + a config→output fixture) (BACKLOG)
-
-**Goal:** [Captured for future planning]
-**Requirements:** TBD
-**Plans:** 0 plans
-
-Source: captured 2026-07-21 from the Phase 22 discussion fallout. Absorbs §999.3 (retained above as
-the source-of-record for its BUG-A..BUG-D evidence) and the pending todo
-[`todos/pending/2026-07-21-dead-typst-output-dir-config.md`](todos/pending/2026-07-21-dead-typst-output-dir-config.md).
-
-**Why one phase:** both defects are the *same* failure — a config value that is registered and
-documented but whose effect on output is never exercised by a test. `typst_output_dir` does nothing
-at all; the `typst_package` path fails to compile end-to-end. In both cases the existing tests assert
-only that the value is *registered* (`tests/test_config_other_options.py:141-179`) or that its name
-*appears in the docs* (`tests/test_documentation_configuration.py:46`), which stays green while the
-feature is dead. Fixing them together lets one regression fixture close both escapes.
-
-**Scope (3 elements):**
-
-1. **Delete `typst_output_dir`** — decided 2026-07-21 (owner). Remove the registration
-   (`__init__.py:60`), the `docs/configuration.rst` "Output Configuration" section (255-269) and its
-   appearance in the full config example (348), the two registration-only tests
-   (`tests/test_config_other_options.py:141-179`), the entry in the `required_configs` list
-   (`tests/test_documentation_configuration.py:46`), the commented-out lines in
-   `examples/advanced/conf.py:102` / `examples/advanced/README.md:263`, and the mention in
-   `CLAUDE.md:67`. Add a `### Removed` CHANGELOG entry. **No deprecation period**: Sphinx silently
-   ignores unregistered conf.py variables (verified 2026-07-21 — a bogus setting under
-   `sphinx-build -W --keep-going` produced no warning), so removal is behaviorally invisible; a
-   deprecation warning would only tell users to delete a line that has no effect either way. The
-   config is also structurally unimplementable as documented — `outdir` comes from the
-   `sphinx-build` CLI argument and is managed by Sphinx itself, which is why no other builder ships
-   a `latex_output_dir` / `html_output_dir`.
-
-2. **Repair the `typst_package` path end-to-end** — BUG-A..BUG-D as catalogued in §999.3 above.
-3. **Land a config→output regression fixture** — assert that setting a config value *changes the
-   emitted output*, not merely that it is registered. Cover both (1) and (2). Per the standing
-   GATE-01 bar this must use a real `typst.compile()` where the config affects compilable output.
-   Treat registration-only assertions as insufficient going forward.
+- [ ] **WR-01** - a master whose `.typ` file is missing is silently skipped by `TypstPDFBuilder.finish()`, so the build reports success while emitting no PDF. Should surface as a failure (or at minimum a warning) rather than a silent no-op.
+- [ ] **WR-02** - tests assert against `typst-py` error-message substrings, coupling the suite to upstream wording; a typst release that rephrases its diagnostics turns the gate red for no behavioral reason.
 
 Plans:
 
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21 · Phase 22.1 inserted (typstpdf compile-root alignment, PDF-02): 2026-07-21 · Backlog item 999.4 added and 999.3 merged into it (dead config-value sweep): 2026-07-21*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21 · Phase 22.1 inserted (typstpdf compile-root alignment, PDF-02): 2026-07-21 · Backlog item 999.4 added and 999.3 merged into it (dead config-value sweep): 2026-07-21 · Backlog reviewed (/gsd-review-backlog): 999.1/999.2 removed as delivered, 999.4 (absorbing 999.3) promoted to Phase 22.2 inside v0.6.2, 999.5 added for the Phase 22.1 WR-01/WR-02 warnings: 2026-07-22*

@@ -48,6 +48,12 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 - [x] **PDF-02**: `sphinx-build -b typstpdf` resolves `#include()` and `image()` paths on the same basis the translator emits them (the master's own directory), so a master at a nested docname (`api/index`) compiles to PDF with its includes and images intact — matching what `-b typst` + a manual `typst compile` already produces. Output locations are unchanged.
 
+### Dead Config Values (Phase 22.2, promoted from backlog 999.4/999.3 on 2026-07-22)
+
+- [ ] **CONF-01**: `typst_output_dir` is removed from every surface (registration, docs, the two registration-only tests, the `required_configs` list, the example projects, `CLAUDE.md`) with a `### Removed` CHANGELOG note. It is read nowhere and is structurally unimplementable as documented — `outdir` comes from the `sphinx-build` CLI argument. No deprecation period (owner decision 2026-07-21; Sphinx silently ignores unregistered `conf.py` variables, so removal is behaviorally invisible).
+- [ ] **CONF-02**: The `typst_package` (Typst Universe) path works end-to-end — a project configured with `typst_package` **alone** builds under `-b typstpdf` and compiles with zero Typst errors. Covers BUG-A (`_template.typ` imported but never written), BUG-B (unconditional `title`/`authors`/`date` injection), BUG-C (`typst_authors`/`typst_author_params` silently ignored — dead `_format_authors_with_details()`), and BUG-D (the wrong `docs/source/examples/advanced.rst` examples and important-note).
+- [ ] **CONF-03**: A config→output regression fixture asserts that setting a config value **changes the emitted output**, not merely that it is registered — covering both CONF-01 and CONF-02, with a real `typst.compile()` where the config affects compilable output (GATE-01). Registration-only assertions are insufficient going forward.
+
 ## v2 Requirements
 
 Deferred to a future milestone. Tracked but not in this roadmap.
@@ -94,17 +100,20 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Complete |
 | PDF-02 | Phase 22.1 (typstpdf Compile-Root Alignment, INSERTED) | Complete |
+| CONF-01 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
+| CONF-02 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
+| CONF-03 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
 
 **Coverage:**
 
-- v1 requirements: 15 total
-- Mapped to phases: 15 ✓
+- v1 requirements: 18 total
+- Mapped to phases: 18 ✓
 - Unmapped: 0 ✓
 
 Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF requirement — it is the
 prep-only release/close phase (version bump + CHANGELOG + closing full-corpus regression gate); all
-15 v1 requirements are delivered by Phases 19–22.1.
+18 v1 requirements are delivered by Phases 19–22.2.
 
 ---
 *Requirements defined: 2026-07-20*
-*Last updated: 2026-07-21 — PDF-02 added with the Phase 22.1 insertion (typstpdf compile-root alignment for nested masters); 15/15 mapped to Phases 19–22.1; milestone v0.6.2*
+*Last updated: 2026-07-22 — CONF-01..CONF-03 added with the Phase 22.2 insertion (dead config-value sweep, promoted from backlog 999.4 which had absorbed 999.3); 18/18 mapped to Phases 19–22.2; milestone v0.6.2*
