@@ -356,7 +356,7 @@ route believed to work — unverified; confirming it is in scope for the fixture
 **Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path,
 so it shipped broken. Any fix must land one (GATE-01).
 
-**Plans**: 5/6 plans executed
+**Plans**: 6/6 plans executed
 
 Plans:
 
@@ -373,7 +373,7 @@ Plans:
 
 **Wave 3** *(depends on 22.2-02, 22.2-03, 22.2-04, 22.2-06)*
 
-- [ ] 22.2-05-PLAN.md — CONF-02/CONF-03 gates: new `tests/fixtures/package_only_config_gate/` (charged-ieee alone, colliding-key params) plus `tests/test_package_only_config_gate.py` with one named assertion per BUG-A/B/C/E/F, a real `-b typstpdf` compile, a standing pre-fix-basis failure proof trio (raises-only, no error-text matching), a config→output difference matrix (D-10), and `tests/test_examples_charged_ieee_gate.py` proving BOTH shipped bundled samples build end-to-end — the `approach2` test asserting the package was **actually used** (emitted `_template.typ` imports `charged-ieee` and carries no `base.typ` marker), since build-exit-0 is the assertion strength that let the silent fallback ship (D-12)
+- [x] 22.2-05-PLAN.md — CONF-02/CONF-03 gates: new `tests/fixtures/package_only_config_gate/` (charged-ieee alone, colliding-key params) plus `tests/test_package_only_config_gate.py` with one named assertion per BUG-A/B/C/E/F, a real `-b typstpdf` compile, a standing pre-fix-basis failure proof trio (raises-only, no error-text matching), a config→output difference matrix (D-10), and `tests/test_examples_charged_ieee_gate.py` proving BOTH shipped bundled samples build end-to-end — the `approach2` test asserting the package was **actually used** (emitted `_template.typ` imports `charged-ieee` and carries no `base.typ` marker), since build-exit-0 is the assertion strength that let the silent fallback ship (D-12)
 
 ### Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)
 
@@ -462,7 +462,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
-| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 5/6 | In Progress|  |
+| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | In Progress|  |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
