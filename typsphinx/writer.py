@@ -157,7 +157,10 @@ class TypstWriter(writers.Writer):
         config = self.builder.config
 
         # Get template configuration from Sphinx config
-        template_path = getattr(config, "typst_template", None)
+        raw_template_path = getattr(config, "typst_template", None)
+        typst_package = getattr(config, "typst_package", None)
+
+        template_path = raw_template_path
         if template_path:
             # Resolve relative path from source directory
             import os
@@ -165,12 +168,22 @@ class TypstWriter(writers.Writer):
             source_dir = self.builder.srcdir
             template_path = os.path.join(source_dir, template_path)
 
+        # D-01/D-03 routing decision: `typst_template` is the primary route
+        # (assumption-delta decision, this plan). Whenever a custom template
+        # is configured, it wins outright and the package import is
+        # suppressed entirely -- even if `typst_package` is ALSO set. The
+        # both-set case is announced with a build warning in builder.py's
+        # `_write_template_file()` (which runs once per build, unlike this
+        # per-document method). Only when no custom template is configured
+        # does the package route apply.
+        package_for_engine = None if raw_template_path else typst_package
+
         # Create template engine
         template_engine = TemplateEngine(
             template_path=template_path,
             search_paths=[self.builder.srcdir],
             parameter_mapping=getattr(config, "typst_template_mapping", None),
-            typst_package=getattr(config, "typst_package", None),
+            typst_package=package_for_engine,
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
             typst_authors=getattr(config, "typst_authors", None),
@@ -213,5 +226,15 @@ class TypstWriter(writers.Writer):
         # reference. The depth-based computation below has no such string
         # dependence -- it is a pure function of the master's own nesting
         # depth to the outdir root.
-        template_file = TypstWriter._compute_template_import_path(docname)
+        #
+        # D-01: a package configured ALONE (no custom template) must not
+        # reference that shared template file -- `_write_template_file()`
+        # (builder.py) deliberately never writes it for that case, and the
+        # previous unconditional computation below (BUG-A) produced a
+        # master that imported a file the builder refused to create,
+        # making the entire package-alone path unbuildable.
+        if typst_package and not raw_template_path:
+            template_file = None
+        else:
+            template_file = TypstWriter._compute_template_import_path(docname)
         self.output = template_engine.render(params, body, template_file=template_file)
