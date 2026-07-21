@@ -1,37 +1,92 @@
 ---
 created: 2026-07-21T20:40:31+09:00
-title: Verify typst_template_function names in Typst Universe examples
-area: docs
+updated: 2026-07-21T21:05:00+09:00
+title: typst_package (Typst Universe) path is broken end-to-end
+area: general
 files:
-  - docs/source/examples/advanced.rst:33 (charged-ieee — verified correct)
-  - docs/source/examples/advanced.rst:59 (modern-cv — suspected wrong)
+  - typsphinx/writer.py:151-153
+  - typsphinx/builder.py:371-374
+  - typsphinx/template_engine.py:185-191
+  - typsphinx/template_engine.py:423 (_format_authors_with_details — dead code)
+  - docs/source/examples/advanced.rst:22-68
   - docs/source/user_guide/templates.rst:42
   - docs/source/user_guide/configuration.rst:83,218
 ---
 
 ## Problem
 
-`typst_template_function = {"name": ...}` の `name` は **パッケージ名ではなく、
-そのパッケージが export している Typst 関数名**。`template_engine.py:212-215` が
-`#import "{typst_package}": {name}` を生成し、`:320,332` でその名前を呼び出す。
+元々は「`typst_template_function = {"name": "ieee"}` は正しいか」というドキュメント確認の
+todo だったが、実ビルド＋実コンパイルで検証したところ **`typst_package` を使う
+Typst Universe パッケージ経路そのものが動作しない**ことが判明した。ドキュメントの
+"Using Typst Universe Packages" セクション全体が、コンパイルできない設定例を掲載している。
 
-- **charged-ieee の例は正しい。** `~/.cache/typst/packages/preview/charged-ieee/0.1.4/lib.typ:3`
-  に `#let ieee(` があり、`"name": "ieee"` で `#import "@preview/charged-ieee:0.1.4": ieee`
-  が生成される。`"charged-ieee"` にするとむしろ壊れる。
-- **modern-cv の例 (advanced.rst:59) は疑わしい。** `"name": "modern-cv"` と
-  パッケージ名をそのまま書いているが、modern-cv が export するエントリ関数は
-  `resume` のはず（未検証：ローカルキャッシュに modern-cv 未取得）。
-  もしそうなら `#import "@preview/modern-cv:0.7.0": modern-cv` はコンパイルエラーになる。
+### 検証方法
 
-ドキュメント例が実際にコンパイルできるか未検証のまま公開されている点がリスク。
+`typst 0.15.0` / `typst-py`（`.venv`）で、docs の charged-ieee 例をそのまま
+`conf.py` に写した最小 Sphinx プロジェクトを `sphinx-build -b typst` し、
+生成された `.typ` を `typst.compile()` にかけた。
+
+### 確認済みの事実
+
+1. **`"name": "ieee"` 自体は正しい。** `name` はパッケージ名ではなく export される
+   Typst 関数名。`~/.cache/typst/packages/preview/charged-ieee/0.1.4/lib.typ:3` に
+   `#let ieee(` がある。`"charged-ieee"` にするとむしろ `unresolved import` になる。
+   → **元の疑問への答えは「合っている」。**
+
+2. **BUG-A（致命的）: `_template.typ` が無いのに import される。**
+   `writer.py:151-153` は `template_file="_template.typ"` を無条件に渡すため、
+   出力に `#import "_template.typ": ieee` が必ず入る。一方
+   `builder.py:371-374` は `typst_package` が設定されていると
+   `_write_template_file()` を早期 return して `_template.typ` を書かない。
+   結果、`typst_package` だけを設定した（`typst_template` は未設定の）構成で
+   `file not found (searched at .../_template.typ)` となりコンパイル不能。
+   ※ `advanced.rst:126-133` の important 注記は「`typst_package` と `typst_template`
+   を併用するな」と書いているが、実際には **`typst_package` 単独でも同じ失敗をする**。
+   注記の因果説明が実態と食い違っている。
+
+3. **BUG-B: `date` が無条件に注入される。** `template_engine.py:190-191` が
+   `params["date"]` を常に設定するため `#show: ieee.with(..., date: "")` が出る。
+   `charged-ieee` の `ieee()` は `date` 引数を持たないので、BUG-A を手で回避しても
+   次に `unexpected argument: date` で落ちる（実測）。`title`/`authors` も同様に
+   無条件注入（`:186-189`）なので、それらを受け取らないパッケージ関数は全滅する。
+
+4. **BUG-C: `typst_authors` / `typst_author_params` が完全に無視されている。**
+   `_format_authors_with_details()` (`template_engine.py:423`) は
+   **どこからも呼ばれていない dead code**（`grep` でヒットは定義行のみ）。
+   実際の出力は `authors: ("John Doe",)` という素の文字列 tuple で、
+   docs が謳う department/organization/email 付き dict にはならない。
+
+5. **BUG-D（docs）: modern-cv の例は二重に誤り。**
+   `advanced.rst:59` の `"name": "modern-cv"` は `unresolved import`（実測）。
+   modern-cv 0.7.0 の entry 関数は `resume`（`lib.typ:193`）。
+   さらに `resume(author:, date:, accent-color:, ...)` は `title`/`authors` を
+   受け取らないため、`resume` に直しても BUG-B により
+   `unexpected argument: title` で落ちる（実測）。
+   例の params（`name`/`job-title`/`email`/`github`）も `resume` の引数ではなく、
+   `author` dict の中身。
+
+### 補足
+
+`advanced.rst` の "Custom Template Wrapping"（ラッパー `.typ` を `typst_template`
+で指定する経路）は、ラッパー側が `project(title:, authors:, date:, body)` を
+受け取るので BUG-B を回避でき、現状で唯一動くパッケージ利用法と思われる（未実測）。
 
 ## Solution
 
-1. modern-cv 0.7.0 の `lib.typ` を取得して export 名を確認（`typst` で一度
-   コンパイルすればキャッシュに落ちる）。
-2. 誤っていれば `docs/source/examples/advanced.rst` の modern-cv 例を修正し、
-   `docs/locale/ja/LC_MESSAGES/examples/advanced.po` も追随。
-3. 併せて「`name` は**関数名**であってパッケージ名ではない」旨の注記を
-   `docs/source/user_guide/templates.rst` / `configuration.rst` の
-   `typst_template_function` 説明に追加する。
-4. 可能なら他のパッケージ例も同様に実コンパイルで検証。
+コード修正が要るので docs todo ではなくフェーズ相当。想定スコープ：
+
+1. `writer.py` — `typst_package` かつ `typst_template` 未設定なら
+   `template_file` を渡さない（`_template.typ` の import を出さない）。
+2. `template_engine.map_parameters` — `title`/`authors`/`date` の無条件注入をやめ、
+   対象テンプレート関数が受け取る引数だけ渡す仕組みにする
+   （`typst_template_mapping` での除外、あるいは明示 opt-in など要設計）。
+3. `_format_authors_with_details()` を実際に配線するか、削除して
+   `typst_authors`/`typst_author_params` を docs から落とす（どちらか決める）。
+4. docs の modern-cv 例を `resume` + 正しい `author` dict に修正、
+   `advanced.rst:126-133` の important 注記を実態に合わせて書き直し、
+   ja `.po` も追随。
+5. **GATE-01 準拠**: `typst_package` 経路の実 `typst.compile()` リグレッション
+   fixture を追加する（これが無かったから壊れたまま出荷されている）。
+
+再現手順は上記「検証方法」の通り。最小再現プロジェクトは
+scratchpad に作成済み（セッション破棄で消えるので必要なら再作成）。
