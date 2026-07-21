@@ -12,6 +12,33 @@ from typing import Any, Dict, List
 logger = logging.getLogger(__name__)
 
 
+def resolve_package_for_engine(
+    typst_package: str | None, raw_template_path: str | None
+) -> str | None:
+    """
+    Decide which ``typst_package`` value a TemplateEngine should be built with.
+
+    D-01/D-03 routing rule: ``typst_template`` is the primary route. Whenever a
+    custom template is configured it wins outright and the package import is
+    suppressed entirely -- even if ``typst_package`` is ALSO set. Only when no
+    custom template is configured does the package route apply.
+
+    This is the SINGLE place that decision is made. ``writer.py`` (per-document
+    rendering) and ``builder.py`` (the once-per-build shared template file) must
+    not re-derive it independently: writer/builder disagreeing about
+    package-vs-template routing is precisely the shape of BUG-A, the fatal
+    defect phase 22.2 existed to fix (WR-04).
+
+    Args:
+        typst_package: The configured ``typst_package`` value, if any
+        raw_template_path: The configured ``typst_template`` value, if any
+
+    Returns:
+        ``typst_package`` when the package route applies, otherwise ``None``
+    """
+    return None if raw_template_path else typst_package
+
+
 class TemplateEngine:
     """
     Manages Typst templates for document generation.
@@ -333,19 +360,25 @@ class TemplateEngine:
             output_parts.append("")  # Blank line
 
         # D-02: hoisted out of `if template_file:` so every master gets these
-        # essential imports unconditionally -- closes BUG-F, where a
-        # package-only master (no template_file) previously got none of them.
-        # This is a MOVE, not a copy: the block below is the single emission
-        # site, matching the included-document convention in writer.py.
-        output_parts.append("// Essential package imports")
-        output_parts.append('#import "@preview/codly:1.3.0": *')
-        output_parts.append('#import "@preview/codly-languages:0.1.10": *')
-        output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
-        output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
-        output_parts.append("")  # Blank line
-        output_parts.append("#show: codly-init.with()")
-        output_parts.append("#codly(languages: codly-languages)")
-        output_parts.append("")  # Blank line
+        # essential imports -- closes BUG-F, where a package-only master (no
+        # template_file) previously got none of them.
+        #
+        # Exception: the inline-default-template path below appends the whole
+        # of `templates/base.typ`, which already carries these same imports and
+        # show-rules. Emitting the hoisted block there too would duplicate every
+        # line (CR-01). So hoist for the two paths that do NOT inline the full
+        # template, keeping exactly one emission site in every case.
+        will_inline_default_template = not template_file and not self.typst_package
+        if not will_inline_default_template:
+            output_parts.append("// Essential package imports")
+            output_parts.append('#import "@preview/codly:1.3.0": *')
+            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+            output_parts.append("")  # Blank line
+            output_parts.append("#show: codly-init.with()")
+            output_parts.append("#codly(languages: codly-languages)")
+            output_parts.append("")  # Blank line
 
         if template_file:
             # Import template from separate file
@@ -455,35 +488,3 @@ class TemplateEngine:
                 return f.read()
         except (FileNotFoundError, OSError):
             return None
-
-    def _format_authors_with_details(self) -> str:
-        """
-        Format authors with detailed information as Typst dict tuple.
-
-        Returns:
-            Typst-formatted author dict tuple string
-
-        Uses typst_authors: author name as key, details as dict value.
-        """
-        author_dicts = []
-
-        if self.typst_authors:
-            for author_name, details in self.typst_authors.items():
-                author_dict = {"name": author_name}
-                author_dict.update(details)
-                author_dicts.append(author_dict)
-        else:
-            # No detailed author information available
-            return ""
-
-        # Format as Typst dict tuple
-        result_parts = ["("]
-        for author_dict in author_dicts:
-            result_parts.append("  (")
-            for key, value in author_dict.items():
-                formatted_value = self._format_typst_value(value)
-                result_parts.append(f"    {key}: {formatted_value},")
-            result_parts.append("  ),")
-        result_parts.append(")")
-
-        return "\n".join(result_parts)

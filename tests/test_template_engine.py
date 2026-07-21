@@ -320,6 +320,26 @@ class TestEssentialImportHoist:
         assert result.count("@preview/codly-languages:") == 1
         assert result.count("@preview/gentle-clues:") == 1
 
+    def test_inline_default_template_render_does_not_duplicate_essential_imports(self):
+        """CR-01: the inline-default-template path (no template_file AND no
+        typst_package -- render()'s documented "old behavior") appends the whole
+        of templates/base.typ, which already carries these imports and
+        show-rules. The D-02 hoist must not emit them a second time there.
+
+        Counting matters: the pre-existing tests on this path only asserted the
+        markers were PRESENT, so a doubled emission stayed green.
+        """
+        engine = TemplateEngine()
+
+        result = engine.render({"title": "T", "authors": ()}, "= Body\n")
+
+        assert result.count("@preview/codly:") == 1
+        assert result.count("@preview/codly-languages:") == 1
+        assert result.count("@preview/mitex:") == 1
+        assert result.count("@preview/gentle-clues:") == 1
+        assert result.count("#show: codly-init.with()") == 1
+        assert result.count("#codly(languages: codly-languages)") == 1
+
 
 class TestTypstUniversePackages:
     """Test Typst Universe package template support (Task 9.3)"""
@@ -808,52 +828,6 @@ class TestTypstAuthorsConfig:
 
         # Should produce string tuple format
         assert formatted == '("John Doe", "Jane Smith",)'
-
-    def test_typst_authors_single_author_with_details(self):
-        """Test typst_authors with single author and detailed information"""
-        engine = TemplateEngine(
-            typst_authors={
-                "John Doe": {
-                    "department": "Computer Science",
-                    "organization": "MIT",
-                    "email": "john@mit.edu",
-                }
-            }
-        )
-
-        # Should format as dictionary with name and details
-        formatted_authors = engine._format_authors_with_details()
-
-        # Should produce dict tuple format
-        assert 'name: "John Doe"' in formatted_authors
-        assert 'department: "Computer Science"' in formatted_authors
-        assert 'organization: "MIT"' in formatted_authors
-        assert 'email: "john@mit.edu"' in formatted_authors
-
-    def test_typst_authors_multiple_authors_with_details(self):
-        """Test typst_authors with multiple authors"""
-        engine = TemplateEngine(
-            typst_authors={
-                "John Doe": {
-                    "department": "Computer Science",
-                    "organization": "MIT",
-                    "email": "john@mit.edu",
-                },
-                "Jane Smith": {
-                    "department": "Electrical Engineering",
-                    "organization": "Stanford",
-                    "email": "jane@stanford.edu",
-                },
-            }
-        )
-
-        formatted_authors = engine._format_authors_with_details()
-
-        # Should contain both authors in dict format
-        assert 'name: "John Doe"' in formatted_authors
-        assert 'name: "Jane Smith"' in formatted_authors
-        assert 'department: "Computer Science"' in formatted_authors
-        assert 'department: "Electrical Engineering"' in formatted_authors
 
     def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
         """D-07: typst_authors reaches map_parameters()/render() as a native
