@@ -243,11 +243,18 @@ after the translator series and before Release.
   3. A regression test asserts the emitted PDF filename matches the configured `typst_documents` target (extends the builder / render-gate test pattern) and would fail against the pre-fix `index.pdf` behavior.
   4. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 22`)
+**Wave 1**
+
+- [ ] 22-01-PLAN.md — `TypstBuilder._resolve_output_stem` (D-03/D-04/D-06/D-07 normalization + degenerate-target fallback) and the three rewired output-path sites; `get_target_uri` deliberately unchanged
+
+**Wave 2** *(both blocked on 22-01; no file overlap, run in parallel)*
+
+- [ ] 22-02-PLAN.md — GATE-01 real-compile render gate driven by `tests/roots/test-basic`: `output.typ`/`output.pdf` present AND `index.typ`/`index.pdf` absent
+- [ ] 22-03-PLAN.md — consumer + prose closure: corpus-gate assertion (D-12), renamed-master cross-reference proof, user-guide corrections, SC#2 correction, D-09 CHANGELOG hand-off
 
 ### Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)
 
