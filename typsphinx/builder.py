@@ -197,6 +197,20 @@ class TypstBuilder(Builder):
             if is_guarded:
                 fallback_source = stem[2:] if is_drive_qualified else stem
                 fallback = path.basename(fallback_source.replace("\\", "/"))
+                if not fallback.strip():
+                    # The path guard's own fallback (a basename) is itself
+                    # empty -- e.g. a trailing separator ("sub/manual.typ/"),
+                    # a bare root ("/"), or a drive prefix with nothing after
+                    # it ("C:"). Route straight to the single "empty target"
+                    # warning below instead of also emitting the "using ''
+                    # instead" warning first, which reads like a successful
+                    # (rather than re-triggered) resolution.
+                    logger.warning(
+                        "empty typst_documents target name for docname "
+                        f"{docname!r} after removing an unsupported path -- "
+                        f"falling back to {docname!r}"
+                    )
+                    return docname
                 logger.warning(
                     "a path is not supported in a typst_documents target "
                     f"name: {target!r} -- using {fallback!r} instead"

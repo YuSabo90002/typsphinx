@@ -272,3 +272,27 @@ def test_resolve_output_stem_warns_on_degenerate_target(temp_sphinx_app, caplog)
         and "index" in record.getMessage()
         for record in caplog.records
     )
+
+
+def test_resolve_output_stem_warns_once_on_path_bearing_target_with_empty_basename(
+    temp_sphinx_app, caplog
+):
+    """WR-03: a path-bearing target whose basename is itself empty (a
+    trailing separator) must emit exactly ONE warning -- the "empty
+    target" fallback -- not the path-guard warning followed by a second,
+    confusing "using '' instead" warning."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.config.typst_documents = [("index", "sub/manual.typ/", "T", "A")]
+
+    with caplog.at_level("WARNING"):
+        stem = builder._resolve_output_stem("index")
+
+    assert stem == "index"
+    warnings = [record.getMessage() for record in caplog.records]
+    assert len(warnings) == 1
+    assert "empty typst_documents target name" in warnings[0]
+    assert "index" in warnings[0]
+    assert "using '' instead" not in warnings[0]
