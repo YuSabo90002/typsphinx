@@ -274,12 +274,12 @@ lands first and the two changes don't collide in `finish()`).
   4. Output locations are unchanged: `.typ` and `.pdf` still land at their docname-derived paths, and the Phase 22 target-name mapping still holds. Root-level masters (`index`) keep working exactly as before.
   5. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
 
-**Out of scope** (deferred, tracked in the pending todo
-`.planning/todos/pending/2026-07-21-master-output-layout-and-dead-typst-output-dir.md`): item **B**
-(aggregating master artifacts so multiple masters don't scatter across the build tree — independent
-of this fix, requires moving output and re-basing relative paths) and item **C** (`typst_output_dir`
-is registered in `__init__.py:60` and documented in `docs/configuration.rst:255-267` but read
-nowhere — implement or remove).
+**Out of scope**: aggregating master artifacts so multiple masters don't scatter across the build
+tree — **dropped 2026-07-21** (owner decision; would have required moving output and re-basing
+relative paths, and is not worth the churn). Also out of scope: `typst_output_dir` is registered in
+`__init__.py:60` and documented in `docs/configuration.rst:255-269` but read nowhere — implement or
+remove, tracked in the pending todo
+`.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
 **Plans:** 0 plans
 

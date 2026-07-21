@@ -84,7 +84,7 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 3 pending (`.planning/todos/pending/`):
 
-- **マスター出力の配置問題** (builder) — 項目 A は Phase 22.1 に移管済み。**B**（マスター成果物が build ツリーに散らばる／出力位置を動かして相対パスを振り直す設計変更）と **C**（`typst_output_dir` が登録・文書化のみで未実装）が未着手のまま残る。v0.6.2 スコープ外。
+- **死んだ設定 `typst_output_dir`** (builder) — 登録（`__init__.py:60`）と文書化（`docs/configuration.rst:255-269`）だけあって実装から一切読まれていない。実装するか、登録・ドキュメント・登録専用テストごと削除するかを検討中。元は A/B/C 3件の todo だったが、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は 2026-07-21 に不採用として削除**。v0.6.2 スコープ外。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs)
 - **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — バックログ 999.3 と同一。C と同じ「文書化されているが動かない設定」系統。
 
