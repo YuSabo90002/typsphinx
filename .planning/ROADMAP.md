@@ -288,11 +288,11 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 **Wave 1**
 
-- [ ] 22.1-01-PLAN.md — the fix: `compile_typst_file_to_pdf()` in `pdf.py` (no temp copy), `finish()` compiles the master's own `.typ` at its real location with `root_dir=self.outdir`, and the failure swallow becomes attempt-all-then-raise (`ExtensionError`); the two stale `tests/test_pdf_generation.py` cases repaired plus the D-08(b) path-basis unit test
+- [x] 22.1-01-PLAN.md — the fix: `compile_typst_file_to_pdf()` in `pdf.py` (no temp copy), `finish()` compiles the master's own `.typ` at its real location with `root_dir=self.outdir`, and the failure swallow becomes attempt-all-then-raise (`ExtensionError`); the two stale `tests/test_pdf_generation.py` cases repaired plus the D-08(b) path-basis unit test
 
 **Wave 2** *(blocked on 22.1-01 — the gate is red until the fix lands)*
 
