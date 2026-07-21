@@ -296,3 +296,32 @@ def test_resolve_output_stem_warns_once_on_path_bearing_target_with_empty_basena
     assert "empty typst_documents target name" in warnings[0]
     assert "index" in warnings[0]
     assert "using '' instead" not in warnings[0]
+
+
+def test_directory_preserving_relpath_keeps_nested_docname_directory(
+    temp_sphinx_app,
+):
+    """WR-02/D-05: a nested docname's renamed target must stay inside
+    that docname's own directory -- ('sub/index', 'manual', ...) must
+    resolve to 'sub/manual', NOT 'manual' at outdir's root."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+
+    assert builder._directory_preserving_relpath("sub/index", "manual") == "sub/manual"
+
+
+def test_directory_preserving_relpath_identity_stem_is_unchanged(temp_sphinx_app):
+    """D-05: when the resolved stem already equals the docname (no
+    typst_documents entry matched, or a degenerate/guarded target fell
+    back to the docname itself), the directory must not be prepended a
+    second time."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+
+    assert (
+        builder._directory_preserving_relpath("sub/index", "sub/index") == "sub/index"
+    )
