@@ -4,15 +4,15 @@ milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 22.2
 current_phase_name: Dead Config-Value Sweep (INSERTED)
-status: planning
-stopped_at: Phase 22.2 context gathered
-last_updated: "2026-07-21T20:14:32.758Z"
+status: ready_to_execute
+stopped_at: Phase 22.2 planned (6 plans, 3 waves)
+last_updated: "2026-07-22T21:10:00.000Z"
 last_activity: 2026-07-22
-last_activity_desc: backlog reviewed (2nd pass); 999.5 promoted into v0.6.2 as Phase 22.3, backlog now empty
+last_activity_desc: Phase 22.2 planned — 6 plans in 3 waves; plan-checker PASSED; owner ruled approach2 sample repair into scope (new 22.2-06)
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 15
+  total_plans: 21
   completed_plans: 15
   percent: 71
 ---
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 ## Current Position
 
 Phase: 22.2 — Dead Config-Value Sweep (INSERTED)
-Plan: Not started
-Status: Ready to discuss/plan
-Last activity: 2026-07-22 — backlog reviewed (2nd pass); 999.5 promoted into v0.6.2 as Phase 22.3 (WR-01/WR-02), sequenced after 22.2 and before the Phase 23 release prep; backlog now empty
+Plan: 0/6 complete (Wave 1: 22.2-01, -02, -03, -06 · Wave 2: 22.2-04 · Wave 3: 22.2-05)
+Status: Ready to execute
+Last activity: 2026-07-22 — Phase 22.2 planned: 6 plans in 3 waves, plan-checker PASSED (13/13 decisions covered, 3/3 requirements covered). Owner ruled the silently-broken `examples/charged-ieee/approach2` sample into scope as new plan 22.2-06.
 
-Progress: [████████████████████] 11/11 plans (100%)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0/6 plans (0%)
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
