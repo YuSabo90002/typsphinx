@@ -9,14 +9,15 @@ import os
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Set
+from typing import List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
+from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.osutil import ensuredir
 
-from typsphinx.pdf import compile_typst_to_pdf
+from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
@@ -846,6 +847,13 @@ class TypstPDFBuilder(TypstBuilder):
         Only master documents (defined in typst_documents) are compiled to PDF.
         Included documents are not compiled individually.
 
+        Every configured master is attempted, even if an earlier one fails to
+        compile: masters that compile successfully still get their .pdf
+        written. If any master failed, a single ExtensionError naming every
+        failure is raised after the loop, which surfaces as a non-zero
+        sphinx-build exit -- a build can no longer "succeed" while silently
+        producing no PDF for a broken master.
+
         Requirement 9.2: Execute Typst compilation within Python
         Requirement 9.4: Generate PDF from Typst markup
         """
@@ -863,6 +871,8 @@ class TypstPDFBuilder(TypstBuilder):
             return
 
         logger.info(f"Compiling {len(typst_documents)} master document(s) to PDF...")
+
+        failures: List[Tuple[str, str]] = []
 
         for doc_tuple in typst_documents:
             # doc_tuple format: (sourcename, targetname, title, author).
@@ -887,12 +897,10 @@ class TypstPDFBuilder(TypstBuilder):
                 continue
 
             try:
-                # Read Typst content
-                with open(typ_file, encoding="utf-8") as f:
-                    typst_content = f.read()
-
-                # Compile to PDF
-                pdf_bytes = compile_typst_to_pdf(typst_content, root_dir=self.outdir)
+                # typ_file is already the master's real on-disk location, so
+                # the docname-relative #include()/image() paths the
+                # translator emitted resolve by construction (D-01).
+                pdf_bytes = compile_typst_file_to_pdf(typ_file, root_dir=self.outdir)
 
                 # Write PDF file
                 pdf_file = path.join(self.outdir, relative_path + ".pdf")
@@ -903,3 +911,11 @@ class TypstPDFBuilder(TypstBuilder):
 
             except Exception as e:
                 logger.error(f"Failed to compile {typ_file}: {e}")
+                failures.append((docname, str(e)))
+
+        if failures:
+            summary = "; ".join(f"{docname}: {err}" for docname, err in failures)
+            raise ExtensionError(
+                f"typstpdf: {len(failures)} master document(s) failed to compile "
+                f"to PDF: {summary}"
+            )

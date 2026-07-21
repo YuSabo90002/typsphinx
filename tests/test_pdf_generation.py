@@ -1,8 +1,10 @@
 """Tests for PDF generation functionality (Requirements 9)"""
 
+from os import path
 from unittest.mock import patch
 
 import pytest
+from sphinx.errors import ExtensionError
 
 
 class TestTypstPackageIntegration:
@@ -99,14 +101,50 @@ class TestTypstPDFBuilder:
             typ_file = tmp_path / "output.typ"
             typ_file.write_text("= Test Document\n\nThis is a test.\n")
 
-            # Mock compile_typst_to_pdf
-            with patch("typsphinx.builder.compile_typst_to_pdf") as mock_compile:
+            # Mock compile_typst_file_to_pdf -- the function finish() calls
+            with patch("typsphinx.builder.compile_typst_file_to_pdf") as mock_compile:
                 mock_compile.return_value = b"%PDF-1.4 mock pdf content"
 
                 builder.finish()
 
                 # Verify compile was called
                 assert mock_compile.called
+
+    def test_finish_compiles_master_at_its_own_directory(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-08(b): the path handed to the compile function is the master's
+        own .typ (inside its docname directory), never a file at the outdir
+        root -- this is the structural invariant the PDF-02 fix depends on,
+        and it is checkable even where typst-py is not installed because the
+        compile function is mocked."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [
+            ("api/index", "index", "Test Document", "Test Author"),
+        ]
+
+        api_dir = tmp_path / "api"
+        api_dir.mkdir()
+        (api_dir / "index.typ").write_text("= Test Document\n\nNested master.\n")
+
+        with patch.object(TypstPDFBuilder.__bases__[0], "finish"):
+            with patch("typsphinx.builder.compile_typst_file_to_pdf") as mock_compile:
+                mock_compile.return_value = b"%PDF-1.4 mock"
+                builder.finish()
+
+        called_args, called_kwargs = mock_compile.call_args
+        called_path = called_args[0]
+        assert called_path == str(api_dir / "index.typ")
+        assert path.dirname(called_path) == str(api_dir)
+        assert path.dirname(called_path) != str(tmp_path)
+        # builder.outdir may be a Sphinx _StrPath (path-like, not a plain
+        # str); stringify explicitly to avoid its deprecated str-equality
+        # comparison path (RemovedInSphinx10Warning, escalated to error).
+        assert str(called_kwargs["root_dir"]) == str(tmp_path)
 
 
 class TestPDFCompilationIntegration:
@@ -221,12 +259,9 @@ class TestPDFErrorHandling:
         assert len(error_msg) > 0
         assert isinstance(error_msg, str)
 
-    def test_builder_error_handling_continues_on_failure(
-        self, temp_sphinx_app, tmp_path
-    ):
-        """Test that builder continues processing other files after one fails"""
-        from unittest.mock import patch
-
+    def test_builder_attempts_every_master_then_raises(self, temp_sphinx_app, tmp_path):
+        """D-04: a compile failure raises ExtensionError after every master
+        has been attempted, and the message names the failing docname."""
         from typsphinx.builder import TypstPDFBuilder
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
@@ -245,12 +280,37 @@ class TestPDFErrorHandling:
         invalid_file = tmp_path / "invalid.typ"
         invalid_file.write_text("#let x = \n")  # Syntax error
 
-        # Mock logger to capture error messages
-        with patch("typsphinx.builder.logger") as mock_logger:
+        with pytest.raises(ExtensionError) as exc_info:
             builder.finish()
 
-            # Should have logged errors for the invalid file
-            assert mock_logger.error.called
+        assert "invalid" in str(exc_info.value)
+
+    def test_builder_still_writes_pdf_for_masters_that_compile(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-05: the loop-continues half of the contract survives the D-04
+        raise -- a master that compiles successfully still gets its .pdf
+        written even though a sibling master fails."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [
+            ("valid", "valid.typ", "Valid Document", "Test Author"),
+            ("invalid", "invalid.typ", "Invalid Document", "Test Author"),
+        ]
+
+        valid_file = tmp_path / "valid.typ"
+        valid_file.write_text("= Valid Document\n\nContent here.\n")
+
+        invalid_file = tmp_path / "invalid.typ"
+        invalid_file.write_text("#let x = \n")  # Syntax error
+
+        with pytest.raises(ExtensionError):
+            builder.finish()
+
+        assert (tmp_path / "valid.pdf").exists()
 
     def test_error_includes_source_location(self):
         """Test that errors include source file location information"""

@@ -46,7 +46,7 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 ### PDF Compile Root (nested masters)
 
-- [ ] **PDF-02**: `sphinx-build -b typstpdf` resolves `#include()` and `image()` paths on the same basis the translator emits them (the master's own directory), so a master at a nested docname (`api/index`) compiles to PDF with its includes and images intact — matching what `-b typst` + a manual `typst compile` already produces. Output locations are unchanged.
+- [x] **PDF-02**: `sphinx-build -b typstpdf` resolves `#include()` and `image()` paths on the same basis the translator emits them (the master's own directory), so a master at a nested docname (`api/index`) compiles to PDF with its includes and images intact — matching what `-b typst` + a manual `typst compile` already produces. Output locations are unchanged.
 
 ## v2 Requirements
 
@@ -93,7 +93,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Complete |
-| PDF-02 | Phase 22.1 (typstpdf Compile-Root Alignment, INSERTED) | Pending |
+| PDF-02 | Phase 22.1 (typstpdf Compile-Root Alignment, INSERTED) | Complete |
 
 **Coverage:**
 
