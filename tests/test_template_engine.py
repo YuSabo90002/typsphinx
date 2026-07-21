@@ -223,6 +223,104 @@ class TestParameterMapping:
         assert "date" in params
 
 
+class TestPackagePathParameterSuppression:
+    """Test D-05: package-configured engines do not receive injected default
+    parameters (title/authors/date) unless explicitly mapped (BUG-B)."""
+
+    def test_package_engine_no_explicit_mapping_returns_empty_dict(self):
+        """A package-configured engine with no explicit mapping returns {}"""
+        engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params == {}
+
+    def test_package_engine_explicit_single_key_mapping_returns_only_that_key(self):
+        """A package-configured engine with an explicit mapping returns exactly
+        the mapped key(s), with no back-filled title/authors/date"""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            parameter_mapping={"project": "title"},
+        )
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert set(params.keys()) == {"title"}
+        assert params["title"] == "P"
+
+    def test_non_package_engine_still_backfills_title_authors_date(self):
+        """A non-package engine's map_parameters() is untouched by D-05 --
+        the template path still back-fills the three standard keys"""
+        engine = TemplateEngine()
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params["title"] == "P"
+        assert params["authors"] == ("A",)
+        assert params["date"] == "1.0"
+
+
+class TestEssentialImportHoist:
+    """Test D-02: every master's render() output carries the four essential
+    @preview imports plus codly initialisation exactly once, whether or not a
+    template file is imported (BUG-F)."""
+
+    def test_package_only_render_contains_essential_imports_exactly_once(self):
+        """A package-only render (no template_file) carries the essential
+        imports and codly-init exactly once"""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            typst_template_function="ieee",
+        )
+
+        params = {}
+        body = "= Body\n"
+
+        result = engine.render(params, body)
+
+        assert "#show: codly-init.with()" in result
+        assert result.count("@preview/codly:") == 1
+        assert result.count("@preview/codly-languages:") == 1
+        assert result.count("@preview/mitex:") == 1
+        assert result.count("@preview/gentle-clues:") == 1
+
+    def test_template_file_render_does_not_duplicate_essential_imports(self):
+        """A template-file-set render carries the essential imports exactly
+        once -- proving the D-02 hoist did not duplicate the block"""
+        engine = TemplateEngine()
+
+        params = {"title": "T", "authors": ()}
+        body = "= Body\n"
+
+        result = engine.render(params, body, template_file="_template.typ")
+
+        assert result.count("@preview/mitex:") == 1
+        assert result.count("@preview/codly:") == 1
+        assert result.count("@preview/codly-languages:") == 1
+        assert result.count("@preview/gentle-clues:") == 1
+
+
 class TestTypstUniversePackages:
     """Test Typst Universe package template support (Task 9.3)"""
 
@@ -653,6 +751,49 @@ class TestTypstTemplateFunctionDictFormat:
         assert 'abstract: "This is the abstract text."' in result
         assert 'index-terms: ("Keyword1", "Keyword2",)' in result
 
+    def test_explicit_template_function_params_win_on_colliding_key(self):
+        """D-08: explicit typst_template_function['params'] values beat
+        auto-derived Sphinx metadata on a colliding key (BUG-E)"""
+        engine = TemplateEngine(
+            typst_template_function={
+                "name": "ieee",
+                "params": {"title": "Explicit Title"},
+            }
+        )
+
+        params = {"title": "Auto Derived Title", "authors": ()}
+        body = "Content"
+
+        result = engine.render(params, body)
+
+        assert 'title: "Explicit Title"' in result
+        assert 'title: "Auto Derived Title"' not in result
+
+    def test_colliding_key_emission_is_deterministic_and_single(self):
+        """D-08 (edge/ordering, CONF-02): the colliding key is emitted exactly
+        once, and repeated renders of identical inputs are byte-identical"""
+        engine = TemplateEngine(
+            typst_template_function={
+                "name": "ieee",
+                "params": {"title": "Explicit Title"},
+            }
+        )
+
+        params = {"title": "Auto Derived Title", "authors": ()}
+        body = "Content"
+
+        result_1 = engine.render(params, body)
+        result_2 = engine.render(params, body)
+
+        assert result_1 == result_2
+
+        # Scope the count to the emitted call region (between the #show:
+        # line and its closing paren), not the whole document.
+        call_start = result_1.index("#show: ieee.with(")
+        call_end = result_1.index(")", call_start)
+        call_region = result_1[call_start:call_end]
+        assert call_region.count("title:") == 1
+
 
 class TestTypstAuthorsConfig:
     """Test typst_authors configuration for detailed author information (Issue #13)"""
@@ -714,20 +855,58 @@ class TestTypstAuthorsConfig:
         assert 'department: "Computer Science"' in formatted_authors
         assert 'department: "Electrical Engineering"' in formatted_authors
 
-    def test_typst_author_params_backward_compatibility(self):
-        """Test backward compatibility with typst_author_params"""
+    def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
+        """D-07: typst_authors reaches map_parameters()/render() as a native
+        list[dict], never as a pre-rendered quoted string (BUG-C)"""
         engine = TemplateEngine(
-            typst_author_params={
-                "John Doe": {
-                    "department": "CS",
-                    "email": "john@mit.edu",
+            typst_authors={
+                "Ada Lovelace": {
+                    "department": "Computing",
+                    "organization": "Analytical Engine Society",
+                    "email": "ada@example.org",
                 }
             }
         )
 
-        # Should also work with author_params (legacy support)
-        formatted_authors = engine._format_authors_with_details(authors=("John Doe",))
+        sphinx_metadata = {
+            "project": "P",
+            "author": "Ada Lovelace",
+            "release": "1.0",
+            "copyright": "c",
+        }
 
-        assert 'name: "John Doe"' in formatted_authors
-        assert 'department: "CS"' in formatted_authors
-        assert 'email: "john@mit.edu"' in formatted_authors
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert isinstance(params["authors"], list)
+        assert isinstance(params["authors"][0], dict)
+        assert list(params["authors"][0].keys())[0] == "name"
+        assert params["authors"][0]["name"] == "Ada Lovelace"
+
+        body = "Content"
+        result = engine.render(params, body)
+
+        assert 'name: "Ada Lovelace"' in result
+        assert "authors: (" in result
+        # Double-formatting regression guard: authors must never be emitted
+        # as a quoted Typst string.
+        assert 'authors: "(' not in result
+
+    def test_typst_authors_unset_or_empty_yields_no_authors_key_on_package_path(self):
+        """A package-configured engine with no typst_authors produces no
+        authors key; an empty typst_authors dict behaves identically"""
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        engine_unset = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+        params_unset = engine_unset.map_parameters(sphinx_metadata)
+        assert "authors" not in params_unset
+
+        engine_empty = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4", typst_authors={}
+        )
+        params_empty = engine_empty.map_parameters(sphinx_metadata)
+        assert "authors" not in params_empty
