@@ -517,7 +517,10 @@ class TypstBuilder(Builder):
         This writes a separate template.typ file that master documents can import.
         Only writes if a template is configured (not using Typst Universe packages).
         """
-        from typsphinx.template_engine import TemplateEngine
+        from typsphinx.template_engine import (
+            TemplateEngine,
+            resolve_package_for_engine,
+        )
 
         config = self.config
 
@@ -554,12 +557,17 @@ class TypstBuilder(Builder):
         if typst_package and not raw_template_path:
             return
 
-        # Create template engine
+        # Create template engine. The package value goes through the same
+        # single routing helper writer.py uses (WR-04) so the two can never
+        # disagree about package-vs-template routing -- BUG-A's failure shape.
+        # Reaching here means a custom template IS configured, so the helper
+        # suppresses the package; deriving it rather than hardcoding None keeps
+        # one rule, one place.
         template_engine = TemplateEngine(
             template_path=template_path,
             search_paths=[self.srcdir],
             parameter_mapping=getattr(config, "typst_template_mapping", None),
-            typst_package=typst_package,
+            typst_package=resolve_package_for_engine(typst_package, raw_template_path),
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
             typst_authors=getattr(config, "typst_authors", None),

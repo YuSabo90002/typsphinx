@@ -10,7 +10,7 @@ from typing import Any
 
 from docutils import writers
 
-from typsphinx.template_engine import TemplateEngine
+from typsphinx.template_engine import TemplateEngine, resolve_package_for_engine
 from typsphinx.translator import TypstTranslator
 
 
@@ -168,15 +168,14 @@ class TypstWriter(writers.Writer):
             source_dir = self.builder.srcdir
             template_path = os.path.join(source_dir, template_path)
 
-        # D-01/D-03 routing decision: `typst_template` is the primary route
-        # (assumption-delta decision, this plan). Whenever a custom template
-        # is configured, it wins outright and the package import is
-        # suppressed entirely -- even if `typst_package` is ALSO set. The
-        # both-set case is announced with a build warning in builder.py's
+        # D-01/D-03 routing decision -- see `resolve_package_for_engine()` for
+        # the rule and why it lives in exactly one place (WR-04). The both-set
+        # case is announced with a build warning in builder.py's
         # `_write_template_file()` (which runs once per build, unlike this
-        # per-document method). Only when no custom template is configured
-        # does the package route apply.
-        package_for_engine = None if raw_template_path else typst_package
+        # per-document method).
+        package_for_engine = resolve_package_for_engine(
+            typst_package, raw_template_path
+        )
 
         # Create template engine
         template_engine = TemplateEngine(
