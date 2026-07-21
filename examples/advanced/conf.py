@@ -63,7 +63,7 @@ typst_elements = {
 }
 
 # Custom template (optional)
-# Uncomment to use a custom Typst template
+# This example ships one; remove this line to fall back to the bundled default
 typst_template = "_templates/custom.typ"
 
 # Template parameter mapping (optional)
