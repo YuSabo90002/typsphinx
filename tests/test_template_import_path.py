@@ -46,9 +46,20 @@ This module is split into two parts:
   reads correctly.
 """
 
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from typsphinx.writer import TypstWriter
+
+try:
+    import typst  # noqa: F401
+
+    TYPST_AVAILABLE = True
+except ImportError:
+    TYPST_AVAILABLE = False
 
 # The full seven-case matrix from the plan's <behavior> block. Each row is
 # (docname, expected import path, label). The "fence" label marks a case
@@ -129,3 +140,163 @@ class TestComputeTemplateImportPath:
                 f"docname={docname!r}: expected {expected_from_depth!r} "
                 f"derived from directory depth, got {result!r}"
             )
+
+
+def _run_sphinx_build(
+    source_dir: Path, build_dir: Path, builder: str
+) -> subprocess.CompletedProcess:
+    """
+    Run ``sphinx-build -b <builder>`` as a subprocess and return the
+    completed process (stdout/stderr captured as text).
+
+    Invoked as ``sys.executable -m sphinx`` (never ``uv run sphinx-build``,
+    never a resolved ``sphinx-build`` binary) so the exact interpreter/venv
+    running this test is reused, sidestepping the documented NixOS-sandbox
+    PATH-shadowing hazard.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            builder,
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+@pytest.fixture
+def template_named_dir_master_dir():
+    """Return the path to the template_named_dir_master fixture project."""
+    return Path(__file__).parent / "fixtures" / "template_named_dir_master"
+
+
+@pytest.fixture
+def temp_build_dir(tmp_path):
+    """Provide a temporary directory for the -b typst build output."""
+    return tmp_path / "_build"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the template-named-dir-master render gate",
+)
+class TestTemplateNamedDirMasterRenderGate:
+    """
+    Real-compile render gate (GATE-01 shape, D-06) proving that a master
+    whose directory portion is literally named ``_template`` emits a
+    correct, resolvable ``_template.typ`` import at BOTH depth 1 and
+    depth 2, and that both emitted masters compile for real to valid PDF
+    bytes via ``typst.compile(master, root=outdir)``.
+
+    Fixture shape: ``tests/fixtures/template_named_dir_master/`` has two
+    masters, ``_template/index`` (depth 1) and ``_template/sub/index``
+    (depth 2), both listed in ``typst_documents`` so one ``-b typst`` build
+    exercises both nesting depths.
+
+    Pre-fix, the emitter produced malformed stem-less references at both
+    depths (``#import "..typ"`` and ``#import "../.typ"``) which failed to
+    compile with a Typst missing-file error naming the malformed path.
+    Post-fix, the emitter can no longer produce them, so this gate is a
+    green-direction standing proof rather than a red/green pair -- the
+    unit-level case matrix above (``TestComputeTemplateImportPath``) pins
+    the repair's cases directly against the staticmethod, including the
+    three previously-broken docnames.
+    """
+
+    def test_template_named_dir_master_resolves_and_compiles(
+        self, template_named_dir_master_dir, temp_build_dir
+    ):
+        """
+        Build the fixture through ``-b typst``, then assert:
+
+        1. The build produced ``_template.typ`` as a FILE at the outdir
+           root, coexisting with a ``_template/`` DIRECTORY beside it --
+           the structural precondition the depth-based computation relies
+           on.
+        2. Both emitted masters carry the depth-correct ``#import`` line,
+           and neither carries a malformed stem-less reference (checked by
+           asserting the import target's final path component equals the
+           reserved template filename, not by string-matching the
+           malformed forms directly).
+        3. Both emitted masters compile for real via
+           ``typst.compile(master, root=outdir)`` to bytes opening with the
+           PDF magic prefix -- proving the emitted reference actually
+           RESOLVES, not merely that it reads correctly.
+        """
+        result = _run_sphinx_build(
+            template_named_dir_master_dir, temp_build_dir, "typst"
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        # --- Structural precondition ---
+        template_file = temp_build_dir / "_template.typ"
+        assert template_file.is_file(), (
+            "Expected _template.typ to be written as a FILE at the outdir "
+            f"root:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        template_dir = temp_build_dir / "_template"
+        assert template_dir.is_dir(), (
+            "Expected a _template/ DIRECTORY to exist beside _template.typ "
+            "at the outdir root -- the coexistence the depth-based "
+            f"computation climbs into:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        # --- Emitted-source agreement (depth 1) ---
+        depth1_master = temp_build_dir / "_template" / "index.typ"
+        assert depth1_master.exists(), (
+            f"_template/index.typ was not emitted:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        depth1_text = depth1_master.read_text(encoding="utf-8")
+        assert '#import "../_template.typ"' in depth1_text, (
+            "Expected the depth-1 master to import the template ONE level "
+            f"up:\n{depth1_text[:400]}"
+        )
+
+        # --- Emitted-source agreement (depth 2) ---
+        depth2_master = temp_build_dir / "_template" / "sub" / "index.typ"
+        assert depth2_master.exists(), (
+            f"_template/sub/index.typ was not emitted:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        depth2_text = depth2_master.read_text(encoding="utf-8")
+        assert '#import "../../_template.typ"' in depth2_text, (
+            "Expected the depth-2 master to import the template TWO levels "
+            f"up:\n{depth2_text[:400]}"
+        )
+
+        # Neither master emits a malformed stem-less reference: the import
+        # target's final path component must equal the reserved template
+        # filename, expressed structurally rather than by string-matching
+        # the specific pre-fix malformed shapes.
+        for label, text in (("depth-1", depth1_text), ("depth-2", depth2_text)):
+            for line in text.splitlines():
+                if "#import" in line and "_template" in line:
+                    quoted = line.split('"')[1]
+                    final_component = quoted.rsplit("/", 1)[-1]
+                    assert final_component == "_template.typ", (
+                        f"[{label}] Expected the template import's final "
+                        f"path component to be '_template.typ', got "
+                        f"{final_component!r} in line: {line!r}"
+                    )
+
+        # --- Real compile (the GATE-01 bar) ---
+        depth1_pdf = typst.compile(str(depth1_master), root=str(temp_build_dir))
+        assert depth1_pdf.startswith(b"%PDF"), (
+            "Expected the depth-1 master to compile to a valid PDF, got "
+            f"{depth1_pdf[:20]!r}"
+        )
+        depth2_pdf = typst.compile(str(depth2_master), root=str(temp_build_dir))
+        assert depth2_pdf.startswith(b"%PDF"), (
+            "Expected the depth-2 master to compile to a valid PDF, got "
+            f"{depth2_pdf[:20]!r}"
+        )
