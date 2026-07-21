@@ -23,7 +23,7 @@
     department: "Computer Science",
     organization: "Massachusetts Institute of Technology",
     location: "Cambridge, MA",
-    email: name.split(" ").at(0).lower() + ".doe@mit.edu"
+    email: lower(name.split(" ").at(0)) + ".doe@mit.edu"
   ))
 
   // Define paper-specific parameters
@@ -41,13 +41,14 @@
     "Neural Networks"
   )
 
-  // Apply IEEE template with transformed parameters
+  // Apply IEEE template with transformed parameters.
+  // No `bibliography:` argument: this sample carries no bibliography file,
+  // and no build step places one beside the emitted document.
   show: ieee.with(
     title: title,
     authors: ieee_authors,
     abstract: ieee_abstract,
     index-terms: ieee_keywords,
-    bibliography: "refs.bib",
     paper-size: papersize,
   )
 
