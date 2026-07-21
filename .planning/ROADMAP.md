@@ -288,7 +288,7 @@ relative paths, and is not worth the churn). Also out of scope: `typst_output_di
 remove, tracked in the pending todo
 `.planning/todos/pending/2026-07-21-dead-typst-output-dir-config.md`.
 
-**Plans:** 3 plans (2/3 executed)
+**Plans:** 3/3 plans executed
 
 **Wave 1**
 
@@ -300,7 +300,7 @@ remove, tracked in the pending todo
 
 **Wave 3** *(gap closure — UAT `G-22.1-2`, SC#2 discharge rejected by the reviewer: 追加テストを要求する)*
 
-- [ ] 22.1-03-PLAN.md — test-only gap closure for `G-22.1-2`: add `test_sibling_include_fails_at_outdir_root_and_resolves_in_place`, which neutralizes ONLY the masking `../_template.typ` import and proves the sibling `include("usage.typ")` / `image("../logo.png")` basis divergence as an explicit red-then-green pair (red names `usage.typ` and the outdir-root searched path; green compiles the unmodified master in place), and tighten `test_outdir_root_compile_basis_still_fails` to its own single failure class so the two tests partition the failure space
+- [x] 22.1-03-PLAN.md — test-only gap closure for `G-22.1-2`: add `test_sibling_include_fails_at_outdir_root_and_resolves_in_place`, which neutralizes ONLY the masking `../_template.typ` import and proves the sibling `include("usage.typ")` / `image("../logo.png")` basis divergence as an explicit red-then-green pair (red names `usage.typ` and the outdir-root searched path; green compiles the unmodified master in place), and tighten `test_outdir_root_compile_basis_still_fails` to its own single failure class so the two tests partition the failure space
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
