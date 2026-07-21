@@ -6,15 +6,15 @@ current_phase: 22
 current_phase_name: "Issue #117"
 status: planning
 stopped_at: Phase 22 context gathered
-last_updated: "2026-07-21T12:18:50.310Z"
+last_updated: "2026-07-21T12:49:31.372Z"
 last_activity: 2026-07-20
 last_activity_desc: Phase 21 complete, transitioned to Phase 22
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 3
   total_plans: 8
   completed_plans: 8
-  percent: 60
+  percent: 50
 ---
 
 # Project State
@@ -43,9 +43,10 @@ Progress: [██████████] 100%
 | 20 — Signature Token Spacing (Cluster B) | Restore lost intra-signature token spacing: `class `/`exception ` prefix, C/C++ inter-token spaces, `:type:`/`:default:` colon-space | FID-07, FID-08, FID-09 |
 | 21 — Residual Fidelity Fixes (Clusters C/D/E/F) | The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, codly config-wrapper leak, meaning-bearing inline styling | FID-10, FID-11, FID-12, FID-13, FID-14 |
 | 22 — typstpdf Target-Name PDF Fix (Issue #117) | Independent `builder.py`/`pdf.py` fix: `TypstPDFBuilder.finish()` names the PDF after the `typst_documents` target, not the source docname | PDF-01 |
+| 22.1 — typstpdf Compile-Root Alignment for Nested Masters (INSERTED) | `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders (temp file next to the master's `.typ`); no output moves | PDF-02 |
 | 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
 
-**Coverage:** 14/14 v1 requirements mapped (FID-02..FID-14 + PDF-01) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
+**Coverage:** 15/15 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
 
 **Standing bar (GATE-01):** every node-handler change (Phases 19, 20, 21) — and Phase 22 in its builder-test form — ships or extends a real `typst.compile()` regression fixture. String-agreement asserts alone never suffice. Local env runs real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
 
@@ -81,7 +82,11 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-None.
+3 pending (`.planning/todos/pending/`):
+
+- **マスター出力の配置問題** (builder) — 項目 A は Phase 22.1 に移管済み。**B**（マスター成果物が build ツリーに散らばる／出力位置を動かして相対パスを振り直す設計変更）と **C**（`typst_output_dir` が登録・文書化のみで未実装）が未着手のまま残る。v0.6.2 スコープ外。
+- **ドキュメントのホスティング先を Read the Docs に変更** (docs)
+- **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — バックログ 999.3 と同一。C と同じ「文書化されているが動かない設定」系統。
 
 ### Blockers/Concerns
 
@@ -97,6 +102,7 @@ None open. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fide
 
 - 2026-07-20: v0.6.2 roadmap created — Phases 19–23, derived from 14 v1 requirements (FID-02..FID-14 + PDF-01). Phase numbering continues from v0.6.1 (ended at Phase 18). Shape: 3 root-cause-clustered translator-fix phases (A / B / C-D-E-F) + 1 independent builder-bug phase (Issue #117) + 1 prep-only Release/close phase.
 - 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements. Continued from v0.6.0.
+- Phase 22.1 inserted after Phase 22: typstpdf compile-root alignment for nested masters (PDF-02) — split from the master-output-layout todo (item A only; B/C stay deferred) (URGENT)
 
 ## Deferred Items
 

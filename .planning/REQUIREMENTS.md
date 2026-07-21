@@ -44,6 +44,10 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 
 - [ ] **PDF-01** (Issue #117): `sphinx-build -b typstpdf` names the compiled PDF after the `typst_documents` target name (`manual.pdf`), not the source docname (`index.pdf`); `TypstPDFBuilder.finish()` derives the output name from the target tuple.
 
+### PDF Compile Root (nested masters)
+
+- [ ] **PDF-02**: `sphinx-build -b typstpdf` resolves `#include()` and `image()` paths on the same basis the translator emits them (the master's own directory), so a master at a nested docname (`api/index`) compiles to PDF with its includes and images intact — matching what `-b typst` + a manual `typst compile` already produces. Output locations are unchanged.
+
 ## v2 Requirements
 
 Deferred to a future milestone. Tracked but not in this roadmap.
@@ -89,17 +93,18 @@ Which phases cover which requirements. Populated during roadmap creation.
 | FID-13 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | FID-14 | Phase 21 (Residual Fidelity — Cluster F) | Complete |
 | PDF-01 | Phase 22 (typstpdf Target-Name PDF Fix) | Pending |
+| PDF-02 | Phase 22.1 (typstpdf Compile-Root Alignment, INSERTED) | Pending |
 
 **Coverage:**
 
-- v1 requirements: 14 total
-- Mapped to phases: 14 ✓
+- v1 requirements: 15 total
+- Mapped to phases: 15 ✓
 - Unmapped: 0 ✓
 
 Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF requirement — it is the
 prep-only release/close phase (version bump + CHANGELOG + closing full-corpus regression gate); all
-14 v1 requirements are delivered by Phases 19–22.
+15 v1 requirements are delivered by Phases 19–22.1.
 
 ---
 *Requirements defined: 2026-07-20*
-*Last updated: 2026-07-20 — traceability populated at roadmap creation (14/14 mapped to Phases 19–22; milestone v0.6.2)*
+*Last updated: 2026-07-21 — PDF-02 added with the Phase 22.1 insertion (typstpdf compile-root alignment for nested masters); 15/15 mapped to Phases 19–22.1; milestone v0.6.2*

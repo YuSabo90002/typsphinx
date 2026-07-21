@@ -135,6 +135,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 20: Signature Token Spacing (Cluster B)** - Restore lost intra-signature token spacing: the `class `/`exception ` annotation prefix, C/C++ inter-token spaces, and `:type:`/`:default:` colon-space (FID-07..FID-09) (completed 2026-07-20)
 - [x] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14) (completed 2026-07-20)
 - [ ] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01)
+- [ ] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
 ## Phase Details
@@ -247,6 +248,44 @@ after the translator series and before Release.
 Plans:
 
 - [ ] TBD (enumerated at `/gsd-plan-phase 22`)
+
+### Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)
+
+**Goal**: `-b typstpdf` and `-b typst` resolve relative paths on the same basis, so a master at a
+nested docname (`api/index`) compiles to PDF with its `#include()`s and images intact.
+`compile_typst_to_pdf()` writes its temporary master copy to the **outdir root** (`pdf.py:140-149`,
+`dir=root_dir` with `root_dir=self.outdir`), so `-b typstpdf` resolves relative paths from the outdir
+root — while the translator emits **docname-relative** paths
+(`translator.py:2928` `_compute_relative_include_path`, `translator.py:3043`
+`_compute_relative_image_path`). The two coincide only when the master sits at the outdir root
+(`index`), which is why every existing test and corpus passes. A nested master is already broken
+today: `include("../foo.typ")` resolves against the outdir root and fails. The minimal fix is to
+create the temporary file in the same directory as the master's own `.typ` (leaving `root` at
+outdir); **no output file moves.**
+
+**Depends on**: Phase 22 (same `builder.py`/`pdf.py` surface; sequenced after so the target-name fix
+lands first and the two changes don't collide in `finish()`).
+**Requirements**: PDF-02
+**Success Criteria** (what must be TRUE):
+
+  1. A regression fixture with a master at a nested docname (e.g. `typst_documents = [('api/index', 'api-reference', …)]`) that `#include()`s a sibling child document and references an image compiles to PDF under `-b typstpdf` with zero Typst errors, via a real `typst.compile()` (GATE-01 form) (PDF-02).
+  2. That fixture **fails** against the pre-fix code (the test demonstrably reproduces the file-not-found break, not just passes vacuously).
+  3. `-b typstpdf` and `-b typst` + manual `typst compile` resolve `#include()`/`image()` identically for the same project — no basis divergence remains between the two builders.
+  4. Output locations are unchanged: `.typ` and `.pdf` still land at their docname-derived paths, and the Phase 22 target-name mapping still holds. Root-level masters (`index`) keep working exactly as before.
+  5. Zero new runtime deps, no `@preview` bump, the 3-way version-sync surface untouched.
+
+**Out of scope** (deferred, tracked in the pending todo
+`.planning/todos/pending/2026-07-21-master-output-layout-and-dead-typst-output-dir.md`): item **B**
+(aggregating master artifacts so multiple masters don't scatter across the build tree — independent
+of this fix, requires moving output and re-basing relative paths) and item **C** (`typst_output_dir`
+is registered in `__init__.py:60` and documented in `docs/configuration.rst:255-267` but read
+nowhere — implement or remove).
+
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (enumerated at `/gsd-plan-phase 22.1`)
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 

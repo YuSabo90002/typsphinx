@@ -13,6 +13,10 @@ files:
   - docs/configuration.rst:255-267 (typst_output_dir の説明)
 ---
 
+> **2026-07-21 更新:** **A は Phase 22.1（INSERTED, PDF-02）として v0.6.2 に差し込み済み**
+> （`.planning/phases/22.1-typstpdf-compile-root-alignment-for-nested-masters/`）。この todo は
+> **B と C の記録として pending のまま残す**。A の記述は Phase 22.1 の背景資料として保持。
+
 ## Problem
 
 Phase 22（Issue #117 ターゲット名バグ）の discuss 中に判明した、**名前とは別の3つの問題**。
@@ -84,7 +88,7 @@ A を直せば B が付いてくる、という関係ではない。
 
 A / B / C は独立に着手できる。まとめて1フェーズにする必然性はない。
 
-**A（バグ修正・小）**
+**A（バグ修正・小）— 2026-07-21 に Phase 22.1 / PDF-02 として着手決定。以下は Phase 22.1 に移管済み**
 
 1. ネストしたマスターの再現テストを作り、A が実際に壊れることを確認する（GATE-01 形式・実
    `typst.compile()`）。既存のテスト/コーパスはすべてマスターがルート直下なので通ってしまう。
@@ -107,8 +111,11 @@ A / B / C は独立に着手できる。まとめて1フェーズにする必然
 
 ## Not now
 
-Phase 22 は Issue #117（ターゲット名がファイル名に反映されない）だけを直す。Phase 23 は
-v0.6.2 のリリース準備。この項目は v0.6.2 のスコープ外。
+**B と C は v0.6.2 のスコープ外のまま。** Phase 22 は Issue #117（ターゲット名）だけ、
+Phase 22.1 は A（コンパイル root の整合）だけ、Phase 23 は v0.6.2 のリリース準備。
+B（マスター成果物の集約）は出力位置を動かして相対パスを振り直す設計変更で、A の修正とは
+独立に別途必要。C（`typst_output_dir` の実装 or 削除）は B に着手するなら B の集約先指定に
+流用できるため、B と一緒に扱うのが自然。
 
 Phase 22 の該当決定: `.planning/phases/22-typstpdf-target-name-pdf-fix-issue-117/22-CONTEXT.md`
 D-05（マスターは docname と同じディレクトリに置き、名前だけ差し替える）。
