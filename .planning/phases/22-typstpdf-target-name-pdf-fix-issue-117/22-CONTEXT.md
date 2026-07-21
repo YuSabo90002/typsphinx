@@ -61,20 +61,21 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 
 ### Output location for nested docnames
 - **D-05: Rename the basename in place — the output file stays in the docname's own directory.** `('sub/index', 'manual.typ', …)` → `outdir/sub/manual.typ` and `outdir/sub/manual.pdf`, NOT `outdir/manual.typ`. Rationale: the master `.typ` references its children with paths computed relative to the master's own location (`_compute_relative_path`, `translator.py:2932`, emitted at `translator.py:3428` as `include("<rel>.typ")`), and image URIs are likewise relative. Moving the master to the outdir root would invalidate every one of those and hard-fail `typst.compile()` with "file not found".
-- **D-06: If the target name contains a path separator, use its basename only.** `'sub/manual.typ'` → `manual` placed next to the docname. Rationale: honoring a user-supplied directory would re-introduce exactly the relative-path breakage D-05 avoids. Rejected: interpreting the target as an outdir-relative path (flexible, but pushes the relative-path recomputation problem into this phase, far beyond its scope).
+- **D-06: A path-bearing target name is an explicitly GUARDED case — warn, then fall back to its basename.** `'sub/manual.typ'` → `logger.warning` ("a path is not supported in a `typst_documents` target name; emitting `manual.typ` next to the source document instead") → `manual` placed next to the docname. Rationale: honoring a user-supplied directory would re-introduce exactly the relative-path breakage D-05 avoids, but silently discarding the path leaves the user with output somewhere they did not ask for and no signal — the mismatch must be surfaced. A warning (not an error) keeps builds that currently "work" (the path is being ignored today anyway) from breaking, and users running `sphinx-build -W` still get a hard failure. Rejected: raising `ExtensionError` (breaks previously-building configs), and interpreting the target as an outdir-relative path (flexible, but pushes the relative-path recomputation problem into this phase, far beyond its scope).
+- **D-07: The guard detects separators portably, and covers traversal and absolute forms.** Trigger on `/` **and** `os.sep`/`os.altsep` (so a Windows `sub\manual.typ` is caught on every platform), and treat `..` segments and absolute/drive-qualified targets as the same guarded case. `os.path.basename` alone is not a sufficient detector — detect first, warn, then reduce.
 
 ### Backward compatibility
-- **D-07: Clean break — no compatibility shim.** `index.typ` / `index.pdf` simply stop being emitted when a target name differs. No duplicate file, no copy, no symlink. Rationale: this is a bug fix restoring documented behavior; emitting both would leave permanent garbage with no defined removal point. Rejected: dual output (breaks nobody but never ends) and a deprecation-warning period (over-engineered for a documented-contract restoration).
-- **D-08: The behavior change MUST be carried into the Phase 23 CHANGELOG `[0.6.2]` entry** as a user-visible output-filename change, not buried as an internal fix — users with CI referencing `build/pdf/index.pdf` need to see it. This is a hand-off obligation to Phase 23, not extra work here.
+- **D-08: Clean break — no compatibility shim.** `index.typ` / `index.pdf` simply stop being emitted when a target name differs. No duplicate file, no copy, no symlink. Rationale: this is a bug fix restoring documented behavior; emitting both would leave permanent garbage with no defined removal point. Rejected: dual output (breaks nobody but never ends) and a deprecation-warning period (over-engineered for a documented-contract restoration).
+- **D-09: The behavior change MUST be carried into the Phase 23 CHANGELOG `[0.6.2]` entry** as a user-visible output-filename change, not buried as an internal fix — users with CI referencing `build/pdf/index.pdf` need to see it. This is a hand-off obligation to Phase 23, not extra work here.
 
 ### Verification (GATE-01)
-- **D-09: The gate is a real-compile test driven by `tests/roots/test-basic`,** which already declares `("index", "output.typ", …)`. Run `-b typstpdf` against it and assert `output.typ` and `output.pdf` exist with valid `%PDF` magic — and, to make the assert genuinely fail pre-fix, additionally assert `index.typ` / `index.pdf` are **absent**. Pre-fix the builder emits `index.*` and no `output.*`, so both halves fail. Rejected: a brand-new dedicated `tests/fixtures/` render-gate project (duplicates a root that already exercises the exact condition).
-- **D-10: Existing tests that assert `index.typ` against `test-basic` must be updated to `output.typ`, not worked around.** They encode the buggy behavior; updating them is part of the fix. The planner must enumerate them (they are the `tests/roots/test-basic`-consuming subset, NOT all 238 `index.typ` occurrences) and confirm the 60 target==docname fixtures stay untouched.
-- **D-11: `docs/source/conf.py` output moves to `typsphinx.typ` / `typsphinx.pdf`** — verify `tox -e docs-pdf` and the full-corpus gate (`tests/test_corpus_gate.py`) still pass, updating any hardcoded `index.typ` / `index.pdf` path in the docs-build or corpus-gate machinery. This is a required part of the phase, not a follow-up.
+- **D-10: The gate is a real-compile test driven by `tests/roots/test-basic`,** which already declares `("index", "output.typ", …)`. Run `-b typstpdf` against it and assert `output.typ` and `output.pdf` exist with valid `%PDF` magic — and, to make the assert genuinely fail pre-fix, additionally assert `index.typ` / `index.pdf` are **absent**. Pre-fix the builder emits `index.*` and no `output.*`, so both halves fail. Rejected: a brand-new dedicated `tests/fixtures/` render-gate project (duplicates a root that already exercises the exact condition).
+- **D-11: Existing tests that assert `index.typ` against `test-basic` must be updated to `output.typ`, not worked around.** They encode the buggy behavior; updating them is part of the fix. The planner must enumerate them (they are the `tests/roots/test-basic`-consuming subset, NOT all 238 `index.typ` occurrences) and confirm the 60 target==docname fixtures stay untouched.
+- **D-12: `docs/source/conf.py` output moves to `typsphinx.typ` / `typsphinx.pdf`** — verify `tox -e docs-pdf` and the full-corpus gate (`tests/test_corpus_gate.py`) still pass, updating any hardcoded `index.typ` / `index.pdf` path in the docs-build or corpus-gate machinery. This is a required part of the phase, not a follow-up.
 
 ### Claude's Discretion
 - **Where the name-derivation lives** — a small shared helper on `TypstBuilder` (e.g. resolving docname → output stem via a `typst_documents` lookup) reused by `TypstBuilder.write_doc`, `TypstPDFBuilder.write_doc`, and `TypstPDFBuilder.finish` is the obvious shape, but the planner settles the exact factoring. The invariant is that all three sites agree, so `finish()` can never look for a `.typ` the write path did not produce.
-- **Unit tests for the normalization rule** — the compile gate (D-09) is the required floor; adding table-driven unit tests for the D-03/D-04/D-06 stem cases (extension present/absent, period-bearing stem, path separator) is allowed and encouraged, but not mandated.
+- **Unit tests for the normalization rule** — the compile gate (D-10) is the required floor; adding table-driven unit tests for the D-03/D-04/D-06 stem cases (extension present/absent, period-bearing stem, path separator) is allowed and encouraged, but not mandated.
 - **Duplicate / colliding target names** (two entries resolving to the same output file, or a target colliding with an included child's `docname.typ`) — not raised in discussion and not present in the corpus. Planner may add a defensive warning if it costs nothing; do not build validation machinery for it.
 
 </decisions>
@@ -105,10 +106,10 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 - `typsphinx/pdf.py` — `compile_typst_to_pdf(content, root_dir=…)` is filename-agnostic. No change expected despite the roadmap naming `pdf.py`.
 
 ### Tests + fixtures
-- `tests/roots/test-basic/conf.py:12-14` — the only test root with `target != docname` (`"output.typ"`); the D-09 gate driver.
-- `docs/source/conf.py` — target `"typsphinx"` (extension-less); the D-11 verification surface. Exercised by `tox -e docs-pdf`.
-- `tests/test_builder.py`, `tests/test_builder_requirement13.py`, `tests/test_integration_nested_toctree.py`, `tests/test_config_template_mapping.py`, `tests/test_config_toctree_defaults.py` — the `index.typ`-asserting modules; the planner must determine which actually consume `test-basic` (those need the D-10 update) versus their own `target == docname` fixtures (untouched).
-- `tests/test_corpus_gate.py` — the standing full-corpus regression gate; must stay green through the `docs/source` rename (D-11).
+- `tests/roots/test-basic/conf.py:12-14` — the only test root with `target != docname` (`"output.typ"`); the D-10 gate driver.
+- `docs/source/conf.py` — target `"typsphinx"` (extension-less); the D-12 verification surface. Exercised by `tox -e docs-pdf`.
+- `tests/test_builder.py`, `tests/test_builder_requirement13.py`, `tests/test_integration_nested_toctree.py`, `tests/test_config_template_mapping.py`, `tests/test_config_toctree_defaults.py` — the `index.typ`-asserting modules; the planner must determine which actually consume `test-basic` (those need the D-11 update) versus their own `target == docname` fixtures (untouched).
+- `tests/test_corpus_gate.py` — the standing full-corpus regression gate; must stay green through the `docs/source` rename (D-12).
 - `tests/test_preview_version_sync.py` — the 3-way `@preview` version-sync gate; untouched by this phase, must stay green (milestone invariant).
 - `tests/test_desc_signature_concat_render_gate.py` — the canonical GATE-01 fixture shape (real `-b typstpdf` compile + `%PDF` magic, invoked via `sys.executable -m sphinx`, **never** `uv run`, per the NixOS-sandbox PATH hazard). Follow this invocation convention.
 
@@ -119,7 +120,7 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 
 ### Reusable Assets
 - **`tests/roots/test-basic`** — already declares `("index", "output.typ", …)`, i.e. the exact
-  `target != docname` condition Issue #117 describes. No new fixture project is needed (D-09).
+  `target != docname` condition Issue #117 describes. No new fixture project is needed (D-10).
 - **`compile_typst_to_pdf(content, root_dir)`** (`pdf.py`) — content-in / bytes-out, filename-agnostic.
   The fix is purely about where `finish()` writes the returned bytes.
 - **GATE-01 render-gate shape** (`tests/test_desc_signature_concat_render_gate.py`) — the established
@@ -139,8 +140,8 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 - All edits land in `typsphinx/builder.py`. No `translator.py`, no `writer.py`, no
   `template_engine.py`, no `templates/base.typ` change — the `@preview` version-sync surface is
   untouched by construction.
-- Two consumer-side updates ride along: the `test-basic`-consuming test assertions (D-10) and the
-  `docs/source` build path (D-11).
+- Two consumer-side updates ride along: the `test-basic`-consuming test assertions (D-11) and the
+  `docs/source` build path (D-12).
 
 </code_context>
 
@@ -152,7 +153,10 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 - Normalization: strip a literal trailing `.typ` only; extension-less target names are valid;
   `os.path.splitext` is explicitly forbidden (would eat `v1.2-manual`).
 - Nested docname: rename the basename in place (`sub/index` + `manual.typ` → `outdir/sub/manual.typ`).
-  A path separator inside the target name is reduced to its basename.
+- A path inside the target name is a **guarded** case, not a silent reduction: detect it (`/`,
+  `os.sep`/`os.altsep`, `..` segments, absolute/drive-qualified forms), emit a `logger.warning`
+  naming the file that will actually be written, then fall back to the basename. Never raise.
+  `sphinx-build -W` users get a hard failure from the warning for free.
 - The gate asserts both directions: `output.typ` / `output.pdf` **present** AND `index.typ` /
   `index.pdf` **absent** — so it fails against the pre-fix builder on both counts.
 - Phase 23 hand-off: the CHANGELOG `[0.6.2]` entry must call out the output-filename change as

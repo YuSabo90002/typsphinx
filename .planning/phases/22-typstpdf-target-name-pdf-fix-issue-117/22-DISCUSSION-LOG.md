@@ -96,6 +96,25 @@ load-bearing.
 
 ---
 
+## Path-bearing target name (guard)
+
+Raised by the user after the initial CONTEXT.md was written: the original D-06 reduced a
+path-bearing target to its basename *silently*, so a user writing `'sub/manual.typ'` would get
+output somewhere they never asked for with no signal. Upgraded to an explicit guard.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Warn + basename fallback | `logger.warning` naming the file actually written; build continues. Matches Sphinx's handling of config oddities; `-W` users get a hard failure for free. | ✓ |
+| Raise `ExtensionError` | Impossible to miss, but breaks configs that build today (the path is already being ignored). | |
+| Support paths properly | Interpret as outdir-relative and recompute every `include()`/image relative path. Far beyond Phase 22. | |
+
+**User's choice:** 警告を出して basename にフォールバック
+**Notes:** Detection must be portable — `/` plus `os.sep`/`os.altsep`, and `..` segments and
+absolute/drive-qualified targets count as the same guarded case. `os.path.basename` alone is a
+reducer, not a detector.
+
+---
+
 ## Claude's Discretion
 
 - Exact factoring of the name-derivation helper across the three write/read sites in `builder.py`
