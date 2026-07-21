@@ -147,7 +147,20 @@ class TypstWriter(writers.Writer):
         toctree_options = template_engine.extract_toctree_options(self.document)
         params.update(toctree_options)
 
-        # Render with template (using separate template file)
-        self.output = template_engine.render(
-            params, body, template_file="_template.typ"
+        # Render with template (using separate template file).
+        #
+        # `_write_template_file()` (builder.py) always writes `_template.typ`
+        # at the OUTDIR ROOT, regardless of where the master document itself
+        # lives. For a root-level master this is a same-directory reference
+        # and a bare "_template.typ" resolves correctly, but for a master at
+        # a nested docname (e.g. "api/index") a bare "_template.typ" would
+        # resolve relative to the master's own directory ("api/_template.typ")
+        # -- a file that was never written -- exactly the same docname-
+        # relative-vs-outdir-root basis mismatch PDF-02 fixes for #include()/
+        # image(). Reuse the translator's own relative-path computation
+        # (docname-relative emission is its established, tested basis) by
+        # treating the template file as a top-level "_template" docname.
+        template_file = (
+            self.visitor._compute_relative_include_path("_template", docname) + ".typ"
         )
+        self.output = template_engine.render(params, body, template_file=template_file)
