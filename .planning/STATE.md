@@ -5,10 +5,10 @@ milestone_name: rendering fidelity round 2
 current_phase: 22.3
 current_phase_name: typstpdf Builder Warning Hardening
 status: planning
-stopped_at: Phase 22.2 context gathered
-last_updated: "2026-07-21T22:10:52.493Z"
+stopped_at: Phase 22.2 complete (UAT 27/27 passed), ready to plan Phase 22.3
+last_updated: "2026-07-21T22:25:00.000Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.2 complete, transitioned to Phase 22.3
+last_activity_desc: Phase 22.2 UAT complete — 27/27 passed, 0 issues
 progress:
   total_phases: 8
   completed_phases: 6
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 22.2 — dead-config-value-sweep
+**Current focus:** Phase 22.3 — typstpdf Builder Warning Hardening
 
 ## Current Position
 
@@ -87,12 +87,13 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-4 pending (`.planning/todos/pending/`):
+5 pending (`.planning/todos/pending/`):
 
 - **死んだ設定 `typst_output_dir`** (builder) — **2026-07-21 決定: 即削除**（登録・ドキュメント・登録専用テスト・examples 一式を撤去、非推奨期間なし）。着手先は **Phase 22.2 の scope 要素 1**（旧バックログ 999.4 を 2026-07-22 に昇格）。元は A/B/C 3件の todo で、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は不採用として削除**。
 - **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — **バックログ 999.4 の scope 要素 2**（旧 999.3 を merge）。BUG-A..BUG-D の証拠は ROADMAP §999.3 に残置。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
 - **WR-01 マスター `.typ` 欠損時の無言スキップ / WR-02 テストが typst-py エラー文言に結合** (builder, tests) — **Phase 22.3 の scope**（旧バックログ 999.5 を 2026-07-22 に昇格）。WR-01 の「ビルド失敗にするか docstring を実態に合わせるか」は未決、`/gsd-discuss-phase 22.3` で決定する。
+- **`citation` ノード未対応が未追跡** (translator, examples) — Phase 22.2 で表面化（`visit_citation` ハンドラ不在のため rST citation が隣接式として出力され Typst 構文エラー）。22.2 ではサンプルから citation 構文を撤去して回避、恒久対応は未計画。
 
 ### Blockers/Concerns
 
@@ -125,9 +126,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-21T20:14:32.752Z
-Stopped at: Phase 22.2 context gathered
-Resume file: .planning/phases/22.2-dead-config-value-sweep/22.2-CONTEXT.md
+Last session: 2026-07-21T22:25:00.000Z
+Stopped at: Phase 22.2 complete (UAT 27/27 passed, 0 issues), ready to plan Phase 22.3
+Resume file: None
 
 ## Operator Next Steps
 
