@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 22.2
-current_phase_name: dead-config-value-sweep
-status: executing
-stopped_at: Phase 22.2 planned (6 plans, 3 waves)
-last_updated: "2026-07-21T21:13:58.518Z"
+current_phase: 22.3
+current_phase_name: typstpdf Builder Warning Hardening
+status: planning
+stopped_at: Phase 22.2 context gathered
+last_updated: "2026-07-21T22:10:52.493Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.2 execution started
+last_activity_desc: Phase 22.2 complete, transitioned to Phase 22.3
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 21
-  completed_plans: 15
-  percent: 63
+  completed_plans: 21
+  percent: 75
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 ## Current Position
 
-Phase: 22.2 (dead-config-value-sweep) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 22.2
-Last activity: 2026-07-22 — Phase 22.2 execution started
+Phase: 22.3 — typstpdf Builder Warning Hardening
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-22 — Phase 22.2 complete, transitioned to Phase 22.3
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0/6 plans (0%)
 

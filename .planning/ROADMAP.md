@@ -136,7 +136,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 21: Residual Fidelity Fixes (Clusters C/D/E/F)** - The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, the codly config-wrapper leak, and meaning-bearing inline styling (FID-10..FID-14) (completed 2026-07-20)
 - [x] **Phase 22: typstpdf Target-Name PDF Fix (Issue #117)** - `TypstPDFBuilder.finish()` names the compiled PDF after the `typst_documents` target, not the source docname (PDF-01) (completed 2026-07-21)
 - [x] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02) (completed 2026-07-22)
-- [ ] **Phase 22.2: Dead Config-Value Sweep (INSERTED)** - Two documented config values that never affect output: delete `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end, and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature (CONF-01..CONF-03) (promoted from backlog 999.4/999.3 on 2026-07-22)
+- [x] **Phase 22.2: Dead Config-Value Sweep (INSERTED)** - Two documented config values that never affect output: delete `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end, and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature (CONF-01..CONF-03) (promoted from backlog 999.4/999.3 on 2026-07-22) (completed 2026-07-22)
 - [ ] **Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)** - Close the two Phase 22.1 review warnings: a master whose `.typ` is missing is silently skipped so the build "succeeds" with no PDF (WR-01), and the render-gate tests assert on `typst-py` error-message substrings that upstream can rephrase at will (WR-02) (promoted from backlog 999.5 on 2026-07-22)
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
@@ -462,7 +462,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
-| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | In Progress|  |
+| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
