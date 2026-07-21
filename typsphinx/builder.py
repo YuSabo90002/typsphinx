@@ -854,6 +854,15 @@ class TypstPDFBuilder(TypstBuilder):
             # doc_tuple format: (sourcename, targetname, title, author).
             # Resolve the stem ONCE so the .typ read-back path and the .pdf
             # write path can never drift from each other (Issue #117).
+            # Mirror _resolve_output_stem's own length guard here: a
+            # malformed entry (e.g. an empty tuple from a misconfigured
+            # typst_documents) must not raise an uncaught IndexError on
+            # doc_tuple[0] before that helper's defenses ever run.
+            if not doc_tuple:
+                logger.warning(
+                    f"Skipping malformed typst_documents entry: {doc_tuple!r}"
+                )
+                continue
             docname = doc_tuple[0]
             stem = self._resolve_output_stem(docname)
             relative_path = self._directory_preserving_relpath(docname, stem)
