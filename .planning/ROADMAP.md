@@ -421,6 +421,12 @@ Plans:
 **Requirements:** TBD
 **Plans:** 0 plans
 
+> **Merged into 999.4 (2026-07-21):** this item is now scope element **2** of
+> §999.4 (Dead Config-Value Sweep) — same root cause as the dead `typst_output_dir`
+> (a documented config value with no regression fixture proving it affects output).
+> Retained here as the source-of-record for the BUG-A..BUG-D evidence below; plan it
+> via 999.4, not as a standalone item.
+
 Source: captured 2026-07-21 while verifying a docs question (`typst_template_function = {"name": "ieee"}` — that value is *correct*). Full evidence, repro, and proposed scope in
 [`todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md`](todos/pending/2026-07-21-verify-template-function-names-in-package-examples.md).
 
@@ -437,7 +443,49 @@ The "Custom Template Wrapping" path (`typst_template` pointing at a wrapper whos
 
 Plans:
 
+- [ ] TBD (plan via 999.4)
+
+### 999.4 — Dead Config-Value Sweep (`typst_output_dir` + `typst_package` + a config→output fixture) (BACKLOG)
+
+**Goal:** [Captured for future planning]
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Source: captured 2026-07-21 from the Phase 22 discussion fallout. Absorbs §999.3 (retained above as
+the source-of-record for its BUG-A..BUG-D evidence) and the pending todo
+[`todos/pending/2026-07-21-dead-typst-output-dir-config.md`](todos/pending/2026-07-21-dead-typst-output-dir-config.md).
+
+**Why one phase:** both defects are the *same* failure — a config value that is registered and
+documented but whose effect on output is never exercised by a test. `typst_output_dir` does nothing
+at all; the `typst_package` path fails to compile end-to-end. In both cases the existing tests assert
+only that the value is *registered* (`tests/test_config_other_options.py:141-179`) or that its name
+*appears in the docs* (`tests/test_documentation_configuration.py:46`), which stays green while the
+feature is dead. Fixing them together lets one regression fixture close both escapes.
+
+**Scope (3 elements):**
+
+1. **Delete `typst_output_dir`** — decided 2026-07-21 (owner). Remove the registration
+   (`__init__.py:60`), the `docs/configuration.rst` "Output Configuration" section (255-269) and its
+   appearance in the full config example (348), the two registration-only tests
+   (`tests/test_config_other_options.py:141-179`), the entry in the `required_configs` list
+   (`tests/test_documentation_configuration.py:46`), the commented-out lines in
+   `examples/advanced/conf.py:102` / `examples/advanced/README.md:263`, and the mention in
+   `CLAUDE.md:67`. Add a `### Removed` CHANGELOG entry. **No deprecation period**: Sphinx silently
+   ignores unregistered conf.py variables (verified 2026-07-21 — a bogus setting under
+   `sphinx-build -W --keep-going` produced no warning), so removal is behaviorally invisible; a
+   deprecation warning would only tell users to delete a line that has no effect either way. The
+   config is also structurally unimplementable as documented — `outdir` comes from the
+   `sphinx-build` CLI argument and is managed by Sphinx itself, which is why no other builder ships
+   a `latex_output_dir` / `html_output_dir`.
+2. **Repair the `typst_package` path end-to-end** — BUG-A..BUG-D as catalogued in §999.3 above.
+3. **Land a config→output regression fixture** — assert that setting a config value *changes the
+   emitted output*, not merely that it is registered. Cover both (1) and (2). Per the standing
+   GATE-01 bar this must use a real `typst.compile()` where the config affects compilable output.
+   Treat registration-only assertions as insufficient going forward.
+
+Plans:
+
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21*
+*Roadmap created: 2026-07-04 · Reorganized: 2026-07-05 at v0.4.4 milestone close · v0.5.0 phases (6–10) added: 2026-07-09 · Reorganized: 2026-07-11 at v0.5.0 milestone close · v0.6.0 phases (11–15) added: 2026-07-11 · Reorganized: 2026-07-13 at v0.6.0 milestone close · v0.6.1 phases (16–18) added: 2026-07-13 · Reorganized: 2026-07-19 at v0.6.1 milestone close · Backlog seeded (999.1 — 13 medium/low fidelity findings, grouped A–F): 2026-07-20 · Backlog item 999.2 added (Issue #117 — typstpdf target-name bug): 2026-07-20 · v0.6.2 phases (19–23) added: 2026-07-20 · Backlog item 999.3 added (typst_package path broken end-to-end): 2026-07-21 · Phase 22.1 inserted (typstpdf compile-root alignment, PDF-02): 2026-07-21 · Backlog item 999.4 added and 999.3 merged into it (dead config-value sweep): 2026-07-21*

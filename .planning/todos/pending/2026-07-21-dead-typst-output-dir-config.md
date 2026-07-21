@@ -81,18 +81,27 @@ Sphinx は **conf.py 内の未登録の変数を黙って無視する**。`-W --
 
 ## Solution
 
-TBD — 2026-07-21 に方針を検討中。選択肢:
+**2026-07-21 決定（オーナー判断）: 即削除。非推奨期間は置かない。**
 
-1. **削除する**（登録・ドキュメント・登録専用テストを撤去し、CHANGELOG に「実装されて
-   いなかった設定を削除」と記載）。Sphinx のモデルとの衝突を踏まえると最も正直。
-2. **非推奨経由で削除**（1リリース分 deprecation 警告を出してから撤去）。
-3. **実装する**（`typst_output_dir` が指す場所を実際の出力先にする）。B を不採用にした
-   以上、これを入れる動機は「ドキュメントとの契約を守る」だけになる。
+撤去対象:
 
-いずれを採るにせよ、999.3 と共通の再発防止として**「設定値が出力に影響することを検証する
-フィクスチャ」**を1本立てるかどうかを併せて決める。
+- `typsphinx/__init__.py:60` の `add_config_value` 登録
+- `docs/configuration.rst:255-269`（"Output Configuration" 節）と `:348`（フル設定例）
+- `tests/test_config_other_options.py:141-179`（登録のみを見る2テスト）
+- `tests/test_documentation_configuration.py:46`（`required_configs` からの除去）
+- `examples/advanced/conf.py:102` / `examples/advanced/README.md:263`（コメントアウト行）
+- `CLAUDE.md:67` の設定サーフェス列挙からの除去
+- `CHANGELOG.md` に `### Removed` エントリを追加
+
+非推奨期間を置かない根拠: Sphinx は未登録の conf.py 変数を黙って無視する（実測確認済み）。
+削除しても挙動は変わらず、既存ユーザーのビルドは壊れない。一方 deprecation 警告は
+「何もしていない設定を消してください」と言うだけで、利用者に何の情報も与えない。
+
+**着手先: バックログ 999.4「Dead Config-Value Sweep」の scope 要素 1。**
+999.3（`typst_package` パスが end-to-end で壊れている）と同一根本原因のため1フェーズに統合した。
+再発防止の「設定値 → 出力への影響」を検証するリグレッションフィクスチャは 999.4 の scope 要素 3。
 
 ## Not now
 
 v0.6.2 のスコープ外。Phase 22（Issue #117）、Phase 22.1（PDF-02）、Phase 23（リリース準備）
-はいずれも別件。
+はいずれも別件。着手は 999.4 を `/gsd-review-backlog` で昇格させたとき。
