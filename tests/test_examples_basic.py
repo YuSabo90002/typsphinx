@@ -124,7 +124,12 @@ class TestBasicExampleBuild:
         )
 
     def test_build_generates_typ_file(self, basic_example_dir, temp_build_dir):
-        """Test that building examples/basic/ generates index.typ."""
+        """Test that building examples/basic/ generates basic-example.typ.
+
+        examples/basic/conf.py declares a non-identity typst_documents target
+        ("basic-example.typ"), so the emitted artifact is named after that
+        target, not the source docname ("index").
+        """
         # Build the project
         subprocess.run(
             [
@@ -140,10 +145,19 @@ class TestBasicExampleBuild:
             capture_output=True,
         )
 
-        # Check that index.typ was generated
-        output_file = temp_build_dir / "typst" / "index.typ"
-        assert output_file.exists(), "index.typ should be generated"
-        assert output_file.is_file(), "index.typ should be a file"
+        # Check that basic-example.typ was generated
+        output_file = temp_build_dir / "typst" / "basic-example.typ"
+        assert output_file.exists(), "basic-example.typ should be generated"
+        assert output_file.is_file(), "basic-example.typ should be a file"
+
+        # The source-docname-derived artifact must NOT be present -- D-08
+        # clean break, no compatibility shim.
+        docname_file = output_file.parent / "index.typ"
+        assert not docname_file.exists(), (
+            "index.typ should not exist -- the emitted artifact must follow "
+            "the typst_documents target name ('basic-example.typ'), not the "
+            "source docname (D-08 clean break)."
+        )
 
     def test_generated_typ_is_valid(self, basic_example_dir, temp_build_dir):
         """Test that the generated .typ file contains valid Typst markup."""
@@ -163,7 +177,7 @@ class TestBasicExampleBuild:
         )
 
         # Read the generated .typ file
-        output_file = temp_build_dir / "typst" / "index.typ"
+        output_file = temp_build_dir / "typst" / "basic-example.typ"
         content = output_file.read_text()
 
         # Check for basic Typst syntax (headings, functions, etc.)

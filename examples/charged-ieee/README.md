@@ -101,7 +101,7 @@ typst_template_function = {
 cd approach1
 sphinx-build -b typst source build/typst
 cd build/typst
-typst compile index.typ output.pdf
+typst compile paper.typ output.pdf
 ```
 
 ### Approach 2
@@ -110,7 +110,7 @@ typst compile index.typ output.pdf
 cd approach2
 sphinx-build -b typst source build/typst
 cd build/typst
-typst compile index.typ output.pdf
+typst compile paper.typ output.pdf
 ```
 
 ## Comparison
