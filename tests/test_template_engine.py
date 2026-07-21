@@ -223,6 +223,104 @@ class TestParameterMapping:
         assert "date" in params
 
 
+class TestPackagePathParameterSuppression:
+    """Test D-05: package-configured engines do not receive injected default
+    parameters (title/authors/date) unless explicitly mapped (BUG-B)."""
+
+    def test_package_engine_no_explicit_mapping_returns_empty_dict(self):
+        """A package-configured engine with no explicit mapping returns {}"""
+        engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params == {}
+
+    def test_package_engine_explicit_single_key_mapping_returns_only_that_key(self):
+        """A package-configured engine with an explicit mapping returns exactly
+        the mapped key(s), with no back-filled title/authors/date"""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            parameter_mapping={"project": "title"},
+        )
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert set(params.keys()) == {"title"}
+        assert params["title"] == "P"
+
+    def test_non_package_engine_still_backfills_title_authors_date(self):
+        """A non-package engine's map_parameters() is untouched by D-05 --
+        the template path still back-fills the three standard keys"""
+        engine = TemplateEngine()
+
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params["title"] == "P"
+        assert params["authors"] == ("A",)
+        assert params["date"] == "1.0"
+
+
+class TestEssentialImportHoist:
+    """Test D-02: every master's render() output carries the four essential
+    @preview imports plus codly initialisation exactly once, whether or not a
+    template file is imported (BUG-F)."""
+
+    def test_package_only_render_contains_essential_imports_exactly_once(self):
+        """A package-only render (no template_file) carries the essential
+        imports and codly-init exactly once"""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            typst_template_function="ieee",
+        )
+
+        params = {}
+        body = "= Body\n"
+
+        result = engine.render(params, body)
+
+        assert "#show: codly-init.with()" in result
+        assert result.count("@preview/codly:") == 1
+        assert result.count("@preview/codly-languages:") == 1
+        assert result.count("@preview/mitex:") == 1
+        assert result.count("@preview/gentle-clues:") == 1
+
+    def test_template_file_render_does_not_duplicate_essential_imports(self):
+        """A template-file-set render carries the essential imports exactly
+        once -- proving the D-02 hoist did not duplicate the block"""
+        engine = TemplateEngine()
+
+        params = {"title": "T", "authors": ()}
+        body = "= Body\n"
+
+        result = engine.render(params, body, template_file="_template.typ")
+
+        assert result.count("@preview/mitex:") == 1
+        assert result.count("@preview/codly:") == 1
+        assert result.count("@preview/codly-languages:") == 1
+        assert result.count("@preview/gentle-clues:") == 1
+
+
 class TestTypstUniversePackages:
     """Test Typst Universe package template support (Task 9.3)"""
 

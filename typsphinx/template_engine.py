@@ -69,10 +69,16 @@ class TemplateEngine:
         self.template_path = template_path
         self.template_name = template_name or "base.typ"
         self.search_paths = search_paths or []
-        self.parameter_mapping = (
-            parameter_mapping or self.DEFAULT_PARAMETER_MAPPING.copy()
-        )
         self.typst_package = typst_package
+        if parameter_mapping is not None:
+            self.parameter_mapping = parameter_mapping
+        elif self.typst_package:
+            # D-05: on the package-only path, only pass what the user explicitly
+            # mapped -- a Typst function signature cannot be introspected from
+            # Python, so "pass nothing by default" is the only sound rule.
+            self.parameter_mapping = {}
+        else:
+            self.parameter_mapping = self.DEFAULT_PARAMETER_MAPPING.copy()
         self.typst_package_imports = typst_package_imports or []
         self.typst_authors = typst_authors or {}
         self.typst_author_params = typst_author_params or {}
@@ -182,13 +188,18 @@ class TemplateEngine:
 
                 params[template_key] = value
 
-        # Provide default values for missing required parameters
-        if "title" not in params:
-            params["title"] = ""
-        if "authors" not in params:
-            params["authors"] = ()
-        if "date" not in params:
-            params["date"] = None
+        # D-05, gate 2: on the package path, do not back-fill title/authors/date
+        # -- a package function's signature is whatever the user explicitly
+        # mapped, and injecting these defaults would pass unexpected arguments
+        # to a package function that never asked for them.
+        if not self.typst_package:
+            # Provide default values for missing required parameters
+            if "title" not in params:
+                params["title"] = ""
+            if "authors" not in params:
+                params["authors"] = ()
+            if "date" not in params:
+                params["date"] = None
 
         return params
 
@@ -307,15 +318,22 @@ class TemplateEngine:
             output_parts.append(package_import)
             output_parts.append("")  # Blank line
 
-        if template_file:
-            # Import essential packages (needed for content, not just template)
-            output_parts.append("// Essential package imports")
-            output_parts.append('#import "@preview/codly:1.3.0": *')
-            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
-            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
-            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
-            output_parts.append("")  # Blank line
+        # D-02: hoisted out of `if template_file:` so every master gets these
+        # essential imports unconditionally -- closes BUG-F, where a
+        # package-only master (no template_file) previously got none of them.
+        # This is a MOVE, not a copy: the block below is the single emission
+        # site, matching the included-document convention in writer.py.
+        output_parts.append("// Essential package imports")
+        output_parts.append('#import "@preview/codly:1.3.0": *')
+        output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+        output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+        output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+        output_parts.append("")  # Blank line
+        output_parts.append("#show: codly-init.with()")
+        output_parts.append("#codly(languages: codly-languages)")
+        output_parts.append("")  # Blank line
 
+        if template_file:
             # Import template from separate file
             template_func = self.typst_template_function_name or "project"
             output_parts.append(f'#import "{template_file}": {template_func}')
