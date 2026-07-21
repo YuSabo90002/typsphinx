@@ -115,6 +115,30 @@ reducer, not a detector.
 
 ---
 
+## Master-output layout (raised, deliberately not solved here)
+
+The user pushed back on D-05: with multiple masters declared, the deliverables scatter across the
+output tree (`_build/pdf/manual.pdf` + `_build/pdf/api/api-reference.pdf`), because the output tree
+mirrors the source tree and masters sit wherever their docname sits.
+
+Investigating that surfaced two further findings, neither of them about filenames:
+
+- `compile_typst_to_pdf()` writes the master content to a temp file at **outdir root**
+  (`pdf.py:140-149`) and compiles it there, so `-b typstpdf` resolves relative paths from the root
+  while the translator emits them relative to the docname directory. Nested-docname masters are
+  therefore already broken under `-b typstpdf`; only root-level masters work by coincidence. This
+  corrected an inaccurate rationale in the originally-written D-05.
+- `typst_output_dir` is registered (`__init__.py:60`) and documented (`docs/configuration.rst:255`)
+  but read nowhere — the natural mechanism for collecting outputs is dead config.
+
+**User's choice:** アイデア無いしまあそれしか無いかあ — accept D-05 as-is for Phase 22.
+**Notes:** Collecting the deliverables means rebasing the relative-path computation onto the output
+location, which is a `translator.py` change and a different bug from Issue #117. All three findings
+captured at `.planning/todos/pending/2026-07-21-master-output-layout-and-dead-typst-output-dir.md`;
+D-05 amended to record the accepted limitation explicitly rather than the wrong rationale.
+
+---
+
 ## Claude's Discretion
 
 - Exact factoring of the name-derivation helper across the three write/read sites in `builder.py`

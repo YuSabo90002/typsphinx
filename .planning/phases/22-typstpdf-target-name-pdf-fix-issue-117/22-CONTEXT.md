@@ -60,7 +60,7 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 - **D-04: Do NOT use `os.path.splitext`.** It would mangle a period-bearing stem (`'v1.2-manual'` → `'v1'`). Rejected explicitly for that reason. Extension-less target names are **valid input**, never a warning or an error — `docs/source/conf.py` itself uses one.
 
 ### Output location for nested docnames
-- **D-05: Rename the basename in place — the output file stays in the docname's own directory.** `('sub/index', 'manual.typ', …)` → `outdir/sub/manual.typ` and `outdir/sub/manual.pdf`, NOT `outdir/manual.typ`. Rationale: the master `.typ` references its children with paths computed relative to the master's own location (`_compute_relative_path`, `translator.py:2932`, emitted at `translator.py:3428` as `include("<rel>.typ")`), and image URIs are likewise relative. Moving the master to the outdir root would invalidate every one of those and hard-fail `typst.compile()` with "file not found".
+- **D-05: Rename the basename in place — the output file stays in the docname's own directory.** `('sub/index', 'manual.typ', …)` → `outdir/sub/manual.typ` and `outdir/sub/manual.pdf`, NOT `outdir/manual.typ`. Rationale: the translator emits child includes and image URIs relative to the master's **docname** location (`_compute_relative_include_path`, `translator.py:2928`, emitted at `:3428` as `include("<rel>.typ")`; `_compute_relative_image_path`, `:3043`). Moving the master's output elsewhere without rebasing those paths would invalidate them for `-b typst`. **Known limitation, deliberately accepted:** this keeps multi-master deliverables scattered across the output tree, and it does NOT fix the pre-existing `-b typstpdf` root mismatch (see `<deferred>`) — Phase 22 fixes the filename bug only and leaves the layout/rebasing question to a separate item. Owner-confirmed 2026-07-21. Rejected: collecting masters at the outdir root (correct end state, but requires rebasing relative-path computation in `translator.py` — a different bug from Issue #117).
 - **D-06: A path-bearing target name is an explicitly GUARDED case — warn, then fall back to its basename.** `'sub/manual.typ'` → `logger.warning` ("a path is not supported in a `typst_documents` target name; emitting `manual.typ` next to the source document instead") → `manual` placed next to the docname. Rationale: honoring a user-supplied directory would re-introduce exactly the relative-path breakage D-05 avoids, but silently discarding the path leaves the user with output somewhere they did not ask for and no signal — the mismatch must be surfaced. A warning (not an error) keeps builds that currently "work" (the path is being ignored today anyway) from breaking, and users running `sphinx-build -W` still get a hard failure. Rejected: raising `ExtensionError` (breaks previously-building configs), and interpreting the target as an outdir-relative path (flexible, but pushes the relative-path recomputation problem into this phase, far beyond its scope).
 - **D-07: The guard detects separators portably, and covers traversal and absolute forms.** Trigger on `/` **and** `os.sep`/`os.altsep` (so a Windows `sub\manual.typ` is caught on every platform), and treat `..` segments and absolute/drive-qualified targets as the same guarded case. `os.path.basename` alone is not a sufficient detector — detect first, warn, then reduce.
 
@@ -175,8 +175,24 @@ edit is expected there despite the roadmap naming `pdf.py`). Milestone invariant
 - **Interpreting the target name as an outdir-relative path** (`'sub/manual.typ'` placing the file
   under `outdir/sub/`) — rejected (D-06). Revisit only alongside a real solution to relative
   include/image path recomputation.
+- **Master-output layout + the `-b typst` / `-b typstpdf` root mismatch + dead `typst_output_dir`** —
+  captured in full at `.planning/todos/pending/2026-07-21-master-output-layout-and-dead-typst-output-dir.md`.
+  Three findings surfaced while deciding D-05, all outside this phase:
+  (a) `compile_typst_to_pdf()` writes the master to a temp file at **outdir root** (`pdf.py:140-149`)
+  and compiles it there, so `-b typstpdf` resolves `include()`/`image()` from the root, while the
+  translator emits them relative to the **docname directory** (`translator.py:2928`/`:3043`) — a
+  master with a nested docname is therefore **already broken today** under `-b typstpdf`, and only
+  root-level masters happen to work. (b) Because the output tree mirrors the source tree, declaring
+  multiple masters scatters the deliverables across directories (`_build/pdf/manual.pdf` +
+  `_build/pdf/api/api-reference.pdf`) with master and `#include()`-part `.typ` files intermixed.
+  (c) `typst_output_dir` is registered (`__init__.py:60`) and documented
+  (`docs/configuration.rst:255-267`) but read nowhere — the natural fix for (b) is a dead config.
+  **Owner's call (2026-07-21): not in Phase 22.** Collecting the deliverables requires rebasing the
+  relative-path computation onto the output location, which is a translator change and a different
+  bug from Issue #117. D-05 stands.
 - **Backlog 999.3 (`typst_package` path broken end-to-end)** — separate backlog item, separate
-  surface (`writer.py`/`template_engine.py`), not this phase.
+  surface (`writer.py`/`template_engine.py`), not this phase. Note (c) above is the same species:
+  a documented config that never runs, escaping because no fixture covers it.
 - **Read the Docs hosting migration** — unrelated docs-infrastructure todo.
 
 ### Reviewed Todos (not folded)
