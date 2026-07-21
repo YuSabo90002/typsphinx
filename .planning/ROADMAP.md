@@ -356,16 +356,16 @@ route believed to work — unverified; confirming it is in scope for the fixture
 **Root cause of the escape:** no `typst.compile()` regression fixture covers the `typst_package` path,
 so it shipped broken. Any fix must land one (GATE-01).
 
-**Plans**: 6 plans (3 waves)
+**Plans**: 4/6 plans executed
 
 Plans:
 
 **Wave 1** *(parallel — disjoint file sets)*
 
-- [ ] 22.2-01-PLAN.md — CONF-01 dead-config sweep: delete the `typst_output_dir` and `typst_author_params` registrations (D-13, D-07 registration half), purge `typst_output_dir` from `docs/configuration.rst`, `examples/advanced/*`, `CLAUDE.md`, the two registration-only tests and the `required_configs` list, and stage the Phase 23 `### Removed` note so it names BOTH removals
-- [ ] 22.2-02-PLAN.md — docs + `approach1` sample correction: delete the modern-cv package example rather than repair it (D-11), align the `advanced.rst` both-set important-note with post-D-03 behavior, and make `examples/charged-ieee/approach1` + the README describe a build that actually works (D-12) — removing both the `bibliography: "refs.bib"` param (target file exists nowhere in the repo) and the rST citation constructs (the translator has no `visit_citation` handler and emits adjacent expressions with no separator → hard Typst syntax error; routed to backlog as a flagged assumption)
-- [ ] 22.2-06-PLAN.md — `approach2` sample repair (**owner ruling 2026-07-22, D-12 premise correction**): `typst_template` resolves against srcdir but the wrapper ships one directory above it, so typsphinx warns once and silently falls back to the bundled `base.typ` — the sample never loads `charged-ieee` yet exits 0. Relocate `_templates/` under `source/`, fix the wrapper's invalid `.lower()` method call and its phantom bibliography arg, and strip the same citation constructs
-- [ ] 22.2-03-PLAN.md — `template_engine.py` repair: hoist the four `@preview` imports + `codly-init` out of the `template_file` branch so every master gets them (D-02/BUG-F), stop package-path parameter injection at BOTH sites — the ctor `parameter_mapping` default AND the fill-if-missing back-fill (D-05/BUG-B), wire `typst_authors` as a native `list[dict]` through `map_parameters()` (D-07/BUG-C), invert parameter precedence so explicit config wins (D-08/BUG-E), and delete the `typst_author_params` ctor arg, legacy branch, both `getattr` call sites and its backward-compat test
+- [x] 22.2-01-PLAN.md — CONF-01 dead-config sweep: delete the `typst_output_dir` and `typst_author_params` registrations (D-13, D-07 registration half), purge `typst_output_dir` from `docs/configuration.rst`, `examples/advanced/*`, `CLAUDE.md`, the two registration-only tests and the `required_configs` list, and stage the Phase 23 `### Removed` note so it names BOTH removals
+- [x] 22.2-02-PLAN.md — docs + `approach1` sample correction: delete the modern-cv package example rather than repair it (D-11), align the `advanced.rst` both-set important-note with post-D-03 behavior, and make `examples/charged-ieee/approach1` + the README describe a build that actually works (D-12) — removing both the `bibliography: "refs.bib"` param (target file exists nowhere in the repo) and the rST citation constructs (the translator has no `visit_citation` handler and emits adjacent expressions with no separator → hard Typst syntax error; routed to backlog as a flagged assumption)
+- [x] 22.2-06-PLAN.md — `approach2` sample repair (**owner ruling 2026-07-22, D-12 premise correction**): `typst_template` resolves against srcdir but the wrapper ships one directory above it, so typsphinx warns once and silently falls back to the bundled `base.typ` — the sample never loads `charged-ieee` yet exits 0. Relocate `_templates/` under `source/`, fix the wrapper's invalid `.lower()` method call and its phantom bibliography arg, and strip the same citation constructs
+- [x] 22.2-03-PLAN.md — `template_engine.py` repair: hoist the four `@preview` imports + `codly-init` out of the `template_file` branch so every master gets them (D-02/BUG-F), stop package-path parameter injection at BOTH sites — the ctor `parameter_mapping` default AND the fill-if-missing back-fill (D-05/BUG-B), wire `typst_authors` as a native `list[dict]` through `map_parameters()` (D-07/BUG-C), invert parameter precedence so explicit config wins (D-08/BUG-E), and delete the `typst_author_params` ctor arg, legacy branch, both `getattr` call sites and its backward-compat test
 
 **Wave 2** *(depends on 22.2-03 — shares `writer.py` / `builder.py`)*
 
@@ -462,7 +462,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 21. Residual Fidelity Fixes (Clusters C/D/E/F) | v0.6.2 | 3/3 | Complete    | 2026-07-20 |
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
-| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
+| 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 4/6 | In Progress|  |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
