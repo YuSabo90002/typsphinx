@@ -103,6 +103,16 @@ None. Local environment is a NixOS sandbox where `uv run <compiled-binary>` fail
 - Phase 22.1 (typstpdf compile-root alignment for nested masters, PDF-02) can proceed independently — it touches the `include()`/`image()` root-resolution path, not the filename-derivation path this plan changed
 - No blockers
 
+## Self-Check: PASSED
+
+- FOUND: typsphinx/builder.py
+- FOUND: tests/test_builder_output_stem.py
+- FOUND: .planning/phases/22-typstpdf-target-name-pdf-fix-issue-117/22-01-SUMMARY.md
+- FOUND commit: 5e97440 (test — RED)
+- FOUND commit: 4ca3f76 (feat — GREEN)
+- FOUND commit: 0d4d26c (fix — Task 2 wiring)
+- FOUND commit: 97c05bd (docs — this summary)
+
 ---
 *Phase: 22-typstpdf-target-name-pdf-fix-issue-117*
 *Completed: 2026-07-21*
