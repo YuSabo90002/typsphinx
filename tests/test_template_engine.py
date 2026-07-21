@@ -855,20 +855,58 @@ class TestTypstAuthorsConfig:
         assert 'department: "Computer Science"' in formatted_authors
         assert 'department: "Electrical Engineering"' in formatted_authors
 
-    def test_typst_author_params_backward_compatibility(self):
-        """Test backward compatibility with typst_author_params"""
+    def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
+        """D-07: typst_authors reaches map_parameters()/render() as a native
+        list[dict], never as a pre-rendered quoted string (BUG-C)"""
         engine = TemplateEngine(
-            typst_author_params={
-                "John Doe": {
-                    "department": "CS",
-                    "email": "john@mit.edu",
+            typst_authors={
+                "Ada Lovelace": {
+                    "department": "Computing",
+                    "organization": "Analytical Engine Society",
+                    "email": "ada@example.org",
                 }
             }
         )
 
-        # Should also work with author_params (legacy support)
-        formatted_authors = engine._format_authors_with_details(authors=("John Doe",))
+        sphinx_metadata = {
+            "project": "P",
+            "author": "Ada Lovelace",
+            "release": "1.0",
+            "copyright": "c",
+        }
 
-        assert 'name: "John Doe"' in formatted_authors
-        assert 'department: "CS"' in formatted_authors
-        assert 'email: "john@mit.edu"' in formatted_authors
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert isinstance(params["authors"], list)
+        assert isinstance(params["authors"][0], dict)
+        assert list(params["authors"][0].keys())[0] == "name"
+        assert params["authors"][0]["name"] == "Ada Lovelace"
+
+        body = "Content"
+        result = engine.render(params, body)
+
+        assert 'name: "Ada Lovelace"' in result
+        assert "authors: (" in result
+        # Double-formatting regression guard: authors must never be emitted
+        # as a quoted Typst string.
+        assert 'authors: "(' not in result
+
+    def test_typst_authors_unset_or_empty_yields_no_authors_key_on_package_path(self):
+        """A package-configured engine with no typst_authors produces no
+        authors key; an empty typst_authors dict behaves identically"""
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "c",
+        }
+
+        engine_unset = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+        params_unset = engine_unset.map_parameters(sphinx_metadata)
+        assert "authors" not in params_unset
+
+        engine_empty = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4", typst_authors={}
+        )
+        params_empty = engine_empty.map_parameters(sphinx_metadata)
+        assert "authors" not in params_empty

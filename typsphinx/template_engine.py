@@ -48,7 +48,6 @@ class TemplateEngine:
         typst_template_function: Any | None = None,
         typst_package_imports: List[str] | None = None,
         typst_authors: Dict[str, Dict[str, Any]] | None = None,
-        typst_author_params: Dict[str, Dict[str, Any]] | None = None,
     ):
         """
         Initialize TemplateEngine.
@@ -64,7 +63,6 @@ class TemplateEngine:
             typst_template_function: Template function name (str) or dict with {"name": str, "params": dict}
             typst_package_imports: Specific items to import from package
             typst_authors: Author details as dict with author name as key (recommended)
-            typst_author_params: Legacy author params (for backward compatibility)
         """
         self.template_path = template_path
         self.template_name = template_name or "base.typ"
@@ -81,7 +79,6 @@ class TemplateEngine:
             self.parameter_mapping = self.DEFAULT_PARAMETER_MAPPING.copy()
         self.typst_package_imports = typst_package_imports or []
         self.typst_authors = typst_authors or {}
-        self.typst_author_params = typst_author_params or {}
 
         # Parse typst_template_function: support both string and dict formats
         if isinstance(typst_template_function, dict):
@@ -200,6 +197,23 @@ class TemplateEngine:
                 params["authors"] = ()
             if "date" not in params:
                 params["date"] = None
+
+        # D-07: typst_authors (explicit config) overrides whatever "authors"
+        # already resolved to -- a native Python list[dict] that
+        # _format_typst_value()'s existing list/dict recursion serializes as
+        # a Typst array of dictionaries. Must stay a native Python structure;
+        # never pre-render it to Typst source here, or it re-enters
+        # _format_typst_value()'s string branch and comes out as a quoted
+        # string literal instead of an array (the double-formatting trap).
+        # Applies on both the package path and the template path -- runs
+        # after the package-aware back-fill guard above, so on the package
+        # path "authors" is present only when the user actually configured
+        # typst_authors.
+        if self.typst_authors:
+            params["authors"] = [
+                {"name": name, **details}
+                for name, details in self.typst_authors.items()
+            ]
 
         return params
 
@@ -442,34 +456,21 @@ class TemplateEngine:
         except (FileNotFoundError, OSError):
             return None
 
-    def _format_authors_with_details(self, authors: tuple | None = None) -> str:
+    def _format_authors_with_details(self) -> str:
         """
         Format authors with detailed information as Typst dict tuple.
-
-        Args:
-            authors: Optional tuple of author names (for backward compatibility with typst_author_params)
 
         Returns:
             Typst-formatted author dict tuple string
 
-        Priority:
-        1. typst_authors (recommended) - author name as key, details as dict value
-        2. typst_author_params (legacy) - requires authors parameter
+        Uses typst_authors: author name as key, details as dict value.
         """
         author_dicts = []
 
-        # Use typst_authors if available (recommended approach)
         if self.typst_authors:
             for author_name, details in self.typst_authors.items():
                 author_dict = {"name": author_name}
                 author_dict.update(details)
-                author_dicts.append(author_dict)
-        # Fall back to typst_author_params (legacy support)
-        elif self.typst_author_params and authors:
-            for author_name in authors:
-                author_dict = {"name": author_name}
-                if author_name in self.typst_author_params:
-                    author_dict.update(self.typst_author_params[author_name])
                 author_dicts.append(author_dict)
         else:
             # No detailed author information available
