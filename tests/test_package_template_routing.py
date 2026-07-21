@@ -86,3 +86,114 @@ class TestPackageAloneRouting:
         # for a package-alone build.
         assert "_template.typ" not in emitted_text
         assert not (outdir / "_template.typ").exists()
+
+
+class TestBothConfiguredRouting:
+    """D-03: package + custom template together -- template wins, warns once."""
+
+    def test_both_configured_warns_once_and_template_wins(self, tmp_path):
+        srcdir = tmp_path / "source"
+        srcdir.mkdir()
+        _make_index_rst(srcdir)
+
+        template_dir = srcdir / "_templates"
+        template_dir.mkdir()
+        (template_dir / "template.typ").write_text(
+            '#import "@preview/charged-ieee:0.1.4": ieee\n\n'
+            '#let project(title: "", authors: (), date: none, body) = {\n'
+            "  ieee(title: title, authors: authors, date: date)[#body]\n"
+            "}\n"
+        )
+
+        (srcdir / "conf.py").write_text(
+            "project = 'Test'\n"
+            "author = 'Author'\n"
+            "extensions = ['typsphinx']\n"
+            "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+            "typst_package = '@preview/charged-ieee:0.1.4'\n"
+            "typst_template = '_templates/template.typ'\n"
+        )
+
+        outdir = tmp_path / "build"
+        result = _run_sphinx_build_typst(srcdir, outdir)
+
+        assert (
+            result.returncode == 0
+        ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+        combined_output = result.stdout + result.stderr
+        warning_lines = [
+            line
+            for line in combined_output.splitlines()
+            if "typst_package" in line
+            and "typst_template" in line
+            and "WARNING" in line
+        ]
+        assert len(warning_lines) == 1, (
+            f"expected exactly 1 both-set warning line, got {len(warning_lines)}:\n"
+            f"{combined_output}"
+        )
+
+        # The custom template IS written and imported...
+        template_out = outdir / "_template.typ"
+        assert template_out.exists()
+
+        index_typ = outdir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        emitted_text = index_typ.read_text()
+        assert '#import "_template.typ": project' in emitted_text
+
+        # ...and the package import is genuinely suppressed, not merely
+        # deprioritised.
+        assert '#import "@preview/charged-ieee' not in emitted_text
+
+
+class TestTemplateAloneNonRegression:
+    """D-04: custom template + template-function alone stays unaffected."""
+
+    def test_template_plus_function_alone_is_unaffected(self, tmp_path):
+        srcdir = tmp_path / "source"
+        srcdir.mkdir()
+        _make_index_rst(srcdir)
+
+        template_dir = srcdir / "_templates"
+        template_dir.mkdir()
+        (template_dir / "template.typ").write_text(
+            '#let ieee(title: "", authors: (), date: none, body) = {\n'
+            "  [= #title]\n"
+            "  body\n"
+            "}\n"
+        )
+
+        (srcdir / "conf.py").write_text(
+            "project = 'Test'\n"
+            "author = 'Author'\n"
+            "extensions = ['typsphinx']\n"
+            "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+            "typst_template = '_templates/template.typ'\n"
+            "typst_template_function = 'ieee'\n"
+        )
+
+        outdir = tmp_path / "build"
+        result = _run_sphinx_build_typst(srcdir, outdir)
+
+        assert (
+            result.returncode == 0
+        ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+        combined_output = result.stdout + result.stderr
+        warning_lines = [
+            line
+            for line in combined_output.splitlines()
+            if "typst_package" in line
+            and "typst_template" in line
+            and "WARNING" in line
+        ]
+        assert (
+            warning_lines == []
+        ), f"expected no both-set warning, got:\n{combined_output}"
+
+        index_typ = outdir / "index.typ"
+        assert index_typ.exists(), "index.typ was not generated"
+        emitted_text = index_typ.read_text()
+        assert '#import "_template.typ": ieee' in emitted_text

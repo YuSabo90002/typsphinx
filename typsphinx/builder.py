@@ -522,16 +522,36 @@ class TypstBuilder(Builder):
         config = self.config
 
         # Get template configuration
-        template_path = getattr(config, "typst_template", None)
+        raw_template_path = getattr(config, "typst_template", None)
+        template_path = raw_template_path
         if template_path:
             # Resolve relative path from source directory
             import os
 
             template_path = os.path.join(self.srcdir, template_path)
 
-        # Skip if using Typst Universe package (no separate template file needed)
         typst_package = getattr(config, "typst_package", None)
-        if typst_package:
+
+        # D-03: when BOTH a Typst Universe package and a custom template are
+        # configured, the combination is unsupported. `typst_template` wins
+        # (D-01's routing decision promotes it to the primary route) and
+        # `typst_package` is ignored end-to-end -- named here rather than
+        # silently dropped (T-22.2-11). This method runs exactly once per
+        # build (see the single call site in `prepare_writing()`), so the
+        # warning fires once per build, not once per master document.
+        if typst_package and raw_template_path:
+            logger.warning(
+                "Both 'typst_package' and 'typst_template' are configured; "
+                "this combination is unsupported. 'typst_template' will be "
+                "honoured and 'typst_package' will be ignored."
+            )
+
+        # Skip if using a Typst Universe package ALONE (no custom template
+        # configured) -- a package-alone master needs no separate template
+        # file (D-01). When a custom template is ALSO configured, fall
+        # through: the custom template must still be written regardless of
+        # the package setting (D-03).
+        if typst_package and not raw_template_path:
             return
 
         # Create template engine
