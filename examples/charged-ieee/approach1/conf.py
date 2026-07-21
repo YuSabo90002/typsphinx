@@ -45,12 +45,19 @@ typst_authors = {
 
 # テンプレート関数とパラメータの統合設定（辞書形式）
 # 通常のPython変数参照で他の設定値を再利用
+#
+# NOTE: no citation-source ("refs.bib"-style) parameter here. The package-only
+# path (typst_package, no typst_template) has no asset-copying mechanism to
+# place a supporting file next to the emitted .typ
+# (TypstBuilder.copy_template_assets() early-returns when typst_template is
+# unset), so a parameter naming such a file would point at a path that never
+# resolves. A template parameter naming a file path must refer to a file the
+# build itself produces in the output directory.
 typst_template_function = {
     "name": "ieee",
     "params": {
         "abstract": ieee_abstract,
         "index-terms": ieee_keywords,
-        "bibliography": "refs.bib",
         "paper-size": "a4",
     },
 }
