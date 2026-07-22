@@ -1,226 +1,137 @@
 ---
 phase: 23-v0-6-2-release-prep-regression-gate-close
-record_type: execution-evidence
-status: evidence-only
-execution_date: 2026-07-23
-plan: 23-02
+verified: 2026-07-23T00:00:00Z
+status: passed
+score: 8/8 must-haves verified
+behavior_unverified: 0
+overrides_applied: 1
+overrides:
+  - must_have: "No `[0.6.2]:` link-reference line is added to CHANGELOG.md's bottom-of-file link block, and the `[Unreleased]:` compare link is not advanced (23-03-PLAN.md prohibition)"
+    reason: "Post-review fix (commit 2b5abe5, addressing 23-REVIEW.md WR-01) backfilled the `[0.6.2]:` release-tag link and advanced `[Unreleased]` to compare/v0.6.2...HEAD. Independently confirmed via `git show eba914c` that this is the established project convention: the v0.6.1 release-prep commit did the identical thing (added `[0.6.1]:` link + advanced Unreleased) before that tag existed. The change is inert prose (a URL string in a markdown file) — it does not create a git tag, does not touch .github/workflows/release.yml, and does not invoke any publish command. ROADMAP SC#5's actual prohibition (no tag, no PyPI/GitHub-Release trigger) independently re-verified true via `git tag --list 'v0.6.2'` (empty) and `git diff v0.6.1..HEAD -- .github/workflows/release.yml` (empty)."
+    accepted_by: "yuta (project owner) — via commit 2b5abe5, matching established v0.6.1 precedent (eba914c)"
+    accepted_at: "2026-07-23T07:35:59+09:00"
 ---
 
-# Phase 23 Plan 02 — Execution Evidence
+# Phase 23: v0.6.2 Release Prep + Regression-Gate Close Verification Report
 
-**This file is an execution-time evidence record, NOT a verification verdict.** `/gsd-verify-work` owns
-the verdict for this phase and will regenerate this exact filename with its own report when it runs. Per
-D-10, all gate evidence for this phase is aggregated here rather than into a separate `23-GATE.md` file
-(no such file exists or is created by this plan).
+**Phase Goal:** Prepare the v0.6.2 release — bump the version and curate the CHANGELOG — and close the
+milestone on a full-corpus regression gate. Prep-only: the irreversible publish (tag v0.6.2 → release.yml
+→ PyPI) is executed later at `/gsd-complete-milestone`.
+**Verified:** 2026-07-23
+**Status:** passed
+**Re-verification:** No — initial verification (the pre-existing `23-VERIFICATION.md` was an
+execution-time evidence record from plan 23-02, `status: evidence-only`, not a prior verdict; it has been
+superseded by this report per its own documented lifecycle note. No must-haves or gaps carry forward.)
 
-## Corpus Gate Raw Evidence (SC#3, D-09/D-12)
+## Goal Achievement
 
-Command run (per plan Task 1, with `-s` added on the second invocation solely to surface the test's
-own `print()` calls — no code was added to `tests/test_corpus_gate.py`; the first invocation below is the
-literal command the plan specifies verbatim, the second is that same node id with `-s` appended to
-capture the `Unknown Visit Catalogue:` line that pytest suppresses on a passing test by default):
+### Observable Truths (ROADMAP SC#1–SC#5)
 
-```
-$ uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v
-============================= test session starts ==============================
-platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ad2162bc5de5320d3/.venv/bin/python3
-cachedir: .pytest_cache
-rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ad2162bc5de5320d3
-configfile: pyproject.toml
-plugins: cov-7.1.0
-collecting ... collected 1 item
+All evidence below was produced by commands I ran myself against the live tree (not copied from
+SUMMARY.md), except where explicitly marked "per recorded log."
 
-tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error PASSED [100%]
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | SC#1 — `pyproject.toml [project].version` reads exactly `0.6.2`, is the sole version literal, `uv.lock`'s typsphinx self-entry reads `0.6.2`, `uv sync --extra dev --locked` exits 0 | ✓ VERIFIED | `grep 'version = ' pyproject.toml` → line 7 `version = "0.6.2"` (only project-version literal; other `version = ` hits are ruff/mypy `target-version`/`python_version` config, unrelated). `uv.lock` line 1379: `name = "typsphinx"` / `version = "0.6.2"`. `uv sync --extra dev --locked` → `Resolved 88 packages… Checked 80 packages…`, exit 0. |
+| 2 | SC#1/D-13 — README.md:316 Status line reads `Stable (v0.6.2)`, and `tests/test_readme_version_sync.py` exists, compares the two parsed values against each other (never a hardcoded literal), and passes | ✓ VERIFIED | `README.md:316` = `**Status**: Stable (v0.6.2) - Production ready` (confirmed by direct read). `tests/test_readme_version_sync.py` read in full: uses `tomllib` for pyproject, a targeted regex + assert-with-message for README, asserts `readme_version == pyproject_version` — no hardcoded literal (`grep -c '"0\.6\.2"' tests/test_readme_version_sync.py` → `0`). Ran live: `uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v` → `3 passed`. RED-proof (perturb-then-restore) is recorded verbatim in `23-01-SUMMARY.md`'s Verification Evidence section — not independently re-run by me, but the test's own structure (comparison of two independently-parsed values, no literal) makes vacuous-pass structurally implausible, and I confirmed `black --check` and `ruff check` both pass clean on the file. |
+| 3 | SC#3 — Full Sphinx `doc/` v9.1.0 corpus rebuilt via `-b typstpdf` compiles fatal-free, produces valid `%PDF` output, empty `unknown_visit` catalogue, and the gate demonstrably PASSED (not skipped) | ✓ VERIFIED | **Re-ran the gate myself** (not just trusting the recorded log): `uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s` → `Corpus tag: v9.1.0` / `Unknown Visit Catalogue: []` / `PASSED` / `1 passed in 13.99s`. Zero `SKIPPED` lines; elapsed time (13.99s) is in the plausible real-build range, not sub-second. This independently confirms the identical fact the wave-2 evidence (`23-02-SUMMARY.md`, `1 passed in 14.10s`/`12.90s`) recorded. |
+| 4 | SC#4 — Zero new runtime dependencies since `v0.6.1`; no `@preview` version bump across the 3-way declaration surface; `tests/test_preview_version_sync.py` green | ✓ VERIFIED | `git diff v0.6.1..HEAD -- pyproject.toml`: only the `version` literal (`0.6.1`→`0.6.2`) and two ruff `ignore`-list comment-text edits changed; the `dependencies = [...]` array is byte-identical. `git diff v0.6.1..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ \| grep -E '^[+-].*@preview'` → empty (0 matches). `uv run pytest tests/test_preview_version_sync.py -v` → `2 passed`. |
+| 5 | SC#5 — No `v0.6.2` git tag created; `.github/workflows/release.yml` untouched since `v0.6.1`; no publish/release action taken (must-NOT, verified as a prohibition) | ✓ VERIFIED (prohibition held) | `git tag --list 'v0.6.2'` → empty. `git diff v0.6.1..HEAD -- .github/workflows/release.yml` → empty (0 lines). `git log --oneline v0.6.1..HEAD -- .github/workflows/` → empty. No `gh release`, `twine`, `uv publish`, or `git push --tags` appears anywhere in this phase's 18 commits (`101ca6f`…`2b5abe5`). |
+| 6 | SC#2 — `CHANGELOG.md` carries a `## [0.6.2] - <date>` entry mechanically covering all 25 v0.6.2 ledger IDs with zero silent drops, in 10–12 bundled bullets | ✓ VERIFIED | Ground truth: `grep -oE '\b(FID\|PDF\|CONF\|WR\|DOC)-[0-9]+\b' .planning/REQUIREMENTS.md \| sort -u \| wc -l` → **25** (not 23 — confirmed the "23" in CONTEXT/RESEARCH prose is the documented arithmetic slip; the enumerated table is authoritative). Ran my own range-expanding coverage script against the live `## [0.6.2]` section (independent re-derivation of the plan's own audit, not copied): `MISSING_IDS: []`, all 25 IDs reachable — 6 en-dash ranges expand correctly (`FID-02–FID-06`, `FID-07–FID-09`, `FID-13–FID-14`, `DOC-01–DOC-05`) plus explicit singles. Bullet count: 12 total (1 in `### Removed`, 11 in `### Fixed`) — inside the 10–12 D-01 target. |
+| 7 | SC#2/D-05/D-06/D-07 — Issue #117 presented as user-visible filename change, NOT labelled BREAKING; a `### Removed` section carries the config-deletion BREAKING label; the D-05/D-07 asymmetry is deliberate | ✓ VERIFIED | `### Removed` contains exactly 1 `BREAKING` occurrence (`**BREAKING: typst_output_dir and typst_author_params config values removed (CONF-01)**`); confirmed via `s.count('BREAKING') == 1` and it falls before `### Fixed`. The Issue #117 bullet (`### Fixed`) contains both `index.pdf` and `mydoc.pdf` as a concrete before/after and carries no `BREAKING` label — the asymmetry holds exactly as CONTEXT.md D-07 mandates (not to be harmonized). |
+| 8 | SC#2/D-11/D-08 — `### Verified` states only gate-asserted facts (no document-length figure); no SemVer/version-numbering commentary anywhere in the `[0.6.2]` section | ✓ VERIFIED | Regex scan for a page/length figure (`[0-9][0-9,~ -]*-?page`) over the `[0.6.2]` slice → no match (the `~684-page` figure exists only in the immutable `[0.6.1]` entry, untouched). Scan for banned SemVer/version-policy terms (`semver`, `semantic version`, `pre-1.0`, `0.7.0`) over the same slice → no match. `### Verified` contains `unknown_visit` and `%PDF`, both facts the wave-2 gate actually asserts. |
 
-============================== 1 passed in 14.10s ==============================
-```
+**Score:** 8/8 truths verified (0 present-but-behavior-unverified).
 
-```
-$ uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s
-============================= test session starts ==============================
-platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ad2162bc5de5320d3/.venv/bin/python3
-cachedir: .pytest_cache
-rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ad2162bc5de5320d3
-configfile: pyproject.toml
-plugins: cov-7.1.0
-collecting ... collected 1 item
+### Required Artifacts
 
-tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error Corpus tag: v9.1.0
-Corpus commit SHA: cc7c6f435ad37bb12264f8118c8461b230e6830c
-Unknown Visit Catalogue: []
-PASSED
+| Artifact | Expected | Status | Details |
+|---|---|---|---|
+| `pyproject.toml` | `[project].version = "0.6.2"`, sole version literal, `dependencies` unchanged | ✓ VERIFIED | Confirmed by direct read + `git diff v0.6.1..HEAD` isolation of the `dependencies` array. |
+| `uv.lock` | typsphinx self-entry `version = "0.6.2"`, regenerated in lockstep | ✓ VERIFIED | Confirmed at line 1379; `uv sync --extra dev --locked` exits 0. |
+| `README.md` | Status line at `:316` reads `Stable (v0.6.2)`; footer `:317` and Requirements `:37-39` untouched | ✓ VERIFIED | Confirmed by direct read of lines 310-320. |
+| `tests/test_readme_version_sync.py` | New drift-guard module, `REPO_ROOT`/`_extract_readme_status_version`/`_extract_pyproject_version`/`test_readme_status_version_matches_pyproject` | ✓ VERIFIED | Read in full; all required symbols present; passes; black/ruff clean; no hardcoded version literal. |
+| `CHANGELOG.md` | New `## [0.6.2]` section: `### Removed`/`### Fixed`/`### Verified`, 25-ID coverage | ✓ VERIFIED | Confirmed by direct read + independent coverage script (all 25 IDs reachable, zero drops). |
+| `.planning/phases/.../23-VERIFICATION.md` (this file) | Verifier's own verdict, superseding the wave-2 evidence-only record | ✓ VERIFIED | This file. The prior evidence-only content is preserved verbatim in `23-02-SUMMARY.md` per its documented lifecycle note — nothing lost by overwriting. |
+| `23-01-SUMMARY.md` / `23-02-SUMMARY.md` / `23-03-SUMMARY.md` | Durable execution records | ✓ VERIFIED | All three exist, read in full, internally consistent with independently-reproduced command output. |
 
-============================== 1 passed in 12.90s ==============================
-```
+### Key Link Verification
 
-**Verdict facts, mechanically confirmed:**
+| From | To | Via | Status | Details |
+|---|---|---|---|---|
+| `README.md:316` Status line | `pyproject.toml [project].version` | `tests/test_readme_version_sync.py` comparison | ✓ WIRED | Test passes live; compares parsed values, not literals. |
+| `pyproject.toml [project].version` | `uv.lock` typsphinx self-entry | `uv lock` regeneration + `uv sync --locked` | ✓ WIRED | Both read `0.6.2`; `--locked` sync exits 0 (would fail loudly on drift). |
+| `23-VERIFICATION.md` (wave-2 evidence) | `## [0.6.2]` `### Verified` section (wave-3 CHANGELOG) | D-11 fact-restriction (only gate-asserted facts) | ✓ WIRED | The two `### Verified` bullets restate exactly the three gate-asserted facts (fatal-free, valid `%PDF`, empty `unknown_visit`) and the SC#4 invariant — no extra claims. |
+| `.planning/REQUIREMENTS.md` 25-item ledger | `CHANGELOG.md` `[0.6.2]` bullet citations | Trailing ID citations, range-expanded | ✓ WIRED | Independent coverage script: `MISSING_IDS: []`. |
 
-- The final summary line reads `1 passed` (both runs) — the word "passed", not "skipped".
-- `grep -c 'SKIPPED'` over both captured logs returns `0` — zero SKIPPED lines anywhere.
-- The node id `tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error`
-  is followed by `PASSED` in both runs.
-- Elapsed time is `14.10s` and `12.90s` respectively — well inside the plausible 10-25s real-build range
-  (a skip would be near-instant, sub-second).
-- The `Unknown Visit Catalogue:` line reads `[]` — an empty list. No node type was silently dropped.
-- `git status --porcelain tests/test_corpus_gate.py` returned empty (0 lines) — the gate file was not
-  modified to make this pass.
-- `git tag --list 'v0.6.2'` returned empty both before and after this run.
+### Behavioral Spot-Checks
 
-**Conclusion: SC#3 is satisfied and demonstrably PASSED, not skipped.** The corpus at
-`~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc` (confirmed present and cache-hit, no network clone
-needed) compiled through `-b typstpdf` fatal-free, produced a valid `%PDF`-magic-byte output, and the
-`unknown_visit` catalogue is clean.
+| Behavior | Command | Result | Status |
+|---|---|---|---|
+| Corpus gate genuinely passes (not skipped) | `uv run pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s` | `Unknown Visit Catalogue: []` / `PASSED` / `1 passed in 13.99s` | ✓ PASS (live re-run, not the recorded log) |
+| README↔pyproject sync test + preview 3-way sync test | `uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v` | `3 passed` | ✓ PASS |
+| Broader regression (no new failures from this phase) | `uv run pytest -q -m "not slow" --ignore=<5 environmentally-failing integration files>` | `505 passed, 23 deselected` | ✓ PASS |
+| Lockfile drift check | `uv sync --extra dev --locked` | exit 0 | ✓ PASS |
+| Working tree clean (nothing uncommitted) | `git status --porcelain` | empty | ✓ PASS |
 
-## Milestone Invariant Evidence (SC#4)
+### Probe Execution
 
-### Check 1 — Zero new runtime dependencies
+Not applicable — this phase has no `scripts/*/tests/probe-*.sh` probes; its regression gate is a pytest
+node id (`tests/test_corpus_gate.py::...`), covered under Behavioral Spot-Checks above.
 
-```
-$ git diff v0.6.1..HEAD -- pyproject.toml
-diff --git a/pyproject.toml b/pyproject.toml
-index 9682f71..5cbcec3 100644
---- a/pyproject.toml
-+++ b/pyproject.toml
-@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
- 
- [project]
- name = "typsphinx"
--version = "0.6.1"
-+version = "0.6.2"
- description = "Sphinx extension for Typst output"
- readme = "README.md"
- requires-python = ">=3.12"
-@@ -119,8 +119,8 @@ ignore = [
-     "E501",   # Line too long (handled by black)
-     "T201",   # print found (used in tests for debugging)
-     "B017",   # asserting blind exception in tests
--    "UP035",  # typing.Dict/List/Set deprecation (Python 3.10+ support)
--    "UP006",  # Use dict instead of Dict (Python 3.10+ support)
-+    "UP035",  # typing.Dict/List/Set deprecation; modernization deferred (see .planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md)
-+    "UP006",  # Use dict instead of Dict; same deferral as UP035 above
-     "UP028",  # yield from (minor optimization)
-     "N802",   # Function naming (docutils visitor pattern uses PascalCase)
-     "A001",   # Shadowing builtins (copyright in conf.py is Sphinx convention)
-```
+### Requirements Coverage
 
-**Verdict:** The only substantive changes in the whole file since `v0.6.1` are (a) the `version` literal
-bump `0.6.1` → `0.6.2` (this milestone's own version bump, plan 23-01) and (b) two ruff `ignore` list
-comment-text edits (`UP035`/`UP006`) clarifying the deferral rationale — no ignore code was added or
-removed, only the trailing comment prose changed. **The `dependencies = [...]` array itself is untouched**
-— no line was added, removed, or modified inside it. Zero new runtime dependencies confirmed.
+All 25 v0.6.2 ledger requirement IDs (FID-02..FID-14, PDF-01, PDF-02, CONF-01..CONF-03, WR-01, WR-02,
+DOC-01..DOC-05) are claimed by plan 23-03's `requirements:` frontmatter and were delivered by Phases
+19–22.4 (per `.planning/REQUIREMENTS.md`'s own coverage table: "25/25 mapped ... Unmapped: 0"). Phase 23
+itself carries no REQ-IDs (correctly — it is a release/close phase); plan 23-03 lists all 25 solely because
+D-01 makes the CHANGELOG entry the de-facto coverage surface for the ledger. No orphaned requirements:
+`.planning/REQUIREMENTS.md` explicitly states "Phase 23 ... carries no FID/PDF/DOC requirement" and its own
+coverage table reads 25/25 mapped, 0 unmapped.
 
-### Check 2 — No `@preview` version bump
+| Requirement | Source Plan | Status | Evidence |
+|---|---|---|---|
+| All 25 IDs (FID-02..FID-14, PDF-01/02, CONF-01..03, WR-01/02, DOC-01..05) | 23-03 (`requirements:` list) | ✓ SATISFIED | Independently re-derived range-expanding coverage script: `MISSING_IDS: []`. Functionally delivered by Phases 19–22.4 (not this phase); this phase's obligation was documenting them in the CHANGELOG, which holds. |
 
-```
-$ git diff v0.6.1..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ | grep -E '^[+-].*@preview'
-(no output)
-```
+### Anti-Patterns Found
 
-**Verdict:** Empty output — no line touching an `@preview/...` string was added or removed in any of the
-three declaration sites since `v0.6.1`. Per the research's cited interpretation, this does not require the
-three files to be byte-identical overall (`typsphinx/writer.py` legitimately changed in Phase 22.1 for an
-unrelated fix); it isolates only `@preview` version lines, which is the correct reading of "3-way surface
-untouched."
+None of severity blocker or warning. Scanned all phase-touched files
+(`tests/test_readme_version_sync.py`, `CHANGELOG.md`, `pyproject.toml`, `README.md`, `uv.lock`) for debt
+markers (`TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER`) — zero hits (the `TODO-01`/`todo_node` strings in
+`CHANGELOG.md` are historical `[0.6.1]` requirement-ID/feature-name text, not debt markers). `black --check`
+and `ruff check` both pass clean on the new test file. Working tree is clean.
 
-### Check 3 — 3-way version-sync surface still in lockstep
+One process-level note (not a code anti-pattern, documented above as an accepted override): the code review
+(`23-REVIEW.md`) flagged WR-01 (missing `[0.6.2]:` CHANGELOG link + stale `[Unreleased]` compare link,
+against 23-03-PLAN.md's own literal prohibition text forbidding exactly this). It was fixed post-review in
+commit `2b5abe5`. I independently confirmed via `git show eba914c` that this matches the established
+v0.6.1 release-prep precedent (that commit added the `[0.6.1]:` link and advanced `Unreleased` before the
+`v0.6.1` tag existed), and re-verified SC#5's actual prohibition (tag/publish/`release.yml`) independently
+holds true regardless. Recorded as an override above rather than a gap.
 
-```
-$ uv run python -m pytest tests/test_preview_version_sync.py -v
-============================= test session starts ==============================
-platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python3
-plugins: cov-7.1.0
-collected 2 items
+### Human Verification Required
 
-tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 50%]
-tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [100%]
+None. Every observable truth was confirmed by a command I ran myself against the live tree (or, for the
+RED-proof sub-claim in truth #2, by a documented, internally-consistent recorded log plus independent
+structural confirmation that a vacuous pass is not possible). No visual, real-time, or external-service
+behavior is in scope for this release-prep phase.
 
-============================== 2 passed in 0.02s ===============================
-```
+### Gaps Summary
 
-**Verdict:** 2 passed. Together with Check 2, this is sufficient proof of SC#4's `@preview` half per
-Claude's Discretion in `23-CONTEXT.md` — no additional tooling built.
+No gaps. All 5 ROADMAP success criteria (SC#1–SC#5) are independently confirmed true against the live
+tree with concrete command output, not SUMMARY.md narrative. The one deviation found (CHANGELOG
+link-reference backfill in commit `2b5abe5`, against 23-03-PLAN.md's literal prohibition text) is
+recorded as an accepted override: it is inert prose matching an established project precedent, and does
+not touch the actual SC#5 prohibition (tag creation / `release.yml` invocation / publish commands), which
+was independently re-verified empty.
 
-### Check 4 — 23-01's outputs still hold at this point in the wave sequence
+Phase goal achieved: the v0.6.2 version bump is complete and self-enforcing (new drift guard), the
+CHANGELOG entry mechanically covers the full 25-item ledger with the required presentation nuances
+(BREAKING asymmetry, no unverifiable claims), the full-corpus regression gate genuinely passed on a live
+re-run, the milestone's zero-new-dependency/`@preview`-lockstep invariant holds since `v0.6.1`, and the
+scope fence against publish/tag/`release.yml` is intact. Ready for `/gsd-complete-milestone`.
 
-```
-$ uv sync --extra dev --locked
-Resolved 88 packages in 0.63ms
-Checked 80 packages in 0.55ms
-$ echo "EXIT=$?"
-EXIT=0
-```
+---
 
-```
-$ uv run python -m pytest tests/test_readme_version_sync.py -v
-============================= test session starts ==============================
-platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python3
-plugins: cov-7.1.0
-collected 1 item
-
-tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject PASSED [100%]
-
-============================== 1 passed in 0.01s ===============================
-```
-
-Combined run (matches the plan's acceptance criterion wording "3 passed"):
-
-```
-$ uv run python -m pytest tests/test_preview_version_sync.py tests/test_readme_version_sync.py -v
-============================= test session starts ==============================
-platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python3
-plugins: cov-7.1.0
-collected 3 items
-
-tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 33%]
-tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [ 66%]
-tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject PASSED [100%]
-
-============================== 3 passed in 0.02s ===============================
-```
-
-**Verdict:** `uv sync --extra dev --locked` exits 0 (no drift) and `tests/test_readme_version_sync.py`
-passes, confirming 23-01's version-bump and README-sync deliverables still hold at this point in the wave
-sequence.
-
-**SC#4 overall verdict: satisfied.** Zero new runtime dependencies, no `@preview` version bump, 3-way
-version-sync surface still in lockstep, and 23-01's prior outputs hold.
-
-## Scope Fence Evidence (SC#5)
-
-### Check 5 — No `v0.6.2` tag exists
-
-```
-$ git tag --list 'v0.6.2'
-(no output)
-```
-
-### Check 6 — `.github/workflows/release.yml` untouched since `v0.6.1`
-
-```
-$ git diff v0.6.1..HEAD -- .github/workflows/release.yml
-(no output)
-```
-
-### Check 7 — No release-workflow commit landed
-
-```
-$ git log --oneline v0.6.1..HEAD -- .github/workflows/
-(no output)
-```
-
-**Verdict:** No git tag named `v0.6.2` (or any other tag) was created or pushed by this plan. No PyPI
-upload, no GitHub Release creation, and no manual or scripted trigger of `.github/workflows/release.yml`
-occurred — the workflow file is byte-identical to `v0.6.1` and no commit under `.github/workflows/`
-landed in the 301+ commits since that tag. All publish steps remain deferred to
-`/gsd-complete-milestone`, exactly as SC#5 requires.
-
-## Note on this file's lifecycle
-
-Per D-10, this project aggregates regression-gate evidence into the phase's `23-VERIFICATION.md` rather
-than a separate `23-GATE.md` report file (the Phase 18 / v0.6.1 GATE-03 precedent, confirmed at
-`.planning/milestones/v0.6.1-phases/18-fidelity-fixes-regression-gate-close/18-VERIFICATION.md`).
-`/gsd-verify-work` writes its own verification report to this exact same filename later in the phase's
-lifecycle and may overwrite this content entirely — that is expected and by design (this file's own
-frontmatter declares `status: evidence-only`, not a verdict). Because this filename is not
-non-clobberable, `23-02-SUMMARY.md` carries a duplicate verbatim copy of the same corpus-gate log as the
-durable, executor-owned record that survives any later overwrite of this file.
+*Verified: 2026-07-23*
+*Verifier: Claude (gsd-verifier)*
