@@ -60,6 +60,9 @@ ENV/
 .dmypy.json
 dmypy.json
 
+# ruff
+.ruff_cache/
+
 # IDE
 .vscode/
 .idea/
