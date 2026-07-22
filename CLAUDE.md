@@ -25,8 +25,8 @@ black --check .              # black --check . (CI); drop --check to format
 ruff check .
 mypy typsphinx/
 
-# Everything, matrixed across py310–py313
-tox                          # env_list: py310..py313, lint, type, cov, docs
+# Everything, matrixed across py312–py313
+tox                          # env_list: py312, py313, lint, type, cov, docs
 
 # Build the project's own docs (from docs/)
 tox -e docs-html             # HTML via furo
@@ -72,10 +72,10 @@ User-facing config values (all registered in `__init__.py`, prefix `typst_`) inc
 
 ## Conventions & gotchas
 
-- **Python 3.10+ compatibility is required.** ruff intentionally ignores `UP006`/`UP035` (the `Dict`/`List` → `dict`/`list` upgrades) to keep 3.10 support — don't "modernize" typing imports.
+- **Python 3.12+ is required.** ruff intentionally ignores `UP006`/`UP035` (the `Dict`/`List` → `dict`/`list` upgrades) — this is a deliberate deferral, not a compatibility constraint; the modernization pass is filed at `.planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md`. Don't "modernize" typing imports until that todo lands.
 - Line length 88 (black); `E501` is ignored in ruff since black owns wrapping.
 - `tox.ini` pins `tox-uv~=1.35` (not `>=1.35,<2`) deliberately — see the comment in that file; tox's ini parser splits a single-line `requires` on commas and breaks otherwise.
-- CI (`.github/workflows/ci.yml`) runs the py310–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
+- CI (`.github/workflows/ci.yml`) runs the py312–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
 
 ### Worktree-isolated execution
 
