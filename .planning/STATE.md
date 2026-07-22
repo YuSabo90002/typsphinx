@@ -87,13 +87,14 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-5 pending (`.planning/todos/pending/`):
+6 pending (`.planning/todos/pending/`):
 
 - **死んだ設定 `typst_output_dir`** (builder) — **2026-07-21 決定: 即削除**（登録・ドキュメント・登録専用テスト・examples 一式を撤去、非推奨期間なし）。着手先は **Phase 22.2 の scope 要素 1**（旧バックログ 999.4 を 2026-07-22 に昇格）。元は A/B/C 3件の todo で、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は不採用として削除**。
 - **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — **バックログ 999.4 の scope 要素 2**（旧 999.3 を merge）。BUG-A..BUG-D の証拠は ROADMAP §999.3 に残置。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
 - **WR-01 マスター `.typ` 欠損時の無言スキップ / WR-02 テストが typst-py エラー文言に結合** (builder, tests) — **Phase 22.3 の scope**（旧バックログ 999.5 を 2026-07-22 に昇格）。WR-01 の「ビルド失敗にするか docstring を実態に合わせるか」は未決、`/gsd-discuss-phase 22.3` で決定する。
 - **`citation` ノード未対応が未追跡** (translator, examples) — Phase 22.2 で表面化（`visit_citation` ハンドラ不在のため rST citation が隣接式として出力され Typst 構文エラー）。22.2 ではサンプルから citation 構文を撤去して回避、恒久対応は未計画。
+- **README の記述を全体的に見直す** (docs) — 2026-07-22 capture。実測で確認した乖離: テスト数 413→実測 577（`README.md:223,243`）、Status 行が `v0.5.0` のまま（`:322`、実際は 0.6.1）、Configuration Options が 5 件しか挙げず登録済み 12 件と乖離（`:203-211` vs `typsphinx/__init__.py:44-62`、`typst_documents` すら未掲載）。github.io リンクの修正は **RTD 移行 todo と競合するので着手順を先に決めること**。付随して **`CLAUDE.md` の Python 記述が stale**（3.10+/py310–313 と書いてあるが実際は `>=3.12`・py312/py313 のみ）と判明、別途要修正。
 
 ### Blockers/Concerns
 
