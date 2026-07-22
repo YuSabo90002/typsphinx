@@ -402,7 +402,7 @@ Source of record for both warnings:
 The same review's Critical `CR-01` was ruled 今直す and already closed inside Phase 22.1 as gap
 `G-22.1-4` — it is **not** in this phase's scope.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 
@@ -413,7 +413,7 @@ Plans:
 
 **Wave 2** *(depends on 22.3-01 — needs the fixed `finish()`)*
 
-- [ ] 22.3-03-PLAN.md — D-11 GATE-01: new `tests/fixtures/missing_and_malformed_master_gate/` (one valid master, one docname absent from `found_docs`, one empty entry) plus `tests/test_missing_and_malformed_master_gate.py`, the suite's first must-fail subprocess gate (`returncode != 0`), asserting only on typsphinx-authored stderr while proving the valid master still gets its PDF; closes with the ROADMAP SC#5 pre-fix must-fail RED/GREEN transcript pair
+- [x] 22.3-03-PLAN.md — D-11 GATE-01: new `tests/fixtures/missing_and_malformed_master_gate/` (one valid master, one docname absent from `found_docs`, one empty entry) plus `tests/test_missing_and_malformed_master_gate.py`, the suite's first must-fail subprocess gate (`returncode != 0`), asserting only on typsphinx-authored stderr while proving the valid master still gets its PDF; closes with the ROADMAP SC#5 pre-fix must-fail RED/GREEN transcript pair
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
@@ -470,7 +470,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22. typstpdf Target-Name PDF Fix (Issue #117) | v0.6.2 | 3/3 | Complete    | 2026-07-21 |
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
-| 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 2/3 | In Progress|  |
+| 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
