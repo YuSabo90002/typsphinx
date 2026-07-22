@@ -171,6 +171,14 @@ None - no external service configuration required.
 - SC#5 scope fence held throughout: no tag created, no publish command run, no `.github/workflows/release.yml` interaction, no `typsphinx/` source file touched, `tox.ini`'s deliberate `tox-uv~=1.35` pin untouched.
 - Ready for 23-02 (corpus-gate regression evidence) and 23-03 (`[0.6.2]` CHANGELOG entry) — both can now cite `pyproject.toml`'s 0.6.2 literal as the confirmed version for their own work.
 
+## Self-Check: PASSED
+
+- FOUND: `tests/test_readme_version_sync.py`
+- FOUND: `.planning/phases/23-v0-6-2-release-prep-regression-gate-close/23-01-SUMMARY.md`
+- FOUND commit: `101ca6f` (Task 1)
+- FOUND commit: `ea4d3d4` (Task 2)
+- FOUND commit: `191793b` (SUMMARY docs commit)
+
 ---
 *Phase: 23-v0-6-2-release-prep-regression-gate-close*
 *Completed: 2026-07-23*
