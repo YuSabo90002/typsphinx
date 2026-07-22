@@ -4,15 +4,15 @@ milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 22.3
 current_phase_name: typstpdf Builder Warning Hardening
-status: planning
-stopped_at: Phase 22.3 context gathered
-last_updated: "2026-07-22T11:55:33.701Z"
+status: executing
+stopped_at: Phase 22.3 planned (3 plans, plan-checker PASSED)
+last_updated: "2026-07-22T12:51:20.122Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.2 complete, transitioned to Phase 22.3
+last_activity_desc: "Phase 22.3 planned — 3 plans in 2 waves, plan-checker PASSED after 1 revision"
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 21
+  total_plans: 24
   completed_plans: 21
   percent: 75
 ---
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 Phase: 22.3 — typstpdf Builder Warning Hardening
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-22 — Completed quick task 260722-t3q: remove stray .bg-shell directory
+Status: Ready to execute
+Last activity: 2026-07-22 — Phase 22.3 planned (3 plans, 2 waves; plan-checker PASSED)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0/6 plans (0%)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0/3 plans (0%)
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -45,7 +45,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0/6 pla
 | 22 — typstpdf Target-Name PDF Fix (Issue #117) | Independent `builder.py`/`pdf.py` fix: `TypstPDFBuilder.finish()` names the PDF after the `typst_documents` target, not the source docname | PDF-01 |
 | 22.1 — typstpdf Compile-Root Alignment for Nested Masters (INSERTED) | `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders (temp file next to the master's `.typ`); no output moves | PDF-02 |
 | 22.2 — Dead Config-Value Sweep (INSERTED) | Delete the dead `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end (BUG-A..BUG-D), and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature | CONF-01, CONF-02, CONF-03 |
-| 22.3 — typstpdf Builder Warning Hardening (INSERTED) | Close the two Phase 22.1 review warnings: `finish()` no longer "succeeds" while silently emitting no PDF for a master whose `.typ` is missing (behavioral-vs-docstring resolution open, decided at discuss), and the nested-master render gate stops asserting on `typst-py` error-message substrings | WR-01, WR-02 |
+| 22.3 — typstpdf Builder Warning Hardening (INSERTED) | Close the two Phase 22.1 review warnings: `finish()` no longer "succeeds" while silently emitting no PDF for a master whose `.typ` is missing (resolved **behavioral** at discuss — D-01), and the nested-master render gate stops asserting on `typst-py` error-message substrings | WR-01, WR-02 |
 | 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
 
 **Coverage:** 20/20 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03 + WR-01, WR-02) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
@@ -92,7 +92,7 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 - **死んだ設定 `typst_output_dir`** (builder) — **2026-07-21 決定: 即削除**（登録・ドキュメント・登録専用テスト・examples 一式を撤去、非推奨期間なし）。着手先は **Phase 22.2 の scope 要素 1**（旧バックログ 999.4 を 2026-07-22 に昇格）。元は A/B/C 3件の todo で、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は不採用として削除**。
 - **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — **バックログ 999.4 の scope 要素 2**（旧 999.3 を merge）。BUG-A..BUG-D の証拠は ROADMAP §999.3 に残置。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
-- **WR-01 マスター `.typ` 欠損時の無言スキップ / WR-02 テストが typst-py エラー文言に結合** (builder, tests) — **Phase 22.3 の scope**（旧バックログ 999.5 を 2026-07-22 に昇格）。WR-01 の「ビルド失敗にするか docstring を実態に合わせるか」は未決、`/gsd-discuss-phase 22.3` で決定する。
+- **WR-01 マスター `.typ` 欠損時の無言スキップ / WR-02 テストが typst-py エラー文言に結合** (builder, tests) — **Phase 22.3 の scope**（旧バックログ 999.5 を 2026-07-22 に昇格）。WR-01 の「ビルド失敗にするか docstring を実態に合わせるか」は **D-01 で behavioral に確定**（discuss 22.3）。計画済み（3 plans）、フェーズ完了時にこの todo を close する。
 - **`citation` ノード未対応が未追跡** (translator, examples) — Phase 22.2 で表面化（`visit_citation` ハンドラ不在のため rST citation が隣接式として出力され Typst 構文エラー）。22.2 ではサンプルから citation 構文を撤去して回避、恒久対応は未計画。
 - **README の記述を全体的に見直す** (docs) — 2026-07-22 capture。実測で確認した乖離: テスト数 413→実測 577（`README.md:223,243`）、Status 行が `v0.5.0` のまま（`:322`、実際は 0.6.1）、Configuration Options が 5 件しか挙げず登録済み 12 件と乖離（`:203-211` vs `typsphinx/__init__.py:44-62`、`typst_documents` すら未掲載）。github.io リンクの修正は **RTD 移行 todo と競合するので着手順を先に決めること**。付随して **`CLAUDE.md` の Python 記述が stale**（3.10+/py310–313 と書いてあるが実際は `>=3.12`・py312/py313 のみ）と判明、別途要修正。
 
@@ -128,10 +128,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-22T11:55:33.695Z
-Stopped at: Phase 22.3 context gathered
-Resume file: .planning/phases/22.3-typstpdf-builder-warning-hardening/22.3-CONTEXT.md
+Last session: 2026-07-22T12:51:20.122Z
+Stopped at: Phase 22.3 planned (3 plans, plan-checker PASSED)
+Resume file: .planning/phases/22.3-typstpdf-builder-warning-hardening/22.3-01-PLAN.md
 
 ## Operator Next Steps
 
-- Plan the first phase with `/gsd-plan-phase 19`
+- Execute Phase 22.3 with `/gsd-execute-phase 22.3`
