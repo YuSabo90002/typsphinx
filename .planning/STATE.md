@@ -6,14 +6,14 @@ current_phase: 23
 current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
 status: executing
 stopped_at: Phase 23 planned — ready to execute
-last_updated: "2026-07-22T22:12:36.710Z"
+last_updated: "2026-07-22T22:22:18.396Z"
 last_activity: 2026-07-23
 last_activity_desc: Phase 23 execution started
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
   percent: 89
 ---
 
@@ -109,6 +109,7 @@ None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threa
 |---|-------------|------|--------|-----------|
 | 260720-p2w | Document worktree-isolated executor env provisioning (uv sync + uv run) in CLAUDE.md | 2026-07-20 | cc21f47 | [260720-p2w-add-a-worktree-isolated-execution-subsec](./quick/260720-p2w-add-a-worktree-isolated-execution-subsec/) |
 | 260722-t3q | Remove stray .bg-shell directory (unreferenced) and gitignore it | 2026-07-22 | 58a5481 | [260722-t3q-remove-bg-shell-directory](./quick/260722-t3q-remove-bg-shell-directory/) |
+| 3 | .ruff_cacheをgit管理から外す | 2026-07-22 | 62b7819 | — |
 
 ### Roadmap Evolution
 
