@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 23
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 23 planned — ready to execute
-last_updated: "2026-07-22T22:41:57.629Z"
+last_updated: "2026-07-22T22:47:18.063Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 23 complete
+last_activity_desc: Milestone v0.6.2 completed and archived
 progress:
   total_phases: 9
   completed_phases: 9
   total_plans: 30
   completed_plans: 30
   percent: 100
+current_phase: 23
 current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
 ---
 
@@ -21,19 +21,17 @@ current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
+See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.2 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 23 — v0.6.2 Release Prep + Regression-Gate Close
+**Current focus:** v0.6.2 shipped 2026-07-23 — planning next milestone (`/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 23
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-07-23 — Phase 23 complete
-
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0/3 plans (planned, not started)
+Phase: Milestone v0.6.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-23 — Milestone v0.6.2 completed and archived
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -130,6 +128,16 @@ Items acknowledged and carried forward from previous milestone closes:
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
 | Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
 | Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.2 | v0.6.1 scoping |
+| Verification (backstop) | Phase 22.3: exercise GATE-01 fixtures under real pytest-xdist parallel run (no shared-state collision) | Non-blocking; all ROADMAP SC#1–5 verified with direct evidence | v0.6.2 close (2026-07-23) |
+| Todo (docs) | move-documentation-hosting-to-read-the-docs | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (source, config) | dead-config-typst-elements-keys-and-toctree-defaults | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (docs) | delete-orphan-docs-configuration-rst | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (docs) | github-io-doc-links-404-missing-en-prefix | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close (2026-07-23) |
+| Todo (docs) | user-guide-configuration-phantom-config-names | Pending backlog | v0.6.2 close (2026-07-23) |
 
 ## Session Continuity
 
@@ -139,5 +147,4 @@ Resume file: .planning/phases/23-v0-6-2-release-prep-regression-gate-close/23-01
 
 ## Operator Next Steps
 
-- Execute the release-prep phase with `/gsd-execute-phase 23` (3 plans / 3 sequential waves: version bump + sync test → corpus gate + evidence → `[0.6.2]` CHANGELOG)
-- Then publish with `/gsd-complete-milestone` (tag `v0.6.2` → `release.yml` → PyPI → GitHub Release) — deliberately outside Phase 23's scope fence (SC#5)
+- Start the next milestone with /gsd-new-milestone

@@ -167,6 +167,49 @@
 
 ---
 
+## Milestone: v0.6.2 — rendering fidelity round 2
+
+**Shipped:** 2026-07-23
+**Phases:** 9 (19, 20, 21, 22, 22.1, 22.2, 22.3, 22.4, 23) | **Plans:** 30 | **Tasks:** 65 | **Sessions:** ~4 days (2026-07-20 → 2026-07-23)
+
+### What Was Built
+- The 13 medium/low silent mis-render findings the v0.6.1 audit left open, fixed as one coherent `translator.py` series grouped by root cause (clusters A–F): block separation (FID-02..FID-06, Phase 19), intra-signature token spacing (FID-07..FID-09, Phase 20), and the residual inline-literal overflow / paragraph reflow / codly-wrapper leak / external-link styling / PEP-separator hover-title findings (FID-10..FID-14, Phase 21) — each pinned by a fail-pre-fix real-`typst.compile()` GATE-01 fixture.
+- Issue #117 target-name PDF fix (PDF-01, Phase 22): one guarded `TypstBuilder._resolve_output_stem()` governs all three `.typ`/`.pdf` output-path sites; and nested-master compile-root alignment (PDF-02, Phase 22.1) so `finish()` compiles each master's own on-disk `.typ` at its real docname-derived location — the compile basis finally matches the translator's emission basis.
+- Dead-config sweep + `typst_package` end-to-end repair (CONF-01..CONF-03, Phase 22.2): a *class* of defect closed — a config value registered/documented but inert, kept green by registration-only tests — locked by a standing config→output regression gate.
+- Builder-warning hardening (WR-01/WR-02, Phase 22.3): a missing/malformed master now joins the aggregate `ExtensionError` instead of a silent successful build, and the render gate stopped asserting on `typst-py`'s uncontracted error wording.
+- Full-text README/CLAUDE.md accuracy pass (DOC-01..DOC-05, Phase 22.4): unverifiable numeric claims *removed rather than re-measured*; a `README`↔`pyproject` version-sync ratchet test added in Phase 23. Closed on the full ~684-page corpus regression gate (fatal-free, valid `%PDF`, `unknown_visit` catalogue empty).
+
+### What Worked
+- **Root-cause clustering beat ticket-per-finding.** The 13 audit findings were delivered as 3 root-cause-clustered translator phases (A / B / C-D-E-F) rather than 13 unrelated fixes — one `parbreak()`/`linebreak()`/`pass`-through edit typically resolved several findings in a cluster, and the CHANGELOG collapsed 25 ledger IDs into 12 coherent bullets.
+- **The config→output gate closed a defect *class*, not a bug.** Phase 22.2 diagnosed that both dead config values shared one escape — tests asserting registration or doc-presence stay green while the feature is dead — and the fix was a fixture that asserts a config value *changes emitted output*, making the whole class un-shippable-broken going forward.
+- **Real-compile revert-and-restore reproduction as verification.** Phase 22.3's verifier didn't trust SUMMARY transcripts — it reverted each fix in place and re-ran the gates to confirm the pre-fix defect reproduces (`IndexError`, silent `returncode==0`), then restored byte-identically. The strongest form of "this fixture has teeth."
+- **Honest-verifier abstention over false-green.** The one truth that couldn't be exercised (pytest-xdist parallel safety, no such dependency) abstained to `human_needed` rather than being silently counted as passed — the milestone closed `override_closeout` with the single non-blocking item named explicitly, not papered over.
+- **Discovery-driven insertions stayed disciplined.** Four decimal phases (22.1–22.4) were inserted as review warnings and doc-drift surfaced, each sequenced to land before the release phase so every user-visible change made the `[0.6.2]` CHANGELOG — insertion without scope drift.
+
+### What Was Inefficient
+- **README drift is a recurring, un-gated tax.** Phase 22.4 existed only because README numeric claims (test count 413→577→589 in days) and Status/methodology lines had silently rotted — the eventual fix was to *delete* the unverifiable claims and add a version-sync ratchet, but the discovery was manual full-text re-reading. The truly valuable automation (`sphinx-build -b linkcheck` CI) was itself deferred as a todo.
+- **The requirements traceability status column went stale.** CONF-01..03 / WR-01/02 sat at "Not started" in `REQUIREMENTS.md` even after Phases 22.2/22.3 completed and verified — the status column isn't updated when an inserted phase closes, so milestone close had to reconcile it manually. Cosmetic (the work was done and verified), but a repeat of the "state file doesn't self-update" friction.
+- **A code-review scope breach became a same-milestone follow-up.** Phase 22.1's necessary `writer.py` template-import fix (a deliberate CONTEXT fence breach) was then found by review to mis-resolve for a `_template`-named directory, forcing gap-closure plan 22.1-04 — correct outcome, but the breach-then-repair cost a wave that tighter up-front scoping might have avoided.
+
+### Patterns Established
+- **Root-cause clustering for audit-derived work:** group N findings by the shared code root cause and deliver one fix series per cluster, not one ticket per finding — collapses both the diff and the changelog.
+- **Config→output regression gate:** for any config value, assert it *changes emitted output*, never merely that it is registered or documented — registration-only asserts are the escape that lets a feature ship dead.
+- **Revert-and-restore verification:** to prove a regression fixture has teeth, revert the fix in place, confirm the gate goes red with the exact pre-fix symptom, then restore byte-identically (md5-checked) — don't trust the SUMMARY's transcript.
+- **Honest-verifier abstention:** a `verification: backstop` truth that can't be exercised with direct evidence abstains to `human_needed` and is named at close as a known override — never silently counted as passed.
+
+### Key Lessons
+1. **Cluster audit findings by root cause before planning phases** — one translator edit often resolves several findings, and the milestone ships as a coherent series instead of 13 disconnected tickets.
+2. **Gate config on output, not registration.** The dead-config class shipped because every test asserted the value was *registered* or *documented*, never that it *did* anything. A single config→output fixture makes the class impossible to reintroduce.
+3. **Prove fixtures have teeth by reverting in place.** Revert-and-restore (byte-identical, md5-verified) is the cheapest way to confirm a regression test actually fails against pre-fix code — worth doing for any load-bearing gate.
+4. **Prefer deleting an unverifiable claim to re-measuring it.** README test counts/coverage % with no `fail_under` gate drift constantly; removing them (and ratcheting only the machine-guardable ones like version) beats chasing the number.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~4 calendar days (2026-07-20 → 2026-07-23); worktree-isolated executor mode was the standing execution mode throughout.
+- Notable: root-cause clustering kept a 25-requirement milestone to 9 phases / 30 plans, and four discovery-driven decimal insertions (22.1–22.4) landed without scope drift because each was sequenced before the release phase.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -177,6 +220,7 @@
 | v0.5.0 | ~6 days | 6 (incl. 1 inserted) | Forward-port to Sphinx 9.1/typst 0.15; added real-render acceptance gates + a mid-milestone inserted phase; audit-then-publish for the irreversible release |
 | v0.6.0 | ~2 days | 5 | Translator robustness (Issue #114 + high-freq nodes); standing real-compile gate extended per phase; a real full-corpus (Sphinx `doc/`) build as the milestone gate |
 | v0.6.1 | ~6 days | 3 | Rendering fidelity: machine-catalogue → single human confirmation gate for a 151-docname visual audit; severity-gated backlog; first `override_closeout` driven by an audit/docs phase's missing machine verification |
+| v0.6.2 | ~4 days | 9 (incl. 4 inserted) | Rendering fidelity round 2: audit findings clustered by root cause into 3 translator phases; config→output regression gate closed a dead-config *class*; revert-and-restore fixture verification; `override_closeout` driven by an honest-verifier backstop abstention |
 
 ### Cumulative Quality
 
@@ -186,6 +230,7 @@
 | v0.5.0 | 413 (added smoke gate, PDF-render gate, version drift-guard, admonition structural asserts) | green (13/13 CI jobs on PR #112) | 0 new runtime deps (pypdf is dev-only) |
 | v0.6.0 | 476 fast + 18 GATE-01 real-compile classes + corpus gate (`test_corpus_gate.py`) | fast suite green; GATE-02 full-corpus PDF fatal-free | 0 new runtime deps |
 | v0.6.1 | + `wide_table_render_gate` real-compile class; todo/manpage/figwidth/table-width GATE-01 fixtures | fast suite green; GATE-03 full-corpus PDF fatal-free, `unknown_visit` catalogue empty | 0 new runtime deps |
+| v0.6.2 | 567 passed; + cluster A–F translator GATE-01 fixtures, target-name / nested-master / package-only / missing-malformed-master gates, config→output regression gate, `README`↔`pyproject` version-sync ratchet | fast suite green; full-corpus PDF fatal-free, `unknown_visit` empty | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -197,3 +242,4 @@
 6. For a tool where one bad node aborts the whole output, "does it compile" is the only real correctness signal — compile-gate every render-layer handler against a fixture, and validate the milestone against a real downstream corpus. *(v0.6.0)*
 7. Draw the milestone boundary before polishing, and fast-forward `main` after every merge — v0.6.0 re-created v0.4.4's branch/main drift at 2× scale by deferring both. *(v0.4.4, re-learned v0.6.0; validated v0.6.1 — the polish was scoped as its own milestone up front)*
 8. For subjective/visual correctness, separate machine cataloguing (biased toward false-positives) from human judgment (one accept/reject + severity gate), and gate the resulting backlog by severity — promote only high-severity findings to requirements. *(v0.6.1)*
+9. Cluster audit-derived findings by shared code root cause and gate config on *output* not registration; prove a fixture has teeth by reverting the fix in place (byte-identical restore), and let an unexercisable truth abstain to human rather than counting it green. *(v0.6.2)*
