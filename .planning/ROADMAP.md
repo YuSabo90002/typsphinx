@@ -467,7 +467,7 @@ builder-warning fixes land before the version bump and the closing corpus re-run
   4. The milestone invariant is confirmed held: zero new runtime dependencies, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
   5. Scope fence held — no tag, no PyPI publish, no GitHub Release in this phase (deferred to `/gsd-complete-milestone`).
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -480,7 +480,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 23-03-PLAN.md — Author the curated `## [0.6.2]` CHANGELOG entry covering all 25 v0.6.2 ledger IDs (SC#2, D-01–D-08/D-11/D-15)
+- [x] 23-03-PLAN.md — Author the curated `## [0.6.2]` CHANGELOG entry covering all 25 v0.6.2 ledger IDs (SC#2, D-01–D-08/D-11/D-15)
 
 ## Progress
 
@@ -516,7 +516,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
 | 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete    | 2026-07-23 |
-| 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 2/3 | In Progress|  |
+| 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | In Progress|  |
 
 ## Backlog
 
