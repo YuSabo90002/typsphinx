@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 22.3
+current_phase: 22.4
 current_phase_name: typstpdf Builder Warning Hardening
 status: verified
-stopped_at: Phase 22.3 complete (3/3 plans, verified 24/25 — one backstop truth abstained)
-last_updated: "2026-07-22T12:53:13.696Z"
+stopped_at: Phase 22.4 context gathered
+last_updated: "2026-07-22T14:09:04.796Z"
 last_activity: 2026-07-22
-last_activity_desc: "Phase 22.3 complete — WR-01/WR-02 closed, code-review CR-01 fixed in-phase"
+last_activity_desc: Phase 22.4 inserted; Phase 22.3 complete (WR-01/WR-02 closed, code-review CR-01 fixed in-phase)
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 7
   total_plans: 24
   completed_plans: 24
-  percent: 88
+  percent: 78
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 22.3 — typstpdf Builder Warning Hardening
+**Current focus:** Phase 22.4 — README 記述の実測乖離解消（緊急挿入）
 
 ## Current Position
 
-Phase: 22.3 (typstpdf Builder Warning Hardening) — COMPLETE ✓
-Plan: 3 of 3
-Status: Verified — ready for Phase 23 (v0.6.2 Release Prep)
-Last activity: 2026-07-22 — Phase 22.3 complete; WR-01/WR-02 closed, code-review CR-01 found and fixed in-phase
+Phase: 22.4 (README 記述の実測乖離解消) — NOT PLANNED
+Plan: 0 of 0
+Status: Inserted after Phase 22.3 (urgent) — run `/gsd-plan-phase 22.4`
+Last activity: 2026-07-22 — Phase 22.4 inserted; Phase 22.3 complete (WR-01/WR-02 closed, code-review CR-01 fixed in-phase)
 
-Progress: [████████████████████] 3/3 plans (100%)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0/0 plans (not planned)
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -112,6 +112,7 @@ None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threa
 - Phase 22.1 inserted after Phase 22: typstpdf compile-root alignment for nested masters (PDF-02) — split from the master-output-layout todo (item A only; B/C stay deferred) (URGENT)
 - 2026-07-22: backlog reviewed (`/gsd-review-backlog`) — 999.1 and 999.2 removed as delivered (Phases 19–21 / 22); 999.3 folded into 999.4; **999.4 promoted into v0.6.2 as Phase 22.2** (owner: 今マイルストーンで変更する), sequenced before the Phase 23 release prep so the `typst_output_dir` removal lands in the `[0.6.2]` CHANGELOG; 999.5 opened for the Phase 22.1 WR-01/WR-02 warnings
 - 2026-07-22: backlog reviewed again (`/gsd-review-backlog`, 2nd pass) — the sole remaining item **999.5 promoted into v0.6.2 as Phase 22.3** (owner decision), sequenced after 22.2 (shared `builder.py` / render-gate surface) and before the Phase 23 release prep so any WR-01 behavior change lands in the `[0.6.2]` CHANGELOG. WR-01/WR-02 added to `REQUIREMENTS.md` (20/20 mapped). **The backlog is now empty.**
+- Phase 22.4 inserted after Phase 22.3: README 記述の実測乖離解消 — テスト数・Status バージョン・Configuration Options・Known Limitations・docs リンクの全文再検証 (URGENT)
 
 ## Deferred Items
 
@@ -126,9 +127,9 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-22T13:30:00Z
-Stopped at: Phase 22.3 complete and verified (3/3 plans)
-Resume file: .planning/phases/22.3-typstpdf-builder-warning-hardening/22.3-VERIFICATION.md
+Last session: 2026-07-22T14:09:04.790Z
+Stopped at: Phase 22.4 context gathered
+Resume file: .planning/phases/22.4-readme-status-configuration-options-known-limitations-docs/22.4-CONTEXT.md
 
 ## Operator Next Steps
 
