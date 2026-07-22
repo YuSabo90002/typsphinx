@@ -87,10 +87,8 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-6 pending (`.planning/todos/pending/`):
+4 pending (`.planning/todos/pending/`):
 
-- **死んだ設定 `typst_output_dir`** (builder) — **2026-07-21 決定: 即削除**（登録・ドキュメント・登録専用テスト・examples 一式を撤去、非推奨期間なし）。着手先は **Phase 22.2 の scope 要素 1**（旧バックログ 999.4 を 2026-07-22 に昇格）。元は A/B/C 3件の todo で、**A は Phase 22.1 (PDF-02) に移管**、**B（マスター成果物の集約）は不採用として削除**。
-- **`typst_package` (Typst Universe) パスが end-to-end で壊れている** (general) — **バックログ 999.4 の scope 要素 2**（旧 999.3 を merge）。BUG-A..BUG-D の証拠は ROADMAP §999.3 に残置。
 - **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
 - **非文字列 docname が生 `TypeError` を投げる** (builder) — Phase 22.3 の D-06 で明示的に先送り。`typst_documents` に `(123, ...)` のようなエントリがあると `path.join` が `try` の外側で `TypeError` を投げ、集約 `ExtensionError` に乗らず生の traceback で落ちる。将来の入力バリデーション作業として。
 - **`citation` ノード未対応が未追跡** (translator, examples) — Phase 22.2 で表面化（`visit_citation` ハンドラ不在のため rST citation が隣接式として出力され Typst 構文エラー）。22.2 ではサンプルから citation 構文を撤去して回避、恒久対応は未計画。
