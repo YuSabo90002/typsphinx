@@ -581,6 +581,80 @@ class TestNestedMasterRenderGate:
             f"resolve in place, got {pdf_bytes[:20]!r}"
         )
 
+        # Step 6: the three-part ablation (D-08, D-09, Pitfall 3) -- the
+        # positive, discriminating GREEN proof that establishes WHICH
+        # reference class the Step 4 RED half's failure belongs to, without
+        # reading a single character of the compiler's output. RESEARCH
+        # proved by direct execution that all three parts are required:
+        # doing only the file placement (Experiment B) still fails, on the
+        # image reference, with an error that superficially resembles the
+        # template-class failure and is easy to mis-diagnose as "the
+        # ablation did not work" rather than "the ablation is incomplete".
+        #
+        # Part 1: additionally rewrite the single occurrence of
+        # image("../logo.png") to image("logo.png"). Typst's root-boundary
+        # enforcement rejects ANY ".." segment once the compiled file
+        # itself sits at the compile root, so the upward reference cannot
+        # resolve from there no matter what files exist -- neutralizing
+        # only the template import (parts 1+3 without this part 2 rewrite)
+        # reproduces RESEARCH Experiment B, which does not compile.
+        image_occurrences = neutralized_text.count('image("../logo.png")')
+        assert image_occurrences == 1, (
+            "Expected exactly one occurrence of the upward image reference "
+            f"to neutralize, found {image_occurrences}:\n{neutralized_text}"
+        )
+        fully_neutralized_text = neutralized_text.replace(
+            'image("../logo.png")', 'image("logo.png")'
+        )
+        assert fully_neutralized_text != neutralized_text, (
+            "Expected the image-path rewrite to actually change the text -- "
+            "a no-op rewrite would silently invalidate the ablation."
+        )
+        assert 'image("../logo.png")' not in fully_neutralized_text, (
+            "Expected the upward 'image(\"../logo.png\")' form to be fully "
+            f"absent after the image-path rewrite:\n{fully_neutralized_text}"
+        )
+
+        # Part 2: place usage.typ (the sibling include target) at the
+        # outdir root -- the normal -b typst build's asset-copy step
+        # already put logo.png there, so it is NOT copied again.
+        root_usage_copy = temp_build_dir_typst / "usage.typ"
+        shutil.copy2(temp_build_dir_typst / "api" / "usage.typ", root_usage_copy)
+        assert root_usage_copy.exists(), (
+            "Expected 'usage.typ' to exist at the outdir root after "
+            f"copying it there for the ablation:\n{root_usage_copy}"
+        )
+        assert logo_output.exists(), (
+            "Expected 'logo.png' to already exist at the outdir root (the "
+            "normal -b typst build's asset-copy step) -- the ablation does "
+            f"NOT copy it again:\n{logo_output}"
+        )
+
+        # Part 3: write the fully-neutralized copy at the OUTDIR ROOT --
+        # leading-underscore name, cannot collide with any docname-derived
+        # artifact the builders emit, distinct from both
+        # '_prefix_basis_copy.typ' and '_prefix_basis_neutralized.typ' --
+        # and compile it from that same root.
+        fully_neutralized_copy = (
+            temp_build_dir_typst / "_prefix_basis_fully_neutralized.typ"
+        )
+        fully_neutralized_copy.write_text(fully_neutralized_text, encoding="utf-8")
+
+        fully_neutralized_pdf_bytes = typst.compile(
+            str(fully_neutralized_copy), root=str(temp_build_dir_typst)
+        )
+        assert fully_neutralized_pdf_bytes.startswith(b"%PDF"), (
+            "Expected the fully-neutralized copy (template import AND "
+            "upward image path both rewritten, sibling include target and "
+            "image asset both present at the outdir root) to compile to a "
+            "valid PDF from the outdir root -- this is the ablation's "
+            "positive proof that the sibling-include/upward-image "
+            "reference class is what broke the Step 4 RED half, not a "
+            "coincidental other failure. The RED half's compile raised: "
+            f"{red_half_error!r}. This compile returned: "
+            f"{fully_neutralized_pdf_bytes[:20]!r}"
+        )
+
     def test_typst_builder_output_compiles_manually(
         self, nested_master_render_gate_dir, temp_build_dir_typst
     ):
