@@ -138,6 +138,7 @@ regression gate); the irreversible publish (tag `v0.6.2` → `release.yml` → P
 - [x] **Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED)** - `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders without moving any output (PDF-02) (completed 2026-07-22)
 - [x] **Phase 22.2: Dead Config-Value Sweep (INSERTED)** - Two documented config values that never affect output: delete `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end, and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature (CONF-01..CONF-03) (promoted from backlog 999.4/999.3 on 2026-07-22) (completed 2026-07-22)
 - [x] **Phase 22.3: typstpdf Builder Warning Hardening (INSERTED)** - Close the two Phase 22.1 review warnings: a master whose `.typ` is missing is silently skipped so the build "succeeds" with no PDF (WR-01), and the render-gate tests assert on `typst-py` error-message substrings that upstream can rephrase at will (WR-02) (promoted from backlog 999.5 on 2026-07-22)
+- [ ] **Phase 22.4: README 記述の実測乖離解消 (INSERTED)** - README の記述を実測で全文再検証し乖離を解消: テスト数・Status バージョン・Configuration Options 表・Known Limitations・docs リンク
 - [ ] **Phase 23: v0.6.2 Release Prep + Regression-Gate Close** - Bump `pyproject.toml` to 0.6.2 + add the `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; prep-only (publish runs at `/gsd-complete-milestone`)
 
 ## Phase Details
@@ -415,6 +416,34 @@ Plans:
 
 - [x] 22.3-03-PLAN.md — D-11 GATE-01: new `tests/fixtures/missing_and_malformed_master_gate/` (one valid master, one docname absent from `found_docs`, one empty entry) plus `tests/test_missing_and_malformed_master_gate.py`, the suite's first must-fail subprocess gate (`returncode != 0`), asserting only on typsphinx-authored stderr while proving the valid master still gets its PDF; closes with the ROADMAP SC#5 pre-fix must-fail RED/GREEN transcript pair
 
+### Phase 22.4: README 記述の実測乖離解消 — テスト数・Status バージョン・Configuration Options・Known Limitations・docs リンクの全文再検証 (INSERTED)
+
+**Goal**: Every claim in `README.md` — plus the same class of stale claim in `CLAUDE.md` and the
+`pyproject.toml` ruff-ignore comment — matches what the repository actually measures. Claims that
+cannot be held by any verification mechanism (test counts, coverage percentages) are **removed rather
+than re-measured**; the configuration list stops presenting itself as exhaustive and points at the
+docs page Sphinx actually builds; capability, limitation, Status and methodology statements are
+re-derived from the source. The pass is **full-text**, not ledger-only: the originating todo named 3
+discrepancies, the discussion found 9, and the ledger is explicitly not a completeness guarantee.
+**Zero source-behavior change** — this phase edits prose only.
+**Depends on**: Phase 22.3 (documentation-only; sequenced here so it lands before the Phase 23
+version bump, which carries the README `**Status**` line to `0.6.2` per the D-11 hand-off)
+**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04, DOC-05
+**Success Criteria** (what must be TRUE):
+
+  1. No unverifiable numeric claim survives in `README.md`: both `413 tests` occurrences (`:223` code comment, `:243` Testing Strategy bullet), the `93% overall` coverage bullet (`:246`), and the `Maintain 80%+ code coverage` guideline (`:299`) are gone — **removed, not re-measured** (the count drifted 413 → 577 → 589 in days; no `fail_under` gate exists in `pyproject.toml`/`tox.ini`). The machine-guarded numbers are byte-unchanged: `@preview/mitex:0.2.7` (`:23`) and `@preview/codly:1.3.0` (`:25`), guarded by `tests/test_preview_version_sync.py`, and the Requirements block (`:37-39`) that matches `pyproject.toml` (DOC-01).
+  2. "Configuration Options" (`:203-211`) is worded as an explicitly-partial list of the main settings — not a list that reads as all 12 registered in `typsphinx/__init__.py:44-62` — carries 6 entries (the current 5 plus `typst_documents`, without which no PDF is produced), and links to `docs/source/user_guide/configuration.rst` instead of the orphan `docs/configuration.rst`. The 7 `yusabo90002.github.io` links (`:274-284`) are left as-is pending the separate RTD-migration todo (DOC-02).
+  3. Capability and status claims match the source: `citations` is out of the Features bullet (`:30`) and Citation is listed under Known Limitations (no `visit_citation` exists); the `Glossary` limitation (`:268`) is removed (`translator.py:4324 visit_glossary`); `**Status**` (`:323`) reads `Stable (v0.6.1)` — the measured `pyproject.toml` version, never a forward-dated 0.6.2; the Acknowledgments methodology line (`:315`) names GSD, not Kiro. Bibliography stays listed as unsupported (DOC-03).
+  4. `CLAUDE.md` (`:28`, `:29`, `:75`, `:78`) and the `pyproject.toml:122-123` ruff-ignore comment state the measured floor (`requires-python = ">=3.12"`, `env_list = py312, py313`, CI `['3.12','3.13']`); the `UP006`/`UP035` ignores remain in force (DOC-04).
+  5. The pass is full-text: every remaining README claim is checked against the codebase, and anything found beyond the discussion ledger is fixed here or filed under `.planning/todos/pending/`. The two known deferrals — typing modernization (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as pending todo files (DOC-05).
+  6. Scope fence held: no file under `typsphinx/` is modified, no `typst_*` config value is added or removed, no `docs/` file is deleted or re-homed, no github.io → Read the Docs migration, and no historical `CHANGELOG.md` entry is rewritten.
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] TBD (enumerated at `/gsd-plan-phase 22.4`)
+
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
 **Goal**: Prepare the v0.6.2 release — bump the version and curate the CHANGELOG — and close the
@@ -441,7 +470,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 22.1 → 22.2 → 22.3 → 23
+Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 22 → 22.1 → 22.2 → 22.3 → 22.4 → 23
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -471,6 +500,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
+| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog

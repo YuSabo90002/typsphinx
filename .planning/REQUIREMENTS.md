@@ -59,6 +59,14 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 - [x] **WR-01**: `TypstPDFBuilder.finish()` no longer reports a successful build while silently emitting no PDF for a configured master. The missing-`.typ` branch (`builder.py:922-924` — the CONTEXT.md/earlier-REQUIREMENTS coordinate `895-897` was measured stale in Phase 22.3 research; a bare `logger.warning(...); continue` that never reached `failures`) is aligned with the compile-failure path, the adjacent malformed-`doc_tuple` skip is treated consistently (or its exemption is recorded), and the `finish()` docstring's D-04 "no silent success" claim matches implemented behavior. Resolved **behavioral** at `/gsd-discuss-phase 22.3` (D-01): both skip branches now append to `failures` and the build fails via the aggregate `ExtensionError`. Delivered in Phase 22.3.
 - [x] **WR-02**: The nested-master render gate (`tests/test_nested_master_render_gate.py`, SC#2 / `G-22.1-2`) proves its property without asserting on `typst-py` error-message literals (`"escape"`, `"not found"`, `"usage.typ"`, `"_template.typ"`) — those are not a contracted upstream API, so a rewording upstream currently turns CI red with no typsphinx regression.
 
+### README Accuracy (Phase 22.4, promoted from the 2026-07-22 README stale-claims todo)
+
+- [ ] **DOC-01**: No unverifiable numeric claim survives in `README.md` — the two `413 tests` occurrences (`:223` code comment, `:243` Testing Strategy bullet), the `93% overall` coverage bullet (`:246`), and the unenforced `Maintain 80%+ code coverage` guideline (`:299`). The fix is **removal, not re-measurement**: the count drifted 413 → 577 → 589 within days, and no `fail_under` gate exists in `pyproject.toml`/`tox.ini` to hold any coverage number. Machine-guarded numbers stay: the `@preview` versions at `:23`/`:25` (guarded by `tests/test_preview_version_sync.py`) and the Requirements block at `:37-39` (matches `pyproject.toml`).
+- [ ] **DOC-02**: The README "Configuration Options" section (`:203-211`) no longer reads as an exhaustive list of 5 while `typsphinx/__init__.py:44-62` registers 12. It is worded as an explicitly-partial set of the main settings, lists 6 entries (the current 5 plus `typst_documents` — the master-document setting without which no PDF is produced), and links to `docs/source/user_guide/configuration.rst`, the file Sphinx actually builds, instead of the orphan `docs/configuration.rst` (526 lines, outside `docs/source/` and outside every toctree, carrying the wrong package name `sphinxcontrib.typst`).
+- [ ] **DOC-03**: Every remaining README capability/status claim matches measured behavior: `citations` is dropped from the "Cross-references and citations" feature bullet (`:30`) and Citation is added to Known Limitations (`typsphinx/translator.py` has no `visit_citation`); the Known Limitations `Glossary` line (`:268`) is removed (`translator.py:4324 visit_glossary` handles it since Phase 12); `**Status**: Stable (v0.5.0)` (`:323`) reads `Stable (v0.6.1)` — the measured `pyproject.toml` version, never a forward-dated 0.6.2; and the Acknowledgments methodology line (`:315`) names the GSD workflow actually in use instead of "Kiro-style Spec-Driven Development" (no `.kiro` directory exists). Bibliography stays listed as unsupported (no bibliography handling exists in the source).
+- [ ] **DOC-04**: `CLAUDE.md`'s four Python-version claims (`:28` `matrixed across py310–py313`, `:29` `env_list: py310..py313`, `:75` `Python 3.10+ compatibility is required`, `:78` the py310–py313 CI matrix note) and the `pyproject.toml:122-123` ruff-ignore comment state the measured floor: `requires-python = ">=3.12"`, `tox.ini:2` `env_list = py312, py313`, `.github/workflows/ci.yml:18` `python-version: ['3.12','3.13']`, classifiers 3.12/3.13 only. **Prose only** — the `UP006`/`UP035` ignores stay in place and no file under `typsphinx/` changes.
+- [ ] **DOC-05**: The verification is a **full-text pass over `README.md`**, not a ledger-only edit — the discussion ledger is "found so far", not a completeness guarantee (the Kiro, citations, Glossary and orphan-link discrepancies were all absent from the originating todo). Anything found beyond the ledger is fixed here or recorded as a pending todo, and the two known deferrals — typing modernization behind `UP006`/`UP035` (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as `.planning/todos/pending/` files rather than being silently dropped.
+
 ## v2 Requirements
 
 Deferred to a future milestone. Tracked but not in this roadmap.
@@ -110,17 +118,22 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONF-03 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
 | WR-01 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
 | WR-02 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
+| DOC-01 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
+| DOC-02 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
+| DOC-03 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
+| DOC-04 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
+| DOC-05 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
 
 **Coverage:**
 
-- v1 requirements: 20 total
-- Mapped to phases: 20 ✓
+- v1 requirements: 25 total
+- Mapped to phases: 25 ✓
 - Unmapped: 0 ✓
 
-Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF requirement — it is the
+Phase 23 (v0.6.2 Release Prep + Regression-Gate Close) carries no FID/PDF/DOC requirement — it is the
 prep-only release/close phase (version bump + CHANGELOG + closing full-corpus regression gate); all
-20 v1 requirements are delivered by Phases 19–22.3.
+25 v1 requirements are delivered by Phases 19–22.4.
 
 ---
 *Requirements defined: 2026-07-20*
-*Last updated: 2026-07-22 — WR-01/WR-02 added with the Phase 22.3 insertion (typstpdf builder warning hardening, promoted from backlog 999.5); 20/20 mapped to Phases 19–22.3; milestone v0.6.2*
+*Last updated: 2026-07-22 — DOC-01..DOC-05 added with the Phase 22.4 insertion (README 記述の実測乖離解消; derived from the phase's locked CONTEXT.md decisions D-01..D-16); 25/25 mapped to Phases 19–22.4; milestone v0.6.2*
