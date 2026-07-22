@@ -90,3 +90,6 @@ dist/
 # MCP server config — the GSD install writes machine-specific absolute paths
 # (nix store, /home/... prefixes) into it, so it stays local (must not reach main).
 .mcp.json
+
+# Claude Code background-shell scratch state (machine-local)
+/.bg-shell/
