@@ -312,6 +312,150 @@ class TestPDFErrorHandling:
 
         assert (tmp_path / "valid.pdf").exists()
 
+    def test_builder_appends_failure_for_missing_typ_file(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-01, D-04 (fallback branch): a master whose docname IS a known
+        Sphinx document but whose .typ was never generated must still fail
+        the build via the shared `failures` list, using the byte-identical
+        fallback message (tests/test_target_name_render_gate.py:122 depends
+        on this exact text)."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        assert "index" in temp_sphinx_app.env.found_docs, (
+            "precondition: temp_sphinx_app's srcdir defines 'index' as a "
+            "real Sphinx document"
+        )
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [("index", "index", "T", "A")]
+        # Deliberately do NOT write index.typ into tmp_path.
+
+        with pytest.raises(ExtensionError) as exc_info:
+            builder.finish()
+
+        message = str(exc_info.value)
+        assert "Master document not found:" in message, (
+            "the fallback branch must fire when the docname IS a known "
+            "Sphinx document"
+        )
+        assert (
+            "is not a known Sphinx document" not in message
+        ), "the unknown-docname branch must not fire for a known docname"
+
+    def test_builder_appends_failure_for_unknown_docname(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-04 (new branch, adjacency + encoding edges): a docname ABSENT
+        from `self.env.found_docs` gets a distinct, non-colliding message,
+        and a non-ASCII docname survives verbatim (no UnicodeEncodeError,
+        no mojibake) via `!r`."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        assert "ghost" not in temp_sphinx_app.env.found_docs, (
+            "precondition: 'ghost' is not a real Sphinx document in "
+            "temp_sphinx_app's srcdir"
+        )
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [
+            ("ghost", "ghost", "T", "A"),
+            ("日本語ドキュメント", "日本語ドキュメント", "T", "A"),
+        ]
+        # No .typ files written for either entry.
+
+        with pytest.raises(ExtensionError) as exc_info:
+            builder.finish()
+
+        message = str(exc_info.value)
+        assert "'ghost'" in message, "the unknown docname must appear via !r"
+        assert (
+            "is not a known Sphinx document" in message
+        ), "the unknown-docname branch's distinct wording must be present"
+        assert (
+            "日本語ドキュメント" in message
+        ), "non-ASCII docnames must survive verbatim as a Python str"
+        assert (
+            "Master document not found" not in message
+        ), "the two D-04 branches must never emit colliding message text"
+
+    def test_builder_appends_failure_for_malformed_entry_but_not_short_entry(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-05, D-07 (empty and single-element edges): a falsy entry such as
+        `()` is malformed and fails the build, but a 1-element entry such as
+        `("valid",)` is NOT malformed and resolves its stem from the
+        docname."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [(), ("valid",)]
+
+        valid_file = tmp_path / "valid.typ"
+        valid_file.write_text("= Valid Document\n\nContent here.\n")
+
+        with pytest.raises(ExtensionError) as exc_info:
+            builder.finish()
+
+        message = str(exc_info.value)
+        assert "1 master document(s) failed" in message, (
+            "only the empty-tuple entry is malformed; the 1-element entry "
+            "must not also be counted as a failure"
+        )
+        assert (
+            "(): malformed typst_documents entry" in message
+        ), "the malformed entry's identifier must be the entry's own repr"
+        assert (tmp_path / "valid.pdf").exists(), (
+            "a 1-element entry is not malformed and must still compile, "
+            "with its stem falling back to the docname"
+        )
+
+    def test_aggregate_message_lists_failures_in_typst_documents_order(
+        self, temp_sphinx_app, tmp_path
+    ):
+        """D-02 (ordering edge): `failures` accumulates strictly in
+        `typst_documents` iteration order, and the aggregate message renders
+        that same order; the aggregate wording no longer restricts itself to
+        compile failures."""
+        from typsphinx.builder import TypstPDFBuilder
+
+        builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.outdir = str(tmp_path)
+
+        builder.config.typst_documents = [
+            ("ghost", "ghost", "T", "A"),
+            (),
+            ("index", "index", "T", "A"),
+        ]
+        # No .typ files written for any entry.
+
+        with pytest.raises(ExtensionError) as exc_info:
+            builder.finish()
+
+        message = str(exc_info.value)
+        assert "3 master document(s) failed" in message, (
+            "all three entries are failures: unknown docname, malformed "
+            "entry, and missing .typ for a known docname"
+        )
+        assert "failed to compile to PDF" not in message, (
+            "the aggregate wording must no longer restrict itself to "
+            "compile failures (D-02)"
+        )
+
+        pos_ghost = message.index("ghost")
+        pos_malformed = message.index("(): malformed typst_documents entry")
+        pos_missing = message.index("Master document not found:")
+        assert pos_ghost < pos_malformed < pos_missing, (
+            "failures must render in typst_documents iteration order, not "
+            "some other order"
+        )
+
     def test_error_includes_source_location(self):
         """Test that errors include source file location information"""
         from typsphinx.pdf import TypstCompilationError, compile_typst_to_pdf

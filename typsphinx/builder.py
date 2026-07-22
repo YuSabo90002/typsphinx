@@ -874,12 +874,16 @@ class TypstPDFBuilder(TypstBuilder):
         Only master documents (defined in typst_documents) are compiled to PDF.
         Included documents are not compiled individually.
 
-        Every configured master is attempted, even if an earlier one fails to
-        compile: masters that compile successfully still get their .pdf
-        written. If any master failed, a single ExtensionError naming every
-        failure is raised after the loop, which surfaces as a non-zero
-        sphinx-build exit -- a build can no longer "succeed" while silently
-        producing no PDF for a broken master.
+        Every configured master is attempted, even if an earlier one fails:
+        masters that compile successfully still get their .pdf written. A
+        master can fail for three reasons -- a Typst compile error, a
+        configured master whose .typ file was never generated, or a
+        malformed typst_documents entry -- and all three are collected into
+        the same failures list and reported together by a single
+        ExtensionError raised after every entry has been attempted. That
+        raise surfaces as a non-zero sphinx-build exit -- a build can no
+        longer "succeed" while silently producing no PDF for a broken,
+        missing, or malformed master.
 
         Requirement 9.2: Execute Typst compilation within Python
         Requirement 9.4: Generate PDF from Typst markup
@@ -910,9 +914,8 @@ class TypstPDFBuilder(TypstBuilder):
             # typst_documents) must not raise an uncaught IndexError on
             # doc_tuple[0] before that helper's defenses ever run.
             if not doc_tuple:
-                logger.warning(
-                    f"Skipping malformed typst_documents entry: {doc_tuple!r}"
-                )
+                logger.warning(f"Malformed typst_documents entry: {doc_tuple!r}")
+                failures.append((repr(doc_tuple), "malformed typst_documents entry"))
                 continue
             docname = doc_tuple[0]
             stem = self._resolve_output_stem(docname)
@@ -920,7 +923,16 @@ class TypstPDFBuilder(TypstBuilder):
             typ_file = path.join(self.outdir, relative_path + ".typ")
 
             if not path.exists(typ_file):
-                logger.warning(f"Master document not found: {typ_file}")
+                if docname not in self.env.found_docs:
+                    message = (
+                        f"Master document {docname!r} is not a known Sphinx document"
+                        " -- check typst_documents for a typo, a stray '.rst' "
+                        "suffix, or an exclude_patterns exclusion"
+                    )
+                else:
+                    message = f"Master document not found: {typ_file}"
+                logger.warning(message)
+                failures.append((docname, message))
                 continue
 
             try:
@@ -943,6 +955,5 @@ class TypstPDFBuilder(TypstBuilder):
         if failures:
             summary = "; ".join(f"{docname}: {err}" for docname, err in failures)
             raise ExtensionError(
-                f"typstpdf: {len(failures)} master document(s) failed to compile "
-                f"to PDF: {summary}"
+                f"typstpdf: {len(failures)} master document(s) failed: {summary}"
             )
