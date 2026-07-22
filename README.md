@@ -220,7 +220,7 @@ This project uses uv for fast package management and follows TDD (Test-Driven De
 # Install with development dependencies
 uv sync --extra dev
 
-# Run tests (413 tests)
+# Run tests
 uv run pytest
 
 # Run tests with coverage report
@@ -240,10 +240,9 @@ uv run tox -e docs          # Build both HTML and PDF docs
 
 ### Testing Strategy
 
-- **Unit tests**: 413 tests covering all major components
+- **Unit tests**: Cover all major components
 - **Integration tests**: Full build process validation
 - **Example projects**: `examples/basic/` and `examples/advanced/`
-- **Code coverage**: 93% overall
 
 ### Project Structure
 
@@ -296,7 +295,6 @@ Contributions are welcome! Please:
 ### Development Guidelines
 
 - Follow TDD (Test-Driven Development)
-- Maintain 80%+ code coverage
 - Use black for code formatting
 - Follow Sphinx extension conventions
 - Add tests for all new features
