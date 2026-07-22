@@ -467,11 +467,13 @@ builder-warning fixes land before the version bump and the closing corpus re-run
   4. The milestone invariant is confirmed held: zero new runtime dependencies, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
   5. Scope fence held — no tag, no PyPI publish, no GitHub Release in this phase (deferred to `/gsd-complete-milestone`).
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 23`)
+- [ ] 23-01-PLAN.md — Version bump to 0.6.2 across pyproject.toml / uv.lock / README.md, plus the new README↔pyproject sync test (SC#1, D-13/D-14)
+- [ ] 23-02-PLAN.md — Run the full-corpus regression gate, confirm the SC#4 milestone invariant and SC#5 scope fence, record the evidence (SC#3–SC#5, D-09/D-10/D-12)
+- [ ] 23-03-PLAN.md — Author the curated `## [0.6.2]` CHANGELOG entry covering all 25 v0.6.2 ledger IDs (SC#2, D-01–D-08/D-11/D-15)
 
 ## Progress
 
@@ -507,7 +509,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
 | 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete    | 2026-07-23 |
-| 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
+| 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/3 | Not started | - |
 
 ## Backlog
 
