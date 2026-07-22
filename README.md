@@ -133,12 +133,6 @@ Create a custom Typst template:
 ```python
 # conf.py
 typst_template = '_templates/custom.typ'
-
-typst_elements = {
-    'papersize': 'a4',
-    'fontsize': '11pt',
-    'lang': 'ja',
-}
 ```
 
 ### Template Parameter Mapping
@@ -148,11 +142,13 @@ Map Sphinx metadata to template parameters:
 ```python
 # conf.py
 typst_template_mapping = {
-    'title': 'project',
-    'authors': ['author'],
-    'date': 'release',
+    'project': 'doc_title',
+    'author': 'doc_authors',
+    'release': 'version',
 }
 ```
+
+Keys are Sphinx metadata names; values are the template parameter names they map to.
 
 ### Multi-Document Projects
 
@@ -202,8 +198,9 @@ For more details, see the [Sphinx Extension API documentation](https://www.sphin
 
 ## Configuration Options
 
-See [docs/configuration.rst](docs/configuration.rst) for all available configuration options:
+Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
 
+- `typst_documents`: Master documents to build, as `[(source, target, title, author), ...]` — required for PDF output
 - `typst_use_mitex`: Enable/disable mitex for LaTeX math
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
