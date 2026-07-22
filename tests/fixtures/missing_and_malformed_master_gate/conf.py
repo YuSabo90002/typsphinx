@@ -26,6 +26,14 @@
 #   3. () -- a malformed empty entry, exercising the D-05/D-07 branch,
 #      reported by repr(doc_tuple) in the aggregate message.
 #
+# The fixture also contains a SECOND, non-master document (chapter1.rst,
+# reached from index.rst's toctree and deliberately absent from the list
+# below). Writing it forces TypstWriter._is_master_document("chapter1") to
+# scan this whole list without matching, so the scan reaches the malformed
+# () entry -- the condition behind code-review finding CR-01. Keep
+# chapter1.rst out of typst_documents; adding it would make the scan match
+# early and silently stop exercising that path.
+#
 # No other typst_* config value is set here -- in particular, no
 # typst_template, no typst_package, and no typst_template_function. The
 # valid master must compile through the bundled default template so this

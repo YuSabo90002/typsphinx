@@ -358,6 +358,12 @@ class TestPDFErrorHandling:
             "precondition: 'ghost' is not a real Sphinx document in "
             "temp_sphinx_app's srcdir"
         )
+        assert "日本語ドキュメント" not in temp_sphinx_app.env.found_docs, (
+            "precondition: the non-ASCII docname is not a real Sphinx document "
+            "in temp_sphinx_app's srcdir either -- without this the test could "
+            "silently start exercising D-04's fallback branch instead of the "
+            "found_docs-discriminating branch it is written to cover (IN-01)"
+        )
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
         builder.outdir = str(tmp_path)

@@ -262,10 +262,13 @@ class TestNestedMasterRenderGate:
             f"stdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
-        assert "file not found" not in result.stderr, (
-            "typst.compile() reported a missing file -- the nested master's "
-            f"sibling include or image did not resolve:\nstderr: {result.stderr}"
-        )
+        # NOTE (WR-02 / D-10): there is deliberately NO assertion on typst-py's
+        # own diagnostic wording here (e.g. "file not found"). Such a negative
+        # assertion would silently go vacuous -- always passing, never red -- the
+        # moment upstream reworded its text, which is the exact defect class
+        # WR-02 removed from this module. `returncode == 0` above already proves
+        # the build succeeded, and the typsphinx-authored string checked below is
+        # a contract this project owns.
         assert "Typst compilation failed" not in result.stderr, (
             "TypstPDFBuilder.finish() logged a compilation failure:\n"
             f"stderr: {result.stderr}"

@@ -128,6 +128,26 @@ class TestMissingAndMalformedMasterGate:
             f"stderr: {result.stderr}"
         )
 
+        # CR-01 regression: a malformed entry must not abort the WRITE phase.
+        # The fixture's chapter1.rst is not in typst_documents, so writing it
+        # scans the whole list and reaches the malformed () entry. An unguarded
+        # doc_tuple[0] in TypstWriter._is_master_document() raised IndexError
+        # here, killing sphinx-build before finish() ran. "IndexError" is a
+        # Python builtin name, not an upstream diagnostic string, so asserting
+        # its absence does not reintroduce the WR-02 coupling this phase removed.
+        assert "IndexError" not in result.stderr, (
+            f"A malformed typst_documents entry aborted the write phase with a "
+            f"raw IndexError instead of being reported by finish()'s aggregate "
+            f"ExtensionError (CR-01):\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        assert (build_dir / "chapter1.typ").exists(), (
+            f"The non-master document chapter1 was not written -- the write "
+            f"phase did not survive the malformed entry (CR-01):\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
         assert (build_dir / "index.typ").exists(), (
             f"The valid master's .typ was not written before the aggregate "
             f"failure:\nstdout: {result.stdout}\nstderr: {result.stderr}"

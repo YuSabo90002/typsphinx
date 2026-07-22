@@ -52,8 +52,16 @@ class TypstWriter(writers.Writer):
 
         # Check if docname is in typst_documents
         # typst_documents format: [(sourcename, targetname, title, author), ...]
+        # A malformed (empty) entry is skipped rather than indexed: this runs
+        # during write_doc() for EVERY document, so an unguarded doc_tuple[0]
+        # would raise IndexError and abort the build in the write phase --
+        # before TypstPDFBuilder.finish() can report the malformed entry
+        # through its aggregate ExtensionError. Reporting malformed entries is
+        # finish()'s job alone; here they simply never match. Matches the
+        # guards already used by _compute_master_included_docnames() and
+        # _resolve_output_stem() in builder.py.
         for doc_tuple in typst_documents:
-            if doc_tuple[0] == docname:
+            if doc_tuple and doc_tuple[0] == docname:
                 return True
 
         return False
