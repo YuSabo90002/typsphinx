@@ -27,7 +27,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
   - Syntax highlighting for multiple languages
   - Highlight specific lines
 - **Images and figures**: Embed images with captions and references
-- **Cross-references and citations**: Maintain document structure with internal links
+- **Cross-references**: Maintain document structure with internal links
 - **Customizable templates**: Use default or custom Typst templates
 - **Direct PDF generation**: Self-contained PDF generation via typst-py (no external Typst CLI required)
 - **Multi-document support**: Generate multiple Typst files with toctree integration using `#include()`
@@ -261,9 +261,7 @@ typsphinx/
 ## Known Limitations
 
 - **Bibliography**: BibTeX integration not yet supported
-- **Glossary**: Glossary generation not yet supported
-
-See full requirements verification in project documentation.
+- **Citations**: reStructuredText citation directives are not yet supported
 
 ## Documentation
 
@@ -307,7 +305,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - Integrates [mitex](https://github.com/mitex-rs/mitex) for LaTeX math
 - Uses [codly](https://typst.app/universe/package/codly) for code highlighting
 - Uses [gentle-clues](https://typst.app/universe/package/gentle-clues) for admonitions
-- Developed with [Claude Code](https://claude.ai/code) and Kiro-style Spec-Driven Development
+- Developed with [Claude Code](https://claude.ai/code) and [GSD](https://github.com/open-gsd/gsd-core) (spec-driven development for AI coding agents)
 
 ## Version History
 
@@ -315,5 +313,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.5.0) - Production ready
+**Status**: Stable (v0.6.1) - Production ready
 **Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+
