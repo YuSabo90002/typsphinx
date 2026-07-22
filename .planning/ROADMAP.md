@@ -438,13 +438,13 @@ version bump, which carries the README `**Status**` line to `0.6.2` per the D-11
   5. The pass is full-text: every remaining README claim is checked against the codebase, and anything found beyond the discussion ledger is fixed here or filed under `.planning/todos/pending/`. The two known deferrals — typing modernization (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as pending todo files (DOC-05).
   6. Scope fence held: no file under `typsphinx/` is modified, no `typst_*` config value is added or removed, no `docs/` file is deleted or re-homed, no github.io → Read the Docs migration, and no historical `CHANGELOG.md` entry is rewritten.
 
-**Plans**: 3 plans
+**Plans**: 2/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 22.4-01-PLAN.md — README.md 全文の実測整合（数値クレーム削除・Configuration Options の部分列化とリンク張り替え・Advanced Usage の 2 コード例修正・能力/制限/Status/謝辞の是正）— wave 1
-- [ ] 22.4-02-PLAN.md — スコープ外へ退避した作業と台帳外発見の pending todo 起票 6 本 + 既存 RTD todo の誤前提打ち消し — wave 1
+- [x] 22.4-01-PLAN.md — README.md 全文の実測整合（数値クレーム削除・Configuration Options の部分列化とリンク張り替え・Advanced Usage の 2 コード例修正・能力/制限/Status/謝辞の是正）— wave 1
+- [x] 22.4-02-PLAN.md — スコープ外へ退避した作業と台帳外発見の pending todo 起票 6 本 + 既存 RTD todo の誤前提打ち消し — wave 1
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -506,7 +506,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
-| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 0/TBD | Not started | - |
+| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 2/3 | In Progress|  |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
