@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 22.4
-current_phase_name: typstpdf Builder Warning Hardening
-status: verified
-stopped_at: Phase 22.4 context gathered
-last_updated: "2026-07-22T14:09:04.796Z"
+current_phase_name: README 記述の実測乖離解消
+status: planned
+stopped_at: Phase 22.4 planned (3 plans, 2 waves) — ready to execute
+last_updated: "2026-07-22T15:40:00.000Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.4 inserted; Phase 22.3 complete (WR-01/WR-02 closed, code-review CR-01 fixed in-phase)
+last_activity_desc: Phase 22.4 planned — DOC-01..DOC-05 defined, research found 6 beyond-ledger discrepancies, D-17..D-21 ruled, 3 plans verified
 progress:
   total_phases: 9
   completed_phases: 7
-  total_plans: 24
+  total_plans: 27
   completed_plans: 24
   percent: 78
 ---
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 ## Current Position
 
-Phase: 22.4 (README 記述の実測乖離解消) — NOT PLANNED
-Plan: 0 of 0
-Status: Inserted after Phase 22.3 (urgent) — run `/gsd-plan-phase 22.4`
-Last activity: 2026-07-22 — Phase 22.4 inserted; Phase 22.3 complete (WR-01/WR-02 closed, code-review CR-01 fixed in-phase)
+Phase: 22.4 (README 記述の実測乖離解消) — PLANNED
+Plan: 0 of 3
+Status: Ready to execute — 3 plans in 2 waves. Wave 1: `22.4-01` (README.md, sole owner) ‖ `22.4-02` (6 new pending todos); Wave 2: `22.4-03` (CLAUDE.md + pyproject.toml comment, serialized so it can cite the D-15 todo path).
+Last activity: 2026-07-22 — Phase 22.4 planned; requirements DOC-01..DOC-05 defined, research audited 55 README claims and found 6 beyond-ledger discrepancies, owner ruled D-17/D-18, plan-checker PASSED
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0/0 plans (not planned)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0/3 plans (planned, not started)
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
@@ -46,9 +46,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0/0 pla
 | 22.1 — typstpdf Compile-Root Alignment for Nested Masters (INSERTED) | `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders (temp file next to the master's `.typ`); no output moves | PDF-02 |
 | 22.2 — Dead Config-Value Sweep (INSERTED) | Delete the dead `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end (BUG-A..BUG-D), and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature | CONF-01, CONF-02, CONF-03 |
 | 22.3 — typstpdf Builder Warning Hardening (INSERTED) | Close the two Phase 22.1 review warnings: `finish()` no longer "succeeds" while silently emitting no PDF for a master whose `.typ` is missing (resolved **behavioral** at discuss — D-01), and the nested-master render gate stops asserting on `typst-py` error-message substrings | WR-01, WR-02 |
+| 22.4 — README 記述の実測乖離解消 (INSERTED) | README.md（+ `CLAUDE.md` / `pyproject.toml` コメント）の全記述を実測と突き合わせて再検証。検証機構を持てない数値（テスト数・カバレッジ）は書き戻さず**削除**、設定一覧は部分列と明示して実ビルドされる docs へ誘導、機能・制限・Status・方法論は測って書き直す。**プロースのみ・ソース非変更** | DOC-01..DOC-05 |
 | 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
 
-**Coverage:** 20/20 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03 + WR-01, WR-02) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
+**Coverage:** 25/25 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03 + WR-01, WR-02 + DOC-01..DOC-05) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
+
+**Phase 22.4 は GATE-01 の対象外** — ノードハンドラを変更しないため実 `typst.compile()` の検証手段が無い。RESEARCH Task F / VALIDATION の記録どおり、**内容アンカーの `grep` 表明が誠実な到達点**であり新規テストファイルは追加しない（数値クレームの是正は「削除」なので不在 assert は張り合いが薄く、本当に価値のある自動化＝`sphinx-build -b linkcheck` の CI 化はそれ自体が 1 フェーズ級のため todo へ）。
+
+**Phase 23 への申し送り（D-11）:** `pyproject.toml` を 0.6.2 にバンプする際、README の `**Status**: Stable (v0.6.1)` 行も同時に更新すること。
 
 **Standing bar (GATE-01):** every node-handler change (Phases 19, 20, 21) — and Phase 22 in its builder-test form — ships or extends a real `typst.compile()` regression fixture. String-agreement asserts alone never suffice. Local env runs real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
 

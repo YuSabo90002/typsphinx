@@ -441,9 +441,13 @@ version bump, which carries the README `**Status**` line to `0.6.2` per the D-11
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 22.4-01-PLAN.md — README.md 全文の実測整合（数値クレーム削除・Configuration Options の部分列化とリンク張り替え・Advanced Usage の 2 コード例修正・能力/制限/Status/謝辞の是正）— wave 1
 - [ ] 22.4-02-PLAN.md — スコープ外へ退避した作業と台帳外発見の pending todo 起票 6 本 + 既存 RTD todo の誤前提打ち消し — wave 1
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 22.4-03-PLAN.md — CLAUDE.md の Python バージョン記述 4 箇所と pyproject.toml の ruff ignore コメントを実測に合わせる — wave 2
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
