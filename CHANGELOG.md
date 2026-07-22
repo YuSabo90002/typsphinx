@@ -716,6 +716,7 @@ untouched.
 
 ---
 
+[0.6.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.2
 [0.6.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.1
 [0.6.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.0
 [0.5.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.5.0
@@ -728,4 +729,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.2...HEAD
