@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 Phase: 22.3 — typstpdf Builder Warning Hardening
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-07-22 — Phase 22.2 complete, transitioned to Phase 22.3
+Last activity: 2026-07-22 — Completed quick task 260722-t3q: remove stray .bg-shell directory
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0/6 plans (0%)
 
@@ -104,6 +104,7 @@ None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threa
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260720-p2w | Document worktree-isolated executor env provisioning (uv sync + uv run) in CLAUDE.md | 2026-07-20 | cc21f47 | [260720-p2w-add-a-worktree-isolated-execution-subsec](./quick/260720-p2w-add-a-worktree-isolated-execution-subsec/) |
+| 260722-t3q | Remove stray .bg-shell directory (unreferenced) and gitignore it | 2026-07-22 | 58a5481 | [260722-t3q-remove-bg-shell-directory](./quick/260722-t3q-remove-bg-shell-directory/) |
 
 ### Roadmap Evolution
 
