@@ -4,11 +4,11 @@ milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 current_phase: 22.4
 current_phase_name: README 記述の実測乖離解消
-status: planned
+status: executing
 stopped_at: Phase 22.4 planned (3 plans, 2 waves) — ready to execute
-last_updated: "2026-07-22T15:40:00.000Z"
+last_updated: "2026-07-22T14:52:30.869Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 22.4 planned — DOC-01..DOC-05 defined, research found 6 beyond-ledger discrepancies, D-17..D-21 ruled, 3 plans verified
+last_activity_desc: Phase 22.4 execution started
 progress:
   total_phases: 9
   completed_phases: 7
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 22.4 — README 記述の実測乖離解消（緊急挿入）
+**Current focus:** Phase 22.4 — README 記述の実測乖離解消
 
 ## Current Position
 
-Phase: 22.4 (README 記述の実測乖離解消) — PLANNED
-Plan: 0 of 3
-Status: Ready to execute — 3 plans in 2 waves. Wave 1: `22.4-01` (README.md, sole owner) ‖ `22.4-02` (6 new pending todos); Wave 2: `22.4-03` (CLAUDE.md + pyproject.toml comment, serialized so it can cite the D-15 todo path).
-Last activity: 2026-07-22 — Phase 22.4 planned; requirements DOC-01..DOC-05 defined, research audited 55 README claims and found 6 beyond-ledger discrepancies, owner ruled D-17/D-18, plan-checker PASSED
+Phase: 22.4 (README 記述の実測乖離解消) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 22.4
+Last activity: 2026-07-22 — Phase 22.4 execution started
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0/3 plans (planned, not started)
 
