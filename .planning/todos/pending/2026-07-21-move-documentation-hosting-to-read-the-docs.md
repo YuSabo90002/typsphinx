@@ -44,6 +44,23 @@ files:
   `pyproject.toml:56` の `Documentation` URL は現状 GitHub README を指しており、
   これも RTD に向け直すのが自然。
 
+### 追記（2026-07-22、Phase 22.4 RESEARCH.md 全文監査より）
+
+本 todo 検討時の前提「実測上リンクは全て有効（対応ページが `docs/source/` に実在する）」は **誤りで
+あったことが実測で判明した**。2026-07-22 の実測（`curl`）で、README の github.io サブページ直リンク
+7 本（README.md:278-284）は**すべて 404** であることを確認した。「ソースファイルが `docs/source/` に
+存在する」ことと「ビルド後の公開 URL が実際に到達可能である」ことは別の話であり、当時の前提は
+この区別を見落としていた。
+
+原因は `docs/build_multilang.py` の en/ja 分割公開構成で、ルート直下 (`/`) が JS 言語判定リダイレクト
+ページのみであり、サブページには `/en/` プレフィックスが必要なため（例:
+`.../installation.html` は404だが `.../en/installation.html` は200）。
+
+詳細な実測表・原因・対応方針は新規 pending todo
+`2026-07-22-github-io-doc-links-404-missing-en-prefix.md` を参照。当該 todo は「RTD 移行を待たず
+`/en/` を足して即座に404を解消する」案と「RTD 移行時に一括で張り替える」案の二択を記録しており、
+本 todo（RTD 移行）とどちらを先に着手するかは事前にオーナー判断が必要。
+
 ## Solution
 
 TBD（方針未決定）。着手前に決める必要がある論点：
