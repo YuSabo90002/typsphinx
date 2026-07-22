@@ -141,10 +141,13 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-23T07:10:00.000Z
-Stopped at: Phase 23 planned — ready to execute
-Resume file: .planning/phases/23-v0-6-2-release-prep-regression-gate-close/23-01-PLAN.md
+Last session: 2026-07-23
+Stopped at: v0.6.2 milestone archived + release PR #120 opened (`gsd/v0.6.2-rendering-fidelity-round-2` → `main`)
+Resume: observe CI green on PR #120, merge, then tag `v0.6.2` on the merge commit → `release.yml` → PyPI
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Observe the full 3-OS × Python CI matrix green on PR #120
+- Merge PR #120 to `main`, then push `main` to `origin`
+- Tag `v0.6.2` on the merge commit and push it → `release.yml` publishes to PyPI + GitHub Release (gated by the `pypi` environment's manual approval + wait timer)
+- Then start the next milestone with /gsd-new-milestone
