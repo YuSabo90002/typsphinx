@@ -402,11 +402,18 @@ Source of record for both warnings:
 The same review's Critical `CR-01` was ruled 今直す and already closed inside Phase 22.1 as gap
 `G-22.1-4` — it is **not** in this phase's scope.
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 22.3`)
+**Wave 1** *(parallel — disjoint file sets)*
+
+- [ ] 22.3-01-PLAN.md — WR-01 core: four RED unit tests pinning the new failure contract, then `TypstPDFBuilder.finish()` appends both skip branches to the existing `failures` list (D-01/D-05), splits the missing-`.typ` message on `env.found_docs` while keeping the fallback text byte-identical (D-04/Pitfall 5), widens the aggregate `ExtensionError` past "compile" (D-02), makes the docstring's no-silent-success claim true, and files the deferred non-str-docname `TypeError` as a todo (D-06)
+- [ ] 22.3-02-PLAN.md — WR-02: strip all six `typst-py` error-text assertions from `tests/test_nested_master_render_gate.py` (D-10), anchor the RED halves on typsphinx's own emitted source and on disk state instead, and add the full three-part ablation — template import rewrite + `image("../logo.png")` → `image("logo.png")` rewrite + `usage.typ` placement at the outdir root — whose GREEN half produces real PDF bytes (D-08/D-09, RESEARCH Pitfall 3)
+
+**Wave 2** *(depends on 22.3-01 — needs the fixed `finish()`)*
+
+- [ ] 22.3-03-PLAN.md — D-11 GATE-01: new `tests/fixtures/missing_and_malformed_master_gate/` (one valid master, one docname absent from `found_docs`, one empty entry) plus `tests/test_missing_and_malformed_master_gate.py`, the suite's first must-fail subprocess gate (`returncode != 0`), asserting only on typsphinx-authored stderr while proving the valid master still gets its PDF; closes with the ROADMAP SC#5 pre-fix must-fail RED/GREEN transcript pair
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
