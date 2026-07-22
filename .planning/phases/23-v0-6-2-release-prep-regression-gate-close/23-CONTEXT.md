@@ -58,8 +58,8 @@ v0.6.2 のリリース**準備**と、フルコーパス回帰ゲートによる
 
 ### user-visible な破壊的変更の見せ方
 
-- **D-05: `typst_output_dir` / `typst_author_params` の削除（22.2 CONF-01）は `### Removed` に置き、
-  BREAKING ラベルを立てる**（オーナー裁定 2026-07-23）。公開されていた設定名の削除は仕様上
+- **D-05: `typst_output_dir` / `typst_author_params` の削除（22.2 CONF-01）は `### Removed` に置き、BREAKING ラベルを立てる。**
+  （オーナー裁定 2026-07-23）公開されていた設定名の削除は仕様上
   破壊的であり、実害の有無に関わらず明示する。
   **実測の但し書き（討議中に測定、2026-07-23）:** 削除後もこの 2 つが `conf.py` に残っていると
   Sphinx は**警告すら出さず完全に無音で無視し `build succeeded` する**。かつ両者は削除前から
@@ -105,9 +105,8 @@ v0.6.2 のリリース**準備**と、フルコーパス回帰ゲートによる
 
 ### 版バンプの同期範囲と日付
 
-- **D-13: `README.md:316` の Status 行を `Stable (v0.6.2)` に更新し、あわせて
-  `README.md:316` と `pyproject.toml` の `version` の一致を assert する同期テストを新設する。**
-  雛形は `tests/test_preview_version_sync.py`（22.4 の `code_context` が明示的にそう指名している）。
+- **D-13: README の Status 行を `Stable (v0.6.2)` に更新し、あわせてその行と `pyproject.toml` の `version` の一致を assert する同期テストを新設する。**
+  対象行は `README.md:316`。雛形は `tests/test_preview_version_sync.py`（22.4 の `code_context` が明示的にそう指名している）。
   理由: この行は v0.5.0 のまま 2 リリース分 stale した実績があり、人間の注意力ではなく仕組みで止める。
 
 - **D-14: 同期テストのスコープは Status 行のリリース版のみ。** `README.md:37-39`（Requirements 節）と
@@ -129,7 +128,7 @@ v0.6.2 のリリース**準備**と、フルコーパス回帰ゲートによる
 - **`## [Unreleased]` 節の保持** — Keep a Changelog 標準どおり `[0.6.2]` の上に空の `[Unreleased]` を残す想定。
 - **`[0.6.2]` 冒頭のリード文（マイルストーン要約段落）の文面** — `[0.6.0]`/`[0.6.1]` が持っている 3–5 行の
   段落。今回も置く想定で、文面はプラン時に確定してよい。
-- **D-05 の BREAKING 項目の具体的な文面**（ラベル表記の形式、実測の但し書きをどこまで織り込むか）。
+- **BREAKING 項目（D-05）の具体的な文面**（ラベル表記の形式、実測の但し書きをどこまで織り込むか）。
 - **SC#4 不変量の確認手段** — `git diff` による依存 / `@preview` 3-way 同期面の差分ゼロ確認と、
   既存 `tests/test_preview_version_sync.py` の緑をもって足りる想定。
 - **フェーズ内の作業分割と順序**（版バンプ → CHANGELOG → 同期テスト → ゲート実走 の順が自然）。
@@ -183,7 +182,7 @@ v0.6.2 のリリース**準備**と、フルコーパス回帰ゲートによる
 ### 要件台帳（CHANGELOG に載せる対象の全量）
 
 - `.planning/REQUIREMENTS.md` — FID-02..FID-14 / PDF-01, PDF-02 / CONF-01..CONF-03 / WR-01, WR-02 /
-  DOC-01..DOC-05 の全 23 件。D-01 のクラスタ束ねはこの台帳を漏れなくカバーすること
+  DOC-01..DOC-05 の全 25 件（実測: FID-02..FID-14 は 13 件。13+2+3+2+5 = 25）。D-01 のクラスタ束ねはこの台帳を漏れなくカバーすること
 - `.planning/milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md` —
   FID 各件のクラスタ A–F 帰属の source of record（D-01 の束ね方の根拠）
 

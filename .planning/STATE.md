@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
-current_phase: 22.4
-status: completed
-stopped_at: Phase 23 context gathered
-last_updated: "2026-07-22T21:30:54.252Z"
+current_phase: 23
+status: planned
+stopped_at: Phase 23 planned — ready to execute
+last_updated: "2026-07-23T07:10:00.000Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 22.4 marked complete
+last_activity_desc: Phase 23 planned (3 plans, 3 waves)
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 27
+  total_plans: 30
   completed_plans: 27
-  percent: 89
-current_phase_name: README 記述の実測乖離解消
+  percent: 90
+current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
 ---
 
 # Project State
@@ -24,14 +24,14 @@ current_phase_name: README 記述の実測乖離解消
 See: .planning/PROJECT.md (updated 2026-07-21 after Phase 22)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** Phase 22.4 — README 記述の実測乖離解消
+**Current focus:** Phase 23 — v0.6.2 Release Prep + Regression-Gate Close
 
 ## Current Position
 
-Phase: 22.4 — COMPLETE
-Plan: 1 of 3
-Status: Phase 22.4 complete
-Last activity: 2026-07-23 — Phase 22.4 marked complete
+Phase: 23 — v0.6.2 Release Prep + Regression-Gate Close
+Plan: 0 of 3
+Status: Ready to execute
+Last activity: 2026-07-23 — Phase 23 planned (3 plans, 3 waves; plan-checker VERIFICATION PASSED)
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0/3 plans (planned, not started)
 
@@ -132,10 +132,11 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-22T21:30:54.246Z
-Stopped at: Phase 23 context gathered
-Resume file: .planning/phases/23-v0-6-2-release-prep-regression-gate-close/23-CONTEXT.md
+Last session: 2026-07-23T07:10:00.000Z
+Stopped at: Phase 23 planned — ready to execute
+Resume file: .planning/phases/23-v0-6-2-release-prep-regression-gate-close/23-01-PLAN.md
 
 ## Operator Next Steps
 
-- Plan the release phase with `/gsd-plan-phase 23` (v0.6.2 Release Prep — version bump + `[0.6.2]` CHANGELOG)
+- Execute the release-prep phase with `/gsd-execute-phase 23` (3 plans / 3 sequential waves: version bump + sync test → corpus gate + evidence → `[0.6.2]` CHANGELOG)
+- Then publish with `/gsd-complete-milestone` (tag `v0.6.2` → `release.yml` → PyPI → GitHub Release) — deliberately outside Phase 23's scope fence (SC#5)

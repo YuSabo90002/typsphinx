@@ -59,7 +59,7 @@
 No requirement IDs are mapped to Phase 23 in `.planning/ROADMAP.md`/`STATE.md` — it is the prep-only
 release/close phase. However, D-01 (locked) makes the **entire v0.6.2 requirement ledger** (23 items in
 `.planning/REQUIREMENTS.md`) this phase's de-facto requirement surface: the `[0.6.2]` CHANGELOG entry must
-give every one of these 23 IDs complete, traceable coverage with zero silent drops. See the
+give every one of these 25 IDs complete, traceable coverage with zero silent drops. See the
 "Requirement-Ledger → Cluster Mapping" table below for the full ID-to-bullet mapping this research
 produced to satisfy that surface.
 
@@ -123,7 +123,7 @@ ground everything locally. Four concrete artifacts change: `pyproject.toml:7` (v
 test file for the README/pyproject version-sync guard (D-13). A fifth "artifact" is behavioral: running the
 existing `tests/test_corpus_gate.py` slow gate and recording its output as `23-VERIFICATION.md` evidence.
 
-The highest-value research output is the **requirement-ledger → CHANGELOG-cluster mapping**: all 23 v0.6.2
+The highest-value research output is the **requirement-ledger → CHANGELOG-cluster mapping**: all 25 v0.6.2
 requirement IDs map cleanly onto the six audit clusters (A–F) from `17-AUDIT-CATALOGUE.md` plus three
 independent fix-groups (Issue #117, dead-config sweep, builder-warning hardening) and one documentation
 group — yielding exactly **11 CHANGELOG bullets**, inside D-01's 10–12 target. No requirement ID resists
@@ -178,7 +178,7 @@ their sibling bullet (CONF-02, WR-01) keeps the ledger fully covered without inf
 implying they are separate user-visible changes.
 
 **Total: 11 bullets** (6 fidelity-cluster bullets + #117 + PDF-02 + dead-config-removal + typst_package-repair
-+ builder-warning-hardening + README/CLAUDE.md), inside D-01's 10–12 target, covering all 23 ledger IDs with
++ builder-warning-hardening + README/CLAUDE.md), inside D-01's 10–12 target, covering all 25 ledger IDs with
 zero drops.
 
 ## CHANGELOG Structural Template (measured from `CHANGELOG.md`)

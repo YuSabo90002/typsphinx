@@ -470,9 +470,16 @@ builder-warning fixes land before the version bump and the closing corpus re-run
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 23-01-PLAN.md — Version bump to 0.6.2 across pyproject.toml / uv.lock / README.md, plus the new README↔pyproject sync test (SC#1, D-13/D-14)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 23-02-PLAN.md — Run the full-corpus regression gate, confirm the SC#4 milestone invariant and SC#5 scope fence, record the evidence (SC#3–SC#5, D-09/D-10/D-12)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 23-03-PLAN.md — Author the curated `## [0.6.2]` CHANGELOG entry covering all 25 v0.6.2 ledger IDs (SC#2, D-01–D-08/D-11/D-15)
 
 ## Progress
