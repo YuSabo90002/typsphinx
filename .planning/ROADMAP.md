@@ -438,11 +438,13 @@ version bump, which carries the README `**Status**` line to `0.6.2` per the D-11
   5. The pass is full-text: every remaining README claim is checked against the codebase, and anything found beyond the discussion ledger is fixed here or filed under `.planning/todos/pending/`. The two known deferrals — typing modernization (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as pending todo files (DOC-05).
   6. Scope fence held: no file under `typsphinx/` is modified, no `typst_*` config value is added or removed, no `docs/` file is deleted or re-homed, no github.io → Read the Docs migration, and no historical `CHANGELOG.md` entry is rewritten.
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] TBD (enumerated at `/gsd-plan-phase 22.4`)
+- [ ] 22.4-01-PLAN.md — README.md 全文の実測整合（数値クレーム削除・Configuration Options の部分列化とリンク張り替え・Advanced Usage の 2 コード例修正・能力/制限/Status/謝辞の是正）— wave 1
+- [ ] 22.4-02-PLAN.md — スコープ外へ退避した作業と台帳外発見の pending todo 起票 6 本 + 既存 RTD todo の誤前提打ち消し — wave 1
+- [ ] 22.4-03-PLAN.md — CLAUDE.md の Python バージョン記述 4 箇所と pyproject.toml の ruff ignore コメントを実測に合わせる — wave 2
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
