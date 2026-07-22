@@ -1,165 +1,287 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-07-04
+**Analysis Date:** 2026-07-22
 
 ## Naming Patterns
 
 **Files:**
-- Snake case with lowercase letters: `builder.py`, `translator.py`, `template_engine.py`, `pdf.py`, `writer.py`
-- Test files follow pattern: `test_*.py` (e.g., `test_builder.py`, `test_config.py`)
-- Template files in `typsphinx/templates/` directory (e.g., `base.typ`)
+- Snake case for module files: `builder.py`, `translator.py`, `template_engine.py`, `pdf.py`, `writer.py`
+- Test files follow pattern `test_*.py`: `test_translator.py`, `test_builder.py`, `test_config.py`
+- Underscore prefix for internal/private modules: `_template.typ` (shared template artifact, not a module)
 
 **Classes:**
-- PascalCase: `TypstBuilder`, `TypstPDFBuilder`, `TypstTranslator`, `TypstWriter`, `TemplateEngine`, `TypstCompilationError`
-- Sphinx visitor pattern allowed exception: `SphinxTranslator`-derived classes use docutils visitor naming
+- PascalCase for all classes: `TypstBuilder`, `TypstTranslator`, `TypstWriter`, `TemplateEngine`, `TypstCompilationError`
+- Visitor pattern methods use PascalCase: `visit_section`, `depart_section`, `visit_title`, `depart_title` (required by docutils pattern, exception to naming rules)
+- Test classes: `TestAdmonitionConversion`, `TestBasicSphinxProjectBuild` (prefix `Test`)
 
 **Functions:**
-- Snake case: `setup()`, `get_outdated_docs()`, `get_target_uri()`, `prepare_writing()`, `write_doc()`, `astext()`, `add_text()`, `load_template()`
-- Private methods: Leading underscore: `_try_load_file()`, `_is_master_document()`, `_add_paragraph_separator()`, `_write_template_file()`, `_extract_error_info()`
+- Snake case for all functions: `escape_typst_string()`, `resolve_package_for_engine()`, `check_typst_available()`, `get_typst_version()`, `compile_typst_file_to_pdf()`
+- Helper functions with leading underscore: `_parse_typst_error()`, `_is_master_document()`, `_compute_master_included_docnames()`
+- Test functions: `test_*()` pattern, e.g., `test_translator_state_initialization()`, `test_basic_project_files_exist()`
 
 **Variables:**
-- Snake case: `docnames`, `section_level`, `figure_caption`, `table_cell_content`, `list_stack`
-- Boolean flags: Descriptive names: `in_figure`, `in_table`, `in_thead`, `in_caption`, `allow_parallel`
-- Module-level constants: UPPER_SNAKE_CASE: `DEFAULT_PARAMETER_MAPPING` in `typsphinx/template_engine.py` (line 35)
+- Snake case for local and module-level variables: `section_level`, `in_figure`, `in_table`, `list_stack`, `body`, `output`
+- Boolean flags use clear affirmative names: `in_literal_block`, `in_definition_list`, `paragraph_has_content`, `is_first_list_item`
+- State tracking variables: `_saved_body_for_figure_caption`, `_figure_block_width`, `_list_item_stack`, `_inline_concat_stack`
+- Constants in UPPER_CASE with descriptive names: `_TYPST_PASSTHROUGH_UNITS`, `DEFAULT_PARAMETER_MAPPING`
 
 **Types:**
-- Type hints use standard Python typing module
-- Union types: `Union[str, List[str], None]`
-- Optional types: `Optional[Dict[str, Any]]`
-- Generic containers: `List[str]`, `Dict[str, Any]`
-- Collection types: Use `dict`, `list` (not deprecated `Dict`, `List` for Python 3.9+ support)
+- Generic types imported from `typing`: `List`, `Dict`, `Tuple`, `Any`, `Set`, `Iterator`
+- Modern union syntax preferred when targeting Python 3.12+: `str | None` rather than `Optional[str]`
+- Use `list[str]`, `dict[str, Any]` style type hints for Python 3.12+ (kept as `List`, `Dict` in some places for 3.10 compatibility per CLAUDE.md)
 
 ## Code Style
 
 **Formatting:**
-- Tool: `black` (version ≥ 23.0)
-- Line length: 88 characters
-- Configuration: See `pyproject.toml` lines 86-99
-- Target versions: Python 3.9, 3.10, 3.11, 3.12
+- **Tool:** Black (`black>=26,<27`)
+- **Line length:** 88 characters (black default)
+- **Run before commit:** `black --check .` (CI verifies; `black .` to format)
 
 **Linting:**
-- Tool: `ruff` (version ≥ 0.1.0)
-- Configuration: See `pyproject.toml` lines 101-117
-- Selected rules: E, F, W, I, N, UP, B, A, C4, T20
-- Ignored rules include:
-  - E501: Line too long (handled by black)
-  - T201: print found (allowed in tests for debugging)
-  - N802: Function naming (docutils visitor pattern uses PascalCase)
-  - UP035, UP006, UP028: Python 3.9 compatibility exceptions
+- **Tool:** Ruff (`ruff>=0.15,<0.16`)
+- **Selected rules:** E, F, W, I, N, UP, B, A, C4, T20
+- **Ignored rules:**
+  - `E501`: Line too long (black handles wrapping)
+  - `T201`: Print statements (allowed in tests for debugging)
+  - `B017`: Blind exception assertions (used in tests)
+  - `UP035`, `UP006`: Deprecation upgrades (Python 3.10+ support)
+  - `UP028`: Yield from optimization (minor, skipped)
+  - `N802`: Function naming (docutils `visit_*`/`depart_*` methods use PascalCase by pattern)
+  - `A001`: Shadowing builtins (`copyright` in conf.py is Sphinx convention)
+  - `F841`: Unused variables (acceptable in tests and mocks)
+- **Run:** `ruff check .`
 
 **Type Checking:**
-- Tool: `mypy` (version ≥ 1.0)
-- Configuration: See `pyproject.toml` lines 119-132
-- Python version target: 3.9
-- Mypy overrides for `typsphinx.*` modules disable several checks for compatibility
+- **Tool:** mypy (`mypy>=1.13,<3.0`)
+- **Config location:** `pyproject.toml` `[tool.mypy]`
+- **Module-specific overrides:** `typsphinx.*` module has lenient error codes disabled:
+  - `var-annotated`, `arg-type`, `override`, `misc`, `union-attr`, `attr-defined`, `list-item`
+- **Run:** `mypy typsphinx/`
 
 ## Import Organization
 
-**Order (as seen in `typsphinx/builder.py`, `typsphinx/translator.py`):**
-1. Standard library imports: `import shutil`, `from os import path`, `from typing import ...`
+**Order (strict):**
+1. Standard library imports: `import os`, `from pathlib import Path`, `from typing import Any, Dict`
 2. Third-party imports: `from docutils import nodes`, `from sphinx.builders import Builder`, `from sphinx.util import logging`
-3. Local imports: `from typsphinx.pdf import compile_typst_to_pdf`, `from typsphinx.writer import TypstWriter`
+3. Local imports: `from typsphinx.builder import TypstBuilder`, `from typsphinx.translator import TypstTranslator`
 
-**Style:**
-- Imports organized alphabetically within each group
-- Use explicit imports over wildcard imports
-- Module-level logging setup: `logger = logging.getLogger(__name__)` at module top
+**Example from `builder.py`:**
+```python
+import os
+import shutil
+from collections.abc import Iterator
+from os import path
+from typing import List, Set, Tuple
+
+from docutils import nodes
+from sphinx.builders import Builder
+from sphinx.errors import ExtensionError
+from sphinx.util import logging
+from sphinx.util.osutil import ensuredir
+
+from typsphinx.pdf import compile_typst_file_to_pdf
+from typsphinx.writer import TypstWriter
+```
 
 **Path Aliases:**
-- Not detected in codebase; uses direct imports from `typsphinx.*` package
+- None currently used; use absolute imports from `typsphinx.*`
+
+**Specific to Tests:**
+- Sphinx test fixtures: `from sphinx.testing.util import SphinxTestApp`
+- Sphinx fixtures plugin: `pytest_plugins = "sphinx.testing.fixtures"` (in `conftest.py`)
 
 ## Error Handling
 
-**Patterns:**
-- Custom exceptions: Define exception classes extending `Exception` with docstrings
-  - Example: `TypstCompilationError` in `typsphinx/pdf.py` (lines 16-57)
-  - Provides message, typst_error reference, and source_location
-- Try/except blocks: Catch specific exceptions with appropriate logging
-  - Example: `typsphinx/builder.py` line 277-281 catches generic `Exception` when copying image files
-  - Example: `typsphinx/pdf.py` line 70-78 catches `ImportError` with `raise ... from e` pattern
-- Logger usage: `logger.warning()` for non-fatal issues, `logger.error()` for failures, `logger.debug()` for detailed info
-- Pre-condition checks: Check file existence before operations (e.g., `typsphinx/builder.py` line 268)
+**Pattern:**
+- Define custom exceptions inheriting from `Exception` with detailed context
+- Provide `message`, backing error (`typst_error`), and `source_location` attributes
+- Log errors via the logging module before raising
 
-**Exception Messages:**
-- Include context: File paths, configuration names, original error details
-- Multiple causes: Chain exceptions with `raise ... from e` (line 78 in pdf.py)
-- Structured error info: Exception attributes for programmatic access (TypstCompilationError attributes at line 23-27)
+**Example from `pdf.py`:**
+```python
+class TypstCompilationError(Exception):
+    """Exception raised when Typst compilation fails."""
+    
+    def __init__(
+        self,
+        message: str,
+        typst_error: Exception | None = None,
+        source_location: str | None = None,
+    ):
+        self.message = message
+        self.typst_error = typst_error
+        self.source_location = source_location
+        full_message = f"Typst compilation failed: {message}"
+        if source_location:
+            full_message += f"\nLocation: {source_location}"
+        if typst_error:
+            full_message += f"\nDetails: {str(typst_error)}"
+        super().__init__(full_message)
+```
+
+**Raising:**
+- Use `from` clause to chain exceptions: `raise TypstCompilationError(...) from typst_error`
+- Catch broad exceptions in boundary functions, convert to domain-specific exceptions
+
+**Example from `pdf.py`:**
+```python
+try:
+    pdf_bytes = typst.compile(typ_path, root=root_dir)
+    return pdf_bytes
+except Exception as typst_error:
+    error_msg = _parse_typst_error(typst_error)
+    logger.error(f"Typst compilation failed at {typ_path}: {error_msg}")
+    raise TypstCompilationError(
+        message=error_msg, typst_error=typst_error, source_location=typ_path
+    ) from typst_error
+```
+
+**Warnings:**
+- Escalate deprecations as errors in tests: `filterwarnings = ["error::DeprecationWarning", "error::PendingDeprecationWarning"]` (see `pyproject.toml`)
 
 ## Logging
 
-**Framework:** `sphinx.util.logging`
+**Framework:** Python's standard `logging` module via `getLogger(__name__)`
 
-**Pattern:** 
+**Pattern (per module):**
 ```python
+import logging
 logger = logging.getLogger(__name__)
 ```
-- Set at module level immediately after imports
-- Used throughout module methods
 
-**Usage Patterns:**
-- `logger.info()`: Build progress and general information (e.g., "preparing documents...")
-- `logger.warning()`: Non-fatal issues that don't stop the build (e.g., "Image file not found")
-- `logger.error()`: Fatal errors that stop processing (e.g., "Failed to compile")
-- `logger.debug()`: Detailed diagnostic information (e.g., "Loaded template from...")
-- Parameter `nonl=True`: Don't add newline for multi-part logging sequences (line 119 in builder.py)
+**Use:**
+- `logger.error()` for errors (e.g., "Typst compilation failed")
+- `logger.warning()` for warnings (e.g., "Both typst_template and typst_package configured")
+- `logger.info()` for informational messages
+- Avoid `print()` except in test debugging (ruff allows `T201` in tests)
+
+**Example from `pdf.py`:**
+```python
+logger.error(f"Typst compilation failed at {typ_path}: {error_msg}")
+```
 
 ## Comments
 
 **When to Comment:**
-- Complex logic that isn't self-evident: State management transitions, workarounds
-- Requirement/Task/Issue references: Link to specifications
-- Example: `typsphinx/__init__.py` line 46: `# Task 13.4: Other configuration options (Requirement 8.6)`
-- Example: `typsphinx/writer.py` line 75-77: `# WORKAROUND: For some Sphinx documents, visit_document may not be called`
+- Block comments for complex logic blocks explaining the "why"
+- Inline comments for non-obvious single-line logic
+- Algorithm-specific or bug-reference comments explaining decisions
 
-**JSDoc/Type Documentation:**
-- Full docstrings for all public classes and functions
-- RST-style format with sections: summary, extended description, Args, Returns, Raises
-- Example: `typsphinx/builder.py` lines 37-42 (init method)
-- Parameter descriptions include type and semantic meaning
-- Requirement/Task references in docstrings when applicable
+**Example from `translator.py` (complex state management):**
+```python
+# Code-mode inline concatenation (single source of truth)
+#
+# A def-list term (the code-mode 1st arg of terms.item), a link body (the
+# 2nd arg of link()), and a desc parameter list are all Typst code-mode
+# positions where two juxtaposed expressions are a syntax error
+# ("expected comma"). Adjacent inline sibling expressions in any of these
+# contexts must therefore be joined with " + ". The helpers below are the
+# ONE place that decides "which concat context is active" and "is this the
+# first sibling or a following one", so every inline visitor -- the leaf
+# visit_Text / visit_literal AND the block-opening visit_emphasis /
+# visit_strong / visit_reference -- participates uniformly.
+```
 
-**Inline Comments:**
-- Explain "why", not "what": Code already shows what it does
-- Reference issue/task numbers for context
-- Example: `typsphinx/builder.py` line 43-45: Explains why images dictionary tracks by URI
+**Docstrings (Google style):**
+- One-liner for simple functions/classes
+- Multi-line with sections for complex functions
+
+**Example from `pdf.py`:**
+```python
+def compile_typst_file_to_pdf(typ_path: str, root_dir: str | None = None) -> bytes:
+    """
+    Compile a Typst FILE (already on disk) to PDF bytes.
+
+    Unlike compile_typst_to_pdf(), this takes a path directly -- no temporary
+    file is created. The caller is responsible for ``typ_path`` already being
+    at its real, intended location so that relative ``#include()`` /
+    ``image()`` / ``read()`` paths inside it resolve correctly: Typst
+    resolves relative paths against the file containing the call, not
+    against ``root_dir``.
+
+    Args:
+        typ_path: Path to an existing .typ file to compile.
+        root_dir: Typst project root (bounds relative/absolute path escape).
+
+    Returns:
+        PDF content as bytes.
+
+    Raises:
+        ImportError: If typst package not available.
+        TypstCompilationError: If compilation fails. ``source_location`` is
+            the real ``typ_path`` (not a temporary filename), so error
+            locations are actionable for users.
+    """
+```
+
+**Visitor Methods:**
+- Docstrings include Args, no explicit Returns section (return is None)
+
+**Example from `translator.py`:**
+```python
+def visit_section(self, node: nodes.section) -> None:
+    """
+    Visit a section node.
+
+    Args:
+        node: The section node
+    """
+```
 
 ## Function Design
 
 **Size:**
-- Methods typically 10-50 lines; longer methods break down complex operations
-- Example: `TypstBuilder.write()` is ~40 lines (lines 89-137)
-- Private helper methods extract single concerns
+- Aim for functions under 50 lines; break at logical boundaries
+- Large visitor methods (e.g., `visit_paragraph`) may exceed this due to state tracking needs
+- Helper methods extract reusable logic (e.g., `_parse_typst_error()`)
 
 **Parameters:**
-- Explicit naming over positional arguments
-- Type hints for all parameters
-- Default values for optional configuration
-- Example: `TemplateEngine.__init__()` uses 12 parameters with defaults (lines 41-51)
+- Use type hints for all parameters
+- Prefer explicit keyword arguments for configuration (e.g., `root_dir: str | None = None`)
+- Avoid long parameter lists (>4); use config objects or dataclasses if needed
 
 **Return Values:**
-- Always type-hinted (including `None` for void functions)
-- Clear semantic meaning: `bool` for checks, `str` for content, `dict` for configuration
-- Example: `_is_master_document()` returns `bool` with clear True/False meaning (lines 36-58 in writer.py)
-- Iterator/generator types: `Iterator[str]` for `get_outdated_docs()` (line 48 in builder.py)
+- Always specify return type, even if `None`
+- Use `-> bytes` for binary, `-> str` for text, `-> None` for side effects
+- Visitor methods return `None` by pattern
+
+**Example from `writer.py` (static helper):**
+```python
+@staticmethod
+def _compute_template_import_path(docname: str) -> str:
+    """Compute the master document's import path for the shared _template.typ file."""
+    depth = len(PurePosixPath(docname).parent.parts)
+    return "".join(["../"] * depth) + "_template.typ"
+```
 
 ## Module Design
 
 **Exports:**
-- Public API classes/functions at module level
-- Example: `typsphinx/__init__.py` exports `setup()` function as extension entry point
-- Private helpers use leading underscore
+- Public API classes and functions defined at module top level
+- Private helpers prefixed with underscore: `_parse_typst_error()`, `_is_master_document()`
+- No explicit `__all__`, but convention is respected
 
-**Barrel Files:**
-- Main package `typsphinx/__init__.py` handles Sphinx integration
-- Individual modules handle specific concerns (builder, translator, writer, template_engine, pdf)
-- No re-exports of public APIs through __all__
+**Module Docstrings:**
+- Brief description of module purpose
+- Example from `builder.py`:
+```python
+"""
+Typst builder for Sphinx.
 
-**State Management:**
-- Class-level attributes for configuration (`TypstBuilder.name`, `TypstBuilder.format`, `TypstBuilder.out_suffix`)
-- Instance attributes initialized in `__init__()` and `init()` methods
-- Translator maintains state during tree traversal (section_level, list_stack, etc.)
-- State properly reset between independent operations
+This module implements the TypstBuilder class, which is responsible for
+building Typst output from Sphinx documentation.
+"""
+```
+
+**Module Structure (typical):**
+1. Module docstring
+2. Imports (stdlib, third-party, local)
+3. Logger setup
+4. Private module-level constants
+5. Private helper functions
+6. Public classes
+7. Public functions
 
 ---
 
-*Convention analysis: 2026-07-04*
+*Convention analysis: 2026-07-22*

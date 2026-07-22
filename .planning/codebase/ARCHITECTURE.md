@@ -1,304 +1,308 @@
-<!-- refreshed: 2026-07-04 -->
+<!-- refreshed: 2026-07-22 -->
 # Architecture
 
-**Analysis Date:** 2026-07-04
+**Analysis Date:** 2026-07-22
 
 ## System Overview
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                    Sphinx Entry Point                        │
-│  typsphinx.__init__.setup() registers builders              │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ├─────────────────────┬─────────────────────┐
-         ▼                     ▼                     ▼
-┌──────────────────────┐ ┌──────────────────────┐ ┌─────────────┐
-│   TypstBuilder       │ │ TypstPDFBuilder      │ │   Config    │
-│  `builder.py`        │ │  (extends TypstB.)   │ │ `__init__.py`│
-│  Orchestrator        │ │ PDF compilation      │ └─────────────┘
-└─────────┬────────────┘ └──────────┬───────────┘
-          │                         │
-          └──────────┬──────────────┘
-                     │
-                     ▼
-          ┌──────────────────────┐
-          │   TypstWriter        │
-          │   `writer.py`        │
-          │ Translation & Templ. │
-          └──────┬───────────────┘
+│           Sphinx Application & Documentation                │
+│    (reStructuredText files, Sphinx environment)              │
+├──────────────────────────────────────────────────────────────┤
+│  `docs/source/`, `examples/`, `tests/roots/`                │
+└────────────────────────┬─────────────────────────────────────┘
+                         │
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│         Sphinx Builder / Writer Layer                        │
+│  TypstBuilder (read-phase) / prepare_writing()              │
+│  `typsphinx/builder.py` ← init, get_outdated_docs, write()  │
+└────────────────┬───────────────────────────────────────────┬─┘
+                 │                                           │
+                 ▼                                           ▼
+        ┌──────────────────┐                    ┌────────────────────┐
+        │ TypstWriter      │                    │ TemplateEngine     │
+        │ translate()      │                    │ (load template +   │
+        │ ─────────────    │                    │  render)           │
+        │ Master: apply    │                    └────────────────────┘
+        │ template         │
+        │ Included: add    │
+        │ imports only     │
+        └────────┬─────────┘
                  │
                  ▼
-        ┌────────────────────────┐
-        │  TypstTranslator       │
-        │  `translator.py`       │
-        │  Visitor pattern for   │
-        │  docutils node->Typst  │
-        └────────┬───────────────┘
+        ┌──────────────────────────┐
+        │   TypstTranslator        │
+        │   translate() method     │
+        │   ─────────────────────  │
+        │   visit_*/depart_*       │
+        │   methods (~140 methods) │
+        │   `typsphinx/translator  │
+        │   .py`                   │
+        └────────┬─────────────────┘
                  │
                  ▼
-        ┌────────────────────────┐
-        │  TemplateEngine        │
-        │  `template_engine.py`  │
-        │  Template loading &    │
-        │  parameter mapping     │
-        └────────┬───────────────┘
+        ┌──────────────────────────┐
+        │   Body Typst Markup      │
+        │   (code-mode wrapped)    │
+        └────────┬─────────────────┘
                  │
                  ▼
-        ┌────────────────────────┐
-        │  PDF Compilation       │
-        │  `pdf.py`              │
-        │  typst-py wrapper      │
-        └────────────────────────┘
+        ┌──────────────────────────┐
+        │   Output Rendering       │
+        │   (_template.typ +       │
+        │    body content)         │
+        └────────┬─────────────────┘
+                 │
+                 ▼
+        ┌──────────────────────────┐
+        │   .typ files written     │
+        │   to outdir/             │
+        │   `typsphinx/builder.py` │
+        │   write_doc()            │
+        └────────┬─────────────────┘
+                 │
+                 ▼
+   ┌─────────────────────────────────┐
+   │  PDF Compilation (TypstPDFBuilder)
+   │  typst.compile() → PDF bytes    │
+   │  `typsphinx/pdf.py`             │
+   └─────────────────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| TypstBuilder | Orchestrate document translation; manage build lifecycle; coordinate writer and asset copying | `typsphinx/builder.py` |
-| TypstPDFBuilder | Extend TypstBuilder to compile .typ files to PDF using typst-py | `typsphinx/builder.py` |
-| TypstWriter | Create translator instances; coordinate template application; output Typst markup | `typsphinx/writer.py` |
-| TypstTranslator | Visit docutils nodes and generate Typst markup code; manage translation state | `typsphinx/translator.py` |
-| TemplateEngine | Load default/custom templates; map Sphinx metadata to template parameters; render final output | `typsphinx/template_engine.py` |
-| PDF Utilities | Compile Typst markup to PDF using typst-py package; error handling | `typsphinx/pdf.py` |
+| TypstBuilder | Orchestrates write loop, image copying, template file prep, doc tracking | `typsphinx/builder.py` |
+| TypstPDFBuilder | Extends TypstBuilder; adds PDF compilation in finish() | `typsphinx/builder.py` |
+| TypstWriter | Controls translation flow; routes master vs included documents; applies template | `typsphinx/writer.py` |
+| TypstTranslator | Core node-to-Typst conversion (~140 visitor methods); state management | `typsphinx/translator.py` |
+| TemplateEngine | Template loading, parameter mapping, Sphinx metadata injection, final rendering | `typsphinx/template_engine.py` |
+| PDF Compiler | Wrapper over typst-py; file-based compilation with error handling | `typsphinx/pdf.py` |
 
 ## Pattern Overview
 
-**Overall:** Sphinx Builder Extension with Visitor Pattern Translation
+**Overall:** Sphinx builder → writer → translator layering with single-pass visitor traversal. The pipeline is **document-centric**: each document flows independently through writer → translator → output, with shared template and configuration applied per-document-type (master vs. included).
 
 **Key Characteristics:**
-- Implements Sphinx Builder interface (`sphinx.builders.Builder`)
-- Uses visitor pattern (docutils) to traverse and translate document trees
-- Separates concerns: building, writing, translating, templating, compilation
-- Supports two output formats: Typst markup (.typ) and PDF (.pdf)
-- Handles both master documents (with template) and included documents (#include())
+- **Visitor pattern** on docutils/Sphinx AST nodes (docutils standard SphinxTranslator base)
+- **Code-mode block wrapping** for continuous Typst code generation (all body output wrapped in `#{...}`)
+- **Master vs. included document routing** (defined by `typst_documents` config):
+  - Master documents: receive full template via TemplateEngine, produce complete `.typ`
+  - Included documents: receive minimal imports only (no template), meant for `#include()` in master
+- **Toctree preservation** (builder overrides default Sphinx expansion): raw toctree nodes converted to Typst `#include()` calls
+- **Label namespacing by docname** (not output filename): enables cross-document references to work across renamed masters
+- **Single shared template file** (`_template.typ`) written at outdir root, imported by all master documents with depth-relative paths
 
 ## Layers
 
-**Sphinx Integration Layer:**
-- Purpose: Register with Sphinx and hook into build process
+**Registration & Setup Layer:**
+- Purpose: Register builders and config values with Sphinx
 - Location: `typsphinx/__init__.py`
-- Contains: Extension setup, builder registration, config value registration
-- Depends on: sphinx.application, sphinx.builders
-- Used by: Sphinx application loader
+- Contains: Entry point, `setup()` function, builder registration, config value declarations
+- Depends on: Sphinx API
+- Used by: Sphinx framework (automatic on extension load)
 
-**Build Orchestration Layer:**
-- Purpose: Manage build lifecycle and coordinate document processing
-- Location: `typsphinx/builder.py` (TypstBuilder, TypstPDFBuilder classes)
-- Contains: Document discovery, writer setup, output directory management, asset copying (images, templates), PDF compilation orchestration
-- Depends on: sphinx.builders.Builder, docutils.nodes
-- Used by: Sphinx build system
+**Builder & Coordination Layer:**
+- Purpose: Orchestrate the write loop, manage document lifecycle, handle images and template prep
+- Location: `typsphinx/builder.py`
+- Contains: `TypstBuilder.write()`, `prepare_writing()`, `write_doc()`, `_write_template_file()`, `_compute_master_included_docnames()`, image post-processing
+- Depends on: TypstWriter, Sphinx Builder base, toctree graph
+- Used by: Sphinx write phase
 
-**Document Translation Layer:**
-- Purpose: Convert Sphinx docutils document trees to Typst markup
-- Location: `typsphinx/writer.py`, `typsphinx/translator.py`
-- Contains: 
-  - Writer: orchestrates translation, applies templates, manages document/master distinction
-  - Translator: stateful visitor that walks doctree and generates Typst code
-- Depends on: docutils.nodes, sphinx.util.docutils.SphinxTranslator
-- Used by: TypstBuilder during write phase
+**Translation Routing Layer:**
+- Purpose: Route documents through translation pipeline; decide template application; manage imports
+- Location: `typsphinx/writer.py`
+- Contains: `TypstWriter.translate()`, `_is_master_document()`, `_compute_template_import_path()`, master vs. included branching
+- Depends on: TypstTranslator, TemplateEngine
+- Used by: TypstBuilder.write_doc()
 
-**Template & Configuration Layer:**
-- Purpose: Handle template loading, parameter mapping, and document rendering
+**Core Translation Layer:**
+- Purpose: Convert docutils nodes to Typst markup line-by-line
+- Location: `typsphinx/translator.py`
+- Contains: `TypstTranslator` with ~140 `visit_*`/`depart_*` methods, string building, state tracking
+- Depends on: docutils/Sphinx node classes, escape utilities
+- Used by: TypstWriter.translate()
+
+**Template & Rendering Layer:**
+- Purpose: Load templates, map Sphinx metadata to Typst parameters, render final output
 - Location: `typsphinx/template_engine.py`
-- Contains: Template resolution (custom → search paths → default), Sphinx metadata mapping, Typst Universe package support, template rendering with parameters
-- Depends on: pathlib, typing
-- Used by: TypstWriter for document rendering
+- Contains: `TemplateEngine.render()`, `map_parameters()`, `extract_toctree_options()`, template file search
+- Depends on: Template files (default at `typsphinx/templates/base.typ`)
+- Used by: TypstWriter for master documents
 
 **PDF Compilation Layer:**
-- Purpose: Compile generated Typst markup to PDF
+- Purpose: Wrap typst-py compiler; handle errors and version checking
 - Location: `typsphinx/pdf.py`
-- Contains: Typst availability checking, PDF compilation via typst-py, error handling and parsing
-- Depends on: typst package, logging, tempfile
+- Contains: `compile_typst_file_to_pdf()`, `TypstCompilationError`, `check_typst_available()`, error parsing
+- Depends on: typst Python package
 - Used by: TypstPDFBuilder.finish()
 
 ## Data Flow
 
-### Primary Request Path: Document Translation
+### Primary Request Path (Master Document)
 
-1. **Build Initiation** (`typsphinx/__init__.py:setup()`)
-   - Sphinx loads extension via entry point
-   - Registers TypstBuilder and TypstPDFBuilder
-   - Registers configuration values (typst_documents, typst_template, typst_use_mitex, etc.)
+1. **Read phase** — Sphinx parses `.rst` files into doctree, builds toctree graph (`env.toctree_includes`)
+2. **Write phase preparation** (`builder.py:write()`, line ~358–372):
+   - `prepare_writing()` creates TypstWriter instance
+   - `_write_template_file()` writes shared `_template.typ` to outdir root (once per build)
+   - `_compute_master_included_docnames()` walks toctree graph, populates `master_included_docnames` set for cross-ref degradation
+3. **Per-document write** (`builder.py:write_doc()`, called for each docname):
+   - `env.get_doctree(docname)` retrieves document AST (preserves toctree nodes, not expanded)
+   - Passed to `writer.write(doctree)` (docutils Writer API)
+4. **Translation routing** (`writer.py:translate()`):
+   - Creates `TypstTranslator` instance, walks doctree node-by-node
+   - Translator accumulates body content in `self.body` list
+   - Returns `body = visitor.astext()` (joined Typst markup)
+   - **Master document branch**: passes body + config to `TemplateEngine.render()` with `template_file` reference
+   - Receives rendered output: template imports + parameters + body, output to `.typ` file
+5. **PDF compilation** (TypstPDFBuilder only, `builder.py:finish()`):
+   - For each master in `typst_documents`, calls `compile_typst_file_to_pdf(outdir/stem.typ)`
+   - Writes PDF bytes to `outdir/stem.pdf`
 
-2. **Build Phase: Preparation** (`typsphinx/builder.py:TypstBuilder.prepare_writing()`)
-   - Creates TypstWriter instance
-   - Writes template file (_template.typ) to output directory for master documents to import
-   - Template file uses TemplateEngine to load and render template with metadata
+### Included Document Request Path
 
-3. **Build Phase: Document Writing** (`typsphinx/builder.py:TypstBuilder.write()`)
-   - Iterates over all documents to build
-   - For each document: calls `env.get_doctree()` to get document tree (preserving toctree nodes)
-   - Applies post-transforms to doctree
-   - Calls `write_doc()` for each document
+1. **Same read phase and write setup as master**
+2. **Per-document write** (identical to master through step 3)
+3. **Translation routing** (`writer.py:translate()`):
+   - **Included document branch**: adds minimal `@preview` imports (codly, codly-languages, mitex, gentle-clues)
+   - No template application; output is body content only + imports
+   - Output written to `.typ` file (meant to be `#include()`d by master)
+4. **No direct PDF compilation** (included documents are inlined via `#include()` into master's compiled PDF)
 
-4. **Single Document Translation** (`typsphinx/builder.py:TypstBuilder.write_doc()`)
-   - Gets doctree for document
-   - Calls `self.writer.translate()` to translate to Typst
-   - Saves output to .typ file in output directory (preserving source directory structure)
-   - Collects images via `post_process_images()`
+### Secondary Flow: Toctree Conversion to #include()
 
-5. **Translation to Typst Markup** (`typsphinx/writer.py:TypstWriter.translate()`)
-   - Creates TypstTranslator with document and builder context
-   - Calls `document.walkabout(visitor)` to visit all nodes
-   - Translator generates body content as Typst markup
-   - For included documents (not in typst_documents): wraps body in essential imports, returns
-   - For master documents (in typst_documents):
-     - Creates TemplateEngine with configuration
-     - Gathers Sphinx metadata (project, author, release, copyright, custom elements)
-     - Maps parameters using TemplateEngine.map_parameters()
-     - Extracts toctree options
-     - Renders with template: `template_engine.render(params, body, template_file="_template.typ")`
+- **Entry point**: `translator.py:visit_toctree()` (line ~3345)
+- **Decision**: check document type via `builder.master_included_docnames` set
+  - If docname not in set (orphan or excluded): skip (no `#include()` emitted)
+  - Else: iterate child docnames, emit `#include("relpath/to/child.typ")` calls
+- **Path computation**: uses `_resolve_xref_docname()` (translator method) to compute relative path from current master to child doc's output file
+- **Deduplication**: builder's `_included_docnames` set tracks which docs have been included; a doc is `#include()`d at most once even if reachable via multiple toctree paths (diamond problem)
 
-6. **Node Translation** (`typsphinx/translator.py:TypstTranslator` - visitor methods)
-   - Maintains state: section_level, in_figure, in_table, in_paragraph, list_stack, etc.
-   - Visits each docutils node type (title, paragraph, emphasis, code, table, etc.)
-   - Generates Typst function calls and markup
-   - All content wrapped in code mode block `#{...}` for unified syntax
-   - Uses Typst functions: heading(), par(), text(), emph(), etc.
+### Tertiary Flow: Cross-Document Reference Degradation
 
-7. **Finish Phase: Asset Copying** (`typsphinx/builder.py:TypstBuilder.finish()`)
-   - Copies image files from source to output (preserving paths)
-   - Copies template assets (fonts, logos, etc.) if custom template used
-   - Logs completion
-
-### Secondary Path: PDF Generation (TypstPDFBuilder only)
-
-1. **Override write_doc()** (`typsphinx/builder.py:TypstPDFBuilder.write_doc()`)
-   - Generates .typ file (same as parent TypstBuilder)
-   - Does not generate .pdf yet (deferred to finish())
-
-2. **PDF Compilation** (`typsphinx/builder.py:TypstPDFBuilder.finish()`)
-   - Calls parent `super().finish()` to copy assets
-   - For each master document (typst_documents):
-     - Reads .typ file from output directory
-     - Calls `compile_typst_to_pdf()` with content and root_dir
-     - Writes PDF to output directory with same docname
-     - Logs success or error
-
-3. **Typst Compilation** (`typsphinx/pdf.py:compile_typst_to_pdf()`)
-   - Validates typst package is available
-   - Writes Typst content to temporary file (in root_dir if provided)
-   - Calls `typst.compile(temp_file, root=root_dir)` → returns PDF bytes
-   - Cleans up temporary file
-   - Handles and parses errors via `_parse_typst_error()`
-
-**State Management:**
-- Builder maintains current docname, outdir, srcdir
-- Writer maintains builder reference and document state
-- Translator maintains extensive state: section level, context flags (in_table, in_figure, in_paragraph, etc.), list nesting stack, buffered content
-- TemplateEngine is stateless (holds config, loads templates on demand)
+- **Entry point**: `translator.py:visit_pending_xref()` (line ~2885)
+- **Decision**: if target docname not in `builder.master_included_docnames`, degrade to plain text (not a Typst link) to avoid "label does not exist" compile error
+- **Reason**: Typst's `link(<label>, ...)` fails if label is not emitted anywhere in the compiled document; orphan/excluded docs are never `#include()`d, so their labels never appear
 
 ## Key Abstractions
 
-**Visitor Pattern (Translator):**
-- Purpose: Stateful traversal of docutils document trees
-- Examples: `visit_paragraph()`, `visit_title()`, `visit_emphasis()`, etc.
-- Pattern: Each node type has visit_* and depart_* methods managing state and output
-- Located in: `typsphinx/translator.py` (extends `sphinx.util.docutils.SphinxTranslator`)
+**Document Tree Visitor (TypstTranslator):**
+- Purpose: Encapsulates node-type-specific conversion logic
+- Examples: `visit_section()`, `visit_paragraph()`, `visit_table()`, `visit_reference()`
+- Pattern: Docutils visitor pattern; each node type gets `visit_*` (enter) and `depart_*` (exit) methods; state tracked in instance variables
 
-**Master vs. Included Documents:**
-- Purpose: Different output for different document roles in typst_documents config
-- Master documents: full template wrapping (headers, imports, layout)
-- Included documents: minimal imports only (included via #include() in master)
-- Implementation: `typsphinx/writer.py:TypstWriter._is_master_document()`
-- Decision point: `typsphinx/writer.py:TypstWriter.translate()` branches based on master status
+**Code-Mode Block (Typst `#{...}`):**
+- Purpose: Typst's only way to emit multiple statements/expressions in a sequence (adjacent juxtaposition in markup mode is not valid outside `code()` blocks)
+- Example: body output starts with `#{` and ends with `}`, with all statements inside (paragraphs, lists, headings, etc. as Typst calls)
+- Implementation: `writer.py:translate()` wraps body in `#{...}` if not already wrapped; translator emits bare function calls inside
 
-**Template Resolution Chain:**
-- Purpose: Flexible template discovery with fallback to default
-- Priority: explicit template_path → search_paths → default bundled template
-- Implementation: `typsphinx/template_engine.py:TemplateEngine.load_template()`
-- Supports: custom paths, directory search, Typst Universe packages (@preview/*)
+**State Management (Translator Instance Variables):**
+- Purpose: Track context when walking deep/nested document structures (lists, tables, figures, etc.)
+- Examples:
+  - `section_level`: heading depth
+  - `in_list_item`, `_list_item_stack`: track nesting for proper para separation
+  - `in_table`, `in_thead`: table context
+  - `figure_content`, `figure_caption`: buffer content during figure traversal
+- Pattern: Push/pop on visit/depart; initialized in `__init__`, reset/modified per-context
 
-**Typst Universe Package Support:**
-- Purpose: Use external Typst templates from @preview namespace
-- Config options: typst_package (package spec), typst_template_function (template function name), typst_package_imports (specific imports)
-- When active: skips custom template file writing, relies on Typst package instead
-- Location: checked throughout builder and writer
+**Label Namespace (Docname Prefix):**
+- Purpose: Ensure `<label>` identifiers are unique across the whole compiled document (Typst requires each label to be unique)
+- Implementation: `translator.py:_namespace_label(label)` prepends docname to any generated anchor/label
+- Example: anchor `"sec-intro"` in doc `"chapter1"` becomes label `"chapter1:sec-intro"`
+
+**Template Parameter Mapping:**
+- Purpose: Allow users to customize which Sphinx config values map to which template function parameters
+- Example: Sphinx's `project` → template's `title`, `author` → `authors`, `release` → `date` (default mapping)
+- Implementation: `template_engine.py:DEFAULT_PARAMETER_MAPPING`, user override via `typst_template_mapping` config
 
 ## Entry Points
 
-**Sphinx Extension Entry Point:**
-- Location: `typsphinx/__init__.py:setup(app: Sphinx) -> Dict[str, Any]`
-- Triggers: When Sphinx loads extension (via entry point in pyproject.toml)
-- Responsibilities: Register builders, register config values
-- Returns: Metadata dict with version, parallel_read_safe, parallel_write_safe
+**Sphinx Extension Entry:**
+- Location: `typsphinx/__init__.py:setup(app)`
+- Triggers: Sphinx calls on extension load (when `typsphinx` listed in `conf.py:extensions`)
+- Responsibilities: Register builders, config values, set metadata
 
-**Build Entry Points:**
-- TypstBuilder.init(): Initial builder setup
-- TypstBuilder.get_outdated_docs(): Rebuild all documents (simple strategy)
-- TypstBuilder.prepare_writing(): Setup before build
-- TypstBuilder.write(): Main build loop
-- TypstBuilder.finish(): Post-build asset copying
+**Builder Entry:**
+- Location: `typsphinx/builder.py:TypstBuilder.write()`
+- Triggers: Sphinx calls during write phase (`sphinx-build -b typst`)
+- Responsibilities: Coordinate all document writing
 
-**Build Format Registration:**
-- `sphinx.builders:typst` → TypstBuilder
-- `sphinx.builders:typstpdf` → TypstPDFBuilder
-- Invoked via `sphinx-build -b typst` or `sphinx-build -b typstpdf`
+**Writer Entry:**
+- Location: `typsphinx/writer.py:TypstWriter.translate()`
+- Triggers: Builder calls for each document
+- Responsibilities: Route translation and template application
+
+**Translator Entry:**
+- Location: `typsphinx/translator.py:TypstTranslator.__init__()` and `visit_*()` methods
+- Triggers: Writer instantiates and calls `document.walkabout(translator)`
+- Responsibilities: Convert nodes to Typst markup
 
 ## Architectural Constraints
 
-- **Sphinx Compatibility:** Must inherit from `sphinx.builders.Builder` and follow Sphinx build lifecycle
-- **Threading:** `allow_parallel = True` on builders; stateless design where possible (state in builder/writer/translator instances)
-- **Global State:** Minimal; each document gets new TypstTranslator instance with fresh state
-- **Circular Imports:** Avoided via careful layering (builder imports writer, writer imports translator and template_engine, translator doesn't import builder)
-- **Python Version:** Must support Python 3.9+ (declared in pyproject.toml)
-- **Dependencies:** Core requires sphinx ≥5.0, docutils ≥0.18, typst ≥0.14.1; PDF requires typst-py
-- **Template File Format:** Typst markup with parameter injection (not Jinja2 or Python templating)
-- **Code Mode Design:** All translation output uses Typst code mode `#{...}` (no hybrid markup/code)
+- **Threading:** Sphinx allows parallel writes (`allow_parallel = True`), but each document is translated independently in its own process; no shared state between workers
+- **Global state:** Module-level config values stored in Sphinx app; no module-level singletons in translator or writer (state is instance-based)
+- **Circular imports:** None detected; builder imports writer, writer imports translator, clear dependency graph
+- **Toctree expansion:** Builder uses `env.get_doctree()` (preserves toctree nodes), NOT `env.get_and_resolve_doctree()` (expands toctree to paragraphs) — a deliberate override to capture raw toctree structure for `#include()` emission
+- **Template import path computation:** Uses depth-based relative path (`../` × depth + `_template.typ`) to avoid directory-name collisions with synthetic sentinel (`_template`); see `writer.py:_compute_template_import_path()` for rationale
+- **Label namespace**: All cross-document labels are prefixed with source docname; Typst compile fails if a label is referenced but not defined — degradation of cross-refs to orphan docs prevents this failure
 
 ## Anti-Patterns
 
-### State Mutation in Visitor During Traversal
+### Expanding Toctree in Builder
 
-**What happens:** Translator state (section_level, in_table, etc.) is modified during node visitation without proper cleanup
+**What happens:** Early implementation used `env.get_and_resolve_doctree()`, which expands toctree nodes into compact paragraph with link lists.
 
-**Why it's wrong:** If visitor pattern traversal is interrupted or reordered, state can become inconsistent, leading to malformed output
+**Why it's wrong:** Typst needs raw toctree structure to emit `#include()` calls for document assembly; expanded form loses that information, making multi-document builds impossible.
 
-**Do this instead:** Always pair visit_* and depart_* methods. Increment in visit_*, decrement in depart_. Use try-finally or context managers if cleanup is critical. `typsphinx/translator.py` implements this correctly (e.g., `visit_section` increments, `depart_section` decrements).
+**Do this instead:** Use `env.get_doctree()` to preserve toctree nodes (`builder.py:write()`, line ~379).
 
-### Mixing Translation Logic with Template Rendering
+### Unconditional Shared Template Import in Package-Only Route
 
-**What happens:** Earlier code versions tried to apply templates during translation
+**What happens:** Previous implementation always wrote and imported `_template.typ`, even when no custom template was configured (package-only route).
 
-**Why it's wrong:** Couples node translation to document role (master/included), makes testing harder, reduces reusability
+**Why it's wrong:** When only `typst_package` is set (no custom `typst_template`), the builder must NOT create `_template.typ` (the package itself IS the template); unconditional import tried to load a file that was never written, causing "file not found" compile error.
 
-**Do this instead:** Translate to plain Typst markup first, then apply template in Writer layer. `typsphinx/writer.py:TypstWriter.translate()` does this correctly—generates body content first, then wraps in template only for master documents.
+**Do this instead:** Use single routing decision `resolve_package_for_engine()` in exactly one place; builder and writer must agree (`template_engine.py`, `writer.py:translate()`, `builder.py:_write_template_file()`).
 
-### Hardcoded File Paths Without Preservation
+### Relativizing Master Import Path Against Sentinel Docname
 
-**What happens:** Builder outputs flat directory structure, losing source directory nesting
+**What happens:** Earlier implementation computed template import path by using translator's "relativize docname against docname" helper, passing synthetic sentinel `"_template"`.
 
-**Why it's wrong:** Multi-level documentation (chapters/sections as subdirectories) produces confusing flat output
+**Why it's wrong:** When the master's own directory is literally named `_template` (e.g., master docname is `"_template/index"`), string equality collides and the helper returns a malformed path.
 
-**Do this instead:** Preserve source directory structure in output. `typsphinx/builder.py:TypstBuilder.write_doc()` uses `path.join(self.outdir, docname + self.out_suffix)` where docname includes path (e.g., "chapter1/section1"), and calls `ensuredir()` to create nested directories.
+**Do this instead:** Compute depth-based relative path directly from nesting depth of master's docname (`writer.py:_compute_template_import_path()`, line ~106).
+
+### Unconditional Cross-Reference Link Emission
+
+**What happens:** Early implementation emitted Typst `link(<label>, ...)` for every cross-reference, including to orphan/excluded documents.
+
+**Why it's wrong:** Typst's `link()` function requires the label to exist in the compiled document; orphan documents are never `#include()`d, so their labels never appear, causing "label does not exist" compile fatal.
+
+**Do this instead:** Degrade cross-ref to plain text if target docname is not in `builder.master_included_docnames` (`translator.py:visit_pending_xref()`, line ~2885).
 
 ## Error Handling
 
-**Strategy:** Graceful degradation with logging; critical errors raise exceptions
+**Strategy:** Catch exceptions at three layers:
+1. **Builder level** (`builder.py`): Image processing, file I/O errors logged; build continues
+2. **Translator level** (`translator.py`): Unsupported node types logged as warnings; emit placeholder text instead of crashing
+3. **PDF compiler level** (`pdf.py`): Typst compilation errors caught, wrapped in `TypstCompilationError` with source location and original error attached
 
 **Patterns:**
-- File not found (images, templates): Log warning, continue (don't break build)
-- Template loading: Fallback to default template if custom not found
-- Typst compilation: Catch exception, parse error details, raise TypstCompilationError with context
-- Invalid nodes: Log debug message, skip or output placeholder
-
-**Error Types:**
-- `TypstCompilationError` (from pdf.py): Wraps typst-py exceptions with context
-- Standard exceptions: TypeError, ValueError for config validation
-- Sphinx warnings: Logged via sphinx.util.logging
+- Unsupported nodes: log warning, emit `[unsupported node type]` or skip silently (depends on node criticality)
+- Missing config values: graceful defaults (empty string, empty dict, etc.)
+- Template/image file not found: log warning, fall back to default or skip
 
 ## Cross-Cutting Concerns
 
-**Logging:** Via `sphinx.util.logging.getLogger(__name__)` in each module; uses Sphinx's logger for consistency and control
+**Logging:** Sphinx logger (`sphinx.util.logging.getLogger(__name__)`) used throughout; enables integration with Sphinx's logging UI and file output.
 
-**Validation:** Config values validated in setup() and builder init(); docutils nodes assumed valid (Sphinx guarantees)
+**Validation:** Config values validated in `__init__.py:setup()` (type hints via `add_config_value()` second-to-last parameter); builder validates `typst_documents` format (must be tuple with at least 2 elements).
 
-**Image/Asset Handling:** Tracked during translation, copied in finish() phase; preserves relative paths
-
-**Configuration:** Registered in setup(), accessed via builder.config; supports custom values (typst_documents, typst_template, typst_use_mitex, typst_elements, etc.)
+**Authentication:** None (no external API auth needed; Typst Universe packages are public).
 
 ---
 
-*Architecture analysis: 2026-07-04*
+*Architecture analysis: 2026-07-22*
