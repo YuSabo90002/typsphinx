@@ -64,7 +64,7 @@ Requirements for the v0.6.2 milestone. Each maps to a roadmap phase.
 - [x] **DOC-01**: No unverifiable numeric claim survives in `README.md` — the two `413 tests` occurrences (`:223` code comment, `:243` Testing Strategy bullet), the `93% overall` coverage bullet (`:246`), and the unenforced `Maintain 80%+ code coverage` guideline (`:299`). The fix is **removal, not re-measurement**: the count drifted 413 → 577 → 589 within days, and no `fail_under` gate exists in `pyproject.toml`/`tox.ini` to hold any coverage number. Machine-guarded numbers stay: the `@preview` versions at `:23`/`:25` (guarded by `tests/test_preview_version_sync.py`) and the Requirements block at `:37-39` (matches `pyproject.toml`).
 - [x] **DOC-02**: The README "Configuration Options" section (`:203-211`) no longer reads as an exhaustive list of 5 while `typsphinx/__init__.py:44-62` registers 12. It is worded as an explicitly-partial set of the main settings, lists 6 entries (the current 5 plus `typst_documents` — the master-document setting without which no PDF is produced), and links to `docs/source/user_guide/configuration.rst`, the file Sphinx actually builds, instead of the orphan `docs/configuration.rst` (526 lines, outside `docs/source/` and outside every toctree, carrying the wrong package name `sphinxcontrib.typst`).
 - [x] **DOC-03**: Every remaining README capability/status claim matches measured behavior: `citations` is dropped from the "Cross-references and citations" feature bullet (`:30`) and Citation is added to Known Limitations (`typsphinx/translator.py` has no `visit_citation`); the Known Limitations `Glossary` line (`:268`) is removed (`translator.py:4324 visit_glossary` handles it since Phase 12); `**Status**: Stable (v0.5.0)` (`:323`) reads `Stable (v0.6.1)` — the measured `pyproject.toml` version, never a forward-dated 0.6.2; and the Acknowledgments methodology line (`:315`) names the GSD workflow actually in use instead of "Kiro-style Spec-Driven Development" (no `.kiro` directory exists). Bibliography stays listed as unsupported (no bibliography handling exists in the source).
-- [ ] **DOC-04**: `CLAUDE.md`'s four Python-version claims (`:28` `matrixed across py310–py313`, `:29` `env_list: py310..py313`, `:75` `Python 3.10+ compatibility is required`, `:78` the py310–py313 CI matrix note) and the `pyproject.toml:122-123` ruff-ignore comment state the measured floor: `requires-python = ">=3.12"`, `tox.ini:2` `env_list = py312, py313`, `.github/workflows/ci.yml:18` `python-version: ['3.12','3.13']`, classifiers 3.12/3.13 only. **Prose only** — the `UP006`/`UP035` ignores stay in place and no file under `typsphinx/` changes.
+- [x] **DOC-04**: `CLAUDE.md`'s four Python-version claims (`:28` `matrixed across py310–py313`, `:29` `env_list: py310..py313`, `:75` `Python 3.10+ compatibility is required`, `:78` the py310–py313 CI matrix note) and the `pyproject.toml:122-123` ruff-ignore comment state the measured floor: `requires-python = ">=3.12"`, `tox.ini:2` `env_list = py312, py313`, `.github/workflows/ci.yml:18` `python-version: ['3.12','3.13']`, classifiers 3.12/3.13 only. **Prose only** — the `UP006`/`UP035` ignores stay in place and no file under `typsphinx/` changes.
 - [x] **DOC-05**: The verification is a **full-text pass over `README.md`**, not a ledger-only edit — the discussion ledger is "found so far", not a completeness guarantee (the Kiro, citations, Glossary and orphan-link discrepancies were all absent from the originating todo). Anything found beyond the ledger is fixed here or recorded as a pending todo, and the two known deferrals — typing modernization behind `UP006`/`UP035` (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as `.planning/todos/pending/` files rather than being silently dropped.
 
 ## v2 Requirements
@@ -118,11 +118,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONF-03 | Phase 22.2 (Dead Config-Value Sweep, INSERTED) | Not started |
 | WR-01 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
 | WR-02 | Phase 22.3 (typstpdf Builder Warning Hardening, INSERTED) | Not started |
-| DOC-01 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
-| DOC-02 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
-| DOC-03 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
-| DOC-04 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
-| DOC-05 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Not started |
+| DOC-01 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Complete |
+| DOC-02 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Complete |
+| DOC-03 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Complete |
+| DOC-04 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Complete |
+| DOC-05 | Phase 22.4 (README 記述の実測乖離解消, INSERTED) | Complete |
 
 **Coverage:**
 

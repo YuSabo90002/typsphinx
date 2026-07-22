@@ -438,7 +438,7 @@ version bump, which carries the README `**Status**` line to `0.6.2` per the D-11
   5. The pass is full-text: every remaining README claim is checked against the codebase, and anything found beyond the discussion ledger is fixed here or filed under `.planning/todos/pending/`. The two known deferrals — typing modernization (D-15) and deletion of the orphan `docs/configuration.rst` (D-16) — exist as pending todo files (DOC-05).
   6. Scope fence held: no file under `typsphinx/` is modified, no `typst_*` config value is added or removed, no `docs/` file is deleted or re-homed, no github.io → Read the Docs migration, and no historical `CHANGELOG.md` entry is rewritten.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -448,7 +448,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 22.4-03-PLAN.md — CLAUDE.md の Python バージョン記述 4 箇所と pyproject.toml の ruff ignore コメントを実測に合わせる — wave 2
+- [x] 22.4-03-PLAN.md — CLAUDE.md の Python バージョン記述 4 箇所と pyproject.toml の ruff ignore コメントを実測に合わせる — wave 2
 
 ### Phase 23: v0.6.2 Release Prep + Regression-Gate Close
 
@@ -506,7 +506,7 @@ Active milestone (v0.6.2) phases execute in numeric order: 19 → 20 → 21 → 
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete    | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete    | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
-| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 2/3 | In Progress|  |
+| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | In Progress|  |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 0/TBD | Not started | - |
 
 ## Backlog
