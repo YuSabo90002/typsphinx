@@ -2411,7 +2411,22 @@ class TypstTranslator(SphinxTranslator):
         # so a same-document link(<id>, ...) resolves (no ids -> no-op). Emitted
         # while self.in_table is still False, so add_text routes to the real
         # body (not a stale table_cell_content buffer).
-        self._emit_id_anchors(node)
+        #
+        # TBL-02 (Phase 25, Critical Pitfall 3): a CAPTIONED table instead
+        # self-anchors ids[0] as its own figure `<label>` postfix in
+        # depart_table, mirroring depart_figure. Anchoring it here TOO would
+        # define that id TWICE, aborting the whole compile at Typst's
+        # semantic pass with "label ... occurs multiple times" -- a real
+        # fatal invisible to any translator-only unit test. The doctree is
+        # already fully built at visit_table time (docutils constructs the
+        # whole tree before any visiting begins), so the captioned pre-check
+        # is reliable here, before the title has even been visited. Skip the
+        # call entirely for a captioned table; depart_table calls it with
+        # skip_ids={ids[0]} AFTER emitting the figure's own <label>.
+        # Non-captioned tables keep this unconditional call, unchanged.
+        is_captioned = bool(node.children) and isinstance(node.children[0], nodes.title)
+        if not is_captioned:
+            self._emit_id_anchors(node)
 
         # Emit a leading newline separator when this table follows a
         # sibling inside a list item, matching the block-visitor pattern
@@ -2489,6 +2504,18 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a table node.
 
+        A CAPTIONED table (TBL-01/TBL-02, Phase 25 -- ``self.table_caption``
+        truthy, i.e. a non-empty rendered caption; a whitespace/empty title
+        strips to a falsy ``""`` and takes the plain-table path, never an
+        empty-caption ``figure()``) wraps the inner ``table(...)`` call in
+        ``figure(..., caption: {...}, kind: table)`` for native Typst
+        "Table N" numbering, composed with the existing ``:width:`` ->
+        ``block(width: ...)[...]`` wrap exactly like ``depart_figure``
+        (D-04): the block wraps the WHOLE figure, and the ``<label>``
+        bracket-close lands inside whichever markup bracket was opened.
+        A caption-less table takes the byte-for-byte UNCHANGED plain-table
+        path (SC#2).
+
         Args:
             node: The table node
         """
@@ -2507,38 +2534,73 @@ class TypstTranslator(SphinxTranslator):
             width = node.get("width")
             converted_width = self._convert_length_to_typst(width) if width else None
 
-            # Use self.body.append directly to avoid routing to table_cell_content
-            if converted_width is not None:
-                self.body.append(
-                    f"block(width: {converted_width})[#table(\n"
-                    f"  columns: {self._build_columns_fr_arg()},\n"
-                )
-            else:
-                self.body.append(
-                    f"table(\n  columns: {self._build_columns_fr_arg()},\n"
-                )
-
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
             body_cells = [
                 cell for cell in self.table_cells if not cell.get("is_header")
             ]
 
-            # Add header cells with table.header() wrapper
+            # Build the inner table(...) call as one string -- unchanged
+            # emission logic, just assembled locally instead of appended
+            # directly, so a captioned table can wrap it in figure(...)
+            # below without re-deriving the cell-rendering logic.
+            table_parts = [f"table(\n  columns: {self._build_columns_fr_arg()},\n"]
             if header_cells:
-                self.body.append("  table.header(\n")
+                table_parts.append("  table.header(\n")
                 for cell in header_cells:
-                    self.body.append(self._format_table_cell(cell, indent="    "))
-                self.body.append("  ),\n")
-
-            # Add body cells
+                    table_parts.append(self._format_table_cell(cell, indent="    "))
+                table_parts.append("  ),\n")
             for cell in body_cells:
-                self.body.append(self._format_table_cell(cell, indent="  "))
+                table_parts.append(self._format_table_cell(cell, indent="  "))
+            table_parts.append(")")
+            table_code = "".join(table_parts)
 
-            if converted_width is not None:
-                self.body.append(")]\n\n")
+            if self.table_caption:
+                # TBL-01/D-02: figure-wrap with native "Table N" numbering.
+                # kind: table is ALWAYS present. caption is a {...} code
+                # block (already-rendered code-mode content, mirrors
+                # depart_figure's caption: {self.figure_caption} wrap).
+                figure_code = (
+                    f"figure(\n{table_code},\n"
+                    f"  caption: {{{self.table_caption}}},\n"
+                    f"  kind: table\n)"
+                )
+                # D-04 three-way branch, mirroring depart_figure verbatim:
+                # ids always self-anchor via the <label> postfix regardless
+                # of width; width alone (no ids) closes a bracket with no
+                # label; neither -> bare figure(...) statement.
+                if node.get("ids"):
+                    label = self._namespace_label(
+                        self._current_docname(), node["ids"][0]
+                    )
+                    if converted_width is not None:
+                        self.body.append(
+                            f"block(width: {converted_width})[#{figure_code} "
+                            f"<{label}>]\n\n"
+                        )
+                    else:
+                        self.body.append(f"[#{figure_code} <{label}>]\n\n")
+                elif converted_width is not None:
+                    self.body.append(
+                        f"block(width: {converted_width})[#{figure_code}]\n\n"
+                    )
+                else:
+                    self.body.append(f"{figure_code}\n\n")
+
+                # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored
+                # above as the figure's own <label> -- anchoring it again
+                # here would define it TWICE (Typst "label ... occurs
+                # multiple times" compile fatal). Anchor only a PROPAGATED
+                # remainder id (ids[1:]); no-op when there is none.
+                self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
             else:
-                self.body.append(")\n\n")
+                # Caption-less path: byte-for-byte unchanged (SC#2).
+                if converted_width is not None:
+                    self.body.append(
+                        f"block(width: {converted_width})[#{table_code}]\n\n"
+                    )
+                else:
+                    self.body.append(f"{table_code}\n\n")
 
         self.in_table = False
         self.table_cells = []
