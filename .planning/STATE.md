@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: 24
-current_phase_name: delete-typst-toctree-defaults-dead-config-sweep-round-2-part
-status: executing
-stopped_at: Phase 24 planned (1 plan, verification passed)
-last_updated: "2026-07-23T13:34:27.369Z"
+current_phase: 25
+current_phase_name: "reimplement PR#98"
+status: planning
+stopped_at: Phase 24 planned (1 plan) — auto-advancing to execute (--chain)
+last_updated: "2026-07-23T13:49:24.436Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 24 execution started
+last_activity_desc: Phase 24 complete, transitioned to Phase 25
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 1
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 24 (delete-typst-toctree-defaults-dead-config-sweep-round-2-part) — EXECUTING
-Plan: 1 of 1
-Status: Executing Phase 24
-Last activity: 2026-07-23 — Phase 24 execution started
+Phase: 25 — Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-23 — Phase 24 complete, transitioned to Phase 25
 
 Progress: [░░░░░░░░░░] 0%
 

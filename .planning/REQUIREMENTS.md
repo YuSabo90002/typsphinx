@@ -10,7 +10,7 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 ### Config (dead-config sweep round 2)
 
 - [ ] **CONF-04**: User can set `papersize` and `fontsize` via `typst_elements` in `conf.py` (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) and see them applied in the compiled `.typ`/PDF via the template's `project()` function — not silently dropped. Implemented as a **curated allowlist** (only keys `base.typ`'s `project()` declares; `base.typ` itself is unchanged), with `fontsize` emitted as a Typst **length** (not a quoted string) and `papersize` as a string; an unrecognized key fails loudly rather than silently, and baseline Sphinx metadata (`copyright`, etc.) is never leaked into `project()`.
-- [ ] **CONF-05**: The registered-but-inert `typst_toctree_defaults` config value is removed from every surface (`__init__.py` registration, `docs/configuration.rst`, `examples/advanced`, README, and its registration-only test file) so it is no longer presented as a supported option. (Grep-confirmed zero consumers — pure removal.)
+- [x] **CONF-05**: The registered-but-inert `typst_toctree_defaults` config value is removed from every surface (`__init__.py` registration, `docs/configuration.rst`, `examples/advanced`, README, and its registration-only test file) so it is no longer presented as a supported option. (Grep-confirmed zero consumers — pure removal.)
 
 ### Table rendering (PR#98 reimplementation)
 
@@ -50,7 +50,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONF-05 | Phase 24 | Pending |
+| CONF-05 | Phase 24 | Complete |
 | TBL-01 | Phase 25 | Pending |
 | TBL-02 | Phase 25 | Pending |
 | CONF-04 | Phase 26 | Pending |
@@ -58,6 +58,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DOC-07 | Phase 27 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 6 total
 - Mapped to phases: 6 (Phases 24–27; Phase 28 is a prep-only release/close phase and carries no requirement)
 - Unmapped: 0 ✓ — every v1 requirement maps to exactly one phase, no orphans, no duplicates
