@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.6.2
 milestone_name: rendering fidelity round 2
 status: Awaiting next milestone
-stopped_at: Phase 23 planned — ready to execute
-last_updated: "2026-07-22T22:47:18.063Z"
+stopped_at: v0.6.2 published to PyPI + GitHub Release — release fully complete
+last_updated: "2026-07-23T11:16:50Z"
 last_activity: 2026-07-23
-last_activity_desc: Milestone v0.6.2 completed and archived
+last_activity_desc: v0.6.2 published to PyPI and GitHub Release (release complete)
 progress:
   total_phases: 9
   completed_phases: 9
@@ -142,12 +142,11 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-23
-Stopped at: v0.6.2 PR #120 merged (merge commit `54b8fc9`, Issue #117 auto-closed), tag `v0.6.2` pushed → `release.yml` running (run 30002480654), paused at the `pypi` environment approval gate
-Resume: approve the `pypi` deployment in GitHub Actions to publish to PyPI + create the GitHub Release, then start the next milestone
+Stopped at: v0.6.2 fully released — `pypi` deployment approved, `publish-pypi` + `github-release` completed. PyPI `0.6.2` live (https://pypi.org/project/typsphinx/0.6.2/), GitHub Release `v0.6.2` published (2026-07-23T11:16:50Z).
+Resume: start the next milestone with `/gsd-new-milestone`
 
 ## Operator Next Steps
 
-- **Approve the PyPI deployment** — GitHub → Actions → the `v0.6.2` Release run (30002480654) → "Review deployments" → approve `pypi`. After approval + the environment wait timer, `publish-pypi` and `github-release` run automatically.
-- Verify https://pypi.org/project/typsphinx/0.6.2/ and the GitHub Release once publish completes
-- Optionally delete the merged `gsd/v0.6.2-rendering-fidelity-round-2` branch
-- Then start the next milestone with /gsd-new-milestone
+- ✅ v0.6.2 published to PyPI + GitHub Release — release complete
+- Optionally delete the merged local/remote branches: `gsd/v0.6.2-rendering-fidelity-round-2` (merged), plus stale `gsd/v0.6.2-fidelity-round-2` and `gsd/v0.6.2-milestone`
+- Start the next milestone with `/gsd-new-milestone`
