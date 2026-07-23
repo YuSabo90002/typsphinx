@@ -9,7 +9,7 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 
 ### Config (dead-config sweep round 2)
 
-- [ ] **CONF-04**: User can set `papersize` and `fontsize` via `typst_elements` in `conf.py` (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) and see them applied in the compiled `.typ`/PDF via the template's `project()` function — not silently dropped. Implemented as a **curated allowlist** (only keys `base.typ`'s `project()` declares; `base.typ` itself is unchanged), with `fontsize` emitted as a Typst **length** (not a quoted string) and `papersize` as a string; an unrecognized key fails loudly rather than silently, and baseline Sphinx metadata (`copyright`, etc.) is never leaked into `project()`.
+- [x] **CONF-04**: User can set `papersize` and `fontsize` via `typst_elements` in `conf.py` (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) and see them applied in the compiled `.typ`/PDF via the template's `project()` function — not silently dropped. Implemented as a **curated allowlist** (only keys `base.typ`'s `project()` declares; `base.typ` itself is unchanged), with `fontsize` emitted as a Typst **length** (not a quoted string) and `papersize` as a string; an unrecognized key fails loudly rather than silently, and baseline Sphinx metadata (`copyright`, etc.) is never leaked into `project()`.
 - [x] **CONF-05**: The registered-but-inert `typst_toctree_defaults` config value is removed from every surface (`__init__.py` registration, `docs/configuration.rst`, `examples/advanced`, README, and its registration-only test file) so it is no longer presented as a supported option. (Grep-confirmed zero consumers — pure removal.)
 
 ### Table rendering (PR#98 reimplementation)
@@ -53,7 +53,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONF-05 | Phase 24 | Complete |
 | TBL-01 | Phase 25 | Complete |
 | TBL-02 | Phase 25 | Complete |
-| CONF-04 | Phase 26 | Pending |
+| CONF-04 | Phase 26 | Complete |
 | DOC-06 | Phase 27 | Pending |
 | DOC-07 | Phase 27 | Pending |
 

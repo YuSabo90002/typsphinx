@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: 26
-current_phase_name: typst-elements-papersize-fontsize-pass-through-dead-config-s
-status: executing
+current_phase: 27
+current_phase_name: Docs 実測整合 — Orphan Delete + Phantom Config Names
+status: planning
 stopped_at: Phase 26 context gathered
-last_updated: "2026-07-23T21:27:40.658Z"
+last_updated: "2026-07-23T21:53:31.574Z"
 last_activity: 2026-07-24
-last_activity_desc: Phase 26 execution started
+last_activity_desc: Phase 26 complete, transitioned to Phase 27
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 3
-  percent: 40
+  completed_plans: 5
+  percent: 60
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 26 (typst-elements-papersize-fontsize-pass-through-dead-config-s) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 26
-Last activity: 2026-07-24 — Phase 26 execution started
+Phase: 27 — Docs 実測整合 — Orphan Delete + Phantom Config Names
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-24 — Phase 26 complete, transitioned to Phase 27
 
 Progress: [░░░░░░░░░░] 0%
 
