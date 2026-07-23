@@ -141,33 +141,8 @@ Enable LaTeX math rendering with mitex:
 When enabled, LaTeX math expressions are converted to Typst using the mitex package.
 When disabled, math is passed directly as Typst math syntax.
 
-Code Highlighting
------------------
-
-Codly Configuration
-~~~~~~~~~~~~~~~~~~~
-
-Enable code highlighting with codly:
-
-.. code-block:: python
-
-   typst_use_codly = True  # Default
-
-Customize line numbering:
-
-.. code-block:: python
-
-   typst_code_line_numbers = True  # Show line numbers
-
 Author Information
 ------------------
-
-Simple Format
-~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   typst_author = ("John Doe", "Jane Smith")
 
 Detailed Format
 ~~~~~~~~~~~~~~~
@@ -194,10 +169,10 @@ Paper Size and Format
 
 .. code-block:: python
 
-   typst_papersize = "a4"  # Default: "a4"
-   # Options: "a4", "us-letter", "a5", etc.
+   typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
 
-   typst_fontsize = "11pt"  # Default: "11pt"
+These are the only two supported ``typst_elements`` keys for paper size and
+base font size.
 
 Complete Example
 ----------------
@@ -240,10 +215,11 @@ Here's a complete ``conf.py`` example:
        }
    }
 
-   # Math and code
+   # Math
    typst_use_mitex = True
-   typst_use_codly = True
-   typst_code_line_numbers = True
+
+   # Paper size and base font size
+   typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
 
 See Also
 --------
