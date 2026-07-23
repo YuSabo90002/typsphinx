@@ -4,11 +4,11 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 25
 current_phase_name: "reimplement PR#98"
-status: planning
-stopped_at: Phase 25 context gathered
-last_updated: "2026-07-23T14:06:05.697Z"
+status: executing
+stopped_at: Phase 25 planned
+last_updated: "2026-07-23T14:50:29.869Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 24 complete, transitioned to Phase 25
+last_activity_desc: Phase 25 planned (2 plans, 2 waves)
 progress:
   total_phases: 5
   completed_phases: 1
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 ## Current Position
 
 Phase: 25 — Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-23 — Phase 24 complete, transitioned to Phase 25
+Plan: 2 plans in 2 waves (25-01, 25-02)
+Status: Ready to execute
+Last activity: 2026-07-23 — Phase 25 planned (2 plans, 2 waves)
 
 Progress: [░░░░░░░░░░] 0%
 

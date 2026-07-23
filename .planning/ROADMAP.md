@@ -211,8 +211,12 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   5. A `:numref:` / `:ref:` to a captioned table resolves to a working "Table N" link in the compiled PDF: the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, with no dangling/duplicate-label error and no collision with the table's existing `_emit_id_anchors` id anchors.
 
 **Plans**: 2 plans
+**Wave 1**
 
 - [ ] 25-01-PLAN.md — Caption buffering + figure-wrap + `<label>` + deferred anchor in `translator.py`, with adapted PR#98 unit tests (TBL-01, TBL-02) — Wave 1
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 25-02-PLAN.md — GATE-01 real-compile render fixture (2+-table, caption+width, `:numref:`-resolves, csv/list) + pre-fix-basis failure proof (TBL-01, TBL-02) — Wave 2
 
 **Note**: GATE-01 fixture mandatory (template `tests/test_pdf_render_gate.py` — sentinel + pypdf pattern, per RESEARCH template correction) — MUST include a 2+-table document, the caption+width composition case, and a `:numref:`-resolves case, with red→green proof (durable pre-fix-basis reconstruction). Isolated from Phase 26 to keep the translator state-machine risk separate from the config type-mismatch risk.
