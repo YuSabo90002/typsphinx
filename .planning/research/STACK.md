@@ -1,99 +1,200 @@
-# Stack Research
+# Stack Research — v0.6.3 (config pass-through + captioned tables)
 
-**Domain:** Sphinx→Typst translator robustness (v0.6.0, Issue #114 + high-frequency dropped-node support)
-**Researched:** 2026-07-11
-**Confidence:** HIGH
+**Domain:** Sphinx→Typst translator maintenance (not greenfield) — Typst 0.15.x / Sphinx 9.1 / docutils 0.22 API facts only
+**Researched:** 2026-07-23
+**Confidence:** HIGH (all claims below either read from this repo's own source at the cited file:line, or empirically verified by a real `typst.compile()` in this repo's own `.venv` — see `## Verification method`)
 
-## Bottom Line
+This is a maintenance milestone on a mature codebase. There is no "recommended stack" to choose — the runtime is pinned (`typst>=0.15,<0.16`, `sphinx>=9.1,<10`, `docutils>=0.21,<0.23`, Python 3.12–3.13) and **zero new dependencies** is a hard invariant. This document instead answers the four technical-API questions the milestone's two code changes depend on, each with a file:line anchor into this repo and/or a real-compile proof.
 
-**No new runtime dependency and no new `@preview` package is required for v0.6.0.** Every target node type in scope (figure/image units, `versionmodified`, empty-URL refs, autodoc `desc_returns`/`desc_signature_line`/`desc_inline`/`desc_optional`, `footnote`/`footnote_reference`, `transition`, `topic`, `line`/`line_block`) maps onto either a **native Typst 0.15 construct** already reachable from code-mode, or the **already-bundled `gentle-clues` package** via the existing `_visit_admonition`/`_depart_admonition` helper. This is pure `typsphinx/translator.py` work (new `visit_*`/`depart_*` methods + one small unit-conversion helper) — it does not touch `pyproject.toml`, `uv.lock`, `writer.py`'s import list, `template_engine.py`'s import list, or `templates/base.typ`. **The 3-way `@preview` version-sync surface (writer.py / template_engine.py / templates/base.typ) is untouched by this milestone.**
+## Verification method
 
-## Recommended Stack
+Real Typst compiles were run directly against this repo's installed `typst-py` (`.venv/lib/python3.13/site-packages/typst`, resolves to typst 0.15.x per the pinned `uv.lock`) via `typst.compile(path)`, not against typst.app docs alone. Every claim marked "(verified: real compile)" below reproduces with a `.venv/bin/python -c "import typst; typst.compile(...)"` invocation you can re-run. Typst reference-page facts (figure/caption/kind semantics) were cross-checked against the official `https://typst.app/docs/reference/model/figure/` page.
 
-### Core Technologies (unchanged from v0.5.0)
+---
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Sphinx | 9.1 | doctree source | Already pinned; no version change needed for this work |
-| docutils | 0.22.4 | node types (`versionmodified`, `footnote`, `transition`, `topic`, `line_block`, image length attrs) | Already pinned; all target nodes already exist in this docutils/Sphinx version — nothing to upgrade |
-| typst (typst-py) | 0.15.x | compile target | Already pinned; `footnote()`, `line()`, and the length-unit grammar used below are all present and stable in 0.15 (verified against the live typst.app/docs/reference pages, not guessed) |
-| Python | 3.12–3.13 | runtime | Unchanged |
+## Q1 — `figure(table(...), caption:, kind: table)`: exact syntax, numbering, gotchas
 
-### Supporting Libraries — **none added**
+### Exact syntax (confirmed against typst.app/docs/reference/model/figure/)
 
-No new PyPI package and no new `@preview` package is needed. The four bundled `@preview` packages are reused as-is:
-
-| Library | Version | Purpose | Relevance to v0.6.0 |
-|---------|---------|---------|---------------------|
-| `@preview/gentle-clues` | 1.3.1 (unchanged) | boxed callouts | Reused for `versionmodified` (added/changed/deprecated/removed) via the existing `_visit_admonition` helper — **no version bump** |
-| `@preview/codly` | 1.3.0 (unchanged) | code blocks | Not touched by this milestone |
-| `@preview/codly-languages` | 0.1.10 (unchanged) | codly language defs | Not touched |
-| `@preview/mitex` | 0.2.7 (unchanged) | LaTeX math | Not touched |
-
-### Development Tools
-
-Unchanged: `uv`, `tox`/`tox-uv`, `black`, `ruff`, `mypy`, `pytest`. No new dev-tool needed; the smoke-gate pattern from Phase 8.1/9 (`tests/test_pdf_render_gate.py`, `tests/test_preview_smoke_gate.py`) is the template to extend with fixtures for the new node types, not a new tool.
-
-## Node-Type → Typst-Construct Mapping (verified, Typst 0.15)
-
-| Target node | Typst 0.15 construct | New dependency? | Notes |
-|---|---|---|---|
-| `image`/`figure` — `px`/CSS length units | **Native**: convert numerically to `pt` before emitting `image(..., width: <N>pt)` | None | Typst's length grammar supports `pt`, `mm`, `cm`, `in`, `em` (and ratios via `%`) — confirmed on the official Length reference page. **`px` does not exist as a Typst length unit** — a bare `"300px"` string passed through verbatim (today's behavior, `translator.py:1527-1533`) is exactly the Issue #114 fatal-compile bug. Conversion: `1px = 0.75pt` (CSS canonical 96px/in ÷ 72pt/in — cross-verified across multiple independent conversion references, non-controversial CSS-spec fact). `%`/`em` pass through unchanged (both are native Typst relative-length units); `ex`, `pc` (docutils-legal but rare) should convert to `pt`/`em` equivalents or fall back to a safe default with a logged warning rather than emit invalid syntax. |
-| `figure` `:target:`-linked (Issue #114) | **Native**: `#figure(link(<url-or-label>)[#image(...)], caption: [...])` | None | `link()` takes exactly one destination + one content body — juxtaposing `link(url, image(...))` as two positional args (today's implied bug) is invalid syntax. Fix is purely a call-shape correction, no package involved. |
-| `versionmodified` (`versionadded`/`versionchanged`/`deprecated`/`versionremoved`) | **Already-bundled `@preview/gentle-clues` 1.3.1**, reusing the existing `_visit_admonition`/`_depart_admonition` helper (same one that already renders `note`/`warning`/`tip`/`error`/`danger`/generic `admonition`) | None (no version bump) | Confirmed via Sphinx source (`sphinx/domains/changeset.py` `VersionChange.run()`): the node is `class versionmodified(nodes.Admonition, nodes.TextElement)` with `.type` ∈ `{added, changed, deprecated, removed}` and `.version`. Sphinx **already embeds** the "Added in version X" label as an `inline` node inside the versionmodified node's own children (first child of a `paragraph`) — the translator does **not** need to synthesize label text itself, just needs `visit_versionmodified`/`depart_versionmodified` methods that dispatch on `node['type']`. Suggested clue mapping (reusing only clue-function names already proven to compile in this repo per Phase 8.1's validated set — `info`/`tip`/`warning`/`danger`/`error`/base `clue`): `added`→`tip`, `changed`→`info`, `deprecated`→`warning`, `removed`→`danger`. |
-| empty-URL cross-references | **Native** (already partially handled) | None | `visit_reference` (`translator.py:1972-1983`) already detects `refuri == ""` and degrades to plain text with a logged warning — this is not a new-stack problem, it's a translator-logic problem (the milestone goal is "resolve where possible" — e.g. falling back to an internal Typst `label`/anchor when a `refid` exists on the node even though `refuri` is empty — pure Python/tree-walking work, no library). |
-| `desc_returns`, `desc_signature_line`, `desc_inline`, `desc_optional` | **Native** — same pattern as the already-implemented `desc_signature`/`desc_annotation`/`desc_name`/`desc_parameterlist`/`desc_parameter` siblings (`translator.py:2511-2621`), i.e. plain `text()`/`strong()`/passthrough code-mode concatenation | None | These are Sphinx `addnodes` (not docutils core), but they're structurally identical in kind to the already-supported `desc_*` family — no markup beyond what `strong()`/`text()`/inline concatenation already provides. `desc_optional` wraps optional-parameter groups (needs bracket punctuation, same shape as `desc_parameterlist`'s paren handling); `desc_signature_line` is a multi-line-signature grouping wrapper (pass-through block); `desc_inline` is an inline-signature variant (pass-through inline); `desc_returns` is a return-type annotation (render like `desc_annotation`, e.g. prefixed with `" → "`). |
-| `footnote` / `footnote_reference` | **Native**: Typst's `footnote()` function | None | Verified on typst.app/docs/reference/model/footnote: `footnote(numbering: str|function, body: label|content) → content`; footnote text at the definition site can be labeled (`#footnote[...] <fn>`) and re-referenced elsewhere via `footnote(<fn>)`. **Design note (not a stack gap):** docutils keeps `footnote_reference` (use-site) and `footnote` (definition, with matching `ids`/`refid`) as separate tree nodes, whereas Typst wants the full footnote body supplied at the `footnote()` call itself. The translator needs a small pre-pass (index `footnote` definitions by id before/while walking) so `visit_footnote_reference` can emit `footnote[<looked-up body>]<label>` and the later `visit_footnote` for the same id can `raise nodes.SkipNode` (or, for a second reference to the same footnote, emit `footnote(<label>)`). This is a tree-walking/bookkeeping concern, not a dependency concern. |
-| `transition` | **Native**: `line(length: 100%)` | None | Verified on typst.app/docs/reference/visualize/line: `line(start, end, length: relative = 0%+30pt, angle, stroke: ... = 1pt+black)`. `transition` is a leaf node (no children) — emit `line(length: 100%)\n\n` in code mode (no `#` prefix, consistent with the rest of the code-mode body) and `raise nodes.SkipNode` (nothing to descend into). |
-| `topic` | **Native**: `block()` with an inline bold title, e.g. `block(width: 100%, inset: 8pt, radius: 2pt, stroke: 0.5pt + gray)[#strong[<title>]\n<body>]` or simpler — a `text`/`strong` title line followed by the normal block content, no special container needed | None | `topic` is a generic titled container (used for things like a document abstract or a table-of-contents-adjacent aside) — no admonition semantics, so `gentle-clues` is not the right mapping; a plain Typst `block`/`pad` is sufficient and keeps the milestone dependency-free. Treat as parallel to the existing `visit_block_quote`/`visit_container` pattern (`translator.py:1448`, `:299`) rather than the admonition pattern. |
-| `line` / `line_block` | **Native**: preserve breaks with Typst's `linebreak()` (code-mode function call) between each `line` child, wrapped in a left-padded `block`/`pad(left: 1em)[...]` to mirror docutils' indentation semantics | None | No package needed — this is the same category of "preserve author-controlled line breaks" as poetry/addresses; `linebreak()` is core Typst, present since early versions and unchanged in 0.15. |
-| Out-of-scope graphical nodes (`graphviz`, `inheritance_diagram`) | **N/A — explicitly deferred to graceful `logger.warning` + `SkipNode`**, no rendering attempted | None | Milestone scope explicitly excludes rendering these; the only "stack" implication is confirming the existing `unknown_visit`/`unknown_departure` fallback (`translator.py:2038-2059`) already warns-and-continues without raising, so an explicit `visit_graphviz`/`visit_inheritance_diagram` pair that logs a clearer warning and calls `raise nodes.SkipNode` is enough — still zero new dependencies. |
-
-## Installation
-
-```bash
-# No installation changes for v0.6.0 — pyproject.toml, uv.lock, and the
-# three @preview-import declaration sites are untouched by this milestone.
-uv sync --extra dev --locked   # unchanged from v0.5.0
+```typst
+#figure(
+  table(columns: (1fr, 1fr), [A], [B], [C], [D]),
+  caption: [My caption],
+  kind: table,
+) <label>
 ```
+
+`figure()` parameters relevant here:
+
+| Param | Default | Behavior |
+|---|---|---|
+| `body` | required | figure content |
+| `caption` | `none` | figure caption; itself exposes `position` (`top`/`bottom`, default `bottom`), `separator` (auto-localized), `body` |
+| `kind` | `auto` | counter-selection key. `auto` **auto-detects** `table` when `body` is a `table` element, `raw` for code, else `image`. Explicit `kind: table` is therefore **not required for auto-detection to work** when the direct body is a `table(...)` call — but is still the correct thing to emit explicitly, because... |
+| `supplement` | `auto` | the caption prefix text (e.g. "Table"). `auto` resolves from `kind` + active `text(lang:)` — for `kind: table` this resolves to `"Table"` (localized), for default/`image` kind to `"Figure"`. **No manual supplement string is needed** for the table case. |
+| `numbering` | `"1"` | counter format |
+| `outlined` | `true` | whether it appears in `#outline(target: figure)`-style listings |
+
+**Auto-numbering:** Yes — `figure(..., kind: table)` auto-numbers via a counter scoped to `kind: table` that is **independent of the `kind: image`/default-figure counter**. First captioned table in a document renders as "Table 1", second as "Table 2", regardless of how many `kind: image`/plain figures precede it. Confirmed by real compile of a two-table document (both auto-numbered 1, 2 sequentially, `image`-kind figures unaffected).
+
+**Cross-referencing:** Standard Typst label/ref — `<label>` postfix on the `figure(...)` call (markup-mode only, same constraint that already governs `visit_figure`'s `<label>` emission, see below), referenced via `@label` in markup mode. The reference text auto-renders as `"Table N"` (using the figure's own `supplement`+`numbering`), exactly mirroring how `@fig-label` already renders `"Figure N"` for typsphinx's existing image figures. **Verified: real compile** — `figure(table(...), caption:.., kind: table) <tbl-mylabel>` followed by `See @tbl-mylabel for details.` compiles clean, 10180 bytes output.
+
+### Gotcha 1 — `columns: (1fr, ...)` inside `figure(table(...))`: NONE found
+
+typsphinx's existing `depart_table` (translator.py:2422-2486) already emits `table(columns: (Nfr, ...), ...)` (fr-weighted, from `_build_columns_fr_arg()`, translator.py:2372-2391). **Verified: real compile** that wrapping this exact fr-weighted table shape in `figure(..., caption:, kind: table)` with a label and a cross-reference compiles cleanly — `fr` units inside a table nested in a figure are not a problem (figures don't impose a sizing context that breaks `fr` resolution the way, e.g., a bare inline context would).
+
+### Gotcha 2 — composing with the existing `:width:` → `block(width:...)[...]` wrap
+
+`depart_table` currently wraps the **whole `table()` call** in `block(width: ...)[#table(...)]` when `:width:` is set (translator.py:2444-2453, LEN-01 precedent). The analogous, already-proven-in-this-codebase pattern for figures is `visit_figure`/`depart_figure` (translator.py:2039-2145), which wraps the **whole `figure()` call** (not just the image) in `block(width: ...)[#figure(\n...)]` when `:figwidth:` is set (translator.py:2093-2094, 2126-2130).
+
+**Verified: real compile of both possible compositions** — `block(width:)[#figure(table(...), caption:, kind: table)]` ("width outside", wraps the whole figure) and `figure(block(width:)[#table(...)], caption:, kind: table)` ("width inside", wraps only the table) **both compile successfully**. Recommend "width outside" (mirrors `visit_figure`'s existing idiom exactly, keeps one wrapping convention project-wide) — i.e. when a captioned `.. table:: Caption` also has `:width:`, emit:
+
+```typst
+block(width: <converted>)[#figure(
+  table(
+    columns: (...),
+    ...
+  ),
+  caption: {...},
+  kind: table,
+)]
+```
+
+not the reverse nesting. This is a design recommendation, not a compile requirement (both work) — flagging so the planner picks one consciously rather than drifting.
+
+### Gotcha 3 — id/label anchoring already handled differently for tables than for figures
+
+`visit_figure` bracket-wraps the whole call in markup mode (`[#figure(...) <label>]`) specifically because Typst's `<label>` postfix is markup-mode-only syntax, invalid inside the translator's default unified code-mode statement stream (translator.py:2043-2056, a real fatal discovered by GATE-01/Issue #114).
+
+`visit_table`, by contrast, does **not** use this pattern at all — it calls `self._emit_id_anchors(node)` at the very top of `visit_table` (translator.py:2348), **before** `self.in_table = True` is set, emitting a **separate zero-width anchor statement ahead of the table**, not a `<label>` postfix on the table/figure call itself. This existing id-anchor call is independent of the caption/figure-wrap work and does not need to change — a `<label>` postfix is only needed additionally if the milestone wants `.. table::` blocks to support `@ref`-style Typst cross-referencing with `"Table N"` text (not explicitly required by the milestone's stated scope, which only asks for the caption+numbering wrap). If added later, it must follow the `visit_figure` markup-bracket idiom, not `_emit_id_anchors`'s idiom — they are two different, non-interchangeable mechanisms already coexisting in this file.
+
+---
+
+## Q2 — Undeclared `.with()` kwarg: compile error or silently ignored? Does base.typ need to change?
+
+**Verified: real compile.** Calling `project.with(title: "x", unknownparam: "y")` against a `project()` that does not declare `unknownparam` produces a hard `typst.TypstError`:
+
+```
+ERROR: unexpected argument: unknownparam
+```
+
+This is **not** silently ignored — every undeclared kwarg aborts the whole compile. This is the load-bearing fact for the milestone: any pass-through fix that forwards an unmapped `typst_elements` key straight into `#show: project.with(...)` will **fatal the compile** unless the target `project()` already declares a matching parameter.
+
+**base.typ does NOT need to change for `papersize`/`fontsize` specifically.** Read directly: `typsphinx/templates/base.typ:39-48` —
+
+```typst
+#let project(
+  title: "",
+  authors: (),
+  date: none,
+  toctree_maxdepth: 2,
+  toctree_numbered: false,
+  toctree_caption: "Contents",
+  papersize: "a4",
+  fontsize: 11pt,
+  body
+) = {
+```
+
+`papersize` and `fontsize` are **already declared parameters** (defaults `"a4"` / `11pt`, base.typ:46-47, and already consumed at base.typ:56/61 — `page(paper: papersize)`, `text(size: fontsize, ...)`). The bug is entirely on the Python side: `template_engine.py`'s `map_parameters()` never forwards these keys to `params`, so `project.with(...)` is called *without* `papersize:`/`fontsize:` at all, and the declared defaults silently win. **This is the opposite of a base.typ gap** — the template function's signature is already correct and ready to receive these two keys; only the Python wiring is dead.
+
+### Gotcha — `fontsize` as a Python `str` value breaks even after wiring is fixed
+
+The milestone's own example config is `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}` (PROJECT.md milestone description). `TemplateEngine._format_typst_value()` (template_engine.py:422-453) formats any Python `str` as a **quoted** Typst string literal (`.replace(...)` + `f'"{escaped}"'`, template_engine.py:437-440). So a naive pass-through of `typst_elements["fontsize"] = "20pt"` renders `fontsize: "20pt",` in the generated `.typ` — a quoted string, not the unquoted Typst length literal `20pt` that base.typ's `set text(size: fontsize)` (base.typ:61) requires.
+
+**Verified: real compile** — `project.with(fontsize: "20pt")` against a `project(fontsize: 11pt, body)` that does `set text(size: fontsize)` fails with:
+
+```
+ERROR: expected length, found string
+```
+
+`papersize` does **not** have this problem — `page(paper: papersize)` (base.typ:55) genuinely wants a Typst `str` (e.g. `"us-letter"`), so the existing string-quoting behavior of `_format_typst_value` is *correct* for `papersize` and *wrong* for `fontsize`. **This means a correct implementation of (A) cannot treat every `typst_elements` value identically** — it must distinguish length-like values (which need to render as bare/unquoted Typst length literals) from string-like values (which should stay quoted). The translator already owns exactly this parsing logic: `_convert_length_to_typst()` (translator.py:3285-3343) parses a `"<number><unit>"` string via `re.fullmatch(r"(-?[0-9.]+)([a-zA-Zµ%]*)", value)` and returns a bare Typst length string (e.g. the raw source text `20pt`, unquoted) or `None` for unsupported units. That helper lives on `TypstTranslator` (translator.py), not on `TemplateEngine` (template_engine.py) — the two modules are otherwise independent (`TemplateEngine` has no translator/doctree dependency), so either (a) duplicate/extract a minimal length-detection helper into `template_engine.py`, or (b) special-case known length-typed keys (`fontsize`) at the point `typst_elements` is consumed in `writer.py`, converting them to a raw-Typst-code sentinel that `_format_typst_value` must be taught to pass through unquoted. Flag this specifically for the planner — the milestone's own PROJECT.md example (`fontsize: "20pt"`) will not compile without this fix, even after the dead-wiring bug itself is fixed.
+
+### Existing precedent for the correct "direct pass-through" plumbing shape
+
+`writer.py:214-216` already does exactly the pattern needed, for toctree options — bypassing `map_parameters()`'s restrictive mapping-key loop entirely:
+
+```python
+toctree_options = template_engine.extract_toctree_options(self.document)
+params.update(toctree_options)
+```
+
+The same shape (`params.update(typst_elements)` called directly in `writer.py`, rather than routing `typst_elements` through `sphinx_metadata` pre-`map_parameters()` as currently happens at writer.py:208-209) is the natural, lowest-risk fix location — it mirrors an already-shipped, already-tested pattern in the same file rather than inventing a new one. Currently `typst_elements` is folded into `sphinx_metadata` (`sphinx_metadata.update(typst_elements)`, writer.py:209) and then filtered away by `map_parameters()`'s `for sphinx_key, template_key in self.parameter_mapping.items()` loop (template_engine.py:205), which only iterates the 3 `DEFAULT_PARAMETER_MAPPING` keys (`project`/`author`/`release`, template_engine.py:62-66) — any key not in that mapping, including every `typst_elements` key, is silently dropped, exactly as the pending todo (`2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`) documents.
+
+There is also an **already-working alternate path** for arbitrary param pass-through worth knowing about: `typst_template_function = {"name": "project", "params": {"papersize": "us-letter"}}` already reaches `project.with(...)` today, unfiltered, via `render()`'s `all_params.update(self.typst_template_params)` (template_engine.py:405-407, D-08). This confirms the template-function-call plumbing itself has no structural blocker — only the simpler, documented `typst_elements` config's specific pipeline (`sphinx_metadata` → `map_parameters()`) is broken.
+
+---
+
+## Q3 — docutils doctree structure for `.. table:: Caption`; how caption is stored; how Sphinx numbers tables
+
+**Source read directly:** `.venv/lib/python3.13/site-packages/docutils/parsers/rst/directives/tables.py`.
+
+- `Table.make_title()` (tables.py:46-57) builds a `nodes.title(title_text, '', *text_nodes)` from the directive's argument text (parsed via `self.state.inline_text(...)`, so inline markup like `**bold**` inside the caption survives as real child nodes, not flattened text).
+- All three concrete directive classes — `RSTTable` (grid/simple table syntax, tables.py:169-172), `CSVTable` (tables.py:316-318), `ListTable` (tables.py:448-450) — end with the identical line: `if title: table_node.insert(0, title)`.
+
+**Confirmed doctree shape:** the caption is stored as a `nodes.title` node **inserted as the table node's FIRST child**, i.e. `table` → `[title, tgroup, ...]`. It is **not** a `caption` node (unlike `.. figure::`, which uses a distinct `nodes.caption` type — see `visit_caption`/`depart_caption`, translator.py:2153+). This is exactly why the generic `visit_title` dispatch currently mishandles it: `visit_title` has no branch for "parent is a table", so it falls through to the plain section-heading path and emits `heading(level: N, {...})` (translator.py:517-529) unconditionally.
+
+**What `visit_title`/`depart_title` actually receive today for this case:** `node.parent` is `nodes.table`. `visit_title` currently checks only `isinstance(node.parent, nodes.Admonition) or isinstance(node.parent, nodes.topic)` (translator.py:487-489) — `nodes.table` matches neither, so it falls through to the default heading-emission branch. Because `visit_table` (translator.py:2367) has already set `self.in_table = True` *before* the title's children are visited (title is the table's first child, visited immediately after `visit_table` returns), every `add_text()` call made while rendering the title's own children routes through `add_text()`'s table-cell-buffer branch (translator.py:260-267: `if hasattr(self, "in_table") and self.in_table and hasattr(self, "table_cell_content"): self.table_cell_content.append(text)`), **not** `self.body`, for every table **after the first one in a document** (`table_cell_content` is only ever initialized in `visit_entry`/reset in `depart_entry`, translator.py:2592/2631 — never in `__init__`, so it doesn't exist as an attribute for the very first table, meaning the first table's stray heading leaks into `self.body` normally, but a second+ table's stray heading text is silently swallowed into a stale, disconnected `table_cell_content` list left over from the previous table's last cell — confirmed by direct code trace, not just the todo's prose claim). This double failure mode (heading-leak on table #1, silent swallow on table #2+) is exactly what the pending todo (`2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md`) describes and is the mechanism the fix must close by adding an explicit `isinstance(node.parent, nodes.table)` branch to `visit_title`/`depart_title` that buffer-swaps (mirroring the existing admonition/topic buffer-swap idiom at translator.py:487-503/546-562, and the caption buffer-swap idiom at `visit_caption`/`depart_caption`, translator.py:2166-2187) rather than falling through to the heading path.
+
+**Existing cell format to match for tests:** `_format_table_cell()` (translator.py:2393-2420) emits normal cells as `{indent}{{{content}}},\n` — confirmed at translator.py:2410, i.e. `{par({text("...")})},` — and `_build_columns_fr_arg()` (translator.py:2372-2391) falls back to `(1fr, 1fr)` when colwidth data is absent/equal — both match the pending todo's stated migration target for the ported PR#98 test assertions (`{par({text(...)})}`, `columns: (1fr, 1fr)`).
+
+**Sphinx `numfig`/`Table %s` numbering: NOT used by typsphinx, confirmed by exhaustive grep.** `grep -rn "numfig" typsphinx/` returns zero hits anywhere in the package. typsphinx's translator never touches Sphinx's own `numfig`/`numfig_format` table-numbering machinery (the system that drives HTML/LaTeX builders' "Table %s" labels via the `std` domain) — table/figure numbering in typsphinx's output is entirely delegated to **Typst's own** `kind:`-scoped figure counter (Q1), which is why the milestone's target design (`figure(table(...), caption:, kind: table)`) is the right shape: it hands numbering off to Typst natively rather than trying to thread Sphinx's `numfig` state through. No `config.numfig`/`config.numfig_format` reads are needed anywhere in this fix.
+
+---
+
+## Q4 — `typst_toctree_defaults` deletion: confirmed inert, deletion is safe
+
+`grep -rn "typst_toctree_defaults" typsphinx/` returns exactly **one** hit, the registration line itself:
+
+```
+typsphinx/__init__.py:47:    app.add_config_value("typst_toctree_defaults", None, "html", [dict, type(None)])
+```
+
+No reference anywhere else in `typsphinx/translator.py`, `typsphinx/writer.py`, `typsphinx/builder.py`, or `typsphinx/template_engine.py`. The actual toctree options (`maxdepth`/`numbered`/`caption`) that DO reach the template are read directly from the doctree's `addnodes.toctree` node by `TemplateEngine.extract_toctree_options()` (template_engine.py:273-318, reading `toctree.get("numbered", False)` / `toctree.get("maxdepth", 2)` / `toctree.get("caption", "")` off the live toctree node, not off any Sphinx config value). **Deleting the `__init__.py:47` registration line is therefore a pure, inert code removal with zero behavioral impact on `typsphinx/` package code** — confirmed by the grep, not inferred.
+
+Outside the package itself, `typst_toctree_defaults` is additionally referenced in 4 non-package locations the milestone's docs-fidelity work area (#3, out of this STACK research's technical-API scope) already targets for deletion: `docs/configuration.rst:223,245,355`, `examples/advanced/conf.py:86`, `examples/advanced/README.md:250`, `README.md:208`. None of these affect the Python package's runtime behavior; they are documentation/example surfaces only.
+
+---
+
+## Summary table for the roadmapper
+
+| Question | Verdict | Confidence | Evidence |
+|---|---|---|---|
+| Q1: `figure(table(...), caption:, kind: table)` syntax | Exact syntax confirmed; auto-numbers "Table N" independently of image-figure counter; `fr`-columns and `:width:` composition both compile clean | HIGH | typst.app docs + 3 real compiles in this repo's venv |
+| Q2: does base.typ need new params? | **No** — `papersize`/`fontsize` already declared (base.typ:46-47) with matching defaults; bug is 100% Python-side (`map_parameters` drops unmapped keys) | HIGH | Direct source read + real-compile proof of the undeclared-kwarg fatal |
+| Q2 gotcha: `fontsize: "20pt"` as Python str | **Breaks** even after wiring fix — renders as a quoted Typst string, `set text(size: "20pt")` is a real Typst type error | HIGH | Real compile: `ERROR: expected length, found string` |
+| Q3: table caption doctree shape | `nodes.title` inserted as `table`'s first child (`table` → `[title, tgroup, ...]`), NOT a `caption` node; Sphinx `numfig` is unused by typsphinx entirely | HIGH | docutils `tables.py` source read + exhaustive grep |
+| Q4: `typst_toctree_defaults` deletion safety | Confirmed inert outside its own registration line; deletion is pure removal | HIGH | `grep -rn` across `typsphinx/` |
 
 ## Alternatives Considered
 
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| Reuse `gentle-clues` (already bundled) for `versionmodified` | Add a dedicated "changelog"/"version-badge" `@preview` package | Would add a 4th→5th sync point across `writer.py`/`template_engine.py`/`templates/base.typ` for a cosmetic improvement (a colored badge vs. an already-available boxed callout) that the milestone's own bias ("avoid dependency growth" during a maintenance/robustness cycle) argues against. `gentle-clues`'s existing `tip`/`info`/`warning`/`danger` clue functions (already proven to compile clean under typst 0.15 per Phase 7/8.1) cover the four `versionmodified` types with zero new sync risk. |
-| Native `line(length: 100%)` for `transition` | A `@preview` "rule"/divider package | None exists that's simpler than one native function call; adding a package for a single-line primitive is pure overhead. |
-| Native `footnote()` for `footnote`/`footnote_reference` | Manual superscript-number + end-of-page manual list (mimicking pre-Typst LaTeX `\footnotetext`-by-hand approach) | Typst's built-in footnote mechanism already handles numbering, page-breaking, and back-references — reimplementing that logic manually in the translator would be strictly worse and is exactly what the native function exists to avoid. |
-| Numeric `px→pt` conversion (`1px = 0.75pt`) inline in translator | Pull in a units/CSS-length-parsing library (e.g. a `pint`-style dependency) | Massive overkill for a single fixed ratio conversion on a small, closed set of docutils length units (`px, pt, %, em, ex, mm, cm, in, pc`); a ~15-line helper function is sufficient and keeps the "no new dependency" posture for a maintenance milestone. |
+| Recommended | Alternative | When to Use Alternative |
+|---|---|---|
+| (Q2) Fix via `params.update(typst_elements)` directly in `writer.py` (mirrors the existing toctree_options pattern) | Fix via widening `DEFAULT_PARAMETER_MAPPING` to a dynamic identity map inside `map_parameters()` | Only if there is a future need to *rename* `typst_elements` keys before they reach the template (not the milestone's stated need — `papersize`→`papersize` etc. is already identity); the direct-`update()` route is simpler and has an exact precedent already shipped |
+| (Q1) `block(width:...)[#figure(...)]` — width wraps the whole figure | `figure(block(width:...)[#table(...)], ...)` — width wraps only the table | Both compile; only choose the "width inside" form if a future requirement needs the caption to NOT be constrained by the width box (not currently a requirement) |
+| (Q1) Rely on Typst's native `kind: table` auto-counter for "Table N" | Thread Sphinx's `numfig`/`numfig_format` state through the translator | Only if a future requirement needs typsphinx's table numbers to match an HTML/LaTeX build's numbers exactly (cross-builder consistency) — out of scope; no existing wiring for this exists anywhere in the package today |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| Passing docutils `width`/`height` length strings straight through to `image(width: ...)` (current behavior) | This is the literal Issue #114 fatal bug — Typst has no `px` unit and raises a hard compile error, aborting the whole `typstpdf` build | Parse the docutils length string (`re.match(r'([\d.]+)(px|pt|%|em|ex|mm|cm|in|pc)?', value)`), convert `px`→`pt` (`× 0.75`) and leave already-native units (`pt`, `mm`, `cm`, `in`, `em`, `%`) unchanged; for `ex`/`pc` either convert (`1pc = 12pt`, `1ex ≈ 0.5em` as a documented approximation) or drop the attribute with a logged warning rather than emit invalid syntax |
-| `link(url, image(...))` two-positional-arg juxtaposition for target-linked figures | Not valid Typst `link()` call shape (`link` takes one destination + one content body) — this is the second half of the Issue #114 fatal bug | `link(dest)[#image(...)]` or `#figure(link(dest)[#image(...)], caption: [...])` |
-| A new `@preview` package for anything in this milestone's scope | Every target node type is coverable natively or via the already-bundled `gentle-clues`; adding a package here would grow the 3-way version-sync surface for no functional gain, contradicting the milestone's maintenance/robustness framing | Native Typst 0.15 constructs (`footnote()`, `line()`, `block()`, `linebreak()`, length-unit literals) + the existing `gentle-clues` clue functions |
-
-## Version Compatibility
-
-| Package A | Compatible With | Notes |
-|-----------|------------------|-------|
-| typst 0.15.x | `footnote()`, `line()`, native length units (`pt`/`mm`/`cm`/`in`/`em`/`%`) | All verified live against the current typst.app/docs/reference pages (footnote, visualize/line, layout/length) — no `px` unit exists in any typst version to date, this is not a 0.15-specific gap |
-| `@preview/gentle-clues` 1.3.1 | typst 0.15.x | Already confirmed compiling clean under typst 0.15 (Phase 7/8.1 smoke gate); no version change needed to add `versionmodified` support since it reuses the same clue functions already exercised |
-| docutils 0.22.4 length-attribute grammar | Sphinx 9.1 image/figure directives | `width`/`height` option values on `image`/`figure` directives accept `px|pt|%|em|ex|mm|cm|in|pc`-suffixed measures (via `docutils.parsers.rst.directives.length_or_percentage_or_unitless`/`length_or_unitless`) — this is the exact unit set the conversion helper must handle |
+|---|---|---|
+| Passing `typst_elements` values straight through `_format_typst_value()` unmodified | Silently mis-types any length-like string value (e.g. `"20pt"`) as a quoted Typst string, producing a hard `expected length, found string` compile fatal for `fontsize` specifically | Detect length-like values (reuse/extract `_convert_length_to_typst`'s regex) and format them as raw/unquoted Typst source, not as a formatted-string literal |
+| Adding a `kind: table` handling path that also emits a `<label>` postfix via `_emit_id_anchors()` | `_emit_id_anchors()` emits a separate anchor statement, not a markup-mode `<label>` postfix on the call itself — mixing the two anchor mechanisms on the same node is inconsistent with how `visit_figure` already does it | If table cross-referencing via `<label>`/`@ref` is added, follow the `visit_figure`/`depart_figure` markup-bracket idiom (translator.py:2039-2151) exactly, not `_emit_id_anchors` |
+| Assuming `.. table:: Caption`'s title is a `caption` node (figure-style) | It's a `nodes.title`, not `nodes.caption` — a different docutils node type entirely, per direct read of `tables.py`'s `make_title()` | Add an explicit `isinstance(node.parent, nodes.table)` branch to the existing `visit_title`/`depart_title` dispatch |
 
 ## Sources
 
-- https://typst.app/docs/reference/layout/length/ — Length unit grammar (`pt`, `mm`, `cm`, `in`, `em`; no `px`) — HIGH confidence, official Typst reference, fetched live
-- https://typst.app/docs/reference/visualize/line/ — `line()` signature (`length: relative = 0% + 30pt`, `stroke: 1pt + black`) — HIGH confidence, official Typst reference, fetched live
-- https://typst.app/docs/reference/model/footnote/ — `footnote()` signature and label/re-reference pattern — HIGH confidence, official Typst reference, fetched live
-- https://github.com/sphinx-doc/sphinx/blob/master/sphinx/domains/changeset.py — `VersionChange.run()`: confirms `versionmodified` node structure, `.type`/`.version` attributes, and that the "Added/Changed in version X" label is pre-embedded as an `inline` node child — HIGH confidence, primary source (Sphinx's own code), fetched live
-- CSS canonical `96px = 72pt` (⇒ `1px = 0.75pt`) — HIGH confidence, cross-checked across multiple independent conversion references, a long-standing non-controversial CSS-spec-derived constant
-- `/home/yuta/Documents/typsphinx/typsphinx/translator.py` (read directly, lines 1163-2789) — existing `visit_figure`/`visit_image`/`visit_reference`/`_visit_admonition`/`visit_desc_*`/`unknown_visit` implementations — HIGH confidence, first-party source of truth for what's already built vs. what's missing
-- `/home/yuta/Documents/typsphinx/typsphinx/writer.py` and `template_engine.py` (read directly) — confirms the exact 3 `@preview` import lines this milestone must NOT touch (versions: codly 1.3.0, codly-languages 0.1.10, mitex 0.2.7, gentle-clues 1.3.1) — HIGH confidence, first-party
-- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` — Phase 8.1 history confirming which gentle-clues clue-function names (`info`/`warning`/`tip`/`error`/`danger`/base `clue`) are already validated compiling under typst 0.15 in this exact repo — HIGH confidence, first-party validated history
-- Gentle-clues clue-type name list from a general WebSearch — **discarded as unreliable**: the search surfaced an old `0.4.0`-era README (`abstract`/`question`/`memo`/etc.) that does not match this repo's already-verified 1.3.1 usage; the in-repo Phase 8.1 evidence (validated by an actual `typst compile` smoke gate) supersedes it. Do not use `success`/`abstract`/`memo`/etc. clue names without re-verifying against the actual 1.3.1 package source.
+- `typsphinx/templates/base.typ:1-93` (`project()` signature, read in full)
+- `typsphinx/template_engine.py:62-66,186-245,405-420,422-453` (`DEFAULT_PARAMETER_MAPPING`, `map_parameters`, `render`, `_format_typst_value`)
+- `typsphinx/writer.py:150-247` (per-document template render call, `sphinx_metadata`/`typst_elements`/`toctree_options` plumbing)
+- `typsphinx/translator.py:260-267` (`add_text` table-cell-buffer routing), `:453-620` (`visit_title`/`depart_title`), `:2039-2151` (`visit_figure`/`depart_figure`), `:2153-2210` (`visit_caption`/`depart_caption`), `:2337-2486` (`visit_table`/`_build_columns_fr_arg`/`depart_table`), `:2584-2631` (`visit_entry`/`depart_entry`), `:3285-3343` (`_convert_length_to_typst`)
+- `typsphinx/__init__.py:47` (`typst_toctree_defaults` registration, sole reference)
+- `.venv/lib/python3.13/site-packages/docutils/parsers/rst/directives/tables.py` (`Table.make_title`, `RSTTable.run`, `CSVTable.run`, `ListTable.run` — read in full)
+- Real `typst.compile()` runs against this repo's pinned `typst-py` (0.15.x per `uv.lock`) — HIGH confidence, reproducible: undeclared-kwarg fatal, string-vs-length-typed-fatal, `figure(table(fr-columns), caption, kind: table, <label>)` + `@label` cross-ref, both `block(width:)[figure(...)]` / `figure(block(width:)[table(...)])` compositions
+- [Figure - Typst Documentation](https://typst.app/docs/reference/model/figure/) — `figure()`/`caption`/`kind`/`supplement` parameter semantics (WebFetch-verified against the live reference page, cross-checked against real-compile behavior above)
+- `.planning/todos/pending/2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`, `.planning/todos/pending/2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md` — root-cause context these findings confirm/extend
+- `.planning/PROJECT.md` (Current Milestone section) — scope framing
 
 ---
-*Stack research for: typsphinx v0.6.0 real-world robustness (Issue #114 + high-frequency dropped-node support)*
-*Researched: 2026-07-11*
+*Stack research for: typsphinx v0.6.3 — config pass-through + captioned tables*
+*Researched: 2026-07-23*
