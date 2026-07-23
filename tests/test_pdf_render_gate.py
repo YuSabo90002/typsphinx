@@ -127,6 +127,12 @@ def table_width_render_gate_dir(fixtures_dir):
 
 
 @pytest.fixture
+def captioned_table_render_gate_dir(fixtures_dir):
+    """Return the path to the captioned_table_render_gate fixture project."""
+    return fixtures_dir / "captioned_table_render_gate"
+
+
+@pytest.fixture
 def temp_build_dir(tmp_path):
     """Provide a temporary directory for build output."""
     return tmp_path / "_build"
@@ -2331,5 +2337,210 @@ class TestTableWidthRenderGate:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- table-width markup/code-mode "
+                "regression"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase 25 (TBL-01, TBL-02, GATE-01): extend the render-gate pattern to prove
+# the Plan 25-01 depart_table figure-wrap + single <label> fix renders
+# correctly through a real sphinx-build -> typst.compile() -> pypdf
+# round-trip -- two consecutive captioned tables (the stale-buffer proof:
+# 25-RESEARCH.md Verified Mechanism 2), a caption+:width: composition case,
+# a :numref:/:ref:-resolves case, and a captioned csv-table + list-table
+# case (D-05). ``TestCaptionedTablePreFixBasisFailureProof`` below closes
+# D-06's durable fail-pre-fix red->green requirement by reconstructing the
+# two pre-fix defect shapes from first principles now that Plan 25-01's fix
+# has replaced the buggy code -- the double-anchor collision (Critical
+# Pitfall 3, 25-RESEARCH.md) and the stale-buffer caption loss (Verified
+# Mechanism 2) -- mirroring the ``TestPreFixBasisFailureProof`` convention
+# already established in tests/test_package_only_config_gate.py.
+# ---------------------------------------------------------------------------
+
+# Sentinel tokens for the captioned-table render gate -- distinctive,
+# ALLCAPS-no-space words chosen so `full_text.count(...)` can prove each
+# caption reached the compiled PDF exactly once (guarding against both the
+# stray-heading bug -- Verified Mechanism 1 -- and the 2nd-table
+# stale-buffer caption-loss bug -- Verified Mechanism 2). Must match the
+# sentinel tokens embedded in captioned_table_render_gate/index.rst.
+TBLCAP_FIRST_SENTINEL = "TBLCAPFIRSTSENTINEL"
+TBLCAP_SECOND_SENTINEL = "TBLCAPSECONDSENTINEL"
+TBLCAP_WIDTH_SENTINEL = "TBLCAPWIDTHSENTINEL"
+TBLCAP_CSV_SENTINEL = "TBLCAPCSVSENTINEL"
+TBLCAP_LIST_SENTINEL = "TBLCAPLISTSENTINEL"
+
+
+class _CaptionedTableRenderGateArtifacts:
+    """
+    Plain container for the one real-compile artifact shared by every
+    ``TestCaptionedTableRenderGate`` test method: the emitted Typst source
+    text and the pypdf-extracted PDF text. A plain class (not a dict/tuple)
+    so each thin test method below can read ``.typ_source``/``.full_text``
+    by name.
+    """
+
+    def __init__(self, typ_source: str, full_text: str) -> None:
+        self.typ_source = typ_source
+        self.full_text = full_text
+
+
+@pytest.fixture(scope="class")
+def captioned_table_render_gate_artifacts(tmp_path_factory):
+    """
+    Build + real-compile the captioned_table_render_gate fixture ONCE per
+    class and return both the emitted Typst source text and the
+    pypdf-extracted PDF text.
+
+    Class-scoped so the four thin test methods below each assert a
+    disjoint slice of the SAME real-compile artifact rather than
+    re-running sphinx-build/typst.compile() four times (mirrors the
+    ``topic_line_block_render_gate_pdf_text`` class-scoped fixture pattern
+    above). Depends only on ``tmp_path_factory`` (session-scoped-
+    compatible) -- not on the narrower, function-scoped
+    ``captioned_table_render_gate_dir``/``fixtures_dir`` fixtures, to avoid
+    a pytest ScopeMismatch (a class-scoped fixture may not depend on a
+    narrower, function-scoped one).
+    """
+    source_dir = Path(__file__).parent / "fixtures" / "captioned_table_render_gate"
+    build_dir = tmp_path_factory.mktemp("captioned_table_gate") / "_build"
+
+    result = _run_sphinx_build_typst(source_dir, build_dir)
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+    index_typ = build_dir / "index.typ"
+    assert index_typ.exists(), "index.typ was not generated"
+    typ_source = index_typ.read_text(encoding="utf-8")
+
+    # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+    # this is the crux of GATE-01 -- the double-anchor Critical Pitfall 3
+    # fatal (a captioned table's ids[0] defined twice) would abort the
+    # ENTIRE compile here, failing every dependent test method loudly,
+    # rather than merely failing a string-agreement check.
+    pdf_output = build_dir / "index.pdf"
+    typst.compile(str(index_typ), output=str(pdf_output))
+
+    assert pdf_output.exists(), "PDF file was not created"
+    assert pdf_output.stat().st_size > 0, "PDF file is empty"
+    with open(pdf_output, "rb") as f:
+        magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    reader = pypdf.PdfReader(str(pdf_output))
+    full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+    return _CaptionedTableRenderGateArtifacts(typ_source, full_text)
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the GATE-01 render gate",
+)
+class TestCaptionedTableRenderGate:
+    """
+    Real-compile acceptance gate for TBL-01/TBL-02: the Plan 25-01
+    depart_table figure-wrap + single <label> fix, covering two
+    consecutive captioned tables (the stale-buffer proof), a
+    caption+:width: composition case, a :numref:/:ref:-resolves case, and
+    a captioned csv-table + list-table case (D-05).
+
+    Requirements: TBL-01, TBL-02, GATE-01 (25-CONTEXT.md, 25-RESEARCH.md
+    Validation Architecture, 25-01-SUMMARY.md).
+
+    All four test methods share the SAME real-compile artifact via the
+    class-scoped ``captioned_table_render_gate_artifacts`` fixture above --
+    sphinx-build/typst.compile() run exactly once per class, not once per
+    test method.
+    """
+
+    def test_each_caption_sentinel_appears_exactly_once(
+        self, captioned_table_render_gate_artifacts
+    ):
+        """
+        Each of the five caption sentinels appears EXACTLY ONCE in the
+        extracted PDF text -- proving neither the stray-heading bug
+        (Verified Mechanism 1) nor the 2nd-table stale-buffer
+        caption-loss bug (Verified Mechanism 2) regressed. The 2nd
+        table's sentinel (TBLCAPSECONDSENTINEL) is the specific
+        stale-buffer proof: a single-table fixture cannot expose it.
+        """
+        full_text = captioned_table_render_gate_artifacts.full_text
+
+        for sentinel in (
+            TBLCAP_FIRST_SENTINEL,
+            TBLCAP_SECOND_SENTINEL,
+            TBLCAP_WIDTH_SENTINEL,
+            TBLCAP_CSV_SENTINEL,
+            TBLCAP_LIST_SENTINEL,
+        ):
+            assert full_text.count(sentinel) == 1, (
+                f"Expected caption sentinel '{sentinel}' exactly once in "
+                "extracted PDF text -- possible stray-heading or "
+                "stale-buffer caption-loss regression (TBL-01)"
+            )
+
+    def test_typ_source_uses_figure_kind_table_with_no_heading_above(
+        self, captioned_table_render_gate_artifacts
+    ):
+        """
+        The emitted index.typ wraps every captioned table in
+        figure(..., kind: table) -- native Typst "Table N" numbering --
+        and no heading() call appears anywhere in the captioned-table
+        region (from the first figure( call onward): this fixture's only
+        heading() is the document's own top-level title, which precedes
+        every table (SC#1).
+        """
+        typ_source = captioned_table_render_gate_artifacts.typ_source
+
+        assert "figure(" in typ_source, (
+            "Expected 'figure(' in generated Typst source -- depart_table "
+            "figure-wrap regression"
+        )
+        assert "kind: table" in typ_source, (
+            "Expected 'kind: table' in generated Typst source -- "
+            "depart_table figure-wrap regression"
+        )
+
+        first_figure_index = typ_source.index("figure(")
+        captioned_table_region = typ_source[first_figure_index:]
+        assert "heading(" not in captioned_table_region, (
+            "Found a stray 'heading(' call inside the captioned-table "
+            "region -- a table caption fell through to the generic "
+            "section-heading path instead of being figure-wrapped "
+            "(Verified Mechanism 1 regression)"
+        )
+
+    def test_xref_numref_ref_resolve_no_empty_link(
+        self, captioned_table_render_gate_artifacts
+    ):
+        """
+        The :numref:/:ref: cross-references to the first captioned table
+        both resolve to a real link(<label>, ...) anchor reference in the
+        generated Typst source, with no link("", ...) leak -- mirrors
+        TestXrefRefidRenderGate's D-04 contract, applied to a captioned
+        table's own <label> instead of a section/glossary anchor.
+        """
+        typ_source = captioned_table_render_gate_artifacts.typ_source
+
+        assert "link(<" in typ_source, (
+            "Expected at least one refid link(<...>, ...) anchor "
+            "reference in the generated Typst source -- the "
+            ":numref:/:ref: to a captioned table may have regressed"
+        )
+        assert 'link("",' not in typ_source, (
+            'Found link("", ...) in generated Typst source -- the '
+            'never-link("", ...) contract has regressed'
+        )
+
+    def test_no_literal_source_leak(self, captioned_table_render_gate_artifacts):
+        """No LEAK_SIGNATURES token reaches the extracted PDF text."""
+        full_text = captioned_table_render_gate_artifacts.full_text
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into "
+                "rendered PDF text -- captioned-table markup/code-mode "
                 "regression"
             )
