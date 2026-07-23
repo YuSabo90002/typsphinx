@@ -25,8 +25,8 @@ black --check .              # black --check . (CI); drop --check to format
 ruff check .
 mypy typsphinx/
 
-# Everything, matrixed across py310–py313
-tox                          # env_list: py310..py313, lint, type, cov, docs
+# Everything, matrixed across py312–py313
+tox                          # env_list: py312, py313, lint, type, cov, docs
 
 # Build the project's own docs (from docs/)
 tox -e docs-html             # HTML via furo
@@ -64,7 +64,7 @@ The four Typst Universe `@preview` package versions (`codly`, `codly-languages`,
 
 ## Configuration surface
 
-User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_authors` / `typst_author_params`, `typst_template_assets`, `typst_output_dir`, and `typst_debug`.
+User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_authors`, `typst_template_assets`, and `typst_debug`.
 
 ## Tests
 
@@ -72,7 +72,25 @@ User-facing config values (all registered in `__init__.py`, prefix `typst_`) inc
 
 ## Conventions & gotchas
 
-- **Python 3.10+ compatibility is required.** ruff intentionally ignores `UP006`/`UP035` (the `Dict`/`List` → `dict`/`list` upgrades) to keep 3.10 support — don't "modernize" typing imports.
+- **Python 3.12+ is required.** ruff intentionally ignores `UP006`/`UP035` (the `Dict`/`List` → `dict`/`list` upgrades) — this is a deliberate deferral, not a compatibility constraint; the modernization pass is filed at `.planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md`. Don't "modernize" typing imports until that todo lands.
 - Line length 88 (black); `E501` is ignored in ruff since black owns wrapping.
 - `tox.ini` pins `tox-uv~=1.35` (not `>=1.35,<2`) deliberately — see the comment in that file; tox's ini parser splits a single-line `requires` on commas and breaks otherwise.
-- CI (`.github/workflows/ci.yml`) runs the py310–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
+- CI (`.github/workflows/ci.yml`) runs the py312–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
+
+### Worktree-isolated execution
+
+**Detection rule:** you are running inside an isolated git worktree when `.git` is a FILE (a `gitdir:` pointer), not a directory — check with `test -f .git`. Sequential main-tree execution has `.git` as a directory and needs none of the steps below.
+
+When operating inside a worktree, provision the worktree's own environment before running anything:
+
+```bash
+env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+uv run pytest   # run ALL subsequent commands via `uv run`
+```
+
+1. **Provision first.** `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` unsets those two vars so `uv` creates a fresh worktree-local `.venv` instead of syncing into an already-activated main venv and re-pointing it at the worktree.
+2. **Run everything via `uv run`.** e.g. `uv run pytest …`. Inside the test fixtures, Sphinx is still invoked as `sys.executable -m sphinx`, which under `uv run` resolves to the worktree venv's python — so `import typsphinx` binds to the worktree's editable copy. This complements the existing NixOS `sys.executable -m sphinx` guidance and does not contradict it.
+
+**Rationale:** the main `.venv` holds a PEP-660 editable finder (`__editable__.typsphinx-*.pth`) that resolves `import typsphinx` to the MAIN checkout's absolute path (`/…/typsphinx/typsphinx`), and `.venv` is gitignored so a fresh worktree starts with no venv of its own. Without the per-worktree `uv sync` + `uv run`, a worktree executor edits files in the worktree but pytest imports the UNCHANGED main-tree package — gates stay RED after a correct fix, and later waves don't see earlier waves' changes. Verified 2026-07-20 that a worktree `uv sync` + `uv run` is isolated (main `.venv` untouched) and works under the NixOS sandbox.
+
+**Applicability — worktree isolation is the STANDING execution mode (project owner's decision, 2026-07-20).** `workflow.use_worktrees` is `true` and `.claude/settings.local.json` sets `worktree.baseRef: "head"`, so the #683 fork-base auto-degrade does **not** fire on feature/milestone branches (`worktree base-check` → `shouldDegrade: false, reason: "baseref-head"`) — executor agents run in isolated worktrees by default, including on unmerged milestone branches. Therefore the per-worktree provisioning above (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` + run everything via `uv run`) is **mandatory** for every executor, not conditional. Do **not** override execute-phase to sequential main-tree execution merely because a phase has low parallelism benefit (e.g. one plan per wave) — worktree isolation stays on. The only automatic fall-backs are the framework's own: a non-`claude` runtime (which cannot honor `isolation="worktree"`), a plan that touches a git-submodule path, or a genuine `worktree base-check` degrade signal.

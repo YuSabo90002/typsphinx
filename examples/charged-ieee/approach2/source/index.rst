@@ -1,3 +1,9 @@
+.. This sample carries no citations: the translator has no handler for
+   citation nodes, so they emit adjacent expressions with no separator inside
+   a Typst code block and the document cannot compile. Note that
+   implementing citation support is tracked separately and is not part of
+   this phase.
+
 Machine Learning Applications in Computer Vision
 =================================================
 
@@ -21,7 +27,7 @@ Convolutional Neural Networks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 CNNs have become the dominant architecture for computer vision tasks since the
-breakthrough success of AlexNet [Krizhevsky2012]_. Subsequent architectures such as
+breakthrough success of AlexNet. Subsequent architectures such as
 VGGNet, ResNet, and EfficientNet have further improved performance through deeper
 networks and more efficient designs.
 
@@ -142,10 +148,3 @@ strategies, we achieved state-of-the-art results on multiple benchmark datasets.
 Our findings demonstrate that modern deep learning techniques, when properly combined,
 can significantly advance the capabilities of computer vision systems. We hope this
 work provides valuable insights for future research in this rapidly evolving field.
-
-References
-----------
-
-.. [Krizhevsky2012] Krizhevsky, A., Sutskever, I., & Hinton, G. E. (2012).
-   ImageNet classification with deep convolutional neural networks.
-   *Advances in neural information processing systems*, 25.

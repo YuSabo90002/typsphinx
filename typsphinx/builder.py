@@ -5,17 +5,20 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import os
+import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Set
+from typing import List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
+from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.osutil import ensuredir
 
-from typsphinx.pdf import compile_typst_to_pdf
+from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
@@ -34,6 +37,19 @@ class TypstBuilder(Builder):
     out_suffix = ".typ"
     allow_parallel = True
 
+    # Mimetypes Typst's image() function can embed, in preference order
+    # (vector first, then lossless/animated raster, lossy raster last).
+    # Consulted by post_process_images() to resolve a `*`-glob image URI
+    # (e.g. ".. figure:: _static/foo.*") to one concrete candidate file --
+    # mirrors sphinx.builders.html.StandaloneHTMLBuilder's ordering, which
+    # uses the same four formats.
+    supported_image_types: list[str] = [
+        "image/svg+xml",
+        "image/png",
+        "image/gif",
+        "image/jpeg",
+    ]
+
     def init(self) -> None:
         """
         Initialize the builder.
@@ -44,6 +60,217 @@ class TypstBuilder(Builder):
         # Key: image URI relative to source directory
         # Value: destination path (empty string for now, compatible with parent class)
         self.images: dict[str, str] = {}
+
+        # Track absolute docnames already emitted as an #include() across the
+        # WHOLE master include graph, so a document reachable via more than one
+        # toctree path (a "diamond") is physically #included at most ONCE per
+        # build. Sphinx's own doc/index.rst, for example, lists
+        # usage/extensions/index both directly (its "Reference" toctree) and
+        # nested under usage/index (its "User guide" toctree). Since Typst's
+        # #include() flattens each file's content inline, including the same
+        # .typ twice re-emits EVERY Typst <label> that file defines, and Typst
+        # rejects the compiled master with "label ... occurs multiple times".
+        # Deduplicating at include() granularity (the unit that is duplicated
+        # is a whole document, not a single translator-emitted anchor) keeps
+        # each label defined exactly once so every reference still resolves.
+        self._included_docnames: set[str] = set()
+
+        # The SET of docnames whose .typ is physically part of the compiled
+        # master (each master in typst_documents plus the transitive toctree
+        # closure reachable from it). Any doc NOT in this set -- e.g. an
+        # ``:orphan:`` doc, which Sphinx excludes from EVERY toctree -- is
+        # written as a .typ but never #include()d into the master, so the
+        # anchors it emits do not exist in the compiled document. The
+        # translator consults this set (via builder.master_included_docnames)
+        # to DEGRADE a cross-document reference whose target lies outside it
+        # to plain text, rather than emitting a link(<targetdoc:anchor>) label
+        # link that would dangle and hard-fail typst.compile() with
+        # "label ... does not exist". Populated up-front in write() (from the
+        # fully-read env's toctree graph) so it is reliably available before
+        # any reference is emitted; empty until then (an empty set means "no
+        # masters / unknown" and suppresses degradation, preserving behavior
+        # for hand-built test doctrees and mock builders).
+        self.master_included_docnames: set[str] = set()
+
+    def _compute_master_included_docnames(self) -> set[str]:
+        """Compute the transitive toctree closure of the master document(s).
+
+        The compiled master ``.typ`` (one per ``typst_documents`` entry)
+        physically ``#include()``s the transitive closure of toctree entries
+        reachable from its source doc -- exactly the set of documents whose
+        anchors end up in the compiled document. This walks Sphinx's canonical
+        ``env.toctree_includes`` (``dict[str, list[str]]`` mapping each doc to
+        the docs it directly pulls in via ``toctree``) breadth-first from every
+        master source docname, and includes the masters themselves.
+
+        ``env.toctree_includes`` is the read-phase-resolved include graph, so
+        ``:orphan:`` documents (excluded from every toctree) never appear in
+        it -- which is precisely why a cross-reference to one must degrade.
+        Glob toctrees are already expanded to concrete docnames in this map, so
+        the resulting set matches what ``visit_toctree`` actually emits.
+
+        Returns:
+            The set of docnames included in some compiled master, or an empty
+            set when no masters are configured (which the translator treats as
+            "unknown" and does not degrade against).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        masters = [entry[0] for entry in typst_documents if entry]
+        toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
+
+        included: set[str] = set()
+        stack = list(masters)
+        while stack:
+            docname = stack.pop()
+            if docname in included:
+                continue
+            included.add(docname)
+            for child in toctree_includes.get(docname, []):
+                if child not in included:
+                    stack.append(child)
+        return included
+
+    def _resolve_output_stem(self, docname: str) -> str:
+        """Resolve the output filename stem for a document.
+
+        ``typst_documents``' target name (tuple element ``[1]``, published as
+        the "Target name" contract at ``docs/configuration.rst:43``) governs
+        the filename a master document is written and compiled under --
+        ``typst_documents = [('index', 'manual.typ', ...)]`` must emit
+        ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``
+        (Issue #117). This is the single place that normalization rule is
+        implemented; every write/read-back site calls this method rather
+        than re-deriving the rule.
+
+        Args:
+            docname: The Sphinx document name being written.
+
+        Returns:
+            The filename stem (no suffix) to use for this document's output.
+            When ``docname`` has no matching ``typst_documents`` entry, the
+            docname itself is returned unchanged (D-02) -- this is the
+            common case for every document that is not a compiled master.
+            When the matched target name is unusable (a path, an absolute
+            path, or empty/whitespace/non-str after suffix stripping), a
+            ``logger.warning`` is emitted and a safe fallback is returned
+            instead -- ``path.basename`` of the offending stem for a
+            path-bearing target (D-06/D-07), or the docname itself for a
+            degenerate target (edge: empty).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+
+        entry_found = False
+        target: object = None
+        for entry in typst_documents:
+            if entry and len(entry) >= 2 and entry[0] == docname:
+                target = entry[1]
+                entry_found = True
+                break
+
+        if not entry_found:
+            # D-02: toctree-included children (and any docname with no
+            # typst_documents entry) keep docname + suffix. Silent -- this
+            # is the overwhelmingly common case (every non-master document).
+            return docname
+
+        if isinstance(target, str):
+            # D-04: strip only a literal trailing ".typ" -- an extension-
+            # splitting helper would truncate "v1.2-manual" to "v1", which
+            # is forbidden.
+            stem = target[:-4] if target.endswith(".typ") else target
+
+            # D-06/D-07 path guard: detect a path-bearing, traversal-bearing,
+            # absolute, or drive-qualified target BEFORE it reaches
+            # path.join(self.outdir, ...). The unconditional "/" and "\\"
+            # (not just os.sep/os.altsep) is what makes a Windows-authored
+            # "sub\\manual.typ" detectable on POSIX, where os.sep is "/" and
+            # os.altsep is None.
+            separators = {"/", "\\", os.sep}
+            if os.altsep:
+                separators.add(os.altsep)
+            segments = stem.replace("\\", "/").split("/")
+            is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+            is_guarded = (
+                any(sep in stem for sep in separators)
+                or ".." in segments
+                or path.isabs(stem)
+                or is_drive_qualified
+            )
+            if is_guarded:
+                fallback_source = stem[2:] if is_drive_qualified else stem
+                fallback = path.basename(fallback_source.replace("\\", "/"))
+                if not fallback.strip():
+                    # The path guard's own fallback (a basename) is itself
+                    # empty -- e.g. a trailing separator ("sub/manual.typ/"),
+                    # a bare root ("/"), or a drive prefix with nothing after
+                    # it ("C:"). Route straight to the single "empty target"
+                    # warning below instead of also emitting the "using ''
+                    # instead" warning first, which reads like a successful
+                    # (rather than re-triggered) resolution.
+                    logger.warning(
+                        "empty typst_documents target name for docname "
+                        f"{docname!r} after removing an unsupported path -- "
+                        f"falling back to {docname!r}"
+                    )
+                    return docname
+                logger.warning(
+                    "a path is not supported in a typst_documents target "
+                    f"name: {target!r} -- using {fallback!r} instead"
+                )
+                stem = fallback
+        else:
+            stem = ""
+
+        if not isinstance(target, str) or not stem.strip():
+            # edge: empty -- the target was non-str, or its stem is empty
+            # or whitespace-only after suffix stripping / the path guard.
+            # Fall back to the docname wholesale (no silent mangling) so no
+            # file is ever written literally named ".typ" / ".pdf".
+            logger.warning(
+                "empty typst_documents target name for docname "
+                f"{docname!r} -- falling back to {docname!r}"
+            )
+            return docname
+
+        # No Unicode normalization, case folding, or transliteration -- a
+        # non-ASCII stem such as "マニュアル" survives byte-for-byte
+        # (edge: encoding).
+        return stem
+
+    def _directory_preserving_relpath(self, docname: str, stem: str) -> str:
+        """Combine a resolved output stem with the docname's own directory.
+
+        ``_resolve_output_stem`` returns only a basename-safe stem (D-06/
+        D-07 already reduced any path-bearing target to its basename), so a
+        nested docname's typst_documents target must stay inside that
+        docname's own directory rather than being written at outdir's root
+        -- ``('sub/index', 'manual.typ', ...)`` must emit
+        ``outdir/sub/manual.typ``, not ``outdir/manual.typ`` (D-05). When no
+        typst_documents entry matched, or a degenerate/guarded target fell
+        back to the docname itself, ``stem`` already equals ``docname`` and
+        already carries its own directory -- prepending
+        ``path.dirname(docname)`` again would double it, so that case
+        returns ``stem`` untouched.
+
+        Args:
+            docname: The Sphinx document name being written.
+            stem: The value returned by ``_resolve_output_stem(docname)``.
+
+        Returns:
+            An outdir-relative path (no suffix) preserving the docname's
+            directory structure.
+        """
+        if stem == docname:
+            return stem
+        # docnames are always '/'-separated, so use posixpath throughout:
+        # os.path on Windows (ntpath) would emit a backslash from join,
+        # breaking the docname-style relative path. The downstream
+        # path.join(self.outdir, ...) accepts forward slashes on all
+        # platforms.
+        directory = posixpath.dirname(docname)
+        if directory:
+            return posixpath.join(directory, posixpath.basename(stem))
+        return stem
 
     def get_outdated_docs(self) -> Iterator[str]:
         """
@@ -60,6 +287,24 @@ class TypstBuilder(Builder):
     def get_target_uri(self, docname: str, typ: str | None = None) -> str:
         """
         Return the target URI for a document.
+
+        Deliberately stays docname-based and does NOT follow the
+        typst_documents target-name rename that ``_resolve_output_stem``
+        applies to the on-disk filename (Phase 22 / Issue #117). Its only
+        consumer is ``translator.py:_resolve_xref_docname``, which uses this
+        method as a round-trip identity to recover a cross-referenced
+        document's DOCNAME from a refuri that Sphinx itself computed via
+        ``Builder.get_relative_uri`` -- i.e.
+        ``relative_uri(get_target_uri(from_), get_target_uri(to))``, so both
+        endpoints pass through this same function. Every emitted Typst
+        label is namespaced by SOURCE DOCNAME via
+        ``translator.py:_namespace_label``, never by output filename.
+        Making this method target-name-aware would desynchronize the
+        recovered docname from the label namespace and break every
+        cross-document link into or out of a renamed master with a Typst
+        "label ... does not exist" compile fatal. This is a deliberate
+        Phase 22 decision -- do not "fix" it in sympathy with the
+        write-path rename.
 
         Args:
             docname: Name of the document
@@ -120,6 +365,18 @@ class TypstBuilder(Builder):
         self.prepare_writing(docnames)
         logger.info("done")
 
+        # Start each build with a clean include-dedup ledger so re-builds and
+        # multiple write() invocations do not carry stale state across masters.
+        self._included_docnames = set()
+
+        # Compute the master include-set NOW (the read phase is complete, so
+        # env.toctree_includes is fully populated) rather than lazily during
+        # visit_toctree: a cross-document reference in one document may be
+        # emitted BEFORE the toctree that includes its target is processed, so
+        # the set must be fully known up-front for the degrade decision to be
+        # reliable regardless of document write order.
+        self.master_included_docnames = self._compute_master_included_docnames()
+
         # Write individual documents
         warnings_count = 0
         for docname in sorted(docnames):
@@ -143,21 +400,78 @@ class TypstBuilder(Builder):
         Collects all image nodes from the document tree and tracks them
         in self.images dictionary for later copying to the output directory.
 
+        For a `*`-glob image URI (e.g. ``.. figure:: _static/foo.*``),
+        Sphinx's read-phase ImageCollector leaves ``node["uri"]`` as the
+        literal, unresolved glob string and instead records the concrete
+        on-disk candidates in ``node["candidates"]`` keyed by mimetype --
+        resolving that to one concrete file is the builder's responsibility
+        (mirrors ``sphinx.builders.Builder.post_process_images``, as done by
+        the HTML/LaTeX builders via their own ``supported_image_types``).
+        This picks the best Typst-embeddable candidate and rewrites
+        ``node["uri"]`` to the resolved path, so both the translator's
+        ``visit_image`` (emits the path into the ``.typ``) and
+        ``copy_image_files()`` (copies the file) see the concrete file.
+
+        Doctrees that never passed through Sphinx's ``ImageCollector`` (e.g.
+        hand-built doctrees in unit tests) have no ``candidates`` attribute
+        at all; those fall back to the original bare-URI tracking so that
+        behavior stays unchanged.
+
         Args:
             doctree: Document tree to process
         """
         from docutils.nodes import image
 
         for node in doctree.findall(image):
-            # Get image URI
-            imguri = node.get("uri", "")
-            if not imguri:
+            candidates = node.get("candidates")
+            if not candidates:
+                # No candidates dict -- doctree never went through Sphinx's
+                # ImageCollector (e.g. a hand-built test doctree). Preserve
+                # the original bare-URI behavior.
+                imguri = node.get("uri", "")
+                if not imguri:
+                    continue
+                if imguri not in self.images:
+                    self.images[imguri] = ""
+                continue
+
+            if "?" in candidates:
+                # Non-local URI (data: URI or remote http(s):// image) --
+                # nothing on disk to resolve or copy.
+                continue
+
+            if "*" in candidates:
+                # Already a single concrete candidate (the common, non-glob
+                # case -- ImageCollector sets candidates["*"] = node["uri"]).
+                resolved_uri = candidates["*"]
+            else:
+                # Glob URI with multiple mimetype-keyed candidates. Pick the
+                # best Typst-supported type, in preference order, and
+                # rewrite node["uri"] to the concrete resolved path.
+                resolved_uri = None
+                for imgtype in self.supported_image_types:
+                    candidate = candidates.get(imgtype)
+                    if candidate:
+                        resolved_uri = candidate
+                        break
+                if resolved_uri is None:
+                    # No candidate matches a Typst-supported mimetype --
+                    # degrade gracefully (warn, skip) rather than crash.
+                    mimetypes = sorted(candidates)
+                    logger.warning(
+                        f"a suitable image for typst builder not found: "
+                        f"{mimetypes} ({node.get('uri', '')})"
+                    )
+                    continue
+                node["uri"] = resolved_uri
+
+            if not resolved_uri:
                 continue
 
             # Track this image
             # Store empty string as value to be compatible with parent class type
-            if imguri not in self.images:
-                self.images[imguri] = ""
+            if resolved_uri not in self.images:
+                self.images[resolved_uri] = ""
 
     def write_doc(self, docname: str, doctree: nodes.document) -> None:
         """
@@ -174,8 +488,14 @@ class TypstBuilder(Builder):
             docname: Name of the document
             doctree: Document tree to be written
         """
-        # Get the output file path
-        destination = path.join(self.outdir, docname + self.out_suffix)
+        # Resolve the typst_documents target-name stem (Issue #117) and
+        # preserve the docname's own directory (D-05) before deriving the
+        # output file path.
+        stem = self._resolve_output_stem(docname)
+        relative_path = self._directory_preserving_relpath(docname, stem)
+        destination = path.normpath(
+            path.join(self.outdir, relative_path + self.out_suffix)
+        )
 
         # Ensure the directory for this specific file exists
         # This handles nested paths like "chapter1/section"
@@ -205,33 +525,60 @@ class TypstBuilder(Builder):
         This writes a separate template.typ file that master documents can import.
         Only writes if a template is configured (not using Typst Universe packages).
         """
-        from typsphinx.template_engine import TemplateEngine
+        from typsphinx.template_engine import (
+            TemplateEngine,
+            resolve_package_for_engine,
+        )
 
         config = self.config
 
         # Get template configuration
-        template_path = getattr(config, "typst_template", None)
+        raw_template_path = getattr(config, "typst_template", None)
+        template_path = raw_template_path
         if template_path:
             # Resolve relative path from source directory
             import os
 
             template_path = os.path.join(self.srcdir, template_path)
 
-        # Skip if using Typst Universe package (no separate template file needed)
         typst_package = getattr(config, "typst_package", None)
-        if typst_package:
+
+        # D-03: when BOTH a Typst Universe package and a custom template are
+        # configured, the combination is unsupported. `typst_template` wins
+        # (D-01's routing decision promotes it to the primary route) and
+        # `typst_package` is ignored end-to-end -- named here rather than
+        # silently dropped (T-22.2-11). This method runs exactly once per
+        # build (see the single call site in `prepare_writing()`), so the
+        # warning fires once per build, not once per master document.
+        if typst_package and raw_template_path:
+            logger.warning(
+                "Both 'typst_package' and 'typst_template' are configured; "
+                "this combination is unsupported. 'typst_template' will be "
+                "honoured and 'typst_package' will be ignored."
+            )
+
+        # Skip if using a Typst Universe package ALONE (no custom template
+        # configured) -- a package-alone master needs no separate template
+        # file (D-01). When a custom template is ALSO configured, fall
+        # through: the custom template must still be written regardless of
+        # the package setting (D-03).
+        if typst_package and not raw_template_path:
             return
 
-        # Create template engine
+        # Create template engine. The package value goes through the same
+        # single routing helper writer.py uses (WR-04) so the two can never
+        # disagree about package-vs-template routing -- BUG-A's failure shape.
+        # Reaching here means a custom template IS configured, so the helper
+        # suppresses the package; deriving it rather than hardcoding None keeps
+        # one rule, one place.
         template_engine = TemplateEngine(
             template_path=template_path,
             search_paths=[self.srcdir],
             parameter_mapping=getattr(config, "typst_template_mapping", None),
-            typst_package=typst_package,
+            typst_package=resolve_package_for_engine(typst_package, raw_template_path),
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
             typst_authors=getattr(config, "typst_authors", None),
-            typst_author_params=getattr(config, "typst_author_params", None),
         )
 
         # Get template content
@@ -491,8 +838,12 @@ class TypstPDFBuilder(TypstBuilder):
             docname: Name of the document
             doctree: Document tree to be written
         """
-        # Generate .typ file (not .pdf)
-        typ_destination = path.join(self.outdir, docname + ".typ")
+        # Generate .typ file (not .pdf). Resolve the typst_documents
+        # target-name stem (Issue #117) -- self.out_suffix is ".pdf" on this
+        # builder, so the literal ".typ" suffix is used here regardless.
+        stem = self._resolve_output_stem(docname)
+        relative_path = self._directory_preserving_relpath(docname, stem)
+        typ_destination = path.normpath(path.join(self.outdir, relative_path + ".typ"))
 
         # Ensure the directory exists
         dest_dir = path.dirname(typ_destination)
@@ -500,6 +851,16 @@ class TypstPDFBuilder(TypstBuilder):
 
         # Set current docname for template application logic
         self.current_docname = docname
+
+        # Post-process images to track them for copying.
+        # This mirrors TypstBuilder.write_doc(): finish() (via super().finish())
+        # calls copy_image_files(), which copies every uri tracked in
+        # self.images from srcdir to outdir. Without this call self.images stays
+        # empty, copy_image_files() early-returns, and any referenced asset
+        # (e.g. a `.. figure:: _static/foo.png`) is never copied into the Typst
+        # output tree -- so the emitted image("_static/foo.png") path fails to
+        # resolve and typst.compile() aborts with "file not found".
+        self.post_process_images(doctree)
 
         # Set the document on the writer
         self.writer.document = doctree
@@ -521,6 +882,17 @@ class TypstPDFBuilder(TypstBuilder):
         Only master documents (defined in typst_documents) are compiled to PDF.
         Included documents are not compiled individually.
 
+        Every configured master is attempted, even if an earlier one fails:
+        masters that compile successfully still get their .pdf written. A
+        master can fail for three reasons -- a Typst compile error, a
+        configured master whose .typ file was never generated, or a
+        malformed typst_documents entry -- and all three are collected into
+        the same failures list and reported together by a single
+        ExtensionError raised after every entry has been attempted. That
+        raise surfaces as a non-zero sphinx-build exit -- a build can no
+        longer "succeed" while silently producing no PDF for a broken,
+        missing, or malformed master.
+
         Requirement 9.2: Execute Typst compilation within Python
         Requirement 9.4: Generate PDF from Typst markup
         """
@@ -539,25 +911,46 @@ class TypstPDFBuilder(TypstBuilder):
 
         logger.info(f"Compiling {len(typst_documents)} master document(s) to PDF...")
 
+        failures: List[Tuple[str, str]] = []
+
         for doc_tuple in typst_documents:
-            # doc_tuple format: (sourcename, targetname, title, author)
+            # doc_tuple format: (sourcename, targetname, title, author).
+            # Resolve the stem ONCE so the .typ read-back path and the .pdf
+            # write path can never drift from each other (Issue #117).
+            # Mirror _resolve_output_stem's own length guard here: a
+            # malformed entry (e.g. an empty tuple from a misconfigured
+            # typst_documents) must not raise an uncaught IndexError on
+            # doc_tuple[0] before that helper's defenses ever run.
+            if not doc_tuple:
+                logger.warning(f"Malformed typst_documents entry: {doc_tuple!r}")
+                failures.append((repr(doc_tuple), "malformed typst_documents entry"))
+                continue
             docname = doc_tuple[0]
-            typ_file = path.join(self.outdir, docname + ".typ")
+            stem = self._resolve_output_stem(docname)
+            relative_path = self._directory_preserving_relpath(docname, stem)
+            typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))
 
             if not path.exists(typ_file):
-                logger.warning(f"Master document not found: {typ_file}")
+                if docname not in self.env.found_docs:
+                    message = (
+                        f"Master document {docname!r} is not a known Sphinx document"
+                        " -- check typst_documents for a typo, a stray '.rst' "
+                        "suffix, or an exclude_patterns exclusion"
+                    )
+                else:
+                    message = f"Master document not found: {typ_file}"
+                logger.warning(message)
+                failures.append((docname, message))
                 continue
 
             try:
-                # Read Typst content
-                with open(typ_file, encoding="utf-8") as f:
-                    typst_content = f.read()
-
-                # Compile to PDF
-                pdf_bytes = compile_typst_to_pdf(typst_content, root_dir=self.outdir)
+                # typ_file is already the master's real on-disk location, so
+                # the docname-relative #include()/image() paths the
+                # translator emitted resolve by construction (D-01).
+                pdf_bytes = compile_typst_file_to_pdf(typ_file, root_dir=self.outdir)
 
                 # Write PDF file
-                pdf_file = path.join(self.outdir, docname + ".pdf")
+                pdf_file = path.normpath(path.join(self.outdir, relative_path + ".pdf"))
                 with open(pdf_file, "wb") as f:
                     f.write(pdf_bytes)
 
@@ -565,3 +958,10 @@ class TypstPDFBuilder(TypstBuilder):
 
             except Exception as e:
                 logger.error(f"Failed to compile {typ_file}: {e}")
+                failures.append((docname, str(e)))
+
+        if failures:
+            summary = "; ".join(f"{docname}: {err}" for docname, err in failures)
+            raise ExtensionError(
+                f"typstpdf: {len(failures)} master document(s) failed: {summary}"
+            )

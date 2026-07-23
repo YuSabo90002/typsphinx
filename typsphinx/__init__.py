@@ -55,9 +55,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     )
     # Issue #13: Author details configuration
     app.add_config_value("typst_authors", None, "html", [dict, type(None)])
-    app.add_config_value("typst_author_params", None, "html", [dict, type(None)])
-    # Task 13.4: Output directory and debug mode
-    app.add_config_value("typst_output_dir", "_build/typst", "html", [str])
+    # Task 13.4: Debug mode
     app.add_config_value("typst_debug", False, "html", [bool])
     # Issue #75: Template asset support
     app.add_config_value("typst_template_assets", None, "html", [list, type(None)])

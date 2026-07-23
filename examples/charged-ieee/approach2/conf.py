@@ -16,11 +16,11 @@ typst_documents = [
     ("index", "paper", project, author, "typst"),
 ]
 
-# -- Typst Universe package configuration ------------------------------------
-# Use charged-ieee template from Typst Universe
-typst_package = "@preview/charged-ieee:0.1.4"
-
 # -- Custom template configuration (Approach 2 - Flexible) ------------------
-# Use custom template that wraps charged-ieee
+# Use custom template that wraps charged-ieee.
+# NOTE: typst_package is intentionally NOT set here. _templates/_template.typ
+# imports "@preview/charged-ieee:0.1.4" itself, and setting typst_package would
+# switch typsphinx to the package-only path, which skips emitting _template.typ
+# into the output directory and breaks compilation.
 typst_template = "_templates/_template.typ"
 typst_template_function = "project"

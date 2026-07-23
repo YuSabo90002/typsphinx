@@ -63,7 +63,7 @@ typst_elements = {
 }
 
 # Custom template (optional)
-# Uncomment to use a custom Typst template
+# This example ships one; remove this line to fall back to the bundled default
 typst_template = "_templates/custom.typ"
 
 # Template parameter mapping (optional)
@@ -95,11 +95,6 @@ typst_toctree_defaults = {
 #     '#import "@preview/codly:0.1.0": *',
 #     '#import "@preview/gentle-clues:0.3.0": *',
 # ]
-
-# Output directory (optional)
-# Customize where Typst files are written
-# Default: '_build/typst'
-# typst_output_dir = '_build/typst'
 
 # Debug mode (optional)
 # Enable detailed logging for troubleshooting

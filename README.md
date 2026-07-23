@@ -27,7 +27,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
   - Syntax highlighting for multiple languages
   - Highlight specific lines
 - **Images and figures**: Embed images with captions and references
-- **Cross-references and citations**: Maintain document structure with internal links
+- **Cross-references**: Maintain document structure with internal links
 - **Customizable templates**: Use default or custom Typst templates
 - **Direct PDF generation**: Self-contained PDF generation via typst-py (no external Typst CLI required)
 - **Multi-document support**: Generate multiple Typst files with toctree integration using `#include()`
@@ -133,12 +133,6 @@ Create a custom Typst template:
 ```python
 # conf.py
 typst_template = '_templates/custom.typ'
-
-typst_elements = {
-    'papersize': 'a4',
-    'fontsize': '11pt',
-    'lang': 'ja',
-}
 ```
 
 ### Template Parameter Mapping
@@ -148,11 +142,13 @@ Map Sphinx metadata to template parameters:
 ```python
 # conf.py
 typst_template_mapping = {
-    'title': 'project',
-    'authors': ['author'],
-    'date': 'release',
+    'project': 'doc_title',
+    'author': 'doc_authors',
+    'release': 'version',
 }
 ```
+
+Keys are Sphinx metadata names; values are the template parameter names they map to.
 
 ### Multi-Document Projects
 
@@ -202,8 +198,9 @@ For more details, see the [Sphinx Extension API documentation](https://www.sphin
 
 ## Configuration Options
 
-See [docs/configuration.rst](docs/configuration.rst) for all available configuration options:
+Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
 
+- `typst_documents`: Master documents to build, as `[(source, target, title, author), ...]` — required for PDF output
 - `typst_use_mitex`: Enable/disable mitex for LaTeX math
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
@@ -220,7 +217,7 @@ This project uses uv for fast package management and follows TDD (Test-Driven De
 # Install with development dependencies
 uv sync --extra dev
 
-# Run tests (413 tests)
+# Run tests
 uv run pytest
 
 # Run tests with coverage report
@@ -240,10 +237,9 @@ uv run tox -e docs          # Build both HTML and PDF docs
 
 ### Testing Strategy
 
-- **Unit tests**: 413 tests covering all major components
+- **Unit tests**: Cover all major components
 - **Integration tests**: Full build process validation
 - **Example projects**: `examples/basic/` and `examples/advanced/`
-- **Code coverage**: 93% overall
 
 ### Project Structure
 
@@ -265,9 +261,7 @@ typsphinx/
 ## Known Limitations
 
 - **Bibliography**: BibTeX integration not yet supported
-- **Glossary**: Glossary generation not yet supported
-
-See full requirements verification in project documentation.
+- **Citations**: reStructuredText citation directives are not yet supported
 
 ## Documentation
 
@@ -296,7 +290,6 @@ Contributions are welcome! Please:
 ### Development Guidelines
 
 - Follow TDD (Test-Driven Development)
-- Maintain 80%+ code coverage
 - Use black for code formatting
 - Follow Sphinx extension conventions
 - Add tests for all new features
@@ -312,7 +305,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - Integrates [mitex](https://github.com/mitex-rs/mitex) for LaTeX math
 - Uses [codly](https://typst.app/universe/package/codly) for code highlighting
 - Uses [gentle-clues](https://typst.app/universe/package/gentle-clues) for admonitions
-- Developed with [Claude Code](https://claude.ai/code) and Kiro-style Spec-Driven Development
+- Developed with [Claude Code](https://claude.ai/code) and [GSD](https://github.com/open-gsd/gsd-core) (spec-driven development for AI coding agents)
 
 ## Version History
 
@@ -320,5 +313,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.5.0) - Production ready
+**Status**: Stable (v0.6.2) - Production ready
 **Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+

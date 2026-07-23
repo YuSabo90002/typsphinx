@@ -1,219 +1,285 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-07-04
+**Analysis Date:** 2026-07-22
 
 ## Directory Layout
 
 ```
 typsphinx/
-├── typsphinx/                 # Main package
-│   ├── __init__.py            # Sphinx extension entry point (setup function)
-│   ├── builder.py             # TypstBuilder and TypstPDFBuilder classes
-│   ├── writer.py              # TypstWriter class (document translation coordinator)
-│   ├── translator.py          # TypstTranslator class (docutils node visitor)
-│   ├── template_engine.py     # TemplateEngine class (template loading, rendering)
-│   ├── pdf.py                 # PDF compilation utilities
-│   └── templates/             # Default Typst templates
-│       └── base.typ           # Default base template
-├── tests/                     # Test suite
-│   ├── conftest.py            # pytest configuration and shared fixtures
-│   ├── roots/                 # Test root directories for Sphinx projects
-│   │   └── test-basic/        # Minimal test Sphinx project
-│   ├── fixtures/              # Integration test fixtures
-│   │   ├── integration_basic/
-│   │   ├── integration_multi_doc/
-│   │   ├── integration_nested_toctree/
-│   │   ├── integration_multi_level/
-│   │   ├── integration_sibling/
-│   │   └── integration_math_figures/
-│   ├── test_*.py              # Test files (unit, integration, documentation)
-│   └── test_builder.py        # Builder tests
-├── docs/                      # Documentation source
-│   ├── source/                # Sphinx documentation source
-│   │   ├── conf.py            # Sphinx configuration for documentation
-│   │   ├── index.rst          # Documentation index
-│   │   ├── api/               # API documentation
-│   │   ├── examples/          # Example documentation
-│   │   ├── user_guide/        # User guide documentation
-│   │   ├── _static/           # Static assets
-│   │   └── _templates/        # Sphinx templates
-│   └── locale/                # i18n translation files
-├── examples/                  # Example projects
-│   ├── basic/                 # Basic example
-│   ├── advanced/              # Advanced example with custom template
-│   └── charged-ieee/          # IEEE template examples
-├── pyproject.toml             # Project metadata and dependencies
-├── tox.ini                    # tox test runner configuration
-├── flake.nix                  # Nix development environment
-├── README.md                  # Project README
-├── CHANGELOG.md               # Version history
-└── LICENSE                    # MIT License
+├── typsphinx/                  # Main extension source code
+│   ├── __init__.py             # Sphinx extension entry point, builder registration
+│   ├── builder.py              # TypstBuilder and TypstPDFBuilder classes
+│   ├── writer.py               # TypstWriter for document translation control
+│   ├── translator.py           # TypstTranslator for node-to-Typst conversion (~2700 lines)
+│   ├── template_engine.py      # TemplateEngine for template loading and rendering
+│   ├── pdf.py                  # PDF compilation wrapper over typst-py
+│   └── templates/
+│       └── base.typ            # Default Typst template for master documents
+│
+├── tests/                      # Comprehensive test suite
+│   ├── conftest.py             # pytest fixtures and configuration
+│   ├── test_*.py               # ~50+ test modules (translator, builder, config, integration, etc.)
+│   ├── fixtures/               # Per-test-case fixture directories (~80+ render gate suites)
+│   │   ├── [fixture-name]/
+│   │   │   ├── conf.py         # Sphinx conf.py for test
+│   │   │   ├── index.rst       # Test source document
+│   │   │   ├── expected/       # Expected output (if integration test)
+│   │   │   │   └── *.typ
+│   │   │   └── ...
+│   │   └── ...
+│   └── roots/                  # Full Sphinx project test roots
+│       └── test-basic/         # Basic integration test project
+│
+├── docs/                       # Project documentation (Sphinx-based)
+│   ├── conf.py                 # Sphinx configuration for docs build
+│   ├── Makefile                # Sphinx Makefile
+│   ├── source/
+│   │   ├── _static/            # Static assets (images, etc.)
+│   │   ├── _templates/         # Custom Sphinx templates
+│   │   ├── api/                # API reference documentation
+│   │   ├── examples/           # Example usage pages
+│   │   ├── user_guide/         # User guide pages
+│   │   └── index.rst           # Main documentation index
+│   └── locale/ja/              # Japanese translation files
+│
+├── examples/                   # Example Sphinx projects
+│   ├── basic/                  # Simple example
+│   ├── advanced/               # Advanced features example
+│   └── charged-ieee/           # Real-world template package example (charged-ieee)
+│
+├── .planning/codebase/         # Codebase mapping documents (this directory)
+│   ├── ARCHITECTURE.md         # Architecture and data flow
+│   ├── STRUCTURE.md            # Directory layout and naming conventions
+│   ├── CONVENTIONS.md          # Coding conventions (generated by /gsd-map-codebase quality)
+│   └── CONCERNS.md             # Technical debt and issues (generated by /gsd-map-codebase concerns)
+│
+├── .github/                    # GitHub workflows
+│   ├── workflows/
+│   │   ├── ci.yml              # CI pipeline (py310–py313, lint, type, cov matrix)
+│   │   ├── drift.yml           # Weekly dependency drift check
+│   │   └── release.yml         # PyPI release automation
+│
+├── .claude/                    # Claude Code project configuration
+│   ├── settings.json           # Claude Code settings
+│   ├── settings.local.json     # Local overrides (worktree isolation config)
+│   └── gsd-core/               # GSD-specific configuration
+│
+├── pyproject.toml              # Project metadata, dependencies, tool config
+├── tox.ini                     # tox configuration for testing across Python versions
+├── uv.lock                     # uv lockfile for reproducible environments
+├── CHANGELOG.md                # Release notes and changes
+├── README.md                   # Project overview
+├── LICENSE                     # MIT license
+└── flake.nix                   # NixOS environment definition
 ```
 
 ## Directory Purposes
 
-**typsphinx/ (main package):**
-- Purpose: Core extension implementation
-- Contains: Sphinx builder, translator, template engine, PDF utilities
-- Key files: __init__.py (entry point), builder.py, writer.py, translator.py, template_engine.py, pdf.py
-- Deployed: Installed to site-packages via setuptools
+**typsphinx/:**
+- Purpose: Main extension code package
+- Contains: Core implementation files (.py) and default template (base.typ)
+- Key files: `__init__.py` (entry point), `builder.py` (orchestration), `translator.py` (node conversion)
+
+**typsphinx/templates/:**
+- Purpose: Default Typst template files bundled with package
+- Contains: `base.typ` (default template with codly, mitex, gentle-clues imports)
+- Generated: No
+- Committed: Yes
 
 **tests/:**
-- Purpose: Test suite for quality assurance
-- Contains: Unit tests, integration tests, documentation tests, test fixtures
-- Key files: conftest.py (shared fixtures), test_*.py files
-- Structure: roots/ for Sphinx test projects, fixtures/ for integration test data
-- Run: `pytest` or `tox`
+- Purpose: Comprehensive test suite
+- Contains: ~50+ test files, ~80+ fixture directories for render gate tests
+- Key files: `conftest.py` (pytest fixtures), `test_builder.py`, `test_translator.py`, `test_integration_*.py`
+- Generated: No (fixtures are checked in; outputs generated during test runs)
+- Committed: Yes
+
+**tests/fixtures/:**
+- Purpose: Per-test fixture directories with isolated Sphinx projects
+- Contains: Each subdirectory is a minimal Sphinx project for a single test case
+- Pattern: `[fixture-name]/conf.py`, `index.rst`, `expected/` (for integration tests)
+- Generated: No
+- Committed: Yes
+
+**tests/roots/:**
+- Purpose: Full Sphinx project test roots (for integration tests that need multiple documents/toctree)
+- Contains: Complete, minimal Sphinx projects (e.g., `test-basic/` with full conf.py, multiple .rst files)
+- Generated: No
+- Committed: Yes
 
 **docs/:**
-- Purpose: User-facing documentation
-- Contains: Sphinx documentation source (RST files)
-- Key files: conf.py (documentation build config), source/index.rst (manual homepage)
-- Subdirectories: api/ (API reference), user_guide/ (tutorials), examples/ (sample usage)
-- Deployment: Built to HTML/Typst for publication
+- Purpose: Project documentation (dogfoods the extension itself)
+- Contains: Sphinx conf.py, source RST files, build outputs in _build/
+- Key files: `conf.py` (uses typstpdf builder), `source/index.rst` (main page)
+- Generated: `docs/_build/` (build output, gitignored)
+- Committed: Yes (source only, not _build/)
 
 **examples/:**
-- Purpose: Example Sphinx projects demonstrating typsphinx usage
-- Contains: Complete Sphinx project directories with source files, conf.py
-- Key subdirectories:
-  - basic/: Minimal example showing basic setup
-  - advanced/: Example with custom template
-  - charged-ieee/: IEEE template integration examples (approach1, approach2)
+- Purpose: Example Sphinx projects demonstrating various configurations
+- Contains: `basic/` (simple setup), `advanced/` (custom template), `charged-ieee/` (real package usage)
+- Generated: No
+- Committed: Yes
+
+**.planning/codebase/:**
+- Purpose: Codebase mapping documents generated by `/gsd-map-codebase`
+- Contains: ARCHITECTURE.md, STRUCTURE.md, CONVENTIONS.md, CONCERNS.md
+- Generated: Yes (by GSD mapping tools)
+- Committed: Yes (consumed by /gsd-plan-phase and /gsd-execute-phase)
+
+**.github/workflows/:**
+- Purpose: CI/CD automation
+- Contains: `ci.yml` (run tests on push), `drift.yml` (weekly dep check), `release.yml` (publish to PyPI)
+- Generated: No
+- Committed: Yes
 
 ## Key File Locations
 
 **Entry Points:**
-- `typsphinx/__init__.py`: Sphinx extension setup function; registers builders and config values
-- `typsphinx/builder.py:TypstBuilder.write()`: Main build orchestration loop
+- `typsphinx/__init__.py`: Sphinx extension `setup()` function (called on extension load)
+- `typsphinx/builder.py:TypstBuilder`: Builder class (instantiated by Sphinx for `-b typst`)
+- `typsphinx/builder.py:TypstPDFBuilder`: Builder class (instantiated by Sphinx for `-b typstpdf`)
 
 **Configuration:**
-- `pyproject.toml`: Project metadata, dependencies, tool configs (black, ruff, mypy, pytest)
-- `typsphinx/__init__.py`: Extension configuration value registration
+- `pyproject.toml`: Package metadata, dependencies, entry points, pytest/black/ruff/mypy config
+- `tox.ini`: tox environment matrix (py310–py313, lint, type, cov, docs)
+- `pyproject.toml`: pytest marker definitions and filter warnings
 
 **Core Logic:**
-- `typsphinx/builder.py`: Build lifecycle management (TypstBuilder, TypstPDFBuilder)
-- `typsphinx/writer.py`: Translation orchestration and template application
-- `typsphinx/translator.py`: Node-to-Typst conversion (visitor pattern implementation)
-- `typsphinx/template_engine.py`: Template loading, parameter mapping, rendering
-
-**Templates:**
-- `typsphinx/templates/base.typ`: Default Typst template bundled with package
+- `typsphinx/translator.py`: Docutils node visitor (~140 methods, ~2700 lines) — the file you'll edit most often for new node support
+- `typsphinx/builder.py`: Builder write loop, image handling, toctree dedup
+- `typsphinx/writer.py`: Document routing (master vs. included), template application decision
+- `typsphinx/template_engine.py`: Sphinx metadata mapping, template rendering
 
 **Testing:**
-- `tests/conftest.py`: pytest fixtures (rootdir, sample_doctree, temp_sphinx_app)
-- `tests/test_*.py`: Individual test modules
-- `tests/roots/test-basic/`: Minimal Sphinx project for testing
-- `tests/fixtures/integration_*/`: Integration test project structures
+- `tests/conftest.py`: pytest fixtures (`temp_sphinx_app`, `sample_doctree`, `rootdir`)
+- `tests/fixtures/*/`: Individual render gate test directories (each runs translator on isolated RST snippet)
+- `tests/roots/test-*/`: Full integration test projects (multi-document, toctree, etc.)
 
-**Utilities:**
-- `typsphinx/pdf.py`: Typst-to-PDF compilation wrapper (compile_typst_to_pdf function)
+**Templates:**
+- `typsphinx/templates/base.typ`: Default master document template (defines project() function, title page, TOC, body)
 
 ## Naming Conventions
 
 **Files:**
-- Module files: lowercase with underscores (`builder.py`, `template_engine.py`)
-- Test files: `test_<subject>.py` (e.g., `test_builder.py`, `test_admonitions.py`)
-- Template files: `.typ` extension (Typst markup)
-- Config files: `conf.py` (Sphinx convention)
+- Python modules: `lowercase_with_underscores.py` (PEP 8)
+  - Sphinx extension: `__init__.py`
+  - Builder module: `builder.py`
+  - Test modules: `test_*.py`
+- Typst templates: `lowercase.typ` (e.g., `base.typ`)
+- Config files: `conf.py` (Sphinx standard), `pyproject.toml`, `tox.ini`
 
 **Directories:**
-- Package directory: singular module name (`typsphinx/`)
-- Test directory: `tests/`
-- Documentation: `docs/`
-- Examples: `examples/`
-- Fixtures: grouped in `tests/fixtures/<test_name>/`
-- Test root projects: `tests/roots/test-<name>/`
+- Package: `typsphinx` (all lowercase, no hyphens; matches PyPI package name)
+- Tests: `tests/` (standard Python convention)
+- Fixtures: `[feature-name-snake_case]/` for test directories (e.g., `figure_length_render_gate/`)
+- Build outputs: `build/`, `docs/_build/` (gitignored)
 
-**Classes:**
-- Builder classes: CamelCase, end with "Builder" (`TypstBuilder`, `TypstPDFBuilder`)
-- Translator classes: CamelCase, end with "Translator" (`TypstTranslator`)
-- Writer classes: CamelCase, end with "Writer" (`TypstWriter`)
-- Engine classes: CamelCase, end with "Engine" (`TemplateEngine`)
-- Exception classes: CamelCase, end with "Error" or "Exception" (`TypstCompilationError`)
-
-**Functions:**
-- Builder methods: lowercase with underscores (`get_outdated_docs`, `write_doc`, `prepare_writing`)
-- Visitor methods: `visit_<node_type>`, `depart_<node_type>` (e.g., `visit_paragraph`, `depart_emphasis`)
-- Utility functions: lowercase with underscores (`compile_typst_to_pdf`, `check_typst_available`)
+**Functions/Methods:**
+- Snake case: `def visit_section()`, `def depart_paragraph()` (PEP 8, required by docutils visitor pattern)
+- Private methods: `_resolve_output_stem()` (underscore prefix)
+- Visitor methods: **Must use PascalCase node names** (required by docutils visitor pattern; e.g., `visit_Text`, not `visit_text`)
 
 **Variables:**
-- State flags: `in_<state>` (e.g., `in_table`, `in_figure`, `in_paragraph`)
-- Content buffers: `<content>_buffer` or `<content>` (e.g., `body`, `figure_caption`)
-- Stack/list tracking: `<item>_stack` (e.g., `list_stack`)
-- Metadata/config: descriptive names (e.g., `sphinx_metadata`, `parameter_mapping`)
+- Instance attributes: snake case (e.g., `self.section_level`, `self.in_table`)
+- Constants: UPPER_CASE (e.g., `_TYPST_PASSTHROUGH_UNITS`)
+- Translator state: descriptive names (e.g., `_list_item_stack`, `_saved_body_for_figure_caption`)
+
+**Types:**
+- Type hints follow PEP 484 (Python 3.10+ style, no `Dict`/`List` from `typing` per CLAUDE.md)
+- Union: `str | None` not `Optional[str]`
+- Node types: `nodes.section`, `nodes.paragraph` (from docutils)
 
 ## Where to Add New Code
 
-**New Feature (e.g., supporting a new docutils node type):**
-- Primary code: Add visit_<node> and depart_<node> methods in `typsphinx/translator.py`
-- Tests: Create or update test file (e.g., `tests/test_<feature>.py`)
-- Integration: If affects output format, may need template updates
-- Config: If feature requires configuration, add via setup() in `typsphinx/__init__.py`
+**New Node Type Support (Most Common):**
+- Primary code: Add `visit_*()` and `depart_*()` methods to `TypstTranslator` in `typsphinx/translator.py`
+- State: Add instance variables to `__init__()` if node requires context tracking
+- Tests: Create fixture directory `tests/fixtures/[node-name]_render_gate/` with conf.py, index.rst, expected/ (if integration)
+- Example: To add support for custom `foo_node` type:
+  1. Add to `translator.py:TypstTranslator.__init__()`: `self.in_foo = False`
+  2. Add to `translator.py`: `def visit_foo_node(self, node): ...` and `def depart_foo_node(self, node): ...`
+  3. Create `tests/fixtures/foo_node_render_gate/` with test RST
+  4. Run `pytest tests/test_translator.py` to verify
 
-**New Component/Module:**
-- Implementation: Create new file in `typsphinx/` directory (e.g., `typsphinx/my_feature.py`)
-- Follow naming: lowercase with underscores
-- Export in `typsphinx/__init__.py` if needed by other modules
-- Update imports in affected modules
+**New Builder Feature:**
+- Implementation: `typsphinx/builder.py`, add methods or extend existing ones (e.g., `prepare_writing()`, `write_doc()`)
+- Configuration: Register config value in `typsphinx/__init__.py:setup()` via `app.add_config_value()`
+- Tests: `tests/test_builder.py` for builder-specific tests
+- Integration test: `tests/fixtures/integration_*/` if multi-document behavior is affected
 
-**New Builder or Format:**
-- Implementation: Extend `TypstBuilder` in `typsphinx/builder.py`
-- Override methods: `write_doc()`, `finish()`, etc. as needed
-- Register in setup() function in `typsphinx/__init__.py`
-- Add to entry point in `pyproject.toml` if needed
+**New Configuration Option:**
+- Registration: `typsphinx/__init__.py:setup()` with `app.add_config_value("typst_*", default, rebuild, types)`
+- Usage: Access in builder via `self.config.typst_*` or in writer via `self.builder.config.typst_*`
+- Tests: `tests/test_config*.py` suite
+- Example: To add `typst_my_option`:
+  1. Add to `__init__.py:setup()`: `app.add_config_value("typst_my_option", None, "html", [str, type(None)])`
+  2. Access in builder: `getattr(self.config, "typst_my_option", None)`
+  3. Document in `docs/source/configuration.rst`
 
-**Utilities and Helpers:**
-- Shared helpers: Place in relevant module (e.g., string escaping in `translator.py`, path handling in `builder.py`)
-- Cross-module utilities: Create new module in `typsphinx/` (e.g., `typsphinx/utils.py`)
-- Avoid creating separate utility module if only used once
+**New Template Feature:**
+- Default template: Modify `typsphinx/templates/base.typ` (impacts all users; requires care)
+- User custom template: Users create their own `.typ` file and set `typst_template` config
+- Template tests: `tests/test_template*.py` (verify parameter mapping, rendering, etc.)
+- Example: To add a footer to the default template:
+  1. Modify `base.typ`: add footer logic in the `project()` function
+  2. Add parameter to `project(... footer: "", ...)` if user-customizable
+  3. Map in `TemplateEngine:DEFAULT_PARAMETER_MAPPING` if it comes from Sphinx config
+  4. Test: verify `template_engine.render()` produces correct output
 
-**Tests:**
-- Unit tests: Create `tests/test_<component>.py` for new component
-- Integration tests: Add to `tests/fixtures/integration_<test_name>/` with conf.py and source RST
-- Fixtures: Add pytest fixtures to `tests/conftest.py` if reusable
-- Test structure: Follow existing patterns (use conftest fixtures, test apps)
+**New Test Fixture:**
+- Location: `tests/fixtures/[feature-name]_render_gate/`
+- Structure:
+  ```
+  tests/fixtures/my_feature_render_gate/
+  ├── conf.py           # Minimal Sphinx conf
+  ├── index.rst         # RST with the node/feature to test
+  └── expected/         # (Optional, only for integration tests)
+      └── index.typ     # Expected .typ output
+  ```
+- Run: `pytest tests/ -k my_feature_render_gate` to run just that fixture
+- Integration test: Use `tests/fixtures/integration_*/` if testing multi-document features
 
-**Documentation:**
-- API docs: Add docstrings to classes/functions (parsed by sphinx-autodoc-typehints)
-- User guide: Add to `docs/source/user_guide/`
-- Examples: Create example project in `examples/<name>/` with README and source
-- Configuration examples: Document in `docs/source/api/configuration.rst`
+**Utilities & Helpers:**
+- Shared helpers: `typsphinx/translator.py` (e.g., `escape_typst_string()`, `_namespace_label()`)
+- Builder utilities: `typsphinx/builder.py` (e.g., `_resolve_output_stem()`, `_compute_master_included_docnames()`)
+- Template utilities: `typsphinx/template_engine.py` (e.g., `resolve_package_for_engine()`)
 
 ## Special Directories
 
-**typsphinx/templates/:**
-- Purpose: Bundled default Typst templates
-- Generated: No (committed to git)
-- Committed: Yes
-- Usage: Loaded by TemplateEngine if no custom template specified
-- Access: Via package_dir in `template_engine.py:TemplateEngine.get_default_template_path()`
-
-**tests/roots/:**
-- Purpose: Minimal Sphinx projects for unit tests
-- Generated: No
-- Committed: Yes
-- Contents: Each test-<name>/ contains conf.py and index.rst
-- Access: Referenced by SphinxTestApp fixture in tests
-
-**tests/fixtures/:**
-- Purpose: Test data structures for integration tests
-- Generated: No
-- Committed: Yes
-- Structure: Each integration_<test_name>/ contains complete Sphinx project with source/ subdirectory
-- Includes: conf.py, index.rst, and test-specific content (chapters, complex structures, images)
-
-**docs/locale/:**
-- Purpose: i18n translation files
-- Generated: Partially (translations, pot files updated via Sphinx intl)
-- Committed: Yes (for completed translations)
-- Contents: Organized by language code (e.g., ja/, de/) with LC_MESSAGES subdirectories
-
 **build/:**
-- Purpose: Build output directory (created during tests and documentation builds)
-- Generated: Yes (by sphinx-build, tox, etc.)
-- Committed: No (.gitignore excludes)
-- Contents: Generated artifacts (HTML, Typst, PDF, etc.)
+- Purpose: Temporary build output (not the package build, but test build outputs)
+- Generated: Yes (during local testing)
+- Committed: No (gitignored)
+
+**docs/_build/:**
+- Purpose: Built documentation output (HTML and PDF)
+- Generated: Yes (by `tox -e docs-html` or `tox -e docs-pdf`)
+- Committed: No (gitignored)
+
+**htmlcov/:**
+- Purpose: pytest coverage report (HTML)
+- Generated: Yes (by `pytest --cov`)
+- Committed: No (gitignored)
+
+**.pytest_cache/, .ruff_cache/, .mypy_cache/:**
+- Purpose: Tool caches
+- Generated: Yes (by pytest, ruff, mypy)
+- Committed: No (gitignored)
+
+**.tox/:**
+- Purpose: tox virtual environments and test runs
+- Generated: Yes (by `tox`)
+- Committed: No (gitignored)
+
+**.venv/:**
+- Purpose: Local development virtual environment (created by `uv sync`)
+- Generated: Yes (by `uv`)
+- Committed: No (gitignored)
+
+**scratchpad/:**
+- Purpose: Session-isolated temporary files for Claude Code tasks
+- Generated: Yes
+- Committed: No (gitignored)
 
 ---
 
-*Structure analysis: 2026-07-04*
+*Structure analysis: 2026-07-22*

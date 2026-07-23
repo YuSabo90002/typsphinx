@@ -1,124 +1,140 @@
 # External Integrations
 
-**Analysis Date:** 2026-07-04
+**Analysis Date:** 2026-07-22
 
 ## APIs & External Services
 
-**Package Distribution:**
-- PyPI - Official Python package repository
-  - Distribution: `typsphinx` package
-  - Published via: `pypa/gh-action-pypi-publish` GitHub Action in release workflow
-
-**Typst Packages (imported in generated output):**
-- `@preview/mitex:0.2.4` - LaTeX math support in Typst documents (optional, controlled by `typst_use_mitex` config)
-- `@preview/codly:1.3.0` - Syntax highlighting for code blocks in Typst
+**None directly used.** typsphinx does not call external APIs or web services. All functionality is self-contained within the Python package and Typst compiler.
 
 ## Data Storage
 
 **Databases:**
-- None - Stateless extension; no persistent data storage
+- Not applicable — typsphinx is a build-time Sphinx extension, not a runtime service
 
 **File Storage:**
 - Local filesystem only
-  - Input: Sphinx source files (reStructuredText/Markdown)
-  - Output: Generated `.typ` files in `_build/typst/` or PDFs in `_build/pdf/` (paths configurable via `typst_output_dir`)
-  - Template assets: `typsphinx/templates/` directory (packaged with distribution)
+- Input: reStructuredText sources in `source/` directory (Sphinx project)
+- Output: `.typ` (Typst markup) files in build directory, optionally compiled to `.pdf`
+- Template assets: Loaded from `typsphinx/templates/` (bundled) or user-specified paths
 
 **Caching:**
-- Sphinx's internal caching via `.doctrees/` (handled by Sphinx framework)
-- No external cache service
+- Sphinx's built-in environment cache (`doctree.pickle`, `environment.pickle`) in `.doctrees/`
+- Not user-configurable; managed by Sphinx
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- None - This is a library/extension, not an application
-- GitHub Actions: Uses `secrets.CODECOV_TOKEN`, `secrets.PYPI_API_TOKEN`, `secrets.TEST_PYPI_API_TOKEN` for CI/CD operations
+- None — typsphinx does not authenticate with external services
+
+**Project Author/Copyright:**
+- Configured via `typst_authors` config (dict, optional) or standard Sphinx metadata (project, author, release, copyright)
+- Mapped to Typst template parameters; no authentication required
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None at application level
-- Custom exception: `TypstCompilationError` (`typsphinx/pdf.py`) for Typst compilation failures
+- None configured — errors logged via Python's `logging` module
 
 **Logs:**
-- Sphinx logging framework (`sphinx.util.logging`) via standard `logger.getLogger(__name__)` pattern
-- No centralized logging service; logs output to stderr/console during build
+- Destination: Console and Sphinx logger (`typsphinx` module loggers in each file)
+- Level: Controlled by Sphinx's log level (default INFO)
+- Custom errors: `TypstCompilationError` in `pdf.py` wraps typst-py failures with source location context
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- GitHub - Repository hosting and GitHub Pages for documentation
-- PyPI - Package distribution
+- GitHub (repository: `https://github.com/YuSabo90002/typsphinx`)
 
 **CI Pipeline:**
-- GitHub Actions (`.github/workflows/`)
-  - `ci.yml`: Multi-matrix testing (Python 3.9-3.12, ubuntu/macos/windows), linting, type checking, coverage, build validation
-  - `release.yml`: Release orchestration — validation, build, PyPI publish (production + TestPyPI for pre-releases), GitHub Release creation
-  - `docs.yml`: Documentation build and deployment to GitHub Pages
-  - Triggers: Pushes to `main` and `develop`, PRs, tags matching `v*`, workflow dispatch
+- GitHub Actions (`.github/workflows/`):
+  - `ci.yml` - Test matrix (py312/py313 × ubuntu/windows/macos), lint, type check, coverage, build
+  - `release.yml` - Validate version, build sdist+wheel, publish to PyPI (trusted publishing via OIDC)
+  - `docs.yml` - Build docs (HTML via furo, PDF via typstpdf builder) on push
+  - `drift.yml` - Weekly dependency resolution check, files issues on breakage
+- Codecov integration: Coverage uploaded in ci.yml via `codecov/codecov-action@v5` (requires `CODECOV_TOKEN` secret)
+- Release management: Version tag triggers release.yml; publishes to PyPI and creates GitHub Release via softprops/action-gh-release@v3
 
-**Coverage Service:**
-- Codecov - Code coverage tracking
-  - Integration: `codecov/codecov-action@v5` in CI workflow
-  - Token: `secrets.CODECOV_TOKEN`
-  - Upload: Coverage reports from pytest via `--cov-report=xml`
-
-**Documentation Deployment:**
-- GitHub Pages - Auto-deployed from `main` branch
-  - Deployment action: `peaceiris/actions-gh-pages@v4`
-  - Source: `docs/_build/multilang/` (multi-language HTML build)
-  - URL: `https://yusabo90002.github.io/typsphinx/`
+**Secrets/Credentials:**
+- `CODECOV_TOKEN` - Codecov API token (used in ci.yml)
+- `PYPI_API_TOKEN` - PyPI trusted publishing (used in release.yml, alternative to deprecated password)
+- `TEST_PYPI_API_TOKEN` - TestPyPI API token (optional, for pre-release testing)
+- All stored in GitHub Actions secrets; never committed
 
 ## Environment Configuration
 
-**Required for Local Development:**
-- No env vars required (Python stdlib + installed packages)
-- Development environment: Nix flake or `uv sync`
-
-**Required for CI/CD (GitHub Secrets):**
-- `CODECOV_TOKEN` - Codecov coverage uploads (optional; `fail_ci_if_error: false`)
-- `PYPI_API_TOKEN` - Production PyPI publishing (trusted publishing workflow)
-- `TEST_PYPI_API_TOKEN` - TestPyPI pre-release publishing
-- `GITHUB_TOKEN` - Automatic in GitHub Actions for release artifacts and pages deployment
+**Required env vars:**
+- None for end users — typsphinx uses only Sphinx config values (conf.py)
+- CI only: `SPHINX_LANGUAGE` (docs.yml, defaults to "en")
 
 **Secrets location:**
-- GitHub repository secrets (`.github/` workflows read via `${{ secrets.VAR_NAME }}`)
-- Local: `.env*` files (if used) are `.gitignore`d and not tracked
+- GitHub Actions: `.github/workflows/*.yml` references `${{ secrets.* }}`
+- Local development: `.env` files not used or committed
 
-## Webhooks & Callbacks
+## Typst Universe Packages (External @preview Packages)
 
-**Incoming:**
-- GitHub webhooks - Automatic triggers for:
-  - Pull request events → runs CI
-  - Push to `main` → builds and deploys documentation to GitHub Pages
-  - Tag push `v*` → triggers release workflow
+These four Typst packages are imported in the bundled template (`templates/base.typ`) and must stay synchronized across three files (`writer.py`, `template_engine.py`, `base.typ`) per `tests/test_preview_version_sync.py`:
 
-**Outgoing:**
-- None at code level
-- CI notifications: GitHub Actions status checks on PRs
-- Documentation: Deployed to GitHub Pages (static push, no callback)
+**Embedded in `templates/base.typ` (lines 8, 9, 14, 19):**
+- `@preview/codly:1.3.0` - Syntax highlighting for code blocks
+  - Imported as: `#import "@preview/codly:1.3.0": *`
+  - Exported items used: codly-init (applied via `#show`), codly (configured with languages)
+  - Purpose: Code block styling and highlighting
+  - Requirement: Mandatory for all code blocks (Design 3.5)
 
-## Sphinx Configuration System
+- `@preview/codly-languages:0.1.10` - Language definitions for codly
+  - Imported as: `#import "@preview/codly-languages:0.1.10": *`
+  - Exported items used: codly-languages
+  - Purpose: Provides syntax highlighting rules for programming languages
+  - Requirement: Comprehensive language support (Design 3.5)
 
-**Registered Config Values** (`typsphinx/__init__.py`):
-- `typst_documents` - List of documents to build
-- `typst_template` - Custom Typst template path
-- `typst_template_mapping` - Document-to-template mapping
-- `typst_toctree_defaults` - Table of contents defaults
-- `typst_use_mitex` - Enable LaTeX math support (default: True)
-- `typst_elements` - Custom element mappings
-- `typst_package` - Custom Typst package name
-- `typst_package_imports` - List of Typst package imports
-- `typst_template_function` - Custom template rendering function
-- `typst_authors` - Author metadata
-- `typst_author_params` - Author parameter configuration
-- `typst_output_dir` - Output directory path (default: `_build/typst`)
-- `typst_debug` - Debug mode flag
-- `typst_template_assets` - Additional template assets to include
+- `@preview/mitex:0.2.7` - LaTeX math support
+  - Imported as: `#import "@preview/mitex:0.2.7": *`
+  - Exported items used: Provides LaTeX-to-Typst math conversion
+  - Purpose: Renders LaTeX math via `typst_use_mitex=True` config
+  - Requirement: Math rendering (Design 3.3, Requirement 4.1)
 
-**Configured in:**
-- Sphinx `conf.py` (user's documentation project)
+- `@preview/gentle-clues:1.3.1` - Admonition styling (notes, warnings, etc.)
+  - Imported as: `#import "@preview/gentle-clues:1.3.1": *`
+  - Exported items used: Admonition callout styling
+  - Purpose: Displays admonitions (note, warning, danger, etc.) with visual styling
+  - Requirement: Admonition conversion (Requirement 2.8-2.10)
+
+**Version Synchronization Points:**
+- `typsphinx/templates/base.typ` - Lines 8, 9, 14, 19 (source of truth)
+- `typsphinx/writer.py` - `_PREVIEW_VERSIONS` dict (consulted when writing per-document imports)
+- `typsphinx/template_engine.py` - `_PREVIEW_VERSIONS` dict (consulted during template rendering)
+- `tests/test_preview_version_sync.py` - Asserts all three agree
+
+**Synchronization Hazard (WR-07):**
+If Typst Universe packages are upgraded (e.g., codly 1.2.0 → 1.3.0), ALL THREE locations must be updated together or the build fails. No automatic version pinning; manual verification required.
+
+## Sphinx Intersphinx Mapping
+
+Configured in `docs/source/conf.py` for documentation cross-references:
+
+**External Doc Sites (read-only):**
+- Python docs: `("python", ("https://docs.python.org/3", None))`
+- Sphinx docs: `("sphinx", ("https://www.sphinx-doc.org/en/master", None))`
+
+## GitHub Actions Dependencies
+
+**Actions used in workflows:**
+- `actions/checkout@v6` - Clone repository
+- `astral-sh/setup-uv@v7` - Install uv package manager
+- `actions/upload-artifact@v7` / `actions/download-artifact@v8` - CI artifact storage
+- `codecov/codecov-action@v5` - Upload coverage reports
+- `pypa/gh-action-pypi-publish@release/v1` - Publish to PyPI
+- `softprops/action-gh-release@v3` - Create GitHub Release
+
+## Dependabot Configuration
+
+**Automated dependency updates (.github/dependabot.yml):**
+- Pip ecosystem: Weekly (Monday 00:00), grouped by category:
+  - `sphinx-typst-stack` - Sphinx, docutils, typst (allows auto-update together)
+  - Individual updates for other packages
+  - Excludes: sphinx-autodoc-typehints, sphinx-intl (kept independent)
+- GitHub Actions: Monthly updates, max 3 open PRs
 
 ---
 
-*Integration audit: 2026-07-04*
+*Integration audit: 2026-07-22*
