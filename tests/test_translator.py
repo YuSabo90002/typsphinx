@@ -220,6 +220,68 @@ def test_in_table_state_management(simple_document, mock_builder):
     assert translator.in_table is False
 
 
+def _build_captioned_table(caption_text, ids=None, table_children=None):
+    """Build a hand-constructed nodes.table with a leading title (caption).
+
+    docutils stores a `.. table:: Caption` (and equally csv-table/list-table)
+    caption as a `title` CHILD of nodes.table -- mirrors the shape produced by
+    a real Sphinx build (see 25-RESEARCH.md Verified Mechanism 1).
+    """
+    table = nodes.table()
+    if ids:
+        table["ids"] = list(ids)
+    title = nodes.title()
+    if table_children is None:
+        title += nodes.Text(caption_text)
+    else:
+        for child in table_children:
+            title += child
+    table += title
+
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+
+    table += tgroup
+    return table
+
+
+def test_captioned_table_buffers_caption_no_heading(simple_document, mock_builder):
+    """A `.. table:: Caption` buffers its caption and emits NO heading() call.
+
+    Guards TBL-01 SC#1 (25-01-PLAN.md Task 1) and the stray-heading bug
+    (25-RESEARCH.md Verified Mechanism 1). Walks only the title (the
+    caption) after entering the table -- depart_table's own figure-wrap
+    consumption of self.table_caption is Task 2's concern, exercised by
+    test_captioned_table_renders_as_figure et al. below.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_captioned_table("My Caption")
+    translator.visit_table(table)
+    title = table.children[0]
+    title.walkabout(translator)
+
+    # table_caption holds RENDERED code-mode content (mirrors figure_caption)
+    # -- inline visitors (visit_Text -> escape_typst_string) already ran, so
+    # it is `text("My Caption")`, not the raw string (Pattern 1).
+    assert translator.table_caption == 'text("My Caption")'
+    assert "heading(" not in translator.astext()
+
+
 def test_subtitle_conversion(simple_document, mock_builder):
     """Test that subtitle nodes are converted correctly."""
     from typsphinx.translator import TypstTranslator
