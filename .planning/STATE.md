@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 25
-current_phase_name: "reimplement PR#98"
+current_phase_name: captioned-table-figure-wrap-cross-references-reimplement-pr-
 status: executing
 stopped_at: Phase 25 planned
-last_updated: "2026-07-23T14:50:29.869Z"
+last_updated: "2026-07-23T14:58:51.028Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 25 planned (2 plans, 2 waves)
+last_activity_desc: Phase 25 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 1
+  total_plans: 3
   completed_plans: 1
   percent: 20
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 24 — delete-typst-toctree-defaults-dead-config-sweep-round-2-part
+**Current focus:** Phase 25 — captioned-table-figure-wrap-cross-references-reimplement-pr-
 
 ## Current Position
 
-Phase: 25 — Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
-Plan: 2 plans in 2 waves (25-01, 25-02)
-Status: Ready to execute
-Last activity: 2026-07-23 — Phase 25 planned (2 plans, 2 waves)
+Phase: 25 (captioned-table-figure-wrap-cross-references-reimplement-pr-) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 25
+Last activity: 2026-07-23 — Phase 25 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
