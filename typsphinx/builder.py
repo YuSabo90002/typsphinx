@@ -6,6 +6,7 @@ building Typst output from Sphinx documentation.
 """
 
 import os
+import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
@@ -261,9 +262,14 @@ class TypstBuilder(Builder):
         """
         if stem == docname:
             return stem
-        directory = path.dirname(docname)
+        # docnames are always '/'-separated, so use posixpath throughout:
+        # os.path on Windows (ntpath) would emit a backslash from join,
+        # breaking the docname-style relative path. The downstream
+        # path.join(self.outdir, ...) accepts forward slashes on all
+        # platforms.
+        directory = posixpath.dirname(docname)
         if directory:
-            return path.join(directory, path.basename(stem))
+            return posixpath.join(directory, posixpath.basename(stem))
         return stem
 
     def get_outdated_docs(self) -> Iterator[str]:
