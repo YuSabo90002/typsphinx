@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-07-23T12:25:56.898Z"
 last_activity: 2026-07-23
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,58 +17,48 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.2 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable output for large real-world documentation sets — and output that *renders faithfully* to the source, not merely compiles fatal-free.
-**Current focus:** v0.6.2 shipped 2026-07-23 — planning next milestone (`/gsd-new-milestone`)
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
+**Current focus:** v0.6.3 roadmap created (Phases 24–28) — ready to plan Phase 24
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-23 — Milestone v0.6.3 started
+Phase: 24 of 28 (Delete `typst_toctree_defaults`) — not started
+Plan: — (roadmap just created)
+Status: Ready to plan Phase 24
+Last activity: 2026-07-23 — v0.6.3 ROADMAP.md created; 6/6 v1 requirements mapped
 
-## Roadmap Summary (v0.6.2 — Phases 19–23)
+Progress: [░░░░░░░░░░] 0%
+
+## Roadmap Summary (v0.6.3 — Phases 24–28)
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
-| 19 — Block Separation Fixes (Cluster A) | Restore lost inter-block/inter-element separation (paragraphs-in-list-items, sibling signatures, rubric/option headings, definition terms, back-to-back confvals) — the dominant audit root cause, one coherent set of separator fixes | FID-02, FID-03, FID-04, FID-05, FID-06 |
-| 20 — Signature Token Spacing (Cluster B) | Restore lost intra-signature token spacing: `class `/`exception ` prefix, C/C++ inter-token spaces, `:type:`/`:default:` colon-space | FID-07, FID-08, FID-09 |
-| 21 — Residual Fidelity Fixes (Clusters C/D/E/F) | The remaining small-root-cause findings: inline-literal margin overflow, paragraph soft-newline reflow, codly config-wrapper leak, meaning-bearing inline styling | FID-10, FID-11, FID-12, FID-13, FID-14 |
-| 22 — typstpdf Target-Name PDF Fix (Issue #117) | Independent `builder.py`/`pdf.py` fix: `TypstPDFBuilder.finish()` names the PDF after the `typst_documents` target, not the source docname | PDF-01 |
-| 22.1 — typstpdf Compile-Root Alignment for Nested Masters (INSERTED) | `-b typstpdf` resolves `include()`/`image()` from the outdir root while the translator emits docname-relative paths; nested masters (`api/index`) are already broken. Align the two builders (temp file next to the master's `.typ`); no output moves | PDF-02 |
-| 22.2 — Dead Config-Value Sweep (INSERTED) | Delete the dead `typst_output_dir`, repair the `typst_package` (Typst Universe) path end-to-end (BUG-A..BUG-D), and land a config→output regression fixture so registration-only asserts can no longer hide a dead feature | CONF-01, CONF-02, CONF-03 |
-| 22.3 — typstpdf Builder Warning Hardening (INSERTED) | Close the two Phase 22.1 review warnings: `finish()` no longer "succeeds" while silently emitting no PDF for a master whose `.typ` is missing (resolved **behavioral** at discuss — D-01), and the nested-master render gate stops asserting on `typst-py` error-message substrings | WR-01, WR-02 |
-| 22.4 — README 記述の実測乖離解消 (INSERTED) | README.md（+ `CLAUDE.md` / `pyproject.toml` コメント）の全記述を実測と突き合わせて再検証。検証機構を持てない数値（テスト数・カバレッジ）は書き戻さず**削除**、設定一覧は部分列と明示して実ビルドされる docs へ誘導、機能・制限・Status・方法論は測って書き直す。**プロースのみ・ソース非変更** | DOC-01..DOC-05 |
-| 23 — v0.6.2 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.2 + `CHANGELOG.md` `[0.6.2]` entry, close on the full-corpus regression gate; publish runs at `/gsd-complete-milestone` | (release/close — none) |
+| 24 — Delete `typst_toctree_defaults` (dead-config sweep round 2, part B) | Remove the inert `typst_toctree_defaults` from every surface (registration, docs, examples, README, its test file) — pure grep-zero removal, 0-risk | CONF-05 |
+| 25 — Captioned Table Figure Wrap + Cross-References (reimplement PR#98) | `.. table:: Caption` → `figure(table, caption, kind: table)` "Table N" + `:numref:`/`:ref:` `<label>`; caption-less stays plain; caption+width compose; 2nd-table stale-buffer fix | TBL-01, TBL-02 |
+| 26 — `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A) | `typst_elements` `papersize`/`fontsize` reach `project()` (string vs. unquoted length); unknown key fails loud; copyright never leaks; `base.typ` byte-unchanged (Python-side fix only) | CONF-04 |
+| 27 — Docs 実測整合 — Orphan Delete + Phantom Config Names | Delete orphan `docs/configuration.rst`; correct the 5 phantom config names in `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements` examples) | DOC-06, DOC-07 |
+| 28 — v0.6.3 Release Prep + Regression-Gate Close | Prep-only: bump `pyproject.toml` → 0.6.3 (sole literal) + `uv.lock` + `CHANGELOG` `[0.6.3]` + README Status; close on the full-corpus regression gate. Publish at `/gsd-complete-milestone` | (release/close — none) |
 
-**Coverage:** 25/25 v1 requirements mapped (FID-02..FID-14 + PDF-01, PDF-02 + CONF-01..CONF-03 + WR-01, WR-02 + DOC-01..DOC-05) — no orphans, no duplicates. Phase 23 carries no requirement (release/close phase).
+**Coverage:** 6/6 v1 requirements mapped (CONF-04, CONF-05, TBL-01, TBL-02, DOC-06, DOC-07) — no orphans, no duplicates, each to exactly one phase. Phase 28 carries no requirement (release/close).
 
-**Phase 22.4 は GATE-01 の対象外** — ノードハンドラを変更しないため実 `typst.compile()` の検証手段が無い。RESEARCH Task F / VALIDATION の記録どおり、**内容アンカーの `grep` 表明が誠実な到達点**であり新規テストファイルは追加しない（数値クレームの是正は「削除」なので不在 assert は張り合いが薄く、本当に価値のある自動化＝`sphinx-build -b linkcheck` の CI 化はそれ自体が 1 フェーズ級のため todo へ）。
+**Ordering (research-driven, honored):** 24 (trivial 0-risk deletion) → 25 (translator captioned-table work, own state-machine risk) → 26 (`typst_elements` pass-through, own type-mismatch risk — **separate** phase from the table work per instruction) → 27 (docs cleanup — **must** follow 26 so phantom `papersize`/`fontsize` become *working* examples, not fatal ones) → 28 (release). TBL-01 before TBL-02 within Phase 25 (figure must exist to be labeled).
 
-**Phase 23 への申し送り（D-11）:** `pyproject.toml` を 0.6.2 にバンプする際、README の `**Status**: Stable (v0.6.1)` 行も同時に更新すること。
+**Standing bar (GATE-01):** node-handler change (Phase 25) and config→output change (Phase 26) each ship a fail-pre-fix real `typst.compile()` regression fixture. Phase 25 MUST test a 2+-table document (stale-buffer bug invisible with one table) + caption+width + `:numref:`-resolves. Phase 26 MUST test papersize AND fontsize separately + a negative unknown-key case + a copyright-non-leak case. Pure-removal Phase 24 and docs-only Phase 27 carry no config→output change → grep-zero / grep-cross-check + green suite is the honest bar (no fixture).
 
-**Standing bar (GATE-01):** every node-handler change (Phases 19, 20, 21) — and Phase 22 in its builder-test form — ships or extends a real `typst.compile()` regression fixture. String-agreement asserts alone never suffice. Local env runs real compiles (typst 0.15.0; corpus cached at `~/.cache/typsphinx-corpus-gate`).
+**Milestone invariant (every phase):** zero new runtime deps, no `@preview` version bump — the 3-way version-sync surface (`writer.py`/`template_engine.py`/`templates/base.typ`) stays untouched (CONF-04 is a 100% Python-side fix; `base.typ` byte-unchanged). Flag during planning if a phase needs otherwise (none expected).
 
-**Milestone invariant (every phase):** zero new runtime deps, no `@preview` version bump — the 3-way version-sync surface (`writer.py`/`template_engine.py`/`templates/base.typ`) stays untouched. Flag during planning if a phase needs otherwise (none expected).
-
-**Ship unit = milestone** (`branching_strategy: milestone`): Phase 23 is prep-only; the irreversible publish (tag `v0.6.2` → `release.yml` → PyPI) executes at `/gsd-complete-milestone`.
+**Ship unit = milestone** (`branching_strategy: milestone`): Phase 28 is prep-only; the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone`.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 55 (15 v0.4.4, 13 v0.5.0, 15 v0.6.0, 9 v0.6.1, 3 additional v0.6.1 plans counted in-milestone; v0.6.2: 0 so far)
-- v0.6.2 plans completed: 0 (roadmap just created)
+- Total plans completed (project cumulative): 55 (through v0.6.2)
+- v0.6.3 plans completed: 0 (roadmap just created)
 
 *Updated after each plan completion*
-**Per-Plan Metrics:**
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 20 P01 | 12min | 2 tasks | 4 files |
-| Phase 20 P02 | 15min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -76,43 +66,24 @@ Last activity: 2026-07-23 — Milestone v0.6.3 started
 
 Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
+- 2026-07-23: v0.6.3 roadmap created — Phases 24–28, derived from 6 v1 requirements (CONF-04/05, TBL-01/02, DOC-06/07). Numbering continues from v0.6.2's Phase 23. Shape follows research's dependency order: trivial deletion → captioned tables → `typst_elements` pass-through → docs cleanup → release. CONF-04 and TBL-01/02 kept in SEPARATE phases (distinct state-machine/type risks); docs phase strictly after CONF-04 (Pitfall 11).
 - 2026-07-20: `branching_strategy: milestone` — ship unit is the milestone; the final phase is a prep-only Release phase, publish deferred to `/gsd-complete-milestone`. Push `main` to `origin` at every milestone close.
-- v0.6.1: FID findings root-caused into clusters A–F in `17-AUDIT-CATALOGUE.md`; v0.6.2 delivers the 13 medium/low findings as one coherent translator-fix series.
-- [Phase ?]: Phase 20 Plan 01: reused visit_Text dispatch (pass/pass) instead of a new space-emission helper for desc_sig_space, matching sibling desc_sig_* handlers
-- [Phase ?]: Phase 20 Plan 02: reused depart_desc_parameter's am-I-last-sibling idiom for the field-list inter-field boundary; kept the colon-space edit inside the strong(...) content expression (single call site, no concat-context needed)
-- 2026-07-21 [Phase 22]: `TypstBuilder._resolve_output_stem` is the single source of the `typst_documents` target-name rule, called from both builders' `write_doc` and from `TypstPDFBuilder.finish`; only a literal trailing `.typ` is stripped (never `os.path.splitext`, which would truncate `v1.2-manual` to `v1`).
-- 2026-07-21 [Phase 22]: path-bearing / absolute / drive-qualified / `..` targets warn and reduce to `path.basename`; degenerate targets fall back to the docname — warn-and-degrade, never raise (`conf.py` is already executed code, so this is accident-defense + a UX signal).
-- 2026-07-21 [Phase 22 UAT]: macOS/Linux filesystem Unicode normalization (HFS+/APFS NFD vs. byte-preserving NFC) accepted as an out-of-scope OS behavior; the typsphinx-controlled half (verbatim non-ASCII pass-through) is proven by `test_resolve_output_stem_preserves_non_ascii_target`. Adjacent to the standing XOS-01 item.
+- 2026-07-22 [Phase 22.2]: dead-config sweep round 1 pattern — a config→output real-compile regression fixture (template `tests/test_package_only_config_gate.py`) is the bar so registration-only asserts can't hide a dead feature. CONF-04/CONF-05 are the round-2 (5th/6th) instances of the same defect class.
 
 ### Pending Todos
 
-4 pending (`.planning/todos/pending/`):
+Backlog (`.planning/todos/pending/`) after v0.6.3 scoping — the dead-config sweep, PR#98 reimplementation, orphan-doc deletion, and phantom-config-name items were promoted into this milestone (Phases 24–27). Remaining pending:
 
-- **ドキュメントのホスティング先を Read the Docs に変更** (docs) — 未検討
-- **非文字列 docname が生 `TypeError` を投げる** (builder) — Phase 22.3 の D-06 で明示的に先送り。`typst_documents` に `(123, ...)` のようなエントリがあると `path.join` が `try` の外側で `TypeError` を投げ、集約 `ExtensionError` に乗らず生の traceback で落ちる。将来の入力バリデーション作業として。
-- **`citation` ノード未対応が未追跡** (translator, examples) — Phase 22.2 で表面化（`visit_citation` ハンドラ不在のため rST citation が隣接式として出力され Typst 構文エラー）。22.2 ではサンプルから citation 構文を撤去して回避、恒久対応は未計画。
-- **README の記述を全体的に見直す** (docs) — 2026-07-22 capture。実測で確認した乖離: テスト数 413→実測 577（`README.md:223,243`）、Status 行が `v0.5.0` のまま（`:322`、実際は 0.6.1）、Configuration Options が 5 件しか挙げず登録済み 12 件と乖離（`:203-211` vs `typsphinx/__init__.py:44-62`、`typst_documents` すら未掲載）。github.io リンクの修正は **RTD 移行 todo と競合するので着手順を先に決めること**。付随して **`CLAUDE.md` の Python 記述が stale**（3.10+/py310–313 と書いてあるが実際は `>=3.12`・py312/py313 のみ）と判明、別途要修正。
+- **move-documentation-hosting-to-read-the-docs** (docs) — RTD migration, out of this milestone; the github.io 404 doc-link fix is folded into it.
+- **add-sphinx-linkcheck-ci-job** (ci, docs) — automate `sphinx-build -b linkcheck`; own ~1-phase task.
+- **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent; surfaced in Phase 22.2, permanent fix unplanned.
+- **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening, deferred from Phase 22.3 (D-06).
+- **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing imports until this lands.
+- **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision 2026-07-23), not interim-fixed.
 
 ### Blockers/Concerns
 
-None open. Phase 22 security review closed 9/9 threats (`22-SECURITY.md`, `threats_open: 0`); its 3 code-review findings are fixed (`22-REVIEW-FIX.md`). Phase 21's 3 advisory review warnings (WR-01/02/03 in `21-REVIEW.md`) remain non-blocking release-polish candidates. UI note: the v0.6.2 phases are Typst PDF typesetting / rendering-fidelity work, NOT frontend UI — no `### UI hint` annotations were added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them).
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260720-p2w | Document worktree-isolated executor env provisioning (uv sync + uv run) in CLAUDE.md | 2026-07-20 | cc21f47 | [260720-p2w-add-a-worktree-isolated-execution-subsec](./quick/260720-p2w-add-a-worktree-isolated-execution-subsec/) |
-| 260722-t3q | Remove stray .bg-shell directory (unreferenced) and gitignore it | 2026-07-22 | 58a5481 | [260722-t3q-remove-bg-shell-directory](./quick/260722-t3q-remove-bg-shell-directory/) |
-| 3 | .ruff_cacheをgit管理から外す | 2026-07-22 | 62b7819 | — |
-
-### Roadmap Evolution
-
-- 2026-07-20: v0.6.2 roadmap created — Phases 19–23, derived from 14 v1 requirements (FID-02..FID-14 + PDF-01). Phase numbering continues from v0.6.1 (ended at Phase 18). Shape: 3 root-cause-clustered translator-fix phases (A / B / C-D-E-F) + 1 independent builder-bug phase (Issue #117) + 1 prep-only Release/close phase.
-- 2026-07-13: v0.6.1 roadmap created — Phases 16–18, derived from 6 named v1 requirements. Continued from v0.6.0.
-- Phase 22.1 inserted after Phase 22: typstpdf compile-root alignment for nested masters (PDF-02) — split from the master-output-layout todo (item A only; B/C stay deferred) (URGENT)
-- 2026-07-22: backlog reviewed (`/gsd-review-backlog`) — 999.1 and 999.2 removed as delivered (Phases 19–21 / 22); 999.3 folded into 999.4; **999.4 promoted into v0.6.2 as Phase 22.2** (owner: 今マイルストーンで変更する), sequenced before the Phase 23 release prep so the `typst_output_dir` removal lands in the `[0.6.2]` CHANGELOG; 999.5 opened for the Phase 22.1 WR-01/WR-02 warnings
-- 2026-07-22: backlog reviewed again (`/gsd-review-backlog`, 2nd pass) — the sole remaining item **999.5 promoted into v0.6.2 as Phase 22.3** (owner decision), sequenced after 22.2 (shared `builder.py` / render-gate surface) and before the Phase 23 release prep so any WR-01 behavior change lands in the `[0.6.2]` CHANGELOG. WR-01/WR-02 added to `REQUIREMENTS.md` (20/20 mapped). **The backlog is now empty.**
-- Phase 22.4 inserted after Phase 22.3: README 記述の実測乖離解消 — テスト数・Status バージョン・Configuration Options・Known Limitations・docs リンクの全文再検証 (URGENT)
+None open. UI note: v0.6.3 phases are Typst PDF typesetting / config / docs work, NOT frontend UI — no `### UI hint` annotations added (the project's `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them). GATE-01 note (from v0.6.2): the honest-verifier rule — abstain to `human_needed` rather than assert a truth without direct evidence.
 
 ## Deferred Items
 
@@ -124,25 +95,20 @@ Items acknowledged and carried forward from previous milestone closes:
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
 | Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
 | Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.2 | v0.6.1 scoping |
-| Verification (backstop) | Phase 22.3: exercise GATE-01 fixtures under real pytest-xdist parallel run (no shared-state collision) | Non-blocking; all ROADMAP SC#1–5 verified with direct evidence | v0.6.2 close (2026-07-23) |
-| Todo (docs) | move-documentation-hosting-to-read-the-docs | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (source, config) | dead-config-typst-elements-keys-and-toctree-defaults | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (docs) | delete-orphan-docs-configuration-rst | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (docs) | github-io-doc-links-404-missing-en-prefix | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close (2026-07-23) |
-| Todo (docs) | user-guide-configuration-phantom-config-names | Pending backlog | v0.6.2 close (2026-07-23) |
+| Config | CONF-06: `typst_elements` keys beyond papersize/fontsize (needs `base.typ` `project()` params) | Deferred to future milestone | v0.6.3 scoping |
+| Todo (docs) | move-documentation-hosting-to-read-the-docs (+ github.io 404 links folded in) | Pending backlog | v0.6.2 close |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
+| Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close |
+| Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
+| Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
 
 ## Session Continuity
 
 Last session: 2026-07-23
-Stopped at: v0.6.2 fully released — `pypi` deployment approved, `publish-pypi` + `github-release` completed. PyPI `0.6.2` live (https://pypi.org/project/typsphinx/0.6.2/), GitHub Release `v0.6.2` published (2026-07-23T11:16:50Z).
-Resume: start the next milestone with `/gsd-new-milestone`
+Stopped at: v0.6.3 ROADMAP.md created (Phases 24–28) — 6/6 v1 requirements mapped, REQUIREMENTS.md traceability populated, STATE.md initialized.
+Resume: plan the first phase with `/gsd-plan-phase 24`
 
 ## Operator Next Steps
 
-- ✅ v0.6.2 published to PyPI + GitHub Release — release complete
-- Optionally delete the merged local/remote branches: `gsd/v0.6.2-rendering-fidelity-round-2` (merged), plus stale `gsd/v0.6.2-fidelity-round-2` and `gsd/v0.6.2-milestone`
-- Start the next milestone with `/gsd-new-milestone`
+- Review the v0.6.3 roadmap draft (`.planning/ROADMAP.md`, Phases 24–28)
+- Plan Phase 24 with `/gsd-plan-phase 24` (or run the milestone autonomously)

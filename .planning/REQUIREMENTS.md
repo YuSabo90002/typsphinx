@@ -20,7 +20,9 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 ### Docs fidelity
 
 - [ ] **DOC-06**: The orphan `docs/configuration.rst` (526 lines, unreachable from any toctree, containing the wrong package name `sphinxcontrib.typst`) is deleted after confirming no unique useful content is lost and no live reference remains.
-- [ ] **DOC-07**: The 5 phantom config names in `docs/source/user_guide/configuration.rst` are corrected or removed so every documented `typst_*` example matches a registered config: `typst_author` → `typst_authors`; `typst_use_codly` / `typst_code_line_numbers` deleted (no real equivalent); `typst_papersize` / `typst_fontsize` rewritten as working `typst_elements` examples **if CONF-04 has shipped**, otherwise delete-only.
+- [ ] **DOC-07**: Every documented `typst_*` name across the user-facing docs matches a value registered in `typsphinx/__init__.py`, over **both** phantom-bearing surfaces:
+  - `docs/source/user_guide/configuration.rst` — `typst_author` → `typst_authors`; `typst_use_codly` / `typst_code_line_numbers` deleted (no real equivalent); `typst_papersize` / `typst_fontsize` rewritten as working `typst_elements` examples (leveraging CONF-04 shipped in Phase 26; the top-level names are NOT implemented — Sphinx's LaTeX builder mirror exposes papersize/pointsize only via `latex_elements`, so `typst_elements` is the faithful analog).
+  - `docs/source/api/index.rst` — the redundant "Available Configuration Values" `list-table` (which lists 4 phantom names `typst_use_codly`/`typst_code_line_numbers`/`typst_papersize`/`typst_fontsize` AND omits 6 registered ones) is **deleted**, keeping only the existing `See :doc:/user_guide/configuration` pointer, so config is documented in ONE canonical place (prevents re-drift). The `docs/locale/ja/LC_MESSAGES/api/index.po` translation is updated to follow.
 
 ## Future Requirements
 
@@ -48,18 +50,18 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONF-04 | TBD | Pending |
-| CONF-05 | TBD | Pending |
-| TBL-01 | TBD | Pending |
-| TBL-02 | TBD | Pending |
-| DOC-06 | TBD | Pending |
-| DOC-07 | TBD | Pending |
+| CONF-05 | Phase 24 | Pending |
+| TBL-01 | Phase 25 | Pending |
+| TBL-02 | Phase 25 | Pending |
+| CONF-04 | Phase 26 | Pending |
+| DOC-06 | Phase 27 | Pending |
+| DOC-07 | Phase 27 | Pending |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 6 ⚠️
+- Mapped to phases: 6 (Phases 24–27; Phase 28 is a prep-only release/close phase and carries no requirement)
+- Unmapped: 0 ✓ — every v1 requirement maps to exactly one phase, no orphans, no duplicates
 
 ---
 *Requirements defined: 2026-07-23*
-*Last updated: 2026-07-23 after initial definition*
+*Last updated: 2026-07-23 — traceability populated after ROADMAP.md creation (Phases 24–28; 6/6 v1 requirements mapped)*
