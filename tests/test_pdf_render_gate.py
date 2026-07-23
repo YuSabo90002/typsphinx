@@ -2544,3 +2544,120 @@ class TestCaptionedTableRenderGate:
                 "rendered PDF text -- captioned-table markup/code-mode "
                 "regression"
             )
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 pre-fix-basis failure proof",
+)
+class TestCaptionedTablePreFixBasisFailureProof:
+    """
+    Standing pre-fix-basis failure proof (D-06): reconstructs the two
+    pre-fix defect shapes from first principles -- the buggy code no
+    longer exists post Plan 25-01 -- and proves each one is genuinely
+    fail-pre-fix, mirroring the
+    ``tests/test_package_only_config_gate.py::TestPreFixBasisFailureProof``
+    convention (reconstruct the pre-fix compile basis; never assert on the
+    TEXT of a compiler error message).
+
+    (a) Double-anchor basis (Critical Pitfall 3, 25-RESEARCH.md): a
+    minimal Typst source in which one label id is defined TWICE -- once
+    as a ``[#metadata(none) <dup>]`` anchor (the unconditional
+    ``_emit_id_anchors`` call ``visit_table`` used to make even for a
+    captioned table) and once as a ``figure(...) <dup>`` postfix (the
+    NEW figure-wrap self-anchor this phase adds) -- plus a
+    ``link(<dup>, ...)`` reference to that label, reproducing the actual
+    :numref:/:ref: xref shape that resolves it. Live-verified while
+    writing this module: Typst does NOT raise merely from defining a
+    label twice with no reference to it; the "label ... occurs multiple
+    times" fatal fires only when something (here, the xref's own
+    ``link(<dup>, ...)``) tries to RESOLVE the ambiguous label -- exactly
+    the real-world shape a :numref:/:ref: to a captioned table produces.
+
+    (b) Stale-buffer basis (Verified Mechanism 2, 25-RESEARCH.md): a
+    reconstructed pre-fix two-table Typst source -- a plain ``table(...)``
+    for each, a stray ``heading(...)`` above the first (the OLD
+    stray-heading caption bug), and the SECOND caption sentinel
+    deliberately ABSENT (the observed pre-fix stale-buffer shape, where a
+    2nd table's caption silently vanished into a leftover buffer from the
+    first). This half is a pure string reconstruction (no compile needed)
+    proving the positive gate's ``full_text.count(sentinel) == 1``
+    assertion is genuinely fail-pre-fix: applied to this reconstruction,
+    the second sentinel's count is 0, not 1.
+
+    Requirements: TBL-01, TBL-02, D-06.
+    """
+
+    def test_double_anchor_basis_raises(self, tmp_path):
+        """
+        BUG basis (Critical Pitfall 3): reconstruct a captioned table
+        whose id is anchored TWICE -- once via the old unconditional
+        ``_emit_id_anchors`` metadata anchor, once via the new figure
+        ``<label>`` postfix -- with a ``link(<dup>, ...)`` xref
+        resolving it, and assert a real ``typst.compile()`` RAISES. No
+        assertion matches the exception's message text (D-06) -- only
+        that it raises.
+        """
+        reconstructed = (
+            "#metadata(none) <dup>\n"
+            "\n"
+            "#figure(\n"
+            "  table(\n"
+            "    columns: (1fr, 1fr),\n"
+            "    [A], [B],\n"
+            "  ),\n"
+            "  caption: [Caption],\n"
+            "  kind: table,\n"
+            ") <dup>\n"
+            "\n"
+            "See #link(<dup>, [Ref]).\n"
+        )
+        target = tmp_path / "double_anchor_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
+
+    def test_stale_buffer_basis_second_sentinel_count_is_zero(self):
+        """
+        Stale-buffer basis (Verified Mechanism 2): a reconstructed pre-fix
+        two-table Typst source in which the SECOND table's caption
+        sentinel is deliberately absent (the observed pre-fix shape --
+        the second table's caption silently vanished into a stale
+        ``table_cell_content`` buffer left over from the first table).
+        Asserts the positive gate's ``count(...) == 1`` check FAILS
+        (count is 0) against this reconstruction -- proof the gate is
+        genuinely fail-pre-fix, not vacuously green.
+        """
+        reconstructed_pre_fix_shape = (
+            "heading(level: 1, {text(" + repr(TBLCAP_FIRST_SENTINEL) + ")})\n"
+            "\n"
+            "table(\n"
+            "  columns: (1fr, 1fr),\n"
+            "  [A], [B],\n"
+            ")\n"
+            "\n"
+            "table(\n"
+            "  columns: (1fr, 1fr),\n"
+            "  [C], [D],\n"
+            ")\n"
+        )
+
+        # The pre-fix stray-heading bug: the FIRST table's caption leaked
+        # into a heading() call (Verified Mechanism 1) instead of a
+        # figure caption -- present here to keep the reconstruction
+        # faithful to the actually-observed pre-fix output shape.
+        assert TBLCAP_FIRST_SENTINEL in reconstructed_pre_fix_shape
+
+        # The proof this test exists for: the SECOND table's caption
+        # sentinel never reached the reconstructed output at all -- the
+        # stale-buffer bug swallowed it. count() is 0, not 1, so the
+        # positive gate's exact-once assertion would have failed loudly
+        # against this pre-fix basis.
+        assert reconstructed_pre_fix_shape.count(TBLCAP_SECOND_SENTINEL) == 0, (
+            "Expected the reconstructed pre-fix stale-buffer basis to have "
+            "ZERO occurrences of the second table's caption sentinel -- "
+            "if this fails, the reconstruction no longer reproduces the "
+            "pre-fix bug shape and the fail-pre-fix proof is void"
+        )
