@@ -4,15 +4,15 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 24
 current_phase_name: Delete `typst_toctree_defaults`
-status: planning
-stopped_at: Phase 24 context gathered
-last_updated: "2026-07-23T13:14:08.653Z"
+status: planned
+stopped_at: Phase 24 planned (1 plan, verification passed)
+last_updated: "2026-07-23T13:30:23.000Z"
 last_activity: 2026-07-23
-last_activity_desc: v0.6.3 ROADMAP.md created; 6/6 v1 requirements mapped
+last_activity_desc: "Phase 24 planned — 1 plan (24-01), plan-checker VERIFICATION PASSED"
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 1
   completed_plans: 0
   percent: 0
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** v0.6.3 roadmap created (Phases 24–28) — ready to plan Phase 24
+**Current focus:** Phase 24 planned (1 plan) — ready to execute
 
 ## Current Position
 
-Phase: 24 of 28 (Delete `typst_toctree_defaults`) — not started
-Plan: — (roadmap just created)
-Status: Ready to plan Phase 24
-Last activity: 2026-07-23 — v0.6.3 ROADMAP.md created; 6/6 v1 requirements mapped
+Phase: 24 of 28 (Delete `typst_toctree_defaults`) — planned, ready to execute
+Plan: 24-01 (1 plan, 1 wave) — plan-checker VERIFICATION PASSED
+Status: Ready to execute Phase 24
+Last activity: 2026-07-23 — Phase 24 planned; verification passed
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -110,11 +110,11 @@ Items acknowledged and carried forward from previous milestone closes:
 
 **Resume file:** .planning/phases/24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part/24-CONTEXT.md
 
-Last session: 2026-07-23T13:14:08.647Z
-Stopped at: Phase 24 context gathered
-Resume: plan the first phase with `/gsd-plan-phase 24`
+Last session: 2026-07-23T13:30:23.000Z
+Stopped at: Phase 24 planned (1 plan) — auto-advancing to execute (--chain)
+Resume: execute with `/gsd-execute-phase 24`
 
 ## Operator Next Steps
 
-- Review the v0.6.3 roadmap draft (`.planning/ROADMAP.md`, Phases 24–28)
-- Plan Phase 24 with `/gsd-plan-phase 24` (or run the milestone autonomously)
+- Execute Phase 24 with `/gsd-execute-phase 24` (in progress via --chain auto-advance)
+- Review the plan: `.planning/phases/24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part/24-01-PLAN.md`
