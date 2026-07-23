@@ -39,6 +39,12 @@ Four standing cases, each a real compile:
        SAME fixture's ``conf.py`` never appears anywhere in the emitted
        show-rule region (D-08, structural non-leak).
 
+The standing pre-fix-basis failure proof (one reconstruction per closed
+defect shape: an undeclared kwarg, and a leaked ``copyright`` argument)
+lives in ``TestPreFixBasisFailureProof`` below, mirroring the convention
+already established by ``tests/test_package_only_config_gate.py`` and
+``tests/test_nested_master_render_gate.py``.
+
 Per D-06, no assertion anywhere in this module matches on the TEXT of a
 Typst/Sphinx compiler error message -- only that a real compile /
 ``sphinx-build`` invocation raises or exits non-zero.
@@ -307,3 +313,110 @@ class TestUnknownKeyNegativeGate:
         for typ_file in build_dir.rglob("*.typ"):
             text = typ_file.read_text(encoding="utf-8")
             assert "bogus_unknown_key" not in text
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 pre-fix-basis failure proof",
+)
+class TestPreFixBasisFailureProof:
+    """
+    Standing pre-fix-basis failure proof (D-06): reconstructs two pre-fix
+    defect shapes FROM the post-fix emitted master (the papersize-positive
+    fixture, built once via the faster ``-b typst`` builder and shared
+    read-only across both reconstructions) and proves a real
+    ``typst.compile()`` RAISES against each one. This stays meaningful
+    after the original buggy code is deleted, because each reconstruction
+    is derived mechanically from the CURRENT emitted output rather than
+    hand-authored to match a historical bug -- mirroring the convention
+    established by ``tests/test_package_only_config_gate.py``'s own
+    ``TestPreFixBasisFailureProof`` and ``tests/test_nested_master_render_gate.py``.
+
+    Only ``pytest.raises`` is asserted -- never the exception's message
+    text (D-06).
+
+    Manual red->green confirmation (recorded per the repo's durable-gate
+    convention, since these gates are authored AFTER the Plan 01 fix):
+    with the Plan 01 fix in place (the state this module is written
+    against), both reconstructions below raise as expected (GREEN). The
+    manual weaken-and-observe check -- reverting the Plan 01 fix and
+    re-running this module's positive cases -- is recorded in this plan's
+    SUMMARY.md rather than re-asserted here as a standing test (a test
+    that verifies its own absence is not expressible).
+
+    Requirements: CONF-04, D-06.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def emitted_master_text(tmp_path_factory):
+        """
+        Build the papersize-positive fixture ONCE via the faster
+        ``-b typst`` builder (no compile needed to obtain the source text
+        these reconstructions mutate) and return the emitted master's
+        text.
+        """
+        build_dir = tmp_path_factory.mktemp("prefix_basis_source_build")
+        result = _run_sphinx_build(PAPERSIZE_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return typ_path.read_text(encoding="utf-8")
+
+    def test_undeclared_kwarg_basis_raises(self, emitted_master_text, tmp_path):
+        """
+        Undeclared-kwarg basis (SC#3's durable red proof): splice a key
+        that ``templates/base.typ``'s ``project()`` does NOT declare into
+        the ``project.with(...)`` region. Reproduces the pre-fix shape an
+        unguarded, unallowlisted `typst_elements` key would have reached
+        -- an undeclared kwarg is a fatal to a real Typst compile. This is
+        WHY the fail-loud allowlist check (D-06/D-07) is required: without
+        it, a key like ``bogus_unknown_key`` would reach exactly this
+        fatal at compile time instead of a clean Python-side
+        ``ExtensionError``.
+        """
+        lines = emitted_master_text.split("\n")
+        opening = [i for i, line in enumerate(lines) if "#show: project.with(" in line]
+        assert (
+            len(opening) == 1
+        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
+        lines.insert(
+            opening[0] + 1, '  bogus_undeclared_kwarg: "should never compile",'
+        )
+        reconstructed = "\n".join(lines)
+        assert "bogus_undeclared_kwarg:" in reconstructed
+
+        target = tmp_path / "undeclared_kwarg_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
+
+    def test_leaked_copyright_basis_raises(self, emitted_master_text, tmp_path):
+        """
+        Leaked-copyright basis (SC#4's durable red proof): splice a
+        ``copyright`` argument into the ``project.with(...)`` region.
+        Reproduces the pre-fix shape where baseline Sphinx metadata rode
+        along with ``typst_elements`` through a shared dict. A leaked
+        baseline metadatum is itself an undeclared kwarg to ``project()``
+        (which has no ``copyright`` parameter) -- proving WHY the
+        structural non-leak (D-08) matters: without it, ``copyright``
+        would reach exactly this same fatal.
+        """
+        lines = emitted_master_text.split("\n")
+        opening = [i for i, line in enumerate(lines) if "#show: project.with(" in line]
+        assert (
+            len(opening) == 1
+        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
+        lines.insert(opening[0] + 1, f'  copyright: "{COPYRIGHT_CANARY}",')
+        reconstructed = "\n".join(lines)
+        assert "copyright:" in reconstructed
+
+        target = tmp_path / "leaked_copyright_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
