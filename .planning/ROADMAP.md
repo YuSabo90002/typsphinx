@@ -210,8 +210,12 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. The 2nd-and-later captioned table in a single document keeps its own caption — none lost to a stale cell buffer — proven by a 2+-table real-`typst.compile()` fixture.
   5. A `:numref:` / `:ref:` to a captioned table resolves to a working "Table N" link in the compiled PDF: the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, with no dangling/duplicate-label error and no collision with the table's existing `_emit_id_anchors` id anchors.
 
-**Plans**: TBD
-**Note**: GATE-01 fixture mandatory (template `tests/test_package_only_config_gate.py` pattern) — MUST include a 2+-table document, the caption+width composition case, and a `:numref:`-resolves case, with red→green proof. Isolated from Phase 26 to keep the translator state-machine risk separate from the config type-mismatch risk.
+**Plans**: 2 plans
+
+- [ ] 25-01-PLAN.md — Caption buffering + figure-wrap + `<label>` + deferred anchor in `translator.py`, with adapted PR#98 unit tests (TBL-01, TBL-02) — Wave 1
+- [ ] 25-02-PLAN.md — GATE-01 real-compile render fixture (2+-table, caption+width, `:numref:`-resolves, csv/list) + pre-fix-basis failure proof (TBL-01, TBL-02) — Wave 2
+
+**Note**: GATE-01 fixture mandatory (template `tests/test_pdf_render_gate.py` — sentinel + pypdf pattern, per RESEARCH template correction) — MUST include a 2+-table document, the caption+width composition case, and a `:numref:`-resolves case, with red→green proof (durable pre-fix-basis reconstruction). Isolated from Phase 26 to keep the translator state-machine risk separate from the config type-mismatch risk.
 
 ### Phase 26: `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
 
@@ -295,7 +299,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | Complete    | 2026-07-23 |
-| 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 0/TBD | Not started | - |
+| 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 0/2 | Not started | - |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 0/TBD | Not started | - |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 0/TBD | Not started | - |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
