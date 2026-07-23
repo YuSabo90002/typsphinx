@@ -159,6 +159,15 @@ None — no external service configuration required.
 - `black --check`/`mypy typsphinx/`/`ruff check` (nix-shell fallback) all clean; `templates/base.typ` untouched; `tests/test_preview_version_sync.py` green; no new runtime dependency.
 - No blockers for this phase's completion. This was the final planned plan for Phase 25 per the 25-02-PLAN.md wave assignment (Wave 2, `depends_on: ["25-01"]`).
 
+## Self-Check: PASSED
+
+- FOUND: `tests/fixtures/captioned_table_render_gate/conf.py`
+- FOUND: `tests/fixtures/captioned_table_render_gate/index.rst`
+- FOUND: `.planning/phases/25-captioned-table-figure-wrap-cross-references-reimplement-pr-/25-02-SUMMARY.md`
+- FOUND commit: `7a9fd09` (Task 1)
+- FOUND commit: `62f5ec6` (Task 2)
+- FOUND commit: `d237cae` (this SUMMARY)
+
 ---
 *Phase: 25-captioned-table-figure-wrap-cross-references-reimplement-pr-*
 *Completed: 2026-07-23*
