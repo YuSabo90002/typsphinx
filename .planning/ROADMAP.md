@@ -259,8 +259,9 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. Every `typst_*` name remaining anywhere under `docs/source/` maps to a value registered in `typsphinx/__init__.py` (grep cross-check over BOTH `user_guide/configuration.rst` and `api/index.rst`).
   5. The docs still build (`sphinx-build`/`docs-multilang` green); no broken `:doc:`/`:ref:` left by the api-table deletion.
 
-**Plans**: 1 plan (single wave — deletions + `.rst` edits + scoped `.po` regen + phase-gate kept on one branch so exactly one manual-merge is needed past the deletion-guard, D-13)
-- [ ] 27-01-PLAN.md — Delete orphan `docs/configuration.rst` + its collateral test; remove 5 phantom config names from `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements`); delete the `api/index.rst` list-table + follow its `.po`; grep cross-check + green docs build + green suite
+**Plans**: 1/1 plans executed
+
+- [x] 27-01-PLAN.md — Delete orphan `docs/configuration.rst` + its collateral test; remove 5 phantom config names from `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements`); delete the `api/index.rst` list-table + follow its `.po`; grep cross-check + green docs build + green suite
 
 ### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
 
@@ -315,7 +316,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | Complete    | 2026-07-23 |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
-| 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 0/TBD | Not started | - |
+| 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | In Progress|  |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
 
 ## Backlog
