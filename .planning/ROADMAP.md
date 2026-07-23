@@ -188,7 +188,8 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   1. Searching the whole repo (`typsphinx/__init__.py` registration, docs, `examples/advanced`, README, tests) for `typst_toctree_defaults` returns zero hits — a user can no longer discover it as a supported option.
   2. The extension still imports, both builders register, and a documentation project builds green via `sphinx-build -b typst` with the value removed; the full existing test suite stays green and the registration-only `tests/test_config_toctree_defaults.py` is deleted (`tests/test_documentation_configuration.py` updated to drop its reference).
   3. No `typst_toctree_defaults` example remains in any user-facing surface; documented toctree control is via per-directive options (`:maxdepth:` etc.).
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 24-01-PLAN.md — Remove inert `typst_toctree_defaults` from all surfaces (registration + README/examples/docs), delete the registration-only test file, drop its doc-list entry; grep-zero + green suite
 **Note**: Pure removal of a grep-proven-inert value (zero consumers in `translator.py`/`writer.py`/`builder.py`/`template_engine.py`) — no config→output change, so GATE-01 does not apply; a grep-zero proof + green suite is the honest bar.
 
 ### Phase 25: Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
@@ -276,7 +277,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-22 |
 | 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
-| 24. Delete `typst_toctree_defaults` | v0.6.3 | 0/TBD | Not started | - |
+| 24. Delete `typst_toctree_defaults` | v0.6.3 | 0/1 | Not started | - |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 0/TBD | Not started | - |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 0/TBD | Not started | - |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 0/TBD | Not started | - |
