@@ -145,6 +145,16 @@ None - no external service configuration required.
 - CHANGELOG.md is unchanged; the `[Unreleased] → ### Removed` note for this removal is deferred to Phase 28 (release-prep), batched with the v0.6.3 version bump, per D-02.
 - No blockers for subsequent phases in this milestone.
 
+## Self-Check: PASSED
+
+- FOUND: typsphinx/__init__.py
+- FOUND: docs/configuration.rst
+- FOUND (deleted as expected): tests/test_config_toctree_defaults.py
+- FOUND: .planning/phases/24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part/24-01-SUMMARY.md
+- FOUND commit: f8abfc6 (Task 1)
+- FOUND commit: d55f5a5 (Task 2)
+- FOUND commit: d48b019 (Task 3)
+
 ---
 *Phase: 24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part*
 *Completed: 2026-07-23*
