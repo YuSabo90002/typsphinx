@@ -259,7 +259,8 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. Every `typst_*` name remaining anywhere under `docs/source/` maps to a value registered in `typsphinx/__init__.py` (grep cross-check over BOTH `user_guide/configuration.rst` and `api/index.rst`).
   5. The docs still build (`sphinx-build`/`docs-multilang` green); no broken `:doc:`/`:ref:` left by the api-table deletion.
 
-**Plans**: TBD
+**Plans**: 1 plan (single wave — deletions + `.rst` edits + scoped `.po` regen + phase-gate kept on one branch so exactly one manual-merge is needed past the deletion-guard, D-13)
+- [ ] 27-01-PLAN.md — Delete orphan `docs/configuration.rst` + its collateral test; remove 5 phantom config names from `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements`); delete the `api/index.rst` list-table + follow its `.po`; grep cross-check + green docs build + green suite
 
 ### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
 
