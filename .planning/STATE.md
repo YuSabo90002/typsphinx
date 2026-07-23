@@ -5,8 +5,8 @@ milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 25
 current_phase_name: "reimplement PR#98"
 status: planning
-stopped_at: Phase 24 planned (1 plan) — auto-advancing to execute (--chain)
-last_updated: "2026-07-23T13:49:24.436Z"
+stopped_at: Phase 25 context gathered
+last_updated: "2026-07-23T14:06:05.697Z"
 last_activity: 2026-07-23
 last_activity_desc: Phase 24 complete, transitioned to Phase 25
 progress:
@@ -108,10 +108,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part/24-CONTEXT.md
+**Resume file:** .planning/phases/25-captioned-table-figure-wrap-cross-references-reimplement-pr-/25-CONTEXT.md
 
-Last session: 2026-07-23T13:30:23.000Z
-Stopped at: Phase 24 planned (1 plan) — auto-advancing to execute (--chain)
+Last session: 2026-07-23T14:06:05.691Z
+Stopped at: Phase 25 context gathered
 Resume: execute with `/gsd-execute-phase 24`
 
 ## Operator Next Steps
