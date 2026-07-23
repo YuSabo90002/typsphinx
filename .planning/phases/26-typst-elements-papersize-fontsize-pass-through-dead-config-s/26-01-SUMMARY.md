@@ -196,3 +196,13 @@ None - no external service configuration required.
 ---
 *Phase: 26-typst-elements-papersize-fontsize-pass-through-dead-config-s*
 *Completed: 2026-07-24*
+
+## Self-Check: PASSED
+
+- FOUND: typsphinx/template_engine.py
+- FOUND: typsphinx/writer.py
+- FOUND: tests/test_template_engine.py
+- FOUND: .planning/phases/26-typst-elements-papersize-fontsize-pass-through-dead-config-s/26-01-SUMMARY.md
+- FOUND: b7083c9 (feat commit)
+- FOUND: 67a40ca (fix commit)
+- FOUND: 82fdf0e (docs/summary commit)
