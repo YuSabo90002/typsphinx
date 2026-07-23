@@ -4,9 +4,9 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 26
 current_phase_name: dead-config sweep round 2, part A
-status: planning
+status: executing
 stopped_at: Phase 26 context gathered
-last_updated: "2026-07-23T21:03:19.812Z"
+last_updated: "2026-07-23T21:25:09.662Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 25 complete, transitioned to Phase 26
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 Phase: 26 — `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-07-24 — Phase 25 complete, transitioned to Phase 26
 
 Progress: [░░░░░░░░░░] 0%
