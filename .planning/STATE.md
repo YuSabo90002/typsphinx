@@ -5,8 +5,8 @@ milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 26
 current_phase_name: dead-config sweep round 2, part A
 status: planning
-stopped_at: Phase 25 context gathered
-last_updated: "2026-07-23T15:38:45.848Z"
+stopped_at: Phase 26 context gathered
+last_updated: "2026-07-23T21:03:19.812Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 25 complete, transitioned to Phase 26
 progress:
@@ -108,10 +108,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/25-captioned-table-figure-wrap-cross-references-reimplement-pr-/25-CONTEXT.md
+**Resume file:** .planning/phases/26-typst-elements-papersize-fontsize-pass-through-dead-config-s/26-CONTEXT.md
 
-Last session: 2026-07-23T14:06:05.691Z
-Stopped at: Phase 25 context gathered
+Last session: 2026-07-23T21:03:19.806Z
+Stopped at: Phase 26 context gathered
 Resume: execute with `/gsd-execute-phase 24`
 
 ## Operator Next Steps
