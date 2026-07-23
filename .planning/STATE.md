@@ -142,12 +142,12 @@ Items acknowledged and carried forward from previous milestone closes:
 ## Session Continuity
 
 Last session: 2026-07-23
-Stopped at: v0.6.2 milestone archived + release PR #120 opened (`gsd/v0.6.2-rendering-fidelity-round-2` → `main`)
-Resume: observe CI green on PR #120, merge, then tag `v0.6.2` on the merge commit → `release.yml` → PyPI
+Stopped at: v0.6.2 PR #120 merged (merge commit `54b8fc9`, Issue #117 auto-closed), tag `v0.6.2` pushed → `release.yml` running (run 30002480654), paused at the `pypi` environment approval gate
+Resume: approve the `pypi` deployment in GitHub Actions to publish to PyPI + create the GitHub Release, then start the next milestone
 
 ## Operator Next Steps
 
-- Observe the full 3-OS × Python CI matrix green on PR #120
-- Merge PR #120 to `main`, then push `main` to `origin`
-- Tag `v0.6.2` on the merge commit and push it → `release.yml` publishes to PyPI + GitHub Release (gated by the `pypi` environment's manual approval + wait timer)
+- **Approve the PyPI deployment** — GitHub → Actions → the `v0.6.2` Release run (30002480654) → "Review deployments" → approve `pypi`. After approval + the environment wait timer, `publish-pypi` and `github-release` run automatically.
+- Verify https://pypi.org/project/typsphinx/0.6.2/ and the GitHub Release once publish completes
+- Optionally delete the merged `gsd/v0.6.2-rendering-fidelity-round-2` branch
 - Then start the next milestone with /gsd-new-milestone
