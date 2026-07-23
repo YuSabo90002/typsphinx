@@ -181,65 +181,82 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 - [ ] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone`
 
 ### Phase 24: Delete `typst_toctree_defaults` (dead-config sweep round 2, part B)
+
 **Goal**: The registered-but-inert `typst_toctree_defaults` config value is gone from every surface, so it is no longer presented as a supported option — per-directive `:maxdepth:` etc. remains the documented path.
 **Depends on**: Nothing (first phase of the milestone; functionally independent — sequenced first only because it is trivial and 0-risk)
 **Requirements**: CONF-05
 **Success Criteria** (what must be TRUE):
+
   1. Searching the whole repo (`typsphinx/__init__.py` registration, docs, `examples/advanced`, README, tests) for `typst_toctree_defaults` returns zero hits — a user can no longer discover it as a supported option.
   2. The extension still imports, both builders register, and a documentation project builds green via `sphinx-build -b typst` with the value removed; the full existing test suite stays green and the registration-only `tests/test_config_toctree_defaults.py` is deleted (`tests/test_documentation_configuration.py` updated to drop its reference).
   3. No `typst_toctree_defaults` example remains in any user-facing surface; documented toctree control is via per-directive options (`:maxdepth:` etc.).
-**Plans**: 1 plan
-- [ ] 24-01-PLAN.md — Remove inert `typst_toctree_defaults` from all surfaces (registration + README/examples/docs), delete the registration-only test file, drop its doc-list entry; grep-zero + green suite
+
+**Plans**: 1/1 plans executed
+
+- [x] 24-01-PLAN.md — Remove inert `typst_toctree_defaults` from all surfaces (registration + README/examples/docs), delete the registration-only test file, drop its doc-list entry; grep-zero + green suite
+
 **Note**: Pure removal of a grep-proven-inert value (zero consumers in `translator.py`/`writer.py`/`builder.py`/`template_engine.py`) — no config→output change, so GATE-01 does not apply; a grep-zero proof + green suite is the honest bar.
 
 ### Phase 25: Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
+
 **Goal**: A captioned table renders as a numbered "Table N" figure that can be cross-referenced, while a caption-less table stays a plain table.
 **Depends on**: Phase 24 (sequential order only — no functional dependency)
 **Requirements**: TBL-01, TBL-02
 **Success Criteria** (what must be TRUE):
+
   1. A `.. table:: Caption` directive renders in the compiled PDF as `figure(table(...), caption: {...}, kind: table)` with native "Table N" numbering and **no** stray `heading()` above the table; the caption preserves inline markup.
   2. A table **without** a caption still renders as a plain `table()` — never speculatively figure-wrapped.
   3. A captioned table that also sets `:width:` renders with **both** the caption and the existing block-width wrap composed correctly (verified together, not separately).
   4. The 2nd-and-later captioned table in a single document keeps its own caption — none lost to a stale cell buffer — proven by a 2+-table real-`typst.compile()` fixture.
   5. A `:numref:` / `:ref:` to a captioned table resolves to a working "Table N" link in the compiled PDF: the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, with no dangling/duplicate-label error and no collision with the table's existing `_emit_id_anchors` id anchors.
+
 **Plans**: TBD
 **Note**: GATE-01 fixture mandatory (template `tests/test_package_only_config_gate.py` pattern) — MUST include a 2+-table document, the caption+width composition case, and a `:numref:`-resolves case, with red→green proof. Isolated from Phase 26 to keep the translator state-machine risk separate from the config type-mismatch risk.
 
 ### Phase 26: `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
+
 **Goal**: A user who sets `papersize`/`fontsize` via `typst_elements` in `conf.py` sees them applied in the compiled output, with an unknown key failing loudly and baseline Sphinx metadata never leaking into the template.
 **Depends on**: Phase 25 (sequential — keeps the config-wiring/type risk isolated from the translator state-machine risk)
 **Requirements**: CONF-04
 **Success Criteria** (what must be TRUE):
+
   1. `typst_elements = {"papersize": "us-letter"}` in `conf.py` reaches the template's `project()` and the compiled PDF uses that paper size, with `papersize` emitted as a Typst **string**.
   2. `typst_elements = {"fontsize": "20pt"}` reaches `project()` with `fontsize` emitted as an **unquoted Typst length** (not a quoted string) and the compiled PDF uses that font size — proven by a fixture separate from the `papersize` case.
   3. An unrecognized `typst_elements` key (one `base.typ`'s `project()` does not declare) **fails loudly** via the curated allowlist, rather than silently dropping it or emitting an undeclared kwarg that aborts the Typst compile.
   4. Baseline Sphinx metadata (`copyright`, etc.) is **never** leaked into `project()` as a parameter.
   5. `templates/base.typ` is byte-unchanged — the fix is 100% Python-side (`writer.py` keeps `typst_elements` separate; `template_engine.py`'s `map_parameters` merges the curated allowlist additively, leaving the Phase 22.2 guards intact).
+
 **Plans**: TBD
 **Note**: GATE-01 fixtures mandatory — positive `papersize`, positive `fontsize` (separately), negative unknown-key (fails loudly), and copyright-non-leak — each a real-`typst.compile()` case with red→green proof.
 
 ### Phase 27: Docs 実測整合 — Orphan Delete + Phantom Config Names
+
 **Goal**: Every documented `typst_*` name across the user-facing docs matches a registered config value; the unreachable orphan config doc is removed; and config is documented in ONE canonical place so it cannot re-drift.
 **Depends on**: Phase 26 (CONF-04 must ship first so the phantom `typst_papersize`/`typst_fontsize` lines can be rewritten into *working* `typst_elements` examples instead of delete-only — Pitfall 11 prevention)
 **Requirements**: DOC-06, DOC-07
 **Success Criteria** (what must be TRUE):
+
   1. The orphan `docs/configuration.rst` (526 lines, unreachable from any toctree, containing the wrong package name `sphinxcontrib.typst`) is deleted, with no live toctree/xref reference to it remaining and no unique useful content lost.
   2. In `docs/source/user_guide/configuration.rst`: `typst_author` → `typst_authors`; the unregistered `typst_use_codly` / `typst_code_line_numbers` examples removed; `typst_papersize`/`typst_fontsize` rewritten as **working** `typst_elements` examples (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) leveraging Phase 26 — NOT the phantom top-level names (Sphinx's LaTeX builder exposes papersize/pointsize only via `latex_elements`, so `typst_elements` is the faithful mirror; no top-level `typst_papersize` is implemented).
   3. The redundant "Available Configuration Values" `list-table` in `docs/source/api/index.rst` (lists 4 phantom names + omits 6 registered ones) is **deleted**, keeping only the existing `See :doc:/user_guide/configuration` pointer — config documented in one canonical place; `docs/locale/ja/LC_MESSAGES/api/index.po` updated to follow.
   4. Every `typst_*` name remaining anywhere under `docs/source/` maps to a value registered in `typsphinx/__init__.py` (grep cross-check over BOTH `user_guide/configuration.rst` and `api/index.rst`).
   5. The docs still build (`sphinx-build`/`docs-multilang` green); no broken `:doc:`/`:ref:` left by the api-table deletion.
+
 **Plans**: TBD
 
 ### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
+
 **Goal**: Prep-only — single-source the version bump to 0.6.3, curate the CHANGELOG entry, update the README status line, and close the milestone on the full-corpus regression gate. The irreversible publish is deferred to `/gsd-complete-milestone`.
 **Depends on**: Phase 27 (all six v1 requirements delivered)
 **Requirements**: none (release/close phase — carries no requirement)
 **Success Criteria** (what must be TRUE):
+
   1. `pyproject.toml` is bumped to `0.6.3` as the **sole** version literal, with `uv.lock` regenerated in lockstep (`uv sync --locked` green) and the `README.md` `**Status**` line updated to reflect v0.6.3.
   2. `CHANGELOG.md` has a curated `## [0.6.3]` entry covering all 6 v1 requirements (CONF-04, CONF-05, TBL-01, TBL-02, DOC-06, DOC-07); the `## [Unreleased]` compare link is advanced and the `[0.6.3]` release/tag link block appended (release-prep's own job — does not violate a prior release phase's version-literal invariant).
   3. The full-corpus real `typst.compile()` regression gate passes (valid `%PDF`, `unknown_visit` catalogue empty), confirming no regression from the milestone's changes.
   4. The milestone invariant holds: zero new runtime deps, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
   5. Scope fence: no tag, no PyPI publish, no merge — the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone` on the confirmed-green merge commit.
+
 **Plans**: TBD
 
 ## Progress
@@ -277,7 +294,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-22 |
 | 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
-| 24. Delete `typst_toctree_defaults` | v0.6.3 | 0/1 | Not started | - |
+| 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | In Progress|  |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 0/TBD | Not started | - |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 0/TBD | Not started | - |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 0/TBD | Not started | - |
