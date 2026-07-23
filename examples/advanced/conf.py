@@ -80,14 +80,6 @@ typst_template = "_templates/custom.typ"
 # Auto-detected if not specified
 # typst_template_function = 'project'
 
-# Toctree defaults (optional)
-# Set default options for all toctree directives
-# Individual directives can override these
-typst_toctree_defaults = {
-    "maxdepth": 2,
-    "numbered": True,
-}
-
 # Typst Universe packages (optional)
 # Import packages from Typst Universe
 # Example: Import codly for enhanced code highlighting

@@ -245,13 +245,6 @@ typst_template = '_templates/custom.typ'
 #     'release': 'doc_version',
 # }
 
-# Toctree defaults (optional)
-# Set default options for all toctree directives
-typst_toctree_defaults = {
-    'maxdepth': 2,
-    'numbered': True,
-}
-
 # Typst Universe packages (optional)
 # Import additional packages from Typst Universe
 # typst_package_imports = [

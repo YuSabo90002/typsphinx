@@ -217,37 +217,6 @@ When enabled, LaTeX math expressions are converted using the mitex Typst package
 
 **Note:** Requires the mitex package. If disabled, basic math conversion will be attempted but with limited LaTeX support.
 
-Table of Contents
------------------
-
-typst_toctree_defaults
-~~~~~~~~~~~~~~~~~~~~~~
-
-Default options for ``toctree`` directives.
-
-:Type: ``dict`` or ``None``
-:Default: ``None``
-
-Sets default values for toctree options that can be overridden per-directive.
-
-**Available Options:**
-
-- ``maxdepth``: Maximum depth of toctree (integer)
-- ``numbered``: Enable numbering (boolean)
-- ``caption``: Default caption text (string)
-- ``titlesonly``: Show titles only (boolean)
-- ``hidden``: Hide toctree from output (boolean)
-
-**Example:**
-
-.. code-block:: python
-
-   typst_toctree_defaults = {
-       'maxdepth': 3,
-       'numbered': True,
-       'caption': 'Contents',
-   }
-
 Typst Packages
 --------------
 
@@ -350,12 +319,6 @@ Here's a complete ``conf.py`` example with common settings:
 
    # Enable LaTeX math support
    typst_use_mitex = True
-
-   # Configure toctree defaults
-   typst_toctree_defaults = {
-       'maxdepth': 2,
-       'numbered': True,
-   }
 
    # Import Typst packages
    typst_package_imports = [
