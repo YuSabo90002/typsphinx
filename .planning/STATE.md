@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.2
-milestone_name: rendering fidelity round 2
-status: Awaiting next milestone
-stopped_at: v0.6.2 published to PyPI + GitHub Release — release fully complete
-last_updated: "2026-07-23T11:16:50Z"
+milestone: v0.6.3
+milestone_name: config & docs 実測整合 + captioned tables
+status: planning
+last_updated: "2026-07-23T12:25:56.898Z"
 last_activity: 2026-07-23
-last_activity_desc: v0.6.2 published to PyPI and GitHub Release (release complete)
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 30
-  completed_plans: 30
-  percent: 100
-current_phase: 23
-current_phase_name: v0.6.2 Release Prep + Regression-Gate Close
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.2 milestone close)
 
 ## Current Position
 
-Phase: Milestone v0.6.2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-23 — Milestone v0.6.2 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-23 — Milestone v0.6.3 started
 
 ## Roadmap Summary (v0.6.2 — Phases 19–23)
 
