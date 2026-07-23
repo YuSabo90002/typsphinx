@@ -4,9 +4,9 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 27
 current_phase_name: Docs 実測整合 — Orphan Delete + Phantom Config Names
-status: planning
+status: executing
 stopped_at: Phase 27 context gathered
-last_updated: "2026-07-23T22:00:41.846Z"
+last_updated: "2026-07-23T22:33:06.890Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 26 complete, transitioned to Phase 27
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 Phase: 27 — Docs 実測整合 — Orphan Delete + Phantom Config Names
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-07-24 — Phase 26 complete, transitioned to Phase 27
 
 Progress: [░░░░░░░░░░] 0%

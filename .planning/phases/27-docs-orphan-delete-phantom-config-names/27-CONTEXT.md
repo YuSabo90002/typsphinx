@@ -42,7 +42,7 @@ No `@preview` bump, no touching the 3-way version-sync surface, no runtime deps.
   directory has **no `conf.py`** (verified) — it is a legacy/dead tree; the live Sphinx
   project is `docs/source/`. Nothing Sphinx builds references it → SC#1 "no live
   toctree/xref remaining" is satisfied by deletion alone.
-- **D-04:** Actual size is **489 lines**, not the 526 the ROADMAP/REQUIREMENTS quote
+- **D-04 [informational]:** Actual size is **489 lines**, not the 526 the ROADMAP/REQUIREMENTS quote
   (stale figure — don't gate on it). The file uses the wrong package name
   `sphinxcontrib.typst` throughout (lines 20, 299, 449), so its content is actively
   wrong, not merely stale.
