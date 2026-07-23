@@ -5,8 +5,8 @@ milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 27
 current_phase_name: Docs 実測整合 — Orphan Delete + Phantom Config Names
 status: planning
-stopped_at: Phase 26 context gathered
-last_updated: "2026-07-23T21:53:31.574Z"
+stopped_at: Phase 27 context gathered
+last_updated: "2026-07-23T22:00:41.846Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 26 complete, transitioned to Phase 27
 progress:
@@ -108,10 +108,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/26-typst-elements-papersize-fontsize-pass-through-dead-config-s/26-CONTEXT.md
+**Resume file:** .planning/phases/27-docs-orphan-delete-phantom-config-names/27-CONTEXT.md
 
-Last session: 2026-07-23T21:03:19.806Z
-Stopped at: Phase 26 context gathered
+Last session: 2026-07-23T22:00:41.840Z
+Stopped at: Phase 27 context gathered
 Resume: execute with `/gsd-execute-phase 24`
 
 ## Operator Next Steps
