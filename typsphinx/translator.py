@@ -87,6 +87,26 @@ class TypstTranslator(SphinxTranslator):
         self.in_caption = False
         self.list_stack = []  # Track list nesting: 'bullet' or 'enumerated'
 
+        # Table caption state (TBL-01/TBL-02, Phase 25): a `.. table::` (and
+        # equally csv-table/list-table) caption is stored by docutils as a
+        # `title` CHILD of nodes.table -- visited WHILE self.in_table is
+        # still True. add_text() already routes to self.table_cell_content
+        # whenever in_table is True (see add_text), so the caption buffer
+        # REUSES that existing dispatch rather than a self.body swap (a
+        # self.body swap alone would not change add_text()'s routing
+        # decision, silently misrouting the caption -- see visit_title).
+        self.table_caption: str | None = (
+            None  # Rendered caption text, consumed + reset in depart_table
+        )
+        self._in_table_caption: bool = (
+            False  # Track if currently buffering a table caption title
+        )
+        self._caption_saved_list_state: Tuple[bool, bool] | None = (
+            None  # (in_list_item, list_item_needs_separator) saved across
+            # the caption title's buffering, mirrors the admonition-title
+            # save/restore idiom
+        )
+
         # Figure-specific state
         self.figure_content = []
         self.figure_caption = ""
@@ -462,11 +482,45 @@ class TypstTranslator(SphinxTranslator):
         standard inline visitors) so it can be attached as a code-block
         title argument at depart time instead of emitted here (see
         _depart_admonition). A `.. contents::` topic (D-05) additionally
-        records the insertion point for its box-less bold label.
+        records the insertion point for its box-less bold label. A
+        `.. table::`/csv-table/list-table CAPTION (TBL-01, Phase 25) is
+        ALSO a title -- docutils stores it as a `title` child of
+        nodes.table -- and is buffered here too, self-contained and
+        checked FIRST (before the admonition/topic/section paths), since
+        it must reuse `self.table_cell_content` as its buffer rather than
+        a `self.body` swap (see the docstring on the branch below).
 
         Args:
             node: The title node
         """
+        # TBL-01/Pattern 1 (Phase 25): a table caption is visited WHILE
+        # self.in_table is still True (visit_table sets it before any
+        # child, including this title, is visited). add_text()'s dispatch
+        # rule is `self.in_table and hasattr(self, "table_cell_content")`
+        # -- it does NOT consult self.body -- so buffering via a
+        # self.body swap (the figure-caption idiom) would NOT change
+        # where add_text() routes: every inline visitor called while
+        # processing this caption (visit_Text, visit_emphasis, ...) would
+        # still misroute into table_cell_content regardless. Reusing
+        # table_cell_content as the buffer (which add_text() already
+        # targets) is therefore required, not a stylistic choice
+        # (25-RESEARCH.md Critical Pitfall 2). Checked first and
+        # self-contained (its own save/restore, not the Pitfall-1 idiom
+        # below) so it can `return` before emitting any heading() call --
+        # the bug this fixes (25-RESEARCH.md Verified Mechanism 1) is that
+        # a table-caption title previously fell through to the generic
+        # section-heading path below, emitting a stray heading().
+        if self.in_table:
+            self._in_table_caption = True
+            self.table_cell_content = []
+            self._caption_saved_list_state = (
+                self.in_list_item,
+                self.list_item_needs_separator,
+            )
+            self.in_list_item = True
+            self.list_item_needs_separator = False
+            return
+
         # Pitfall-1 fix: a title's own children (Text, emphasis, strong,
         # ...) currently concatenate with NO separator, because a title's
         # child-stream sets neither in_paragraph nor in_list_item. Treat
@@ -538,11 +592,23 @@ class TypstTranslator(SphinxTranslator):
         inline content as the pending title and restore the main output
         stream. A `.. contents::` topic (D-05) inserts its buffered title
         as a bold label ahead of its already-streamed bullet_list instead
-        of consuming it as a box title argument.
+        of consuming it as a box title argument. A table caption (TBL-01,
+        Phase 25) captures the buffered `table_cell_content` into
+        `self.table_caption` for `depart_table` to consume, instead of
+        emitting a heading() close.
 
         Args:
             node: The title node
         """
+        if self._in_table_caption:
+            self.table_caption = "".join(self.table_cell_content).strip()
+            self.table_cell_content = []
+            self.in_list_item, self.list_item_needs_separator = (
+                self._caption_saved_list_state
+            )
+            self._in_table_caption = False
+            return
+
         if self._in_admonition_title:
             self._pending_admonition_title = "".join(self.body)
             if self._saved_body_for_admonition_title is not None:
@@ -2345,7 +2411,22 @@ class TypstTranslator(SphinxTranslator):
         # so a same-document link(<id>, ...) resolves (no ids -> no-op). Emitted
         # while self.in_table is still False, so add_text routes to the real
         # body (not a stale table_cell_content buffer).
-        self._emit_id_anchors(node)
+        #
+        # TBL-02 (Phase 25, Critical Pitfall 3): a CAPTIONED table instead
+        # self-anchors ids[0] as its own figure `<label>` postfix in
+        # depart_table, mirroring depart_figure. Anchoring it here TOO would
+        # define that id TWICE, aborting the whole compile at Typst's
+        # semantic pass with "label ... occurs multiple times" -- a real
+        # fatal invisible to any translator-only unit test. The doctree is
+        # already fully built at visit_table time (docutils constructs the
+        # whole tree before any visiting begins), so the captioned pre-check
+        # is reliable here, before the title has even been visited. Skip the
+        # call entirely for a captioned table; depart_table calls it with
+        # skip_ids={ids[0]} AFTER emitting the figure's own <label>.
+        # Non-captioned tables keep this unconditional call, unchanged.
+        is_captioned = bool(node.children) and isinstance(node.children[0], nodes.title)
+        if not is_captioned:
+            self._emit_id_anchors(node)
 
         # Emit a leading newline separator when this table follows a
         # sibling inside a list item, matching the block-visitor pattern
@@ -2423,6 +2504,18 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a table node.
 
+        A CAPTIONED table (TBL-01/TBL-02, Phase 25 -- ``self.table_caption``
+        truthy, i.e. a non-empty rendered caption; a whitespace/empty title
+        strips to a falsy ``""`` and takes the plain-table path, never an
+        empty-caption ``figure()``) wraps the inner ``table(...)`` call in
+        ``figure(..., caption: {...}, kind: table)`` for native Typst
+        "Table N" numbering, composed with the existing ``:width:`` ->
+        ``block(width: ...)[...]`` wrap exactly like ``depart_figure``
+        (D-04): the block wraps the WHOLE figure, and the ``<label>``
+        bracket-close lands inside whichever markup bracket was opened.
+        A caption-less table takes the byte-for-byte UNCHANGED plain-table
+        path (SC#2).
+
         Args:
             node: The table node
         """
@@ -2441,43 +2534,92 @@ class TypstTranslator(SphinxTranslator):
             width = node.get("width")
             converted_width = self._convert_length_to_typst(width) if width else None
 
-            # Use self.body.append directly to avoid routing to table_cell_content
-            if converted_width is not None:
-                self.body.append(
-                    f"block(width: {converted_width})[#table(\n"
-                    f"  columns: {self._build_columns_fr_arg()},\n"
-                )
-            else:
-                self.body.append(
-                    f"table(\n  columns: {self._build_columns_fr_arg()},\n"
-                )
-
             # Separate header cells from body cells
             header_cells = [cell for cell in self.table_cells if cell.get("is_header")]
             body_cells = [
                 cell for cell in self.table_cells if not cell.get("is_header")
             ]
 
-            # Add header cells with table.header() wrapper
+            # Build the inner table(...) call as one string -- unchanged
+            # emission logic, just assembled locally instead of appended
+            # directly, so a captioned table can wrap it in figure(...)
+            # below without re-deriving the cell-rendering logic.
+            table_parts = [f"table(\n  columns: {self._build_columns_fr_arg()},\n"]
             if header_cells:
-                self.body.append("  table.header(\n")
+                table_parts.append("  table.header(\n")
                 for cell in header_cells:
-                    self.body.append(self._format_table_cell(cell, indent="    "))
-                self.body.append("  ),\n")
-
-            # Add body cells
+                    table_parts.append(self._format_table_cell(cell, indent="    "))
+                table_parts.append("  ),\n")
             for cell in body_cells:
-                self.body.append(self._format_table_cell(cell, indent="  "))
+                table_parts.append(self._format_table_cell(cell, indent="  "))
+            table_parts.append(")")
+            table_code = "".join(table_parts)
 
-            if converted_width is not None:
-                self.body.append(")]\n\n")
+            if self.table_caption:
+                # TBL-01/D-02: figure-wrap with native "Table N" numbering.
+                # kind: table is ALWAYS present. caption is a {...} code
+                # block (already-rendered code-mode content, mirrors
+                # depart_figure's caption: {self.figure_caption} wrap).
+                figure_code = (
+                    f"figure(\n{table_code},\n"
+                    f"  caption: {{{self.table_caption}}},\n"
+                    f"  kind: table\n)"
+                )
+                # D-04 three-way branch, mirroring depart_figure verbatim:
+                # ids always self-anchor via the <label> postfix regardless
+                # of width; width alone (no ids) closes a bracket with no
+                # label; neither -> bare figure(...) statement.
+                if node.get("ids"):
+                    label = self._namespace_label(
+                        self._current_docname(), node["ids"][0]
+                    )
+                    if converted_width is not None:
+                        self.body.append(
+                            f"block(width: {converted_width})[#{figure_code} "
+                            f"<{label}>]\n\n"
+                        )
+                    else:
+                        self.body.append(f"[#{figure_code} <{label}>]\n\n")
+                elif converted_width is not None:
+                    self.body.append(
+                        f"block(width: {converted_width})[#{figure_code}]\n\n"
+                    )
+                else:
+                    self.body.append(f"{figure_code}\n\n")
+
+                # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored
+                # above as the figure's own <label> -- anchoring it again
+                # here would define it TWICE (Typst "label ... occurs
+                # multiple times" compile fatal). Anchor only a PROPAGATED
+                # remainder id (ids[1:]); no-op when there is none.
+                self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
             else:
-                self.body.append(")\n\n")
+                # Caption-less path: byte-for-byte unchanged (SC#2).
+                if converted_width is not None:
+                    self.body.append(
+                        f"block(width: {converted_width})[#{table_code}]\n\n"
+                    )
+                else:
+                    self.body.append(f"{table_code}\n\n")
 
         self.in_table = False
         self.table_cells = []
         self.table_colcount = 0
         self.table_colwidths = []
+        self.table_caption = None
+        # Stale-buffer root-cause fix (25-RESEARCH.md Verified Mechanism 2):
+        # table_cell_content is created by the FIRST table's visit_entry and
+        # reset to [] (not deleted) at every depart_entry, so it persists as
+        # an EXISTING attribute for the rest of the translator's lifetime.
+        # A subsequent table's caption title is visited before any of that
+        # table's OWN visit_entry calls -- if table_cell_content still
+        # exists (stale from a prior table), add_text() silently routes the
+        # caption's content into it instead of falling through to
+        # self.body, and the caption is lost entirely. Only `del` (not a
+        # reset to []) makes hasattr() False again, so the NEXT table's
+        # pre-entry add_text() calls correctly fall through.
+        if hasattr(self, "table_cell_content"):
+            del self.table_cell_content
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
