@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from typsphinx.template_engine import TemplateEngine
 
 
@@ -884,3 +886,152 @@ class TestTypstAuthorsConfig:
         )
         params_empty = engine_empty.map_parameters(sphinx_metadata)
         assert "authors" not in params_empty
+
+
+class TestTypstElementsPassThrough:
+    """CONF-04: `typst_elements` (papersize/fontsize) reach `map_parameters()`
+    / `_format_typst_value()` with correct per-key emission typing, a
+    fail-loud unknown-key raise, and structural non-leak of baseline Sphinx
+    metadata (e.g. copyright). See 26-CONTEXT.md D-01..D-09."""
+
+    def test_format_typst_value_raw_typst_emits_unquoted(self):
+        """_format_typst_value(RawTypst("20pt")) returns the bare string
+        `20pt` -- no surrounding quotes (D-02)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        formatted = engine._format_typst_value(RawTypst("20pt"))
+
+        assert formatted == "20pt"
+        assert '"' not in formatted
+
+    def test_format_typst_value_str_unchanged(self):
+        """_format_typst_value("us-letter") is unchanged -- still returns
+        the quoted string form (D-01)."""
+        engine = TemplateEngine()
+        formatted = engine._format_typst_value("us-letter")
+
+        assert formatted == '"us-letter"'
+
+    def test_map_parameters_papersize_is_plain_str(self):
+        """map_parameters(md, typst_elements={"papersize": ...}) returns
+        params["papersize"] as a plain str (D-01)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"papersize": "us-letter"}
+        )
+
+        assert params["papersize"] == "us-letter"
+        assert isinstance(params["papersize"], str)
+
+    def test_map_parameters_fontsize_is_raw_typst(self):
+        """map_parameters(md, typst_elements={"fontsize": ...}) returns
+        params["fontsize"] as a RawTypst wrapping the value, NOT a plain
+        str (D-02)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"fontsize": "20pt"}
+        )
+
+        assert isinstance(params["fontsize"], RawTypst)
+        assert not isinstance(params["fontsize"], str)
+        assert params["fontsize"].source == "20pt"
+
+    def test_map_parameters_unknown_element_key_raises(self):
+        """An unknown typst_elements key raises ExtensionError naming the
+        offending key and listing both supported keys (D-06/D-07)."""
+        from sphinx.errors import ExtensionError
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        with pytest.raises(ExtensionError) as exc_info:
+            engine.map_parameters(sphinx_metadata, typst_elements={"bogus": "x"})
+
+        message = str(exc_info.value)
+        assert "bogus" in message
+        assert "papersize" in message
+        assert "fontsize" in message
+
+    def test_map_parameters_unknown_key_does_not_emit_wrong_quoted_form(self):
+        """Negative-form regression guard: the wrong quoted-length output
+        (`fontsize: "20pt"`) must never be what an unknown key produces --
+        it must raise instead of falling through to any emission path."""
+        from sphinx.errors import ExtensionError
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        with pytest.raises(ExtensionError):
+            engine.map_parameters(sphinx_metadata, typst_elements={"bogus": "20pt"})
+
+    def test_map_parameters_copyright_never_in_params(self):
+        """copyright is never present in map_parameters()'s returned params
+        -- structural non-leak, not a filter (D-08)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "2026, Someone",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert "copyright" not in params
+
+    def test_map_parameters_copyright_never_leaks_even_with_elements(self):
+        """copyright stays absent even when typst_elements is also
+        provided (D-08, guards against a future re-merge regression)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "2026, Someone",
+        }
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"papersize": "a4"}
+        )
+
+        assert "copyright" not in params
+        assert params["papersize"] == "a4"
+
+    def test_map_parameters_no_typst_elements_argument_still_works(self):
+        """map_parameters(md) called with NO typst_elements argument still
+        works exactly as today -- default None treated as empty (Pitfall 4,
+        every existing one-positional-arg call site is unaffected)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params["title"] == "P"
+        assert "papersize" not in params
+        assert "fontsize" not in params
+
+    def test_render_papersize_and_fontsize_emission_shapes(self):
+        """End-to-end through render(): papersize emits quoted, fontsize
+        emits unquoted -- the two emission shapes this phase exists to
+        produce (D-01/D-02)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata,
+            typst_elements={"papersize": "us-letter", "fontsize": "20pt"},
+        )
+        result = engine.render(params, "Content")
+
+        assert 'papersize: "us-letter",' in result
+        assert "fontsize: 20pt," in result
+        # Double-formatting regression guard: fontsize must never be
+        # emitted as a quoted string.
+        assert 'fontsize: "20pt"' not in result
