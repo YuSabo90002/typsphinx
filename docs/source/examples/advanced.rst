@@ -356,10 +356,6 @@ For large documentation projects:
        ("index", "output", "Title", "Author", "typst"),
    ]
 
-   # Disable expensive features if not needed
-   typst_use_codly = True  # Keep code highlighting
-   typst_code_line_numbers = False  # Disable if not needed
-
 See Also
 --------
 
