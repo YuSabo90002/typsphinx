@@ -234,7 +234,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. Baseline Sphinx metadata (`copyright`, etc.) is **never** leaked into `project()` as a parameter.
   5. `templates/base.typ` is byte-unchanged — the fix is 100% Python-side (`writer.py` keeps `typst_elements` separate; `template_engine.py`'s `map_parameters` merges the curated allowlist additively, leaving the Phase 22.2 guards intact).
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 
 **Wave 1**
 
@@ -242,7 +242,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 26-02-PLAN.md — GATE-01 real-`typst.compile()` fixtures: positive papersize, separate positive fontsize, negative unknown-key abort, copyright-non-leak + durable pre-fix-basis failure proof (CONF-04) — Wave 2
+- [x] 26-02-PLAN.md — GATE-01 real-`typst.compile()` fixtures: positive papersize, separate positive fontsize, negative unknown-key abort, copyright-non-leak + durable pre-fix-basis failure proof (CONF-04) — Wave 2
 
 **Note**: GATE-01 fixtures mandatory — positive `papersize`, positive `fontsize` (separately), negative unknown-key (fails loudly), and copyright-non-leak — each a real-`typst.compile()` case with red→green proof.
 
@@ -313,7 +313,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | Complete    | 2026-07-23 |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
-| 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 1/2 | In Progress|  |
+| 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | In Progress|  |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 0/TBD | Not started | - |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
 
