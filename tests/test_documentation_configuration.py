@@ -37,7 +37,6 @@ def test_configuration_documents_all_config_values():
         "typst_documents",
         "typst_template",
         "typst_template_mapping",
-        "typst_toctree_defaults",
         "typst_use_mitex",
         "typst_elements",
         "typst_package",
