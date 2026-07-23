@@ -87,3 +87,14 @@ TBD（方針未決定）。着手前に決める必要がある論点：
 
 規模的には 1 フェーズ相当。v0.6.2 のスコープ（rendering fidelity）外なので、
 v0.6.2 出荷後に扱うのが素直。
+
+## オーナー判断（2026-07-23）
+
+- **RTD 移行を ~1週間以内（目安 ~2026-07-30）に実施する意向**をオーナーが表明。
+- したがって #119（[BUG] website seems down、外部ユーザー put101 報告）や github.io 404
+  リンク（`2026-07-22-github-io-doc-links-404-missing-en-prefix.md`）の**暫定修正（README への `/en/` 追加、
+  リポジトリ About の Website フィールド設定）は行わず**、この RTD 移行に一括で載せる方針。
+- #119 には将来形で「Website リンクと README 深リンクを直す」と返信済み
+  （issue コメント）。RTD 移行で URL が正しくなれば公言どおり履行される。
+- v0.6.3 マイルストーン（config & docs 実測整合 + captioned tables）とは**別トラック**。
+  v0.6.3 の docs 整合スコープには github.io 404 / About リンクは**含めない**（既決）。
