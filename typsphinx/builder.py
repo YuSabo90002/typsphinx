@@ -493,7 +493,9 @@ class TypstBuilder(Builder):
         # output file path.
         stem = self._resolve_output_stem(docname)
         relative_path = self._directory_preserving_relpath(docname, stem)
-        destination = path.join(self.outdir, relative_path + self.out_suffix)
+        destination = path.normpath(
+            path.join(self.outdir, relative_path + self.out_suffix)
+        )
 
         # Ensure the directory for this specific file exists
         # This handles nested paths like "chapter1/section"
@@ -841,7 +843,7 @@ class TypstPDFBuilder(TypstBuilder):
         # builder, so the literal ".typ" suffix is used here regardless.
         stem = self._resolve_output_stem(docname)
         relative_path = self._directory_preserving_relpath(docname, stem)
-        typ_destination = path.join(self.outdir, relative_path + ".typ")
+        typ_destination = path.normpath(path.join(self.outdir, relative_path + ".typ"))
 
         # Ensure the directory exists
         dest_dir = path.dirname(typ_destination)
@@ -926,7 +928,7 @@ class TypstPDFBuilder(TypstBuilder):
             docname = doc_tuple[0]
             stem = self._resolve_output_stem(docname)
             relative_path = self._directory_preserving_relpath(docname, stem)
-            typ_file = path.join(self.outdir, relative_path + ".typ")
+            typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))
 
             if not path.exists(typ_file):
                 if docname not in self.env.found_docs:
@@ -948,7 +950,7 @@ class TypstPDFBuilder(TypstBuilder):
                 pdf_bytes = compile_typst_file_to_pdf(typ_file, root_dir=self.outdir)
 
                 # Write PDF file
-                pdf_file = path.join(self.outdir, relative_path + ".pdf")
+                pdf_file = path.normpath(path.join(self.outdir, relative_path + ".pdf"))
                 with open(pdf_file, "wb") as f:
                     f.write(pdf_bytes)
 
