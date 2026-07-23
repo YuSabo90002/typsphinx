@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>typsphinx.builder - typsphinx 0.6.1</title>
+        <title>typsphinx.builder - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -293,17 +293,20 @@
 <span class="sd">building Typst output from Sphinx documentation.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">posixpath</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Set</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">docutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">nodes</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sphinx.builders</span><span class="w"> </span><span class="kn">import</span> <span class="n">Builder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sphinx.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtensionError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sphinx.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sphinx.util.osutil</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensuredir</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.pdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_typst_to_pdf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.pdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_typst_file_to_pdf</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.writer</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypstWriter</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -420,6 +423,148 @@
                     <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">included</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_output_stem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve the output filename stem for a document.</span>
+
+<span class="sd">        ``typst_documents``&#39; target name (tuple element ``[1]``, published as</span>
+<span class="sd">        the &quot;Target name&quot; contract at ``docs/configuration.rst:43``) governs</span>
+<span class="sd">        the filename a master document is written and compiled under --</span>
+<span class="sd">        ``typst_documents = [(&#39;index&#39;, &#39;manual.typ&#39;, ...)]`` must emit</span>
+<span class="sd">        ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``</span>
+<span class="sd">        (Issue #117). This is the single place that normalization rule is</span>
+<span class="sd">        implemented; every write/read-back site calls this method rather</span>
+<span class="sd">        than re-deriving the rule.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            docname: The Sphinx document name being written.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The filename stem (no suffix) to use for this document&#39;s output.</span>
+<span class="sd">            When ``docname`` has no matching ``typst_documents`` entry, the</span>
+<span class="sd">            docname itself is returned unchanged (D-02) -- this is the</span>
+<span class="sd">            common case for every document that is not a compiled master.</span>
+<span class="sd">            When the matched target name is unusable (a path, an absolute</span>
+<span class="sd">            path, or empty/whitespace/non-str after suffix stripping), a</span>
+<span class="sd">            ``logger.warning`` is emitted and a safe fallback is returned</span>
+<span class="sd">            instead -- ``path.basename`` of the offending stem for a</span>
+<span class="sd">            path-bearing target (D-06/D-07), or the docname itself for a</span>
+<span class="sd">            degenerate target (edge: empty).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">typst_documents</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_documents&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]</span>
+
+        <span class="n">entry_found</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">target</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">typst_documents</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">docname</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">entry_found</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">entry_found</span><span class="p">:</span>
+            <span class="c1"># D-02: toctree-included children (and any docname with no</span>
+            <span class="c1"># typst_documents entry) keep docname + suffix. Silent -- this</span>
+            <span class="c1"># is the overwhelmingly common case (every non-master document).</span>
+            <span class="k">return</span> <span class="n">docname</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># D-04: strip only a literal trailing &quot;.typ&quot; -- an extension-</span>
+            <span class="c1"># splitting helper would truncate &quot;v1.2-manual&quot; to &quot;v1&quot;, which</span>
+            <span class="c1"># is forbidden.</span>
+            <span class="n">stem</span> <span class="o">=</span> <span class="n">target</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.typ&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">target</span>
+
+            <span class="c1"># D-06/D-07 path guard: detect a path-bearing, traversal-bearing,</span>
+            <span class="c1"># absolute, or drive-qualified target BEFORE it reaches</span>
+            <span class="c1"># path.join(self.outdir, ...). The unconditional &quot;/&quot; and &quot;\\&quot;</span>
+            <span class="c1"># (not just os.sep/os.altsep) is what makes a Windows-authored</span>
+            <span class="c1"># &quot;sub\\manual.typ&quot; detectable on POSIX, where os.sep is &quot;/&quot; and</span>
+            <span class="c1"># os.altsep is None.</span>
+            <span class="n">separators</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">altsep</span><span class="p">:</span>
+                <span class="n">separators</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">altsep</span><span class="p">)</span>
+            <span class="n">segments</span> <span class="o">=</span> <span class="n">stem</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="n">is_drive_qualified</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stem</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">stem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span> <span class="ow">and</span> <span class="n">stem</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span>
+            <span class="n">is_guarded</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">any</span><span class="p">(</span><span class="n">sep</span> <span class="ow">in</span> <span class="n">stem</span> <span class="k">for</span> <span class="n">sep</span> <span class="ow">in</span> <span class="n">separators</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="s2">&quot;..&quot;</span> <span class="ow">in</span> <span class="n">segments</span>
+                <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">stem</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">is_drive_qualified</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_guarded</span><span class="p">:</span>
+                <span class="n">fallback_source</span> <span class="o">=</span> <span class="n">stem</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="k">if</span> <span class="n">is_drive_qualified</span> <span class="k">else</span> <span class="n">stem</span>
+                <span class="n">fallback</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fallback_source</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">fallback</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                    <span class="c1"># The path guard&#39;s own fallback (a basename) is itself</span>
+                    <span class="c1"># empty -- e.g. a trailing separator (&quot;sub/manual.typ/&quot;),</span>
+                    <span class="c1"># a bare root (&quot;/&quot;), or a drive prefix with nothing after</span>
+                    <span class="c1"># it (&quot;C:&quot;). Route straight to the single &quot;empty target&quot;</span>
+                    <span class="c1"># warning below instead of also emitting the &quot;using &#39;&#39;</span>
+                    <span class="c1"># instead&quot; warning first, which reads like a successful</span>
+                    <span class="c1"># (rather than re-triggered) resolution.</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;empty typst_documents target name for docname &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">docname</span><span class="si">!r}</span><span class="s2"> after removing an unsupported path -- &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;falling back to </span><span class="si">{</span><span class="n">docname</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span> <span class="n">docname</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;a path is not supported in a typst_documents target &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;name: </span><span class="si">{</span><span class="n">target</span><span class="si">!r}</span><span class="s2"> -- using </span><span class="si">{</span><span class="n">fallback</span><span class="si">!r}</span><span class="s2"> instead&quot;</span>
+                <span class="p">)</span>
+                <span class="n">stem</span> <span class="o">=</span> <span class="n">fallback</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stem</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">stem</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="c1"># edge: empty -- the target was non-str, or its stem is empty</span>
+            <span class="c1"># or whitespace-only after suffix stripping / the path guard.</span>
+            <span class="c1"># Fall back to the docname wholesale (no silent mangling) so no</span>
+            <span class="c1"># file is ever written literally named &quot;.typ&quot; / &quot;.pdf&quot;.</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;empty typst_documents target name for docname &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">docname</span><span class="si">!r}</span><span class="s2"> -- falling back to </span><span class="si">{</span><span class="n">docname</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">docname</span>
+
+        <span class="c1"># No Unicode normalization, case folding, or transliteration -- a</span>
+        <span class="c1"># non-ASCII stem such as &quot;マニュアル&quot; survives byte-for-byte</span>
+        <span class="c1"># (edge: encoding).</span>
+        <span class="k">return</span> <span class="n">stem</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_directory_preserving_relpath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stem</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Combine a resolved output stem with the docname&#39;s own directory.</span>
+
+<span class="sd">        ``_resolve_output_stem`` returns only a basename-safe stem (D-06/</span>
+<span class="sd">        D-07 already reduced any path-bearing target to its basename), so a</span>
+<span class="sd">        nested docname&#39;s typst_documents target must stay inside that</span>
+<span class="sd">        docname&#39;s own directory rather than being written at outdir&#39;s root</span>
+<span class="sd">        -- ``(&#39;sub/index&#39;, &#39;manual.typ&#39;, ...)`` must emit</span>
+<span class="sd">        ``outdir/sub/manual.typ``, not ``outdir/manual.typ`` (D-05). When no</span>
+<span class="sd">        typst_documents entry matched, or a degenerate/guarded target fell</span>
+<span class="sd">        back to the docname itself, ``stem`` already equals ``docname`` and</span>
+<span class="sd">        already carries its own directory -- prepending</span>
+<span class="sd">        ``path.dirname(docname)`` again would double it, so that case</span>
+<span class="sd">        returns ``stem`` untouched.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            docname: The Sphinx document name being written.</span>
+<span class="sd">            stem: The value returned by ``_resolve_output_stem(docname)``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An outdir-relative path (no suffix) preserving the docname&#39;s</span>
+<span class="sd">            directory structure.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">stem</span> <span class="o">==</span> <span class="n">docname</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">stem</span>
+        <span class="c1"># docnames are always &#39;/&#39;-separated, so use posixpath throughout:</span>
+        <span class="c1"># os.path on Windows (ntpath) would emit a backslash from join,</span>
+        <span class="c1"># breaking the docname-style relative path. The downstream</span>
+        <span class="c1"># path.join(self.outdir, ...) accepts forward slashes on all</span>
+        <span class="c1"># platforms.</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">posixpath</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">directory</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">posixpath</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">posixpath</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">stem</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">stem</span>
+
 <div class="viewcode-block" id="TypstBuilder.get_outdated_docs">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.builder.TypstBuilder.get_outdated_docs">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_outdated_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -440,6 +585,24 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_target_uri</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">typ</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the target URI for a document.</span>
+
+<span class="sd">        Deliberately stays docname-based and does NOT follow the</span>
+<span class="sd">        typst_documents target-name rename that ``_resolve_output_stem``</span>
+<span class="sd">        applies to the on-disk filename (Phase 22 / Issue #117). Its only</span>
+<span class="sd">        consumer is ``translator.py:_resolve_xref_docname``, which uses this</span>
+<span class="sd">        method as a round-trip identity to recover a cross-referenced</span>
+<span class="sd">        document&#39;s DOCNAME from a refuri that Sphinx itself computed via</span>
+<span class="sd">        ``Builder.get_relative_uri`` -- i.e.</span>
+<span class="sd">        ``relative_uri(get_target_uri(from_), get_target_uri(to))``, so both</span>
+<span class="sd">        endpoints pass through this same function. Every emitted Typst</span>
+<span class="sd">        label is namespaced by SOURCE DOCNAME via</span>
+<span class="sd">        ``translator.py:_namespace_label``, never by output filename.</span>
+<span class="sd">        Making this method target-name-aware would desynchronize the</span>
+<span class="sd">        recovered docname from the label namespace and break every</span>
+<span class="sd">        cross-document link into or out of a renamed master with a Typst</span>
+<span class="sd">        &quot;label ... does not exist&quot; compile fatal. This is a deliberate</span>
+<span class="sd">        Phase 22 decision -- do not &quot;fix&quot; it in sympathy with the</span>
+<span class="sd">        write-path rename.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            docname: Name of the document</span>
@@ -635,8 +798,14 @@
 <span class="sd">            docname: Name of the document</span>
 <span class="sd">            doctree: Document tree to be written</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Get the output file path</span>
-        <span class="n">destination</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">docname</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_suffix</span><span class="p">)</span>
+        <span class="c1"># Resolve the typst_documents target-name stem (Issue #117) and</span>
+        <span class="c1"># preserve the docname&#39;s own directory (D-05) before deriving the</span>
+        <span class="c1"># output file path.</span>
+        <span class="n">stem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_output_stem</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+        <span class="n">relative_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_directory_preserving_relpath</span><span class="p">(</span><span class="n">docname</span><span class="p">,</span> <span class="n">stem</span><span class="p">)</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">relative_path</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_suffix</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Ensure the directory for this specific file exists</span>
         <span class="c1"># This handles nested paths like &quot;chapter1/section&quot;</span>
@@ -667,33 +836,60 @@
 <span class="sd">        This writes a separate template.typ file that master documents can import.</span>
 <span class="sd">        Only writes if a template is configured (not using Typst Universe packages).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.template_engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateEngine</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.template_engine</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">TemplateEngine</span><span class="p">,</span>
+            <span class="n">resolve_package_for_engine</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span>
 
         <span class="c1"># Get template configuration</span>
-        <span class="n">template_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">raw_template_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">template_path</span> <span class="o">=</span> <span class="n">raw_template_path</span>
         <span class="k">if</span> <span class="n">template_path</span><span class="p">:</span>
             <span class="c1"># Resolve relative path from source directory</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
             <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srcdir</span><span class="p">,</span> <span class="n">template_path</span><span class="p">)</span>
 
-        <span class="c1"># Skip if using Typst Universe package (no separate template file needed)</span>
         <span class="n">typst_package</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_package&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">typst_package</span><span class="p">:</span>
+
+        <span class="c1"># D-03: when BOTH a Typst Universe package and a custom template are</span>
+        <span class="c1"># configured, the combination is unsupported. `typst_template` wins</span>
+        <span class="c1"># (D-01&#39;s routing decision promotes it to the primary route) and</span>
+        <span class="c1"># `typst_package` is ignored end-to-end -- named here rather than</span>
+        <span class="c1"># silently dropped (T-22.2-11). This method runs exactly once per</span>
+        <span class="c1"># build (see the single call site in `prepare_writing()`), so the</span>
+        <span class="c1"># warning fires once per build, not once per master document.</span>
+        <span class="k">if</span> <span class="n">typst_package</span> <span class="ow">and</span> <span class="n">raw_template_path</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Both &#39;typst_package&#39; and &#39;typst_template&#39; are configured; &quot;</span>
+                <span class="s2">&quot;this combination is unsupported. &#39;typst_template&#39; will be &quot;</span>
+                <span class="s2">&quot;honoured and &#39;typst_package&#39; will be ignored.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Skip if using a Typst Universe package ALONE (no custom template</span>
+        <span class="c1"># configured) -- a package-alone master needs no separate template</span>
+        <span class="c1"># file (D-01). When a custom template is ALSO configured, fall</span>
+        <span class="c1"># through: the custom template must still be written regardless of</span>
+        <span class="c1"># the package setting (D-03).</span>
+        <span class="k">if</span> <span class="n">typst_package</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">raw_template_path</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="c1"># Create template engine</span>
+        <span class="c1"># Create template engine. The package value goes through the same</span>
+        <span class="c1"># single routing helper writer.py uses (WR-04) so the two can never</span>
+        <span class="c1"># disagree about package-vs-template routing -- BUG-A&#39;s failure shape.</span>
+        <span class="c1"># Reaching here means a custom template IS configured, so the helper</span>
+        <span class="c1"># suppresses the package; deriving it rather than hardcoding None keeps</span>
+        <span class="c1"># one rule, one place.</span>
         <span class="n">template_engine</span> <span class="o">=</span> <span class="n">TemplateEngine</span><span class="p">(</span>
             <span class="n">template_path</span><span class="o">=</span><span class="n">template_path</span><span class="p">,</span>
             <span class="n">search_paths</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">srcdir</span><span class="p">],</span>
             <span class="n">parameter_mapping</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template_mapping&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="n">typst_package</span><span class="o">=</span><span class="n">typst_package</span><span class="p">,</span>
+            <span class="n">typst_package</span><span class="o">=</span><span class="n">resolve_package_for_engine</span><span class="p">(</span><span class="n">typst_package</span><span class="p">,</span> <span class="n">raw_template_path</span><span class="p">),</span>
             <span class="n">typst_template_function</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template_function&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">typst_package_imports</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_package_imports&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">typst_authors</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_authors&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="n">typst_author_params</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_author_params&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="c1"># Get template content</span>
@@ -967,8 +1163,12 @@
 <span class="sd">            docname: Name of the document</span>
 <span class="sd">            doctree: Document tree to be written</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Generate .typ file (not .pdf)</span>
-        <span class="n">typ_destination</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">docname</span> <span class="o">+</span> <span class="s2">&quot;.typ&quot;</span><span class="p">)</span>
+        <span class="c1"># Generate .typ file (not .pdf). Resolve the typst_documents</span>
+        <span class="c1"># target-name stem (Issue #117) -- self.out_suffix is &quot;.pdf&quot; on this</span>
+        <span class="c1"># builder, so the literal &quot;.typ&quot; suffix is used here regardless.</span>
+        <span class="n">stem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_output_stem</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+        <span class="n">relative_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_directory_preserving_relpath</span><span class="p">(</span><span class="n">docname</span><span class="p">,</span> <span class="n">stem</span><span class="p">)</span>
+        <span class="n">typ_destination</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">relative_path</span> <span class="o">+</span> <span class="s2">&quot;.typ&quot;</span><span class="p">))</span>
 
         <span class="c1"># Ensure the directory exists</span>
         <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">typ_destination</span><span class="p">)</span>
@@ -1010,6 +1210,17 @@
 <span class="sd">        Only master documents (defined in typst_documents) are compiled to PDF.</span>
 <span class="sd">        Included documents are not compiled individually.</span>
 
+<span class="sd">        Every configured master is attempted, even if an earlier one fails:</span>
+<span class="sd">        masters that compile successfully still get their .pdf written. A</span>
+<span class="sd">        master can fail for three reasons -- a Typst compile error, a</span>
+<span class="sd">        configured master whose .typ file was never generated, or a</span>
+<span class="sd">        malformed typst_documents entry -- and all three are collected into</span>
+<span class="sd">        the same failures list and reported together by a single</span>
+<span class="sd">        ExtensionError raised after every entry has been attempted. That</span>
+<span class="sd">        raise surfaces as a non-zero sphinx-build exit -- a build can no</span>
+<span class="sd">        longer &quot;succeed&quot; while silently producing no PDF for a broken,</span>
+<span class="sd">        missing, or malformed master.</span>
+
 <span class="sd">        Requirement 9.2: Execute Typst compilation within Python</span>
 <span class="sd">        Requirement 9.4: Generate PDF from Typst markup</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1028,32 +1239,60 @@
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compiling </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">typst_documents</span><span class="p">)</span><span class="si">}</span><span class="s2"> master document(s) to PDF...&quot;</span><span class="p">)</span>
 
+        <span class="n">failures</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="k">for</span> <span class="n">doc_tuple</span> <span class="ow">in</span> <span class="n">typst_documents</span><span class="p">:</span>
-            <span class="c1"># doc_tuple format: (sourcename, targetname, title, author)</span>
+            <span class="c1"># doc_tuple format: (sourcename, targetname, title, author).</span>
+            <span class="c1"># Resolve the stem ONCE so the .typ read-back path and the .pdf</span>
+            <span class="c1"># write path can never drift from each other (Issue #117).</span>
+            <span class="c1"># Mirror _resolve_output_stem&#39;s own length guard here: a</span>
+            <span class="c1"># malformed entry (e.g. an empty tuple from a misconfigured</span>
+            <span class="c1"># typst_documents) must not raise an uncaught IndexError on</span>
+            <span class="c1"># doc_tuple[0] before that helper&#39;s defenses ever run.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">doc_tuple</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Malformed typst_documents entry: </span><span class="si">{</span><span class="n">doc_tuple</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">failures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">repr</span><span class="p">(</span><span class="n">doc_tuple</span><span class="p">),</span> <span class="s2">&quot;malformed typst_documents entry&quot;</span><span class="p">))</span>
+                <span class="k">continue</span>
             <span class="n">docname</span> <span class="o">=</span> <span class="n">doc_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">typ_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">docname</span> <span class="o">+</span> <span class="s2">&quot;.typ&quot;</span><span class="p">)</span>
+            <span class="n">stem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_output_stem</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+            <span class="n">relative_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_directory_preserving_relpath</span><span class="p">(</span><span class="n">docname</span><span class="p">,</span> <span class="n">stem</span><span class="p">)</span>
+            <span class="n">typ_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">relative_path</span> <span class="o">+</span> <span class="s2">&quot;.typ&quot;</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">typ_file</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Master document not found: </span><span class="si">{</span><span class="n">typ_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">docname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">found_docs</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Master document </span><span class="si">{</span><span class="n">docname</span><span class="si">!r}</span><span class="s2"> is not a known Sphinx document&quot;</span>
+                        <span class="s2">&quot; -- check typst_documents for a typo, a stray &#39;.rst&#39; &quot;</span>
+                        <span class="s2">&quot;suffix, or an exclude_patterns exclusion&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Master document not found: </span><span class="si">{</span><span class="n">typ_file</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">failures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">docname</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span>
                 <span class="k">continue</span>
 
             <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Read Typst content</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">typ_file</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                    <span class="n">typst_content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-
-                <span class="c1"># Compile to PDF</span>
-                <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">compile_typst_to_pdf</span><span class="p">(</span><span class="n">typst_content</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
+                <span class="c1"># typ_file is already the master&#39;s real on-disk location, so</span>
+                <span class="c1"># the docname-relative #include()/image() paths the</span>
+                <span class="c1"># translator emitted resolve by construction (D-01).</span>
+                <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">compile_typst_file_to_pdf</span><span class="p">(</span><span class="n">typ_file</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
 
                 <span class="c1"># Write PDF file</span>
-                <span class="n">pdf_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">docname</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">)</span>
+                <span class="n">pdf_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">relative_path</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">))</span>
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pdf_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pdf_bytes</span><span class="p">)</span>
 
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated PDF: </span><span class="si">{</span><span class="n">pdf_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to compile </span><span class="si">{</span><span class="n">typ_file</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to compile </span><span class="si">{</span><span class="n">typ_file</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">failures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">docname</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">failures</span><span class="p">:</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">docname</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">docname</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">failures</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ExtensionError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;typstpdf: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failures</span><span class="p">)</span><span class="si">}</span><span class="s2"> master document(s) failed: </span><span class="si">{</span><span class="n">summary</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
 </div>
 
 </pre></div>
@@ -1088,7 +1327,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=2bd037f0"></script>
+</div><script src="../../_static/documentation_options.js?v=1c28bd9a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

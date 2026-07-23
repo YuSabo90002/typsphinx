@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Builders" href="builders.html"><link rel="prev" title="User Guide" href="index.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Configuration - typsphinx 0.6.1</title>
+        <title>Configuration - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -170,7 +170,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -319,7 +319,13 @@
 <p>Each tuple contains:</p>
 <ol class="arabic simple">
 <li><p><strong>Source file</strong> (without <code class="docutils literal notranslate"><span class="pre">.rst</span></code> extension)</p></li>
-<li><p><strong>Output filename</strong> (without extension)</p></li>
+<li><p><strong>Output filename stem</strong> – governs both the emitted <code class="docutils literal notranslate"><span class="pre">.typ</span></code> file and,
+under the <code class="docutils literal notranslate"><span class="pre">typstpdf</span></code> builder, the compiled <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>. A literal trailing
+<code class="docutils literal notranslate"><span class="pre">.typ</span></code> is stripped if present, and nothing else is, so a stem
+containing a period such as <code class="docutils literal notranslate"><span class="pre">v1.2-manual</span></code> is preserved intact. A path
+component is not supported: a path-bearing value produces a build
+warning and the file is written under its basename next to the source
+document.</p></li>
 <li><p><strong>Document title</strong></p></li>
 <li><p><strong>Author</strong></p></li>
 <li><p><strong>Document class</strong> (usually “typst”)</p></li>
@@ -606,7 +612,7 @@ When disabled, math is passed directly as Typst math syntax.</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=2bd037f0"></script>
+</div><script src="../_static/documentation_options.js?v=1c28bd9a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

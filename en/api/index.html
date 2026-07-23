@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Contributing" href="../contributing.html"><link rel="prev" title="Advanced Examples" href="../examples/advanced.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>API Reference - typsphinx 0.6.1</title>
+        <title>API Reference - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -170,7 +170,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -382,6 +382,23 @@ Image files are searched in the order in which they appear here.</p>
 <dt class="sig sig-object py" id="typsphinx.builder.TypstBuilder.get_target_uri">
 <span class="sig-name descname"><span class="pre">get_target_uri</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">docname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/builder.html#TypstBuilder.get_target_uri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.builder.TypstBuilder.get_target_uri" title="Link to this definition">¶</a></dt>
 <dd><p>Return the target URI for a document.</p>
+<p>Deliberately stays docname-based and does NOT follow the
+typst_documents target-name rename that <code class="docutils literal notranslate"><span class="pre">_resolve_output_stem</span></code>
+applies to the on-disk filename (Phase 22 / Issue #117). Its only
+consumer is <code class="docutils literal notranslate"><span class="pre">translator.py:_resolve_xref_docname</span></code>, which uses this
+method as a round-trip identity to recover a cross-referenced
+document’s DOCNAME from a refuri that Sphinx itself computed via
+<code class="docutils literal notranslate"><span class="pre">Builder.get_relative_uri</span></code> – i.e.
+<code class="docutils literal notranslate"><span class="pre">relative_uri(get_target_uri(from_),</span> <span class="pre">get_target_uri(to))</span></code>, so both
+endpoints pass through this same function. Every emitted Typst
+label is namespaced by SOURCE DOCNAME via
+<code class="docutils literal notranslate"><span class="pre">translator.py:_namespace_label</span></code>, never by output filename.
+Making this method target-name-aware would desynchronize the
+recovered docname from the label namespace and break every
+cross-document link into or out of a renamed master with a Typst
+“label … does not exist” compile fatal. This is a deliberate
+Phase 22 decision – do not “fix” it in sympathy with the
+write-path rename.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -603,6 +620,16 @@ The .pdf will be generated in finish() by compiling the .typ file.</p>
 this method compiles them to PDF using typst-py.</p>
 <p>Only master documents (defined in typst_documents) are compiled to PDF.
 Included documents are not compiled individually.</p>
+<p>Every configured master is attempted, even if an earlier one fails:
+masters that compile successfully still get their .pdf written. A
+master can fail for three reasons – a Typst compile error, a
+configured master whose .typ file was never generated, or a
+malformed typst_documents entry – and all three are collected into
+the same failures list and reported together by a single
+ExtensionError raised after every entry has been attempted. That
+raise surfaces as a non-zero sphinx-build exit – a build can no
+longer “succeed” while silently producing no PDF for a broken,
+missing, or malformed master.</p>
 <p>Requirement 9.2: Execute Typst compilation within Python
 Requirement 9.4: Generate PDF from Typst markup</p>
 <dl class="field-list simple">
@@ -692,9 +719,54 @@ Requirement 9.7: Automatic availability of Typst compiler</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="typsphinx.pdf.compile_typst_file_to_pdf">
+<span class="sig-prename descclassname"><span class="pre">typsphinx.pdf.</span></span><span class="sig-name descname"><span class="pre">compile_typst_file_to_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typ_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/pdf.html#compile_typst_file_to_pdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.pdf.compile_typst_file_to_pdf" title="Link to this definition">¶</a></dt>
+<dd><p>Compile a Typst FILE (already on disk) to PDF bytes.</p>
+<p>Unlike compile_typst_to_pdf(), this takes a path directly – no temporary
+file is created. The caller is responsible for <code class="docutils literal notranslate"><span class="pre">typ_path</span></code> already being
+at its real, intended location so that relative <code class="docutils literal notranslate"><span class="pre">#include()</span></code> /
+<code class="docutils literal notranslate"><span class="pre">image()</span></code> / <code class="docutils literal notranslate"><span class="pre">read()</span></code> paths inside it resolve correctly: Typst
+resolves relative paths against the file containing the call, not
+against <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>typ_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Path to an existing .typ file to compile.</p></li>
+<li><p><strong>root_dir</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Typst project root (bounds relative/absolute path escape).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PDF content as bytes.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><strong>ImportError</strong></a> – If typst package not available.</p></li>
+<li><p><a class="reference internal" href="#typsphinx.pdf.TypstCompilationError" title="typsphinx.pdf.TypstCompilationError"><strong>TypstCompilationError</strong></a> – If compilation fails. <code class="docutils literal notranslate"><span class="pre">source_location</span></code> is
+    the real <code class="docutils literal notranslate"><span class="pre">typ_path</span></code> (not a temporary filename), so error
+    locations are actionable for users.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Requirement 9.2: Execute Typst compilation within Python environment
+Requirement 9.4: Generate PDF from Typst markup
+Requirement 10.3: Error detection and handling</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="typsphinx.pdf.compile_typst_to_pdf">
 <span class="sig-prename descclassname"><span class="pre">typsphinx.pdf.</span></span><span class="sig-name descname"><span class="pre">compile_typst_to_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typst_content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/pdf.html#compile_typst_to_pdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.pdf.compile_typst_to_pdf" title="Link to this definition">¶</a></dt>
 <dd><p>Compile Typst content to PDF bytes.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version Internal/legacy: </span>entry point, scheduled for removal in v0.7 (see the
+CHANGELOG <code class="docutils literal notranslate"><span class="pre">[0.6.2]</span></code> entry). New code MUST use
+<a class="reference internal" href="#typsphinx.pdf.compile_typst_file_to_pdf" title="typsphinx.pdf.compile_typst_file_to_pdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_typst_file_to_pdf()</span></code></a>. Because the temporary file this
+function creates lands at <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>, relative paths in content
+authored for a master that does not sit at <code class="docutils literal notranslate"><span class="pre">root_dir</span></code> will NOT
+resolve correctly.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1050,7 +1122,11 @@ for captioned code blocks (Issue #20).</p>
 <p>Wraps paragraph content in par() function for unified code mode.
 Code mode doesn’t auto-recognize paragraph breaks from blank lines.</p>
 <p>Exception: Inside list items, paragraphs are not wrapped in par()
-to avoid syntax like “- par(text(…))” which is invalid.</p>
+to avoid syntax like “- par(text(…))” which is invalid. A 2nd+
+paragraph in a list item instead gets a real Typst parbreak()
+(FID-02) – a bare source ‘n’ between code-mode statements is
+cosmetic only and produces no visual break, so consecutive
+list-item paragraphs otherwise concatenate onto one running line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">paragraph</span></code></span>) – The paragraph node</p>
@@ -2985,6 +3061,14 @@ expansion is author-controlled RST, so it is routed through a
 dummy <cite>nodes.Text</cite> delegated to <cite>visit_Text</cite> – inheriting the
 existing string-escaping regime – rather than <cite>node.astext()</cite> or
 a raw f-string interpolation (V5 Input Validation, Pitfall 7).</p>
+<p>FID-14: the auto-generated PEP 3102 keyword-only (“*”) and PEP 570
+positional-only (“/”) signature separators are represented as an
+<cite>abbreviation</cite> node whose OWN visible text is exactly “*” or “/” –
+the sole reliable, narrow-scope signal (no distinguishing
+classes/ids exist). Suppress the appended explanation ONLY for
+those two exact cases; a genuine <cite>:abbr:</cite> role’s acronym text is
+never bare “*”/”/”, so it keeps its inline expansion unchanged
+(D-Disc-3).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3053,6 +3137,13 @@ any child (signature/content) is visited.</p>
 <span class="sig-name descname"><span class="pre">depart_desc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_desc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_desc" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a desc node.</p>
 <p>Add spacing after API description blocks.</p>
+<p>Emits a real Typst parbreak() unconditionally (FID-06) – back-to-back
+body-less desc siblings (e.g. confvals with only :type:/:default:
+fields, no body paragraph) previously concatenated onto one running
+line because a bare cosmetic “nn” produces no visual break in
+Typst code mode. Applying parbreak() unconditionally (even when the
+desc’s last content already ends in a par()) is verified harmless –
+no double-gap artifact – so no body-less-detection guard is needed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3068,6 +3159,15 @@ any child (signature/content) is visited.</p>
 <span class="sig-name descname"><span class="pre">visit_desc_signature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_desc_signature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_desc_signature" title="Link to this definition">¶</a></dt>
 <dd><p>Visit a desc_signature node (API element signature).</p>
 <p>Signatures are rendered in bold using strong({}) wrapper.</p>
+<p>Sibling desc_signatures (overloads / alias groups / multi-option
+directives) emit a real Typst linebreak() BEFORE every signature
+after the first (FID-03) – a source ‘n’ between two code-mode
+statements is cosmetic-only (produces zero visual break), so
+linebreak() (via the shared _emit_forced_break helper) is required
+to stack them on separate lines rather than concatenating onto one
+running line. A desc with a single signature (the overwhelming
+common case) emits zero extra bytes (the flag stays True through
+the only signature) – byte-for-byte unchanged.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3446,6 +3546,20 @@ correctly nested brackets with no depth counter.</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_field">
 <span class="sig-name descname"><span class="pre">depart_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_field" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a field node.</p>
+<p>Emit an inter-field double-space separator (FID-09) when this field
+has a following sibling, mirroring depart_desc_parameter’s “am I the
+last sibling” idiom. The double space is wrapped in BOTH a leading
+AND a trailing newline so it never juxtaposes with the neighboring
+strong(…) call on one physical source line – a leading-only
+newline is a real Typst “expected semicolon or line break” fatal.</p>
+<p>Only applies when the field body just closed used the collapsed
+inline form (see visit_field_body/depart_field_body). A
+paragraph-wrapped / block field body (the common <code class="docutils literal notranslate"><span class="pre">:param:</span></code>/
+<code class="docutils literal notranslate"><span class="pre">:type:</span></code>/<code class="docutils literal notranslate"><span class="pre">:returns:</span></code> docstring case, and any field value on its
+own blank-line-separated line) already gets adequate separation from
+depart_field_body’s trailing newline plus the next field’s fresh
+strong( statement – adding “  “ there lands as a stray leading
+two-space indent glued to the next field’s label (CR-01).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3547,6 +3661,15 @@ newline after the field body.</p>
 <dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.depart_rubric">
 <span class="sig-name descname"><span class="pre">depart_rubric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.depart_rubric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.depart_rubric" title="Link to this definition">¶</a></dt>
 <dd><p>Depart a rubric node.</p>
+<p>Emits a real Typst linebreak() unconditionally after the rubric
+heading (FID-04) – a rubric option-group heading (and the
+directive-option “Options” heading) previously merged onto the same
+line as the first following option/field because a bare cosmetic
+“n” produces no visual break in Typst code mode (both the rubric
+and whatever follows render via strong()). A rubric always needs
+separation from what follows, so this fires unconditionally –
+verified harmless at true end-of-document (nothing follows the
+trailing linebreak()): no compile error, no visible artifact.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
@@ -3790,9 +3913,38 @@ newline after the field body.</p>
 <p>Template engine for Typst document generation.</p>
 <p>This module implements template loading, parameter mapping, and rendering
 for Typst documents (Requirement 8).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="typsphinx.template_engine.resolve_package_for_engine">
+<span class="sig-prename descclassname"><span class="pre">typsphinx.template_engine.</span></span><span class="sig-name descname"><span class="pre">resolve_package_for_engine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typst_package</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_template_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/template_engine.html#resolve_package_for_engine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.template_engine.resolve_package_for_engine" title="Link to this definition">¶</a></dt>
+<dd><p>Decide which <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> value a TemplateEngine should be built with.</p>
+<p>D-01/D-03 routing rule: <code class="docutils literal notranslate"><span class="pre">typst_template</span></code> is the primary route. Whenever a
+custom template is configured it wins outright and the package import is
+suppressed entirely – even if <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> is ALSO set. Only when no
+custom template is configured does the package route apply.</p>
+<p>This is the SINGLE place that decision is made. <code class="docutils literal notranslate"><span class="pre">writer.py</span></code> (per-document
+rendering) and <code class="docutils literal notranslate"><span class="pre">builder.py</span></code> (the once-per-build shared template file) must
+not re-derive it independently: writer/builder disagreeing about
+package-vs-template routing is precisely the shape of BUG-A, the fatal
+defect phase 22.2 existed to fix (WR-04).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>typst_package</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – The configured <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> value, if any</p></li>
+<li><p><strong>raw_template_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – The configured <code class="docutils literal notranslate"><span class="pre">typst_template</span></code> value, if any</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">typst_package</span></code> when the package route applies, otherwise <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="typsphinx.template_engine.TemplateEngine">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">typsphinx.template_engine.</span></span><span class="sig-name descname"><span class="pre">TemplateEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">template_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_template_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_package_imports</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_authors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_author_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/template_engine.html#TemplateEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.template_engine.TemplateEngine" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">typsphinx.template_engine.</span></span><span class="sig-name descname"><span class="pre">TemplateEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">template_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_package</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_template_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_package_imports</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typst_authors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/template_engine.html#TemplateEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.template_engine.TemplateEngine" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Manages Typst templates for document generation.</p>
 <p>Responsibilities:
@@ -3816,7 +3968,6 @@ Requirement 8.9: Fallback to default template with warning</p>
 <li><p><strong>typst_template_function</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>typst_package_imports</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><em>List</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>typst_authors</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>typst_author_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><em>Dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><em>Any</em></a><em>]</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -4128,6 +4279,7 @@ Requirement 8.14: #outline() in template, not body</p>
 </li>
 <li><a class="reference internal" href="#typsphinx.pdf.check_typst_available"><code class="docutils literal notranslate"><span class="pre">check_typst_available()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.pdf.get_typst_version"><code class="docutils literal notranslate"><span class="pre">get_typst_version()</span></code></a></li>
+<li><a class="reference internal" href="#typsphinx.pdf.compile_typst_file_to_pdf"><code class="docutils literal notranslate"><span class="pre">compile_typst_file_to_pdf()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.pdf.compile_typst_to_pdf"><code class="docutils literal notranslate"><span class="pre">compile_typst_to_pdf()</span></code></a></li>
 </ul>
 </li>
@@ -4330,6 +4482,7 @@ Requirement 8.14: #outline() in template, not body</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-typsphinx.template_engine">Template Engine</a><ul>
+<li><a class="reference internal" href="#typsphinx.template_engine.resolve_package_for_engine"><code class="docutils literal notranslate"><span class="pre">resolve_package_for_engine()</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.template_engine.TemplateEngine"><code class="docutils literal notranslate"><span class="pre">TemplateEngine</span></code></a><ul>
 <li><a class="reference internal" href="#typsphinx.template_engine.TemplateEngine.DEFAULT_PARAMETER_MAPPING"><code class="docutils literal notranslate"><span class="pre">TemplateEngine.DEFAULT_PARAMETER_MAPPING</span></code></a></li>
 <li><a class="reference internal" href="#typsphinx.template_engine.TemplateEngine.get_default_template_path"><code class="docutils literal notranslate"><span class="pre">TemplateEngine.get_default_template_path()</span></code></a></li>
@@ -4359,7 +4512,7 @@ Requirement 8.14: #outline() in template, not body</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=2bd037f0"></script>
+</div><script src="../_static/documentation_options.js?v=1c28bd9a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

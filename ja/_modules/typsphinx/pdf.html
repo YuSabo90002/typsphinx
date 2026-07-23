@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../../genindex.html"><link rel="search" title="検索" href="../../search.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>typsphinx.pdf - typsphinx 0.6.1</title>
+        <title>typsphinx.pdf - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="検索" name="q" aria-label="検索">
@@ -404,11 +404,67 @@
 
 
 
+<div class="viewcode-block" id="compile_typst_file_to_pdf">
+<a class="viewcode-back" href="../../api/index.html#typsphinx.pdf.compile_typst_file_to_pdf">[ドキュメント]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compile_typst_file_to_pdf</span><span class="p">(</span><span class="n">typ_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compile a Typst FILE (already on disk) to PDF bytes.</span>
+
+<span class="sd">    Unlike compile_typst_to_pdf(), this takes a path directly -- no temporary</span>
+<span class="sd">    file is created. The caller is responsible for ``typ_path`` already being</span>
+<span class="sd">    at its real, intended location so that relative ``#include()`` /</span>
+<span class="sd">    ``image()`` / ``read()`` paths inside it resolve correctly: Typst</span>
+<span class="sd">    resolves relative paths against the file containing the call, not</span>
+<span class="sd">    against ``root_dir``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        typ_path: Path to an existing .typ file to compile.</span>
+<span class="sd">        root_dir: Typst project root (bounds relative/absolute path escape).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PDF content as bytes.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ImportError: If typst package not available.</span>
+<span class="sd">        TypstCompilationError: If compilation fails. ``source_location`` is</span>
+<span class="sd">            the real ``typ_path`` (not a temporary filename), so error</span>
+<span class="sd">            locations are actionable for users.</span>
+
+<span class="sd">    Requirement 9.2: Execute Typst compilation within Python environment</span>
+<span class="sd">    Requirement 9.4: Generate PDF from Typst markup</span>
+<span class="sd">    Requirement 10.3: Error detection and handling</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_typst_available</span><span class="p">()</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">typst</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">typst</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">typ_path</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">root_dir</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pdf_bytes</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">typst_error</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="n">_parse_typst_error</span><span class="p">(</span><span class="n">typst_error</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Typst compilation failed at </span><span class="si">{</span><span class="n">typ_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="n">TypstCompilationError</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">typst_error</span><span class="o">=</span><span class="n">typst_error</span><span class="p">,</span> <span class="n">source_location</span><span class="o">=</span><span class="n">typ_path</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">typst_error</span></div>
+
+
+
 <div class="viewcode-block" id="compile_typst_to_pdf">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.pdf.compile_typst_to_pdf">[ドキュメント]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">compile_typst_to_pdf</span><span class="p">(</span><span class="n">typst_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compile Typst content to PDF bytes.</span>
+
+<span class="sd">    .. deprecated::</span>
+<span class="sd">        Internal/legacy entry point, scheduled for removal in v0.7 (see the</span>
+<span class="sd">        CHANGELOG ``[0.6.2]`` entry). New code MUST use</span>
+<span class="sd">        :func:`compile_typst_file_to_pdf`. Because the temporary file this</span>
+<span class="sd">        function creates lands at ``root_dir``, relative paths in content</span>
+<span class="sd">        authored for a master that does not sit at ``root_dir`` will NOT</span>
+<span class="sd">        resolve correctly.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        typst_content: Typst markup content</span>
@@ -427,8 +483,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">check_typst_available</span><span class="p">()</span>
 
-    <span class="kn">import</span><span class="w"> </span><span class="nn">typst</span>
-
     <span class="c1"># Create a temporary file for the Typst content</span>
     <span class="c1"># typst.compile() requires a file path, not string content</span>
     <span class="n">temp_file</span> <span class="o">=</span> <span class="kc">None</span>
@@ -442,21 +496,8 @@
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">typst_content</span><span class="p">)</span>
             <span class="n">temp_file</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span>
 
-        <span class="c1"># Compile Typst file to PDF</span>
-        <span class="c1"># The typst.compile() function takes a file path and returns PDF bytes</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">pdf_bytes</span> <span class="o">=</span> <span class="n">typst</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">temp_file</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">root_dir</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">pdf_bytes</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">typst_error</span><span class="p">:</span>
-            <span class="c1"># Parse and wrap the error with more context</span>
-            <span class="n">error_msg</span> <span class="o">=</span> <span class="n">_parse_typst_error</span><span class="p">(</span><span class="n">typst_error</span><span class="p">)</span>
-            <span class="n">source_loc</span> <span class="o">=</span> <span class="n">temp_file</span> <span class="k">if</span> <span class="n">temp_file</span> <span class="k">else</span> <span class="s2">&quot;unknown&quot;</span>
-
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Typst compilation failed at </span><span class="si">{</span><span class="n">source_loc</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-            <span class="k">raise</span> <span class="n">TypstCompilationError</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">=</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">typst_error</span><span class="o">=</span><span class="n">typst_error</span><span class="p">,</span> <span class="n">source_location</span><span class="o">=</span><span class="n">source_loc</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">typst_error</span>
+        <span class="c1"># Compile the temp file via the new file-path entry point.</span>
+        <span class="k">return</span> <span class="n">compile_typst_file_to_pdf</span><span class="p">(</span><span class="n">temp_file</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">)</span>
 
     <span class="k">finally</span><span class="p">:</span>
         <span class="c1"># Clean up temporary file</span>
@@ -521,7 +562,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=b2ca8c5e"></script>
+</div><script src="../../_static/documentation_options.js?v=85320634"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

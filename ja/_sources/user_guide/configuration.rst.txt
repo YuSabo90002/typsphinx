@@ -34,7 +34,13 @@ Define which documents to build:
 Each tuple contains:
 
 1. **Source file** (without ``.rst`` extension)
-2. **Output filename** (without extension)
+2. **Output filename stem** -- governs both the emitted ``.typ`` file and,
+   under the ``typstpdf`` builder, the compiled ``.pdf``. A literal trailing
+   ``.typ`` is stripped if present, and nothing else is, so a stem
+   containing a period such as ``v1.2-manual`` is preserved intact. A path
+   component is not supported: a path-bearing value produces a build
+   warning and the file is written under its basename next to the source
+   document.
 3. **Document title**
 4. **Author**
 5. **Document class** (usually "typst")

@@ -6,7 +6,7 @@
 <link rel="index" title="索引" href="../genindex.html"><link rel="search" title="検索" href="../search.html"><link rel="next" title="API Reference" href="../api/index.html"><link rel="prev" title="Basic Examples" href="basic.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>高度な例 - typsphinx 0.6.1</title>
+        <title>高度な例 - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -170,7 +170,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -191,7 +191,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="検索" name="q" aria-label="検索">
@@ -335,23 +335,6 @@
 </pre></div>
 </div>
 </section>
-<section id="modern-cv-template">
-<h3>modern-cvテンプレート<a class="headerlink" href="#modern-cv-template" title="Link to this heading">¶</a></h3>
-<p>modern-cvで履歴書を作成:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">typst_package</span> <span class="o">=</span> <span class="s2">&quot;@preview/modern-cv:0.7.0&quot;</span>
-
-<span class="n">typst_template_function</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;modern-cv&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;John Doe&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;job-title&quot;</span><span class="p">:</span> <span class="s2">&quot;Software Engineer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;john@example.com&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;github&quot;</span><span class="p">:</span> <span class="s2">&quot;johndoe&quot;</span><span class="p">,</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
 </section>
 <section id="custom-template-wrapping">
 <h2>カスタムテンプレートのラッピング<a class="headerlink" href="#custom-template-wrapping" title="Link to this heading">¶</a></h2>
@@ -401,8 +384,17 @@
 </div>
 <p><strong>conf.py</strong>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">typst_template</span> <span class="o">=</span> <span class="s2">&quot;_templates/custom_ieee.typ&quot;</span>
-<span class="n">typst_package</span> <span class="o">=</span> <span class="s2">&quot;@preview/charged-ieee:0.1.4&quot;</span>
 </pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">重要</p>
+<p>Do <strong>not</strong> also set <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> here. The wrapping template already
+declares <code class="docutils literal notranslate"><span class="pre">#import</span> <span class="pre">&quot;&#64;preview/charged-ieee:0.1.4&quot;:</span> <span class="pre">ieee</span></code> itself, and setting
+both <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> and <code class="docutils literal notranslate"><span class="pre">typst_template</span></code> together is unsupported:
+typsphinx emits a build warning naming both config values, ignores the
+<code class="docutils literal notranslate"><span class="pre">typst_package</span></code> setting, and honours <code class="docutils literal notranslate"><span class="pre">typst_template</span></code> — so the wrapper
+is written and imported as before.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">typst_package</span></code> <strong>or</strong> <code class="docutils literal notranslate"><span class="pre">typst_template</span></code> — not both.</p>
 </div>
 </section>
 <section id="multi-document-projects">
@@ -692,7 +684,6 @@ Aligned equations:
 <li><a class="reference internal" href="#">高度な例</a><ul>
 <li><a class="reference internal" href="#using-typst-universe-packages">Typst Universeパッケージの使用</a><ul>
 <li><a class="reference internal" href="#charged-ieee-template">charged-ieeeテンプレート</a></li>
-<li><a class="reference internal" href="#modern-cv-template">modern-cvテンプレート</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#custom-template-wrapping">カスタムテンプレートのラッピング</a></li>
@@ -715,7 +706,7 @@ Aligned equations:
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=b2ca8c5e"></script>
+</div><script src="../_static/documentation_options.js?v=85320634"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

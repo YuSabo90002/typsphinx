@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="索引" href="../../genindex.html"><link rel="search" title="検索" href="../../search.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>typsphinx.translator - typsphinx 0.6.1</title>
+        <title>typsphinx.translator - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="検索" name="q" aria-label="検索">
@@ -470,6 +470,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_in_field_body</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_field_body_has_content</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_field_body_stack</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Whether the most recently departed field_body used the collapsed</span>
+        <span class="c1"># inline form (see visit_field_body). depart_field reads this to</span>
+        <span class="c1"># decide whether the FID-09 inter-field &quot;  &quot; separator applies --</span>
+        <span class="c1"># it is only correct for inline-collapsed bodies, not block-wrapped</span>
+        <span class="c1"># (par(...)) bodies (CR-01).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_field_body_was_inline</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="c1"># Stack of the code-mode concat context suppressed while an inline</span>
         <span class="c1"># block element (emphasis/strong/reference) emits its OWN block/argument</span>
@@ -558,6 +564,36 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_emit_forced_break</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">break_token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Emit a real Typst stdlib break (``parbreak()``/``linebreak()``) as its</span>
+<span class="sd">        own code-mode statement between two adjacent siblings.</span>
+
+<span class="sd">        A source ``\\n`` between two code-mode statements is COSMETIC ONLY</span>
+<span class="sd">        (proven at ``visit_desc_signature_line``) -- it satisfies the Typst</span>
+<span class="sd">        parser but produces NO visual break, because bare ``text()``/</span>
+<span class="sd">        ``strong()`` results are inline content that simply concatenates.</span>
+<span class="sd">        This helper generalizes that idiom, but fixes a gap in the original:</span>
+<span class="sd">        ``visit_desc_signature_line``&#39;s break always fires INSIDE an</span>
+<span class="sd">        already-open ``strong({...})`` block, where ``visit_strong`` has</span>
+<span class="sd">        locally forced ``in_list_item = True`` for its children, so its</span>
+<span class="sd">        trailing separator comes &quot;for free&quot; from the next child&#39;s own</span>
+<span class="sd">        ``list_item_needs_separator`` check. A SIBLING-boundary break (between</span>
+<span class="sd">        ``desc_signature``s, after a ``rubric``, after a ``desc``) usually is</span>
+<span class="sd">        NOT inside such a block, so this helper appends its OWN unconditional</span>
+<span class="sd">        trailing newline -- omitting it reproduces the &quot;expected semicolon or</span>
+<span class="sd">        line break&quot; Typst fatal at sibling boundaries.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            break_token: The Typst stdlib break call to emit, e.g.</span>
+<span class="sd">                ``&quot;parbreak()&quot;`` or ``&quot;linebreak()&quot;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_item_needs_separator</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">break_token</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_item_needs_separator</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_add_paragraph_separator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1003,7 +1039,11 @@
 <span class="sd">        Code mode doesn&#39;t auto-recognize paragraph breaks from blank lines.</span>
 
 <span class="sd">        Exception: Inside list items, paragraphs are not wrapped in par()</span>
-<span class="sd">        to avoid syntax like &quot;- par(text(...))&quot; which is invalid.</span>
+<span class="sd">        to avoid syntax like &quot;- par(text(...))&quot; which is invalid. A 2nd+</span>
+<span class="sd">        paragraph in a list item instead gets a real Typst parbreak()</span>
+<span class="sd">        (FID-02) -- a bare source &#39;\\n&#39; between code-mode statements is</span>
+<span class="sd">        cosmetic only and produces no visual break, so consecutive</span>
+<span class="sd">        list-item paragraphs otherwise concatenate onto one running line.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            node: The paragraph node</span>
@@ -1016,8 +1056,12 @@
         <span class="c1"># or strands a `+`. (GATE-02 corpus fatal #20: &lt;xref-modifiers&gt;.)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_emit_id_anchors</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
 
-        <span class="c1"># Skip par() wrapping inside list items</span>
+        <span class="c1"># Skip par() wrapping inside list items; emit a real parbreak()</span>
+        <span class="c1"># between the 2nd+ paragraph and its predecessor (FID-02). This is a</span>
+        <span class="c1"># no-op for the FIRST paragraph in a list item, since</span>
+        <span class="c1"># list_item_needs_separator is reset to False in visit_list_item.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_emit_forced_break</span><span class="p">(</span><span class="s2">&quot;parbreak()&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">in_paragraph</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">return</span>
 
@@ -1038,8 +1082,13 @@
 <span class="sd">        Args:</span>
 <span class="sd">            node: The paragraph node</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Skip closing if inside list items</span>
+        <span class="c1"># Skip closing if inside list items; mark that a paragraph separator</span>
+        <span class="c1"># is now needed before the next list-item sibling (FID-02) -- this is</span>
+        <span class="c1"># the piece that was previously MISSING, so the helper in</span>
+        <span class="c1"># visit_paragraph never actually fired a leading &quot;\n&quot; before the</span>
+        <span class="c1"># 2nd+ paragraph&#39;s parbreak().</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_item_needs_separator</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">return</span>
 
         <span class="c1"># Close par({}) content block and add spacing</span>
@@ -1277,6 +1326,24 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_literal_block</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">text_content</span><span class="p">)</span>
             <span class="k">return</span>
+
+        <span class="c1"># FID-11: a paragraph authored with reST soft/semantic source line</span>
+        <span class="c1"># breaks and no inline markup at the wrap point is merged by</span>
+        <span class="c1"># docutils into a SINGLE Text node carrying a literal &#39;\n&#39; where the</span>
+        <span class="c1"># source line wrapped. escape_typst_string would otherwise turn that</span>
+        <span class="c1"># embedded &#39;\n&#39; into the two-char &quot;\n&quot; escape inside the emitted</span>
+        <span class="c1"># text(&quot;...&quot;) string, which Typst decodes back into a literal</span>
+        <span class="c1"># control character -- forcing a HARD line break in the rendered</span>
+        <span class="c1"># paragraph instead of the single-space reflow HTML/print</span>
+        <span class="c1"># conventionally use for a soft wrap. Collapse to a single space</span>
+        <span class="c1"># here, strictly BEFORE escaping (D-Disc-1, Pattern 2), so this does</span>
+        <span class="c1"># not bypass or weaken escape_typst_string&#39;s own escaping. The</span>
+        <span class="c1"># guard set is safe: in_literal_block already early-returned above;</span>
+        <span class="c1"># line_block/line content uses a structural linebreak() via</span>
+        <span class="c1"># depart_line, never an embedded &#39;\n&#39; in a line&#39;s own Text child;</span>
+        <span class="c1"># inline raw()/literal content never routes through visit_Text at</span>
+        <span class="c1"># all (visit_literal escapes node.astext() directly).</span>
+        <span class="n">text_content</span> <span class="o">=</span> <span class="n">text_content</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
 
         <span class="c1"># Escape string content via the shared helper (order-safe, full set)</span>
         <span class="n">text_content</span> <span class="o">=</span> <span class="n">escape_typst_string</span><span class="p">(</span><span class="n">text_content</span><span class="p">)</span>
@@ -1567,6 +1634,27 @@
             <span class="n">code_content</span> <span class="o">=</span> <span class="n">code_content</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">zwsp</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
                 <span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">zwsp</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">code_content</span> <span class="ow">and</span> <span class="n">code_content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s2">&quot;:;,)]}!?&quot;</span><span class="p">:</span>
+            <span class="c1"># FID-10: a long run of colon-leading inline literal role tokens</span>
+            <span class="c1"># (e.g. ``:cpp:any:`` ``:cpp:class:`` ...) overflows the page&#39;s</span>
+            <span class="c1"># right margin instead of wrapping at the space between tokens.</span>
+            <span class="c1"># Typst&#39;s line-breaker honors Unicode UAX14 rule LB13 (&quot;do not</span>
+            <span class="c1"># break before class CL/CP/EX/IS/SY, even after a space&quot;) for a</span>
+            <span class="c1"># token starting with one of these no-break-before characters --</span>
+            <span class="c1"># suppressing the break opportunity that would otherwise exist</span>
+            <span class="c1"># right before the token, even though the preceding text(&quot; &quot;)</span>
+            <span class="c1"># is real, breakable content (21-RESEARCH.md Pattern 1 /</span>
+            <span class="c1"># Pitfall 1). A leading zero-width space gives the line-breaker</span>
+            <span class="c1"># an explicit break opportunity at the token boundary without</span>
+            <span class="c1"># touching a single visible glyph (D-04 -- boundary-only, never</span>
+            <span class="c1"># break inside a token). Gated to this narrow character class so</span>
+            <span class="c1"># the many existing exact-match raw(&quot;...&quot;) assertions elsewhere</span>
+            <span class="c1"># (none of which start a literal with one of these characters)</span>
+            <span class="c1"># stay byte-unchanged (Pitfall 1 / Assumption A1). This is a</span>
+            <span class="c1"># NEW, independent elif sibling -- the self.in_table primitive</span>
+            <span class="c1"># above stays completely isolated (D-05).</span>
+            <span class="n">zwsp</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="mh">0x200B</span><span class="p">)</span>  <span class="c1"># zero-width space</span>
+            <span class="n">code_content</span> <span class="o">=</span> <span class="n">zwsp</span> <span class="o">+</span> <span class="n">code_content</span>
 
         <span class="c1"># Escape code content for string parameter via the shared helper.</span>
         <span class="c1"># Must escape newline/CR/tab too (not just backslash+quote): an inline</span>
@@ -1928,9 +2016,24 @@
             <span class="c1"># No # prefix in code mode</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;figure(caption: [</span><span class="si">{</span><span class="n">escaped_caption</span><span class="si">}</span><span class="s2">])[</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="c1"># If in list item, wrap codly() calls and code block in { } to make it an expression</span>
+        <span class="c1"># If in list item, wrap codly() calls and code block in { } to make</span>
+        <span class="c1"># it an expression. FID-12: when this list-item wrapper is ALSO</span>
+        <span class="c1"># opened immediately inside a captioned figure&#39;s markup-mode [...]</span>
+        <span class="c1"># content (see the `figure(caption: [...])[` block above), a bare</span>
+        <span class="c1"># &#39;{&#39; is parsed as LITERAL TEXT in Typst markup mode -- it does NOT</span>
+        <span class="c1"># re-enter code mode, and the per-block codly config call that</span>
+        <span class="c1"># follows leaks as visible prose instead of executing. Only &#39;#{&#39;</span>
+        <span class="c1"># re-enters code mode from markup mode. When NOT captioned, we are</span>
+        <span class="c1"># already in a CODE-mode context (top level, admonition, table</span>
+        <span class="c1"># cell, or the enum()/list argument position), so the wrapper stays</span>
+        <span class="c1"># bare, byte-unchanged from before.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_list_item</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;{</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">wrapper_prefix</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;#&quot;</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">in_captioned_code_block</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_block_caption</span><span class="p">)</span>
+                <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">wrapper_prefix</span><span class="si">}</span><span class="se">{{\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># Per-block codly config (number-format / offset / codly-range) is a</span>
         <span class="c1"># code-mode FUNCTION CALL, and whether it needs a leading `#` depends</span>
@@ -2130,14 +2233,27 @@
         <span class="c1"># auto-joins the statements into one content value -- a valid single</span>
         <span class="c1"># argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/</span>
         <span class="c1"># bug #3/#5) untouched; we wrap only the definition arg.</span>
+        <span class="c1"># FID-05: terms()&#39;s built-in `separator` parameter defaults to a WEAK</span>
+        <span class="c1"># h(0.6em) horizontal space, not a line break -- when a definition&#39;s</span>
+        <span class="c1"># first content is bare inline (e.g. nested in a list_item, where</span>
+        <span class="c1"># visit_paragraph early-returns per FID-02, or when the definition</span>
+        <span class="c1"># opens with a nested list/field-list whose own first content is also</span>
+        <span class="c1"># inline), nothing forces a break and the term flows onto the same</span>
+        <span class="c1"># line as its definition. Setting separator: linebreak() unconditionally</span>
+        <span class="c1"># fixes both sub-cases and is a no-op-visual-change for the</span>
+        <span class="c1"># already-correct par()-wrapped case (a block cannot share a line with</span>
+        <span class="c1"># preceding inline flow regardless of the separator). This is a</span>
+        <span class="c1"># terms()-call-PARAMETER change -- NOT routed through the shared</span>
+        <span class="c1"># _emit_forced_break helper (Pitfall 3): the bug is a Typst-layout</span>
+        <span class="c1"># default, not a missing statement-boundary.</span>
         <span class="k">if</span> <span class="n">items</span><span class="p">:</span>
             <span class="n">items_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;terms.item(</span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_wrap_definition_arg</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
                 <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">items</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;terms(</span><span class="si">{</span><span class="n">items_str</span><span class="si">}</span><span class="s2">)</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;terms(separator: linebreak(), </span><span class="si">{</span><span class="n">items_str</span><span class="si">}</span><span class="s2">)</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;terms()</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;terms(separator: linebreak())</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># A following sibling in the same list item must newline-separate from</span>
         <span class="c1"># this terms(...) statement.</span>
@@ -3227,7 +3343,15 @@
                 <span class="n">label_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace_label</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_current_docname</span><span class="p">(),</span> <span class="n">node</span><span class="p">[</span><span class="s2">&quot;ids&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                 <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">#label(&quot;</span><span class="si">{</span><span class="n">label_id</span><span class="si">}</span><span class="s1">&quot;)&#39;</span><span class="p">)</span>
+                <span class="c1"># FID-13 fix: no leading &#39;\n&#39;. The preceding content is</span>
+                <span class="c1"># always the closing &#39;)&#39; of the reference&#39;s link(...) call</span>
+                <span class="c1"># -- &#39;#&#39; unambiguously starts a new markup-embedded</span>
+                <span class="c1"># expression with no separator needed. A leading &#39;\n&#39; here</span>
+                <span class="c1"># renders as a visible space in Typst MARKUP mode (a</span>
+                <span class="c1"># newline in markup content collapses to a space), which</span>
+                <span class="c1"># combines with the genuinely-source-present following</span>
+                <span class="c1"># space to produce a stray double space (D-03).</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;#label(&quot;</span><span class="si">{</span><span class="n">label_id</span><span class="si">}</span><span class="s1">&quot;)&#39;</span><span class="p">)</span>
             <span class="c1"># Close the markup block</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">)</span>
             <span class="c1"># Clear the flags</span>
@@ -4940,9 +5064,18 @@
 <span class="sd">        dummy `nodes.Text` delegated to `visit_Text` -- inheriting the</span>
 <span class="sd">        existing string-escaping regime -- rather than `node.astext()` or</span>
 <span class="sd">        a raw f-string interpolation (V5 Input Validation, Pitfall 7).</span>
+
+<span class="sd">        FID-14: the auto-generated PEP 3102 keyword-only (&quot;*&quot;) and PEP 570</span>
+<span class="sd">        positional-only (&quot;/&quot;) signature separators are represented as an</span>
+<span class="sd">        `abbreviation` node whose OWN visible text is exactly &quot;*&quot; or &quot;/&quot; --</span>
+<span class="sd">        the sole reliable, narrow-scope signal (no distinguishing</span>
+<span class="sd">        classes/ids exist). Suppress the appended explanation ONLY for</span>
+<span class="sd">        those two exact cases; a genuine `:abbr:` role&#39;s acronym text is</span>
+<span class="sd">        never bare &quot;*&quot;/&quot;/&quot;, so it keeps its inline expansion unchanged</span>
+<span class="sd">        (D-Disc-3).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">explanation</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;explanation&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">explanation</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">explanation</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">astext</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">):</span>
             <span class="n">dummy_text</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">explanation</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">visit_Text</span><span class="p">(</span><span class="n">dummy_text</span><span class="p">)</span></div>
 
@@ -5016,7 +5149,17 @@
 <span class="sd">        visit_bullet_list/visit_table/visit_block_quote/etc: anchor BEFORE</span>
 <span class="sd">        any child (signature/content) is visited.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_emit_id_anchors</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emit_id_anchors</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="c1"># Reset per desc (FID-03): tracks whether the NEXT desc_signature</span>
+        <span class="c1"># child is this desc&#39;s first, so sibling signatures (overloads /</span>
+        <span class="c1"># alias groups / multi-option directives) get a leading linebreak()</span>
+        <span class="c1"># while a lone signature stays byte-unchanged. A plain scalar (not a</span>
+        <span class="c1"># stack) is safe here -- a desc&#39;s own desc_signature children are</span>
+        <span class="c1"># always fully processed (doctree order) before its desc_content</span>
+        <span class="c1"># (which may hold nested desc children) is entered, so a nested</span>
+        <span class="c1"># desc&#39;s own reset never races the outer desc&#39;s already-completed</span>
+        <span class="c1"># signature loop.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_first_desc_signature</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="TypstTranslator.depart_desc">
@@ -5026,8 +5169,16 @@
 <span class="sd">        Depart a desc node.</span>
 
 <span class="sd">        Add spacing after API description blocks.</span>
+
+<span class="sd">        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back</span>
+<span class="sd">        body-less desc siblings (e.g. confvals with only :type:/:default:</span>
+<span class="sd">        fields, no body paragraph) previously concatenated onto one running</span>
+<span class="sd">        line because a bare cosmetic &quot;\\n\\n&quot; produces no visual break in</span>
+<span class="sd">        Typst code mode. Applying parbreak() unconditionally (even when the</span>
+<span class="sd">        desc&#39;s last content already ends in a par()) is verified harmless --</span>
+<span class="sd">        no double-gap artifact -- so no body-less-detection guard is needed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emit_forced_break</span><span class="p">(</span><span class="s2">&quot;parbreak()&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TypstTranslator.visit_desc_signature">
@@ -5037,7 +5188,20 @@
 <span class="sd">        Visit a desc_signature node (API element signature).</span>
 
 <span class="sd">        Signatures are rendered in bold using strong({}) wrapper.</span>
+
+<span class="sd">        Sibling desc_signatures (overloads / alias groups / multi-option</span>
+<span class="sd">        directives) emit a real Typst linebreak() BEFORE every signature</span>
+<span class="sd">        after the first (FID-03) -- a source &#39;\\n&#39; between two code-mode</span>
+<span class="sd">        statements is cosmetic-only (produces zero visual break), so</span>
+<span class="sd">        linebreak() (via the shared _emit_forced_break helper) is required</span>
+<span class="sd">        to stack them on separate lines rather than concatenating onto one</span>
+<span class="sd">        running line. A desc with a single signature (the overwhelming</span>
+<span class="sd">        common case) emits zero extra bytes (the flag stays True through</span>
+<span class="sd">        the only signature) -- byte-for-byte unchanged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_first_desc_signature</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_emit_forced_break</span><span class="p">(</span><span class="s2">&quot;linebreak()&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_first_desc_signature</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="c1"># Create a dummy strong node and use its visitor logic</span>
         <span class="n">dummy_strong</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">strong</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">visit_strong</span><span class="p">(</span><span class="n">dummy_strong</span><span class="p">)</span>
@@ -5366,8 +5530,29 @@
 <div class="viewcode-block" id="TypstTranslator.depart_field">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_field">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">depart_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">field</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a field node.&quot;&quot;&quot;</span>
-        <span class="k">pass</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Depart a field node.</span>
+
+<span class="sd">        Emit an inter-field double-space separator (FID-09) when this field</span>
+<span class="sd">        has a following sibling, mirroring depart_desc_parameter&#39;s &quot;am I the</span>
+<span class="sd">        last sibling&quot; idiom. The double space is wrapped in BOTH a leading</span>
+<span class="sd">        AND a trailing newline so it never juxtaposes with the neighboring</span>
+<span class="sd">        strong(...) call on one physical source line -- a leading-only</span>
+<span class="sd">        newline is a real Typst &quot;expected semicolon or line break&quot; fatal.</span>
+
+<span class="sd">        Only applies when the field body just closed used the collapsed</span>
+<span class="sd">        inline form (see visit_field_body/depart_field_body). A</span>
+<span class="sd">        paragraph-wrapped / block field body (the common ``:param:``/</span>
+<span class="sd">        ``:type:``/``:returns:`` docstring case, and any field value on its</span>
+<span class="sd">        own blank-line-separated line) already gets adequate separation from</span>
+<span class="sd">        depart_field_body&#39;s trailing newline plus the next field&#39;s fresh</span>
+<span class="sd">        strong( statement -- adding &quot;  &quot; there lands as a stray leading</span>
+<span class="sd">        two-space indent glued to the next field&#39;s label (CR-01).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_field_body_was_inline</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">next_node</span><span class="p">(</span>
+            <span class="n">descend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">siblings</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">text(&quot;  &quot;)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TypstTranslator.visit_field_name">
@@ -5393,8 +5578,11 @@
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_field_name">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">depart_field_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">field_name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a field_name node.&quot;&quot;&quot;</span>
-        <span class="c1"># Close strong() and add colon</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; + text(&quot;:&quot;))</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="c1"># Close strong() and add a colon followed by a breakable space</span>
+        <span class="c1"># (FID-09) -- the space is a real content value inside the +-joined</span>
+        <span class="c1"># strong() expression, restoring the &quot;Type: int&quot; colon-space that</span>
+        <span class="c1"># was previously emitted as a bare colon with no trailing space.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; + text(&quot;: &quot;))</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 
         <span class="c1"># Restore paragraph state</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_field_name_was_in_paragraph&quot;</span><span class="p">):</span>
@@ -5445,6 +5633,10 @@
 <span class="sd">        Restore the concat context saved by :meth:`visit_field_body` and add a</span>
 <span class="sd">        newline after the field body.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Remember whether THIS field body was collapsed-inline, for</span>
+        <span class="c1"># depart_field&#39;s separator decision (CR-01), before popping back to</span>
+        <span class="c1"># the parent&#39;s saved state.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_field_body_was_inline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_field_body</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_in_field_body</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_field_body_has_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_field_body_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
@@ -5471,12 +5663,32 @@
 <div class="viewcode-block" id="TypstTranslator.depart_rubric">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_rubric">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">depart_rubric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">nodes</span><span class="o">.</span><span class="n">rubric</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a rubric node.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Depart a rubric node.</span>
+
+<span class="sd">        Emits a real Typst linebreak() unconditionally after the rubric</span>
+<span class="sd">        heading (FID-04) -- a rubric option-group heading (and the</span>
+<span class="sd">        directive-option &quot;Options&quot; heading) previously merged onto the same</span>
+<span class="sd">        line as the first following option/field because a bare cosmetic</span>
+<span class="sd">        &quot;\\n&quot; produces no visual break in Typst code mode (both the rubric</span>
+<span class="sd">        and whatever follows render via strong()). A rubric always needs</span>
+<span class="sd">        separation from what follows, so this fires unconditionally --</span>
+<span class="sd">        verified harmless at true end-of-document (nothing follows the</span>
+<span class="sd">        trailing linebreak()): no compile error, no visible artifact.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Use strong&#39;s depart logic</span>
         <span class="n">dummy_strong</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">strong</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">depart_strong</span><span class="p">(</span><span class="n">dummy_strong</span><span class="p">)</span>
-        <span class="c1"># Add extra spacing after rubric</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+        <span class="c1"># depart_strong&#39;s closing &quot;})&quot; carries no trailing separator of its</span>
+        <span class="c1"># own (unlike depart_desc_signature, whose unconditional trailing</span>
+        <span class="c1"># &quot;\n&quot; is what makes FID-03&#39;s leading-linebreak() placement safe at</span>
+        <span class="c1"># the NEXT signature). Without this explicit &quot;\n&quot; here, linebreak()</span>
+        <span class="c1"># would directly abut &quot;})&quot; with zero whitespace between two</span>
+        <span class="c1"># code-mode statements -- confirmed via a real compile this session</span>
+        <span class="c1"># to fail with &quot;expected semicolon or line break&quot; (Pitfall 1&#39;s</span>
+        <span class="c1"># class of bug, encountered at the LEADING boundary this time).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emit_forced_break</span><span class="p">(</span><span class="s2">&quot;linebreak()&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TypstTranslator.visit_title_reference">
@@ -5521,17 +5733,13 @@
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.visit_desc_sig_space">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">visit_desc_sig_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">addnodes</span><span class="o">.</span><span class="n">desc_sig_space</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Visit a desc_sig_space node (whitespace in signatures).&quot;&quot;&quot;</span>
-        <span class="c1"># Output space directly, not as separate text() node</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
-        <span class="c1"># Don&#39;t set list_item_needs_separator - space is connector</span>
-        <span class="k">raise</span> <span class="n">nodes</span><span class="o">.</span><span class="n">SkipNode</span></div>
+        <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="TypstTranslator.depart_desc_sig_space">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.translator.TypstTranslator.depart_desc_sig_space">[ドキュメント]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">depart_desc_sig_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">addnodes</span><span class="o">.</span><span class="n">desc_sig_space</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Depart a desc_sig_space node.&quot;&quot;&quot;</span>
-        <span class="c1"># Handled in visit</span>
         <span class="k">pass</span></div>
 
 
@@ -5647,7 +5855,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=b2ca8c5e"></script>
+</div><script src="../../_static/documentation_options.js?v=85320634"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

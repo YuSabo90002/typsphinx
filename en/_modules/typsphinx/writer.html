@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>typsphinx.writer - typsphinx 0.6.1</title>
+        <title>typsphinx.writer - typsphinx 0.6.2</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -169,7 +169,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">typsphinx 0.6.1</div></a>
+      <a href="../../index.html"><div class="brand">typsphinx 0.6.2</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
-  <span class="sidebar-brand-text">typsphinx 0.6.1</span>
+  <span class="sidebar-brand-text">typsphinx 0.6.2</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -293,11 +293,12 @@
 <span class="sd">document trees to Typst markup.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">PurePosixPath</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">docutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">writers</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.template_engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.template_engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateEngine</span><span class="p">,</span> <span class="n">resolve_package_for_engine</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typsphinx.translator</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypstTranslator</span>
 
 
@@ -341,11 +342,67 @@
 
         <span class="c1"># Check if docname is in typst_documents</span>
         <span class="c1"># typst_documents format: [(sourcename, targetname, title, author), ...]</span>
+        <span class="c1"># A malformed (empty) entry is skipped rather than indexed: this runs</span>
+        <span class="c1"># during write_doc() for EVERY document, so an unguarded doc_tuple[0]</span>
+        <span class="c1"># would raise IndexError and abort the build in the write phase --</span>
+        <span class="c1"># before TypstPDFBuilder.finish() can report the malformed entry</span>
+        <span class="c1"># through its aggregate ExtensionError. Reporting malformed entries is</span>
+        <span class="c1"># finish()&#39;s job alone; here they simply never match. Matches the</span>
+        <span class="c1"># guards already used by _compute_master_included_docnames() and</span>
+        <span class="c1"># _resolve_output_stem() in builder.py.</span>
         <span class="k">for</span> <span class="n">doc_tuple</span> <span class="ow">in</span> <span class="n">typst_documents</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">doc_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">docname</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">doc_tuple</span> <span class="ow">and</span> <span class="n">doc_tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">docname</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">True</span>
 
         <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_template_import_path</span><span class="p">(</span><span class="n">docname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the master document&#39;s import path for the shared</span>
+<span class="sd">        ``_template.typ`` file, from the master&#39;s docname alone.</span>
+
+<span class="sd">        `_write_template_file()` (``typsphinx/builder.py``) always writes</span>
+<span class="sd">        ``_template.typ`` at the OUTDIR ROOT, unconditionally, regardless of</span>
+<span class="sd">        where any given master document lives. The reference a master needs</span>
+<span class="sd">        is therefore purely &quot;climb from my own directory to the outdir root,</span>
+<span class="sd">        then name the file&quot; -- a function of nesting depth alone, with no</span>
+<span class="sd">        dependence on string equality against the reserved ``_template``</span>
+<span class="sd">        basename.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            docname: Master document name (e.g. ``&quot;index&quot;``,</span>
+<span class="sd">                ``&quot;api/index&quot;``, or ``&quot;_template/index&quot;``).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The complete relative import path, including the ``.typ``</span>
+<span class="sd">            suffix, e.g. ``&quot;_template.typ&quot;`` or ``&quot;../_template.typ&quot;``.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; TypstWriter._compute_template_import_path(&quot;index&quot;)</span>
+<span class="sd">            &#39;_template.typ&#39;</span>
+<span class="sd">            &gt;&gt;&gt; TypstWriter._compute_template_import_path(&quot;api/index&quot;)</span>
+<span class="sd">            &#39;../_template.typ&#39;</span>
+<span class="sd">            &gt;&gt;&gt; TypstWriter._compute_template_import_path(&quot;_template/index&quot;)</span>
+<span class="sd">            &#39;../_template.typ&#39;</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            Closes gap ``G-22.1-4`` / review finding CR-01: the previous</span>
+<span class="sd">            implementation relativized the master&#39;s docname against a</span>
+<span class="sd">            synthetic sentinel target docname (the literal string</span>
+<span class="sd">            ``&quot;_template&quot;``) via the translator&#39;s docname-to-docname</span>
+<span class="sd">            relativization helper. When the master&#39;s own directory portion</span>
+<span class="sd">            was ITSELF literally named ``_template``, that sentinel collided</span>
+<span class="sd">            with a real path component, and the helper&#39;s same-directory</span>
+<span class="sd">            resolution logic produced a stem-less result that, once</span>
+<span class="sd">            concatenated with ``&quot;.typ&quot;``, was malformed (e.g. a bare</span>
+<span class="sd">            ``&quot;..typ&quot;`` or ``&quot;../.typ&quot;``). Computing the upward-segment count</span>
+<span class="sd">            directly from the master&#39;s own directory depth removes the</span>
+<span class="sd">            string-equality dependence entirely, so no directory name can</span>
+<span class="sd">            ever collide with or impersonate the reserved basename.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;../&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">depth</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_template.typ&quot;</span>
 
 <div class="viewcode-block" id="TypstWriter.translate">
 <a class="viewcode-back" href="../../api/index.html#typsphinx.writer.TypstWriter.translate">[docs]</a>
@@ -400,7 +457,10 @@
         <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">config</span>
 
         <span class="c1"># Get template configuration from Sphinx config</span>
-        <span class="n">template_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">raw_template_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">typst_package</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_package&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">template_path</span> <span class="o">=</span> <span class="n">raw_template_path</span>
         <span class="k">if</span> <span class="n">template_path</span><span class="p">:</span>
             <span class="c1"># Resolve relative path from source directory</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -408,16 +468,24 @@
             <span class="n">source_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">srcdir</span>
             <span class="n">template_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">template_path</span><span class="p">)</span>
 
+        <span class="c1"># D-01/D-03 routing decision -- see `resolve_package_for_engine()` for</span>
+        <span class="c1"># the rule and why it lives in exactly one place (WR-04). The both-set</span>
+        <span class="c1"># case is announced with a build warning in builder.py&#39;s</span>
+        <span class="c1"># `_write_template_file()` (which runs once per build, unlike this</span>
+        <span class="c1"># per-document method).</span>
+        <span class="n">package_for_engine</span> <span class="o">=</span> <span class="n">resolve_package_for_engine</span><span class="p">(</span>
+            <span class="n">typst_package</span><span class="p">,</span> <span class="n">raw_template_path</span>
+        <span class="p">)</span>
+
         <span class="c1"># Create template engine</span>
         <span class="n">template_engine</span> <span class="o">=</span> <span class="n">TemplateEngine</span><span class="p">(</span>
             <span class="n">template_path</span><span class="o">=</span><span class="n">template_path</span><span class="p">,</span>
             <span class="n">search_paths</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">srcdir</span><span class="p">],</span>
             <span class="n">parameter_mapping</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template_mapping&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="n">typst_package</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_package&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">typst_package</span><span class="o">=</span><span class="n">package_for_engine</span><span class="p">,</span>
             <span class="n">typst_template_function</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_template_function&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">typst_package_imports</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_package_imports&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">typst_authors</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_authors&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="n">typst_author_params</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;typst_author_params&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="c1"># Gather Sphinx metadata</span>
@@ -439,10 +507,36 @@
         <span class="n">toctree_options</span> <span class="o">=</span> <span class="n">template_engine</span><span class="o">.</span><span class="n">extract_toctree_options</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">document</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">toctree_options</span><span class="p">)</span>
 
-        <span class="c1"># Render with template (using separate template file)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">template_engine</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
-            <span class="n">params</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">template_file</span><span class="o">=</span><span class="s2">&quot;_template.typ&quot;</span>
-        <span class="p">)</span></div>
+        <span class="c1"># Render with template (using separate template file).</span>
+        <span class="c1">#</span>
+        <span class="c1"># `_write_template_file()` (builder.py) always writes `_template.typ`</span>
+        <span class="c1"># at the OUTDIR ROOT, regardless of where the master document itself</span>
+        <span class="c1"># lives. For a root-level master this is a same-directory reference</span>
+        <span class="c1"># and a bare &quot;_template.typ&quot; resolves correctly, but for a master at</span>
+        <span class="c1"># a nested docname (e.g. &quot;api/index&quot;) a bare &quot;_template.typ&quot; would</span>
+        <span class="c1"># resolve relative to the master&#39;s own directory (&quot;api/_template.typ&quot;)</span>
+        <span class="c1"># -- a file that was never written -- exactly the same docname-</span>
+        <span class="c1"># relative-vs-outdir-root basis mismatch PDF-02 fixes for #include()/</span>
+        <span class="c1"># image(). Reusing the translator&#39;s docname-to-docname relativizer</span>
+        <span class="c1"># with a synthetic &quot;_template&quot; sentinel target was the CR-01 defect</span>
+        <span class="c1"># (gap G-22.1-4): the sentinel can collide with a real directory</span>
+        <span class="c1"># component of the master&#39;s own path (a master whose directory is</span>
+        <span class="c1"># itself literally named &quot;_template&quot;), producing a malformed</span>
+        <span class="c1"># reference. The depth-based computation below has no such string</span>
+        <span class="c1"># dependence -- it is a pure function of the master&#39;s own nesting</span>
+        <span class="c1"># depth to the outdir root.</span>
+        <span class="c1">#</span>
+        <span class="c1"># D-01: a package configured ALONE (no custom template) must not</span>
+        <span class="c1"># reference that shared template file -- `_write_template_file()`</span>
+        <span class="c1"># (builder.py) deliberately never writes it for that case, and the</span>
+        <span class="c1"># previous unconditional computation below (BUG-A) produced a</span>
+        <span class="c1"># master that imported a file the builder refused to create,</span>
+        <span class="c1"># making the entire package-alone path unbuildable.</span>
+        <span class="k">if</span> <span class="n">typst_package</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">raw_template_path</span><span class="p">:</span>
+            <span class="n">template_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">template_file</span> <span class="o">=</span> <span class="n">TypstWriter</span><span class="o">.</span><span class="n">_compute_template_import_path</span><span class="p">(</span><span class="n">docname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">template_engine</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">template_file</span><span class="o">=</span><span class="n">template_file</span><span class="p">)</span></div>
 </div>
 
 </pre></div>
@@ -477,7 +571,7 @@
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=2bd037f0"></script>
+</div><script src="../../_static/documentation_options.js?v=1c28bd9a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

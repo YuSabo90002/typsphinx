@@ -111,6 +111,15 @@ Document Definitions
        ("api", "api-ref", "API Reference", "Author", "typst"),
    ]
 
+The second tuple element is the output filename stem, and it governs both
+the emitted ``.typ`` file and the compiled ``.pdf`` (under the ``typstpdf``
+builder). With the configuration shown above, the builders therefore emit
+``main.typ`` / ``main.pdf`` and ``api-ref.typ`` / ``api-ref.pdf`` -- not
+``index.typ`` / ``index.pdf`` or ``api.typ`` / ``api.pdf``. The CLI
+walkthroughs elsewhere on this page assume the default identity
+configuration, where the source name and the target name agree, so their
+docname-named artifacts are correct for that configuration.
+
 Builder-Specific Options
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
