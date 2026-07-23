@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 24
-current_phase_name: Delete `typst_toctree_defaults`
-status: planned
+current_phase_name: delete-typst-toctree-defaults-dead-config-sweep-round-2-part
+status: executing
 stopped_at: Phase 24 planned (1 plan, verification passed)
-last_updated: "2026-07-23T13:30:23.000Z"
+last_updated: "2026-07-23T13:34:27.369Z"
 last_activity: 2026-07-23
-last_activity_desc: "Phase 24 planned — 1 plan (24-01), plan-checker VERIFICATION PASSED"
+last_activity_desc: Phase 24 execution started
 progress:
   total_phases: 5
   completed_phases: 0
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 24 planned (1 plan) — ready to execute
+**Current focus:** Phase 24 — delete-typst-toctree-defaults-dead-config-sweep-round-2-part
 
 ## Current Position
 
-Phase: 24 of 28 (Delete `typst_toctree_defaults`) — planned, ready to execute
-Plan: 24-01 (1 plan, 1 wave) — plan-checker VERIFICATION PASSED
-Status: Ready to execute Phase 24
-Last activity: 2026-07-23 — Phase 24 planned; verification passed
+Phase: 24 (delete-typst-toctree-defaults-dead-config-sweep-round-2-part) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 24
+Last activity: 2026-07-23 — Phase 24 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
