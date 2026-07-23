@@ -196,20 +196,28 @@ class TypstWriter(writers.Writer):
             typst_authors=getattr(config, "typst_authors", None),
         )
 
-        # Gather Sphinx metadata
+        # Gather Sphinx metadata. "copyright" is deliberately NOT included --
+        # nothing in DEFAULT_PARAMETER_MAPPING names it and typst_elements no
+        # longer rides along in this dict (D-08), so it can never reach
+        # project() (structural non-leak, CONF-04/SC#4).
         sphinx_metadata = {
             "project": config.project,
             "author": config.author,
             "release": config.release,
-            "copyright": config.copyright,
         }
 
-        # Add custom elements from config
+        # CONF-04: typst_elements is passed to map_parameters() as its OWN
+        # keyword argument -- never merged into sphinx_metadata (D-05). This
+        # keeps the curated allowlist merge structurally separate from
+        # baseline Sphinx metadata all the way to map_parameters(), which is
+        # what makes the copyright/baseline non-leak (SC#4) a structural
+        # guarantee rather than a filter (Pitfall 3).
         typst_elements = getattr(config, "typst_elements", {})
-        sphinx_metadata.update(typst_elements)
 
         # Map parameters
-        params = template_engine.map_parameters(sphinx_metadata)
+        params = template_engine.map_parameters(
+            sphinx_metadata, typst_elements=typst_elements
+        )
 
         # Extract toctree options and add to parameters
         toctree_options = template_engine.extract_toctree_options(self.document)
