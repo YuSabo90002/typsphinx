@@ -6,10 +6,55 @@ for Typst documents (Requirement 8).
 """
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
+from sphinx.errors import ExtensionError
+
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RawTypst:
+    """Wraps a string that must be emitted into the ``.typ`` output
+    VERBATIM -- no quoting, no escaping -- e.g. a Typst length literal like
+    ``20pt``.
+
+    Recognized by ``_format_typst_value()``, whose ``isinstance`` branch is
+    checked BEFORE the ``str`` branch, so a ``RawTypst`` value never
+    re-enters string quoting (the double-formatting trap, CONTEXT.md
+    D-02/D-07). This is the type-safe alternative to pre-rendering a value
+    to a Typst-source string inside ``map_parameters()`` -- a pre-rendered
+    plain ``str`` is indistinguishable from any other string once it reaches
+    ``_format_typst_value()`` and would be quoted a second time.
+    """
+
+    source: str
+
+
+class _ElementsEmissionKind:
+    """Enum-like sentinel values naming HOW an ``ELEMENTS_ALLOWLIST`` key
+    must be formatted for Typst emission -- not the value itself."""
+
+    STRING = "string"
+    RAW = "raw"
+
+
+# CONF-04: the curated, hand-maintained allowlist of `typst_elements` keys
+# that `templates/base.typ`'s `project()` function (lines 39-48) actually
+# declares as "element" parameters: `papersize: "a4"` (string) and
+# `fontsize: 11pt` (length/raw). Keep this list EXACTLY in sync with that
+# signature -- adding a key here WITHOUT a matching `base.typ` parameter
+# would pass an undeclared kwarg and abort the Typst compile. Hand-maintained
+# by design (D-03): a `.typ` function signature can't be reliably
+# introspected from Python, and most `project()` params (title/authors/date/
+# toctree_*) already arrive via `parameter_mapping`/`extract_toctree_options`
+# -- adding them here would create a second, colliding source of truth.
+ELEMENTS_ALLOWLIST: Dict[str, str] = {
+    "papersize": _ElementsEmissionKind.STRING,
+    "fontsize": _ElementsEmissionKind.RAW,
+}
 
 
 def resolve_package_for_engine(
@@ -183,13 +228,25 @@ class TemplateEngine:
 
         return template_content
 
-    def map_parameters(self, sphinx_metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def map_parameters(
+        self,
+        sphinx_metadata: Dict[str, Any],
+        typst_elements: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         """
         Map Sphinx metadata to template parameters.
 
         Args:
             sphinx_metadata: Dictionary of Sphinx configuration metadata
                            (project, author, release, etc.)
+            typst_elements: CONF-04 curated pass-through values (e.g.
+                           ``papersize``/``fontsize``), kept structurally
+                           separate from ``sphinx_metadata`` so baseline
+                           Sphinx metadata (e.g. ``copyright``) can never
+                           reach ``project()`` (D-05/D-08). Defaults to
+                           ``None`` (treated as empty) so every existing
+                           one-positional-argument call site is unaffected
+                           (Pitfall 4).
 
         Returns:
             Dictionary of template parameters ready to pass to template
@@ -198,6 +255,10 @@ class TemplateEngine:
         Requirement 8.4: Support different parameter names
         Requirement 8.5: Standard metadata name transformation
         Requirement 8.8: Convert to arrays and complex structures
+
+        Raises:
+            sphinx.errors.ExtensionError: if ``typst_elements`` contains a
+                key not present in ``ELEMENTS_ALLOWLIST`` (D-06/D-07).
         """
         params = {}
 
@@ -241,6 +302,27 @@ class TemplateEngine:
                 {"name": name, **details}
                 for name, details in self.typst_authors.items()
             ]
+
+        # CONF-04: additive elements merge -- runs LAST, after the
+        # typst_authors override above, without disturbing the
+        # `if not self.typst_package` back-fill guard or the typst_authors
+        # override itself. Validate each key against ELEMENTS_ALLOWLIST
+        # BEFORE it is ever added to params (D-06/D-07, Pitfall 2): an
+        # unrecognized key raises loudly here instead of being silently
+        # dropped (today's bug) or passed through as an undeclared kwarg
+        # that would abort the Typst compile with a far less actionable
+        # error.
+        for key, value in (typst_elements or {}).items():
+            if key not in ELEMENTS_ALLOWLIST:
+                supported = ", ".join(sorted(ELEMENTS_ALLOWLIST))
+                raise ExtensionError(
+                    f"typst_elements: unknown key {key!r} -- "
+                    f"supported keys: {supported}"
+                )
+            emit_kind = ELEMENTS_ALLOWLIST[key]
+            params[key] = (
+                RawTypst(value) if emit_kind == _ElementsEmissionKind.RAW else value
+            )
 
         return params
 
@@ -431,6 +513,11 @@ class TemplateEngine:
         """
         if value is None:
             return "none"
+        elif isinstance(value, RawTypst):
+            # CONF-04/D-02: emitted verbatim, no quoting/escaping -- checked
+            # BEFORE the str branch so a RawTypst never re-enters string
+            # quoting (the double-formatting trap, Pitfall 1).
+            return value.source
         elif isinstance(value, bool):
             # Typst uses lowercase true/false
             return "true" if value else "false"
