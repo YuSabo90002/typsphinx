@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 26
-current_phase_name: dead-config sweep round 2, part A
+current_phase_name: typst-elements-papersize-fontsize-pass-through-dead-config-s
 status: executing
 stopped_at: Phase 26 context gathered
-last_updated: "2026-07-23T21:25:09.662Z"
+last_updated: "2026-07-23T21:27:40.658Z"
 last_activity: 2026-07-24
-last_activity_desc: Phase 25 complete, transitioned to Phase 26
+last_activity_desc: Phase 26 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 3
+  total_plans: 5
   completed_plans: 3
   percent: 40
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 25 — captioned-table-figure-wrap-cross-references-reimplement-pr-
+**Current focus:** Phase 26 — typst-elements-papersize-fontsize-pass-through-dead-config-s
 
 ## Current Position
 
-Phase: 26 — `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-24 — Phase 25 complete, transitioned to Phase 26
+Phase: 26 (typst-elements-papersize-fontsize-pass-through-dead-config-s) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 26
+Last activity: 2026-07-24 — Phase 26 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
