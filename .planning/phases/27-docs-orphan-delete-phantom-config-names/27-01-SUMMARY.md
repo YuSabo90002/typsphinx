@@ -209,3 +209,16 @@ None - no external service configuration required.
 ---
 *Phase: 27-docs-orphan-delete-phantom-config-names*
 *Completed: 2026-07-24*
+
+## Self-Check: PASSED
+
+- FOUND: `docs/configuration.rst` confirmed deleted (not on disk)
+- FOUND: `tests/test_documentation_configuration.py` confirmed deleted (not on disk)
+- FOUND: `docs/source/user_guide/configuration.rst`
+- FOUND: `docs/source/api/index.rst`
+- FOUND: `docs/locale/ja/LC_MESSAGES/api/index.po`
+- FOUND: `docs/locale/ja/LC_MESSAGES/user_guide/configuration.po`
+- FOUND: commit `90801cf` (Task 1)
+- FOUND: commit `2f359ad` (Task 2)
+- FOUND: commit `ac61c94` (Task 3)
+- FOUND: commit `5e25d2f` (SUMMARY.md)
