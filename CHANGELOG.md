@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-23
+
+Rendering-fidelity round 2: closes out the remaining 13 medium/low findings from the v0.6.1 audit
+across six root-cause clusters, fixes the typstpdf output-filename bug (Issue #117) and a
+nested-master compile-root defect, repairs the Typst Universe (`typst_package`) template path
+end-to-end, hardens the builder against silent partial-success, removes two long-dead config
+values, and corrects several stale README/CLAUDE.md claims. Zero new runtime dependencies; the
+bundled `@preview` version-sync surface is untouched.
+
+### Removed
+
+- **BREAKING: `typst_output_dir` and `typst_author_params` config values removed (CONF-01)** —
+  both were registered but never read: `outdir` is controlled by the `sphinx-build` CLI argument,
+  not a config value, and `typst_author_params` was silently ignored by the author-formatting code
+  path. Neither ever affected compiled output, so removal changes no build's result; a `conf.py`
+  still setting either is silently ignored by Sphinx (unregistered config values produce no
+  warning), not an error. No deprecation period.
+
+### Fixed
+
+- **Lost block separation across five constructs (FID-02–FID-06)** — paragraphs inside list items,
+  sibling signatures, rubric/option headings, definition-list terms, and back-to-back body-less
+  confvals all rendered run-together with no visible break; each now renders with its own separation.
+- **Lost intra-signature token spacing (FID-07–FID-09)** — the `class `/`exception ` keyword prefix,
+  C/C++ signature/expression tokens (around `*`/`&`, type↔identifier), and object-description
+  `:type:`/`:default:` fields all lost their spaces or boundaries; all now render correctly spaced.
+- **Long inline-literal runs no longer clip at the right margin (FID-10)** — a long run of inline
+  `:role:` literals now wraps within the text block instead of overflowing and clipping mid-token.
+- **Soft/semantic paragraph line breaks now reflow (FID-11)** — a paragraph written with one clause
+  per source line previously forced a hard break at every line; it now reflows into a justified
+  paragraph like every other builder produces.
+- **Codly config wrapper no longer leaks as visible text (FID-12)** — a captioned code block nested in
+  a list item no longer prints its internal `{ codly(...) }` config wrapper as literal prose.
+- **Meaning-bearing inline styling restored (FID-13–FID-14)** — external hyperlinks render with
+  distinguishing link styling again, and Python `*`/`/` (PEP 3102/570) signature separators no longer
+  inject their internal hover-title text inline.
+- **`sphinx-build -b typstpdf` names the output PDF after your configured target, not the source
+  docname (PDF-01, Issue #117)** — e.g. with `typst_documents = [("index", "mydoc", "My Manual",
+  "Author")]`, the compiled PDF is now `mydoc.pdf` (previously `index.pdf`). If your CI or release
+  pipeline references the old docname-based filename, update it.
+- **Nested master documents compile with their includes and images intact (PDF-02)** — a master at a
+  nested docname (e.g. `api/index`) now resolves `#include()`/`image()` paths on the same basis the
+  translator emits them, matching what `-b typst` plus a manual `typst compile` already produced.
+- **`typst_package` (Typst Universe template) configured alone now builds and compiles with zero
+  Typst errors (CONF-02, CONF-03)** — fixes a missing `_template.typ` write, unconditional
+  `title`/`authors`/`date` injection into templates that don't accept them, and
+  `typst_authors`/`typst_author_params` being silently ignored. A new config→output regression
+  fixture now asserts that a config value actually changes the compiled output, not merely that
+  it's registered.
+- **`sphinx-build -b typstpdf` no longer reports success while silently skipping a configured
+  master (WR-01, WR-02)** — a missing `.typ` file or an unknown docname now fails the build with an
+  aggregated error listing every failed master, instead of a bare warning and a `build succeeded`
+  exit. (The nested-master render-gate test was also decoupled from `typst-py`'s internal
+  error-message wording, so an unrelated upstream wording change can no longer turn CI red.)
+- **README.md and CLAUDE.md corrected to match measured behavior (DOC-01–DOC-05)** — removed
+  unverifiable test-count and coverage numbers with no enforced gate, reworded "Configuration
+  Options" as an explicitly partial list linking to the real built documentation, dropped a false
+  citation-support claim (added Citations to Known Limitations instead), removed a stale Glossary
+  limitation, and corrected CLAUDE.md's Python-version floor (3.10+ → 3.12+) throughout.
+
+### Verified
+
+- Closing full-corpus regression gate: the Sphinx `doc/` v9.1.0 corpus, re-run through
+  `-b typstpdf`, remains fatal-free, produces a valid `%PDF`-magic-byte output, and the
+  `unknown_visit` catalogue remains empty.
+- Milestone invariant held: zero new runtime dependencies, no `@preview` package version bump, the
+  3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
+
 ## [0.6.1] - 2026-07-20
 
 Rendering fidelity: move `typstpdf` output from "compiles fatal-free" (achieved
@@ -648,6 +716,7 @@ untouched.
 
 ---
 
+[0.6.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.2
 [0.6.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.1
 [0.6.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.0
 [0.5.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.5.0
@@ -660,4 +729,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.2...HEAD

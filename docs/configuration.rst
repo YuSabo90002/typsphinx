@@ -97,7 +97,7 @@ Allows you to rename template parameters to match your custom template.
 
 - ``project`` → template parameter ``title``
 - ``author`` → template parameter ``authors``
-- ``release`` → template parameter ``version``
+- ``release`` → template parameter ``date``
 
 **Example:**
 
@@ -132,6 +132,43 @@ In your custom template:
    #let my_template(title: "", authors: (), body) = {
      // Your template code
    }
+
+typst_authors
+~~~~~~~~~~~~~
+
+Rich author metadata passed to the template as a native Typst array of
+dictionaries. Use this when your template's ``authors`` parameter expects
+structured entries (affiliation, email, ...) rather than plain name strings.
+
+:Type: ``dict`` or ``None``
+:Default: ``None`` (Sphinx's ``author`` string is used instead)
+
+Each key is the author's name; each value is a dictionary of extra fields.
+The name is emitted as a ``name`` field, so the template receives one
+dictionary per author.
+
+**Example:**
+
+.. code-block:: python
+
+   typst_authors = {
+       'Ada Lovelace': {
+           'department': 'Computing',
+           'organization': 'Analytical Engine Society',
+           'email': 'ada@example.org',
+       },
+   }
+
+This reaches the template as:
+
+.. code-block:: typst
+
+   authors: ((name: "Ada Lovelace", department: "Computing",
+              organization: "Analytical Engine Society",
+              email: "ada@example.org"),)
+
+Templates that take only plain name strings (such as the bundled default
+template) should leave this unset.
 
 Content and Styling
 -------------------
@@ -249,25 +286,6 @@ Allows fine-grained control over package imports.
        '#import "@preview/tablex:0.1.0": tablex, cellx',
    ]
 
-Output Configuration
---------------------
-
-typst_output_dir
-~~~~~~~~~~~~~~~~
-
-Output directory for generated Typst files.
-
-:Type: ``str``
-:Default: ``'_build/typst'``
-
-**Example:**
-
-.. code-block:: python
-
-   typst_output_dir = '_custom/typst'
-
-**Note:** Path is relative to the build directory specified in sphinx-build command.
-
 Debug and Development
 ---------------------
 
@@ -343,9 +361,6 @@ Here's a complete ``conf.py`` example with common settings:
    typst_package_imports = [
        '#import "@preview/codly:0.1.0": *',
    ]
-
-   # Output configuration
-   typst_output_dir = '_build/typst'
 
 Building Documents
 ==================

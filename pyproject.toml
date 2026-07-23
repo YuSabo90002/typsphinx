@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typsphinx"
-version = "0.6.1"
+version = "0.6.2"
 description = "Sphinx extension for Typst output"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -119,8 +119,8 @@ ignore = [
     "E501",   # Line too long (handled by black)
     "T201",   # print found (used in tests for debugging)
     "B017",   # asserting blind exception in tests
-    "UP035",  # typing.Dict/List/Set deprecation (Python 3.10+ support)
-    "UP006",  # Use dict instead of Dict (Python 3.10+ support)
+    "UP035",  # typing.Dict/List/Set deprecation; modernization deferred (see .planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md)
+    "UP006",  # Use dict instead of Dict; same deferral as UP035 above
     "UP028",  # yield from (minor optimization)
     "N802",   # Function naming (docutils visitor pattern uses PascalCase)
     "A001",   # Shadowing builtins (copyright in conf.py is Sphinx convention)

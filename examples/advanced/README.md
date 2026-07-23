@@ -57,12 +57,12 @@ sphinx-build -b typst . _build/typst
 ```
 
 This will generate:
-- `_build/typst/index.typ` - Master document
+- `_build/typst/advanced-example.typ` - Master document
 - `_build/typst/chapter1.typ` - Chapter 1
 - `_build/typst/chapter2.typ` - Chapter 2
 
-The master document (`index.typ`) uses `#include()` directives to combine
-all chapters into a single document structure.
+The master document (`advanced-example.typ`) uses `#include()` directives to
+combine all chapters into a single document structure.
 
 ### Generate PDF Output
 
@@ -258,9 +258,6 @@ typst_toctree_defaults = {
 #     '#import "@preview/codly:0.1.0": *',
 #     '#import "@preview/gentle-clues:0.3.0": *',
 # ]
-
-# Output directory (optional)
-# typst_output_dir = '_build/typst'
 
 # Debug mode (optional)
 # Enable for detailed logging

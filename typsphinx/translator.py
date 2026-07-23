@@ -177,6 +177,12 @@ class TypstTranslator(SphinxTranslator):
         self._in_field_body = False
         self._field_body_has_content: bool = False
         self._field_body_stack: List[Tuple[bool, bool]] = []
+        # Whether the most recently departed field_body used the collapsed
+        # inline form (see visit_field_body). depart_field reads this to
+        # decide whether the FID-09 inter-field "  " separator applies --
+        # it is only correct for inline-collapsed bodies, not block-wrapped
+        # (par(...)) bodies (CR-01).
+        self._last_field_body_was_inline = False
 
         # Stack of the code-mode concat context suppressed while an inline
         # block element (emphasis/strong/reference) emits its OWN block/argument
@@ -259,6 +265,36 @@ class TypstTranslator(SphinxTranslator):
             self.table_cell_content.append(text)
         else:
             self.body.append(text)
+
+    def _emit_forced_break(self, break_token: str) -> None:
+        """
+        Emit a real Typst stdlib break (``parbreak()``/``linebreak()``) as its
+        own code-mode statement between two adjacent siblings.
+
+        A source ``\\n`` between two code-mode statements is COSMETIC ONLY
+        (proven at ``visit_desc_signature_line``) -- it satisfies the Typst
+        parser but produces NO visual break, because bare ``text()``/
+        ``strong()`` results are inline content that simply concatenates.
+        This helper generalizes that idiom, but fixes a gap in the original:
+        ``visit_desc_signature_line``'s break always fires INSIDE an
+        already-open ``strong({...})`` block, where ``visit_strong`` has
+        locally forced ``in_list_item = True`` for its children, so its
+        trailing separator comes "for free" from the next child's own
+        ``list_item_needs_separator`` check. A SIBLING-boundary break (between
+        ``desc_signature``s, after a ``rubric``, after a ``desc``) usually is
+        NOT inside such a block, so this helper appends its OWN unconditional
+        trailing newline -- omitting it reproduces the "expected semicolon or
+        line break" Typst fatal at sibling boundaries.
+
+        Args:
+            break_token: The Typst stdlib break call to emit, e.g.
+                ``"parbreak()"`` or ``"linebreak()"``.
+        """
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text(f"{break_token}\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def _add_paragraph_separator(self) -> None:
         """
@@ -666,7 +702,11 @@ class TypstTranslator(SphinxTranslator):
         Code mode doesn't auto-recognize paragraph breaks from blank lines.
 
         Exception: Inside list items, paragraphs are not wrapped in par()
-        to avoid syntax like "- par(text(...))" which is invalid.
+        to avoid syntax like "- par(text(...))" which is invalid. A 2nd+
+        paragraph in a list item instead gets a real Typst parbreak()
+        (FID-02) -- a bare source '\\n' between code-mode statements is
+        cosmetic only and produces no visual break, so consecutive
+        list-item paragraphs otherwise concatenate onto one running line.
 
         Args:
             node: The paragraph node
@@ -679,8 +719,12 @@ class TypstTranslator(SphinxTranslator):
         # or strands a `+`. (GATE-02 corpus fatal #20: <xref-modifiers>.)
         self._emit_id_anchors(node)
 
-        # Skip par() wrapping inside list items
+        # Skip par() wrapping inside list items; emit a real parbreak()
+        # between the 2nd+ paragraph and its predecessor (FID-02). This is a
+        # no-op for the FIRST paragraph in a list item, since
+        # list_item_needs_separator is reset to False in visit_list_item.
         if self.in_list_item:
+            self._emit_forced_break("parbreak()")
             self.in_paragraph = False
             return
 
@@ -698,8 +742,13 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The paragraph node
         """
-        # Skip closing if inside list items
+        # Skip closing if inside list items; mark that a paragraph separator
+        # is now needed before the next list-item sibling (FID-02) -- this is
+        # the piece that was previously MISSING, so the helper in
+        # visit_paragraph never actually fired a leading "\n" before the
+        # 2nd+ paragraph's parbreak().
         if self.in_list_item:
+            self.list_item_needs_separator = True
             return
 
         # Close par({}) content block and add spacing
@@ -919,6 +968,24 @@ class TypstTranslator(SphinxTranslator):
         if self.in_literal_block:
             self.add_text(text_content)
             return
+
+        # FID-11: a paragraph authored with reST soft/semantic source line
+        # breaks and no inline markup at the wrap point is merged by
+        # docutils into a SINGLE Text node carrying a literal '\n' where the
+        # source line wrapped. escape_typst_string would otherwise turn that
+        # embedded '\n' into the two-char "\n" escape inside the emitted
+        # text("...") string, which Typst decodes back into a literal
+        # control character -- forcing a HARD line break in the rendered
+        # paragraph instead of the single-space reflow HTML/print
+        # conventionally use for a soft wrap. Collapse to a single space
+        # here, strictly BEFORE escaping (D-Disc-1, Pattern 2), so this does
+        # not bypass or weaken escape_typst_string's own escaping. The
+        # guard set is safe: in_literal_block already early-returned above;
+        # line_block/line content uses a structural linebreak() via
+        # depart_line, never an embedded '\n' in a line's own Text child;
+        # inline raw()/literal content never routes through visit_Text at
+        # all (visit_literal escapes node.astext() directly).
+        text_content = text_content.replace("\n", " ")
 
         # Escape string content via the shared helper (order-safe, full set)
         text_content = escape_typst_string(text_content)
@@ -1185,6 +1252,27 @@ class TypstTranslator(SphinxTranslator):
             code_content = code_content.replace(".", "." + zwsp).replace(
                 "_", "_" + zwsp
             )
+        elif code_content and code_content[0] in ":;,)]}!?":
+            # FID-10: a long run of colon-leading inline literal role tokens
+            # (e.g. ``:cpp:any:`` ``:cpp:class:`` ...) overflows the page's
+            # right margin instead of wrapping at the space between tokens.
+            # Typst's line-breaker honors Unicode UAX14 rule LB13 ("do not
+            # break before class CL/CP/EX/IS/SY, even after a space") for a
+            # token starting with one of these no-break-before characters --
+            # suppressing the break opportunity that would otherwise exist
+            # right before the token, even though the preceding text(" ")
+            # is real, breakable content (21-RESEARCH.md Pattern 1 /
+            # Pitfall 1). A leading zero-width space gives the line-breaker
+            # an explicit break opportunity at the token boundary without
+            # touching a single visible glyph (D-04 -- boundary-only, never
+            # break inside a token). Gated to this narrow character class so
+            # the many existing exact-match raw("...") assertions elsewhere
+            # (none of which start a literal with one of these characters)
+            # stay byte-unchanged (Pitfall 1 / Assumption A1). This is a
+            # NEW, independent elif sibling -- the self.in_table primitive
+            # above stays completely isolated (D-05).
+            zwsp = chr(0x200B)  # zero-width space
+            code_content = zwsp + code_content
 
         # Escape code content for string parameter via the shared helper.
         # Must escape newline/CR/tab too (not just backslash+quote): an inline
@@ -1510,9 +1598,24 @@ class TypstTranslator(SphinxTranslator):
             # No # prefix in code mode
             self.add_text(f"figure(caption: [{escaped_caption}])[\n")
 
-        # If in list item, wrap codly() calls and code block in { } to make it an expression
+        # If in list item, wrap codly() calls and code block in { } to make
+        # it an expression. FID-12: when this list-item wrapper is ALSO
+        # opened immediately inside a captioned figure's markup-mode [...]
+        # content (see the `figure(caption: [...])[` block above), a bare
+        # '{' is parsed as LITERAL TEXT in Typst markup mode -- it does NOT
+        # re-enter code mode, and the per-block codly config call that
+        # follows leaks as visible prose instead of executing. Only '#{'
+        # re-enters code mode from markup mode. When NOT captioned, we are
+        # already in a CODE-mode context (top level, admonition, table
+        # cell, or the enum()/list argument position), so the wrapper stays
+        # bare, byte-unchanged from before.
         if self.in_list_item:
-            self.add_text("{\n")
+            wrapper_prefix = (
+                "#"
+                if (self.in_captioned_code_block and self.code_block_caption)
+                else ""
+            )
+            self.add_text(f"{wrapper_prefix}{{\n")
 
         # Per-block codly config (number-format / offset / codly-range) is a
         # code-mode FUNCTION CALL, and whether it needs a leading `#` depends
@@ -1703,14 +1806,27 @@ class TypstTranslator(SphinxTranslator):
         # auto-joins the statements into one content value -- a valid single
         # argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/
         # bug #3/#5) untouched; we wrap only the definition arg.
+        # FID-05: terms()'s built-in `separator` parameter defaults to a WEAK
+        # h(0.6em) horizontal space, not a line break -- when a definition's
+        # first content is bare inline (e.g. nested in a list_item, where
+        # visit_paragraph early-returns per FID-02, or when the definition
+        # opens with a nested list/field-list whose own first content is also
+        # inline), nothing forces a break and the term flows onto the same
+        # line as its definition. Setting separator: linebreak() unconditionally
+        # fixes both sub-cases and is a no-op-visual-change for the
+        # already-correct par()-wrapped case (a block cannot share a line with
+        # preceding inline flow regardless of the separator). This is a
+        # terms()-call-PARAMETER change -- NOT routed through the shared
+        # _emit_forced_break helper (Pitfall 3): the bug is a Typst-layout
+        # default, not a missing statement-boundary.
         if items:
             items_str = ", ".join(
                 f"terms.item({term}, {self._wrap_definition_arg(definition)})"
                 for term, definition in items
             )
-            self.add_text(f"terms({items_str})\n\n")
+            self.add_text(f"terms(separator: linebreak(), {items_str})\n\n")
         else:
-            self.add_text("terms()\n\n")
+            self.add_text("terms(separator: linebreak())\n\n")
 
         # A following sibling in the same list item must newline-separate from
         # this terms(...) statement.
@@ -2701,7 +2817,15 @@ class TypstTranslator(SphinxTranslator):
                 label_id = self._namespace_label(
                     self._current_docname(), node["ids"][0]
                 )
-                self.add_text(f'\n#label("{label_id}")')
+                # FID-13 fix: no leading '\n'. The preceding content is
+                # always the closing ')' of the reference's link(...) call
+                # -- '#' unambiguously starts a new markup-embedded
+                # expression with no separator needed. A leading '\n' here
+                # renders as a visible space in Typst MARKUP mode (a
+                # newline in markup content collapses to a space), which
+                # combines with the genuinely-source-present following
+                # space to produce a stray double space (D-03).
+                self.add_text(f'#label("{label_id}")')
             # Close the markup block
             self.add_text("]")
             # Clear the flags
@@ -4246,9 +4370,18 @@ class TypstTranslator(SphinxTranslator):
         dummy `nodes.Text` delegated to `visit_Text` -- inheriting the
         existing string-escaping regime -- rather than `node.astext()` or
         a raw f-string interpolation (V5 Input Validation, Pitfall 7).
+
+        FID-14: the auto-generated PEP 3102 keyword-only ("*") and PEP 570
+        positional-only ("/") signature separators are represented as an
+        `abbreviation` node whose OWN visible text is exactly "*" or "/" --
+        the sole reliable, narrow-scope signal (no distinguishing
+        classes/ids exist). Suppress the appended explanation ONLY for
+        those two exact cases; a genuine `:abbr:` role's acronym text is
+        never bare "*"/"/", so it keeps its inline expansion unchanged
+        (D-Disc-3).
         """
         explanation = node.get("explanation", "")
-        if explanation:
+        if explanation and node.astext() not in ("*", "/"):
             dummy_text = nodes.Text(f" ({explanation})")
             self.visit_Text(dummy_text)
 
@@ -4314,21 +4447,52 @@ class TypstTranslator(SphinxTranslator):
         any child (signature/content) is visited.
         """
         self._emit_id_anchors(node)
+        # Reset per desc (FID-03): tracks whether the NEXT desc_signature
+        # child is this desc's first, so sibling signatures (overloads /
+        # alias groups / multi-option directives) get a leading linebreak()
+        # while a lone signature stays byte-unchanged. A plain scalar (not a
+        # stack) is safe here -- a desc's own desc_signature children are
+        # always fully processed (doctree order) before its desc_content
+        # (which may hold nested desc children) is entered, so a nested
+        # desc's own reset never races the outer desc's already-completed
+        # signature loop.
+        self._is_first_desc_signature = True
 
     def depart_desc(self, node: addnodes.desc) -> None:
         """
         Depart a desc node.
 
         Add spacing after API description blocks.
+
+        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back
+        body-less desc siblings (e.g. confvals with only :type:/:default:
+        fields, no body paragraph) previously concatenated onto one running
+        line because a bare cosmetic "\\n\\n" produces no visual break in
+        Typst code mode. Applying parbreak() unconditionally (even when the
+        desc's last content already ends in a par()) is verified harmless --
+        no double-gap artifact -- so no body-less-detection guard is needed.
         """
-        self.body.append("\n\n")
+        self._emit_forced_break("parbreak()")
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
         Visit a desc_signature node (API element signature).
 
         Signatures are rendered in bold using strong({}) wrapper.
+
+        Sibling desc_signatures (overloads / alias groups / multi-option
+        directives) emit a real Typst linebreak() BEFORE every signature
+        after the first (FID-03) -- a source '\\n' between two code-mode
+        statements is cosmetic-only (produces zero visual break), so
+        linebreak() (via the shared _emit_forced_break helper) is required
+        to stack them on separate lines rather than concatenating onto one
+        running line. A desc with a single signature (the overwhelming
+        common case) emits zero extra bytes (the flag stays True through
+        the only signature) -- byte-for-byte unchanged.
         """
+        if not self._is_first_desc_signature:
+            self._emit_forced_break("linebreak()")
+        self._is_first_desc_signature = False
         # Create a dummy strong node and use its visitor logic
         dummy_strong = nodes.strong()
         self.visit_strong(dummy_strong)
@@ -4582,8 +4746,29 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def depart_field(self, node: nodes.field) -> None:
-        """Depart a field node."""
-        pass
+        """
+        Depart a field node.
+
+        Emit an inter-field double-space separator (FID-09) when this field
+        has a following sibling, mirroring depart_desc_parameter's "am I the
+        last sibling" idiom. The double space is wrapped in BOTH a leading
+        AND a trailing newline so it never juxtaposes with the neighboring
+        strong(...) call on one physical source line -- a leading-only
+        newline is a real Typst "expected semicolon or line break" fatal.
+
+        Only applies when the field body just closed used the collapsed
+        inline form (see visit_field_body/depart_field_body). A
+        paragraph-wrapped / block field body (the common ``:param:``/
+        ``:type:``/``:returns:`` docstring case, and any field value on its
+        own blank-line-separated line) already gets adequate separation from
+        depart_field_body's trailing newline plus the next field's fresh
+        strong( statement -- adding "  " there lands as a stray leading
+        two-space indent glued to the next field's label (CR-01).
+        """
+        if self._last_field_body_was_inline and node.next_node(
+            descend=False, siblings=True
+        ):
+            self.body.append('\ntext("  ")\n')
 
     def visit_field_name(self, node: nodes.field_name) -> None:
         """
@@ -4603,8 +4788,11 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_field_name(self, node: nodes.field_name) -> None:
         """Depart a field_name node."""
-        # Close strong() and add colon
-        self.body.append(' + text(":"))\n')
+        # Close strong() and add a colon followed by a breakable space
+        # (FID-09) -- the space is a real content value inside the +-joined
+        # strong() expression, restoring the "Type: int" colon-space that
+        # was previously emitted as a bare colon with no trailing space.
+        self.body.append(' + text(": "))\n')
 
         # Restore paragraph state
         if hasattr(self, "_field_name_was_in_paragraph"):
@@ -4649,6 +4837,10 @@ class TypstTranslator(SphinxTranslator):
         Restore the concat context saved by :meth:`visit_field_body` and add a
         newline after the field body.
         """
+        # Remember whether THIS field body was collapsed-inline, for
+        # depart_field's separator decision (CR-01), before popping back to
+        # the parent's saved state.
+        self._last_field_body_was_inline = self._in_field_body
         self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
         self.body.append("\n")
 
@@ -4669,12 +4861,32 @@ class TypstTranslator(SphinxTranslator):
         self.visit_strong(dummy_strong)
 
     def depart_rubric(self, node: nodes.rubric) -> None:
-        """Depart a rubric node."""
+        """
+        Depart a rubric node.
+
+        Emits a real Typst linebreak() unconditionally after the rubric
+        heading (FID-04) -- a rubric option-group heading (and the
+        directive-option "Options" heading) previously merged onto the same
+        line as the first following option/field because a bare cosmetic
+        "\\n" produces no visual break in Typst code mode (both the rubric
+        and whatever follows render via strong()). A rubric always needs
+        separation from what follows, so this fires unconditionally --
+        verified harmless at true end-of-document (nothing follows the
+        trailing linebreak()): no compile error, no visible artifact.
+        """
         # Use strong's depart logic
         dummy_strong = nodes.strong()
         self.depart_strong(dummy_strong)
-        # Add extra spacing after rubric
-        self.body.append("\n")
+        # depart_strong's closing "})" carries no trailing separator of its
+        # own (unlike depart_desc_signature, whose unconditional trailing
+        # "\n" is what makes FID-03's leading-linebreak() placement safe at
+        # the NEXT signature). Without this explicit "\n" here, linebreak()
+        # would directly abut "})" with zero whitespace between two
+        # code-mode statements -- confirmed via a real compile this session
+        # to fail with "expected semicolon or line break" (Pitfall 1's
+        # class of bug, encountered at the LEADING boundary this time).
+        self.add_text("\n")
+        self._emit_forced_break("linebreak()")
 
     def visit_title_reference(self, node: nodes.title_reference) -> None:
         """
@@ -4704,14 +4916,10 @@ class TypstTranslator(SphinxTranslator):
 
     def visit_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
         """Visit a desc_sig_space node (whitespace in signatures)."""
-        # Output space directly, not as separate text() node
-        self.body.append(" ")
-        # Don't set list_item_needs_separator - space is connector
-        raise nodes.SkipNode
+        pass
 
     def depart_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
         """Depart a desc_sig_space node."""
-        # Handled in visit
         pass
 
     def visit_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:

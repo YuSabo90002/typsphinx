@@ -168,9 +168,15 @@ class TestTableInListItemRenderGate:
         # A top-level table (not nested in a list item) must stay
         # byte-unchanged: no list-item separator applies outside a list item,
         # so the table( emission must NOT gain a spurious leading newline.
+        # NOTE (Phase 21 Plan 02, FID-11): the fixture's lead-in sentence is
+        # authored across two source lines; the soft/semantic line break now
+        # correctly collapses to a single space (not an embedded '\n')
+        # before this text reaches the emitted text("...") call -- this
+        # assertion was updated in lockstep with that fix (unrelated to the
+        # table-separator behavior this test actually exercises).
         assert (
             'text("A table at the top level (not nested in a list item) '
-            'must stay\\nbyte-unchanged by this fix.")})\n\ntable(\n'
+            'must stay byte-unchanged by this fix.")})\n\ntable(\n'
             "  columns: (50fr, 50fr),\n" in typ_text
         ), (
             "The top-level table's rendering changed -- the list-item "

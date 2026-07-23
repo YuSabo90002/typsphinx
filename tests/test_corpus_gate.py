@@ -284,12 +284,14 @@ class TestCorpusRenderGate:
     def test_corpus_compiles_with_no_fatal_error(self, corpus_doc_dir, tmp_path):
         """
         Clone (cached), augment, build the FULL corpus (D-02) through
-        `-b typstpdf`, and assert the compiled `index.pdf` exists, is
-        non-empty, and starts with the `%PDF` magic bytes -- never relying
-        on `returncode == 0` alone (RESEARCH Pitfall 1: a missing
-        `typst_documents` entry would make `TypstPDFBuilder.finish()`
-        silently no-op, passing a returncode-only check trivially without
-        ever calling `typst.compile()`).
+        `-b typstpdf`, and assert the compiled `sphinx-corpus.pdf` (the
+        `typst_documents` target this test wires in, not the source
+        docname) exists, is non-empty, and starts with the `%PDF` magic
+        bytes -- never relying on `returncode == 0` alone (RESEARCH
+        Pitfall 1: a missing `typst_documents` entry would make
+        `TypstPDFBuilder.finish()` silently no-op, passing a
+        returncode-only check trivially without ever calling
+        `typst.compile()`).
 
         As a byproduct of the same build's captured stderr, the SC#2
         `unknown_visit` catalogue is produced and printed to stdout.
@@ -321,16 +323,23 @@ class TestCorpusRenderGate:
         outdir = tmp_path / "_build"
         result = _run_corpus_sphinx_build("typstpdf", corpus_doc_dir, outdir)
 
-        # SC#1 crux: the emitted PDF must actually exist -- docname-based
-        # naming (builder.py:544/560), never the typst_documents "target"
-        # field, never returncode == 0 alone. A fatal
-        # TypstCompilationError raised inside the subprocess build
-        # surfaces here as a nonzero return + a missing/empty PDF, failing
-        # these asserts loudly -- this IS the GATE-02 pass/fail signal.
-        pdf_path = outdir / "index.pdf"
+        # SC#1 crux: the emitted PDF must actually exist, named from the
+        # `typst_documents` target ("sphinx-corpus") via
+        # `TypstBuilder._resolve_output_stem` -- never the source docname,
+        # never returncode == 0 alone. Since Phase 22.1 (PDF-02, D-04/D-05),
+        # `TypstPDFBuilder.finish()` attempts every configured master and
+        # raises a single `ExtensionError` after the loop if any failed, so
+        # a fatal `TypstCompilationError` inside the subprocess build now
+        # surfaces as BOTH a nonzero return code AND a missing/empty PDF --
+        # this test deliberately keys on the artifact assertions (existence,
+        # non-empty, `%PDF` magic prefix) rather than on `returncode` alone,
+        # which remains the right choice: a missing `typst_documents` entry
+        # would make `finish()` no-op with returncode == 0 and no artifact,
+        # which only the artifact assertions catch (RESEARCH Pitfall 1).
+        pdf_path = outdir / "sphinx-corpus.pdf"
         assert pdf_path.exists(), (
-            "No index.pdf produced -- check typst_documents wiring landed "
-            f"and no fatal TypstCompilationError occurred:\n"
+            "No sphinx-corpus.pdf produced -- check typst_documents wiring "
+            f"landed and no fatal TypstCompilationError occurred:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         assert pdf_path.stat().st_size > 0, "PDF file is empty"
