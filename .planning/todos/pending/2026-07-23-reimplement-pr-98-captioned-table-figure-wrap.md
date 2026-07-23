@@ -2,6 +2,7 @@
 created: 2026-07-23T12:06:54.747Z
 title: PR#98 のキャプション付きテーブル figure ラップを現行 main に再実装する
 area: translator, tests
+resolves_phase: 25
 files:
   - typsphinx/translator.py:453 (visit_title)
   - typsphinx/translator.py:531 (depart_title)

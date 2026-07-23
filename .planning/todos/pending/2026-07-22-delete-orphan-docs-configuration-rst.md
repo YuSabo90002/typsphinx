@@ -2,6 +2,7 @@
 created: 2026-07-22T23:55:07+09:00
 title: 孤児の `docs/configuration.rst` を削除する
 area: docs
+resolves_phase: 27
 files:
   - docs/configuration.rst (526 行、`docs/source/` の外にありどの toctree からも参照されない孤児。誤パッケージ名 `sphinxcontrib.typst` を :20 と :330 に含み、誤ったパス言及 `sphinxcontrib/typst/templates/base.typ` を :486 に含む)
   - docs/source/user_guide/configuration.rst (253 行。README からの参照先として Phase 22.4 Plan 01 (D-12) が張り替え先に採用した、実際にビルドされ toctree からも到達可能な正解ファイル)

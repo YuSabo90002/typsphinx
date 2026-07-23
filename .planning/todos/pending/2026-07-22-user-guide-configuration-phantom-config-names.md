@@ -2,6 +2,7 @@
 created: 2026-07-22T23:55:07+09:00
 title: `docs/source/user_guide/configuration.rst` が実在しない設定名 5 個を記載している
 area: docs
+resolves_phase: 27
 files:
   - docs/source/user_guide/configuration.rst:154 (`typst_use_codly = True  # Default` — 未登録)
   - docs/source/user_guide/configuration.rst:160 (`typst_code_line_numbers = True  # Show line numbers` — 未登録)

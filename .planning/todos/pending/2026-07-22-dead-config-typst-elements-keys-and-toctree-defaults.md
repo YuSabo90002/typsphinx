@@ -2,6 +2,7 @@
 created: 2026-07-22T23:55:07+09:00
 title: 登録済みだが出力に反映されない `typst_*` 設定の第三・第四インスタンス（`typst_elements` の非マッピングキー / `typst_toctree_defaults`）
 area: source, config
+resolves_phase: 26
 files:
   - typsphinx/template_engine.py:62-66 (`DEFAULT_PARAMETER_MAPPING` — `project`/`author`/`release` の3キーのみ)
   - typsphinx/template_engine.py:186-213 (`map_parameters()` — `self.parameter_mapping.items()` でループし、マッピングに存在しないキーを無条件に捨てる)
