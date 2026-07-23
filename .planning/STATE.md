@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: 27
-current_phase_name: Docs 実測整合 — Orphan Delete + Phantom Config Names
-status: executing
+current_phase: 28
+current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
+status: planning
 stopped_at: Phase 27 context gathered
-last_updated: "2026-07-23T22:35:20.549Z"
+last_updated: "2026-07-23T23:00:33.092Z"
 last_activity: 2026-07-24
-last_activity_desc: Phase 27 execution started
+last_activity_desc: Phase 27 complete, transitioned to Phase 28
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 6
-  completed_plans: 5
-  percent: 60
+  completed_plans: 6
+  percent: 80
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 27 (Docs 実測整合 — Orphan Delete + Phantom Config Names) — EXECUTING
-Plan: 1 of 1
-Status: Executing Phase 27
-Last activity: 2026-07-24 — Phase 27 execution started
+Phase: 28 — v0.6.3 Release Prep + Regression-Gate Close
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-24 — Phase 27 complete, transitioned to Phase 28
 
 Progress: [░░░░░░░░░░] 0%
 

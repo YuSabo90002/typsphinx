@@ -19,8 +19,8 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 
 ### Docs fidelity
 
-- [ ] **DOC-06**: The orphan `docs/configuration.rst` (526 lines, unreachable from any toctree, containing the wrong package name `sphinxcontrib.typst`) is deleted after confirming no unique useful content is lost and no live reference remains.
-- [ ] **DOC-07**: Every documented `typst_*` name across the user-facing docs matches a value registered in `typsphinx/__init__.py`, over **both** phantom-bearing surfaces:
+- [x] **DOC-06**: The orphan `docs/configuration.rst` (526 lines, unreachable from any toctree, containing the wrong package name `sphinxcontrib.typst`) is deleted after confirming no unique useful content is lost and no live reference remains.
+- [x] **DOC-07**: Every documented `typst_*` name across the user-facing docs matches a value registered in `typsphinx/__init__.py`, over **both** phantom-bearing surfaces:
   - `docs/source/user_guide/configuration.rst` — `typst_author` → `typst_authors`; `typst_use_codly` / `typst_code_line_numbers` deleted (no real equivalent); `typst_papersize` / `typst_fontsize` rewritten as working `typst_elements` examples (leveraging CONF-04 shipped in Phase 26; the top-level names are NOT implemented — Sphinx's LaTeX builder mirror exposes papersize/pointsize only via `latex_elements`, so `typst_elements` is the faithful analog).
   - `docs/source/api/index.rst` — the redundant "Available Configuration Values" `list-table` (which lists 4 phantom names `typst_use_codly`/`typst_code_line_numbers`/`typst_papersize`/`typst_fontsize` AND omits 6 registered ones) is **deleted**, keeping only the existing `See :doc:/user_guide/configuration` pointer, so config is documented in ONE canonical place (prevents re-drift). The `docs/locale/ja/LC_MESSAGES/api/index.po` translation is updated to follow.
 
@@ -54,8 +54,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TBL-01 | Phase 25 | Complete |
 | TBL-02 | Phase 25 | Complete |
 | CONF-04 | Phase 26 | Complete |
-| DOC-06 | Phase 27 | Pending |
-| DOC-07 | Phase 27 | Pending |
+| DOC-06 | Phase 27 | Complete |
+| DOC-07 | Phase 27 | Complete |
 
 **Coverage:**
 
