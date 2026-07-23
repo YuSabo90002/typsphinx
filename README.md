@@ -205,7 +205,6 @@ Below are the main configuration options. This is not the complete set — see [
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
 - `typst_template_mapping`: Sphinx metadata to template parameter mapping
-- `typst_toctree_defaults`: Default toctree options
 
 ## Development
 
