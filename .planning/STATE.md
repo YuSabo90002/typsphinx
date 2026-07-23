@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
+current_phase: 24
+current_phase_name: Delete `typst_toctree_defaults`
 status: planning
-last_updated: "2026-07-23T12:25:56.898Z"
+stopped_at: Phase 24 context gathered
+last_updated: "2026-07-23T13:14:08.653Z"
 last_activity: 2026-07-23
+last_activity_desc: v0.6.3 ROADMAP.md created; 6/6 v1 requirements mapped
 progress:
   total_phases: 5
   completed_phases: 0
@@ -104,8 +108,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-23
-Stopped at: v0.6.3 ROADMAP.md created (Phases 24–28) — 6/6 v1 requirements mapped, REQUIREMENTS.md traceability populated, STATE.md initialized.
+**Resume file:** .planning/phases/24-delete-typst-toctree-defaults-dead-config-sweep-round-2-part/24-CONTEXT.md
+
+Last session: 2026-07-23T13:14:08.647Z
+Stopped at: Phase 24 context gathered
 Resume: plan the first phase with `/gsd-plan-phase 24`
 
 ## Operator Next Steps
