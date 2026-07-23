@@ -14,8 +14,8 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 
 ### Table rendering (PR#98 reimplementation)
 
-- [ ] **TBL-01**: A `.. table:: Caption` directive renders as `figure(table(...), caption: {...}, kind: table)` with native "Table N" numbering (no stray `heading()` before the table); a table **without** a caption stays a plain `table()` (never speculatively figure-wrapped); the caption preserves inline markup; and caption composes correctly with the existing `:width:` block wrap (caption+width both present). Correct on the 2nd-and-later table in a single document (no caption lost to a stale cell buffer).
-- [ ] **TBL-02**: A `:numref:` / `:ref:` reference to a captioned table resolves to a working cross-reference in the compiled PDF — the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, and a reference to it renders as a resolvable link (e.g. "Table N"), without colliding with the table's existing `_emit_id_anchors` id anchors. Proven by a real `typst.compile()` fixture where a `:numref:` to a labeled table resolves (no dangling/duplicate-label error). Builds on TBL-01 (the figure must exist to be labeled).
+- [x] **TBL-01**: A `.. table:: Caption` directive renders as `figure(table(...), caption: {...}, kind: table)` with native "Table N" numbering (no stray `heading()` before the table); a table **without** a caption stays a plain `table()` (never speculatively figure-wrapped); the caption preserves inline markup; and caption composes correctly with the existing `:width:` block wrap (caption+width both present). Correct on the 2nd-and-later table in a single document (no caption lost to a stale cell buffer).
+- [x] **TBL-02**: A `:numref:` / `:ref:` reference to a captioned table resolves to a working cross-reference in the compiled PDF — the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, and a reference to it renders as a resolvable link (e.g. "Table N"), without colliding with the table's existing `_emit_id_anchors` id anchors. Proven by a real `typst.compile()` fixture where a `:numref:` to a labeled table resolves (no dangling/duplicate-label error). Builds on TBL-01 (the figure must exist to be labeled).
 
 ### Docs fidelity
 
@@ -51,8 +51,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | CONF-05 | Phase 24 | Complete |
-| TBL-01 | Phase 25 | Pending |
-| TBL-02 | Phase 25 | Pending |
+| TBL-01 | Phase 25 | Complete |
+| TBL-02 | Phase 25 | Complete |
 | CONF-04 | Phase 26 | Pending |
 | DOC-06 | Phase 27 | Pending |
 | DOC-07 | Phase 27 | Pending |

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: 25
-current_phase_name: captioned-table-figure-wrap-cross-references-reimplement-pr-
-status: executing
-stopped_at: Phase 25 planned
-last_updated: "2026-07-23T14:58:51.028Z"
-last_activity: 2026-07-23
-last_activity_desc: Phase 25 execution started
+current_phase: 26
+current_phase_name: dead-config sweep round 2, part A
+status: planning
+stopped_at: Phase 25 context gathered
+last_updated: "2026-07-23T15:38:45.848Z"
+last_activity: 2026-07-24
+last_activity_desc: Phase 25 complete, transitioned to Phase 26
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 1
-  percent: 20
+  completed_plans: 3
+  percent: 40
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 25 (captioned-table-figure-wrap-cross-references-reimplement-pr-) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 25
-Last activity: 2026-07-23 — Phase 25 execution started
+Phase: 26 — `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-24 — Phase 25 complete, transitioned to Phase 26
 
 Progress: [░░░░░░░░░░] 0%
 
