@@ -4,15 +4,15 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 27.1
 current_phase_name: Typst 組版 lang の Sphinx language 連動 (INSERTED)
-status: planning
-stopped_at: Phase 27.1 context gathered
-last_updated: "2026-07-25T03:57:37.905Z"
+status: planned
+stopped_at: Phase 27.1 planned (3 plans, 2 waves)
+last_updated: "2026-07-25T05:01:25.000Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 28 の discuss を中断し、CONF-07 を切り出して Phase 27.1 を挿入
+last_activity_desc: Phase 27.1 を計画 — 3 plans / 2 waves、plan-checker VERIFICATION PASSED、決定被覆 9/9
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 6
+  total_plans: 9
   completed_plans: 6
   percent: 67
 ---
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 ## Current Position
 
 Phase: 27.1 — Typst 組版 lang の Sphinx `language` 連動 (INSERTED)
-Plan: Not started
-Status: Ready to discuss/plan
-Last activity: 2026-07-25 — Phase 28 の discuss を中断し、CONF-07 を切り出して Phase 27.1 を挿入
+Plan: 0/3 complete (Wave 1: 27.1-01, 27.1-02 parallel — Wave 2: 27.1-03)
+Status: Ready to execute
+Last activity: 2026-07-25 — Phase 27.1 を計画（3 plans / 2 waves、plan-checker VERIFICATION PASSED、決定被覆 9/9）
 
 Progress: [░░░░░░░░░░] 0%
 
