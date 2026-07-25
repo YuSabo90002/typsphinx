@@ -201,31 +201,122 @@ msgstr "用紙サイズとフォーマット"
 
 #: ../../source/user_guide/configuration.rst:174
 msgid ""
-"These are the only two supported ``typst_elements`` keys for paper size "
-"and base font size."
+"``papersize`` and ``fontsize`` set the paper size and the base font size."
+" ``typst_elements`` supports three keys in total; the third, ``lang``, is"
+" documented in `Document Language`_ below."
 msgstr ""
 
-#: ../../source/user_guide/configuration.rst:178
+#: ../../source/user_guide/configuration.rst:179
+msgid "Document Language"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:181
+msgid ""
+"The ``lang`` key controls the language Typst uses when generating its own"
+" labels -- most notably the figure and table supplement text (for example"
+" \"Figure\" / \"Table\" in English). It is passed through to the "
+"template's ``project()`` function and reaches Typst's text setup. The "
+"effect is concrete: with a Japanese setting, a captioned table renders as"
+" 「表 1」 and a figure as 「図 1」, where the default English setting renders "
+"\"Table 1\" and \"Figure 1\"."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:190
+msgid "Automatic derivation"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:192
+msgid ""
+"When your project uses the bundled default template, ``lang`` is derived "
+"automatically from Sphinx's own ``language`` setting -- no explicit "
+"configuration is needed. The derivation rule is simple: take the part of "
+"the value before the first underscore, hyphen, or at-sign, and lowercase "
+"it. For example:"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:198
+msgid "``ja`` becomes ``ja``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:199
+msgid "``zh_CN`` becomes ``zh``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:200
+msgid "``pt_BR`` becomes ``pt``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:202
+msgid ""
+"If a ``language`` value cannot be reduced to a two- or three-letter code,"
+" typsphinx emits a build warning naming the value and leaves the "
+"parameter unset, so the template's own default applies and the build "
+"still succeeds."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:208
+msgid "Scope: default template only"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:210
+msgid ""
+"Automatic derivation applies **only** when the bundled default template "
+"is what actually gets used. It does **not** apply when ``typst_template``"
+" is configured, when ``typst_package`` is configured, or when a file "
+"named ``base.typ`` sits next to your ``conf.py`` in the source directory "
+"(which silently shadows the bundled template). The reason: a template "
+"that does not declare a ``lang`` parameter would receive an argument it "
+"never asked for, and Typst aborts the compile on an undeclared argument."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:218
+msgid ""
+"If you use a custom template or package and want the same behavior, opt "
+"in explicitly: declare a ``lang`` parameter in your own ``project()`` (or"
+" equivalent entry function) and then set it through ``typst_elements``, "
+"as shown below."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:224
+msgid "Precedence and known limitation"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:226
+msgid ""
+"An explicit ``typst_elements`` ``lang`` entry always wins over the value "
+"derived from ``language``, on every template path, and an explicit value "
+"is passed through to Typst exactly as written with no validation."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:238
+msgid ""
+"**Known limitation:** region subtags are not supported, so a ``zh_TW`` "
+"project resolves to ``zh`` and renders simplified-Chinese supplement text"
+" 「图 1」 rather than the traditional 「圖 1」. If you need traditional "
+"Chinese, set the value explicitly through your own template."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:244
 msgid "Complete Example"
 msgstr "完全な例"
 
-#: ../../source/user_guide/configuration.rst:180
+#: ../../source/user_guide/configuration.rst:246
 msgid "Here's a complete ``conf.py`` example:"
 msgstr "以下は完全な ``conf.py`` の例です："
 
-#: ../../source/user_guide/configuration.rst:225
+#: ../../source/user_guide/configuration.rst:291
 msgid "See Also"
 msgstr "関連項目"
 
-#: ../../source/user_guide/configuration.rst:227
+#: ../../source/user_guide/configuration.rst:293
 msgid ":doc:`builders` - Understanding the typst and typstpdf builders"
 msgstr ":doc:`builders` - typstおよびtypstpdfビルダーの理解"
 
-#: ../../source/user_guide/configuration.rst:228
+#: ../../source/user_guide/configuration.rst:294
 msgid ":doc:`templates` - Customizing Typst templates"
 msgstr ":doc:`templates` - Typstテンプレートのカスタマイズ"
 
-#: ../../source/user_guide/configuration.rst:229
+#: ../../source/user_guide/configuration.rst:295
 msgid ":doc:`/examples/advanced` - Advanced configuration examples"
 msgstr ":doc:`/examples/advanced` - 高度な設定例"
 
@@ -246,4 +337,10 @@ msgstr ":doc:`/examples/advanced` - 高度な設定例"
 
 #~ msgid "Simple Format"
 #~ msgstr "シンプルな形式"
+
+#~ msgid ""
+#~ "These are the only two supported "
+#~ "``typst_elements`` keys for paper size "
+#~ "and base font size."
+#~ msgstr ""
 
