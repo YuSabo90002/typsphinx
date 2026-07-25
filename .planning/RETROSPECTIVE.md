@@ -210,6 +210,48 @@
 
 ---
 
+## Milestone: v0.6.3 — config & docs 実測整合 + captioned tables
+
+**Shipped:** 2026-07-25
+**Phases:** 6 (24, 25, 26, 27, 27.1, 28) | **Plans:** 12 | **Tasks:** 28 | **Sessions:** ~3 days (2026-07-23 → 2026-07-25)
+
+### What Was Built
+- Dead-config sweep round 2: the registered-but-inert `typst_toctree_defaults` deleted from all seven surfaces (CONF-05, Phase 24), and `typst_elements` `papersize`/`fontsize` finally reaching the template's `project()` via a curated `ELEMENTS_ALLOWLIST` with per-key typing (`papersize` quoted string, `fontsize` an unquoted Typst length through a `RawTypst` marker) and a fail-loud `ExtensionError` on unknown keys (CONF-04, Phase 26).
+- External PR#98 reimplemented against current `translator.py` (TBL-01/TBL-02, Phase 25): a captioned `.. table::`/`csv-table`/`list-table` emits `figure(table(...), caption:, kind: table)` with native "Table N" numbering, composed with the existing `:width:` block wrap, and carrying a single collision-free `<label>` so `:numref:`/`:ref:` resolve. Fixed the stale-`table_cell_content`-buffer bug at root, which had been silently eating the second-and-later table's caption.
+- Docs 実測整合 (DOC-06/DOC-07, Phase 27): the unreachable orphan `docs/configuration.rst` deleted with its collateral test, five phantom config names purged, and the redundant drifted config table in `api/index.rst` removed so config is documented in exactly one canonical place.
+- Typst's typesetting `lang` wired to Sphinx's own `language` conf (CONF-07, inserted Phase 27.1) — a two-line `base.typ` change plus a `derive_typst_lang()` conversion rule, gated to the bundled-default-template path with explicit `typst_elements["lang"]` structurally winning.
+- Phase 28 (prep-only) bumped the version, curated the `## [0.6.3]` CHANGELOG entry, and closed on a live full-corpus regression gate.
+
+### What Worked
+- **Separating the two config risks into distinct phases paid off.** The captioned-table state-machine work (25) and the `typst_elements` type-mismatch work (26) were deliberately kept in different phases; each shipped its own GATE-01 fixture and neither had to debug the other's failure mode.
+- **Ordering the docs phase strictly after the config phase.** Phase 27 could rewrite the phantom `typst_papersize`/`typst_fontsize` lines into *working* `typst_elements` examples because Phase 26 had already shipped the allowlist — the docs fix was a correction, not a deletion.
+- **The GATE-01 bar kept catching real defects.** Phase 26's negative unknown-key fixture and Phase 27.1's three non-regression fixtures (custom template / `typst_package` / srcdir shadow each proving no injected kwarg) are what make the fail-loud allowlist and the gated derivation safe to ship rather than merely plausible.
+- **Post-merge orchestrator review caught what worktree executors structurally could not.** Phase 27.1's three post-merge defects — a ruff I001/N811 CI break, a `typst_elements = None` TypeError regression, and five new docs-build warnings — were each invisible from inside the executor's own worktree. Re-running the gates on the main tree after merge is not ceremony.
+- **A long-standing execution hazard was finally root-caused.** The "45 integration tests fail only in worktrees" problem recurring since Phase 22.1 turned out to be `uv run` resolving a generic-linux ELF `uv` wheel inside the worktree venv that NixOS cannot exec — not the sandbox, not the editable install. One symlink closes it.
+
+### What Was Inefficient
+- **The `examples/` directory was invisible to two consecutive phases, and shipped broken.** Phase 26 made unknown `typst_elements` keys fail loud without checking who set them; Phase 27's "anywhere under `docs/source/`" criterion was read as the files the requirement named. The bundled `examples/advanced` sample was therefore unbuildable — and it surfaced only at the milestone close, from a todo, not from any gate. Worse, it had *also* been failing on stale `@preview` pins since v0.5.0 — three milestones of silent drift, because the version-sync guard watched only the three extension-internal surfaces.
+- **The same scoping miss happened twice in one milestone.** Phase 27 needed a post-verify gap-closure for phantom names in `docs/source/examples/*.rst` that the discuss/research/plan chain missed. The lesson had already been recorded after that gap-closure — and the `examples/` directory was still missed at the milestone level.
+- **No milestone audit was produced.** The close proceeded on Phase 28's live gate re-run standing in. That was defensible for requirement coverage, but the one real defect found at close was found by reading open todos, not by any automated or structured check.
+
+### Patterns Established
+- **A curated allowlist that fails loud beats both silent-drop and pass-through** when the downstream contract (a `.typ` `project()` signature) can't be introspected — but it must be paired with a check that everything the repo ships still builds.
+- **Precedence should be structural, not incidental:** pre-merge a derived default *under* the user's dict (right-hand-wins union) so "explicit wins" is a property of the data flow rather than of an if-branch that a later edit can invert.
+- **Version-sync guards must cover every surface that ships,** not just the ones the extension itself reads. A stale pin in a bundled sample is not cosmetic — it makes the sample fail to compile.
+
+### Key Lessons
+1. **When you make something fail loud, grep the whole repo for who was relying on it silently succeeding.** CONF-04's fail-loud allowlist was the right call and immediately broke a shipped example — the cost was not the fix, it was that nothing noticed for two more phases.
+2. **"Anywhere under X" in a success criterion means a repo-wide grep at discovery time.** Twice in one milestone, the criterion was checked against the files the requirement named. Naming the files is a hint, not the scope.
+3. **Anything the project ships to users should be built by CI, including examples.** The `examples/**/*.typ` version-sync check added at close is a start; actually building `examples/*` would have caught both axes of this defect three milestones earlier.
+4. **Verification gates prove the phases did what they said — they do not prove the repo is shippable.** Every phase was `verification_status: passed` and 7/7 requirements were checked off while a bundled sample could not build.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~3 calendar days (2026-07-23 → 2026-07-25); worktree-isolated executor mode throughout, with the `uv` shim hazard root-caused mid-milestone.
+- Notable: 6 phases / 12 plans for 7 requirements — the smallest milestone since v0.6.0, and the first where the most valuable finding came from the close's todo audit rather than from a phase.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -221,6 +263,7 @@
 | v0.6.0 | ~2 days | 5 | Translator robustness (Issue #114 + high-freq nodes); standing real-compile gate extended per phase; a real full-corpus (Sphinx `doc/`) build as the milestone gate |
 | v0.6.1 | ~6 days | 3 | Rendering fidelity: machine-catalogue → single human confirmation gate for a 151-docname visual audit; severity-gated backlog; first `override_closeout` driven by an audit/docs phase's missing machine verification |
 | v0.6.2 | ~4 days | 9 (incl. 4 inserted) | Rendering fidelity round 2: audit findings clustered by root cause into 3 translator phases; config→output regression gate closed a dead-config *class*; revert-and-restore fixture verification; `override_closeout` driven by an honest-verifier backstop abstention |
+| v0.6.3 | ~3 days | 6 (incl. 1 inserted) | Config & docs 実測整合: fail-loud curated allowlist replaced silent config drops; risks split across phases by failure mode rather than by feature; the worktree `uv` exec hazard root-caused; `override_closeout` with no milestone audit — and the milestone's one real defect (an unbuildable bundled example) found by the close's todo audit, not by any gate |
 
 ### Cumulative Quality
 
@@ -231,6 +274,7 @@
 | v0.6.0 | 476 fast + 18 GATE-01 real-compile classes + corpus gate (`test_corpus_gate.py`) | fast suite green; GATE-02 full-corpus PDF fatal-free | 0 new runtime deps |
 | v0.6.1 | + `wide_table_render_gate` real-compile class; todo/manpage/figwidth/table-width GATE-01 fixtures | fast suite green; GATE-03 full-corpus PDF fatal-free, `unknown_visit` catalogue empty | 0 new runtime deps |
 | v0.6.2 | 567 passed; + cluster A–F translator GATE-01 fixtures, target-name / nested-master / package-only / missing-malformed-master gates, config→output regression gate, `README`↔`pyproject` version-sync ratchet | fast suite green; full-corpus PDF fatal-free, `unknown_visit` empty | 0 new runtime deps |
+| v0.6.3 | 657 passed / 1 skipped; + captioned-table GATE-01 fixtures (2+-table, caption+width, `:numref:`), four `typst_elements` config→output fixtures incl. a negative unknown-key and a copyright-non-leak, `test_typst_lang_gate.py` (18 tests / 7 real-compile fixtures incl. 3 non-regression template paths), and a fourth-surface `@preview` sync check over `examples/**/*.typ` | full suite green; full-corpus PDF fatal-free, `unknown_visit` empty; `sphinx-build -b typstpdf examples/advanced` builds | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -243,3 +287,4 @@
 7. Draw the milestone boundary before polishing, and fast-forward `main` after every merge — v0.6.0 re-created v0.4.4's branch/main drift at 2× scale by deferring both. *(v0.4.4, re-learned v0.6.0; validated v0.6.1 — the polish was scoped as its own milestone up front)*
 8. For subjective/visual correctness, separate machine cataloguing (biased toward false-positives) from human judgment (one accept/reject + severity gate), and gate the resulting backlog by severity — promote only high-severity findings to requirements. *(v0.6.1)*
 9. Cluster audit-derived findings by shared code root cause and gate config on *output* not registration; prove a fixture has teeth by reverting the fix in place (byte-identical restore), and let an unexercisable truth abstain to human rather than counting it green. *(v0.6.2)*
+10. When you make a previously-silent failure loud, sweep the whole repo — including `examples/` — for who depended on the silence; and remember that per-phase verification proves the phases did what they said, not that the repo is shippable. *(v0.6.3 — a bundled sample shipped unbuildable through 6 green phases)*

@@ -7,7 +7,10 @@
 - ✅ **v0.6.0 — real-world robustness** — Phases 11–15 (shipped 2026-07-13) → [archive](milestones/v0.6.0-ROADMAP.md)
 - ✅ **v0.6.1 — rendering fidelity** — Phases 16–18 (shipped 2026-07-19) → [archive](milestones/v0.6.1-ROADMAP.md)
 - ✅ **v0.6.2 — rendering fidelity round 2** — Phases 19–23 (+22.1–22.4) (shipped 2026-07-23) → [archive](milestones/v0.6.2-ROADMAP.md)
-- 🚧 **v0.6.3 — config & docs 実測整合 + captioned tables** — Phases 24–28 (in progress)
+- ✅ **v0.6.3 — config & docs 実測整合 + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
+
+**Next milestone: not yet scoped.** Run `/gsd-new-milestone` to define it (questioning → research →
+requirements → roadmap). Phase numbering continues from 28.
 
 ## Phases
 
@@ -138,212 +141,46 @@ Full phase detail, success criteria, decisions, and tech-debt notes are preserve
 
 </details>
 
-### 🚧 v0.6.3 — config & docs 実測整合 + captioned tables (Phases 24–28) — IN PROGRESS
+<details>
+<summary>✅ v0.6.3 — config & docs 実測整合 + captioned tables (Phases 24–28, +27.1) — SHIPPED 2026-07-25</summary>
 
-**Milestone goal:** Make the documented configuration actually take effect and make the docs match the
-implementation. Three tracks over five phases: (1) dead-config sweep round 2 — delete the inert
-`typst_toctree_defaults` (part B) and implement the `typst_elements` `papersize`/`fontsize`
-pass-through (part A) so PDF-relevant keys reach the template's `project()`; (2) reimplement external
-PR#98 — a `.. table:: Caption` renders as a numbered `figure(table(...), caption, kind: table)`
-("Table N") that is cross-referenceable, while caption-less tables stay plain; (3) docs 実測整合 —
-delete the unreachable orphan `docs/configuration.rst`, correct the phantom config names in
-`user_guide/configuration.rst`, and delete the redundant phantom-bearing config table in
-`api/index.rst` (config documented in one canonical place). A prep-only Release phase closes the milestone.
+Closed the gap between what the docs promised and what the build actually did. Three tracks: the
+dead-config sweep round 2 — deleted the inert `typst_toctree_defaults` (CONF-05) and implemented the
+`typst_elements` `papersize`/`fontsize` pass-through behind a curated allowlist that fails loudly on an
+unknown key instead of silently dropping it (CONF-04); the reimplementation of external PR#98 so a
+captioned `.. table::` renders as `figure(table(...), caption, kind: table)` with native "Table N"
+numbering and resolvable `:numref:`/`:ref:` (TBL-01/TBL-02), fixing a stale-cell-buffer bug that had
+been silently eating the second table's caption; and docs 実測整合 — the unreachable orphan
+`docs/configuration.rst` deleted and every phantom `typst_*` name purged so config is documented in one
+canonical place (DOC-06/DOC-07). An inserted Phase 27.1 wired Typst's typesetting `lang` to Sphinx's
+own `language` conf (CONF-07), so a `language = "ja"` project's captioned tables read 「表 N」 rather
+than "Table N" — the one change that amended the milestone's `base.typ`-byte-unchanged invariant, and
+only for the two lines that add the `lang` parameter. Phase 28 (prep-only) bumped the version, curated
+the CHANGELOG, and closed on the full-corpus regression gate. Full phase detail, success criteria,
+decisions, and the GATE-01 evidence are preserved in
+[`milestones/v0.6.3-ROADMAP.md`](milestones/v0.6.3-ROADMAP.md).
 
-**Ordering rationale (research-driven, honored):** trivial 0-risk deletion first (Phase 24) → the
-translator captioned-table work (Phase 25, its own state-machine risk) → the config `typst_elements`
-pass-through (Phase 26, its own type-mismatch risk, kept in a **separate** phase from the table work)
-→ docs cleanup (Phase 27, **must** follow Phase 26 so the phantom `typst_papersize`/`typst_fontsize`
-lines are rewritten into *working* `typst_elements` examples, not a fatal one) → Release (Phase 28).
-TBL-01 and TBL-02 share Phase 25, TBL-01 first (the figure must exist to be labeled).
+- [x] Phase 24: Delete `typst_toctree_defaults` (1/1 plan) — completed 2026-07-23
+- [x] Phase 25: Captioned Table Figure Wrap + Cross-References (2/2 plans) — completed 2026-07-24
+- [x] Phase 26: `typst_elements` papersize/fontsize Pass-Through (2/2 plans) — completed 2026-07-24
+- [x] Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names (1/1 plan) — completed 2026-07-24
+- [x] Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED) (3/3 plans) — completed 2026-07-25
+- [x] Phase 28: v0.6.3 Release Prep + Regression-Gate Close (3/3 plans) — completed 2026-07-25
 
-**Standing bar (GATE-01):** every node-handler change (Phase 25) and every config→output change
-(Phase 26) ships a fail-pre-fix real `typst.compile()` regression fixture (template:
-`tests/test_package_only_config_gate.py`). Phase 25's fixture MUST exercise a 2+-table document (the
-stale-cell-buffer bug is invisible with one table) plus a caption+width case and a `:numref:`-resolves
-case. Phase 26's fixture MUST test `papersize` AND `fontsize` separately, a negative unknown-key case,
-and a copyright-non-leak case. String-agreement asserts alone never suffice. (Pure-removal Phase 24 and
-docs-only Phase 27 carry no config→output change, so GATE-01 does not apply there — a grep-zero /
-grep-cross-check proof + green suite is the honest bar.)
+**Closed at milestone close (not a phase):** the bundled `examples/advanced` sample was found
+unbuildable — five `typst_elements` keys outside the CONF-04 allowlist, and `_templates/custom.typ`
+three milestones behind on its `@preview` pins (`unknown variable: kai`). Both repaired, the template
+now declaring `papersize`/`fontsize`/`lang` so the sample demonstrates the allowlist, and
+`test_preview_version_sync.py` extended over `examples/**/*.typ` so a bundled sample can no longer
+drift unwatched.
 
-**Milestone invariant (every phase):** zero new runtime deps, no `@preview` version bump — the 3-way
-version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) stays untouched
-(CONF-04 is a 100% Python-side fix; `base.typ` is byte-unchanged). Flag during planning if a phase
-needs otherwise.
-
-**Invariant amendment (2026-07-25, owner decision — Phase 27.1 only):** `templates/base.typ` is
-**no longer byte-unchanged for the milestone**. Phase 27.1 (CONF-07) adds a `lang` parameter to
-`project()` and wires it into `set text()` — the only way to make the Typst typesetting language
-configurable, since `base.typ:61` hardcodes `lang: "en"`. The change is scoped to that parameter and
-its wiring; the `@preview` 4-package version strings (the actual 3-way sync surface) stay untouched
-and `tests/test_preview_version_sync.py` stays green. Every other phase keeps `base.typ`
-byte-unchanged, and zero-new-runtime-deps / no-`@preview`-bump hold everywhere.
-
-**Ship unit = milestone** (`branching_strategy: milestone`): Phase 28 is prep-only; the irreversible
-publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone`.
-
-- [x] **Phase 24: Delete `typst_toctree_defaults`** - Pure removal of the inert config value from every surface (registration, docs, examples, README, its test file) — grep-zero, 0-risk (completed 2026-07-23)
-- [x] **Phase 25: Captioned Table Figure Wrap + Cross-References** - `.. table:: Caption` → `figure(table, caption, kind: table)` "Table N" + `:numref:`/`:ref:` `<label>`; caption-less stays plain; caption+width compose; 2nd-table stale-buffer fix (completed 2026-07-24)
-- [x] **Phase 26: `typst_elements` papersize/fontsize Pass-Through** - `typst_elements` `papersize`/`fontsize` reach `project()` (string vs. unquoted length); unknown key fails loud; copyright never leaks; `base.typ` unchanged (completed 2026-07-24)
-- [x] **Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names** - Delete orphan `docs/configuration.rst`; fix phantom config names in `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements` examples) AND delete the redundant phantom-bearing config table in `api/index.rst` (+ its `.po`) so config lives in one canonical place (completed 2026-07-24)
-- [x] **Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)** - `base.typ` の `project()` に `lang` を追加し、既定テンプレート時は Sphinx `language` から自動導出、`typst_elements["lang"]` が優先。ja ドキュメントの PDF で "Table N" が「表 N」になる (completed 2026-07-25)
-- [x] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone` (completed 2026-07-25)
-
-### Phase 24: Delete `typst_toctree_defaults` (dead-config sweep round 2, part B)
-
-**Goal**: The registered-but-inert `typst_toctree_defaults` config value is gone from every surface, so it is no longer presented as a supported option — per-directive `:maxdepth:` etc. remains the documented path.
-**Depends on**: Nothing (first phase of the milestone; functionally independent — sequenced first only because it is trivial and 0-risk)
-**Requirements**: CONF-05
-**Success Criteria** (what must be TRUE):
-
-  1. Searching the whole repo (`typsphinx/__init__.py` registration, docs, `examples/advanced`, README, tests) for `typst_toctree_defaults` returns zero hits — a user can no longer discover it as a supported option.
-  2. The extension still imports, both builders register, and a documentation project builds green via `sphinx-build -b typst` with the value removed; the full existing test suite stays green and the registration-only `tests/test_config_toctree_defaults.py` is deleted (`tests/test_documentation_configuration.py` updated to drop its reference).
-  3. No `typst_toctree_defaults` example remains in any user-facing surface; documented toctree control is via per-directive options (`:maxdepth:` etc.).
-
-**Plans**: 1/1 plans executed
-
-- [x] 24-01-PLAN.md — Remove inert `typst_toctree_defaults` from all surfaces (registration + README/examples/docs), delete the registration-only test file, drop its doc-list entry; grep-zero + green suite
-
-**Note**: Pure removal of a grep-proven-inert value (zero consumers in `translator.py`/`writer.py`/`builder.py`/`template_engine.py`) — no config→output change, so GATE-01 does not apply; a grep-zero proof + green suite is the honest bar.
-
-### Phase 25: Captioned Table Figure Wrap + Cross-References (reimplement PR#98)
-
-**Goal**: A captioned table renders as a numbered "Table N" figure that can be cross-referenced, while a caption-less table stays a plain table.
-**Depends on**: Phase 24 (sequential order only — no functional dependency)
-**Requirements**: TBL-01, TBL-02
-**Success Criteria** (what must be TRUE):
-
-  1. A `.. table:: Caption` directive renders in the compiled PDF as `figure(table(...), caption: {...}, kind: table)` with native "Table N" numbering and **no** stray `heading()` above the table; the caption preserves inline markup.
-  2. A table **without** a caption still renders as a plain `table()` — never speculatively figure-wrapped.
-  3. A captioned table that also sets `:width:` renders with **both** the caption and the existing block-width wrap composed correctly (verified together, not separately).
-  4. The 2nd-and-later captioned table in a single document keeps its own caption — none lost to a stale cell buffer — proven by a 2+-table real-`typst.compile()` fixture.
-  5. A `:numref:` / `:ref:` to a captioned table resolves to a working "Table N" link in the compiled PDF: the `figure(..., kind: table)` carries a Typst `<label>` derived from the table's docutils target id, with no dangling/duplicate-label error and no collision with the table's existing `_emit_id_anchors` id anchors.
-
-**Plans**: 2/2 plans executed
-**Wave 1**
-
-- [x] 25-01-PLAN.md — Caption buffering + figure-wrap + `<label>` + deferred anchor in `translator.py`, with adapted PR#98 unit tests (TBL-01, TBL-02) — Wave 1
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 25-02-PLAN.md — GATE-01 real-compile render fixture (2+-table, caption+width, `:numref:`-resolves, csv/list) + pre-fix-basis failure proof (TBL-01, TBL-02) — Wave 2
-
-**Note**: GATE-01 fixture mandatory (template `tests/test_pdf_render_gate.py` — sentinel + pypdf pattern, per RESEARCH template correction) — MUST include a 2+-table document, the caption+width composition case, and a `:numref:`-resolves case, with red→green proof (durable pre-fix-basis reconstruction). Isolated from Phase 26 to keep the translator state-machine risk separate from the config type-mismatch risk.
-
-### Phase 26: `typst_elements` papersize/fontsize Pass-Through (dead-config sweep round 2, part A)
-
-**Goal**: A user who sets `papersize`/`fontsize` via `typst_elements` in `conf.py` sees them applied in the compiled output, with an unknown key failing loudly and baseline Sphinx metadata never leaking into the template.
-**Depends on**: Phase 25 (sequential — keeps the config-wiring/type risk isolated from the translator state-machine risk)
-**Requirements**: CONF-04
-**Success Criteria** (what must be TRUE):
-
-  1. `typst_elements = {"papersize": "us-letter"}` in `conf.py` reaches the template's `project()` and the compiled PDF uses that paper size, with `papersize` emitted as a Typst **string**.
-  2. `typst_elements = {"fontsize": "20pt"}` reaches `project()` with `fontsize` emitted as an **unquoted Typst length** (not a quoted string) and the compiled PDF uses that font size — proven by a fixture separate from the `papersize` case.
-  3. An unrecognized `typst_elements` key (one `base.typ`'s `project()` does not declare) **fails loudly** via the curated allowlist, rather than silently dropping it or emitting an undeclared kwarg that aborts the Typst compile.
-  4. Baseline Sphinx metadata (`copyright`, etc.) is **never** leaked into `project()` as a parameter.
-  5. `templates/base.typ` is byte-unchanged — the fix is 100% Python-side (`writer.py` keeps `typst_elements` separate; `template_engine.py`'s `map_parameters` merges the curated allowlist additively, leaving the Phase 22.2 guards intact).
-
-**Plans**: 2/2 plans executed
-
-**Wave 1**
-
-- [x] 26-01-PLAN.md — Python-side pass-through: `RawTypst` marker + `ELEMENTS_ALLOWLIST` + `map_parameters(typst_elements=)` additive merge/fail-loud in `template_engine.py`; `writer.py` passes `typst_elements` separately + drops dead `copyright`; unit tests + `base.typ` byte-unchanged (CONF-04) — Wave 1
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 26-02-PLAN.md — GATE-01 real-`typst.compile()` fixtures: positive papersize, separate positive fontsize, negative unknown-key abort, copyright-non-leak + durable pre-fix-basis failure proof (CONF-04) — Wave 2
-
-**Note**: GATE-01 fixtures mandatory — positive `papersize`, positive `fontsize` (separately), negative unknown-key (fails loudly), and copyright-non-leak — each a real-`typst.compile()` case with red→green proof.
-
-### Phase 27: Docs 実測整合 — Orphan Delete + Phantom Config Names
-
-**Goal**: Every documented `typst_*` name across the user-facing docs matches a registered config value; the unreachable orphan config doc is removed; and config is documented in ONE canonical place so it cannot re-drift.
-**Depends on**: Phase 26 (CONF-04 must ship first so the phantom `typst_papersize`/`typst_fontsize` lines can be rewritten into *working* `typst_elements` examples instead of delete-only — Pitfall 11 prevention)
-**Requirements**: DOC-06, DOC-07
-**Success Criteria** (what must be TRUE):
-
-  1. The orphan `docs/configuration.rst` (526 lines, unreachable from any toctree, containing the wrong package name `sphinxcontrib.typst`) is deleted, with no live toctree/xref reference to it remaining and no unique useful content lost.
-  2. In `docs/source/user_guide/configuration.rst`: `typst_author` → `typst_authors`; the unregistered `typst_use_codly` / `typst_code_line_numbers` examples removed; `typst_papersize`/`typst_fontsize` rewritten as **working** `typst_elements` examples (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) leveraging Phase 26 — NOT the phantom top-level names (Sphinx's LaTeX builder exposes papersize/pointsize only via `latex_elements`, so `typst_elements` is the faithful mirror; no top-level `typst_papersize` is implemented).
-  3. The redundant "Available Configuration Values" `list-table` in `docs/source/api/index.rst` (lists 4 phantom names + omits 6 registered ones) is **deleted**, keeping only the existing `See :doc:/user_guide/configuration` pointer — config documented in one canonical place; `docs/locale/ja/LC_MESSAGES/api/index.po` updated to follow.
-  4. Every `typst_*` name remaining anywhere under `docs/source/` maps to a value registered in `typsphinx/__init__.py` (grep cross-check over BOTH `user_guide/configuration.rst` and `api/index.rst`).
-  5. The docs still build (`sphinx-build`/`docs-multilang` green); no broken `:doc:`/`:ref:` left by the api-table deletion.
-
-**Plans**: 1/1 plans executed
-
-- [x] 27-01-PLAN.md — Delete orphan `docs/configuration.rst` + its collateral test; remove 5 phantom config names from `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements`); delete the `api/index.rst` list-table + follow its `.po`; grep cross-check + green docs build + green suite
-
-### Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)
-
-**Goal**: Typst の組版言語 (`set text(lang:)`) が Sphinx の `language` conf に連動する。`base.typ` の `project()` に `lang` パラメータを追加し、既定テンプレート使用時は `language` から自動導出、`typst_elements["lang"]` の明示指定が常に優先する。カスタムテンプレート／パッケージ利用者は `language` を設定しているだけでは壊れない。
-**Depends on**: Phase 26 (CONF-04 の `ELEMENTS_ALLOWLIST` / `map_parameters(typst_elements=)` 経路を土台にする), Phase 27
-**Requirements**: CONF-07
-**Success Criteria** (what must be TRUE):
-
-  1. Sphinx `language` を設定して既定テンプレートでビルドすると、その値が Typst の組版言語として実際にコンパイル済み成果物へ届き、Typst 生成の figure/table supplement が当該言語になる（現状は `lang: "en"` ハードコードにより常に "Figure N"/"Table N"）。実 `typst.compile()` の GATE-01 フィクスチャで、D-07 の分割証明として示す — `language = "ja"` は実コンパイル成功 + 生成 `.typ` の `lang: "ja"`（フォント非依存のソース証明）、supplement の言語連動は `language = "de"` + pypdf 抽出（NBSP 許容正規表現で "Tabelle 1"/"Abbildung 1" の存在と英語形の不在）で証明する。*(2026-07-25 実装後に更新: 元の文面は ja の PDF 抽出単独の証明を求めていたが、CJK グリフ抽出は CI ubuntu ランナーで未確認のシステムフォント可用性に依存するため、CJK フォントのバイナリ同梱を明示的に却下したうえで分割証明を採用した — 27.1-CONTEXT.md D-07)*
-  2. `typst_elements = {"lang": "..."}` の明示指定が Sphinx `language` からの自動導出より優先する（Sphinx LaTeX ビルダー `init_context()` の precedence — 言語別既定 → `latex_elements` が最後に勝つ — と同型）。`ELEMENTS_ALLOWLIST` の既存経路に乗るため全テンプレート経路で渡る。
-  3. 自動導出値はカスタムテンプレート (`typst_template`) / パッケージ (`typst_package`) 経路には渡さない。`language = "ja"` を設定済みで `lang` 未宣言の既存カスタムテンプレートがビルド失敗しないことを回帰フィクスチャで証明する（`unexpected argument: lang` の hard fatal を防ぐ）。
-  4. Sphinx の言語コード（`ja` / `zh_CN` / `pt_BR` 等のロケール付き形式を含む）から Typst の `lang`（必要なら `region`）への変換規則がテストで固定されており、未知・非標準の値でビルドが落ちない。
-  5. マイルストーン不変量の改訂が守られる: `templates/base.typ` の変更は `project()` への `lang` パラメータ追加とその `set text()` への配線**のみ**に限る。`@preview` 4 パッケージの版文字列（3-way 版同期面）は未変更で `tests/test_preview_version_sync.py` が緑。zero new runtime deps を維持。
-
-**Plans**: 3/3 plans executed
-
-**Wave 1** *(parallel — no shared files)*
-
-- [x] 27.1-01-PLAN.md — `base.typ` `lang` パラメータ + `ELEMENTS_ALLOWLIST` エントリ（同一コミット）+ `derive_typst_lang()` 変換規則 + テンプレート解決プロヴェナンス（D-06 判定）+ `writer.py` の pre-merge precedence (CONF-07)
-- [x] 27.1-02-PLAN.md — `docs/source/user_guide/configuration.rst` に `lang` キー・自動導出の適用範囲・precedence・`zh_TW` の限界を記載 + ja `.po` のスコープ限定 gettext 追従 (CONF-07 / D-09)
-
-**Wave 2** *(blocked on 27.1-01)*
-
-- [x] 27.1-03-PLAN.md — GATE-01 実 `typst.compile()` フィクスチャ 7 件（ja ソース証明 / de PDF 抽出 NBSP / precedence / custom-template・srcdir-shadow・package の非破壊 3 件 / 不正 `language`）+ 耐久 pre-fix-basis 証明と red→green 記録 (CONF-07)
-
-**Note**: SC#1 は D-07 の分割証明で読むこと — `ja` は実コンパイル成功 + 生成 `.typ` の `lang: "ja"`（フォント非依存）、supplement の言語連動は `de` + pypdf 抽出（NBSP 許容正規表現）で証明する。実装後に SC#1 の文面をこの分割方式に合わせて更新するのが望ましい。
-
-### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
-
-**Goal**: Prep-only — single-source the version bump to 0.6.3, curate the CHANGELOG entry, update the README status line, and close the milestone on the full-corpus regression gate. The irreversible publish is deferred to `/gsd-complete-milestone`.
-**Depends on**: Phase 27.1 (all seven v1 requirements delivered)
-**Requirements**: none (release/close phase — carries no requirement)
-**Success Criteria** (what must be TRUE):
-
-  1. `pyproject.toml` is bumped to `0.6.3` as the **sole** version literal, with `uv.lock` regenerated in lockstep (`uv sync --locked` green) and the `README.md` `**Status**` line updated to reflect v0.6.3.
-  2. `CHANGELOG.md` has a curated `## [0.6.3]` entry covering all 7 v1 requirements (CONF-04, CONF-05, CONF-07, TBL-01, TBL-02, DOC-06, DOC-07); the `## [Unreleased]` compare link is advanced and the `[0.6.3]` release/tag link block appended (release-prep's own job — does not violate a prior release phase's version-literal invariant).
-  3. The full-corpus real `typst.compile()` regression gate passes (valid `%PDF`, `unknown_visit` catalogue empty), confirming no regression from the milestone's changes.
-  4. The milestone invariant holds **as amended**: zero new runtime deps, no `@preview` version bump, the `@preview` version strings in `writer.py` / `template_engine.py` / `templates/base.typ` untouched. `base.typ` itself is no longer byte-unchanged — Phase 27.1 added the `lang` parameter to `project()` per the 2026-07-25 amendment; verify the diff is confined to that.
-  5. Scope fence: no tag, no PyPI publish, no merge — the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone` on the confirmed-green merge commit.
-
-**Plans**: 3/3 plans executed
-
-**Wave 1**
-
-- [x] 28-01-PLAN.md — 版リテラルを `pyproject.toml:7` / `README.md:315` / `uv.lock` で同時にバンプし、editable dist メタデータを作り直す。`uv.lock` diff の形状を分類して直接依存レンジ無変化を証明 (SC#1) — Wave 1
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 28-02-PLAN.md — 既存ゲート 3 点（コーパスゲート `-m slow -rs` / フル pytest スイート / `docs-pdf`・`docs-multilang`）を版バンプ後ツリーで実走し、SC#4 不変量 diff と SC#5 スコープ柵の否定 assert とあわせて `28-VERIFICATION.md` に逐語記録 (SC#3, SC#4, D-05〜D-08) — Wave 2
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 28-03-PLAN.md — `CHANGELOG.md` に `## [0.6.3]` エントリを新設（リード 3 軸 + 5 ブレット + `### Verified` 4 点、BREAKING は CONF-04/CONF-05 の 2 箇所のみ）し、末尾リンクブロックの `[0.6.3]:` 追加と `[Unreleased]:` compare 繰り上げ (SC#2, D-01〜D-04, D-09〜D-12) — Wave 3
-
-**Note**: 新規テストコード・新規ソース変更はゼロ。本フェーズが触るのは `pyproject.toml` / `uv.lock` /
-`README.md` / `CHANGELOG.md` と証跡ファイル `28-VERIFICATION.md` の 5 つのみ（D-04 のファイル柵）。
-実行順序は「版バンプ → ゲート実走 → CHANGELOG」— D-11 が `### Verified` 節にゲートが実際に assert した
-事実だけを許すため、ゲートは CHANGELOG より前に回す必要がある（Phase 23 と同じ形。`28-CONTEXT.md` の
-Claude's Discretion が括弧書きした「版バンプ → CHANGELOG → ゲート実走」は裁量範囲内の示唆であり、
-D-11 を優先した）。
-
-**SC#2 amendment (2026-07-25, owner decision — recorded during Phase 28 planning):** SC#2 の
-「covering all 7 v1 requirements」は **6 件**に読み替える。`28-CONTEXT.md` の D-10（SC#2 が書かれた
-2026-07-23 より後のオーナー裁定）が、DOC-06（孤児 `docs/configuration.rst` の削除）を CHANGELOG に
-**載せない**と明示的に決めている — どの toctree からも到達不能でユーザーの目には元々入っていない
-内部整理であり、可視性が他の 6 件と非対称であるため。D-10 は「プランが『全要件を漏れなく列挙』を
-理由に足し戻さないこと」と明記している。残る 6 件（CONF-04 / CONF-05 / CONF-07 / TBL-01 / TBL-02 /
-DOC-07）は 28-03-PLAN.md が 5 ブレットで漏れなく引用する。
+</details>
 
 ## Progress
 
 **Execution Order:**
-Active milestone phases execute in numeric order (decimal insertions between their surrounding integers): 24 → 25 → 26 → 27 → 27.1 → 28.
+Active milestone phases execute in numeric order (decimal insertions between their surrounding integers).
+No milestone is currently active — v0.6.3 shipped 2026-07-25 (executed 24 → 25 → 26 → 27 → 27.1 → 28).
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -391,10 +228,12 @@ Numbered 999.x so milestone reorganization never renumbers or drops them.
 **The backlog is currently empty.** New items land here as `999.x` entries. The dead-config sweep
 (`typst_elements` keys / `typst_toctree_defaults`), the PR#98 captioned-table reimplementation, the
 orphan `docs/configuration.rst` deletion, and the user-guide phantom config names were **promoted into
-v0.6.3** (Phases 24–27). Remaining discrete follow-up work stays in `.planning/todos/pending/` — RTD
-migration, sphinx-linkcheck CI, citation-node support, non-str-docname TypeError hardening,
-typing-import modernization, and github.io doc-link 404s (folded into the RTD migration) — see also
-STATE.md Deferred Items.
+v0.6.3** (Phases 24–27). Remaining discrete follow-up work stays in `.planning/todos/pending/` (9 open
+at the v0.6.3 close) — RTD migration, sphinx-linkcheck CI, citation-node support, non-str-docname
+TypeError hardening, typing-import modernization, github.io doc-link 404s (folded into the RTD
+migration), the PR#98 courtesy close, `derive_typst_lang()` warning-block duplication, and the
+`docs/usage.rst`/`installation.rst` orphan pair — see also STATE.md Deferred Items. The tenth
+(`examples/advanced` unbuildable) was **closed at the v0.6.3 milestone close**, not deferred.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23). v0.6.3 milestone added 2026-07-23 (Phases 24–28). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*

@@ -1,5 +1,26 @@
 # Milestones: typsphinx
 
+## v0.6.3 config & docs 実測整合 + captioned tables (Shipped: 2026-07-25)
+
+**Phases completed:** 6 phases, 12 plans, 28 tasks
+
+**Key accomplishments:**
+
+- Removed the registered-but-inert `typst_toctree_defaults` Sphinx config value from all seven code/doc/test surfaces (registration line, README, examples, surgically-edited docs/configuration.rst, deleted test file) while leaving the historical CHANGELOG.md entry untouched.
+- Captioned `.. table::`/csv-table/list-table now renders as `figure(table(...), caption: {...}, kind: table)` with native "Table N" numbering and a single collision-free `<label>`, fixing both the stray-heading bug and the stale-buffer bug that silently dropped a 2nd table's caption.
+- Real `sphinx-build -> typst.compile() -> pypdf` GATE-01 fixture proves the shipped Plan 25-01 translator fix compiles green end-to-end — every captioned-table caption survives exactly once (including the previously stale-buffer-lost 2nd table), `:numref:`/`:ref:` resolve with no duplicate/dangling-label fatal, and a durable fail-pre-fix proof reconstructs both original defect shapes from first principles.
+- RawTypst marker + ELEMENTS_ALLOWLIST curated merge in `template_engine.py`, wired from `writer.py` as a separate argument -- `papersize`/`fontsize` now reach `map_parameters()` with correct per-key typing, an unknown key fails loud via `ExtensionError`, and `copyright` is structurally unreachable.
+- Four standing real-`typst.compile()`/`sphinx-build` cases (papersize quoted, fontsize unquoted on a separate build, unknown-key abort, copyright non-leak) plus a durable `TestPreFixBasisFailureProof` reconstruction class prove CONF-04's `typst_elements` pass-through actually reaches `project()` -- with a recorded manual red->green confirmation against Plan 01's fix.
+- 1. [Rule 1 - Bug] Fixed latent docutils CJK-markup rendering bug revealed by the mandatory `.po` regen
+- `base.typ`'s `project()` gains a `lang` parameter wired into `set text(lang:)`, driven by a new `derive_typst_lang()` conversion helper and a `uses_bundled_default_template()` provenance predicate that gates auto-derivation to the default-template path only, with explicit `typst_elements["lang"]` always winning.
+- `lang` documented as the third `typst_elements` key in configuration.rst (derivation, default-template-only scope, explicit-wins precedence, zh_TW limitation) with a scope-limited ja gettext regeneration that keeps all 12 pre-existing obsolete catalog blocks intact.
+- A new `tests/test_typst_lang_gate.py` (18 tests, 8 classes) with seven real-compile fixture projects proves CONF-07's `lang` typesetting parameter actually reaches the compiled PDF and changes Typst's generated figure/table supplement labels — via the D-07 split proof (font-independent `ja` source assertion + `de` pypdf-extraction linkage assertion with a new NBSP-tolerant matcher) — while three non-regression fixtures prove no non-default template path ever receives an injected argument it never declared, and a durable pre-fix-basis reconstruction plus a manually recorded red-to-green transition close the loop.
+- Atomic version bump across pyproject.toml, uv.lock, and README.md's Status line, with the editable-dist install metadata refreshed so `typsphinx.__version__` reports 0.6.3 and all three version-sync guard tests stay green.
+- Live re-ran the SC#3 full-corpus regression gate, full pytest suite, and both docs-build tox environments against the post-version-bump v0.6.3 tree, and recorded verbatim evidence plus SC#4/SC#5 git-diff assertions in a new `28-VERIFICATION.md`.
+- Curated `## [0.6.3]` CHANGELOG entry (5 bullets, 6/7 v1 ledger IDs, BREAKING exactly on CONF-04/CONF-05) plus an advanced link-reference block, single source for the eventual GitHub Release body.
+
+---
+
 ## v0.6.2 rendering fidelity round 2 (Shipped: 2026-07-23)
 
 **Closeout:** override_closeout (pre-close artifact audit surfaced one non-blocking item — Phase 22.3's verification abstained to `human_needed` for a single `verification: backstop` truth: exercising the two GATE-01 fixtures under a real `pytest-xdist` parallel run, which the project does not depend on. All five ROADMAP success criteria for 22.3 were independently verified with direct evidence, including two live revert-and-restore reproductions of the pre-fix defects. Every other phase (19, 20, 21, 22, 22.1, 22.2, 22.4, 23) is `phase_complete` + verification `passed`. Operator acknowledged the backstop item plus 9 pending-todo backlog entries as deferred at close — see STATE.md Deferred Items. **Known verification overrides: 1** (Phase 22.3 pytest-xdist backstop).)
@@ -18,6 +39,7 @@
 - **Dead-config sweep + `typst_package` repair (Phase 22.2, CONF-01..CONF-03):** deleted `typst_output_dir` and `typst_author_params` from every surface, and made the Typst-Universe `typst_package` path — previously unable to compile at all — work end-to-end (BUG-A `_template.typ` never written, BUG-B unconditional param injection, BUG-C dead author wiring, BUG-D wrong docs examples), all locked by a standing config→output regression gate so a registration-only assert can no longer hide a dead feature.
 - **Builder-warning hardening + docs accuracy (Phases 22.3, 22.4, WR-01/WR-02, DOC-01..DOC-05):** a missing or malformed master now joins the aggregate `ExtensionError` instead of a silent successful build, the render gate stops asserting on `typst-py`'s uncontracted error wording, and README/CLAUDE.md/pyproject comments were re-derived from measured behavior — unverifiable numeric claims (test count, coverage %) removed rather than re-measured, with a `README`↔`pyproject` version-sync ratchet test added.
 - **Release prep + regression-gate close (Phase 23):** bumped `pyproject.toml` → 0.6.2 (sole literal) with `uv.lock` in lockstep, curated the `## [0.6.2]` CHANGELOG entry covering all 25 ledger IDs (Issue #117 presented as a user-visible output-filename change; `### Removed` for the config deletions), and closed on a live full-corpus `-b typstpdf` gate.
+
 ---
 
 ## v0.6.1 rendering fidelity (Shipped: 2026-07-19)
