@@ -1,4 +1,4 @@
-# Requirements: typsphinx v0.6.4 — Read the Docs 移行
+# Requirements: typsphinx v0.6.4 — Read the Docs migration
 
 **Defined:** 2026-07-25
 **Core Value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered
@@ -7,7 +7,7 @@ is applied to the *publishing* surface: a URL the project publishes must actuall
 a reader downloads must be the one typsphinx itself produced.
 
 **Research:** `.planning/research/SUMMARY.md` (2026-07-25) — HIGH confidence overall, with one
-genuinely open empirical unknown carried into Phase 1 (`@preview` package network egress inside RTD's
+genuinely open empirical unknown carried into Phase 29 (`@preview` package network egress inside RTD's
 build sandbox).
 
 ---
@@ -147,44 +147,64 @@ Carried forward and re-asserted for v0.6.4:
 Read the Docs project setup has no `.readthedocs.yaml` representation — it is web-UI work. No test in
 this repository can assert any of it. Tracked as an explicit checklist:
 
-1. Create the English RTD project (import + connect GitHub).
+1. Create the English RTD project (import + connect GitHub). **Confirm the project slug before
+   creation** — RTD slugs are not self-service changeable, and this milestone is about to publish that
+   slug into every documentation link. *(Phase 29)*
 2. Create a **separate** RTD project for Japanese — re-import the same repository — and set
    Language = Japanese in *that project's* Admin settings. This setting, not anything in `conf.py`, is
-   what makes RTD emit `READTHEDOCS_LANGUAGE=ja` at build time.
+   what makes RTD emit `READTHEDOCS_LANGUAGE=ja` at build time. *(Phase 30)*
 3. Link the Japanese project under the English parent's Settings → Translations. **Most likely step to
    be missed**: creating both projects without linking them leaves two working but unswitchable sites.
+   *(Phase 30)*
 4. Activate versions on the Japanese project independently — translation projects do not inherit the
-   parent's activated-version list.
+   parent's activated-version list. *(Phase 30, re-checked at Phase 33's handoff)*
 5. Set Default Version = `stable` — **only after** the `v0.6.4` tag has been pushed and built green
-   (RTD-04 / REL-02). Before then it stays `latest`.
-6. Set the GitHub repository's About → Website field (DOC-10).
+   (RTD-04 / REL-02). Before then it stays `latest`. *(Phase 33 handoff to
+   `/gsd-complete-milestone`)*
+6. Set the GitHub repository's About → Website field (DOC-10). *(Phase 31)*
+7. Disable the GitHub Pages site in the repository's Settings → Pages — deleting the `gh-pages` branch
+   removes the source but can leave the feature enabled against a missing source (CI-04). *(Phase 32)*
 
 ---
 
 ## Traceability
 
-Which phases cover which requirements. Populated during roadmap creation.
+Which phases cover which requirements. Populated during roadmap creation (2026-07-25).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RTD-01 | TBD | Pending |
-| RTD-02 | TBD | Pending |
-| RTD-03 | TBD | Pending |
-| RTD-04 | TBD | Pending |
-| I18N-01 | TBD | Pending |
-| I18N-02 | TBD | Pending |
-| DOC-08 | TBD | Pending |
-| DOC-09 | TBD | Pending |
-| DOC-10 | TBD | Pending |
-| CI-04 | TBD | Pending |
-| CI-05 | TBD | Pending |
-| REL-02 | TBD | Pending |
+| RTD-01 | Phase 29 | Pending |
+| RTD-02 | Phase 29 | Pending |
+| RTD-03 | Phase 29 | Pending |
+| RTD-04 | Phase 29 | Pending |
+| I18N-01 | Phase 30 | Pending |
+| I18N-02 | Phase 30 | Pending |
+| DOC-08 | Phase 30 | Pending |
+| DOC-09 | Phase 31 | Pending |
+| DOC-10 | Phase 31 | Pending |
+| CI-05 | Phase 31 | Pending |
+| CI-04 | Phase 32 | Pending |
+| REL-02 | Phase 33 | Pending |
 
 **Coverage:**
 - v1 requirements: 12 total
-- Mapped to phases: 0 ⚠️ (roadmap not yet created)
-- Unmapped: 12
+- Mapped to phases: 12 ✓ (Phases 29–33)
+- Unmapped: 0
+- Duplicates (a requirement in more than one phase): 0
+
+**Notes on two mappings that could have gone elsewhere:**
+
+- **RTD-04** is mapped to **Phase 29**, not the release phase, because the failure mode is created at
+  project-creation time (RTD's root redirect targets the Default Version setting even when that version
+  has no build). Phase 29 discharges it by setting Default Version = `latest` and proving the root
+  resolves; the invariant then stands as a re-fetch in every later phase's verification, and Phase 33
+  hands the post-tag `latest` → `stable` flip to the owner. See ROADMAP.md's "RTD-04 ownership" note.
+- **REL-02** is mapped to **Phase 33** but is only *half*-satisfiable there: the phase can bump the
+  version, curate the CHANGELOG, and prove the `Documentation` metadata URL resolves, but "published to
+  PyPI" and "`/en/stable/` + `/ja/stable/` serve that released version" can only be true *after* the
+  tag — i.e. after the phase. Phase 33's SC#5 records that half as an explicit
+  `/gsd-complete-milestone` + owner-manual handoff rather than asserting it.
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-07-25 after milestone v0.6.4 scoping (questioning + 4-agent research)*
+*Last updated: 2026-07-25 — roadmap created (Phases 29–33); Traceability and Coverage populated, owner-manual steps annotated with their owning phase*

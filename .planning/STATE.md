@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
 milestone: v0.6.4
-milestone_name: Read the Docs 移行
+milestone_name: Read the Docs migration
 status: planning
-last_updated: "2026-07-25T11:20:45.734Z"
+last_updated: "2026-07-25T12:05:00.000Z"
 last_activity: 2026-07-25
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,15 +19,64 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Milestone v0.6.4 — Read the Docs 移行. Defining requirements.
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
+**Current focus:** Milestone v0.6.4 — Read the Docs migration. Roadmap created (Phases 29–33); next is `/gsd-plan-phase 29`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 29 — RTD Build Establishment (English Parent) + PDF Path Decision (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-25 — Milestone v0.6.4 started
+Status: Roadmap created — awaiting phase planning
+Progress: [░░░░░░░░░░] 0% (0/5 phases)
+Last activity: 2026-07-25 — ROADMAP.md written for v0.6.4 (5 phases, 12/12 requirements mapped)
+
+## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
+
+Move documentation hosting from GitHub Pages to Read the Docs so that every published URL resolves and
+the downloadable PDF is the one `typstpdf` produced. 12 v1 requirements across 5 phases:
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 29 | RTD Build Establishment (English Parent) + PDF Path Decision | RTD-01, RTD-02, RTD-03, RTD-04 |
+| 30 | Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | I18N-01, I18N-02, DOC-08 |
+| 31 | Published-URL Cutover + Repo-Wide Link Guard | DOC-09, DOC-10, CI-05 |
+| 32 | GitHub Pages Teardown (IRREVERSIBLE) | CI-04 |
+| 33 | v0.6.4 Release Prep | REL-02 |
+
+**Ordering is load-bearing, not cosmetic.** Every reversible action precedes the single action with no
+undo. The roadmap deliberately **inverts** research's suggested order by putting the URL cutover
+(Phase 31) *before* the Pages teardown (Phase 32), so the rewritten README/PyPI links are proven
+against RTD while both hosts are still live. Phase 32 is kept standalone so the teardown has a standing
+gate in front of it — its first criterion is a *freshly re-taken* observation that RTD is serving
+English HTML, Japanese HTML, and the PDF-or-fallback, not a citation of earlier phases' evidence.
+
+**The milestone's one genuinely open empirical unknown:** whether `typst.compile()` can reach
+`packages.typst.org` from inside RTD's build sandbox (the four `@preview` packages must be fetched on a
+cold cache; no documentation source resolves RTD's egress policy). The decision point is reading the raw
+RTD build log in Phase 29, and the owner has pre-agreed the fallback — RTD-03's
+`releases/latest/download/` link path — so Phase 29 cannot deadlock on it. The wheel question
+(`manylinux2014_x86_64` confirmed on PyPI) and the font question (`typst-py`'s `embedded-fonts` feature
+confirmed in `Cargo.toml`) are settled; do not re-open them.
+
+**Two failure modes present as *successful builds*** and therefore have content-level criteria:
+I18N-01 (a Japanese project builds green while rendering 100% English — RTD sets
+`READTHEDOCS_LANGUAGE`, `conf.py:51` reads only `SPHINX_LANGUAGE`) and RTD-02 (Typst substitutes a
+missing font silently, so a glyph-wrong PDF builds successfully).
+
+**RTD-04 spans the milestone but is owned by Phase 29** (the failure mode is created at
+project-creation time). Default Version stays `latest` throughout and flips to `stable` only after the
+`v0.6.4` tag builds green. Phases 30–32 each re-fetch the documentation root as part of their own
+verification so the middle of the milestone is not unowned.
+
+## Performance Metrics
+
+**Velocity:**
+
+- Total plans completed (project cumulative): 67 (55 through v0.6.2 + 12 in v0.6.3)
+- v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
+- v0.6.4: 0/5 phases, started 2026-07-25
+
+*Updated after each plan completion*
 
 ## Shipped Milestone (v0.6.3 — archived)
 
@@ -44,7 +93,8 @@ full-corpus regression gate.
 
 **Published 2026-07-25:** PR #121 merged to `main` (CI 13/13 green), tag `v0.6.3` pushed,
 `release.yml` published `typsphinx==0.6.3` to PyPI (wheel + sdist) and created the GitHub Release.
-Milestone branches deleted; only `main` and `gh-pages` remain.
+Milestone branches deleted; only `main` and `gh-pages` remain — `gh-pages` is scheduled for deletion in
+Phase 32 (CI-04).
 
 **Closeout type:** `override_closeout` — all 6 phases were `phase_complete` with
 `verification_status: passed` and all 7 requirements checked off, but no `v0.6.3-MILESTONE-AUDIT.md`
@@ -57,20 +107,26 @@ independent axes — five `typst_elements` keys outside the CONF-04 allowlist, a
 milestones behind on its `@preview` pins (`unknown variable: kai`). Repaired inline before the tag,
 with `test_preview_version_sync.py` extended over `examples/**/*.typ` to close the drift channel.
 
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed (project cumulative): 67 (55 through v0.6.2 + 12 in v0.6.3)
-- v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
-
-*Updated after each plan completion*
-
 ## Accumulated Context
 
 ### Decisions
 
 Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
+
+- 2026-07-25 [v0.6.4 roadmap]: **URL cutover ordered before the Pages teardown**, inverting research's
+  suggested order. The dependency is "RTD is green," not "Pages is gone" — rewriting while both hosts
+  are live proves the new links resolve before anything is destroyed, and keeps the milestone's single
+  no-undo action last among reversible work.
+
+- 2026-07-25 [v0.6.4 roadmap]: **CI-04 kept as its own phase** rather than folded into a neighbour, so
+  the irreversible teardown carries a standing gate — a freshly re-taken "RTD is serving en HTML, ja
+  HTML, and the PDF-or-fallback" observation, not a citation of earlier evidence.
+
+- 2026-07-25 [v0.6.4 roadmap]: **`sphinx-build -b linkcheck` is out of scope** (Future LNK-01). A
+  repo-wide grep found zero `github.io` under `docs/source/`; the dead links live only in `README.md`
+  and `pyproject.toml`, which linkcheck structurally never scans — a green linkcheck job would
+  manufacture false confidence about exactly the bug class it was meant to prevent. CI-05 is a
+  repo-wide real-HTTP check instead, and DOC-09 keeps its own separate fetch-based bar.
 
 - 2026-07-25 [v0.6.3 close]: `examples/` templates joined the `@preview` version-sync guard. A bundled
   sample drifted three milestones behind unnoticed because the guard only watched the three
@@ -80,10 +136,6 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
   auto-derived `lang` is pre-merged *under* the user's dict, and auto-derivation is gated to the
   bundled-default-template path so custom-template/`typst_package` users are never handed an
   undeclared kwarg.
-
-- 2026-07-24 [Phase 26]: `typst_elements` uses a curated, hand-maintained allowlist that must mirror
-  `base.typ`'s `project()` signature. A `.typ` signature can't be introspected from Python, and an
-  undeclared kwarg is a hard Typst fatal — so the allowlist fails loud rather than passing through.
 
 - 2026-07-20: `branching_strategy: milestone` — ship unit is the milestone; the final phase is a
   prep-only Release phase, publish deferred to `/gsd-complete-milestone`. Push `main` to `origin` at
@@ -95,29 +147,25 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-Eight open in `.planning/todos/pending/` after the v0.6.3 close, all acknowledged as deferred:
+Nine open in `.planning/todos/pending/`. Three are now **promoted into v0.6.4** rather than deferred:
 
-- **move-documentation-hosting-to-read-the-docs** (docs) — RTD migration (~2026-07-30 target); the
-  github.io 404 doc-link fix is folded into it.
+- **move-documentation-hosting-to-read-the-docs** (docs) — **promoted** → Phases 29–33.
+- **github-io-doc-links-404-missing-en-prefix** (docs) — **promoted** → Phase 31 (DOC-09).
+- **docs-usage-installation-orphan-class** (docs) — **promoted** → Phase 30 (DOC-08).
 
-- **add-sphinx-linkcheck-ci-job** (ci, docs) — automate `sphinx-build -b linkcheck`; own ~1-phase task.
+Still deferred:
+
+- **add-sphinx-linkcheck-ci-job** (ci, docs) — stays open; deferred as Future requirement LNK-01 by
+  owner decision 2026-07-25 (structurally blind to `README.md` / `pyproject.toml`). CI-05 covers the
+  real failure class.
 - **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent;
   surfaced in Phase 22.2, permanent fix unplanned.
-
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening, deferred
   from Phase 22.3 (D-06).
-
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing
   imports until this lands.
-
-- **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision
-  2026-07-23), not interim-fixed.
-
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — Phase 27.1 code review IN-01
   (Info), consciously waived.
-
-- **docs-usage-installation-orphan-class** (docs) — `docs/usage.rst` / `docs/installation.rst` are the
-  same unreachable-orphan class Phase 27 deleted `docs/configuration.rst` for.
 
 Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** (measured gap-free),
 **examples-advanced-non-allowlisted-typst-elements-keys** (repaired at milestone close, see above),
@@ -130,16 +178,32 @@ over an open question. Read the whole thread before commenting on someone else's
 
 ### Blockers/Concerns
 
-None open. UI note: this project's phases are Typst PDF typesetting / config / docs work, NOT frontend
-UI — the `ui.plan-gate` false-positives on PDF/rendering phases; use `--skip-ui` if it flags them.
-GATE-01 note (from v0.6.2, still standing): the honest-verifier rule — abstain to `human_needed`
-rather than assert a truth without direct evidence.
+**Open empirical unknown (v0.6.4, by design):** `@preview` package egress from RTD's build sandbox —
+resolved in Phase 29 by reading the raw build log, with the owner's fallback (RTD-03) pre-agreed so the
+phase cannot deadlock. Not a blocker; a decision point.
 
-**Recurring scoping lesson (v0.6.3, twice):** a docs/config success criterion phrased "anywhere under
-X" must be checked by a repo-wide grep at discovery time, not against the files the requirement names.
-Phase 27 missed `docs/source/examples/*.rst` that way (closed post-verify), and the `examples/`
-directory was missed by *both* Phase 26 (fail-loud interaction) and Phase 27 — surfacing only at the
-milestone close as an unbuildable shipped sample.
+**Deletion guard, expected to fire in Phase 30:** `worktree.cleanup-wave` always blocks a branch that
+contains deletions (no bypass). Phase 30 deletes the multilang machinery *and* the orphan doc pair, so
+plan for a manual merge after measuring the deletion scope — Phase 27's precedent (PROJECT.md D-13).
+
+**Seven owner-manual RTD web-UI steps have no automated acceptance criterion** (REQUIREMENTS.md §
+Owner-Manual Steps, now annotated with owning phases). The step most likely to be missed is linking the
+Japanese project under the English parent's Settings → Translations — creating both projects without
+linking leaves two working but *unswitchable* sites.
+
+UI note: this project's phases are Typst PDF typesetting / config / docs / hosting work, **not**
+frontend UI — the `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui` if it
+flags a v0.6.4 phase. GATE-01 note (from v0.6.2, still standing): the honest-verifier rule — abstain to
+`human_needed` rather than assert a truth without direct evidence.
+
+**Recurring scoping lesson (v0.6.3, twice) — now milestone invariant #4:** a docs/config success
+criterion phrased "anywhere under X" must be checked by a repo-wide grep at discovery time, not against
+the files the requirement names. Phase 27 missed `docs/source/examples/*.rst` that way (closed
+post-verify), and the `examples/` directory was missed by *both* Phase 26 and Phase 27 — surfacing only
+at the milestone close as an unbuildable shipped sample. v0.6.4's Phase 30 deletion set is already known
+to be **larger than the milestone brief stated** (research's grep added `_templates/page.html` and
+`docs/Makefile`'s `multilang`/`serve-multilang` targets), which is itself the reason the invariant
+demands a *fresh* grep rather than trust in any list — including research's.
 
 ## Deferred Items
 
@@ -151,23 +215,30 @@ Items acknowledged and carried forward from milestone closes:
 | Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
 | Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
 | Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.2 | v0.6.1 scoping |
-| Config | CONF-06: `typst_elements` keys beyond papersize/fontsize/**lang** (needs `base.typ` `project()` params) — `lang` は 2026-07-25 に CONF-07 として切り出し v1 昇格（Phase 27.1）、残りは据え置き | Deferred to future milestone | v0.6.3 scoping |
+| Config | CONF-06: `typst_elements` keys beyond papersize/fontsize/**lang** — `lang` は 2026-07-25 に CONF-07 として切り出し v1 昇格（Phase 27.1）、残りは据え置き | Deferred to future milestone | v0.6.3 scoping |
 | Verification | No `v0.6.3-MILESTONE-AUDIT.md` produced (owner accepted; Phase 28's live gate re-run stood in) | Accepted at close | v0.6.3 close |
-| Todo (docs) | move-documentation-hosting-to-read-the-docs (+ github.io 404 links folded in) | Pending backlog | v0.6.2 close |
+| Docs/CI | LNK-01: `sphinx-build -b linkcheck` CI job (structurally blind to README/pyproject — CI-05 covers the real class) | Deferred to Future | v0.6.4 scoping |
+| i18n | I18N-03: a Japanese PDF (needs `build.apt_packages` CJK fonts + a glyph-correctness gate; Phase 27.1 declined CJK bundling for the same reason) | Deferred to Future | v0.6.4 scoping |
+| RTD | RTD-05: pull-request preview builds (one owner-side checkbox, no repo work, enable any time) | Deferred to Future | v0.6.4 scoping |
+| RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
+| UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
+| SEO (accepted loss) | Old `github.io` URLs 404 with no redirect stubs (owner decision 2026-07-25) | Accepted cost | v0.6.4 scoping |
 | Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
 | Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close |
 | Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
 | Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
-| Todo (docs) | github-io-doc-links-404-missing-en-prefix | Pending backlog | v0.6.3 close |
 | Todo (template_engine) | derive-typst-lang-duplicated-warning-block (review IN-01, Info) | Pending backlog | v0.6.3 close |
-| Todo (docs) | docs-usage-installation-orphan-class | Pending backlog | v0.6.3 close |
 
 ## Session Continuity
 
-Last session: 2026-07-25 — `/gsd-complete-milestone` v0.6.3
-Stopped at: Milestone v0.6.3 closed and archived
-Resume: `/gsd-new-milestone`
+Last session: 2026-07-25 — v0.6.4 roadmap creation
+Stopped at: ROADMAP.md written (Phases 29–33), REQUIREMENTS.md Traceability populated 12/12
+Resume: `/gsd-plan-phase 29`
 
 ## Operator Next Steps
 
-- Start the next milestone with `/gsd-new-milestone`.
+- Review `.planning/ROADMAP.md`'s v0.6.4 section — in particular the **RTD-04 ownership** note, the
+  inverted teardown/URL-cutover ordering, and the two-bar link-verification split.
+- **Confirm the RTD project slug** before Phase 29 executes — it is not self-service changeable and
+  this milestone publishes it into every documentation link.
+- Then plan the first phase: `/gsd-plan-phase 29`.

@@ -4,7 +4,7 @@
 **Researched:** 2026-07-25
 **Confidence:** HIGH for RTD platform mechanics (verified against official `docs.readthedocs.com` / `about.readthedocs.com` pages); MEDIUM/LOW flagged inline where only secondary sources were found; anything not directly confirmed is marked **UNVERIFIED**.
 
-> Supersedes the previous (2026-07-23) version of this file, which researched the **v0.6.3 config & docs 実測整合 + captioned tables** milestone (`typst_elements` pass-through, PR#98 captioned tables, docs orphan cleanup). That milestone shipped and is now archived; this version researches the **v0.6.4 Read the Docs 移行** milestone.
+> Supersedes the previous (2026-07-23) version of this file, which researched the **v0.6.3 config & docs 実測整合 + captioned tables** milestone (`typst_elements` pass-through, PR#98 captioned tables, docs orphan cleanup). That milestone shipped and is now archived; this version researches the **v0.6.4 Read the Docs migration** milestone.
 
 ## How to read this file
 

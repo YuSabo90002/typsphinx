@@ -14,7 +14,7 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free.
 
-## Current Milestone: v0.6.4 Read the Docs 移行
+## Current Milestone: v0.6.4 Read the Docs migration
 
 **Goal:** ドキュメントのホスティングを GitHub Pages から Read the Docs へ移し、公開 URL が実際に
 到達可能で、バージョン別・言語別に正しく引ける状態にする。
@@ -208,7 +208,7 @@ XREF-02（外部 URL への xref リンク）、CONF-06（`typst_elements` の�
 
 ### Active
 
-<!-- Current scope: milestone v0.6.4 (Read the Docs 移行), started 2026-07-25. The concrete,
+<!-- Current scope: milestone v0.6.4 (Read the Docs migration), started 2026-07-25. The concrete,
      ID-bearing requirement ledger lives in .planning/REQUIREMENTS.md, written by
      /gsd-new-milestone; this list is the milestone-level summary. -->
 
@@ -310,7 +310,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 — started milestone v0.6.4 (Read the Docs 移行) via `/gsd-new-milestone`.
+*Last updated: 2026-07-25 — started milestone v0.6.4 (Read the Docs migration) via `/gsd-new-milestone`.
 Scoped from owner direction (「RTD に移行するぜ」) against the pending-todo backlog, with four scoping
 decisions taken at questioning: **多言語** → RTD の翻訳プロジェクトモデル（en 親 + ja 子、自前
 `build_multilang.py` と language-switcher は廃止）; **PDF** → `build.jobs` で typstpdf 製 PDF を

@@ -1,6 +1,6 @@
 # Pitfalls Research
 
-**Domain:** Migrating an existing multi-language Sphinx + custom-builder (Typst PDF) documentation site from GitHub Pages to Read the Docs (RTD) — v0.6.4 "Read the Docs 移行" milestone
+**Domain:** Migrating an existing multi-language Sphinx + custom-builder (Typst PDF) documentation site from GitHub Pages to Read the Docs (RTD) — v0.6.4 "Read the Docs migration" milestone
 **Researched:** 2026-07-25
 **Confidence:** MEDIUM-HIGH (RTD official docs are current and directly cited; the one true unknown — a real build inside RTD's actual container — is flagged UNVERIFIED, not guessed at. Supersedes the prior v0.6.3-era PITFALLS.md that lived at this path, which covered a different milestone's translator-fix pitfalls and is no longer the active scope.)
 
