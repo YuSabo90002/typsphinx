@@ -84,7 +84,8 @@ Backlog (`.planning/todos/pending/`) after v0.6.3 scoping — the dead-config sw
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening, deferred from Phase 22.3 (D-06).
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing imports until this lands.
 - **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision 2026-07-23), not interim-fixed.
-- **verify-no-gap-between-pr98-and-phase25** (translator, planning) — PR#98 は OPEN のまま; Phase 25 の再実装と挙動ベースで突き合わせ、ギャップ無しを確認してから謝意付きでクローズ。遅くとも v0.6.3 milestone 完了まで。
+
+Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** — ギャップ無しを実測確認（PR#98 の 4 テストを verbatim 移植して 4/4 PASS、現行実装は厳密な上位集合）。テスト厳密さの差分 4 点を `tests/test_translator.py` に補強済み。**残: PR#98 のクローズ（謝意コメント付き）は未実施 — オーナー判断待ち、遅くとも v0.6.3 milestone 完了まで。**
 
 ### Blockers/Concerns
 

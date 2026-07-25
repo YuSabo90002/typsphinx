@@ -300,6 +300,12 @@ def test_captioned_table_renders_as_figure(simple_document, mock_builder):
     assert "kind: table" in output
     assert 'text("My Caption")' in output
     assert "heading(" not in output
+    # PR#98 parity: the rendered caption must land in the figure's own
+    # `caption:` slot (not merely appear somewhere in the output), and the
+    # inner table() -- cells included -- must survive the figure wrap.
+    assert 'caption: {text("My Caption")}' in output
+    assert "table(" in output
+    assert 'text("A")' in output
 
 
 def test_table_caption_supports_inline_markup(simple_document, mock_builder):
@@ -328,6 +334,11 @@ def test_table_caption_supports_inline_markup(simple_document, mock_builder):
     assert "figure(" in output
     assert "emph(" in output
     assert 'text("Important")' in output
+    # PR#98 parity: assert the COMPOSED emph() form inside the caption slot,
+    # so the emphasis cannot silently degrade to bare text or leak outside
+    # the caption.
+    assert 'emph({text("Important")})' in output
+    assert 'caption: {text("See ")\nemph({text("Important")})}' in output
 
 
 def test_table_caption_not_lost_after_previous_table(simple_document, mock_builder):
@@ -354,6 +365,50 @@ def test_table_caption_not_lost_after_previous_table(simple_document, mock_build
     assert 'text("Second Caption")' in output
     assert output.count("figure(") == 2
     assert output.count("kind: table") == 2
+    # PR#98 parity: each caption must appear EXACTLY once -- a caption that
+    # also leaked into a table cell would still satisfy the `in` checks above.
+    assert output.count('text("Second Caption")') == 1
+
+
+def test_table_caption_not_lost_after_uncaptioned_table(simple_document, mock_builder):
+    """A caption survives when the PRECEDING table had no caption (PR#98 shape).
+
+    Guards TBL-01 SC#4 from the other direction than
+    ``test_table_caption_not_lost_after_previous_table`` above: PR#98's
+    original repro walked an UNCAPTIONED table first, whose ``visit_entry``
+    creates ``table_cell_content`` and whose ``depart_entry`` only resets it
+    to ``[]`` -- leaving the attribute in existence so the NEXT table's
+    caption silently routed into it. ``depart_table``'s ``del`` covers both
+    orderings; this pins the uncaptioned-first one explicitly.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    uncaptioned = nodes.table()
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+    uncaptioned += tgroup
+
+    uncaptioned.walkabout(translator)
+    _build_captioned_table("Second Caption").walkabout(translator)
+
+    output = translator.astext()
+
+    assert 'caption: {text("Second Caption")}' in output
+    assert output.count('text("Second Caption")') == 1
+    assert output.count("figure(") == 1
 
 
 def test_uncaptioned_table_not_wrapped_in_figure(simple_document, mock_builder):
