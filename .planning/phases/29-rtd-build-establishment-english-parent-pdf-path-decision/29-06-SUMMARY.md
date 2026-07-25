@@ -87,6 +87,12 @@ None - no external service configuration required.
 - RTD-03 is not addressed by this plan; its status is determined by Branch A's own verdict recorded in Plan 05's sections and the phase-level RTD-02/RTD-03 reconciliation, not by this plan
 - No blockers for Phase 29 verify-phase arising from this plan
 
+## Self-Check: PASSED
+
+- `29-06-SUMMARY.md` FOUND on disk
+- Skip-record commit `a86a25e` FOUND in `git log --oneline --all`
+- `git status --porcelain` empty after commit (no stray untracked/modified files outside the two committed here)
+
 ---
 *Phase: 29-rtd-build-establishment-english-parent-pdf-path-decision*
 *Completed: 2026-07-25*
