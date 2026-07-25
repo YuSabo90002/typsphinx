@@ -35,15 +35,20 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
 - **GitHub Pages 撤去** — `docs.yml:57-63` の `peaceiris/actions-gh-pages` デプロイステップと `:40-43`
   の PDF コピーステップを削除し、`:34-35` を `docs-multilang` → `docs-html` へ。`tox -e docs-pdf`
   （typstpdf 回帰ゲート）と `:65-71` のタグ時 Release 添付は**残す**。`gh-pages` ブランチ削除
-- **URL 張り替え** — README 9 箇所（バッジ `:8`、ヘッダ `:12`、`:267`、深リンク 7 本 `:271-277`）、
+- **URL 張り替え** — README 10 箇所（バッジ `:8`、ヘッダ `:12`、`:267`、深リンク 7 本 `:271-277`。
+  当初「9 箇所」と書いたのは集計ミスで、内訳は当時から 10 件だった）、
   `pyproject.toml:56` の `Documentation`（現在 GitHub README を指している）、
   `.planning/codebase/INTEGRATIONS.md`。`CHANGELOG.md:393` は履歴記述なので据え置き（Phase 24 D-02 の前例）
 - **#119 クローズ + リポジトリ About の Website 設定** — #119（外部ユーザー put101 の [BUG] website
   seems down、OPEN）には「Website リンクと README 深リンクを直す」と返信済みで未履行。移行完了後に
   返信して閉じる。About の Website フィールドは現在 null
-- **`sphinx-linkcheck` の CI ジョブ** — README 深リンク 7 本の 404 が数か月誰にも気づかれなかった仕組み
-  欠落を塞ぐ。advisory 運用（必須チェックにしない — `drift.yml` の前例、D-07）から開始し、
-  `conf.py` に `linkcheck_ignore` を設定
+- **リポジトリ全域のリンク到達性検査 CI ジョブ**（2026-07-25 改訂 — 当初は `sphinx-build -b linkcheck`
+  を予定していた）— README 深リンク 7 本の 404 が数か月誰にも気づかれなかった仕組み欠落を塞ぐ。
+  advisory 運用（必須チェックにしない — `drift.yml` の前例、D-07）。**`sphinx linkcheck` は今回見送り**:
+  リサーチが `docs/source/` 配下の `github.io` 出現ゼロを grep で確定させ、死んでいた 7 リンクは
+  `README.md` / `pyproject.toml` にしか無い＝`sphinx linkcheck` の構造的な視野外だと判明したため。
+  緑の linkcheck は「まさに防ぎたかったバグクラスについて偽の安心を生む」だけになる。pending todo
+  `add-sphinx-linkcheck-ci-job` は open のまま（要件 LNK-01 として Future へ）
 - **`docs/usage.rst` / `docs/installation.rst` の孤児処理** — Phase 27 が削除した
   `docs/configuration.rst` と同クラス。toctree 到達性を実測して削除 or 移設を決める
 - **v0.6.4 リリース** — 最終フェーズで版バンプ + CHANGELOG、publish は `/gsd-complete-milestone`
@@ -57,6 +62,26 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
   ドキュメントは遡ってビルドできない — `stable` が実体を持つのは v0.6.4 のタグから
 - **旧 URL は救わない:** gh-pages 即時削除の判断（オーナー、2026-07-25）により、外部参照を含む既存の
   github.io リンクは 404 になる。リダイレクト併存はしない
+- **リサーチ後に追加で確定した 4 件の判断（オーナー、2026-07-25）:**
+  - **`@preview` フェッチが RTD のサンドボックスで通らなかった場合の退避** — RTD 側での PDF 生成は
+    諦め、ドキュメントから GitHub Release 添付の PDF へリンクする（`releases/latest/download/` の
+    安定 URL でリリースごとの編集不要に）。これがマイルストーン唯一の真の未知で、wheel/フォント問題
+    より上位のリスク（wheel は `manylinux2014_x86_64` の存在を PyPI メタデータで確認済み、フォントは
+    `typst-py` の `embedded-fonts` フィーチャを `Cargo.toml` で確認済みでいずれも実質決着）
+  - **ルートのブラウザ言語自動判定リダイレクト喪失** — 受容。RTD はバージョンへリダイレクトするが
+    訪問者の言語は自動判定しないため相当機能が無い。再実装は本マイルストーンが消そうとしている自前
+    テンプレートコードを再導入することになるので行わない
+  - **日本語 PDF は出さない** — `typst-py` の埋め込みフォント（Libertinus Serif / New Computer Modern）
+    に CJK グリフが無く、`build.apt_packages` でのフォント導入＋グリフ実測ゲートがセットで必要。
+    v0.6.3 Phase 27.1 が同じ理由で CJK 同梱を明示的に却下しているため、覆すなら独立した作業（I18N-03）
+  - **PR プレビュービルドは v1 から落とす** — オーナー側チェックボックス 1 つでリポジトリ側の作業が
+    無く、`docs.yml` が既に PR でドキュメントビルドをゲートしている。後からいつでも有効化可能（RTD-05）
+- **既定バージョンの適用タイミングは「stable」の決定を覆すのではなく順序付ける:** RTD のルート
+  リダイレクトは対象バージョンが存在しなくても Default Version 設定を向くため、移行中は `latest` の
+  ままにし、v0.6.4 タグが緑にビルドされた**後**に `stable` へ切り替える
+- **ビルド成功として現れる失敗が 2 つある:** 日本語プロジェクトが緑にビルドされて 100% 英語を
+  レンダリングする（I18N-01）、および PDF がグリフ置換されたまま生成される（RTD-02 — Typst の
+  フォントフォールバックは警告もエラーも出さない）。どちらも中身レベルの検証が必要
 - **不変量:** `typsphinx/` のランタイムコード変更なし、`@preview` 版バンプなし、3-way version-sync 面
   （4 パッケージの版文字列）未変更
 - **v0.6.3 の教訓を適用:** 「anywhere under X」系の成功条件はリポジトリ全域 grep で検証する
