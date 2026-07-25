@@ -323,7 +323,17 @@ version that exists.
      a version that serves real content, with Default Version deliberately left at `latest`, and the
      `latest` → `stable` flip recorded as an explicit precondition handed to Phase 33.
 
-**Plans**: TBD
+**Plans**: 6 plans in 6 waves (strictly sequential — the ordering is real-world, not organizational:
+each wave waits on an owner-performed RTD action or on the previous commit's build. Plans 05 and 06 are
+mutually exclusive branches; exactly one does work and the other records a skip.)
+
+Plans:
+- [ ] 29-01-PLAN.md — D-06 commit 1: HTML-only `.readthedocs.yaml`, the `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` seam in `conf.py`, and `tests/test_readthedocs_config.py`
+- [ ] 29-02-PLAN.md — owner creates the en RTD project (slug confirmed first); `/en/latest/` and the documentation root fetched over real HTTP; install-provenance log excerpt and the Phase 33 Default-Version handoff recorded
+- [ ] 29-03-PLAN.md — D-06 commit 2: `formats: [pdf]` + `build.jobs.build.pdf` + `build.apt_packages: [fonts-noto-cjk]`, proven by a local run of the same command sequence, with the per-commit D-12 baseline recorded
+- [ ] 29-04-PLAN.md — the PDF build's raw log read end to end; `@preview` verdict recorded verbatim; Branch A / Branch B selected on that evidence
+- [ ] 29-05-PLAN.md — Branch A only: D-12 content comparison of the RTD-served PDF against the local baseline (pages, text, CJK font coverage), with the tofu look recorded as `human_needed`
+- [ ] 29-06-PLAN.md — Branch B only: the `releases/latest/download/` fallback fetched over real HTTP and published from both `docs/source/index.rst` and `README.md`, bound by a presence test
 
 **Owner-manual dependencies (no automated criterion possible):** creating the en RTD project and
 connecting GitHub; **confirming the project slug before creation** (RTD slugs are not self-service
@@ -555,7 +565,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
-| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 0/TBD | Not started | - |
+| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 0/6 | Planned | - |
 | 30. Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
