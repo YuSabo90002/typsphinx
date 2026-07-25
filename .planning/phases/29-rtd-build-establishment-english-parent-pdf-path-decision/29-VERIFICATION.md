@@ -372,3 +372,278 @@ bytes 1693967
 - This baseline's page count (93), font count (9), and byte size are consistent with the 2026-07-25
   measurement recorded in `29-CONTEXT.md` § "CJK fonts — a new risk found by measurement", re-taken here
   for this exact commit rather than reused from memory.
+
+## SC#2 — raw build log, @preview verdict
+
+This section is Plan 04, Task 2. All commands below were re-run by the Plan 04 executor directly (not
+copied from the owner's report) so that the recorded evidence is the executor's own machine observation
+over real fetched log text, per D-07.
+
+**Build identity** (owner-reported in the Task 1 checkpoint, and independently re-confirmed below via the
+API v3 status endpoint):
+
+- Build-detail URL: `https://app.readthedocs.org/projects/typsphinx/builds/33756855/`
+- Built commit: `dcc6a523fc2d16f3dae925e17d63a1a24318b6d7` — the exact commit this phase's Plan 03 landed
+  (`.readthedocs.yaml`'s `formats: [pdf]` + `build.jobs.build.pdf` override + `fonts-noto-cjk`)
+- Raw-log URL: `https://app.readthedocs.org/api/v2/build/33756855.txt`
+
+**Independent re-confirmation of build status (API v3, executor's own fetch):**
+
+```
+curl -sS -w '\ncode=%{http_code}\n' "https://app.readthedocs.org/api/v3/projects/typsphinx/builds/33756855/" -H "Accept: application/json"
+```
+
+```
+{"commit":"dcc6a523fc2d16f3dae925e17d63a1a24318b6d7", ... "duration":68, "error":"",
+ "state":{"code":"finished","name":"Finished"}, "success":true, "version":"latest"}
+code=200
+```
+
+**Raw-log HTTP fetch (executor's own fetch, not reused from the orchestrator's staged copy):**
+
+```
+curl -sS -o /tmp/p29-buildlog-33756855.txt -w 'code=%{http_code} type=%{content_type} size=%{size_download}\n' https://app.readthedocs.org/api/v2/build/33756855.txt
+```
+
+```
+code=200 type=text/plain; charset=utf-8 size=157134
+```
+
+```
+wc -l /tmp/p29-buildlog-33756855.txt
+```
+
+```
+1271 /tmp/p29-buildlog-33756855.txt
+```
+
+This matches the byte size (157134) and line count (1271) already noted by the orchestrator's brief; no
+divergence was found between this executor's own fetch and that prior observation.
+
+### Excerpt (a) — `fonts-noto-cjk` apt lines
+
+Verbatim, log lines 142-149:
+
+```
+[rtd-command-info] start-time: 2026-07-25T14:21:18.256903Z, end-time: 2026-07-25T14:21:19.481058Z, duration: 1, exit-code: 0
+apt-get install --assume-yes --quiet -- fonts-noto-cjk
+Reading package lists...
+Building dependency tree...
+Reading state information...
+fonts-noto-cjk is already the newest version (1:20230817+repack1-3).
+fonts-noto-cjk set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 378 not upgraded.
+```
+
+### Excerpt (b) — `build.jobs.build.pdf` step lines
+
+Verbatim, log lines 808-816 (the `mkdir` + `sphinx-build` invocation):
+
+```
+[rtd-command-info] start-time: 2026-07-25T14:21:40.949056Z, end-time: 2026-07-25T14:21:40.996532Z, duration: 0, exit-code: 0
+mkdir -p /tmp/typst-pdf-build/doctrees
+
+
+[rtd-command-info] start-time: 2026-07-25T14:21:41.038749Z, end-time: 2026-07-25T14:22:05.894229Z, duration: 24, exit-code: 0
+sphinx-build -b typstpdf -d /tmp/typst-pdf-build/doctrees docs/source /tmp/typst-pdf-build/out
+Running Sphinx v9.1.0
+loading translations [en]... done
+making output directory... done
+```
+
+Verbatim, log lines 1259-1269 (the tail — PDF compile completion, then the `mkdir`/`cp` into
+`$READTHEDOCS_OUTPUT/pdf/`):
+
+```
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf
+build succeeded, 2 warnings.
+
+[rtd-command-info] start-time: 2026-07-25T14:22:05.939663Z, end-time: 2026-07-25T14:22:05.987786Z, duration: 0, exit-code: 0
+mkdir -p "$READTHEDOCS_OUTPUT/pdf/"
+
+
+[rtd-command-info] start-time: 2026-07-25T14:22:06.026716Z, end-time: 2026-07-25T14:22:06.085165Z, duration: 0, exit-code: 0
+cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"
+```
+
+Every one of the four `build.jobs.build.pdf` commands carries `exit-code: 0`. The "2 warnings" in
+`build succeeded, 2 warnings.` are the pre-existing docutils warnings at log lines 1235-1236
+(`Unexpected indentation` / `Block quote ends without a blank line`, both against
+`typsphinx/translator.py`'s `visit_toctree` docstring) — a Sphinx autodoc parsing note on this
+repository's own source, unrelated to the PDF step or to `.readthedocs.yaml`.
+
+### Excerpt (c) — decisive `@preview` lines
+
+**No such lines exist in the log.** This absence is itself the recorded observation — it is not papered
+over. The executor's own whole-log grep for the four package names and the registry host:
+
+```
+grep -n -E 'codly|mitex|gentle-clues|@preview|packages\.typst\.org' /tmp/p29-buildlog-33756855.txt
+```
+
+```
+342:typst_use_mitex = True
+```
+
+The **only** hit across all 1271 lines is line 342, which is Sphinx's `conf.py` value dump
+(`typst_use_mitex = True`) echoed during configuration logging — not a package-resolution event. No line
+anywhere names `codly`, `codly-languages`, `mitex`, or `gentle-clues` as fetched, resolved, or cached; and
+equally, no registry-failure, timeout, or refusal line exists either. `typst-py`'s Typst compiler emits
+nothing per-package on a successful `@preview` resolution, so a silent log is consistent with success and
+is **not** consistent with Branch B's condition (a positive failure/blocked excerpt), which also does not
+appear. Branch B is therefore positively refuted by this log's silence, not merely unselected.
+
+Because the log itself is silent on this specific point, the `@preview` verdict for `mitex`/`codly`/
+`codly-languages`/`gentle-clues` rests on two further, independent lines of evidence — kept here strictly
+separated by evidence type, per this plan's instruction not to blur them:
+
+**(i) Owner's visual inspection of the served PDF — human-verified, NOT machine-verified.**
+The owner opened the PDF that RTD serves (the same file fetched and hashed below) and reported: code
+listings are rendered by **codly** (styled listings are present in the PDF), and admonitions are rendered
+by **gentle-clues** (styled clues are present in the PDF). For **mitex**, the owner reported this was
+**not determinable by inspection**, because the generated PDF contains no mathematics — there is nothing
+for mitex to render, so its absence from the PDF's visible content proves nothing either way. The owner's
+own stated reasoning was that it is implausible mitex alone failed to load while the other three
+packages, imported from the same template in the same compile, worked. This entire item is recorded as
+`human_needed` — owner-reported, not something this executor's own commands can verify.
+
+**(ii) Unconditional-import argument — file-plus-exit-code, checked directly by this executor.**
+This is what actually settles `mitex` (rather than relying on the owner's plausibility reasoning alone),
+and it rests on two premises this executor verified directly rather than assumed:
+
+- **Premise 1 — the import is unconditional, no guard exists.** Read directly from
+  `typsphinx/templates/base.typ` in this worktree at the commit this build built:
+
+  ```
+  8:#import "@preview/codly:1.3.0": *
+  9:#import "@preview/codly-languages:0.1.10": *
+  14:#import "@preview/mitex:0.2.7": *
+  19:#import "@preview/gentle-clues:1.3.1": *
+  ```
+
+  All four `#import` lines sit at the top level of the file with no `#if`/conditional wrapping them — the
+  `mitex` import at line 14 is evaluated unconditionally, exactly like the other three, regardless of
+  whether the compiled document contains any mathematics. Also confirmed by reading
+  `docs/source/conf.py` in full (118 lines): it sets no `typst_template` override, so the RTD build used
+  this repository's default `templates/base.typ` — the same file just quoted, not a customized one.
+- **Premise 2 — the compile step exited zero and produced a PDF.** Quoted already in Excerpt (b) above:
+  `Compiling 1 master document(s) to PDF...` / `Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf` /
+  `build succeeded, 2 warnings.`, with the sphinx-build command's own `[rtd-command-info]` line carrying
+  `exit-code: 0`.
+- **Conclusion.** An unresolvable `@preview` import fails typst's whole compile — there is no partial-
+  import failure mode in Typst's `#import` semantics. Since `mitex`'s import is evaluated regardless of
+  whether the document uses any mathematics (Premise 1), and the compile that evaluates it exited zero and
+  produced the PDF (Premise 2), `mitex` must have resolved. This conclusion is a direct consequence of the
+  two checked premises, not an inference about typst's behavior in the abstract.
+
+**Downloads-menu observation (executor's own fetch):**
+
+```
+curl -sS -o /tmp/p29-downloads-pdf.bin -D /tmp/p29-downloads-pdf.hdrs -w 'code=%{http_code} content_type=%{content_type} size=%{size_download}\n' -L https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+file /tmp/p29-downloads-pdf.bin
+sha256sum /tmp/p29-downloads-pdf.bin
+```
+
+```
+code=200 content_type=application/pdf size=1697498
+/tmp/p29-downloads-pdf.bin: PDF document, version 1.7, 93 page(s)
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  /tmp/p29-downloads-pdf.bin
+```
+
+RTD's own Downloads menu **does** offer a PDF for this build, at
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`, and the served file is a genuine PDF (`file`
+confirms `PDF document, version 1.7, 93 page(s)`). The 93-page count matches the D-12 local baseline
+recorded above exactly. **No claim is made here about the PDF's content** (text, glyphs, or font
+correctness) — page-count agreement is a structural observation only; the content comparison belongs to
+Plan 05's D-12 gate, per REQUIREMENTS.md invariant #7.
+
+**LaTeX-toolchain marker counts (executor's own machine search over the fetched log — not owner-reported):**
+
+```
+grep -o -E 'latexmk|pdflatex|\.tex' /tmp/p29-buildlog-33756855.txt | wc -l
+```
+
+```
+0
+```
+
+Source: machine search, run directly by this executor over the fetched raw-log text (not the owner's
+eyeballed count). Zero hits across all 1271 lines for `latexmk`, `pdflatex`, and `.tex` combined — Branch
+A's LaTeX-exclusion requirement (D-07) is met.
+
+**Verdicts:**
+
+- **A1 (apt package name)** — **resolved, valid.** Quoted in Excerpt (a): `fonts-noto-cjk is already the
+  newest version (1:20230817+repack1-3).` with `apt-get install --assume-yes --quiet -- fonts-noto-cjk`
+  under an `exit-code: 0` command wrapper. The package name is correct on RTD's `ubuntu-24.04` image; no
+  loud apt failure occurred.
+- **A2 (temp-directory writability)** — **resolved, writable.** Quoted in Excerpt (b): all four
+  `build.jobs.build.pdf` commands (`mkdir -p /tmp/typst-pdf-build/doctrees`, `sphinx-build -b typstpdf ...`,
+  `mkdir -p "$READTHEDOCS_OUTPUT/pdf/"`, `cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"`)
+  each carry `exit-code: 0`, and no mkdir/permission-denied line appears anywhere in the 1271-line log.
+- **A4 (raw log reachability)** — **resolved.** The raw log was reached over public HTTP at
+  `https://app.readthedocs.org/api/v2/build/33756855.txt` (`code=200`), fetched independently by this
+  executor above — the same mechanism RTD's build-detail page's "View raw" link exposes for a public
+  project, confirmed reachable without any owner-paste fallback being needed.
+- **Downloads menu** — **PDF offered.** `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` →
+  `code=200`, `content_type=application/pdf`, `size=1697498`, 93 pages (structural observation only, no
+  content claim).
+- **LaTeX-toolchain marker counts** — **0** for `latexmk`/`pdflatex`/`.tex` combined, source: machine
+  search over the fetched log (this executor's own `grep` command above), not an owner-reported count.
+
+**What this log supports, and what it does not:**
+
+The log supports, as a matter of quoted text: the apt install of `fonts-noto-cjk` succeeded, the
+`build.jobs.build.pdf` job's four commands all exited zero and produced
+`/tmp/typst-pdf-build/out/typsphinx.pdf`, no LaTeX-toolchain marker appears anywhere, and RTD's Downloads
+menu serves a 93-page PDF at the expected URL. **The log does not contain any per-package `@preview`
+resolution or failure line** — that absence is recorded honestly above, not inferred away. The `@preview`
+verdict for the four Typst Universe packages therefore rests on the two additional, clearly-labelled lines
+of evidence in Excerpt (c): the owner's visual inspection (`human_needed`, codly and gentle-clues
+confirmed rendered, mitex not determinable by inspection) and the unconditional-import argument (file
+premise + exit-code premise, checked directly by this executor, which does settle `mitex`). No claim is
+made anywhere in this section about the PDF's text, glyph, or font-substitution correctness — that
+evaluation is Plan 05's D-12 gate.
+
+## Branch Decision
+
+**Selected: `branch-a`** — registry reachable, RTD serves typsphinx's own PDF.
+
+This selection was made by the owner from the evidence recorded in § "SC#2 — raw build log, @preview
+verdict" above (not by this executor's own inference), following the pre-agreement of 2026-07-25 that
+both outcomes were acceptable so the phase would not deadlock on this decision.
+
+**Justifying excerpt — the two log-quoted conjunctive conditions of Branch A, both satisfied:**
+
+1. Zero LaTeX-toolchain markers, machine-searched by this executor over the fetched log:
+   `grep -o -E 'latexmk|pdflatex|\.tex' /tmp/p29-buildlog-33756855.txt | wc -l` → `0`. A non-zero count
+   would have been a stop condition; it is zero, so Branch A's LaTeX-exclusion requirement is met and a
+   PDF produced by RTD's own LaTeX pipeline is ruled out.
+2. The PDF step completed, quoted verbatim from the log (Excerpt (b) above):
+   ```
+   Compiling 1 master document(s) to PDF...
+   Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf
+   build succeeded, 2 warnings.
+   ```
+
+Branch A's third conjunctive condition — the four Typst Universe packages resolving — is **not** answered
+by a log excerpt (Excerpt (c) recorded that no such line exists), so it is answered instead by the two
+independent lines of evidence recorded in § SC#2 Excerpt (c): the owner's visual inspection (codly and
+gentle-clues confirmed rendered; mitex not determinable by inspection, `human_needed`) and the
+unconditional-import argument (the four `#import` lines in `typsphinx/templates/base.typ` are unguarded,
+`docs/source/conf.py` sets no `typst_template` override, and the compile that evaluates all four imports
+exited zero and produced the PDF — therefore `mitex` resolved along with the other three). This routing is
+disclosed here explicitly rather than being papered over as a fourth quoted log line that does not exist.
+
+**Recorded zero marker counts and Downloads-menu URL (restated per this section's requirement):**
+
+- LaTeX-toolchain marker counts: `latexmk`, `pdflatex`, `.tex` combined = **0** (machine search, this
+  executor's own command, above).
+- Downloads-menu PDF URL: `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` (`code=200`,
+  `content_type=application/pdf`, `size=1697498`, 93 pages).
+
+**Routing:** Because `branch-a` was selected, **Plan 05** (the Branch A content comparison against the
+D-12 local baseline) **executes**. **Plan 06** (the Branch B fallback documentation-link edit) **is
+skipped** — no edit to `docs/source/index.rst` or `README.md` is made by this phase for the fallback
+link, since Branch A's own path (RTD serving typsphinx's own dogfooded PDF) was taken instead.
