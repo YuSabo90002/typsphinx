@@ -46,6 +46,10 @@ allowlist (CONF-04), the orphan config doc and every phantom `typst_*` name purg
 and Typst's typesetting `lang` following Sphinx's own `language` conf (CONF-07). Closed on a live
 full-corpus regression gate.
 
+**Published 2026-07-25:** PR #121 merged to `main` (CI 13/13 green), tag `v0.6.3` pushed,
+`release.yml` published `typsphinx==0.6.3` to PyPI (wheel + sdist) and created the GitHub Release.
+Milestone branches deleted; only `main` and `gh-pages` remain.
+
 **Closeout type:** `override_closeout` — all 6 phases were `phase_complete` with
 `verification_status: passed` and all 7 requirements checked off, but no `v0.6.3-MILESTONE-AUDIT.md`
 was produced (owner accepted at close, 2026-07-25: Phase 28's live re-run of the full-corpus gate,
@@ -91,7 +95,7 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 
 ### Pending Todos
 
-Nine open in `.planning/todos/pending/` at the v0.6.3 close, all acknowledged as deferred:
+Eight open in `.planning/todos/pending/` after the v0.6.3 close, all acknowledged as deferred:
 
 - **move-documentation-hosting-to-read-the-docs** (docs) — RTD migration (~2026-07-30 target); the
   github.io 404 doc-link fix is folded into it.
@@ -104,17 +108,19 @@ Nine open in `.planning/todos/pending/` at the v0.6.3 close, all acknowledged as
   imports until this lands.
 - **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision
   2026-07-23), not interim-fixed.
-- **close-pr98-after-v063-release** (planning) — PR#98 courtesy close. Gap-freeness measured
-  (PR#98's 4 tests ported verbatim, 4/4 PASS; current implementation is a strict superset). Owner
-  decision 2026-07-25: post-publish timing, wording confirmed with the owner before posting.
-  **This one is now actionable** — v0.6.3 is published.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — Phase 27.1 code review IN-01
   (Info), consciously waived.
 - **docs-usage-installation-orphan-class** (docs) — `docs/usage.rst` / `docs/installation.rst` are the
   same unreachable-orphan class Phase 27 deleted `docs/configuration.rst` for.
 
-Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** (measured gap-free) and
-**examples-advanced-non-allowlisted-typst-elements-keys** (repaired at milestone close, see above).
+Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** (measured gap-free),
+**examples-advanced-non-allowlisted-typst-elements-keys** (repaired at milestone close, see above),
+and **close-pr98-after-v063-release** (posted + closed after the publish —
+[comment](https://github.com/YuSabo90002/typsphinx/pull/98#issuecomment-5078139533)). The PR#98
+close surfaced a process lesson: AlCalzone had asked an unanswered question in the thread
+("would you rather like to have issues reported with the details instead?"), so the comment was
+rewritten to answer it first (owner decision: **PRs are welcome**) rather than post a thank-you
+over an open question. Read the whole thread before commenting on someone else's PR.
 
 ### Blockers/Concerns
 
@@ -147,7 +153,6 @@ Items acknowledged and carried forward from milestone closes:
 | Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
 | Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
 | Todo (docs) | github-io-doc-links-404-missing-en-prefix | Pending backlog | v0.6.3 close |
-| Todo (planning) | close-pr98-after-v063-release — now actionable (post-publish) | Pending backlog | v0.6.3 close |
 | Todo (template_engine) | derive-typst-lang-duplicated-warning-block (review IN-01, Info) | Pending backlog | v0.6.3 close |
 | Todo (docs) | docs-usage-installation-orphan-class | Pending backlog | v0.6.3 close |
 
@@ -159,5 +164,4 @@ Resume: `/gsd-new-milestone`
 
 ## Operator Next Steps
 
-- Post the PR#98 courtesy close (todo `close-pr98-after-v063-release`) — now unblocked by the publish.
 - Start the next milestone with `/gsd-new-milestone`.
