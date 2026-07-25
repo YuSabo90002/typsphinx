@@ -1060,3 +1060,15 @@ on check 4, still open.
 `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`) and confirms whether `表`, `図`, `图`, and
 `圖` render as real characters or as substitution boxes, per this project's `workflow.human_verify_mode:
 end-of-phase` (owner confirmation collected in the end-of-phase verification batch).
+
+## SC#3 Branch B — SKIPPED
+
+**Recorded decision (§ "Branch Decision" above): `branch-a`.** Plan 06 therefore does not execute —
+per § "Branch Decision"'s own "Routing" line, Plan 06 is Plan 05's alternative, and exactly one of the
+two does real work. Branch A was taken, so this plan performs no fetch, no verdict, and no content edit.
+
+**No edit was made** to `docs/source/index.rst`, `README.md`, or `tests/test_readthedocs_config.py`.
+RTD-03's Branch-B fallback link (`releases/latest/download/typsphinx.pdf`) is not needed: Branch A's own
+path was taken instead, and RTD itself already serves typsphinx's own dogfooded PDF at
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` (recorded in § "Branch Decision" above,
+`code=200`, `content_type=application/pdf`, `size=1697498`, 93 pages).
