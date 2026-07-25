@@ -45,6 +45,7 @@
   toctree_caption: "Contents",
   papersize: "a4",
   fontsize: 11pt,
+  lang: "en",
   body
 ) = {
   // Document metadata
@@ -58,7 +59,7 @@
   )
 
   // Text setup
-  set text(size: fontsize, lang: "en")
+  set text(size: fontsize, lang: lang)
 
   // Heading setup
   set heading(numbering: "1.1")

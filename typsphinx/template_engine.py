@@ -6,6 +6,7 @@ for Typst documents (Requirement 8).
 """
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
@@ -33,6 +34,28 @@ class RawTypst:
     source: str
 
 
+@dataclass(frozen=True)
+class TemplateResolution:
+    """Records which of ``TemplateEngine.resolve_template()``'s three
+    priorities actually resolved, as a side effect of the SAME priority walk
+    ``load_template()`` already performs -- never a second, independently
+    derived check (CONF-07/D-06 explicitly rejects duplicating the priority
+    logic in a second place).
+
+    Attributes:
+        content: The loaded template content, identical to what
+            ``load_template()`` returns for the same engine state.
+        source: One of the three literal values ``"explicit"`` (Priority 1,
+            an explicit ``template_path`` that was found), ``"search"``
+            (Priority 2, a ``search_paths`` hit -- this is also where the
+            ``<srcdir>/base.typ`` shadow of the bundled default lives), or
+            ``"default"`` (Priority 3, the bundled ``templates/base.typ``).
+    """
+
+    content: str
+    source: str
+
+
 class _ElementsEmissionKind:
     """Enum-like sentinel values naming HOW an ``ELEMENTS_ALLOWLIST`` key
     must be formatted for Typst emission -- not the value itself."""
@@ -41,10 +64,11 @@ class _ElementsEmissionKind:
     RAW = "raw"
 
 
-# CONF-04: the curated, hand-maintained allowlist of `typst_elements` keys
-# that `templates/base.typ`'s `project()` function (lines 39-48) actually
-# declares as "element" parameters: `papersize: "a4"` (string) and
-# `fontsize: 11pt` (length/raw). Keep this list EXACTLY in sync with that
+# CONF-04/CONF-07: the curated, hand-maintained allowlist of `typst_elements`
+# keys that `templates/base.typ`'s `project()` function (lines 39-49) actually
+# declares as "element" parameters: `papersize: "a4"` (string), `fontsize:
+# 11pt` (length/raw), and `lang: "en"` (string -- CONF-07, the Typst
+# typesetting-language parameter). Keep this list EXACTLY in sync with that
 # signature -- adding a key here WITHOUT a matching `base.typ` parameter
 # would pass an undeclared kwarg and abort the Typst compile. Hand-maintained
 # by design (D-03): a `.typ` function signature can't be reliably
@@ -54,7 +78,76 @@ class _ElementsEmissionKind:
 ELEMENTS_ALLOWLIST: Dict[str, str] = {
     "papersize": _ElementsEmissionKind.STRING,
     "fontsize": _ElementsEmissionKind.RAW,
+    "lang": _ElementsEmissionKind.STRING,
 }
+
+
+def derive_typst_lang(sphinx_language: str | None) -> str | None:
+    """Convert a Sphinx ``language`` config value into a Typst ``lang`` code.
+
+    CONF-07/D-02: the conversion is a single generic rule, not a
+    hand-maintained per-language mapping table -- take the substring before
+    the first ``_``/``-``/``@`` separator and lowercase it. This covers every
+    measured case (``"ja"``->``"ja"``, ``"zh_CN"``->``"zh"``,
+    ``"pt-BR"``->``"pt"``, ``"sr@latin"``->``"sr"``, ``"en"``->``"en"``,
+    ``"JA"``->``"ja"``) without needing to hand-maintain a table of Sphinx's
+    ~70 supported languages, and survives new locales being added upstream.
+
+    D-03: the converted head is accepted ONLY when it is 2-3 ASCII letters
+    (``re.fullmatch(r"[a-z]{2,3}", head)`` -- deliberately NOT
+    ``len(head) in (2, 3) and head.isalpha()``, because Python's
+    ``str.isalpha()`` is Unicode-aware and answers True for CJK/Cyrillic code
+    points; a ``language = "日本語"`` project would then forward a
+    three-code-point value that Typst rejects with a hard
+    ``TypstError: expected two or three letter language code``, exactly the
+    abort SC#4 exists to prevent). Any rejection -- non-str/None input, an
+    empty string, wrong length, or non-ASCII-alpha content -- logs a
+    ``logger.warning`` naming the offending value via ``repr()`` and returns
+    ``None``. Returning ``None`` (never raising, and never substituting a
+    literal ``"en"`` fallback) is what lets ``base.typ``'s own ``lang: "en"``
+    parameter default apply -- a hardcoded Python-side fallback would create
+    a second source of truth that silently diverges the day that default
+    changes.
+
+    An unknown-but-well-formed 2-3-letter code (e.g. ``"xyz"``) is NOT
+    rejected and does NOT warn: Typst itself falls back to English for a
+    code it does not recognize, without aborting the compile, so this is not
+    a value this helper needs to second-guess (D-03).
+
+    This helper is applied ONLY to the auto-derived value computed from
+    Sphinx's ``language`` config. It must never be applied to a user's
+    explicit ``typst_elements["lang"]`` value -- that value is a Typst
+    literal the user wrote directly for this builder-specific setting and
+    passes through unvalidated, exactly like every other ``typst_elements``
+    key (D-04, Phase 26 D-09 precedent).
+
+    Args:
+        sphinx_language: The Sphinx ``config.language`` value (normally a
+            non-``None`` ``str``; defensively accepts ``None`` too).
+
+    Returns:
+        A lowercase 2-3-letter ASCII Typst ``lang`` code, or ``None`` if no
+        such code could be derived.
+    """
+    if not isinstance(sphinx_language, str) or not sphinx_language:
+        logger.warning(
+            f"typsphinx: could not derive a Typst 'lang' from Sphinx "
+            f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
+            f"back to the template's own default)."
+        )
+        return None
+
+    head = re.split(r"[_\-@]", sphinx_language, maxsplit=1)[0].lower()
+
+    if re.fullmatch(r"[a-z]{2,3}", head):
+        return head
+
+    logger.warning(
+        f"typsphinx: could not derive a Typst 'lang' from Sphinx "
+        f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
+        f"back to the template's own default)."
+    )
+    return None
 
 
 def resolve_package_for_engine(
@@ -179,54 +272,117 @@ class TemplateEngine:
 
         return str(default_template)
 
-    def load_template(self) -> str:
+    def resolve_template(self) -> TemplateResolution:
         """
-        Load Typst template with priority order:
+        Resolve Typst template with priority order:
         1. Explicit template_path if provided
-        2. Search for template_name in search_paths (first match wins)
+        2. Search for template_name in search_paths (first match wins) --
+           this is also where a ``<srcdir>/base.typ`` shadow of the bundled
+           default template is discovered (CONF-07/D-06).
         3. Default template bundled with package
 
+        This is the SINGLE priority walk both ``load_template()`` (below,
+        which now delegates here) and ``uses_bundled_default_template()``
+        rely on -- CONF-07/D-06 explicitly rejects a second, independently
+        hand-written existence check duplicating this same logic elsewhere,
+        because such a duplicate would drift the moment ``search_paths``/
+        ``template_name`` semantics change.
+
         Returns:
-            Template content as string
+            A ``TemplateResolution`` recording both the loaded content and
+            WHICH priority actually supplied it (``"explicit"``,
+            ``"search"``, or ``"default"``).
 
         Requirement 8.1: Load default template
         Requirement 8.2: Load custom template
         Requirement 8.7: Search in user project directory
         Requirement 8.9: Fallback to default with warning
         """
-        template_content = None
-
         # Priority 1: Explicit template path
         if self.template_path:
             template_content = self._try_load_file(self.template_path)
-            if template_content is None:
-                logger.warning(
-                    f"Custom template not found: {self.template_path}. "
-                    f"Falling back to default template."
-                )
+            if template_content is not None:
+                return TemplateResolution(template_content, "explicit")
+            logger.warning(
+                f"Custom template not found: {self.template_path}. "
+                f"Falling back to default template."
+            )
 
         # Priority 2: Search in search_paths
-        if template_content is None and self.search_paths:
+        if self.search_paths:
             for search_dir in self.search_paths:
                 candidate_path = Path(search_dir) / self.template_name
                 template_content = self._try_load_file(str(candidate_path))
                 if template_content is not None:
                     logger.debug(f"Loaded template from: {candidate_path}")
-                    break
+                    return TemplateResolution(template_content, "search")
 
         # Priority 3: Default template
+        default_path = self.get_default_template_path()
+        template_content = self._try_load_file(default_path)
         if template_content is None:
-            default_path = self.get_default_template_path()
-            template_content = self._try_load_file(default_path)
+            # This should never happen if package is properly installed
+            raise FileNotFoundError(
+                f"Default template not found at: {default_path}. "
+                f"Package installation may be corrupted."
+            )
 
-            if template_content is None:
-                # This should never happen if package is properly installed
-                raise FileNotFoundError(
-                    f"Default template not found at: {default_path}. "
-                    f"Package installation may be corrupted."
-                )
+        return TemplateResolution(template_content, "default")
 
-        return template_content
+    def load_template(self) -> str:
+        """
+        Load Typst template content.
+
+        UNCHANGED public contract: still returns just the content ``str``,
+        for every existing caller (``get_template_content()``,
+        ``render()``, and every pre-existing test in
+        ``tests/test_template_engine.py``). Delegates the actual priority
+        walk to ``resolve_template()``.
+
+        Returns:
+            Template content as string
+        """
+        return self.resolve_template().content
+
+    def uses_bundled_default_template(self) -> bool:
+        """
+        CONF-07/D-06: the single judgment point for "is the default
+        (bundled) template actually going to be used for this build?".
+
+        Returns True only when this engine carries no ``typst_package`` AND
+        ``resolve_template().source == "default"``.
+
+        Why judged from an actual resolution result rather than a
+        declaration check (``typst_template is None and typst_package is
+        None``): a ``<srcdir>/base.typ`` shadow leaves BOTH
+        ``typst_template`` and ``typst_package`` unset while still routing
+        the build onto a user-authored template (Priority 2's search-path
+        hit). A declaration-based check would miss this shadow entirely,
+        inject a parameter (``lang``) that shadow template never declared,
+        and manufacture the exact undeclared-kwarg Typst compile fatal
+        (``unexpected argument: lang``) this predicate exists to prevent
+        (SC#3).
+
+        Why the ``typst_package`` guard is load-bearing and NOT redundant
+        with the priority walk: on the package-alone path, this engine is
+        constructed with ``template_path=None``, so its OWN priority walk
+        legitimately resolves to ``"default"`` even though ``render()``
+        never loads that template at all -- the emitted ``#show`` rule
+        calls the package's own entry function instead. Passing a
+        bundled-template-only parameter (``lang``) into a package function
+        that never declared it would be the exact same undeclared-kwarg
+        fatal, just reached via a different route.
+
+        Returns:
+            ``True`` only for a package-free engine whose priority walk
+            resolves to the bundled default template; ``False`` for
+            ``"explicit"``, ``False`` for ``"search"`` (including the
+            ``<srcdir>/base.typ`` shadow case), and ``False`` whenever
+            ``typst_package`` is configured.
+        """
+        if self.typst_package:
+            return False
+        return self.resolve_template().source == "default"
 
     def map_parameters(
         self,
