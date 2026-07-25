@@ -11,13 +11,29 @@
 - Real `sphinx-build -> typst.compile() -> pypdf` GATE-01 fixture proves the shipped Plan 25-01 translator fix compiles green end-to-end — every captioned-table caption survives exactly once (including the previously stale-buffer-lost 2nd table), `:numref:`/`:ref:` resolve with no duplicate/dangling-label fatal, and a durable fail-pre-fix proof reconstructs both original defect shapes from first principles.
 - RawTypst marker + ELEMENTS_ALLOWLIST curated merge in `template_engine.py`, wired from `writer.py` as a separate argument -- `papersize`/`fontsize` now reach `map_parameters()` with correct per-key typing, an unknown key fails loud via `ExtensionError`, and `copyright` is structurally unreachable.
 - Four standing real-`typst.compile()`/`sphinx-build` cases (papersize quoted, fontsize unquoted on a separate build, unknown-key abort, copyright non-leak) plus a durable `TestPreFixBasisFailureProof` reconstruction class prove CONF-04's `typst_elements` pass-through actually reaches `project()` -- with a recorded manual red->green confirmation against Plan 01's fix.
-- 1. [Rule 1 - Bug] Fixed latent docutils CJK-markup rendering bug revealed by the mandatory `.po` regen
+- Orphan `docs/configuration.rst` (489 lines, wrong package name `sphinxcontrib.typst`) deleted with its collateral test, the 5 phantom config names purged from `user_guide/configuration.rst` (papersize/fontsize rewritten as working `typst_elements` examples on top of CONF-04), and the redundant drifted config `list-table` removed from `api/index.rst` so config is documented in exactly one canonical place — with a scoped ja gettext regen that also fixed a latent docutils CJK-markup bug it activated.
 - `base.typ`'s `project()` gains a `lang` parameter wired into `set text(lang:)`, driven by a new `derive_typst_lang()` conversion helper and a `uses_bundled_default_template()` provenance predicate that gates auto-derivation to the default-template path only, with explicit `typst_elements["lang"]` always winning.
 - `lang` documented as the third `typst_elements` key in configuration.rst (derivation, default-template-only scope, explicit-wins precedence, zh_TW limitation) with a scope-limited ja gettext regeneration that keeps all 12 pre-existing obsolete catalog blocks intact.
 - A new `tests/test_typst_lang_gate.py` (18 tests, 8 classes) with seven real-compile fixture projects proves CONF-07's `lang` typesetting parameter actually reaches the compiled PDF and changes Typst's generated figure/table supplement labels — via the D-07 split proof (font-independent `ja` source assertion + `de` pypdf-extraction linkage assertion with a new NBSP-tolerant matcher) — while three non-regression fixtures prove no non-default template path ever receives an injected argument it never declared, and a durable pre-fix-basis reconstruction plus a manually recorded red-to-green transition close the loop.
 - Atomic version bump across pyproject.toml, uv.lock, and README.md's Status line, with the editable-dist install metadata refreshed so `typsphinx.__version__` reports 0.6.3 and all three version-sync guard tests stay green.
 - Live re-ran the SC#3 full-corpus regression gate, full pytest suite, and both docs-build tox environments against the post-version-bump v0.6.3 tree, and recorded verbatim evidence plus SC#4/SC#5 git-diff assertions in a new `28-VERIFICATION.md`.
 - Curated `## [0.6.3]` CHANGELOG entry (5 bullets, 6/7 v1 ledger IDs, BREAKING exactly on CONF-04/CONF-05) plus an advanced link-reference block, single source for the eventual GitHub Release body.
+
+**Fixed at the close, before the tag:** the bundled `examples/advanced` sample was unbuildable on two
+independent axes — five `typst_elements` keys outside the CONF-04 allowlist Phase 26 had just made
+fail-loud, and `_templates/custom.typ` three milestones behind on its `@preview` pins
+(`unknown variable: kai`). The template now declares `papersize`/`fontsize`/`lang` in its `project()`,
+and `tests/test_preview_version_sync.py` gained a fourth-surface check over `examples/**/*.typ`.
+
+**Closeout type:** `override_closeout`. All 6 phases were `phase_complete` with
+`verification_status: passed` and 7/7 v1 requirements checked off, but no `v0.6.3-MILESTONE-AUDIT.md`
+was produced (owner accepted at close — Phase 28's live re-run of the full-corpus gate, the full
+pytest suite, and both docs-build environments stands in). Known verification overrides: 9 deferred
+pending todos (see STATE.md Deferred Items).
+
+**Verified at close:** full suite 657 passed / 1 skipped; `black`/`ruff`/`mypy` clean; full-corpus
+regression gate fatal-free with an empty `unknown_visit` catalogue; `sphinx-build -b typstpdf
+examples/advanced` builds. Zero new runtime dependencies; no `@preview` version bump.
 
 ---
 
