@@ -968,3 +968,95 @@ was actually drawn from that font correctly — it is a strong signal, not a cer
 points in its internal text layer and would extract identically to a correctly-rendered PDF — text
 extraction is blind to *visual* glyph substitution. This is exactly why check 4 (the owner's visual
 inspection) exists, and the gate must not be simplified down to a text diff.
+
+## SC#3 Branch A — D-12 check 4 (human_needed) and RTD-02 verdict
+
+This section is Plan 05, Task 3.
+
+### Check 4 — visual tofu confirmation (`human_needed`)
+
+**Status: `human_needed`. Not machine-verified. Do not read this as satisfied.**
+
+**Downloaded RTD PDF, local path:** `/tmp/p29-05-rtd.pdf` (the artifact identified in § "SC#3 Branch A —
+artifacts under comparison" above: `sha256 d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5`,
+93 pages).
+
+**Source location of the CJK strings:** `docs/source/user_guide/configuration.rst`, the "Document
+Language" section (`lang` key discussion), lines 186 and 240 — specifically the paragraph explaining the
+automatic-derivation example and the region-subtag limitation note.
+
+**Command used to locate the page(s) in the downloaded PDF:**
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+targets = ['表 1', '図 1', 'Tabelle 1', '图 1', '圖 1']
+for i, page in enumerate(r.pages, start=1):
+    text = page.extract_text() or ''
+    for t in targets:
+        if t in text:
+            print(f'page {i}: found {t!r}')
+"
+```
+
+```
+page 11: found '表 1'
+page 11: found '図 1'
+page 11: found 'Tabelle 1'
+page 11: found '图 1'
+page 11: found '圖 1'
+```
+
+**Page location: page 11 of the downloaded PDF (`/tmp/p29-05-rtd.pdf`).** All four CJK strings and the
+German example land on the same page — the entire "Document Language" subsection fits on one PDF page.
+
+**The exact glyph strings to look for, transcribed verbatim from `configuration.rst`:**
+
+- `「表 1」` (line 186 — "a captioned table renders as")
+- `「図 1」` (line 186 — "and a figure as")
+- `「图 1」` (line 240 — the simplified-Chinese example)
+- `「圖 1」` (line 240 — "rather than the traditional")
+
+(`「Tabelle 1」` at line 236 is a German-language example in Latin script — not a CJK glyph-substitution
+risk, included in the location search only because it sits on the same page; it is not part of what the
+owner needs to visually inspect for tofu.)
+
+**The specific thing being judged:** whether the four bracketed strings above render on page 11 as real
+Han ideographs (表, 図, 图, 圖) — or as substitution boxes/rectangles ("tofu") in their place. The
+surrounding Latin-script prose on the same page is not at risk (Typst's bundled Libertinus
+Serif/DejaVuSansMono cover it); only these four specific characters exercise the RTD build's CJK font
+fallback (D-10).
+
+**Why no machine can close this:** per D-14, a tofu-rendered PDF still extracts the *correct* Unicode code
+points — check 2 above already proved the extracted text is byte-for-byte identical to the local
+baseline, and that equality says nothing about whether the glyphs drawn on the page are the real
+characters or empty boxes. Font-family presence (check 3) is a coverage proxy, not a per-glyph
+render-correctness proof. Per this project's standing verification culture (STATE.md § "Accumulated
+Context" — honest `human_needed` abstention over unevidenced assertion), this item is left open rather
+than asserted passing on the strength of checks 1-3 alone.
+
+### Consolidated RTD-02 verdict
+
+| # | D-12 check | Status | Result |
+|---|-----------|--------|--------|
+| 1 | Page count | **machine-verified** | `local_pages 93` == `rtd_pages 93` (command + output in § "D-12 checks 1-3") |
+| 2 | Extracted text | **machine-verified** | Whitespace-normalized text equal, both 131,142 chars (command + output in § "D-12 checks 1-3") |
+| 3 | Embedded CJK-coverage font | **machine-verified** | `MSNUZX+HanaMinA` present in the RTD PDF's `/BaseFont` list (command + output in § "D-12 checks 1-3"); D-13 caveat applies — coverage, not list-identity |
+| 4 | Visual tofu confirmation (owner look) | **`human_needed`** | Page 11 of `/tmp/p29-05-rtd.pdf`; glyphs `「表 1」「図 1」「图 1」「圖 1」`; not yet performed |
+
+**RTD-02 is NOT met.** Three of the four D-12 checks are machine-verified and pass; the fourth — the
+owner's visual confirmation that no tofu/glyph substitution appears on page 11 — remains open. Per
+D-12/D-14/D-15, RTD-02 cannot be recorded as satisfied while check 4 is `human_needed`; this verdict is
+recorded honestly as **not met** rather than as a provisional or conditional pass.
+
+**No build-status or green-download claim is made anywhere in this verdict as evidence about content**
+(REQUIREMENTS.md invariant #7): the RTD build having succeeded and the Downloads-menu PDF having
+downloaded cleanly (both already recorded in § SC#2 and the artifacts section above) speak only to build
+mechanics, not to whether the CJK glyphs on page 11 rendered correctly. That determination rests solely
+on check 4, still open.
+
+**Next action:** the owner opens `/tmp/p29-05-rtd.pdf` at page 11 (or re-downloads it from
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`) and confirms whether `表`, `図`, `图`, and
+`圖` render as real characters or as substitution boxes, per this project's `workflow.human_verify_mode:
+end-of-phase` (owner confirmation collected in the end-of-phase verification batch).
