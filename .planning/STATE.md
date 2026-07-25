@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: "27.1"
+current_phase: 27.1
 current_phase_name: Typst 組版 lang の Sphinx language 連動 (INSERTED)
 status: planning
-stopped_at: Phase 28 discuss interrupted — Phase 27.1 inserted
-last_updated: "2026-07-25T01:14:29.999Z"
+stopped_at: Phase 27.1 context gathered
+last_updated: "2026-07-25T03:57:37.905Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 28 discuss を中断し、CONF-07 の Phase 27.1 を挿入
+last_activity_desc: Phase 28 の discuss を中断し、CONF-07 を切り出して Phase 27.1 を挿入
 progress:
   total_phases: 6
   completed_phases: 4
@@ -117,10 +117,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/ROADMAP.md §Phase 27.1
+**Resume file:** .planning/phases/27.1-typst-text-lang-from-sphinx-language-config/27.1-CONTEXT.md
 
-Last session: 2026-07-25
-Stopped at: Phase 28 の discuss を中断し、CONF-07 を切り出して Phase 27.1 を挿入（ROADMAP / REQUIREMENTS / PROJECT / STATE 更新済み、CONTEXT.md 未作成）
+Last session: 2026-07-25T03:57:37.899Z
+Stopped at: Phase 27.1 context gathered
 Resume: `/gsd-discuss-phase 27.1`
 
 ## Operator Next Steps
