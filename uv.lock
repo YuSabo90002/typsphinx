@@ -1376,7 +1376,7 @@ wheels = [
 
 [[package]]
 name = "typsphinx"
-version = "0.6.2"
+version = "0.6.3"
 source = { editable = "." }
 dependencies = [
     { name = "docutils" },
