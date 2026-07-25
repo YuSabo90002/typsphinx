@@ -113,6 +113,100 @@ class TestTemplateLoading:
         assert Path(default_path).suffix == ".typ"
 
 
+class TestTemplateResolutionProvenance:
+    """CONF-07/D-06: resolve_template()/TemplateResolution record WHICH
+    priority resolved, and uses_bundled_default_template() is the single
+    judgment predicate built on top of that provenance. See
+    27.1-CONTEXT.md D-06."""
+
+    def test_resolve_template_explicit_source(self, tmp_path):
+        """An engine built with an existing explicit template_path reports
+        source 'explicit'."""
+        custom_template_path = tmp_path / "custom.typ"
+        custom_template_path.write_text("#let custom(body) = { body }")
+
+        engine = TemplateEngine(template_path=str(custom_template_path))
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "explicit"
+        assert "#let custom" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_search_source(self, tmp_path):
+        """An engine built with template_path=None and a search_paths
+        directory that contains base.typ reports source 'search' -- the
+        <srcdir>/base.typ shadow case."""
+        srcdir = tmp_path / "docs"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+
+        engine = TemplateEngine(search_paths=[str(srcdir)])
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "search"
+        assert "shadow" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_default_source(self):
+        """An engine built with template_path=None and no matching
+        search-path file reports source 'default'."""
+        engine = TemplateEngine()
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "default"
+        assert "#let project" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_fallthrough_reports_actual_source(self, tmp_path):
+        """An engine built with a template_path that does NOT exist falls
+        through exactly as today (warning emitted) and reports whichever
+        later priority actually supplied the content."""
+        engine = TemplateEngine(template_path="/nonexistent/template.typ")
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "default"
+        assert "#let project" in resolution.content
+
+    def test_srcdir_shadow_reports_search_and_not_bundled_default(self, tmp_path):
+        """The <srcdir>/base.typ shadow case reports 'search' and
+        uses_bundled_default_template() is therefore False (D-06's central
+        judgment boundary)."""
+        srcdir = tmp_path / "docs"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+
+        engine = TemplateEngine(search_paths=[str(srcdir)])
+
+        assert engine.resolve_template().source == "search"
+        assert engine.uses_bundled_default_template() is False
+
+    def test_package_configured_engine_never_uses_bundled_default(self):
+        """uses_bundled_default_template() is False for an engine
+        constructed with a typst_package even though its own priority walk
+        would resolve to 'default' (template_path=None, no search hit)."""
+        engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+
+        assert engine.resolve_template().source == "default"
+        assert engine.uses_bundled_default_template() is False
+
+    def test_bare_engine_uses_bundled_default_template(self):
+        """uses_bundled_default_template() is True for a bare engine with no
+        template_path, no matching search path, and no package."""
+        engine = TemplateEngine()
+
+        assert engine.uses_bundled_default_template() is True
+
+    def test_explicit_template_engine_does_not_use_bundled_default(self, tmp_path):
+        """uses_bundled_default_template() is False for an engine with an
+        explicit, existing template_path."""
+        custom_template_path = tmp_path / "custom.typ"
+        custom_template_path.write_text("#let custom(body) = { body }")
+
+        engine = TemplateEngine(template_path=str(custom_template_path))
+
+        assert engine.uses_bundled_default_template() is False
+
+
 class TestParameterMapping:
     """Test Sphinx metadata to template parameter mapping (Task 9.2)"""
 
