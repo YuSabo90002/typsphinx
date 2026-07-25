@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
+current_phase: 29
+current_phase_name: English Parent
 status: planning
-last_updated: "2026-07-25T12:05:00.000Z"
+stopped_at: Phase 29 context gathered
+last_updated: "2026-07-25T12:21:56.048Z"
 last_activity: 2026-07-25
+last_activity_desc: ROADMAP.md written for v0.6.4 (5 phases, 12/12 requirements mapped)
 progress:
   total_phases: 5
   completed_phases: 0
@@ -26,9 +30,9 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 Phase: 29 — RTD Build Establishment (English Parent) + PDF Path Decision (not started)
 Plan: —
-Status: Roadmap created — awaiting phase planning
+Status: Context gathered (29-CONTEXT.md) — awaiting phase planning
 Progress: [░░░░░░░░░░] 0% (0/5 phases)
-Last activity: 2026-07-25 — ROADMAP.md written for v0.6.4 (5 phases, 12/12 requirements mapped)
+Last activity: 2026-07-25 — Phase 29 discuss complete: 15 decisions locked, incl. a newly measured CJK-font risk to RTD-02
 
 ## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
 
@@ -158,12 +162,16 @@ Still deferred:
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — stays open; deferred as Future requirement LNK-01 by
   owner decision 2026-07-25 (structurally blind to `README.md` / `pyproject.toml`). CI-05 covers the
   real failure class.
+
 - **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent;
   surfaced in Phase 22.2, permanent fix unplanned.
+
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening, deferred
   from Phase 22.3 (D-06).
+
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing
   imports until this lands.
+
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — Phase 27.1 code review IN-01
   (Info), consciously waived.
 
@@ -231,14 +239,18 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-07-25 — v0.6.4 roadmap creation
-Stopped at: ROADMAP.md written (Phases 29–33), REQUIREMENTS.md Traceability populated 12/12
+**Resume file:** .planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-CONTEXT.md
+
+Last session: 2026-07-25T12:21:56.042Z
+Stopped at: Phase 29 context gathered
 Resume: `/gsd-plan-phase 29`
 
 ## Operator Next Steps
 
 - Review `.planning/ROADMAP.md`'s v0.6.4 section — in particular the **RTD-04 ownership** note, the
   inverted teardown/URL-cutover ordering, and the two-bar link-verification split.
+
 - **Confirm the RTD project slug** before Phase 29 executes — it is not self-service changeable and
   this milestone publishes it into every documentation link.
+
 - Then plan the first phase: `/gsd-plan-phase 29`.
