@@ -1,10 +1,17 @@
 ---
 phase: 28-v0-6-3-release-prep-regression-gate-close
-verified: 2026-07-25T08:27:17Z
-status: evidence-recorded
-score: 10/10 in-scope truths verified (SC#2's CHANGELOG entry is out of scope — plan 28-03, wave 3)
+verified: 2026-07-25T10:00:00Z
+status: passed
+score: 5/5 ROADMAP success criteria verified (17/17 observable truths, wave-2 evidence + verifier addendum)
 behavior_unverified: 0
 overrides_applied: 0
+re_verification:
+  previous_status: evidence-recorded
+  previous_score: "10/10 in-scope truths verified (SC#2's CHANGELOG entry was out of scope for wave 2's own record — plan 28-03, wave 3, not yet executed at that time)"
+  gaps_closed:
+    - "SC#2 (CHANGELOG.md `[0.6.3]` entry) — completed by plan 28-03/wave 3 after this file's wave-2 evidence was recorded; independently confirmed present, correctly bundled (6/7 ledger IDs, DOC-06 deliberately absent per D-10), and structurally correct by this verifier"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 28: v0.6.3 Release Prep + Regression-Gate Close — Verification Evidence
@@ -435,3 +442,122 @@ out of this plan's scope — #1 belongs to plan 28-01 wave 1, already delivered;
 existing first per D-11). `behavior_unverified: 0` — every in-scope truth above was confirmed by a
 command this executor ran itself against the live post-version-bump tree, not copied from a prior
 session's log (T-28-06 backstop satisfied).
+
+---
+
+# Verifier Addendum (post-phase, all 3 plans complete)
+
+**Verified:** 2026-07-25 (independent verification pass, main checkout, not a worktree)
+**Verifier:** Claude (gsd-verifier)
+
+The section above is plan 28-02's own wave-2 evidence record, preserved byte-for-byte per its
+documented purpose (it is cited by 28-03's `### Verified` CHANGELOG section under D-11 and must
+remain intact). At the time that record was written, truth #2 (SC#2 — the CHANGELOG entry) was
+correctly marked "NOT YET DONE" because plan 28-03 (wave 3) had not yet run. All three plans
+(28-01, 28-02, 28-03) are now complete. This addendum closes that one open item, independently
+re-verifies the wave-2 evidence against the current `HEAD` on the **main checkout** (not the
+worktree the evidence above was captured from), and evaluates the phase against all 5 ROADMAP
+Success Criteria plus the SC#2 amendment.
+
+## Goal Achievement
+
+### Observable Truths (ROADMAP SC#1–SC#5, re-verified against current HEAD)
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | SC#1 — `pyproject.toml [project].version` reads exactly `0.6.3`, remains the sole version literal; `uv.lock`'s typsphinx self-entry reads `0.6.3`; `README.md`'s Status line reads `Stable (v0.6.3)`; `uv sync --extra dev --locked` exits 0 | ✓ VERIFIED | Re-ran myself: `grep -c '^version = ' pyproject.toml` → `1`; `pyproject.toml:7` → `version = "0.6.3"`. `README.md:315` → `**Status**: Stable (v0.6.3) - Production ready`. `uv.lock`'s `name = "typsphinx"` entry → `version = "0.6.3"`. `uv sync --extra dev --locked` → exit 0 (`Resolved 88 packages`, `Checked 80 packages`). `uv run python -c "import typsphinx;print(typsphinx.__version__)"` → `0.6.3`. `uv run pytest tests/test_extension.py::test_version_matches_pyproject_toml -q` → `1 passed`. |
+| 2 | SC#2 — `CHANGELOG.md` has a curated `## [0.6.3]` entry, with the SC#2 amendment honored (6 of 7 v1 ledger IDs; DOC-06 deliberately absent per D-10); `## [Unreleased]` compare link advanced; `[0.6.3]` release/tag link appended | ✓ VERIFIED | `grep -n '^## \[0.6.3\]'` → `## [0.6.3] - 2026-07-25`, positioned directly below `## [Unreleased]` (line 8) and above `## [0.6.2] - 2026-07-23`. Section-scoped extraction (`awk`) shows all 5 subsections present in order (Added→Changed→Removed→Fixed→Verified), exactly 2 `**BREAKING` labels (Changed=CONF-04, Removed=CONF-05; none in Fixed — D-01/D-03 asymmetry preserved), citations `(TBL-01, TBL-02)`/`(CONF-04)`/`(CONF-05)`/`(CONF-07)`/`(DOC-07)` all present, `DOC-06` count in the section = `0` (amendment honored, not a gap). Link block: `[0.6.3]: .../releases/tag/v0.6.3` immediately above `[0.6.2]:`; `[Unreleased]: .../compare/v0.6.3...HEAD` (single occurrence, correctly advanced). |
+| 3 | SC#3 — Full Sphinx `doc/` v9.1.0 corpus compiles fatal-free via real `typst.compile()`, valid `%PDF` output, `unknown_visit` catalogue empty | ✓ VERIFIED (independently re-run, main checkout) | `uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s` → `1 passed in 12.87s` (real 13.08s), `Unknown Visit Catalogue: []`, zero `SKIPPED` lines — corroborates, does not merely copy, the worktree's `13.81s` measurement above. |
+| 4 | D-05 — Full pytest suite green; single skip is `test_empty_url_before_after`, not the SC#3 gate | ✓ VERIFIED (independently re-run) | `uv run python -m pytest -q -rs` (main checkout) → `656 passed, 1 skipped in 55.53s`, 0 failed, `SKIPPED [1] tests/test_corpus_gate.py:529: ...`. Matches the orchestrator's own independent full-suite run (`656 passed, 1 skipped in 58.05s`) and the wave-2 worktree run (`656 passed, 1 skipped in 56.33s`) — three independent runs on three different checkouts, identical result. |
+| 5 | SC#4 — Zero new runtime deps; no `@preview` version bump; `base.typ` diff confined to the Phase 27.1 `lang` parameter (2 added / 1 removed lines) | ✓ VERIFIED (independently re-run) | `git diff main..HEAD -- pyproject.toml` → single version-literal line-pair only. `git diff main..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ \| grep -E '^[+-].*@preview'` → empty, exit 1. `git diff --numstat main..HEAD -- typsphinx/templates/base.typ` → `2\t1\ttypsphinx/templates/base.typ`. All three commands reproduce the worktree evidence exactly. |
+| 6 | SC#5 — No `v0.6.3` git tag; no merge to `main`; `typsphinx/`/`tests/`/`docs/`/`examples/`/`.github/` unmodified; no publish action taken | ✓ VERIFIED (independently re-run) | `git tag --list 'v0.6.3'` → empty (`git tag --list` full enumeration shows tags only up to `v0.6.2`). `git status --porcelain typsphinx/ tests/ docs/ examples/ .github/` → empty. Current branch (`gsd/v0.6.3-config-docs-captioned-tables`) is unmerged into `main`. No `gh release`/`twine`/`uv publish`/`git push --tags` appears in any of the 3 plans' documented commands. |
+| 7 | Requirements traceability — Phase 28 declares `requirements: []` in all 3 plan frontmatters, matching `.planning/REQUIREMENTS.md:65`'s explicit "Phase 28 is a prep-only release/close phase and carries no requirement"; no requirement ID is silently dropped from the v1 ledger (7/7 mapped to Phases 24–27.1, 0 orphaned) | ✓ VERIFIED | `grep -n "requirements:" 28-0{1,2,3}-PLAN.md` → `[]` in all three. `.planning/REQUIREMENTS.md` Coverage block → "Mapped to phases: 7 ... Unmapped: 0". This is correct-as-intentional per the task brief, not a traceability gap. |
+
+**Score (addendum): 7/7 re-verified truths hold.** Combined with wave-2's own 10/10 in-scope truths
+(9 of which overlap/are subsumed by the re-verification above; truth #1's SC#1 half and truths
+#3–#12 above), the phase's full observable-truth set is **17/17 verified, 0 failed, 0
+behavior-unverified**.
+
+### Required Artifacts
+
+| Artifact | Expected | Status | Details |
+|---|---|---|---|
+| `pyproject.toml` | `[project].version = "0.6.3"`, sole literal | ✓ VERIFIED | Confirmed by direct read + `grep -c` count = 1. |
+| `uv.lock` | typsphinx self-entry `version = "0.6.3"`; no direct-dependency specifier drift | ✓ VERIFIED | Confirmed at the self-entry; `git diff main..HEAD -- uv.lock \| grep -E '^[+-]' \| grep -Ec 'name = "(sphinx\|docutils\|typst)", specifier'` → `0`. |
+| `README.md` | Status line `:315` reads `Stable (v0.6.3)`; dependency-floor footer `:316` untouched | ✓ VERIFIED | Confirmed by direct read; Phase 28's own commit diff (not `main..HEAD`, which also carries Phase 24's unrelated README edit) is exactly the 1-line Status change. |
+| `CHANGELOG.md` | New `## [0.6.3]` section (Added/Changed/Removed/Fixed/Verified), link-block update | ✓ VERIFIED | Confirmed by direct read + section-scoped structural checks above. |
+| `28-VERIFICATION.md` (this file) | Wave-2 evidence preserved + verifier's own re-verification and verdict | ✓ VERIFIED | This file — original content preserved verbatim above this addendum, per the task's explicit no-clobber instruction. |
+| `28-01-SUMMARY.md` / `28-02-SUMMARY.md` / `28-03-SUMMARY.md` | Durable execution records for all 3 plans | ✓ VERIFIED | All three exist, read in full, internally consistent with independently-reproduced command output; `28-02-SUMMARY.md` additionally carries its own durable copy of the corpus-gate log by design ("survives even if `/gsd-verify-work` overwrites `28-VERIFICATION.md`"). |
+
+### Key Link Verification
+
+| From | To | Via | Status | Details |
+|---|---|---|---|---|
+| `pyproject.toml [project].version` | `README.md:315` Status line | `tests/test_readme_version_sync.py` (Phase 23 D-13) | ✓ WIRED | Re-ran: `uv run pytest tests/test_readme_version_sync.py -v` → 1 passed. Both values independently parsed and compared, no hardcoded literal in the test. |
+| `pyproject.toml [project].version` | `typsphinx.__version__` | `importlib.metadata.version("typsphinx")` (installed editable-dist metadata) | ✓ WIRED | `uv run python -c "import typsphinx;print(typsphinx.__version__)"` → `0.6.3`, matching pyproject. `tests/test_extension.py::test_version_matches_pyproject_toml` → 1 passed. |
+| `28-VERIFICATION.md` gate evidence (this file, wave-2 section) | `CHANGELOG.md`'s `### Verified` section (D-11) | Citation — the CHANGELOG section may only state facts this file's evidence supports | ✓ WIRED | `### Verified` states exactly 2 bullets: fatal-free/`%PDF`/`unknown_visit` (matches SC#3 evidence above) and the SC#4 invariant triple (matches SC#4 evidence above). No page-count or other unverifiable figure appears (D-11 honored). |
+| `.planning/REQUIREMENTS.md` 7-item v1 ledger | `CHANGELOG.md`'s trailing ID citations | D-09 traceability | ✓ WIRED | 6 of 7 IDs (`CONF-04`, `CONF-05`, `CONF-07`, `TBL-01`, `TBL-02`, `DOC-07`) each appear as a trailing parenthetical in the `[0.6.3]` section; `DOC-06` deliberately absent per the SC#2 amendment/D-10, count = 0 in-section. |
+
+### Requirements Coverage
+
+| Requirement | Source Plan | Description | Status | Evidence |
+|---|---|---|---|---|
+| (none declared) | 28-01, 28-02, 28-03 | Phase 28 is prep-only; carries no requirement ID per ROADMAP and `.planning/REQUIREMENTS.md:65` | ✓ SATISFIED (correct-as-intentional) | All 3 plans declare `requirements: []`; REQUIREMENTS.md's Coverage block independently confirms 7/7 v1 requirements already mapped to Phases 24–27.1, 0 unmapped, 0 orphaned. No requirement ID is silently owed to Phase 28. |
+
+No orphaned requirements found for this phase.
+
+### Anti-Patterns Found
+
+None. This phase's entire change surface (`pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md`)
+is version metadata and curated release-notes prose — no source code, no stub patterns, no debt
+markers (`TBD`/`FIXME`/`XXX`) introduced by this phase's commits. `28-REVIEW.md` (code review,
+standard depth) independently reached the same conclusion (0 critical, 1 warning, 1 info — both
+pre-existing/expected, detailed below under Known Non-Defects).
+
+### Behavioral Spot-Checks
+
+| Behavior | Command | Result | Status |
+|---|---|---|---|
+| Version-sync guard suite passes | `uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v` | `3 passed in 0.02s` | ✓ PASS |
+| Editable dist reports bumped version | `uv run python -c "import typsphinx;print(typsphinx.__version__)"` | `0.6.3` | ✓ PASS |
+| Full-corpus regression gate (real `typst.compile()`) | `uv run pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s` | `1 passed in 12.87s`, `Unknown Visit Catalogue: []` | ✓ PASS |
+| Full pytest suite | `uv run pytest -q -rs` (run once) | `656 passed, 1 skipped in 55.53s` | ✓ PASS |
+| Idempotent lockfile sync | `uv sync --extra dev --locked` | exit 0, `Resolved 88 packages`, `Checked 80 packages` | ✓ PASS |
+
+All spot-checks re-run independently on the **main checkout** (not the worktree the wave-2 evidence
+above was captured from), corroborating rather than merely repeating the recorded logs.
+
+### Known Non-Defects (confirmed, not scored as gaps)
+
+- **DOC-06 absent from `[0.6.3]` CHANGELOG section** — confirmed `grep -c 'DOC-06'` inside the
+  section = 0. This is the SC#2 amendment (owner decision, 2026-07-25) and D-10, not an omission.
+- **`docs-pdf` (2 warning lines) / `docs-multilang` (4 warning lines)** — both trace to the
+  pre-existing `visit_toctree` docstring defect in `typsphinx/translator.py`, explicitly out of
+  scope (D-06). Confirmed unchanged from the phase-entry baseline.
+- **A second `## [Unreleased]` heading exists in `CHANGELOG.md`** — confirmed via
+  `grep -c "^## \[Unreleased\]" CHANGELOG.md` → `2`. The second occurrence (line ~771) is inside the
+  historical pre-0.2.0 section, predates this phase's diff, and is flagged as WR-01 (warning,
+  non-blocking) in `28-REVIEW.md`. Outside this phase's SC#5 fence — not a gap for Phase 28.
+- **`[0.6.3]:` release/tag link 404s** — by design; the `v0.6.3` tag does not exist yet
+  (`git tag --list 'v0.6.3'` confirmed empty). Its absence is SC#5 being satisfied (no tag created
+  during this prep phase), not a defect. The tag is created at `/gsd-complete-milestone`.
+- **No new tests were written** — D-05 through D-08 explicitly rule test-infrastructure expansion
+  out of scope; this is a prep-only phase running existing gates, not adding new ones.
+
+### Gaps Summary
+
+None. All 5 ROADMAP Success Criteria hold, independently re-verified against current `HEAD` on the
+main checkout in addition to the wave-2 worktree evidence already on record. The SC#2 amendment
+(6 of 7 v1 ledger IDs, DOC-06 deliberately excluded per D-10) is honored exactly as specified. The
+scope fence (SC#5) holds: no tag, no publish, no merge, and the only files touched by this phase's
+own commits are `pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md`, and files under
+`.planning/`.
+
+No human verification items were identified — every truth in this phase's scope is a
+file-content/diff/gate-pass check directly observable via commands, not a runtime behavior requiring
+subjective judgment (visual appearance, UX flow, etc.).
+
+---
+
+_Verified: 2026-07-25_
+_Verifier: Claude (gsd-verifier)_

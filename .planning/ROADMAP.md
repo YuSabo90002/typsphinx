@@ -187,7 +187,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 - [x] **Phase 26: `typst_elements` papersize/fontsize Pass-Through** - `typst_elements` `papersize`/`fontsize` reach `project()` (string vs. unquoted length); unknown key fails loud; copyright never leaks; `base.typ` unchanged (completed 2026-07-24)
 - [x] **Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names** - Delete orphan `docs/configuration.rst`; fix phantom config names in `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements` examples) AND delete the redundant phantom-bearing config table in `api/index.rst` (+ its `.po`) so config lives in one canonical place (completed 2026-07-24)
 - [x] **Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)** - `base.typ` の `project()` に `lang` を追加し、既定テンプレート時は Sphinx `language` から自動導出、`typst_elements["lang"]` が優先。ja ドキュメントの PDF で "Table N" が「表 N」になる (completed 2026-07-25)
-- [ ] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone`
+- [x] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone` (completed 2026-07-25)
 
 ### Phase 24: Delete `typst_toctree_defaults` (dead-config sweep round 2, part B)
 
@@ -380,7 +380,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
-| 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | In Progress|  |
+| 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 
 ## Backlog
 

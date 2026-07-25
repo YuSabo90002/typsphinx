@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 28
-current_phase_name: v0-6-3-release-prep-regression-gate-close
-status: executing
-stopped_at: Phase 28 planned (3 plans, 3 waves)
-last_updated: "2026-07-25T08:11:49.409Z"
+status: completed
+stopped_at: Phase 28 planned — 3 plans / 3 waves, plan-checker VERIFICATION PASSED
+last_updated: "2026-07-25T08:53:02.608Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 28 execution started
+last_activity_desc: Phase 28 complete
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
-  completed_plans: 9
-  percent: 75
+  completed_plans: 12
+  percent: 100
+current_phase_name: v0-6-3-release-prep-regression-gate-close
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 28 (v0-6-3-release-prep-regression-gate-close) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 28
-Last activity: 2026-07-25 — Phase 28 execution started
+Phase: 28
+Plan: Not started
+Status: All phases complete
+Last activity: 2026-07-25 — Phase 28 complete
 
 Progress: [░░░░░░░░░░] 0%
 
