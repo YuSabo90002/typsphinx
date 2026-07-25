@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 27.1 — typst-text-lang-from-sphinx-language-config
+**Current focus:** Phase 28 — v0.6.3 Release Prep + Regression-Gate Close
 
 ## Current Position
 
@@ -121,20 +121,18 @@ Items acknowledged and carried forward from previous milestone closes:
 
 Last session: 2026-07-25T07:20:39.217Z
 Stopped at: Phase 28 context gathered
-Resume: `/gsd-discuss-phase 27.1`
+Resume: `/gsd-plan-phase 28`
 
 ## Operator Next Steps
 
-- `/gsd-discuss-phase 27.1` — CONF-07 の実装決定を CONTEXT.md に落とす。討議で実測済みの決定（下記）を引き継ぐこと
-- Phase 28 は 27.1 完了後に再開。`28-CONTEXT.md` は未作成（討議は 4 領域を選択した直後で中断）
+- `/gsd-plan-phase 28` — `28-CONTEXT.md`（2026-07-25 作成、D-01〜D-12）をもとに Phase 28 のプランを作る。リリース準備は prep-only、publish は `/gsd-complete-milestone`
 
-**Phase 27.1 で実測済み・決定済み（2026-07-25、discuss 28 の中断中に確定）:**
+**Phase 28 討議の要点（2026-07-25 確定、詳細は `28-CONTEXT.md`）:**
 
-- `base.typ:61` が `set text(size: fontsize, lang: "en")` と組版言語をハードコード。`config.language` は typsphinx のどこからも読まれていない（`grep config.language typsphinx/*.py` = 0 件）
-- **`.po` 参照は既に動いている** — `sphinx-build -b typst -D language=ja docs/source` で本文は翻訳される（`user_guide/configuration.typ` に CJK 58 行）。Sphinx の i18n は doctree transform なので builder 側の対応不要。組版 `lang` とは別レイヤー
-- 実害の実測: `lang: "en"` → `Table 1` / `Figure 1`、`lang: "ja"` → `表 1` / `図 1`。Phase 25 の captioned table が ja ドキュメントで英語ラベルになる
-- Sphinx LaTeX ビルダーの precedence（`builders/latex/__init__.py::init_context()`）: `DEFAULT_SETTINGS` → `ADDITIONAL_SETTINGS[engine]` → `ADDITIONAL_SETTINGS[(engine, language[:2])]` → `config.latex_elements`。250 行目に `# 'babel' key is public and user setting must be obeyed`
-- 決定: 自動導出は**既定テンプレート経路のみ**（`template_path is None and typst_package is None`）。明示 `typst_elements["lang"]` は既存 CONF-04 経路に乗るので全経路で渡る（新規挙動ではない）
-- カスタムテンプレートの逃げ道は実測済み: 既定の適用関数名は `project`（`template_engine.py:479` の `self.typst_template_function_name or "project"`）。`typst_template_function = {"name": "project", "params": {"lang": "ja"}}` で `lang: "ja",` が出力され PDF は「表 1」。未宣言なら `TypstError: unexpected argument: lang`
-- リポジトリ内のカスタムテンプレート 2 件（`examples/advanced/_templates/custom.typ`、`examples/charged-ieee/approach2/source/_templates/_template.typ`）はどちらも `lang` 未宣言 → 常時渡す設計なら両方 fatal。これが「既定テンプレート経路のみ」の根拠
-- research/plan 送り: Sphinx の言語コード（`zh_CN` 等）→ Typst `lang`/`region` の変換規則、未知値の扱い（LaTeX は `no Babel option known for language %r` で警告して続行）
+- CHANGELOG `[0.6.3]`: CONF-05 = `### Removed` + BREAKING（Phase 23 D-05 踏襲）、CONF-04 の未知キー fail-loud = `### Changed` + BREAKING + 対処手順、CONF-07 の lang 連動 = `### Fixed`（BREAKING 無し、Phase 23 D-07 と同じ基準）
+- アップグレード対処手順は CHANGELOG 本文のみ。docs は触らない。本フェーズが触るのは `pyproject.toml` / `uv.lock` / `CHANGELOG.md` / `README.md` の 4 ファイル
+- 証跡は「コーパスゲート（`-m slow -rs` で `1 passed`）+ フル pytest スイート + docs ビルド（`docs-multilang`/`docs-pdf`）」の 3 点を `28-VERIFICATION.md` に。docs の合否基準は Claude 裁量（既定は警告がベースライン 4 行から増えていないこと）
+- SC#4 は `git diff main..HEAD` の実出力を貼付 + 既存テストの緑。実測で `base.typ` の差分は 2 行、`pyproject.toml` の依存差分はゼロ
+- CHANGELOG はユーザー可視単位で束ねて 5 項目前後。DOC-07 のみ掲載し DOC-06（到達不能だった孤児削除）は意図的に載せない。`### Verified` は先例の 4 点、リード文は 3 トラック軸
+- ja の PDF での目視確認は不要（`docs-pdf` は英語、`docs-multilang` は HTML のみ。27.1 の GATE-01 21 テストが機械的に固めている）
+- 未選択で据え置き: `examples/advanced` のビルド不能（pending todo）。討議中の追加実測 — 同梱 `custom.typ` の `project()` は `papersize`/`fontsize` すら宣言しておらず、非 allowlist 5 キーを消しても Typst 側で `unexpected argument` になる。修正は `typst_elements` を空にすること
