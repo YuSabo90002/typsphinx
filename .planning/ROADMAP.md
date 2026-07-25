@@ -169,7 +169,15 @@ grep-cross-check proof + green suite is the honest bar.)
 **Milestone invariant (every phase):** zero new runtime deps, no `@preview` version bump — the 3-way
 version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) stays untouched
 (CONF-04 is a 100% Python-side fix; `base.typ` is byte-unchanged). Flag during planning if a phase
-needs otherwise (none expected).
+needs otherwise.
+
+**Invariant amendment (2026-07-25, owner decision — Phase 27.1 only):** `templates/base.typ` is
+**no longer byte-unchanged for the milestone**. Phase 27.1 (CONF-07) adds a `lang` parameter to
+`project()` and wires it into `set text()` — the only way to make the Typst typesetting language
+configurable, since `base.typ:61` hardcodes `lang: "en"`. The change is scoped to that parameter and
+its wiring; the `@preview` 4-package version strings (the actual 3-way sync surface) stay untouched
+and `tests/test_preview_version_sync.py` stays green. Every other phase keeps `base.typ`
+byte-unchanged, and zero-new-runtime-deps / no-`@preview`-bump hold everywhere.
 
 **Ship unit = milestone** (`branching_strategy: milestone`): Phase 28 is prep-only; the irreversible
 publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone`.
@@ -178,6 +186,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 - [x] **Phase 25: Captioned Table Figure Wrap + Cross-References** - `.. table:: Caption` → `figure(table, caption, kind: table)` "Table N" + `:numref:`/`:ref:` `<label>`; caption-less stays plain; caption+width compose; 2nd-table stale-buffer fix (completed 2026-07-24)
 - [x] **Phase 26: `typst_elements` papersize/fontsize Pass-Through** - `typst_elements` `papersize`/`fontsize` reach `project()` (string vs. unquoted length); unknown key fails loud; copyright never leaks; `base.typ` unchanged (completed 2026-07-24)
 - [x] **Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names** - Delete orphan `docs/configuration.rst`; fix phantom config names in `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements` examples) AND delete the redundant phantom-bearing config table in `api/index.rst` (+ its `.po`) so config lives in one canonical place (completed 2026-07-24)
+- [ ] **Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)** - `base.typ` の `project()` に `lang` を追加し、既定テンプレート時は Sphinx `language` から自動導出、`typst_elements["lang"]` が優先。ja ドキュメントの PDF で "Table N" が「表 N」になる
 - [ ] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone`
 
 ### Phase 24: Delete `typst_toctree_defaults` (dead-config sweep round 2, part B)
@@ -263,17 +272,32 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 
 - [x] 27-01-PLAN.md — Delete orphan `docs/configuration.rst` + its collateral test; remove 5 phantom config names from `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements`); delete the `api/index.rst` list-table + follow its `.po`; grep cross-check + green docs build + green suite
 
+### Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)
+
+**Goal**: Typst の組版言語 (`set text(lang:)`) が Sphinx の `language` conf に連動する。`base.typ` の `project()` に `lang` パラメータを追加し、既定テンプレート使用時は `language` から自動導出、`typst_elements["lang"]` の明示指定が常に優先する。カスタムテンプレート／パッケージ利用者は `language` を設定しているだけでは壊れない。
+**Depends on**: Phase 26 (CONF-04 の `ELEMENTS_ALLOWLIST` / `map_parameters(typst_elements=)` 経路を土台にする), Phase 27
+**Requirements**: CONF-07
+**Success Criteria** (what must be TRUE):
+
+  1. `conf.py` に `language = "ja"` を書いて既定テンプレートでビルドすると、コンパイル済み PDF の figure/table supplement が「図 N」「表 N」になる（現状は `lang: "en"` ハードコードにより "Figure N"/"Table N"）。実 `typst.compile()` の GATE-01 フィクスチャで証明する。
+  2. `typst_elements = {"lang": "..."}` の明示指定が Sphinx `language` からの自動導出より優先する（Sphinx LaTeX ビルダー `init_context()` の precedence — 言語別既定 → `latex_elements` が最後に勝つ — と同型）。`ELEMENTS_ALLOWLIST` の既存経路に乗るため全テンプレート経路で渡る。
+  3. 自動導出値はカスタムテンプレート (`typst_template`) / パッケージ (`typst_package`) 経路には渡さない。`language = "ja"` を設定済みで `lang` 未宣言の既存カスタムテンプレートがビルド失敗しないことを回帰フィクスチャで証明する（`unexpected argument: lang` の hard fatal を防ぐ）。
+  4. Sphinx の言語コード（`ja` / `zh_CN` / `pt_BR` 等のロケール付き形式を含む）から Typst の `lang`（必要なら `region`）への変換規則がテストで固定されており、未知・非標準の値でビルドが落ちない。
+  5. マイルストーン不変量の改訂が守られる: `templates/base.typ` の変更は `project()` への `lang` パラメータ追加とその `set text()` への配線**のみ**に限る。`@preview` 4 パッケージの版文字列（3-way 版同期面）は未変更で `tests/test_preview_version_sync.py` が緑。zero new runtime deps を維持。
+
+**Plans**: TBD
+
 ### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
 
 **Goal**: Prep-only — single-source the version bump to 0.6.3, curate the CHANGELOG entry, update the README status line, and close the milestone on the full-corpus regression gate. The irreversible publish is deferred to `/gsd-complete-milestone`.
-**Depends on**: Phase 27 (all six v1 requirements delivered)
+**Depends on**: Phase 27.1 (all seven v1 requirements delivered)
 **Requirements**: none (release/close phase — carries no requirement)
 **Success Criteria** (what must be TRUE):
 
   1. `pyproject.toml` is bumped to `0.6.3` as the **sole** version literal, with `uv.lock` regenerated in lockstep (`uv sync --locked` green) and the `README.md` `**Status**` line updated to reflect v0.6.3.
-  2. `CHANGELOG.md` has a curated `## [0.6.3]` entry covering all 6 v1 requirements (CONF-04, CONF-05, TBL-01, TBL-02, DOC-06, DOC-07); the `## [Unreleased]` compare link is advanced and the `[0.6.3]` release/tag link block appended (release-prep's own job — does not violate a prior release phase's version-literal invariant).
+  2. `CHANGELOG.md` has a curated `## [0.6.3]` entry covering all 7 v1 requirements (CONF-04, CONF-05, CONF-07, TBL-01, TBL-02, DOC-06, DOC-07); the `## [Unreleased]` compare link is advanced and the `[0.6.3]` release/tag link block appended (release-prep's own job — does not violate a prior release phase's version-literal invariant).
   3. The full-corpus real `typst.compile()` regression gate passes (valid `%PDF`, `unknown_visit` catalogue empty), confirming no regression from the milestone's changes.
-  4. The milestone invariant holds: zero new runtime deps, no `@preview` version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` / `templates/base.typ`) untouched.
+  4. The milestone invariant holds **as amended**: zero new runtime deps, no `@preview` version bump, the `@preview` version strings in `writer.py` / `template_engine.py` / `templates/base.typ` untouched. `base.typ` itself is no longer byte-unchanged — Phase 27.1 added the `lang` parameter to `project()` per the 2026-07-25 amendment; verify the diff is confined to that.
   5. Scope fence: no tag, no PyPI publish, no merge — the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone` on the confirmed-green merge commit.
 
 **Plans**: TBD
@@ -281,7 +305,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 ## Progress
 
 **Execution Order:**
-Active milestone phases execute in numeric order (decimal insertions between their surrounding integers): 24 → 25 → 26 → 27 → 28.
+Active milestone phases execute in numeric order (decimal insertions between their surrounding integers): 24 → 25 → 26 → 27 → 27.1 → 28.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -317,6 +341,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
+| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 0/TBD | Not started | - |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
 
 ## Backlog

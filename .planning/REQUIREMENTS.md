@@ -10,6 +10,7 @@ Requirements for this milestone. Each maps to a roadmap phase. Every config→ou
 ### Config (dead-config sweep round 2)
 
 - [x] **CONF-04**: User can set `papersize` and `fontsize` via `typst_elements` in `conf.py` (e.g. `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`) and see them applied in the compiled `.typ`/PDF via the template's `project()` function — not silently dropped. Implemented as a **curated allowlist** (only keys `base.typ`'s `project()` declares; `base.typ` itself is unchanged), with `fontsize` emitted as a Typst **length** (not a quoted string) and `papersize` as a string; an unrecognized key fails loudly rather than silently, and baseline Sphinx metadata (`copyright`, etc.) is never leaked into `project()`.
+- [ ] **CONF-07**: The Typst typesetting language (`set text(lang:)`) follows Sphinx's own `language` conf value instead of being hardcoded. Today `templates/base.typ:61` pins `lang: "en"`, so a `language = "ja"` project gets *translated body text* (Sphinx's i18n transform already works — measured) but English Typst-generated labels: the Phase 25 captioned table renders "Table 1" instead of "表 1", and figures render "Figure 1" instead of "図 1". Delivered as: a `lang` parameter added to `base.typ`'s `project()` (the milestone's "base.typ byte-unchanged" invariant is amended for this phase only); auto-derivation from `config.language` applied **only** on the default-template path (`template_path is None and typst_package is None`), so a custom-template or package user who merely sets `language` is never broken by an undeclared-kwarg Typst fatal; and `lang` added to `ELEMENTS_ALLOWLIST` so an explicit `typst_elements = {"lang": ...}` overrides the auto-derived value on every path — mirroring the Sphinx LaTeX builder's `init_context()` precedence (language-keyed defaults first, `latex_elements` last and authoritative, per its own `# 'babel' key is public and user setting must be obeyed`). Custom-template users retain the existing escape hatch: declare `lang` in their own `project()` and pass it via `typst_elements` or `typst_template_function.params` (verified working). Carved out of CONF-06 by owner decision 2026-07-25.
 - [x] **CONF-05**: The registered-but-inert `typst_toctree_defaults` config value is removed from every surface (`__init__.py` registration, `docs/configuration.rst`, `examples/advanced`, README, and its registration-only test file) so it is no longer presented as a supported option. (Grep-confirmed zero consumers — pure removal.)
 
 ### Table rendering (PR#98 reimplementation)
@@ -30,7 +31,7 @@ Deferred to a future milestone. Tracked but not in this roadmap.
 
 ### Config
 
-- **CONF-06**: Additional `typst_elements` keys beyond `papersize`/`fontsize` (e.g. `lang`, currently hardcoded in `base.typ`) — would require adding parameters to `base.typ`'s `project()`, out of this milestone's "base.typ unchanged" scope.
+- **CONF-06**: Additional `typst_elements` keys beyond `papersize`/`fontsize`/`lang` — would require adding further parameters to `base.typ`'s `project()`. **Narrowed 2026-07-25:** `lang` was carved out of this item and promoted to v1 as CONF-07 (Phase 27.1), which also amends the milestone's "base.typ unchanged" invariant for that one phase. Remaining candidates keep the original rationale (each new key is a hand-maintained allowlist entry that must match a real `project()` parameter, or it becomes an undeclared kwarg and a hard Typst compile fatal).
 
 ## Out of Scope
 
@@ -56,13 +57,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CONF-04 | Phase 26 | Complete |
 | DOC-06 | Phase 27 | Complete |
 | DOC-07 | Phase 27 | Complete |
+| CONF-07 | Phase 27.1 | Not started |
 
 **Coverage:**
 
-- v1 requirements: 6 total
-- Mapped to phases: 6 (Phases 24–27; Phase 28 is a prep-only release/close phase and carries no requirement)
+- v1 requirements: 7 total
+- Mapped to phases: 7 (Phases 24–27.1; Phase 28 is a prep-only release/close phase and carries no requirement)
 - Unmapped: 0 ✓ — every v1 requirement maps to exactly one phase, no orphans, no duplicates
 
 ---
 *Requirements defined: 2026-07-23*
-*Last updated: 2026-07-23 — traceability populated after ROADMAP.md creation (Phases 24–28; 6/6 v1 requirements mapped)*
+*Last updated: 2026-07-25 — CONF-07 (Typst `lang` ← Sphinx `language`) carved out of future CONF-06 and promoted to v1, mapped to inserted Phase 27.1 (7/7 v1 requirements mapped). Owner decision made mid-discuss of Phase 28, which was interrupted for this insertion.*

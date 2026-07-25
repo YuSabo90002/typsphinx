@@ -27,8 +27,9 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
 - **docs 実測整合**:
   - 孤児 `docs/configuration.rst`（526行、誤パッケージ名 `sphinxcontrib.typst` を含みどの toctree からも到達不能）を削除
   - `docs/source/user_guide/configuration.rst` の実在しない設定名5個を修正: `typst_author`→`typst_authors`、`typst_papersize`/`typst_fontsize` は (A) 実装後に `typst_elements` 経由の動く例へ、未登録の `typst_use_codly`/`typst_code_line_numbers` は削除
+- **Typst 組版 lang の `language` 連動 (CONF-07 — 2026-07-25 に追加、Phase 27.1)**: `base.typ:61` が `set text(size: fontsize, lang: "en")` と組版言語をハードコードしているため、`language = "ja"` のプロジェクトは**本文は翻訳される**（Sphinx の i18n transform は既に効いている — 実測確認済み）のに Typst が生成するラベルだけ英語のままになる。Phase 25 で入れた captioned table が「表 1」でなく "Table 1"、figure が「図 1」でなく "Figure 1" と出る。`project()` に `lang` パラメータを追加し、既定テンプレート経路のみ `config.language` から自動導出、`typst_elements["lang"]` の明示指定が全経路で優先（Sphinx LaTeX ビルダーの `init_context()` precedence と同型）。**これに伴いマイルストーン不変量「`base.typ` byte-unchanged」を Phase 27.1 に限り改訂**（`@preview` 版文字列の 3-way 同期面は引き続き未変更）
 
-**Key context:** 各項目は docname + node kind + file/line 付きで pending todo に root-cause 済み（`dead-config-typst-elements-keys-and-toctree-defaults`, `reimplement-pr-98-captioned-table-figure-wrap`, `delete-orphan-docs-configuration-rst`, `user-guide-configuration-phantom-config-names`）。**今回対象外:** README の github.io リンク7本の 404（`/en/` 欠落）→ RTD 移行で解消する見込みのため放置（RTD 移行そのものも今回外）。Milestone invariant carried forward: zero new runtime deps, no `@preview` version bump, 3-way version-sync 面 unchanged。Standing GATE-01 bar: すべての node-handler 変更（PR#98）と config→output 変更は実 `typst.compile()` 回帰フィクスチャを ship/extend する。Ship unit is the milestone (`branching_strategy: milestone`); a final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complete-milestone`.
+**Key context:** 各項目は docname + node kind + file/line 付きで pending todo に root-cause 済み（`dead-config-typst-elements-keys-and-toctree-defaults`, `reimplement-pr-98-captioned-table-figure-wrap`, `delete-orphan-docs-configuration-rst`, `user-guide-configuration-phantom-config-names`）。**今回対象外:** README の github.io リンク7本の 404（`/en/` 欠落）→ RTD 移行で解消する見込みのため放置（RTD 移行そのものも今回外）。Milestone invariant carried forward: zero new runtime deps, no `@preview` version bump, 3-way version-sync 面（4 パッケージの版文字列）unchanged。**2026-07-25 改訂:** 「`base.typ` byte-unchanged」は Phase 27.1 (CONF-07) に限り解除 — 変更は `project()` への `lang` パラメータ追加とその `set text()` 配線のみ。他フェーズは従来どおり byte-unchanged。Standing GATE-01 bar: すべての node-handler 変更（PR#98）と config→output 変更は実 `typst.compile()` 回帰フィクスチャを ship/extend する。Ship unit is the milestone (`branching_strategy: milestone`); a final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complete-milestone`.
 
 **Carried-forward deferred items (still out of this milestone):**
 - **CFG-01** (was FWD-03) — user-configurable `@preview` package versions (still v2)
@@ -117,6 +118,7 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
 - [x] 死んだ config 掃除ラウンド2 (A): `typst_elements` 非マッピングキー経路の実装 (A) — **Phase 26 で完了 (CONF-04 ✓)**。※`typst_toctree_defaults` 削除 (B) は **Phase 24 で完了 (CONF-05 ✓)**
 - [x] PR#98 再実装: `.. table:: Caption` を `figure(table(...), caption, kind: table)`（Table N 番号付き）で出力、`:width:` ラップと合成 — **Phase 25 で完了 (TBL-01/TBL-02 ✓)**
 - [x] docs 実測整合: 孤児 `docs/configuration.rst` 削除、`user_guide/configuration.rst` の phantom 設定名5個修正 — **Phase 27 で完了 (DOC-06/DOC-07 ✓)**。※SC#4「docs/source/ 配下すべて」で `examples/*.rst` の phantom も除去（計画取りこぼしのギャップクローズ）
+- [ ] Typst 組版 lang の Sphinx `language` 連動 (CONF-07) — Phase 27.1（2026-07-25 挿入）。`base.typ` の `project()` に `lang` 追加、既定テンプレート時のみ自動導出、`typst_elements["lang"]` が優先
 
 ### Out of Scope
 
