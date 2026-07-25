@@ -181,6 +181,14 @@ the wave-2-before-wave-3 ordering rationale in this plan's `<objective>`. SC#2 (
 CHANGELOG entry itself) remains undone and is explicitly out of this plan's scope — that is plan
 28-03's job. No blockers for wave 3.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-VERIFICATION.md`
+- FOUND: `.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-02-SUMMARY.md`
+- FOUND commit `5a8b342` (Task 1)
+- FOUND commit `f0ca561` (Task 2)
+- FOUND commit `ffb8422` (this SUMMARY)
+
 ---
 *Phase: 28-v0-6-3-release-prep-regression-gate-close*
 *Completed: 2026-07-25*
