@@ -41,19 +41,18 @@ class TemplateResolution:
     ``load_template()`` already performs -- never a second, independently
     derived check (CONF-07/D-06 explicitly rejects duplicating the priority
     logic in a second place).
-
-    Attributes:
-        content: The loaded template content, identical to what
-            ``load_template()`` returns for the same engine state.
-        source: One of the three literal values ``"explicit"`` (Priority 1,
-            an explicit ``template_path`` that was found), ``"search"``
-            (Priority 2, a ``search_paths`` hit -- this is also where the
-            ``<srcdir>/base.typ`` shadow of the bundled default lives), or
-            ``"default"`` (Priority 3, the bundled ``templates/base.typ``).
     """
 
     content: str
+    """The loaded template content, identical to what ``load_template()``
+    returns for the same engine state."""
+
     source: str
+    """One of the three literal values ``"explicit"`` (Priority 1, an
+    explicit ``template_path`` that was found), ``"search"`` (Priority 2, a
+    ``search_paths`` hit -- this is also where the ``<srcdir>/base.typ``
+    shadow of the bundled default lives), or ``"default"`` (Priority 3, the
+    bundled ``templates/base.typ``)."""
 
 
 class _ElementsEmissionKind:
@@ -88,9 +87,9 @@ def derive_typst_lang(sphinx_language: str | None) -> str | None:
     CONF-07/D-02: the conversion is a single generic rule, not a
     hand-maintained per-language mapping table -- take the substring before
     the first ``_``/``-``/``@`` separator and lowercase it. This covers every
-    measured case (``"ja"``->``"ja"``, ``"zh_CN"``->``"zh"``,
-    ``"pt-BR"``->``"pt"``, ``"sr@latin"``->``"sr"``, ``"en"``->``"en"``,
-    ``"JA"``->``"ja"``) without needing to hand-maintain a table of Sphinx's
+    measured case (``"ja"`` -> ``"ja"``, ``"zh_CN"`` -> ``"zh"``,
+    ``"pt-BR"`` -> ``"pt"``, ``"sr@latin"`` -> ``"sr"``, ``"en"`` -> ``"en"``,
+    ``"JA"`` -> ``"ja"``) without needing to hand-maintain a table of Sphinx's
     ~70 supported languages, and survives new locales being added upstream.
 
     D-03: the converted head is accepted ONLY when it is 2-3 ASCII letters
@@ -275,6 +274,7 @@ class TemplateEngine:
     def resolve_template(self) -> TemplateResolution:
         """
         Resolve Typst template with priority order:
+
         1. Explicit template_path if provided
         2. Search for template_name in search_paths (first match wins) --
            this is also where a ``<srcdir>/base.typ`` shadow of the bundled

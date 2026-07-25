@@ -76,6 +76,7 @@ MALFORMED_LANGUAGE_FIXTURE_DIR = FIXTURES_DIR / "malformed_language"
 CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "custom_template_no_lang"
 SRCDIR_SHADOW_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "srcdir_shadow_no_lang"
 PACKAGE_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "package_no_lang"
+NULL_ELEMENTS_FIXTURE_DIR = FIXTURES_DIR / "null_elements"
 
 
 def _run_sphinx_build(
@@ -410,6 +411,76 @@ class TestMalformedLanguage:
         ``language`` could not be converted to a Typst ``lang`` code.
         """
         assert build["result"].returncode == 0
+        pdf_path = build["pdf_path"]
+        assert pdf_path.exists()
+        assert pdf_path.stat().st_size > 0
+        with open(pdf_path, "rb") as f:
+            magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 typst lang gate",
+)
+class TestNullElementsDoesNotAbort:
+    """
+    Regression proof (found by this phase's code review, not by a plan
+    task): a conf.py setting ``typst_elements = None`` must still build.
+
+    Sphinx's ``add_config_value(..., [dict])`` only WARNS on a wrong-typed
+    value rather than rejecting it, so ``config.typst_elements`` really can
+    be ``None`` at writer time -- and ``getattr(config, "typst_elements",
+    {})``'s default does not fire, because the attribute exists. Before
+    this phase the value went straight into ``map_parameters()``, which has
+    always normalized it with ``(typst_elements or {})``. The D-05
+    pre-merge introduced here does a dict union first, and ``dict | None``
+    raises ``TypeError`` -- aborting the whole build on a configuration
+    that used to work.
+
+    Asserts on a real ``-b typstpdf`` build (never on the text of any
+    error message, per this module's convention) that the build exits 0
+    and produces a well-formed PDF, and that auto-derivation still
+    happened -- so a "fix" that silently discarded ``auto_lang`` along
+    with the ``None`` would not pass.
+
+    Requirements: CONF-07.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def build(tmp_path_factory):
+        build_dir = tmp_path_factory.mktemp("null_elements_build")
+        result = _run_sphinx_build(NULL_ELEMENTS_FIXTURE_DIR, build_dir, "typstpdf")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists(), (
+            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        return {
+            "result": result,
+            "text": typ_path.read_text(encoding="utf-8"),
+            "pdf_path": build_dir / "index.pdf",
+        }
+
+    def test_null_elements_build_does_not_abort(self, build):
+        assert build["result"].returncode == 0
+
+    def test_null_elements_still_auto_derives_lang(self, build):
+        """
+        The normalization must not swallow the derived value: ``language =
+        "ja"`` still reaches the emitted show-rule call.
+        """
+        region = _show_rule_call_region(build["text"])
+        assert (
+            'lang: "ja"' in region
+        ), f"auto-derived lang missing from the show-rule region:\n{region}"
+
+    def test_null_elements_real_compile_produces_valid_pdf(self, build):
         pdf_path = build["pdf_path"]
         assert pdf_path.exists()
         assert pdf_path.stat().st_size > 0

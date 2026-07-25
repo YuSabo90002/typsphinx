@@ -230,10 +230,10 @@ is passed through to Typst exactly as written with no validation.
 .. code-block:: python
 
    language = "ja"
+   typst_elements = {"lang": "de"}
 
-.. code-block:: python
-
-   typst_elements = {"lang": "ja"}
+Here the derived value would be ``ja``, but the explicit entry wins, so
+Typst typesets in German and renders 「Tabelle 1」.
 
 **Known limitation:** region subtags are not supported, so a ``zh_TW``
 project resolves to ``zh`` and renders simplified-Chinese supplement text

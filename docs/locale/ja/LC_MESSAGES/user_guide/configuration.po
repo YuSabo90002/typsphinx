@@ -288,6 +288,12 @@ msgid ""
 "is passed through to Typst exactly as written with no validation."
 msgstr ""
 
+#: ../../source/user_guide/configuration.rst:235
+msgid ""
+"Here the derived value would be ``ja``, but the explicit entry wins, so "
+"Typst typesets in German and renders 「Tabelle 1」."
+msgstr ""
+
 #: ../../source/user_guide/configuration.rst:238
 msgid ""
 "**Known limitation:** region subtags are not supported, so a ``zh_TW`` "

@@ -242,8 +242,14 @@ class TypstWriter(writers.Writer):
         # silently drops auto-derivation), and never mutate `typst_elements`
         # itself (it is the user's own live config value; `update()`/
         # `setdefault()` here would leak state across master documents in a
-        # multi-master build).
-        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+        # multi-master build). The right operand is normalized with `or {}`
+        # because Sphinx only WARNS on a wrong-typed config value -- a
+        # conf.py setting `typst_elements = None` reaches us as None, and
+        # map_parameters() has always normalized it the same way. Without
+        # this, the union would raise TypeError and abort the whole build.
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | (
+            typst_elements or {}
+        )
 
         # Map parameters
         params = template_engine.map_parameters(
