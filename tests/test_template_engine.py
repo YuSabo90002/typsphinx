@@ -1193,11 +1193,13 @@ class TestDeriveTypstLang:
     def test_elements_allowlist_has_exactly_three_keys(self):
         """ELEMENTS_ALLOWLIST contains exactly papersize, fontsize, and lang
         -- lang tagged STRING (D-05, same emission kind as papersize)."""
-        from typsphinx.template_engine import _ElementsEmissionKind
-        from typsphinx.template_engine import ELEMENTS_ALLOWLIST as allowlist
+        from typsphinx.template_engine import (
+            ELEMENTS_ALLOWLIST,
+            _ElementsEmissionKind,
+        )
 
-        assert set(allowlist) == {"papersize", "fontsize", "lang"}
-        assert allowlist["lang"] == _ElementsEmissionKind.STRING
+        assert set(ELEMENTS_ALLOWLIST) == {"papersize", "fontsize", "lang"}
+        assert ELEMENTS_ALLOWLIST["lang"] == _ElementsEmissionKind.STRING
 
     def test_map_parameters_explicit_lang_is_plain_str(self):
         """map_parameters(md, typst_elements={"lang": "ja"}) puts the plain
