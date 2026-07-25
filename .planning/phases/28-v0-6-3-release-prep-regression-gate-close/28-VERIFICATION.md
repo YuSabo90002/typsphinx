@@ -1,8 +1,8 @@
 ---
 phase: 28-v0-6-3-release-prep-regression-gate-close
 verified: 2026-07-25T08:27:17Z
-status: in-progress
-score: pending (Task 1 of 2 complete — SC#3 evidence recorded; SC#4/SC#5/Observable Truths pending Task 2)
+status: evidence-recorded
+score: 10/10 in-scope truths verified (SC#2's CHANGELOG entry is out of scope — plan 28-03, wave 3)
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -244,4 +244,194 @@ ls: cannot access '...28-GATE.md': No such file or directory
 No new test code was written (D-05–D-08), no source tree files were modified, no tag exists, and no
 `28-GATE.md` was created — all evidence lands in this file.
 
-<!-- Task 2 appends: ## SC#4 — Milestone Invariants / ## SC#5 — Scope Fence / ## Observable Truths -->
+## SC#4 — Milestone Invariants
+
+**Base ref: `main` (not the `v0.6.2` tag).** Confirmed live:
+
+```
+$ git merge-base main HEAD
+9f8e07531555ae5c20647ee204c73fbf57a8eda8
+$ git rev-parse main
+9f8e07531555ae5c20647ee204c73fbf57a8eda8
+```
+
+`git merge-base main HEAD` equals `main` itself — HEAD is a phase branch that forked from `main`
+(3 commits ahead of the `v0.6.2` tag: dependency updates and STATE.md housekeeping, unrelated to
+`typsphinx/`). `main..HEAD` therefore spans exactly Phases 24–27.1 plus this phase's own commits,
+matching `28-CONTEXT.md`'s canonical base-ref instruction.
+
+### 1. Zero new runtime dependencies
+
+Command and full output (verbatim):
+
+```
+$ git diff main..HEAD -- pyproject.toml
+diff --git a/pyproject.toml b/pyproject.toml
+index 5cbcec3..79e28c3 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "typsphinx"
+-version = "0.6.2"
++version = "0.6.3"
+ description = "Sphinx extension for Typst output"
+ readme = "README.md"
+ requires-python = ">=3.12"
+```
+
+**Read of this evidence:** this diff has changed since `28-RESEARCH.md`'s earlier (pre-version-bump)
+session, which recorded it as completely empty — that is expected and correct: plan 28-01 has since
+moved the version literal 0.6.2 → 0.6.3. The diff contains **exactly that one line-pair** and nothing
+inside the `dependencies = [` array; `requires-python` is unchanged. SC#4 asks about new runtime
+dependencies, not the version literal itself (which is exactly what SC#1 required plan 28-01 to
+change) — so this diff satisfies SC#4 by containing nothing else.
+
+### 2. No `@preview` package version bump
+
+Command and output (verbatim):
+
+```
+$ git diff main..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ | grep -E '^[+-].*@preview'
+(no output; grep exit code 1 -- zero matches)
+```
+
+**Read of this evidence:** the grep produced no output at all across all three files that declare the
+`@preview` package versions (`codly:1.3.0`, `codly-languages:0.1.10`, `mitex:0.2.7`,
+`gentle-clues:1.3.1`). None of the four package version strings changed in `writer.py`,
+`template_engine.py`, or `templates/base.typ` since `main`.
+
+```
+$ uv run python -m pytest tests/test_preview_version_sync.py -v
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+collecting ... collected 2 items
+
+tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 50%]
+tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [100%]
+
+============================== 2 passed in 0.01s ===============================
+```
+
+The 3-way version-sync surface's own dedicated test is green, independently confirming the same fact
+mechanically (this test is also included in the 656-passed full-suite run above).
+
+### 3. `base.typ` diff confined to the `lang` parameter and its wiring
+
+Command and full output (verbatim):
+
+```
+$ git diff main..HEAD -- typsphinx/templates/base.typ
+diff --git a/typsphinx/templates/base.typ b/typsphinx/templates/base.typ
+index fd39a5a..1442ad5 100644
+--- a/typsphinx/templates/base.typ
++++ b/typsphinx/templates/base.typ
+@@ -45,6 +45,7 @@
+   toctree_caption: "Contents",
+   papersize: "a4",
+   fontsize: 11pt,
++  lang: "en",
+   body
+ ) = {
+   // Document metadata
+@@ -58,7 +59,7 @@
+   )
+ 
+   // Text setup
+-  set text(size: fontsize, lang: "en")
++  set text(size: fontsize, lang: lang)
+ 
+   // Heading setup
+   set heading(numbering: "1.1")
+```
+
+Numstat (machine-readable form of the same fact):
+
+```
+$ git diff --numstat main..HEAD -- typsphinx/templates/base.typ
+2	1	typsphinx/templates/base.typ
+```
+
+**Read of this evidence:** exactly 2 added lines and 1 removed line — a new `lang: "en",` default
+parameter added to `project()`'s signature, and the `set text(...)` call's `lang: "en"` literal
+rewired to reference the new `lang` parameter instead. This is precisely the scope the ROADMAP's
+"2026-07-25 invariant amendment (owner decision — Phase 27.1 only)" permits: the milestone's
+`base.typ` byte-unchanged invariant was relaxed for Phase 27.1's `lang`-parameter work only, and no
+other phase (including this one) has touched `base.typ` beyond that.
+
+**D-07 negative record:** no sha256 baseline for `base.typ` is recorded here, by deliberate design.
+D-07 rejected that approach by name — a sha256 pin would need updating every time a future phase
+makes a legitimate, reviewed change to `base.typ`, turning a verification aid into permanent
+maintenance debt. The line-scoped `git diff`/`--numstat` evidence above is the chosen, durable
+verification mechanism instead.
+
+## SC#5 — Scope Fence
+
+All of the following are negative assertions — each expected output is emptiness/absence, confirmed
+live:
+
+```
+$ git tag --list 'v0.6.3'
+(empty)
+
+$ git status --porcelain .github/workflows/release.yml
+(empty)
+
+$ git status --porcelain typsphinx/ tests/ docs/ examples/ .github/
+(empty)
+```
+
+No git tag named `v0.6.3` (or anything else) exists. `.github/workflows/release.yml` is untouched by
+this worktree. No source, test, docs, or examples tree carries any uncommitted or unexpected change.
+
+**Files touched by Phase 28's own commits** (verified via `git diff --name-only <first-phase-28-commit>^..HEAD`,
+not the full `main..HEAD` milestone span which naturally includes Phases 24–27.1's `typsphinx/`/`docs/`
+changes):
+
+```
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-01-PLAN.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-01-SUMMARY.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-02-PLAN.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-03-PLAN.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-CONTEXT.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-DISCUSSION-LOG.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-PATTERNS.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-RESEARCH.md
+.planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-VALIDATION.md
+README.md
+pyproject.toml
+uv.lock
+```
+(plus this plan's own `28-VERIFICATION.md` and `28-02-SUMMARY.md`, added by this plan's commits.)
+
+Every path listed is confined to `pyproject.toml`, `uv.lock`, `README.md`, or `.planning/` — nothing
+under `typsphinx/`, `docs/`, `tests/`, or `examples/`. `git tag` creation, `.github/workflows/release.yml`
+triggering, PyPI upload, GitHub Release creation, and any merge to `main` are all reserved for
+`/gsd-complete-milestone` and are not performed by this plan.
+
+## Observable Truths
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | SC#1 — `pyproject.toml`/`uv.lock`/`README.md` version bump 0.6.2 → 0.6.3 (plan 28-01) | ✓ VERIFIED (per 28-01-SUMMARY.md; not re-verified by this plan, out of this plan's scope) | `git diff main..HEAD -- pyproject.toml` shows the sole version-literal line-pair; `README.md`/`uv.lock` bumps recorded in 28-01-SUMMARY.md. |
+| 2 | SC#2 — `CHANGELOG.md` `[0.6.3]` entry | ⬜ NOT YET DONE (wave 3, plan 28-03) | Not this plan's responsibility; D-11 requires this gate's own evidence to exist *before* the CHANGELOG `### Verified` section is written, which is exactly why this plan (wave 2) runs before 28-03 (wave 3). |
+| 3 | SC#3 — Full Sphinx `doc/` v9.1.0 corpus, rebuilt via `-b typstpdf`, compiles fatal-free with a valid `%PDF`-magic output and an empty `unknown_visit` catalogue; the gate demonstrably PASSED (not skipped) | ✓ VERIFIED | `uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -rs -v -s` → `Corpus tag: v9.1.0` / `Unknown Visit Catalogue: []` / `PASSED` / `1 passed in 13.81s`. Zero `SKIPPED` lines; 13.81s is in the real-build range (prior sessions: 13.08s, 13.67s, 13.99s), not sub-second. |
+| 4 | D-05 — Full pytest suite green against the post-version-bump tree; the single reported skip is `test_empty_url_before_after` (env-gated), explicitly not the SC#3 gate | ✓ VERIFIED | `uv run python -m pytest -q -rs` → `656 passed, 1 skipped in 56.33s`, 0 failed. `SKIPPED [1] tests/test_corpus_gate.py:529: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it` names the skip explicitly and distinguishes it from `TestCorpusRenderGate`. |
+| 5 | D-06 — `tox -e docs-pdf` warning output has not grown beyond its own 2-line English-only baseline; `tox -e docs-multilang` has not grown beyond its own 4-line 2-language baseline; no line-count-asserting test was created | ✓ VERIFIED | `uv run tox -e docs-pdf` → `build succeeded, 2 warnings.`, 2 `[docutils]`-tagged lines (both the pre-existing `visit_toctree` docstring defect). `uv run tox -e docs-multilang` → 4 `[docutils]`-tagged lines (the same 2 lines × 2 languages). `git status --porcelain tests/` empty — no new test files. |
+| 6 | SC#4 — Zero new runtime dependencies across the milestone (`main..HEAD -- pyproject.toml` shows only the version literal) | ✓ VERIFIED | `git diff main..HEAD -- pyproject.toml` — one line-pair only (`version = "0.6.2"` → `"0.6.3"`); the `dependencies = [` array is untouched. |
+| 7 | SC#4 — No `@preview` package version bump across the 3-way declaration surface | ✓ VERIFIED | `git diff main..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ \| grep -E '^[+-].*@preview'` → empty (exit 1, zero matches). `uv run python -m pytest tests/test_preview_version_sync.py -v` → 2 passed. |
+| 8 | SC#4 — `templates/base.typ`'s diff from `main` is confined to the Phase 27.1 `lang` parameter and its wiring (exactly one added line, one changed line) | ✓ VERIFIED | `git diff --numstat main..HEAD -- typsphinx/templates/base.typ` → `2\t1\ttypsphinx/templates/base.typ`. Full diff shows only the `lang: "en",` parameter addition and the `set text(...)` `lang:` wiring change. |
+| 9 | D-07 — No sha256 baseline for `base.typ` is recorded (rejected by name) | ✓ VERIFIED (negative record) | This section's own "D-07 negative record" paragraph states the decision explicitly; no sha256 value appears anywhere in this file. |
+| 10 | D-08 — No manual visual inspection of a 日本語 PDF is performed or claimed | ✓ VERIFIED (negative record) | "D-08 record" paragraph in the docs-builds section: `docs-pdf` produces English-only PDF, `docs-multilang` produces HTML only for both languages — the claim is not observable in any tox env run here; Phase 27.1's GATE-01 fixtures (21 tests, part of the 656-passed count) cover it mechanically instead. |
+| 11 | SC#5 — No git tag `v0.6.3` created; no `.github/workflows/release.yml` touched; no PyPI/GitHub-Release action taken; `tests/`/`typsphinx/`/`docs/`/`examples/` unmodified | ✓ VERIFIED (prohibition held) | `git tag --list 'v0.6.3'` empty. `git status --porcelain .github/workflows/release.yml` empty. `git status --porcelain typsphinx/ tests/ docs/ examples/ .github/` empty. No `gh release`, `twine`, `uv publish`, or `git push --tags` command was run anywhere in this plan's execution. |
+| 12 | No separate `28-GATE.md` (or other bespoke report file) was created — all evidence aggregates into this file | ✓ VERIFIED | `ls .planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-GATE.md` fails (file does not exist). |
+
+**Score at this plan's completion: 10/10 in-scope truths verified** (truths #1 and #2 are explicitly
+out of this plan's scope — #1 belongs to plan 28-01 wave 1, already delivered; #2 belongs to plan
+28-03 wave 3, not yet executed, and its `### Verified` section depends on this plan's evidence
+existing first per D-11). `behavior_unverified: 0` — every in-scope truth above was confirmed by a
+command this executor ran itself against the live post-version-bump tree, not copied from a prior
+session's log (T-28-06 backstop satisfied).
