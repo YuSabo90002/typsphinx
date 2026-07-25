@@ -1035,3 +1035,100 @@ class TestTypstElementsPassThrough:
         # Double-formatting regression guard: fontsize must never be
         # emitted as a quoted string.
         assert 'fontsize: "20pt"' not in result
+
+
+class TestDeriveTypstLang:
+    """CONF-07: derive_typst_lang() -- D-02's generic split-and-lowercase
+    conversion rule plus D-03's ASCII-scoped accept test and warn-and-omit
+    fallback. See 27.1-CONTEXT.md."""
+
+    @pytest.mark.parametrize(
+        "sphinx_language,expected",
+        [
+            ("ja", "ja"),
+            ("en", "en"),
+            ("zh_CN", "zh"),
+            ("pt-BR", "pt"),
+            ("sr@latin", "sr"),
+            ("zh_TW", "zh"),  # D-01's accepted limitation: no region support
+            ("JA", "ja"),
+            ("en_US", "en"),
+        ],
+    )
+    def test_conversion_table(self, sphinx_language, expected):
+        """D-02: the measured conversion table is pinned exactly."""
+        from typsphinx.template_engine import derive_typst_lang
+
+        assert derive_typst_lang(sphinx_language) == expected
+
+    def test_unknown_but_well_formed_code_accepted_silently(self, caplog):
+        """An unknown-but-well-formed 3-letter code is accepted and does NOT
+        warn -- Typst itself falls back to English without aborting, so this
+        helper does not need to know the set of codes Typst supports (D-03)."""
+        import logging
+
+        from typsphinx.template_engine import derive_typst_lang
+
+        caplog.set_level(logging.WARNING)
+        assert derive_typst_lang("xyz") == "xyz"
+        assert not any(
+            "typsphinx" in record.message and "lang" in record.message.lower()
+            for record in caplog.records
+        )
+
+    @pytest.mark.parametrize(
+        "malformed",
+        ["日本語", "", None, "a", "abcd", "_"],
+    )
+    def test_malformed_inputs_return_none_and_warn(self, malformed, caplog):
+        """D-03: every structurally invalid value returns None and emits a
+        logger.warning naming the offending value via repr() -- never
+        raises. The ASCII-scoped accept test rejects CJK code points even
+        though they are 2-3 code points long (str.isalpha() would wrongly
+        accept them)."""
+        import logging
+
+        from typsphinx.template_engine import derive_typst_lang
+
+        caplog.set_level(logging.WARNING)
+        result = derive_typst_lang(malformed)
+
+        assert result is None
+        assert any(repr(malformed) in record.message for record in caplog.records)
+
+    def test_elements_allowlist_has_exactly_three_keys(self):
+        """ELEMENTS_ALLOWLIST contains exactly papersize, fontsize, and lang
+        -- lang tagged STRING (D-05, same emission kind as papersize)."""
+        from typsphinx.template_engine import _ElementsEmissionKind
+        from typsphinx.template_engine import ELEMENTS_ALLOWLIST as allowlist
+
+        assert set(allowlist) == {"papersize", "fontsize", "lang"}
+        assert allowlist["lang"] == _ElementsEmissionKind.STRING
+
+    def test_map_parameters_explicit_lang_is_plain_str(self):
+        """map_parameters(md, typst_elements={"lang": "ja"}) puts the plain
+        string "ja" into params, quoted like papersize (not RawTypst)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(sphinx_metadata, typst_elements={"lang": "ja"})
+
+        assert params["lang"] == "ja"
+        assert isinstance(params["lang"], str)
+        assert not isinstance(params["lang"], RawTypst)
+
+    def test_map_parameters_explicit_lang_not_validated(self):
+        """D-04: an explicit typst_elements["lang"] value never passes
+        through derive_typst_lang() or any other Python-side validation --
+        it reaches params exactly as written, unraised."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata,
+            typst_elements={"lang": "definitely not a language code"},
+        )
+
+        assert params["lang"] == "definitely not a language code"
