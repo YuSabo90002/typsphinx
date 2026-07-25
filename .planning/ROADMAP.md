@@ -285,7 +285,18 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. Sphinx の言語コード（`ja` / `zh_CN` / `pt_BR` 等のロケール付き形式を含む）から Typst の `lang`（必要なら `region`）への変換規則がテストで固定されており、未知・非標準の値でビルドが落ちない。
   5. マイルストーン不変量の改訂が守られる: `templates/base.typ` の変更は `project()` への `lang` パラメータ追加とその `set text()` への配線**のみ**に限る。`@preview` 4 パッケージの版文字列（3-way 版同期面）は未変更で `tests/test_preview_version_sync.py` が緑。zero new runtime deps を維持。
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1** *(parallel — no shared files)*
+
+- [ ] 27.1-01-PLAN.md — `base.typ` `lang` パラメータ + `ELEMENTS_ALLOWLIST` エントリ（同一コミット）+ `derive_typst_lang()` 変換規則 + テンプレート解決プロヴェナンス（D-06 判定）+ `writer.py` の pre-merge precedence (CONF-07)
+- [ ] 27.1-02-PLAN.md — `docs/source/user_guide/configuration.rst` に `lang` キー・自動導出の適用範囲・precedence・`zh_TW` の限界を記載 + ja `.po` のスコープ限定 gettext 追従 (CONF-07 / D-09)
+
+**Wave 2** *(blocked on 27.1-01)*
+
+- [ ] 27.1-03-PLAN.md — GATE-01 実 `typst.compile()` フィクスチャ 7 件（ja ソース証明 / de PDF 抽出 NBSP / precedence / custom-template・srcdir-shadow・package の非破壊 3 件 / 不正 `language`）+ 耐久 pre-fix-basis 証明と red→green 記録 (CONF-07)
+
+**Note**: SC#1 は D-07 の分割証明で読むこと — `ja` は実コンパイル成功 + 生成 `.typ` の `lang: "ja"`（フォント非依存）、supplement の言語連動は `de` + pypdf 抽出（NBSP 許容正規表現）で証明する。実装後に SC#1 の文面をこの分割方式に合わせて更新するのが望ましい。
 
 ### Phase 28: v0.6.3 Release Prep + Regression-Gate Close
 
