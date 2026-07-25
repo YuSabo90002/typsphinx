@@ -136,3 +136,14 @@ None - no external service configuration required. The RTD build cycle that actu
 ---
 *Phase: 29-rtd-build-establishment-english-parent-pdf-path-decision*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+- FOUND: `.readthedocs.yaml`
+- FOUND: `tests/test_readthedocs_config.py`
+- FOUND: `.planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-VERIFICATION.md`
+- FOUND: `.planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-03-SUMMARY.md`
+- FOUND commit: `91130af`
+- FOUND commit: `38c7157`
+- FOUND commit: `f2410c2`
+- FOUND commit: `1e67116`
