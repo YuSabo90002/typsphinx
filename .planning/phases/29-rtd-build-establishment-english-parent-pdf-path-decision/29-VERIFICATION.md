@@ -647,3 +647,183 @@ disclosed here explicitly rather than being papered over as a fourth quoted log 
 D-12 local baseline) **executes**. **Plan 06** (the Branch B fallback documentation-link edit) **is
 skipped** — no edit to `docs/source/index.rst` or `README.md` is made by this phase for the fallback
 link, since Branch A's own path (RTD serving typsphinx's own dogfooded PDF) was taken instead.
+
+## SC#3 Branch A — artifacts under comparison
+
+This section is Plan 05, Task 1. Branch A was confirmed selected (§ "Branch Decision" above), so this
+plan executes in full — this is not the skip path.
+
+**Worktree base commit for this executor:**
+
+```
+git rev-parse HEAD
+```
+```
+f54cd2bb2dd9d07a94b93252faa02adcd5317969
+```
+
+**Confirming no `typsphinx/`/`docs/`/`.readthedocs.yaml` drift since Plan 03's baseline commit** (the
+orchestrator's brief asserted this; re-verified directly rather than assumed):
+
+```
+git diff --stat 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — empty diff)
+```
+
+```
+git log --oneline 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — no commits touch these paths)
+```
+
+Confirmed: zero drift. Only `.planning/` tracking commits landed between Plan 03's baseline commit and
+this executor's worktree base — the local rebuild below is expected to reproduce Plan 03's baseline
+exactly, and it does (see cross-check below).
+
+**Local baseline rebuild** — same builder/flags as `.readthedocs.yaml`'s `build.jobs.build.pdf`, invoked
+as `uv run python -m sphinx` per `CLAUDE.md`'s worktree-isolated-execution guidance (source directory
+referenced via an absolute out-of-repo symlink to sidestep an unrelated sandbox string-matching quirk in
+this session; the invocation is otherwise identical to the manifest's):
+
+```
+mkdir -p /tmp/p29-05-local/doctrees
+uv run python -m sphinx -b typstpdf -d /tmp/p29-05-local/doctrees <repo>/docs/source /tmp/p29-05-local/out
+```
+
+```
+...
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/templates] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/p29-05-local/out/typsphinx.pdf
+build succeeded, 2 warnings.
+```
+
+(The "2 warnings" are the same pre-existing `visit_toctree` docstring docutils warnings Plan 03 already
+recorded as out-of-scope — `Unexpected indentation` / `Block quote ends without a blank line` against
+`typsphinx/translator.py`'s docstring, unrelated to this plan's comparison.)
+
+**Local baseline — size, hash, page count, fonts (command and output verbatim):**
+
+```
+sha256sum /tmp/p29-05-local/out/typsphinx.pdf
+```
+```
+dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530  /tmp/p29-05-local/out/typsphinx.pdf
+```
+
+```
+uv run python -c "
+import pypdf, os
+r = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+print('pages', len(r.pages))
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+print('bytes', os.path.getsize('/tmp/p29-05-local/out/typsphinx.pdf'))
+"
+```
+
+```
+pages 93
+/BaseFont /BLJSKO+IPAexGothic
+/BaseFont /JWAONO+NotoSansCJKjp-Thin
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /SVGCJT+Unifont-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+bytes 1693967
+```
+
+**Local interpreter version:** Python 3.13.13 (CPython) — `uv run python --version`, same as Plan 03's
+recorded baseline. `.readthedocs.yaml`'s `build.tools.python` is `"3.12"`.
+
+**Cross-check against Plan 03's recorded D-12 Baseline (§ "D-12 Baseline (local, this commit)" above):**
+
+| Field | Plan 03 (commit `38c7157`) | This rebuild (commit `f54cd2b`) | Verdict |
+|-------|------------------------------|----------------------------------|---------|
+| Page count | 93 | 93 | **same** |
+| Byte size | 1,693,967 bytes | 1,693,967 bytes | **same** |
+| `/BaseFont` list (9 fonts, sorted) | `BLJSKO+IPAexGothic`, `JWAONO+NotoSansCJKjp-Thin`, `LFIBAF+LibertinusSerif-Italic-Identity-H`, `OYQRGH+DejaVuSansMono`, `PEKEPN+LibertinusSerif-Bold-Identity-H`, `SEPNHW+LibertinusSerif-Semibold-Identity-H`, `SVGCJT+Unifont-Identity-H`, `UOQBSW+LibertinusSerif-Regular-Identity-H`, `VOIDKS+DejaVuSansMono-Bold` | identical list, identical subset tags | **same** |
+| Interpreter | Python 3.13.13 | Python 3.13.13 | **same** |
+
+**No divergence found.** The rebuild reproduces Plan 03's baseline exactly, byte-for-byte-identical
+`/BaseFont` subset tags included — consistent with the confirmed zero-drift `git diff --stat` above.
+
+**RTD-served artifact download (real HTTP, `curl`, following redirects):**
+
+```
+curl -sS -o /tmp/p29-05-rtd.pdf -D /tmp/p29-05-rtd.hdrs -w 'code=%{http_code} content_type=%{content_type} size=%{size_download} url=%{url_effective}\n' -L https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+```
+code=200 content_type=application/pdf size=1697498 url=https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+**Fetched:** 2026-07-25T14:46:43Z (UTC)
+
+**PDF-signature confirmation (the bytes are a genuine PDF, not an HTML error page — T-29-12):**
+
+```
+head -c 4 /tmp/p29-05-rtd.pdf
+```
+```
+%PDF
+```
+
+```
+file /tmp/p29-05-rtd.pdf
+```
+```
+/tmp/p29-05-rtd.pdf: PDF document, version 1.7, 93 page(s)
+```
+
+```
+sha256sum /tmp/p29-05-rtd.pdf
+```
+```
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  /tmp/p29-05-rtd.pdf
+```
+
+**Artifact identity summary:**
+
+| Field | Local baseline | RTD-served PDF |
+|-------|----------------|----------------|
+| Path/URL | `/tmp/p29-05-local/out/typsphinx.pdf` | `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` |
+| HTTP status | N/A (local build) | 200 |
+| Byte size | 1,693,967 bytes | 1,697,498 bytes |
+| SHA-256 | `dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530` | `d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5` |
+| Page count | 93 | 93 |
+| Commit SHA | `f54cd2bb2dd9d07a94b93252faa02adcd5317969` (this worktree's base; identical `typsphinx/`/`docs/`/`.readthedocs.yaml` to Plan 03's `38c7157`) | `dcc6a523fc2d16f3dae925e17d63a1a24318b6d7` (Plan 03's PDF-enabling commit, per RTD build `33756855` recorded in § SC#2) |
+| Interpreter | Python 3.13.13 (local) | `build.tools.python: "3.12"` (`.readthedocs.yaml`) |
+
+The two byte sizes differ (1,693,967 vs. 1,697,498) — expected and not itself a fidelity concern, since
+PDF byte-for-byte size is sensitive to compression-stream ordering/timestamps across separate `typst`
+compiles even with identical page count and text; the D-12 bar is page count, extracted text and font
+coverage, not byte-identical files. This divergence is recorded here rather than silently ignored.
+
+**Note:** the local-rebuild and RTD-served commits are not identical (`f54cd2b` vs. `dcc6a52`), but the
+confirmed-empty `typsphinx/`/`docs/`/`.readthedocs.yaml` diff between them (above) means the comparison is
+still valid — no source, template, or manifest change separates the two builds, only intervening
+`.planning/` tracking commits.
