@@ -47,8 +47,13 @@ exclude_patterns = []
 # -- Internationalization (i18n) configuration -------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-locale_dirs
 
-# Language can be set via SPHINX_LANGUAGE environment variable
-language = os.getenv("SPHINX_LANGUAGE", "en")
+
+def _resolve_language():
+    return os.getenv("READTHEDOCS_LANGUAGE", os.getenv("SPHINX_LANGUAGE", "en"))
+
+
+# READTHEDOCS_LANGUAGE (RTD's Language setting) wins over SPHINX_LANGUAGE (local/CI override); defaults to "en".
+language = _resolve_language()
 
 locale_dirs = ["../locale/"]  # Path is relative to the conf.py file
 gettext_compact = False  # Generate separate .pot files for each document

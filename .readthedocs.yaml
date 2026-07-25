@@ -1,0 +1,31 @@
+# Read the Docs build manifest (config-file-v2). RTD refuses every build
+# without this file, and it is the only place RTD's build behavior is
+# configured -- nothing in conf.py or this repo's local task runner reaches it.
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    # Matches .github/workflows/docs.yml's actions/setup-python pin, so the
+    # D-12 PDF baseline comparison runs on the same Python minor both sides.
+    python: "3.12"
+
+sphinx:
+  configuration: docs/source/conf.py
+
+python:
+  install:
+    # RTD's zero-config Sphinx build does NOT install the project package,
+    # so without this, conf.py's extensions = [..., "typsphinx"] would
+    # either fail to import or silently resolve a published PyPI wheel
+    # instead of this commit. `uv sync` installs typsphinx (editable) plus
+    # the `docs` extra from the checked-out commit.
+    - method: uv
+      command: sync
+      extras:
+        - docs
+
+# The PDF format is deliberately absent from this commit (D-06 commit 1,
+# HTML-only) and arrives in a separate commit, so that if the PDF step
+# fails its failure is isolated in its own log with nothing else in it,
+# and the English HTML site is already established and serving.
