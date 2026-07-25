@@ -289,7 +289,7 @@ the `ui.plan-gate` false-positives on HTML/PDF/template wording (STATE.md standi
 publish (tag `v0.6.4` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone`
 (v0.5.0 Phase 10 / v0.6.2 Phase 23 / v0.6.3 Phase 28 precedent).
 
-- [ ] **Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision** - `.readthedocs.yaml` + the `READTHEDOCS_LANGUAGE` seam; the en project observed green from a raw build log (in-repo install, no `latexmk`); the `@preview`-egress unknown resolved either way; root URL owned at Default Version = `latest`
+- [x] **Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision** - `.readthedocs.yaml` + the `READTHEDOCS_LANGUAGE` seam; the en project observed green from a raw build log (in-repo install, no `latexmk`); the `@preview`-egress unknown resolved either way; root URL owned at Default Version = `latest` (completed 2026-07-26)
 - [ ] **Phase 30: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal** - `/ja/latest/` serving real Japanese prose behind RTD's own flyout, and one deletion round removing the multilang machinery + the orphan doc pair with their collateral tests (expect a manual merge — deletion guard)
 - [ ] **Phase 31: Published-URL Cutover + Repo-Wide Link Guard** - Every published documentation URL repointed at RTD and fetched over real HTTP; an advisory repo-wide link check installed with a recorded pre-rewrite negative control; Issue #119 closed and the About → Website field set
 - [ ] **Phase 32: GitHub Pages Teardown (IRREVERSIBLE)** - Behind a freshly re-taken RTD-is-serving gate: the `actions-gh-pages` deploy step and the `gh-pages` branch deleted, no redirect stubs, with `tox -e docs-pdf` and the tag-time PDF Release attachment intact
@@ -603,7 +603,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
-| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | In Progress|  |
+| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
 | 30. Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |

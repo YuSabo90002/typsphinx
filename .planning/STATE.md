@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 29
-current_phase_name: rtd-build-establishment-english-parent-pdf-path-decision
-status: executing
-stopped_at: Phase 29 planned (6 plans, 6 waves)
-last_updated: "2026-07-25T13:24:31.107Z"
-last_activity: 2026-07-25
-last_activity_desc: Phase 29 execution started
+current_phase: 30
+current_phase_name: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
+status: planning
+stopped_at: Phase 29 context gathered
+last_updated: "2026-07-25T15:13:13.784Z"
+last_activity: 2026-07-26
+last_activity_desc: Phase 29 complete, transitioned to Phase 30
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 0
-  percent: 0
+  completed_plans: 6
+  percent: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 29 (rtd-build-establishment-english-parent-pdf-path-decision) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 29
+Phase: 30 — Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
+Plan: Not started
+Status: Ready to plan
 Progress: [░░░░░░░░░░] 0% (0/5 phases)
-Last activity: 2026-07-25 — Phase 29 execution started
+Last activity: 2026-07-26 — Phase 29 complete, transitioned to Phase 30
 
 **Phase 29 execution notes (carry into execute/verify):**
 

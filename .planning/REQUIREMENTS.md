@@ -16,17 +16,20 @@ build sandbox).
 
 ### RTD Hosting (RTD)
 
-- [ ] **RTD-01**: A reader can browse typsphinx's English documentation on Read the Docs, built from a
+- [x] **RTD-01**: A reader can browse typsphinx's English documentation on Read the Docs, built from a
       `.readthedocs.yaml` in the repository — with typsphinx itself installed from the in-repo commit
       (not a stale PyPI wheel), so `conf.py`'s `extensions = [..., "typsphinx"]` resolves the code
       under test.
-- [ ] **RTD-02**: The PDF a reader downloads from Read the Docs is the one typsphinx's own `typstpdf`
+
+- [x] **RTD-02**: The PDF a reader downloads from Read the Docs is the one typsphinx's own `typstpdf`
       builder produced — not RTD's LaTeX pipeline — and its *content* is verified against the
       `tox -e docs-pdf` CI baseline, not merely its build status.
-- [ ] **RTD-03**: If `typst.compile()` cannot reach `packages.typst.org` from inside RTD's build
+
+- [x] **RTD-03**: If `typst.compile()` cannot reach `packages.typst.org` from inside RTD's build
       sandbox, the documentation instead links to the PDF attached to the GitHub Release, via a URL
       that stays correct across releases without editing.
-- [ ] **RTD-04**: A reader who visits the documentation root URL lands on a version that exists and
+
+- [x] **RTD-04**: A reader who visits the documentation root URL lands on a version that exists and
       serves real content — at every point during the migration, not only at the end.
 
 ### Japanese Documentation (I18N)
@@ -34,6 +37,7 @@ build sandbox).
 - [ ] **I18N-01**: A reader can browse the Japanese documentation on Read the Docs and see actual
       Japanese prose — the failure mode being guarded against is a Japanese project that builds green
       while rendering 100% English.
+
 - [ ] **I18N-02**: The hand-rolled multi-language publishing machinery is gone from the repository, and
       language switching works through Read the Docs' own flyout instead.
 
@@ -42,8 +46,10 @@ build sandbox).
 - [ ] **DOC-08**: The unreachable `docs/usage.rst` / `docs/installation.rst` orphan pair is resolved,
       and the test suite is green afterwards — the live, toctree-reachable
       `docs/source/installation.rst` is untouched.
+
 - [ ] **DOC-09**: Every documentation URL the project publishes — in the README, in the PyPI package
       metadata, and in the codebase notes — resolves to a real page, proven by an actual HTTP fetch.
+
 - [ ] **DOC-10**: The external bug report about the broken documentation link (Issue #119) is closed
       with the promised fix actually delivered, and a visitor to the GitHub repository can reach the
       documentation from the repository's own Website field.
@@ -52,6 +58,7 @@ build sandbox).
 
 - [ ] **CI-04**: GitHub Pages no longer hosts or publishes typsphinx documentation, while the
       `typstpdf` regression gate and the tag-time PDF Release attachment keep working.
+
 - [ ] **CI-05**: A broken published link anywhere in the repository — including files Sphinx never
       scans, which is where the links that motivated this milestone actually lived — surfaces
       automatically in CI instead of after months.
@@ -75,14 +82,17 @@ Acknowledged but deliberately not in this milestone.
   under `docs/source/`), so a green linkcheck job would create false confidence about precisely the
   bug class it was added to prevent. CI-05 covers the real failure class instead. The pending todo
   `.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md` stays open.
+
 - **I18N-03**: A Japanese PDF. Deferred: `typst-py` embeds only Libertinus Serif / New Computer Modern,
   neither of which has CJK coverage, so this needs `build.apt_packages` font provisioning plus a gate
   that proves the glyphs are right (Typst's font fallback is silent — the failure mode is a
   tofu-rendered PDF that builds successfully). v0.6.3 Phase 27.1 explicitly declined to bundle CJK
   binaries for the same reason; reversing that is its own scoped piece of work.
+
 - **RTD-05**: Pull-request preview builds. Dropped from v1 by owner decision 2026-07-25 — it is a
   single owner-side checkbox with no repo-side work, and `docs.yml` already gates documentation builds
   on PRs. Can be enabled at any time later without a code change; nothing in this milestone blocks it.
+
 - **RTD-06**: Documentation versions for tags before `v0.6.4`. Structurally impossible to add later
   without rewriting history: RTD has refused builds without a `.readthedocs.yaml` since 2023-09-25 and
   no existing tag contains one.
@@ -122,20 +132,26 @@ Carried forward and re-asserted for v0.6.4:
 
 1. **Zero new runtime dependencies.** `sphinx-build -b linkcheck` is built into Sphinx; RTD needs no
    Python package this project doesn't already declare.
+
 2. **No `@preview` version bump.** The four bundled package versions and the (now four-surface)
    version-sync guard — `writer.py`, `template_engine.py`, `templates/base.typ`, `examples/**/*.typ` —
    stay untouched.
+
 3. **No `typsphinx/` runtime code change.** If a requirement appears to need one, that is a signal to
    stop and re-scope, not to widen the diff.
+
 4. **Repo-wide grep at discovery time.** Any success criterion phrased "anywhere under X" is verified
    by a repo-wide grep, never by grepping only the files the requirement names. This bit the project
    twice in v0.6.3 (Phase 27's `docs/source/examples/*.rst` miss, and the unbuildable
    `examples/advanced` sample found only at the milestone close).
+
 5. **Delete collateral tests in the same commit as their subject.** Two test files
    (`tests/test_documentation_usage.py`, `tests/test_documentation_installation.py`) hard-assert the
    existence of files DOC-08 removes. This is the exact trap that reddened the suite in Phase 27.
+
 6. **Irreversible steps last.** RTD must be observed serving both languages and the PDF correctly
    before GitHub Pages / `gh-pages` is deleted. There is no undo.
+
 7. **A green build proves nothing about content.** Two failure modes in this milestone present as
    *successful* builds: a Japanese project rendering English (I18N-01), and a PDF with substituted
    glyphs (RTD-02). Both need content-level verification, not status checks.
@@ -150,17 +166,22 @@ this repository can assert any of it. Tracked as an explicit checklist:
 1. Create the English RTD project (import + connect GitHub). **Confirm the project slug before
    creation** — RTD slugs are not self-service changeable, and this milestone is about to publish that
    slug into every documentation link. *(Phase 29)*
+
 2. Create a **separate** RTD project for Japanese — re-import the same repository — and set
    Language = Japanese in *that project's* Admin settings. This setting, not anything in `conf.py`, is
    what makes RTD emit `READTHEDOCS_LANGUAGE=ja` at build time. *(Phase 30)*
+
 3. Link the Japanese project under the English parent's Settings → Translations. **Most likely step to
    be missed**: creating both projects without linking them leaves two working but unswitchable sites.
    *(Phase 30)*
+
 4. Activate versions on the Japanese project independently — translation projects do not inherit the
    parent's activated-version list. *(Phase 30, re-checked at Phase 33's handoff)*
+
 5. Set Default Version = `stable` — **only after** the `v0.6.4` tag has been pushed and built green
    (RTD-04 / REL-02). Before then it stays `latest`. *(Phase 33 handoff to
    `/gsd-complete-milestone`)*
+
 6. Set the GitHub repository's About → Website field (DOC-10). *(Phase 31)*
 7. Disable the GitHub Pages site in the repository's Settings → Pages — deleting the `gh-pages` branch
    removes the source but can leave the feature enabled against a missing source (CI-04). *(Phase 32)*
@@ -173,10 +194,10 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RTD-01 | Phase 29 | Pending |
-| RTD-02 | Phase 29 | Pending |
-| RTD-03 | Phase 29 | Pending |
-| RTD-04 | Phase 29 | Pending |
+| RTD-01 | Phase 29 | Complete |
+| RTD-02 | Phase 29 | Complete |
+| RTD-03 | Phase 29 | Complete |
+| RTD-04 | Phase 29 | Complete |
 | I18N-01 | Phase 30 | Pending |
 | I18N-02 | Phase 30 | Pending |
 | DOC-08 | Phase 30 | Pending |
@@ -187,6 +208,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | REL-02 | Phase 33 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 12 total
 - Mapped to phases: 12 ✓ (Phases 29–33)
 - Unmapped: 0
@@ -199,6 +221,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
   has no build). Phase 29 discharges it by setting Default Version = `latest` and proving the root
   resolves; the invariant then stands as a re-fetch in every later phase's verification, and Phase 33
   hands the post-tag `latest` → `stable` flip to the owner. See ROADMAP.md's "RTD-04 ownership" note.
+
 - **REL-02** is mapped to **Phase 33** but is only *half*-satisfiable there: the phase can bump the
   version, curate the CHANGELOG, and prove the `Documentation` metadata URL resolves, but "published to
   PyPI" and "`/en/stable/` + `/ja/stable/` serve that released version" can only be true *after* the
