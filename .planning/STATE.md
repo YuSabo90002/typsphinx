@@ -5,8 +5,8 @@ milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 28
 current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
 status: planning
-stopped_at: Phase 27.1 context gathered
-last_updated: "2026-07-25T06:03:48.300Z"
+stopped_at: Phase 28 context gathered
+last_updated: "2026-07-25T07:20:39.223Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 27.1 complete, transitioned to Phase 28
 progress:
@@ -117,10 +117,10 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/27.1-typst-text-lang-from-sphinx-language-config/27.1-CONTEXT.md
+**Resume file:** .planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-CONTEXT.md
 
-Last session: 2026-07-25T03:57:37.899Z
-Stopped at: Phase 27.1 context gathered
+Last session: 2026-07-25T07:20:39.217Z
+Stopped at: Phase 28 context gathered
 Resume: `/gsd-discuss-phase 27.1`
 
 ## Operator Next Steps
