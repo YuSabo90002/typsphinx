@@ -5,10 +5,14 @@
 //   typst_template = '_templates/custom.typ'
 
 // Import required packages
+// Keep these versions in lockstep with typsphinx's own bundled template
+// (typsphinx/templates/base.typ) — tests/test_preview_version_sync.py
+// enforces it, because a stale pin here fails to compile at all (an old
+// codly-languages aborts with `unknown variable: kai`).
 #import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.1": *
-#import "@preview/mitex:0.2.4": *
-#import "@preview/gentle-clues:1.2.0": *
+#import "@preview/codly-languages:0.1.10": *
+#import "@preview/mitex:0.2.7": *
+#import "@preview/gentle-clues:1.3.1": *
 
 // Initialize codly for code highlighting
 #show: codly-init.with()
@@ -16,23 +20,6 @@
 
 // Custom styling
 #let primary-color = rgb(0, 102, 204)
-
-// Page setup
-#set page(
-  paper: "a4",
-  margin: (x: 2.5cm, y: 2.5cm),
-  header: align(right)[
-    #text(size: 10pt, fill: gray)[_Custom Template Example_]
-  ],
-  numbering: "1",
-)
-
-// Text styling
-#set text(
-  font: "Linux Libertine",
-  size: 11pt,
-  lang: "en",
-)
 
 // Heading styling
 #show heading.where(level: 1): it => block(
@@ -112,12 +99,38 @@
   toctree_maxdepth: 2,
   toctree_numbered: false,
   toctree_caption: "Contents",
+  // A custom template receives a `typst_elements` key ONLY if it declares a
+  // matching parameter here — an undeclared key is a hard Typst compile
+  // error (`unexpected argument: papersize`). These three mirror the
+  // parameters typsphinx's bundled base.typ exposes, so the conf.py setting
+  //   typst_elements = {"papersize": ..., "fontsize": ..., "lang": ...}
+  // actually reaches the page.
+  papersize: "a4",
+  fontsize: 11pt,
+  lang: "en",
   body,
 ) = {
   // Set document metadata
   set document(
     title: title,
     author: authors,
+  )
+
+  // Page setup
+  set page(
+    paper: papersize,
+    margin: (x: 2.5cm, y: 2.5cm),
+    header: align(right)[
+      #text(size: 10pt, fill: gray)[_Custom Template Example_]
+    ],
+    numbering: "1",
+  )
+
+  // Text styling
+  set text(
+    font: "Linux Libertine",
+    size: fontsize,
+    lang: lang,
   )
 
   // Display title page

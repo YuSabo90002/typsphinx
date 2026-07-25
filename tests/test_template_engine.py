@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from typsphinx.template_engine import TemplateEngine
 
 
@@ -109,6 +111,100 @@ class TestTemplateLoading:
         assert default_path is not None
         assert Path(default_path).exists()
         assert Path(default_path).suffix == ".typ"
+
+
+class TestTemplateResolutionProvenance:
+    """CONF-07/D-06: resolve_template()/TemplateResolution record WHICH
+    priority resolved, and uses_bundled_default_template() is the single
+    judgment predicate built on top of that provenance. See
+    27.1-CONTEXT.md D-06."""
+
+    def test_resolve_template_explicit_source(self, tmp_path):
+        """An engine built with an existing explicit template_path reports
+        source 'explicit'."""
+        custom_template_path = tmp_path / "custom.typ"
+        custom_template_path.write_text("#let custom(body) = { body }")
+
+        engine = TemplateEngine(template_path=str(custom_template_path))
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "explicit"
+        assert "#let custom" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_search_source(self, tmp_path):
+        """An engine built with template_path=None and a search_paths
+        directory that contains base.typ reports source 'search' -- the
+        <srcdir>/base.typ shadow case."""
+        srcdir = tmp_path / "docs"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+
+        engine = TemplateEngine(search_paths=[str(srcdir)])
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "search"
+        assert "shadow" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_default_source(self):
+        """An engine built with template_path=None and no matching
+        search-path file reports source 'default'."""
+        engine = TemplateEngine()
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "default"
+        assert "#let project" in resolution.content
+        assert resolution.content == engine.load_template()
+
+    def test_resolve_template_fallthrough_reports_actual_source(self, tmp_path):
+        """An engine built with a template_path that does NOT exist falls
+        through exactly as today (warning emitted) and reports whichever
+        later priority actually supplied the content."""
+        engine = TemplateEngine(template_path="/nonexistent/template.typ")
+        resolution = engine.resolve_template()
+
+        assert resolution.source == "default"
+        assert "#let project" in resolution.content
+
+    def test_srcdir_shadow_reports_search_and_not_bundled_default(self, tmp_path):
+        """The <srcdir>/base.typ shadow case reports 'search' and
+        uses_bundled_default_template() is therefore False (D-06's central
+        judgment boundary)."""
+        srcdir = tmp_path / "docs"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+
+        engine = TemplateEngine(search_paths=[str(srcdir)])
+
+        assert engine.resolve_template().source == "search"
+        assert engine.uses_bundled_default_template() is False
+
+    def test_package_configured_engine_never_uses_bundled_default(self):
+        """uses_bundled_default_template() is False for an engine
+        constructed with a typst_package even though its own priority walk
+        would resolve to 'default' (template_path=None, no search hit)."""
+        engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
+
+        assert engine.resolve_template().source == "default"
+        assert engine.uses_bundled_default_template() is False
+
+    def test_bare_engine_uses_bundled_default_template(self):
+        """uses_bundled_default_template() is True for a bare engine with no
+        template_path, no matching search path, and no package."""
+        engine = TemplateEngine()
+
+        assert engine.uses_bundled_default_template() is True
+
+    def test_explicit_template_engine_does_not_use_bundled_default(self, tmp_path):
+        """uses_bundled_default_template() is False for an engine with an
+        explicit, existing template_path."""
+        custom_template_path = tmp_path / "custom.typ"
+        custom_template_path.write_text("#let custom(body) = { body }")
+
+        engine = TemplateEngine(template_path=str(custom_template_path))
+
+        assert engine.uses_bundled_default_template() is False
 
 
 class TestParameterMapping:
@@ -884,3 +980,335 @@ class TestTypstAuthorsConfig:
         )
         params_empty = engine_empty.map_parameters(sphinx_metadata)
         assert "authors" not in params_empty
+
+
+class TestTypstElementsPassThrough:
+    """CONF-04: `typst_elements` (papersize/fontsize) reach `map_parameters()`
+    / `_format_typst_value()` with correct per-key emission typing, a
+    fail-loud unknown-key raise, and structural non-leak of baseline Sphinx
+    metadata (e.g. copyright). See 26-CONTEXT.md D-01..D-09."""
+
+    def test_format_typst_value_raw_typst_emits_unquoted(self):
+        """_format_typst_value(RawTypst("20pt")) returns the bare string
+        `20pt` -- no surrounding quotes (D-02)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        formatted = engine._format_typst_value(RawTypst("20pt"))
+
+        assert formatted == "20pt"
+        assert '"' not in formatted
+
+    def test_format_typst_value_str_unchanged(self):
+        """_format_typst_value("us-letter") is unchanged -- still returns
+        the quoted string form (D-01)."""
+        engine = TemplateEngine()
+        formatted = engine._format_typst_value("us-letter")
+
+        assert formatted == '"us-letter"'
+
+    def test_map_parameters_papersize_is_plain_str(self):
+        """map_parameters(md, typst_elements={"papersize": ...}) returns
+        params["papersize"] as a plain str (D-01)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"papersize": "us-letter"}
+        )
+
+        assert params["papersize"] == "us-letter"
+        assert isinstance(params["papersize"], str)
+
+    def test_map_parameters_fontsize_is_raw_typst(self):
+        """map_parameters(md, typst_elements={"fontsize": ...}) returns
+        params["fontsize"] as a RawTypst wrapping the value, NOT a plain
+        str (D-02)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"fontsize": "20pt"}
+        )
+
+        assert isinstance(params["fontsize"], RawTypst)
+        assert not isinstance(params["fontsize"], str)
+        assert params["fontsize"].source == "20pt"
+
+    def test_map_parameters_unknown_element_key_raises(self):
+        """An unknown typst_elements key raises ExtensionError naming the
+        offending key and listing both supported keys (D-06/D-07)."""
+        from sphinx.errors import ExtensionError
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        with pytest.raises(ExtensionError) as exc_info:
+            engine.map_parameters(sphinx_metadata, typst_elements={"bogus": "x"})
+
+        message = str(exc_info.value)
+        assert "bogus" in message
+        assert "papersize" in message
+        assert "fontsize" in message
+
+    def test_map_parameters_unknown_key_does_not_emit_wrong_quoted_form(self):
+        """Negative-form regression guard: the wrong quoted-length output
+        (`fontsize: "20pt"`) must never be what an unknown key produces --
+        it must raise instead of falling through to any emission path."""
+        from sphinx.errors import ExtensionError
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        with pytest.raises(ExtensionError):
+            engine.map_parameters(sphinx_metadata, typst_elements={"bogus": "20pt"})
+
+    def test_map_parameters_copyright_never_in_params(self):
+        """copyright is never present in map_parameters()'s returned params
+        -- structural non-leak, not a filter (D-08)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "2026, Someone",
+        }
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert "copyright" not in params
+
+    def test_map_parameters_copyright_never_leaks_even_with_elements(self):
+        """copyright stays absent even when typst_elements is also
+        provided (D-08, guards against a future re-merge regression)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {
+            "project": "P",
+            "author": "A",
+            "release": "1.0",
+            "copyright": "2026, Someone",
+        }
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements={"papersize": "a4"}
+        )
+
+        assert "copyright" not in params
+        assert params["papersize"] == "a4"
+
+    def test_map_parameters_no_typst_elements_argument_still_works(self):
+        """map_parameters(md) called with NO typst_elements argument still
+        works exactly as today -- default None treated as empty (Pitfall 4,
+        every existing one-positional-arg call site is unaffected)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(sphinx_metadata)
+
+        assert params["title"] == "P"
+        assert "papersize" not in params
+        assert "fontsize" not in params
+
+    def test_render_papersize_and_fontsize_emission_shapes(self):
+        """End-to-end through render(): papersize emits quoted, fontsize
+        emits unquoted -- the two emission shapes this phase exists to
+        produce (D-01/D-02)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata,
+            typst_elements={"papersize": "us-letter", "fontsize": "20pt"},
+        )
+        result = engine.render(params, "Content")
+
+        assert 'papersize: "us-letter",' in result
+        assert "fontsize: 20pt," in result
+        # Double-formatting regression guard: fontsize must never be
+        # emitted as a quoted string.
+        assert 'fontsize: "20pt"' not in result
+
+
+class TestDeriveTypstLang:
+    """CONF-07: derive_typst_lang() -- D-02's generic split-and-lowercase
+    conversion rule plus D-03's ASCII-scoped accept test and warn-and-omit
+    fallback. See 27.1-CONTEXT.md."""
+
+    @pytest.mark.parametrize(
+        "sphinx_language,expected",
+        [
+            ("ja", "ja"),
+            ("en", "en"),
+            ("zh_CN", "zh"),
+            ("pt-BR", "pt"),
+            ("sr@latin", "sr"),
+            ("zh_TW", "zh"),  # D-01's accepted limitation: no region support
+            ("JA", "ja"),
+            ("en_US", "en"),
+        ],
+    )
+    def test_conversion_table(self, sphinx_language, expected):
+        """D-02: the measured conversion table is pinned exactly."""
+        from typsphinx.template_engine import derive_typst_lang
+
+        assert derive_typst_lang(sphinx_language) == expected
+
+    def test_unknown_but_well_formed_code_accepted_silently(self, caplog):
+        """An unknown-but-well-formed 3-letter code is accepted and does NOT
+        warn -- Typst itself falls back to English without aborting, so this
+        helper does not need to know the set of codes Typst supports (D-03)."""
+        import logging
+
+        from typsphinx.template_engine import derive_typst_lang
+
+        caplog.set_level(logging.WARNING)
+        assert derive_typst_lang("xyz") == "xyz"
+        assert not any(
+            "typsphinx" in record.message and "lang" in record.message.lower()
+            for record in caplog.records
+        )
+
+    @pytest.mark.parametrize(
+        "malformed",
+        ["日本語", "", None, "a", "abcd", "_"],
+    )
+    def test_malformed_inputs_return_none_and_warn(self, malformed, caplog):
+        """D-03: every structurally invalid value returns None and emits a
+        logger.warning naming the offending value via repr() -- never
+        raises. The ASCII-scoped accept test rejects CJK code points even
+        though they are 2-3 code points long (str.isalpha() would wrongly
+        accept them)."""
+        import logging
+
+        from typsphinx.template_engine import derive_typst_lang
+
+        caplog.set_level(logging.WARNING)
+        result = derive_typst_lang(malformed)
+
+        assert result is None
+        assert any(repr(malformed) in record.message for record in caplog.records)
+
+    def test_elements_allowlist_has_exactly_three_keys(self):
+        """ELEMENTS_ALLOWLIST contains exactly papersize, fontsize, and lang
+        -- lang tagged STRING (D-05, same emission kind as papersize)."""
+        from typsphinx.template_engine import (
+            ELEMENTS_ALLOWLIST,
+            _ElementsEmissionKind,
+        )
+
+        assert set(ELEMENTS_ALLOWLIST) == {"papersize", "fontsize", "lang"}
+        assert ELEMENTS_ALLOWLIST["lang"] == _ElementsEmissionKind.STRING
+
+    def test_map_parameters_explicit_lang_is_plain_str(self):
+        """map_parameters(md, typst_elements={"lang": "ja"}) puts the plain
+        string "ja" into params, quoted like papersize (not RawTypst)."""
+        from typsphinx.template_engine import RawTypst
+
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(sphinx_metadata, typst_elements={"lang": "ja"})
+
+        assert params["lang"] == "ja"
+        assert isinstance(params["lang"], str)
+        assert not isinstance(params["lang"], RawTypst)
+
+    def test_map_parameters_explicit_lang_not_validated(self):
+        """D-04: an explicit typst_elements["lang"] value never passes
+        through derive_typst_lang() or any other Python-side validation --
+        it reaches params exactly as written, unraised."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        params = engine.map_parameters(
+            sphinx_metadata,
+            typst_elements={"lang": "definitely not a language code"},
+        )
+
+        assert params["lang"] == "definitely not a language code"
+
+
+class TestEffectiveElementsMerge:
+    """CONF-07/D-05 + the adjacency/ordering edges: exercise map_parameters()
+    through the same merged-dict shape writer.py's effective_elements
+    pre-merge produces (``{"lang": auto_lang} if auto_lang else {}) |
+    typst_elements``), without needing a full Sphinx build. See
+    27.1-CONTEXT.md D-05."""
+
+    def test_auto_derived_entry_alone_lands_in_params(self):
+        """When only an auto-derived value is present (no explicit
+        typst_elements), it lands in params."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "ja"
+        typst_elements: dict = {}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "ja"
+
+    def test_explicit_entry_alone_lands_in_params(self):
+        """When only an explicit typst_elements["lang"] is present (no
+        auto-derivation, e.g. a non-default-template path), it lands in
+        params."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = None
+        typst_elements = {"lang": "de"}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "de"
+
+    def test_both_present_exactly_one_entry_survives_holding_explicit_value(self):
+        """Adjacency edge: when both an auto-derived and an explicit value
+        are present, the result carries exactly ONE lang entry, and it
+        holds the explicit value (D-05 precedence)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "de"
+        typst_elements = {"lang": "ja"}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        assert list(effective_elements.keys()).count("lang") == 1
+        assert effective_elements["lang"] == "ja"
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "ja"
+
+    def test_merge_order_stable_across_repeated_calls(self):
+        """Ordering edge: the merge order is stable across repeated calls
+        with identical inputs -- no accumulation, no drift."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "de"
+        typst_elements = {"lang": "ja"}
+
+        results = []
+        for _ in range(3):
+            effective_elements = (
+                {"lang": auto_lang} if auto_lang else {}
+            ) | typst_elements
+            params = engine.map_parameters(
+                sphinx_metadata, typst_elements=effective_elements
+            )
+            results.append(params["lang"])
+
+        assert results == ["ja", "ja", "ja"]
+        # typst_elements itself is never mutated across repeated merges.
+        assert typst_elements == {"lang": "ja"}

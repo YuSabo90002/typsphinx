@@ -1,223 +1,158 @@
 # Feature Research
 
-**Domain:** Sphinx builder / reST→Typst translator — "real-world robustness" (v0.6.0, Issue #114)
-**Researched:** 2026-07-11
-**Confidence:** HIGH (translator.py read directly for existing conventions) / MEDIUM (docutils/Sphinx node internals, cross-checked against Sphinx's own `extdev/nodes` docs + `sphinx.addnodes` source) / MEDIUM-LOW (a couple of Typst-side syntax recommendations flagged individually below — verify with a real `typst compile` before locking the requirement)
+**Domain:** Sphinx→Typst PDF builder — maintenance milestone v0.6.3 (config pass-through fidelity + captioned-table rendering + docs accuracy)
+**Researched:** 2026-07-23
+**Confidence:** MEDIUM (grounded primarily in direct codebase inspection — HIGH confidence; two external claims about Sphinx/LaTeX baseline behavior — MEDIUM confidence, tavily-verified against official Sphinx docs)
 
-> Supersedes the previous (2026-07-09) version of this file, which researched the **v0.5.0 forward-ecosystem** milestone (Sphinx 9/typst 0.15 pin work). This version researches the **v0.6.0 real-world robustness** milestone (Issue #114 fatal-bug fix + high-frequency dropped-node support).
-
-## Context: why most gaps are non-fatal but two are fatal
-
-`typsphinx`'s `TypstTranslator` is a `docutils.nodes.SparseNodeVisitor`-style visitor: a node type with no `visit_X`/`depart_X` method falls through to the generic "unknown node" path, which **logs a warning and drops/degrades the content** — it does not abort the build. That is the mechanism behind the ~1979 warnings on a real Sphinx `doc/` build: `versionmodified`, `desc_returns`, footnotes, `topic`, etc. are all silently dropped or text-flattened today, but the **PDF still compiles**.
-
-The Issue #114 pair is categorically different: `visit_figure`/`visit_image`/`visit_reference` already have handlers, but for two input shapes they emit **syntactically invalid Typst source** (`invalid number suffix: px`, and an illegal `link(url, image(...))text(caption)` juxtaposition). That is a `typst.TypstError` raised by the *compiler*, at `finish()`/PDF-compile time — it aborts the **entire** document (a whole book-length master doc, since a single `#include`d file's malformed `.typ` poisons the parent compile). This is why Issue #114 must land before any node-support work: every other fix in this milestone is validated by literally compiling Sphinx's `doc/` tree, and that compile is currently impossible.
-
-**Rule of thumb for categorization below:** "FATAL" = raises `TypstError` at compile time today (2 known cases). Everything else is "non-fatal / warning-only" = a `visit_*`/`depart_*` method is simply missing or the render is degraded, and Sphinx-doc's own text still fully compiles around it.
+> Supersedes the previous (2026-07-11) version of this file, which researched the **v0.6.0 real-world robustness** milestone (Issue #114 fatal-bug fix + high-frequency dropped-node support). This version researches the **v0.6.3 config & docs 実測整合 + captioned tables** milestone: (1) `typst_elements` non-mapped-key pass-through + `typst_toctree_defaults` deletion, (2) PR#98-derived captioned-table `figure()` wrap, (3) docs fidelity (orphan file deletion + 5 phantom config names).
 
 ## Feature Landscape
 
-### P0 — Fatal Bugs (Issue #114 core, must land first)
+### Table Stakes (Must Match Sphinx's Own HTML/LaTeX Baseline)
 
-| Bug | Root Cause | Correct Typst Form | Complexity | Depends On |
-|-----|-----------|---------------------|------------|------------|
-| `px`/CSS length units on `image(width:/height:)` | `visit_image` (translator.py:1527-1533) copies Sphinx's `node["width"]`/`node["height"]` (e.g. `"300px"`) into `width: {width}` verbatim. Typst's length type has no `px` unit — `invalid number suffix: px`. | Convert recognized CSS units to Typst units before emission: `px`→`pt` (numeric conversion, not passthrough — `Npx` is **never** valid Typst), bare numbers → append a default unit, `%`/`em`/`in`/`cm`/`pt` pass through as-is (already-valid Typst length/ratio suffixes). A small `_convert_css_length(value: str) -> str` helper is the right shape; unrecognized units should log-and-drop rather than emit garbage. | LOW–MEDIUM | Existing `visit_image` |
-| `:target:`-linked figure invalid juxtaposition | `visit_figure`/`visit_image`/`visit_reference` currently compose independently: a `reference` wrapping an `image` inside a `figure` produces `link(url, image(...))` (wrong call shape — `link` takes a body as its 2nd *content-block* argument when given a destination, not two positional exprs) immediately followed by the caption text with no separator, i.e. `link(...)text(...)` — two adjacent expressions is a Typst parse error. | `#figure(link("url")[#image("path")], caption: [Caption text])` — i.e., `link(dest)[content]` (content-block form, not `link(dest, content)`), and the caption must remain the `figure()` function's own `caption:` **named argument**, never bare trailing text. | MEDIUM (needs `visit_figure`/`visit_reference`/`visit_image` to cooperate — currently they don't share enough state to know "the image inside me is target-wrapped") | `visit_figure`, `visit_image`, `visit_reference` — this is the one node type in this milestone that requires touching **three** existing handlers together, not just adding one |
-
-**Both bugs share one fix pattern worth calling out to the requirements author:** the figure/image code path needs a shared "am I inside a `:target:`-wrapped figure image" flag (mirroring the existing `in_figure`/`in_caption` booleans already on the translator) so `visit_reference` knows to emit `link("url")[` + defer to `visit_image` for the content instead of the normal `link("url", ...)` two-arg form it uses everywhere else. Do not special-case only figures — a `:target:`-linked *standalone* image (no figure wrapper) hits the same bug and needs the same content-block `link[...]` form.
-
-### Table Stakes (must render for a technical/API doc to be usable)
+These are the behaviors a Sphinx PDF builder is expected to reproduce faithfully. typsphinx already accepts this bar for figures (v0.6.0/v0.6.1 FIG-01/FIG-02); captioned tables are the one node kind where it currently regresses to source-code-literal output.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| `versionmodified` (`versionadded`/`versionchanged`/`deprecated`/`versionremoved`) | 972 occurrences in Sphinx's own docs alone — any API reference of nontrivial age uses these constantly; missing them silently deletes deprecation warnings from the PDF, which is worse than a rendering glitch | LOW | See dedicated spec below — reuse the `emph`/`strong` primitives already used by `visit_rubric`/`visit_field_name`, **not** the gentle-clues admonition box |
-| Empty-`refuri` / `refid` cross-reference fix | 596 occurrences; current `visit_reference` (translator.py:1970) reads `node.get("refuri", "")` only — it never checks `refid`, so same-document anchor links (a very common, always-resolved case) are misdiagnosed as broken and degraded to plain text | LOW–MEDIUM | See dedicated analysis below — likely the single highest-leverage fix in this milestone by volume |
-| `desc_returns` | 187 occurrences; every typed function/method signature with a return annotation (`def f(x) -> int`) uses it | LOW | Direct extension of the existing `desc_parameterlist`/`desc_parameter` `text(...)` pattern (translator.py:2577-2621) |
-| `desc_signature_line` | 59 occurrences; multi-line signatures (C++ templates, long overloaded signatures) split across lines — without this, either the lines run together with no break or (worse) crash on missing-node | LOW–MEDIUM | Sibling-position check identical to `depart_desc_parameter`'s `next_node(descend=False, siblings=True)` idiom, inserting `linebreak()` instead of `text(", ")` |
-| `desc_inline` | 13 occurrences; inline signature fragments from roles like `:cpp:expr:` | LOW | Same children as `desc_signature` but must **not** apply the `strong()` block-signature wrapper (that wrapper is only correct for a standalone declaration, not text embedded mid-sentence) |
-| `desc_optional` | 6 occurrences; optional trailing parameters, e.g. C `printf(fmt[, args])` | LOW–MEDIUM | Bracket-wrap (`text("[")` / `text("]")`) around the optional parameter run; must support nesting (`desc_optional` inside `desc_optional`) for multi-level optional args |
-| `footnote` / `footnote_reference` | Common in prose-heavy docs (not counted in the milestone's headline list, but explicitly named as a target); currently unimplemented → silently dropped | MEDIUM–HIGH | See dedicated spec below — the correct Typst-native design is architecturally different from a literal docutils port |
-| `transition` | Horizontal-rule scene breaks (`----`); trivial but currently unimplemented → silently dropped, losing document structure signal | LOW | Empty node (docutils disallows children) — pure `visit`, no `depart` needed |
-| `topic` | Named boxed asides (`.. topic:: Title`); has a `title` child + body, structurally identical to the admonition nodes already supported | LOW | **Reuse `_visit_admonition`/`_depart_admonition` verbatim** with `clue_type="clue"` — topic's `title` child already routes through the existing admonition-aware `visit_title` buffer-swap. Cheapest table-stakes item in this milestone. |
-| `line` / `line_block` | Addresses, epigraphs, poetry-style content where line breaks must be preserved verbatim (not reflowed) | LOW–MEDIUM | Emit each `line`'s content followed by an explicit `linebreak()`; nested `line_block`s (indentation levels) need a left-indent wrapper (`pad(left: ...)` or block-level indent param) |
-| `glossary` | Sphinx's `addnodes.glossary` is a thin wrapper around a `definition_list` (already fully supported) | TRIVIAL | Pure no-op `visit_glossary`/`depart_glossary` (pass-through) — this is a "free" table-stakes fix that costs almost nothing since `definition_list`/`term`/`definition` are already built (translator.py:1029-1161) |
-| `tabular_col_spec` | LaTeX-only directive hint (`.. tabularcolumns::`) carrying column-format strings irrelevant to any other builder | TRIVIAL | `raise nodes.SkipNode` — identical one-liner to the existing `visit_colspec` (translator.py:1323-1331). Column widths are already driven by `tgroup`'s `cols` count, not this node. |
-| `abbreviation` | `:abbr:`\`HTML (Hyper Text Markup Language)\` — common in technical prose; docutils' `explanation` attribute holds the expansion, HTML renders it as a hover tooltip which has no PDF equivalent | LOW | Render inline as `text` content followed by the explanation in parens, e.g. `HTML (Hyper Text Markup Language)`, since a printed PDF can't hover-reveal a tooltip |
+| `.. table:: Caption` → numbered "Table N" | Confirmed (MEDIUM confidence, tavily+official-docs cross-check): Sphinx's `numfig_format` default is `{'table': 'Table %s'}`; **the LaTeX builder always assigns table numbers regardless of the `numfig` config** — PDF output is expected to number tables unconditionally, unlike HTML which gates behind `numfig=True`. typsphinx's own `figure()` handling already numbers captioned figures unconditionally via Typst's native auto-numbering (no `numfig`-equivalent plumbing exists anywhere in the codebase — confirmed via grep, zero hits). The correct target is `figure(table(...), caption: {...}, kind: table)`, which gets Typst-native "Table N" numbering for free, with **zero new config surface**. | MEDIUM | `typsphinx/translator.py` `visit_title`/`depart_title` (:453/:531) must buffer the caption when `self.in_table` (a NEW branch parallel to the existing `Admonition`/`topic` buffer-swap, not a replacement of it) instead of falling through to the generic section-heading path; `depart_table` (:2422) must wrap in `figure(..., kind: table)` |
+| Caption-less table stays plain `table()` | docutils only attaches a `title` child to a `table` node when the `.. table:: Caption` directive argument is given — a bare `.. table::`, `.. csv-table::` (no caption), or `.. list-table::` has NO title child, so the existing plain `table(...)`/`block(width:...)[#table(...)]` path is untouched by construction. Sphinx never numbers or figure-wraps a caption-less table in HTML or LaTeX. | LOW (regression-only) | This is the negative-space guarantee the PR#98-derived test suite must assert explicitly (the todo's 4th test: "キャプション無しは非 figure") — not a new code path, a proof the new branch is scoped correctly and never fires for the majority of tables in the corpus, which have no caption |
+| `:width:` composes with caption | The existing `:width:` → `block(width: ...)[#table(...)]` wrap (LEN-01, Phase 16) and the new caption wrap are two independent axes on the same `depart_table` call — a table can have both, either, or neither. | MEDIUM | Must nest correctly: `block(width: ...)[#figure(table(...), caption: ..., kind: table)]` when both apply — the todo explicitly flags this as the composition risk; a naive patch that special-cases one axis will silently drop the other for the caption+width intersection case |
+| `:ref:`/`:numref:` resolve to a captioned table | Docutils auto-assigns a table an `id` whenever it carries a caption (same rule as figures) — this is what makes cross-referencing possible. typsphinx already has generic `refid`/`:ref:`/`:numref:`-shaped cross-reference infrastructure (`_emit_id_anchors`, XREF-01, v0.6.0 Phase 12) and figures already anchor their id via the `) <label>]` bracket-wrap in `depart_figure`. | LOW (reuse, not new) | `depart_table`'s new figure-wrap branch should reuse `depart_figure`'s exact `ids`-present bracket-and-anchor idiom (mirror, don't reinvent) so a captioned table's id anchors for free — infrastructure reuse, not a new feature to design |
+| `typst_elements["papersize"]`/`["fontsize"]` affect actual PDF output | README's Custom Templates example (and the milestone context itself) explicitly names `{"papersize": "us-letter", "fontsize": "20pt"}` as the motivating case — a PDF-page-format setting a user writes in `conf.py` that silently has zero effect is the exact "registered but dead" defect class this milestone's config sweep targets (3rd/4th instance after `typst_output_dir`/`typst_package` in Phase 22.2). Confirmed empirically dead by grep of generated `.typ` output (0 occurrences of the configured values). | MEDIUM | See "typst_elements pass-through scope" section below — the fix is NOT free-form; `fontsize` has a real type-mismatch trap (see Pitfalls) |
+| Docs match the registered config surface | `docs/source/user_guide/configuration.rst` is the one config-reference page reachable from the toctree (post-Phase-22.4 D-12 relink) — every example a reader can copy-paste into `conf.py` must either work or not exist on the page at all. 5 of its examples currently name unregistered config values. | LOW | Pure prose edit once the pass-through lands for papersize/fontsize; pure deletion for the codly pair and the bare-tuple `typst_author` |
+| Orphan `docs/configuration.rst` removed | 526-line file, unreachable from any toctree, references a package name (`sphinxcontrib.typst`) that has never been this project's name — pure dead weight with zero readers able to find it organically, but a search-engine or direct-URL visitor could still land on wrong instructions | LOW | Deletion only — no rewrite needed since it's unreachable |
+| `typst_toctree_defaults` removed everywhere | Registered (`__init__.py:47`) but referenced nowhere in `translator.py`/`writer.py`/`builder.py`/`template_engine.py` (confirmed by grep) — real toctree option resolution (`maxdepth`/`numbered`/`caption`) happens per-directive via `TemplateEngine.extract_toctree_options()` reading the doctree, never this config value. Per-directive `:maxdepth:` already covers the use case; wiring a second global-default layer adds config surface without adding capability. | LOW | Delete from `__init__.py:47`, `docs/configuration.rst` (moot if that file is also deleted), `examples/advanced`, `README.md:208`, and `tests/test_config_toctree_defaults.py` (registration-only tests, 236 lines, all assert existence not effect — the todo explicitly notes these tests never caught the defect) |
 
-### Differentiators (valuable, not required for a usable API doc)
+### `typst_elements` Pass-Through — Recommended Scope (Curated, Not Arbitrary)
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| `todo_node` (`sphinx.ext.todo`) | Structurally an admonition (has `Admonition`+`Element` shape, paragraph children) — reusing existing machinery is nearly free once footnotes/topic patterns exist | LOW | Reuse `_visit_admonition("warning", custom_title="Todo")`. Note most *published* docs set `todo_include_todos = False`, so Sphinx itself strips these before the writer ever runs — low real-world volume in a release build, but Sphinx's own `doc/` source (the milestone's benchmark corpus) does contain live todos |
-| `manpage` role (`:manpage:`\`ls(1)\`\`) | Cosmetic correctness for Unix/systems docs; low volume | TRIVIAL | Reuse the existing "dummy node, borrow another visitor's logic" pattern already used for `rubric`→`strong` (translator.py:2687-2705) — borrow `visit_emphasis` or `visit_literal` |
-| CSS-length conversion helper generalized beyond `px` (e.g. `em`, unitless legacy HTML width like `width="300"`) | Robustness beyond the two Issue #114 units specifically found in the corpus | LOW | Natural byproduct of building the `_convert_css_length` helper for the P0 fix — worth generalizing once, not fixing `px` only and hitting the next unit as a new bug next milestone |
+**Root cause (confirmed by direct code read, HIGH confidence):** `TemplateEngine.map_parameters()` (`template_engine.py:186-213`) loops over `self.parameter_mapping.items()` — which defaults to `DEFAULT_PARAMETER_MAPPING = {"project": "title", "author": "authors", "release": "date"}` (3 keys only) — and **silently drops any key not in that mapping**. `writer.py:208-209` merges `typst_elements` into `sphinx_metadata` first, so `papersize`/`fontsize` genuinely reach `map_parameters()`'s input, but are then discarded by the loop shape itself, never by a deliberate filter.
 
-### Anti-Features / Out of Scope (graceful-degrade only, not full support)
-
-| Feature | Why It Looks Attractive | Why Full Support Is Out of Scope This Milestone | What To Do Instead |
-|---------|--------------------------|---------------------------------------------------|---------------------|
-| `graphviz` node (`sphinx.ext.graphviz`) full rendering | Sphinx docs use it for architecture diagrams; "just render the diagram" sounds achievable | Each Sphinx *builder* must independently shell out to the `dot` CLI and rasterize/vectorize the DOT source into an image (`html_visit_graphviz`, `latex_visit_graphviz` — there is no generic cross-builder path); this is a whole new subsystem (subprocess management, image-format negotiation, error handling for missing `dot`), not a translator method | Add an explicit `visit_graphviz` that emits a clearly-visible placeholder (`#block(fill: silver)[Diagram omitted — Typst rendering not supported]`) and logs **one** controlled warning, instead of relying on the generic unknown-node fallback (which risks partial/garbled raw DOT source leaking into the PDF via untranslated `Text` children before the SkipNode point is reached) |
-| `inheritance_diagram` (`sphinx.ext.inheritance_diagram`) full rendering | Same appeal as graphviz — "just render the class hierarchy image" | Same blocker as graphviz (it *generates* a graphviz graph internally) plus its own image-map/clickable-node HTML-only features that have no PDF analog at all | Same graceful-degrade placeholder pattern as graphviz — one shared helper, two `visit_*` registrations |
-| Literal 1:1 port of docutils' footnote backref plumbing (`backrefs` list → manual anchor/jump-link generation) | It's "the same information the HTML writer uses," so it feels like the natural translation target | Typst's `footnote()` function is **not** an anchor-and-jump-link primitive like HTML's `<sup><a href="#fnN">`; it is a first-class content type with its own automatic numbering, page-bottom placement, and (per Typst's docs) its own reuse-by-label mechanism for a footnote cited more than once. Re-implementing HTML-style manual backref IDs on top of that would fight the tool instead of using it. | Map `footnote`/`footnote_reference` directly onto Typst's native `footnote[...]` mechanism (see spec below) and drop the backref/anchor bookkeeping entirely — it's not just unnecessary, it's the *wrong* target representation |
-| Fixing every one of the ~1979 warning-class node gaps this milestone | The number is dramatic and "zero warnings" is an appealing bar | Many of the 1979 are long-tail/rare nodes not in the milestone's named target list; chasing all of them risks scope creep on a milestone whose actual gate is "Sphinx's own `doc/` compiles with no *fatal* errors," not "zero warnings" | Ship the named high-frequency set (this table), re-measure the real warning count against Sphinx's `doc/` build, and let the *next* milestone's research target whatever's left in the long tail |
-
-## Deep Dives (per the quality gate)
-
-### `versionmodified` — rendered form
-
-**Node shape:** `sphinx.addnodes.versionmodified` (subclasses `docutils.nodes.Admonition` + `nodes.TextElement`). Attributes: `type` (one of `"versionadded"`, `"versionchanged"`, `"deprecated"`, `"versionremoved"`), `version` (the version string, e.g. `"0.6"`). Children: inline nodes for a same-line explanation (`.. versionadded:: 0.6\n\n   Some inline explanation.` puts that explanation's inline nodes directly as children of the `versionmodified` node itself — it behaves like a paragraph, not a container-of-paragraphs) *or*, if the directive has an indented body (multiple paragraphs), those paragraphs are nested-parsed as full block children.
-
-**Do not render this as a gentle-clues admonition box.** Sphinx's own HTML/LaTeX writers deliberately render `versionmodified` as a **compact, unboxed, italicized inline label** ("*Added in version 0.6:* description text"), visually distinct from `note`/`warning`/`danger` boxes — treating it as a full callout box would be denser and more visually loud than every other Sphinx-generated PDF a reader has seen, and would look wrong next to `desc_content` bodies that mix several of these per API entry.
-
-Recommended concrete Typst form (mirrors the existing `emph`/`strong` helper-reuse convention, e.g. `visit_rubric`):
+**What `base.typ`'s `project()` already declares (read directly, HIGH confidence):**
 
 ```
-emph(text("Added in version 0.6: ")) + <inline/paragraph children, rendered normally>
+title, authors, date,                                # <- covered by DEFAULT_PARAMETER_MAPPING (project/author/release)
+toctree_maxdepth, toctree_numbered, toctree_caption,  # <- covered by extract_toctree_options() (doctree-derived, NOT typst_elements)
+papersize, fontsize,                                  # <- DECLARED but UNREACHABLE from any config today
+body
 ```
 
-with the label text sourced from a small `type → label template` map (`"versionadded"` → `"Added in version {v}"`, `"versionchanged"` → `"Changed in version {v}"`, `"deprecated"` → `"Deprecated since version {v}"`, `"versionremoved"` → `"Removed in version {v}"` — matching Sphinx's own `sphinx.locale.versionlabels` dict so the wording matches what users already expect from the HTML/LaTeX builds of the *same* source). LOW complexity; no new translator state needed beyond the label map and reading `node["type"]`/`node["version"]`.
+This means exactly **two** `project()` parameters — `papersize` and `fontsize` — are dead ends with no config path at all, and they already exist in the function signature. No `base.typ` change is required to wire them.
 
-### `desc_returns` / `desc_signature_line` / `desc_inline` / `desc_optional` — autodoc signature sub-parts
+**Recommendation: curated allowlist, not arbitrary key pass-through.**
 
-These are all children that live **inside** the already-supported `desc_signature` (translator.py:2511-2527) and, for `desc_parameterlist`/`desc_optional`, inside the already-supported `desc_parameterlist` (translator.py:2577-2621). None require new architecture — each slots into the existing "emit `text(...)` literals, join with the sibling-check idiom from `depart_desc_parameter`" pattern:
+- **Pass through directly (table stakes):** any `typst_elements` key whose name **exactly matches** an already-declared `project()` parameter not otherwise sourced (today: `papersize`, `fontsize`). Forward verbatim by key name — no renaming needed, unlike the Sphinx-native `project`/`author`/`release` keys, which exist specifically to translate Sphinx-native names into template-native ones.
+- **Do NOT implement blind arbitrary-key forwarding of the whole `typst_elements` dict into `project.with(...)`.** A typo or a key that doesn't match any `project()` parameter (e.g. `{"paper_size": "a4"}` instead of `{"papersize": "a4"}`) produces a hard Typst compile error ("unexpected named argument") on the *default* template — turning a silent-no-op bug into a build-breaking one for any user who mistypes a key. This is the real tension the milestone context calls out, and it argues for filtering, not for "support everything."
+- **This is not gold-plating avoidance for its own sake — it's avoiding duplicate machinery.** `typst_template_function` already has an established, working, genuinely-arbitrary key/value pass-through path: `typst_template_function = {"name": "ieee", "params": {"abstract": "...", "index-terms": [...]}}` renders every `params` entry verbatim via `_format_typst_value()` into `#show: <func>.with(...)` (confirmed at `template_engine.py:397-411`; this is how the existing `docs/source/user_guide/configuration.rst` "Typst Package" example already works for **custom/package templates**). `typst_elements` pass-through should be scoped to the **bundled default template's own declared knobs** — a narrower, safer sibling — not a second general-purpose arbitrary-params channel that duplicates `typst_template_function.params`'s job with a weaker safety story (no matching function signature to fail against on the package path, since Python can't introspect a Typst function's parameter names).
+- **`lang` is NOT currently a `project()` parameter** — it's hardcoded (`set text(size: fontsize, lang: "en")`, `base.typ:61`). Supporting `typst_elements["lang"]` would require a `base.typ` change (add a `lang: "en"` parameter, wire it into the `set text(...)` call) — this is a legitimate v2/differentiator, not table-stakes for this milestone, since the milestone's own motivating example only names `papersize`/`fontsize`.
 
-- **`desc_returns`** — a `desc_signature` child holding the return-type annotation (Python's `-> int`, etc.). Emit `text(" → ") + <children>` on visit; no special depart logic needed (children render themselves via the existing inline-node visitors, exactly like `desc_addname`/`desc_name` already do today with zero-op visit/depart pairs).
-- **`desc_optional`** — a `desc_parameterlist` child wrapping a run of optional trailing parameters (e.g. `printf(fmt[, args])`). Bracket-wrap: `text("[")` on visit, `text("]")` on depart, reusing `_desc_parameter_has_content`/comma-join logic already in `depart_desc_parameter`. Must recurse correctly — `desc_optional` can nest inside `desc_optional` for multi-level optional args (some C APIs do this) — no new state, just correct recursive containment (the existing visitor-pattern recursion already handles this "for free" as long as visit/depart don't assume single-level nesting).
-- **`desc_signature_line`** — a child of `desc_signature` used only when `is_multiline=True` (multi-line C++ template signatures, long overload lists). Each line is its own sibling node; insert `linebreak()` between them using the identical `node.next_node(descend=False, siblings=True)` sibling-check already used by `depart_desc_parameter` (translator.py:2612-2621), just swapping the separator from `text(", ")` to `linebreak()`.
-- **`desc_inline`** — same children shape as `desc_signature` but used **inline in running prose** (e.g. the `:cpp:expr:` role). Critically, it must **not** call the `strong()`-wrapper dummy-node trick that `visit_desc_signature` uses (translator.py:2517-2519) — that bold-block styling is correct for a standalone declaration header, wrong for a fragment embedded mid-sentence. Simplest correct behavior: pure pass-through (no wrapper at all); a nice-to-have refinement (not required) would route it through the same monospace styling as `literal` since `cpp:expr`-style fragments conventionally render in code font.
+**Critical pitfall to flag for planning (HIGH confidence, direct code read):** `papersize` and `fontsize` are **not interchangeable in how they must be emitted**. `_format_typst_value()` (`template_engine.py:422-453`) quotes every Python `str` as a Typst string literal. `papersize` is correctly a Typst **string** (`paper: "a4"` / `paper: "us-letter"` — matches `page(paper: papersize, ...)`), so passing the Python string `"us-letter"` through verbatim is correct. `fontsize`, however, is declared in `project()`'s own signature as an **unquoted Typst length** (`fontsize: 11pt`, no quotes) consumed by `set text(size: fontsize, ...)` — `text()`'s `size:` parameter requires a length, not a string. If a user writes the milestone's own example, `typst_elements = {"fontsize": "20pt"}` (a Python **string**, exactly as shown in the milestone context and README), naive pass-through via `_format_typst_value()` emits `fontsize: "20pt"` — a quoted string where Typst expects a length — which is a **real compile-time type error**, not a silent no-op. The implementation must special-case length-shaped values (parse a `"20pt"`/`"1.2em"`-style string and emit it unquoted, or accept only numeric-typed input) — analogous to the existing `_convert_length_to_typst` helper already used elsewhere in `translator.py` for CSS-length conversion, though that helper lives in a different module and converts a different unit family, so it is pattern-reusable, not directly reusable. **This must be covered by the mandated config→output real-`typst.compile()` regression fixture** — a registration-only test would not catch a compile-time type error either, since the failure only manifests when Typst actually parses the emitted `.typ`.
 
-### Footnote / footnote_reference — the Typst-native design
+### Anti-Features / Explicit Over-Reach (Out of Scope for This Milestone)
 
-**docutils node shapes:**
-- `footnote` — attributes `ids` (its own anchor id), `names` (the footnote's label, auto-generated digit for `[#]_` or an explicit symbol/name), `backrefs` (list of ids of every `footnote_reference` that points at it), `auto` (truthy for auto-numbered). Children: a `label` node (the rendered number/symbol) followed by one or more `paragraph` children (the footnote body). By the time the translator sees this tree, docutils' footnote-numbering transform has already resolved auto-numbers to concrete digits — no numbering logic needs to happen in the translator.
-- `footnote_reference` — attributes `refid` (the id of the target `footnote` node), `ids` (its own id, listed in that footnote's `backrefs`), `auto`. Single `Text` child (the already-resolved number).
-
-**Recommended Typst mapping — do not do a literal 1:1 structural port.** Typst's `footnote[...]` is a call-site content primitive: wherever you write `#footnote[body]` is where the reference marker appears, and Typst auto-numbers, auto-places at the page bottom, and auto-generates the click target. This is architecturally different from docutils, where the footnote's *body* commonly lives physically elsewhere in the document (end of section, end of document) from its *reference* mark(s).
-
-Concrete approach:
-1. Pre-pass (at `visit_document` time, or lazily on first `footnote_reference` encountered): walk the doctree once and build `self._footnote_bodies: dict[str, str]` mapping each `footnote` node's id → its rendered Typst body content (render its paragraph children through the normal translator machinery into a string buffer, the same buffering technique already used for `term`/`definition` in `visit_term`/`visit_definition`, translator.py:1086-1161).
-2. `visit_footnote` on the *footnote node itself* (in its natural, often-inconvenient document position) should **not** emit anything directly — `raise nodes.SkipNode` after the pre-pass has already captured its content, since Typst places the note wherever `footnote[...]` was *called*, not where the docutils footnote definition happened to sit.
-3. `visit_footnote_reference` looks up `self._footnote_bodies[node["refid"]]` and emits `footnote[<body>]` inline at the reference's position.
-4. For a footnote referenced **more than once** (`len(footnote["backrefs"]) > 1`), Typst supports re-citing a previously-placed footnote by label rather than duplicating the note — emit the full `footnote[...]` (with a label, e.g. `<fn-<id>>`) only at the *first* reference, and `footnote(<fn-<id>>)` at every subsequent one. **Flag for verification:** confirm this exact re-citation call form against a real `typst compile` before locking the requirement wording — the label-reuse mechanism is documented but the precise call syntax should be spot-checked, not assumed from this research.
-
-This is the most architecturally involved item in the milestone (needs a genuine pre-pass, not just new `visit_*` methods slotted into the existing single-walk pattern) — flag it for its own phase/plan rather than bundling it with the trivial table-stakes items above.
-
-### Empty-URL cross-reference (×596) — genuinely broken vs. resolution gap
-
-**Current code** (translator.py:1970-1983):
-```python
-refuri = node.get("refuri", "")
-if not refuri:
-    logger.warning(...)
-    self._skip_link_wrapper = True
-    return
-```
-
-This checks **only** `refuri`. docutils' `reference` node has three possible resolution attributes, not one:
-- `refuri` — external URL or cross-document link (what's checked today)
-- `refid` — same-document internal anchor (points at another node's `ids` entry) — **not checked at all today**
-- `refname` — an unresolved by-name reference; in a clean build this should not survive to the writer (Sphinx's cross-reference machinery either resolves `pending_xref` nodes into `refuri`/`refid`-bearing `reference` nodes, or — on genuine failure — typically degrades the *pending_xref* itself into plain text/`problematic` well before the writer's `visit_reference` ever runs)
-
-**The strong, code-grounded hypothesis:** most of the 596 "empty URL" hits are same-document anchors resolved via `refid` (section links within the current file, glossary/`:term:` links, footnote-like cross-refs, etc.) that ARE fully resolved — the translator just never learned to look at the field they're resolved into. The existing code already proves this pattern is understood: it has a special case for `refuri.startswith("#")` → `link(<label>, ...)` (translator.py:1988-1992) for internal links, but that only fires if Sphinx happened to put the anchor in `refuri` as `"#id"` rather than in `refid` directly — which is the less common of the two internal-link encodings.
-
-**Recommended fix:** before falling back to plain text, also check `node.get("refid")`, and if present, route through the *same* internal-link branch (`link(<label>, ...)`) already used for `#`-prefixed `refuri`. Only degrade to plain text when **both** `refuri` and `refid` are absent/empty — that residual case is genuinely rare in well-formed reST (docutils typically converts a truly-unresolvable reference into a `problematic` node + `system_message` well upstream, not a clean `reference` node with nothing to point at), so after this fix the plain-text fallback path should fire far less often, and its warning becomes a meaningful "look at this" signal instead of routine noise.
-
-**Caveat for the roadmap:** the exact post-fix count reduction should be measured empirically against the real Sphinx `doc/` corpus (re-run the same build, diff the warning count) rather than assumed from this analysis — the 596 figure is almost certainly dominated by the `refid` gap, but confirming the residual genuinely-broken count requires an actual build.
+| Feature | Why It Looks Tempting | Why It's Over-Reach Here | What To Do Instead |
+|---------|------------------------|---------------------------|---------------------|
+| Auto-generated "List of Tables" page | HTML/LaTeX-adjacent tooling sometimes has this; sounds like a natural companion to "Table N" numbering | Confirmed (tavily+official docs, MEDIUM confidence): **no official Sphinx builder auto-generates a List of Tables** — LaTeX users who want one add `\listoftables` manually themselves; it is not part of Sphinx's own numfig/caption machinery at all. There is no baseline to "match faithfully" here — building one would be a genuinely new feature invented from scratch, not a fidelity fix | Nothing — not even deferred; there's no Sphinx precedent motivating it |
+| `numfig`-gated table numbering (config toggle) | Sphinx's own HTML builder gates figure/table numbering behind the `numfig` config (default `False`) | typsphinx has **never** implemented `numfig` gating anywhere (zero references in the codebase) — figures are unconditionally auto-numbered by Typst's native `figure()` today, and the LaTeX builder (the closer analog for a single-PDF-document builder) **always** numbers regardless of `numfig`. Adding a `numfig`-style toggle now would be new config surface inconsistent with the figure precedent already shipped, not a fidelity fix | Ship unconditional native Typst numbering for tables, matching the already-shipped figure behavior |
+| Arbitrary `typst_elements` key pass-through (any key, forwarded blind) | Feels more "complete" / avoids maintaining an allowlist | Duplicates `typst_template_function.params`'s already-shipped arbitrary-pass-through role, with a weaker safety story on the default-template path (no function-signature contract to validate against short of a real compile); risks converting a currently-silent-but-harmless no-op into a hard build break for any conf.py typo | Curated allowlist scoped to `project()`'s actually-declared, currently-unreachable params (`papersize`, `fontsize` today) |
+| `typst_papersize`/`typst_fontsize` as **top-level** config values (mirroring the phantom docs names literally) | The phantom docs already use this shape; least-diff "just register what's written" | These are genuinely different config surface than `typst_elements["papersize"]` — adding two more top-level `add_config_value()` registrations to satisfy stale docs text would grow the config surface rather than shrink it, working against this milestone's own "dead config cleanup" theme (its stated goal is fewer inert options, not more registered options that mirror docs typos) | Route through the existing `typst_elements` dict (already registered, already documented, just currently broken) |
+| Rewriting `typst_author` (singular) as a new "simple tuple" mode under `typst_authors` | Minimizes deleted doc content; the "Simple Format" framing is appealing to keep | The **real, registered** `typst_authors` (`__init__.py:57`) is typed `[dict, type(None)]` and its actual consumption in `template_engine.py` (`_convert_to_authors_tuple` / D-07 in `map_parameters`) expects the **detailed dict** shape (`{"Name": {"department": ..., ...}}`) shown directly below it in the same docs page — there is no code path that accepts a bare tuple of name strings under `typst_authors`, and standard Sphinx `author` (a single string) already covers the truly simple case | Delete the "Simple Format" subsection outright; the adjacent "Detailed Format" subsection already documents the one real, working shape |
 
 ## Feature Dependencies
 
 ```
-Fatal bug fix (px units + target-linked figure)
-    └──blocks──> everything else (nothing else can be validated against a real
-                 typst-compile of Sphinx's doc/ tree until this compiles clean)
+[typst_elements curated pass-through: papersize/fontsize]
+    └──REQUIRED BY──> [docs: typst_papersize/typst_fontsize → working typst_elements examples]
+                           (docs cannot show a WORKING example until the pass-through exists --
+                            the phantom-names todo explicitly calls this out as a hard ordering
+                            constraint, not a preference: "D-18 が解決されるまでは...削除のみが安全")
 
-desc_returns / desc_optional / desc_signature_line / desc_inline
-    └──requires──> existing desc_signature / desc_parameterlist / desc_parameter
-                    handlers (already built) — these are pure extensions, no new
-                    subsystem
+[captioned-table figure-wrap]
+    └──independent of──> [typst_elements pass-through]
+                           (no shared code path -- visit_title/depart_table vs.
+                            template_engine.map_parameters -- can ship in either order
+                            or in parallel)
 
-Empty-refid reference fix
-    └──requires──> existing visit_reference's #-prefixed-refuri internal-link
-                    branch (already built) — extend the condition, don't rewrite it
+[typst_toctree_defaults deletion]
+    └──independent of──> [both of the above]
+                           (pure deletion across __init__.py/docs/examples/README/tests;
+                            no runtime code depends on it today, confirmed by grep)
 
-footnote / footnote_reference
-    └──requires──> a genuine doctree pre-pass (net-new capability — no existing
-                    translator code does a two-pass walk today)
-    └──enhances──> nothing else in this milestone; fully independent
+[orphan docs/configuration.rst deletion]
+    └──independent of──> [everything else]
+                           (unreachable file; safe to delete in any order)
 
-topic
-    └──requires──> _visit_admonition / _depart_admonition (already built) — direct
-                    reuse, cheapest table-stakes item here
-
-glossary
-    └──requires──> definition_list / term / definition (already built) — pure
-                    pass-through wrapper, near-zero net-new code
-
-graphviz / inheritance_diagram placeholders
-    └──conflicts with──> "full diagram rendering" (explicitly out of scope this
-                          milestone; do not let placeholder work expand into a
-                          real DOT-rendering subsystem)
+[docs: 5 phantom-name fixes]
+    └──requires──> [typst_elements pass-through, for 2 of the 5 names only]
+    └──no dependency──> [the other 3 names: typst_author, typst_use_codly,
+                          typst_code_line_numbers are pure deletions regardless
+                          of what else ships]
 ```
 
-## MVP Definition
+### Dependency Notes
 
-### Launch With (v0.6.0)
+- **Docs rewrite for `typst_papersize`/`typst_fontsize` requires the `typst_elements` pass-through to land first:** the phantom-names todo itself flags this ordering hazard — writing a "working" `typst_elements = {"papersize": ..., "fontsize": ...}` example into the docs before the pass-through ships would just create a **6th** silently-dead-config instance in the docs, the exact defect class this milestone exists to eliminate. If sequencing puts the docs phase before the pass-through phase, the safe interim move is deletion-only for those two names (same as the other 3).
+- **Captioned-table figure-wrap and `typst_elements` pass-through do not share any code path** (`translator.py` visitor-pattern vs. `template_engine.py` parameter mapping) and can be planned as independent phases/waves with no sequencing constraint between them.
+- **`typst_toctree_defaults` deletion is the lowest-risk item in the milestone** — it is provably dead (zero runtime references via grep across all 4 core modules), so its removal cannot regress any existing behavior; the only work is deleting registration + docs + example + the 236-line registration-only test file, `tests/test_config_toctree_defaults.py`, which the todo explicitly names as never having caught the defect in the first place.
 
-- [ ] `px`/CSS-length conversion for `image(width:/height:)` — FATAL, blocks the whole milestone's validation gate
-- [ ] `:target:`-linked figure → `link("url")[#image(...)]` content-block form — FATAL, same gate
-- [ ] `versionmodified` (all four types) rendered as unboxed emph-label + body
-- [ ] `refid` handling added to `visit_reference` (the empty-URL fix)
-- [ ] `desc_returns`, `desc_optional`, `desc_signature_line`, `desc_inline`
-- [ ] `footnote` / `footnote_reference` via the Typst-native pre-pass + `footnote[...]` design
-- [ ] `transition`, `topic`, `line`/`line_block`, `glossary`, `tabular_col_spec`, `abbreviation`
-- [ ] `visit_graphviz`/`visit_inheritance_diagram` graceful-degrade placeholders (warn, don't abort)
+## MVP Definition (Milestone-Scoped, Not Product-Scoped)
 
-### Add After Validation (v0.6.x)
+This is a bugfix/maintenance milestone, not a product launch — "MVP" here means the minimum bounded correct fix per item, with an explicit line against scope creep on each.
 
-- [ ] `todo_node` proper admonition styling — trigger: someone actually ships docs with `todo_include_todos = True`
-- [ ] `manpage` role styling — trigger: a systems-docs user reports it missing
-- [ ] Generalize the CSS-length converter beyond `px` (unitless legacy widths, `em`) — trigger: the next fatal-bug report that isn't `px`
+### Ship This Milestone
 
-### Future Consideration (v2+)
+- [ ] `.. table:: Caption` → `figure(table(...), caption: {...}, kind: table)`, unconditional native "Table N" numbering, composed correctly with the existing `:width:` wrap — real-compile regression fixture covering caption-only, caption+width, caption-with-inline-markup, and the caption-less negative case (4 tests, mirroring the PR#98-derived todo)
+- [ ] `typst_elements["papersize"]` and `["fontsize"]` reach `project()`'s already-declared same-named parameters; `fontsize`'s string→unquoted-length emission handled correctly — real-compile config→output regression fixture (mirrors Phase 22.2's `test_package_only_config_gate.py` pattern)
+- [ ] `typst_toctree_defaults` deleted from `__init__.py`, `docs/configuration.rst` (or moot if deleted), `examples/advanced`, `README.md:208`, and its registration-only test file
+- [ ] Orphan `docs/configuration.rst` deleted
+- [ ] `docs/source/user_guide/configuration.rst`: `typst_author` → delete "Simple Format" section; `typst_use_codly`/`typst_code_line_numbers` → delete (both occurrences, :154/:160 and :245-246); `typst_papersize`/`typst_fontsize` → rewrite as working `typst_elements` examples **iff** the pass-through phase has already landed in the same milestone, else delete-only
 
-- [ ] Real `graphviz`/`inheritance_diagram` rendering (shell out to `dot`, rasterize/vectorize into an image, wrap in `figure()`) — defer until a user explicitly asks for diagrams in the PDF output; this is a full subsystem, not a translator fix
-- [ ] Long-tail of the remaining ~1979-warning corpus not named in this milestone — re-measure after this milestone ships, target the next-highest-frequency residual in a future milestone
+### Explicitly Not This Milestone (Backlog / Never)
+
+- [ ] List-of-tables auto-generation — no Sphinx precedent exists to match; would be invented, not ported
+- [ ] `numfig`-style config gating for table/figure numbering — inconsistent with the already-shipped unconditional figure-numbering precedent
+- [ ] Arbitrary (non-allowlisted) `typst_elements` key pass-through — duplicates `typst_template_function.params`'s existing role with a weaker safety story
+- [ ] `typst_elements["lang"]` support — requires a `base.typ` change (new `project()` parameter) the milestone's own motivating example (papersize/fontsize only) doesn't ask for; candidate for a future milestone if requested
+- [ ] `typst_papersize`/`typst_fontsize` as new **top-level** `add_config_value()` registrations — would grow config surface, working against this milestone's own dead-config-cleanup theme
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| `px` unit fatal fix | HIGH | LOW–MEDIUM | P1 |
-| `:target:` figure fatal fix | HIGH | MEDIUM | P1 |
-| Empty-URL/`refid` fix | HIGH (596×) | LOW–MEDIUM | P1 |
-| `versionmodified` | HIGH (972×) | LOW | P1 |
-| `desc_returns` | MEDIUM (187×) | LOW | P1 |
-| `desc_signature_line` | MEDIUM (59×) | LOW–MEDIUM | P1 |
-| `topic` | MEDIUM | LOW (reuse) | P1 |
-| `glossary` | MEDIUM | TRIVIAL (reuse) | P1 |
-| `tabular_col_spec` | LOW | TRIVIAL | P1 |
-| `transition` | MEDIUM | LOW | P1 |
-| `line`/`line_block` | MEDIUM | LOW–MEDIUM | P1 |
-| `footnote`/`footnote_reference` | MEDIUM–HIGH | MEDIUM–HIGH | P1 (but its own plan/phase) |
-| `desc_optional` | LOW (6×) | LOW–MEDIUM | P2 |
-| `desc_inline` | LOW (13×) | LOW | P2 |
-| `abbreviation` | LOW | LOW | P2 |
-| Graphviz/inheritance placeholders | MEDIUM (prevents noisy/garbled degrade) | LOW | P2 |
-| `todo_node` styling | LOW | LOW | P3 |
-| `manpage` styling | LOW | TRIVIAL | P3 |
-| Full graphviz/inheritance rendering | MEDIUM | HIGH | P3 / v2+ |
+|---------|------------|---------------------|----------|
+| Captioned-table figure-wrap (Table N numbering) | HIGH — silent heading-injection bug affects every `.. table:: Caption` in any real doc corpus | MEDIUM | P1 |
+| `typst_elements` papersize/fontsize pass-through | HIGH — the single most commonly-requested PDF customization (page size, font size) is currently a complete no-op | MEDIUM (incl. the fontsize type-mismatch fix) | P1 |
+| `typst_toctree_defaults` deletion | LOW direct user value, HIGH project-hygiene value (closes a known-dead-config class) | LOW | P1 (cheap, bounded, matches milestone theme) |
+| Orphan `docs/configuration.rst` deletion | LOW (unreachable page) but non-zero risk reduction (direct-URL/search-engine visitors) | LOW | P1 |
+| 5 phantom config names in `user_guide/configuration.rst` | MEDIUM — directly prevents a copy-paste-from-docs user from writing dead config into `conf.py` | LOW (once the ordering dependency on the pass-through phase is respected) | P1 |
+| `typst_elements["lang"]` support | LOW-MEDIUM (i18n users) | MEDIUM (base.typ change) | P3 (future milestone) |
+| List-of-tables generation | LOW-MEDIUM (nice-to-have for large reference docs) | HIGH (no Sphinx baseline to port from) | Not planned |
 
-**Priority key:** P1 = must have for this milestone's gate (real Sphinx `doc/` compiles clean through `typstpdf`); P2 = should have, low-risk adds once P1 lands; P3 = defer to a later milestone.
+**Priority key:**
+- P1: In this milestone
+- P3: Future consideration, not currently requested by any motivating example
+- Not planned: No Sphinx-ecosystem precedent to match; would be net-new feature invention, contrary to the milestone's maintenance-cycle framing (PROJECT.md "Out of Scope": "New translation features / new reST constructs — this is a maintenance cycle, not a feature cycle")
+
+## Baseline Comparison (Sphinx HTML/LaTeX vs. typsphinx Target)
+
+| Behavior | Sphinx HTML | Sphinx LaTeX (closer PDF analog) | typsphinx Target |
+|----------|-------------|-----------------------------------|-------------------|
+| `.. table:: Caption` numbering | "Table N" only if `numfig=True` (default `False`) | **Always** numbered, `numfig` irrelevant (MEDIUM confidence, tavily+docs-confirmed) | Always numbered (matches LaTeX; matches typsphinx's own existing unconditional figure-numbering) |
+| Table without caption | Never numbered | Never numbered | Never numbered — stays plain `table()`, no `figure()`/`kind: table` wrap |
+| `numref` to a table | Works when numbered | Works when numbered | Should work for free via existing generic `refid`/id-anchor infrastructure once the id anchor is wired into the new figure-wrap branch (mirror `depart_figure`) |
+| List of Tables page | Not auto-generated | Not auto-generated (manual `\listoftables` only) | Not built — no baseline motivates it |
+| `latex_elements` config shape | N/A | **Curated dict of known keys** (`papersize`: `a4paper`/`letterpaper`; `pointsize`: `10pt`/`11pt`/`12pt`; plus `preamble`/`geometry`/`fncychap`/etc. — MEDIUM confidence, tavily+docs-confirmed) each mapped to a specific template insertion point, **not** arbitrary blind pass-through to `\documentclass` | `typst_elements` should follow the same shape: a curated, known-key dict (today: `papersize`, `fontsize`) mapped to specific `project()` parameters — direct architectural precedent for the "curated over arbitrary" recommendation above |
 
 ## Sources
 
-- `typsphinx/translator.py` (read directly, lines ~1100-2800): existing `visit_figure`/`visit_image`/`visit_reference`/`_visit_admonition`/`desc_*` conventions — this project's own established idioms are the primary source for "what should the new code look like."
-- `.planning/PROJECT.md` — v0.6.0 milestone scope, Issue #114 framing, target node list with frequency counts.
-- [Doctree node classes added by Sphinx](https://www.sphinx-doc.org/en/master/extdev/nodes.html) — `versionmodified`, `desc_returns`, `desc_signature_line`, `desc_inline`, `desc_optional` definitions (MEDIUM confidence, official docs).
-- [sphinx.addnodes source](https://www.sphinx-doc.org/en/master/_modules/sphinx/addnodes.html) — node class hierarchy confirmation.
-- [`versionmodified` node-name issue #5660](https://github.com/sphinx-doc/sphinx/issues/5660) and [issue #8016](https://github.com/sphinx-doc/sphinx/issues/8016) — confirms `type`/`version` attribute usage across versionadded/versionchanged/deprecated/versionremoved.
-- [Typst `footnote` reference docs](https://typst.app/docs/reference/model/footnote/) — native numbering/placement model, label-reuse mechanism (flagged above as needing a real-compile spot-check on exact re-citation syntax).
-- docutils node reference (`reference`/`footnote`/`footnote_reference`/`transition`/`topic`/`line_block`/`substitution_definition` attribute shapes) — MEDIUM confidence, drawn from established docutils spec knowledge rather than a single fetched page; recommend a quick cross-check against `docutils.nodes` docstrings during implementation if any attribute name is in doubt.
+- `typsphinx/templates/base.typ` (direct read, HIGH confidence) — authoritative source for `project()`'s declared parameter set
+- `typsphinx/template_engine.py` (direct read, HIGH confidence) — `DEFAULT_PARAMETER_MAPPING`, `map_parameters()`, `_format_typst_value()`, `typst_template_function` params handling
+- `typsphinx/writer.py` (direct read, HIGH confidence) — `sphinx_metadata`/`typst_elements` merge site
+- `typsphinx/translator.py` (direct read, HIGH confidence) — `visit_title`/`depart_title`, `visit_table`/`depart_table`, `visit_figure`/`depart_figure`/`visit_caption`/`depart_caption` (the buffer-swap idiom to mirror), grep confirming zero `numfig` references anywhere in the codebase
+- `typsphinx/__init__.py` (direct read, HIGH confidence) — the 12 registered `typst_*` config values (lines 44-62)
+- `docs/source/user_guide/configuration.rst` (direct read, HIGH confidence) — the 5 phantom config-name locations
+- `.planning/todos/pending/2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`, `.planning/todos/pending/2026-07-22-user-guide-configuration-phantom-config-names.md`, `.planning/todos/pending/2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md` (project root-cause records, HIGH confidence — pre-investigated with file/line evidence)
+- Sphinx official docs, `numfig`/`numfig_format` config semantics, tables-without-captions-not-numbered, LaTeX-always-numbers-regardless-of-numfig, no-auto-List-of-Tables (MEDIUM confidence — tavily search cross-checked against `sphinx-doc.org/en/master/usage/configuration.html`)
+- Sphinx official docs, `latex_elements` curated-key-dict shape (`papersize`/`pointsize`/`preamble`/etc.) (MEDIUM confidence — tavily search cross-checked against `sphinx-doc.org/en/master/latex.html`)
 
 ---
-*Feature research for: Sphinx→Typst translator, v0.6.0 real-world robustness milestone*
-*Researched: 2026-07-11*
+*Feature research for: typsphinx v0.6.3 (config & docs fidelity + captioned tables)*
+*Researched: 2026-07-23*

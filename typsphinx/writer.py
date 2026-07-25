@@ -10,7 +10,11 @@ from typing import Any
 
 from docutils import writers
 
-from typsphinx.template_engine import TemplateEngine, resolve_package_for_engine
+from typsphinx.template_engine import (
+    TemplateEngine,
+    derive_typst_lang,
+    resolve_package_for_engine,
+)
 from typsphinx.translator import TypstTranslator
 
 
@@ -196,20 +200,61 @@ class TypstWriter(writers.Writer):
             typst_authors=getattr(config, "typst_authors", None),
         )
 
-        # Gather Sphinx metadata
+        # Gather Sphinx metadata. "copyright" is deliberately NOT included --
+        # nothing in DEFAULT_PARAMETER_MAPPING names it and typst_elements no
+        # longer rides along in this dict (D-08), so it can never reach
+        # project() (structural non-leak, CONF-04/SC#4).
         sphinx_metadata = {
             "project": config.project,
             "author": config.author,
             "release": config.release,
-            "copyright": config.copyright,
         }
 
-        # Add custom elements from config
+        # CONF-04: typst_elements is passed to map_parameters() as its OWN
+        # keyword argument -- never merged into sphinx_metadata (D-05). This
+        # keeps the curated allowlist merge structurally separate from
+        # baseline Sphinx metadata all the way to map_parameters(), which is
+        # what makes the copyright/baseline non-leak (SC#4) a structural
+        # guarantee rather than a filter (Pitfall 3).
         typst_elements = getattr(config, "typst_elements", {})
-        sphinx_metadata.update(typst_elements)
+
+        # CONF-07: auto-derive the Typst typesetting `lang` from Sphinx's
+        # `language` config, but ONLY on the default-template path --
+        # uses_bundled_default_template() is the single D-06 judgment (it is
+        # False for an explicit typst_template, for a <srcdir>/base.typ
+        # shadow, and for the package-alone path, so none of those users are
+        # ever handed a `lang` parameter their template never declared,
+        # SC#3). Read `language` defensively via getattr and let
+        # derive_typst_lang() handle a missing/malformed value -- never
+        # pre-validate or raise here (D-03).
+        auto_lang = None
+        if template_engine.uses_bundled_default_template():
+            sphinx_language = getattr(config, "language", None)
+            auto_lang = derive_typst_lang(sphinx_language)
+
+        # D-05: pre-merge the auto-derived value UNDER the user's typst_elements
+        # via a plain dict union whose right-hand operand is the config
+        # value -- so an explicit typst_elements["lang"] always wins on
+        # collision, structurally, with zero new precedence logic inside
+        # map_parameters() itself. Deliberately NEW dict/NEW name
+        # (effective_elements): never reuse the bare `typst_elements` name
+        # for the merged result (a copy-paste that keeps the old name
+        # silently drops auto-derivation), and never mutate `typst_elements`
+        # itself (it is the user's own live config value; `update()`/
+        # `setdefault()` here would leak state across master documents in a
+        # multi-master build). The right operand is normalized with `or {}`
+        # because Sphinx only WARNS on a wrong-typed config value -- a
+        # conf.py setting `typst_elements = None` reaches us as None, and
+        # map_parameters() has always normalized it the same way. Without
+        # this, the union would raise TypeError and abort the whole build.
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | (
+            typst_elements or {}
+        )
 
         # Map parameters
-        params = template_engine.map_parameters(sphinx_metadata)
+        params = template_engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
 
         # Extract toctree options and add to parameters
         toctree_options = template_engine.extract_toctree_options(self.document)

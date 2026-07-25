@@ -44,7 +44,6 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value("typst_documents", [], "html", [list])
     app.add_config_value("typst_template", None, "html", [str, type(None)])
     app.add_config_value("typst_template_mapping", None, "html", [dict, type(None)])
-    app.add_config_value("typst_toctree_defaults", None, "html", [dict, type(None)])
     app.add_config_value("typst_use_mitex", True, "html", [bool])
     app.add_config_value("typst_elements", {}, "html", [dict])
     # Task 13.4: Other configuration options (Requirement 8.6)

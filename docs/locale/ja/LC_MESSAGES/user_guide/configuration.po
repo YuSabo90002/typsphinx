@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: typsphinx 0.4.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-01 21:21+0900\n"
+"POT-Creation-Date: 1980-01-01 00:00+0000\n"
 "PO-Revision-Date: 2025-11-01 22:05+0900\n"
 "Last-Translator: YuSabo <yusabo90002@gmail.com>\n"
 "Language: ja\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #: ../../source/user_guide/configuration.rst:2
 msgid "Configuration"
@@ -42,8 +42,7 @@ msgstr "プロジェクト情報"
 msgid ""
 "These are standard Sphinx settings that typsphinx uses for document "
 "metadata."
-msgstr ""
-"これらは、typsphinxがドキュメントのメタデータに使用する標準的なSphinx設定です。"
+msgstr "これらは、typsphinxがドキュメントのメタデータに使用する標準的なSphinx設定です。"
 
 #: ../../source/user_guide/configuration.rst:24
 msgid "Typst Documents"
@@ -59,183 +58,295 @@ msgstr "各タプルには以下が含まれます："
 
 #: ../../source/user_guide/configuration.rst:36
 msgid "**Source file** (without ``.rst`` extension)"
-msgstr "**ソースファイル**（``.rst`` 拡張子なし）"
+msgstr "**ソースファイル** （``.rst`` 拡張子なし）"
 
 #: ../../source/user_guide/configuration.rst:37
-msgid "**Output filename** (without extension)"
-msgstr "**出力ファイル名**（拡張子なし）"
+msgid ""
+"**Output filename stem** -- governs both the emitted ``.typ`` file and, "
+"under the ``typstpdf`` builder, the compiled ``.pdf``. A literal trailing"
+" ``.typ`` is stripped if present, and nothing else is, so a stem "
+"containing a period such as ``v1.2-manual`` is preserved intact. A path "
+"component is not supported: a path-bearing value produces a build warning"
+" and the file is written under its basename next to the source document."
+msgstr ""
 
-#: ../../source/user_guide/configuration.rst:38
+#: ../../source/user_guide/configuration.rst:44
 msgid "**Document title**"
 msgstr "**ドキュメントタイトル**"
 
-#: ../../source/user_guide/configuration.rst:39
+#: ../../source/user_guide/configuration.rst:45
 msgid "**Author**"
 msgstr "**著者**"
 
-#: ../../source/user_guide/configuration.rst:40
+#: ../../source/user_guide/configuration.rst:46
 msgid "**Document class** (usually \"typst\")"
-msgstr "**ドキュメントクラス**（通常は \"typst\"）"
+msgstr "**ドキュメントクラス** （通常は \"typst\"）"
 
-#: ../../source/user_guide/configuration.rst:43
+#: ../../source/user_guide/configuration.rst:49
 msgid "Template Configuration"
 msgstr "テンプレート設定"
 
-#: ../../source/user_guide/configuration.rst:46
+#: ../../source/user_guide/configuration.rst:52
 msgid "Template Function"
 msgstr "テンプレート関数"
 
-#: ../../source/user_guide/configuration.rst:48
+#: ../../source/user_guide/configuration.rst:54
 msgid "Specify the Typst template function:"
 msgstr "Typstテンプレート関数を指定します："
 
-#: ../../source/user_guide/configuration.rst:65
+#: ../../source/user_guide/configuration.rst:71
 msgid "Custom Template File"
 msgstr "カスタムテンプレートファイル"
 
-#: ../../source/user_guide/configuration.rst:67
+#: ../../source/user_guide/configuration.rst:73
 msgid "Use a custom Typst template file:"
 msgstr "カスタムTypstテンプレートファイルを使用します："
 
-#: ../../source/user_guide/configuration.rst:73
+#: ../../source/user_guide/configuration.rst:79
 msgid ""
 "The template file should define a ``project`` function (or the function "
 "specified in ``typst_template_function``)."
 msgstr ""
-"テンプレートファイルは、``project`` 関数（または ``typst_template_function`` で指定された関数）を定義する必要があります。"
+"テンプレートファイルは、``project`` 関数（または ``typst_template_function`` "
+"で指定された関数）を定義する必要があります。"
 
-#: ../../source/user_guide/configuration.rst:77
+#: ../../source/user_guide/configuration.rst:83
 msgid "Typst Package"
 msgstr "Typstパッケージ"
 
-#: ../../source/user_guide/configuration.rst:79
+#: ../../source/user_guide/configuration.rst:85
 msgid "Use external Typst packages from Typst Universe:"
 msgstr "Typst Universeから外部Typstパッケージを使用します："
 
-#: ../../source/user_guide/configuration.rst:86
+#: ../../source/user_guide/configuration.rst:92
 msgid "Template Assets"
 msgstr "テンプレートアセット"
 
-#: ../../source/user_guide/configuration.rst:88
+#: ../../source/user_guide/configuration.rst:94
 msgid "Control how template assets (fonts, images, logos) are copied:"
 msgstr "テンプレートアセット（フォント、画像、ロゴ）のコピー方法を制御します："
 
-#: ../../source/user_guide/configuration.rst:106
+#: ../../source/user_guide/configuration.rst:112
 msgid "**Default**: ``None`` (automatic directory copy)"
-msgstr "**デフォルト**: ``None``（ディレクトリの自動コピー）"
+msgstr "**デフォルト**: ``None`` （ディレクトリの自動コピー）"
 
-#: ../../source/user_guide/configuration.rst:108
+#: ../../source/user_guide/configuration.rst:114
 msgid "**Type**: ``list[str] | None``"
 msgstr "**型**: ``list[str] | None``"
 
-#: ../../source/user_guide/configuration.rst:110
+#: ../../source/user_guide/configuration.rst:116
 msgid "When ``typst_template_assets`` is:"
 msgstr "``typst_template_assets`` の設定："
 
-#: ../../source/user_guide/configuration.rst:112
+#: ../../source/user_guide/configuration.rst:118
 msgid "``None`` (default): Automatically copy entire template directory"
-msgstr "``None``（デフォルト）: テンプレートディレクトリ全体を自動的にコピー"
+msgstr "``None`` （デフォルト）: テンプレートディレクトリ全体を自動的にコピー"
 
-#: ../../source/user_guide/configuration.rst:113
+#: ../../source/user_guide/configuration.rst:119
 msgid ""
 "List of paths: Copy only specified files/directories (supports glob "
 "patterns)"
-msgstr ""
-"パスのリスト: 指定されたファイル/ディレクトリのみをコピー（globパターンをサポート）"
+msgstr "パスのリスト: 指定されたファイル/ディレクトリのみをコピー（globパターンをサポート）"
 
-#: ../../source/user_guide/configuration.rst:114
+#: ../../source/user_guide/configuration.rst:120
 msgid "Empty list ``[]``: Disable automatic asset copying"
 msgstr "空のリスト ``[]``: アセットの自動コピーを無効化"
 
-#: ../../source/user_guide/configuration.rst:118
+#: ../../source/user_guide/configuration.rst:124
 msgid ""
 "This setting only applies to local custom templates (``typst_template``)."
 " Typst Universe packages (``typst_package``) handle assets automatically."
 msgstr ""
-"この設定は、ローカルのカスタムテンプレート（``typst_template``）にのみ適用されます。"
-"Typst Universeパッケージ（``typst_package``）は、アセットを自動的に処理します。"
+"この設定は、ローカルのカスタムテンプレート（``typst_template``）にのみ適用されます。Typst "
+"Universeパッケージ（``typst_package``）は、アセットを自動的に処理します。"
 
-#: ../../source/user_guide/configuration.rst:121
+#: ../../source/user_guide/configuration.rst:127
 msgid "See :doc:`templates` for detailed examples."
 msgstr "詳細な例については :doc:`templates` を参照してください。"
 
-#: ../../source/user_guide/configuration.rst:124
+#: ../../source/user_guide/configuration.rst:130
 msgid "Math Rendering"
 msgstr "数式のレンダリング"
 
-#: ../../source/user_guide/configuration.rst:127
+#: ../../source/user_guide/configuration.rst:133
 msgid "mitex Support"
 msgstr "mitexサポート"
 
-#: ../../source/user_guide/configuration.rst:129
+#: ../../source/user_guide/configuration.rst:135
 msgid "Enable LaTeX math rendering with mitex:"
 msgstr "mitexを使用してLaTeX数式レンダリングを有効化します："
 
-#: ../../source/user_guide/configuration.rst:135
+#: ../../source/user_guide/configuration.rst:141
 msgid ""
 "When enabled, LaTeX math expressions are converted to Typst using the "
 "mitex package. When disabled, math is passed directly as Typst math "
 "syntax."
-msgstr ""
-"有効にすると、LaTeX数式はmitexパッケージを使用してTypstに変換されます。"
-"無効にすると、数式はTypstの数式構文として直接渡されます。"
+msgstr "有効にすると、LaTeX数式はmitexパッケージを使用してTypstに変換されます。無効にすると、数式はTypstの数式構文として直接渡されます。"
 
-#: ../../source/user_guide/configuration.rst:139
-msgid "Code Highlighting"
-msgstr "コードのハイライト"
-
-#: ../../source/user_guide/configuration.rst:142
-msgid "Codly Configuration"
-msgstr "Codly設定"
-
-#: ../../source/user_guide/configuration.rst:144
-msgid "Enable code highlighting with codly:"
-msgstr "codlyを使用してコードハイライトを有効化します："
-
-#: ../../source/user_guide/configuration.rst:150
-msgid "Customize line numbering:"
-msgstr "行番号のカスタマイズ："
-
-#: ../../source/user_guide/configuration.rst:157
+#: ../../source/user_guide/configuration.rst:145
 msgid "Author Information"
 msgstr "著者情報"
 
-#: ../../source/user_guide/configuration.rst:160
-msgid "Simple Format"
-msgstr "シンプルな形式"
-
-#: ../../source/user_guide/configuration.rst:167
+#: ../../source/user_guide/configuration.rst:148
 msgid "Detailed Format"
 msgstr "詳細な形式"
 
-#: ../../source/user_guide/configuration.rst:169
+#: ../../source/user_guide/configuration.rst:150
 msgid "Include detailed author information:"
 msgstr "詳細な著者情報を含めます："
 
-#: ../../source/user_guide/configuration.rst:187
+#: ../../source/user_guide/configuration.rst:168
 msgid "Paper Size and Format"
 msgstr "用紙サイズとフォーマット"
 
-#: ../../source/user_guide/configuration.rst:197
+#: ../../source/user_guide/configuration.rst:174
+msgid ""
+"``papersize`` and ``fontsize`` set the paper size and the base font size."
+" ``typst_elements`` supports three keys in total; the third, ``lang``, is"
+" documented in `Document Language`_ below."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:179
+msgid "Document Language"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:181
+msgid ""
+"The ``lang`` key controls the language Typst uses when generating its own"
+" labels -- most notably the figure and table supplement text (for example"
+" \"Figure\" / \"Table\" in English). It is passed through to the "
+"template's ``project()`` function and reaches Typst's text setup. The "
+"effect is concrete: with a Japanese setting, a captioned table renders as"
+" 「表 1」 and a figure as 「図 1」, where the default English setting renders "
+"\"Table 1\" and \"Figure 1\"."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:190
+msgid "Automatic derivation"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:192
+msgid ""
+"When your project uses the bundled default template, ``lang`` is derived "
+"automatically from Sphinx's own ``language`` setting -- no explicit "
+"configuration is needed. The derivation rule is simple: take the part of "
+"the value before the first underscore, hyphen, or at-sign, and lowercase "
+"it. For example:"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:198
+msgid "``ja`` becomes ``ja``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:199
+msgid "``zh_CN`` becomes ``zh``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:200
+msgid "``pt_BR`` becomes ``pt``"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:202
+msgid ""
+"If a ``language`` value cannot be reduced to a two- or three-letter code,"
+" typsphinx emits a build warning naming the value and leaves the "
+"parameter unset, so the template's own default applies and the build "
+"still succeeds."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:208
+msgid "Scope: default template only"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:210
+msgid ""
+"Automatic derivation applies **only** when the bundled default template "
+"is what actually gets used. It does **not** apply when ``typst_template``"
+" is configured, when ``typst_package`` is configured, or when a file "
+"named ``base.typ`` sits next to your ``conf.py`` in the source directory "
+"(which silently shadows the bundled template). The reason: a template "
+"that does not declare a ``lang`` parameter would receive an argument it "
+"never asked for, and Typst aborts the compile on an undeclared argument."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:218
+msgid ""
+"If you use a custom template or package and want the same behavior, opt "
+"in explicitly: declare a ``lang`` parameter in your own ``project()`` (or"
+" equivalent entry function) and then set it through ``typst_elements``, "
+"as shown below."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:224
+msgid "Precedence and known limitation"
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:226
+msgid ""
+"An explicit ``typst_elements`` ``lang`` entry always wins over the value "
+"derived from ``language``, on every template path, and an explicit value "
+"is passed through to Typst exactly as written with no validation."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:235
+msgid ""
+"Here the derived value would be ``ja``, but the explicit entry wins, so "
+"Typst typesets in German and renders 「Tabelle 1」."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:238
+msgid ""
+"**Known limitation:** region subtags are not supported, so a ``zh_TW`` "
+"project resolves to ``zh`` and renders simplified-Chinese supplement text"
+" 「图 1」 rather than the traditional 「圖 1」. If you need traditional "
+"Chinese, set the value explicitly through your own template."
+msgstr ""
+
+#: ../../source/user_guide/configuration.rst:244
 msgid "Complete Example"
 msgstr "完全な例"
 
-#: ../../source/user_guide/configuration.rst:199
+#: ../../source/user_guide/configuration.rst:246
 msgid "Here's a complete ``conf.py`` example:"
 msgstr "以下は完全な ``conf.py`` の例です："
 
-#: ../../source/user_guide/configuration.rst:243
+#: ../../source/user_guide/configuration.rst:291
 msgid "See Also"
 msgstr "関連項目"
 
-#: ../../source/user_guide/configuration.rst:245
+#: ../../source/user_guide/configuration.rst:293
 msgid ":doc:`builders` - Understanding the typst and typstpdf builders"
 msgstr ":doc:`builders` - typstおよびtypstpdfビルダーの理解"
 
-#: ../../source/user_guide/configuration.rst:246
+#: ../../source/user_guide/configuration.rst:294
 msgid ":doc:`templates` - Customizing Typst templates"
 msgstr ":doc:`templates` - Typstテンプレートのカスタマイズ"
 
-#: ../../source/user_guide/configuration.rst:247
+#: ../../source/user_guide/configuration.rst:295
 msgid ":doc:`/examples/advanced` - Advanced configuration examples"
 msgstr ":doc:`/examples/advanced` - 高度な設定例"
+
+#~ msgid "**Output filename** (without extension)"
+#~ msgstr "**出力ファイル名**（拡張子なし）"
+
+#~ msgid "Code Highlighting"
+#~ msgstr "コードのハイライト"
+
+#~ msgid "Codly Configuration"
+#~ msgstr "Codly設定"
+
+#~ msgid "Enable code highlighting with codly:"
+#~ msgstr "codlyを使用してコードハイライトを有効化します："
+
+#~ msgid "Customize line numbering:"
+#~ msgstr "行番号のカスタマイズ："
+
+#~ msgid "Simple Format"
+#~ msgstr "シンプルな形式"
+
+#~ msgid ""
+#~ "These are the only two supported "
+#~ "``typst_elements`` keys for paper size "
+#~ "and base font size."
+#~ msgstr ""
+

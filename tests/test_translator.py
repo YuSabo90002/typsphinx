@@ -220,6 +220,315 @@ def test_in_table_state_management(simple_document, mock_builder):
     assert translator.in_table is False
 
 
+def _build_captioned_table(caption_text, ids=None, table_children=None):
+    """Build a hand-constructed nodes.table with a leading title (caption).
+
+    docutils stores a `.. table:: Caption` (and equally csv-table/list-table)
+    caption as a `title` CHILD of nodes.table -- mirrors the shape produced by
+    a real Sphinx build (see 25-RESEARCH.md Verified Mechanism 1).
+    """
+    table = nodes.table()
+    if ids:
+        table["ids"] = list(ids)
+    title = nodes.title()
+    if table_children is None:
+        title += nodes.Text(caption_text)
+    else:
+        for child in table_children:
+            title += child
+    table += title
+
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+
+    table += tgroup
+    return table
+
+
+def test_captioned_table_buffers_caption_no_heading(simple_document, mock_builder):
+    """A `.. table:: Caption` buffers its caption and emits NO heading() call.
+
+    Guards TBL-01 SC#1 (25-01-PLAN.md Task 1) and the stray-heading bug
+    (25-RESEARCH.md Verified Mechanism 1). Walks only the title (the
+    caption) after entering the table -- depart_table's own figure-wrap
+    consumption of self.table_caption is Task 2's concern, exercised by
+    test_captioned_table_renders_as_figure et al. below.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_captioned_table("My Caption")
+    translator.visit_table(table)
+    title = table.children[0]
+    title.walkabout(translator)
+
+    # table_caption holds RENDERED code-mode content (mirrors figure_caption)
+    # -- inline visitors (visit_Text -> escape_typst_string) already ran, so
+    # it is `text("My Caption")`, not the raw string (Pattern 1).
+    assert translator.table_caption == 'text("My Caption")'
+    assert "heading(" not in translator.astext()
+
+
+def test_captioned_table_renders_as_figure(simple_document, mock_builder):
+    """A captioned table figure-wraps with kind: table and no heading.
+
+    Guards TBL-01 SC#1 (25-01-PLAN.md Task 2, D-02).
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_captioned_table("My Caption")
+    table.walkabout(translator)
+
+    output = translator.astext()
+
+    assert "figure(" in output
+    assert "kind: table" in output
+    assert 'text("My Caption")' in output
+    assert "heading(" not in output
+    # PR#98 parity: the rendered caption must land in the figure's own
+    # `caption:` slot (not merely appear somewhere in the output), and the
+    # inner table() -- cells included -- must survive the figure wrap.
+    assert 'caption: {text("My Caption")}' in output
+    assert "table(" in output
+    assert 'text("A")' in output
+
+
+def test_table_caption_supports_inline_markup(simple_document, mock_builder):
+    """An emphasis child in the caption renders via emph( (never node.astext()).
+
+    Guards TBL-01 (25-01-PLAN.md Task 2): caption text must route through
+    the normal inline-visitor chain so inline markup (and escaping) is
+    preserved, not be derived via node.astext().
+    """
+    from docutils import nodes as _nodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    emphasis = _nodes.emphasis()
+    emphasis += _nodes.Text("Important")
+    table = _build_captioned_table(
+        None,
+        table_children=[_nodes.Text("See "), emphasis],
+    )
+    table.walkabout(translator)
+
+    output = translator.astext()
+
+    assert "figure(" in output
+    assert "emph(" in output
+    assert 'text("Important")' in output
+    # PR#98 parity: assert the COMPOSED emph() form inside the caption slot,
+    # so the emphasis cannot silently degrade to bare text or leak outside
+    # the caption.
+    assert 'emph({text("Important")})' in output
+    assert 'caption: {text("See ")\nemph({text("Important")})}' in output
+
+
+def test_table_caption_not_lost_after_previous_table(simple_document, mock_builder):
+    """A 2nd table's caption is NOT swallowed by a stale table_cell_content.
+
+    Guards TBL-01 SC#4 (25-01-PLAN.md Task 2, the stale-buffer regression --
+    25-RESEARCH.md Verified Mechanism 2). Two hand-built captioned tables
+    walked through ONE translator instance -- both caption strings must be
+    present in the output.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    first_table = _build_captioned_table("First Caption")
+    second_table = _build_captioned_table("Second Caption")
+
+    first_table.walkabout(translator)
+    second_table.walkabout(translator)
+
+    output = translator.astext()
+
+    assert 'text("First Caption")' in output
+    assert 'text("Second Caption")' in output
+    assert output.count("figure(") == 2
+    assert output.count("kind: table") == 2
+    # PR#98 parity: each caption must appear EXACTLY once -- a caption that
+    # also leaked into a table cell would still satisfy the `in` checks above.
+    assert output.count('text("Second Caption")') == 1
+
+
+def test_table_caption_not_lost_after_uncaptioned_table(simple_document, mock_builder):
+    """A caption survives when the PRECEDING table had no caption (PR#98 shape).
+
+    Guards TBL-01 SC#4 from the other direction than
+    ``test_table_caption_not_lost_after_previous_table`` above: PR#98's
+    original repro walked an UNCAPTIONED table first, whose ``visit_entry``
+    creates ``table_cell_content`` and whose ``depart_entry`` only resets it
+    to ``[]`` -- leaving the attribute in existence so the NEXT table's
+    caption silently routed into it. ``depart_table``'s ``del`` covers both
+    orderings; this pins the uncaptioned-first one explicitly.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    uncaptioned = nodes.table()
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+    uncaptioned += tgroup
+
+    uncaptioned.walkabout(translator)
+    _build_captioned_table("Second Caption").walkabout(translator)
+
+    output = translator.astext()
+
+    assert 'caption: {text("Second Caption")}' in output
+    assert output.count('text("Second Caption")') == 1
+    assert output.count("figure(") == 1
+
+
+def test_uncaptioned_table_not_wrapped_in_figure(simple_document, mock_builder):
+    """A caption-less table stays a plain table() -- never figure-wrapped.
+
+    Guards TBL-01 SC#2 (25-01-PLAN.md Task 2).
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    # No leading title child -- this table has no caption at all.
+    table = nodes.table()
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+    table += tgroup
+
+    table.walkabout(translator)
+    output = translator.astext()
+
+    assert "table(" in output
+    assert "figure(" not in output
+
+
+def test_captioned_table_single_label(simple_document, mock_builder):
+    """A captioned table with explicit ids defines its <label> exactly once.
+
+    Guards TBL-02 SC#5 (25-01-PLAN.md Task 2, Critical Pitfall 3): visit_table
+    must skip its unconditional _emit_id_anchors call for a captioned table
+    so depart_table's own <label> self-anchor is not defined twice (a Typst
+    "label ... occurs multiple times" compile fatal, invisible to a
+    string-only unit test but guarded here at the source-count layer).
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_captioned_table("My Caption", ids=["my-table"])
+    table.walkabout(translator)
+
+    output = translator.astext()
+    label = translator._namespace_label(None, "my-table")
+
+    assert output.count(f"<{label}>") == 1
+
+
+def test_captioned_table_with_width_composes_figure_and_block(
+    simple_document, mock_builder
+):
+    """Caption + :width: compose: block(width:)[#figure(... kind: table) <label>].
+
+    Guards TBL-01 SC#3 / D-04 (25-01-PLAN.md must_haves): the :width: block
+    wraps the WHOLE figure (caption included), mirroring depart_figure.
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = _build_captioned_table("Width Caption", ids=["width-table"])
+    table["width"] = "80%"
+
+    table.walkabout(translator)
+    output = translator.astext()
+
+    assert "block(width:" in output
+    assert "figure(" in output
+    assert "kind: table" in output
+    assert 'text("Width Caption")' in output
+    label = translator._namespace_label(None, "width-table")
+    assert output.count(f"<{label}>") == 1
+
+
+def test_empty_table_title_falls_back_to_plain_table(simple_document, mock_builder):
+    """An empty title child strips to a falsy caption -- never figure()s.
+
+    Backstop truth (25-01-PLAN.md must_haves): a whitespace-only/empty
+    table caption must never produce an empty-caption figure(); it must
+    fall back to a plain table(). Only reachable via a hand-built doctree
+    (a real `.. table::` directive with genuinely no caption text has no
+    title child at all -- see 25-RESEARCH.md Verified Mechanism 3).
+    """
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    table = nodes.table()
+    table += nodes.title()  # No children at all -- degenerate/empty caption.
+    tgroup = nodes.tgroup(cols=2)
+    tgroup += nodes.colspec(colwidth=1)
+    tgroup += nodes.colspec(colwidth=1)
+    tbody = nodes.tbody()
+    row = nodes.row()
+    entry1 = nodes.entry()
+    entry1 += nodes.paragraph(text="A")
+    entry2 = nodes.entry()
+    entry2 += nodes.paragraph(text="B")
+    row += entry1
+    row += entry2
+    tbody += row
+    tgroup += tbody
+    table += tgroup
+
+    table.walkabout(translator)
+    output = translator.astext()
+
+    assert "table(" in output
+    assert "figure(" not in output
+
+
 def test_subtitle_conversion(simple_document, mock_builder):
     """Test that subtitle nodes are converted correctly."""
     from typsphinx.translator import TypstTranslator

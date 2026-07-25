@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-07-25
+
+Closes out the config & docs fidelity milestone: configuration values documented in `typst_elements`
+now reliably reach the compiled Typst output (an unrecognized key now fails the build loudly instead
+of being silently dropped, and a second long-dead config value is removed), captioned tables render
+as native Typst figures with "Table N" numbering and resolvable cross-references, and the Typst
+typesetting language of every auto-generated label now follows Sphinx's own `language` setting
+instead of being hardcoded to English. The user-facing configuration docs were also corrected to
+match the registered config surface. Zero new runtime dependencies; the bundled `@preview`
+version-sync surface is untouched.
+
+### Added
+
+- **Captioned tables render as numbered, cross-referenceable figures (TBL-01, TBL-02)** — a
+  `.. table:: Caption` (or a captioned `csv-table`/`list-table`) now emits
+  `figure(table(...), caption: {...}, kind: table)` with Typst's native "Table N" numbering, instead
+  of a bare `table()` with no numbering and a stray preceding heading. A `:numref:`/`:ref:` to a
+  captioned table now resolves to a working cross-reference in the compiled PDF. A table without a
+  caption still renders as a plain `table()` (never speculatively figure-wrapped).
+
+### Changed
+
+- **BREAKING: An unrecognized `typst_elements` key now fails the build (CONF-04)** — previously, any
+  `typst_elements` key outside `papersize`/`fontsize`/`lang` was silently dropped with no effect on
+  the build; it now aborts with `ExtensionError: typst_elements: unknown key ...`. If your `conf.py`
+  sets a key outside this allowlist, remove it; to keep passing a custom value through to a custom
+  template, use `typst_template_function.params` instead. `papersize` and `fontsize` set via
+  `typst_elements` now also reach the compiled `.typ`/PDF (previously silently dropped regardless of
+  the allowlist).
+
+### Removed
+
+- **BREAKING: `typst_toctree_defaults` config value removed (CONF-05)** — it was registered but never
+  consumed by any code path. A `conf.py` still setting it is silently ignored by Sphinx (unregistered
+  config values produce no warning), and removal changes no build's output since the value never
+  affected one. No deprecation period.
+
+### Fixed
+
+- **Typst's typesetting language now follows Sphinx's `language` config (CONF-07)** —
+  `templates/base.typ` previously hardcoded `lang: "en"`, so a `language = "ja"` project's body text
+  was already translated (Sphinx's own i18n transform) but Typst-generated labels stayed English —
+  e.g. a captioned table showed "Table 1" instead of "表 1". The default template now derives `lang`
+  from `config.language`; an explicit `typst_elements = {"lang": ...}` still overrides it on every
+  path. Applies to the default-template path only — a custom template, `typst_package`, or a
+  source-directory `base.typ` shadow is unaffected and must still declare its own `lang`.
+- **The bundled `examples/advanced` sample builds again** — it was unbuildable on two independent
+  axes: its `typst_elements` carried five keys outside the CONF-04 allowlist (now rejected loudly by
+  this release), and its `_templates/custom.typ` had drifted three milestones behind on its
+  `@preview` pins, aborting the compile with `unknown variable: kai`. The template now declares
+  `papersize`/`fontsize`/`lang` in its `project()` — so the example demonstrates the allowlist rather
+  than decorating around it — and `test_preview_version_sync.py` gained a check over
+  `examples/**/*.typ` so a bundled sample can no longer drift out of lockstep unnoticed.
+- **User-facing configuration docs corrected to match the registered config surface (DOC-07)** —
+  `docs/source/user_guide/configuration.rst`'s `typst_author` renamed to the real `typst_authors`, the
+  non-existent `typst_use_codly`/`typst_code_line_numbers` removed, and `typst_papersize`/
+  `typst_fontsize` rewritten as working `typst_elements` examples; `docs/source/api/index.rst`'s
+  redundant, drifted "Available Configuration Values" table removed in favor of a single canonical
+  `:doc:` pointer.
+
+### Verified
+
+- Closing full-corpus regression gate: the Sphinx `doc/` v9.1.0 corpus, re-run through `-b typstpdf`,
+  remains fatal-free, produces a valid `%PDF`-magic-byte output, and the `unknown_visit` catalogue
+  remains empty.
+- Milestone invariant held (as amended 2026-07-25): zero new runtime dependencies, no `@preview`
+  package version bump, the 3-way version-sync surface (`writer.py` / `template_engine.py` /
+  `templates/base.typ`) untouched by version string; `templates/base.typ`'s only diff from `main` is
+  the 2-line `lang` parameter added in Phase 27.1.
+
 ## [0.6.2] - 2026-07-23
 
 Rendering-fidelity round 2: closes out the remaining 13 medium/low findings from the v0.6.1 audit
@@ -716,6 +786,7 @@ untouched.
 
 ---
 
+[0.6.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.3
 [0.6.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.2
 [0.6.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.1
 [0.6.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.0
@@ -729,4 +800,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.3...HEAD

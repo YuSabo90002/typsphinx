@@ -205,7 +205,6 @@ Below are the main configuration options. This is not the complete set — see [
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
 - `typst_template_mapping`: Sphinx metadata to template parameter mapping
-- `typst_toctree_defaults`: Default toctree options
 
 ## Development
 
@@ -313,5 +312,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.6.2) - Production ready
+**Status**: Stable (v0.6.3) - Production ready
 **Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+

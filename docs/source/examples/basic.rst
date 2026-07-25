@@ -225,7 +225,6 @@ Here's a complete minimal project:
    ]
 
    typst_use_mitex = True
-   typst_use_codly = True
 
 **index.rst**:
 
