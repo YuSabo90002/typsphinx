@@ -1072,3 +1072,86 @@ RTD-03's Branch-B fallback link (`releases/latest/download/typsphinx.pdf`) is no
 path was taken instead, and RTD itself already serves typsphinx's own dogfooded PDF at
 `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` (recorded in § "Branch Decision" above,
 `code=200`, `content_type=application/pdf`, `size=1697498`, 93 pages).
+
+## D-12 check 4 — RESOLVED by owner (closes the RTD-02 verdict)
+
+This section is written by the execute-phase orchestrator after Plan 05 returned, because the item it
+closes was left open by design (`human_needed`) and no plan remained to close it. Per this file's own
+append-only rule, § "SC#3 Branch A — D-12 check 4 (human_needed) and RTD-02 verdict" above is left
+**unaltered**: it records the state at the time Plan 05 ran, when the check genuinely had not been
+performed. This section records the subsequent resolution. Both are true of their own moment; neither
+is rewritten to look like the other.
+
+**Artifact inspected.** The PDF RTD serves at `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`,
+re-downloaded by the orchestrator for the inspection:
+
+```
+curl -sS -o typsphinx-rtd-page-check.pdf -w 'code=%{http_code} size=%{size_download}\n' -L \
+  https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+```
+code=200 size=1697498
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  typsphinx-rtd-page-check.pdf
+typsphinx-rtd-page-check.pdf: PDF document, version 1.7, 93 page(s)
+```
+
+The SHA-256 is byte-identical to the artifact Plan 05 identified and compared (§ "SC#3 Branch A —
+artifacts under comparison"), so the owner inspected the same artifact the D-12 checks were run against
+— not a later rebuild.
+
+**How page 11 was presented for inspection.** Rendered to a raster image so glyph substitution would be
+visible as drawn, since that is precisely what text extraction cannot reveal (D-14):
+
+```
+nix-shell -p poppler-utils --run "pdftoppm -f 11 -l 11 -r 150 -png typsphinx-rtd-page-check.pdf page11"
+```
+
+The rendered page and the PDF itself were both delivered to the owner.
+
+**Owner's verdict (2026-07-25).** The owner inspected page 11 and reported that the characters are
+rendering normally and are **not** tofu. Owner's words, verbatim:
+
+```
+豆腐になっておらず正常に表示されている
+```
+
+("Not tofu — displaying correctly.")
+
+This covers the four glyph strings § "D-12 check 4" specified: `「表 1」`, `「図 1」`, `「图 1」`, `「圖 1」`
+on page 11.
+
+**Evidence classification.** This is **owner-reported human verification**, exactly as D-12 check 4 was
+designed to be. It is NOT machine-verified and must not be recorded as such. The orchestrator's own
+reading of the rendered image agreed with the owner's, but that observation is corroborating context
+only — the gate is closed by the owner's report, per the plan's design.
+
+**Earlier owner observations that bear on the same question**, recorded here so the record is complete:
+before the Branch Decision was made, the owner independently inspected the served PDF and confirmed that
+code listings are rendered by **codly** and admonitions by **gentle-clues** (recorded in § "SC#2 — raw
+build log, @preview verdict"). Those observations are consistent with this one: the CJK-bearing page and
+the package-rendered elements both render as intended.
+
+### Consolidated RTD-02 verdict — SUPERSEDES the "NOT met" verdict in § "D-12 check 4 (human_needed)"
+
+| # | D-12 check | Status | Result |
+|---|-----------|--------|--------|
+| 1 | Page count | machine-verified | `local_pages 93` == `rtd_pages 93` |
+| 2 | Extracted text | machine-verified | Whitespace-normalized text equal, both 131,142 chars |
+| 3 | Embedded CJK-coverage font | machine-verified | `MSNUZX+HanaMinA` present in the RTD PDF's `/BaseFont` list (D-13 caveat applies — coverage, not list-identity) |
+| 4 | Visual tofu confirmation | **owner-verified (human)** | Page 11 inspected by the owner; `表`, `図`, `图`, `圖` render as real characters, no substitution boxes |
+
+**RTD-02 is MET.** All four D-12 checks now pass — three by recorded command plus output, the fourth by
+the owner's visual inspection. The earlier "NOT met" verdict in the section above was correct when
+written (check 4 was then open) and is superseded here rather than edited, so the sequence stays
+auditable.
+
+**Standing caveats that survive this verdict** (they qualify it; they do not reopen it):
+
+- Per D-13, no claim of font-list equality is made anywhere. Check 3 asserts CJK *coverage* only.
+- Per REQUIREMENTS.md invariant #7, no build-status or clean-download fact is used as evidence about
+  PDF content. The content claims rest on checks 1–4, nothing else.
+- The `fonts-noto-cjk` surprise recorded in § "SC#3 Branch A — D-12 checks 1-3" stands unresolved as a
+  question for later phases: the apt package was installed successfully, but the font Typst actually
+  embedded is `HanaMinA`, not a Noto family. CJK coverage was achieved; whether `build.apt_packages:
+  [fonts-noto-cjk]` is load-bearing for that outcome is **not** established by this phase.
