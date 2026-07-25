@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 29
-current_phase_name: English Parent
-status: Ready to execute
+current_phase_name: rtd-build-establishment-english-parent-pdf-path-decision
+status: executing
 stopped_at: Phase 29 planned (6 plans, 6 waves)
-last_updated: "2026-07-25T13:25:00.000Z"
+last_updated: "2026-07-25T13:24:31.107Z"
 last_activity: 2026-07-25
-last_activity_desc: "Phase 29 planned: 6 plans in 6 waves, plan-checker PASSED, all gates green"
+last_activity_desc: Phase 29 execution started
 progress:
   total_phases: 5
   completed_phases: 0
@@ -24,17 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Milestone v0.6.4 — Read the Docs migration. Roadmap created (Phases 29–33); next is `/gsd-plan-phase 29`.
+**Current focus:** Phase 29 — rtd-build-establishment-english-parent-pdf-path-decision
 
 ## Current Position
 
-Phase: 29 — RTD Build Establishment (English Parent) + PDF Path Decision (planned, not started)
-Plan: 0/6 complete
-Status: Ready to execute — 6 plans in 6 sequential waves. **Run `/gsd-execute-phase 29 --skip-ui`** (the `ui.plan-gate` false positive fires on this docs/PDF phase).
+Phase: 29 (rtd-build-establishment-english-parent-pdf-path-decision) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 29
 Progress: [░░░░░░░░░░] 0% (0/5 phases)
-Last activity: 2026-07-25 — Phase 29 planned: research + pattern map + validation strategy, plan-checker PASSED, 15/15 decisions and 4/4 requirements covered
+Last activity: 2026-07-25 — Phase 29 execution started
 
 **Phase 29 execution notes (carry into execute/verify):**
+
 - Waves are strictly sequential by design (D-06 two-commit landing; each boundary is an owner RTD action or a real build wait). Waves 2 and 4 are `autonomous: false`.
 - The one irreversible step is in Wave 2: confirm the slug `typsphinx` is unclaimed **before** creating the RTD project. If taken, execution stops for the owner — no silent second candidate (D-01/D-02).
 - `29-VERIFICATION.md` is written *during* execution (D-15 mandates the filename). Plan 02 creates it; Plans 03–06 **append only**. `/gsd-verify-work` must **preserve** the pre-recorded live-evidence sections rather than rewriting the file.
