@@ -81,9 +81,7 @@ def _load_conf_module():
     of `pyproject.toml` to resolve `release`. Deliberately not registered in
     `sys.modules` so repeated calls stay independent.
     """
-    spec = importlib.util.spec_from_file_location(
-        "_p29_conf_probe", CONF_PY_PATH
-    )
+    spec = importlib.util.spec_from_file_location("_p29_conf_probe", CONF_PY_PATH)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -95,7 +93,9 @@ def test_readthedocs_yaml_shape():
 
     assert data["version"] == 2, "`.readthedocs.yaml` must declare version: 2"
 
-    assert isinstance(data["build"], dict), "`.readthedocs.yaml` build: must be a mapping"
+    assert isinstance(
+        data["build"], dict
+    ), "`.readthedocs.yaml` build: must be a mapping"
     assert data["build"]["os"] and isinstance(
         data["build"]["os"], str
     ), "`.readthedocs.yaml` build.os must be a non-empty string"
