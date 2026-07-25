@@ -2,6 +2,7 @@
 created: 2026-07-22T23:55:07+09:00
 title: README の github.io ドキュメントリンク 7 本が 404（`/en/` プレフィックス欠落）
 area: docs
+resolves_phase: 31
 files:
   - README.md:278-284 (Documentation 節の github.io サブページ直リンク 7 本 — Installation Guide / Quick Start / User Guide / Configuration Reference / Examples / API Reference / Contributing Guide。実測 404、`/en/` 追加で 200)
   - README.md:8,12,274 (トップページへのリンク3箇所 — `.../typsphinx/` はルート直下の JS リダイレクトページを指すため 200 で動作。修正対象外)

@@ -2,6 +2,7 @@
 created: 2026-07-21T21:05:49+09:00
 title: マニュアルドキュメントのホスティング先を Read the Docs に変更する
 area: docs
+resolves_phase: 32
 files:
   - .github/workflows/docs.yml:57-62 (GitHub Pages デプロイステップ)
   - docs/build_multilang.py:80 (canonical URL が github.io 固定)

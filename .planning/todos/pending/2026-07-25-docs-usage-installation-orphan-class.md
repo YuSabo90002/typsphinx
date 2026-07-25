@@ -2,6 +2,7 @@
 created: 2026-07-25T00:00:00+09:00
 title: docs/usage.rst と docs/installation.rst が Phase 27 で削除した orphan と同じクラス
 area: docs
+resolves_phase: 30
 source: .planning/phases/27.1-typst-text-lang-from-sphinx-language-config/27.1-02-SUMMARY.md (repo-wide sweep 所見)
 files:
   - docs/usage.rst
