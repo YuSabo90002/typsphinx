@@ -171,8 +171,74 @@ Paper Size and Format
 
    typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
 
-These are the only two supported ``typst_elements`` keys for paper size and
-base font size.
+``papersize`` and ``fontsize`` set the paper size and the base font size.
+``typst_elements`` supports three keys in total; the third, ``lang``, is
+documented in `Document Language`_ below.
+
+Document Language
+------------------
+
+The ``lang`` key controls the language Typst uses when generating its own
+labels -- most notably the figure and table supplement text (for example
+"Figure" / "Table" in English). It is passed through to the template's
+``project()`` function and reaches Typst's text setup. The effect is
+concrete: with a Japanese setting, a captioned table renders as
+「表 1」 and a figure as 「図 1」, where the default English setting
+renders "Table 1" and "Figure 1".
+
+Automatic derivation
+~~~~~~~~~~~~~~~~~~~~~
+
+When your project uses the bundled default template, ``lang`` is derived
+automatically from Sphinx's own ``language`` setting -- no explicit
+configuration is needed. The derivation rule is simple: take the part of
+the value before the first underscore, hyphen, or at-sign, and lowercase
+it. For example:
+
+- ``ja`` becomes ``ja``
+- ``zh_CN`` becomes ``zh``
+- ``pt_BR`` becomes ``pt``
+
+If a ``language`` value cannot be reduced to a two- or three-letter code,
+typsphinx emits a build warning naming the value and leaves the parameter
+unset, so the template's own default applies and the build still
+succeeds.
+
+Scope: default template only
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Automatic derivation applies **only** when the bundled default template is
+what actually gets used. It does **not** apply when ``typst_template`` is
+configured, when ``typst_package`` is configured, or when a file named
+``base.typ`` sits next to your ``conf.py`` in the source directory (which
+silently shadows the bundled template). The reason: a template that does
+not declare a ``lang`` parameter would receive an argument it never asked
+for, and Typst aborts the compile on an undeclared argument.
+
+If you use a custom template or package and want the same behavior, opt in
+explicitly: declare a ``lang`` parameter in your own ``project()`` (or
+equivalent entry function) and then set it through ``typst_elements``, as
+shown below.
+
+Precedence and known limitation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An explicit ``typst_elements`` ``lang`` entry always wins over the value
+derived from ``language``, on every template path, and an explicit value
+is passed through to Typst exactly as written with no validation.
+
+.. code-block:: python
+
+   language = "ja"
+
+.. code-block:: python
+
+   typst_elements = {"lang": "ja"}
+
+**Known limitation:** region subtags are not supported, so a ``zh_TW``
+project resolves to ``zh`` and renders simplified-Chinese supplement text
+「图 1」 rather than the traditional 「圖 1」. If you need traditional
+Chinese, set the value explicitly through your own template.
 
 Complete Example
 ----------------
