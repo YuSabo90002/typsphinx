@@ -285,7 +285,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. Sphinx の言語コード（`ja` / `zh_CN` / `pt_BR` 等のロケール付き形式を含む）から Typst の `lang`（必要なら `region`）への変換規則がテストで固定されており、未知・非標準の値でビルドが落ちない。
   5. マイルストーン不変量の改訂が守られる: `templates/base.typ` の変更は `project()` への `lang` パラメータ追加とその `set text()` への配線**のみ**に限る。`@preview` 4 パッケージの版文字列（3-way 版同期面）は未変更で `tests/test_preview_version_sync.py` が緑。zero new runtime deps を維持。
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 **Wave 1** *(parallel — no shared files)*
 
@@ -294,7 +294,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 
 **Wave 2** *(blocked on 27.1-01)*
 
-- [ ] 27.1-03-PLAN.md — GATE-01 実 `typst.compile()` フィクスチャ 7 件（ja ソース証明 / de PDF 抽出 NBSP / precedence / custom-template・srcdir-shadow・package の非破壊 3 件 / 不正 `language`）+ 耐久 pre-fix-basis 証明と red→green 記録 (CONF-07)
+- [x] 27.1-03-PLAN.md — GATE-01 実 `typst.compile()` フィクスチャ 7 件（ja ソース証明 / de PDF 抽出 NBSP / precedence / custom-template・srcdir-shadow・package の非破壊 3 件 / 不正 `language`）+ 耐久 pre-fix-basis 証明と red→green 記録 (CONF-07)
 
 **Note**: SC#1 は D-07 の分割証明で読むこと — `ja` は実コンパイル成功 + 生成 `.typ` の `lang: "ja"`（フォント非依存）、supplement の言語連動は `de` + pypdf 抽出（NBSP 許容正規表現）で証明する。実装後に SC#1 の文面をこの分割方式に合わせて更新するのが望ましい。
 
@@ -352,7 +352,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
-| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 2/3 | In Progress|  |
+| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | In Progress|  |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
 
 ## Backlog
