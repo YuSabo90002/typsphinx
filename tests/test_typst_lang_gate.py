@@ -415,3 +415,181 @@ class TestMalformedLanguage:
         with open(pdf_path, "rb") as f:
             magic = f.read(4)
         assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 typst lang gate",
+)
+class TestCustomTemplateNoLang:
+    """
+    SC#3 / D-08 case (1): an EXPLICITLY configured ``typst_template`` that
+    declares NO ``lang`` parameter, combined with Sphinx
+    ``language = "ja"``, real-compiles successfully via ``-b typstpdf`` and
+    its emitted show-rule region carries NO auto-injected ``lang`` entry.
+    ``TemplateEngine.uses_bundled_default_template()`` returns ``False``
+    here because ``resolve_template().source == "explicit"`` (Priority 1),
+    so ``writer.py`` never computes ``auto_lang`` for this path at all --
+    the failure mode this guards against is a hard Typst abort on an
+    undeclared argument, which would show up as a non-zero build exit.
+
+    Requirements: CONF-07.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def build(tmp_path_factory):
+        build_dir = tmp_path_factory.mktemp("custom_template_no_lang_build")
+        result = _run_sphinx_build(
+            CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR, build_dir, "typstpdf"
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists(), (
+            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        return {
+            "result": result,
+            "text": typ_path.read_text(encoding="utf-8"),
+            "pdf_path": build_dir / "index.pdf",
+        }
+
+    def test_custom_template_no_lang_build_succeeds_with_no_lang_injected(self, build):
+        assert build["result"].returncode == 0
+        region = _show_rule_call_region(build["text"])
+        assert "lang:" not in region
+
+    def test_custom_template_no_lang_real_compile_produces_valid_pdf(self, build):
+        """
+        A real ``-b typstpdf`` build of the custom_template_no_lang
+        fixture exited 0 and produced a non-empty, well-formed PDF -- the
+        substance of this case: the compile itself is the proof, since an
+        undeclared-kwarg fatal would abort it.
+        """
+        assert build["result"].returncode == 0
+        pdf_path = build["pdf_path"]
+        assert pdf_path.exists()
+        assert pdf_path.stat().st_size > 0
+        with open(pdf_path, "rb") as f:
+            magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 typst lang gate",
+)
+class TestSrcdirShadowNoLang:
+    """
+    SC#3 / D-08 case (2): a ``<srcdir>/base.typ`` that silently SHADOWS
+    the bundled default template (both ``typst_template`` and
+    ``typst_package`` left unset), declaring NO ``lang`` parameter,
+    combined with Sphinx ``language = "ja"``, real-compiles successfully
+    via ``-b typstpdf`` and its emitted show-rule region carries NO
+    auto-injected ``lang`` entry -- the DIRECT proof of the D-06 judgment
+    boundary. A declaration-based check
+    (``typst_template is None and typst_package is None``) would see two
+    unset settings, wrongly conclude "default template", and inject a
+    ``lang`` argument this shadow template never declared.
+    ``TemplateEngine.uses_bundled_default_template()`` correctly returns
+    ``False`` here because it judges from the ACTUAL resolution result
+    (``resolve_template().source == "search"``, Priority 2 -- not
+    ``"default"``).
+
+    Requirements: CONF-07.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def build(tmp_path_factory):
+        build_dir = tmp_path_factory.mktemp("srcdir_shadow_no_lang_build")
+        result = _run_sphinx_build(
+            SRCDIR_SHADOW_NO_LANG_FIXTURE_DIR, build_dir, "typstpdf"
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists(), (
+            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        return {
+            "result": result,
+            "text": typ_path.read_text(encoding="utf-8"),
+            "pdf_path": build_dir / "index.pdf",
+        }
+
+    def test_srcdir_shadow_no_lang_build_succeeds_with_no_lang_injected(self, build):
+        assert build["result"].returncode == 0
+        region = _show_rule_call_region(build["text"])
+        assert "lang:" not in region
+
+    def test_srcdir_shadow_no_lang_real_compile_produces_valid_pdf(self, build):
+        """
+        A real ``-b typstpdf`` build of the srcdir_shadow_no_lang fixture
+        exited 0 and produced a non-empty, well-formed PDF -- the
+        substance of this case: the compile itself is the proof, since an
+        undeclared-kwarg fatal would abort it.
+        """
+        assert build["result"].returncode == 0
+        pdf_path = build["pdf_path"]
+        assert pdf_path.exists()
+        assert pdf_path.stat().st_size > 0
+        with open(pdf_path, "rb") as f:
+            magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+class TestPackageNoLang:
+    """
+    SC#3 (package half): a project configuring ``typst_package`` ALONE
+    (no ``typst_template``), combined with Sphinx ``language = "ja"``,
+    emits a show rule calling the package's own entry function with NO
+    auto-injected ``lang`` entry -- the regression proof for the
+    ``typst_package`` guard inside
+    ``TemplateEngine.uses_bundled_default_template()``. Without that
+    guard, this engine's OWN priority walk would legitimately resolve to
+    ``"default"`` (it has no explicit template path), and a ``lang``
+    argument would be forwarded to the package's entry function, which
+    never declared it.
+
+    Driven through the faster source-only ``-b typst`` builder --
+    deliberately NOT skipped on ``not TYPST_AVAILABLE``: a real compile
+    here would add a second Typst Universe package download for no
+    additional signal; ``tests/test_package_only_config_gate.py`` already
+    proves this package path compiles for real.
+
+    Requirements: CONF-07.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def build(tmp_path_factory):
+        build_dir = tmp_path_factory.mktemp("package_no_lang_build")
+        result = _run_sphinx_build(PACKAGE_NO_LANG_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return {"result": result, "text": typ_path.read_text(encoding="utf-8")}
+
+    def test_package_no_lang_build_exits_zero(self, build):
+        assert build["result"].returncode == 0
+
+    def test_package_no_lang_function_call_carries_no_lang_entry(self, build):
+        """
+        The show-rule region calls the package's own entry function (e.g.
+        ``ieee``), not the bundled ``project`` function -- the region
+        slicer's ``\\w+`` opening pattern tolerates this -- and carries no
+        ``lang:`` entry.
+        """
+        region = _show_rule_call_region(build["text"])
+        assert "lang:" not in region
