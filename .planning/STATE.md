@@ -85,7 +85,9 @@ Backlog (`.planning/todos/pending/`) after v0.6.3 scoping — the dead-config sw
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing imports until this lands.
 - **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision 2026-07-23), not interim-fixed.
 
-Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** — ギャップ無しを実測確認（PR#98 の 4 テストを verbatim 移植して 4/4 PASS、現行実装は厳密な上位集合）。テスト厳密さの差分 4 点を `tests/test_translator.py` に補強済み。**残: PR#98 のクローズ（謝意コメント付き）は未実施 — オーナー判断待ち、遅くとも v0.6.3 milestone 完了まで。**
+- **close-pr98-after-v063-release** (planning) — PR#98 のクローズ。ギャップ無しは実測確認済み（下記）。オーナー判断 2026-07-25 でタイミングは **v0.6.3 publish 後**（`/gsd-complete-milestone` 直後）。文面はオーナー確認のうえ投稿。
+
+Closed 2026-07-25: **verify-no-gap-between-pr98-and-phase25** — ギャップ無しを実測確認（PR#98 の 4 テストを verbatim 移植して 4/4 PASS、現行実装は厳密な上位集合）。テスト厳密さの差分 4 点を `tests/test_translator.py` に補強済み。残りの PR クローズは上記 todo に分離。
 
 ### Blockers/Concerns
 
