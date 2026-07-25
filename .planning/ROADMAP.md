@@ -311,7 +311,34 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. The milestone invariant holds **as amended**: zero new runtime deps, no `@preview` version bump, the `@preview` version strings in `writer.py` / `template_engine.py` / `templates/base.typ` untouched. `base.typ` itself is no longer byte-unchanged — Phase 27.1 added the `lang` parameter to `project()` per the 2026-07-25 amendment; verify the diff is confined to that.
   5. Scope fence: no tag, no PyPI publish, no merge — the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone` on the confirmed-green merge commit.
 
-**Plans**: TBD
+**Plans**: 3/3 plans planned (0 executed)
+
+**Wave 1**
+
+- [ ] 28-01-PLAN.md — 版リテラルを `pyproject.toml:7` / `README.md:315` / `uv.lock` で同時にバンプし、editable dist メタデータを作り直す。`uv.lock` diff の形状を分類して直接依存レンジ無変化を証明 (SC#1) — Wave 1
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 28-02-PLAN.md — 既存ゲート 3 点（コーパスゲート `-m slow -rs` / フル pytest スイート / `docs-pdf`・`docs-multilang`）を版バンプ後ツリーで実走し、SC#4 不変量 diff と SC#5 スコープ柵の否定 assert とあわせて `28-VERIFICATION.md` に逐語記録 (SC#3, SC#4, D-05〜D-08) — Wave 2
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 28-03-PLAN.md — `CHANGELOG.md` に `## [0.6.3]` エントリを新設（リード 3 軸 + 5 ブレット + `### Verified` 4 点、BREAKING は CONF-04/CONF-05 の 2 箇所のみ）し、末尾リンクブロックの `[0.6.3]:` 追加と `[Unreleased]:` compare 繰り上げ (SC#2, D-01〜D-04, D-09〜D-12) — Wave 3
+
+**Note**: 新規テストコード・新規ソース変更はゼロ。本フェーズが触るのは `pyproject.toml` / `uv.lock` /
+`README.md` / `CHANGELOG.md` と証跡ファイル `28-VERIFICATION.md` の 5 つのみ（D-04 のファイル柵）。
+実行順序は「版バンプ → ゲート実走 → CHANGELOG」— D-11 が `### Verified` 節にゲートが実際に assert した
+事実だけを許すため、ゲートは CHANGELOG より前に回す必要がある（Phase 23 と同じ形。`28-CONTEXT.md` の
+Claude's Discretion が括弧書きした「版バンプ → CHANGELOG → ゲート実走」は裁量範囲内の示唆であり、
+D-11 を優先した）。
+
+**SC#2 amendment (2026-07-25, owner decision — recorded during Phase 28 planning):** SC#2 の
+「covering all 7 v1 requirements」は **6 件**に読み替える。`28-CONTEXT.md` の D-10（SC#2 が書かれた
+2026-07-23 より後のオーナー裁定）が、DOC-06（孤児 `docs/configuration.rst` の削除）を CHANGELOG に
+**載せない**と明示的に決めている — どの toctree からも到達不能でユーザーの目には元々入っていない
+内部整理であり、可視性が他の 6 件と非対称であるため。D-10 は「プランが『全要件を漏れなく列挙』を
+理由に足し戻さないこと」と明記している。残る 6 件（CONF-04 / CONF-05 / CONF-07 / TBL-01 / TBL-02 /
+DOC-07）は 28-03-PLAN.md が 5 ブレットで漏れなく引用する。
 
 ## Progress
 
