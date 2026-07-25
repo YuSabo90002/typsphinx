@@ -140,6 +140,146 @@ def test_build_python_matches_docs_workflow():
     )
 
 
+def test_readthedocs_yaml_pdf_override():
+    """`.readthedocs.yaml` carries D-06's commit-2 (PDF-enabled) shape.
+
+    `formats: [pdf]` and `build.jobs.build.pdf` must land together: RTD's
+    override *replaces* the default LaTeX step for that format, so
+    `formats: [pdf]` alone would silently activate RTD's own LaTeX pipeline
+    instead of typsphinx's `typstpdf` builder (Common Pitfall 1). The
+    override itself must build into a temporary directory and copy only
+    `*.pdf` into `$READTHEDOCS_OUTPUT/pdf/`, creating that subdirectory
+    first, because RTD does not pre-create it (Common Pitfall 3, D-04).
+    """
+    data = _load_readthedocs_yaml()
+    build = data["build"]
+
+    # 1. formats + build.jobs.build.pdf must land together.
+    assert (
+        isinstance(data.get("formats"), list) and "pdf" in data["formats"]
+    ), "top-level formats must be a list containing 'pdf'"
+    assert (
+        "jobs" in build and "build" in build["jobs"] and "pdf" in build["jobs"]["build"]
+    ), (
+        "build.jobs.build.pdf must exist alongside formats: [pdf] -- "
+        "formats alone activates RTD's own LaTeX pipeline instead of "
+        "typsphinx's typstpdf builder (Common Pitfall 1)"
+    )
+
+    # 2. build.apt_packages must include fonts-noto-cjk (D-10).
+    assert (
+        isinstance(build.get("apt_packages"), list)
+        and "fonts-noto-cjk" in build["apt_packages"]
+    ), (
+        "build.apt_packages must include 'fonts-noto-cjk' (D-10) -- "
+        "the English docs contain CJK strings, typst-py's embedded fonts "
+        "have no CJK coverage, and Typst's font fallback is silent, so "
+        "without this package the PDF renders substituted glyphs in a "
+        "build that reports success"
+    )
+
+    pdf_commands = build["jobs"]["build"]["pdf"]
+
+    # 3. non-empty list of strings.
+    assert (
+        isinstance(pdf_commands, list) and pdf_commands
+    ), "build.jobs.build.pdf must be a non-empty list of shell commands"
+    assert all(
+        isinstance(cmd, str) for cmd in pdf_commands
+    ), "every build.jobs.build.pdf entry must be a string shell command"
+
+    # 4. exactly one sphinx-build -b typstpdf invocation.
+    typstpdf_indices = [
+        i for i, cmd in enumerate(pdf_commands) if "sphinx-build -b typstpdf" in cmd
+    ]
+    assert len(typstpdf_indices) == 1, (
+        "exactly one command in build.jobs.build.pdf must contain "
+        f"'sphinx-build -b typstpdf', found {len(typstpdf_indices)}"
+    )
+    typstpdf_index = typstpdf_indices[0]
+
+    # 5. that command must NOT reference $READTHEDOCS_OUTPUT.
+    assert "READTHEDOCS_OUTPUT" not in pdf_commands[typstpdf_index], (
+        "the sphinx-build -b typstpdf command must not reference "
+        "READTHEDOCS_OUTPUT -- the builder writes many non-PDF files "
+        "(a .typ per doc, _template.typ, a doctrees tree) into its output "
+        "directory, so it must target a temporary directory instead (D-04)"
+    )
+
+    # 6. an explicit mkdir of $READTHEDOCS_OUTPUT/.../pdf/ (RTD does not
+    #    pre-create the format subdirectory).
+    mkdir_indices = [
+        i
+        for i, cmd in enumerate(pdf_commands)
+        if "mkdir" in cmd and "READTHEDOCS_OUTPUT" in cmd and "pdf" in cmd
+    ]
+    assert mkdir_indices, (
+        "at least one command must mkdir a 'pdf' path segment under "
+        "$READTHEDOCS_OUTPUT -- RTD's post-build ingestion creates the "
+        "format subdirectory, not the job itself, before this job runs "
+        "(Common Pitfall 3)"
+    )
+    mkdir_index = mkdir_indices[0]
+
+    # 7. a copy of only *.pdf into $READTHEDOCS_OUTPUT, via a *.pdf glob
+    #    rather than a recursive or whole-directory copy.
+    copy_indices = [
+        i
+        for i, cmd in enumerate(pdf_commands)
+        if cmd.strip().startswith("cp ")
+        and "*.pdf" in cmd
+        and "READTHEDOCS_OUTPUT" in cmd
+    ]
+    assert copy_indices, (
+        "at least one command must copy a '*.pdf' glob into "
+        "$READTHEDOCS_OUTPUT -- only the PDF may cross into RTD's public "
+        "download area"
+    )
+    copy_index = copy_indices[0]
+    copy_cmd = pdf_commands[copy_index]
+    assert "-r" not in copy_cmd.split() and "-R" not in copy_cmd.split(), (
+        "the copy command must use a '*.pdf' glob, not a recursive copy "
+        f"(no -r/-R flag): {copy_cmd!r}"
+    )
+
+    # 8. ordering: mkdir before copy.
+    assert mkdir_index < copy_index, (
+        "the mkdir command must appear before the copy command in "
+        "build.jobs.build.pdf -- a copy before the mkdir fails with a "
+        "'cannot create regular file' error because the pdf/ subdirectory "
+        "does not yet exist"
+    )
+
+    # 9. no command delegates to this repository's tox runner.
+    assert not any("tox" in cmd for cmd in pdf_commands), (
+        "no command in build.jobs.build.pdf may reference this "
+        "repository's tox runner -- RTD provisions its own environment "
+        "through python.install, and nesting tox creates a redundant "
+        "second venv with no working locked-sync wiring"
+    )
+
+    # 10. exactly one sphinx-build invocation total, with no locale/language
+    #     flag -- fonts-noto-cjk is not a step toward a Japanese PDF (D-11).
+    sphinx_build_indices = [
+        i for i, cmd in enumerate(pdf_commands) if "sphinx-build" in cmd
+    ]
+    assert len(sphinx_build_indices) == 1, (
+        "exactly one sphinx-build invocation must exist in "
+        f"build.jobs.build.pdf, found {len(sphinx_build_indices)}"
+    )
+    sole_command = pdf_commands[sphinx_build_indices[0]]
+    assert (
+        "-D language" not in sole_command
+        and " -l " not in sole_command
+        and "--language" not in sole_command
+    ), (
+        "the sole sphinx-build invocation must carry no locale or language "
+        "flag -- fonts-noto-cjk is scoped strictly to the four CJK strings "
+        "inside the English documentation and is not a step toward the "
+        f"deferred Japanese PDF (D-11): {sole_command!r}"
+    )
+
+
 def test_language_seam_precedence(monkeypatch):
     """`_resolve_language()` resolves READTHEDOCS_LANGUAGE -> SPHINX_LANGUAGE -> "en".
 
