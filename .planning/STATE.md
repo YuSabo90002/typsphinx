@@ -4,15 +4,15 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 29
 current_phase_name: English Parent
-status: planning
-stopped_at: Phase 29 context gathered
-last_updated: "2026-07-25T12:21:56.048Z"
+status: Ready to execute
+stopped_at: Phase 29 planned (6 plans, 6 waves)
+last_updated: "2026-07-25T13:25:00.000Z"
 last_activity: 2026-07-25
-last_activity_desc: ROADMAP.md written for v0.6.4 (5 phases, 12/12 requirements mapped)
+last_activity_desc: "Phase 29 planned: 6 plans in 6 waves, plan-checker PASSED, all gates green"
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 6
   completed_plans: 0
   percent: 0
 ---
@@ -28,11 +28,18 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 29 — RTD Build Establishment (English Parent) + PDF Path Decision (not started)
-Plan: —
-Status: Context gathered (29-CONTEXT.md) — awaiting phase planning
+Phase: 29 — RTD Build Establishment (English Parent) + PDF Path Decision (planned, not started)
+Plan: 0/6 complete
+Status: Ready to execute — 6 plans in 6 sequential waves. **Run `/gsd-execute-phase 29 --skip-ui`** (the `ui.plan-gate` false positive fires on this docs/PDF phase).
 Progress: [░░░░░░░░░░] 0% (0/5 phases)
-Last activity: 2026-07-25 — Phase 29 discuss complete: 15 decisions locked, incl. a newly measured CJK-font risk to RTD-02
+Last activity: 2026-07-25 — Phase 29 planned: research + pattern map + validation strategy, plan-checker PASSED, 15/15 decisions and 4/4 requirements covered
+
+**Phase 29 execution notes (carry into execute/verify):**
+- Waves are strictly sequential by design (D-06 two-commit landing; each boundary is an owner RTD action or a real build wait). Waves 2 and 4 are `autonomous: false`.
+- The one irreversible step is in Wave 2: confirm the slug `typsphinx` is unclaimed **before** creating the RTD project. If taken, execution stops for the owner — no silent second candidate (D-01/D-02).
+- `29-VERIFICATION.md` is written *during* execution (D-15 mandates the filename). Plan 02 creates it; Plans 03–06 **append only**. `/gsd-verify-work` must **preserve** the pre-recorded live-evidence sections rather than rewriting the file.
+- Plans 29-05 (Branch A) and 29-06 (Branch B) are mutually exclusive and self-skip; the branch is selected in 29-04 on a recorded raw-log excerpt (D-07).
+- `api-coverage.verify-pre` passes with `detected: false` and deliberately **no** `COVERAGE.md` — the validator rejects a row-less matrix, so a prose-only file would block the seal. Absent is the passing state.
 
 ## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
 

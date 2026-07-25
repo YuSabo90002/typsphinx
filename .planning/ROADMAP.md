@@ -220,6 +220,7 @@ are content-level, never status-level:
 - **I18N-01** — a Japanese RTD project builds green while rendering 100% English, because RTD sets
   `READTHEDOCS_LANGUAGE` and `conf.py:51` currently reads only `SPHINX_LANGUAGE`. Phase 30's criterion
   matches actual translated strings from `docs/locale/ja/` in the served HTML.
+
 - **RTD-02** — Typst substitutes a missing font silently (no error, no warning), so a glyph-wrong PDF
   builds successfully. Phase 29's criterion content-compares the downloaded RTD PDF against the
   `tox -e docs-pdf` baseline for the same commit.
@@ -308,17 +309,20 @@ version that exists.
      log** for that same build shows `typsphinx` installed from the checked-out commit (a local path),
      not resolved from a PyPI index — so the silent variant, where a stale published wheel shadows the
      working tree, fails this criterion.
+
   2. The raw RTD build log for that build has been read end to end and answers the `@preview` question
      with a recorded log excerpt, not an inference: **either** the four Typst Universe packages resolve
      and the PDF step completes with **zero** `latexmk` / `pdflatex` / `.tex` lines anywhere in the log,
      **or** the registry fetch is shown blocked/failed and that excerpt is the recorded trigger for the
      pre-agreed fallback.
+
   3. **Branch A (registry reachable):** the PDF downloaded from RTD's own download menu is
      *content*-compared against the `tox -e docs-pdf` baseline for the same commit — page count and
      extracted text agree and no tofu / missing-glyph substitution is present — so a green build that
      silently substituted a font fails this criterion. **Branch B (registry blocked):** RTD serves no
      PDF at all, and the documentation instead links to a `releases/latest/download/` URL, fetched over
      real HTTP and confirmed to return the current release's PDF without any per-release editing.
+
   4. Fetching the documentation **root** URL over real HTTP (not reading the dashboard setting) lands on
      a version that serves real content, with Default Version deliberately left at `latest`, and the
      `latest` → `stable` flip recorded as an explicit precondition handed to Phase 33.
@@ -328,12 +332,33 @@ each wave waits on an owner-performed RTD action or on the previous commit's bui
 mutually exclusive branches; exactly one does work and the other records a skip.)
 
 Plans:
+**Wave 1**
+
 - [ ] 29-01-PLAN.md — D-06 commit 1: HTML-only `.readthedocs.yaml`, the `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` seam in `conf.py`, and `tests/test_readthedocs_config.py`
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 29-02-PLAN.md — owner creates the en RTD project (slug confirmed first); `/en/latest/` and the documentation root fetched over real HTTP; install-provenance log excerpt and the Phase 33 Default-Version handoff recorded
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 29-03-PLAN.md — D-06 commit 2: `formats: [pdf]` + `build.jobs.build.pdf` + `build.apt_packages: [fonts-noto-cjk]`, proven by a local run of the same command sequence, with the per-commit D-12 baseline recorded
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 29-04-PLAN.md — the PDF build's raw log read end to end; `@preview` verdict recorded verbatim; Branch A / Branch B selected on that evidence
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 29-05-PLAN.md — Branch A only: D-12 content comparison of the RTD-served PDF against the local baseline (pages, text, CJK font coverage), with the tofu look recorded as `human_needed`
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 29-06-PLAN.md — Branch B only: the `releases/latest/download/` fallback fetched over real HTTP and published from both `docs/source/index.rst` and `README.md`, bound by a presence test
+
+**Cross-cutting constraints:**
+
+- No repository source file is modified by this plan — its only output is the evidence record under .planning/
 
 **Owner-manual dependencies (no automated criterion possible):** creating the en RTD project and
 connecting GitHub; **confirming the project slug before creation** (RTD slugs are not self-service
@@ -366,20 +391,24 @@ working)
   1. A page fetched from `/ja/latest/` contains **actual translated strings** from
      `docs/locale/ja/**/*.po` in its served body — matched against specific catalog msgstr values — so a
      Japanese project that builds green while rendering 100% English fails this criterion.
+
   2. RTD's own flyout offers the en↔ja switch **from both sites**, and the ja project's version list is
      independently activated (translation projects inherit nothing from the parent) — owner-observed,
      since linking under the en parent's Settings → Translations is web-UI work no test in this
      repository can assert.
+
   3. A **fresh repo-wide grep** run immediately before the deletion commit (not scoped to the files the
      requirement names) returns zero live references to `build_multilang`, `docs-multilang`,
      `serve-multilang`, `language-switcher`, `page.html`'s `sessionStorage` key, `custom.css`, and the
      `html_context` / `html_sidebars` language wiring — with `CHANGELOG.md` and
      `.planning/milestones/**` historical entries excluded by standing precedent (D-02/D-10).
+
   4. `docs/usage.rst` and the **root orphan** `docs/installation.rst` are gone together with
      `tests/test_documentation_usage.py` and `tests/test_documentation_installation.py` in the **same
      commit** as their subjects; the live toctree-reachable `docs/source/installation.rst` and its `.po`
      catalog are byte-unchanged; and a **full `pytest` run after the deletions is green** — that run,
      not the deletion commit, is the proof.
+
   5. `tox -e docs-html` and `tox -e docs-pdf` are green on the post-deletion tree and an **observed**
      `docs.yml` CI run is green — no workflow step references a tox env or build path that no longer
      exists — and the documentation root URL still resolves (RTD-04 standing invariant).
@@ -419,14 +448,17 @@ not-yet-green project trades one broken-link class for another)
      `pyproject.toml` — a recorded **negative control** proving the mechanism sees the file class
      `sphinx-build -b linkcheck` structurally cannot, and that it would have caught the 7 dead deep
      links that motivated this milestone.
+
   2. After the rewrite, **every** documentation URL in `README.md`, `pyproject.toml`'s `Documentation`
      metadata, and `.planning/codebase/INTEGRATIONS.md` is fetched over **real HTTP** and returns a live
      page — the occurrence count taken from a fresh grep at execution time rather than from any prior
      tally (the brief said 9, research measured 10) — while `CHANGELOG.md`'s historical `github.io`
      mentions are deliberately left untouched.
+
   3. The link check runs in CI as an **advisory** (non-blocking, never a required check — `drift.yml`
      precedent, D-07) job, green on the rewritten tree, and its scope is documented where it lives:
      that **it**, not sphinx linkcheck, is what covers `README.md` / `pyproject.toml`.
+
   4. Issue #119 is closed with a reply that names the fix actually delivered, and a visitor to the
      GitHub repository can reach the documentation from the repository's own About → Website field —
      which resolves to the RTD root over real HTTP.
@@ -459,10 +491,12 @@ standing gate.
      cited from Phase 29/30 — that RTD is *currently* serving English HTML, Japanese HTML, and the
      PDF-or-documented-fallback, and that the documentation root URL resolves. The teardown proceeds
      only behind that evidence.
+
   2. `docs.yml` no longer contains a GitHub Pages deploy step (`peaceiris/actions-gh-pages`), and
      `origin/gh-pages` no longer exists — proven by `git ls-remote`, not by a local branch listing. The
      old `github.io` documentation URL returns 404 and **no redirect stub was added** (the
      owner-accepted SEO/inbound-link cost, decision 2026-07-25).
+
   3. An **observed** CI run on the post-teardown tree keeps `tox -e docs-pdf` green as the PR-blocking
      `typstpdf` regression gate, and the tag-time `Upload PDF to Release` step is **byte-unchanged** in
      the milestone diff — its live exercise is honestly deferred to the tag at
@@ -494,15 +528,19 @@ the post-tag `stable` flip handed off explicitly rather than claimed.
      `README.md`'s Status line updated; `typsphinx.__version__` reports `0.6.4`; and every version-sync
      guard test is green — including `tests/test_readme_version_sync.py` and the now-four-surface
      `tests/test_preview_version_sync.py`.
+
   2. A curated `## [0.6.4]` `CHANGELOG.md` entry covers this milestone's user-visible changes (hosting
      moved to Read the Docs, the Japanese site, the machinery/orphan removals, the URL rewrites, the
      accepted loss of browser-language auto-redirect), **and** the tail release/compare link block is
      updated in the same phase — the `Unreleased` compare carried forward.
+
   3. `pyproject.toml`'s `Documentation` metadata points at the Read the Docs URL and is confirmed by a
      **real HTTP fetch** on the prepared tree — the half of REL-02 this phase can actually satisfy.
+
   4. The milestone invariants hold over the **full milestone diff**, evidenced by `git diff` across the
      range: zero new runtime dependencies, no `@preview` version bump, the four version-sync surfaces'
      package strings untouched, and **zero changes under `typsphinx/`**.
+
   5. **No tag and no publish happen in this phase.** REL-02's remaining half — `typsphinx 0.6.4` live on
      PyPI, and `/en/stable/` **and** `/ja/stable/` both serving that released version after the owner
      flips Default Version `latest` → `stable` and re-checks the ja project's independent version
