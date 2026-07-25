@@ -53,6 +53,13 @@ version-sync surface is untouched.
   from `config.language`; an explicit `typst_elements = {"lang": ...}` still overrides it on every
   path. Applies to the default-template path only — a custom template, `typst_package`, or a
   source-directory `base.typ` shadow is unaffected and must still declare its own `lang`.
+- **The bundled `examples/advanced` sample builds again** — it was unbuildable on two independent
+  axes: its `typst_elements` carried five keys outside the CONF-04 allowlist (now rejected loudly by
+  this release), and its `_templates/custom.typ` had drifted three milestones behind on its
+  `@preview` pins, aborting the compile with `unknown variable: kai`. The template now declares
+  `papersize`/`fontsize`/`lang` in its `project()` — so the example demonstrates the allowlist rather
+  than decorating around it — and `test_preview_version_sync.py` gained a check over
+  `examples/**/*.typ` so a bundled sample can no longer drift out of lockstep unnoticed.
 - **User-facing configuration docs corrected to match the registered config surface (DOC-07)** —
   `docs/source/user_guide/configuration.rst`'s `typst_author` renamed to the real `typst_authors`, the
   non-existent `typst_use_codly`/`typst_code_line_numbers` removed, and `typst_papersize`/
