@@ -14,19 +14,58 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free.
 
-## Current Milestone: none — v0.6.3 shipped 2026-07-25
+## Current Milestone: v0.6.4 Read the Docs 移行
 
-No milestone is currently active. Run `/gsd-new-milestone` to scope the next one (questioning →
-research → requirements → roadmap); phase numbering continues from 28.
+**Goal:** ドキュメントのホスティングを GitHub Pages から Read the Docs へ移し、公開 URL が実際に
+到達可能で、バージョン別・言語別に正しく引ける状態にする。
 
-**Candidate inputs for the next milestone,** in rough order of how well-understood they are: the RTD
-documentation-hosting migration (owner-targeted ~2026-07-30, with the github.io `/en/` 404 link fix
-folded in), CONF-06 (further `typst_elements` keys — each needs a matching `base.typ` `project()`
-parameter, and `examples/advanced` now demonstrates the pattern), `visit_citation` support, a
-`sphinx-linkcheck` CI job, the `docs/usage.rst`/`installation.rst` orphan pair (same class as the
-`docs/configuration.rst` deleted in Phase 27), non-str-docname hardening in `typstpdf.finish()`, and
-the deferred typing-import modernization. The standing v2 items CFG-01 (user-configurable `@preview`
-versions) and XOS-01 (cross-OS `docs-pdf` CI) remain out.
+**Target features:**
+
+- **RTD ビルド確立（en 親プロジェクト）** — `.readthedocs.yaml` を追加。`docs/source/conf.py:51` の
+  `language` は現在 `SPHINX_LANGUAGE` 環境変数から読んでいるため、RTD が渡す `READTHEDOCS_LANGUAGE`
+  に対応させる。`build.jobs` で `sphinx-build -b typstpdf` を回して `$READTHEDOCS_OUTPUT/pdf/` へ出力
+  し、RTD のダウンロード欄が typsphinx 自身の出力になるようにする（**RTD ビルド環境で `typst-py` の
+  wheel が動くかの検証がこのマイルストーン唯一の技術的未知**）
+- **ja を RTD 翻訳プロジェクトとしてリンク + 自前 multilang 廃止** — RTD は 1 プロジェクト = 1 言語で、
+  翻訳は別プロジェクトを親に Translations でリンクするモデル（`/ja/latest/`）。これに伴い
+  `docs/build_multilang.py`（180 行）、`tox.ini` の `[testenv:docs-multilang]`、
+  `docs/source/_templates/language-switcher.html`、`conf.py:71-89` の `html_context` / `html_sidebars`
+  言語スイッチャ配線を撤去し、RTD 純正の言語フライアウトに置換。`docs/locale/ja/` の 13 個の `.po` は
+  そのまま活きる
+- **GitHub Pages 撤去** — `docs.yml:57-63` の `peaceiris/actions-gh-pages` デプロイステップと `:40-43`
+  の PDF コピーステップを削除し、`:34-35` を `docs-multilang` → `docs-html` へ。`tox -e docs-pdf`
+  （typstpdf 回帰ゲート）と `:65-71` のタグ時 Release 添付は**残す**。`gh-pages` ブランチ削除
+- **URL 張り替え** — README 9 箇所（バッジ `:8`、ヘッダ `:12`、`:267`、深リンク 7 本 `:271-277`）、
+  `pyproject.toml:56` の `Documentation`（現在 GitHub README を指している）、
+  `.planning/codebase/INTEGRATIONS.md`。`CHANGELOG.md:393` は履歴記述なので据え置き（Phase 24 D-02 の前例）
+- **#119 クローズ + リポジトリ About の Website 設定** — #119（外部ユーザー put101 の [BUG] website
+  seems down、OPEN）には「Website リンクと README 深リンクを直す」と返信済みで未履行。移行完了後に
+  返信して閉じる。About の Website フィールドは現在 null
+- **`sphinx-linkcheck` の CI ジョブ** — README 深リンク 7 本の 404 が数か月誰にも気づかれなかった仕組み
+  欠落を塞ぐ。advisory 運用（必須チェックにしない — `drift.yml` の前例、D-07）から開始し、
+  `conf.py` に `linkcheck_ignore` を設定
+- **`docs/usage.rst` / `docs/installation.rst` の孤児処理** — Phase 27 が削除した
+  `docs/configuration.rst` と同クラス。toctree 到達性を実測して削除 or 移設を決める
+- **v0.6.4 リリース** — 最終フェーズで版バンプ + CHANGELOG、publish は `/gsd-complete-milestone`
+
+**Key context:**
+
+- **要ユーザー操作（自動化不可）:** RTD 上での 2 プロジェクト作成、Translations でのリンク、既定
+  バージョンを `stable` に設定、リポジトリ About の Website 設定
+- **バージョン方針:** `latest`（main 追従）+ `stable`（最新 semver タグ）、既定バージョンは `stable`。
+  RTD は 2023-09-25 以降 `.readthedocs.yaml` の無いビルドを失敗させるため、既存タグ v0.6.3 以前の
+  ドキュメントは遡ってビルドできない — `stable` が実体を持つのは v0.6.4 のタグから
+- **旧 URL は救わない:** gh-pages 即時削除の判断（オーナー、2026-07-25）により、外部参照を含む既存の
+  github.io リンクは 404 になる。リダイレクト併存はしない
+- **不変量:** `typsphinx/` のランタイムコード変更なし、`@preview` 版バンプなし、3-way version-sync 面
+  （4 パッケージの版文字列）未変更
+- **v0.6.3 の教訓を適用:** 「anywhere under X」系の成功条件はリポジトリ全域 grep で検証する
+  （v0.6.3 で 2 回取りこぼした）
+
+**Carried-forward deferred items (still out of this milestone):** CFG-01（`@preview` 版のユーザー
+設定化）、XOS-01（macOS/Windows の `docs-pdf` CI）、DEG-03（graphviz/inheritance_diagram の実描画）、
+XREF-02（外部 URL への xref リンク）、CONF-06（`typst_elements` の残りキー）、`visit_citation` 未対応、
+非 str docname の TypeError 硬化、typing-import モダナイズ。
 
 <details>
 <summary>v0.6.3 milestone brief (as scoped 2026-07-23, amended 2026-07-25) — retained for reference</summary>
@@ -71,6 +110,11 @@ versions) and XOS-01 (cross-OS `docs-pdf` CI) remain out.
 **Known deferred (next-milestone backlog):** the 13 medium/low silent mis-render findings from the v0.6.1 rendering-fidelity audit (catalogued in `milestones/v0.6.1-phases/17-rendering-fidelity-audit/17-AUDIT-CATALOGUE.md`), plus the standing v2 items CFG-01 (user-configurable `@preview` versions) and XOS-01 (cross-OS `docs-pdf` CI). The v0.6.0-era deferrals TODO-01/MAN-01 (`todo_node`/`manpage` handlers) and LEN-01 (CSS-length converter) were all closed in v0.6.1 (Phase 16). **Correction (2026-07-13):** an earlier version of this note listed "13 non-fatal `typstpdf` rendering-polish debug sessions discovered *after* GATE-02 went green" — that framing was inaccurate. Those 13 (deflist/desc concat, dangling labels, propagated-target anchors) were the sequential *fatal* corpus compile bugs that Phase 15 fixed *to make* GATE-02 green; all shipped in v0.6.0 with `fix(15):` commits on `main` and `*_render_gate.py` regression tests, their `.planning/debug/` frontmatter merely left stale at `fixing`/`investigating` and reconciled to `resolved` on 2026-07-13. The `_static/python-logo.png` asset-copy bug is likewise resolved (`test_static_asset_copy_gate.py`).
 
 ## Milestone History / Next
+
+> **Note (2026-07-25):** this section is a frozen v0.6.0-era snapshot retained for reference. Its
+> "Next milestone" line refers to v0.6.1, which shipped 2026-07-19. The authoritative records are
+> `MILESTONES.md` (shipped history) and the **Current Milestone** section at the top of this file
+> (v0.6.4, active).
 
 **v0.6.0 real-world robustness — SHIPPED 2026-07-13.** Goal achieved: Sphinx's own `doc/` tree compiles through `typstpdf` with no fatal Typst errors (Issue #114 closed) and the most-frequent previously-unsupported nodes render correctly. Details below retained for reference.
 
@@ -139,12 +183,25 @@ versions) and XOS-01 (cross-OS `docs-pdf` CI) remain out.
 
 ### Active
 
-<!-- Empty: v0.6.3 shipped 2026-07-25 with 7/7 v1 requirements validated. The next milestone's
-     requirements are defined by /gsd-new-milestone (questioning → research → REQUIREMENTS.md →
-     ROADMAP.md), which recreates .planning/REQUIREMENTS.md from scratch. -->
+<!-- Current scope: milestone v0.6.4 (Read the Docs 移行), started 2026-07-25. The concrete,
+     ID-bearing requirement ledger lives in .planning/REQUIREMENTS.md, written by
+     /gsd-new-milestone; this list is the milestone-level summary. -->
 
-**(None — awaiting `/gsd-new-milestone`.)** Candidate inputs are listed under "Current Milestone" above
-and tracked concretely in `.planning/todos/pending/` (9 open) plus the deferred ledger in STATE.md.
+- [ ] Documentation builds and publishes on Read the Docs from a `.readthedocs.yaml` in the repo,
+      with the typstpdf-generated PDF served from RTD's download menu
+- [ ] Japanese documentation is published as an RTD translation project linked to the English parent,
+      and the hand-rolled `build_multilang.py` / language-switcher machinery is gone
+- [ ] GitHub Pages hosting is removed — no gh-pages deploy step, no `gh-pages` branch
+- [ ] Every documentation URL the project publishes (README, `pyproject.toml`, codebase docs) points
+      at a URL that actually resolves
+- [ ] Issue #119 is closed with the promised fix delivered, and the repository's About Website field
+      is set
+- [ ] A `sphinx-build -b linkcheck` CI job runs advisory-mode so a broken published link surfaces
+      automatically instead of after months
+- [ ] The `docs/usage.rst` / `docs/installation.rst` orphan pair is resolved (deleted or moved) after
+      measuring toctree reachability
+- [ ] v0.6.4 is released to PyPI with the corrected `Documentation` URL, making it the first tag whose
+      documentation RTD can build as `stable`
 
 ### Out of Scope
 
@@ -228,7 +285,21 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after the v0.6.3 milestone close.* Milestone v0.6.3 (config & docs 実測整合 + captioned tables) shipped: 6 phases / 12 plans / 28 tasks, 7/7 v1 requirements validated, archived to `milestones/v0.6.3-ROADMAP.md` + `v0.6.3-REQUIREMENTS.md` with phase artifacts under `milestones/v0.6.3-phases/`, tagged `v0.6.3` and published via `release.yml` (PyPI + GitHub Release). Closeout was `override_closeout`: no `MILESTONE-AUDIT.md` (owner accepted — Phase 28's live gate re-run stood in) and 9 pending todos acknowledged as deferred. One defect was found and fixed at the close itself, before the tag: the bundled `examples/advanced` sample was unbuildable on two independent axes (5 `typst_elements` keys outside the CONF-04 allowlist Phase 26 had just made fail-loud, and `custom.typ` three milestones behind on its `@preview` pins — `unknown variable: kai`), repaired by having the template declare `papersize`/`fontsize`/`lang` and by extending `test_preview_version_sync.py` over `examples/**/*.typ`. `.planning/REQUIREMENTS.md` removed (fresh one comes from `/gsd-new-milestone`); ROADMAP.md collapsed to a one-line milestone entry. Prior footer retained below.*
+*Last updated: 2026-07-25 — started milestone v0.6.4 (Read the Docs 移行) via `/gsd-new-milestone`.
+Scoped from owner direction (「RTD に移行するぜ」) against the pending-todo backlog, with four scoping
+decisions taken at questioning: **多言語** → RTD の翻訳プロジェクトモデル（en 親 + ja 子、自前
+`build_multilang.py` と language-switcher は廃止）; **PDF** → `build.jobs` で typstpdf 製 PDF を
+`$READTHEDOCS_OUTPUT/pdf/` へ出し RTD からも配る（CI の `docs-pdf` 回帰ゲートと Release 添付は残す）;
+**旧 Pages** → リダイレクト併存せず即座に切る（既存 github.io リンクは 404 になることを承知の上）;
+**同梱範囲** → #119 クローズ + About の Website 設定、`sphinx-linkcheck` の advisory CI ジョブ、
+`docs/usage.rst`/`installation.rst` の孤児処理。**バージョン方針** は `latest` + `stable`、既定は
+`stable`（RTD は 2023-09-25 以降 `.readthedocs.yaml` 無しのビルドを失敗させるため、既存タグは遡って
+ビルド不可 — `stable` は v0.6.4 のタグから実体を持つ）。**タグ** を切る（v0.6.4 を PyPI へ）。
+Milestone invariant: `typsphinx/` のランタイムコード変更なし、`@preview` 版バンプなし、3-way
+version-sync 面 unchanged。Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.*
+
+<!-- Prior: *Last updated: 2026-07-25 after the v0.6.3 milestone close.* Milestone v0.6.3 (config & docs 実測整合 + captioned tables) shipped: 6 phases / 12 plans / 28 tasks, 7/7 v1 requirements validated, archived to `milestones/v0.6.3-ROADMAP.md` + `v0.6.3-REQUIREMENTS.md` with phase artifacts under `milestones/v0.6.3-phases/`, tagged `v0.6.3` and published via `release.yml` (PyPI + GitHub Release). Closeout was `override_closeout`: no `MILESTONE-AUDIT.md` (owner accepted — Phase 28's live gate re-run stood in) and 9 pending todos acknowledged as deferred. One defect was found and fixed at the close itself, before the tag: the bundled `examples/advanced` sample was unbuildable on two independent axes (5 `typst_elements` keys outside the CONF-04 allowlist Phase 26 had just made fail-loud, and `custom.typ` three milestones behind on its `@preview` pins — `unknown variable: kai`), repaired by having the template declare `papersize`/`fontsize`/`lang` and by extending `test_preview_version_sync.py` over `examples/**/*.typ`. `.planning/REQUIREMENTS.md` removed (fresh one comes from `/gsd-new-milestone`); ROADMAP.md collapsed to a one-line milestone entry. Prior footer retained below.* -->
+
 
 <!-- Prior: *Last updated: 2026-07-25 — Phase 28 complete (v0.6.3 release prep + regression-gate close, prep-only / no requirement IDs): `pyproject.toml` bumped 0.6.2→0.6.3 as the **sole** version literal with `uv.lock` regenerated in lockstep (self-entry 1 line, zero dependency/transitive drift; `uv sync --locked` green) and `README.md:315` → `Stable (v0.6.3)`; a curated `## [0.6.3]` CHANGELOG entry covering 6 of the 7 v1 ledger IDs bundled into 5 user-visible-change bullets (DOC-06 deliberately omitted — D-10, unreachable-orphan cleanup, never user-visible; the ROADMAP SC#2 "all 7" wording was amended to 6 by owner decision) with exactly 2 BREAKING labels (CONF-04 Changed / CONF-05 Removed, Fixed clean per the D-01/D-03 asymmetry), `### Verified` held to the same 4 facts as the v0.6.2 precedent under D-11 (no number without a verification mechanism), plus the `[0.6.3]:` tag link and the `[Unreleased]:` compare advanced to `v0.6.3...HEAD`; and the closing regression gate run live on the post-bump tree — corpus gate genuinely PASSED not skipped (`1 passed in 12.87s`, `Unknown Visit Catalogue: []`, zero SKIPPED lines), full suite 656 passed / 1 skipped / 0 failed, `docs-pdf` 2 / `docs-multilang` 4 warning lines (both the pre-existing `visit_toctree` docstring defect, out of scope per D-06) — all recorded verbatim in `28-VERIFICATION.md` with a duplicate copy of the gate log in `28-02-SUMMARY.md` as the non-clobberable record. SC#4 invariant held **as amended**: zero new runtime deps, `@preview` grep across all 3 declaration sites returns zero, `base.typ` diff exactly `2\t1` (the Phase 27.1 `lang` parameter, nothing else). SC#5 scope fence held: no tag, no publish, no merge; `typsphinx/`/`tests/`/`docs/`/`examples/`/`.github/` all porcelain-clean; zero new test code (D-05–D-08 rule test-infrastructure expansion out of scope for a prep phase). 5/5 SC and 17/17 observable truths verified with independent re-runs on the main checkout (28-VERIFICATION.md); code review 0 critical / 1 warning / 1 info, both non-defects outside the fence (a pre-existing second `## [Unreleased]` heading at CHANGELOG.md:771; the `[0.6.3]:` link 404ing until the tag is cut — which is SC#5 being satisfied). **A long-standing execution hazard was root-caused and fixed this session:** the "45 integration tests fail only inside executor worktrees" problem recurring since Phase 22.1 is not the NixOS sandbox and not the editable install — `uv sync` installs a `uv` wheel into `.venv/bin/`, `uv run` puts that dir first on PATH, and the tests' `subprocess.run(["uv","run","sphinx-build",...])` therefore resolves a generic-linux ELF `uv` NixOS cannot exec (exit 127); the main checkout's copy merely happens to be patchelf'd. `ln -sf "$(command -v uv)" .venv/bin/uv` after `uv sync` closes it (probe: `11 failed, 1 passed` → `12 passed`), which is why this phase's worktree executors could run the unfiltered full suite for the first time. All 5/5 v0.6.3 phases done; 7/7 v1 requirements delivered — milestone ready for `/gsd-complete-milestone` (merge → tag `v0.6.3` → `release.yml` → PyPI + GitHub Release). Prior footer retained below.* -->
 <!-- Prior: Last updated: 2026-07-24 — Phase 27 complete (DOC-06/DOC-07: docs 実測整合 — orphan `docs/configuration.rst` + its collateral test `tests/test_documentation_configuration.py` deleted; 5 phantom config names purged from `user_guide/configuration.rst` (codly knobs + tuple `typst_author` gone; papersize/fontsize → working `typst_elements`); api/index.rst config `list-table` deleted → single `See :doc:` pointer; scoped ja `.po` regen with inert `#~` obsoletes; SC#4 "anywhere" clause caught a scoping gap — phantom codly names in `examples/advanced.rst`/`basic.rst` removed too (gap-closure `59bf66d`); docs-only GATE-01 N/A, base.typ byte-unchanged, no `@preview` bump; deletion branch manually merged past the `worktree.cleanup-wave` guard (D-13) after 2-file scope confirm; grep-zero + registered-set cross-check + green docs build + green suite; 6/6 must-haves in 27-VERIFICATION.md; 4/5 v0.6.3 phases done — next Phase 28 v0.6.3 release prep). Phase 26 complete (CONF-04: `typst_elements` `papersize`/`fontsize` now reach `project()` — 100% Python-side: `writer.py` stops laundering via `sphinx_metadata` + drops dead `copyright`; `template_engine.py` gains a curated `ELEMENTS_ALLOWLIST` merged additively, a `RawTypst` marker emitting `fontsize` as an unquoted length before the `str` branch while `papersize` stays quoted, and fail-loud `ExtensionError` on unknown keys; copyright non-leak is structural; `base.typ` byte-unchanged, zero new deps, no `@preview` bump; 10 unit tests + 4 real-`typst.compile()` GATE-01 fixtures + durable pre-fix proof + recorded manual red→green; 615 passed / 1 skipped / 0 failed; 5/5 must-haves in 26-VERIFICATION.md; 3/5 v0.6.3 phases done — next Phase 27 docs 実測整合). Phase 25 complete (TBL-01/TBL-02: PR#98 captioned-table figure-wrap reimplemented against current `translator.py` — `figure(..., caption:, kind: table)` "Table N", `:width:`-composed, stale-buffer root-fix via `del`, single `<label>` via deferred `_emit_id_anchors(skip_ids)`; caption-less stays plain; base.typ byte-unchanged, no `@preview` bump; 8 unit tests + real-`typst.compile()` GATE-01 fixture + fail-pre-fix proof; 116/116 unit, 567 fast-suite green; 7/7 must-haves in 25-VERIFICATION.md; 2/5 v0.6.3 phases done). Phase 24 complete (CONF-05: `typst_toctree_defaults` deleted from all enumerated surfaces, grep-zero + 519 tests green, GATE-01 N/A). Milestone v0.6.3 (config & docs 実測整合 + captioned tables) started via `/gsd-new-milestone`. Scoped from owner direction (死んだ config 掃除 + PR#98 + ドキュメントどおりビルド) against the pending-todo backlog. Decisions: `typst_toctree_defaults` → delete (B, 配線価値薄); `typst_elements` 非マッピングキー → implement (A, papersize/fontsize は PDF 需要高); PR#98 現行 main へ再実装; docs 孤児削除 + phantom 名修正; github.io 404 リンクは今回対象外（RTD 移行で解消）。Milestone invariant carried: zero new runtime deps, no `@preview` bump, 3-way version-sync surface untouched; GATE-01 real-`typst.compile()` bar on every node-handler + config→output change. Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.* -->

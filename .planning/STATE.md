@@ -1,37 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.3
-milestone_name: config & docs 実測整合 + captioned tables
-status: Awaiting next milestone
-stopped_at: Milestone v0.6.3 closed and archived — awaiting /gsd-new-milestone
-last_updated: "2026-07-25T09:41:55.577Z"
+milestone: v0.6.4
+milestone_name: Read the Docs 移行
+status: planning
+last_updated: "2026-07-25T11:20:45.734Z"
 last_activity: 2026-07-25
-last_activity_desc: Milestone v0.6.3 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
-current_phase: 28
-current_phase_name: v0-6-3-release-prep-regression-gate-close
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25 at v0.6.3 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** No active milestone. v0.6.3 shipped 2026-07-25; run `/gsd-new-milestone` to scope the next one.
+**Current focus:** Milestone v0.6.4 — Read the Docs 移行. Defining requirements.
 
 ## Current Position
 
-Phase: Milestone v0.6.3 complete (Phases 24–28, +27.1 inserted)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-25 — Milestone v0.6.3 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-25 — Milestone v0.6.4 started
 
 ## Shipped Milestone (v0.6.3 — archived)
 
@@ -79,16 +75,20 @@ Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
 - 2026-07-25 [v0.6.3 close]: `examples/` templates joined the `@preview` version-sync guard. A bundled
   sample drifted three milestones behind unnoticed because the guard only watched the three
   extension-internal surfaces; a stale pin there is not cosmetic (it makes the sample fail to compile).
+
 - 2026-07-25 [Phase 27.1]: explicit `typst_elements` precedence made **structural**, not incidental —
   auto-derived `lang` is pre-merged *under* the user's dict, and auto-derivation is gated to the
   bundled-default-template path so custom-template/`typst_package` users are never handed an
   undeclared kwarg.
+
 - 2026-07-24 [Phase 26]: `typst_elements` uses a curated, hand-maintained allowlist that must mirror
   `base.typ`'s `project()` signature. A `.typ` signature can't be introspected from Python, and an
   undeclared kwarg is a hard Typst fatal — so the allowlist fails loud rather than passing through.
+
 - 2026-07-20: `branching_strategy: milestone` — ship unit is the milestone; the final phase is a
   prep-only Release phase, publish deferred to `/gsd-complete-milestone`. Push `main` to `origin` at
   every milestone close.
+
 - 2026-07-22 [Phase 22.2]: dead-config sweep pattern — a config→output real-compile regression fixture
   (template `tests/test_package_only_config_gate.py`) is the bar, so registration-only asserts can't
   hide a dead feature. CONF-04/CONF-05 were the round-2 instances of the same defect class.
@@ -99,17 +99,23 @@ Eight open in `.planning/todos/pending/` after the v0.6.3 close, all acknowledge
 
 - **move-documentation-hosting-to-read-the-docs** (docs) — RTD migration (~2026-07-30 target); the
   github.io 404 doc-link fix is folded into it.
+
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — automate `sphinx-build -b linkcheck`; own ~1-phase task.
 - **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent;
   surfaced in Phase 22.2, permanent fix unplanned.
+
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening, deferred
   from Phase 22.3 (D-06).
+
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — deferred; do not "modernize" typing
   imports until this lands.
+
 - **github-io-doc-links-404-missing-en-prefix** (docs) — folded into the RTD migration (owner decision
   2026-07-23), not interim-fixed.
+
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — Phase 27.1 code review IN-01
   (Info), consciously waived.
+
 - **docs-usage-installation-orphan-class** (docs) — `docs/usage.rst` / `docs/installation.rst` are the
   same unreachable-orphan class Phase 27 deleted `docs/configuration.rst` for.
 
