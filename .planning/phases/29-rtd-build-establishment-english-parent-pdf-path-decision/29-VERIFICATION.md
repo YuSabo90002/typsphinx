@@ -647,3 +647,416 @@ disclosed here explicitly rather than being papered over as a fourth quoted log 
 D-12 local baseline) **executes**. **Plan 06** (the Branch B fallback documentation-link edit) **is
 skipped** — no edit to `docs/source/index.rst` or `README.md` is made by this phase for the fallback
 link, since Branch A's own path (RTD serving typsphinx's own dogfooded PDF) was taken instead.
+
+## SC#3 Branch A — artifacts under comparison
+
+This section is Plan 05, Task 1. Branch A was confirmed selected (§ "Branch Decision" above), so this
+plan executes in full — this is not the skip path.
+
+**Worktree base commit for this executor:**
+
+```
+git rev-parse HEAD
+```
+```
+f54cd2bb2dd9d07a94b93252faa02adcd5317969
+```
+
+**Confirming no `typsphinx/`/`docs/`/`.readthedocs.yaml` drift since Plan 03's baseline commit** (the
+orchestrator's brief asserted this; re-verified directly rather than assumed):
+
+```
+git diff --stat 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — empty diff)
+```
+
+```
+git log --oneline 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — no commits touch these paths)
+```
+
+Confirmed: zero drift. Only `.planning/` tracking commits landed between Plan 03's baseline commit and
+this executor's worktree base — the local rebuild below is expected to reproduce Plan 03's baseline
+exactly, and it does (see cross-check below).
+
+**Local baseline rebuild** — same builder/flags as `.readthedocs.yaml`'s `build.jobs.build.pdf`, invoked
+as `uv run python -m sphinx` per `CLAUDE.md`'s worktree-isolated-execution guidance (source directory
+referenced via an absolute out-of-repo symlink to sidestep an unrelated sandbox string-matching quirk in
+this session; the invocation is otherwise identical to the manifest's):
+
+```
+mkdir -p /tmp/p29-05-local/doctrees
+uv run python -m sphinx -b typstpdf -d /tmp/p29-05-local/doctrees <repo>/docs/source /tmp/p29-05-local/out
+```
+
+```
+...
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/templates] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/p29-05-local/out/typsphinx.pdf
+build succeeded, 2 warnings.
+```
+
+(The "2 warnings" are the same pre-existing `visit_toctree` docstring docutils warnings Plan 03 already
+recorded as out-of-scope — `Unexpected indentation` / `Block quote ends without a blank line` against
+`typsphinx/translator.py`'s docstring, unrelated to this plan's comparison.)
+
+**Local baseline — size, hash, page count, fonts (command and output verbatim):**
+
+```
+sha256sum /tmp/p29-05-local/out/typsphinx.pdf
+```
+```
+dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530  /tmp/p29-05-local/out/typsphinx.pdf
+```
+
+```
+uv run python -c "
+import pypdf, os
+r = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+print('pages', len(r.pages))
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+print('bytes', os.path.getsize('/tmp/p29-05-local/out/typsphinx.pdf'))
+"
+```
+
+```
+pages 93
+/BaseFont /BLJSKO+IPAexGothic
+/BaseFont /JWAONO+NotoSansCJKjp-Thin
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /SVGCJT+Unifont-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+bytes 1693967
+```
+
+**Local interpreter version:** Python 3.13.13 (CPython) — `uv run python --version`, same as Plan 03's
+recorded baseline. `.readthedocs.yaml`'s `build.tools.python` is `"3.12"`.
+
+**Cross-check against Plan 03's recorded D-12 Baseline (§ "D-12 Baseline (local, this commit)" above):**
+
+| Field | Plan 03 (commit `38c7157`) | This rebuild (commit `f54cd2b`) | Verdict |
+|-------|------------------------------|----------------------------------|---------|
+| Page count | 93 | 93 | **same** |
+| Byte size | 1,693,967 bytes | 1,693,967 bytes | **same** |
+| `/BaseFont` list (9 fonts, sorted) | `BLJSKO+IPAexGothic`, `JWAONO+NotoSansCJKjp-Thin`, `LFIBAF+LibertinusSerif-Italic-Identity-H`, `OYQRGH+DejaVuSansMono`, `PEKEPN+LibertinusSerif-Bold-Identity-H`, `SEPNHW+LibertinusSerif-Semibold-Identity-H`, `SVGCJT+Unifont-Identity-H`, `UOQBSW+LibertinusSerif-Regular-Identity-H`, `VOIDKS+DejaVuSansMono-Bold` | identical list, identical subset tags | **same** |
+| Interpreter | Python 3.13.13 | Python 3.13.13 | **same** |
+
+**No divergence found.** The rebuild reproduces Plan 03's baseline exactly, byte-for-byte-identical
+`/BaseFont` subset tags included — consistent with the confirmed zero-drift `git diff --stat` above.
+
+**RTD-served artifact download (real HTTP, `curl`, following redirects):**
+
+```
+curl -sS -o /tmp/p29-05-rtd.pdf -D /tmp/p29-05-rtd.hdrs -w 'code=%{http_code} content_type=%{content_type} size=%{size_download} url=%{url_effective}\n' -L https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+```
+code=200 content_type=application/pdf size=1697498 url=https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+**Fetched:** 2026-07-25T14:46:43Z (UTC)
+
+**PDF-signature confirmation (the bytes are a genuine PDF, not an HTML error page — T-29-12):**
+
+```
+head -c 4 /tmp/p29-05-rtd.pdf
+```
+```
+%PDF
+```
+
+```
+file /tmp/p29-05-rtd.pdf
+```
+```
+/tmp/p29-05-rtd.pdf: PDF document, version 1.7, 93 page(s)
+```
+
+```
+sha256sum /tmp/p29-05-rtd.pdf
+```
+```
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  /tmp/p29-05-rtd.pdf
+```
+
+**Artifact identity summary:**
+
+| Field | Local baseline | RTD-served PDF |
+|-------|----------------|----------------|
+| Path/URL | `/tmp/p29-05-local/out/typsphinx.pdf` | `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` |
+| HTTP status | N/A (local build) | 200 |
+| Byte size | 1,693,967 bytes | 1,697,498 bytes |
+| SHA-256 | `dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530` | `d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5` |
+| Page count | 93 | 93 |
+| Commit SHA | `f54cd2bb2dd9d07a94b93252faa02adcd5317969` (this worktree's base; identical `typsphinx/`/`docs/`/`.readthedocs.yaml` to Plan 03's `38c7157`) | `dcc6a523fc2d16f3dae925e17d63a1a24318b6d7` (Plan 03's PDF-enabling commit, per RTD build `33756855` recorded in § SC#2) |
+| Interpreter | Python 3.13.13 (local) | `build.tools.python: "3.12"` (`.readthedocs.yaml`) |
+
+The two byte sizes differ (1,693,967 vs. 1,697,498) — expected and not itself a fidelity concern, since
+PDF byte-for-byte size is sensitive to compression-stream ordering/timestamps across separate `typst`
+compiles even with identical page count and text; the D-12 bar is page count, extracted text and font
+coverage, not byte-identical files. This divergence is recorded here rather than silently ignored.
+
+**Note:** the local-rebuild and RTD-served commits are not identical (`f54cd2b` vs. `dcc6a52`), but the
+confirmed-empty `typsphinx/`/`docs/`/`.readthedocs.yaml` diff between them (above) means the comparison is
+still valid — no source, template, or manifest change separates the two builds, only intervening
+`.planning/` tracking commits.
+
+## SC#3 Branch A — D-12 checks 1-3
+
+This section is Plan 05, Task 2 — the three mechanical D-12 checks, each run as a one-off command with
+`pypdf` (no script committed, per D-15).
+
+### Check 1 — page count
+
+```
+uv run python -c "
+import pypdf
+r1 = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+r2 = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+print('local_pages', len(r1.pages))
+print('rtd_pages', len(r2.pages))
+print('equal', len(r1.pages) == len(r2.pages))
+"
+```
+
+```
+local_pages 93
+rtd_pages 93
+equal True
+```
+
+**Verdict: PASS.** Local baseline 93 pages, RTD-served PDF 93 pages — equal.
+
+### Check 2 — extracted text
+
+Extracted text from every page of both PDFs with `pypdf`, normalized only whitespace (collapsed runs of
+whitespace via `re.sub(r'\s+', ' ', text).strip()` — no stripping, lowercasing or punctuation removal
+that would hide a real difference), then compared:
+
+```
+uv run python -c "
+import pypdf, re
+def extract(path):
+    r = pypdf.PdfReader(path)
+    return '\n'.join(p.extract_text() or '' for p in r.pages)
+
+local_text = extract('/tmp/p29-05-local/out/typsphinx.pdf')
+rtd_text = extract('/tmp/p29-05-rtd.pdf')
+
+def norm(t):
+    return re.sub(r'\s+', ' ', t).strip()
+
+local_n = norm(local_text)
+rtd_n = norm(rtd_text)
+
+print('local_len', len(local_n))
+print('rtd_len', len(rtd_n))
+print('equal', local_n == rtd_n)
+"
+```
+
+```
+local_len 131142
+rtd_len 131142
+equal True
+```
+
+**Verdict: PASS.** Both normalized extracted-text strings are 131,142 characters and are byte-for-byte
+equal — no differing region exists, so no diff excerpt is needed (the plan requires one only on
+inequality).
+
+### Check 3 — CJK coverage in the RTD-built PDF
+
+Full sorted list of embedded `/BaseFont` names from the RTD artifact:
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+"
+```
+
+```
+/BaseFont /JTYDWV+UnDotum
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /MSNUZX+HanaMinA
+/BaseFont /OGUVAD+UnPen
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+```
+
+**Verdict: PASS — CJK coverage present.** The RTD-built PDF embeds `MSNUZX+HanaMinA` — Hanazono Mincho
+"A", a font family whose entire purpose is broad Unicode CJK Unified Ideograph (Han) coverage, including
+many rare/extension characters most fonts omit. That is the specific font name carrying this verdict.
+`JTYDWV+UnDotum` and `OGUVAD+UnPen` (Baekmuk-family Korean Hangul fonts) are also present but are not
+the fonts cited for the verdict, since the four strings this build must render (`docs/source/user_guide/
+configuration.rst:186,240`) are Han ideographs (Japanese/Chinese kanji/hanzi), not Hangul.
+
+**Honest observation, not silently smoothed over:** despite `.readthedocs.yaml`'s `build.apt_packages:
+[fonts-noto-cjk]`, **no font in this list carries a "Noto" name.** This directly answers
+`29-RESEARCH.md`'s Open Question #2 empirically: an apt-installed CJK font package *was* available to
+the build (the build succeeded and CJK-coverage glyphs were embedded), but Typst's font-fallback
+resolution selected a *different* already-present system CJK font (`HanaMinA`, likely from
+`fonts-hanazono` or a comparable package already on RTD's `ubuntu-24.04` image) rather than the
+Noto-family font `fonts-noto-cjk` explicitly installed. This is recorded as the actionable measurement
+Open Question #2 asked for, not worked around or explained away — Typst's fallback chose *a* CJK font,
+just not the one this manifest expected by name. This does not fail check 3 (which requires CJK coverage,
+not a specific family), but it is exactly the kind of surprising result the task instructions require be
+surfaced rather than silently reconciled.
+
+### Caveats (D-13, D-14 — read before over-interpreting checks 1-3)
+
+(a) **Per D-13, an exact font-list match is explicitly NOT the bar.** The local baseline's list (recorded
+in Plan 03 and reconfirmed above) includes host-provided fonts — `IPAexGothic`, `NotoSansCJKjp-Thin`,
+`Unifont`, plus the `DejaVuSansMono` pair — that a perfectly healthy RTD build cannot be expected to
+reproduce identically, and indeed does not (the RTD list instead has `UnDotum`, `HanaMinA`, `UnPen`
+where the local list has `IPAexGothic`, `NotoSansCJKjp-Thin`, `Unifont`). Only CJK *coverage* is asserted
+above — font identity is observation, never a pass/fail condition, and no claim of list equality is made
+anywhere in this record.
+
+(b) **Check 3 keys on font-family names, which is a proxy for coverage, not a per-glyph proof.** A font
+family being "designed for CJK coverage" does not by itself prove every individual glyph this build needs
+was actually drawn from that font correctly — it is a strong signal, not a certainty.
+
+(c) **Per D-14, check 2's text-extraction equality cannot detect glyph substitution.** A tofu-rendered PDF
+(each CJK character replaced by an empty box/rectangle glyph) still contains the correct Unicode code
+points in its internal text layer and would extract identically to a correctly-rendered PDF — text
+extraction is blind to *visual* glyph substitution. This is exactly why check 4 (the owner's visual
+inspection) exists, and the gate must not be simplified down to a text diff.
+
+## SC#3 Branch A — D-12 check 4 (human_needed) and RTD-02 verdict
+
+This section is Plan 05, Task 3.
+
+### Check 4 — visual tofu confirmation (`human_needed`)
+
+**Status: `human_needed`. Not machine-verified. Do not read this as satisfied.**
+
+**Downloaded RTD PDF, local path:** `/tmp/p29-05-rtd.pdf` (the artifact identified in § "SC#3 Branch A —
+artifacts under comparison" above: `sha256 d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5`,
+93 pages).
+
+**Source location of the CJK strings:** `docs/source/user_guide/configuration.rst`, the "Document
+Language" section (`lang` key discussion), lines 186 and 240 — specifically the paragraph explaining the
+automatic-derivation example and the region-subtag limitation note.
+
+**Command used to locate the page(s) in the downloaded PDF:**
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+targets = ['表 1', '図 1', 'Tabelle 1', '图 1', '圖 1']
+for i, page in enumerate(r.pages, start=1):
+    text = page.extract_text() or ''
+    for t in targets:
+        if t in text:
+            print(f'page {i}: found {t!r}')
+"
+```
+
+```
+page 11: found '表 1'
+page 11: found '図 1'
+page 11: found 'Tabelle 1'
+page 11: found '图 1'
+page 11: found '圖 1'
+```
+
+**Page location: page 11 of the downloaded PDF (`/tmp/p29-05-rtd.pdf`).** All four CJK strings and the
+German example land on the same page — the entire "Document Language" subsection fits on one PDF page.
+
+**The exact glyph strings to look for, transcribed verbatim from `configuration.rst`:**
+
+- `「表 1」` (line 186 — "a captioned table renders as")
+- `「図 1」` (line 186 — "and a figure as")
+- `「图 1」` (line 240 — the simplified-Chinese example)
+- `「圖 1」` (line 240 — "rather than the traditional")
+
+(`「Tabelle 1」` at line 236 is a German-language example in Latin script — not a CJK glyph-substitution
+risk, included in the location search only because it sits on the same page; it is not part of what the
+owner needs to visually inspect for tofu.)
+
+**The specific thing being judged:** whether the four bracketed strings above render on page 11 as real
+Han ideographs (表, 図, 图, 圖) — or as substitution boxes/rectangles ("tofu") in their place. The
+surrounding Latin-script prose on the same page is not at risk (Typst's bundled Libertinus
+Serif/DejaVuSansMono cover it); only these four specific characters exercise the RTD build's CJK font
+fallback (D-10).
+
+**Why no machine can close this:** per D-14, a tofu-rendered PDF still extracts the *correct* Unicode code
+points — check 2 above already proved the extracted text is byte-for-byte identical to the local
+baseline, and that equality says nothing about whether the glyphs drawn on the page are the real
+characters or empty boxes. Font-family presence (check 3) is a coverage proxy, not a per-glyph
+render-correctness proof. Per this project's standing verification culture (STATE.md § "Accumulated
+Context" — honest `human_needed` abstention over unevidenced assertion), this item is left open rather
+than asserted passing on the strength of checks 1-3 alone.
+
+### Consolidated RTD-02 verdict
+
+| # | D-12 check | Status | Result |
+|---|-----------|--------|--------|
+| 1 | Page count | **machine-verified** | `local_pages 93` == `rtd_pages 93` (command + output in § "D-12 checks 1-3") |
+| 2 | Extracted text | **machine-verified** | Whitespace-normalized text equal, both 131,142 chars (command + output in § "D-12 checks 1-3") |
+| 3 | Embedded CJK-coverage font | **machine-verified** | `MSNUZX+HanaMinA` present in the RTD PDF's `/BaseFont` list (command + output in § "D-12 checks 1-3"); D-13 caveat applies — coverage, not list-identity |
+| 4 | Visual tofu confirmation (owner look) | **`human_needed`** | Page 11 of `/tmp/p29-05-rtd.pdf`; glyphs `「表 1」「図 1」「图 1」「圖 1」`; not yet performed |
+
+**RTD-02 is NOT met.** Three of the four D-12 checks are machine-verified and pass; the fourth — the
+owner's visual confirmation that no tofu/glyph substitution appears on page 11 — remains open. Per
+D-12/D-14/D-15, RTD-02 cannot be recorded as satisfied while check 4 is `human_needed`; this verdict is
+recorded honestly as **not met** rather than as a provisional or conditional pass.
+
+**No build-status or green-download claim is made anywhere in this verdict as evidence about content**
+(REQUIREMENTS.md invariant #7): the RTD build having succeeded and the Downloads-menu PDF having
+downloaded cleanly (both already recorded in § SC#2 and the artifacts section above) speak only to build
+mechanics, not to whether the CJK glyphs on page 11 rendered correctly. That determination rests solely
+on check 4, still open.
+
+**Next action:** the owner opens `/tmp/p29-05-rtd.pdf` at page 11 (or re-downloads it from
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`) and confirms whether `表`, `図`, `图`, and
+`圖` render as real characters or as substitution boxes, per this project's `workflow.human_verify_mode:
+end-of-phase` (owner confirmation collected in the end-of-phase verification batch).
