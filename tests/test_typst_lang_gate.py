@@ -46,6 +46,7 @@ matches on the TEXT of a Typst compiler error message -- only that a real
 compile / ``sphinx-build`` invocation succeeds, fails, or raises.
 """
 
+import io
 import re
 import subprocess
 import sys
@@ -593,3 +594,196 @@ class TestPackageNoLang:
         """
         region = _show_rule_call_region(build["text"])
         assert "lang:" not in region
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the GATE-01 pre-fix-basis failure proof",
+)
+class TestPreFixBasisFailureProof:
+    """
+    Durable pre-fix-basis failure proof (GATE-01 discipline): reconstructs
+    two pre-fix defect shapes FROM the CURRENT post-fix emitted output
+    (never hand-authored to match a historical bug) and proves a real
+    ``typst.compile()`` responds exactly as the pre-fix shape would have --
+    mirroring the convention established by
+    ``tests/test_typst_elements_pass_through_gate.py::TestPreFixBasisFailureProof``
+    and ``tests/test_package_only_config_gate.py``.
+
+    Two reconstructions, each proving a different direction of this
+    feature's correctness:
+
+    1. **Omission basis** (``test_omission_basis_falls_back_to_english_
+       supplements``): splice OUT the ``lang: "de"`` line from the
+       post-fix German master's show-rule region, recompile the mutated
+       master FOR REAL, and prove the recompiled PDF falls back to the
+       ENGLISH supplements -- reproducing the exact pre-fix hardcoded
+       ``lang: "en"`` shape ``templates/base.typ`` carried before Plan
+       01's fix. This is the durable red proof of the whole feature: it
+       demonstrates that the one emitted ``lang`` argument is EXACTLY what
+       changes the compiled output.
+
+    2. **Undeclared-argument basis**
+       (``test_undeclared_argument_basis_raises``): splice a
+       ``lang: "ja"`` argument INTO the custom-template fixture's post-fix
+       emitted master -- whose template declares no ``lang`` parameter --
+       and prove a real compile RAISES. This is the durable red proof of
+       WHY the D-06 judgment boundary (``uses_bundled_default_template()``)
+       exists: without it, exactly this undeclared-kwarg fatal is what an
+       unguarded auto-derivation would reach on this path.
+
+    Per this repository's established convention, only ``pytest.raises``
+    is asserted in the second reconstruction -- never the exception's
+    message text.
+
+    Manual red->green confirmation (recorded per this repository's durable
+    -gate convention, since these gates are authored AFTER the Plan 01 fix
+    they exercise -- implementation in Wave 1, gate in Wave 2): performed
+    and RECORDED in this plan's SUMMARY.md, not re-asserted here as a
+    standing test (a test that verifies its own absence is not
+    expressible). With Plan 01's fix reverted, the German extraction case
+    (``TestGermanLinkageProof``), the Japanese source case
+    (``TestJapaneseSourceProof``), and the precedence case
+    (``TestPrecedence``) all fail, while the three non-regression cases
+    (``TestCustomTemplateNoLang``, ``TestSrcdirShadowNoLang``,
+    ``TestPackageNoLang``) still pass, because nothing was being injected
+    before the fix either.
+
+    Requirements: CONF-07, D-06.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def de_default_build_dir(tmp_path_factory):
+        """
+        Build the de_default fixture ONCE via the faster ``-b typst``
+        builder (no compile needed to obtain the source text this
+        reconstruction mutates) and return the BUILD DIRECTORY (not just
+        the text) -- the mutated master is written back into THIS SAME
+        directory, alongside the sibling ``_template.typ`` and
+        ``image.png`` the real recompile below needs to resolve, rather
+        than an unrelated tmp directory that would lack them.
+        """
+        build_dir = tmp_path_factory.mktemp("prefix_basis_de_source_build")
+        result = _run_sphinx_build(DE_DEFAULT_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return build_dir
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def custom_template_no_lang_master_text(tmp_path_factory):
+        """
+        Build the custom_template_no_lang fixture ONCE via the faster
+        ``-b typst`` builder and return the emitted master's text (this
+        reconstruction writes its mutation to a FRESH ``tmp_path``, not
+        this build directory, mirroring the CONF-04 analog's own
+        undeclared-kwarg reconstruction).
+        """
+        build_dir = tmp_path_factory.mktemp("prefix_basis_custom_source_build")
+        result = _run_sphinx_build(
+            CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR, build_dir, "typst"
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_path = build_dir / "index.typ"
+        assert typ_path.exists()
+        return typ_path.read_text(encoding="utf-8")
+
+    @pytest.mark.skipif(
+        not PYPDF_AVAILABLE,
+        reason="pypdf is required to extract the omission reconstruction's "
+        "recompiled PDF text",
+    )
+    def test_omission_basis_falls_back_to_english_supplements(
+        self, de_default_build_dir
+    ):
+        """
+        Omission basis: remove the ``lang: "de"`` line from the
+        post-fix German master's show-rule region, recompile the mutated
+        master FOR REAL (in place, so its sibling ``_template.typ`` and
+        ``image.png`` remain resolvable), extract the recompiled PDF's
+        text with pypdf, and assert the ENGLISH supplements
+        ("Figure"/"Table") now appear while the GERMAN ones
+        ("Abbildung"/"Tabelle") do not -- exactly the pre-fix hardcoded
+        ``lang: "en"`` shape.
+        """
+        typ_path = de_default_build_dir / "index.typ"
+        text = typ_path.read_text(encoding="utf-8")
+        lines = text.split("\n")
+
+        opening = [
+            i for i, line in enumerate(lines) if re.match(r"^#show: \w+\.with\($", line)
+        ]
+        assert (
+            len(opening) == 1
+        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
+        closing = [i for i, line in enumerate(lines) if line == ")"]
+        end = next(i for i in closing if i > opening[0])
+
+        region_lines = lines[opening[0] : end + 1]
+        lang_line_indices = [
+            i for i, line in enumerate(region_lines) if line.strip().startswith("lang:")
+        ]
+        assert len(lang_line_indices) == 1, (
+            f"Expected exactly one lang: line in the show-rule region, "
+            f"found {len(lang_line_indices)}"
+        )
+        del region_lines[lang_line_indices[0]]
+        lines[opening[0] : end + 1] = region_lines
+        mutated = "\n".join(lines)
+        typ_path.write_text(mutated, encoding="utf-8")
+
+        pdf_bytes = typst.compile(str(typ_path), root=str(de_default_build_dir))
+        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        assert _supplement_matches(
+            full_text, "Table"
+        ), f"Expected English 'Table 1' fallback in:\n{full_text}"
+        assert _supplement_matches(
+            full_text, "Figure"
+        ), f"Expected English 'Figure 1' fallback in:\n{full_text}"
+        assert not _supplement_matches(
+            full_text, "Tabelle"
+        ), f"German 'Tabelle' must NOT appear once lang is omitted:\n{full_text}"
+        assert not _supplement_matches(
+            full_text, "Abbildung"
+        ), f"German 'Abbildung' must NOT appear once lang is omitted:\n{full_text}"
+
+    def test_undeclared_argument_basis_raises(
+        self, custom_template_no_lang_master_text, tmp_path
+    ):
+        """
+        Undeclared-argument basis: splice a ``lang: "ja"`` argument INTO
+        the custom-template fixture's post-fix emitted master -- whose
+        template declares no ``lang`` parameter -- and assert a real
+        compile RAISES. Reproduces the exact fatal an unguarded
+        auto-derivation would reach on this path: this is WHY the D-06
+        judgment boundary (``uses_bundled_default_template()`` returning
+        ``False`` for an explicit template) is required. Only
+        ``pytest.raises`` is asserted -- never the exception's message
+        text.
+        """
+        lines = custom_template_no_lang_master_text.split("\n")
+        opening = [
+            i for i, line in enumerate(lines) if re.match(r"^#show: \w+\.with\($", line)
+        ]
+        assert (
+            len(opening) == 1
+        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
+        lines.insert(opening[0] + 1, '  lang: "ja",')
+        reconstructed = "\n".join(lines)
+        assert 'lang: "ja",' in reconstructed
+
+        target = tmp_path / "undeclared_lang_argument_basis.typ"
+        target.write_text(reconstructed, encoding="utf-8")
+
+        with pytest.raises(Exception):
+            typst.compile(str(target), root=str(tmp_path))
