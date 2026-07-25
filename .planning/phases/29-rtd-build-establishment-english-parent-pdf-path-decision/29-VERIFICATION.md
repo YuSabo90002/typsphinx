@@ -827,3 +827,144 @@ coverage, not byte-identical files. This divergence is recorded here rather than
 confirmed-empty `typsphinx/`/`docs/`/`.readthedocs.yaml` diff between them (above) means the comparison is
 still valid — no source, template, or manifest change separates the two builds, only intervening
 `.planning/` tracking commits.
+
+## SC#3 Branch A — D-12 checks 1-3
+
+This section is Plan 05, Task 2 — the three mechanical D-12 checks, each run as a one-off command with
+`pypdf` (no script committed, per D-15).
+
+### Check 1 — page count
+
+```
+uv run python -c "
+import pypdf
+r1 = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+r2 = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+print('local_pages', len(r1.pages))
+print('rtd_pages', len(r2.pages))
+print('equal', len(r1.pages) == len(r2.pages))
+"
+```
+
+```
+local_pages 93
+rtd_pages 93
+equal True
+```
+
+**Verdict: PASS.** Local baseline 93 pages, RTD-served PDF 93 pages — equal.
+
+### Check 2 — extracted text
+
+Extracted text from every page of both PDFs with `pypdf`, normalized only whitespace (collapsed runs of
+whitespace via `re.sub(r'\s+', ' ', text).strip()` — no stripping, lowercasing or punctuation removal
+that would hide a real difference), then compared:
+
+```
+uv run python -c "
+import pypdf, re
+def extract(path):
+    r = pypdf.PdfReader(path)
+    return '\n'.join(p.extract_text() or '' for p in r.pages)
+
+local_text = extract('/tmp/p29-05-local/out/typsphinx.pdf')
+rtd_text = extract('/tmp/p29-05-rtd.pdf')
+
+def norm(t):
+    return re.sub(r'\s+', ' ', t).strip()
+
+local_n = norm(local_text)
+rtd_n = norm(rtd_text)
+
+print('local_len', len(local_n))
+print('rtd_len', len(rtd_n))
+print('equal', local_n == rtd_n)
+"
+```
+
+```
+local_len 131142
+rtd_len 131142
+equal True
+```
+
+**Verdict: PASS.** Both normalized extracted-text strings are 131,142 characters and are byte-for-byte
+equal — no differing region exists, so no diff excerpt is needed (the plan requires one only on
+inequality).
+
+### Check 3 — CJK coverage in the RTD-built PDF
+
+Full sorted list of embedded `/BaseFont` names from the RTD artifact:
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+"
+```
+
+```
+/BaseFont /JTYDWV+UnDotum
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /MSNUZX+HanaMinA
+/BaseFont /OGUVAD+UnPen
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+```
+
+**Verdict: PASS — CJK coverage present.** The RTD-built PDF embeds `MSNUZX+HanaMinA` — Hanazono Mincho
+"A", a font family whose entire purpose is broad Unicode CJK Unified Ideograph (Han) coverage, including
+many rare/extension characters most fonts omit. That is the specific font name carrying this verdict.
+`JTYDWV+UnDotum` and `OGUVAD+UnPen` (Baekmuk-family Korean Hangul fonts) are also present but are not
+the fonts cited for the verdict, since the four strings this build must render (`docs/source/user_guide/
+configuration.rst:186,240`) are Han ideographs (Japanese/Chinese kanji/hanzi), not Hangul.
+
+**Honest observation, not silently smoothed over:** despite `.readthedocs.yaml`'s `build.apt_packages:
+[fonts-noto-cjk]`, **no font in this list carries a "Noto" name.** This directly answers
+`29-RESEARCH.md`'s Open Question #2 empirically: an apt-installed CJK font package *was* available to
+the build (the build succeeded and CJK-coverage glyphs were embedded), but Typst's font-fallback
+resolution selected a *different* already-present system CJK font (`HanaMinA`, likely from
+`fonts-hanazono` or a comparable package already on RTD's `ubuntu-24.04` image) rather than the
+Noto-family font `fonts-noto-cjk` explicitly installed. This is recorded as the actionable measurement
+Open Question #2 asked for, not worked around or explained away — Typst's fallback chose *a* CJK font,
+just not the one this manifest expected by name. This does not fail check 3 (which requires CJK coverage,
+not a specific family), but it is exactly the kind of surprising result the task instructions require be
+surfaced rather than silently reconciled.
+
+### Caveats (D-13, D-14 — read before over-interpreting checks 1-3)
+
+(a) **Per D-13, an exact font-list match is explicitly NOT the bar.** The local baseline's list (recorded
+in Plan 03 and reconfirmed above) includes host-provided fonts — `IPAexGothic`, `NotoSansCJKjp-Thin`,
+`Unifont`, plus the `DejaVuSansMono` pair — that a perfectly healthy RTD build cannot be expected to
+reproduce identically, and indeed does not (the RTD list instead has `UnDotum`, `HanaMinA`, `UnPen`
+where the local list has `IPAexGothic`, `NotoSansCJKjp-Thin`, `Unifont`). Only CJK *coverage* is asserted
+above — font identity is observation, never a pass/fail condition, and no claim of list equality is made
+anywhere in this record.
+
+(b) **Check 3 keys on font-family names, which is a proxy for coverage, not a per-glyph proof.** A font
+family being "designed for CJK coverage" does not by itself prove every individual glyph this build needs
+was actually drawn from that font correctly — it is a strong signal, not a certainty.
+
+(c) **Per D-14, check 2's text-extraction equality cannot detect glyph substitution.** A tofu-rendered PDF
+(each CJK character replaced by an empty box/rectangle glyph) still contains the correct Unicode code
+points in its internal text layer and would extract identically to a correctly-rendered PDF — text
+extraction is blind to *visual* glyph substitution. This is exactly why check 4 (the owner's visual
+inspection) exists, and the gate must not be simplified down to a text diff.
