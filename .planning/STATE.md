@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 28
-current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
+current_phase_name: v0-6-3-release-prep-regression-gate-close
 status: executing
 stopped_at: Phase 28 planned (3 plans, 3 waves)
-last_updated: "2026-07-25T08:04:15.708Z"
+last_updated: "2026-07-25T08:11:49.409Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 28 planned — 3 plans / 3 waves, plan-checker PASSED
+last_activity_desc: Phase 28 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 12
   completed_plans: 9
-  percent: 83
+  percent: 75
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 28 — v0.6.3 Release Prep + Regression-Gate Close
+**Current focus:** Phase 28 — v0-6-3-release-prep-regression-gate-close
 
 ## Current Position
 
-Phase: 28 — v0.6.3 Release Prep + Regression-Gate Close
-Plan: 0/3 complete (3 plans, 3 waves)
-Status: Ready to execute
-Last activity: 2026-07-25 — Phase 28 planned (3 plans / 3 waves), plan-checker PASSED
+Phase: 28 (v0-6-3-release-prep-regression-gate-close) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 28
+Last activity: 2026-07-25 — Phase 28 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
