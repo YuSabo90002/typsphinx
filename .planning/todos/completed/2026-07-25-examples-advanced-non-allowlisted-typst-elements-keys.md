@@ -64,3 +64,44 @@ ExtensionError: typst_elements: unknown key 'author' -- supported keys: fontsize
 - CONF-06 (将来要件): `papersize`/`fontsize`/`lang` を超える `typst_elements` キーの追加。
   allowlist を広げる方向で解くならこの要件の一部になる。
 - Phase 26 (CONF-04): 未知キーの fail-loud 化。この todo の直接の原因。
+
+---
+
+## 解決 (2026-07-25, /gsd-complete-milestone の割り込み修理)
+
+**実測の結論:** 同梱テンプレート `_templates/custom.typ` の `project()` は
+`papersize`/`fontsize` を**どちらも宣言していなかった**（宣言は title / authors /
+date / toctree_* のみ）。したがって非 allowlist キー 5 つを削るだけでは不足で、
+残した `papersize` が `TypstError: unexpected argument: papersize` を引き起こす。
+
+さらに切り分けの過程で**第 2 の破損**が判明: `custom.typ` の `@preview` ピンが
+v0.5.0 Phase 7 の bump を取りこぼしており（`codly-languages:0.1.1` /
+`mitex:0.2.4` / `gentle-clues:1.2.0`）、`typst_elements` を空にしても
+`TypstError: unknown variable: kai` で落ちた。3 マイルストーン分の
+サイレントドリフトで、`tests/test_preview_version_sync.py` が 3 面
+（writer / template_engine / base.typ）しか見ていなかったことが原因。
+
+**適用した修理（オーナー選択: 「custom.typ で 3 キーを受ける」+「監視面を拡張」）:**
+
+1. `custom.typ` — `@preview` 4 ピンを canonical に揃え、`project()` に
+   `papersize` / `fontsize` / `lang` を宣言。module scope の
+   `#set page` / `#set text` を `project()` 内へ移し、宣言した引数で駆動。
+2. `conf.py` — `typst_elements` を allowlist 3 キーに縮小し、
+   「テンプレート側も同名パラメータを宣言していなければ Typst 側で fatal」
+   という制約をコメントで明記。allowlist 外を渡したい場合の逃げ道
+   （`typst_template_function` の `params`）も併記。
+3. `README.md` — 同じ `typst_elements` ブロックと、stale だった
+   `typst_package_imports` のコメント例（`codly:0.1.0` /
+   `gentle-clues:0.3.0`）を現行版に更新。
+4. `tests/test_preview_version_sync.py` — 新規
+   `test_example_templates_match_canonical_versions` が `examples/**/*.typ`
+   を走査し、4 パッケージのいずれかをピンしている場合に `base.typ` との
+   一致を強制。修理前の `custom.typ` で赤になることを実測確認済み
+   （3 件の divergence を列挙して FAIL）。charged-ieee のように
+   4 パッケージ外を使う例は対象外（ドリフト検出であって統一強制ではない）。
+
+**検証:** `sphinx-build -b typstpdf examples/advanced` が build succeeded、
+PDF 248,214 bytes 生成。全スイート 657 passed / 1 skipped、
+black・ruff・mypy いずれもクリーン。
+
+CONF-06（allowlist 拡張）は未着手のまま将来要件として残る。

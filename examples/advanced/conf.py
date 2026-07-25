@@ -48,18 +48,21 @@ typst_documents = [
 typst_use_mitex = True
 
 # Custom elements for Typst templates
-# These can be referenced in custom templates
+#
+# Only keys that typsphinx allowlists are accepted -- currently
+# `papersize` (string), `fontsize` (a Typst length, emitted unquoted) and
+# `lang` (string). Any other key aborts the build with an ExtensionError
+# naming the supported keys, rather than being silently dropped.
+#
+# On top of that, the *template in use* must declare a matching parameter in
+# its `project()` function. `_templates/custom.typ` below declares all three;
+# a template that did not would fail the Typst compile with
+# `unexpected argument: papersize`. To pass template parameters beyond this
+# allowlist, use `typst_template_function` with a `params` dict instead.
 typst_elements = {
-    # Document metadata
-    "author": "Sphinx-Typst Contributors",
-    "date": "October 2024",
-    # Page layout (examples - actual usage depends on template)
     "papersize": "a4",
     "fontsize": "11pt",
-    "margin": "2.5cm",
-    # Custom styling
-    "primary_color": "rgb(0, 102, 204)",
-    "code_font": "Fira Code",
+    "lang": "en",
 }
 
 # Custom template (optional)
@@ -84,8 +87,8 @@ typst_template = "_templates/custom.typ"
 # Import packages from Typst Universe
 # Example: Import codly for enhanced code highlighting
 # typst_package_imports = [
-#     '#import "@preview/codly:0.1.0": *',
-#     '#import "@preview/gentle-clues:0.3.0": *',
+#     '#import "@preview/codly:1.3.0": *',
+#     '#import "@preview/gentle-clues:1.3.1": *',
 # ]
 
 # Debug mode (optional)

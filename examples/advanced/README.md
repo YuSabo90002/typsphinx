@@ -220,12 +220,14 @@ typst_documents = [
 # Math rendering with mitex
 typst_use_mitex = True
 
-# Custom elements for templates
+# Custom elements for templates.
+# Allowlisted keys only (papersize / fontsize / lang); any other key aborts
+# the build. The template in use must also declare a matching project()
+# parameter -- _templates/custom.typ declares all three.
 typst_elements = {
-    'author': 'Author Name',
-    'date': 'October 2024',
     'papersize': 'a4',
-    'primary_color': 'rgb(0, 102, 204)',
+    'fontsize': '11pt',
+    'lang': 'en',
 }
 ```
 
@@ -248,8 +250,8 @@ typst_template = '_templates/custom.typ'
 # Typst Universe packages (optional)
 # Import additional packages from Typst Universe
 # typst_package_imports = [
-#     '#import "@preview/codly:0.1.0": *',
-#     '#import "@preview/gentle-clues:0.3.0": *',
+#     '#import "@preview/codly:1.3.0": *',
+#     '#import "@preview/gentle-clues:1.3.1": *',
 # ]
 
 # Debug mode (optional)
