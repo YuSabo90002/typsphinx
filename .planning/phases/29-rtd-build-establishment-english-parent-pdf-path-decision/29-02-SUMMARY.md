@@ -167,6 +167,14 @@ configuration was already performed by the owner before this agent started; see
 - No repository source file was touched: `git status --porcelain typsphinx/ tests/ docs/ pyproject.toml
   .readthedocs.yaml` is empty.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-VERIFICATION.md`
+- FOUND: `.planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-02-SUMMARY.md`
+- FOUND commit: `8963148` (Task 2)
+- FOUND commit: `6e8a1bd` (Task 3)
+- FOUND commit: `d40dbf0` (this SUMMARY)
+
 ---
 *Phase: 29-rtd-build-establishment-english-parent-pdf-path-decision*
 *Completed: 2026-07-25*
