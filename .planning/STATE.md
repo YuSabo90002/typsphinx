@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 27.1
-current_phase_name: Typst 組版 lang の Sphinx language 連動 (INSERTED)
-status: planned
+current_phase_name: typst-text-lang-from-sphinx-language-config
+status: executing
 stopped_at: Phase 27.1 planned (3 plans, 2 waves)
-last_updated: "2026-07-25T05:01:25.000Z"
+last_updated: "2026-07-25T05:09:58.814Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 27.1 を計画 — 3 plans / 2 waves、plan-checker VERIFICATION PASSED、決定被覆 9/9
+last_activity_desc: Phase 27.1 execution started
 progress:
   total_phases: 6
   completed_phases: 4
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise.
-**Current focus:** Phase 27.1 — Typst 組版 lang の Sphinx `language` 連動 (CONF-07, INSERTED)
+**Current focus:** Phase 27.1 — typst-text-lang-from-sphinx-language-config
 
 ## Current Position
 
-Phase: 27.1 — Typst 組版 lang の Sphinx `language` 連動 (INSERTED)
-Plan: 0/3 complete (Wave 1: 27.1-01, 27.1-02 parallel — Wave 2: 27.1-03)
-Status: Ready to execute
-Last activity: 2026-07-25 — Phase 27.1 を計画（3 plans / 2 waves、plan-checker VERIFICATION PASSED、決定被覆 9/9）
+Phase: 27.1 (typst-text-lang-from-sphinx-language-config) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 27.1
+Last activity: 2026-07-25 — Phase 27.1 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
