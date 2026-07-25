@@ -311,7 +311,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
   4. The milestone invariant holds **as amended**: zero new runtime deps, no `@preview` version bump, the `@preview` version strings in `writer.py` / `template_engine.py` / `templates/base.typ` untouched. `base.typ` itself is no longer byte-unchanged — Phase 27.1 added the `lang` parameter to `project()` per the 2026-07-25 amendment; verify the diff is confined to that.
   5. Scope fence: no tag, no PyPI publish, no merge — the irreversible publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `/gsd-complete-milestone` on the confirmed-green merge commit.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 **Wave 1**
 
@@ -323,7 +323,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 28-03-PLAN.md — `CHANGELOG.md` に `## [0.6.3]` エントリを新設（リード 3 軸 + 5 ブレット + `### Verified` 4 点、BREAKING は CONF-04/CONF-05 の 2 箇所のみ）し、末尾リンクブロックの `[0.6.3]:` 追加と `[Unreleased]:` compare 繰り上げ (SC#2, D-01〜D-04, D-09〜D-12) — Wave 3
+- [x] 28-03-PLAN.md — `CHANGELOG.md` に `## [0.6.3]` エントリを新設（リード 3 軸 + 5 ブレット + `### Verified` 4 点、BREAKING は CONF-04/CONF-05 の 2 箇所のみ）し、末尾リンクブロックの `[0.6.3]:` 追加と `[Unreleased]:` compare 繰り上げ (SC#2, D-01〜D-04, D-09〜D-12) — Wave 3
 
 **Note**: 新規テストコード・新規ソース変更はゼロ。本フェーズが触るのは `pyproject.toml` / `uv.lock` /
 `README.md` / `CHANGELOG.md` と証跡ファイル `28-VERIFICATION.md` の 5 つのみ（D-04 のファイル柵）。
@@ -380,7 +380,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
-| 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 2/3 | In Progress|  |
+| 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | In Progress|  |
 
 ## Backlog
 
