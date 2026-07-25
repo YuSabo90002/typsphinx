@@ -4,9 +4,9 @@ milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 28
 current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
-status: planning
+status: executing
 stopped_at: Phase 28 context gathered
-last_updated: "2026-07-25T07:20:39.223Z"
+last_updated: "2026-07-25T08:04:15.708Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 27.1 complete, transitioned to Phase 28
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 Phase: 28 — v0.6.3 Release Prep + Regression-Gate Close
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-07-25 — Phase 27.1 complete, transitioned to Phase 28
 
 Progress: [░░░░░░░░░░] 0%

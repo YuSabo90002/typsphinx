@@ -77,8 +77,8 @@ v0.6.3 のリリース**準備**と、フルコーパス回帰ゲートによる
 
 ### 回帰ゲートと証跡の範囲
 
-- **D-05: SC#3 の証跡は「コーパスゲート + フル pytest スイート + docs ビルド」の 3 点を
-  `28-VERIFICATION.md` に記録する。** Phase 23 D-09/D-12 のコーパスゲート単独から範囲を広げる。
+- **D-05: SC#3 の証跡は「コーパスゲート + フル pytest スイート + docs ビルド」の 3 点を `28-VERIFICATION.md` に記録する。**
+  Phase 23 D-09/D-12 のコーパスゲート単独から範囲を広げる。
   根拠: 本マイルストーンは `base.typ` の `project()` 署名・テンプレート解決経路・docs を触っており、
   Phase 27.1 では executor が worktree 内から docs ビルド警告を観測できず、マージ後に警告 5 行の
   増加が発覚して後追い修正した実績がある（現在はフェーズ前ベースラインの 4 行に復帰済み）。
@@ -95,8 +95,8 @@ v0.6.3 のリリース**準備**と、フルコーパス回帰ゲートによる
   （テスト基盤の拡張はリリース準備のスコープ外 — Phase 23 D-12 と同じ判断）。ベースラインを
   どのコミットで測るかもプラン時に決めてよい。
 
-- **D-07: SC#4 の確認は `git diff` の実出力を `28-VERIFICATION.md` に貼り、既存テストの緑をもって
-  足りるとする。** 実測済み: `git diff main..HEAD -- typsphinx/templates/base.typ` は正確に 2 行
+- **D-07: SC#4 の確認は `git diff` の実出力を `28-VERIFICATION.md` に貼り、既存テストの緑をもって足りるとする。**
+  実測済み: `git diff main..HEAD -- typsphinx/templates/base.typ` は正確に 2 行
   （`project()` への `lang: "en",` 追加と `set text(size: fontsize, lang: lang)` への変更）だけ、
   `@preview` 4 パッケージの版文字列は未変更、`pyproject.toml` の依存も差分ゼロ。
   `tests/test_preview_version_sync.py` の緑が 3-way 同期面の担保。追加実装ゼロ。
