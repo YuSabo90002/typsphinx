@@ -1226,3 +1226,87 @@ class TestDeriveTypstLang:
         )
 
         assert params["lang"] == "definitely not a language code"
+
+
+class TestEffectiveElementsMerge:
+    """CONF-07/D-05 + the adjacency/ordering edges: exercise map_parameters()
+    through the same merged-dict shape writer.py's effective_elements
+    pre-merge produces (``{"lang": auto_lang} if auto_lang else {}) |
+    typst_elements``), without needing a full Sphinx build. See
+    27.1-CONTEXT.md D-05."""
+
+    def test_auto_derived_entry_alone_lands_in_params(self):
+        """When only an auto-derived value is present (no explicit
+        typst_elements), it lands in params."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "ja"
+        typst_elements: dict = {}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "ja"
+
+    def test_explicit_entry_alone_lands_in_params(self):
+        """When only an explicit typst_elements["lang"] is present (no
+        auto-derivation, e.g. a non-default-template path), it lands in
+        params."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = None
+        typst_elements = {"lang": "de"}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "de"
+
+    def test_both_present_exactly_one_entry_survives_holding_explicit_value(self):
+        """Adjacency edge: when both an auto-derived and an explicit value
+        are present, the result carries exactly ONE lang entry, and it
+        holds the explicit value (D-05 precedence)."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "de"
+        typst_elements = {"lang": "ja"}
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
+        assert list(effective_elements.keys()).count("lang") == 1
+        assert effective_elements["lang"] == "ja"
+
+        params = engine.map_parameters(
+            sphinx_metadata, typst_elements=effective_elements
+        )
+
+        assert params["lang"] == "ja"
+
+    def test_merge_order_stable_across_repeated_calls(self):
+        """Ordering edge: the merge order is stable across repeated calls
+        with identical inputs -- no accumulation, no drift."""
+        engine = TemplateEngine()
+        sphinx_metadata = {"project": "P", "author": "A", "release": "1.0"}
+
+        auto_lang = "de"
+        typst_elements = {"lang": "ja"}
+
+        results = []
+        for _ in range(3):
+            effective_elements = (
+                {"lang": auto_lang} if auto_lang else {}
+            ) | typst_elements
+            params = engine.map_parameters(
+                sphinx_metadata, typst_elements=effective_elements
+            )
+            results.append(params["lang"])
+
+        assert results == ["ja", "ja", "ja"]
+        # typst_elements itself is never mutated across repeated merges.
+        assert typst_elements == {"lang": "ja"}

@@ -10,7 +10,11 @@ from typing import Any
 
 from docutils import writers
 
-from typsphinx.template_engine import TemplateEngine, resolve_package_for_engine
+from typsphinx.template_engine import (
+    TemplateEngine,
+    derive_typst_lang,
+    resolve_package_for_engine,
+)
 from typsphinx.translator import TypstTranslator
 
 
@@ -214,9 +218,36 @@ class TypstWriter(writers.Writer):
         # guarantee rather than a filter (Pitfall 3).
         typst_elements = getattr(config, "typst_elements", {})
 
+        # CONF-07: auto-derive the Typst typesetting `lang` from Sphinx's
+        # `language` config, but ONLY on the default-template path --
+        # uses_bundled_default_template() is the single D-06 judgment (it is
+        # False for an explicit typst_template, for a <srcdir>/base.typ
+        # shadow, and for the package-alone path, so none of those users are
+        # ever handed a `lang` parameter their template never declared,
+        # SC#3). Read `language` defensively via getattr and let
+        # derive_typst_lang() handle a missing/malformed value -- never
+        # pre-validate or raise here (D-03).
+        auto_lang = None
+        if template_engine.uses_bundled_default_template():
+            sphinx_language = getattr(config, "language", None)
+            auto_lang = derive_typst_lang(sphinx_language)
+
+        # D-05: pre-merge the auto-derived value UNDER the user's typst_elements
+        # via a plain dict union whose right-hand operand is the config
+        # value -- so an explicit typst_elements["lang"] always wins on
+        # collision, structurally, with zero new precedence logic inside
+        # map_parameters() itself. Deliberately NEW dict/NEW name
+        # (effective_elements): never reuse the bare `typst_elements` name
+        # for the merged result (a copy-paste that keeps the old name
+        # silently drops auto-derivation), and never mutate `typst_elements`
+        # itself (it is the user's own live config value; `update()`/
+        # `setdefault()` here would leak state across master documents in a
+        # multi-master build).
+        effective_elements = ({"lang": auto_lang} if auto_lang else {}) | typst_elements
+
         # Map parameters
         params = template_engine.map_parameters(
-            sphinx_metadata, typst_elements=typst_elements
+            sphinx_metadata, typst_elements=effective_elements
         )
 
         # Extract toctree options and add to parameters
