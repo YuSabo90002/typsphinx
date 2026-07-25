@@ -327,7 +327,7 @@ version that exists.
      a version that serves real content, with Default Version deliberately left at `latest`, and the
      `latest` → `stable` flip recorded as an explicit precondition handed to Phase 33.
 
-**Plans**: 1/6 plans executed
+**Plans**: 2/6 plans executed
 each wave waits on an owner-performed RTD action or on the previous commit's build. Plans 05 and 06 are
 mutually exclusive branches; exactly one does work and the other records a skip.)
 
@@ -338,7 +338,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 29-02-PLAN.md — owner creates the en RTD project (slug confirmed first); `/en/latest/` and the documentation root fetched over real HTTP; install-provenance log excerpt and the Phase 33 Default-Version handoff recorded
+- [x] 29-02-PLAN.md — owner creates the en RTD project (slug confirmed first); `/en/latest/` and the documentation root fetched over real HTTP; install-provenance log excerpt and the Phase 33 Default-Version handoff recorded
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -603,7 +603,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
-| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 1/6 | In Progress|  |
+| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 2/6 | In Progress|  |
 | 30. Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
