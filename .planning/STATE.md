@@ -5,14 +5,14 @@ milestone_name: config & docs 実測整合 + captioned tables
 current_phase: 28
 current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
 status: executing
-stopped_at: Phase 28 context gathered
+stopped_at: Phase 28 planned (3 plans, 3 waves)
 last_updated: "2026-07-25T08:04:15.708Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 27.1 complete, transitioned to Phase 28
+last_activity_desc: Phase 28 planned — 3 plans / 3 waves, plan-checker PASSED
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 9
+  total_plans: 12
   completed_plans: 9
   percent: 83
 ---
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 ## Current Position
 
 Phase: 28 — v0.6.3 Release Prep + Regression-Gate Close
-Plan: Not started
+Plan: 0/3 complete (3 plans, 3 waves)
 Status: Ready to execute
-Last activity: 2026-07-25 — Phase 27.1 complete, transitioned to Phase 28
+Last activity: 2026-07-25 — Phase 28 planned (3 plans / 3 waves), plan-checker PASSED
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -117,15 +117,22 @@ Items acknowledged and carried forward from previous milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-CONTEXT.md
+**Resume file:** .planning/phases/28-v0-6-3-release-prep-regression-gate-close/28-01-PLAN.md
 
 Last session: 2026-07-25T07:20:39.217Z
-Stopped at: Phase 28 context gathered
-Resume: `/gsd-plan-phase 28`
+Stopped at: Phase 28 planned — 3 plans / 3 waves, plan-checker VERIFICATION PASSED
+Resume: `/gsd-execute-phase 28`
 
 ## Operator Next Steps
 
-- `/gsd-plan-phase 28` — `28-CONTEXT.md`（2026-07-25 作成、D-01〜D-12）をもとに Phase 28 のプランを作る。リリース準備は prep-only、publish は `/gsd-complete-milestone`
+- `/gsd-execute-phase 28` — Phase 28 の 3 プランを実行する。Wave 1: 版バンプ（`pyproject.toml` / `uv.lock` / `README.md`）→ Wave 2: ゲート実走と `28-VERIFICATION.md` への証跡記録 → Wave 3: `CHANGELOG.md` `[0.6.3]`。publish は行わない（`/gsd-complete-milestone`）
+
+**Phase 28 プランの要点（2026-07-25 確定）:**
+
+- 実行順序は「版バンプ → **ゲート実走** → CHANGELOG」。`28-CONTEXT.md` の Claude 裁量欄が括弧書きで示唆した「版バンプ → CHANGELOG → ゲート実走」から意図的に変更 — D-11 が `### Verified` 節にゲートが実際に assert した事実だけを許すため
+- **プランナが実バグを 2 件発見**（討議時には未把握）: (1) `typsphinx/__init__.py:20` は installed editable dist のメタデータを読むので、`pyproject.toml` だけバンプすると `typsphinx.__version__` が stale になり `tests/test_extension.py::test_version_matches_pyproject_toml` が赤くなる → 28-01 で editable install を作り直す。(2) `CHANGELOG.md` には `## [Unreleased]` 見出しが 2 つあり `## [` 見出しは単調順でない → 28-03 の配置ゲートは先頭 3 見出しを順序ごと固定する
+- **ROADMAP SC#2 の読み替えを記録済み**: SC#2 は「7 件全部」と書くが、後発の D-10（オーナー裁定）が DOC-06 を名指しで除外し足し戻しを禁じているため 6 件に読み替え。ROADMAP §Phase 28 に amendment 注記を追加済み
+- docs ビルドの合否基準は**環境ごとに別**（`docs-pdf` ≤2 行 / `docs-multilang` ≤4 行）。CONTEXT.md の「4 行」は `docs-multilang` の数字であることをリサーチが実測
 
 **Phase 28 討議の要点（2026-07-25 確定、詳細は `28-CONTEXT.md`）:**
 
