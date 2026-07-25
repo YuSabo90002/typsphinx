@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.3
 milestone_name: config & docs 実測整合 + captioned tables
-current_phase: 27.1
-current_phase_name: typst-text-lang-from-sphinx-language-config
-status: executing
-stopped_at: Phase 27.1 planned (3 plans, 2 waves)
-last_updated: "2026-07-25T05:09:58.814Z"
+current_phase: 28
+current_phase_name: v0.6.3 Release Prep + Regression-Gate Close
+status: planning
+stopped_at: Phase 27.1 context gathered
+last_updated: "2026-07-25T06:03:48.300Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 27.1 execution started
+last_activity_desc: Phase 27.1 complete, transitioned to Phase 28
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_plans: 9
+  percent: 83
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-23 at v0.6.3 milestone start)
 
 ## Current Position
 
-Phase: 27.1 (typst-text-lang-from-sphinx-language-config) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 27.1
-Last activity: 2026-07-25 — Phase 27.1 execution started
+Phase: 28 — v0.6.3 Release Prep + Regression-Gate Close
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-25 — Phase 27.1 complete, transitioned to Phase 28
 
 Progress: [░░░░░░░░░░] 0%
 

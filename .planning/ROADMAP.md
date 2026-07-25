@@ -186,7 +186,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 - [x] **Phase 25: Captioned Table Figure Wrap + Cross-References** - `.. table:: Caption` → `figure(table, caption, kind: table)` "Table N" + `:numref:`/`:ref:` `<label>`; caption-less stays plain; caption+width compose; 2nd-table stale-buffer fix (completed 2026-07-24)
 - [x] **Phase 26: `typst_elements` papersize/fontsize Pass-Through** - `typst_elements` `papersize`/`fontsize` reach `project()` (string vs. unquoted length); unknown key fails loud; copyright never leaks; `base.typ` unchanged (completed 2026-07-24)
 - [x] **Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names** - Delete orphan `docs/configuration.rst`; fix phantom config names in `user_guide/configuration.rst` (papersize/fontsize → working `typst_elements` examples) AND delete the redundant phantom-bearing config table in `api/index.rst` (+ its `.po`) so config lives in one canonical place (completed 2026-07-24)
-- [ ] **Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)** - `base.typ` の `project()` に `lang` を追加し、既定テンプレート時は Sphinx `language` から自動導出、`typst_elements["lang"]` が優先。ja ドキュメントの PDF で "Table N" が「表 N」になる
+- [x] **Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED)** - `base.typ` の `project()` に `lang` を追加し、既定テンプレート時は Sphinx `language` から自動導出、`typst_elements["lang"]` が優先。ja ドキュメントの PDF で "Table N" が「表 N」になる (completed 2026-07-25)
 - [ ] **Phase 28: v0.6.3 Release Prep + Regression-Gate Close** - Prep-only: bump 0.6.3 + `uv.lock` + `CHANGELOG` + README Status, close on the full-corpus gate; publish at `/gsd-complete-milestone`
 
 ### Phase 24: Delete `typst_toctree_defaults` (dead-config sweep round 2, part B)
@@ -279,7 +279,7 @@ publish (tag `v0.6.3` → `release.yml` → PyPI + GitHub Release) executes at `
 **Requirements**: CONF-07
 **Success Criteria** (what must be TRUE):
 
-  1. `conf.py` に `language = "ja"` を書いて既定テンプレートでビルドすると、コンパイル済み PDF の figure/table supplement が「図 N」「表 N」になる（現状は `lang: "en"` ハードコードにより "Figure N"/"Table N"）。実 `typst.compile()` の GATE-01 フィクスチャで証明する。
+  1. Sphinx `language` を設定して既定テンプレートでビルドすると、その値が Typst の組版言語として実際にコンパイル済み成果物へ届き、Typst 生成の figure/table supplement が当該言語になる（現状は `lang: "en"` ハードコードにより常に "Figure N"/"Table N"）。実 `typst.compile()` の GATE-01 フィクスチャで、D-07 の分割証明として示す — `language = "ja"` は実コンパイル成功 + 生成 `.typ` の `lang: "ja"`（フォント非依存のソース証明）、supplement の言語連動は `language = "de"` + pypdf 抽出（NBSP 許容正規表現で "Tabelle 1"/"Abbildung 1" の存在と英語形の不在）で証明する。*(2026-07-25 実装後に更新: 元の文面は ja の PDF 抽出単独の証明を求めていたが、CJK グリフ抽出は CI ubuntu ランナーで未確認のシステムフォント可用性に依存するため、CJK フォントのバイナリ同梱を明示的に却下したうえで分割証明を採用した — 27.1-CONTEXT.md D-07)*
   2. `typst_elements = {"lang": "..."}` の明示指定が Sphinx `language` からの自動導出より優先する（Sphinx LaTeX ビルダー `init_context()` の precedence — 言語別既定 → `latex_elements` が最後に勝つ — と同型）。`ELEMENTS_ALLOWLIST` の既存経路に乗るため全テンプレート経路で渡る。
   3. 自動導出値はカスタムテンプレート (`typst_template`) / パッケージ (`typst_package`) 経路には渡さない。`language = "ja"` を設定済みで `lang` 未宣言の既存カスタムテンプレートがビルド失敗しないことを回帰フィクスチャで証明する（`unexpected argument: lang` の hard fatal を防ぐ）。
   4. Sphinx の言語コード（`ja` / `zh_CN` / `pt_BR` 等のロケール付き形式を含む）から Typst の `lang`（必要なら `region`）への変換規則がテストで固定されており、未知・非標準の値でビルドが落ちない。
@@ -352,7 +352,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
-| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | In Progress|  |
+| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 0/TBD | Not started | - |
 
 ## Backlog
