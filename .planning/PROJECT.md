@@ -30,8 +30,13 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
   翻訳は別プロジェクトを親に Translations でリンクするモデル（`/ja/latest/`）。これに伴い
   `docs/build_multilang.py`（180 行）、`tox.ini` の `[testenv:docs-multilang]`、
   `docs/source/_templates/language-switcher.html`、`conf.py:71-89` の `html_context` / `html_sidebars`
-  言語スイッチャ配線を撤去し、RTD 純正の言語フライアウトに置換。`docs/locale/ja/` の 13 個の `.po` は
-  そのまま活きる
+  言語スイッチャ配線を撤去し、RTD 純正の言語フライアウトに置換。
+  **2026-07-26 改訂（Phase 30 discussion, D-06）— 当初「`docs/locale/ja/` の 13 個の `.po` はそのまま
+  活きる」と書いていたが反転した:** 同一リポジトリを 2 回インポートするのではなく、
+  `sphinx-doc/sphinx-doc-translations` と同じ「翻訳専用リポジトリ + submodule」方式を採る
+  （RTD 公開 API での実測: `sphinx` の翻訳 15 件はすべて別プロジェクトかつ別リポジトリ）。カタログは
+  生き続けるが、住所が `typsphinx-doc-translations` に変わる。`docs/Makefile` の
+  `gettext`/`locale-init`/`locale-update` も一緒に移る（D-12）
 - **GitHub Pages 撤去** — `docs.yml:57-63` の `peaceiris/actions-gh-pages` デプロイステップと `:40-43`
   の PDF コピーステップを削除し、`:34-35` を `docs-multilang` → `docs-html` へ。`tox -e docs-pdf`
   （typstpdf 回帰ゲート）と `:65-71` のタグ時 Release 添付は**残す**。`gh-pages` ブランチ削除
@@ -71,9 +76,13 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
   - **ルートのブラウザ言語自動判定リダイレクト喪失** — 受容。RTD はバージョンへリダイレクトするが
     訪問者の言語は自動判定しないため相当機能が無い。再実装は本マイルストーンが消そうとしている自前
     テンプレートコードを再導入することになるので行わない
-  - **日本語 PDF は出さない** — `typst-py` の埋め込みフォント（Libertinus Serif / New Computer Modern）
-    に CJK グリフが無く、`build.apt_packages` でのフォント導入＋グリフ実測ゲートがセットで必要。
-    v0.6.3 Phase 27.1 が同じ理由で CJK 同梱を明示的に却下しているため、覆すなら独立した作業（I18N-03）
+  - ~~**日本語 PDF は出さない**~~ — **2026-07-26 に反転（Phase 30 discussion, D-01/D-04）。**
+    当初の理由（`typst-py` の埋め込みフォントに CJK グリフが無く、`build.apt_packages` でのフォント
+    導入＋グリフ実測ゲートがセットで必要）は今も正しいが、翻訳リポジトリ分離で ja 側の
+    `.readthedocs.yaml` を独立に書けるようになり、出す/出さないが明示的な選択肢になったため、
+    オーナーが「出す」を選択。**I18N-03 は Future から v1 へ昇格し Phase 30.1 に割当**。グリフゲートは
+    ローカル ja ビルド（実測 94 ページ / 1,811,337 バイト / CJK 1,997 文字、2026-07-26）との内容比較
+    ＋抽出目視（D-03）
   - **PR プレビュービルドは v1 から落とす** — オーナー側チェックボックス 1 つでリポジトリ側の作業が
     無く、`docs.yml` が既に PR でドキュメントビルドをゲートしている。後からいつでも有効化可能（RTD-05）
 - **既定バージョンの適用タイミングは「stable」の決定を覆すのではなく順序付ける:** RTD のルート

@@ -10,7 +10,8 @@
 - ✅ **v0.6.3 — config & docs 実測整合 + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
 - 🚧 **v0.6.4 — Read the Docs migration** — Phases 29–33 (in progress, scoped 2026-07-25)
 
-**Active milestone: v0.6.4 — Read the Docs migration.** 12 v1 requirements across 5 phases (29–33).
+**Active milestone: v0.6.4 — Read the Docs migration.** 13 v1 requirements across 6 phases (29–33,
+incl. the inserted 30.1).
 Phase numbering continues from v0.6.3's last phase (28). Next: `/gsd-plan-phase 29`.
 
 ## Phases
@@ -181,11 +182,13 @@ drift unwatched.
 
 **Milestone goal:** Apply this project's own standard — "what the docs promise is what actually
 happens" — to the *publishing* surface: a URL typsphinx publishes must actually resolve, and the PDF a
-reader downloads must be the one typsphinx's own `typstpdf` builder produced. Five phases: (1) stand up
+reader downloads must be the one typsphinx's own `typstpdf` builder produced. Six phases: (1) stand up
 the RTD build for the English parent (`.readthedocs.yaml`, the `READTHEDOCS_LANGUAGE` seam in
 `conf.py`, the `build.jobs.build.pdf` typstpdf override) and resolve the milestone's one genuinely open
-empirical unknown by reading a real build log; (2) the Japanese translation project plus the deletion
-round that removes the hand-rolled multilang machinery and the unreachable orphan doc pair; (3) repoint
+empirical unknown by reading a real build log; (2) the deletion round that removes the hand-rolled
+multilang machinery and the unreachable orphan doc pair; (2.1) the Japanese site, built from a
+**separate** `typsphinx-doc-translations` repository registered as an RTD translation project — a
+model adopted on 2026-07-26, replacing the original re-import-the-same-repository plan; (3) repoint
 every published URL at RTD and install a repo-wide link guard that can see the files Sphinx never
 scans; (4) the irreversible GitHub Pages teardown, ordered *after* every reversible piece; (5) prep-only
 Release.
@@ -209,7 +212,7 @@ has no build, and `stable` cannot exist until the `v0.6.4` tag (RTD has refused 
 `.readthedocs.yaml` since 2023-09-25, so no earlier tag can ever qualify). The only phase that can
 *prevent* it is the one that creates the project, so Phase 29 discharges it by setting Default Version
 = `latest` and proving the root resolves with a real HTTP fetch. The invariant then stands for the rest
-of the milestone: **Phases 30, 31 and 32 each re-fetch the documentation root as part of their own
+of the milestone: **Phases 30, 30.1, 31 and 32 each re-fetch the documentation root as part of their own
 verification**, and Phase 33 hands the `latest` → `stable` flip to the owner as an explicit post-tag
 step. Mapping RTD-04 to Phase 33 would leave the middle of the milestone unowned; splitting it would
 break one-requirement-one-phase.
@@ -217,9 +220,13 @@ break one-requirement-one-phase.
 **Two failure modes present as *successful builds*** (REQUIREMENTS.md invariant #7), so their criteria
 are content-level, never status-level:
 
-- **I18N-01** — a Japanese RTD project builds green while rendering 100% English, because RTD sets
-  `READTHEDOCS_LANGUAGE` and `conf.py:51` currently reads only `SPHINX_LANGUAGE`. Phase 30's criterion
-  matches actual translated strings from `docs/locale/ja/` in the served HTML.
+- **I18N-01** — a Japanese RTD project builds green while rendering 100% English. The original cause
+  (RTD sets `READTHEDOCS_LANGUAGE`; `conf.py` read only `SPHINX_LANGUAGE`) was closed by Phase 29's
+  `_resolve_language()` seam, but the failure mode outlives it: the ja catalogs are only **24.3%**
+  translated (257/1058 msgids, measured 2026-07-26), with `api/index`, `contributing`, `changelog`
+  and `user_guide/templates` at **zero**. **Phase 30.1's** criterion therefore matches actual
+  translated strings in the served HTML *against a docname with full coverage* — probing one of the
+  0% files would show all-English on a perfectly healthy site.
 
 - **RTD-02** — Typst substitutes a missing font silently (no error, no warning), so a glyph-wrong PDF
   builds successfully. Phase 29's criterion content-compares the downloaded RTD PDF against the
@@ -251,14 +258,22 @@ both traps this project has already been burned by. (a) `tests/test_documentatio
 go in the **same commit** as their subjects, and the proof is a green full `pytest` run *after* the
 deletion, not the deletion commit. (b) `docs/source/installation.rst` is a **live, toctree-reachable**
 file, entirely distinct from the root orphan `docs/installation.rst`; it and its `.po` catalog stay
-byte-unchanged. (c) I18N-02's deletion set is **larger than the milestone brief stated** — research's
+byte-unchanged. (c) I18N-02's deletion set has grown **twice** beyond the milestone brief: research's
 grep added `docs/source/_templates/page.html` and `docs/Makefile`'s `multilang`/`serve-multilang`
-targets on top of `build_multilang.py`, `tox.ini`'s `[testenv:docs-multilang]`,
-`_templates/language-switcher.html`, `_static/custom.css` (a **full** delete: all 41 lines are
-language-switcher CSS) and `conf.py`'s `html_context`/`html_sidebars` wiring. Per invariant #4 the
-authoritative list is a **fresh repo-wide grep at execution time**, not this one. (d) A
-deletion-bearing branch trips this project's `worktree.cleanup-wave` deletion guard (Phase 27
-precedent, PROJECT.md D-13) — Phase 30 should expect a **manual merge** step.
+targets, and Phase 30's discussion (2026-07-26) added `docs/Makefile`'s `html-ja` target (which would
+silently render 100% English once the catalogs relocate) and `conf.py`'s `html_static_path` (left
+pointing at a directory emptied by the `custom.css` delete) — on top of `build_multilang.py`,
+`tox.ini`'s `[testenv:docs-multilang]`, `_templates/language-switcher.html`, `_static/custom.css`
+(a **full** delete: all 40 lines are language-switcher CSS) and `conf.py`'s
+`html_context`/`html_sidebars` wiring. Per invariant #4 the authoritative list is a **fresh repo-wide
+grep at execution time**, not this one. (c2) That grep has two **measured** false positives which must
+*survive*: `tests/fixtures/confval_field_body_render_gate/index.rst`'s `.. confval:: html_sidebars`
+(an unrelated Sphinx-directive fixture) and `tests/test_readthedocs_config.py`'s four
+`html_context["language"]` assertions, which get repointed at the `language` seam rather than deleted.
+(d) A deletion-bearing branch trips this project's `worktree.cleanup-wave` deletion guard (Phase 27
+precedent, PROJECT.md D-13) — Phase 30 should expect a **manual merge** step. (e) Ordering: Phase 30's
+deletions wait on **Phase 30.1** having the replacement observed serving and the `docs/locale/ja/`
+catalogs already relocated.
 
 **Milestone invariants (every phase)** — REQUIREMENTS.md § Milestone Invariants: zero new runtime
 dependencies; no `@preview` version bump; the now-**four**-surface version-sync guard (`writer.py`,
@@ -266,9 +281,11 @@ dependencies; no `@preview` version bump; the now-**four**-surface version-sync 
 runtime code change at all** — if a phase appears to need one, that is a re-scope signal, not a reason
 to widen the diff. `docs/source/conf.py` is docs, not runtime.
 
-**Seven owner-manual RTD web-UI steps have no automated acceptance criterion** (REQUIREMENTS.md §
-Owner-Manual Steps): en project creation (+ **slug confirmation before creation** — RTD slugs are not
-self-service changeable), a *separate* ja project with Language=Japanese in **its own** Admin settings,
+**Eight owner-manual steps have no automated acceptance criterion** — seven RTD web-UI actions plus
+one GitHub repository creation (REQUIREMENTS.md § Owner-Manual Steps): en project creation
+(+ **slug confirmation before creation** — RTD slugs are not self-service changeable), creating the
+`typsphinx-doc-translations` repository, a *separate* ja RTD project pointed at **that** repository
+with Language=Japanese in **its own** Admin settings,
 **linking ja under the en parent's Settings → Translations** (the step most likely to be missed —
 creating both projects without linking leaves two working but *unswitchable* sites), independent
 version activation on the ja project, the Default Version `latest` → `stable` flip **after** the tag,
@@ -290,7 +307,8 @@ publish (tag `v0.6.4` → `release.yml` → PyPI + GitHub Release) executes at `
 (v0.5.0 Phase 10 / v0.6.2 Phase 23 / v0.6.3 Phase 28 precedent).
 
 - [x] **Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision** - `.readthedocs.yaml` + the `READTHEDOCS_LANGUAGE` seam; the en project observed green from a raw build log (in-repo install, no `latexmk`); the `@preview`-egress unknown resolved either way; root URL owned at Default Version = `latest` (completed 2026-07-26)
-- [ ] **Phase 30: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal** - `/ja/latest/` serving real Japanese prose behind RTD's own flyout, and one deletion round removing the multilang machinery + the orphan doc pair with their collateral tests (expect a manual merge — deletion guard)
+- [ ] **Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal** - One deletion round removing the multilang machinery (switcher, styling, `conf.py` wiring, `build_multilang.py`, every task-runner target that drove it) + the orphan doc pair with their collateral tests, on a green tree with `docs.yml` still internally consistent (expect a manual merge — deletion guard)
+- [ ] **Phase 30.1: Translations Repository + Japanese RTD Site (INSERTED)** - `/ja/latest/` serving real Japanese prose behind RTD's own flyout, built from a separate `typsphinx-doc-translations` repository registered as an RTD translation project, with the submodule pin auto-advanced and the Japanese PDF proven glyph-correct (I18N-03, promoted to v1)
 - [ ] **Phase 31: Published-URL Cutover + Repo-Wide Link Guard** - Every published documentation URL repointed at RTD and fetched over real HTTP; an advisory repo-wide link check installed with a recorded pre-rewrite negative control; Issue #119 closed and the About → Website field set
 - [ ] **Phase 32: GitHub Pages Teardown (IRREVERSIBLE)** - Behind a freshly re-taken RTD-is-serving gate: the `actions-gh-pages` deploy step and the `gh-pages` branch deleted, no redirect stubs, with `tox -e docs-pdf` and the tag-time PDF Release attachment intact
 - [ ] **Phase 33: v0.6.4 Release Prep** - Prep-only: bump 0.6.4 + `uv.lock` + README Status + `CHANGELOG` (incl. the tail link block), assert the milestone invariants over the full diff, hand the post-tag `stable` flip to the owner; publish at `/gsd-complete-milestone`
@@ -377,70 +395,173 @@ ja's very first build resolves correctly instead of needing a second pass; it is
 edit locally (both env vars unset → `"en"`, as today). `conf.py` is docs, not runtime — the
 no-`typsphinx/`-change invariant holds.
 
-### Phase 30: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
+### Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal
 
-**Goal**: Japanese readers get their documentation from Read the Docs as actual Japanese prose,
-switchable through RTD's own flyout, and the repository no longer carries the hand-rolled
-multi-language publishing machinery or the unreachable orphan docs it accumulated.
-**Depends on**: Phase 29 (the `.readthedocs.yaml` + `language` seam must be proven sound before the ja
-project is created, and the old switcher must not be deleted before RTD's replacement is confirmed
-working)
-**Requirements**: I18N-01, I18N-02, DOC-08
+**Goal**: The repository no longer carries the hand-rolled multi-language publishing machinery or
+the unreachable orphan docs it accumulated — the language switcher, its styling, its
+`conf.py` wiring, the `build_multilang.py` builder and every task-runner target that drove it are
+gone, together with the `docs/usage.rst` / root `docs/installation.rst` pair and the tests that
+hard-assert them — while the documentation still builds green and `docs.yml` stays internally
+consistent.
+**Depends on**: Phase 29 (the `.readthedocs.yaml` + `language` seam must be proven sound before
+anything here is deleted) and Phase 30.1 (its Japanese site must be observed serving before the
+switcher and the locale tooling are deleted here — the replacement is confirmed working first, and
+the `docs/locale/ja/` catalogs must already have been relocated, since this phase removes the
+`docs/Makefile` targets that maintain them)
+**Requirements**: I18N-02, DOC-08
 **Success Criteria** (what must be TRUE):
 
-  1. A page fetched from `/ja/latest/` contains **actual translated strings** from
-     `docs/locale/ja/**/*.po` in its served body — matched against specific catalog msgstr values — so a
-     Japanese project that builds green while rendering 100% English fails this criterion.
+  1. A **fresh repo-wide grep** run immediately before the deletion commit (not scoped to the files
+     the requirement names) returns zero live references to `build_multilang`, `docs-multilang`,
+     `serve-multilang`, `html-ja`, `language-switcher`, `page.html`'s `sessionStorage` key,
+     `custom.css`, `html_static_path`, and the `html_context` / `html_sidebars` language wiring.
+     Excluded from the count by standing precedent: `CHANGELOG.md` and `.planning/**` historical
+     entries (D-02/D-10), and two **measured** false positives that must **survive** in the tree —
+     `tests/fixtures/confval_field_body_render_gate/index.rst`'s `.. confval:: html_sidebars`
+     (an unrelated Sphinx-directive fixture) and `tests/test_readthedocs_config.py`'s
+     `html_context` assertions, which are repaired rather than deleted (SC#4).
 
-  2. RTD's own flyout offers the en↔ja switch **from both sites**, and the ja project's version list is
-     independently activated (translation projects inherit nothing from the parent) — owner-observed,
-     since linking under the en parent's Settings → Translations is web-UI work no test in this
-     repository can assert.
+  2. The `conf.py` surgery is **confined to the switcher wiring**: `html_context`, `html_sidebars`,
+     `html_css_files`, and `html_static_path` are gone, while Phase 29's `_resolve_language()`
+     helper and the `language = _resolve_language()` assignment are **byte-unchanged** — both RTD
+     projects depend on that seam — and no file under `typsphinx/` is touched at all (milestone
+     invariant #3).
 
-  3. A **fresh repo-wide grep** run immediately before the deletion commit (not scoped to the files the
-     requirement names) returns zero live references to `build_multilang`, `docs-multilang`,
-     `serve-multilang`, `language-switcher`, `page.html`'s `sessionStorage` key, `custom.css`, and the
-     `html_context` / `html_sidebars` language wiring — with `CHANGELOG.md` and
-     `.planning/milestones/**` historical entries excluded by standing precedent (D-02/D-10).
+  3. `docs/usage.rst` and the **root orphan** `docs/installation.rst` are gone together with
+     `tests/test_documentation_usage.py` and `tests/test_documentation_installation.py` in the
+     **same commit** as their subjects (milestone invariant #5); the live toctree-reachable
+     `docs/source/installation.rst` and its `.po` catalog are byte-unchanged; and a **full `pytest`
+     run after the deletions is green** — that run, not the deletion commit, is the proof.
 
-  4. `docs/usage.rst` and the **root orphan** `docs/installation.rst` are gone together with
-     `tests/test_documentation_usage.py` and `tests/test_documentation_installation.py` in the **same
-     commit** as their subjects; the live toctree-reachable `docs/source/installation.rst` and its `.po`
-     catalog are byte-unchanged; and a **full `pytest` run after the deletions is green** — that run,
-     not the deletion commit, is the proof.
+  4. The collateral damage in `tests/test_readthedocs_config.py` is **repaired, not deleted**: its
+     four `html_context["language"]` assertions are repointed at `module.language` /
+     `_resolve_language()` so the seam stays covered, and the docstring on the PDF
+     no-language-flag assertion no longer cites the superseded "not a step toward the deferred
+     Japanese PDF (D-11)" rationale. The suite is green with the assertions still asserting
+     something real.
 
-  5. `tox -e docs-html` and `tox -e docs-pdf` are green on the post-deletion tree and an **observed**
-     `docs.yml` CI run is green — no workflow step references a tox env or build path that no longer
-     exists — and the documentation root URL still resolves (RTD-04 standing invariant).
+  5. `tox -e docs-html` and `tox -e docs-pdf` are green on the post-deletion tree and an
+     **observed** `docs.yml` CI run is green — no workflow step references a tox env or build path
+     that no longer exists, and the `peaceiris/actions-gh-pages` step's `publish_dir` points at
+     `./docs/_build/html` rather than the deleted multilang tree — and the documentation root URL
+     still resolves (RTD-04 standing invariant).
 
 **Plans**: TBD
 
-**Owner-manual dependencies (no automated criterion possible):** creating a **separate** RTD project for
-Japanese (re-import the same repository) and setting Language = Japanese in **that project's own** Admin
-settings — this dropdown, not anything in `conf.py`, is what makes RTD emit `READTHEDOCS_LANGUAGE=ja`;
-**linking it under the English parent's Settings → Translations** (the step most likely to be missed);
-activating versions on the ja project. Criterion 1 verifies the outcome by fetching real content;
-criterion 2 is explicitly owner-observed.
+**Owner-manual dependencies (no automated criterion possible):** none of the RTD web-UI work lands
+here — creating the Japanese project, setting its Language, linking it under the English parent's
+Settings → Translations, and activating its versions all belong to **Phase 30.1**. The only manual
+step this phase owns is the merge: `worktree.cleanup-wave`'s **deletion guard** always blocks a
+branch containing deletions with no bypass, and this phase is deletion-heavy on two independent
+axes, so plan for a manual merge after measuring the deletion scope (Phase 27 precedent,
+PROJECT.md D-13).
 
-**Notes**: `docs/locale/ja/**/*.po` (13 files) and `docs/Makefile`'s `gettext`/`locale-init`/
-`locale-update` targets are **unchanged** — orthogonal to the hosting mechanism. Keep `docs.yml`
-internally consistent as the multilang tree disappears (the `docs-multilang` → `docs-html` step swap,
-the PDF-copy step into `docs/_build/multilang/en/`, and the HTML artifact path); the
-`peaceiris/actions-gh-pages` **deploy** step itself is Phase 32's to delete, so its `publish_dir` must
-not be left pointing at a tree that no longer exists. Accepted, recorded loss: deleting
-`build_multilang.py` removes the root-page `navigator.language` auto-redirect, and RTD has no
-equivalent (it redirects to a *version*, never auto-detects a *language*) — a Japanese-browser visitor
-now lands on English and clicks the flyout. Expect the `worktree.cleanup-wave` **deletion guard** to
-block this branch's automated cleanup; plan for a manual merge after measuring the deletion scope
-(Phase 27 precedent).
+**Notes**: **Two statements that stood in this entry before 2026-07-26 are now reversed** by Phase
+30's discussion (see `30-CONTEXT.md` § `<roadmap_amendments>`). (a) `docs/locale/ja/**/*.po` (13
+files) are **no longer** unchanged in place — D-06 moves them into the new
+`typsphinx-doc-translations` repository, which is **Phase 30.1's** work; this phase must not delete
+them. (b) `docs/Makefile`'s `gettext` / `locale-init` / `locale-update` targets are **no longer**
+unchanged — D-12 moves them to the translations repository, so this phase removes them from
+`docs/Makefile` alongside `multilang`, `serve-multilang`, and `html-ja` (D-13, which fails silently
+by rendering 100% English once the catalogs leave). **Ordering is load-bearing:** removing the
+locale tooling here before Phase 30.1 has it working elsewhere leaves translation authoring with no
+home — which is why the `Depends on` line above now names 30.1. Keep `docs.yml` internally
+consistent as the multilang tree disappears — the `docs-multilang` → `docs-html` step swap,
+deleting the PDF-copy step into `docs/_build/multilang/en/`, and the HTML artifact path — while the
+`peaceiris/actions-gh-pages` **deploy step itself** stays for Phase 32 to delete (D-14 repoints its
+`publish_dir`; it does not remove the step). Accepted, recorded loss: deleting `build_multilang.py`
+removes the root-page `navigator.language` auto-redirect and RTD has no equivalent (it redirects to
+a *version*, never auto-detects a *language*) — a Japanese-browser visitor now lands on English and
+clicks the flyout.
+
+### Phase 30.1: Translations Repository + Japanese RTD Site (INSERTED)
+
+**Goal**: Japanese readers get typsphinx's documentation from Read the Docs as actual Japanese
+prose, switchable through RTD's own flyout, served from a **separate translations repository**
+(`typsphinx-doc-translations`) registered as an RTD translation project of the `typsphinx` parent —
+with the `docs/locale/ja/` catalogs relocated there, the locale tooling moved with them, the
+submodule pin kept current automatically, and the Japanese PDF proven glyph-correct rather than
+merely built.
+**Depends on**: Phase 29 (the `.readthedocs.yaml` + `language` seam must be proven sound before a
+second project reads it). This phase must reach a confirmed-serving state **before** Phase 30
+deletes the old switcher and the locale tooling — the replacement is observed working first.
+**Requirements**: I18N-01, I18N-03
+**Success Criteria** (what must be TRUE):
+
+  1. A page fetched from `https://typsphinx.readthedocs.io/ja/latest/` contains **actual translated
+     strings** from the relocated `ja` catalogs in its served body — matched against specific
+     catalog msgstr values — so a Japanese project that builds green while rendering 100% English
+     fails this criterion. **The probe docname must be one with full coverage** (`user_guide/builders`
+     is 65/65, `examples/basic` is 30/30 — measured 2026-07-26); `changelog`, `contributing`,
+     `api/index`, and `user_guide/templates` are 0% translated and would show all-English on a
+     perfectly healthy site.
+
+  2. RTD's own flyout offers the en↔ja switch **from both sites**, and the ja project's version
+     list is independently activated (translation projects inherit nothing from the parent) —
+     owner-observed, since creating the project, setting its Language, and linking it under the en
+     parent's Settings → Translations is web-UI work no test in this repository can assert.
+
+  3. The translations repository builds the **current** English source, not a frozen one: its
+     submodule pin advances automatically (a GitHub Actions workflow modelled on
+     `sphinx-doc-translations`'s `main.yml` but **without** its Transifex coupling — `submodule
+     update --remote` → regenerate `.pot` → `sphinx-intl update` → commit if changed), demonstrated
+     by an observed run that moves the pin and by `/ja/latest/` reflecting a source change made
+     after the ja project was created.
+
+  4. The Japanese PDF is **glyph-correct, not merely built**: compared against a local
+     `SPHINX_LANGUAGE=ja` build of the same commit (94 pages / 1,811,337 bytes, measured
+     2026-07-26), page count and extracted text match, the RTD-built PDF embeds at least one font
+     with CJK coverage, and the owner confirms sampled pages render Japanese rather than tofu.
+     Run by hand with commands and output pasted verbatim into the verification record; **no
+     comparison script is committed** (the RTD-built PDF is unreachable from CI, so a committed
+     script would look like a gate that never runs — Phase 29 D-15).
+
+  5. `/ja/stable/` is reachable in the same way `/en/stable/` is: the translations repository is
+     tagged in lockstep with the parent so RTD's `stable` resolves there too. Since `stable`
+     cannot exist before the `v0.6.4` tag, this phase discharges it by leaving the ja project's
+     Default Version at `latest` and **recording the two-repository tag step as an explicit
+     handoff** into the release procedure — the same shape as Phase 29's `latest` → `stable`
+     handoff, not an assertion that `/ja/stable/` already serves.
+
+**Plans**: TBD
+
+**Owner-manual dependencies (no automated criterion possible):** create the
+`typsphinx-doc-translations` GitHub repository; create a **separate** RTD project pointed at *that*
+repository and set Language = Japanese in **its own** Admin settings — this dropdown, not anything
+in `conf.py`, is what makes RTD emit `READTHEDOCS_LANGUAGE=ja`; **link it under the English
+parent's Settings → Translations** (the step most likely to be missed — two working but
+unswitchable sites otherwise); activate versions on the ja project independently. Criterion 1
+verifies the outcome by fetching real content; criteria 2 and the human half of 4 are explicitly
+owner-observed. The ja project's **slug is not a decision** — enter `typsphinx-ja` (measured 404,
+unclaimed, 2026-07-25; the form all 15 Sphinx translation projects use), and if it is taken pick
+any other free name and continue: unlike the parent slug it is never published, since readers see
+`/ja/latest/` under the parent domain.
+
+**Notes**: This phase exists because the milestone's original plan — re-importing *this* repository
+twice — was replaced on 2026-07-26 by the `sphinx-doc/sphinx-doc-translations` model (30-CONTEXT.md
+D-06), measured from RTD's public API: the `sphinx` project has 15 translations, every one a
+distinct RTD project building a *different* repository. **I18N-03 was promoted from Future to v1**
+in the same discussion (D-04): the ja project emits a Japanese PDF, and D-01's decision to ship it
+was re-confirmed on the post-split premise rather than inherited. Two consequences carry standing
+cost: every release now tags **two** repositories (D-07), and the submodule pin needs automation or
+the ja site silently serves translations of a stale English source (D-08). The ja catalogs ship at
+**24.3% coverage** (257/1058 msgids, measured 2026-07-26) by owner decision — I18N-01's bar is
+"actual Japanese prose is served," not "fully translated," and untranslated msgids fall back to
+English by Sphinx's normal behaviour; raising coverage is separate, later work. `/ja/` is not
+configurable: RTD derives the URL segment from the project's Language using ISO 639-1, and `jp` is
+a country code that does not appear in its list (D-10). Phase 29's open question is **live here**:
+`build.apt_packages: [fonts-noto-cjk]` installed successfully on RTD but the font Typst actually
+embedded was `MSNUZX+HanaMinA` — whether that package is load-bearing was never established, and it
+matters far more for a 94-page Japanese PDF than it did for four CJK strings in the English one.
+Measure it before the ja manifest relies on it.
 
 ### Phase 31: Published-URL Cutover + Repo-Wide Link Guard
 
 **Goal**: Every documentation URL typsphinx publishes points at Read the Docs and actually resolves,
 the external bug report about the broken link is closed with the promised fix delivered, and a
 mechanism now exists that would catch the next dead link instead of it surviving for months.
-**Depends on**: Phase 30 (the final RTD URL must exist and be serving both languages — rewriting to a
-not-yet-green project trades one broken-link class for another)
+**Depends on**: Phase 30.1 (the final RTD URL must exist and be serving **both** languages —
+rewriting to a not-yet-green project trades one broken-link class for another) and Phase 30
 **Requirements**: DOC-09, DOC-10, CI-05
 **Success Criteria** (what must be TRUE):
 
@@ -480,7 +601,7 @@ destroyed. Sphinx linkcheck stays out of scope (LNK-01, Future) and its pending 
 **Goal**: typsphinx documentation is hosted by Read the Docs and only Read the Docs — the GitHub Pages
 publish path and the branch that served it are gone — while the `typstpdf` regression gate and the
 tag-time PDF Release attachment keep working.
-**Depends on**: Phase 31, and by REQUIREMENTS.md invariant #6 on Phases 29–31 having **observed** RTD
+**Depends on**: Phase 31, and by REQUIREMENTS.md invariant #6 on Phases 29–31 (30.1 included) having **observed** RTD
 serving English HTML, Japanese HTML, and the PDF-or-documented-fallback. This phase is deliberately
 **not** folded into a neighbour: it is the milestone's only action with no undo, so it gets its own
 standing gate.

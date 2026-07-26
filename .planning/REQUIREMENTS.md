@@ -41,6 +41,12 @@ build sandbox).
 - [ ] **I18N-02**: The hand-rolled multi-language publishing machinery is gone from the repository, and
       language switching works through Read the Docs' own flyout instead.
 
+- [ ] **I18N-03**: The Japanese documentation is also downloadable as a PDF whose CJK glyphs are
+      actually rendered, not silently substituted. **Promoted from Future to v1 on 2026-07-26**
+      (Phase 30 discussion, D-04): the decision to build the Japanese site from a separate
+      translations repository with its own `.readthedocs.yaml` made the Japanese PDF a deliberate
+      deliverable rather than a side effect, and its glyph gate is the work this requirement names.
+
 ### Documentation Accuracy (DOC)
 
 - [ ] **DOC-08**: The unreachable `docs/usage.rst` / `docs/installation.rst` orphan pair is resolved,
@@ -67,6 +73,11 @@ build sandbox).
 
 - [ ] **REL-02**: `typsphinx 0.6.4` is published to PyPI, its `Documentation` metadata points at Read
       the Docs, and both `/en/stable/` and `/ja/stable/` serve that same released version.
+      **Standing cost added 2026-07-26** (Phase 30 discussion, D-07): `/ja/stable/` resolves against
+      the *translations* repository's tags, so every release from now on pushes a tag to **two**
+      repositories — the submodule bump + tag in `typsphinx-doc-translations` alongside the parent's.
+      Sphinx's own 15 translation projects avoid this by running `default_version = master`; typsphinx
+      does not, because this requirement asks for `/ja/stable/`.
 
 ---
 
@@ -82,12 +93,6 @@ Acknowledged but deliberately not in this milestone.
   under `docs/source/`), so a green linkcheck job would create false confidence about precisely the
   bug class it was added to prevent. CI-05 covers the real failure class instead. The pending todo
   `.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md` stays open.
-
-- **I18N-03**: A Japanese PDF. Deferred: `typst-py` embeds only Libertinus Serif / New Computer Modern,
-  neither of which has CJK coverage, so this needs `build.apt_packages` font provisioning plus a gate
-  that proves the glyphs are right (Typst's font fallback is silent — the failure mode is a
-  tofu-rendered PDF that builds successfully). v0.6.3 Phase 27.1 explicitly declined to bundle CJK
-  binaries for the same reason; reversing that is its own scoped piece of work.
 
 - **RTD-05**: Pull-request preview builds. Dropped from v1 by owner decision 2026-07-25 — it is a
   single owner-side checkbox with no repo-side work, and `docs.yml` already gates documentation builds
@@ -167,16 +172,21 @@ this repository can assert any of it. Tracked as an explicit checklist:
    creation** — RTD slugs are not self-service changeable, and this milestone is about to publish that
    slug into every documentation link. *(Phase 29)*
 
-2. Create a **separate** RTD project for Japanese — re-import the same repository — and set
-   Language = Japanese in *that project's* Admin settings. This setting, not anything in `conf.py`, is
-   what makes RTD emit `READTHEDOCS_LANGUAGE=ja` at build time. *(Phase 30)*
+2. Create the **`typsphinx-doc-translations` GitHub repository** (a git submodule pointing at this
+   repository, plus the relocated `ja` catalogs), then create a **separate** RTD project pointed at
+   *that* repository and set Language = Japanese in *that project's* Admin settings. This setting, not
+   anything in `conf.py`, is what makes RTD emit `READTHEDOCS_LANGUAGE=ja` at build time. **Revised
+   2026-07-26** (Phase 30 discussion, D-06): the original wording said "re-import the same
+   repository"; the `sphinx-doc/sphinx-doc-translations` model was adopted instead. The ja project's
+   slug is **not** a decision — unlike the parent slug it is never published, so any free name works.
+   *(Phase 30.1)*
 
 3. Link the Japanese project under the English parent's Settings → Translations. **Most likely step to
    be missed**: creating both projects without linking them leaves two working but unswitchable sites.
-   *(Phase 30)*
+   *(Phase 30.1)*
 
 4. Activate versions on the Japanese project independently — translation projects do not inherit the
-   parent's activated-version list. *(Phase 30, re-checked at Phase 33's handoff)*
+   parent's activated-version list. *(Phase 30.1, re-checked at Phase 33's handoff)*
 
 5. Set Default Version = `stable` — **only after** the `v0.6.4` tag has been pushed and built green
    (RTD-04 / REL-02). Before then it stays `latest`. *(Phase 33 handoff to
@@ -198,8 +208,9 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | RTD-02 | Phase 29 | Complete |
 | RTD-03 | Phase 29 | Complete |
 | RTD-04 | Phase 29 | Complete |
-| I18N-01 | Phase 30 | Pending |
+| I18N-01 | Phase 30.1 | Pending |
 | I18N-02 | Phase 30 | Pending |
+| I18N-03 | Phase 30.1 | Pending |
 | DOC-08 | Phase 30 | Pending |
 | DOC-09 | Phase 31 | Pending |
 | DOC-10 | Phase 31 | Pending |
@@ -209,8 +220,8 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 
 **Coverage:**
 
-- v1 requirements: 12 total
-- Mapped to phases: 12 ✓ (Phases 29–33)
+- v1 requirements: 13 total
+- Mapped to phases: 13 ✓ (Phases 29–33, incl. the inserted 30.1)
 - Unmapped: 0
 - Duplicates (a requirement in more than one phase): 0
 
@@ -230,4 +241,8 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-07-25 — roadmap created (Phases 29–33); Traceability and Coverage populated, owner-manual steps annotated with their owning phase*
+*Last updated: 2026-07-26 — Phase 30 discussion split the phase into 30 / 30.1, promoted I18N-03 from
+Future to v1, and replaced the re-import-the-same-repository plan with a separate translations
+repository (see `phases/30-.../30-CONTEXT.md` § `<roadmap_amendments>` for the full amendment list).
+Previously 2026-07-25 — roadmap created (Phases 29–33); Traceability and Coverage populated,
+owner-manual steps annotated with their owning phase*

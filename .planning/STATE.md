@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 30
-current_phase_name: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
+current_phase: 30.1
+current_phase_name: Translations Repository + Japanese RTD Site
 status: planning
 stopped_at: Phase 30 context gathered
-last_updated: "2026-07-26T02:10:00.659Z"
+last_updated: "2026-07-26T02:25:41.020Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 29 complete, transitioned to Phase 30
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 20
+  percent: 17
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 30 — Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
+Phase: 30.1 — Translations Repository + Japanese RTD Site
 Plan: Not started
 Status: Ready to plan
 Progress: [░░░░░░░░░░] 0% (0/5 phases)
@@ -45,12 +45,13 @@ Last activity: 2026-07-26 — Phase 29 complete, transitioned to Phase 30
 ## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
 
 Move documentation hosting from GitHub Pages to Read the Docs so that every published URL resolves and
-the downloadable PDF is the one `typstpdf` produced. 12 v1 requirements across 5 phases:
+the downloadable PDF is the one `typstpdf` produced. 13 v1 requirements across 6 phases:
 
 | Phase | Name | Requirements |
 |-------|------|--------------|
 | 29 | RTD Build Establishment (English Parent) + PDF Path Decision | RTD-01, RTD-02, RTD-03, RTD-04 |
-| 30 | Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | I18N-01, I18N-02, DOC-08 |
+| 30 | Hand-Rolled Multi-Language Machinery & Orphan Removal | I18N-02, DOC-08 |
+| 30.1 | Translations Repository + Japanese RTD Site (INSERTED) | I18N-01, I18N-03 |
 | 31 | Published-URL Cutover + Repo-Wide Link Guard | DOC-09, DOC-10, CI-05 |
 | 32 | GitHub Pages Teardown (IRREVERSIBLE) | CI-04 |
 | 33 | v0.6.4 Release Prep | REL-02 |
@@ -71,9 +72,13 @@ RTD build log in Phase 29, and the owner has pre-agreed the fallback — RTD-03'
 confirmed in `Cargo.toml`) are settled; do not re-open them.
 
 **Two failure modes present as *successful builds*** and therefore have content-level criteria:
-I18N-01 (a Japanese project builds green while rendering 100% English — RTD sets
-`READTHEDOCS_LANGUAGE`, `conf.py:51` reads only `SPHINX_LANGUAGE`) and RTD-02 (Typst substitutes a
-missing font silently, so a glyph-wrong PDF builds successfully).
+I18N-01 (a Japanese project builds green while rendering 100% English) and RTD-02 (Typst substitutes a
+missing font silently, so a glyph-wrong PDF builds successfully). I18N-01's original cause —
+`conf.py` reading only `SPHINX_LANGUAGE` — was closed by Phase 29's `_resolve_language()` seam, but
+the failure mode outlives it: the ja catalogs are **24.3% translated** (257/1058 msgids, measured
+2026-07-26), so Phase 30.1's probe must target a fully-translated docname (`user_guide/builders`
+65/65, `examples/basic` 30/30) — `api/index`, `contributing`, `changelog` and
+`user_guide/templates` are at zero and would read all-English on a healthy site.
 
 **RTD-04 spans the milestone but is owned by Phase 29** (the failure mode is created at
 project-creation time). Default Version stays `latest` throughout and flips to `stable` only after the
@@ -201,11 +206,14 @@ phase cannot deadlock. Not a blocker; a decision point.
 **Deletion guard, expected to fire in Phase 30:** `worktree.cleanup-wave` always blocks a branch that
 contains deletions (no bypass). Phase 30 deletes the multilang machinery *and* the orphan doc pair, so
 plan for a manual merge after measuring the deletion scope — Phase 27's precedent (PROJECT.md D-13).
+Phase 30.1 also relocates `docs/locale/ja/`'s 13 catalogs out of this repository, which is a deletion
+here as well.
 
-**Seven owner-manual RTD web-UI steps have no automated acceptance criterion** (REQUIREMENTS.md §
-Owner-Manual Steps, now annotated with owning phases). The step most likely to be missed is linking the
-Japanese project under the English parent's Settings → Translations — creating both projects without
-linking leaves two working but *unswitchable* sites.
+**Eight owner-manual steps have no automated acceptance criterion** — seven RTD web-UI actions plus
+creating the `typsphinx-doc-translations` GitHub repository (REQUIREMENTS.md § Owner-Manual Steps,
+annotated with owning phases). The step most likely to be missed is linking the Japanese project under
+the English parent's Settings → Translations — creating both projects without linking leaves two
+working but *unswitchable* sites.
 
 UI note: this project's phases are Typst PDF typesetting / config / docs / hosting work, **not**
 frontend UI — the `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui` if it
@@ -221,6 +229,13 @@ to be **larger than the milestone brief stated** (research's grep added `_templa
 `docs/Makefile`'s `multilang`/`serve-multilang` targets), which is itself the reason the invariant
 demands a *fresh* grep rather than trust in any list — including research's.
 
+### Roadmap Evolution
+
+- Phase 30 edited: edited fields: title, goal, requirements, success_criteria, owner-manual dependencies, notes — I18N-01 split out to a forthcoming Phase 30.1; I18N-03 promoted to v1
+- Phase 30.1 inserted after Phase 30: Translations Repository + Japanese RTD Site (URGENT)
+- Phase 30.1 edited: edited fields: goal, depends_on (Phase 30 -> Phase 29, direction corrected), requirements (I18N-01, I18N-03), success_criteria (5 new), owner-manual dependencies, notes
+- Phase 30 edited: edited fields: depends_on — added Phase 30.1 (deferred at the earlier edit because 30.1 did not yet exist and would have failed validation)
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -234,7 +249,7 @@ Items acknowledged and carried forward from milestone closes:
 | Config | CONF-06: `typst_elements` keys beyond papersize/fontsize/**lang** — `lang` は 2026-07-25 に CONF-07 として切り出し v1 昇格（Phase 27.1）、残りは据え置き | Deferred to future milestone | v0.6.3 scoping |
 | Verification | No `v0.6.3-MILESTONE-AUDIT.md` produced (owner accepted; Phase 28's live gate re-run stood in) | Accepted at close | v0.6.3 close |
 | Docs/CI | LNK-01: `sphinx-build -b linkcheck` CI job (structurally blind to README/pyproject — CI-05 covers the real class) | Deferred to Future | v0.6.4 scoping |
-| i18n | I18N-03: a Japanese PDF (needs `build.apt_packages` CJK fonts + a glyph-correctness gate; Phase 27.1 declined CJK bundling for the same reason) | Deferred to Future | v0.6.4 scoping |
+| i18n | I18N-03: a Japanese PDF | **Promoted to v1 2026-07-26** (Phase 30 discussion D-04) — assigned to Phase 30.1 | was v0.6.4 scoping |
 | RTD | RTD-05: pull-request preview builds (one owner-side checkbox, no repo work, enable any time) | Deferred to Future | v0.6.4 scoping |
 | RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
 | UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
