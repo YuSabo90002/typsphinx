@@ -49,7 +49,7 @@ build sandbox).
 
 ### Documentation Accuracy (DOC)
 
-- [ ] **DOC-08**: The unreachable `docs/usage.rst` / `docs/installation.rst` orphan pair is resolved,
+- [x] **DOC-08**: The unreachable `docs/usage.rst` / `docs/installation.rst` orphan pair is resolved,
       and the test suite is green afterwards — the live, toctree-reachable
       `docs/source/installation.rst` is untouched.
 
@@ -211,7 +211,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | I18N-01 | Phase 30.1 | Complete |
 | I18N-02 | Phase 30 | Complete |
 | I18N-03 | Phase 30.1 | Complete |
-| DOC-08 | Phase 30 | Pending |
+| DOC-08 | Phase 30 | Complete |
 | DOC-09 | Phase 31 | Pending |
 | DOC-10 | Phase 31 | Pending |
 | CI-05 | Phase 31 | Pending |
