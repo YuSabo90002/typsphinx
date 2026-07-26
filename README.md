@@ -5,11 +5,11 @@
 [![Python Support](https://img.shields.io/pypi/pyversions/typsphinx.svg)](https://pypi.org/project/typsphinx/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://yusabo90002.github.io/typsphinx/)
+[![Documentation Status](https://app.readthedocs.org/projects/typsphinx/badge/?version=latest)](https://typsphinx.readthedocs.io/)
 
 Sphinx extension for Typst output format support.
 
-**[📖 Documentation](https://yusabo90002.github.io/typsphinx/)** | **[🐛 Issue Tracker](https://github.com/YuSabo90002/typsphinx/issues)** | **[📦 PyPI](https://pypi.org/project/typsphinx/)**
+**[📖 Documentation](https://typsphinx.readthedocs.io/)** | **[🐛 Issue Tracker](https://github.com/YuSabo90002/typsphinx/issues)** | **[📦 PyPI](https://pypi.org/project/typsphinx/)**
 
 ## Overview
 
@@ -264,17 +264,19 @@ typsphinx/
 
 ## Documentation
 
-**📖 Full documentation is available at [yusabo90002.github.io/typsphinx](https://yusabo90002.github.io/typsphinx/)**
+**📖 Full documentation is available at [typsphinx.readthedocs.io](https://typsphinx.readthedocs.io/)**
+
+日本語ドキュメントは [typsphinx.readthedocs.io/ja/latest/](https://typsphinx.readthedocs.io/ja/latest/) にあります。
 
 Quick links:
 
-- [Installation Guide](https://yusabo90002.github.io/typsphinx/installation.html)
-- [Quick Start](https://yusabo90002.github.io/typsphinx/quickstart.html)
-- [User Guide](https://yusabo90002.github.io/typsphinx/user_guide/)
-- [Configuration Reference](https://yusabo90002.github.io/typsphinx/user_guide/configuration.html)
-- [Examples](https://yusabo90002.github.io/typsphinx/examples/)
-- [API Reference](https://yusabo90002.github.io/typsphinx/api/)
-- [Contributing Guide](https://yusabo90002.github.io/typsphinx/contributing.html)
+- [Installation Guide](https://typsphinx.readthedocs.io/en/latest/installation.html)
+- [Quick Start](https://typsphinx.readthedocs.io/en/latest/quickstart.html)
+- [User Guide](https://typsphinx.readthedocs.io/en/latest/user_guide/)
+- [Configuration Reference](https://typsphinx.readthedocs.io/en/latest/user_guide/configuration.html)
+- [Examples](https://typsphinx.readthedocs.io/en/latest/examples/)
+- [API Reference](https://typsphinx.readthedocs.io/en/latest/api/)
+- [Contributing Guide](https://typsphinx.readthedocs.io/en/latest/contributing.html)
 
 ## Contributing
 
