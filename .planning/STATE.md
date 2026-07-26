@@ -5,16 +5,16 @@ milestone_name: Read the Docs migration
 current_phase: 30
 current_phase_name: japanese-rtd-site-hand-rolled-machinery-orphan-removal
 status: executing
-stopped_at: Phase 30 planned (4 plans, 2 waves), ready to execute
-last_updated: "2026-07-26T11:26:19.683Z"
+stopped_at: Phase 31 context gathered
+last_updated: "2026-07-26T12:50:47.689Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 21
-  completed_plans: 17
-  percent: 33
+  completed_plans: 21
+  percent: 50
 ---
 
 # Project State
@@ -296,10 +296,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/31-published-url-cutover-repo-wide-link-guard/31-CONTEXT.md
 
-Last session: 2026-07-26
-Stopped at: Phase 30.1 complete (UAT passed, verification `passed`, security clean), ready to plan Phase 30
+Last session: 2026-07-26T12:50:47.683Z
+Stopped at: Phase 31 context gathered
 Resume: `/gsd-plan-phase 30`
 
 ## Operator Next Steps
