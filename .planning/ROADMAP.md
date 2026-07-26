@@ -523,8 +523,10 @@ deletes the old switcher and the locale tooling — the replacement is observed 
      handoff** into the release procedure — the same shape as Phase 29's `latest` → `stable`
      handoff, not an assertion that `/ja/stable/` already serves.
 
-**Plans**: 6/6 plans executed
-owner action or on a real build completing, the same shape Phase 29 used and for the same reason.
+**Plans**: 11 plans — 6/6 from the original round executed; **5 gap-closure plans added 2026-07-26**
+after `30.1-VERIFICATION.md` scored 3/5 (SC#3 and SC#4 FAILED, SC#2 and D-03 check 4 open).
+Each wave waits on an owner action or on a real build completing, the same shape Phase 29 used and for
+the same reason.
 
 Plans:
 **Wave 1**
@@ -554,6 +556,36 @@ Plans:
 
 - [x] 30.1-06-PLAN.md — SC#4: D-03's glyph gate (page count, extracted text, CJK font enumeration) plus
       the owner's tofu check held open as `human_needed`, and the phase's consolidated criterion status
+
+**Wave 6** *(gap closure; blocked on Wave 5 — the owner's look must precede the pin bump, which reflows the PDF)*
+
+- [ ] 30.1-07-PLAN.md — the two open owner observations collected against a freshly SHA-identified
+      artifact: H1 the flyout on both sites (SC#2), H2 the tofu check on the flagged pages (D-03 check 4),
+      with the H1 contradiction preserved rather than resolved
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 30.1-08-PLAN.md — the SC#3 root cause repaired: an explicit submodule branch fetch inserted before
+      `git submodule update --remote` in both the staged and live `update-pin.yml`, WR-01's clone command
+      fixed and proven by a run with a negative control, and the parent's milestone branch advanced
+
+**Wave 8** *(blocked on Wave 7; needs the repaired workflow live)*
+
+- [ ] 30.1-09-PLAN.md — SC#3 observed end to end: a triggered run watched to completion, the gitlink move
+      proven by an exhibited `Subproject commit` diff hunk, and the parent's current source observed on
+      `/ja/latest/contributing.html` by two independent probes
+
+**Wave 9** *(blocked on Wave 8; the pin bump changes the artifact under diagnosis)*
+
+- [ ] 30.1-10-PLAN.md — SC#4 root-caused: per-occurrence font attribution and `/ToUnicode` forensics on
+      the current artifact, the RTD container's own font inventory measured from inside a real build, the
+      page-count reconciliation, the English-parent measurement, and a blocking scope decision
+
+**Wave 10** *(blocked on Wave 9; executes the owner's chosen option)*
+
+- [ ] 30.1-11-PLAN.md — SC#4 fixed and re-measured: the selected fix applied, the diagnostic block
+      removed, the rebuild observed, D-03 checks 1-3 re-run against a freshly recompiled same-source
+      baseline with the NUL count recorded on both sides, and the consolidated post-round status
 
 **Planning decisions recorded in `30.1-01-PLAN.md`:** `docs/locale/ja/`'s deletion from this repository
 is assigned to **Phase 30**, not here (one deletion-guard manual merge for the milestone instead of two,
