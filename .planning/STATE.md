@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 30
-current_phase_name: Hand-Rolled Multi-Language Machinery & Orphan Removal
+current_phase_name: japanese-rtd-site-hand-rolled-machinery-orphan-removal
 status: executing
 stopped_at: Phase 30 planned (4 plans, 2 waves), ready to execute
-last_updated: "2026-07-26T12:30:00.000Z"
+last_updated: "2026-07-26T11:26:19.683Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30 planned — 4 plans in 2 waves, plan-checker passed, decision coverage 4/4 (D-01–D-10/D-15 annotated [informational], delivered by 30.1)
+last_activity_desc: Phase 30 execution started
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 17
+  total_plans: 21
   completed_plans: 17
   percent: 33
 ---
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 30 — Hand-Rolled Multi-Language Machinery & Orphan Removal
+**Current focus:** Phase 30 — japanese-rtd-site-hand-rolled-machinery-orphan-removal
 
 ## Current Position
 
-Phase: 30 — Hand-Rolled Multi-Language Machinery & Orphan Removal (I18N-02, DOC-08)
-Plan: 0/4 complete (30-01…30-04, 2 waves)
-Status: Ready to execute (planned 2026-07-26; plan-checker passed, all 13 dimensions)
+Phase: 30 (japanese-rtd-site-hand-rolled-machinery-orphan-removal) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 30
 Progress: [███░░░░░░░] 33% (2/6 phases)
-Last activity: 2026-07-26 — Phase 30 planned: 4 plans / 2 waves; research + pattern map + validation seeded; decision-coverage 4/4 after dated [informational] annotation of 30.1-delivered decisions
+Last activity: 2026-07-26 — Phase 30 execution started
 
 > **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
 > 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
@@ -43,19 +43,24 @@ Last activity: 2026-07-26 — Phase 30 planned: 4 plans / 2 waves; research + pa
 - **`docs/locale/ja/`'s deletion belongs to Phase 30** (PD-01). Since Plan 05, this repository's
   catalogs and `typsphinx-doc-translations`' deliberately diverge — do not "fix" by regenerating
   here; delete here in Phase 30. The 13 git-tracked `.mo` binaries also leave with it.
+
 - **Three owed post-merge flips** (recorded in Plan 04 `## Handoffs` + 29-VERIFICATION.md): parent
   RTD Default branch → `main`, ja project Default branch → `main`, `.gitmodules` `branch` →
   `main`. The pin-bump workflow resolves the branch at runtime from `.gitmodules`, so the flip
   cannot re-break SC#3.
+
 - **Deletion guard fires in Phase 30** — `worktree.cleanup-wave` always blocks deletion-bearing
   branches (no bypass); PD-01 kept 30.1 deletion-free so the one manual merge lands with Phase 30.
+
 - **Phase 30's decisions live in `30-CONTEXT.md`** (the discussion ran before D-15 split the
   phase; `30.1-CONTEXT.md` was a derived slice — `30-CONTEXT.md` wins on disagreement). D-12's
   *removal* half (locale tooling leaves `docs/Makefile`) is Phase 30's.
+
 - **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst`
   Translations section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ`
   is an unguarded FOURTH `@preview` version-lockstep site (the sync test watches only 3 + examples);
   the live translations-repo manifests have no structural test coverage in this repository.
+
 - `api-coverage.verify-pre` false-positived on this phase's RTD-API evidence prose (override
   recorded in `30.1-VERIFICATION.md ## Acknowledged Gate Overrides`). Keep RTD v3 API references
   phrased as one-off corroborating reads, never as an "integration".
