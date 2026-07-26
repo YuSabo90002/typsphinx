@@ -4,16 +4,16 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 30.1
 current_phase_name: Translations Repository + Japanese RTD Site
-status: planning
-stopped_at: Phase 30 context gathered
-last_updated: "2026-07-26T02:25:41.020Z"
+status: planned
+stopped_at: Phase 30.1 planned (6 plans, 5 waves)
+last_updated: "2026-07-26T03:38:04.997Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 29 complete, transitioned to Phase 30
+last_activity_desc: Phase 30.1 planned — 6 plans across 5 waves
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 6
-  completed_plans: 6
+  completed_plans: 0
   percent: 17
 ---
 
@@ -24,23 +24,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 29 — rtd-build-establishment-english-parent-pdf-path-decision
+**Current focus:** Phase 30.1 — translations-repository-japanese-rtd-site
 
 ## Current Position
 
 Phase: 30.1 — Translations Repository + Japanese RTD Site
-Plan: Not started
-Status: Ready to plan
-Progress: [░░░░░░░░░░] 0% (0/5 phases)
-Last activity: 2026-07-26 — Phase 29 complete, transitioned to Phase 30
+Plan: Not started (6 plans across 5 waves, planned 2026-07-26)
+Status: Ready to execute
+Progress: [██░░░░░░░░] 17% (1/6 phases)
+Last activity: 2026-07-26 — Phase 30.1 planned (6 plans, 5 waves)
 
-**Phase 29 execution notes (carry into execute/verify):**
+**Phase 30.1 execution notes (carry into execute/verify):**
 
-- Waves are strictly sequential by design (D-06 two-commit landing; each boundary is an owner RTD action or a real build wait). Waves 2 and 4 are `autonomous: false`.
-- The one irreversible step is in Wave 2: confirm the slug `typsphinx` is unclaimed **before** creating the RTD project. If taken, execution stops for the owner — no silent second candidate (D-01/D-02).
-- `29-VERIFICATION.md` is written *during* execution (D-15 mandates the filename). Plan 02 creates it; Plans 03–06 **append only**. `/gsd-verify-work` must **preserve** the pre-recorded live-evidence sections rather than rewriting the file.
-- Plans 29-05 (Branch A) and 29-06 (Branch B) are mutually exclusive and self-skip; the branch is selected in 29-04 on a recorded raw-log excerpt (D-07).
-- `api-coverage.verify-pre` passes with `detected: false` and deliberately **no** `COVERAGE.md` — the validator rejects a row-less matrix, so a prose-only file would block the seal. Absent is the passing state.
+- **CONTEXT.md provenance.** The Phase 30 discussion ran *before* D-15 split the phase, so the decisions live in `30-CONTEXT.md`. `30.1-CONTEXT.md` is a phase-scoped slice derived from it with the original D-NN identifiers preserved (D-01…D-10, D-12, D-15 — intentionally non-contiguous; D-11/D-13/D-14 are Phase 30's). If the two ever disagree, `30-CONTEXT.md` wins. D-12 is split across phases: its *removal* half is Phase 30's, its *arrival* half is 30.1's.
+- **Waves 2 and 3 are `autonomous: false`** and block on owner RTD/GitHub web-UI action. The step most likely to be missed is linking the ja project under the **English parent's Settings → Translations** — without it you get two working but unswitchable sites.
+- **The evidence file is `30.1-EVIDENCE.md`, not `30.1-VERIFICATION.md`** (planner decision PD-03). `{phase}-VERIFICATION.md` is a `/gsd-verify-work` reserved name and gets clobbered — this is the Phase 29 back-up-and-recombine problem, avoided by construction.
+- **The submodule tracks `gsd/v0.6.4-read-the-docs-migration`, not `main`** (PD-02, overriding RESEARCH.md). Measured: `origin/main` has no `.readthedocs.yaml` and no `_resolve_language()`, so a `main`-tracking submodule pins a tree RTD refuses to build. This adds a **third** owed post-merge flip (parent Default branch, ja Default branch, `.gitmodules` `branch`) — recorded in Plan 04 `## Handoffs`.
+- **`docs/locale/ja/`'s deletion belongs to Phase 30, not here** (PD-01). Consequence: this repository's catalogs and the translations repository's deliberately diverge from Plan 05 until Phase 30 lands. Do **not** "fix" it by regenerating catalogs here.
+- **A green build proves nothing** (milestone invariant #7). SC#1 probes must target a full-coverage docname — `user_guide/builders` (65/65) or `examples/basic` (30/30). `changelog`, `contributing`, `api/index`, `user_guide/templates` are 0% translated and render all-English on a healthy site. `contributing.rst` is used deliberately as SC#3's *visible-delta* probe, which is a different use — do not conflate them.
+- **A pin-bump run that only rewrote `POT-Creation-Date` does not satisfy SC#3**, which demands an observed run that moves the submodule pin.
+- **13 `.mo` binaries are git-tracked here**, so the submodule checkout arrives with compiled catalogs already in place and `gettext_auto_build` would reuse them — shipping stale/English text on a green build. The ja manifest does `rm -rf` → `mkdir -p` → `cp -a` for this reason (threat `T-30.1-05`).
+- `api-coverage.verify-pre` passes with `detected: false` and deliberately **no** `COVERAGE.md` — the validator rejects a row-less matrix, so a prose-only file would block the seal. Absent is the passing state. Keep RTD v3 API references phrased as one-off corroborating reads, never as an "integration".
+- **Deletion guard.** `worktree.cleanup-wave` always blocks a branch containing deletions, no bypass. PD-01 keeps 30.1 deletion-free, so the one manual merge lands with Phase 30 rather than twice.
 
 ## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
 
