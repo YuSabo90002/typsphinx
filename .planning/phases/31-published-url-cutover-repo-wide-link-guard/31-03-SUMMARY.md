@@ -148,6 +148,16 @@ None - no external service configuration required.
 - `tests/test_no_stale_github_io_links.py` runs on every `pytest tests/` and `pytest -q -m "not slow"` invocation (617 passed, 29 deselected, no new failures) and in CI.
 - Ready for Plan 05's independent curl sweep and repo-wide grep, and for Phase 33's version bump / Default Version flip — the version-less top-level links and pyproject `Documentation` field will pick up the `latest` → `stable` change automatically, with no further edits to this plan's files required.
 
+## Self-Check: PASSED
+
+- FOUND: README.md
+- FOUND: pyproject.toml
+- FOUND: tests/test_no_stale_github_io_links.py
+- FOUND: .planning/phases/31-published-url-cutover-repo-wide-link-guard/31-03-SUMMARY.md
+- FOUND commit: bd80fb8 (Task 1)
+- FOUND commit: 54f652c (Task 2)
+- FOUND commit: 44aa855 (Task 3)
+
 ---
 *Phase: 31-published-url-cutover-repo-wide-link-guard*
 *Completed: 2026-07-26*
