@@ -65,7 +65,7 @@ build sandbox).
 - [ ] **CI-04**: GitHub Pages no longer hosts or publishes typsphinx documentation, while the
       `typstpdf` regression gate and the tag-time PDF Release attachment keep working.
 
-- [ ] **CI-05**: A broken published link anywhere in the repository — including files Sphinx never
+- [x] **CI-05**: A broken published link anywhere in the repository — including files Sphinx never
       scans, which is where the links that motivated this milestone actually lived — surfaces
       automatically in CI instead of after months.
 
@@ -214,7 +214,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | DOC-08 | Phase 30 | Complete |
 | DOC-09 | Phase 31 | Pending |
 | DOC-10 | Phase 31 | Pending |
-| CI-05 | Phase 31 | Pending |
+| CI-05 | Phase 31 | Complete |
 | CI-04 | Phase 32 | Pending |
 | REL-02 | Phase 33 | Pending |
 
