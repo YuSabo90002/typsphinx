@@ -5,14 +5,14 @@ milestone_name: Read the Docs migration
 current_phase: 30.1
 current_phase_name: translations-repository-japanese-rtd-site
 status: executing
-stopped_at: Phase 30.1 planned (6 plans, 5 waves)
-last_updated: "2026-07-26T03:44:22.498Z"
+stopped_at: Phase 30.1 gap closure planned (plans 07-11, waves 6-10)
+last_updated: "2026-07-26T06:43:43.374Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30.1 execution started
+last_activity_desc: Phase 30.1 gap-closure round planned after verification scored 3/5
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 12
+  total_plans: 17
   completed_plans: 6
   percent: 17
 ---
@@ -28,11 +28,20 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 30.1 (translations-repository-japanese-rtd-site) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 30.1
+Phase: 30.1 (translations-repository-japanese-rtd-site) — GAP CLOSURE, ready to execute
+Plan: 7 of 11 (plans 01–06 executed; gap-closure plans 07–11 planned, waves 6–10)
+Status: Ready to execute
 Progress: [██░░░░░░░░] 17% (1/6 phases)
-Last activity: 2026-07-26 — Phase 30.1 execution started
+Last activity: 2026-07-26 — Phase 30.1 gap-closure round planned
+
+**Phase 30.1 gap-closure notes (this round — plans 07–11):**
+
+- **Why this round exists.** `30.1-VERIFICATION.md` scored **3/5**. SC#3 (submodule pin auto-advance) and SC#4/I18N-03 (glyph-correct ja PDF) are FAILED with machine-evidenced, reproducible defects; SC#2's visual half and D-03 check 4 are open owner observations. Both I18N-01 and I18N-03 stay `Pending` in REQUIREMENTS.md until this round closes.
+- **The owner blocks twice**: Wave 6 (Plan 07 — flyout observation on both sites + the 発/単/釈 tofu look) and Wave 9 (Plan 10 — choosing the SC#4 fix option). Wave 9's option-b would change the English parent's PDF, i.e. reach into Phase 29's verified artifact, and needs explicit acceptance.
+- **The owner's visual check runs BEFORE the pin advances, and that ordering is load-bearing.** Plan 06's page numbers (2, 3, 5, 6, 15, 21, 24) are properties of the 95-page artifact built from pin `dcc6a523`. Waves 7–8 move the pin and invalidate them. Plan 07 Task 1 pins artifact identity by SHA-256 before handing the owner a page list, and recomputes the sample if the SHA differs.
+- **SC#3's root cause is settled, its fix is not yet proven.** `actions/checkout@v7` fetches the submodule by pinned SHA at `--depth=1`, so `refs/remotes/origin/<branch>` never exists and `git submodule update --remote` exits 128. Plan 08 resolves the branch at runtime from `.gitmodules` (not hardcoded) so the owed post-merge flip to `main` cannot re-break it. Everything downstream of the failing step — `decide`, commit, discard-header-churn — is **completely unexercised**; Plan 09 observes it for the first time.
+- **SC#4's fix is deliberately unchosen at plan time.** Plan 10 measures (per-occurrence font + `/ToUnicode` attribution, RTD container font facts, the 95-vs-94 page delta, the English parent) and then presents option-a (ja manifest only) / option-b (English parent changes too) / option-c (accept + file a todo) / option-d (`typsphinx/` change — **unavailable**, milestone invariant #3). Plan 11 cannot start on an unmade decision.
+- **`fontTools` is not a dependency and must not become one** — PDF forensics in Plans 10/11 use `pypdf` + stdlib only. Milestone invariant #1 (zero new runtime deps) is asserted per plan via `git diff -- pyproject.toml uv.lock`.
 
 **Phase 30.1 execution notes (carry into execute/verify):**
 
