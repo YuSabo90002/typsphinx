@@ -290,10 +290,11 @@ def test_language_seam_precedence(monkeypatch):
 
     Covers all four combinations of the two env vars, asserting on both the
     freshly-loaded module's `language` attribute and a direct call to
-    `_resolve_language()`. A final wiring assertion checks that
-    `html_context["language"]` reads the same resolved value -- this is what
-    catches a helper that exists but is never called by the `language`
-    assignment.
+    `_resolve_language()`. A final wiring assertion checks that the resolved
+    language reaches its one remaining downstream consumer in `conf.py` --
+    the Typst `lang` element derived through `derive_typst_lang` -- now that
+    I18N-02 deleted the language-switcher's context dict, the wiring
+    assertion's previous subject.
     """
     # (a) both unset -> "en"
     monkeypatch.delenv("READTHEDOCS_LANGUAGE", raising=False)
@@ -301,7 +302,7 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "en"
     assert module._resolve_language() == "en"
-    assert module.html_context["language"] == module.language
+    assert module.typst_elements["lang"] == module.language
 
     # (b) only SPHINX_LANGUAGE set -> that value (existing override keeps working)
     monkeypatch.setenv("SPHINX_LANGUAGE", "ja")
@@ -309,7 +310,7 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.html_context["language"] == module.language
+    assert module.typst_elements["lang"] == module.language
 
     # (c) only READTHEDOCS_LANGUAGE set -> that value (RTD's setting is honored)
     monkeypatch.delenv("SPHINX_LANGUAGE", raising=False)
@@ -317,7 +318,7 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.html_context["language"] == module.language
+    assert module.typst_elements["lang"] == module.language
 
     # (d) both set -> READTHEDOCS_LANGUAGE wins
     monkeypatch.setenv("READTHEDOCS_LANGUAGE", "ja")
@@ -325,4 +326,4 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.html_context["language"] == module.language
+    assert module.typst_elements["lang"] == module.language
