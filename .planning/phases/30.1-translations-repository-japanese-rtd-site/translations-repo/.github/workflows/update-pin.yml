@@ -1,0 +1,99 @@
+# Staged for typsphinx-doc-translations/.github/workflows/update-pin.yml (D-08, Phase 30.1).
+# Nothing in the typsphinx repository executes this file -- GitHub only reads workflows from
+# .github/workflows/ at a repository root, and this copy lives under .planning/ instead.
+#
+# Keeps the ja RTD site's source current: without this workflow the translations repository's
+# pinned `typsphinx` submodule commit never advances, so /ja/latest/ would silently keep serving
+# translations of a frozen English source while every build still reports success (I18N-01's
+# failure mode arriving through a different door than mistranslation).
+name: Update translation source pin
+
+on:
+  schedule:
+    # Daily, so the Japanese site is at most 24 hours behind the English source.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+  # No repository_dispatch trigger: wiring a parent-side dispatch would require a
+  # .github/workflows/ edit in the typsphinx repository itself, which is outside this phase's
+  # file-touch list and would couple two milestone phases' commits together. schedule +
+  # workflow_dispatch is self-contained inside this repository alone.
+
+permissions:
+  # The default GITHUB_TOKEN at this single scope is already sufficient to push a commit back to
+  # THIS SAME repository -- no personal access token or repository secret is needed. Spelled out
+  # explicitly here (rather than inherited from a repository-wide read-write default) so that
+  # default cannot silently widen what this scheduled, unattended job is allowed to do.
+  contents: write
+
+jobs:
+  update-pin:
+    name: Advance the typsphinx submodule pin and resync ja catalogs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out typsphinx-doc-translations (with submodule)
+        uses: actions/checkout@v7
+        with:
+          # Without this the typsphinx/ directory arrives empty and every later step fails.
+          submodules: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Advance submodule to latest tracked branch
+        # The branch this follows comes from .gitmodules' `branch` field, not from whatever was
+        # checked out when the submodule was added. This is a different knob from RTD's own
+        # Admin "Default branch" setting -- the two are independent, on two different systems.
+        run: git submodule update --remote typsphinx
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install typsphinx (submodule) with docs extras
+        # Installs only what the submodule's own pyproject.toml already declares -- this
+        # workflow introduces no package of its own.
+        run: uv pip install --python .venv/bin/python ./typsphinx[docs]
+
+      - name: Regenerate .pot from current English source
+        run: .venv/bin/sphinx-build -M gettext typsphinx/docs/source typsphinx/docs/_build
+
+      - name: Merge fresh .pot into the ja catalogs
+        run: .venv/bin/sphinx-intl update -p typsphinx/docs/_build/gettext -d locale -l ja
+
+      - name: Detect a substantive change
+        id: decide
+        # sphinx-intl update calls msgmerge, which rewrites every .po file's POT-Creation-Date
+        # header on every run even when no msgid/msgstr changed -- an unfiltered "any diff,
+        # commit" rule would produce a content-free commit on every scheduled run. Filter that
+        # header (and the +++/--- file markers) out before counting.
+        run: |
+          if git diff --quiet -- typsphinx; then
+            echo "pin_moved=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "pin_moved=1" >> "$GITHUB_OUTPUT"
+          fi
+          PO_CHANGED=$(git diff -- locale | grep -E '^[+-]' | grep -v -E '^[+-]{3}' \
+            | grep -v 'POT-Creation-Date' | wc -l)
+          echo "po_changed=$PO_CHANGED" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push if changed
+        # The OR is deliberate: a pin that moved with no msgid change must still be committed,
+        # because Read the Docs builds the submodule commit this repository has recorded -- a
+        # .po-only condition would leave the Japanese site permanently frozen at the first pin.
+        if: steps.decide.outputs.pin_moved != '0' || steps.decide.outputs.po_changed != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add typsphinx locale
+          git commit -m "chore: advance typsphinx submodule pin and resync ja catalogs"
+          git push
+
+      - name: Discard header-only churn
+        if: steps.decide.outputs.pin_moved == '0' && steps.decide.outputs.po_changed == '0'
+        run: |
+          git checkout -- locale
+          echo "Only POT-Creation-Date header churn was seen; nothing substantive to push."

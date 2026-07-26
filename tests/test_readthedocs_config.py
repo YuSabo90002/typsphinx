@@ -259,7 +259,11 @@ def test_readthedocs_yaml_pdf_override():
     )
 
     # 10. exactly one sphinx-build invocation total, with no locale/language
-    #     flag -- fonts-noto-cjk is not a step toward a Japanese PDF (D-11).
+    #     flag -- this manifest's PDF build is English; the Japanese PDF is
+    #     produced by a separate manifest in the typsphinx-doc-translations
+    #     repository, whose language is supplied by that project's own Read
+    #     the Docs Admin Language setting through READTHEDOCS_LANGUAGE, never
+    #     by a flag on this manifest's sphinx-build (Phase 30.1 D-04/D-05).
     sphinx_build_indices = [
         i for i, cmd in enumerate(pdf_commands) if "sphinx-build" in cmd
     ]
@@ -275,8 +279,9 @@ def test_readthedocs_yaml_pdf_override():
     ), (
         "the sole sphinx-build invocation must carry no locale or language "
         "flag -- fonts-noto-cjk is scoped strictly to the four CJK strings "
-        "inside the English documentation and is not a step toward the "
-        f"deferred Japanese PDF (D-11): {sole_command!r}"
+        "inside the English documentation; the Japanese PDF ships from a "
+        "different manifest in the typsphinx-doc-translations repository "
+        f"(Phase 30.1 D-04/D-05): {sole_command!r}"
     )
 
 
