@@ -673,10 +673,22 @@ rewriting to a not-yet-green project trades one broken-link class for another) a
      GitHub repository can reach the documentation from the repository's own About → Website field —
      which resolves to the RTD root over real HTTP.
 
-**Plans**: TBD
+**Plans**: 5 plans
 
-**Owner-manual dependency (no automated criterion possible):** setting the repository's About → Website
-field. No test in this repository can assert it; criterion 4 verifies the URL it is set to resolves.
+Plans:
+- [ ] 31-01-PLAN.md — Link guard: create the advisory `links.yml`, repair the pre-existing dead links that would keep it red, and record the red negative-control CI run (CI-05)
+- [ ] 31-02-PLAN.md — Set About → Website to the RTD root and verify it over real HTTP (DOC-10)
+- [ ] 31-03-PLAN.md — Rewrite every documentation URL in `README.md` and `pyproject.toml`, plus a hermetic regression guard (DOC-09)
+- [ ] 31-04-PLAN.md — Full refresh of `.planning/codebase/INTEGRATIONS.md` with every URL curl-verified (DOC-09)
+- [ ] 31-05-PLAN.md — Observe `links.yml` green, take the consolidated fresh-grep + real-HTTP sweep, draft the #119 reply and record handoffs (DOC-09, DOC-10, CI-05)
+
+Waves: 1 → {01, 02} · 2 → {03, 04} · 3 → {05}. The wave split encodes D-09's structurally required
+ordering: the `links.yml` commit and its observed red run must precede the URL rewrite.
+
+**Owner-manual dependency:** setting the repository's About → Website field. Planning measured that
+the local `gh` token holds the `repo` scope with `admin: true` on this repository, so Plan 02 sets it
+via `gh api -X PATCH -f homepage=...` and falls back to the owner's manual action only if that call
+is refused. Either way criterion 4 is discharged by curling the value read back from the API.
 
 **Notes**: `.planning/codebase/INTEGRATIONS.md` contains no literal `github.io` string — it needs a
 **paragraph-level** rewrite (hosting/build-system prose + the `SPHINX_LANGUAGE` →
