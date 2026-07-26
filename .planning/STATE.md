@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 30.1
-current_phase_name: Translations Repository + Japanese RTD Site
-status: planned
+current_phase_name: translations-repository-japanese-rtd-site
+status: executing
 stopped_at: Phase 30.1 planned (6 plans, 5 waves)
-last_updated: "2026-07-26T03:38:04.997Z"
+last_updated: "2026-07-26T03:44:22.498Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30.1 planned — 6 plans across 5 waves
+last_activity_desc: Phase 30.1 execution started
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 0
+  total_plans: 12
+  completed_plans: 6
   percent: 17
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 30.1 — Translations Repository + Japanese RTD Site
-Plan: Not started (6 plans across 5 waves, planned 2026-07-26)
-Status: Ready to execute
+Phase: 30.1 (translations-repository-japanese-rtd-site) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 30.1
 Progress: [██░░░░░░░░] 17% (1/6 phases)
-Last activity: 2026-07-26 — Phase 30.1 planned (6 plans, 5 waves)
+Last activity: 2026-07-26 — Phase 30.1 execution started
 
 **Phase 30.1 execution notes (carry into execute/verify):**
 
