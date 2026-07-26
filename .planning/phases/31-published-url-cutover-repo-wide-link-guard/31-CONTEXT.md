@@ -75,12 +75,13 @@ so it does not need to wait for the merge.
   retroactive builds), so burning stable now fails SC#2's "alive over real HTTP, now." `latest`
   tracks `main`, keeping the links the same generation as the README that carries them. No
   rewrite needed in Phase 33 (`latest` never dies).
-- **D-11: Top-level links use the bare root `https://typsphinx.readthedocs.io/`.** Applies to:
+- **D-11: Top-level links use the bare RTD root URL.** The bare root is
+  `https://typsphinx.readthedocs.io/`. Applies to:
   README:12 and README:267 Documentation links, `pyproject.toml`'s `Documentation`, and
   About → Website. RTD's root redirects to the Default Version, so these follow Phase 33's
   `latest` → `stable` flip automatically with no re-editing.
-- **D-12: README:8's badge becomes RTD's official build-status badge**
-  (`https://app.readthedocs.org/projects/typsphinx/badge/?version=latest`). It flips
+- **D-12: The README line-8 badge becomes RTD's official build-status badge.** The badge URL is
+  `https://app.readthedocs.org/projects/typsphinx/badge/?version=latest`. It flips
   passing → failing with the actual docs build — the badge itself becomes monitoring. The
   static shields.io badge is dropped.
 - **D-13: README gains a one-line link to the Japanese documentation**

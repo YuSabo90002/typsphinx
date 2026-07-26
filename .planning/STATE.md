@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 30
-current_phase_name: japanese-rtd-site-hand-rolled-machinery-orphan-removal
-status: executing
-stopped_at: Phase 31 context gathered
-last_updated: "2026-07-26T12:50:47.689Z"
+current_phase: 31
+current_phase_name: published-url-cutover-repo-wide-link-guard
+status: planned
+stopped_at: Phase 31 planned (5 plans, verification passed)
+last_updated: "2026-07-26T13:41:14.662Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30 execution started
+last_activity_desc: Phase 31 planned (5 plans / 3 waves)
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 21
+  total_plans: 26
   completed_plans: 21
   percent: 50
 ---
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 30 — japanese-rtd-site-hand-rolled-machinery-orphan-removal
+**Current focus:** Phase 31 — published-url-cutover-repo-wide-link-guard
 
 ## Current Position
 
-Phase: 30 (japanese-rtd-site-hand-rolled-machinery-orphan-removal) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 30
-Progress: [███░░░░░░░] 33% (2/6 phases)
-Last activity: 2026-07-26 — Phase 30 execution started
+Phase: 31 (published-url-cutover-repo-wide-link-guard) — PLANNED
+Plan: 0 of 5
+Status: Ready to execute
+Progress: [█████░░░░░] 50% (3/6 phases)
+Last activity: 2026-07-26 — Phase 31 planned (5 plans / 3 waves, plan-checker passed)
 
 > **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
 > 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
@@ -299,14 +299,14 @@ Items acknowledged and carried forward from milestone closes:
 **Resume file:** .planning/phases/31-published-url-cutover-repo-wide-link-guard/31-CONTEXT.md
 
 Last session: 2026-07-26T12:50:47.683Z
-Stopped at: Phase 31 context gathered
-Resume: `/gsd-plan-phase 30`
+Stopped at: Phase 31 planned (5 plans / 3 waves, plan-checker passed)
+Resume: `/gsd-execute-phase 31`
 
 ## Operator Next Steps
 
-- Plan the next phase: `/gsd-plan-phase 30` (context already gathered in `30-CONTEXT.md`; the
-  discussion pre-dates the D-15 split, so its decisions are authoritative).
+- Execute Phase 31: `/gsd-execute-phase 31` (5 plans / 3 waves; D-09 ordering is wave-enforced:
+  links.yml + red negative-control run BEFORE the URL rewrite). Expect `ui.plan-gate` to
+  false-positive on this docs phase — use `--skip-ui` where prompted.
 
-- Expect the **deletion guard** in Phase 30 (`worktree.cleanup-wave` blocks deletion-bearing
-  branches, no bypass) — plan the manual merge after measuring the deletion scope, and re-grep the
-  full deletion set fresh (milestone invariant #4; research already found it larger than the brief).
+- Owner-manual step during execution: About → Website (Plan 02 attempts `gh api` PATCH first,
+  manual fallback). The #119 close stays a post-merge handoff (D-15), recorded in Plan 05.

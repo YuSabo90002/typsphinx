@@ -676,10 +676,18 @@ rewriting to a not-yet-green project trades one broken-link class for another) a
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 31-01-PLAN.md — Link guard: create the advisory `links.yml`, repair the pre-existing dead links that would keep it red, and record the red negative-control CI run (CI-05)
 - [ ] 31-02-PLAN.md — Set About → Website to the RTD root and verify it over real HTTP (DOC-10)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 31-03-PLAN.md — Rewrite every documentation URL in `README.md` and `pyproject.toml`, plus a hermetic regression guard (DOC-09)
 - [ ] 31-04-PLAN.md — Full refresh of `.planning/codebase/INTEGRATIONS.md` with every URL curl-verified (DOC-09)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 31-05-PLAN.md — Observe `links.yml` green, take the consolidated fresh-grep + real-HTTP sweep, draft the #119 reply and record handoffs (DOC-09, DOC-10, CI-05)
 
 Waves: 1 → {01, 02} · 2 → {03, 04} · 3 → {05}. The wave split encodes D-09's structurally required
