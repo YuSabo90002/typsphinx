@@ -446,14 +446,14 @@ the `docs/locale/ja/` catalogs must already have been relocated, since this phas
      `./docs/_build/html` rather than the deleted multilang tree — and the documentation root URL
      still resolves (RTD-04 standing invariant).
 
-**Plans**: 4 plans in 2 waves
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 30-01-PLAN.md — Repoint the CI workflow and task runner; strip `docs/Makefile`'s i18n and multi-language targets (D-12, D-13, D-14)
-- [ ] 30-02-PLAN.md — Delete the switcher assets, trim `conf.py` to the switcher wiring, repoint the collateral test in the same commit
-- [ ] 30-03-PLAN.md — Delete the orphan document pair with its collateral tests (D-11) and the relocated locale catalogs (PD-01)
+- [x] 30-01-PLAN.md — Repoint the CI workflow and task runner; strip `docs/Makefile`'s i18n and multi-language targets (D-12, D-13, D-14)
+- [x] 30-02-PLAN.md — Delete the switcher assets, trim `conf.py` to the switcher wiring, repoint the collateral test in the same commit
+- [x] 30-03-PLAN.md — Delete the orphan document pair with its collateral tests (D-11) and the relocated locale catalogs (PD-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -814,7 +814,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
-| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
+| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 3/4 | In Progress|  |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
