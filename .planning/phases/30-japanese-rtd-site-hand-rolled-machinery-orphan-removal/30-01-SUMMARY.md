@@ -175,3 +175,13 @@ the plan's own `<threat_model>` (T-30-01 through T-30-04, all `mitigate`/low-med
 ---
 *Phase: 30-japanese-rtd-site-hand-rolled-machinery-orphan-removal*
 *Completed: 2026-07-26*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/30-japanese-rtd-site-hand-rolled-machinery-orphan-removal/30-01-SUMMARY.md`
+- FOUND: `.github/workflows/docs.yml`
+- FOUND: `tox.ini`
+- FOUND: `docs/Makefile`
+- FOUND commit: `20a7f9b` (Task 1)
+- FOUND commit: `b1269f5` (Task 2)
+- FOUND commit: `d0d8b1c` (SUMMARY.md)
