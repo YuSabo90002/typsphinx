@@ -54,6 +54,33 @@ build:
       # i.e. it already resolves to typsphinx/docs/locale/ without any edit
       # to that file (conf.py stays a read-only mirror of the parent).
       - cp -a locale/. typsphinx/docs/locale/
+    pre_build:
+      # TEMPORARY DIAGNOSTIC BLOCK -- added by 30.1-10-PLAN.md Task 2 to answer,
+      # from inside a real build container, which fonts the container actually
+      # has and whether Typst's own font-selection layer sees them. Owned by
+      # this plan; removed by 30.1-11-PLAN.md in the same commit that applies
+      # whichever SC#4 fix option the owner selects. Runs after `install` (so
+      # `typst`/`typsphinx` are importable) and before `build` (Sphinx has not
+      # run yet), per the lifecycle comment above this job. Every command below
+      # is a read-only inspection of what the container already contains: no
+      # network fetch, no shell pipe from a download, no package-manager
+      # invocation (milestone invariant #1; this task's own prohibition).
+      - echo "=== DIAG fc-list -- full font inventory ==="
+      - fc-list | sort
+      - echo "=== DIAG fc-list -- charset query for 767a (発) ==="
+      - fc-list :charset=767a
+      - echo "=== DIAG fc-list -- charset query for 5358 (単) ==="
+      - fc-list :charset=5358
+      - echo "=== DIAG fc-list -- charset query for 91c8 (釈) ==="
+      - fc-list :charset=91c8
+      - echo "=== DIAG typst-py -- Fonts() family count ==="
+      - python -c "import typst; print(len(typst.Fonts().families()))"
+      - echo "=== DIAG typst-py -- Fonts() family list ==="
+      - python -c "import typst; [print(x) for x in typst.Fonts().families()]"
+      - echo "=== DIAG versions -- typst ==="
+      - python -c "import typst; print(typst.__version__)"
+      - echo "=== DIAG versions -- typsphinx ==="
+      - python -c "import typsphinx; print(typsphinx.__version__)"
     build:
       pdf:
         # Same four commands as the parent's build.jobs.build.pdf, with
