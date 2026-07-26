@@ -523,7 +523,7 @@ deletes the old switcher and the locale tooling — the replacement is observed 
      handoff** into the release procedure — the same shape as Phase 29's `latest` → `stable`
      handoff, not an assertion that `/ja/stable/` already serves.
 
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 owner action or on a real build completing, the same shape Phase 29 used and for the same reason.
 
 Plans:
@@ -542,7 +542,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; owner creates, links and version-activates the ja RTD project)*
 
-- [ ] 30.1-04-PLAN.md — SC#1's two content probes against 100%-coverage docnames, the first build log's
+- [x] 30.1-04-PLAN.md — SC#1's two content probes against 100%-coverage docnames, the first build log's
       answers, the RTD-04 root re-fetch, SC#2/SC#5 recorded honestly, and the D-15 gate for Phase 30
 
 **Wave 4** *(blocked on Wave 3; needs the ja project to exist before the source change is made)*
@@ -764,7 +764,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
-| 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 3/6 | In Progress|  |
+| 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 4/6 | In Progress|  |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
