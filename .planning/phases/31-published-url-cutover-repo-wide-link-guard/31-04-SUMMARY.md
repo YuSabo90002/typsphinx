@@ -147,3 +147,10 @@ None - no external service configuration required.
 ---
 *Phase: 31-published-url-cutover-repo-wide-link-guard*
 *Completed: 2026-07-26*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/codebase/INTEGRATIONS.md`
+- FOUND: `.planning/phases/31-published-url-cutover-repo-wide-link-guard/31-04-SUMMARY.md`
+- FOUND commit: `3dd9636`
+- FOUND commit: `61c56f1`
