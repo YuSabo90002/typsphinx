@@ -1,0 +1,51 @@
+# Repo-wide link check (advisory, non-required).
+#
+# Sphinx's own `linkcheck` builder only walks `docs/source/`, so it structurally
+# cannot see the file class that motivated this job: `README.md` and
+# `pyproject.toml` at the repository root. This workflow scans the whole
+# repository over real HTTP instead, closing that gap.
+#
+# This job is advisory. It is never registered as a GitHub required status
+# check, so a red or cancelled run never blocks a merge.
+#
+# Path exclusions below are deliberate, not incidental:
+#   - .planning/       -- historical archive with many known-dead URLs.
+#   - CHANGELOG.md     -- historical record deliberately left stale.
+#   - tests/fixtures/  -- intentionally fake URLs used as parser input.
+
+name: Link Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: "Repo-wide link check (advisory)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --scheme https
+            --scheme http
+            --extensions md,html,rst,txt,toml
+            --exclude-path '.planning'
+            --exclude-path 'CHANGELOG\.md$'
+            --exclude-path 'tests/fixtures'
+            --accept '100..=103,200..=299,429'
+            --max-retries 3
+            --retry-wait-time 2
+            --timeout 30
+            .
+          fail: true
+          jobSummary: true
