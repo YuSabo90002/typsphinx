@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 30.1
-current_phase_name: translations-repository-japanese-rtd-site
-status: executing
-stopped_at: Phase 30.1 gap closure planned (plans 07-11, waves 6-10)
-last_updated: "2026-07-26T07:39:31.807Z"
+current_phase: 30
+current_phase_name: Hand-Rolled Multi-Language Machinery & Orphan Removal
+status: planning
+stopped_at: Phase 30.1 complete, ready to plan Phase 30
+last_updated: "2026-07-26T10:29:40.423Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30.1 execution started
+last_activity_desc: Phase 30.1 complete (UAT 1/1, verification passed, security clean); next is Phase 30 (dependency-ordered after 30.1, not numeric 31)
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 17
-  completed_plans: 12
-  percent: 17
+  completed_plans: 17
+  percent: 33
 ---
 
 # Project State
@@ -24,37 +24,41 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 30.1 — translations-repository-japanese-rtd-site
+**Current focus:** Phase 30 — Hand-Rolled Multi-Language Machinery & Orphan Removal
 
 ## Current Position
 
-Phase: 30.1 (translations-repository-japanese-rtd-site) — EXECUTING
-Plan: 1 of 11
-Status: Executing Phase 30.1
-Progress: [██░░░░░░░░] 17% (1/6 phases)
-Last activity: 2026-07-26 — Phase 30.1 execution started
+Phase: 30 — Hand-Rolled Multi-Language Machinery & Orphan Removal (I18N-02, DOC-08)
+Plan: Not started
+Status: Ready to plan (context already gathered — `30-CONTEXT.md`)
+Progress: [███░░░░░░░] 33% (2/6 phases)
+Last activity: 2026-07-26 — Phase 30.1 complete (UAT 1/1 pass, verification `passed`, 26/26 threats closed)
 
-**Phase 30.1 gap-closure notes (this round — plans 07–11):**
+> **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
+> 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
+> `phase.complete` advanced numerically to 31 — corrected here: the next phase is **30**, not 31.
 
-- **Why this round exists.** `30.1-VERIFICATION.md` scored **3/5**. SC#3 (submodule pin auto-advance) and SC#4/I18N-03 (glyph-correct ja PDF) are FAILED with machine-evidenced, reproducible defects; SC#2's visual half and D-03 check 4 are open owner observations. Both I18N-01 and I18N-03 stay `Pending` in REQUIREMENTS.md until this round closes.
-- **The owner blocks twice**: Wave 6 (Plan 07 — flyout observation on both sites + the 発/単/釈 tofu look) and Wave 9 (Plan 10 — choosing the SC#4 fix option). Wave 9's option-b would change the English parent's PDF, i.e. reach into Phase 29's verified artifact, and needs explicit acceptance.
-- **The owner's visual check runs BEFORE the pin advances, and that ordering is load-bearing.** Plan 06's page numbers (2, 3, 5, 6, 15, 21, 24) are properties of the 95-page artifact built from pin `dcc6a523`. Waves 7–8 move the pin and invalidate them. Plan 07 Task 1 pins artifact identity by SHA-256 before handing the owner a page list, and recomputes the sample if the SHA differs.
-- **SC#3's root cause is settled, its fix is not yet proven.** `actions/checkout@v7` fetches the submodule by pinned SHA at `--depth=1`, so `refs/remotes/origin/<branch>` never exists and `git submodule update --remote` exits 128. Plan 08 resolves the branch at runtime from `.gitmodules` (not hardcoded) so the owed post-merge flip to `main` cannot re-break it. Everything downstream of the failing step — `decide`, commit, discard-header-churn — is **completely unexercised**; Plan 09 observes it for the first time.
-- **SC#4's fix is deliberately unchosen at plan time.** Plan 10 measures (per-occurrence font + `/ToUnicode` attribution, RTD container font facts, the 95-vs-94 page delta, the English parent) and then presents option-a (ja manifest only) / option-b (English parent changes too) / option-c (accept + file a todo) / option-d (`typsphinx/` change — **unavailable**, milestone invariant #3). Plan 11 cannot start on an unmade decision.
-- **`fontTools` is not a dependency and must not become one** — PDF forensics in Plans 10/11 use `pypdf` + stdlib only. Milestone invariant #1 (zero new runtime deps) is asserted per plan via `git diff -- pyproject.toml uv.lock`.
+**Phase 30.1 carry-forwards (into Phase 30 and the milestone close):**
 
-**Phase 30.1 execution notes (carry into execute/verify):**
-
-- **CONTEXT.md provenance.** The Phase 30 discussion ran *before* D-15 split the phase, so the decisions live in `30-CONTEXT.md`. `30.1-CONTEXT.md` is a phase-scoped slice derived from it with the original D-NN identifiers preserved (D-01…D-10, D-12, D-15 — intentionally non-contiguous; D-11/D-13/D-14 are Phase 30's). If the two ever disagree, `30-CONTEXT.md` wins. D-12 is split across phases: its *removal* half is Phase 30's, its *arrival* half is 30.1's.
-- **Waves 2 and 3 are `autonomous: false`** and block on owner RTD/GitHub web-UI action. The step most likely to be missed is linking the ja project under the **English parent's Settings → Translations** — without it you get two working but unswitchable sites.
-- **The evidence file is `30.1-EVIDENCE.md`, not `30.1-VERIFICATION.md`** (planner decision PD-03). `{phase}-VERIFICATION.md` is a `/gsd-verify-work` reserved name and gets clobbered — this is the Phase 29 back-up-and-recombine problem, avoided by construction.
-- **The submodule tracks `gsd/v0.6.4-read-the-docs-migration`, not `main`** (PD-02, overriding RESEARCH.md). Measured: `origin/main` has no `.readthedocs.yaml` and no `_resolve_language()`, so a `main`-tracking submodule pins a tree RTD refuses to build. This adds a **third** owed post-merge flip (parent Default branch, ja Default branch, `.gitmodules` `branch`) — recorded in Plan 04 `## Handoffs`.
-- **`docs/locale/ja/`'s deletion belongs to Phase 30, not here** (PD-01). Consequence: this repository's catalogs and the translations repository's deliberately diverge from Plan 05 until Phase 30 lands. Do **not** "fix" it by regenerating catalogs here.
-- **A green build proves nothing** (milestone invariant #7). SC#1 probes must target a full-coverage docname — `user_guide/builders` (65/65) or `examples/basic` (30/30). `changelog`, `contributing`, `api/index`, `user_guide/templates` are 0% translated and render all-English on a healthy site. `contributing.rst` is used deliberately as SC#3's *visible-delta* probe, which is a different use — do not conflate them.
-- **A pin-bump run that only rewrote `POT-Creation-Date` does not satisfy SC#3**, which demands an observed run that moves the submodule pin.
-- **13 `.mo` binaries are git-tracked here**, so the submodule checkout arrives with compiled catalogs already in place and `gettext_auto_build` would reuse them — shipping stale/English text on a green build. The ja manifest does `rm -rf` → `mkdir -p` → `cp -a` for this reason (threat `T-30.1-05`).
-- `api-coverage.verify-pre` passes with `detected: false` and deliberately **no** `COVERAGE.md` — the validator rejects a row-less matrix, so a prose-only file would block the seal. Absent is the passing state. Keep RTD v3 API references phrased as one-off corroborating reads, never as an "integration".
-- **Deletion guard.** `worktree.cleanup-wave` always blocks a branch containing deletions, no bypass. PD-01 keeps 30.1 deletion-free, so the one manual merge lands with Phase 30 rather than twice.
+- **`docs/locale/ja/`'s deletion belongs to Phase 30** (PD-01). Since Plan 05, this repository's
+  catalogs and `typsphinx-doc-translations`' deliberately diverge — do not "fix" by regenerating
+  here; delete here in Phase 30. The 13 git-tracked `.mo` binaries also leave with it.
+- **Three owed post-merge flips** (recorded in Plan 04 `## Handoffs` + 29-VERIFICATION.md): parent
+  RTD Default branch → `main`, ja project Default branch → `main`, `.gitmodules` `branch` →
+  `main`. The pin-bump workflow resolves the branch at runtime from `.gitmodules`, so the flip
+  cannot re-break SC#3.
+- **Deletion guard fires in Phase 30** — `worktree.cleanup-wave` always blocks deletion-bearing
+  branches (no bypass); PD-01 kept 30.1 deletion-free so the one manual merge lands with Phase 30.
+- **Phase 30's decisions live in `30-CONTEXT.md`** (the discussion ran before D-15 split the
+  phase; `30.1-CONTEXT.md` was a derived slice — `30-CONTEXT.md` wins on disagreement). D-12's
+  *removal* half (locale tooling leaves `docs/Makefile`) is Phase 30's.
+- **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst`
+  Translations section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ`
+  is an unguarded FOURTH `@preview` version-lockstep site (the sync test watches only 3 + examples);
+  the live translations-repo manifests have no structural test coverage in this repository.
+- `api-coverage.verify-pre` false-positived on this phase's RTD-API evidence prose (override
+  recorded in `30.1-VERIFICATION.md ## Acknowledged Gate Overrides`). Keep RTD v3 API references
+  phrased as one-off corroborating reads, never as an "integration".
 
 ## Active Milestone: v0.6.4 — Read the Docs migration (Phases 29–33)
 
@@ -103,9 +107,9 @@ verification so the middle of the milestone is not unowned.
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 67 (55 through v0.6.2 + 12 in v0.6.3)
+- Total plans completed (project cumulative): 84 (55 through v0.6.2 + 12 in v0.6.3 + 17 in v0.6.4 so far)
 - v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
-- v0.6.4: 0/5 phases, started 2026-07-25
+- v0.6.4: 2/6 phases (29, 30.1), 17 plans, started 2026-07-25
 
 *Updated after each plan completion*
 
@@ -143,6 +147,17 @@ with `test_preview_version_sync.py` extended over `examples/**/*.typ` to close t
 ### Decisions
 
 Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
+
+- 2026-07-26 [Phase 30.1]: **SC#4 glyph fix taken as option-b** — a docs-side custom `typst_template`
+  (`docs/source/_typst/custom_template.typ`) + explicit `derive_typst_lang()` re-derivation in
+  `conf.py`, owner-accepted as a deliberate reach into Phase 29's verified English artifact (English
+  PDF re-measured unregressed before/after). Corrected ja artifact (SHA `23885dcd…`) passed all four
+  D-03 checks including the owner's visual glyph confirmation (UAT 1/1, 2026-07-26).
+
+- 2026-07-26 [Phase 30.1, PD-02]: **the translations-repo submodule tracks
+  `gsd/v0.6.4-read-the-docs-migration`, not `main`** — measured: `origin/main` has no
+  `.readthedocs.yaml` and no `_resolve_language()`. Cost: a third owed post-merge flip
+  (`.gitmodules` `branch` → `main`), see carry-forwards above.
 
 - 2026-07-25 [v0.6.4 roadmap]: **URL cutover ordered before the Pages teardown**, inverting research's
   suggested order. The dependency is "RTD is green," not "Pages is gone" — rewriting while both hosts
@@ -223,11 +238,11 @@ plan for a manual merge after measuring the deletion scope — Phase 27's preced
 Phase 30.1 also relocates `docs/locale/ja/`'s 13 catalogs out of this repository, which is a deletion
 here as well.
 
-**Eight owner-manual steps have no automated acceptance criterion** — seven RTD web-UI actions plus
-creating the `typsphinx-doc-translations` GitHub repository (REQUIREMENTS.md § Owner-Manual Steps,
-annotated with owning phases). The step most likely to be missed is linking the Japanese project under
-the English parent's Settings → Translations — creating both projects without linking leaves two
-working but *unswitchable* sites.
+**Owner-manual steps: Phase 30.1's are all DONE and measured** (ja project created, linked under the
+parent's Settings → Translations — flyout observed working both directions; `typsphinx-doc-translations`
+created and populated). Still owed to Phase 33: the two RTD Default-branch reverts to `main` + the
+Default Version `latest` → `stable` flip after the `v0.6.4` tag builds green, plus the `.gitmodules`
+`branch` → `main` flip (Phase 30.1 carry-forward).
 
 UI note: this project's phases are Typst PDF typesetting / config / docs / hosting work, **not**
 frontend UI — the `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui` if it
@@ -276,18 +291,17 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/30-japanese-rtd-site-hand-rolled-machinery-orphan-removal/30-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-07-26T02:10:00.652Z
-Stopped at: Phase 30 context gathered
-Resume: `/gsd-plan-phase 29`
+Last session: 2026-07-26
+Stopped at: Phase 30.1 complete (UAT passed, verification `passed`, security clean), ready to plan Phase 30
+Resume: `/gsd-plan-phase 30`
 
 ## Operator Next Steps
 
-- Review `.planning/ROADMAP.md`'s v0.6.4 section — in particular the **RTD-04 ownership** note, the
-  inverted teardown/URL-cutover ordering, and the two-bar link-verification split.
+- Plan the next phase: `/gsd-plan-phase 30` (context already gathered in `30-CONTEXT.md`; the
+  discussion pre-dates the D-15 split, so its decisions are authoritative).
 
-- **Confirm the RTD project slug** before Phase 29 executes — it is not self-service changeable and
-  this milestone publishes it into every documentation link.
-
-- Then plan the first phase: `/gsd-plan-phase 29`.
+- Expect the **deletion guard** in Phase 30 (`worktree.cleanup-wave` blocks deletion-bearing
+  branches, no bypass) — plan the manual merge after measuring the deletion scope, and re-grep the
+  full deletion set fresh (milestone invariant #4; research already found it larger than the brief).

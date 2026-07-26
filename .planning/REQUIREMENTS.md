@@ -34,14 +34,14 @@ build sandbox).
 
 ### Japanese Documentation (I18N)
 
-- [ ] **I18N-01**: A reader can browse the Japanese documentation on Read the Docs and see actual
+- [x] **I18N-01**: A reader can browse the Japanese documentation on Read the Docs and see actual
       Japanese prose — the failure mode being guarded against is a Japanese project that builds green
       while rendering 100% English.
 
 - [ ] **I18N-02**: The hand-rolled multi-language publishing machinery is gone from the repository, and
       language switching works through Read the Docs' own flyout instead.
 
-- [ ] **I18N-03**: The Japanese documentation is also downloadable as a PDF whose CJK glyphs are
+- [x] **I18N-03**: The Japanese documentation is also downloadable as a PDF whose CJK glyphs are
       actually rendered, not silently substituted. **Promoted from Future to v1 on 2026-07-26**
       (Phase 30 discussion, D-04): the decision to build the Japanese site from a separate
       translations repository with its own `.readthedocs.yaml` made the Japanese PDF a deliberate
@@ -208,9 +208,9 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | RTD-02 | Phase 29 | Complete |
 | RTD-03 | Phase 29 | Complete |
 | RTD-04 | Phase 29 | Complete |
-| I18N-01 | Phase 30.1 | Pending |
+| I18N-01 | Phase 30.1 | Complete |
 | I18N-02 | Phase 30 | Pending |
-| I18N-03 | Phase 30.1 | Pending |
+| I18N-03 | Phase 30.1 | Complete |
 | DOC-08 | Phase 30 | Pending |
 | DOC-09 | Phase 31 | Pending |
 | DOC-10 | Phase 31 | Pending |
