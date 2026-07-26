@@ -523,7 +523,44 @@ deletes the old switcher and the locale tooling — the replacement is observed 
      handoff** into the release procedure — the same shape as Phase 29's `latest` → `stable`
      handoff, not an assertion that `/ja/stable/` already serves.
 
-**Plans**: TBD
+**Plans**: 6 plans across 5 waves. Wave 1 is the only parallel wave; every later wave is gated on an
+owner action or on a real build completing, the same shape Phase 29 used and for the same reason.
+
+Plans:
+**Wave 1**
+
+- [ ] 30.1-01-PLAN.md — the ja build manifest, the locale-tooling `Makefile` (D-12 arrival half) and the
+      translations-repository README (incl. the two-repository release set, D-07), staged in-repo
+- [ ] 30.1-02-PLAN.md — the D-08 pin-bump workflow (staged) and the D-05 rationale amendment in
+      `tests/test_readthedocs_config.py`, executable lines byte-unchanged
+
+**Wave 2** *(blocked on Wave 1; owner creates the GitHub repository)*
+
+- [ ] 30.1-03-PLAN.md — `typsphinx-doc-translations` created, populated (branch-pinned submodule, 13
+      `.po`, no `.mo`, all staged files) and proven from an independent clone; `30.1-EVIDENCE.md` created
+
+**Wave 3** *(blocked on Wave 2; owner creates, links and version-activates the ja RTD project)*
+
+- [ ] 30.1-04-PLAN.md — SC#1's two content probes against 100%-coverage docnames, the first build log's
+      answers, the RTD-04 root re-fetch, SC#2/SC#5 recorded honestly, and the D-15 gate for Phase 30
+
+**Wave 4** *(blocked on Wave 3; needs the ja project to exist before the source change is made)*
+
+- [ ] 30.1-05-PLAN.md — SC#3: a `Translations` section in `docs/source/contributing.rst`, the milestone
+      branch pushed, an observed pin-bump run that moves the gitlink, and the change observed on `/ja/`
+
+**Wave 5** *(blocked on Wave 4; needs the ja PDF built from the advanced pin)*
+
+- [ ] 30.1-06-PLAN.md — SC#4: D-03's glyph gate (page count, extracted text, CJK font enumeration) plus
+      the owner's tofu check held open as `human_needed`, and the phase's consolidated criterion status
+
+**Planning decisions recorded in `30.1-01-PLAN.md`:** `docs/locale/ja/`'s deletion from this repository
+is assigned to **Phase 30**, not here (one deletion-guard manual merge for the milestone instead of two,
+and the local `SPHINX_LANGUAGE=ja` baseline SC#4 needs stays available); the submodule tracks
+`gsd/v0.6.4-read-the-docs-migration` rather than `main`, because `origin/main` carries no
+`.readthedocs.yaml` and no `_resolve_language()` (both measured 2026-07-26) — adding a third owed
+post-merge flip; and the live-evidence file is `30.1-EVIDENCE.md`, deliberately not the
+`/gsd-verify-work`-owned `30.1-VERIFICATION.md` name.
 
 **Owner-manual dependencies (no automated criterion possible):** create the
 `typsphinx-doc-translations` GitHub repository; create a **separate** RTD project pointed at *that*
@@ -725,7 +762,8 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
-| 30. Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
+| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 0/TBD | Not started | - |
+| 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 0/6 | Planned | - |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
