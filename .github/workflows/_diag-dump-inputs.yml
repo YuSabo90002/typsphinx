@@ -1,0 +1,32 @@
+# TEMPORARY diagnostic workflow — not part of the plan's deliverable.
+# Purpose: dump lychee's resolved input file set (respecting --extensions and
+# --exclude-path, but performing NO HTTP checks) to obtain definitive log
+# evidence of whether pyproject.toml is among the files links.yml scans
+# (RESEARCH.md Pitfall 2 / Assumption A1). Deleted once evidence is captured.
+
+name: Diagnostic - Dump Lychee Inputs
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  dump-inputs:
+    name: "Dump lychee inputs (diagnostic, temporary)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Dump inputs
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --dump-inputs
+            --extensions md,html,rst,txt,toml
+            --exclude-path '.planning'
+            --exclude-path 'CHANGELOG\.md$'
+            --exclude-path 'tests/fixtures'
+            .
+          fail: false
