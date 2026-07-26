@@ -156,7 +156,6 @@ Upcoming Features
 -----------------
 
 See our `GitHub Issues <https://github.com/YuSabo90002/typsphinx/issues>`_
-and `Project Roadmap <https://github.com/YuSabo90002/typsphinx/projects>`_
 for planned features.
 
 Versioning

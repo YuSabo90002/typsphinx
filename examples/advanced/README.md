@@ -300,11 +300,11 @@ After exploring this example:
 - [Typst Documentation](https://typst.app/docs/)
 - [mitex Package](https://typst.app/universe/package/mitex)
 - [codly Package](https://typst.app/universe/package/codly)
-- [typsphinx Repository](https://github.com/your-repo/typsphinx)
+- [typsphinx Repository](https://github.com/YuSabo90002/typsphinx)
 
 ## Support
 
 For issues and questions:
 
-- GitHub Issues: https://github.com/your-repo/typsphinx/issues
+- GitHub Issues: https://github.com/YuSabo90002/typsphinx/issues
 - Documentation: https://typsphinx.readthedocs.io/

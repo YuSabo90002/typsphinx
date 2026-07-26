@@ -113,4 +113,4 @@ directory.
 
    - `Sphinx Documentation <https://www.sphinx-doc.org/>`_
    - `Typst Documentation <https://typst.app/docs/>`_
-   - `typsphinx Repository <https://github.com/your-repo/typsphinx>`_
+   - `typsphinx Repository <https://github.com/YuSabo90002/typsphinx>`_
