@@ -64,34 +64,7 @@ gettext_auto_build = True  # Automatically build gettext catalogs
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
-html_static_path = ["_static"]
 html_title = f"{project} {release}"
-
-# Add custom CSS for language switcher
-html_css_files = [
-    "custom.css",
-]
-
-# Language switcher configuration
-html_context = {
-    "language": language,
-    "languages": [
-        ("en", "English"),
-        ("ja", "日本語"),
-    ],
-}
-
-# Add language switcher to sidebar
-html_sidebars = {
-    "**": [
-        "sidebar/brand.html",
-        "sidebar/search.html",
-        "sidebar/scroll-start.html",
-        "language-switcher.html",
-        "sidebar/navigation.html",
-        "sidebar/scroll-end.html",
-    ]
-}
 
 # -- Options for typst/typstpdf output ---------------------------------------
 

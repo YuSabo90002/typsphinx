@@ -38,7 +38,7 @@ build sandbox).
       Japanese prose — the failure mode being guarded against is a Japanese project that builds green
       while rendering 100% English.
 
-- [ ] **I18N-02**: The hand-rolled multi-language publishing machinery is gone from the repository, and
+- [x] **I18N-02**: The hand-rolled multi-language publishing machinery is gone from the repository, and
       language switching works through Read the Docs' own flyout instead.
 
 - [x] **I18N-03**: The Japanese documentation is also downloadable as a PDF whose CJK glyphs are
@@ -209,7 +209,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | RTD-03 | Phase 29 | Complete |
 | RTD-04 | Phase 29 | Complete |
 | I18N-01 | Phase 30.1 | Complete |
-| I18N-02 | Phase 30 | Pending |
+| I18N-02 | Phase 30 | Complete |
 | I18N-03 | Phase 30.1 | Complete |
 | DOC-08 | Phase 30 | Pending |
 | DOC-09 | Phase 31 | Pending |
