@@ -53,7 +53,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/YuSabo90002/typsphinx"
-Documentation = "https://github.com/YuSabo90002/typsphinx#readme"
+Documentation = "https://typsphinx.readthedocs.io/"
 Repository = "https://github.com/YuSabo90002/typsphinx"
 Issues = "https://github.com/YuSabo90002/typsphinx/issues"
 
