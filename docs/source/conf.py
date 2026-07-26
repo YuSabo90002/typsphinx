@@ -102,6 +102,42 @@ typst_documents = [
 # Use typsphinx for PDF generation (dogfooding!)
 typst_use_mitex = True
 
+# Gap-closure round (Phase 30.1, Plan 11, owner-selected option-b): a custom
+# Typst template with explicit font selection, applying to BOTH the English
+# and Japanese builds because this file is shared byte-for-byte between the
+# `typsphinx` (en) and `typsphinx-doc-translations` (ja) Read the Docs
+# projects (30.1-EVIDENCE.md SS "Gap round -- SC#4 root cause..." SS "A
+# structural fact that bears directly on the option menu"). Typst's
+# automatic font-fallback search silently failed to select a glyph for three
+# ordinary CJK Unified Ideographs (発/単/釈) in the Japanese PDF, despite the
+# RTD build container having several fonts -- including HanaMinA, the exact
+# font Typst used for hundreds of other kanji in the same document -- that
+# declare glyph coverage for all three
+# (30.1-EVIDENCE.md SS "Gap round -- SC#4 font measurement inside the RTD
+# build container"). This is an UNPROVEN fix attempt, owner-authorized via
+# `fix_option=option-b` / `accept_phase29_impact=yes`
+# (30.1-EVIDENCE.md SS "Gap round -- SC#4 fix decision, owner's reply").
+# See docs/source/_typst/custom_template.typ for the font list and its
+# measurement basis.
+typst_template = "_typst/custom_template.typ"
+
+# The bundled default template (typsphinx/templates/base.typ) has its `lang`
+# template parameter auto-derived from Sphinx's `language` config -- but only
+# on the default-template path (TemplateEngine.uses_bundled_default_template()
+# is False for any explicit `typst_template`, per typsphinx/writer.py).
+# Setting `typst_template` above silently drops that auto-derivation unless
+# it is replicated here explicitly. This reuses the exact same public helper
+# the bundled path calls internally, so the custom template still receives
+# the correct Typst `lang` code ("ja" for the translations project, "en" for
+# the parent) instead of silently falling back to the template's own
+# `lang="en"` default for every build regardless of `language`.
+from typsphinx.template_engine import derive_typst_lang  # noqa: E402
+
+_typst_lang = derive_typst_lang(language)
+typst_elements = {}
+if _typst_lang:
+    typst_elements["lang"] = _typst_lang
+
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
