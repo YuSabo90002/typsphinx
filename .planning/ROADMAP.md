@@ -446,7 +446,7 @@ the `docs/locale/ja/` catalogs must already have been relocated, since this phas
      `./docs/_build/html` rather than the deleted multilang tree — and the documentation root URL
      still resolves (RTD-04 standing invariant).
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -457,7 +457,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 30-04-PLAN.md — Phase gate: SC#1–SC#5 measured on the merged tree, written to `30-EVIDENCE.md`
+- [x] 30-04-PLAN.md — Phase gate: SC#1–SC#5 measured on the merged tree, written to `30-EVIDENCE.md`
 
 **Owner-manual dependencies (no automated criterion possible):** none of the RTD web-UI work lands
 here — creating the Japanese project, setting its Language, linking it under the English parent's
@@ -814,7 +814,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
-| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 3/4 | In Progress|  |
+| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | In Progress|  |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
