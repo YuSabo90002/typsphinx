@@ -31,22 +31,17 @@ jobs:
           uv sync --extra dev --extra docs --locked
           uv pip install -e .
 
-      - name: Build multi-language HTML documentation
-        run: uv run tox -e docs-multilang
+      - name: Build HTML documentation
+        run: uv run tox -e docs-html
 
       - name: Build PDF documentation (English only)
         run: uv run tox -e docs-pdf
-
-      - name: Copy PDF to multi-language build (English version)
-        run: |
-          mkdir -p docs/_build/multilang/en
-          cp docs/_build/pdf/*.pdf docs/_build/multilang/en/
 
       - name: Upload HTML artifact
         uses: actions/upload-artifact@v7
         with:
           name: documentation-html
-          path: docs/_build/multilang
+          path: docs/_build/html
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v7
@@ -59,7 +54,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/multilang
+          publish_dir: ./docs/_build/html
           cname: false
 
       - name: Upload PDF to Release
