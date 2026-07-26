@@ -673,13 +673,13 @@ rewriting to a not-yet-green project trades one broken-link class for another) a
      GitHub repository can reach the documentation from the repository's own About → Website field —
      which resolves to the RTD root over real HTTP.
 
-**Plans**: 5 plans
+**Plans**: 2/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 31-01-PLAN.md — Link guard: create the advisory `links.yml`, repair the pre-existing dead links that would keep it red, and record the red negative-control CI run (CI-05)
-- [ ] 31-02-PLAN.md — Set About → Website to the RTD root and verify it over real HTTP (DOC-10)
+- [x] 31-01-PLAN.md — Link guard: create the advisory `links.yml`, repair the pre-existing dead links that would keep it red, and record the red negative-control CI run (CI-05)
+- [x] 31-02-PLAN.md — Set About → Website to the RTD root and verify it over real HTTP (DOC-10)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -836,7 +836,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | In Progress|  |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
-| 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 0/TBD | Not started | - |
+| 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 2/5 | In Progress|  |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
 

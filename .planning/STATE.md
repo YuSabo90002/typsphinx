@@ -4,11 +4,11 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 31
 current_phase_name: published-url-cutover-repo-wide-link-guard
-status: planned
+status: executing
 stopped_at: Phase 31 planned (5 plans, verification passed)
-last_updated: "2026-07-26T13:41:14.662Z"
+last_updated: "2026-07-26T13:47:25.930Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 31 planned (5 plans / 3 waves)
+last_activity_desc: Phase 31 execution started
 progress:
   total_phases: 6
   completed_phases: 3
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 ## Current Position
 
-Phase: 31 (published-url-cutover-repo-wide-link-guard) — PLANNED
-Plan: 0 of 5
-Status: Ready to execute
+Phase: 31 (published-url-cutover-repo-wide-link-guard) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 31
 Progress: [█████░░░░░] 50% (3/6 phases)
-Last activity: 2026-07-26 — Phase 31 planned (5 plans / 3 waves, plan-checker passed)
+Last activity: 2026-07-26 — Phase 31 execution started
 
 > **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
 > 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
