@@ -33,9 +33,16 @@ signal.
 <decisions>
 ## Implementation Decisions
 
+> **2026-07-26 (plan-phase 30, dated annotation — not a silent overwrite):** D-01–D-10 and
+> D-15 are tagged `[informational]` for Phase 30's decision-coverage gate. D-15's split
+> assigned D-01–D-10 to Phase 30.1, which has since executed to completion (UAT passed,
+> I18N-03 Complete); D-15 itself is realized structurally in ROADMAP.md. They remain locked
+> decisions of record — the tag only marks them as not trackable against Phase 30's plans.
+> Phase 30's own trackable decisions are D-11–D-14.
+
 ### Japanese PDF — the shared-manifest collision and its resolution
 
-- **D-01:** **The Japanese site ships a Japanese PDF.** Measured 2026-07-26: with the single
+- **D-01 [informational]:** **The Japanese site ships a Japanese PDF.** Measured 2026-07-26: with the single
   shared `.readthedocs.yaml` (the original plan), `formats: [pdf]` and `build.jobs.build.pdf`
   apply to *both* RTD projects; the PDF job's `sphinx-build` carries no language flag, but
   `docs/source/conf.py:52`'s `_resolve_language()` reads `READTHEDOCS_LANGUAGE`, which RTD emits
@@ -43,14 +50,14 @@ signal.
   whether or not anyone decided to. The owner chose to make that intentional rather than suppress
   it. **This decision is retained even after D-06 split the repositories** and made per-language
   manifests possible — it was re-confirmed on the new premise, not inherited by accident.
-- **D-02:** **Local feasibility is established, not assumed.** Measured 2026-07-26,
+- **D-02 [informational]:** **Local feasibility is established, not assumed.** Measured 2026-07-26,
   `SPHINX_LANGUAGE=ja sphinx-build -b typstpdf docs/source <tmp>`: exit 0, **94 pages**,
   **1,811,337 bytes**, 2 warnings (en baseline: 93 pages / 1,678,961 bytes). Embedded fonts (9):
   `IPAexGothic`, `NotoSansCJKjp-Thin`, `DejaVuSansMono`, `DejaVuSansMono-Bold`, `Unifont`, and
   four Libertinus Serif variants. **1,997 CJK characters** extracted from the first 30 pages —
   real Japanese, not tofu. The first five fonts are host-provided; on RTD they must come from
   `build.apt_packages`.
-- **D-03:** **The ja PDF glyph gate is "content comparison against a local ja build + spot-check
+- **D-03 [informational]:** **The ja PDF glyph gate is "content comparison against a local ja build + spot-check
   by eye."** Same shape as D-12 of Phase 29 but re-scaled, because all 94 ja pages are CJK so
   "the two affected pages" no longer means anything: build the same commit locally with
   `SPHINX_LANGUAGE=ja`, machine-check page-count equality, extracted-text equality, and CJK-font
@@ -58,13 +65,13 @@ signal.
   still governs the form**: run it by hand, paste the exact commands and output verbatim into the
   verification record, commit no comparison script (the RTD-built PDF is unreachable from CI, so
   a committed script would look like a gate that never runs).
-- **D-04:** **I18N-03 is promoted from Future to v1 and assigned to this phase (30.1).**
+- **D-04 [informational]:** **I18N-03 is promoted from Future to v1 and assigned to this phase (30.1).**
   REQUIREMENTS.md's `## Future Requirements` entry moves to `## v1 Requirements`, the
   Traceability table gains an `I18N-03 | Phase 30.1 | Pending` row, and the Deferred Items row in
   STATE.md is retired. Rationale: D-01 + D-03 *are* I18N-03's stated content (`build.apt_packages`
   font provisioning plus a gate proving the glyphs are right), so leaving it in Future would make
   the ledger describe work the phase is actually doing.
-- **D-05:** **Phase 29's D-11 is superseded, and its test's rationale with it.**
+- **D-05 [informational]:** **Phase 29's D-11 is superseded, and its test's rationale with it.**
   `tests/test_readthedocs_config.py:262-280` asserts the sole PDF `sphinx-build` carries no
   locale/language flag, with a docstring justifying it as "not a step toward the deferred
   Japanese PDF (D-11)." The *assertion* stays true and useful (the language still arrives via env
@@ -73,7 +80,7 @@ signal.
 
 ### Translations repository split (the phase's largest change)
 
-- **D-06:** **The Japanese documentation is built from a separate repository,
+- **D-06 [informational]:** **The Japanese documentation is built from a separate repository,
   `typsphinx-doc-translations`, registered as an RTD translation project of the `typsphinx`
   parent.** This follows the measured `sphinx-doc/sphinx-doc-translations` model, not the
   re-import-the-same-repo model that REQUIREMENTS.md Owner-Manual Step 2 describes.
@@ -91,14 +98,14 @@ signal.
   (a) it points away from I18N-02's literal goal — `build_multilang.py`'s 180 lines are replaced
   by a second repository plus submodule plus a catalog-sync workflow, so the machinery is
   relocated and arguably grown rather than removed; (b) it complicates REL-02, addressed by D-07.
-- **D-07:** **The translations repository is tagged in lockstep with the parent, so `/ja/stable/`
+- **D-07 [informational]:** **The translations repository is tagged in lockstep with the parent, so `/ja/stable/`
   is real.** RTD's `stable` resolves to the newest semver tag *in the repository that project
   builds*, so without a matching tag the ja project has no `stable`. Sphinx's own 15 translation
   projects sidestep this by running `default_version = master`; typsphinx does not, because
   REL-02 requires `/en/stable/` and `/ja/stable/` to serve the same released version. **Standing
   cost:** every release from now on pushes a tag to two repositories, and the
   `/gsd-complete-milestone` procedure must carry the second one (submodule bump → tag push).
-- **D-08:** **Submodule pin advancement is automated with a GitHub Actions workflow in the
+- **D-08 [informational]:** **Submodule pin advancement is automated with a GitHub Actions workflow in the
   translations repository**, modelled on `sphinx-doc-translations`'s `main.yml`. **Do not copy
   that workflow literally** — measured 2026-07-26, it is Transifex-coupled end to end
   (`TX_TOKEN`, the `tx` CLI installed via curl, `locales/lock-translations.py`,
@@ -107,7 +114,7 @@ signal.
   regenerate `.pot` → `sphinx-intl update` → commit if changed. Without this the ja site silently
   serves translations of an old English source, because RTD checks out the submodule commit the
   translations repo has recorded.
-- **D-09:** **Slug: `typsphinx-doc-translations` for the repository, and the ja RTD project slug
+- **D-09 [informational]:** **Slug: `typsphinx-doc-translations` for the repository, and the ja RTD project slug
   is not a decision.** Unlike the parent slug (Phase 29 D-01/D-02, which Phase 31 burns into
   README, `pyproject.toml`, and the About field), the ja project's slug never gets published —
   readers see `https://typsphinx.readthedocs.io/ja/latest/`, and the slug appears only in RTD's
@@ -116,7 +123,7 @@ signal.
   the D-02 "stop and consult the owner" rule does *not* extend here, because nothing downstream
   depends on the string. Phase 29's D-03 ("the ja slug belongs to Phase 30's discussion") is
   hereby closed as over-scoped.
-- **D-10:** **The URL language segment is `ja`, and it is not configurable.** RTD derives the path
+- **D-10 [informational]:** **The URL language segment is `ja`, and it is not configurable.** RTD derives the path
   segment from the project's Admin Language setting using ISO 639-1 codes; `jp` is an ISO 3166
   *country* code and is not offered. It cannot be set from `.readthedocs.yaml` or `conf.py`. This
   matches what the repository already uses everywhere (`docs/locale/ja/`, `docs/Makefile`'s
@@ -164,7 +171,7 @@ signal.
 
 ### Roadmap restructuring
 
-- **D-15:** **The work splits into Phase 30 and a new Phase 30.1**, following the v0.6.3
+- **D-15 [informational]:** **The work splits into Phase 30 and a new Phase 30.1**, following the v0.6.3
   Phase 27 / 27.1 precedent.
   - **Phase 30** — hand-rolled machinery removal and orphan removal (**I18N-02, DOC-08**):
     `build_multilang.py`, `tox.ini`'s `[testenv:docs-multilang]`, `language-switcher.html`,

@@ -449,9 +449,14 @@ the `docs/locale/ja/` catalogs must already have been relocated, since this phas
 **Plans**: 4 plans in 2 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 30-01-PLAN.md — Repoint the CI workflow and task runner; strip `docs/Makefile`'s i18n and multi-language targets (D-12, D-13, D-14)
 - [ ] 30-02-PLAN.md — Delete the switcher assets, trim `conf.py` to the switcher wiring, repoint the collateral test in the same commit
 - [ ] 30-03-PLAN.md — Delete the orphan document pair with its collateral tests (D-11) and the relocated locale catalogs (PD-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 30-04-PLAN.md — Phase gate: SC#1–SC#5 measured on the merged tree, written to `30-EVIDENCE.md`
 
 **Owner-manual dependencies (no automated criterion possible):** none of the RTD web-UI work lands

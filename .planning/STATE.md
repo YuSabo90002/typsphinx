@@ -4,11 +4,11 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 30
 current_phase_name: Hand-Rolled Multi-Language Machinery & Orphan Removal
-status: planning
-stopped_at: Phase 30.1 complete, ready to plan Phase 30
-last_updated: "2026-07-26T10:29:40.423Z"
+status: executing
+stopped_at: Phase 30 planned (4 plans, 2 waves), ready to execute
+last_updated: "2026-07-26T12:30:00.000Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 30.1 complete (UAT 1/1, verification passed, security clean); next is Phase 30 (dependency-ordered after 30.1, not numeric 31)
+last_activity_desc: Phase 30 planned — 4 plans in 2 waves, plan-checker passed, decision coverage 4/4 (D-01–D-10/D-15 annotated [informational], delivered by 30.1)
 progress:
   total_phases: 6
   completed_phases: 2
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 ## Current Position
 
 Phase: 30 — Hand-Rolled Multi-Language Machinery & Orphan Removal (I18N-02, DOC-08)
-Plan: Not started
-Status: Ready to plan (context already gathered — `30-CONTEXT.md`)
+Plan: 0/4 complete (30-01…30-04, 2 waves)
+Status: Ready to execute (planned 2026-07-26; plan-checker passed, all 13 dimensions)
 Progress: [███░░░░░░░] 33% (2/6 phases)
-Last activity: 2026-07-26 — Phase 30.1 complete (UAT 1/1 pass, verification `passed`, 26/26 threats closed)
+Last activity: 2026-07-26 — Phase 30 planned: 4 plans / 2 waves; research + pattern map + validation seeded; decision-coverage 4/4 after dated [informational] annotation of 30.1-delivered decisions
 
 > **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
 > 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
