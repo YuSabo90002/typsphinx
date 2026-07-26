@@ -147,3 +147,14 @@ passed or failed, per this phase's own honest-verifier discipline.
 
 *Verified: 2026-07-26T12:03:23Z*
 *Verifier: Claude (gsd-verifier)*
+
+## Acknowledged Gate Overrides
+
+- **api-coverage.verify-pre** (2026-07-26, verify-work session): gate returned `block: true`
+  (signal: `integration`/`api`) with no COVERAGE.md present. Determined a false positive of the
+  same class as Phase 18 and Phase 30.1: the only matches in this phase's artifacts are the
+  disclaimer prose itself — 30-04-PLAN.md and 30-EVIDENCE.md phrasing the live RTD root fetch as
+  "a one-off corroborating read of a public URL, not as an API integration" (the substring
+  "API integration" in the disclaimer is what the detector matched). The phase deletes docs/CI
+  machinery and integrates no external API. Override recorded per the Phase 30.1 precedent
+  (standing owner decision on this documented false-positive class); continuing to UAT.
