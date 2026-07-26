@@ -182,6 +182,13 @@ None — no external service configuration required.
 - Total deletion scope of this plan (30 files, 0 added, 0 modified) is ready for the owner's manual merge past `worktree.cleanup-wave`'s deletion guard, per the expected block documented in STATE.md and `30-CONTEXT.md`.
 - The three post-merge flips (parent RTD Default branch → `main`, ja Default branch → `main`, `.gitmodules` `branch` → `main`) remain owed to Phase 33 and are unaffected by this plan.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/30-japanese-rtd-site-hand-rolled-machinery-orphan-removal/30-03-SUMMARY.md`
+- CONFIRMED: `docs/usage.rst` absent, `docs/installation.rst` absent, `docs/locale` absent
+- CONFIRMED: `docs/source/installation.rst` present (toctree-live sibling, untouched)
+- FOUND commits: `86633c4`, `131ae4a`, `9f6e1d6`
+
 ---
 *Phase: 30-japanese-rtd-site-hand-rolled-machinery-orphan-removal*
 *Completed: 2026-07-26*
