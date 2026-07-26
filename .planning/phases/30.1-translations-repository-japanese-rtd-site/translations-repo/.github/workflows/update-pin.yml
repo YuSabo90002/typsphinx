@@ -44,11 +44,31 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
+      - name: Fetch the tracked branch into the submodule
+        # actions/checkout@v7's `submodules: true` runs `git submodule update --init --force
+        # --depth=1`, which fetches the submodule by its pinned commit SHA (a --depth=1,
+        # commit-scoped fetch) rather than by branch name, so it never creates a
+        # `refs/remotes/origin/<branch>` remote-tracking ref inside the submodule's own .git.
+        # The next step, `git submodule update --remote`, needs exactly that ref to resolve "the
+        # tip of the tracked branch"; without it the step exits 128 with `fatal: Unable to find
+        # refs/remotes/origin/<branch> revision in submodule path 'typsphinx'` -- exactly what run
+        # 30188423465 hit. This step creates that ref explicitly. The branch name is read from
+        # .gitmodules at runtime, not hard-coded, so the owed post-merge flip of that field to
+        # `main` cannot silently re-break this workflow.
+        run: |
+          branch=$(git config -f .gitmodules submodule.typsphinx.branch)
+          echo "Tracked branch: $branch"
+          git -C typsphinx fetch --depth=1 origin "refs/heads/$branch:refs/remotes/origin/$branch"
+          git -C typsphinx rev-parse --verify "refs/remotes/origin/$branch"
+          echo "Submodule HEAD before update: $(git -C typsphinx rev-parse HEAD)"
+
       - name: Advance submodule to latest tracked branch
         # The branch this follows comes from .gitmodules' `branch` field, not from whatever was
         # checked out when the submodule was added. This is a different knob from RTD's own
         # Admin "Default branch" setting -- the two are independent, on two different systems.
-        run: git submodule update --remote typsphinx
+        run: |
+          git submodule update --remote typsphinx
+          echo "Submodule HEAD after update: $(git -C typsphinx rev-parse HEAD)"
 
       - name: Create virtual environment
         run: uv venv

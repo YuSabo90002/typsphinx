@@ -303,7 +303,7 @@ To work on the translation:
 .. code-block:: bash
 
    # Clone the translations repository
-   git clone https://github.com/YuSabo90002/typsphinx-doc-translations.git
+   git clone --recurse-submodules https://github.com/YuSabo90002/typsphinx-doc-translations.git
    cd typsphinx-doc-translations
 
    # Refresh the catalogs against the current English source
@@ -311,6 +311,9 @@ To work on the translation:
 
    # Edit the .po files under locale/ja/LC_MESSAGES/, then check coverage
    make locale-stat
+
+If you already cloned without ``--recurse-submodules``, run
+``git submodule update --init`` before ``make locale-update``.
 
 Open a pull request in the translations repository with your changes.
 
