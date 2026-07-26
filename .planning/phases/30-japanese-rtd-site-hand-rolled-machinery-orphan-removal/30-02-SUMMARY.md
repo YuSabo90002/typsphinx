@@ -149,6 +149,12 @@ None - no external service configuration required.
 - Open item carried to the phase record (not a blocker for this plan): whether Read the Docs' Addons build still injects `READTHEDOCS` into the Jinja context, which determines whether Furo's restored ad-placement/variant-selector slots actually render on the hosted site — only observable after RTD rebuilds the merged branch (Phase 31/32's own re-fetch verification steps are positioned to catch this)
 - This plan's branch carries deletions and will be blocked by `worktree.cleanup-wave`'s deletion guard (no bypass) — expected, per Phase 27's precedent and PROJECT.md D-13; a manual merge is required
 
+## Self-Check: PASSED
+
+- `docs/build_multilang.py`, `docs/source/_templates/language-switcher.html`, `docs/source/_templates/page.html`, `docs/source/_static/custom.css` — all confirmed MISSING (deleted, as claimed)
+- `docs/source/conf.py`, `tests/test_readthedocs_config.py`, this SUMMARY.md — all confirmed present on disk
+- Commit `204f7ef` (Task 1) and `37f0d11` (SUMMARY) both confirmed present in `git log --oneline --all`
+
 ---
 *Phase: 30-japanese-rtd-site-hand-rolled-machinery-orphan-removal*
 *Completed: 2026-07-26*
