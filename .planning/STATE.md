@@ -5,8 +5,8 @@ milestone_name: Read the Docs migration
 current_phase: 30
 current_phase_name: Japanese RTD Site + Hand-Rolled Machinery & Orphan Removal
 status: planning
-stopped_at: Phase 29 context gathered
-last_updated: "2026-07-25T15:13:13.784Z"
+stopped_at: Phase 30 context gathered
+last_updated: "2026-07-26T02:10:00.659Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 29 complete, transitioned to Phase 30
 progress:
@@ -247,10 +247,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/29-rtd-build-establishment-english-parent-pdf-path-decision/29-CONTEXT.md
+**Resume file:** .planning/phases/30-japanese-rtd-site-hand-rolled-machinery-orphan-removal/30-CONTEXT.md
 
-Last session: 2026-07-25T12:21:56.042Z
-Stopped at: Phase 29 context gathered
+Last session: 2026-07-26T02:10:00.652Z
+Stopped at: Phase 30 context gathered
 Resume: `/gsd-plan-phase 29`
 
 ## Operator Next Steps
