@@ -446,7 +446,13 @@ the `docs/locale/ja/` catalogs must already have been relocated, since this phas
      `./docs/_build/html` rather than the deleted multilang tree — and the documentation root URL
      still resolves (RTD-04 standing invariant).
 
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
+
+Plans:
+- [ ] 30-01-PLAN.md — Repoint the CI workflow and task runner; strip `docs/Makefile`'s i18n and multi-language targets (D-12, D-13, D-14)
+- [ ] 30-02-PLAN.md — Delete the switcher assets, trim `conf.py` to the switcher wiring, repoint the collateral test in the same commit
+- [ ] 30-03-PLAN.md — Delete the orphan document pair with its collateral tests (D-11) and the relocated locale catalogs (PD-01)
+- [ ] 30-04-PLAN.md — Phase gate: SC#1–SC#5 measured on the merged tree, written to `30-EVIDENCE.md`
 
 **Owner-manual dependencies (no automated criterion possible):** none of the RTD web-UI work lands
 here — creating the Japanese project, setting its Language, linking it under the English parent's
@@ -459,8 +465,16 @@ PROJECT.md D-13).
 **Notes**: **Two statements that stood in this entry before 2026-07-26 are now reversed** by Phase
 30's discussion (see `30-CONTEXT.md` § `<roadmap_amendments>`). (a) `docs/locale/ja/**/*.po` (13
 files) are **no longer** unchanged in place — D-06 moves them into the new
-`typsphinx-doc-translations` repository, which is **Phase 30.1's** work; this phase must not delete
-them. (b) `docs/Makefile`'s `gettext` / `locale-init` / `locale-update` targets are **no longer**
+`typsphinx-doc-translations` repository, which is **Phase 30.1's** work. ***Superseded 2026-07-26
+at plan time:*** the clause that once followed here — "this phase must not delete them" — was
+written when Phase 30.1 was expected to perform the deletion. It did not: Phase 30.1 *copied* the
+catalogs into the translations repository and left the local tree in place, and STATE.md's PD-01
+carry-forward reassigns the deletion of the local `docs/locale/` tree (26 git-tracked files, 13
+`.po` + 13 `.mo`) to **Phase 30**, where Plan 03 performs it after confirming the 13 `.po` files
+live in `typsphinx-doc-translations`. This also resolves the one-file conflict with SC#3's "its
+`.po` catalog are byte-unchanged" clause: the catalog SC#3 protects is the one in the translations
+repository, which is what actually builds the Japanese page. (b) `docs/Makefile`'s `gettext` /
+`locale-init` / `locale-update` targets are **no longer**
 unchanged — D-12 moves them to the translations repository, so this phase removes them from
 `docs/Makefile` alongside `multilang`, `serve-multilang`, and `html-ja` (D-13, which fails silently
 by rendering 100% English once the catalogs leave). **Ordering is load-bearing:** removing the
