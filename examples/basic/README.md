@@ -119,5 +119,5 @@ If you encounter Typst compilation errors, check:
 
 For issues and questions:
 
-- GitHub Issues: https://github.com/your-repo/typsphinx/issues
+- GitHub Issues: https://github.com/YuSabo90002/typsphinx/issues
 - Documentation: https://typsphinx.readthedocs.io/
