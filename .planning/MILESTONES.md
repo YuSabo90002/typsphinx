@@ -1,5 +1,66 @@
 # Milestones: typsphinx
 
+## v0.6.4 — Read the Docs migration (Shipped: 2026-07-28)
+
+**Closeout:** verified_closeout — `v0.6.4-MILESTONE-AUDIT.md` passed (13/13 requirements, 6/6 phases
+verified, integration checker all-wired, no broken flows); 5 pending todos acknowledged as deferred
+(see STATE.md Deferred Items), 2 resolved todos filed to `todos/completed/`.
+**Phases:** 6 (29–33, incl. inserted 30.1) · **Plans:** 33 · **Tasks:** 79
+**Requirements:** 13/13 v1 requirements complete · **Known gaps:** none
+**Git:** milestone branch `gsd/v0.6.4-read-the-docs-migration` (290 commits) merged to `main` via PR #124; tagged `v0.6.4`
+**Released:** PyPI `typsphinx 0.6.4` (wheel + sdist) + GitHub Release via `release.yml` (run recorded at publish)
+**Code delta (milestone scope, excl. `.planning/`):** 54 files, +900 / −7,118 lines — a net-negative
+milestone: the hand-rolled multilang publishing machinery left the repository.
+
+**Delivered:** Documentation hosting moved from GitHub Pages to Read the Docs end to end — English and
+Japanese sites live behind RTD's own flyout, the downloadable PDF is the one `typstpdf` itself produced,
+every published URL resolves, the hand-rolled multilang machinery is deleted, and the Pages host is
+irreversibly torn down — with every reversible action ordered before the single no-undo one.
+
+**Key accomplishments:**
+
+1. **English RTD site stood up (Phase 29, RTD-01/RTD-04):** `.readthedocs.yaml` + the
+   `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` `_resolve_language()` seam in `conf.py`; the raw
+   build log proves typsphinx installed from the checked-out commit (not a stale PyPI wheel); the root
+   URL owned at Default Version = `latest` with real-HTTP fetches re-taken by every later phase.
+2. **RTD serves typstpdf's own PDF (Phase 29, RTD-02/RTD-03):** `formats: [pdf]` + a
+   `build.jobs.build.pdf` override replaces RTD's LaTeX path; the milestone's one open unknown
+   (`@preview` egress from RTD's sandbox) resolved to Branch A — the served PDF content-compared
+   against the local `tox -e docs-pdf` baseline (93==93 pages, byte-identical text, CJK font present),
+   so the `releases/latest/download/` fallback (RTD-03) was satisfied vacuously.
+3. **Japanese site from a separate translations repository (Phase 30.1, I18N-01/I18N-03):**
+   `typsphinx-doc-translations` created on the `sphinx-doc-translations` model (submodule pin
+   auto-advanced by a repaired `update-pin.yml`, observed moving the pin end to end); `/ja/latest/`
+   probed against 100%-translated docnames; the Japanese PDF's 10-NUL-byte glyph defect root-caused to
+   Typst's font selection and fixed via a custom template's explicit
+   `("Libertinus Serif", "Noto Serif CJK JP")` — owner visual UAT confirmed, no English regression.
+4. **The deletion round (Phase 30, I18N-02/DOC-08):** `build_multilang.py`, the language switcher,
+   its `conf.py` wiring, every task-runner target, the orphan `docs/usage.rst`/`docs/installation.rst`
+   pair with 20 collateral tests, and the relocated `docs/locale/` tree — all gone on a green suite
+   with the docs build warning-for-warning identical to baseline.
+5. **URL cutover behind a proven guard (Phase 31, DOC-09/DOC-10/CI-05):** advisory lychee `links.yml`
+   installed first and recorded red on the unfixed tree (negative control); then all 11 retired-host
+   URLs in `README.md`/`pyproject.toml` rewritten and locked by a hermetic regression guard; all 35
+   published URLs fetched over real HTTP; About → Website set and verified.
+6. **Irreversible Pages teardown, gated (Phase 32, CI-04) + release prep (Phase 33, REL-02):** the
+   teardown proceeded only behind freshly re-taken evidence that RTD was serving en HTML, ja HTML
+   (1038 CJK chars content-verified) and both PDFs; `gh-pages` deleted with `ls-remote`-proven absence
+   and the github.io 404 directly observed; version bumped to 0.6.4 with the CHANGELOG curated and the
+   publish fence proven held (no tag, no PyPI state) until this close.
+
+**Deferred:** 5 pending todos (sphinx-linkcheck CI job → Future LNK-01; citation-node support;
+non-str-docname TypeError hardening; typing-import modernization; `derive_typst_lang()` warning-block
+duplication) and 3 quality warnings from 30.1's review (contributing.rst toolchain-install step;
+`custom_template.typ` as an unguarded fourth `@preview` lockstep site; no structural tests over the
+live translations-repo manifests). Accepted losses (owner decisions 2026-07-25): no browser-language
+auto-redirect at the root; old `github.io` URLs 404 with no redirect stubs. Standing cost: every
+release now tags **two** repositories (parent + `typsphinx-doc-translations`).
+
+**Archives:** `milestones/v0.6.4-ROADMAP.md`, `milestones/v0.6.4-REQUIREMENTS.md`,
+`milestones/v0.6.4-MILESTONE-AUDIT.md`, phase artifacts under `milestones/v0.6.4-phases/`
+
+---
+
 ## v0.6.3 config & docs measured fidelity + captioned tables (Shipped: 2026-07-25)
 
 **Phases completed:** 6 phases, 12 plans, 28 tasks
