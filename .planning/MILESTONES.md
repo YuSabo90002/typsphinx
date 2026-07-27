@@ -8,7 +8,7 @@ verified, integration checker all-wired, no broken flows); 5 pending todos ackno
 **Phases:** 6 (29–33, incl. inserted 30.1) · **Plans:** 33 · **Tasks:** 79
 **Requirements:** 13/13 v1 requirements complete · **Known gaps:** none
 **Git:** milestone branch `gsd/v0.6.4-read-the-docs-migration` (290 commits) merged to `main` via PR #124; tagged `v0.6.4`
-**Released:** PyPI `typsphinx 0.6.4` (wheel + sdist) + GitHub Release via `release.yml` (run recorded at publish)
+**Released:** PyPI `typsphinx 0.6.4` (wheel + sdist) + GitHub Release `v0.6.4` (incl. the tag-time `typsphinx.pdf` asset — Phase 32's deferred live exercise proven), via release run 30309278708 (green end-to-end after owner approval of the `pypi` environment). RTD `stable` built green on the tag for both projects: root → `/en/stable/` 200, `/ja/stable/` 200 at the same release (en identifier `2bf6ef3`, ja at translations tag `v0.6.4`). Owner flips completed 2026-07-28: both Default branches → `main`, both Default Versions → `stable`; `.gitmodules` → `main`; Issue #119 closed; milestone branch deleted.
 **Code delta (milestone scope, excl. `.planning/`):** 54 files, +900 / −7,118 lines — a net-negative
 milestone: the hand-rolled multilang publishing machinery left the repository.
 

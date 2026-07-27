@@ -125,16 +125,11 @@ Resolved and filed at close: **github-io-doc-links-404-missing-en-prefix** (Phas
 
 ### Blockers/Concerns
 
-**Owner-manual steps owed post-close (from `33-HANDOFF.md`, items 4–5):**
-
-- Flip the parent (English) RTD project's **Default branch** from `gsd/v0.6.4-read-the-docs-migration`
-  to `main`; same for the Japanese project.
-- `.gitmodules` `branch` → `main` in `typsphinx-doc-translations` (the submodule tracks the milestone
-  branch — PD-02 carry-forward).
-- After the `v0.6.4` tag's RTD build shows green: flip the English project's **Default Version**
-  `latest` → `stable`, then re-confirm the ja project's independent version activation and that
-  `/ja/stable/` resolves to the same tag as `/en/stable/`. Do **not** flip early — the root redirect
-  follows Default Version even when the target doesn't exist yet.
+**Owner-manual steps from `33-HANDOFF.md` — ALL COMPLETED at close (2026-07-28, measured via the
+RTD public API + real fetches):** both RTD Default branches → `main`, both Default Versions →
+`stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL redirects to
+`/en/stable/` (200) and `/ja/stable/` serves the same release (ja `stable` was auto-activated and
+built green from the translations `v0.6.4` tag). Nothing is owed.
 
 **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst` Translations
 section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ` is an unguarded
@@ -182,12 +177,8 @@ Items acknowledged and carried forward from milestone closes:
 
 Last session: 2026-07-28
 Stopped at: v0.6.4 milestone closed (audit passed → archived → merged → tagged → published)
-Resume: `/gsd-new-milestone` — after performing the owner-manual RTD flips listed under
-Blockers/Concerns.
+Resume: `/gsd-new-milestone`.
 
 ## Operator Next Steps
 
-- **Owner-manual (web UI):** the two RTD Default-branch flips → `main`; `.gitmodules` `branch` →
-  `main` in `typsphinx-doc-translations`; after the `v0.6.4` tag builds green on RTD, Default
-  Version `latest` → `stable` + the ja `/ja/stable/` re-check (details in Blockers/Concerns).
-- Start the next milestone with `/gsd-new-milestone`.
+- Start the next milestone with `/gsd-new-milestone`. (All v0.6.4 owner-manual steps completed 2026-07-28.)
