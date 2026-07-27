@@ -59,8 +59,8 @@ v0.6.4 の prep-only リリース準備。**Requirements: REL-02（本フェー�
   ものであり、今回は対象の変更が存在しないので載せない。RTD 配信状態の実 HTTP 観測は
   時点依存のため CHANGELOG には載せない（検証機構を持てない事実は残さない原則）。
 
-- **D-04: セクション割りは Added / Changed / Removed / Fixed / Verified の 5 節。死リンク
-  修正は `### Fixed`。** オーナー承認済みの骨子:
+- **D-04: セクション割りは Added / Changed / Removed / Fixed / Verified の 5 節。死リンク修正は `### Fixed`。**
+  オーナー承認済みの骨子:
   - **Added**: 日本語ドキュメントサイト `/ja/latest/`（RTD 翻訳プロジェクト、別リポジトリ
     `typsphinx-doc-translations` から構築）(I18N-01, I18N-03) / リポジトリ全域の advisory
     リンクチェック CI (CI-05)
