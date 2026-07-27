@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-07-28
+
+Moves documentation hosting from GitHub Pages to Read the Docs: every published URL now resolves
+against a Read the Docs project, a Japanese documentation site is live for the first time, and the
+PDF a reader downloads from either site is the one typsphinx's own `typstpdf` builder produced — not
+a LaTeX pipeline this project doesn't dogfood. The hand-rolled multi-language publishing machinery
+this migration made obsolete is gone from the repository. Zero new runtime dependencies; the bundled
+`@preview` version-sync surface (now covering four declaration sites) is untouched, and no line under
+`typsphinx/` changed in this milestone.
+
+### Added
+
+- **Japanese documentation site at `/ja/latest/` (I18N-01, I18N-03)** — built from a separate
+  `typsphinx-doc-translations` repository (a git submodule of this repository plus the relocated
+  `ja` gettext catalogs) with its own Read the Docs project, linked under the English parent's
+  Translations settings. The Japanese site is also downloadable as a PDF with its CJK glyphs
+  correctly rendered.
+- **Repository-wide link-check CI (CI-05)** — an advisory `links.yml` workflow now checks every
+  published link across the whole repository (not just `docs/source/`, which is where Sphinx's own
+  `linkcheck` cannot see the README/`pyproject.toml` links that motivated this).
+
+### Changed
+
+- **Documentation hosting moved from GitHub Pages to Read the Docs (RTD-01..RTD-04)** — built from a
+  `.readthedocs.yaml` in the repository, with typsphinx itself installed from the in-repo commit
+  (never a stale PyPI wheel). The downloadable PDF is produced by this project's own `typstpdf`
+  builder via `build.jobs.build.pdf`, not Read the Docs' LaTeX pipeline.
+
+### Removed
+
+- **Hand-rolled multi-language publishing machinery and orphan documentation (I18N-02, DOC-08)** —
+  `docs/build_multilang.py`, the custom language-switcher template, the `docs-multilang` tox
+  environment, and the unreachable `docs/usage.rst`/`docs/installation.rst` orphan pair are gone.
+  Language switching now works through Read the Docs' own flyout.
+- **GitHub Pages hosting and the `gh-pages` branch (CI-04)** — the `peaceiris/actions-gh-pages` deploy
+  step is removed from CI; the tag-time PDF Release attachment is unaffected. **Old
+  `github.io` URLs now return 404 with no redirect** — an accepted cost of the immediate cutover.
+  Automatic browser-language redirection at the documentation root is also gone: Read the Docs
+  redirects to a *version*, never to a visitor's detected *language*; restoring that behavior would
+  mean re-adding the custom template code this migration removes.
+
+### Fixed
+
+- **Seven dead documentation links in README/PyPI metadata resolved (DOC-09, DOC-10, Issue #119)** —
+  every published documentation URL (README badges, deep links, `pyproject.toml`'s `Documentation`
+  metadata) now points at `https://typsphinx.readthedocs.io/` and was confirmed live over real HTTP.
+
+### Verified
+
+- Milestone invariant held: zero new runtime dependencies, no `@preview` package version bump, the
+  four-surface version-sync guard (`writer.py` / `template_engine.py` / `templates/base.typ` /
+  `examples/**/*.typ`) untouched, and zero changes under `typsphinx/` across the full milestone diff.
+
 ## [0.6.3] - 2026-07-25
 
 Closes out the config & docs fidelity milestone: configuration values documented in `typst_elements`
