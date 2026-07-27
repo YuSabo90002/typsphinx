@@ -4,15 +4,15 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 32
 current_phase_name: github-pages-teardown-irreversible
-status: ready-to-execute
+status: executing
 stopped_at: Phase 32 planned (3 plans, 3 waves) — ready to execute
-last_updated: "2026-07-27T14:00:00.000Z"
+last_updated: "2026-07-27T14:06:10.038Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 32 planned — research + patterns + 3 plans (gate / reversible teardown / irreversible teardown), checker passed
+last_activity_desc: Phase 32 execution started
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 26
+  total_plans: 29
   completed_plans: 26
   percent: 67
 ---
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 32 — GitHub Pages Teardown (IRREVERSIBLE), behind its freshly re-taken RTD-is-serving gate
+**Current focus:** Phase 32 — github-pages-teardown-irreversible
 
 ## Current Position
 
-Phase: 32 — GitHub Pages Teardown (IRREVERSIBLE)
-Plan: 0/3 executed (32-01 gate → 32-02 reversible teardown → 32-03 irreversible teardown, strictly sequential waves)
-Status: Ready to execute (planned 2026-07-27 — research, patterns, validation seed, checker passed)
+Phase: 32 (github-pages-teardown-irreversible) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 32
 Progress: [██████▋░░░] 26/29 plans executed; phases 4/6 complete (29, 30, 30.1, 31)
-Last activity: 2026-07-27 — Phase 32 planned (3 plans / 3 waves), plan-checker VERIFICATION PASSED
+Last activity: 2026-07-27 — Phase 32 execution started
 
 > **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
 > resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from
