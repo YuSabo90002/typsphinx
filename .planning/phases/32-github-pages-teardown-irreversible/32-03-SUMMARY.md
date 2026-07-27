@@ -221,3 +221,11 @@ No blockers. Phase 33 (v0.6.4 Release Prep) may proceed once this wave merges.
 ---
 *Phase: 32-github-pages-teardown-irreversible*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/32-github-pages-teardown-irreversible/32-03-SUMMARY.md`
+- FOUND commit `373a9ec` (Task 1)
+- FOUND commit `b706b6d` (Task 2)
+- FOUND commit `b797690` (Task 3)
+- FOUND commit `58a484a` (SUMMARY.md)
