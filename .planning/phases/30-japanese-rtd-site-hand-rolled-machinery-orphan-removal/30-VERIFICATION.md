@@ -1,17 +1,20 @@
 ---
 phase: 30-japanese-rtd-site-hand-rolled-machinery-orphan-removal
 verified: 2026-07-26T12:03:23Z
-status: human_needed
+status: passed
 score: 10/10 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Open the milestone pull request against `main` and watch the `Documentation` GitHub Actions workflow run."
     expected: "The `build-docs` job completes green; its `Build HTML documentation` step runs `uv run tox -e docs-html`; the `documentation-html` artifact is uploaded from `docs/_build/html`."
     why_human: "`.github/workflows/docs.yml` triggers only on a push to `main`, a `v*` tag, or a PR targeting `main`, and declares no `workflow_dispatch` (adding one would not help — GitHub resolves manual dispatch against the default branch's copy of the workflow). Under `branching_strategy: milestone` this event cannot fire from inside the phase's worktree. ROADMAP SC#5's 'observed CI run' clause is therefore structurally unobservable until the milestone PR opens. Recorded as `verification: backstop` in 30-01-PLAN.md and 30-04-PLAN.md must_haves, and as an explicit 'Deferred to the milestone pull request' section in 30-EVIDENCE.md — not inferred into a pass."
+
   - test: "After Read the Docs rebuilds the tracked `main` branch, fetch `https://typsphinx.readthedocs.io/en/latest/` and grep for the switcher wrapper class and `custom.css`."
     expected: "Both occurrences drop to zero (measured at one occurrence each before the phase, re-confirmed still present during this verification since RTD has not yet rebuilt the tracked branch)."
     why_human: "RTD serves the tracked branch, not a worktree/feature branch, so this cannot be observed until the milestone merges and RTD rebuilds. Recorded as `verification: backstop` in 30-02-PLAN.md and 30-04-PLAN.md must_haves, and as an explicit 'Deferred to the next Read the Docs build' section in 30-EVIDENCE.md."
+
   - test: "At the same post-merge RTD rebuild, fetch `https://typsphinx.readthedocs.io/en/latest/` and grep for `furo-sidebar-ad-placement` and `furo-readthedocs-versions`."
     expected: "Record whatever counts appear; a non-zero count is the accepted, documented side effect of deleting `html_sidebars` (Furo's own default sidebar carries these READTHEDOCS-gated slots), not a regression to fix."
     why_human: "Both templates are gated on `{% if READTHEDOCS %}`. A local build (confirmed in this verification: both counts are 0) cannot settle whether Read the Docs' Addons build model still injects that flag into the Jinja context. Recorded as `verification: backstop` in 30-02-PLAN.md and 30-04-PLAN.md must_haves."

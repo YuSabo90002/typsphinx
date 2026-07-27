@@ -307,7 +307,7 @@ publish (tag `v0.6.4` → `release.yml` → PyPI + GitHub Release) executes at `
 (v0.5.0 Phase 10 / v0.6.2 Phase 23 / v0.6.3 Phase 28 precedent).
 
 - [x] **Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision** - `.readthedocs.yaml` + the `READTHEDOCS_LANGUAGE` seam; the en project observed green from a raw build log (in-repo install, no `latexmk`); the `@preview`-egress unknown resolved either way; root URL owned at Default Version = `latest` (completed 2026-07-26)
-- [ ] **Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal** - One deletion round removing the multilang machinery (switcher, styling, `conf.py` wiring, `build_multilang.py`, every task-runner target that drove it) + the orphan doc pair with their collateral tests, on a green tree with `docs.yml` still internally consistent (expect a manual merge — deletion guard)
+- [x] **Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal** - One deletion round removing the multilang machinery (switcher, styling, `conf.py` wiring, `build_multilang.py`, every task-runner target that drove it) + the orphan doc pair with their collateral tests, on a green tree with `docs.yml` still internally consistent (expect a manual merge — deletion guard) (completed 2026-07-27)
 - [x] **Phase 30.1: Translations Repository + Japanese RTD Site (INSERTED)** - `/ja/latest/` serving real Japanese prose behind RTD's own flyout, built from a separate `typsphinx-doc-translations` repository registered as an RTD translation project, with the submodule pin auto-advanced and the Japanese PDF proven glyph-correct (I18N-03, promoted to v1) (completed 2026-07-26)
 - [x] **Phase 31: Published-URL Cutover + Repo-Wide Link Guard** - Every published documentation URL repointed at RTD and fetched over real HTTP; an advisory repo-wide link check installed with a recorded pre-rewrite negative control; Issue #119 closed and the About → Website field set (completed 2026-07-27)
 - [ ] **Phase 32: GitHub Pages Teardown (IRREVERSIBLE)** - Behind a freshly re-taken RTD-is-serving gate: the `actions-gh-pages` deploy step and the `gh-pages` branch deleted, no redirect stubs, with `tox -e docs-pdf` and the tag-time PDF Release attachment intact
@@ -834,7 +834,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
-| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | In Progress|  |
+| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |

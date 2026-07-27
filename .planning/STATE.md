@@ -5,10 +5,10 @@ milestone_name: Read the Docs migration
 current_phase: 32
 current_phase_name: github-pages-teardown-irreversible
 status: planning
-stopped_at: Phase 32 context gathered
-last_updated: "2026-07-27T13:18:05.626Z"
+stopped_at: Phase 30 complete (UAT 3/3) — Phase 32 ready to plan, context gathered
+last_updated: "2026-07-27T13:40:00.000Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 31 complete (UAT 1/1), transitioned
+last_activity_desc: Phase 30 complete (UAT 3/3, security verified), transitioned — Phase 32 unblocked
 progress:
   total_phases: 6
   completed_phases: 4
@@ -21,41 +21,37 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
+See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** finish Phase 30's outstanding UAT, then Phase 32 — GitHub Pages Teardown (IRREVERSIBLE)
+**Current focus:** Phase 32 — GitHub Pages Teardown (IRREVERSIBLE), behind its freshly re-taken RTD-is-serving gate
 
 ## Current Position
 
-Phase: 32 — GitHub Pages Teardown (IRREVERSIBLE) — **gated on Phase 30 completing first, see note**
+Phase: 32 — GitHub Pages Teardown (IRREVERSIBLE)
 Plan: Not started
-Status: Ready to plan (after Phase 30 UAT)
-Progress: [██████▌░░░] 26/26 plans executed; phases 3/6 complete (29, 30.1, 31) + Phase 30 executed-awaiting-UAT
-Last activity: 2026-07-27 — Phase 31 complete (UAT 1/1), transitioned
+Status: Ready to plan (context gathered — `32-CONTEXT.md` exists)
+Progress: [██████▋░░░] 26/26 plans executed; phases 4/6 complete (29, 30, 30.1, 31)
+Last activity: 2026-07-27 — Phase 30 complete (UAT 3/3, 17/17 threats closed), Phase 32 unblocked
 
-> **Phase 30 is executed but NOT complete:** all 4 plans have SUMMARYs, but `30-UAT.md` is
-> `status: partial` and `30-VERIFICATION.md` is `human_needed`. The milestone principle (every
-> reversible action precedes the irreversible teardown) means Phase 30 must reach complete before
-> Phase 32 is planned/executed. Next action: `/gsd-verify-work 30`.
+> **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
+> resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from
+> `docs/_build/html`. The milestone principle (every reversible action precedes the irreversible
+> teardown) is satisfied; Phase 32 may now be planned/executed.
 
-**Phase 30.1 carry-forwards (into Phase 30 and the milestone close):**
+**Phase 30.1 carry-forwards (into the milestone close — Phase 30 items resolved 2026-07-27):**
 
-- **`docs/locale/ja/`'s deletion belongs to Phase 30** (PD-01). Since Plan 05, this repository's
-  catalogs and `typsphinx-doc-translations`' deliberately diverge — do not "fix" by regenerating
-  here; delete here in Phase 30. The 13 git-tracked `.mo` binaries also leave with it.
+- ~~`docs/locale/ja/`'s deletion belongs to Phase 30~~ **Done in Phase 30** (Plan 03, after the
+  live existence gate proved the 13 `.po` files in `typsphinx-doc-translations`). Do not
+  regenerate catalogs here — the sole live copy is the translations repository's.
 
 - **Three owed post-merge flips** (recorded in Plan 04 `## Handoffs` + 29-VERIFICATION.md): parent
   RTD Default branch → `main`, ja project Default branch → `main`, `.gitmodules` `branch` →
   `main`. The pin-bump workflow resolves the branch at runtime from `.gitmodules`, so the flip
   cannot re-break SC#3.
 
-- **Deletion guard fires in Phase 30** — `worktree.cleanup-wave` always blocks deletion-bearing
-  branches (no bypass); PD-01 kept 30.1 deletion-free so the one manual merge lands with Phase 30.
-
-- **Phase 30's decisions live in `30-CONTEXT.md`** (the discussion ran before D-15 split the
-  phase; `30.1-CONTEXT.md` was a derived slice — `30-CONTEXT.md` wins on disagreement). D-12's
-  *removal* half (locale tooling leaves `docs/Makefile`) is Phase 30's.
+- ~~Deletion guard fires in Phase 30~~ **Resolved** — the deletion-bearing branch landed via the
+  predicted manual merge; Phase 30 is complete (UAT 3/3).
 
 - **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst`
   Translations section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ`
@@ -113,9 +109,9 @@ verification so the middle of the milestone is not unowned.
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 84 (55 through v0.6.2 + 12 in v0.6.3 + 17 in v0.6.4 so far)
+- Total plans completed (project cumulative): 93 (55 through v0.6.2 + 12 in v0.6.3 + 26 in v0.6.4 so far)
 - v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
-- v0.6.4: 2/6 phases (29, 30.1), 17 plans, started 2026-07-25
+- v0.6.4: 4/6 phases (29, 30, 30.1, 31), 26 plans, started 2026-07-25
 
 *Updated after each plan completion*
 
@@ -309,19 +305,15 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/32-github-pages-teardown-irreversible/32-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-07-27T13:18:05.619Z
-Stopped at: Phase 32 context gathered
-Resume: `/gsd-verify-work 30` — Phase 30's UAT is still `partial` and must complete before Phase 32.
+Last session: 2026-07-27 (Phase 30 UAT completed 3/3; security verified; transitioned)
+Stopped at: Phase 30 complete, ready to plan Phase 32
+Resume: `/gsd-plan-phase 32` — Phase 32 context is already gathered (`32-CONTEXT.md`).
 
 ## Operator Next Steps
 
-- **Finish Phase 30's UAT:** `/gsd-verify-work 30` (`30-UAT.md` is `partial`,
-  `30-VERIFICATION.md` is `human_needed`; all 4 plans executed). Phase 30 must complete before
-  the irreversible Phase 32 teardown.
-
-- Then plan Phase 32: `/gsd-plan-phase 32` (GitHub Pages Teardown — behind a freshly re-taken
+- Plan Phase 32: `/gsd-plan-phase 32` (GitHub Pages Teardown — behind a freshly re-taken
   RTD-is-serving gate). Expect `ui.plan-gate` / `api-coverage` docs-phase false positives —
   `--skip-ui` and the recorded-override pattern apply.
 
