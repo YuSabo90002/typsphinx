@@ -732,7 +732,7 @@ standing gate.
      the milestone diff — its live exercise is honestly deferred to the tag at
      `/gsd-complete-milestone`, since this phase cannot create a tag.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 Plans:
 **Wave 1**
@@ -741,7 +741,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 32-02-PLAN.md — Remove the Pages deploy step and the two unused permissions from `docs.yml`, prove `Upload PDF to Release` byte-unchanged, add the D-06 guard tests with a recorded red negative control, update INTEGRATIONS.md.
+- [x] 32-02-PLAN.md — Remove the Pages deploy step and the two unused permissions from `docs.yml`, prove `Upload PDF to Release` byte-unchanged, add the D-06 guard tests with a recorded red negative control, update INTEGRATIONS.md.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -850,7 +850,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
-| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 1/3 | In Progress|  |
+| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 2/3 | In Progress|  |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
 
 ## Backlog
