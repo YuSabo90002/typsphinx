@@ -1,200 +1,143 @@
-# Stack Research — v0.6.3 (config pass-through + captioned tables)
+# Stack Research
 
-**Domain:** Sphinx→Typst translator maintenance (not greenfield) — Typst 0.15.x / Sphinx 9.1 / docutils 0.22 API facts only
-**Researched:** 2026-07-23
-**Confidence:** HIGH (all claims below either read from this repo's own source at the cited file:line, or empirically verified by a real `typst.compile()` in this repo's own `.venv` — see `## Verification method`)
+**Domain:** Documentation hosting migration (GitHub Pages → Read the Docs) for a Sphinx extension that dogfoods its own `typstpdf` builder
+**Researched:** 2026-07-25
+**Confidence:** HIGH (RTD config schema, env vars, uv integration, linkcheck config — all verified against current official docs) / HIGH (typst-py font embedding — verified against source `Cargo.toml`) / MEDIUM (RTD builder CPU architecture — inferred, not explicitly documented; see Gaps)
 
-This is a maintenance milestone on a mature codebase. There is no "recommended stack" to choose — the runtime is pinned (`typst>=0.15,<0.16`, `sphinx>=9.1,<10`, `docutils>=0.21,<0.23`, Python 3.12–3.13) and **zero new dependencies** is a hard invariant. This document instead answers the four technical-API questions the milestone's two code changes depend on, each with a file:line anchor into this repo and/or a real-compile proof.
+## Recommended Stack
 
-## Verification method
+### Core Technologies
 
-Real Typst compiles were run directly against this repo's installed `typst-py` (`.venv/lib/python3.13/site-packages/typst`, resolves to typst 0.15.x per the pinned `uv.lock`) via `typst.compile(path)`, not against typst.app docs alone. Every claim marked "(verified: real compile)" below reproduces with a `.venv/bin/python -c "import typst; typst.compile(...)"` invocation you can re-run. Typst reference-page facts (figure/caption/kind semantics) were cross-checked against the official `https://typst.app/docs/reference/model/figure/` page.
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| `.readthedocs.yaml` schema | `version: 2` | RTD build config | Only schema RTD accepts today; v1 is long removed. Verified against `docs.readthedocs.com/platform/stable/config-file/v2.html`. |
+| `build.os` | `ubuntu-24.04` | RTD builder OS image | Current default in every official RTD example (Sphinx quickstart, MkDocs quickstart, the uv example) as of this research. Valid enum is `ubuntu-22.04` / `ubuntu-24.04` / `ubuntu-26.04` / `ubuntu-lts-latest`; pin an explicit version (not `-lts-latest`) per RTD's own reproducibility guidance — a floating tag can shift glibc/toolchain under you without a corresponding commit. |
+| `build.tools.python` | `"3.13"` | Python interpreter RTD provisions | Valid enum includes `"3.12"`/`"3.13"`/`"latest"` etc.; `"3.13"` satisfies the project's `requires-python = ">=3.12"` and matches the newer end of the supported range. `"3.12"` is an equally valid pin if parity with the CI matrix's lead lane is preferred — either works, this is a style choice not a constraint. |
+| `python.install` method `uv` | native RTD support (no version pin needed — RTD provisions its own `uv`) | Installs the project + its `docs` extra via `uv sync` | RTD added **native uv support inside `python.install`** (not just a `build.jobs` escape hatch): `method: uv` with `command: sync` and `extras:`/`groups:` lists. RTD's own build-customization docs state "Read the Docs' own build steps expect it by setting the `UV_PROJECT_ENVIRONMENT` variable" — i.e. `uv` is preinstalled/wired into the image, you don't provision it yourself via `asdf` (an older doc example does that; it is now superseded by native support). `uv sync` installs the workspace-root project itself (typsphinx) in addition to declared deps — this replaces the current `docs.yml` two-step `uv sync --extra dev --extra docs --locked` + `uv pip install -e .` with one declarative block. |
+| `typst` (typst-py) | `>=0.15.0,<0.16` (unchanged — already pinned in `pyproject.toml`) | Compiles `typstpdf` output on the RTD builder | manylinux2014 wheel (glibc 2.17+) for x86_64/aarch64/etc — see Q2 discussion below. No RTD-specific version change needed; this milestone does not touch runtime deps. |
 
----
+### Supporting Libraries
 
-## Q1 — `figure(table(...), caption:, kind: table)`: exact syntax, numbering, gotchas
+No new Python packages are needed. Everything below is either already a `docs` extra or built into Sphinx/RTD:
 
-### Exact syntax (confirmed against typst.app/docs/reference/model/figure/)
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| `sphinx-build -b linkcheck` | built into Sphinx (already a dependency) | Advisory CI job checking external URLs | Zero new dependency — it's a stdlib Sphinx builder, same binary already installed for `-b html`/`-b typstpdf`. |
+| `linkcheck_ignore` | Sphinx conf value | Suppress known-noisy/unreachable-in-CI URLs | Regex list matched against target URIs before a network request is made (`is_ignored_uri` in `sphinx/builders/linkcheck.py`). |
+| `linkcheck_retries` | Sphinx conf value, default `1` | Retry count per broken link before reporting | Raise if flaky third-party hosts cause false positives in the advisory job. |
+| `linkcheck_timeout` | Sphinx conf value | Per-request timeout (seconds) | Set if slow hosts (e.g. PyPI project pages) cause the advisory job to hang. |
+| `linkcheck_workers` | Sphinx conf value, default `5` | Parallel link-check worker threads | Rarely needs tuning; only relevant for large link counts. |
+| `linkcheck_anchors` / `linkcheck_anchors_ignore` / `linkcheck_anchors_ignore_for_url` | Sphinx conf values | Control `#fragment` validation | Use `linkcheck_anchors_ignore_for_url` to skip anchor-checking on hosts known to render anchors client-side (e.g. GitHub's rendered Markdown anchors, which linkcheck's static HTML fetch cannot see). |
+| `linkcheck_exclude_documents` | Sphinx conf value | Skip specific docnames entirely | Use if a specific page (e.g. an auto-generated API index with many external refs) is noisy. |
+| `linkcheck_rate_limit_timeout` | Sphinx conf value | Backoff window on HTTP 429 | Default is usually sufficient; only relevant if a target host rate-limits. |
 
-```typst
-#figure(
-  table(columns: (1fr, 1fr), [A], [B], [C], [D]),
-  caption: [My caption],
-  kind: table,
-) <label>
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| RTD web dashboard (2 projects: parent `typsphinx` + a `ja` translation project) | Hosts `en` (parent) and links `ja` (translation project) | **Manual, one-time, cannot be automated from this repo** — project creation, the Translations link, and setting the default version to `stable` are all done in the RTD UI/API by a human with an RTD account. Out of scope for `.readthedocs.yaml` itself. |
+| GitHub repository "About" → Website field | Points external users (incl. Issue #119's reporter) at the new RTD URL | Also manual; not a file in this repo. |
+
+## Installation
+
+No `pip install` / `npm install` step changes for the Python package itself. The only new file is `.readthedocs.yaml` at the repo root:
+
+```yaml
+# .readthedocs.yaml
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.13"
+  jobs:
+    build:
+      pdf:
+        - mkdir -p $READTHEDOCS_OUTPUT/pdf/
+        - sphinx-build -b typstpdf docs/source $READTHEDOCS_OUTPUT/pdf/
+        # NOTE: confirm the on-disk filename `sphinx-build -b typstpdf`
+        # actually writes here (per this repo's typst_documents target-stem
+        # naming / the PDF-01 output-stem resolver in builder.py) lands
+        # correctly inside $READTHEDOCS_OUTPUT/pdf/ — see "What NOT to Add"
+        # / Gaps below for the exactly-one-file caveat.
+
+sphinx:
+  configuration: docs/source/conf.py
+
+formats:
+  - pdf   # required whenever the `pdf` build.jobs step is overridden — RTD
+          # docs: "If any of the pdf, epub, or htmlzip steps are overridden,
+          # they should be included in the formats list."
+
+python:
+  install:
+    - method: uv
+      command: sync
+      extras:
+        - docs
 ```
 
-`figure()` parameters relevant here:
+Key points this encodes (each traced to a verified source below):
 
-| Param | Default | Behavior |
-|---|---|---|
-| `body` | required | figure content |
-| `caption` | `none` | figure caption; itself exposes `position` (`top`/`bottom`, default `bottom`), `separator` (auto-localized), `body` |
-| `kind` | `auto` | counter-selection key. `auto` **auto-detects** `table` when `body` is a `table` element, `raw` for code, else `image`. Explicit `kind: table` is therefore **not required for auto-detection to work** when the direct body is a `table(...)` call — but is still the correct thing to emit explicitly, because... |
-| `supplement` | `auto` | the caption prefix text (e.g. "Table"). `auto` resolves from `kind` + active `text(lang:)` — for `kind: table` this resolves to `"Table"` (localized), for default/`image` kind to `"Figure"`. **No manual supplement string is needed** for the table case. |
-| `numbering` | `"1"` | counter format |
-| `outlined` | `true` | whether it appears in `#outline(target: figure)`-style listings |
-
-**Auto-numbering:** Yes — `figure(..., kind: table)` auto-numbers via a counter scoped to `kind: table` that is **independent of the `kind: image`/default-figure counter**. First captioned table in a document renders as "Table 1", second as "Table 2", regardless of how many `kind: image`/plain figures precede it. Confirmed by real compile of a two-table document (both auto-numbered 1, 2 sequentially, `image`-kind figures unaffected).
-
-**Cross-referencing:** Standard Typst label/ref — `<label>` postfix on the `figure(...)` call (markup-mode only, same constraint that already governs `visit_figure`'s `<label>` emission, see below), referenced via `@label` in markup mode. The reference text auto-renders as `"Table N"` (using the figure's own `supplement`+`numbering`), exactly mirroring how `@fig-label` already renders `"Figure N"` for typsphinx's existing image figures. **Verified: real compile** — `figure(table(...), caption:.., kind: table) <tbl-mylabel>` followed by `See @tbl-mylabel for details.` compiles clean, 10180 bytes output.
-
-### Gotcha 1 — `columns: (1fr, ...)` inside `figure(table(...))`: NONE found
-
-typsphinx's existing `depart_table` (translator.py:2422-2486) already emits `table(columns: (Nfr, ...), ...)` (fr-weighted, from `_build_columns_fr_arg()`, translator.py:2372-2391). **Verified: real compile** that wrapping this exact fr-weighted table shape in `figure(..., caption:, kind: table)` with a label and a cross-reference compiles cleanly — `fr` units inside a table nested in a figure are not a problem (figures don't impose a sizing context that breaks `fr` resolution the way, e.g., a bare inline context would).
-
-### Gotcha 2 — composing with the existing `:width:` → `block(width:...)[...]` wrap
-
-`depart_table` currently wraps the **whole `table()` call** in `block(width: ...)[#table(...)]` when `:width:` is set (translator.py:2444-2453, LEN-01 precedent). The analogous, already-proven-in-this-codebase pattern for figures is `visit_figure`/`depart_figure` (translator.py:2039-2145), which wraps the **whole `figure()` call** (not just the image) in `block(width: ...)[#figure(\n...)]` when `:figwidth:` is set (translator.py:2093-2094, 2126-2130).
-
-**Verified: real compile of both possible compositions** — `block(width:)[#figure(table(...), caption:, kind: table)]` ("width outside", wraps the whole figure) and `figure(block(width:)[#table(...)], caption:, kind: table)` ("width inside", wraps only the table) **both compile successfully**. Recommend "width outside" (mirrors `visit_figure`'s existing idiom exactly, keeps one wrapping convention project-wide) — i.e. when a captioned `.. table:: Caption` also has `:width:`, emit:
-
-```typst
-block(width: <converted>)[#figure(
-  table(
-    columns: (...),
-    ...
-  ),
-  caption: {...},
-  kind: table,
-)]
-```
-
-not the reverse nesting. This is a design recommendation, not a compile requirement (both work) — flagging so the planner picks one consciously rather than drifting.
-
-### Gotcha 3 — id/label anchoring already handled differently for tables than for figures
-
-`visit_figure` bracket-wraps the whole call in markup mode (`[#figure(...) <label>]`) specifically because Typst's `<label>` postfix is markup-mode-only syntax, invalid inside the translator's default unified code-mode statement stream (translator.py:2043-2056, a real fatal discovered by GATE-01/Issue #114).
-
-`visit_table`, by contrast, does **not** use this pattern at all — it calls `self._emit_id_anchors(node)` at the very top of `visit_table` (translator.py:2348), **before** `self.in_table = True` is set, emitting a **separate zero-width anchor statement ahead of the table**, not a `<label>` postfix on the table/figure call itself. This existing id-anchor call is independent of the caption/figure-wrap work and does not need to change — a `<label>` postfix is only needed additionally if the milestone wants `.. table::` blocks to support `@ref`-style Typst cross-referencing with `"Table N"` text (not explicitly required by the milestone's stated scope, which only asks for the caption+numbering wrap). If added later, it must follow the `visit_figure` markup-bracket idiom, not `_emit_id_anchors`'s idiom — they are two different, non-interchangeable mechanisms already coexisting in this file.
-
----
-
-## Q2 — Undeclared `.with()` kwarg: compile error or silently ignored? Does base.typ need to change?
-
-**Verified: real compile.** Calling `project.with(title: "x", unknownparam: "y")` against a `project()` that does not declare `unknownparam` produces a hard `typst.TypstError`:
-
-```
-ERROR: unexpected argument: unknownparam
-```
-
-This is **not** silently ignored — every undeclared kwarg aborts the whole compile. This is the load-bearing fact for the milestone: any pass-through fix that forwards an unmapped `typst_elements` key straight into `#show: project.with(...)` will **fatal the compile** unless the target `project()` already declares a matching parameter.
-
-**base.typ does NOT need to change for `papersize`/`fontsize` specifically.** Read directly: `typsphinx/templates/base.typ:39-48` —
-
-```typst
-#let project(
-  title: "",
-  authors: (),
-  date: none,
-  toctree_maxdepth: 2,
-  toctree_numbered: false,
-  toctree_caption: "Contents",
-  papersize: "a4",
-  fontsize: 11pt,
-  body
-) = {
-```
-
-`papersize` and `fontsize` are **already declared parameters** (defaults `"a4"` / `11pt`, base.typ:46-47, and already consumed at base.typ:56/61 — `page(paper: papersize)`, `text(size: fontsize, ...)`). The bug is entirely on the Python side: `template_engine.py`'s `map_parameters()` never forwards these keys to `params`, so `project.with(...)` is called *without* `papersize:`/`fontsize:` at all, and the declared defaults silently win. **This is the opposite of a base.typ gap** — the template function's signature is already correct and ready to receive these two keys; only the Python wiring is dead.
-
-### Gotcha — `fontsize` as a Python `str` value breaks even after wiring is fixed
-
-The milestone's own example config is `typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}` (PROJECT.md milestone description). `TemplateEngine._format_typst_value()` (template_engine.py:422-453) formats any Python `str` as a **quoted** Typst string literal (`.replace(...)` + `f'"{escaped}"'`, template_engine.py:437-440). So a naive pass-through of `typst_elements["fontsize"] = "20pt"` renders `fontsize: "20pt",` in the generated `.typ` — a quoted string, not the unquoted Typst length literal `20pt` that base.typ's `set text(size: fontsize)` (base.typ:61) requires.
-
-**Verified: real compile** — `project.with(fontsize: "20pt")` against a `project(fontsize: 11pt, body)` that does `set text(size: fontsize)` fails with:
-
-```
-ERROR: expected length, found string
-```
-
-`papersize` does **not** have this problem — `page(paper: papersize)` (base.typ:55) genuinely wants a Typst `str` (e.g. `"us-letter"`), so the existing string-quoting behavior of `_format_typst_value` is *correct* for `papersize` and *wrong* for `fontsize`. **This means a correct implementation of (A) cannot treat every `typst_elements` value identically** — it must distinguish length-like values (which need to render as bare/unquoted Typst length literals) from string-like values (which should stay quoted). The translator already owns exactly this parsing logic: `_convert_length_to_typst()` (translator.py:3285-3343) parses a `"<number><unit>"` string via `re.fullmatch(r"(-?[0-9.]+)([a-zA-Zµ%]*)", value)` and returns a bare Typst length string (e.g. the raw source text `20pt`, unquoted) or `None` for unsupported units. That helper lives on `TypstTranslator` (translator.py), not on `TemplateEngine` (template_engine.py) — the two modules are otherwise independent (`TemplateEngine` has no translator/doctree dependency), so either (a) duplicate/extract a minimal length-detection helper into `template_engine.py`, or (b) special-case known length-typed keys (`fontsize`) at the point `typst_elements` is consumed in `writer.py`, converting them to a raw-Typst-code sentinel that `_format_typst_value` must be taught to pass through unquoted. Flag this specifically for the planner — the milestone's own PROJECT.md example (`fontsize: "20pt"`) will not compile without this fix, even after the dead-wiring bug itself is fixed.
-
-### Existing precedent for the correct "direct pass-through" plumbing shape
-
-`writer.py:214-216` already does exactly the pattern needed, for toctree options — bypassing `map_parameters()`'s restrictive mapping-key loop entirely:
-
-```python
-toctree_options = template_engine.extract_toctree_options(self.document)
-params.update(toctree_options)
-```
-
-The same shape (`params.update(typst_elements)` called directly in `writer.py`, rather than routing `typst_elements` through `sphinx_metadata` pre-`map_parameters()` as currently happens at writer.py:208-209) is the natural, lowest-risk fix location — it mirrors an already-shipped, already-tested pattern in the same file rather than inventing a new one. Currently `typst_elements` is folded into `sphinx_metadata` (`sphinx_metadata.update(typst_elements)`, writer.py:209) and then filtered away by `map_parameters()`'s `for sphinx_key, template_key in self.parameter_mapping.items()` loop (template_engine.py:205), which only iterates the 3 `DEFAULT_PARAMETER_MAPPING` keys (`project`/`author`/`release`, template_engine.py:62-66) — any key not in that mapping, including every `typst_elements` key, is silently dropped, exactly as the pending todo (`2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`) documents.
-
-There is also an **already-working alternate path** for arbitrary param pass-through worth knowing about: `typst_template_function = {"name": "project", "params": {"papersize": "us-letter"}}` already reaches `project.with(...)` today, unfiltered, via `render()`'s `all_params.update(self.typst_template_params)` (template_engine.py:405-407, D-08). This confirms the template-function-call plumbing itself has no structural blocker — only the simpler, documented `typst_elements` config's specific pipeline (`sphinx_metadata` → `map_parameters()`) is broken.
-
----
-
-## Q3 — docutils doctree structure for `.. table:: Caption`; how caption is stored; how Sphinx numbers tables
-
-**Source read directly:** `.venv/lib/python3.13/site-packages/docutils/parsers/rst/directives/tables.py`.
-
-- `Table.make_title()` (tables.py:46-57) builds a `nodes.title(title_text, '', *text_nodes)` from the directive's argument text (parsed via `self.state.inline_text(...)`, so inline markup like `**bold**` inside the caption survives as real child nodes, not flattened text).
-- All three concrete directive classes — `RSTTable` (grid/simple table syntax, tables.py:169-172), `CSVTable` (tables.py:316-318), `ListTable` (tables.py:448-450) — end with the identical line: `if title: table_node.insert(0, title)`.
-
-**Confirmed doctree shape:** the caption is stored as a `nodes.title` node **inserted as the table node's FIRST child**, i.e. `table` → `[title, tgroup, ...]`. It is **not** a `caption` node (unlike `.. figure::`, which uses a distinct `nodes.caption` type — see `visit_caption`/`depart_caption`, translator.py:2153+). This is exactly why the generic `visit_title` dispatch currently mishandles it: `visit_title` has no branch for "parent is a table", so it falls through to the plain section-heading path and emits `heading(level: N, {...})` (translator.py:517-529) unconditionally.
-
-**What `visit_title`/`depart_title` actually receive today for this case:** `node.parent` is `nodes.table`. `visit_title` currently checks only `isinstance(node.parent, nodes.Admonition) or isinstance(node.parent, nodes.topic)` (translator.py:487-489) — `nodes.table` matches neither, so it falls through to the default heading-emission branch. Because `visit_table` (translator.py:2367) has already set `self.in_table = True` *before* the title's children are visited (title is the table's first child, visited immediately after `visit_table` returns), every `add_text()` call made while rendering the title's own children routes through `add_text()`'s table-cell-buffer branch (translator.py:260-267: `if hasattr(self, "in_table") and self.in_table and hasattr(self, "table_cell_content"): self.table_cell_content.append(text)`), **not** `self.body`, for every table **after the first one in a document** (`table_cell_content` is only ever initialized in `visit_entry`/reset in `depart_entry`, translator.py:2592/2631 — never in `__init__`, so it doesn't exist as an attribute for the very first table, meaning the first table's stray heading leaks into `self.body` normally, but a second+ table's stray heading text is silently swallowed into a stale, disconnected `table_cell_content` list left over from the previous table's last cell — confirmed by direct code trace, not just the todo's prose claim). This double failure mode (heading-leak on table #1, silent swallow on table #2+) is exactly what the pending todo (`2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md`) describes and is the mechanism the fix must close by adding an explicit `isinstance(node.parent, nodes.table)` branch to `visit_title`/`depart_title` that buffer-swaps (mirroring the existing admonition/topic buffer-swap idiom at translator.py:487-503/546-562, and the caption buffer-swap idiom at `visit_caption`/`depart_caption`, translator.py:2166-2187) rather than falling through to the heading path.
-
-**Existing cell format to match for tests:** `_format_table_cell()` (translator.py:2393-2420) emits normal cells as `{indent}{{{content}}},\n` — confirmed at translator.py:2410, i.e. `{par({text("...")})},` — and `_build_columns_fr_arg()` (translator.py:2372-2391) falls back to `(1fr, 1fr)` when colwidth data is absent/equal — both match the pending todo's stated migration target for the ported PR#98 test assertions (`{par({text(...)})}`, `columns: (1fr, 1fr)`).
-
-**Sphinx `numfig`/`Table %s` numbering: NOT used by typsphinx, confirmed by exhaustive grep.** `grep -rn "numfig" typsphinx/` returns zero hits anywhere in the package. typsphinx's translator never touches Sphinx's own `numfig`/`numfig_format` table-numbering machinery (the system that drives HTML/LaTeX builders' "Table %s" labels via the `std` domain) — table/figure numbering in typsphinx's output is entirely delegated to **Typst's own** `kind:`-scoped figure counter (Q1), which is why the milestone's target design (`figure(table(...), caption:, kind: table)`) is the right shape: it hands numbering off to Typst natively rather than trying to thread Sphinx's `numfig` state through. No `config.numfig`/`config.numfig_format` reads are needed anywhere in this fix.
-
----
-
-## Q4 — `typst_toctree_defaults` deletion: confirmed inert, deletion is safe
-
-`grep -rn "typst_toctree_defaults" typsphinx/` returns exactly **one** hit, the registration line itself:
-
-```
-typsphinx/__init__.py:47:    app.add_config_value("typst_toctree_defaults", None, "html", [dict, type(None)])
-```
-
-No reference anywhere else in `typsphinx/translator.py`, `typsphinx/writer.py`, `typsphinx/builder.py`, or `typsphinx/template_engine.py`. The actual toctree options (`maxdepth`/`numbered`/`caption`) that DO reach the template are read directly from the doctree's `addnodes.toctree` node by `TemplateEngine.extract_toctree_options()` (template_engine.py:273-318, reading `toctree.get("numbered", False)` / `toctree.get("maxdepth", 2)` / `toctree.get("caption", "")` off the live toctree node, not off any Sphinx config value). **Deleting the `__init__.py:47` registration line is therefore a pure, inert code removal with zero behavioral impact on `typsphinx/` package code** — confirmed by the grep, not inferred.
-
-Outside the package itself, `typst_toctree_defaults` is additionally referenced in 4 non-package locations the milestone's docs-fidelity work area (#3, out of this STACK research's technical-API scope) already targets for deletion: `docs/configuration.rst:223,245,355`, `examples/advanced/conf.py:86`, `examples/advanced/README.md:250`, `README.md:208`. None of these affect the Python package's runtime behavior; they are documentation/example surfaces only.
-
----
-
-## Summary table for the roadmapper
-
-| Question | Verdict | Confidence | Evidence |
-|---|---|---|---|
-| Q1: `figure(table(...), caption:, kind: table)` syntax | Exact syntax confirmed; auto-numbers "Table N" independently of image-figure counter; `fr`-columns and `:width:` composition both compile clean | HIGH | typst.app docs + 3 real compiles in this repo's venv |
-| Q2: does base.typ need new params? | **No** — `papersize`/`fontsize` already declared (base.typ:46-47) with matching defaults; bug is 100% Python-side (`map_parameters` drops unmapped keys) | HIGH | Direct source read + real-compile proof of the undeclared-kwarg fatal |
-| Q2 gotcha: `fontsize: "20pt"` as Python str | **Breaks** even after wiring fix — renders as a quoted Typst string, `set text(size: "20pt")` is a real Typst type error | HIGH | Real compile: `ERROR: expected length, found string` |
-| Q3: table caption doctree shape | `nodes.title` inserted as `table`'s first child (`table` → `[title, tgroup, ...]`), NOT a `caption` node; Sphinx `numfig` is unused by typsphinx entirely | HIGH | docutils `tables.py` source read + exhaustive grep |
-| Q4: `typst_toctree_defaults` deletion safety | Confirmed inert outside its own registration line; deletion is pure removal | HIGH | `grep -rn` across `typsphinx/` |
+1. **`build.jobs.build.pdf` overrides only the PDF step**; `html` keeps RTD's default `sphinx-build -b html` behavior driven by the top-level `sphinx:` key. This is exactly the "keep using the default commands ... but extend or override the ones you need" pattern RTD's build-customization page documents, and it lands the typst-generated PDF in the one directory (`$READTHEDOCS_OUTPUT/pdf/`) RTD's Downloads/flyout UI reads from.
+2. **`python.install: method: uv`** is the RTD-native mechanism (documented at `docs.readthedocs.com/platform/stable/config-file/v2.html`) — not a hand-rolled `build.jobs.install` override. `command: sync` runs `uv sync` against this project's root `pyproject.toml`/`uv.lock`; `extras: [docs]` maps to `uv sync --extra docs` (this project's `docs` group lives under `[project.optional-dependencies]`, **not** `[dependency-groups]`, so `extras:` is the correct key — `groups:` is for PEP 735 `[dependency-groups]` entries like this repo's `dev`). `uv sync` installs the workspace-root project itself (typsphinx) in editable mode as part of the sync, satisfying `conf.py`'s `extensions = [..., "typsphinx"]` without a separate `uv pip install -e .` step.
+3. **Only one entry is allowed under `python.install` when `method: uv` is used** (RTD constraint) — so this is deliberately a single list item, not `method: uv` alongside a second `method: pip` entry.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
-|---|---|---|
-| (Q2) Fix via `params.update(typst_elements)` directly in `writer.py` (mirrors the existing toctree_options pattern) | Fix via widening `DEFAULT_PARAMETER_MAPPING` to a dynamic identity map inside `map_parameters()` | Only if there is a future need to *rename* `typst_elements` keys before they reach the template (not the milestone's stated need — `papersize`→`papersize` etc. is already identity); the direct-`update()` route is simpler and has an exact precedent already shipped |
-| (Q1) `block(width:...)[#figure(...)]` — width wraps the whole figure | `figure(block(width:...)[#table(...)], ...)` — width wraps only the table | Both compile; only choose the "width inside" form if a future requirement needs the caption to NOT be constrained by the width box (not currently a requirement) |
-| (Q1) Rely on Typst's native `kind: table` auto-counter for "Table N" | Thread Sphinx's `numfig`/`numfig_format` state through the translator | Only if a future requirement needs typsphinx's table numbers to match an HTML/LaTeX build's numbers exactly (cross-builder consistency) — out of scope; no existing wiring for this exists anywhere in the package today |
+|-------------|-------------|--------------------------|
+| `python.install: method: uv` (native) | `build.jobs` override with `asdf plugin add uv` + `uv venv "$READTHEDOCS_VIRTUALENV_PATH"` + `UV_PROJECT_ENVIRONMENT=... uv sync` | Use the manual `build.jobs` form only if you need an argument the native `method: uv` schema doesn't expose (RTD's own docs: "Use `build.jobs` only when you need an advanced uv workflow that isn't covered by `python.install`"). This project's needs (sync + one extras group) are fully covered by the native form, so prefer it — less YAML, less surface to drift from RTD's own maintained defaults. |
+| `formats: [pdf]` + `build.jobs.build.pdf` override (typst-generated PDF) | `formats: [pdf]` alone, letting RTD build its own LaTeX-based PDF | Never, for this milestone — this project's whole point is dogfooding `typstpdf`; RTD's default LaTeX PDF path is a completely separate Sphinx `-b latex` + `latexmk`/TeX Live pipeline that has nothing to do with this extension and would silently ship a *different, worse* PDF (no `typst_use_mitex`, no custom template) alongside — or instead of — the one this project exists to produce. See "What NOT to Add." |
+| `build.os: ubuntu-24.04` (pinned) | `build.os: ubuntu-lts-latest` | Use `-lts-latest` only if you want RTD to auto-advance the OS image for you and are comfortable with the image (and its glibc/apt package versions) changing without a corresponding commit to this repo. Given the "one genuine technical unknown" framing of this milestone (does `typst-py` work on RTD's image), an **explicit, pinned** OS version is the more cautious choice — a future OS bump becomes a deliberate, reviewable diff instead of a silent surprise. |
 
-## What NOT to Use
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
-|---|---|---|
-| Passing `typst_elements` values straight through `_format_typst_value()` unmodified | Silently mis-types any length-like string value (e.g. `"20pt"`) as a quoted Typst string, producing a hard `expected length, found string` compile fatal for `fontsize` specifically | Detect length-like values (reuse/extract `_convert_length_to_typst`'s regex) and format them as raw/unquoted Typst source, not as a formatted-string literal |
-| Adding a `kind: table` handling path that also emits a `<label>` postfix via `_emit_id_anchors()` | `_emit_id_anchors()` emits a separate anchor statement, not a markup-mode `<label>` postfix on the call itself — mixing the two anchor mechanisms on the same node is inconsistent with how `visit_figure` already does it | If table cross-referencing via `<label>`/`@ref` is added, follow the `visit_figure`/`depart_figure` markup-bracket idiom (translator.py:2039-2151) exactly, not `_emit_id_anchors` |
-| Assuming `.. table:: Caption`'s title is a `caption` node (figure-style) | It's a `nodes.title`, not `nodes.caption` — a different docutils node type entirely, per direct read of `tables.py`'s `make_title()` | Add an explicit `isinstance(node.parent, nodes.table)` branch to the existing `visit_title`/`depart_title` dispatch |
+|-------|-----|--------------|
+| `formats: [pdf]` **without** a `build.jobs.build.pdf` override | RTD's default Sphinx PDF path runs its own LaTeX (`-b latex` + `latexmk`) pipeline requiring a TeX Live toolchain — an entirely different, much heavier build than `typstpdf`, and produces a PDF this project does not control the styling of. This directly contradicts the milestone's "keep dogfooding `typstpdf`" invariant. | `formats: [pdf]` **with** `build.jobs.build.pdf` overridden to run `sphinx-build -b typstpdf ...` and write into `$READTHEDOCS_OUTPUT/pdf/`. |
+| `sphinx-rtd-theme` | RTD does not require its own theme — Furo (already in `docs` extras) works fine on RTD and is what this project already ships. Swapping themes is an unrelated, unrequested visual change and risks breaking the custom CSS (`custom.css`) already tuned for Furo. | Keep `furo` unchanged. |
+| RTD "Addons" flyout-integration Sphinx extensions (e.g. `sphinx-notfound-page`, `sphinx-hoverxref`) | Not requested by this milestone's scope (only "URL 張り替え" + "版別/言語別に正しく引ける" + linkcheck). RTD's Addons (search, flyout version/language menu) are injected automatically at the platform level — no Sphinx extension is required to get the baseline version/language flyout described in the milestone brief. Adding extensions here would be scope creep against the "zero new runtime deps" invariant this project holds tightly across milestones. | Nothing — RTD's Addons work out of the box; only add `sphinx-notfound-page`-class extensions later if a *specific* subsequent requirement calls for them. |
+| `build.apt_packages` entries for fonts (e.g. `fonts-liberation`, `fonts-dejavu`) | **Not needed** — `typst-py`'s `Cargo.toml` enables `typst-kit`'s `embedded-fonts` feature (confirmed by direct inspection of `messense/typst-py`'s `Cargo.toml`: `typst-kit = { version = "0.15.1", features = ["embedded-fonts", "scan-fonts", "system-downloader", "system-packages", "vendor-openssl"] }`). This bakes Libertinus Serif / New Computer Modern / New Computer Modern Math / DejaVu Sans Mono directly into the compiled wheel — identical to what the Typst CLI ships. English-only docs (this project's case) need zero system font packages to compile. `scan-fonts` is also enabled, meaning it will *additionally* look for system fonts if present, but absence of any system fonts is not a failure — it falls back to the embedded set. | Nothing. If a future milestone adds non-Latin-script or CJK-heavy Typst output (not this milestone — the PDF stays English-only per scope), *then* revisit `build.apt_packages` for fonts; not needed here. |
+| Manually installing/pinning `uv` via `asdf`/`pip install uv` in a `build.jobs.pre_create_environment` step | Superseded by RTD's native `method: uv` support in `python.install`; RTD's own build-customization docs describe the manual `asdf` pattern as the pre-native-support workaround, and separately state "Read the Docs' own build steps expect [`uv`], by setting the `UV_PROJECT_ENVIRONMENT` variable" — i.e. `uv` is already provisioned on the image when `method: uv` is used. | `python.install: - method: uv` as shown above. |
+| A second/duplicate `docs-multilang`-style tox env for RTD | RTD does not invoke `tox` at all in the recommended flow — it drives Sphinx directly via `sphinx:`/`python.install`/`build.jobs`. The existing `tox -e docs-html` / `tox -e docs-pdf` envs stay as the **local-dev and CI** entry points (`docs.yml` keeps running `tox -e docs-pdf` as the regression gate per this milestone's explicit "残す" decision); `.readthedocs.yaml` is a parallel, RTD-only build description, not a tox wrapper. | Keep `tox.ini`'s `docs-html`/`docs-pdf`/`docs` envs exactly as-is for local/CI use; `.readthedocs.yaml` calls `sphinx-build` directly. |
+
+## Stack Patterns by Variant
+
+**If the `ja` translation project needs the same PDF behavior as the `en` parent:**
+- RTD translation ("child") projects each get their **own** `.readthedocs.yaml` resolution from the **same repository** (translation projects in RTD point at the same VCS repo, just with a different configured `Language` and, typically, the same config file) — so the identical `build.jobs.build.pdf` step will also run for the `ja` project unless conditioned.
+- Because `conf.py:51` will read `READTHEDOCS_LANGUAGE` (see below) and `typst_use_mitex`/templates are language-agnostic already, no additional `.readthedocs.yaml` branching is needed for v1 — the same PDF job runs for both, producing an (English-content) PDF under both `/en/` and `/ja/` unless a future requirement asks for a Japanese-specific PDF. This matches the milestone brief's explicit "PDF stays English" framing — no action needed, just note it's a shared artifact across both language projects unless later scoped otherwise.
+
+**If `READTHEDOCS_LANGUAGE` is unset (local dev, plain `sphinx-build`, or CI's `tox -e docs-html`/`docs-pdf`):**
+- Use `os.getenv("READTHEDOCS_LANGUAGE", "en")` — the same fallback-to-`"en"` pattern the current `SPHINX_LANGUAGE` line already uses — so `conf.py` keeps working identically outside RTD.
+
+## Version Compatibility
+
+| Package A | Compatible With | Notes |
+|-----------|------------------|-------|
+| `typst-py 0.15.0` (manylinux2014, glibc 2.17+, `cp38-abi3`) | `ubuntu-24.04` RTD image | Ubuntu 24.04's glibc is 2.39 — vastly newer than the wheel's `manylinux2014`/glibc-2.17 floor, so the wheel is installable on any RTD Ubuntu image currently offered (`22.04`/`24.04`/`26.04`). This is a purely-`pip`-resolvable wheel install; no compilation, no Rust toolchain, no `cargo` needed on the builder. |
+| `typst-py`'s embedded fonts | English-only Typst output (this project's docs) | Confirmed via `typst-kit`'s `embedded-fonts` feature in `typst-py`'s `Cargo.toml` (see "What NOT to Add"). No `build.apt_packages` font installs required. |
+| `python.install: method: uv` | `[project.optional-dependencies]` (this repo's `docs` group) | Use `extras:`, not `groups:` — `groups:` targets PEP 735 `[dependency-groups]` (this repo's `dev` group lives there), while `docs` is a classic setuptools "extra." Getting this backwards silently installs the wrong (or no) additional packages. |
+| `sphinx>=9.1,<10` / `docutils>=0.21,<0.23` (already pinned, unchanged) | RTD's own default `sphinx-build -b html` step | RTD's zero-config `sphinx:` key runs the same `sphinx-build` binary this project's `tox -e docs-html` already runs — no version skew risk since it's the one `uv sync`-installed interpreter/environment, not a separate RTD-bundled Sphinx. |
 
 ## Sources
 
-- `typsphinx/templates/base.typ:1-93` (`project()` signature, read in full)
-- `typsphinx/template_engine.py:62-66,186-245,405-420,422-453` (`DEFAULT_PARAMETER_MAPPING`, `map_parameters`, `render`, `_format_typst_value`)
-- `typsphinx/writer.py:150-247` (per-document template render call, `sphinx_metadata`/`typst_elements`/`toctree_options` plumbing)
-- `typsphinx/translator.py:260-267` (`add_text` table-cell-buffer routing), `:453-620` (`visit_title`/`depart_title`), `:2039-2151` (`visit_figure`/`depart_figure`), `:2153-2210` (`visit_caption`/`depart_caption`), `:2337-2486` (`visit_table`/`_build_columns_fr_arg`/`depart_table`), `:2584-2631` (`visit_entry`/`depart_entry`), `:3285-3343` (`_convert_length_to_typst`)
-- `typsphinx/__init__.py:47` (`typst_toctree_defaults` registration, sole reference)
-- `.venv/lib/python3.13/site-packages/docutils/parsers/rst/directives/tables.py` (`Table.make_title`, `RSTTable.run`, `CSVTable.run`, `ListTable.run` — read in full)
-- Real `typst.compile()` runs against this repo's pinned `typst-py` (0.15.x per `uv.lock`) — HIGH confidence, reproducible: undeclared-kwarg fatal, string-vs-length-typed-fatal, `figure(table(fr-columns), caption, kind: table, <label>)` + `@label` cross-ref, both `block(width:)[figure(...)]` / `figure(block(width:)[table(...)])` compositions
-- [Figure - Typst Documentation](https://typst.app/docs/reference/model/figure/) — `figure()`/`caption`/`kind`/`supplement` parameter semantics (WebFetch-verified against the live reference page, cross-checked against real-compile behavior above)
-- `.planning/todos/pending/2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`, `.planning/todos/pending/2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md` — root-cause context these findings confirm/extend
-- `.planning/PROJECT.md` (Current Milestone section) — scope framing
+- `docs.readthedocs.com/platform/stable/config-file/v2.html` — HIGH. `.readthedocs.yaml` v2 schema: `build.os` enum, `build.tools.python` enum, `build.jobs` key list (`post_checkout` … `post_build`, with `build.pdf`/`build.html`/`build.epub`/`build.htmlzip` sub-keys), `python.install` schema including the native `method: uv` (`command: sync|pip`, `extras`, `groups`, one-entry-only constraint), `formats` key, `build.apt_packages`.
+- `docs.readthedocs.com/platform/stable/build-customization.html` (and its `.io` mirror) — HIGH. Confirms `build.jobs` overrides only the steps you name while defaults still run for the rest; documents the (now-superseded-for-most-cases) manual `asdf`+`uv` pattern and explicitly states "Read the Docs' own build steps expect [uv], by setting the `UV_PROJECT_ENVIRONMENT` variable," i.e. `uv` ships on the image.
+- `docs.readthedocs.com/platform/stable/reference/environment-variables.html` — HIGH. Full `READTHEDOCS_*` variable enumeration, verbatim quoted for `READTHEDOCS_LANGUAGE` ("The locale name, or the identifier for the locale, for the project being built," lowercase-dash-separated, e.g. `en`, `de-at`-style values), `READTHEDOCS_OUTPUT`, `READTHEDOCS_VERSION`, `READTHEDOCS_CANONICAL_URL`, `READTHEDOCS_PROJECT`, `READTHEDOCS_VIRTUALENV_PATH` (pip/virtualenv builds only, not Conda), `READTHEDOCS` (bool).
+- `docs.readthedocs.io/page/intro/sphinx.html` — HIGH. Minimal Sphinx-on-RTD example confirming `build.os: ubuntu-24.04` as the currently-recommended default.
+- `docs.readthedocs.com/platform/stable/downloadable-documentation.html` and `.../guides/enable-offline-formats.html` — HIGH for the general `formats:` mechanism; did **not** yield an explicit statement on the exactly-one-PDF-file constraint for `$READTHEDOCS_OUTPUT/pdf/` — flagged as a gap below.
+- `github.com/messense/typst-py` (`Cargo.toml`, fetched directly) — HIGH (primary source, direct dependency declaration, cross-checked against `typst/typst`'s own `docs/Cargo.toml` using the identical `typst-kit`/`embedded-fonts` pattern and against `typst.app/docs/reference/text/text` which names the same embedded font set for the CLI). This is the load-bearing evidence for the milestone's "one genuine technical unknown" (fonts) — **not** UNVERIFIED.
+- `pypi.org/project/typst` (file listing) — HIGH. `typst-0.15.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl` and the `aarch64` counterpart confirmed to exist; glibc 2.17 floor is far below any RTD Ubuntu image's glibc.
+- `sphinx-doc.org` (`sphinx/builders/linkcheck.py` source, fetched directly) — HIGH, primary source. Confirms the full `linkcheck_*` config-value surface consumed by `HyperlinkAvailabilityCheckWorker`/`HyperlinkAvailabilityChecker`.
+- RTD build-server CPU architecture (x86_64/amd64) — **MEDIUM, inferred not documented**. See Gaps below.
+
+## Gaps / UNVERIFIED — named probes
+
+1. **RTD builder CPU architecture is not explicitly documented as "x86_64-only."** Evidence supporting x86_64 is circumstantial: (a) RTD's `build.os` enum (`ubuntu-22.04`/`24.04`/`26.04`/`ubuntu-lts-latest`) carries no architecture selector at all — if RTD offered ARM builders, this is the natural place a project would pick one, and it isn't there; (b) RTD's own blog documents an AWS-hosted infrastructure migration, and standard AWS-hosted CI/build fleets default to x86_64 unless a project opts into Graviton/ARM instances, which RTD's docs never mention. **This is not a confirmed fact, just the best inference available from current docs.** Named probe: push this milestone's `.readthedocs.yaml` as a real RTD build and inspect the build log for the resolved `pip`/`uv` wheel selection — a `manylinux2014_x86_64` wheel being selected confirms x86_64; a fallback to source-build or an `aarch64` wheel would falsify this. This is the cheapest possible probe (one real build, already required for the milestone regardless) and should be the actual verification, not further documentation research.
+2. **Exactly-one-file constraint on `$READTHEDOCS_OUTPUT/pdf/` is not confirmed from docs.** RTD's guides describe the mechanism generally ("files in these directories will automatically be found, uploaded, and published") but a dedicated "Where to put files" reference page returned HTTP 404 during this research (URL structure appears to have changed/moved) and no substitute page stated a hard one-file rule. Named probe: after wiring the `build.jobs.build.pdf` step, check the RTD Project dashboard → Downloads UI and/or the build log for a warning if more than one `.pdf` ends up in that directory (should not happen here — `sphinx-build -b typstpdf` writes exactly one PDF for this project's single `typst_documents` master — but confirm empirically on the first real build rather than assuming).
+3. **Whether `uv sync`'s editable install of the workspace-root project fully satisfies `conf.py`'s `sys.path.insert(0, os.path.abspath("../.."))` + `extensions = [..., "typsphinx"]` on RTD specifically** (vs. only verified locally/in GitHub Actions) is not yet empirically confirmed on RTD's actual container. This is standard, well-trodden `uv sync` behavior and not considered a serious risk, but — like #1 — the real settling probe is simply the first live RTD build, not further documentation research.
 
 ---
-*Stack research for: typsphinx v0.6.3 — config pass-through + captioned tables*
-*Researched: 2026-07-23*
+*Stack research for: Read the Docs migration (typsphinx v0.6.4)*
+*Researched: 2026-07-25*

@@ -290,6 +290,36 @@ For feature requests:
 3. Suggest implementation approach (optional)
 4. Consider creating an OpenSpec proposal for major features
 
+Translations
+------------
+
+Japanese translation catalogs are maintained in a separate repository.
+The repository, ``typsphinx-doc-translations``, consumes this repository as a git
+submodule and is built by a Read the Docs translation project served at
+https://typsphinx.readthedocs.io/ja/latest/.
+
+To work on the translation:
+
+.. code-block:: bash
+
+   # Clone the translations repository
+   git clone --recurse-submodules https://github.com/YuSabo90002/typsphinx-doc-translations.git
+   cd typsphinx-doc-translations
+
+   # Refresh the catalogs against the current English source
+   make locale-update
+
+   # Edit the .po files under locale/ja/LC_MESSAGES/, then check coverage
+   make locale-stat
+
+If you already cloned without ``--recurse-submodules``, run
+``git submodule update --init`` before ``make locale-update``.
+
+Open a pull request in the translations repository with your changes.
+
+Coverage is partial by design: untranslated strings fall back to English, so a
+partial translation is a working site rather than a broken one.
+
 Community
 ---------
 

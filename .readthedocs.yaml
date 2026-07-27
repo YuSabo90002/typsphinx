@@ -1,0 +1,57 @@
+# Read the Docs build manifest (config-file-v2). RTD refuses every build
+# without this file, and it is the only place RTD's build behavior is
+# configured -- nothing in conf.py or this repo's local task runner reaches it.
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    # Matches .github/workflows/docs.yml's actions/setup-python pin, so the
+    # D-12 PDF baseline comparison runs on the same Python minor both sides.
+    python: "3.12"
+  # The English documentation itself contains CJK strings (D-10), and
+  # typst-py's embedded fonts (Libertinus Serif / New Computer Modern) have
+  # no CJK coverage. Typst's font fallback is silent, so without this
+  # package a build reporting success would still render substituted
+  # glyphs (tofu) on those pages.
+  apt_packages:
+    - fonts-noto-cjk
+  jobs:
+    build:
+      pdf:
+        # The typstpdf builder writes many files into its output directory
+        # (the PDF, one .typ per document, _template.typ, and a doctrees
+        # tree -- 31 files, measured 2026-07-25) -- only the PDF may cross
+        # into RTD's public download area, so the build target is a
+        # temporary directory, never $READTHEDOCS_OUTPUT itself (D-04).
+        - mkdir -p /tmp/typst-pdf-build/doctrees
+        - sphinx-build -b typstpdf -d /tmp/typst-pdf-build/doctrees docs/source /tmp/typst-pdf-build/out
+        # $READTHEDOCS_OUTPUT expands to a `_readthedocs/` directory whose
+        # format subdirectory is created by RTD's own post-build ingestion,
+        # not before this job runs -- so the `pdf/` subdirectory must be
+        # created explicitly before the copy below (Common Pitfall 3).
+        - mkdir -p "$READTHEDOCS_OUTPUT/pdf/"
+        - cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"
+
+sphinx:
+  configuration: docs/source/conf.py
+
+# formats: [pdf] and build.jobs.build.pdf above are used together
+# deliberately: the override replaces RTD's default LaTeX step for that
+# format, so formats: [pdf] alone would silently activate RTD's own LaTeX
+# pipeline and ship an undogfooded PDF instead of typsphinx's own
+# typstpdf output (Common Pitfall 1).
+formats:
+  - pdf
+
+python:
+  install:
+    # RTD's zero-config Sphinx build does NOT install the project package,
+    # so without this, conf.py's extensions = [..., "typsphinx"] would
+    # either fail to import or silently resolve a published PyPI wheel
+    # instead of this commit. `uv sync` installs typsphinx (editable) plus
+    # the `docs` extra from the checked-out commit.
+    - method: uv
+      command: sync
+      extras:
+        - docs

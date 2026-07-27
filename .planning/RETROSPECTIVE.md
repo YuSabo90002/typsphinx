@@ -252,6 +252,51 @@
 
 ---
 
+## Milestone: v0.6.4 — Read the Docs migration
+
+**Shipped:** 2026-07-28
+**Phases:** 6 (29, 30, 30.1, 31, 32, 33) | **Plans:** 33 | **Tasks:** 79 | **Sessions:** ~4 days (2026-07-25 → 2026-07-28)
+
+### What Was Built
+- Documentation hosting moved from GitHub Pages to Read the Docs end to end: English site from `.readthedocs.yaml` + the `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` seam (Phase 29), Japanese site from a separate `typsphinx-doc-translations` repository registered as an RTD translation project with an auto-advancing submodule pin (Phase 30.1).
+- The RTD-served PDF is `typstpdf`'s own artifact: `formats: [pdf]` + a `build.jobs.build.pdf` override replaces RTD's LaTeX path; the milestone's one open unknown (`@preview` egress from RTD's build sandbox) resolved to Branch A by reading the raw build log, so the pre-agreed `releases/latest/download/` fallback was never needed.
+- The Japanese PDF's 10-NUL-byte glyph defect was root-caused to Typst's own font-selection stage (not a missing font) and fixed via a custom template's explicit `("Libertinus Serif", "Noto Serif CJK JP")` — owner visual UAT confirmed, English parent re-measured unregressed.
+- The deletion round (Phase 30): `build_multilang.py`, the language switcher, its `conf.py` wiring, six Makefile targets, the `docs-multilang` testenv, `docs/locale/ja/`, and the orphan doc pair with 20 collateral tests — net −6,218 lines of code/config left the repository.
+- URL cutover behind a proven guard (Phase 31): advisory lychee `links.yml` recorded red on the unfixed tree first, then all retired-host URLs rewritten and locked by a hermetic regression test; all 35 published URLs fetched over real HTTP; About → Website set.
+- The irreversible Pages teardown (Phase 32) ran only behind freshly re-taken same-day evidence that RTD was serving en HTML, ja HTML (content-verified at 1038 CJK chars), and both PDFs; `gh-pages` deleted with `ls-remote` proof, github.io 404 observed live.
+- Release prep (Phase 33) with the publish fence proven held; publish executed at `/gsd-complete-milestone` behind a passed milestone audit.
+
+### What Worked
+- **Irreversibility-ordering as the roadmap's spine.** Every reversible action preceded the single no-undo one, and the teardown phase carried its own standing gate demanding *freshly re-taken* evidence rather than citations of earlier phases. The URL cutover proved the new links against RTD while both hosts were still live.
+- **Content-level criteria caught what status-level criteria structurally cannot.** Both predicted present-as-success failure modes were real: the ja probe had to target 100%-coverage docnames (24.3% overall coverage would have made a healthy site look broken — or a broken site look healthy), and the glyph gate found 10 literal NUL bytes in a PDF that built green.
+- **Negative controls everywhere.** The link guard was recorded red before the rewrite; the docs.yml guard tests got a recorded red run; the `--dump-inputs` diagnostic proved pyproject.toml in-scan. A guard first seen green proves nothing.
+- **Pre-agreeing the fallback for the one empirical unknown.** Phase 29 could not deadlock on the `@preview` egress question because both branches were expressible in its success criteria and the owner had decided the fallback in advance.
+- **The milestone audit returned — and the close was the first verified_closeout since v0.4.4.** v0.6.3's lesson (its one real defect was found by a side question, not a gate) was applied: a 3-source requirements cross-reference + integration checker ran before the publish.
+
+### What Was Inefficient
+- **Phase 30.1 consumed 11 of the milestone's 33 plans**, including a five-plan gap-closure round (07–11) after its first verification scored 3/5: the pin-bump workflow had a missing branch-fetch root cause, and the glyph defect needed a forensic diagnosis round plus an owner decision before the fix. Real defects, but the phase was scoped as if the happy path would hold.
+- **The milestone's repository model was replaced mid-flight.** The original brief re-imported the same repository twice; the `sphinx-doc-translations` separate-repo model was adopted on 2026-07-26, forcing the 30.1 insertion, an I18N requirement split, and three owed post-merge flips (two RTD Default-branch settings + `.gitmodules`). Measuring RTD's actual translation model (15/15 sphinx translations are separate repos) *before* scoping would have avoided the churn.
+- **The `api-coverage.verify-pre` gate false-positived three times** (Phases 30, 30.1, 31) on prose *describing* RTD API reads as evidence, each requiring a recorded override. The detector matches disclaimer text that exists precisely to say "this is not an API integration."
+- **A handful of SUMMARY one-liner frontmatter fields were broken or empty** ("the owner created the empty"), which polluted the auto-generated MILESTONES entry and had to be curated away at close.
+
+### Patterns Established
+- **Two-repository release set:** every release now tags the parent *and* `typsphinx-doc-translations` — `/ja/stable/` resolves against the translations repo's own tags. Omitting it leaves ja stuck/404 while en works: exactly the partial-success failure mode the milestone's invariants exist to catch.
+- **The no-undo action gets its own phase with a standing, freshly-re-taken gate** — never folded into a neighbour, never satisfied by citing earlier evidence.
+- **Owner-manual web-UI steps carry no pretend-automatable criteria**: phases verify outcomes via real fetches, and the human half is recorded as owner-observed or handed off explicitly.
+
+### Key Lessons
+1. **When a failure mode presents as a successful build, pick probe targets for sensitivity.** A translated-content probe against a 0%-coverage docname, or a PDF byte-size check without text extraction, would have passed on broken output. Both real defects this milestone were only visible to content-level checks aimed at known-sensitive targets.
+2. **Measure the platform's actual model before scoping a migration onto it.** The re-import-twice plan died on contact with RTD's measured translation model; the replacement was visible in the platform's public API the whole time.
+3. **Cross-repository coupling needs an observed end-to-end run, not a plausible workflow file.** The pin-bump automation failed on its first real trigger (missing branch fetch under `--depth=1`); only the observed run surfaced it.
+4. **Run the milestone audit.** It cost one session and produced the first fully-verified close in five milestones; the alternative (v0.6.3) shipped an unbuildable sample.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~4 calendar days (2026-07-25 → 2026-07-28), 290 branch commits; worktree-isolated executor mode throughout.
+- Notable: 6 phases / 33 plans / 79 tasks for 13 requirements — plan count dominated by 30.1's gap-closure round; the code delta is net-negative (−6.2k lines), the first milestone whose main deliverable is infrastructure that lives mostly *outside* this repository.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -264,6 +309,7 @@
 | v0.6.1 | ~6 days | 3 | Rendering fidelity: machine-catalogue → single human confirmation gate for a 151-docname visual audit; severity-gated backlog; first `override_closeout` driven by an audit/docs phase's missing machine verification |
 | v0.6.2 | ~4 days | 9 (incl. 4 inserted) | Rendering fidelity round 2: audit findings clustered by root cause into 3 translator phases; config→output regression gate closed a dead-config *class*; revert-and-restore fixture verification; `override_closeout` driven by an honest-verifier backstop abstention |
 | v0.6.3 | ~3 days | 6 (incl. 1 inserted) | Config & docs 実測整合: fail-loud curated allowlist replaced silent config drops; risks split across phases by failure mode rather than by feature; the worktree `uv` exec hazard root-caused; `override_closeout` with no milestone audit — and the milestone's one real defect (an unbuildable bundled example) found by the close's todo audit, not by any gate |
+| v0.6.4 | ~4 days | 6 (incl. 1 inserted) | Read the Docs migration: first hosting/infra milestone with a zero-`typsphinx/`-change invariant (held); irreversibility-ordered roadmap with the no-undo action isolated behind a freshly-re-taken gate; content-level criteria for present-as-success failure modes; milestone audit returned → first verified_closeout since v0.4.4 |
 
 ### Cumulative Quality
 
@@ -275,6 +321,7 @@
 | v0.6.1 | + `wide_table_render_gate` real-compile class; todo/manpage/figwidth/table-width GATE-01 fixtures | fast suite green; GATE-03 full-corpus PDF fatal-free, `unknown_visit` catalogue empty | 0 new runtime deps |
 | v0.6.2 | 567 passed; + cluster A–F translator GATE-01 fixtures, target-name / nested-master / package-only / missing-malformed-master gates, config→output regression gate, `README`↔`pyproject` version-sync ratchet | fast suite green; full-corpus PDF fatal-free, `unknown_visit` empty | 0 new runtime deps |
 | v0.6.3 | 657 passed / 1 skipped; + captioned-table GATE-01 fixtures (2+-table, caption+width, `:numref:`), four `typst_elements` config→output fixtures incl. a negative unknown-key and a copyright-non-leak, `test_typst_lang_gate.py` (18 tests / 7 real-compile fixtures incl. 3 non-regression template paths), and a fourth-surface `@preview` sync check over `examples/**/*.typ` | full suite green; full-corpus PDF fatal-free, `unknown_visit` empty; `sphinx-build -b typstpdf examples/advanced` builds | 0 new runtime deps |
+| v0.6.4 | 647 passed / 1 skipped (net down: 20 collateral tests deleted with their orphan subjects); + `.readthedocs.yaml` structural tests, `_resolve_language()` seam tests, stale-URL regression guard (`test_no_stale_github_io_links.py`), two docs.yml guard tests with recorded red negative controls, advisory lychee `links.yml` | full suite green; live RTD verified serving en+ja HTML and both `typstpdf` PDFs | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -288,3 +335,4 @@
 8. For subjective/visual correctness, separate machine cataloguing (biased toward false-positives) from human judgment (one accept/reject + severity gate), and gate the resulting backlog by severity — promote only high-severity findings to requirements. *(v0.6.1)*
 9. Cluster audit-derived findings by shared code root cause and gate config on *output* not registration; prove a fixture has teeth by reverting the fix in place (byte-identical restore), and let an unexercisable truth abstain to human rather than counting it green. *(v0.6.2)*
 10. When you make a previously-silent failure loud, sweep the whole repo — including `examples/` — for who depended on the silence; and remember that per-phase verification proves the phases did what they said, not that the repo is shippable. *(v0.6.3 — a bundled sample shipped unbuildable through 6 green phases)*
+11. Order a migration by irreversibility — every reversible action before the one with no undo, which gets its own phase and a freshly re-taken gate — and verify failure modes that present as success with content-level probes aimed at known-sensitive targets. *(v0.6.4 — the glyph defect and the coverage-blind ja probe were both invisible to build status)*

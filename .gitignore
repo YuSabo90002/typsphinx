@@ -96,3 +96,7 @@ dist/
 
 # Claude Code background-shell scratch state (machine-local)
 /.bg-shell/
+
+# direnv — .envrc is tracked (`use flake`); the evaluated cache is machine-local
+/.direnv/
+/.envrc.local

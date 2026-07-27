@@ -7,21 +7,22 @@
 - ✅ **v0.6.0 — real-world robustness** — Phases 11–15 (shipped 2026-07-13) → [archive](milestones/v0.6.0-ROADMAP.md)
 - ✅ **v0.6.1 — rendering fidelity** — Phases 16–18 (shipped 2026-07-19) → [archive](milestones/v0.6.1-ROADMAP.md)
 - ✅ **v0.6.2 — rendering fidelity round 2** — Phases 19–23 (+22.1–22.4) (shipped 2026-07-23) → [archive](milestones/v0.6.2-ROADMAP.md)
-- ✅ **v0.6.3 — config & docs 実測整合 + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
+- ✅ **v0.6.3 — config & docs measured fidelity + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
+- ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 
-**Next milestone: not yet scoped.** Run `/gsd-new-milestone` to define it (questioning → research →
-requirements → roadmap). Phase numbering continues from 28.
+**No active milestone.** v0.6.4 shipped 2026-07-28; start the next cycle with `/gsd-new-milestone`.
+Phase numbering continues from v0.6.4's last phase (33).
 
 ## Phases
 
 **Phase Numbering:**
 
-- Integer phases (24, 25, 26): Planned milestone work
-- Decimal phases (24.1, 24.2): Urgent insertions (marked with INSERTED)
+- Integer phases (29, 30, 31): Planned milestone work
+- Decimal phases (29.1, 29.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order. Numbering is
 **continuous across milestones** — each milestone continues from the prior one's last phase
-(never resets to 1). v0.6.3 continues from v0.6.2's last phase (23), so it starts at Phase 24.
+(never resets to 1). v0.6.4 continues from v0.6.3's last phase (28), so it starts at Phase 29.
 
 <details>
 <summary>✅ v0.4.4 — CI-repair + modernize (Phases 1–5) — SHIPPED 2026-07-05</summary>
@@ -136,13 +137,13 @@ Full phase detail, success criteria, decisions, and tech-debt notes are preserve
 - [x] Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED) (4/4 plans) — completed 2026-07-22
 - [x] Phase 22.2: Dead Config-Value Sweep (INSERTED) (6/6 plans) — completed 2026-07-22
 - [x] Phase 22.3: typstpdf Builder Warning Hardening (INSERTED) (3/3 plans) — completed 2026-07-22
-- [x] Phase 22.4: README 記述の実測乖離解消 (INSERTED) (3/3 plans) — completed 2026-07-23
+- [x] Phase 22.4: README Claim-vs-Measured-Reality Drift Resolution (INSERTED) (3/3 plans) — completed 2026-07-23
 - [x] Phase 23: v0.6.2 Release Prep + Regression-Gate Close (3/3 plans) — completed 2026-07-23
 
 </details>
 
 <details>
-<summary>✅ v0.6.3 — config & docs 実測整合 + captioned tables (Phases 24–28, +27.1) — SHIPPED 2026-07-25</summary>
+<summary>✅ v0.6.3 — config & docs measured fidelity + captioned tables (Phases 24–28, +27.1) — SHIPPED 2026-07-25</summary>
 
 Closed the gap between what the docs promised and what the build actually did. Three tracks: the
 dead-config sweep round 2 — deleted the inert `typst_toctree_defaults` (CONF-05) and implemented the
@@ -150,11 +151,11 @@ dead-config sweep round 2 — deleted the inert `typst_toctree_defaults` (CONF-0
 unknown key instead of silently dropping it (CONF-04); the reimplementation of external PR#98 so a
 captioned `.. table::` renders as `figure(table(...), caption, kind: table)` with native "Table N"
 numbering and resolvable `:numref:`/`:ref:` (TBL-01/TBL-02), fixing a stale-cell-buffer bug that had
-been silently eating the second table's caption; and docs 実測整合 — the unreachable orphan
+been silently eating the second table's caption; and docs measured fidelity — the unreachable orphan
 `docs/configuration.rst` deleted and every phantom `typst_*` name purged so config is documented in one
 canonical place (DOC-06/DOC-07). An inserted Phase 27.1 wired Typst's typesetting `lang` to Sphinx's
-own `language` conf (CONF-07), so a `language = "ja"` project's captioned tables read 「表 N」 rather
-than "Table N" — the one change that amended the milestone's `base.typ`-byte-unchanged invariant, and
+own `language` conf (CONF-07), so a `language = "ja"` project's captioned tables read 「表 N」
+("Table N" in Japanese) rather than "Table N" — the one change that amended the milestone's `base.typ`-byte-unchanged invariant, and
 only for the two lines that add the `lang` parameter. Phase 28 (prep-only) bumped the version, curated
 the CHANGELOG, and closed on the full-corpus regression gate. Full phase detail, success criteria,
 decisions, and the GATE-01 evidence are preserved in
@@ -163,8 +164,8 @@ decisions, and the GATE-01 evidence are preserved in
 - [x] Phase 24: Delete `typst_toctree_defaults` (1/1 plan) — completed 2026-07-23
 - [x] Phase 25: Captioned Table Figure Wrap + Cross-References (2/2 plans) — completed 2026-07-24
 - [x] Phase 26: `typst_elements` papersize/fontsize Pass-Through (2/2 plans) — completed 2026-07-24
-- [x] Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names (1/1 plan) — completed 2026-07-24
-- [x] Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED) (3/3 plans) — completed 2026-07-25
+- [x] Phase 27: Docs Measured Fidelity — Orphan Delete + Phantom Names (1/1 plan) — completed 2026-07-24
+- [x] Phase 27.1: Typst Typesetting lang Follows Sphinx `language` (INSERTED) (3/3 plans) — completed 2026-07-25
 - [x] Phase 28: v0.6.3 Release Prep + Regression-Gate Close (3/3 plans) — completed 2026-07-25
 
 **Closed at milestone close (not a phase):** the bundled `examples/advanced` sample was found
@@ -176,11 +177,44 @@ drift unwatched.
 
 </details>
 
+<details>
+<summary>✅ v0.6.4 — Read the Docs migration (Phases 29–33, +30.1) — SHIPPED 2026-07-28</summary>
+
+Moved documentation hosting from GitHub Pages to Read the Docs, applying the project's own standard —
+"what the docs promise is what actually happens" — to the publishing surface. Stood up the English RTD
+site from `.readthedocs.yaml` with a `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` seam in
+`conf.py`, proved via the raw build log that RTD installs typsphinx from the checked-out commit, and
+resolved the milestone's one open empirical unknown (Branch A: `@preview` egress from RTD's sandbox
+works) so the served PDF is the one `typstpdf` produced — content-compared against the local
+`tox -e docs-pdf` baseline. The Japanese site builds from a separate `typsphinx-doc-translations`
+repository registered as an RTD translation project (submodule pin auto-advanced by `update-pin.yml`),
+with the ja PDF's 10-NUL-byte glyph defect root-caused and fixed via a custom template's explicit
+font selection. The hand-rolled multilang machinery, the orphan doc pair, and the relocated
+`docs/locale/` tree were deleted (net −6,218 lines); every published URL was rewritten to
+readthedocs.io behind an advisory lychee link guard proven red-then-green; and the GitHub Pages host
+was irreversibly torn down only behind a freshly re-taken RTD-is-serving gate. Closed
+verified_closeout on a passed milestone audit (13/13 requirements). Full phase detail, success
+criteria, decisions, and evidence are preserved in
+[`milestones/v0.6.4-ROADMAP.md`](milestones/v0.6.4-ROADMAP.md).
+
+- [x] Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision (6/6 plans) — completed 2026-07-26
+- [x] Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal (4/4 plans) — completed 2026-07-27
+- [x] Phase 30.1: Translations Repository + Japanese RTD Site (INSERTED) (11/11 plans) — completed 2026-07-26
+- [x] Phase 31: Published-URL Cutover + Repo-Wide Link Guard (5/5 plans) — completed 2026-07-27
+- [x] Phase 32: GitHub Pages Teardown (IRREVERSIBLE) (3/3 plans) — completed 2026-07-28
+- [x] Phase 33: v0.6.4 Release Prep (4/4 plans) — completed 2026-07-28
+
+**Standing cost from this milestone:** every release now tags two repositories — the parent and
+`typsphinx-doc-translations` (`/ja/stable/` resolves against the translations repo's own tags).
+
+</details>
+
 ## Progress
 
 **Execution Order:**
-Active milestone phases execute in numeric order (decimal insertions between their surrounding integers).
-No milestone is currently active — v0.6.3 shipped 2026-07-25 (executed 24 → 25 → 26 → 27 → 27.1 → 28).
+Active milestone phases execute in numeric order (decimal insertions between their surrounding
+integers). v0.6.4 executes 29 → 30 → 31 → 32 → 33, with the irreversible teardown (32) gated behind a
+freshly re-taken "RTD is serving" observation and the prep-only Release (33) last.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -210,14 +244,20 @@ No milestone is currently active — v0.6.3 shipped 2026-07-25 (executed 24 → 
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-22 |
-| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
+| 22.4 README Claim-vs-Measured-Reality Drift Resolution (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | Complete    | 2026-07-23 |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
-| 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
-| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
+| 27. Docs Measured Fidelity — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
+| 27.1 Typst Typesetting lang Follows Sphinx `language` (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
+| 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
+| 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |
+| 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
+| 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
+| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
+| 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 
 ## Backlog
 
@@ -225,15 +265,29 @@ Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-**The backlog is currently empty.** New items land here as `999.x` entries. The dead-config sweep
-(`typst_elements` keys / `typst_toctree_defaults`), the PR#98 captioned-table reimplementation, the
-orphan `docs/configuration.rst` deletion, and the user-guide phantom config names were **promoted into
-v0.6.3** (Phases 24–27). Remaining discrete follow-up work stays in `.planning/todos/pending/` (9 open
-at the v0.6.3 close) — RTD migration, sphinx-linkcheck CI, citation-node support, non-str-docname
-TypeError hardening, typing-import modernization, github.io doc-link 404s (folded into the RTD
-migration), the PR#98 courtesy close, `derive_typst_lang()` warning-block duplication, and the
-`docs/usage.rst`/`installation.rst` orphan pair — see also STATE.md Deferred Items. The tenth
-(`examples/advanced` unbuildable) was **closed at the v0.6.3 milestone close**, not deferred.
+New items land here as `999.x` entries. Three pending todos were
+**promoted into v0.6.4** (Phases 29–33): `move-documentation-hosting-to-read-the-docs`,
+`github-io-doc-links-404-missing-en-prefix`, and `docs-usage-installation-orphan-class`.
+`add-sphinx-linkcheck-ci-job` stays **open and deferred** — sphinx linkcheck is out of v0.6.4 scope as
+Future requirement LNK-01 (it structurally cannot see `README.md` / `pyproject.toml`, where the dead
+links actually live); CI-05's repo-wide real-HTTP check covers that class instead. Remaining discrete
+follow-up work stays in `.planning/todos/pending/` — citation-node support, non-str-docname TypeError
+hardening, typing-import modernization, and `derive_typst_lang()` warning-block duplication — see also
+STATE.md Deferred Items.
+
+### Phase 999.1: Inline math after text — missing separator before `#mi()` causes Typst error (BACKLOG)
+
+**Goal:** [Captured for future planning]
+**Requirements:** TBD
+**Plans:** 0 plans
+
+When inline math immediately follows text, the emitted Typst has no semicolon or newline
+between the preceding `#text(...)` call and the `#mi(...)` call, so Typst raises a compile
+error. Likely a translator-level emission issue (`translator.py` math/Text visit ordering).
+
+Plans:
+
+- [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*

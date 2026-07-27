@@ -1,288 +1,245 @@
 # Pitfalls Research
 
-**Domain:** typsphinx v0.6.3 — reimplementing PR#98 (captioned-table figure wrap), `typst_elements` pass-through, and docs/config cleanup
-**Researched:** 2026-07-23
-**Confidence:** HIGH (all findings derived directly from reading the current `main` source — `typsphinx/translator.py`, `typsphinx/template_engine.py`, `typsphinx/writer.py`, `typsphinx/templates/base.typ`, `tests/test_package_only_config_gate.py` — plus the three pending-todo root-cause docs and `.planning/PROJECT.md`'s FN-01/22.2 decision history. No external web research was needed; this is a same-repo static-analysis pitfalls pass. Supersedes the prior v0.6.0-era PITFALLS.md that lived at this path.)
+**Domain:** Migrating an existing multi-language Sphinx + custom-builder (Typst PDF) documentation site from GitHub Pages to Read the Docs (RTD) — v0.6.4 "Read the Docs migration" milestone
+**Researched:** 2026-07-25
+**Confidence:** MEDIUM-HIGH (RTD official docs are current and directly cited; the one true unknown — a real build inside RTD's actual container — is flagged UNVERIFIED, not guessed at. Supersedes the prior v0.6.3-era PITFALLS.md that lived at this path, which covered a different milestone's translator-fix pitfalls and is no longer the active scope.)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Caption content silently swallowed by the `table_cell_content` buffer (the highest-value trap in this milestone)
+### Pitfall 1: Declaring `formats: [pdf]` collides with the hand-built typstpdf PDF
 
 **What goes wrong:**
-`TypstTranslator.add_text()` (translator.py:253-267) routes ALL text through this check, in this order:
-```python
-if hasattr(self, "in_table") and self.in_table and hasattr(self, "table_cell_content"):
-    self.table_cell_content.append(text)
-else:
-    self.body.append(text)
+RTD ships its own PDF pipeline (`sphinx-build -b latex` + `latexmk`) that activates the moment `formats: [pdf]` (or `formats: all`) is set in `.readthedocs.yaml`. If that key is added — even with the intent of "just enabling PDF downloads" — RTD tries to run its own LaTeX-based PDF build in addition to (or in place of) whatever the `typstpdf`-built PDF is doing, and it fails immediately since this project has no LaTeX toolchain and was never designed to compile via `-b latex`.
+
+**Why it happens:**
+The natural instinct when you want "a downloadable PDF" on RTD is to look for the PDF checkbox/format key, not realize that a custom-generated PDF placed in `$READTHEDOCS_OUTPUT/pdf/*.pdf` via `build.jobs`/`build.commands` is picked up automatically as a downloadable artifact with **no** `formats:` declaration needed — RTD's per-format opt-in only exists to trigger its *own* Sphinx `-b latex`/`-b epub` engines, which is exactly not wanted here (verified: PDF/ePub are opt-in and disabled by default in v2 config; per-format outputs are auto-discovered from well-known `$READTHEDOCS_OUTPUT/<format>/` directories regardless of which tool produced them — [RTD config-file v2 docs](https://docs.readthedocs.com/platform/stable/config-file/v2.html), [PR #10115 making PDF/ePub opt-in](https://github.com/readthedocs/readthedocs.org/pull/10115)).
+
+**How to avoid:**
+Do **not** add a `formats:` key to `.readthedocs.yaml` at all. Use `build.jobs` (e.g. a `post_build` or format-specific job hook) to run `sphinx-build -b typstpdf docs/source $READTHEDOCS_OUTPUT/pdf` directly, and let RTD's artifact auto-discovery pick up the file from that well-known directory. Confirm in the RTD build log that only one PDF-producing step runs, and that no `latexmk`/`pdflatex` invocation appears anywhere in the log.
+
+**Warning signs:** A `latexmk`/`xelatex`/`.tex` line appears anywhere in the RTD build log; two different-sized PDFs both claim to be "the" download; the build fails with a LaTeX-package-not-found error despite typsphinx never touching LaTeX.
+
+**Phase to address:** RTD build-establishment phase ("RTD ビルド確立" feature) — write and inspect the raw build log from a real RTD build before calling this feature done, not just a green checkmark.
+
+---
+
+### Pitfall 2: The self-referential extension is unimportable because RTD never installed the package
+
+**What goes wrong:**
+`conf.py`'s `extensions = [..., "typsphinx"]` requires the `typsphinx` package itself to be importable at Sphinx-build time. RTD does **not** install your project package by default — without an explicit `python.install` block in `.readthedocs.yaml`, RTD only provisions a Python environment but does not `pip install .` your own repo. First build fails with `ModuleNotFoundError: No module named 'typsphinx'` (or, worse, a *partial* success if some *stale* published wheel of `typsphinx` from PyPI gets pulled in transitively and shadows the in-repo working tree, so the RTD-rendered PDF/HTML reflects an old release, not the commit being built).
+
+**Why it happens:**
+This is invisible in local dev and in `docs.yml` CI because both explicitly run `uv sync --extra dev --extra docs --locked` + `uv pip install -e .` before any Sphinx invocation (confirmed in `.github/workflows/docs.yml:29-32`) — that install step has no RTD equivalent unless it is *deliberately re-declared* in `.readthedocs.yaml`'s `python.install`.
+
+**How to avoid:**
+`.readthedocs.yaml` must include:
+```yaml
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
 ```
-`self.in_table` is set `True` in `visit_table` (translator.py:2367) **before** any child of the table — including its `title` child (the `.. table:: Caption` text) — is visited, and stays `True` until `depart_table` (translator.py:2477). `table_cell_content` is created by `visit_entry` (translator.py:2592) and, once created, is **never deleted** — it persists as an instance attribute for the rest of the document's translation, reset to `[]` only at the top/bottom of each `visit_entry`/`depart_entry` pair. So: for the very first table encountered in a document, `hasattr(self, "table_cell_content")` is `False` and `add_text` correctly falls through to `self.body`. For the **second and every subsequent table** in the same document, `table_cell_content` already exists (left over from the first table's cells) — so if the new caption-buffering code follows the pattern used elsewhere in this file (buffer-swap `self.body = []`, then let the caption's child nodes stream through the normal visitor chain via `add_text`), every one of those `add_text` calls gets redirected into the stale `table_cell_content` list instead of the swapped `self.body`. The caption is captured nowhere, and the swapped-out `self.body` list you intended to `"".join()` stays empty. This is worse than the todo's framing ("stale buffer from a previous table") suggests — it is not a staleness bug that only bites occasionally, it is a **structural priority-ordering bug in `add_text` itself**: `self.in_table` is checked before anything about the caller's own buffer-swap state, so a body-swap alone (the idiom `visit_caption`/`depart_caption` already uses successfully for **figure** captions, translator.py:2153-2210) does **not** work inside a table, regardless of staleness.
+(RTD's own docs confirm `extra_requirements` under `method: pip` is the way to install optional-dependency groups; editable (`-e .`) installs are not documented as a first-class option, so plan for a normal, non-editable `pip install .` unless a spike proves editable works — [RTD config-file v2](https://docs.readthedocs.com/platform/stable/config-file/v2.html).) If `build.commands` (not `build.jobs`) is used instead, this install step is **entirely the author's responsibility** — `build.commands` bypasses every default RTD step, including the implicit environment/install machinery, per RTD's own documentation ("When `build.commands` is used, none of the pre-defined build jobs will be executed").
 
-**Why it happens:**
-The existing figure-caption buffer-swap (translator.py:2166-2210) is proven and looks like the obvious template to copy for table captions. But it works there specifically because `self.in_figure` (the guard `visit_caption` checks) is orthogonal to `self.in_table` — nothing in `add_text` special-cases `in_figure`. A table caption is structurally different: it lives *inside* the very node (`nodes.table`) whose `in_table` flag is what `add_text` special-cases. Copying the figure-caption idiom verbatim into `visit_title`'s new table-caption branch reproduces this bug by construction, and it will not show up in a single-table test fixture — only in a fixture with **two or more tables in one document**, exactly the shape of the todo's own listed regression case ("stale buffer 漏れ防止").
+**Warning signs:** `ModuleNotFoundError: No module named 'typsphinx'` in the RTD build log; or (the silent variant) the RTD-rendered docs reflect an older PyPI release's behavior instead of the in-repo commit — check by grepping the RTD build log for `Installing collected packages: typsphinx` and confirming the install source is the local checkout path, not a PyPI index URL.
 
-**How to avoid:**
-Temporarily set `self.in_table = False` (in addition to the `self.body = []` swap) for the duration of the title/caption's children being visited, then restore `self.in_table = True` in the matching `depart_title` branch — mirroring how the existing admonition-title branch (`_in_admonition_title`, translator.py:487-503, 546-562) fully reroutes state rather than relying on the body-swap alone. This is the only way to let arbitrary inline content (emphasis, strong, references — the todo's "インラインマークアップ保持" test) stream through the real visitor chain and land in the swapped `self.body` rather than being hijacked by the `in_table` check.
-
-**Warning signs:**
-A test with a single captioned table passes, but a fixture with two captioned tables (or one plain table followed by one captioned table) in the same document silently drops the second caption — no exception, no warning, just missing text in the emitted `.typ`. Also watch for `table_cell_content` unexpectedly non-empty right after a table's `depart_table` runs (a leaked caption sitting in it).
-
-**Phase to address:**
-The PR#98 reimplementation phase. Must be proven by a regression fixture with **at least two tables in one document, the second one captioned** — a single-table fixture cannot catch this class of bug.
+**Phase to address:** RTD build-establishment phase. Verification must include reading the actual install-step log lines, not just "build succeeded."
 
 ---
 
-### Pitfall 2: `visit_title`/`depart_title` branch must `return` early, or the table caption still emits a stray `heading()`
+### Pitfall 3: `conf.py` keeps reading `SPHINX_LANGUAGE`, so the ja translation project silently serves English
 
 **What goes wrong:**
-`visit_title` currently dispatches on `isinstance(node.parent, nodes.Admonition) or isinstance(node.parent, nodes.topic)` first (translator.py:487-503), and **returns** inside that branch. Everything below that check — the section-id anchor logic, the `emitted_level = max(1, self.section_level)` clamp, and the `heading(level: ..., {` emission (translator.py:514-529) — is the fallback path for every title whose parent is neither an Admonition nor a topic. A `nodes.table`'s `title` child parent is `nodes.table`, which matches neither existing check, so it currently falls all the way through to the section-heading emission — this is the exact bug the todo describes (the spurious `heading(level: 1, {text("My caption")})` before the table). Adding a new `elif isinstance(node.parent, nodes.table):` branch to intercept this is correct, but if that branch is added **without an explicit `return`** (or in a way that lets execution continue into the section-heading code below), the fix is a no-op: both the caption buffer AND the stray heading get emitted. The same applies symmetrically to `depart_title`: `depart_title`'s `if self._in_admonition_title:` branch (translator.py:546-562) also `return`s early; a new table-caption branch must do the same, restoring `self.in_list_item`/`self.list_item_needs_separator` from the values saved at the top of `visit_title` (translator.py:477-480) exactly as the admonition branch already does (translator.py:552-553) — forgetting that restore leaks the title's list-item spoof state into the table's own subsequent siblings.
+`docs/source/conf.py:51` is `language = os.getenv("SPHINX_LANGUAGE", "en")`. RTD does not set `SPHINX_LANGUAGE` — it sets `READTHEDOCS_LANGUAGE` (confirmed: "The locale name...for the project being built," lowercase-dash values like `en`, `ja` — [RTD environment-variables reference](https://docs.readthedocs.com/platform/stable/reference/environment-variables.html)). If `conf.py` is migrated to RTD unchanged, **every** RTD project — both the English parent and the Japanese translation project — resolves `language` to the `os.getenv` fallback `"en"`, because the env var it checks for is never set. The ja translation project would build, look successful, and silently render 100% English prose with zero visible error, because Sphinx's own i18n machinery keys off `config.language` — if it stays `"en"` the translation catalog is simply never applied even though `.mo` files and `locale_dirs` are all correctly in place. This is exactly the failure class the milestone context calls out ("Is there a known failure where the translation project silently serves English?") — and per the read `conf.py`, the answer is **yes, this WILL happen if the env-var name is not changed**, not a hypothetical.
 
 **Why it happens:**
-`visit_title`/`depart_title` handle five conceptually distinct "what is a title inside" cases (section, admonition, topic, contents-topic, and now table) inside one method via sequential `if`/`elif` dispatch with early returns. It is easy to add a new elif clause that mutates state and emits the caption buffer but forgets that the method's *default* behavior (falling to the bottom) is "emit a section heading" — the safe behavior for a brand new branch is "return", not "fall through, unless you explicitly intend to also run the section logic."
+The hand-rolled `build_multilang.py` was the only thing ever setting `SPHINX_LANGUAGE` (`env["SPHINX_LANGUAGE"] = lang_code`, `docs/build_multilang.py:44`). Deleting that script per the milestone plan removes the only producer of that variable — RTD was never a consumer of it and has no reason to know about it.
 
 **How to avoid:**
-Insert the new `nodes.table` check as its own `elif` beside the admonition/topic check (or as a second top-level `if isinstance(node.parent, nodes.table): ...; return` guard before the section-id logic), and unit-test specifically that a captioned table's emitted `.typ` contains **zero** occurrences of `heading(` for that title. Mirror the admonition branch's full save/restore contract (in_list_item, list_item_needs_separator) on every return path in both `visit_title` and `depart_title`.
+Change `conf.py:51` to read `READTHEDOCS_LANGUAGE` (falling back to `SPHINX_LANGUAGE` only if still needed for local dev, or dropping the local-dev path entirely and relying on Sphinx's own `-D language=` override for local builds). Concretely:
+```python
+language = os.getenv("READTHEDOCS_LANGUAGE", os.getenv("SPHINX_LANGUAGE", "en"))
+```
+Then verify per-project: on the **ja** RTD project, confirm the RTD admin "Language" dropdown is actually set to Japanese (this is what makes RTD emit `READTHEDOCS_LANGUAGE=ja` in the first place — the env var reflects the *project's own configured language*, it does not itself select which translation to build). A project whose RTD admin language is left at the default "English" will emit `READTHEDOCS_LANGUAGE=en` even if it is nominally "the ja project," reproducing the exact same silent-English failure one level up the stack.
 
-**Warning signs:**
-Grep the emitted `.typ` for `heading(level:` immediately preceding a `table(`/`figure(...table(...` call — any hit is this bug recurring.
+**Warning signs:** Visiting `/ja/latest/` shows English body text; `.mo` catalogs look fine but the rendered HTML/PDF never differs between `/en/` and `/ja/`; the RTD build log for the ja project never prints a language other than `en` if you `echo $READTHEDOCS_LANGUAGE` in a diagnostic `build.jobs.pre_build` step.
 
-**Phase to address:**
-PR#98 reimplementation phase, same fixture as Pitfall 1.
+**Phase to address:** The "ja を RTD 翻訳プロジェクトとしてリンク" feature phase. This is a two-part fix (code: `conf.py` env-var rename; RTD admin: set the child project's language dropdown) and both parts must be verified independently — a real compiled ja page with visibly-Japanese prose, not just "build succeeded."
 
 ---
 
-### Pitfall 3: `caption` + `:width:` composition — get the nesting order wrong and you either lose the width or get a markup/code-mode compile error
+### Pitfall 4: The `ja` translation project's versions are a separate, unsynced list that needs manual activation
 
 **What goes wrong:**
-The existing (caption-less) `:width:` handling in `depart_table` wraps the **whole `table()` call** in `block(width: ...)[#table(\n...)]` (translator.py:2444-2453) using raw `self.body.append` (never `add_text`, to dodge Pitfall 1's routing hazard). Meanwhile the existing `:figwidth:` handling for **figures** (`visit_figure`/`depart_figure`, translator.py:2078-2132) applies width differently: it wraps the **whole `figure(...)` call**, not just its inner `image(...)`, in `block(width: ...)[#figure(\n...)]`. When a table gains a caption and becomes a `figure(table(...), caption: {...}, kind: table)`, there are two plausible ways to combine this with an existing `:width:`, and picking the wrong one either silently changes what the width constrains or breaks the Typst markup/code-mode contract:
-- **(a)** Width wraps only the inner `table(...)` — `figure(block(width: ...)[#table(...)], caption: {...}, kind: table)` — constrains just the table, figure() sizes itself around it.
-- **(b)** Width wraps the whole `figure(...)` call — `block(width: ...)[#figure(\n  table(...),\n  caption: {...},\n  kind: table\n)]` — constrains the whole titled/numbered figure block, matching the existing `visit_figure`/`depart_figure` precedent exactly.
-
-Both are syntactically valid Typst, but they are **not equivalent**, and the codebase has an existing, real-compile-proven precedent for exactly this class of decision: `figure()`/`table()` both **reject a direct `width:` kwarg** (documented at translator.py:2081-2084 and 2431-2437, "verified real-compile failure"), which is why `block(width: ...)[...]` exists at all. Whichever nesting is chosen, **the `#` prefix requirement inside a markup `[...]` bracket is the sharpest failure mode**: `block(width: ...)[#table(...)]`/`block(width: ...)[#figure(...)]` both need the `#` before the code-mode function call because the bracket switches Typst into markup mode — a bare `table(` or `figure(` with no `#` inside that bracket is not a function call at all in markup mode and either silently prints as literal text or produces a parse error, exactly the class of bug already fought and documented in `visit_figure`'s own docstring (translator.py:2043-2055) and the Phase 8.1 admonition markup/code-mode bug in `.planning/PROJECT.md`'s Key Decisions.
+Each RTD translation project is a fully independent RTD project with its own version list — activating `latest`/`stable` on the English parent does **not** automatically activate or build the same versions on the `ja` project. "Both projects build the same commit" is not a platform guarantee; it requires the ja project to separately have `latest` (tracking the same default branch) and a `stable` version (tracking the same tag) active, or the two sites will drift — e.g. `/ja/stable/` could still be pointing at an older or nonexistent build months after `/en/stable/` has moved on.
 
 **Why it happens:**
-This is a genuinely new composition — neither `:width:`-without-caption nor `caption`-without-`:width:` alone exercises it, and the two existing precedents (plain-table width-wrap, figure width-wrap) disagree with each other on *what* gets wrapped, so there is no single "obviously correct" thing to copy. A rushed reimplementation is likely to reuse the OLD caption-less wrap verbatim (option a, since it requires the least code change to `depart_table`) without checking whether that is actually the desired semantic once a caption/figure-numbering box is introduced.
+RTD treats translation projects as regular projects linked only for navigation/URL-prefix purposes ("Each language must have its own project on Read the Docs" — [RTD localization guide](https://docs.readthedocs.com/platform/stable/localization.html)); version activation, tag-triggered stable promotion, and even the `.readthedocs.yaml` presence are each independently evaluated per project. Community reports confirm new versions are not always auto-activated and require going into that specific project's admin ("you'll need to log in to your Read the Docs account and manually do so" — community/issue discussion on RTD's automation/versions behavior).
 
-**How to avoid:**
-Prefer mirroring the existing `visit_figure`/`depart_figure` precedent (option b: width wraps the whole `figure(...)` call) for consistency — it reuses exactly the same bracket-open-in-`visit_title`/bracket-close-in-`depart_table` discipline already proven correct for image figures, rather than inventing a new inner-wrap shape that has never been real-compile-tested in this file. Whichever option is chosen, write it down as an explicit decision (not an implicit byproduct of "whatever was easiest to patch"), and the regression fixture MUST include a table with **both** a caption and a `:width:` in the same document — no existing fixture exercises this combination today.
+**How to avoid:** After creating the ja project and linking it as a translation, explicitly configure its own Automation Rules (or manually activate `latest`/`stable`) to mirror the parent's version policy. Re-check this after the v0.6.4 tag is cut — confirm `/ja/stable/` exists and points at the same tag as `/en/stable/`, not just that the ja project "builds."
 
-**Warning signs:**
-A real `typst.compile()` failure with a Typst parse error mentioning "expected semicolon or line break" or "unexpected argument" on a captioned+widthed table; or (silent, worse) a compile that succeeds but the caption/table renders full-width instead of the configured width, indicating the wrap landed in the wrong place.
+**Warning signs:** `/ja/stable/` 404s or serves an older version than `/en/stable/` after a release; the ja project's version list (in its own RTD admin) doesn't contain `stable` at all.
 
-**Phase to address:**
-PR#98 reimplementation phase — this must be its own named regression-fixture case (caption + width composition), not assumed to be covered by testing caption and width separately.
+**Phase to address:** The "ja を RTD 翻訳プロジェクトとしてリンク" feature phase, re-verified at the final release phase once the `v0.6.4` tag actually exists (this is the same "`stable` doesn't exist until the tag is cut" timing constraint the milestone already tracks for the parent — it must be independently re-checked on the child).
 
 ---
 
-### Pitfall 4: A caption-less table must stay a plain `table()` — never speculatively `figure()`-wrap
+### Pitfall 5: `linkcheck` passes cleanly while the actual broken links (README, badges, `pyproject.toml`) go unchecked
 
 **What goes wrong:**
-If the new caption-detection logic is implemented as "always emit `figure(table(...), kind: table)` and only conditionally add `caption:`," every plain, uncaptioned table in the entire corpus (the overwhelming majority of tables in real docs) gets pulled into Typst's figure/counter machinery — silently adding a "Table N" numbering context to tables that were never meant to be numbered, polluting any List of Tables / numref counters and changing document layout (figures get different spacing/placement rules than bare `table()`) for content that has nothing to do with this todo.
+Issue #119 ("website seems down") and the 7 dead README deep-links exist **only** in `README.md` (badge line, header, and the 7 links at `:271-277`) and in `pyproject.toml`'s `Documentation` URL — a repo-wide grep confirms **zero** occurrences of `github.io` anywhere under `docs/source/`. `sphinx-build -b linkcheck` only scans the Sphinx document tree it is given (`docs/source/**/*.rst`); it has no knowledge of `README.md` or `pyproject.toml` at the repo root. A `linkcheck` CI job can therefore be added, run green every single time, and never once have caught the actual defect that motivated this milestone — because the URLs that broke were never inside its scan scope to begin with.
 
 **Why it happens:**
-It is tempting to unify the two code paths into one `figure(...)` emission with an optional `caption:` argument, because it looks like less code — but `kind: table` numbering activates regardless of whether `caption:` is empty, so "no caption" must gate the *entire* figure-wrap decision, not just the `caption:` argument.
+"Add a linkcheck job" reads as "this closes the 404-link gap," but the gap that actually bit this project lived in a file class linkcheck structurally cannot see. This is an easy trap: a green linkcheck run creates false confidence that the exact failure mode from #119 is now covered.
 
-**How to avoid:**
-Mirror the existing `figure_caption` state-variable pattern exactly (translator.py:91-92, `self.figure_caption = ""`, checked truthy in `depart_figure` at line 2113): add a parallel `self.table_caption` (or similar) reset to `None`/`""` in `visit_table`, set only by the new table-title branch, and have `depart_table` branch on `if self.table_caption:` to decide `figure(table(...), caption: {...}, kind: table)` vs. plain `table(...)` — never default to figure-wrapping and merely omit `caption:`.
+**How to avoid:** Treat `sphinx-build -b linkcheck` as covering *only* cross-references and external links authored inside `docs/source/*.rst` — it is a good, cheap advisory net for future in-doc rot, but it is not a substitute for verifying the README/pyproject/`INTEGRATIONS.md` URL rewrites landed correctly. Verify those with a separate, explicit grep-and-curl (or a `lychee`/similar tool run against `README.md` directly) rather than relying on the Sphinx linkcheck job to have covered them. Document this scope boundary explicitly wherever the linkcheck job is introduced, so a future contributor doesn't assume "linkcheck is green" implies "README links are fine."
 
-**Warning signs:**
-Any existing (pre-milestone) table-only test's expected output changes from `table(` to `figure(...table(` — that is this bug, a regression on every existing captionless table.
+**Warning signs:** Grep for the pattern that caused #119 (`github.io` or the eventual RTD URL) across `README.md`/`pyproject.toml` and confirm it's *not* inside `docs/source/` — if it were, linkcheck actually would have caught it and this pitfall would not apply going forward for that specific pattern. Any future "linkcheck is green" claim about README/metadata links specifically is unverifiable by that job and should be treated as unverified.
 
-**Phase to address:**
-PR#98 reimplementation phase; must be locked by the todo's own fourth listed test ("キャプション無しは非 figure").
+**Phase to address:** The linkcheck CI-job feature phase — the SC for that phase should explicitly state what linkcheck does and does not cover, and the URL-rewrite phase should carry its own independent verification (real HTTP fetch of the rewritten URLs), not lean on linkcheck for that proof.
 
 ---
 
-### Pitfall 5: `kind: table` self-anchoring can duplicate a label already anchored by `visit_table`'s unconditional `_emit_id_anchors` call
+### Pitfall 6: Deleting `build_multilang.py`/the language-switcher while a test still hard-asserts on it (repeat of a pattern that already bit this project twice)
 
 **What goes wrong:**
-`visit_table` unconditionally calls `self._emit_id_anchors(node)` at the very top (translator.py:2348), **before** `self.in_table` is even set — this anchors every id currently on the table node (e.g., a propagated `.. _target:` before the table, or an explicit `:name:`) as a zero-width `[#metadata(none) <label>]`. `_emit_id_anchors` was specifically designed with a `skip_ids` parameter (translator.py:311-360) for exactly one existing caller, `depart_figure`, which self-anchors `ids[0]` inside its own `[#figure(...) <label>]` markup postfix and passes `skip_ids={ids[0]}` to `_emit_id_anchors` so that id is not defined twice (translator.py:2134-2139, 2139's docstring explicitly documents this contract). If the table reimplementation copies `depart_figure`'s `[#figure(...) <label>]`-style self-anchoring for numref support (a natural thing to reach for once you're already mirroring `depart_figure`'s bracket-wrap pattern per Pitfall 3) **without** also changing `visit_table`'s early, unconditional `_emit_id_anchors(node)` call to skip that same id, a named/targeted captioned table emits the SAME `<label>` twice in one document — a genuine Typst compile fatal ("label already defined"-class error), not a cosmetic bug.
+This project has already hit this exact failure class twice in the immediately preceding milestone: Phase 27 discovered `tests/test_documentation_configuration.py` hard-asserted the existence of the very orphan file (`docs/configuration.rst`) it was about to delete, and had to delete the test in the same commit to keep the suite green; and the "anywhere under docs/source" scoping gap (phantom config names surviving in `examples/advanced.rst`/`basic.rst`) required a post-verify gap-closure commit because a repo-wide grep was skipped in favor of grepping only the files a requirement named. **Both traps are pre-loaded for this milestone**, confirmed present right now:
+- `tests/test_documentation_usage.py` (`assert usage_file.exists(), "docs/usage.rst should exist"`) and `tests/test_documentation_installation.py` (`"""Test that docs/installation.rst file exists."""`) hard-assert the existence of `docs/usage.rst`/`docs/installation.rst` — the exact orphan-doc pair this milestone is scoped to resolve. Deleting those two `.rst` files without also removing (or updating) these two test files will redden the suite immediately.
+- A repo-wide grep (not scoped only to the files the milestone brief names) confirms the multilang-machinery references are, in fact, fully enumerated: `tox.ini:78,84` (`[testenv:docs-multilang]`), `docs/source/_templates/language-switcher.html`, `docs/source/conf.py:50-51,85` (`SPHINX_LANGUAGE` + the sidebar registration), and `docs/build_multilang.py:44` itself. No hidden fifth reference site was found in `README.md`, `CONTRIBUTING`, or elsewhere — but this should be re-confirmed with a fresh grep immediately before the deletion commit lands, not trusted from this research snapshot, since files change between research and execution.
 
-**Why it happens:**
-`visit_table`'s early anchor call long predates this todo and exists for a different, narrower purpose (propagated explicit targets landing on ANY table, captioned or not) — it is easy to forget it exists while focused on the new caption/figure-wrap logic, especially since it fires at `visit_table` time, far from where the new label logic would be added in `depart_table`.
+**Why it happens:** Deletion-scoping is easy to under-scope to "the files the requirement names" rather than "everything that references them," and collateral tests asserting a soon-to-be-deleted artifact's existence are invisible until the suite actually runs post-deletion.
 
-**How to avoid:**
-If (and only if) the reimplementation adds `<label>`-based self-anchoring for numref on captioned tables, thread the exact same `skip_ids=set(node.get("ids", [])[:1])` pattern `depart_figure` already uses, and confirm via a fixture with both an explicit `:name:` on a captioned table AND a compile — not just string assertions, since a duplicate-label error is a real-compile-only failure (string-diff tests would never see it, since the emitted text is syntactically fine, just semantically invalid at Typst's label-resolution pass). If the todo's scope is genuinely limited to Typst-native `kind: table` auto-numbering with **no** id/label/numref support added, explicitly confirm and record that decision — and confirm `visit_table`'s early `_emit_id_anchors` call is left completely untouched (no new anchor logic added anywhere near it) so this collision risk never activates.
+**How to avoid:** Before deleting `build_multilang.py`, the `docs-multilang` tox env, `language-switcher.html`, or `docs/usage.rst`/`docs/installation.rst`, run a repo-wide grep for each target's filename/env-name/identifier (not scoped to files named in the requirement) as the very last step before the deletion commit, and explicitly decide the fate of `tests/test_documentation_usage.py` and `tests/test_documentation_installation.py` (delete them alongside their subjects, per the Phase 27 precedent, or repoint them if the content is relocated rather than deleted).
 
-**Warning signs:**
-A named captioned table (`:name: my-table` + `.. table:: Caption`) compiles successfully via `-b typst` (source generation) but fails at `typst.compile()` with a label-related error — this only shows up on the real-compile gate, never on unit-level string assertions.
+**Warning signs:** `pytest` collection errors or new failures immediately after a deletion commit; `grep -rn "build_multilang\|docs-multilang\|language-switcher\|usage.rst\|installation.rst"` returning any hit outside the set already enumerated above.
 
-**Phase to address:**
-PR#98 reimplementation phase — scope this explicitly (label/numref support in or out) before writing the regression fixture, since the fixture shape differs depending on the answer.
+**Phase to address:** The "ja を RTD 翻訳プロジェクトとしてリンク + 自前 multilang 廃止" phase (for `build_multilang.py`/tox env/language-switcher) and the "`docs/usage.rst`/`installation.rst` の孤児処理" phase (for the two test files) — both phases' plans should name the collateral test files explicitly as in-scope deletions/edits, not leave them for a post-verify gap-closure commit as happened last milestone.
 
 ---
 
-### Pitfall 6: Blind `typst_elements` pass-through → "unexpected argument" fatal on ANY unrecognized key (the #1 way to turn "dead but harmless" into "fatal")
+### Pitfall 7: Irreversible or hard-to-undo steps executed without an explicit owner confirmation gate
 
-**What goes wrong:**
-Today, `typst_elements` non-mapping keys are silently dropped (`map_parameters` only forwards the 3 `DEFAULT_PARAMETER_MAPPING` keys — template_engine.py:186-213) — dead but harmless. The moment (A) is implemented to forward these keys through to `project.with(...)`, **every** key in `typst_elements` becomes a literal named argument in a real Typst function call. Typst has no equivalent of Python's `**kwargs` catch-all on the calling side for this pattern — `base.typ`'s `project()` function has a **fixed, explicit parameter list** (`title`, `authors`, `date`, `toctree_maxdepth`, `toctree_numbered`, `toctree_caption`, `papersize`, `fontsize`, `body` — templates/base.typ:39-48). Passing ANY key not in that list — a typo (`paper_size` instead of `papersize`), a plausible-sounding but non-existent key (`lang`, `margin`, `theme`), or simply a key that made sense for one user's custom template but not the default one — produces a hard Typst compile error ("unexpected argument") that aborts the ENTIRE PDF build. This is qualitatively different from every other dead-config fix in this project's history (`typst_output_dir`, `typst_toctree_defaults`): those configs being dead meant "your setting is ignored"; a naive blind pass-through means "your setting can now break your build," and it does so for **custom templates and Typst-Universe packages too** — `TemplateEngine.__init__` explicitly documents (template_engine.py:100-106) that on the package-only path, "a Typst function signature cannot be introspected from Python," so there is no way to validate keys against an arbitrary package's function signature at all — any pass-through key not in that package's signature is unconditionally fatal, with zero validation possible ahead of the real compile.
+**What goes wrong:** Several actions in this migration cannot be cleanly undone or are expensive to redo, and doing them prematurely (before the rest of the migration is verified) forecloses options:
+- **RTD project slug**: chosen at project creation and is not self-service changeable afterward. RTD's own guidance: you can delete-and-recreate to get a new slug, but "you really shouldn't do this if you have existing inbound links, as it breaks the internet" — the only sanctioned path to rename an existing slug is emailing `support@readthedocs.org` ([RTD FAQ](https://docs.readthedocs.com/platform/stable/faq.html)). Since this project's inbound links are about to be *rewritten to point at RTD for the first time*, getting the slug wrong at creation (e.g. picking `typsphinx-docs` instead of `typsphinx`) bakes an ugly URL into every link this milestone is about to publish.
+- **`gh-pages` branch + GitHub Pages site deletion**: the milestone's own locked decision is immediate deletion with no redirect stubs, an explicit accepted-consequence choice already made by the owner (2026-07-25) — but this research flags it again because it is the one step in this milestone with zero technical recovery path once done (a force-deleted branch's history is not gone from git reflog/local clones, but the *served* GitHub Pages site and any external cached copies are gone the moment Pages is disabled).
+- **Custom domain / canonical URL**: RTD's canonical-domain setting affects what search engines index as canonical; setting a custom domain later (if ever desired) is a distinct, separate action from the base RTD subdomain and should not be assumed as an implicit part of this milestone unless explicitly scoped.
+- **SEO/inbound-link cost of the no-redirect teardown**: every external link to `yusabo90002.github.io/typsphinx/...` (search results, blog posts, other projects' READMEs, cached search-engine index entries) 404s the instant Pages is torn down, with no 301 to carry authority to the new RTD URL. This is a real, if hard-to-quantify, SEO cost — search engines treat a 404 as a broken/removed page rather than a moved one, and any accumulated backlink equity to the old URLs does not transfer.
 
-**Why it happens:**
-The natural, minimal-diff implementation of (A) is "stop dropping the keys" — i.e., delete the filtering that currently protects every user from this exact failure mode. It is easy to implement and test against the two headline example keys (`papersize`, `fontsize`, both of which `base.typ`'s `project()` already happens to declare — see `templates/base.typ:46-47`) without noticing that the pass-through is now *generic*, and will forward literally anything the user puts in the dict.
+**Why it happens:** These are one-way doors executed as ordinary phase work; without an explicit stop-and-confirm step, a phase can execute them and move on before the rest of the migration (RTD build, translation project, URL rewrites) is proven to work end-to-end.
 
-**How to avoid:**
-Scope the pass-through narrowly and document the contract loudly: only forward `typst_elements` keys that the active template's function is known to accept. For the bundled default template this means whitelisting exactly `base.typ`'s `project()` parameter names (or, more robustly, adding a catch-all `..sink` / dict-based extension point to `project()` itself in `templates/base.typ` so unknown keys are absorbed rather than rejected — a template-side change, not just a Python-side change). For custom templates and Typst-Universe packages, the docs must state explicitly that `typst_elements` non-mapping keys are forwarded VERBATIM and unvalidated, and an unrecognized key is the user's own responsibility to get right — this is a compile-time contract, not a soft warning. Under no circumstances should the implementation attempt to "guess" a safe subset by inspecting `base.typ` at runtime (fragile, template-path-dependent); a static, versioned whitelist paired with a `templates/base.typ` update in lockstep is the safe approach.
+**How to avoid:** Sequence irreversible steps **last**, after the RTD build is proven green and the URL rewrites are proven live (RTD project first, verify it serves correctly, verify README/pyproject point at it and resolve — only then delete Pages/`gh-pages`). For the project-slug choice specifically, confirm the exact slug with the owner before RTD project creation (not after) since it becomes the permanent URL segment. This project's own "Key context" already names project creation, translation-linking, default-version setting, and About-Website setting as requiring manual owner action ("要ユーザー操作（自動化不可）") — the slug choice belongs in that same explicit-confirmation list and should be surfaced to the owner as its own line item, not implied by "RTD ビルド確立."
 
-**Warning signs:**
-Any `typst_elements` key that doesn't appear verbatim in `templates/base.typ`'s `project(...)` signature (or the active custom template's/package's own function signature) will compile-fail loudly — which is actually the GOOD outcome (loud, not silent); the pitfall is if that failure isn't anticipated and tested for, so the first person to hit it is a real end user, not a regression fixture.
+**Warning signs:** RTD project created with a placeholder/wrong slug before the owner explicitly confirmed the name; `gh-pages` branch deleted before an RTD build has been observed to actually serve HTML/PDF successfully at the target URL.
 
-**Phase to address:**
-Dead-config-cleanup phase (typst_elements pass-through, item A). Must ship BOTH a positive fixture (a recognized key changes output) AND a negative fixture (an unrecognized key raises a real `typst.compile()` error) — the CONF-03 precedent (`tests/test_package_only_config_gate.py`'s `TestPreFixBasisFailureProof`) is the template for the negative case.
-
----
-
-### Pitfall 7: `sphinx_metadata` already contains a poison key (`copyright`) — a naive "forward everything not in the mapping" scan breaks EVERY project, not just `typst_elements` users
-
-**What goes wrong:**
-`writer.py:200-209` builds `sphinx_metadata` as `{"project": ..., "author": ..., "release": ..., "copyright": config.copyright}`, THEN merges `typst_elements` into that SAME dict via `sphinx_metadata.update(typst_elements)` (writer.py:209) — by the time `map_parameters()` sees it, there is no way to tell, from the dict alone, which keys came from Sphinx's own baseline metadata (`project`/`author`/`release`/`copyright`) and which came from the user's `typst_elements`. If the pass-through implementation is written as "for every key in `sphinx_metadata` not already consumed by `self.parameter_mapping`, forward it as an extra kwarg" (the natural generalization of the existing `map_parameters` loop, template_engine.py:204-213), then **`copyright` — which every Sphinx project has, either explicitly set or Sphinx's own default — gets unconditionally forwarded** as a `copyright: "..."` argument to `project.with(...)`, even for users who never touched `typst_elements` at all. Since `base.typ`'s `project()` has no `copyright` parameter (templates/base.typ:39-48), this is Pitfall 6's "unexpected argument" fatal, except triggered universally on ship day — not an edge case gated behind opt-in config, a **regression that breaks the default template path for every existing user**.
-
-**Why it happens:**
-`map_parameters(sphinx_metadata)`'s single-dict signature (template_engine.py:186) doesn't distinguish the origin of its keys, and `writer.py` merges the two sources together (line 209) before calling it — so any implementation that scans the merged dict for "leftover" keys will treat `copyright` exactly like a genuine `typst_elements` entry.
-
-**How to avoid:**
-Change the call contract so pass-through candidates are sourced ONLY from `typst_elements` itself — e.g. pass `typst_elements` into `map_parameters` (or a new method) as its own explicit argument, captured in `writer.py` BEFORE the `sphinx_metadata.update(typst_elements)` merge, rather than inferred by set-difference against the post-merge dict. Any regression fixture for this change MUST include a baseline case with `typst_elements = {}` (the default, no pass-through configured, but `copyright` still present in `conf.py` as it is in virtually every real Sphinx project) and assert the emitted `#show: project.with(...)` call contains no `copyright:` argument — this is the single highest-value assertion in the whole fixture, because it is the one most likely to be silently skipped by someone testing only the "happy path" of an explicitly configured `typst_elements` key.
-
-**Warning signs:**
-The `TestPackageOnlyConfigGate`-style fixture passes with an explicit `typst_elements` dict configured, but a completely unrelated existing test project (any fixture with a `conf.py` that sets `copyright = "..."`, which is nearly all of them) starts failing to compile after this change lands.
-
-**Phase to address:**
-Dead-config-cleanup phase (typst_elements pass-through, item A) — this must be the FIRST negative-case fixture written, before the positive papersize/fontsize cases, precisely because it is the one most likely to be missed.
+**Phase to address:** Sequencing concern spanning the whole milestone — the roadmap should order "prove RTD works" strictly before "delete GitHub Pages," and the RTD-project-creation step (which the owner must do manually anyway) should include an explicit slug-confirmation sub-step.
 
 ---
 
-### Pitfall 8: Typed vs. string Typst values — `fontsize: "20pt"` (a Python str) does not become a Typst length, it becomes a Typst string, and that's a type error
+### Pitfall 8: The native-dependency risk is real but almost certainly smaller than assumed — plus font-availability is the actual residual unknown
 
-**What goes wrong:**
-`_format_typst_value()` (template_engine.py:422-453) has an unconditional rule: `isinstance(value, str) → f'"{escaped}"'`. Every Python string value is quoted, with no exceptions. `base.typ`'s `project()` declares `fontsize: 11pt` as its default (templates/base.typ:47) — an **unquoted Typst length literal**, used inside the function body as `set text(size: fontsize, lang: "en")` (templates/base.typ:61). Typst's `set text(size: ...)` strictly requires a `length` value; passing a `str` there is a real Typst type error ("expected length, found string"), not a silently-tolerated mismatch. So even AFTER (A) is implemented to forward `typst_elements` keys correctly (fixing Pitfall 6/7's "does it get forwarded at all" question), `typst_elements = {"fontsize": "20pt"}` emits `fontsize: "20pt"` into the `project.with(...)` call — syntactically valid Typst, but it fails at the `set text(size: fontsize)` line inside `project()` with a type error, a DIFFERENT and equally fatal failure mode from the missing-argument case. `papersize`, by contrast, genuinely IS meant to be a Typst string (`page(paper: papersize)` — templates/base.typ:55, and Typst's own `page()` API takes `paper:` as a string like `"a4"`/`"us-letter"`), so the SAME blanket string-quoting rule is *correct* for `papersize` and *wrong* for `fontsize` — there is no single rule that works for both of this todo's two headline example keys.
+**What goes wrong (or rather, what the milestone brief over-states):**
+The milestone frames "does typst-py's wheel work on RTD" as the single biggest technical unknown. Verified against PyPI's own package metadata: `typst` 0.15.0 publishes `cp38-abi3` wheels for `manylinux_2_17_x86_64`/`manylinux2014_x86_64` (plus aarch64/i686/ppc64le/s390x/armv7l Linux, both macOS arches, and both Windows arches) — [PyPI JSON API for `typst`](https://pypi.org/pypi/typst/json). RTD's build images are Ubuntu 20.04/22.04/24.04 on x86_64 ([RTD build-images developer docs](https://dev.readthedocs.io/en/latest/design/build-images.html)), which is exactly the manylinux2014_x86_64 target. A plain `pip install typst` (or `uv pip install .`) should therefore resolve a prebuilt wheel with **zero** Rust/cargo compilation, identical to what already happens today in GitHub Actions' `ubuntu-latest` runner. This substantially de-risks the "compiled wheel fails to build" framing — the more likely failure modes, if any, are network/index-resolution issues, not an actual from-source compile.
 
-**Why it happens:**
-Python's config values have no native "Typst length" type — `conf.py` can only supply a plain string or number, and `_format_typst_value`'s job is to guess how to render an arbitrary Python value as Typst source. The existing rule (quote every string) was written for genuinely string-typed template parameters (`title`, `toctree_caption`) and was never designed to also carry length-typed values through the same code path.
+The genuinely unverified risk that *is* real: **font availability for the Typst compiler inside RTD's container.** Typst's font-fallback behavior is silent by design — using a non-installed font falls back to a different font with no error and no warning by default ([typst/typst#2818](https://github.com/typst/typst/issues/2818), [typst/typst#4378](https://github.com/typst/typst/issues/4378)). If RTD's Ubuntu build image ships a different font package set than GitHub's `ubuntu-latest` runner (plausible — they are different maintained images, not the same base), the PDF could compile successfully on RTD while rendering with visibly different glyphs/kerning than the CI-validated PDF, with the build reporting full success either way.
 
-**How to avoid:**
-Do not treat this as solved by "just forward the value." Either (a) detect a length-like pattern (a numeric prefix followed by a recognized Typst unit — this project already has exactly this detection logic in `translator.py`'s `_TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}`, translator.py:18-21, used by `_convert_length_to_typst` for a *different* purpose — CSS-length node attributes — but the same regex-and-strip idea applies) and emit such values unquoted, while leaving genuinely string-typed values (like `papersize`) quoted; or (b) make `fontsize` accept a Python number (interpreted as points) and format it as `f"{value}pt"` unquoted, documenting that a raw string is NOT length-safe. Whichever approach is chosen, it must be a documented, tested rule — not an accidental byproduct — and the length-detection logic should be evaluated for reuse against (not blind duplication of) the existing `_TYPST_PASSTHROUGH_UNITS`/`_convert_length_to_typst` machinery in `translator.py`, noting that machinery lives in a different module (translator, not template_engine) and operates on docutils node attributes, not template-engine config dicts — reuse may mean extracting a shared helper, not importing across an unrelated module boundary.
+**Why it happens:** Build success and font-correctness are orthogonal — `typst.compile()` doesn't error on a font substitution, so this class of defect is invisible to any "build succeeded" check and only surfaces on visual inspection of the actual RTD-rendered PDF.
 
-**Warning signs:**
-`typst_elements = {"fontsize": "20pt"}` compiles the `#show: project.with(...)` call syntactically fine (string diff assertions pass), but a REAL `typst.compile()` on that output fails inside `project()`'s own body — a failure that only a real-compile fixture (not a string-assertion-only test) will ever catch. This is precisely why GATE-01's standing bar requires a real `typst.compile()`, not just emitted-text assertions, for this exact class of change.
+**How to avoid:** This is exactly the kind of claim this project's culture flags as UNVERIFIED-until-measured rather than assumed. Concrete probe: after the first real RTD build produces a PDF, download it and diff/visually-compare it against the `docs-pdf` CI artifact from the same commit (or at minimum extract text via `pypdf` and confirm no `[MISSING CHARACTER]`/tofu-box indicators, and spot-check that Japanese content — if any renders through the PDF path — doesn't silently fall back to a different CJK font than intended, given Phase 27.1's own note that CJK font availability on the CI ubuntu runner was left unconfirmed). Do not rely on "RTD build succeeded" alone as evidence the native dependency or fonts are fine.
 
-**Phase to address:**
-Dead-config-cleanup phase (typst_elements pass-through, item A). Must be a named fixture case distinct from the `papersize` case — do not assume "one string key worked, therefore all string keys work," since `papersize` and `fontsize` have opposite correctness requirements under the current `_format_typst_value` rule.
+**Warning signs:** RTD build log shows a `.tar.gz` sdist being built/compiled for `typst` rather than a `.whl` being downloaded (would indicate no matching wheel was found and a source-compile with Rust toolchain requirements is being attempted — a real failure risk since the RTD build image may or may not have a Rust toolchain provisioned); or the downloaded PDF, once visually compared, shows different font rendering than the CI-produced one.
+
+**Phase to address:** RTD build-establishment phase. The verification bar for this feature should explicitly include "downloaded the real RTD-built PDF and visually/textually compared it to the CI baseline," not just a green build status — this is the one item in this research that stays UNVERIFIED until a real RTD build is observed, per this project's stated preference for empirical gates over assertions.
 
 ---
-
-### Pitfall 9: `typst_template_mapping` REPLACES the default mapping, it does not extend it — pass-through logic must not assume the default 3-key set is always present
-
-**What goes wrong:**
-`TemplateEngine.__init__` sets `self.parameter_mapping = parameter_mapping` (the raw value of `typst_template_mapping`, if the user set it — template_engine.py:98-99) with **no merge** against `DEFAULT_PARAMETER_MAPPING`. A user who sets `typst_template_mapping = {"project": "heading"}` to rename just one mapped key loses the `author`→`authors` and `release`→`date` mappings entirely (pre-existing behavior, not new). If the new pass-through logic for `typst_elements` is implemented by computing "keys not present in `self.parameter_mapping`'s *values*" or by hard-coding an assumption that `project`/`author`/`release` are always mapped, it will misbehave for any project that has customized `typst_template_mapping` — either double-forwarding a key that's already mapped under a different name, or failing to recognize a genuinely-unmapped `typst_elements` key because the mapping shape it expected isn't there. This interacts with the already-repaired `typst_package` path too (Phase 22.2, D-05): on the package-only route, `self.parameter_mapping` defaults to `{}` (not `DEFAULT_PARAMETER_MAPPING`, template_engine.py:100-104), specifically so nothing is back-filled into a Typst-Universe package function that never asked for it — a pass-through implementation that doesn't respect this same "package path passes nothing by default" philosophy would reintroduce exactly the class of bug Phase 22.2's D-05/BUG-B fixed for `date`.
-
-**Why it happens:**
-`typst_template_mapping` and `typst_elements` are two independently user-configurable knobs feeding into the same `map_parameters()` call; it's easy to design the `typst_elements` pass-through in isolation, tested only against the DEFAULT mapping, without re-checking the interaction when `typst_template_mapping` is ALSO customized or when the package-only route (empty default mapping) is active.
-
-**How to avoid:**
-Base the pass-through decision on `typst_elements`'s own keys directly (per Pitfall 7's recommendation — pass `typst_elements` as an explicit, separate argument), and for each `typst_elements` key, only skip forwarding it if that EXACT key is present in `self.parameter_mapping`'s current keys (whatever that mapping resolved to — default, user-overridden, or the empty package-path default) — never assume the 3-key default shape is present. Add a fixture combining `typst_template_mapping` (customized) with `typst_elements` (pass-through keys) to prove the two configs compose correctly, plus a fixture confirming the package-only path's "pass nothing unless explicitly configured" invariant still holds with a `typst_elements` pass-through key configured.
-
-**Warning signs:**
-A `typst_elements` pass-through key that IS covered by a customized `typst_template_mapping` gets forwarded twice under two different names, or a legitimate pass-through key is dropped because the mapping-presence check assumed the default 3-key shape.
-
-**Phase to address:**
-Dead-config-cleanup phase (typst_elements pass-through, item A) — cross-reference against the Phase 22.2 CONF-02/CONF-03 fixture shapes (`tests/test_package_only_config_gate.py`) since this todo explicitly names that gate as its template.
-
----
-
-### Pitfall 10: A vacuous GATE-01 regression fixture — proving nothing, passing either way
-
-**What goes wrong:**
-A fixture that merely asserts "the build succeeds" or "the config value is registered / appears somewhere in the emitted text" passes identically whether or not the actual fix is present — this is precisely the failure mode that let `typst_output_dir`, `typst_toctree_defaults`, and the `typst_elements` non-mapping-key gap survive for multiple milestones behind registration-only tests (`tests/test_config.py:112-156`, `tests/test_config_toctree_defaults.py:9-236` — both explicitly cited in the pending todo as tests that check `hasattr(app.config, "typst_toctree_defaults")` / value equality on the CONFIG object, never on emitted OUTPUT). For PR#98 specifically: a fixture that checks `"figure(" in text` without ALSO checking `"heading(level:" not in text` near the table, or without a real `typst.compile()`, would pass even if Pitfall 2's fallthrough bug is present (both `figure(...)` AND a stray `heading(...)` get emitted — the substring assertion is satisfied either way).
-
-**Why it happens:**
-Positive-only assertions ("the new thing is present") are easier to write than negative/differential ones ("the old broken thing is absent," "this exact config value changes this exact byte range of output," "this real compile fails without the fix"), and they're the ones that naturally come to mind first when writing a fixture for a new feature.
-
-**How to avoid:**
-Follow the two-part discipline already established by Phase 22.2's `test_package_only_config_gate.py` and required by this milestone's standing GATE-01 bar: (1) a `TestPreFixBasisFailureProof`-style class that reconstructs the pre-fix shape FROM the post-fix emitted output (e.g., for typst_elements: strip the pass-through argument back out and confirm a DIFFERENT compile-time behavior results; for PR#98: re-insert a stray `heading(` before the `figure(` and confirm the reconstructed document either compiles to visibly different content or — where applicable — fails a real compile) and (2) for every phase touching this milestone's three change classes, actually re-run the CURRENT gate test against the PRE-FIX commit (e.g. `git stash`/`git checkout <parent>` the source change only, keep the test) and confirm it goes RED, then restore the fix and confirm GREEN — the literal red→green discipline `.planning/PROJECT.md`'s Phase 22.2 verification history describes ("verifier re-ran the current gate against the pre-fix commit to prove red→green"). A fixture that has never been observed to fail is not proven to test anything.
-
-**Warning signs:**
-A new fixture that passes on the very first run, before the implementation code exists (comment it out and the test still passes) — the clearest possible signal of a vacuous fixture.
-
-**Phase to address:**
-Every phase in this milestone (PR#98, typst_elements pass-through, typst_toctree_defaults removal) — this is the standing GATE-01 bar restated, not a one-off pitfall.
-
----
-
-### Pitfall 11: Docs "working example" written before the pass-through implementation actually ships — reintroducing a phantom (just a differently-shaped one)
-
-**What goes wrong:**
-`docs/source/user_guide/configuration.rst:197-200` currently shows `typst_papersize = "a4"` / `typst_fontsize = "11pt"` as top-level config names — both unregistered phantoms (per the phantom-config-names todo). The natural-seeming fix, once (A) ships, is to rewrite these as a `typst_elements = {"papersize": "a4", "fontsize": "11pt"}` example. But per Pitfall 8, `fontsize` as a plain Python string is NOT correctly handled by `_format_typst_value`'s blanket string-quoting unless the pass-through implementation specifically adds length-vs-string handling for it. If the docs example is written and merged BEFORE that length-handling half of (A) is actually implemented and proven, the doc goes from "cites a phantom config name that Sphinx silently warns about or ignores" to "cites a real, registered config path that reliably crashes `typst.compile()` if a reader copies it verbatim" — a strictly worse failure mode (loud, fatal, and shipped as an official example) than the one it was meant to fix. This is the exact ordering dependency flagged in the phantom-config-names todo's own Solution section (its cross-reference to the typst_elements todo's D-18): "`typst_papersize`/`typst_fontsize` 系の記述は削除のみが安全" ("only deletion is safe") until the pass-through's type-handling is actually done.
-
-**Why it happens:**
-Docs and implementation for the same feature are natural to bundle into one mental "fix the fontsize story" task, and it's tempting to write the "after" example as soon as the config value is *registered* and *forwarded at all* — without separately confirming the forwarded value round-trips through `_format_typst_value` as the CORRECT Typst type, not just "some value that appears in the output."
-
-**How to avoid:**
-Sequence strictly: (1) ship and prove (A)'s pass-through including Pitfall 8's typed-value handling, with a real-compile fixture showing `fontsize` specifically (not just `papersize`) compiles correctly end-to-end; only then (2) write the docs "working example" using `typst_elements` for `papersize`/`fontsize`, and — as extra insurance — add a docs-example compile check (or reuse an existing `docs-pdf`-style gate) that actually builds the documented example rather than trusting it by inspection. Until (1) is proven, the phantom-names doc fix should only DELETE the broken `typst_papersize`/`typst_fontsize` lines, never replace them with an unverified `typst_elements` example.
-
-**Warning signs:**
-A docs PR that adds a `typst_elements = {"fontsize": ...}` example lands in the same or an earlier commit than the fixture proving `fontsize`'s type handling — check commit/plan ordering, not just content correctness.
-
-**Phase to address:**
-The docs-cleanup phase must be sequenced AFTER (not parallel with, and not before) the typst_elements pass-through phase for this specific pair of lines — the two other phantom fixes (`typst_author`→`typst_authors`, deleting `typst_use_codly`/`typst_code_line_numbers`) have no such dependency and can proceed independently.
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|-----------------|------------------|
-| Whitelist only `papersize`/`fontsize` (the two named example keys) instead of a general pass-through mechanism for `typst_elements` | Smaller diff, avoids Pitfall 6's "any unknown key is fatal" surface entirely for the default template | Any OTHER `typst_elements` key a user adds still silently drops (the ORIGINAL bug, just narrowed) — reopens the same class of dead-config bug for a subset of keys | Acceptable as an explicit, documented v1 scope-narrowing (mirrors this project's own precedent of "B: delete" for `typst_toctree_defaults`) — NOT acceptable if the docs claim general `typst_elements` pass-through without qualification |
-| Reuse the OLD caption-less `:width:` wrap verbatim for the captioned case (Pitfall 3, option a) instead of the figure-precedent wrap (option b) | Less code to write, reuses `_build_columns_fr_arg`/`_format_table_cell` exactly as-is | Diverges from the `visit_figure`/`depart_figure` precedent for width semantics, creating two different "what does width mean" answers in the same file depending on whether a table has a caption | Acceptable only if explicitly decided and documented as intentional, not a default fallen into by omission |
-| Skip `<label>`/numref support for captioned tables entirely in this milestone (Pitfall 5) | Avoids the duplicate-label collision risk entirely — `kind: table` auto-numbering alone needs no id/label logic | Users who add `:name:` to a captioned table for cross-referencing get no working `:numref:` — a known, if unrequested, gap | Acceptable for this milestone since the todo's stated scope is "Table N" auto-numbering, not cross-reference support — should be recorded as an explicit follow-up item, not silently absent |
+| Leave `conf.py`'s `SPHINX_LANGUAGE` env-var read in place "for now" alongside a new `READTHEDOCS_LANGUAGE` check | Less code churn in one commit | Silent-English translation bug (Pitfall 3) ships unnoticed since both env vars can coexist without erroring | Never for this migration — the whole point of the ja feature is a correctly-localized site |
+| Add `formats: [pdf]` because it's the first thing that shows up in RTD docs/UI for "I want a PDF" | Fast, matches tutorial examples | Triggers RTD's own broken LaTeX pipeline (Pitfall 1) atop the intentional typstpdf output | Never — always route the PDF through `build.jobs`/`build.commands` output-directory convention instead |
+| Grep only the files named in the requirement text before deleting orphan docs | Faster to scope, matches the literal ask | Misses collateral references (tests, tox envs, templates) — this project has hit this twice already (Pitfall 6) | Never — a repo-wide grep immediately before the deletion commit is cheap insurance already proven necessary twice |
+| Treat a green `linkcheck` job as proof the README/pyproject URL rewrite is correct | One CI signal to point at | Linkcheck structurally cannot see README/pyproject (Pitfall 5) — false confidence | Never for this specific claim; fine as a *general* in-doc link-rot net |
+
+## Integration Gotchas
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|-----------------|-------------------|
+| Read the Docs `python.install` | Assume RTD installs the project automatically like local `uv sync`/CI does | Explicitly declare `python.install: [{method: pip, path: ., extra_requirements: [docs]}]`, or do the install yourself inside `build.commands` if that path is chosen |
+| Read the Docs `formats:` | Add `formats: [pdf]` to "turn on PDF downloads" | Omit `formats:` entirely; place the typstpdf output at `$READTHEDOCS_OUTPUT/pdf/*.pdf` via `build.jobs` and let RTD's artifact auto-discovery pick it up |
+| Read the Docs translation projects | Assume the ja project inherits the parent's active-version list and language automatically | Separately configure the ja project's own version activation/Automation Rules, and separately confirm its Admin "Language" dropdown is set to Japanese (this is what actually sets `READTHEDOCS_LANGUAGE=ja` at build time) |
+| `typst` (PyPI) native wheel on RTD's build image | Assume a Rust/PyO3 dependency needs a source-compile fallback plan on RTD | Verified: `typst` ships `cp38-abi3` wheels for `manylinux_2_17_x86_64`/`manylinux2014_x86_64` (and macOS/Windows/other Linux arches) — a plain `pip install typst` on RTD's x86_64 Ubuntu build image should resolve a prebuilt wheel with zero compilation, same as it does in the existing GitHub Actions `ubuntu-latest` CI. This is a real risk-reduction finding, not a guess — see Pitfall 8 for the residual unknown |
+
+## Performance Traps
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|-----------------|
+| Running the full typstpdf compile (`tox -e docs-pdf`) inside every RTD PR-preview build | RTD PR builds become slow/expensive; RTD explicitly restricts non-HTML formats to post-merge builds by policy ("With builds from pull requests, only HTML formats are generated...other formats are built after merging") | Gate the PDF `build.jobs` step to non-PR builds (RTD's `READTHEDOCS_VERSION_TYPE` env var distinguishes `external` PR builds from `branch`/`tag`) if PR previews are ever enabled | Becomes a real cost the moment PR-preview builds are turned on for this repo (not yet in scope, but worth a guard now since RTD's own default policy already assumes this pattern) |
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Treating RTD's `.readthedocs.yaml` as equivalent to a locked/pinned CI environment | RTD builds resolve dependencies at build time using whatever `pip`/`uv` resolves per the declared `python.install`; if `docs` extras aren't pinned the same way `docs.yml` CI pins them (`uv sync --locked`), an RTD build can silently pick up a different `sphinx`/`furo`/`sphinx-intl` version than CI validated against | Mirror the same lockfile-driven install RTD-side if possible (e.g. `uv export`/`pip install -r` a locked requirements file inside `build.commands`), or at minimum keep the same version ranges declared in `pyproject.toml`'s `docs` extra so RTD and CI resolve compatibly |
+
+## UX Pitfalls
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-------------------|
+| Visiting the bare RTD project URL before `stable` has any real build | A visitor lands on a version selector or an empty/placeholder page instead of documentation, because the default version (`stable`) has nothing to serve until the `v0.6.4` tag exists (confirmed: RTD serves a 404/placeholder for a default version with no active build, and the fix is either to create the version or temporarily point default elsewhere — [RTD versions doc](https://docs.readthedocs.io/en/stable/versions.html)) | Either accept this as a known, temporary window (already the milestone's documented plan) and communicate it (e.g. in the release notes / About field), or default to `latest` until the tag lands and flip default to `stable` at the same commit as the release phase, minimizing the empty-`stable` window rather than opening it at RTD-project-creation time |
+| `/ja/` visitor sees English text with no visual indicator anything is wrong | Confusing, silent failure — see Pitfall 3 | Fix the env-var read and verify visually (not just "build succeeded") before considering the ja feature done |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Captioned table renders as `figure(...)`:** verify with a fixture containing a SECOND table (captioned or not) in the same document — a single-table fixture cannot expose Pitfall 1's `table_cell_content` routing bug.
-- [ ] **Caption + `:width:` composition:** verify a fixture exists combining BOTH in one table — testing them separately proves nothing about the combination (Pitfall 3).
-- [ ] **`typst_elements` pass-through "works":** verify BOTH `papersize` (string, correctly quoted) AND `fontsize` (length, must NOT be blindly quoted) are separately fixture-tested — proving one does not prove the other (Pitfall 8).
-- [ ] **`typst_elements` pass-through is "safe":** verify a fixture with `typst_elements = {}` (default, untouched) still compiles with no `copyright:`/other baseline-metadata leakage into `project.with(...)` — Pitfall 7 is invisible unless specifically tested.
-- [ ] **Regression fixtures actually regress:** verify each new gate test was observed RED against the pre-fix commit before being accepted GREEN (Pitfall 10) — not merely "the test exists and currently passes."
-- [ ] **Docs `typst_elements` fontsize/papersize example:** verify the example itself was fed through a real `sphinx-build`/`typst.compile()`, not just read for plausibility (Pitfall 11).
+- [ ] **RTD build succeeds:** Often "succeeds" only because a step was skipped/no-op'd (e.g. `python.install` missing, so `typsphinx` import silently fell back to a stale PyPI wheel) — verify the install-step log lines show installing from the local checkout, not a PyPI index.
+- [ ] **PDF is served from RTD:** Verify the *actual byte content* is the typstpdf-generated PDF (check page count/size against the known `docs-pdf` CI output), not a RTD-default LaTeX-built PDF that happened to also succeed.
+- [ ] **ja translation "works":** Verify by reading rendered Japanese text on `/ja/latest/`, not just "build green" — a build can succeed while emitting 100% English content (Pitfall 3).
+- [ ] **linkcheck job "covers" the #119 class of bug:** It does not, by construction (Pitfall 5) — verify the README/pyproject URL rewrites separately with a real HTTP check.
+- [ ] **Orphan docs "resolved":** Verify the collateral test files (`test_documentation_usage.py`, `test_documentation_installation.py`) were also handled, not just the `.rst` files — a green `pytest` run after deletion is the actual proof, not the deletion commit itself.
+- [ ] **`stable` "is the default version":** Verify `stable` actually resolves to real content, not a 404/empty-placeholder, at the moment this is declared done — this is only true after the `v0.6.4` tag exists.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|----------------|-----------------|
-| Pitfall 1 (caption swallowed by table_cell_content) | LOW | Add the `self.in_table = False` save/restore around the caption buffer-swap in `visit_title`/`depart_title`; no data model change needed, purely a state-flag fix |
-| Pitfall 2 (fallthrough to heading emission) | LOW | Add the missing `return` on the new table-caption branch; verify via the "zero `heading(` occurrences" grep-style assertion |
-| Pitfall 3 (wrong width/caption nesting) | MEDIUM | Requires picking and re-deriving the correct wrap order, likely a `depart_table` rewrite of the width-wrap branch; low risk of data loss but needs a fresh compile-verified fixture |
-| Pitfall 5 (duplicate label) | LOW–MEDIUM | Add `skip_ids` threading to the new label-emission site, matching `depart_figure`'s existing contract exactly; low cost IF label support is added deliberately, MEDIUM if it was added accidentally and needs to be identified first |
-| Pitfall 6/7 (unexpected-argument fatal on unknown/poison keys) | LOW | Narrow the pass-through to an explicit whitelist or a dedicated `typst_elements`-only source dict; both are small, localized changes to `writer.py`/`template_engine.py` |
-| Pitfall 8 (typed vs string values) | MEDIUM | Requires adding length-detection logic (regex or explicit numeric+unit convention) to `_format_typst_value` or a wrapper around it — a real (small) feature, not a one-line fix |
-| Pitfall 10 (vacuous fixture) | LOW | Re-run the existing fixture against the parent commit; if it passes red-then-green is missing, add the reconstruction/negative-case class per `TestPreFixBasisFailureProof`'s pattern |
-| Pitfall 11 (premature docs example) | LOW | Revert the docs example to a deletion-only fix until the implementation dependency (Pitfall 8) is proven; no code change needed, purely a documentation-ordering fix |
+|---------|----------------|------------------|
+| Wrong RTD project slug picked | MEDIUM | Email `support@readthedocs.org` to request a slug change (documented supported path), or accept the slug and never re-migrate; either way, don't compound it by publishing links to the wrong slug before confirming |
+| `formats: [pdf]` added and RTD's LaTeX build breaks the pipeline | LOW | Remove the `formats:` key; re-verify the custom `build.jobs` PDF step alone still populates `$READTHEDOCS_OUTPUT/pdf/` |
+| `SPHINX_LANGUAGE`→`READTHEDOCS_LANGUAGE` fix shipped after ja project already public | LOW | Fix `conf.py`, trigger a rebuild of the ja project; no data loss, just a stale-content window until the next build |
+| `gh-pages`/Pages deleted before RTD proven working | HIGH (effectively irreversible per the accepted-consequence decision) | None — this is why Pitfall 7's sequencing matters; if it happens prematurely, the only mitigation is finishing the RTD migration as fast as possible to minimize the dead-docs window |
+| Collateral test files left hard-asserting deleted orphan docs | LOW | Delete or repoint the test files in a follow-up commit (as Phase 27 did); cheap once noticed, but "noticed" requires actually running the suite post-deletion |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|-------------------|----------------|
-| 1. Caption swallowed by table_cell_content | PR#98 reimplementation | Two-table-in-one-document fixture, real `typst.compile()`, caption text present in output |
-| 2. visit_title fallthrough to heading() | PR#98 reimplementation | Assert zero `heading(level:` occurrences adjacent to the table's `figure(`/`table(` call |
-| 3. caption + :width: nesting | PR#98 reimplementation | Dedicated fixture combining both, real compile, plus an explicit written decision on which wraps which |
-| 4. Caption-less table stays plain table() | PR#98 reimplementation | Existing captionless-table tests must show byte-identical `table(` output (no figure wrap) after the change |
-| 5. kind: table label collision | PR#98 reimplementation | Named + captioned table fixture, real compile (string-only assertions cannot catch this) |
-| 6. Unknown-key unexpected-argument fatal | typst_elements pass-through phase | Negative fixture: an unrecognized key raises a real `typst.compile()` error (not just registered) |
-| 7. sphinx_metadata poisoning (copyright leak) | typst_elements pass-through phase | Baseline fixture with `typst_elements = {}` but `copyright` set in conf.py — assert no `copyright:` in the show-rule call region |
-| 8. Typed vs string values (fontsize) | typst_elements pass-through phase | Fixture specifically for `fontsize`, real compile, distinct from the `papersize` fixture |
-| 9. typst_template_mapping interaction | typst_elements pass-through phase | Fixture combining a customized `typst_template_mapping` with a `typst_elements` pass-through key |
-| 10. Vacuous fixture | Every phase (standing GATE-01 bar) | Red→green discipline: gate re-run against the pre-fix commit, observed to fail, before being accepted |
-| 11. Premature docs example | Docs-cleanup phase, sequenced AFTER the pass-through phase | Docs PR review checks commit ordering against the pass-through phase's fixture landing first |
+| 1. `formats: [pdf]` collides with typstpdf | RTD build-establishment phase | Raw RTD build log shows no `latexmk`/`pdflatex`; exactly one PDF artifact, byte-comparable to `docs-pdf` CI output |
+| 2. Self-referential extension unimportable | RTD build-establishment phase | Build log shows `typsphinx` installed from the local checkout path; a deliberately-broken `python.install` block reproduces `ModuleNotFoundError` as a negative control |
+| 3. ja project silently serves English | ja-translation-project phase | Real rendered `/ja/latest/` page visually confirmed Japanese; `conf.py` reads `READTHEDOCS_LANGUAGE`; RTD admin language dropdown set correctly for the ja project |
+| 4. ja versions unsynced with parent | ja-translation-project phase, re-verified at release phase | `/ja/stable/` exists and matches the same tag as `/en/stable/` after the v0.6.4 tag is cut |
+| 5. linkcheck doesn't cover README/pyproject | linkcheck CI-job phase + URL-rewrite phase | Explicit separate HTTP-check/grep proof for README/pyproject links; linkcheck job's scope documented as doc-tree-only |
+| 6. Deletion-order collateral damage | multilang-removal phase + orphan-docs phase | Repo-wide grep for each deleted identifier returns zero hits; full `pytest` suite green post-deletion, not just the targeted test files |
+| 7. Irreversible steps executed out of order | Whole-milestone sequencing (roadmap ordering) | Pages/`gh-pages` deletion phase ordered strictly after RTD-build-proven-green phase; slug confirmed with owner before RTD project creation |
+| 8. Native-wheel build unknown / font-availability | RTD build-establishment phase | A real RTD build observed to `pip install typst` from a prebuilt wheel (log line shows `.whl` download, not a `cargo`/source build); downloaded PDF visually/textually compared to the CI baseline |
 
 ## Sources
 
-- `typsphinx/translator.py` (this repo, `main` @ 9f8e075) — `visit_title`/`depart_title` (lines 453-584), `visit_table`/`depart_table` (2337-2485), `visit_entry`/`depart_entry` (2584-2631), `add_text` (253-267), `_emit_id_anchors` (311-382), `visit_figure`/`depart_figure`/`visit_caption`/`depart_caption` (2039-2210) — read directly for this research
-- `typsphinx/template_engine.py` (same commit) — `DEFAULT_PARAMETER_MAPPING`/`map_parameters` (62-66, 186-245), `_format_typst_value` (422-453), `TemplateEngine.__init__`'s package-path parameter_mapping note (98-106) — read directly
-- `typsphinx/writer.py` (same commit) — `sphinx_metadata` construction and `typst_elements` merge (200-216) — read directly
-- `typsphinx/templates/base.typ` (same commit) — `project()` signature and body (39-93) — read directly
-- `tests/test_package_only_config_gate.py` (same commit) — the CONF-03 red→green / difference-matrix fixture pattern this milestone's GATE-01 bar is explicitly modeled on — read directly
-- `.planning/PROJECT.md` — FN-01 footnote buffer-clobber lesson (Requirements/Validated section, Phase 14 entry) and Phase 22.2 CONF-01..03 dead-config precedent (Key Decisions, Phase 22.2 entries)
-- `.planning/todos/pending/2026-07-23-reimplement-pr-98-captioned-table-figure-wrap.md`
-- `.planning/todos/pending/2026-07-22-dead-config-typst-elements-keys-and-toctree-defaults.md`
-- `.planning/todos/pending/2026-07-22-user-guide-configuration-phantom-config-names.md`
-- `docs/source/user_guide/configuration.rst` (lines 140-254) — the phantom `typst_papersize`/`typst_fontsize`/`typst_author`/`typst_use_codly`/`typst_code_line_numbers` examples
+- [RTD Configuration file reference (v2)](https://docs.readthedocs.com/platform/stable/config-file/v2.html) — HIGH confidence, official current docs
+- [PR #10115 — PDF/ePub opt-in by default](https://github.com/readthedocs/readthedocs.org/pull/10115) — HIGH, official RTD repo
+- [RTD environment-variables reference](https://docs.readthedocs.com/platform/stable/reference/environment-variables.html) — HIGH, official, confirms `READTHEDOCS_LANGUAGE`/`READTHEDOCS_OUTPUT`/`READTHEDOCS_VERSION_TYPE` exact names
+- [RTD localization / translation-project guide](https://docs.readthedocs.com/platform/stable/localization.html) — HIGH, official
+- [RTD manage-translations-for-sphinx guide](https://docs.readthedocs.io/en/stable/guides/manage-translations-sphinx.html) — HIGH, official
+- [RTD Versions reference](https://docs.readthedocs.io/en/stable/versions.html) / [readthedocs.org/docs/user/versions.rst](https://github.com/readthedocs/readthedocs.org/blob/main/docs/user/versions.rst) — HIGH, official, confirms stable-from-tags behavior and deactivated-version 404 behavior
+- [RTD FAQ — project slug change process](https://docs.readthedocs.com/platform/stable/faq.html) — HIGH, official
+- [RTD custom domains / canonical URLs](https://docs.readthedocs.com/platform/stable/canonical-urls.html) — HIGH, official
+- [RTD build-images developer docs](https://dev.readthedocs.io/en/latest/design/build-images.html) — HIGH, official (RTD dev docs), confirms Ubuntu 20.04/22.04/24.04 x86_64 build images
+- [PyPI JSON API — `typst` package files](https://pypi.org/pypi/typst/json) — HIGH, primary source, confirms manylinux2014_x86_64 `cp38-abi3` prebuilt wheel exists
+- [typst/typst#2818 — silent font-fallback, no warning](https://github.com/typst/typst/issues/2818) — MEDIUM, upstream issue tracker, corroborated by related issues (#4378, #5663, #6010)
+- [Sphinx linkcheck anchor false-positive issue #13620](https://github.com/sphinx-doc/sphinx/issues/13620) — MEDIUM, upstream issue tracker (general linkcheck fragility, relevant to advisory-first rollout rationale)
+- Repo-internal verification (this research): `grep -rn "github.io" docs/source/` → zero hits (confirms Pitfall 5); `tests/test_documentation_usage.py`/`tests/test_documentation_installation.py` hard-assert `docs/usage.rst`/`docs/installation.rst` existence (confirms Pitfall 6); `docs/source/conf.py:51`, `docs/build_multilang.py:44`, `.github/workflows/docs.yml:29-32,34-43,57-63` (confirms Pitfalls 1-3, 6 code-level claims) — HIGH, direct repo inspection
+- `.planning/PROJECT.md` (Current Milestone section + Key Decisions), `.planning/todos/pending/2026-07-25-docs-usage-installation-orphan-class.md`, `.planning/milestones/v0.6.3-phases/27-*` — HIGH, project's own prior-milestone precedent for the exact deletion-order trap class (Pitfall 6)
 
 ---
-*Pitfalls research for: typsphinx v0.6.3 milestone (config/docs 実測整合 + captioned tables)*
-*Researched: 2026-07-23*
+*Pitfalls research for: Read the Docs migration (v0.6.4 milestone), typsphinx*
+*Researched: 2026-07-25*
