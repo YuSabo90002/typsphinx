@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 31
-current_phase_name: published-url-cutover-repo-wide-link-guard
-status: executing
-stopped_at: Phase 31 planned (5 plans, verification passed)
-last_updated: "2026-07-27T12:05:22.357Z"
+current_phase: 32
+current_phase_name: github-pages-teardown-irreversible
+status: planning
+stopped_at: Phase 31 complete (UAT 1/1 passed); Phase 30 UAT still partial — resume it before Phase 32
+last_updated: "2026-07-27T12:53:03.119Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 31 execution resumed (wave continue)
+last_activity_desc: Phase 31 complete, transitioned to Phase 32
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 26
-  completed_plans: 25
-  percent: 50
+  completed_plans: 26
+  percent: 67
 ---
 
 # Project State
@@ -24,19 +24,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25 at the v0.6.4 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 31 — published-url-cutover-repo-wide-link-guard
+**Current focus:** finish Phase 30's outstanding UAT, then Phase 32 — GitHub Pages Teardown (IRREVERSIBLE)
 
 ## Current Position
 
-Phase: 31 (published-url-cutover-repo-wide-link-guard) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 31
-Progress: [█████░░░░░] 50% (3/6 phases)
-Last activity: 2026-07-27 — Phase 31 execution resumed (wave continue)
+Phase: 32 — GitHub Pages Teardown (IRREVERSIBLE) — **gated on Phase 30 completing first, see note**
+Plan: Not started
+Status: Ready to plan (after Phase 30 UAT)
+Progress: [██████▌░░░] 26/26 plans executed; phases 3/6 complete (29, 30.1, 31) + Phase 30 executed-awaiting-UAT
+Last activity: 2026-07-27 — Phase 31 complete (UAT 1/1), transitioned
 
-> **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
-> 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).
-> `phase.complete` advanced numerically to 31 — corrected here: the next phase is **30**, not 31.
+> **Phase 30 is executed but NOT complete:** all 4 plans have SUMMARYs, but `30-UAT.md` is
+> `status: partial` and `30-VERIFICATION.md` is `human_needed`. The milestone principle (every
+> reversible action precedes the irreversible teardown) means Phase 30 must reach complete before
+> Phase 32 is planned/executed. Next action: `/gsd-verify-work 30`.
 
 **Phase 30.1 carry-forwards (into Phase 30 and the milestone close):**
 
@@ -152,6 +153,18 @@ with `test_preview_version_sync.py` extended over `examples/**/*.typ` to close t
 ### Decisions
 
 Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
+
+- 2026-07-27 [Phase 31, D-15]: **Issue #119's close is a post-merge handoff to
+  `/gsd-complete-milestone`, not a Phase 31 deliverable** — the rewritten URLs live on the
+  milestone branch; closing while `main` still serves dead links would promise an undelivered fix.
+  Reply drafted in `31-ISSUE-119-REPLY-DRAFT.md` (awaiting owner review); About → Website already
+  set and resolving.
+
+- 2026-07-27 [Phase 31, D-09]: **link guard installed BEFORE the URL rewrite with a recorded red
+  negative-control run** (30205112477 — all 7 old-host README deep links flagged, pyproject.toml
+  proven in-scan via `--dump-inputs`). `links.yml` is advisory by construction: confirmed absent
+  from `main`'s required status checks. The backstop truth (a cancelled run leaves zero repo
+  state) was proven live in UAT (run 30267597698 cancelled; full `ls-remote` baseline diff clean).
 
 - 2026-07-26 [Phase 30.1]: **SC#4 glyph fix taken as option-b** — a docs-side custom `typst_template`
   (`docs/source/_typst/custom_template.typ`) + explicit `derive_typst_lang()` re-derivation in
@@ -296,17 +309,22 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/31-published-url-cutover-repo-wide-link-guard/31-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-07-26T12:50:47.683Z
-Stopped at: Phase 31 planned (5 plans / 3 waves, plan-checker passed)
-Resume: `/gsd-execute-phase 31`
+Last session: 2026-07-27
+Stopped at: Phase 31 complete (verification passed, UAT 1/1, security 0 open threats).
+Resume: `/gsd-verify-work 30` — Phase 30's UAT is still `partial` and must complete before Phase 32.
 
 ## Operator Next Steps
 
-- Execute Phase 31: `/gsd-execute-phase 31` (5 plans / 3 waves; D-09 ordering is wave-enforced:
-  links.yml + red negative-control run BEFORE the URL rewrite). Expect `ui.plan-gate` to
-  false-positive on this docs phase — use `--skip-ui` where prompted.
+- **Finish Phase 30's UAT:** `/gsd-verify-work 30` (`30-UAT.md` is `partial`,
+  `30-VERIFICATION.md` is `human_needed`; all 4 plans executed). Phase 30 must complete before
+  the irreversible Phase 32 teardown.
 
-- Owner-manual step during execution: About → Website (Plan 02 attempts `gh api` PATCH first,
-  manual fallback). The #119 close stays a post-merge handoff (D-15), recorded in Plan 05.
+- Then plan Phase 32: `/gsd-plan-phase 32` (GitHub Pages Teardown — behind a freshly re-taken
+  RTD-is-serving gate). Expect `ui.plan-gate` / `api-coverage` docs-phase false positives —
+  `--skip-ui` and the recorded-override pattern apply.
+
+- Owed at milestone close (`/gsd-complete-milestone`): Issue #119 close using
+  `31-ISSUE-119-REPLY-DRAFT.md` (D-15); the two RTD Default-branch reverts + `.gitmodules`
+  `branch` → `main` flip; Default Version `latest` → `stable` after the `v0.6.4` tag builds green.

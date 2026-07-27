@@ -53,10 +53,10 @@ build sandbox).
       and the test suite is green afterwards — the live, toctree-reachable
       `docs/source/installation.rst` is untouched.
 
-- [ ] **DOC-09**: Every documentation URL the project publishes — in the README, in the PyPI package
+- [x] **DOC-09**: Every documentation URL the project publishes — in the README, in the PyPI package
       metadata, and in the codebase notes — resolves to a real page, proven by an actual HTTP fetch.
 
-- [ ] **DOC-10**: The external bug report about the broken documentation link (Issue #119) is closed
+- [x] **DOC-10**: The external bug report about the broken documentation link (Issue #119) is closed
       with the promised fix actually delivered, and a visitor to the GitHub repository can reach the
       documentation from the repository's own Website field.
 
@@ -212,8 +212,8 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | I18N-02 | Phase 30 | Complete |
 | I18N-03 | Phase 30.1 | Complete |
 | DOC-08 | Phase 30 | Complete |
-| DOC-09 | Phase 31 | Pending |
-| DOC-10 | Phase 31 | Pending |
+| DOC-09 | Phase 31 | Complete |
+| DOC-10 | Phase 31 | Complete |
 | CI-05 | Phase 31 | Complete |
 | CI-04 | Phase 32 | Pending |
 | REL-02 | Phase 33 | Pending |

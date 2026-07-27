@@ -1,12 +1,13 @@
 ---
 phase: 31-published-url-cutover-repo-wide-link-guard
 verified: 2026-07-27T00:00:00Z
-status: human_needed
+status: passed
 score: 27/29 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 behavior_unverified_items: 0
 human_verification:
+
   - test: "Cancel or let a Link Check run get superseded mid-flight (e.g. push twice in quick succession) and confirm no commit, tag, issue, or tree file is left behind — only a job summary is read/written."
     expected: "The cancelled/superseded run leaves the repository state (commits, tags, issues, tracked files) completely unchanged; only the GitHub-hosted job summary reflects the run."
     why_human: "This is a `verification: backstop` (non-inferable) must-have in both 31-01-PLAN.md and 31-05-PLAN.md must_haves.truths. links.yml's two steps (checkout, lychee-action with jobSummary: true) contain no commit/tag/issue-writing step by static inspection, which is suggestive but not the same as directly observing a cancelled/superseded run's actual behavior — no held-out test or direct observation of a cancellation exists in the evidence. Per the honest-verifier protocol (references/honest-verifier.md), a backstop truth without a wired test or directly-observed behavior must abstain rather than be marked VERIFIED on symbol/structure presence alone."
