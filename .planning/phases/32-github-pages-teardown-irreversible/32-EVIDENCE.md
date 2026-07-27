@@ -667,3 +667,147 @@ exactly (no revival occurred between gate and deletion).
 **SC#2 (remote half) verdict: PASS.** `refs/heads/gh-pages` no longer exists at `origin`,
 proven by a live `git ls-remote` query recorded before and after deletion. `refs/heads/main`
 confirmed untouched.
+
+## Owner-manual step — disable the GitHub Pages site (REQUIREMENTS.md manual step #7)
+
+**Navigation path for the repository owner:**
+`github.com/YuSabo90002/typsphinx` → **Settings** → **Pages** → **Build and deployment** →
+set **Source** to **None** / unpublish the site.
+
+**Why branch deletion is not sufficient on its own:** GitHub Pages treats the branch as the
+*source* for a *feature* that is a separate, independently-toggled setting. Deleting
+`refs/heads/gh-pages` (done above, this plan's Task 2) removes the content the feature would
+serve, but the Pages feature itself can remain "enabled" against a now-missing source until the
+owner explicitly disables it in Settings → Pages. The observable outcome of the owner completing
+this step (or of branch deletion alone already being sufficient, see A-02 below) is the
+`github.io` 404 recorded in the next section.
+
+This step is **not** attempted from automation and is **not** reported as done here — it is
+owner-manual by locked project decision (REQUIREMENTS.md Owner-Manual Steps #7). Automation's
+role is limited to observing the resulting HTTP status.
+
+## SC#2 — github.io 404 observation (bounded retry)
+
+Plan 01's pre-teardown baseline for the same URL (recorded before any teardown action, for
+comparison):
+
+```
+$ curl -sS -L -o /dev/null -w "%{http_code} %{url_effective}\n" https://YuSabo90002.github.io/typsphinx/
+200 https://YuSabo90002.github.io/typsphinx/
+```
+(Plan 01, 2026-07-27, pre-teardown — the legacy site was still live at that point, as expected.)
+
+**Post-teardown attempts, this plan, all same session (2026-07-27):**
+
+Attempt 1 (no `-L`, so a redirect would be visible rather than followed):
+```
+$ curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://YuSabo90002.github.io/typsphinx/
+404 https://YuSabo90002.github.io/typsphinx/
+```
+Timestamp: `2026-07-27T14:33:40Z`
+
+Attempt 1b (with `-L`, same instant, to confirm the no-`-L` result was not itself an artifact of
+suppressing a redirect):
+```
+$ curl -sS -L -o /dev/null -w "%{http_code} %{url_effective}\n" https://YuSabo90002.github.io/typsphinx/
+404 https://YuSabo90002.github.io/typsphinx/
+```
+Timestamp: `2026-07-27T14:33:40Z`
+
+Attempt 2 (full response headers, no `-L`, to directly rule out any `Location:` header and
+confirm this is a genuine GitHub-Pages-infrastructure 404 rather than a network-level failure):
+```
+$ curl -sS -D - -o /dev/null https://YuSabo90002.github.io/typsphinx/
+HTTP/2 404
+server: GitHub.com
+content-type: text/html; charset=utf-8
+etag: "6a63df56-239b"
+content-security-policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'
+x-github-request-id: 6F9A:11C46A:56B2A4:59A580:6A676C42
+accept-ranges: bytes
+date: Mon, 27 Jul 2026 14:33:59 GMT
+via: 1.1 varnish
+age: 20
+x-served-by: cache-itm1220079-ITM
+x-cache: HIT
+x-cache-hits: 1
+x-timer: S1785162839.226823,VS0,VE1
+vary: Accept-Encoding
+x-fastly-request-id: 0b81d15be27b541df0403ea6d71ff096d80779a9
+content-length: 9115
+```
+Timestamp: `2026-07-27T14:33:59Z`. No `Location:` header present — no redirect of any kind.
+`server: GitHub.com` plus the Fastly/Varnish cache headers confirm this is GitHub's own Pages
+infrastructure serving a genuine 404, not a DNS failure, TLS error, or third-party interception.
+
+Attempt 3 (stability confirmation):
+```
+$ curl -sS -o /dev/null -w "%{http_code} %{url_effective}\n" https://YuSabo90002.github.io/typsphinx/
+404 https://YuSabo90002.github.io/typsphinx/
+```
+Timestamp: `2026-07-27T14:34:08Z`
+
+**Observation:** all four attempts (across ~30 seconds) returned `404` with no redirect. The
+result was stable on first observation — no CDN-propagation retry window (Pitfall 2) was
+needed in practice, though the plan's bounded-retry posture was still exercised (multiple
+independent attempts, headers inspected, no `-L`/`-L` cross-check).
+
+**A-02 resolution (this session did NOT perform the owner-manual Settings → Pages action —
+no owner was present):** the site 404s from branch deletion alone. This confirms 32-CONTEXT.md's
+flagged assumption A-02's own stated fallback: *"if branch deletion alone already 404s the site,
+the owner-manual step is a no-op and Task 3's check passes early — harmless either way."* The
+owner-manual Settings → Pages disable (documented above) remains the locked, correct, permanent
+action to take regardless — GitHub's documented product behavior is that Pages can remain
+"enabled" against a missing source, and this observation does not prove otherwise for all time,
+only that *right now* the source-less state already serves 404. The Settings action stays on the
+owner's checklist (REQUIREMENTS.md #7) as defense-in-depth, not as a redundant no-op to skip.
+
+GITHUB.IO 404: CONFIRMED
+
+## No redirect stub was added (owner decision 2026-07-25)
+
+```
+$ test -f CNAME && echo EXISTS || echo ABSENT
+ABSENT
+```
+
+```
+$ git grep -n 'github\.io' -- ':!.planning'
+CHANGELOG.md:393:  - Comprehensive documentation site hosted on GitHub Pages at https://yusabo90002.github.io/typsphinx/
+```
+
+```
+$ git grep -n 'http-equiv' -- ':!.planning'
+(no output)
+```
+
+```
+$ git grep -l 'github\.io' -- ':!.planning' | grep -vc '^CHANGELOG.md$'
+0
+```
+
+**Verdict: PASS.** No `CNAME` file exists at the repository root. The only `github.io` hit
+repo-wide (excluding `.planning/`) is the historical `CHANGELOG.md:393` mention, kept as-is per
+the Phase 24 D-02 precedent. No `http-equiv` meta-refresh pattern exists anywhere. No redirect
+stub, meta-refresh page, CNAME file or forwarding document was added by this phase.
+
+## Handoffs
+
+**To `/gsd-complete-milestone`:**
+
+1. **Re-run `git ls-remote origin` and confirm `refs/heads/gh-pages` is still absent**,
+   immediately before and after the milestone merge. Reason: `main`'s copy of `docs.yml`
+   retains the `peaceiris/actions-gh-pages@v4` deploy step until this milestone merges — any
+   push landing on `main` first (before the merge) re-fires that unmodified workflow and
+   recreates `gh-pages`, silently invalidating this plan's SC#2 proof after the fact. **Dependabot
+   PR #123** (`dependabot/pip/ruff-gte-0.15-and-lt-0.17`) is an open live instance of exactly
+   this condition — it targets `main` and, if merged before this milestone, would re-trigger
+   `docs.yml`'s push-to-main path and recreate the branch. This is the recommended minimum
+   mitigation CONTEXT.md records (the permanent fix was explicitly declined to be scoped by the
+   owner); this phase does not block on PR #123's disposition.
+
+2. **The pending todo
+   `.planning/todos/pending/2026-07-21-move-documentation-hosting-to-read-the-docs.md`** carries
+   `resolves_phase: 32` and is closed by this phase's landing — move it to
+   `.planning/todos/completed/` (or the project's equivalent close mechanism) once this plan's
+   commits merge.
