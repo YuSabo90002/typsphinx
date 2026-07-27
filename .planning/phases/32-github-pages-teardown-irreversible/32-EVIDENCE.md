@@ -201,3 +201,235 @@ Evidence gathered: 2026-07-27. Per D-04, this full gate is valid for teardown **
 calendar day only**. Plans 02 and 03 each re-confirm the four URL statuses at their own
 head before proceeding; if execution crosses a day boundary before the teardown lands, this
 entire plan must be re-run before the teardown continues.
+
+## D-04 re-confirmation before the docs.yml teardown
+
+Plan 01's `GATE VERDICT: GREEN` was gathered 2026-07-27; today is also 2026-07-27, so the
+full-evidence window (same calendar day only, D-04) holds and the fully-detailed gate does
+not need to be re-run. Per D-04's minimal re-confirmation, the four URL statuses are
+re-checked here before any edit to `docs.yml`:
+
+```
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/en/latest/
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/ja/latest/user_guide/builders.html
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/_/downloads/ja/latest/pdf/
+200
+```
+
+All four URLs returned `200`. The teardown in this plan may proceed.
+
+## SC#3 — Upload PDF to Release is byte-unchanged in the milestone diff
+
+Resolved milestone merge-base SHA (verbatim command output):
+
+```
+$ git merge-base main HEAD
+771ec56fa3e9a863ac0bca865476bdc423fbb3e7
+```
+
+This matches the SHA recorded when this plan was written, so no substitution was needed.
+
+Post-edit scoped-diff guard (Pitfall 3) — confirms every `+`/`-` line in `docs.yml`'s diff
+belongs either to the `permissions:` block or to the removed `Deploy to GitHub Pages` step,
+and nothing from `- name: Upload PDF to Release` onward appears:
+
+```
+$ git diff -- .github/workflows/docs.yml
+diff --git a/.github/workflows/docs.yml b/.github/workflows/docs.yml
+index 419596c..e4bbc6b 100644
+--- a/.github/workflows/docs.yml
++++ b/.github/workflows/docs.yml
+@@ -9,8 +9,6 @@ on:
+ 
+ permissions:
+   contents: write
+-  pages: write
+-  id-token: write
+ 
+ jobs:
+   build-docs:
+@@ -49,14 +47,6 @@ jobs:
+           name: documentation-pdf
+           path: docs/_build/pdf/*.pdf
+ 
+-      - name: Deploy to GitHub Pages
+-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+-        uses: peaceiris/actions-gh-pages@v4
+-        with:
+-          github_token: ${{ secrets.GITHUB_TOKEN }}
+-          publish_dir: ./docs/_build/html
+-          cname: false
+-
+       - name: Upload PDF to Release
+         if: startsWith(github.ref, 'refs/tags/v')
+         uses: softprops/action-gh-release@v3
+```
+
+Byte-equality extraction of the `Upload PDF to Release` step block, base vs. working tree:
+
+```
+$ git show 771ec56fa3e9a863ac0bca865476bdc423fbb3e7:.github/workflows/docs.yml > /tmp/scratch/base_docs.yml
+$ sed -n '/- name: Upload PDF to Release/,$p' /tmp/scratch/base_docs.yml > /tmp/scratch/base_release_step.txt
+$ sed -n '/- name: Upload PDF to Release/,$p' .github/workflows/docs.yml > /tmp/scratch/current_release_step.txt
+$ diff /tmp/scratch/base_release_step.txt /tmp/scratch/current_release_step.txt; echo "EXIT:$?"
+EXIT:0
+```
+
+The diff produced no output and exited 0 — the `Upload PDF to Release` step is byte-identical
+between the milestone merge-base and the post-teardown working tree.
+
+Full acceptance-criteria grep sweep against the post-edit `docs.yml`:
+
+```
+$ grep -c 'peaceiris' .github/workflows/docs.yml
+0
+$ grep -c 'pages: write' .github/workflows/docs.yml
+0
+$ grep -c 'id-token: write' .github/workflows/docs.yml
+0
+$ grep -c 'contents: write' .github/workflows/docs.yml
+1
+$ grep -c 'Deploy to GitHub Pages' .github/workflows/docs.yml
+0
+$ grep -c 'Upload PDF to Release' .github/workflows/docs.yml
+1
+$ grep -c 'softprops/action-gh-release@v3' .github/workflows/docs.yml
+1
+$ grep -c 'uv run tox -e docs-pdf' .github/workflows/docs.yml
+1
+$ grep -c 'uv run tox -e docs-html' .github/workflows/docs.yml
+1
+$ grep -c 'actions/upload-artifact@v7' .github/workflows/docs.yml
+2
+```
+
+`.github/workflows/release.yml` untouched across the whole milestone diff so far:
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github/workflows/release.yml
+(no output)
+```
+
+**SC#3 verdict: PASS.** The `Upload PDF to Release` step is proven byte-unchanged
+mechanically, not by inspection, and every other acceptance grep matches.
+
+## D-06 guard tests — recorded red negative control
+
+A guard asserting against a wrong path or a wrong literal passes vacuously forever, so this
+records a proof that `test_docs_workflow_has_no_github_pages_deploy` actually catches the
+thing it forbids. Procedure: back up the current (post-teardown) `.github/workflows/docs.yml`
+to a scratch path outside the repository, overwrite the working-tree file with the milestone
+merge-base's version (`771ec56fa3e9a863ac0bca865476bdc423fbb3e7`, the same SHA resolved
+above), run the guard test expecting a failure, then unconditionally restore from the scratch
+copy via a shell `trap` so restoration runs even if pytest aborts.
+
+```
+$ cp .github/workflows/docs.yml /tmp/scratch/docs.yml.current.bak
+
+$ cat negative_control.sh
+#!/usr/bin/env bash
+set -u
+cd "$WORKTREE_ROOT" || exit 1
+SCRATCH_BAK="/tmp/scratch/docs.yml.current.bak"
+WORKFLOW_PATH=".github/workflows/docs.yml"
+BASE_SHA="771ec56fa3e9a863ac0bca865476bdc423fbb3e7"
+restore() { cp "$SCRATCH_BAK" "$WORKFLOW_PATH"; }
+trap restore EXIT
+git show "${BASE_SHA}:.github/workflows/docs.yml" > "$WORKFLOW_PATH"
+uv run pytest tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+
+$ bash negative_control.sh
+$ uv run pytest tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python
+rootdir: <worktree>
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 1 item
+
+tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy FAILED [100%]
+
+=================================== FAILURES ===================================
+________________ test_docs_workflow_has_no_github_pages_deploy _________________
+
+    def test_docs_workflow_has_no_github_pages_deploy():
+        """CI-04 guard: docs.yml must never regain a GitHub Pages deploy step."""
+        text = DOCS_WORKFLOW_PATH.read_text(encoding="utf-8")
+>       assert "peaceiris/actions-gh-pages" not in text, (
+            "docs.yml must not contain a GitHub Pages deploy step -- "
+            "CI-04 tore this down permanently"
+        )
+E       AssertionError: docs.yml must not contain a GitHub Pages deploy step -- CI-04 tore this down permanently
+E       assert 'peaceiris/actions-gh-pages' not in 'name: Docum...ase: false\n'
+E
+E         'peaceiris/actions-gh-pages' is contained here:
+E           name: Documentation
+E
+E           on:
+E             push:
+E               branches: [main]...
+E
+E         ...Full output truncated (66 lines hidden), use '-vv' to show
+
+tests/test_readthedocs_config.py:146: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+============================== 1 failed in 0.03s ===============================
+EXIT_CODE:1
+```
+
+Post-restore confirmation that the working tree left no residue:
+
+```
+$ git diff --exit-code -- .github/workflows/docs.yml
+EXIT:0
+```
+
+**D-06 negative-control verdict: PASS.** The guard fails against the merge-base workflow
+(exit 1) and passes against the post-teardown workflow; the working tree was fully restored.
+
+## Milestone invariants — fresh repo-wide grep
+
+Four checks recorded verbatim at execution time (invariant #4: never trust a prior list).
+
+### (a) invariant #3 — no `typsphinx/` runtime code change anywhere in the milestone so far
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- typsphinx/
+(no output)
+```
+
+**Verdict: PASS.** Empty — no runtime code touched by this milestone through this phase.
+
+### (b) repo-wide `github.io` grep, excluding `.planning/`
+
+```
+$ grep -rn 'github\.io' --exclude-dir=.planning --exclude-dir=.git --exclude-dir=.venv .
+CHANGELOG.md:393:  - Comprehensive documentation site hosted on GitHub Pages at https://yusabo90002.github.io/typsphinx/
+```
+
+**Verdict: PASS.** Exactly one hit, in `CHANGELOG.md` at line 393 — the historical mention kept
+as-is under the Phase 24 D-02 precedent. No redirect stub exists anywhere in the tree.
+
+### (c) `CHANGELOG.md` untouched by this milestone
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- CHANGELOG.md
+(no output)
+```
+
+**Verdict: PASS.** Empty — the historical github.io mention was not edited.
+
+### (d) `.github/workflows/release.yml` untouched by this milestone
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github/workflows/release.yml
+(no output)
+```
+
+**Verdict: PASS.** Empty — `release.yml`'s independent `id-token: write` for PyPI trusted
+publishing was not collaterally touched by this phase's `docs.yml` permissions reduction.
