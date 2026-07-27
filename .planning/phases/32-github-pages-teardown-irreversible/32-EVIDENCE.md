@@ -316,3 +316,78 @@ $ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github
 
 **SC#3 verdict: PASS.** The `Upload PDF to Release` step is proven byte-unchanged
 mechanically, not by inspection, and every other acceptance grep matches.
+
+## D-06 guard tests — recorded red negative control
+
+A guard asserting against a wrong path or a wrong literal passes vacuously forever, so this
+records a proof that `test_docs_workflow_has_no_github_pages_deploy` actually catches the
+thing it forbids. Procedure: back up the current (post-teardown) `.github/workflows/docs.yml`
+to a scratch path outside the repository, overwrite the working-tree file with the milestone
+merge-base's version (`771ec56fa3e9a863ac0bca865476bdc423fbb3e7`, the same SHA resolved
+above), run the guard test expecting a failure, then unconditionally restore from the scratch
+copy via a shell `trap` so restoration runs even if pytest aborts.
+
+```
+$ cp .github/workflows/docs.yml /tmp/scratch/docs.yml.current.bak
+
+$ cat negative_control.sh
+#!/usr/bin/env bash
+set -u
+cd "$WORKTREE_ROOT" || exit 1
+SCRATCH_BAK="/tmp/scratch/docs.yml.current.bak"
+WORKFLOW_PATH=".github/workflows/docs.yml"
+BASE_SHA="771ec56fa3e9a863ac0bca865476bdc423fbb3e7"
+restore() { cp "$SCRATCH_BAK" "$WORKFLOW_PATH"; }
+trap restore EXIT
+git show "${BASE_SHA}:.github/workflows/docs.yml" > "$WORKFLOW_PATH"
+uv run pytest tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+
+$ bash negative_control.sh
+$ uv run pytest tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python
+rootdir: <worktree>
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 1 item
+
+tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy FAILED [100%]
+
+=================================== FAILURES ===================================
+________________ test_docs_workflow_has_no_github_pages_deploy _________________
+
+    def test_docs_workflow_has_no_github_pages_deploy():
+        """CI-04 guard: docs.yml must never regain a GitHub Pages deploy step."""
+        text = DOCS_WORKFLOW_PATH.read_text(encoding="utf-8")
+>       assert "peaceiris/actions-gh-pages" not in text, (
+            "docs.yml must not contain a GitHub Pages deploy step -- "
+            "CI-04 tore this down permanently"
+        )
+E       AssertionError: docs.yml must not contain a GitHub Pages deploy step -- CI-04 tore this down permanently
+E       assert 'peaceiris/actions-gh-pages' not in 'name: Docum...ase: false\n'
+E
+E         'peaceiris/actions-gh-pages' is contained here:
+E           name: Documentation
+E
+E           on:
+E             push:
+E               branches: [main]...
+E
+E         ...Full output truncated (66 lines hidden), use '-vv' to show
+
+tests/test_readthedocs_config.py:146: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_readthedocs_config.py::test_docs_workflow_has_no_github_pages_deploy
+============================== 1 failed in 0.03s ===============================
+EXIT_CODE:1
+```
+
+Post-restore confirmation that the working tree left no residue:
+
+```
+$ git diff --exit-code -- .github/workflows/docs.yml
+EXIT:0
+```
+
+**D-06 negative-control verdict: PASS.** The guard fails against the merge-base workflow
+(exit 1) and passes against the post-teardown workflow; the working tree was fully restored.

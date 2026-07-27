@@ -140,6 +140,36 @@ def test_build_python_matches_docs_workflow():
     )
 
 
+def test_docs_workflow_has_no_github_pages_deploy():
+    """CI-04 guard: docs.yml must never regain a GitHub Pages deploy step."""
+    text = DOCS_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "peaceiris/actions-gh-pages" not in text, (
+        "docs.yml must not contain a GitHub Pages deploy step -- "
+        "CI-04 tore this down permanently"
+    )
+    assert "pages: write" not in text, (
+        "docs.yml's permissions block must not request pages: write -- "
+        "unused once the peaceiris deploy step is removed"
+    )
+    assert "id-token: write" not in text, (
+        "docs.yml's permissions block must not request id-token: write -- "
+        "release.yml declares its own separate copy for PyPI trusted "
+        "publishing; this assertion is deliberately scoped to docs.yml "
+        "alone rather than a repo-wide grep"
+    )
+    assert "contents: write" in text, (
+        "docs.yml must retain permissions.contents: write -- required by "
+        "the Upload PDF to Release step (softprops/action-gh-release)"
+    )
+
+
+def test_docs_workflow_still_uploads_pdf_to_release():
+    """CI-04 guard: the tag-time Release attachment step must survive the teardown."""
+    text = DOCS_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "softprops/action-gh-release" in text
+    assert "Upload PDF to Release" in text
+
+
 def test_readthedocs_yaml_pdf_override():
     """`.readthedocs.yaml` carries D-06's commit-2 (PDF-enabled) shape.
 
