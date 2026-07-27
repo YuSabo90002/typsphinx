@@ -791,14 +791,14 @@ the post-tag `stable` flip handed off explicitly rather than claimed.
      checklist, not asserted as satisfied. A criterion this phase structurally cannot meet is not
      written as if it could.
 
-**Plans**: 4 plans
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 33-01-PLAN.md — Version bump (SC#1): `pyproject.toml` + `README.md` Status line in one commit, `uv lock` + editable-install metadata resync, `typsphinx.__version__` proven at 0.6.4, both version-sync guard tests green
-- [ ] 33-02-PLAN.md — CHANGELOG (SC#2): curated `## [0.6.4]` entry in five sections (Added/Changed/Removed/Fixed/Verified, no BREAKING label per D-01) plus the tail release/compare link block with the Unreleased compare carried forward
-- [ ] 33-03-PLAN.md — D-05 English-ization: the four top-level `.planning/` documents translated meaning-unchanged, with an enumerated allowlist of glossed technical literals and a fixed glossary for titles that appear in two places
+- [x] 33-01-PLAN.md — Version bump (SC#1): `pyproject.toml` + `README.md` Status line in one commit, `uv lock` + editable-install metadata resync, `typsphinx.__version__` proven at 0.6.4, both version-sync guard tests green
+- [x] 33-02-PLAN.md — CHANGELOG (SC#2): curated `## [0.6.4]` entry in five sections (Added/Changed/Removed/Fixed/Verified, no BREAKING label per D-01) plus the tail release/compare link block with the Unreleased compare carried forward
+- [x] 33-03-PLAN.md — D-05 English-ization: the four top-level `.planning/` documents translated meaning-unchanged, with an enumerated allowlist of glossed technical literals and a fixed glossary for titles that appear in two places
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -862,7 +862,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
-| 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
+| 33. v0.6.4 Release Prep | v0.6.4 | 3/4 | In Progress|  |
 
 ## Backlog
 
