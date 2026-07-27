@@ -176,6 +176,16 @@ None - no external service configuration required.
 - No blockers. `git diff main..HEAD --stat -- typsphinx/` stayed empty, so milestone invariant #3 (no `typsphinx/` runtime code changes) holds through this plan.
 - Plans 33-02/33-03 (CHANGELOG curation, JA->EN translation per D-05) are independent of this plan's file set and can proceed without waiting on this worktree's merge, per the phase's wave structure.
 
+## Self-Check: PASSED
+
+- FOUND: pyproject.toml
+- FOUND: README.md
+- FOUND: uv.lock
+- FOUND: .planning/phases/33-v0-6-4-release-prep/33-01-SUMMARY.md
+- FOUND: fa145ec (Task 1 commit)
+- FOUND: 53108ec (Task 2 commit)
+- FOUND: 04cce08 (SUMMARY.md commit)
+
 ---
 *Phase: 33-v0-6-4-release-prep*
 *Completed: 2026-07-28*
