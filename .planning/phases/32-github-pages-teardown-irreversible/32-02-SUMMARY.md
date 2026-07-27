@@ -163,3 +163,12 @@ No blockers. The reduced `docs.yml` is ready to be exercised by the milestone dr
 ---
 *Phase: 32-github-pages-teardown-irreversible*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/32-github-pages-teardown-irreversible/32-02-SUMMARY.md`
+- FOUND: `.github/workflows/docs.yml`
+- FOUND commit `26b8053` (Task 1)
+- FOUND commit `a71674e` (Task 2)
+- FOUND commit `0e32109` (Task 3)
+- FOUND commit `cf967b8` (SUMMARY.md)
