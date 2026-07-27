@@ -732,7 +732,12 @@ standing gate.
      the milestone diff — its live exercise is honestly deferred to the tag at
      `/gsd-complete-milestone`, since this phase cannot create a tag.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 32-01-PLAN.md — Pre-teardown RTD evidence gate (SC#1): freshly re-take en HTML, ja HTML content-verified, en+ja PDF and root-resolution evidence; snapshot the pre-teardown baseline; emit a GREEN/RED verdict. Zero repository changes.
+- [ ] 32-02-PLAN.md — Remove the Pages deploy step and the two unused permissions from `docs.yml`, prove `Upload PDF to Release` byte-unchanged, add the D-06 guard tests with a recorded red negative control, update INTEGRATIONS.md.
+- [ ] 32-03-PLAN.md — Push to draft PR #124 and observe a fresh green `build-docs` run on the post-teardown head (SC#3); delete `origin/gh-pages` and prove absence via `git ls-remote` (SC#2); hand off the owner-manual Pages disable and observe the github.io 404.
 
 **Owner-manual dependency (no automated criterion possible):** disabling the GitHub Pages site in the
 repository's Settings → Pages. Deleting the `gh-pages` branch removes the source but can leave the Pages
