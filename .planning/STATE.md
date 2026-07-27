@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 33
-current_phase_name: v0.6.4 Release Prep
+current_phase_name: v0-6-4-release-prep
 status: executing
 stopped_at: Phase 33 planned — 4 plans ready to execute
-last_updated: "2026-07-27T20:47:55.044Z"
+last_updated: "2026-07-27T20:51:42.091Z"
 last_activity: 2026-07-28
-last_activity_desc: Phase 33 planned (4 plans / 2 waves)
+last_activity_desc: Phase 33 execution started
 progress:
   total_phases: 6
   completed_phases: 5
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 33 — v0.6.4 Release Prep
+**Current focus:** Phase 33 — v0-6-4-release-prep
 
 ## Current Position
 
-Phase: 33 — v0.6.4 Release Prep
-Plan: Not started
-Status: Ready to execute
+Phase: 33 (v0-6-4-release-prep) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 33
 Progress: [████████▊░] 29/33 plans executed; phases 5/6 complete (29, 30, 30.1, 31, 32)
-Last activity: 2026-07-28 — Phase 33 planned (4 plans / 2 waves), ready to execute
+Last activity: 2026-07-28 — Phase 33 execution started
 
 > **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
 > resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from
