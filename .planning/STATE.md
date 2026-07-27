@@ -6,14 +6,14 @@ current_phase: 31
 current_phase_name: published-url-cutover-repo-wide-link-guard
 status: executing
 stopped_at: Phase 31 planned (5 plans, verification passed)
-last_updated: "2026-07-26T13:47:25.930Z"
-last_activity: 2026-07-26
-last_activity_desc: Phase 31 execution started
+last_updated: "2026-07-27T12:05:22.357Z"
+last_activity: 2026-07-27
+last_activity_desc: Phase 31 execution resumed (wave continue)
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 26
-  completed_plans: 21
+  completed_plans: 25
   percent: 50
 ---
 
@@ -32,7 +32,7 @@ Phase: 31 (published-url-cutover-repo-wide-link-guard) — EXECUTING
 Plan: 1 of 5
 Status: Executing Phase 31
 Progress: [█████░░░░░] 50% (3/6 phases)
-Last activity: 2026-07-26 — Phase 31 execution started
+Last activity: 2026-07-27 — Phase 31 execution resumed (wave continue)
 
 > **Phase ordering note:** Phase 30 executes AFTER Phase 30.1 (ROADMAP `depends_on`; the inserted
 > 30.1 delivered the translations repository that Phase 30's `docs/locale/ja/` deletion relies on).

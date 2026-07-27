@@ -673,7 +673,7 @@ rewriting to a not-yet-green project trades one broken-link class for another) a
      GitHub repository can reach the documentation from the repository's own About → Website field —
      which resolves to the RTD root over real HTTP.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -688,7 +688,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 31-05-PLAN.md — Observe `links.yml` green, take the consolidated fresh-grep + real-HTTP sweep, draft the #119 reply and record handoffs (DOC-09, DOC-10, CI-05)
+- [x] 31-05-PLAN.md — Observe `links.yml` green, take the consolidated fresh-grep + real-HTTP sweep, draft the #119 reply and record handoffs (DOC-09, DOC-10, CI-05)
 
 Waves: 1 → {01, 02} · 2 → {03, 04} · 3 → {05}. The wave split encodes D-09's structurally required
 ordering: the `links.yml` commit and its observed red run must precede the URL rewrite.
@@ -836,7 +836,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | In Progress|  |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
-| 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 4/5 | In Progress|  |
+| 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | In Progress|  |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 0/TBD | Not started | - |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
 
@@ -867,6 +867,7 @@ between the preceding `#text(...)` call and the `#mi(...)` call, so Typst raises
 error. Likely a translator-level emission issue (`translator.py` math/Text visit ordering).
 
 Plans:
+
 - [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
