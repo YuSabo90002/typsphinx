@@ -732,7 +732,7 @@ standing gate.
      the milestone diff — its live exercise is honestly deferred to the tag at
      `/gsd-complete-milestone`, since this phase cannot create a tag.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -745,7 +745,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 32-03-PLAN.md — Push to draft PR #124 and observe a fresh green `build-docs` run on the post-teardown head (SC#3); delete `origin/gh-pages` and prove absence via `git ls-remote` (SC#2); hand off the owner-manual Pages disable and observe the github.io 404.
+- [x] 32-03-PLAN.md — Push to draft PR #124 and observe a fresh green `build-docs` run on the post-teardown head (SC#3); delete `origin/gh-pages` and prove absence via `git ls-remote` (SC#2); hand off the owner-manual Pages disable and observe the github.io 404.
 
 **Owner-manual dependency (no automated criterion possible):** disabling the GitHub Pages site in the
 repository's Settings → Pages. Deleting the `gh-pages` branch removes the source but can leave the Pages
@@ -850,7 +850,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
-| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 2/3 | In Progress|  |
+| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | In Progress|  |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
 
 ## Backlog
