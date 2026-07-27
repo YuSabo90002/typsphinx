@@ -62,7 +62,7 @@ build sandbox).
 
 ### CI & Hosting Teardown (CI)
 
-- [ ] **CI-04**: GitHub Pages no longer hosts or publishes typsphinx documentation, while the
+- [x] **CI-04**: GitHub Pages no longer hosts or publishes typsphinx documentation, while the
       `typstpdf` regression gate and the tag-time PDF Release attachment keep working.
 
 - [x] **CI-05**: A broken published link anywhere in the repository — including files Sphinx never
@@ -215,7 +215,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | DOC-09 | Phase 31 | Complete |
 | DOC-10 | Phase 31 | Complete |
 | CI-05 | Phase 31 | Complete |
-| CI-04 | Phase 32 | Pending |
+| CI-04 | Phase 32 | Complete |
 | REL-02 | Phase 33 | Pending |
 
 **Coverage:**

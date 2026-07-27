@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 32
-current_phase_name: github-pages-teardown-irreversible
-status: executing
-stopped_at: Phase 32 planned (3 plans, 3 waves) — ready to execute
-last_updated: "2026-07-27T14:06:10.038Z"
-last_activity: 2026-07-27
-last_activity_desc: Phase 32 execution started
+current_phase: 33
+current_phase_name: v0.6.4 Release Prep
+status: planning
+stopped_at: Phase 30 complete, ready to plan Phase 32
+last_updated: "2026-07-27T19:50:08.864Z"
+last_activity: 2026-07-28
+last_activity_desc: Phase 32 complete, transitioned to Phase 33
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 29
-  completed_plans: 26
-  percent: 67
+  completed_plans: 29
+  percent: 83
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
 
 ## Current Position
 
-Phase: 32 (github-pages-teardown-irreversible) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 32
+Phase: 33 — v0.6.4 Release Prep
+Plan: Not started
+Status: Ready to plan
 Progress: [██████▋░░░] 26/29 plans executed; phases 4/6 complete (29, 30, 30.1, 31)
-Last activity: 2026-07-27 — Phase 32 execution started
+Last activity: 2026-07-28 — Phase 32 complete, transitioned to Phase 33
 
 > **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
 > resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from

@@ -310,7 +310,7 @@ publish (tag `v0.6.4` → `release.yml` → PyPI + GitHub Release) executes at `
 - [x] **Phase 30: Hand-Rolled Multi-Language Machinery & Orphan Removal** - One deletion round removing the multilang machinery (switcher, styling, `conf.py` wiring, `build_multilang.py`, every task-runner target that drove it) + the orphan doc pair with their collateral tests, on a green tree with `docs.yml` still internally consistent (expect a manual merge — deletion guard) (completed 2026-07-27)
 - [x] **Phase 30.1: Translations Repository + Japanese RTD Site (INSERTED)** - `/ja/latest/` serving real Japanese prose behind RTD's own flyout, built from a separate `typsphinx-doc-translations` repository registered as an RTD translation project, with the submodule pin auto-advanced and the Japanese PDF proven glyph-correct (I18N-03, promoted to v1) (completed 2026-07-26)
 - [x] **Phase 31: Published-URL Cutover + Repo-Wide Link Guard** - Every published documentation URL repointed at RTD and fetched over real HTTP; an advisory repo-wide link check installed with a recorded pre-rewrite negative control; Issue #119 closed and the About → Website field set (completed 2026-07-27)
-- [ ] **Phase 32: GitHub Pages Teardown (IRREVERSIBLE)** - Behind a freshly re-taken RTD-is-serving gate: the `actions-gh-pages` deploy step and the `gh-pages` branch deleted, no redirect stubs, with `tox -e docs-pdf` and the tag-time PDF Release attachment intact
+- [x] **Phase 32: GitHub Pages Teardown (IRREVERSIBLE)** - Behind a freshly re-taken RTD-is-serving gate: the `actions-gh-pages` deploy step and the `gh-pages` branch deleted, no redirect stubs, with `tox -e docs-pdf` and the tag-time PDF Release attachment intact (completed 2026-07-28)
 - [ ] **Phase 33: v0.6.4 Release Prep** - Prep-only: bump 0.6.4 + `uv.lock` + README Status + `CHANGELOG` (incl. the tail link block), assert the milestone invariants over the full diff, hand the post-tag `stable` flip to the owner; publish at `/gsd-complete-milestone`
 
 ### Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision
@@ -850,7 +850,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
-| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | In Progress|  |
+| 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 0/TBD | Not started | - |
 
 ## Backlog
