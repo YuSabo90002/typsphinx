@@ -7,7 +7,7 @@
 - ✅ **v0.6.0 — real-world robustness** — Phases 11–15 (shipped 2026-07-13) → [archive](milestones/v0.6.0-ROADMAP.md)
 - ✅ **v0.6.1 — rendering fidelity** — Phases 16–18 (shipped 2026-07-19) → [archive](milestones/v0.6.1-ROADMAP.md)
 - ✅ **v0.6.2 — rendering fidelity round 2** — Phases 19–23 (+22.1–22.4) (shipped 2026-07-23) → [archive](milestones/v0.6.2-ROADMAP.md)
-- ✅ **v0.6.3 — config & docs 実測整合 + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
+- ✅ **v0.6.3 — config & docs measured fidelity + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
 - 🚧 **v0.6.4 — Read the Docs migration** — Phases 29–33 (in progress, scoped 2026-07-25)
 
 **Active milestone: v0.6.4 — Read the Docs migration.** 13 v1 requirements across 6 phases (29–33,
@@ -138,13 +138,13 @@ Full phase detail, success criteria, decisions, and tech-debt notes are preserve
 - [x] Phase 22.1: typstpdf Compile-Root Alignment for Nested Masters (INSERTED) (4/4 plans) — completed 2026-07-22
 - [x] Phase 22.2: Dead Config-Value Sweep (INSERTED) (6/6 plans) — completed 2026-07-22
 - [x] Phase 22.3: typstpdf Builder Warning Hardening (INSERTED) (3/3 plans) — completed 2026-07-22
-- [x] Phase 22.4: README 記述の実測乖離解消 (INSERTED) (3/3 plans) — completed 2026-07-23
+- [x] Phase 22.4: README Claim-vs-Measured-Reality Drift Resolution (INSERTED) (3/3 plans) — completed 2026-07-23
 - [x] Phase 23: v0.6.2 Release Prep + Regression-Gate Close (3/3 plans) — completed 2026-07-23
 
 </details>
 
 <details>
-<summary>✅ v0.6.3 — config & docs 実測整合 + captioned tables (Phases 24–28, +27.1) — SHIPPED 2026-07-25</summary>
+<summary>✅ v0.6.3 — config & docs measured fidelity + captioned tables (Phases 24–28, +27.1) — SHIPPED 2026-07-25</summary>
 
 Closed the gap between what the docs promised and what the build actually did. Three tracks: the
 dead-config sweep round 2 — deleted the inert `typst_toctree_defaults` (CONF-05) and implemented the
@@ -152,11 +152,11 @@ dead-config sweep round 2 — deleted the inert `typst_toctree_defaults` (CONF-0
 unknown key instead of silently dropping it (CONF-04); the reimplementation of external PR#98 so a
 captioned `.. table::` renders as `figure(table(...), caption, kind: table)` with native "Table N"
 numbering and resolvable `:numref:`/`:ref:` (TBL-01/TBL-02), fixing a stale-cell-buffer bug that had
-been silently eating the second table's caption; and docs 実測整合 — the unreachable orphan
+been silently eating the second table's caption; and docs measured fidelity — the unreachable orphan
 `docs/configuration.rst` deleted and every phantom `typst_*` name purged so config is documented in one
 canonical place (DOC-06/DOC-07). An inserted Phase 27.1 wired Typst's typesetting `lang` to Sphinx's
-own `language` conf (CONF-07), so a `language = "ja"` project's captioned tables read 「表 N」 rather
-than "Table N" — the one change that amended the milestone's `base.typ`-byte-unchanged invariant, and
+own `language` conf (CONF-07), so a `language = "ja"` project's captioned tables read 「表 N」
+("Table N" in Japanese) rather than "Table N" — the one change that amended the milestone's `base.typ`-byte-unchanged invariant, and
 only for the two lines that add the `lang` parameter. Phase 28 (prep-only) bumped the version, curated
 the CHANGELOG, and closed on the full-corpus regression gate. Full phase detail, success criteria,
 decisions, and the GATE-01 evidence are preserved in
@@ -165,8 +165,8 @@ decisions, and the GATE-01 evidence are preserved in
 - [x] Phase 24: Delete `typst_toctree_defaults` (1/1 plan) — completed 2026-07-23
 - [x] Phase 25: Captioned Table Figure Wrap + Cross-References (2/2 plans) — completed 2026-07-24
 - [x] Phase 26: `typst_elements` papersize/fontsize Pass-Through (2/2 plans) — completed 2026-07-24
-- [x] Phase 27: Docs 実測整合 — Orphan Delete + Phantom Names (1/1 plan) — completed 2026-07-24
-- [x] Phase 27.1: Typst 組版 lang の Sphinx `language` 連動 (INSERTED) (3/3 plans) — completed 2026-07-25
+- [x] Phase 27: Docs Measured Fidelity — Orphan Delete + Phantom Names (1/1 plan) — completed 2026-07-24
+- [x] Phase 27.1: Typst Typesetting lang Follows Sphinx `language` (INSERTED) (3/3 plans) — completed 2026-07-25
 - [x] Phase 28: v0.6.3 Release Prep + Regression-Gate Close (3/3 plans) — completed 2026-07-25
 
 **Closed at milestone close (not a phase):** the bundled `examples/advanced` sample was found
@@ -849,13 +849,13 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 22.1 typstpdf Compile-Root Alignment (INSERTED) | v0.6.2 | 4/4 | Complete | 2026-07-22 |
 | 22.2 Dead Config-Value Sweep (INSERTED) | v0.6.2 | 6/6 | Complete | 2026-07-22 |
 | 22.3 typstpdf Builder Warning Hardening (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-22 |
-| 22.4 README 記述の実測乖離解消 (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
+| 22.4 README Claim-vs-Measured-Reality Drift Resolution (INSERTED) | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 23. v0.6.2 Release Prep + Regression-Gate Close | v0.6.2 | 3/3 | Complete | 2026-07-23 |
 | 24. Delete `typst_toctree_defaults` | v0.6.3 | 1/1 | Complete    | 2026-07-23 |
 | 25. Captioned Table Figure Wrap + Cross-References | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
 | 26. `typst_elements` papersize/fontsize Pass-Through | v0.6.3 | 2/2 | Complete    | 2026-07-24 |
-| 27. Docs 実測整合 — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
-| 27.1 Typst 組版 lang の Sphinx `language` 連動 (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
+| 27. Docs Measured Fidelity — Orphan Delete + Phantom Names | v0.6.3 | 1/1 | Complete    | 2026-07-24 |
+| 27.1 Typst Typesetting lang Follows Sphinx `language` (INSERTED) | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 28. v0.6.3 Release Prep + Regression-Gate Close | v0.6.3 | 3/3 | Complete    | 2026-07-25 |
 | 29. RTD Build Establishment (English Parent) + PDF Path Decision | v0.6.4 | 6/6 | Complete    | 2026-07-26 |
 | 30. Hand-Rolled Multi-Language Machinery & Orphan Removal | v0.6.4 | 4/4 | Complete    | 2026-07-27 |

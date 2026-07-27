@@ -1,6 +1,6 @@
 # Milestones: typsphinx
 
-## v0.6.3 config & docs 実測整合 + captioned tables (Shipped: 2026-07-25)
+## v0.6.3 config & docs measured fidelity + captioned tables (Shipped: 2026-07-25)
 
 **Phases completed:** 6 phases, 12 plans, 28 tasks
 
