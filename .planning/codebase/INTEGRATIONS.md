@@ -92,9 +92,11 @@ documented false-positive class that fires on phrasing Read the Docs as an API i
 - GitHub Actions (`.github/workflows/`), five workflow files:
   - `ci.yml` — Test matrix (py312/py313 × ubuntu/windows/macos), lint, type check, coverage,
     package build, and a basic/advanced example-build integration check.
-  - `docs.yml` — Builds HTML (furo) and PDF (`typstpdf`) documentation, uploads both as artifacts,
-    **deploys HTML to GitHub Pages** on pushes to `main` (still present as of this writing; its
-    removal is Phase 32's work, not yet done), and attaches the PDF to tagged releases.
+  - `docs.yml` — Builds HTML (furo) and PDF (`typstpdf`) documentation via `uv run tox -e
+    docs-html` / `uv run tox -e docs-pdf`, uploads both as artifacts, and attaches the PDF to
+    tagged releases via `softprops/action-gh-release@v3`. Documentation publishing is Read the
+    Docs' own git-integration build (see Hosting above); this workflow carries no publish path
+    of its own.
   - `drift.yml` — Weekly dependency resolution check (`uv lock --upgrade`), exercises the
     freshly-resolved lock via `tox -e cov,docs-pdf`, files/comments a deduplicated GitHub issue on
     breakage.
@@ -208,7 +210,6 @@ Configured in `docs/source/conf.py` for documentation cross-references:
 - `actions/upload-artifact@v7` / `actions/download-artifact@v8` - CI artifact storage
 - `codecov/codecov-action@v5` - Upload coverage reports
 - `lycheeverse/lychee-action@v2` - Repo-wide link check (links.yml, CI-only per D-08; never run locally)
-- `peaceiris/actions-gh-pages@v4` - Deploy built HTML to GitHub Pages (docs.yml; scheduled for removal in Phase 32)
 - `pypa/gh-action-pypi-publish@release/v1` - Publish to PyPI
 - `softprops/action-gh-release@v3` - Create GitHub Release
 

@@ -391,3 +391,45 @@ EXIT:0
 
 **D-06 negative-control verdict: PASS.** The guard fails against the merge-base workflow
 (exit 1) and passes against the post-teardown workflow; the working tree was fully restored.
+
+## Milestone invariants — fresh repo-wide grep
+
+Four checks recorded verbatim at execution time (invariant #4: never trust a prior list).
+
+### (a) invariant #3 — no `typsphinx/` runtime code change anywhere in the milestone so far
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- typsphinx/
+(no output)
+```
+
+**Verdict: PASS.** Empty — no runtime code touched by this milestone through this phase.
+
+### (b) repo-wide `github.io` grep, excluding `.planning/`
+
+```
+$ grep -rn 'github\.io' --exclude-dir=.planning --exclude-dir=.git --exclude-dir=.venv .
+CHANGELOG.md:393:  - Comprehensive documentation site hosted on GitHub Pages at https://yusabo90002.github.io/typsphinx/
+```
+
+**Verdict: PASS.** Exactly one hit, in `CHANGELOG.md` at line 393 — the historical mention kept
+as-is under the Phase 24 D-02 precedent. No redirect stub exists anywhere in the tree.
+
+### (c) `CHANGELOG.md` untouched by this milestone
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- CHANGELOG.md
+(no output)
+```
+
+**Verdict: PASS.** Empty — the historical github.io mention was not edited.
+
+### (d) `.github/workflows/release.yml` untouched by this milestone
+
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github/workflows/release.yml
+(no output)
+```
+
+**Verdict: PASS.** Empty — `release.yml`'s independent `id-token: write` for PyPI trusted
+publishing was not collaterally touched by this phase's `docs.yml` permissions reduction.
