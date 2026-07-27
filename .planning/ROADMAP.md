@@ -846,7 +846,7 @@ Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-**The backlog is currently empty.** New items land here as `999.x` entries. Three pending todos were
+New items land here as `999.x` entries. Three pending todos were
 **promoted into v0.6.4** (Phases 29–33): `move-documentation-hosting-to-read-the-docs`,
 `github-io-doc-links-404-missing-en-prefix`, and `docs-usage-installation-orphan-class`.
 `add-sphinx-linkcheck-ci-job` stays **open and deferred** — sphinx linkcheck is out of v0.6.4 scope as
@@ -855,6 +855,19 @@ links actually live); CI-05's repo-wide real-HTTP check covers that class instea
 follow-up work stays in `.planning/todos/pending/` — citation-node support, non-str-docname TypeError
 hardening, typing-import modernization, and `derive_typst_lang()` warning-block duplication — see also
 STATE.md Deferred Items.
+
+### Phase 999.1: Inline math after text — missing separator before `#mi()` causes Typst error (BACKLOG)
+
+**Goal:** [Captured for future planning]
+**Requirements:** TBD
+**Plans:** 0 plans
+
+When inline math immediately follows text, the emitted Typst has no semicolon or newline
+between the preceding `#text(...)` call and the `#mi(...)` call, so Typst raises a compile
+error. Likely a translator-level emission issue (`translator.py` math/Text visit ordering).
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25). v0.6.4 scoped 2026-07-25 (Phases 29–33). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
