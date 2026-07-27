@@ -3,7 +3,7 @@ status: partial
 phase: 30-japanese-rtd-site-hand-rolled-machinery-orphan-removal
 source: [30-VERIFICATION.md]
 started: 2026-07-26T12:10:00Z
-updated: 2026-07-26T12:50:00Z
+updated: 2026-07-27T00:30:00Z
 ---
 
 ## Current Test
@@ -17,7 +17,7 @@ updated: 2026-07-26T12:50:00Z
 expected: On the milestone PR against `main`, the `build-docs` job completes green; the `Build HTML documentation` step runs `uv run tox -e docs-html`; the `documentation-html` artifact uploads from `docs/_build/html`. (Structurally unobservable inside the phase: `docs.yml` has no `workflow_dispatch` and triggers only on push to `main`, a `v*` tag, or a PR targeting `main` — deferred by design, recorded as `backstop` in 30-01/30-04 plans and 30-EVIDENCE.md.)
 result: blocked
 blocked_by: other
-reason: "blocked - PR まで保留 (milestone PR not yet opened; docs.yml cannot fire until then)"
+reason: "blocked - PR まで保留 (milestone PR not yet opened; docs.yml cannot fire until then). Re-checked 2026-07-27: still no milestone PR; latest docs.yml runs are main-based dependabot branches only — still blocked."
 
 ### 2. Live RTD /en/latest/ drops the switcher markup
 
