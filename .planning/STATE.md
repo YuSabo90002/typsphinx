@@ -5,8 +5,8 @@ milestone_name: Read the Docs migration
 current_phase: 33
 current_phase_name: v0.6.4 Release Prep
 status: planning
-stopped_at: Phase 30 complete, ready to plan Phase 32
-last_updated: "2026-07-27T19:50:08.864Z"
+stopped_at: Phase 33 context gathered
+last_updated: "2026-07-27T20:12:28.716Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 32 complete, transitioned to Phase 33
 progress:
@@ -305,10 +305,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/33-v0-6-4-release-prep/33-CONTEXT.md
 
-Last session: 2026-07-27 (Phase 30 UAT completed 3/3; security verified; transitioned)
-Stopped at: Phase 30 complete, ready to plan Phase 32
+Last session: 2026-07-27T20:12:28.709Z
+Stopped at: Phase 33 context gathered
 Resume: `/gsd-plan-phase 32` — Phase 32 context is already gathered (`32-CONTEXT.md`).
 
 ## Operator Next Steps
