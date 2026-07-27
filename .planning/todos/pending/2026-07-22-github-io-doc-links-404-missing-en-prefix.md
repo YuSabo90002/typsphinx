@@ -3,6 +3,19 @@ created: 2026-07-22T23:55:07+09:00
 title: README の github.io ドキュメントリンク 7 本が 404（`/en/` プレフィックス欠落）
 area: docs
 resolves_phase: 31
+status: resolved
+resolved: 2026-07-26
+resolved_by: "Phase 31 (published-url-cutover-repo-wide-link-guard), Plan 03, commit bd80fb8 (feat: Rewrite every documentation URL in README.md)"
+resolved_note: >-
+  Superseded by option (B)'s RTD migration rather than the interim /en/
+  prefix fix: all 7 deep links (plus the top-level links and pyproject.toml)
+  were rewritten to https://typsphinx.readthedocs.io/en/latest/... — the
+  404s no longer exist because the retired github.io host is no longer
+  referenced anywhere in README.md/pyproject.toml (verified by fresh
+  repo-wide grep, 31-EVIDENCE.md Task 2, 2026-07-27). Physical move of this
+  file into .planning/todos/completed/ is deferred to /gsd-complete-milestone
+  (worktree.cleanup-wave blocks any branch containing a deletion, and a
+  git mv here would register as one — see 31-05-SUMMARY.md ## Handoffs).
 files:
   - README.md:278-284 (Documentation 節の github.io サブページ直リンク 7 本 — Installation Guide / Quick Start / User Guide / Configuration Reference / Examples / API Reference / Contributing Guide。実測 404、`/en/` 追加で 200)
   - README.md:8,12,274 (トップページへのリンク3箇所 — `.../typsphinx/` はルート直下の JS リダイレクトページを指すため 200 で動作。修正対象外)
@@ -61,3 +74,20 @@ RTD 移行時に再度 URL を全面書き換えることになるため、着�
 なるため。外部ユーザー put101 の #119（[BUG] website seems down）が本件の顕在化契機。#119 には
 将来形で修正を約束する返信を投稿済み。リポジトリ About の Website フィールド（現在 null）設定も
 同様に移行時まで見送り。
+
+## 決着（2026-07-26、Phase 31 Plan 03）
+
+**(B) の RTD 移行で解決済み。** README.md の 7 本の深い直リンクすべてを
+`https://typsphinx.readthedocs.io/en/latest/...` へ書き換え（commit `bd80fb8`）、加えて
+トップレベルリンク・バッジ・`pyproject.toml` の `Documentation` フィールドも同じコミット枠
+（Plan 03 の3タスク）で Read the Docs へ統一した。暫定の `/en/` プレフィックス追加（選択肢 A）
+は採らず、当初のオーナー判断どおり移行と同時の一括張り替えとなった。
+
+実測（Phase 31 Plan 05、2026-07-27）: `grep -rl "github\.io" --exclude-dir=.git
+--exclude-dir=.planning .` は `CHANGELOG.md` のみを返し、この todo が指していた
+README.md 側の 404 は repo-wide grep でゼロ件と確認済み（`31-EVIDENCE.md` Task 2 参照）。
+リグレッションガードは `tests/test_no_stale_github_io_links.py`（Plan 03）。
+
+このファイルの `.planning/todos/completed/` への物理移動は `/gsd-complete-milestone` まで
+保留 — `worktree.cleanup-wave` は削除を含むブランチを常にブロックし、`git mv` は削除として
+扱われるため（`31-05-SUMMARY.md` `## Handoffs` 参照）。

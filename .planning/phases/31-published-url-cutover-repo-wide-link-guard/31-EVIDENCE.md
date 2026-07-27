@@ -221,7 +221,377 @@ For traceability, the three commits added and removed during this evidence-gathe
 
 ---
 
-## Post-rewrite green run (reserved for Plan 05)
+## Post-rewrite green run (Plan 05)
 
-*(Empty — Plan 05 appends the post-DOC-09-rewrite green-run observation here once the
-README/pyproject.toml URLs have been cut over to Read the Docs.)*
+**This is the D-09 positive half of the evidence pair.** Wave 2 (Plans 03/04) rewrote every
+retired-host URL to Read the Docs; this section records the Link Check run against that
+rewritten tree, under the same `links.yml` settings modulo one documented tuning iteration
+(below), so the difference between this run and the negative control above is attributable to
+the rewrite and to nothing else.
+
+### The runs (two pushes, one tuning iteration)
+
+**Iteration 1 — unchanged settings, first push of this plan:**
+
+- **Run URL:** https://github.com/YuSabo90002/typsphinx/actions/runs/30264672521
+- **Run id:** `30264672521`
+- **Conclusion:** `failure`
+- **Evaluated commit SHA:** `79eca1cbb503264ebcf2bec4582cc2c60ef89e0d`
+  (branch `worktree-agent-ad728f7d42898a802`, pushed via `git push -u origin HEAD` per D-08)
+- **Result:** 1 error — `https://claude.ai/code` (README.md:309:18) returned `403 Forbidden`.
+  This is the same pre-existing, unrelated badge-link finding the negative-control run above
+  already flagged (there: README.md:307:18, identical URL, identical 403) — **not** one of the
+  7 milestone-motivating deep links, and not introduced by this plan. Verified locally
+  (D-08 permits `curl` locally) that the URL is genuinely alive and the 403 is a bot-blocking
+  false positive, not a dead link:
+
+  ```
+  $ curl -s -o /dev/null -w "plain: %{http_code}\n" -L --max-time 20 "https://claude.ai/code"
+  plain: 403
+  $ curl -s -o /dev/null -w "with-UA: %{http_code}\n" -L --max-time 20 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36" "https://claude.ai/code"
+  with-UA: 200
+  ```
+
+  Per the plan's triage rule, a host that is provably alive but blocks the checker's
+  request shape is the sanctioned "tuned away inside D-06's lenient posture" case (the
+  `--accept` set is explicitly named as a tunable knob), not a "genuinely dead link" requiring
+  a source fix. Tuned by widening `--accept` from `100..=103,200..=299,429` to
+  `100..=103,200..=299,403,429` in `.github/workflows/links.yml`, committed
+  (`829a0b5` — `chore(31-05): accept 403 in links.yml for claude.ai bot-blocking false
+  positive`) with the rationale recorded both in the commit message and as a comment in the
+  workflow file itself, and re-pushed.
+
+**Iteration 2 — after the `--accept` tuning — the recorded green run:**
+
+- **Run URL:** https://github.com/YuSabo90002/typsphinx/actions/runs/30264757017
+- **Run id:** `30264757017`
+- **Conclusion:** `success`
+- **Evaluated commit SHA:** `829a0b540bbbb4256f3a36eb5a76cd941a13817b`
+  (branch `worktree-agent-ad728f7d42898a802`, pushed via `git push -u origin HEAD` per D-08)
+- **Created:** 2026-07-27T12:09:32Z — **Updated (completed):** 2026-07-27T12:09:40Z
+
+### Lychee summary counts (verbatim from the job log, iteration 2 / green run)
+
+```
+| Status         | Count |
+|----------------|-------|
+| 🔍 Total       | 93    |
+| 🔗 Unique      | 51    |
+| ✅ Successful  | 84    |
+| ⏳ Timeouts    | 0     |
+| 🔀 Redirected  | 20    |
+| 👻 Excluded    | 9     |
+| ❓ Unknown     | 0     |
+| 🚫 Errors      | 0     |
+| ⛔ Unsupported | 0     |
+```
+
+`Total (93) = Excluded (9) + Successful (84)` — arithmetically consistent, 0 errors.
+
+### Then/now side-by-side against the negative control
+
+| Metric | Negative control (before, run `30205112477`) | Green run (after, run `30264757017`) |
+|---|---|---|
+| Total links | 92 | 93 |
+| Unique links | 53 | 51 |
+| Successful | 75 | 84 |
+| Errors | 8 (7 retired-host deep links + 1 unrelated `claude.ai/code` 403) | 0 |
+| Excluded | 9 | 9 |
+| Redirected | 16 | 20 |
+
+Total (92 -> 93) is the same order of magnitude — no scan-surface collapse. The +1 total and
+the redirect-count increase from 16 to 20 are consistent with the rewrite itself: the old
+`github.io` deep links resolved directly (404, not a redirect), while the new
+`https://typsphinx.readthedocs.io/` root URLs each redirect once to `/en/latest/` (visible
+above under "Redirects in ./README.md", "./pyproject.toml", and the two `examples/*` READMEs
+that also reference the RTD root) — more URLs now redirect rather than dying outright, which
+is exactly the expected shape of "the same links now resolve." The Unique count dropping
+(53 -> 51) reflects the URL consolidation from the rewrite (multiple github.io deep links
+sharing fewer distinct RTD hosts/roots after D-11's version-less top-level convention).
+
+**Specific URLs that moved from failing to passing:** all 7 of the negative control's
+retired-host deep links —
+`https://yusabo90002.github.io/typsphinx/{installation.html,quickstart.html,user_guide/,
+user_guide/configuration.html,examples/,api/,contributing.html}` — no longer appear anywhere
+in the tree (confirmed independently by Task 2's repo-wide grep below), so lychee has nothing
+to check at those URLs anymore; the tree's *replacement* RTD URLs at the same README lines all
+appear in this run's Redirects section (never Errors), i.e. resolving with a 302 to
+`/en/latest/`. The 8th negative-control error, `https://claude.ai/code` (403), is unchanged in
+kind (still 403 to lychee) but is now within the tuned `--accept` set (see above) rather than
+having been fixed at the source — it is unrelated to DOC-09's scope and was never one of the 7
+motivating links.
+
+### Did `links.yml` change between the two runs, and does that change risk masking a real failure?
+
+**Yes, one change, fully recorded above:** `--accept` widened to include `403`, applied and
+observed via the sanctioned push-observe loop (iteration 1 above), motivated by a single named
+URL (`https://claude.ai/code`) that is unrelated to this milestone's scope and independently
+verified alive via a browser-UA `curl`. This cannot mask a real failure because:
+
+- It targets exactly one already-identified, already-corroborated (present verbatim in the
+  Plan 01 negative control too) false positive — it does not widen path exclusions
+  (`--exclude-path` count is still 3, unchanged) and does not add a URL-pattern exclusion
+  (`grep -oE '[-]-exclude[a-z-]*' | grep -cx -- '--exclude'` is still `0`).
+- The 7 retired-host deep links this milestone exists to catch return `404`, not `403` — they
+  are unaffected by this `--accept` addition and would still fail the job if they were still
+  present (confirmed structurally: they are not present in the rewritten tree at all, per
+  Task 2's grep below, so this is not a hypothetical).
+- `--scheme` restriction (`grep -c 'scheme'` -> `2`) is untouched, so D-07 (HTTP(S)-only) still
+  holds.
+- No `continue-on-error` was added (`grep -v '^\s*#' .github/workflows/links.yml | grep -c
+  'continue-on-error'` -> `0`).
+
+### Structural re-confirmation (the same four facts re-checked on the green run)
+
+1. **The lychee step ran to completion, not an argument error.** The log ends in a real
+   `# Summary` markdown table (Total/Errors/etc.) and a `##[notice]Summary report available
+   at: ...` line, with no usage/help text — the same shape as the negative control.
+2. **`pyproject.toml` was among the scanned files.** The Redirects section includes
+   `### Redirects in ./pyproject.toml` with its one entry
+   (`https://typsphinx.readthedocs.io/` -> 302 -> `/en/latest/`) — direct proof it was parsed
+   and its one link checked (not silently skipped), corroborating the Plan 01
+   `--dump-inputs` diagnostic finding without needing to repeat that diagnostic.
+3. **No `.planning/`, `CHANGELOG.md`, or `tests/fixtures/` file was scanned.** The only
+   `[EXCLUDED]` lines in the green run's log (verbatim, 9 total matching the summary's Excluded
+   count) are: `docs/configuration.rst` (relative path, at 262:5), 5 `mailto:` addresses, the
+   relative `docs/source/user_guide/configuration.rst` reference (at 201:78), `LICENSE` (at
+   300:19, relative path), and `CHANGELOG.md` itself (at 313:5, relative path) — identical set
+   to the negative control's exclusions, confirming the exclusion boundary did not shift.
+4. **No relative/local path appears in the checked-link set — D-07 held.** Every entry in the
+   green run's Redirects section carries an `http`/`https` scheme; the `[EXCLUDED]` lines are
+   the only place a `file://` or `mailto:` URI appears (pre-filtered, not checked).
+
+### Branch protection (re-confirmed at Plan 05 execution time)
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection --jq '.required_status_checks.contexts'
+["Test Python 3.12 on ubuntu-latest","Lint and Format Check","Type Check","Code Coverage","Build Package","Test Python 3.13 on ubuntu-latest"]
+```
+
+No entry containing `link` or `Link Check` — the job remains non-required, as D-04 requires.
+
+### Conclusion
+
+The red/green pair is complete: the negative control (run `30205112477`, before the rewrite)
+flagged all 7 retired-host deep links plus one unrelated pre-existing badge-link 403; the green
+run (run `30264757017`, after the rewrite) shows 0 errors, with the same 7 deep links absent
+from the tree entirely (not merely passing) and the one unrelated finding disposed of via a
+narrowly-scoped, explicitly-justified `--accept` tuning that cannot mask a real failure. Both
+runs used the same scan surface (`pyproject.toml` scanned; no `.planning/`/`CHANGELOG.md`/
+`tests/fixtures/` scanned; HTTP(S)-only), and the total-link-count order of magnitude is
+unchanged (92 -> 93). The difference between red and green is attributable to the DOC-09 URL
+rewrite and to nothing else.
+
+### Update — the `--accept 403` tuning was superseded by a source fix in Task 2
+
+Task 2's consolidated real-HTTP sweep (below) re-checked `https://claude.ai/code` with plain
+`curl` (no browser UA) as part of its own instrument, found it non-conforming to the task's
+"every URL must return 200" bar, and — per the task's own triage rule ("fix it at the source
+and re-measure... a recorded failure here is a shipped dead link") — replaced the URL in
+README.md with its canonical, non-bot-blocked successor
+(`https://claude.com/product/claude-code`, confirmed 200 to plain `curl`; see Task 2 below).
+
+Because the actual dead-for-automation link no longer exists in the tree, the `--accept 403`
+widening committed above is no longer needed to keep Link Check green, and leaving it in place
+would needlessly weaken the detector for any *future*, unrelated 403. It was reverted back to
+the original `--accept '100..=103,200..=299,429'` (no comment block needed since there is
+nothing left to explain) in the same commit as the README fix (see Task 2's commit below), and
+Link Check was re-observed green a third time on the fully-fixed tree — see "Final
+re-observation" at the end of the Task 2 section. The two-iteration tuning record above is kept
+verbatim as the historical trace of how the false positive was diagnosed, even though the fix
+that ultimately shipped is the source fix, not the CI tuning.
+
+---
+
+## SC#2 consolidated measurement (Task 2)
+
+**This measurement is taken fresh against the merged tree at the moment of this task's
+execution.** No count below is carried forward from planning time, from Plan 03's or Plan 04's
+own summaries, or from Task 1's evidence above — per milestone invariant #4, a remembered
+number is not evidence.
+
+Cross-reference, not duplication: `31-ABOUT-EVIDENCE.md` (Plan 02) independently measured the
+repository's About -> Website value and its real-HTTP resolution; `31-04-SUMMARY.md` (Plan 04)
+independently fetched every URL then appearing in `.planning/codebase/INTEGRATIONS.md`. This
+pass re-measures the same INTEGRATIONS.md URLs, plus README.md and pyproject.toml, all again,
+independently, right now — two independent readings of the same URL is corroboration, not the
+same reading copied twice.
+
+### Step 1 — repo-wide grep for the retired documentation host
+
+Verbatim command and output:
+
+```
+$ grep -rl "github\.io" --exclude-dir=.git --exclude-dir=.planning .
+CHANGELOG.md
+```
+
+Only `CHANGELOG.md` matches — the expected result. `CHANGELOG.md`'s surviving mention (line 393,
+Phase 24 D-02 precedent, reaffirmed in `31-CONTEXT.md`'s domain section) is a **deliberate,
+intentional historical record**, not an oversight; it is explicitly out of scope for this
+phase (`31-CONTEXT.md`: "`CHANGELOG.md:393`'s github.io mention stays untouched"). Anchor
+comparison: before the rewrite there were 10 matching lines in `README.md` (11 string
+occurrences) plus 1 in `CHANGELOG.md` (per `31-CONTEXT.md`'s specifics section); after Plan 03's
+rewrite, zero `README.md` matches remain, and the regression guard (`tests/test_no_stale_github_io_links.py`)
+does not itself match because its retired-host literal is split into two concatenated string
+fragments (per `31-03-SUMMARY.md`).
+
+Second grep — the README-anchor form (`pyproject.toml`'s old `Documentation` value shape),
+invisible to a host-based grep:
+
+```
+$ grep -v "^\s*#" pyproject.toml | grep -c "typsphinx#readme"
+0
+```
+
+Zero, as required — `pyproject.toml`'s `Documentation` field no longer points at the GitHub
+README anchor (Plan 03 rewrote it to the Read the Docs root).
+
+<!-- planner-discipline-allow: github.io -->
+<!-- planner-discipline-allow: typsphinx#readme -->
+
+### Step 2 — enumerate every distinct URL across the three named surfaces, then fetch
+
+Extraction command (verbatim):
+
+```
+$ grep -ohE "https?://[^ )>\"'\`,;]+" README.md pyproject.toml .planning/codebase/INTEGRATIONS.md | sed -E "s/[.,)]+$//" | sort -u
+```
+
+**35 distinct URLs** extracted (post-fix; see the discovery-and-fix note below for the one URL
+that changed mid-task). Fetched each with
+`curl -s -o /dev/null -w "%{http_code} %{url_effective}" -L --max-time 25 <url>`.
+
+#### URL / status / effective-URL table, grouped by source file
+
+**README.md** (29 distinct URLs):
+
+| Status | URL | Effective URL |
+|---|---|---|
+| 200 | https://app.readthedocs.org/projects/typsphinx/badge/?version=latest | (same) |
+| 200 | https://badge.fury.io/py/typsphinx | https://pypi.org/project/typsphinx |
+| 200 | https://badge.fury.io/py/typsphinx.svg | https://d25lcipzij17d.cloudfront.net/badge.svg?c=... |
+| 200 | https://claude.com/product/claude-code | (same) |
+| 200 | https://github.com/YuSabo90002/typsphinx.git | https://github.com/YuSabo90002/typsphinx |
+| 200 | https://github.com/YuSabo90002/typsphinx/actions/workflows/ci.yml | (same) |
+| 200 | https://github.com/YuSabo90002/typsphinx/actions/workflows/ci.yml/badge.svg | (same) |
+| 200 | https://github.com/YuSabo90002/typsphinx/issues | (same) |
+| 200 | https://github.com/mitex-rs/mitex | (same) |
+| 200 | https://github.com/open-gsd/gsd-core | (same) |
+| 200 | https://github.com/psf/black | (same) |
+| 200 | https://img.shields.io/badge/License-MIT-yellow.svg | (same) |
+| 200 | https://img.shields.io/badge/code%20style-black-000000.svg | (same) |
+| 200 | https://img.shields.io/pypi/pyversions/typsphinx.svg | (same) |
+| 200 | https://opensource.org/licenses/MIT | https://opensource.org/license/MIT |
+| 200 | https://pypi.org/project/typsphinx/ | (same) |
+| 200 | https://typsphinx.readthedocs.io/ | https://typsphinx.readthedocs.io/en/latest/ |
+| 200 | https://typsphinx.readthedocs.io/en/latest/api/ | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/contributing.html | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/examples/ | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/installation.html | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/quickstart.html | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/user_guide/ | (same) |
+| 200 | https://typsphinx.readthedocs.io/en/latest/user_guide/configuration.html | (same) |
+| 200 | https://typsphinx.readthedocs.io/ja/latest/ | (same) |
+| 200 | https://typst.app/ | (same) |
+| 200 | https://typst.app/universe/package/codly | (same) |
+| 200 | https://typst.app/universe/package/gentle-clues | (same) |
+| 200 | https://www.sphinx-doc.org/ | https://www.sphinx-doc.org/en/master/ |
+| 200 | https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_node | (same) |
+
+**pyproject.toml** (3 distinct URLs, all also appear above):
+
+| Status | URL | Effective URL |
+|---|---|---|
+| 200 | https://github.com/YuSabo90002/typsphinx | (same) |
+| 200 | https://github.com/YuSabo90002/typsphinx/issues | (same) |
+| 200 | https://typsphinx.readthedocs.io/ | https://typsphinx.readthedocs.io/en/latest/ |
+
+**`.planning/codebase/INTEGRATIONS.md`** (7 distinct URLs, some overlapping the above):
+
+| Status | URL | Effective URL |
+|---|---|---|
+| 200 | https://docs.python.org/3 | https://docs.python.org/3/ |
+| 200 | https://github.com/YuSabo90002/typsphinx | (same) |
+| 200 | https://github.com/YuSabo90002/typsphinx-doc-translations | (same) |
+| 200 | https://typsphinx.readthedocs.io/ | https://typsphinx.readthedocs.io/en/latest/ |
+| 200 | https://typsphinx.readthedocs.io/en/latest/ | (same) |
+| 200 | https://typsphinx.readthedocs.io/ja/latest/ | (same) |
+| 200 | https://www.sphinx-doc.org/en/master | https://www.sphinx-doc.org/en/master/ |
+
+**Result: 35/35 distinct URLs across the union of all three surfaces returned HTTP 200 — zero
+exceptions**, after the one fix documented below.
+
+**Distinct-URL count:** 35. **Measurement UTC timestamp:** `2026-07-27T12:14:34Z`.
+
+### Discovery-and-fix: a fourth failure class, found here
+
+Planning-time measurement (per `31-CONTEXT.md`) found 3 failure classes across the whole
+in-scope repository, all addressed by Plans 01 and 03. This consolidated pass's first sweep
+(pre-fix) found a **4th, previously-unaddressed failure**: README.md:309's Claude Code
+attribution link, `https://claude.ai/code`, returned `403` to a plain `curl -L` (no browser
+User-Agent) — not a dead link (browser-UA `curl` and Task 1's diagnostic both confirm it
+resolves), but a bot-blocking response that fails this task's literal "every URL returns 200"
+bar. Per this task's own instruction ("fix it at the source and re-measure... a recorded
+failure here is a shipped dead link"), the link was repointed at its canonical current
+destination rather than tuned around:
+
+```
+$ curl -s -o /dev/null -w "plain: %{http_code}\n" -L --max-time 20 "https://claude.ai/code"
+plain: 403
+$ curl -s -o /dev/null -w "eff: %{url_effective} code: %{http_code}\n" -L --max-time 20 "https://www.claude.com/claude-code"
+eff: https://claude.com/product/claude-code code: 200
+$ curl -s -o /dev/null -w "eff: %{url_effective} code: %{http_code}\n" -L --max-time 20 "https://claude.com/product/claude-code"
+eff: https://claude.com/product/claude-code code: 200
+$ curl -s -o /dev/null -w "eff: %{url_effective} code: %{http_code}\n" -L --max-time 20 "https://www.anthropic.com/claude-code"
+eff: https://claude.com/product/claude-code code: 200
+```
+
+Three independent candidate URLs all canonicalize to the same destination
+(`https://claude.com/product/claude-code`), which returns `200` to a plain, no-UA `curl` —
+confirming it is not merely "alive to browsers" but genuinely unblocked for automated checking.
+README.md was updated (commit `260ade4`) and the URL/status table above reflects the
+**post-fix** state. This finding and its fix are unrelated to DOC-09's 7 retired-host deep
+links and to CI-05's scope, but fall inside SC#2's literal "every documentation URL... returns a
+live page" bar, so it was closed here rather than deferred.
+
+### Final re-observation — Link Check still green with the tighter `--accept` set
+
+After the README fix and the `--accept 403` revert (both in commit `260ade4`, pushed), Link
+Check was re-observed a third time to confirm the fix did not regress CI-05's mechanism:
+
+- **Run URL:** https://github.com/YuSabo90002/typsphinx/actions/runs/30265271094
+- **Run id:** `30265271094`
+- **Conclusion:** `success`
+- **Evaluated commit SHA:** `260ade4d71d25bcde46935abaf9b211180a130b6`
+
+```
+| Status         | Count |
+|----------------|-------|
+| 🔍 Total       | 93    |
+| 🔗 Unique      | 51    |
+| ✅ Successful  | 84    |
+| ⏳ Timeouts    | 0     |
+| 🔀 Redirected  | 20    |
+| 👻 Excluded    | 9     |
+| ❓ Unknown     | 0     |
+| 🚫 Errors      | 0     |
+| ⛔ Unsupported | 0     |
+```
+
+Identical summary shape to the `--accept 403`-tuned green run (93/51/84/0/20/9), now achieved
+with the original, un-widened `--accept` set — proof the source fix, not the CI tuning, is what
+carries the green result on the tree this plan ships.
+
+### Green tree confirmation (pytest)
+
+```
+$ uv run pytest -q -m "not slow"
+617 passed, 29 deselected in 37.63s
+```
+
+0 failures. (This worktree required the documented NixOS per-worktree fix — symlinking
+`.venv/bin/uv` to the nix-store-provided `uv` binary — to get a clean signal; without it, 45
+tests in `tests/test_integration_{advanced,basic,multi_doc,nested_toctree}.py` fail for the
+environmental reason recorded in this project's standing memory note, not a code defect. The
+symlink is venv-local and not tracked by git.)
