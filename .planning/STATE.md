@@ -4,11 +4,11 @@ milestone: v0.6.4
 milestone_name: Read the Docs migration
 current_phase: 32
 current_phase_name: github-pages-teardown-irreversible
-status: planning
-stopped_at: Phase 30 complete (UAT 3/3) — Phase 32 ready to plan, context gathered
-last_updated: "2026-07-27T13:40:00.000Z"
+status: ready-to-execute
+stopped_at: Phase 32 planned (3 plans, 3 waves) — ready to execute
+last_updated: "2026-07-27T14:00:00.000Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 30 complete (UAT 3/3, security verified), transitioned — Phase 32 unblocked
+last_activity_desc: Phase 32 planned — research + patterns + 3 plans (gate / reversible teardown / irreversible teardown), checker passed
 progress:
   total_phases: 6
   completed_phases: 4
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
 ## Current Position
 
 Phase: 32 — GitHub Pages Teardown (IRREVERSIBLE)
-Plan: Not started
-Status: Ready to plan (context gathered — `32-CONTEXT.md` exists)
-Progress: [██████▋░░░] 26/26 plans executed; phases 4/6 complete (29, 30, 30.1, 31)
-Last activity: 2026-07-27 — Phase 30 complete (UAT 3/3, 17/17 threats closed), Phase 32 unblocked
+Plan: 0/3 executed (32-01 gate → 32-02 reversible teardown → 32-03 irreversible teardown, strictly sequential waves)
+Status: Ready to execute (planned 2026-07-27 — research, patterns, validation seed, checker passed)
+Progress: [██████▋░░░] 26/29 plans executed; phases 4/6 complete (29, 30, 30.1, 31)
+Last activity: 2026-07-27 — Phase 32 planned (3 plans / 3 waves), plan-checker VERIFICATION PASSED
 
 > **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
 > resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from

@@ -66,8 +66,8 @@ docs.yml の multilang→html スワップ・PDF コピーステップ削除は 
 
 ### SC#3 観測 CI 実行の手段
 
-- **D-08: マイルストーン draft PR を main に向けて開き、その pull_request トリガーで
-  docs.yml の観測実行を得る。** リポジトリ変更ゼロで Phase 30 UAT test 1(同一構造で
+- **D-08: マイルストーン draft PR を main に向けて開き、その pull_request トリガーで docs.yml の観測実行を得る。**
+  リポジトリ変更ゼロで Phase 30 UAT test 1(同一構造で
   blocked)と Phase 32 SC#3 の両方を解決する。workflow_dispatch 追加も backstop 繰り延べも
   採らない。正式な ready 化とマージは従来どおり `/gsd-complete-milestone` で。
 - **D-09: draft PR は Phase 32 の前に開く。** 順序の循環(Phase 30 完了が Phase 32 の前提 ↔

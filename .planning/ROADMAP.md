@@ -735,8 +735,16 @@ standing gate.
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 32-01-PLAN.md — Pre-teardown RTD evidence gate (SC#1): freshly re-take en HTML, ja HTML content-verified, en+ja PDF and root-resolution evidence; snapshot the pre-teardown baseline; emit a GREEN/RED verdict. Zero repository changes.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 32-02-PLAN.md — Remove the Pages deploy step and the two unused permissions from `docs.yml`, prove `Upload PDF to Release` byte-unchanged, add the D-06 guard tests with a recorded red negative control, update INTEGRATIONS.md.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 32-03-PLAN.md — Push to draft PR #124 and observe a fresh green `build-docs` run on the post-teardown head (SC#3); delete `origin/gh-pages` and prove absence via `git ls-remote` (SC#2); hand off the owner-manual Pages disable and observe the github.io 404.
 
 **Owner-manual dependency (no automated criterion possible):** disabling the GitHub Pages site in the
