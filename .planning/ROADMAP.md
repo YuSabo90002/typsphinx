@@ -791,7 +791,18 @@ the post-tag `stable` flip handed off explicitly rather than claimed.
      checklist, not asserted as satisfied. A criterion this phase structurally cannot meet is not
      written as if it could.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 33-01-PLAN.md — Version bump (SC#1): `pyproject.toml` + `README.md` Status line in one commit, `uv lock` + editable-install metadata resync, `typsphinx.__version__` proven at 0.6.4, both version-sync guard tests green
+- [ ] 33-02-PLAN.md — CHANGELOG (SC#2): curated `## [0.6.4]` entry in five sections (Added/Changed/Removed/Fixed/Verified, no BREAKING label per D-01) plus the tail release/compare link block with the Unreleased compare carried forward
+- [ ] 33-03-PLAN.md — D-05 English-ization: the four top-level `.planning/` documents translated meaning-unchanged, with an enumerated allowlist of glossed technical literals and a fixed glossary for titles that appear in two places
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 33-04-PLAN.md — Evidence + handoff (SC#3, SC#4, SC#5): real-HTTP re-verification of the `Documentation` URL on the prepared tree, milestone invariants asserted over a freshly re-measured full diff, and the 8-item publish/owner-manual handoff checklist — no tag, no publish
 
 **Owner-manual dependencies (no automated criterion possible):** after the tag is pushed and built
 green, setting Default Version = `stable` on the en project and confirming `/ja/stable/` exists and
