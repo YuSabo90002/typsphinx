@@ -195,7 +195,7 @@ RESEARCH.md Pitfall 4. This value is recorded here solely as the before-state ba
 | en PDF liveness (`/_/downloads/en/latest/pdf/`) | HTTP 200, `%PDF` magic bytes, 1704446 bytes, 93 pages | PASS |
 | ja PDF liveness (`/_/downloads/ja/latest/pdf/`) | HTTP 200, `%PDF` magic bytes, 1888676 bytes, 94 pages | PASS |
 
-**GATE VERDICT: GREEN**
+GATE VERDICT: GREEN
 
 Evidence gathered: 2026-07-27. Per D-04, this full gate is valid for teardown **on the same
 calendar day only**. Plans 02 and 03 each re-confirm the four URL statuses at their own
