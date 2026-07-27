@@ -590,3 +590,80 @@ PR #124 remains a draft — readying and merging belong to `/gsd-complete-milest
 (`d53edec…`) is provably the teardown commit — not the pre-teardown baseline (`980f6ca9…`) —
 with per-step conclusions recorded, including the `Build PDF documentation (English only)`
 step's own success (not merely the job-level conclusion).
+
+## SC#2 — origin/gh-pages deleted (irreversible)
+
+### Step 1 — before-state, re-taken now
+
+```
+$ git ls-remote origin | grep -i pages
+f97862dfea151dd904591a18d2ddbd0bf72fd851	refs/heads/gh-pages
+```
+
+`f97862dfea151dd904591a18d2ddbd0bf72fd851` — matches Plan 01's recorded pre-teardown baseline
+SHA exactly. No revival (Pitfall 1) has occurred between the gate and this step.
+
+### Step 2 — delete
+
+```
+$ git push origin --delete gh-pages
+To https://github.com/YuSabo90002/typsphinx.git
+ - [deleted]         gh-pages
+```
+
+The credential helper accepted the push directly — no fallback to `gh api -X DELETE` was
+needed. Only `refs/heads/gh-pages` was targeted; no other ref, and no force-push, was used.
+
+### Step 3 — after-state proof
+
+```
+$ git ls-remote origin
+771ec56fa3e9a863ac0bca865476bdc423fbb3e7	HEAD
+013e2658867cf6f396cd8d6d26e95d3fcda47b0b	refs/heads/dependabot/pip/ruff-gte-0.15-and-lt-0.17
+d53edecfd064a93d7a43455d505f7848a1c43320	refs/heads/gsd/v0.6.4-read-the-docs-migration
+771ec56fa3e9a863ac0bca865476bdc423fbb3e7	refs/heads/main
+c8e60dd07fd0b4b803a2ee629e88b01ca81c6276	refs/heads/worktree-agent-ad728f7d42898a802
+e5edc376a69411ab72cc9c535bc65dba2f3daa58	refs/heads/worktree-agent-ad9fb4bbe59c49b28
+[... refs/pull/* and refs/tags/* entries omitted for brevity, unaffected by this deletion ...]
+```
+
+The full unfiltered listing contains no `refs/heads/gh-pages` line (verified — the branch is
+absent from the complete ref enumeration, not merely from a filtered grep).
+
+```
+$ git ls-remote origin refs/heads/gh-pages
+(no output)
+```
+
+```
+$ git ls-remote --heads origin | grep -c 'refs/heads/gh-pages'
+0
+$ git ls-remote --heads origin | grep -c 'refs/heads/main'
+1
+```
+
+`refs/heads/main` still resolves (count 1) — no other ref was collaterally removed.
+
+Illustrative-only (not the proof): a local stale-tracking-ref check found `gh-pages` was never
+present among this worktree's locally cached remote-tracking refs to begin with, so
+`git remote prune origin --dry-run` lists other dependabot branches as prunable but does not
+mention `gh-pages` — consistent with (not a substitute for) the live `ls-remote` proof above:
+
+```
+$ git remote prune origin --dry-run
+Pruning origin
+URL: https://github.com/YuSabo90002/typsphinx.git
+ * [would prune] origin/dependabot/github_actions/actions/checkout-7
+ * [would prune] origin/dependabot/github_actions/actions/download-artifact-8
+ * [would prune] origin/dependabot/github_actions/actions/upload-artifact-7
+ * [would prune] origin/dependabot/pip/sphinx-typst-stack-12b5b89b5a
+```
+
+### Verdict
+
+**Deleted SHA:** `f97862dfea151dd904591a18d2ddbd0bf72fd851` — matched Plan 01's baseline SHA
+exactly (no revival occurred between gate and deletion).
+
+**SC#2 (remote half) verdict: PASS.** `refs/heads/gh-pages` no longer exists at `origin`,
+proven by a live `git ls-remote` query recorded before and after deletion. `refs/heads/main`
+confirmed untouched.
