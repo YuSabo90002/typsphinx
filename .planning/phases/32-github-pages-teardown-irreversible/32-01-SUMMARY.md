@@ -140,3 +140,13 @@ No blockers. The pre-teardown baseline (`gh-pages` SHA `f97862d`, PR #124 head `
 ---
 *Phase: 32-github-pages-teardown-irreversible*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/32-github-pages-teardown-irreversible/32-EVIDENCE.md`
+- FOUND: `.planning/phases/32-github-pages-teardown-irreversible/32-01-SUMMARY.md`
+- FOUND commit `40bc567` (Task 1)
+- FOUND commit `ca0ffef` (Task 2)
+- FOUND commit `996e3e3` (Task 3)
+- FOUND commit `e0c6fed` (deviation fix)
+- FOUND commit `b424db8` (SUMMARY.md)
