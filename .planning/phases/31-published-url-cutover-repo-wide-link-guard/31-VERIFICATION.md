@@ -147,5 +147,18 @@ All live-reproduced checks (CI run IDs/conclusions/SHAs via `gh run view`, `gh a
 
 ---
 
+## Acknowledged Gate Overrides
+
+- **api-coverage.verify-pre** (2026-07-27, verify-work session): gate returned `block: true`
+  (signals: `integration`/`api`, `integrates`/`api`, `(surface)`/`api`) with no COVERAGE.md
+  present. Determined a false positive of the same class as Phase 18 and Phase 30.1: every
+  "API"/"integration" mention in this phase's SUMMARYs/CONTEXT refers to the rewrite of the
+  `.planning/codebase/INTEGRATIONS.md` codebase-map document — the deliverable itself
+  integrates no external API (31-04-SUMMARY.md explicitly phrases Read the Docs as a
+  hosting/build platform and verified `grep -icE 'readthedocs.*(api|endpoint|integration)'`
+  → 0). Owner confirmed continuing to UAT with this override recorded.
+
+---
+
 *Verified: 2026-07-27*
 *Verifier: Claude (gsd-verifier)*
