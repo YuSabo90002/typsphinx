@@ -433,3 +433,160 @@ $ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github
 
 **Verdict: PASS.** Empty — `release.yml`'s independent `id-token: write` for PyPI trusted
 publishing was not collaterally touched by this phase's `docs.yml` permissions reduction.
+
+---
+
+# Phase 32 Plan 03: Push, Observe CI, Delete gh-pages, Owner Handoff
+
+**Gathered:** 2026-07-27 (Phase 32 execution, Plan 03)
+
+## D-04 re-confirmation before the irreversible step
+
+Plan 01's `GATE VERDICT: GREEN` was gathered 2026-07-27; today is also 2026-07-27 (`date -u
++"%Y-%m-%d"` → `2026-07-27`), so the same-day validity window (D-04) holds and the full gate
+was not re-run. The four URL statuses were re-taken immediately before the irreversible step:
+
+```
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/en/latest/
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/ja/latest/user_guide/builders.html
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+200
+$ curl -sS -o /dev/null -w "%{http_code}\n" https://typsphinx.readthedocs.io/_/downloads/ja/latest/pdf/
+200
+```
+
+All four URLs returned `200`. The irreversible step may proceed.
+
+## SC#3 — observed CI run on the post-teardown tree
+
+### Step 2 — local milestone branch carries the teardown
+
+```
+$ gh pr view 124 --json number,state,isDraft,headRefName,headRefOid,baseRefName
+{"baseRefName":"main","headRefName":"gsd/v0.6.4-read-the-docs-migration","headRefOid":"980f6ca909b8b07045d664548094b98f31bd8551","isDraft":true,"number":124,"state":"OPEN"}
+```
+
+PR #124's `headRefName` confirms the milestone branch is `gsd/v0.6.4-read-the-docs-migration`;
+`headRefOid` here (`980f6ca9…`) is still the **pre-teardown baseline** — this is the before-push
+state.
+
+```
+$ git show gsd/v0.6.4-read-the-docs-migration:.github/workflows/docs.yml | grep -c peaceiris
+0
+$ git show gsd/v0.6.4-read-the-docs-migration:.github/workflows/docs.yml | grep -c 'Upload PDF to Release'
+1
+$ git rev-parse gsd/v0.6.4-read-the-docs-migration
+d53edecfd064a93d7a43455d505f7848a1c43320
+```
+
+The local milestone branch tip (`d53edecfd064a93d7a43455d505f7848a1c43320`) carries the
+teardown — zero `peaceiris` occurrences, exactly one `Upload PDF to Release` occurrence. Wave 2's
+merge-back landed. Local branch tip SHA to push: `d53edecfd064a93d7a43455d505f7848a1c43320`.
+
+### Step 3 — push
+
+```
+$ git push origin gsd/v0.6.4-read-the-docs-migration
+To https://github.com/YuSabo90002/typsphinx.git
+   980f6ca..d53edec  gsd/v0.6.4-read-the-docs-migration -> gsd/v0.6.4-read-the-docs-migration
+```
+
+```
+$ gh pr view 124 --json number,state,isDraft,headRefName,headRefOid,baseRefName
+{"baseRefName":"main","headRefName":"gsd/v0.6.4-read-the-docs-migration","headRefOid":"d53edecfd064a93d7a43455d505f7848a1c43320","isDraft":true,"number":124,"state":"OPEN"}
+```
+
+`headRefOid` now equals `d53edecfd064a93d7a43455d505f7848a1c43320` — the SHA recorded in Step 2
+— and differs from the pre-teardown baseline `headRefOid` recorded in Plan 01's baseline block
+(`980f6ca909b8b07045d664548094b98f31bd8551`). No change was made to `.github/workflows/docs.yml`
+or any workflow trigger to obtain this push; the existing `pull_request` trigger on PR #124
+(D-08) fired naturally.
+
+### Step 4 — observed run
+
+```
+$ gh run list --workflow=docs.yml --branch gsd/v0.6.4-read-the-docs-migration --json databaseId,headSha,event,status,conclusion,url --limit 10
+[{"conclusion":"success","databaseId":30269906943,"event":"pull_request","headSha":"980f6ca909b8b07045d664548094b98f31bd8551","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/30269906943"}]
+```
+
+(Immediately after the push, only the pre-teardown baseline run — `30269906943`, head
+`980f6ca9…` — had appeared yet.)
+
+```
+$ gh run list --workflow=docs.yml --branch gsd/v0.6.4-read-the-docs-migration --json databaseId,headSha,event,status,conclusion,url --limit 10   # (20s later)
+[{"conclusion":"","databaseId":30275369792,"event":"pull_request","headSha":"d53edecfd064a93d7a43455d505f7848a1c43320","status":"in_progress","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/30275369792"},{"conclusion":"success","databaseId":30269906943,"event":"pull_request","headSha":"980f6ca909b8b07045d664548094b98f31bd8551","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/30275369792"}]
+```
+
+A new run appeared: `databaseId: 30275369792`, `headSha: d53edecfd064a93d7a43455d505f7848a1c43320`
+(the pushed SHA), `event: pull_request`. Waited for completion via `gh run watch
+30275369792 --exit-status` (exit code 0 — success).
+
+```
+$ gh run view 30275369792 --json databaseId,headSha,event,status,conclusion,url,jobs
+{"conclusion":"success","databaseId":30275369792,"event":"pull_request","headSha":"d53edecfd064a93d7a43455d505f7848a1c43320","jobs":[{"completedAt":"2026-07-27T14:30:41Z","conclusion":"success","databaseId":90007969022,"name":"build-docs","startedAt":"2026-07-27T14:30:07Z","status":"completed","steps":[{"completedAt":"2026-07-27T14:30:11Z","conclusion":"success","name":"Set up job","number":1,"startedAt":"2026-07-27T14:30:08Z","status":"completed"},{"completedAt":"2026-07-27T14:30:12Z","conclusion":"success","name":"Run actions/checkout@v7","number":2,"startedAt":"2026-07-27T14:30:11Z","status":"completed"},{"completedAt":"2026-07-27T14:30:12Z","conclusion":"success","name":"Setup Python","number":3,"startedAt":"2026-07-27T14:30:12Z","status":"completed"},{"completedAt":"2026-07-27T14:30:15Z","conclusion":"success","name":"Install uv","number":4,"startedAt":"2026-07-27T14:30:12Z","status":"completed"},{"completedAt":"2026-07-27T14:30:18Z","conclusion":"success","name":"Install dependencies","number":5,"startedAt":"2026-07-27T14:30:15Z","status":"completed"},{"completedAt":"2026-07-27T14:30:29Z","conclusion":"success","name":"Build HTML documentation","number":6,"startedAt":"2026-07-27T14:30:18Z","status":"completed"},{"completedAt":"2026-07-27T14:30:37Z","conclusion":"success","name":"Build PDF documentation (English only)","number":7,"startedAt":"2026-07-27T14:30:29Z","status":"completed"},{"completedAt":"2026-07-27T14:30:38Z","conclusion":"success","name":"Upload HTML artifact","number":8,"startedAt":"2026-07-27T14:30:37Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"success","name":"Upload PDF artifact","number":9,"startedAt":"2026-07-27T14:30:38Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"skipped","name":"Upload PDF to Release","number":10,"startedAt":"2026-07-27T14:30:39Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"success","name":"Post Install uv","number":18,"startedAt":"2026-07-27T14:30:39Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"success","name":"Post Setup Python","number":19,"startedAt":"2026-07-27T14:30:39Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"success","name":"Post Run actions/checkout@v7","number":20,"startedAt":"2026-07-27T14:30:39Z","status":"completed"},{"completedAt":"2026-07-27T14:30:39Z","conclusion":"success","name":"Complete job","number":21,"startedAt":"2026-07-27T14:30:39Z","status":"completed"}],"url":"https://github.com/YuSabo90002/typsphinx/actions/runs/30275369792/job/90007969022"}],"status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/30275369792"}
+```
+
+**Cited run:** `databaseId: 30275369792`,
+`url: https://github.com/YuSabo90002/typsphinx/actions/runs/30275369792`,
+`headSha: d53edecfd064a93d7a43455d505f7848a1c43320`, `event: pull_request`,
+`conclusion: success`.
+
+**Side-by-side SHA comparison:** cited run headSha `d53edecfd064a93d7a43455d505f7848a1c43320`
+vs. Plan 01's recorded pre-teardown baseline `980f6ca909b8b07045d664548094b98f31bd8551` — **the
+cited run's head SHA is NOT the baseline SHA.**
+
+**Per-step conclusions (job `build-docs`, ID `90007969022`):** Set up job=success,
+`actions/checkout@v7`=success, Setup Python=success, Install uv=success, Install
+dependencies=success, Build HTML documentation=success, **Build PDF documentation (English
+only)=success** (the `uv run tox -e docs-pdf` typstpdf regression gate), Upload HTML
+artifact=success, Upload PDF artifact=success, Upload PDF to Release=skipped (expected — this is
+a `pull_request` event, not a tag push; the `if: startsWith(github.ref, 'refs/tags/v')` guard
+correctly skipped it rather than failing), Post Install uv=success, Post Setup Python=success,
+Post `actions/checkout@v7`=success, Complete job=success.
+
+### Tree verification — the cited run's headSha resolves to the post-teardown workflow
+
+```
+$ git show d53edecfd064a93d7a43455d505f7848a1c43320:.github/workflows/docs.yml | grep -c peaceiris
+0
+```
+
+Zero `peaceiris` occurrences in the cited run's own head tree — the green run built the
+post-teardown workflow, not the pre-teardown baseline.
+
+### Acceptance-criteria checks
+
+```
+$ git merge-base main HEAD
+771ec56fa3e9a863ac0bca865476bdc423fbb3e7
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github/workflows/
+.github/workflows/docs.yml
+.github/workflows/links.yml
+```
+
+**Note on this result vs. the plan's literal acceptance wording:** the plan's acceptance
+criterion expected this diff to list only `docs.yml`. It lists two files because the diff base
+(`main`'s merge-base) spans the **whole milestone**, and `.github/workflows/links.yml` was added
+earlier in the milestone by Phase 31 (`feat(31-01): add advisory repo-wide link-check workflow`,
+commit `fede6f0`), not by this task. This plan's own actions touched only `docs.yml` (already
+edited by Plan 02, not this plan) and no workflow file at all in Task 1 — no trigger of any kind
+was added by this task to obtain the observed run. Confirmed:
+```
+$ git diff --name-only 771ec56fa3e9a863ac0bca865476bdc423fbb3e7..HEAD -- .github/workflows/docs.yml
+.github/workflows/docs.yml
+```
+(only one file when scoped to `docs.yml` itself, as expected — the file Plan 02 edited).
+
+```
+$ gh pr view 124 --json isDraft
+{"isDraft":true}
+```
+
+PR #124 remains a draft — readying and merging belong to `/gsd-complete-milestone`.
+
+**SC#3 verdict: PASS.** A green `build-docs` run (30275369792) is cited whose head SHA
+(`d53edec…`) is provably the teardown commit — not the pre-teardown baseline (`980f6ca9…`) —
+with per-step conclusions recorded, including the `Build PDF documentation (English only)`
+step's own success (not merely the job-level conclusion).
