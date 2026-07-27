@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v0.6.4
 milestone_name: Read the Docs migration
-current_phase: 33
-current_phase_name: v0-6-4-release-prep
-status: executing
-stopped_at: Phase 33 planned — 4 plans ready to execute
-last_updated: "2026-07-27T20:51:42.091Z"
+current_phase: 999.1
+current_phase_name: BACKLOG
+status: planning
+stopped_at: Phase 33 context gathered
+last_updated: "2026-07-27T21:38:56.732Z"
 last_activity: 2026-07-28
-last_activity_desc: Phase 33 execution started
+last_activity_desc: Phase 33 complete, transitioned to Phase 999.1
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 33
-  completed_plans: 29
-  percent: 83
+  completed_plans: 33
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-27 after Phase 30 complete)
+See: .planning/PROJECT.md (updated 2026-07-28 after Phase 33 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 33 — v0-6-4-release-prep
+**Current focus:** Milestone close — `/gsd-complete-milestone` (publish v0.6.4)
 
 ## Current Position
 
-Phase: 33 (v0-6-4-release-prep) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 33
-Progress: [████████▊░] 29/33 plans executed; phases 5/6 complete (29, 30, 30.1, 31, 32)
-Last activity: 2026-07-28 — Phase 33 execution started
+Phase: — (all 6 v0.6.4 phases complete; next listed phase 999.1 is backlog, not milestone work)
+Plan: Not started
+Status: Milestone v0.6.4 ready to close
+Progress: [████████████████████] 33/33 plans (100%); phases 6/6 complete (29, 30, 30.1, 31, 32, 33)
+Last activity: 2026-07-28 — Phase 33 complete (UAT 1/1, verification passed, 14/14 threats closed); milestone ready for `/gsd-complete-milestone`
 
 > **Phase 30 completed 2026-07-27:** the last UAT item (green docs.yml on the post-deletion tree)
 > resolved when milestone PR #124 opened — run 30269906943 green, `documentation-html` artifact from
@@ -149,6 +149,13 @@ with `test_preview_version_sync.py` extended over `examples/**/*.typ` to close t
 ### Decisions
 
 Recent decisions affecting current work (full log in PROJECT.md Key Decisions):
+
+- 2026-07-28 [Phase 33, D-01/D-03/D-05]: **v0.6.4 CHANGELOG carries zero BREAKING labels** (no
+  packaged behavior changed; the hosting-side losses — github.io 404s without redirect, no
+  browser-language auto-redirect — are disclosed in the Removed body); **`### Verified` restricted
+  to three `git diff`-provable invariants** (the live-RTD 302→200 observation lives timestamped in
+  `33-RELEASE-EVIDENCE.md`, not the CHANGELOG); **the four top-level `.planning/` docs translated
+  JA→EN meaning-preserving** (structural invariants + human UAT spot-check 1/1).
 
 - 2026-07-27 [Phase 31, D-15]: **Issue #119's close is a post-merge handoff to
   `/gsd-complete-milestone`, not a Phase 31 deliverable** — the rewritten URLs live on the
@@ -305,18 +312,21 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/33-v0-6-4-release-prep/33-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-07-27T20:12:28.709Z
-Stopped at: Phase 33 context gathered
-Resume: `/gsd-plan-phase 32` — Phase 32 context is already gathered (`32-CONTEXT.md`).
+Last session: 2026-07-28
+Stopped at: Phase 33 complete (UAT passed, verification passed, security 14/14 closed) — all 6
+v0.6.4 phases done; milestone ready for `/gsd-complete-milestone`
+Resume: `/gsd-complete-milestone` — publish v0.6.4 (merge PR #124 → tag → PyPI + GitHub Release).
 
 ## Operator Next Steps
 
-- Plan Phase 32: `/gsd-plan-phase 32` (GitHub Pages Teardown — behind a freshly re-taken
-  RTD-is-serving gate). Expect `ui.plan-gate` / `api-coverage` docs-phase false positives —
-  `--skip-ui` and the recorded-override pattern apply.
+- Close the milestone: `/gsd-complete-milestone` (audit-then-publish on the confirmed-green merge
+  commit; push `main` to `origin`). The 8-item publish/owner-manual checklist with owner and
+  ordering per item is in `33-HANDOFF.md`.
 
 - Owed at milestone close (`/gsd-complete-milestone`): Issue #119 close using
   `31-ISSUE-119-REPLY-DRAFT.md` (D-15); the two RTD Default-branch reverts + `.gitmodules`
-  `branch` → `main` flip; Default Version `latest` → `stable` after the `v0.6.4` tag builds green.
+  `branch` → `main` flip; Default Version `latest` → `stable` after the `v0.6.4` tag builds green;
+  the dependabot PR #123 / stale `docs.yml`-on-`main` revival-hazard check (32-EVIDENCE.md
+  `## Handoffs`).

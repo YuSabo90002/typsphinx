@@ -71,7 +71,7 @@ build sandbox).
 
 ### Release (REL)
 
-- [ ] **REL-02**: `typsphinx 0.6.4` is published to PyPI, its `Documentation` metadata points at Read
+- [x] **REL-02**: `typsphinx 0.6.4` is published to PyPI, its `Documentation` metadata points at Read
       the Docs, and both `/en/stable/` and `/ja/stable/` serve that same released version.
       **Standing cost added 2026-07-26** (Phase 30 discussion, D-07): `/ja/stable/` resolves against
       the *translations* repository's tags, so every release from now on pushes a tag to **two**
@@ -216,7 +216,7 @@ Which phases cover which requirements. Populated during roadmap creation (2026-0
 | DOC-10 | Phase 31 | Complete |
 | CI-05 | Phase 31 | Complete |
 | CI-04 | Phase 32 | Complete |
-| REL-02 | Phase 33 | Pending |
+| REL-02 | Phase 33 | Complete |
 
 **Coverage:**
 
