@@ -791,7 +791,7 @@ the post-tag `stable` flip handed off explicitly rather than claimed.
      checklist, not asserted as satisfied. A criterion this phase structurally cannot meet is not
      written as if it could.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -802,7 +802,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 33-04-PLAN.md — Evidence + handoff (SC#3, SC#4, SC#5): real-HTTP re-verification of the `Documentation` URL on the prepared tree, milestone invariants asserted over a freshly re-measured full diff, and the 8-item publish/owner-manual handoff checklist — no tag, no publish
+- [x] 33-04-PLAN.md — Evidence + handoff (SC#3, SC#4, SC#5): real-HTTP re-verification of the `Documentation` URL on the prepared tree, milestone invariants asserted over a freshly re-measured full diff, and the 8-item publish/owner-manual handoff checklist — no tag, no publish
 
 **Owner-manual dependencies (no automated criterion possible):** after the tag is pushed and built
 green, setting Default Version = `stable` on the en project and confirming `/ja/stable/` exists and
@@ -862,7 +862,7 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 30.1 Translations Repository + Japanese RTD Site (INSERTED) | v0.6.4 | 11/11 | Complete    | 2026-07-26 |
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
-| 33. v0.6.4 Release Prep | v0.6.4 | 3/4 | In Progress|  |
+| 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | In Progress|  |
 
 ## Backlog
 
