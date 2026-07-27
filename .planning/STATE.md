@@ -5,10 +5,10 @@ milestone_name: Read the Docs migration
 current_phase: 32
 current_phase_name: github-pages-teardown-irreversible
 status: planning
-stopped_at: Phase 31 complete (UAT 1/1 passed); Phase 30 UAT still partial — resume it before Phase 32
-last_updated: "2026-07-27T12:53:03.119Z"
+stopped_at: Phase 32 context gathered
+last_updated: "2026-07-27T13:18:05.626Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 31 complete, transitioned to Phase 32
+last_activity_desc: Phase 31 complete (UAT 1/1), transitioned
 progress:
   total_phases: 6
   completed_phases: 4
@@ -309,10 +309,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/32-github-pages-teardown-irreversible/32-CONTEXT.md
 
-Last session: 2026-07-27
-Stopped at: Phase 31 complete (verification passed, UAT 1/1, security 0 open threats).
+Last session: 2026-07-27T13:18:05.619Z
+Stopped at: Phase 32 context gathered
 Resume: `/gsd-verify-work 30` — Phase 30's UAT is still `partial` and must complete before Phase 32.
 
 ## Operator Next Steps
