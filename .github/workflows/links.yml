@@ -12,6 +12,12 @@
 #   - .planning/       -- historical archive with many known-dead URLs.
 #   - CHANGELOG.md     -- historical record deliberately left stale.
 #   - tests/fixtures/  -- intentionally fake URLs used as parser input.
+#
+# `--accept` includes 403 (D-06 lenient-posture tuning, Plan 05): the sole
+# occurrence is README.md's `https://claude.ai/code` badge link, which
+# returns 403 to lychee's request but 200 to a browser-UA `curl` (verified
+# 2026-07-27) -- a bot-blocking false positive, not a dead link. This is
+# unrelated to this milestone's 7 retired-host deep links (see 31-EVIDENCE.md).
 
 name: Link Check
 
@@ -42,7 +48,7 @@ jobs:
             --exclude-path '.planning'
             --exclude-path 'CHANGELOG\.md$'
             --exclude-path 'tests/fixtures'
-            --accept '100..=103,200..=299,429'
+            --accept '100..=103,200..=299,403,429'
             --max-retries 3
             --retry-wait-time 2
             --timeout 30
