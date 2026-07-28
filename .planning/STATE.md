@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.6.5
 milestone_name: inline-math separator hotfix
-current_phase: 34
-current_phase_name: inline-math-after-text-separator-fix
-status: executing
+current_phase: 35
+current_phase_name: v0.6.5 Release Prep
+status: planning
 stopped_at: Phase 34 planned — RESEARCH.md (root cause measured), PATTERNS.md, VALIDATION.md, 3 plans
-last_updated: "2026-07-28T13:36:16.756Z"
+last_updated: "2026-07-28T14:36:12.851Z"
 last_activity: 2026-07-28
-last_activity_desc: Phase 34 execution started
+last_activity_desc: Phase 34 complete, transitioned to Phase 35
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 ## Current Position
 
-Phase: 34 (inline-math-after-text-separator-fix) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 34
-Last activity: 2026-07-28 — Phase 34 execution started
+Phase: 35 — v0.6.5 Release Prep
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-28 — Phase 34 complete, transitioned to Phase 35
 
 Progress: [--------------------] 0% (0/2 phases)
 

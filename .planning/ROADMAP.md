@@ -272,7 +272,7 @@ tail link-block rollover, and does **not** tag or publish. The irreversible publ
 `release.yml` → PyPI + GitHub Release, plus the standing second tag on `typsphinx-doc-translations`)
 executes at `/gsd-complete-milestone`.
 
-- [ ] **Phase 34: Inline Math After Text — Separator Fix** - Root-cause the missing separator by measurement, fix it so prose-then-inline-math paragraphs compile on both the mitex and native paths, and pin it with a real `typst.compile()` GATE-01 fixture recorded failing pre-fix
+- [x] **Phase 34: Inline Math After Text — Separator Fix** - Root-cause the missing separator by measurement, fix it so prose-then-inline-math paragraphs compile on both the mitex and native paths, and pin it with a real `typst.compile()` GATE-01 fixture recorded failing pre-fix (completed 2026-07-28)
 - [ ] **Phase 35: v0.6.5 Release Prep** - Prep-only: bump 0.6.5 (`pyproject.toml` sole literal + `uv.lock` lockstep + README Status), curated `## [0.6.5]` CHANGELOG entry with the tail link-block rollover, invariants asserted over the full milestone diff; publish at `/gsd-complete-milestone`
 
 ### Phase 34: Inline Math After Text — Separator Fix
@@ -406,7 +406,7 @@ describes a fix that has already been proven by Phase 34's real-compile gate.
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
-| 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | In Progress|  |
+| 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 0/TBD | Not started | - |
 
 ## Backlog

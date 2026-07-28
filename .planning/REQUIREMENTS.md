@@ -10,7 +10,7 @@ Requirements for milestone v0.6.5 (inline-math separator hotfix). Each maps to r
 
 ### Math rendering
 
-- [ ] **MATH-01**: A paragraph where inline math immediately follows text builds through
+- [x] **MATH-01**: A paragraph where inline math immediately follows text builds through
   `typstpdf` without a Typst compile error — the emitted `.typ` carries a valid separator
   between the preceding text emission and the `mi(...)` / `$...$` call (backlog 999.1;
   suspected `translator.py` math/Text visit ordering — `visit_math` at `translator.py:3936`
@@ -56,10 +56,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MATH-01 | Phase 34 | Pending |
+| MATH-01 | Phase 34 | Complete |
 | REL-03 | Phase 35 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 2 total
 - Mapped to phases: 2
 - Unmapped: 0 ✓
