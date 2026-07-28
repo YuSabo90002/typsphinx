@@ -177,3 +177,12 @@ None - no external service configuration required.
 ---
 *Phase: 35-v0-6-5-release-prep*
 *Completed: 2026-07-29*
+
+## Self-Check: PASSED
+
+- FOUND: `tests/fixtures/inline_math_after_text_render_gate/index.rst`
+- FOUND: `tests/test_inline_math_after_text_render_gate.py`
+- FOUND: `.planning/phases/35-v0-6-5-release-prep/35-01-SUMMARY.md`
+- FOUND: commit `f81fdfa` (Task 1)
+- FOUND: commit `c0e66a8` (Task 2)
+- FOUND: commit `d24caab` (SUMMARY)
