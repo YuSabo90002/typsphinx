@@ -4024,6 +4024,11 @@ class TypstTranslator(SphinxTranslator):
         Requirement 5.2: Block math should use $ ... $ format (Typst native)
         Requirement 4.7: Labeled equations should generate <eq:label> format
         Design 3.3: Support both mitex and Typst native math
+        MATH-01 / D-01 (backlog 999.1): participates in the list-item
+        separator protocol (display math shares the inline defect's root
+        cause and was brought into scope by explicit owner decision) -- it
+        is never a concat-context sibling, so only the in_list_item half
+        of the pattern applies.
 
         Args:
             node: The block math node
@@ -4037,6 +4042,17 @@ class TypstTranslator(SphinxTranslator):
         # aborts the compile. A same-document ``:eq:``/``:ref:`` renders
         # link(<id>, ...) and resolves to this anchor. No ids -> no-op.
         self._emit_id_anchors(node)
+
+        # List-item separator only -- math_block is a block-level node and
+        # is never a sibling inside one of the five code-mode concat
+        # contexts, so the shared inline-concat separator helper is
+        # intentionally not called here (that would wrongly emit a `+`
+        # operator around a block expression). Placed AFTER
+        # _emit_id_anchors, which drives this same separator bookkeeping
+        # itself when it emits an anchor -- a guard placed before it would
+        # double-separate.
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
 
         # Extract math content
         math_content = node.astext()
@@ -4061,6 +4077,15 @@ class TypstTranslator(SphinxTranslator):
         # Task 6.3: the equation label/id is anchored by _emit_id_anchors above
         # (a code-mode ` <label>` postfix on the equation failed to parse).
         self.add_text("\n\n")
+
+        # Mark that content was added so the next list-item sibling
+        # (visit_paragraph's _emit_forced_break, a nested list, another
+        # block) newline-separates from this equation. The extra newline
+        # this produces on top of the existing "\n\n" is cosmetic in Typst
+        # code mode; consistency with the shared protocol is what prevents
+        # the next sibling from juxtaposing.
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
         # Skip children to prevent duplicate output of math content
         raise nodes.SkipNode
