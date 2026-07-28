@@ -153,3 +153,14 @@ None - no external service configuration required.
 ---
 *Phase: 34-inline-math-after-text-separator-fix*
 *Completed: 2026-07-28*
+
+## Self-Check: PASSED
+
+- FOUND: typsphinx/translator.py
+- FOUND: tests/fixtures/inline_math_after_text_render_gate/index.rst
+- FOUND: tests/test_inline_math_after_text_render_gate.py
+- FOUND: .planning/phases/34-inline-math-after-text-separator-fix/34-GATE-EVIDENCE.md
+- FOUND: commit d78e223 (Task 1)
+- FOUND: commit a259ee0 (Task 2)
+- FOUND: commit a737e16 (Deviation fix)
+- FOUND: commit ee19799 (Task 3)
