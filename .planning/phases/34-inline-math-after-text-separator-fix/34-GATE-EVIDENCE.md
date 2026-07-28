@@ -222,3 +222,207 @@ the fatal; A and F do not (expected, per the boundary/edge analysis in
   fix lands is `649 passed, 1 skipped, 0 failed` (the two gate tests flipping
   from FAILED to PASSED, nothing else changing). Any additional failure in
   Plan 03's post-fix run is a real regression, not environmental noise.
+
+## GREEN — post-fix run (SC#4, D-02)
+
+- **Commit measured:** `a737e16510081f940d897666ab5181a7df2da3f7` (Plan 02's
+  third commit, `fix(34-02): GATE-01 fixture math content is invalid under
+  native Typst` -- the final state of Plan 02: `visit_math` and
+  `visit_math_block` both fixed, plus the deviation-fix documented below).
+- **Date:** 2026-07-28T14:03:10Z
+- **Commands (same as the RED section, verbatim):**
+  ```
+  uv run pytest tests/test_inline_math_after_text_render_gate.py -q --tb=long
+  ```
+  and, for the isolated per-construct capture:
+  ```
+  uv run python -m sphinx -b typstpdf tests/fixtures/inline_math_after_text_render_gate <scratch>/mitex
+  uv run python -m sphinx -b typstpdf -D typst_use_mitex=0 tests/fixtures/inline_math_after_text_render_gate <scratch>/native
+  ```
+
+### Verbatim pytest passing output
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab37272bc5ac642fb
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 2 items
+
+tests/test_inline_math_after_text_render_gate.py ..                      [100%]
+
+============================== 2 passed in 0.66s ===============================
+```
+
+Both direct scratch builds (mitex default and `-D typst_use_mitex=0`) exited
+`0` with empty stderr -- no `TypstError`, no `Typst compilation failed`,
+no `ExtensionError`. `<scratch>/mitex/index.pdf` and `<scratch>/native/index.pdf`
+both exist, are non-empty (39939 bytes each), and begin with the `%PDF` magic
+bytes.
+
+### Per-commit sampling set (RESEARCH.md Validation Architecture)
+
+```
+uv run pytest tests/test_math_mitex.py tests/test_math_native.py tests/test_math_fallback.py tests/test_inline_math_after_text_render_gate.py -q
+```
+Result: `25 passed in 0.73s` (23 pre-existing math-module tests + the 2
+GATE-01 gate tests, all green, zero failures).
+
+### Post-fix full-suite baseline
+
+```
+uv run pytest -q --tb=no -rf
+```
+Result: `649 passed, 1 skipped in 56.74s` -- exactly the state Plan 01's
+RED section predicted as the consequence of a correct fix: the two gate
+tests flipped from FAILED to PASSED, the pre-existing 1 skip
+(`tests/test_corpus_gate.py`, D-05, unrelated) is unchanged, and there is
+zero new failure anywhere in the 649-test corpus.
+
+## GREEN — emitted separator per construct
+
+One subsection per construct, showing the post-fix emitted line(s) side by
+side with the pre-fix (RED) capture, on the path each was measured on. A
+mid-plan deviation changed the fixture's math content from `E=mc^2` to
+`E = m c^2` (see "Diff scope" below) -- the RED capture below is quoted from
+Plan 01's original recording and therefore still shows the pre-deviation
+`E=mc^2` spelling; the separator SHAPE (newline / `+` / absence of either)
+is what this section verifies, and it is identical under both spellings.
+
+### Construct B -- bullet list item
+
+- RED (mitex, unfixed translator): `text("Text before math ")mi(`E=mc^2`)`
+  -- juxtaposed, zero separator characters.
+- GREEN (mitex, fixed translator, post-deviation content):
+  ```
+  text("Text before math ")
+  mi(`E = m c^2`)
+  ```
+  -- exactly one newline separator.
+- RED (native, unfixed translator): `text("Text before math ")$E=mc^2$`
+  -- juxtaposed.
+- GREEN (native, fixed translator, post-deviation content):
+  ```
+  text("Text before math ")
+  $E = m c^2$
+  ```
+  -- exactly one newline separator.
+
+### Construct C -- collapsed confval field body (`:default:`)
+
+- RED (mitex): `text("The value of ")mi(`x`) + text(" computed inline")`
+  -- missing the leading `+` between the prose sibling and the math call.
+- GREEN (mitex, fixed translator): `text("The value of ") + mi(`x`) + text(" computed inline")`
+  -- exactly one `+` separator inserted before the math call; content (`x`)
+  is unaffected by the deviation fix (only `E=mc^2`-shaped constructs
+  needed correction).
+- GREEN (native, fixed translator): `text("The value of ") + $x$ + text(" computed inline")`
+  -- same shape.
+- The `:type:` field body (math as the sole/first expression) still emits
+  cleanly with **no** leading operator on both paths post-fix (`mi(`x`)` /
+  `$x$` alone) -- confirming the boundary edge from Plan 01's RED matrix
+  stays correct after the fix (no stray leading `+`).
+
+### Construct D -- definition-list term
+
+- RED (mitex): `terms(separator: linebreak(), terms.item(text("Term ")mi(`E=mc^2`), {par({text("Definition body text.")})}))`
+  -- juxtaposed, missing `+`.
+- GREEN (mitex, fixed translator, post-deviation content):
+  ```
+  terms(separator: linebreak(), terms.item(text("Term ") + mi(`E = m c^2`), {par({text("Definition body text.")})}))
+  ```
+  -- exactly one `+` separator.
+- GREEN (native, fixed translator, post-deviation content):
+  ```
+  terms(separator: linebreak(), terms.item(text("Term ") + $E = m c^2$, {par({text("Definition body text.")})}))
+  ```
+  -- same shape.
+
+### Construct E -- display math in a list item (`visit_math_block`)
+
+- RED (mitex): `text("Text before block math.")mitex(`E = mc^2`)` -- juxtaposed
+  (this construct's RED source already had the `E = mc^2` spacing form,
+  unrelated to the D-01 fix or the deviation).
+- GREEN (mitex, fixed translator, post-deviation content):
+  ```
+  text("Text before block math.")
+  mitex(`E = m c^2`)
+  ```
+  -- exactly one newline separator.
+- GREEN (native, fixed translator, post-deviation content):
+  ```
+  text("Text before block math.")
+  $ E = m c^2 $
+  ```
+  -- exactly one newline separator.
+
+### Construct A -- top-level paragraph (control, byte-identical)
+
+- GREEN (mitex, fixed translator, post-deviation content):
+  ```
+  par({text("With space before math: ")
+  mi(`E = m c^2`)
+  text(" after.")})
+  ```
+  and
+  ```
+  par({text("No space where")
+  mi(`E = m c^2`)
+  text("immediately follows.")})
+  ```
+  -- identical shape to the RED capture (single newline, same as before the
+  fix), confirming the fix does not double-separate the already-working
+  top-level-paragraph path (RESEARCH.md Pitfall 1). Since Construct A never
+  reproduced the fatal in RED (it is a regression guard, not a defect
+  reproduction), there is no "before" juxtaposed line to diff against here
+  -- the comparison is that the newline-separated shape is unchanged
+  before and after the fix.
+
+## RED → GREEN verdict
+
+The gate `tests/test_inline_math_after_text_render_gate.py` (both
+`test_typstpdf_separates_inline_math_mitex_path` and
+`test_typstpdf_separates_inline_math_native_path`) **failed** against
+commit `26f8395ba55e4dd851e07046b6bab42bb5222939` (Plan 01's unfixed
+translator; RED section above) with `result.returncode == 2` and the
+verbatim Typst error `TypstError: expected semicolon or line break`, and
+**passes** against commit `a737e16510081f940d897666ab5181a7df2da3f7`
+(Plan 02's fixed translator; this section) with `2 passed, 0 failed,
+0 skipped`.
+
+Constructs that flipped from a reproduced fatal (RED) to a correct,
+exactly-one-separator emission (GREEN): **B** (bullet list item, both
+paths), **C** `:default:` (collapsed confval field body concat context,
+both paths), **D** (definition-list term concat context, both paths), and
+**E** (display math in a list item, `visit_math_block`, both paths).
+Constructs that did not reproduce the fatal in RED and remain
+byte-identical/unregressed in GREEN: **A** (top-level paragraph control),
+**C** `:type:` (math as first/sole expression in a concat context -- no
+leading operator, before or after the fix), and **F** (list item whose
+sole content is math -- no preceding sibling to separate from).
+
+## Diff scope
+
+```
+$ git diff --stat af187d36c5bcbbdb0bb5cb03ddc9f37fa6fd7b5e..HEAD
+ .../inline_math_after_text_render_gate/index.rst   | 10 ++---
+ tests/test_inline_math_after_text_render_gate.py   | 17 ++++----
+ typsphinx/translator.py                            | 45 ++++++++++++++++++++++
+ 3 files changed, 59 insertions(+), 13 deletions(-)
+```
+
+- `typsphinx/translator.py` -- the production fix (`visit_math`,
+  `visit_math_block`), 45 insertions, 0 deletions, no lines removed.
+- `tests/fixtures/inline_math_after_text_render_gate/index.rst` and
+  `tests/test_inline_math_after_text_render_gate.py` -- the Plan 02
+  deviation fix: `E=mc^2` -> `E = m c^2` throughout, so the fixture's math
+  content is valid under real Typst native-math parsing (unrelated to the
+  separator defect; see the deviation entry in `34-02-SUMMARY.md`). No
+  exact-string assertion was weakened to a substring check -- only the
+  literal math content changed, verified against real emitted bytes from a
+  direct scratch build of both paths.
+- **No file under `tests/test_math_*.py` was touched**
+  (`git status --porcelain tests/test_math_mitex.py tests/test_math_native.py tests/test_math_fallback.py`
+  is empty at HEAD) and **no `@preview` version string changed**
+  (`uv run pytest tests/test_preview_version_sync.py -q` -> `3 passed`).
