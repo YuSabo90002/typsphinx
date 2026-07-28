@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.6.5
 milestone_name: inline-math separator hotfix
 status: planning
-last_updated: "2026-07-28T13:20:00.000Z"
+last_updated: "2026-07-28T18:30:00.000Z"
 last_activity: 2026-07-28
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 34 — Inline Math After Text — Separator Fix (`/gsd-plan-phase 34`)
+**Current focus:** Phase 34 — Inline Math After Text — Separator Fix (`/gsd-execute-phase 34`)
 
 ## Current Position
 
 Phase: 34 — Inline Math After Text — Separator Fix
-Plan: — (not yet planned)
-Status: Roadmap created; phase not yet planned
-Last activity: 2026-07-28 — v0.6.5 roadmap created (Phases 34–35), backlog 999.1 promoted to Phase 34
+Plan: 3 plans created (34-01 fixture+RED → 34-02 fix → 34-03 regression sweep), 0/3 complete
+Status: Ready to execute
+Last activity: 2026-07-28 — Phase 34 planned: research measured the real root cause (visit_math/visit_math_block missing separator participation in list-item and concat contexts — the backlog's top-level-paragraph hypothesis was empirically false); 3 plans created and checker-verified
 
 Progress: [--------------------] 0% (0/2 phases)
 
@@ -208,12 +208,15 @@ Items acknowledged and carried forward from milestone closes:
 **Resume file:** None
 
 Last session: 2026-07-28
-Stopped at: v0.6.5 roadmap created (Phases 34–35); requirements traceability updated
-Resume: `/gsd-plan-phase 34`.
+Stopped at: Phase 34 planned — RESEARCH.md (root cause measured), PATTERNS.md, VALIDATION.md, 3 plans
+verified by plan-checker (all dimensions pass)
+Resume: `/gsd-execute-phase 34`.
 
 ## Operator Next Steps
 
-- Plan the fix phase with `/gsd-plan-phase 34` (add `--skip-ui` if the UI gate false-positives on the
-  render/PDF wording).
-- Phase 34 must **measure** the root cause before fixing: the backlog's "math/Text visit ordering"
-  hypothesis is already contradicted by `visit_math` calling `_add_paragraph_separator()`.
+- Execute the fix phase with `/gsd-execute-phase 34` (waves are strictly sequential: fixture+RED →
+  fix → regression sweep, because SC#4 requires the RED run recorded before the fix lands).
+- Root cause is now **measured** (Phase 34 RESEARCH.md): the backlog's top-level-paragraph shape
+  already works; the real defect is `visit_math` (and `visit_math_block`) skipping separator
+  participation in list-item and concat contexts. Scope decisions D-01 (fix both) and D-02
+  (fixture = list item + concat context, RED recorded) are locked in the plans.

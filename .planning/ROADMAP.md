@@ -310,9 +310,16 @@ instead of aborting the Typst compile.
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 34-01-PLAN.md — GATE-01 fixture (list item + field body + def-list term + list-item block math + top-level control) on both emission paths, recorded RED against the unfixed translator
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 34-02-PLAN.md — separator-protocol fix in `visit_math` (3 protocols) and `visit_math_block` (list-item half), gate turned GREEN on both paths
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 34-03-PLAN.md — regression sweep: full suite vs. pre-fix baseline, lint/type, full-corpus `-b typstpdf` gate, docs dogfooding build, milestone invariants
 
 ### Phase 35: v0.6.5 Release Prep
