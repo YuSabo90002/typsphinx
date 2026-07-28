@@ -4,15 +4,15 @@ milestone: v0.6.5
 milestone_name: inline-math separator hotfix
 current_phase: 35
 current_phase_name: v0.6.5 Release Prep
-status: planning
-stopped_at: Phase 35 context gathered
-last_updated: "2026-07-28T15:01:18.645Z"
-last_activity: 2026-07-28
-last_activity_desc: Phase 34 complete, transitioned to Phase 35
+status: executing
+stopped_at: Phase 35 planned (5 plans, 4 waves)
+last_updated: "2026-07-29T00:00:00.000Z"
+last_activity: 2026-07-29
+last_activity_desc: Phase 35 planned — 5 plans in 4 waves, plan-checker passed
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 3
+  total_plans: 8
   completed_plans: 3
   percent: 50
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 34 — inline-math-after-text-separator-fix
+**Current focus:** Phase 35 — v0.6.5 Release Prep
 
 ## Current Position
 
 Phase: 35 — v0.6.5 Release Prep
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-28 — Phase 34 complete, transitioned to Phase 35
+Plans: 0/5 complete (4 waves)
+Status: Ready to execute
+Last activity: 2026-07-29 — Phase 35 planned (5 plans, 4 waves), plan-checker passed
 
 Progress: [--------------------] 0% (0/2 phases)
 

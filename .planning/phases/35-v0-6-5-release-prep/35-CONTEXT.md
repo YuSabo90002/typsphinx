@@ -63,7 +63,8 @@ half executes at `/gsd-complete-milestone`).**
   terms, and the like)" on one line; do not enumerate every context. **No BREAKING label** — this is
   a pure bug fix with no user whose working setup breaks.
 
-- **D-02: Display math (a `.. math::` block inside a list item) goes in the same bullet as inline math.**
+- **D-02: Display math inside a list item goes in the same bullet as inline math.**
+  The construct in question is a `.. math::` block inside a list item.
   From the user's side this is one and the same change — "math inside a list item made the build
   fail" — so it is bundled (precedent: Phase 33 D-09's granularity rule — bundle by user-visible
   change, requirement IDs in trailing parentheses). The implementation-level split between
@@ -97,8 +98,9 @@ half executes at `/gsd-complete-milestone`).**
   and native tests. A separate fixture would add two more `sphinx-build` runs, so keep it consolidated
   with the existing six constructs (A–F).
 
-- **D-07: The three test additions run as an independent plan before the version bump, and the ROADMAP
-  gains no new success criterion.** Phase 35's SC#1–SC#4 say nothing about test additions, so this is
+- **D-07: The three test additions run as an independent plan before the version bump.**
+  The ROADMAP gains no new success criterion.
+  Phase 35's SC#1–SC#4 say nothing about test additions, so this is
   recorded here as work adjacent to (outside) REL-03's scope: get it green first, then the version
   bump / CHANGELOG / SC#3 live-run evidence establish the final green in a single pass. We do not add
   an SC#5 to the ROADMAP and thereby widen the phase boundary officially.
