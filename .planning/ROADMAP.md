@@ -351,11 +351,25 @@ a document which used to fail to compile now compiles — and the only remaining
      v0.6.5`. The publish half (tag → `release.yml` → PyPI + GitHub Release, plus the standing
      second-repository tag on `typsphinx-doc-translations`) executes at `/gsd-complete-milestone`.
 
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
+**Wave 1**
 
-- [ ] TBD (created by `/gsd-plan-phase 35`)
+- [ ] 35-01-PLAN.md — close the three test-side Phase 34 review Warnings (WR-02 / WR-03 / WR-04): Construct G added to the GATE-01 fixture plus four exact-string assertions across both emission paths, zero `typsphinx/` change
+- [ ] 35-02-PLAN.md — file the two deliberate deferrals as pending todos: WR-01's redundant blank line (D-05/D-10) and the `release.yml` release-notes-body rework (D-11)
+
+**Wave 2** *(blocked on 35-01 per D-07: tests green before the bump)*
+
+- [ ] 35-03-PLAN.md — SC#1 version bump: `pyproject.toml` sole literal → 0.6.5, `uv.lock` regenerated in lockstep, README Status line, `typsphinx.__version__` proven
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 35-04-PLAN.md — SC#2 curated `## [0.6.5]` CHANGELOG entry (lead + `### Fixed` + `### Verified` per D-01–D-04) and the tail link-block rollover
+
+**Wave 4** *(blocked on Waves 1–3)*
+
+- [ ] 35-05-PLAN.md — SC#3/SC#4/SC#5 live-run evidence incl. D-12's two docs builds, mechanical invariants over the `eb696bb`-anchored milestone diff, and `35-HANDOFF.md` (D-08/D-09/D-10); evidence written to `35-RELEASE-EVIDENCE.md`
 
 ## Progress
 
