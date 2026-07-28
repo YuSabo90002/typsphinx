@@ -16,9 +16,26 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
 
-## Current Milestone: (none — v0.6.4 shipped 2026-07-28)
+## Current Milestone: v0.6.5 inline-math separator hotfix
 
-Next milestone not yet scoped — start with `/gsd-new-milestone`.
+**Goal:** Fix backlog item 999.1 — inline math immediately following text emits no separator
+before the `#mi(...)` call, so the generated Typst fails to compile — and release v0.6.5
+promptly.
+
+**Target features:**
+
+- **999.1 fix** — when an inline math node follows text inside a paragraph, the emitted Typst
+  has a valid separator between the preceding `text(...)` call and the `mi(...)` /
+  `$...$` emission (suspected `translator.py` math/Text visit ordering — `visit_math` at
+  `translator.py:3936` calls `_add_paragraph_separator()`, so the root cause needs measuring).
+  Ships a real `typst.compile()` GATE-01 regression fixture proven fail-pre-fix
+- **v0.6.5 release prep** — version bump + curated CHANGELOG entry in the final phase
+  (the standing v0.5.0 Phase 10 pattern); publish executes at `/gsd-complete-milestone`
+
+**Key context:** Minimal hotfix scope — none of the 5 pending todos or deferred requirements
+(CFG-01, XOS-01, DEG-03, XREF-02, CONF-06, RTD-05, LNK-01) are pulled in. Standing milestone
+invariants hold: zero new runtime dependencies, no `@preview` version bump, the 3-way
+version-sync surface (4 package version strings) unchanged.
 
 <details>
 <summary>v0.6.4 milestone brief (as scoped 2026-07-25, amended 2026-07-26) — retained for reference</summary>
@@ -303,11 +320,13 @@ losses: no browser-language auto-redirect; old github.io URLs 404 with no stubs.
 
 ### Active
 
-<!-- No active milestone. The next milestone's ledger will be created by /gsd-new-milestone
-     (REQUIREMENTS.md is archived per-milestone under milestones/). -->
+<!-- Current scope: milestone v0.6.5 (inline-math separator hotfix). -->
 
-(None — next milestone not yet scoped. Candidate work: `.planning/todos/pending/` +
-ROADMAP.md Backlog 999.x.)
+- [ ] Inline math immediately following text compiles: the emitted Typst carries a valid
+  separator between the preceding text emission and the `mi(...)` / `$...$` call, pinned by a
+  real `typst.compile()` GATE-01 regression fixture (backlog 999.1)
+- [ ] v0.6.5 release prepared: version bump (`pyproject.toml` sole literal + `uv.lock`
+  lockstep) + curated CHANGELOG entry; publish at `/gsd-complete-milestone`
 
 ### Out of Scope
 
@@ -400,7 +419,10 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-28 after v0.6.4 milestone close — Read the Docs migration shipped (6 phases / 33 plans, audit `passed` 13/13, verified_closeout): PR #124 merged, `v0.6.4` tagged, `release.yml` → PyPI + GitHub Release; Issue #119 closed; archives at `milestones/v0.6.4-*`. Owner-manual steps owed post-close: two RTD Default-branch flips → `main`, `.gitmodules` `branch` → `main` (translations repo), Default Version `latest` → `stable` after the tag builds green. Next: `/gsd-new-milestone`. Prior footer retained below.*
+*Last updated: 2026-07-28 — started milestone v0.6.5 (inline-math separator hotfix) via `/gsd-new-milestone`. Scoped from the owner's direction (「999.1を修正してすみやかにverUpしたい」, i.e. "fix 999.1 and version-up promptly"): minimal two-item scope — the backlog 999.1 inline-math-after-text missing-separator Typst compile error, fixed with a GATE-01 real-`typst.compile()` fail-pre-fix regression fixture, plus a prep-only release phase (version bump + CHANGELOG; publish at `/gsd-complete-milestone`). No pending todos or deferred requirements pulled in. Standing invariants: zero new runtime deps, no `@preview` bump, 3-way version-sync surface unchanged. Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.*
+
+<!-- Prior: *Last updated: 2026-07-28 after v0.6.4 milestone close — Read the Docs migration shipped (6 phases / 33 plans, audit `passed` 13/13, verified_closeout): PR #124 merged, `v0.6.4` tagged, `release.yml` → PyPI + GitHub Release; Issue #119 closed; archives at `milestones/v0.6.4-*`. Owner-manual steps owed post-close: two RTD Default-branch flips → `main`, `.gitmodules` `branch` → `main` (translations repo), Default Version `latest` → `stable` after the tag builds green. Next: `/gsd-new-milestone`. Prior footer retained below.* -->
+
 
 <!-- Prior: *Last updated: 2026-07-28 after Phase 33 (v0.6.4 Release Prep) complete — the milestone's final phase, prep-only with the scope fence proven held (empty `git tag -l v0.6.4` + `git ls-remote --tags origin v0.6.4` recorded in `33-HANDOFF.md`): version bumped to 0.6.4 (`pyproject.toml` sole literal, `uv.lock` self-pin 1-in/1-out, README Status same-commit), curated `## [0.6.4]` CHANGELOG entry (zero BREAKING per D-01, losses disclosed in Removed; `### Verified` held to three diff-provable invariants per D-03; tail link block rolled), the four top-level `.planning/` docs translated JA→EN meaning-preserving (D-05; human UAT spot-check passed 1/1), `33-RELEASE-EVIDENCE.md` re-verifying the RTD Documentation URL live (302→200) and the three milestone invariants over the re-measured 279-commit diff. Verification `passed`; 14/14 threats closed (33-SECURITY.md). **All 6 v0.6.4 phases complete — milestone ready for `/gsd-complete-milestone`** (merge PR #124 → tag `v0.6.4` → PyPI + GitHub Release), which also owes: Issue #119 close (D-15 draft), the two RTD Default-branch reverts + `.gitmodules` `branch` → `main`, Default Version `latest` → `stable` after the tag builds green, and the dependabot PR #123 revival-hazard check. Prior footer retained below.* -->
 

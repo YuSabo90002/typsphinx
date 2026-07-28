@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.4
-milestone_name: Read the Docs migration
-status: Awaiting next milestone
-stopped_at: Milestone v0.6.4 closed (audit passed, archived, published)
-last_updated: "2026-07-27T21:51:33.264Z"
+milestone: v0.6.5
+milestone_name: inline-math separator hotfix
+status: planning
+last_updated: "2026-07-28T12:40:53.193Z"
 last_activity: 2026-07-28
-last_activity_desc: Milestone v0.6.4 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 33
-  completed_plans: 33
-  percent: 100
-current_phase: 999.1
-current_phase_name: BACKLOG
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 ## Current Position
 
-Phase: Milestone v0.6.4 complete (closed 2026-07-28, verified_closeout — audit passed 13/13)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone (`/gsd-new-milestone`)
-Last activity: 2026-07-28 — v0.6.4 closed: archived, PR #124 merged, tagged, published
+Status: Defining requirements
+Last activity: 2026-07-28 — Milestone v0.6.5 started
 
 ## Shipped Milestone (v0.6.4 — archived)
 
@@ -102,9 +98,11 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 - `branching_strategy: milestone` — ship unit is the milestone; final phase is prep-only Release;
   publish executes at `/gsd-complete-milestone`; push `main` to `origin` at every close.
+
 - Every release tags **two** repositories (parent + `typsphinx-doc-translations`) — v0.6.4 D-07.
 - Milestone invariant #4 (standing): "anywhere under X" success criteria are checked by a repo-wide
   grep at discovery time, never against the files a requirement happens to name.
+
 - Run `/gsd-audit-milestone` before each close (v0.6.4 restored it; first verified_closeout since
   v0.4.4).
 
@@ -115,6 +113,7 @@ Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
   repo-wide real-HTTP check covers the real failure class.
+
 - **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent.
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening.
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
