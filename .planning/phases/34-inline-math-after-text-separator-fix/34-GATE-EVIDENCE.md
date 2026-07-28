@@ -426,3 +426,232 @@ $ git diff --stat af187d36c5bcbbdb0bb5cb03ddc9f37fa6fd7b5e..HEAD
   (`git status --porcelain tests/test_math_mitex.py tests/test_math_native.py tests/test_math_fallback.py`
   is empty at HEAD) and **no `@preview` version string changed**
   (`uv run pytest tests/test_preview_version_sync.py -q` -> `3 passed`).
+
+## Regression sweep — suite, lint, invariants
+
+- **Commit measured:** `0a14da0f37cbad0447f4f8a2424fd6ddc3cee542` (this worktree's
+  HEAD at the start of Plan 03 -- `docs(phase-34): update tracking after wave 2`,
+  the merged state of Plan 01 + Plan 02, before this plan's own append-only edits
+  to this file).
+- **Date:** 2026-07-28T14:13:51Z
+- **Environment provisioning (worktree-only, not a source/test edit):** per
+  CLAUDE.md's "Worktree-isolated execution" section and project memory
+  ("NixOS sandbox test env"), this fresh worktree venv needed two binary
+  symlink fixes before any command could run cleanly -- both are environment
+  plumbing, identical in kind to the documented `.venv/bin/uv` fix, and touch
+  nothing under `typsphinx/`, `tests/`, or any tracked file:
+  - `.venv/bin/uv` -> the Nix-store `uv` (`command -v uv`), replacing the
+    generic-linux ELF `uv` wheel `uv sync` installs (the documented stub-ld
+    hazard).
+  - `.venv/bin/ruff` -> the main checkout's `.venv/bin/ruff` (same pinned
+    version, `0.15.20` on both sides, confirmed via `ruff --version` and
+    `uv.lock`), since the worktree-synced `ruff` wheel is the same
+    generic-linux-ELF-on-NixOS hazard and the main tree's copy is already
+    patchelf'd against the Nix-store `glibc`/`ld-linux`.
+
+### Step 1 -- full-suite command (same as Plan 01's baseline command)
+
+```
+uv run pytest -q --tb=no -rf
+```
+
+Result: `649 passed, 1 skipped in 57.73s` -- `0 failed`.
+
+### Step 2 -- set-difference comparison against Plan 01's pre-fix baseline
+
+Both sorted failing-node-ID lists were written to scratch files and diffed
+with `diff` (not eyeballed):
+
+- **Pre-fix baseline set** (Plan 01's "Sorted list of OTHER failing node IDs"
+  -- the two intentionally-RED gate tests are excluded from this baseline by
+  Plan 01's own accounting, per SC#4): **empty** (zero environmentally-failing
+  tests recorded).
+- **Post-fix failing set** (this run's `FAILED` lines from the `-rf` summary):
+  **empty** (`0 failed`; the pytest short-summary shows zero `FAILED` lines).
+- **NEW** (post-fix minus pre-fix): **empty.** `diff` between the two scratch
+  files reports no difference -- both are empty files. This is the required
+  outcome; no new failure exists anywhere in the 650-test collection.
+- **FIXED** (pre-fix minus post-fix): the two GATE-01 gate tests, verified
+  passing in this run's `tests/test_inline_math_after_text_render_gate.py ..`
+  line (100%, both PASSED):
+  - `tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_mitex_path`
+  - `tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_native_path`
+- **CARRIED** (intersection -- known NixOS-environmental failures): **empty.**
+  Consistent with Plan 01's baseline recording zero environmental failures once
+  the `.venv/bin/uv` symlink fix is applied; the same held here.
+
+### Step 3 -- CI command set (verbatim from CLAUDE.md)
+
+| Command | Exit status |
+|---------|--------------|
+| `uv run black --check .` | `0` -- "All done! 173 files would be left unchanged." |
+| `uv run ruff check .` | `0` -- "All checks passed!" (after the `.venv/bin/ruff` symlink fix above; the unfixed venv-installed `ruff` cannot even start under NixOS -- `Could not start dynamically linked executable: ruff`, a pure exec-environment hazard unrelated to code correctness) |
+| `uv run mypy typsphinx/` | `0` -- "Success: no issues found in 6 source files" |
+
+### Step 4 -- milestone invariants, asserted mechanically over the phase diff
+
+- **Milestone base commit:** `eb696bb` (`docs: v0.6.4 published -- record
+  release run, RTD stable state, owner flips` -- the last commit before
+  `6c9fcde` "docs: start milestone v0.6.5 inline-math separator hotfix").
+- **Command:** `git diff --stat eb696bb...HEAD`
+- **Changed-file list (18 files, 3401 insertions(+), 69 deletions(-)):**
+  ```
+  .planning/PROJECT.md
+  .planning/REQUIREMENTS.md
+  .planning/ROADMAP.md
+  .planning/STATE.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-01-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-01-SUMMARY.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-02-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-02-SUMMARY.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-03-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-GATE-EVIDENCE.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-PATTERNS.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-RESEARCH.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-VALIDATION.md
+  .planning/todos/pending/.gitkeep
+  tests/fixtures/inline_math_after_text_render_gate/conf.py
+  tests/fixtures/inline_math_after_text_render_gate/index.rst
+  tests/test_inline_math_after_text_render_gate.py
+  typsphinx/translator.py
+  ```
+- **Invariant assertions:**
+  - `pyproject.toml` absent from the list -- **zero new runtime/dev
+    dependencies.**
+  - `uv.lock` absent from the list -- confirms the above mechanically (no
+    lockfile drift).
+  - None of the four `@preview` sync surfaces (`typsphinx/writer.py`,
+    `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, any path
+    under `examples/`) appear in the list -- the only `typsphinx/` file
+    touched is `typsphinx/translator.py` (the D-01 separator fix itself).
+  - `uv run pytest tests/test_preview_version_sync.py -q` -> `3 passed` --
+    all three lockstep surfaces (`writer.py`, `template_engine.py`,
+    `templates/base.typ`, and the `examples/**/*.typ` glob the test also
+    covers) agree.
+- **Working-tree cleanliness:** `git status --porcelain typsphinx/ tests/`
+  prints nothing -- this plan modified no source, test, or fixture file (its
+  only edit is this append to `34-GATE-EVIDENCE.md`).
+
+### Verdict
+
+The post-fix failing set is the empty set, a strict (trivial) subset of Plan
+01's empty pre-fix-baseline "other failures" set. The two GATE-01 gate tests
+moved from FAILED (Plan 01's RED) to PASSED (this run), with zero new failures
+anywhere else in the 650-test collection. All three CI commands (`black`,
+`ruff`, `mypy`) exit `0`. All milestone invariants hold, asserted mechanically
+over the `eb696bb...HEAD` diff, not from recollection.
+
+## Regression sweep — corpus gate and docs dogfooding
+
+- **Commit measured:** `8946c37` (this plan's Task 1 commit, on top of
+  `0a14da0`) -- no source/test/fixture file was touched between Task 1 and
+  Task 2 (`git status --porcelain typsphinx/ tests/ docs/` is empty
+  throughout).
+- **Environment provisioning note (worktree-only, not a source/test edit):**
+  the docs dogfooding build needs the `docs` optional-dependency group
+  (`furo`, `sphinx-autodoc-typehints`, `sphinx-intl` -- already declared in
+  `pyproject.toml`'s `[project.optional-dependencies].docs`, unchanged by
+  this plan) which `uv sync --extra dev` alone does not install; ran
+  `uv sync --extra dev --extra docs` to add it. This installs an
+  already-pinned optional extra from the existing lockfile -- it does **not**
+  add a new dependency to `pyproject.toml` or `uv.lock` (both files are
+  absent from the phase diff in the previous section, confirming this).
+
+### Verdict table
+
+| Gate | Command | Verdict | Evidence |
+|------|---------|---------|----------|
+| Full-corpus `-b typstpdf` (SC#1/GATE-02) | `uv run pytest tests/test_corpus_gate.py -q -m slow` | **PASSED** | `test_corpus_compiles_with_no_fatal_error` passed; see "Full-corpus gate" below |
+| Docs dogfooding `-b typstpdf` | `uv run python -m sphinx -b typstpdf docs/source <scratch>/docs-pdf` | **PASSED** | exit 0, no fatal signature strings in stderr, valid `%PDF`, see "Docs dogfooding build" below |
+| Encoding closing check | `pypdf` text extraction + NFKC normalize on the docs PDF | **PASSED** | see "Encoding closing check" below |
+
+### Full-corpus gate
+
+- **Command:** `uv run pytest tests/test_corpus_gate.py -q -m slow`
+- **Result:** `1 passed, 1 skipped, 3 deselected in 13.31s` -- the one passed
+  test is `TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error`
+  (SC#1's gate, GATE-02). The one skip is
+  `test_empty_url_before_after` -- its own documented, unrelated env-gate
+  (`TYPSPHINX_CORPUS_REPORT=1` required, D-07's SC#3 measurement -- not part
+  of this phase's regression surface). The 3 deselected are the module's
+  fast non-`slow`-marked unit tests, already counted in the Task 1 full-suite
+  run.
+- **Corpus tag:** `v9.1.0` (matches the installed `sphinx.__version__`).
+- **Corpus commit SHA:** `cc7c6f435ad37bb12264f8118c8461b230e6830c`.
+- **`unknown_visit` catalogue:** `[]` (empty) -- no residual unhandled node
+  types, matching the steady state Phase 16 established (GATE-03).
+- This gate was **not** a skip -- it ran the real network clone (cached at
+  `~/.cache/typsphinx-corpus-gate`), the real `sphinx-build -b typstpdf`, and
+  the real `typst.compile()`, fatal-free.
+
+### Docs dogfooding build
+
+- **Command:** `uv run python -m sphinx -b typstpdf docs/source <scratch>/docs-pdf`
+  (module form, per the NixOS `sys.executable -m sphinx` convention; the
+  canonical `tox -e docs-pdf` invocation this reproduces directly is
+  `sphinx-build -b typstpdf source _build/pdf` from `docs/`).
+- **Exit status:** `0`.
+- **Fatal signature strings in captured stderr:** none of `expected
+  semicolon or line break`, `expected comma`, `Typst compilation failed`
+  appear anywhere in stderr (`grep -c` for each returns 0; stderr's only
+  content is 198 repeated third-party `RemovedInSphinx10Warning` deprecation
+  warnings from `sphinx_autodoc_typehints`, unrelated to this phase).
+- **Produced PDF:** `<scratch>/docs-pdf/typsphinx.pdf`.
+  - First 4 bytes: `b'%PDF'`.
+  - Byte size: `1,708,831` bytes (non-empty).
+  - Page count (via `pypdf.PdfReader`): `93` pages.
+- **Build summary line:** `build succeeded, 2 warnings.` (the 2 Sphinx-level
+  warnings are the pre-existing, unrelated "referenced in multiple toctrees"
+  notices for `examples/advanced`, `examples/basic`,
+  `user_guide/builders`, `user_guide/configuration`, `user_guide/templates`
+  -- a docs cross-linking structure choice, not a Typst compile fatal).
+
+### Encoding closing check
+
+- **Method:** `pypdf.PdfReader` full-document text extraction on
+  `typsphinx.pdf`, then `unicodedata.normalize("NFKC", ...)` on the
+  concatenated text.
+- **Extracted raw text length:** `135,153` characters.
+- **Prose sentinel from the docs front page:** the string `"typsphinx"` (the
+  project title, first line of the extracted text) is present in the raw
+  extracted text (`True`).
+- **NFKC-normalized length:** `135,195` characters -- non-empty and strictly
+  greater than zero.
+- This closes the encoding edge against the real rendered docs PDF (not only
+  the synthetic GATE-01 fixture): the extracted front-page text begins
+  `typsphinx / YuSabo / 0.6.4 / 1 Getting Started / ...`, confirming prose
+  round-trips through the compiled Typst PDF with no corruption.
+
+### Human-check: visual confirmation (fixture rendering)
+
+Rebuilt the GATE-01 fixture to two scratch directories (mitex default and
+`-D typst_use_mitex=0` native) and visually inspected both compiled PDFs
+page 3 directly (PDF page-render, not text-extraction):
+
+- **(a) Construct B (bullet list item):** "Text before math *E = mc²* text
+  after." renders as one continuous line inside the bullet, normal word
+  spacing before and after the equation, no visible Typst source (no `mi(`
+  or `$` leaking onto the page) -- identical on both the mitex and native
+  PDFs.
+- **(b) Construct E (display math in a list item):** renders as a centred
+  equation "*E = mc²*" between "Text before block math." above and "Text
+  after block math." below -- identical on both PDFs.
+- **(c) Construct C (`:default:` confval field body):** "Default: The value
+  of *x* computed inline" reads as one continuous sentence with the equation
+  inline -- identical on both PDFs.
+
+**Approved** -- all three checks confirmed visually on both emission paths;
+no overlapping text, no split lines, no leaked Typst source.
+
+## Phase 34 verdict
+
+| Criterion | Marker | Evidence |
+|-----------|--------|----------|
+| SC#1 -- prose-then-inline-math (incl. no-space form) builds through `-b typstpdf` to a valid PDF | **PASS** | GATE-01 gate `2 passed` (Task 1's full-suite run, `tests/test_inline_math_after_text_render_gate.py ..`); direct scratch builds of both fixture paths exit 0 with `%PDF` PDFs (this plan's "Full-corpus gate"/"Human-check" sections, and `34-02-SUMMARY.md`'s GREEN evidence) |
+| SC#2 -- compiles on BOTH the mitex default and native (`-D typst_use_mitex=0`) paths | **PASS** | `test_typstpdf_separates_inline_math_mitex_path` AND `test_typstpdf_separates_inline_math_native_path` both PASSED (Task 1 full-suite run); this plan's own fixture rebuild produced valid PDFs on both paths (Human-check section above) |
+| SC#3 -- compiled PDF's extracted text contains prose + math adjacent, no dropped words, no swallowed math, no leaked Typst source | **PASS** | The gate test's own NFKC-normalized PDF text-fidelity assertions passed (part of the `2 passed` GATE-01 result); this plan's Human-check visually confirms the same on all three flagged constructs (B, C, E) with no leaked source; the encoding closing check on the real docs PDF (this plan, "Encoding closing check" section) extends the same guarantee to a real-world document |
+| SC#4 -- fix pinned by a real `typst.compile()` GATE-01 fixture, fail-pre-fix run recorded | **PASS** | `## RED — pre-fix run` section above (Plan 01, commit `26f8395`, both tests FAILED with the verbatim `TypstError: expected semicolon or line break`) followed by `## GREEN — post-fix run` (Plan 02, commit `a737e16`, `2 passed, 0 failed`) -- the full RED→GREEN record with named commit SHAs |
+| SC#5 -- nothing else regresses: display math, math in list items/tables/captions, the three existing math test modules, the full pytest suite, and the full-corpus gate all stay green | **PASS** | This plan's "Regression sweep — suite, lint, invariants" (649 passed, 1 skipped, 0 failed, NEW set empty) and "Regression sweep — corpus gate and docs dogfooding" (corpus gate PASSED fatal-free, docs dogfooding PASSED with a valid 93-page PDF) sections, both above |
+
+All five ROADMAP Phase 34 success criteria are met with direct evidence; no
+criterion required a HUMAN-NEEDED abstention.
