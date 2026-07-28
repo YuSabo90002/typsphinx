@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.6.5
 milestone_name: inline-math separator hotfix
-status: planning
-last_updated: "2026-07-28T18:30:00.000Z"
+current_phase: 34
+current_phase_name: inline-math-after-text-separator-fix
+status: executing
+stopped_at: Phase 34 planned — RESEARCH.md (root cause measured), PATTERNS.md, VALIDATION.md, 3 plans
+last_updated: "2026-07-28T13:36:16.756Z"
 last_activity: 2026-07-28
+last_activity_desc: Phase 34 execution started
 progress:
   total_phases: 2
   completed_phases: 0
@@ -20,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Phase 34 — Inline Math After Text — Separator Fix (`/gsd-execute-phase 34`)
+**Current focus:** Phase 34 — inline-math-after-text-separator-fix
 
 ## Current Position
 
-Phase: 34 — Inline Math After Text — Separator Fix
-Plan: 3 plans created (34-01 fixture+RED → 34-02 fix → 34-03 regression sweep), 0/3 complete
-Status: Ready to execute
-Last activity: 2026-07-28 — Phase 34 planned: research measured the real root cause (visit_math/visit_math_block missing separator participation in list-item and concat contexts — the backlog's top-level-paragraph hypothesis was empirically false); 3 plans created and checker-verified
+Phase: 34 (inline-math-after-text-separator-fix) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 34
+Last activity: 2026-07-28 — Phase 34 execution started
 
 Progress: [--------------------] 0% (0/2 phases)
 
@@ -216,6 +220,7 @@ Resume: `/gsd-execute-phase 34`.
 
 - Execute the fix phase with `/gsd-execute-phase 34` (waves are strictly sequential: fixture+RED →
   fix → regression sweep, because SC#4 requires the RED run recorded before the fix lands).
+
 - Root cause is now **measured** (Phase 34 RESEARCH.md): the backlog's top-level-paragraph shape
   already works; the real defect is `visit_math` (and `visit_math_block`) skipping separator
   participation in list-item and concat contexts. Scope decisions D-01 (fix both) and D-02
