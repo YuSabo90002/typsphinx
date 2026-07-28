@@ -110,3 +110,12 @@ None - no external service configuration required.
 ---
 *Phase: 35-v0-6-5-release-prep*
 *Completed: 2026-07-29*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/todos/pending/2026-07-29-visit-math-block-redundant-blank-line-in-list-items.md`
+- FOUND: `.planning/todos/pending/2026-07-29-release-notes-body-from-changelog-section.md`
+- FOUND: `.planning/phases/35-v0-6-5-release-prep/35-02-SUMMARY.md`
+- FOUND commit: `080c95f`
+- FOUND commit: `8f01b92`
+- FOUND commit: `a19d438`
