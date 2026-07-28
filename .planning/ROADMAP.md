@@ -9,20 +9,22 @@
 - ✅ **v0.6.2 — rendering fidelity round 2** — Phases 19–23 (+22.1–22.4) (shipped 2026-07-23) → [archive](milestones/v0.6.2-ROADMAP.md)
 - ✅ **v0.6.3 — config & docs measured fidelity + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
+- 🚧 **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (active, started 2026-07-28)
 
-**No active milestone.** v0.6.4 shipped 2026-07-28; start the next cycle with `/gsd-new-milestone`.
-Phase numbering continues from v0.6.4's last phase (33).
+**Active milestone: v0.6.5 — inline-math separator hotfix.** Two phases (34, 35): the backlog-999.1
+inline-math separator fix, then prep-only release. Phase numbering continues from v0.6.4's last phase
+(33), so v0.6.5 starts at Phase 34.
 
 ## Phases
 
 **Phase Numbering:**
 
-- Integer phases (29, 30, 31): Planned milestone work
-- Decimal phases (29.1, 29.2): Urgent insertions (marked with INSERTED)
+- Integer phases (34, 35): Planned milestone work
+- Decimal phases (34.1, 34.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order. Numbering is
 **continuous across milestones** — each milestone continues from the prior one's last phase
-(never resets to 1). v0.6.4 continues from v0.6.3's last phase (28), so it starts at Phase 29.
+(never resets to 1). v0.6.5 continues from v0.6.4's last phase (33), so it starts at Phase 34.
 
 <details>
 <summary>✅ v0.4.4 — CI-repair + modernize (Phases 1–5) — SHIPPED 2026-07-05</summary>
@@ -209,12 +211,149 @@ criteria, decisions, and evidence are preserved in
 
 </details>
 
+### 🚧 v0.6.5 — inline-math separator hotfix (Phases 34–35) — IN PROGRESS
+
+**Milestone goal:** Fix one reported defect and ship it. A paragraph that mixes prose and inline math
+currently emits Typst with no valid separator between the preceding text emission and the `mi(...)` /
+`$...$` call, so the build dies at `typst.compile()` — a document a user can legitimately write does
+not compile at all. Two phases: (34) the fix, pinned by a real-compile regression fixture proven red
+before the change; (35) prep-only release. Nothing else enters this milestone.
+
+**Deliberately two phases, not more.** With one behavioural requirement and one release requirement,
+the natural delivery boundary is exactly one fix phase plus the standing prep-only Release phase
+(v0.5.0 Phase 10 / v0.6.2 Phase 23 / v0.6.3 Phase 28 / v0.6.4 Phase 33 precedent). Splitting the fix
+from its regression fixture, or the mitex path from the native path, would create phases that cannot
+be verified independently — the fixture *is* the proof the fix works, and both math paths flow through
+the same separator seam.
+
+**The root cause is NOT yet known — Phase 34 must measure it before fixing it.** The backlog capture
+said "likely a translator-level emission issue (`translator.py` math/Text visit ordering)," but the
+obvious hypothesis is already contradicted by the source: `visit_math` (`translator.py:3936`) *does*
+call `_add_paragraph_separator()` (`translator.py:3954`). So the defect lives in what that separator
+decides to emit when the immediately preceding sibling is a `Text` node inside an already-open
+paragraph (`visit_Text`, `translator.py:1018`; `_add_paragraph_separator`, `translator.py:319`) — or
+somewhere else entirely. Phase 34's first job is a reproduction that captures **the emitted `.typ`
+text and the verbatim Typst error**, and only then a fix aimed at whatever that measurement shows.
+A plan that starts by editing `visit_math` on the strength of the backlog note is planning against an
+unverified premise. (Standing lesson: verify ROADMAP/backlog claims by measurement before treating
+them as given.)
+
+**Both math emission paths are in scope, because both are reachable by default users.** mitex is the
+default (`typst_use_mitex=True` → `mi(...)`), and the native path is reached either per-node via the
+`typst-native` class or globally via `typst_use_mitex=False` (→ `$...$`). A fix verified on one path
+only would leave half the users broken, so MATH-01's criteria name both. The three existing math test
+modules (`tests/test_math_mitex.py`, `test_math_native.py`, `test_math_fallback.py`) are the
+non-regression surface, not the acceptance bar.
+
+**Standing GATE-01 bar (unchanged since v0.6.0):** every node-handler change ships a real
+`sphinx-build → typst.compile()` regression fixture, and the fixture must be **recorded red against
+the unfixed translator** — a green-after-the-fact assertion is not proof. A fix that makes the compile
+succeed but silently drops or garbles the surrounding prose also fails: this project's standard since
+v0.6.1 is "renders faithfully," not "compiles fatal-free."
+
+**Milestone invariants (every phase):** zero new runtime dependencies; no `@preview` version bump; the
+three-way version-sync surface — the four bundled package version strings in `typsphinx/writer.py`,
+`typsphinx/template_engine.py` and `typsphinx/templates/base.typ`, plus the fourth surface
+`examples/**/*.typ` that `tests/test_preview_version_sync.py` now watches — unchanged. The diff this
+milestone is expected to produce is a translator fix, its tests, and the release-prep files.
+
+**Backlog promotion:** this milestone promotes backlog item **999.1** ("Inline math after text —
+missing separator before `#mi()` causes Typst error") into Phase 34. It has been removed from the
+Backlog section below and lives here as MATH-01.
+
+**UI note:** neither phase is frontend UI work — this is translator/typesetting and release work.
+`ui.plan-gate` false-positives on PDF/render/template wording (STATE.md standing note); use
+`--skip-ui` if it flags a phase. Same caveat applies to `api-coverage.verify-pre` on prose describing
+compile/render evidence.
+
+**Ship unit = milestone** (`branching_strategy: milestone`): Phase 35 is prep-only — it bumps
+`pyproject.toml` + `uv.lock`, updates README's Status line, and adds the `CHANGELOG.md` entry with its
+tail link-block rollover, and does **not** tag or publish. The irreversible publish (tag `v0.6.5` →
+`release.yml` → PyPI + GitHub Release, plus the standing second tag on `typsphinx-doc-translations`)
+executes at `/gsd-complete-milestone`.
+
+- [ ] **Phase 34: Inline Math After Text — Separator Fix** - Root-cause the missing separator by measurement, fix it so prose-then-inline-math paragraphs compile on both the mitex and native paths, and pin it with a real `typst.compile()` GATE-01 fixture recorded failing pre-fix
+- [ ] **Phase 35: v0.6.5 Release Prep** - Prep-only: bump 0.6.5 (`pyproject.toml` sole literal + `uv.lock` lockstep + README Status), curated `## [0.6.5]` CHANGELOG entry with the tail link-block rollover, invariants asserted over the full milestone diff; publish at `/gsd-complete-milestone`
+
+### Phase 34: Inline Math After Text — Separator Fix
+
+**Goal**: A user can write a paragraph that mixes prose and inline math — including with no whitespace
+between them — and `sphinx-build -b typstpdf` produces a PDF with both the prose and the math intact,
+instead of aborting the Typst compile.
+**Depends on**: Nothing (first phase of the milestone)
+**Requirements**: MATH-01
+**Success Criteria** (what must be TRUE):
+
+  1. A reST document whose paragraph has inline math immediately following text (the reported
+     999.1 shape, including the no-intervening-space form) builds through `sphinx-build -b typstpdf`
+     and yields a valid PDF — the `TypstCompilationError` the backlog item reports no longer occurs.
+
+  2. The same document compiles on **both** emission paths: the mitex default
+     (`typst_use_mitex=True` → `mi(...)`) and the native path (`typst-native` class *or*
+     `typst_use_mitex=False` → `$...$`). Fixing one path and leaving the other broken fails this
+     criterion.
+
+  3. The compiled PDF's extracted text contains the preceding prose **and** the math content, adjacent
+     as authored — no dropped words, no swallowed math, and no Typst source leaking into the page as
+     prose. An output that compiles but silently mis-renders fails this criterion (v0.6.1 standard).
+
+  4. The fix is pinned by a real `typst.compile()` GATE-01 regression fixture whose **fail-pre-fix
+     run is recorded** — the fixture shown red against the unfixed translator (and the verbatim Typst
+     error captured), then green after — so the fixture is proven to be able to catch the regression
+     rather than merely passing.
+
+  5. Nothing else about math emission regresses: display math (`.. math::`), math in list items /
+     tables / captions, the existing `tests/test_math_mitex.py` / `test_math_native.py` /
+     `test_math_fallback.py` modules, the full pytest suite, and the full-corpus `-b typstpdf`
+     regression gate all stay green.
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] TBD (created by `/gsd-plan-phase 34`)
+
+### Phase 35: v0.6.5 Release Prep
+
+**Goal**: v0.6.5 is ready to publish — someone reading the changelog can see, in their own terms, that
+a document which used to fail to compile now compiles — and the only remaining step is the tag.
+**Depends on**: Phase 34
+**Requirements**: REL-03
+**Success Criteria** (what must be TRUE):
+
+  1. `pyproject.toml` declares `0.6.5` as the **sole** version literal with `uv.lock` in lockstep
+     (`uv sync --extra dev --locked` green), `typsphinx.__version__` reports `0.6.5`, and README's
+     Status line agrees — the existing version-sync guard tests (incl. the README↔pyproject ratchet)
+     stay green.
+
+  2. `CHANGELOG.md` carries a curated `## [0.6.5]` entry stating the inline-math fix in user-visible
+     terms (what a user could not build before and can build now), and the **tail link block is rolled
+     over**: a `[0.6.5]:` release-tag link added and `[Unreleased]:` advanced to `v0.6.5...HEAD`.
+
+  3. The post-bump tree is green end to end on a live run: the full pytest suite, `black` / `ruff` /
+     `mypy`, and the full-corpus `-b typstpdf` regression gate (fatal-free, valid `%PDF`).
+
+  4. The milestone invariants are asserted **mechanically over the full milestone diff** (not by
+     recollection): zero new runtime dependencies, no `@preview` version bump, and the four bundled
+     package version strings unchanged across all four sync surfaces.
+
+  5. No irreversible action was taken in this phase — no `v0.6.5` tag exists locally or on `origin`
+     and nothing is published, proven by empty `git tag -l v0.6.5` / `git ls-remote --tags origin
+     v0.6.5`. The publish half (tag → `release.yml` → PyPI + GitHub Release, plus the standing
+     second-repository tag on `typsphinx-doc-translations`) executes at `/gsd-complete-milestone`.
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] TBD (created by `/gsd-plan-phase 35`)
+
 ## Progress
 
 **Execution Order:**
 Active milestone phases execute in numeric order (decimal insertions between their surrounding
-integers). v0.6.4 executes 29 → 30 → 31 → 32 → 33, with the irreversible teardown (32) gated behind a
-freshly re-taken "RTD is serving" observation and the prep-only Release (33) last.
+integers). v0.6.5 executes 34 → 35, with the prep-only Release (35) last so the CHANGELOG entry
+describes a fix that has already been proven by Phase 34's real-compile gate.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -258,6 +397,8 @@ freshly re-taken "RTD is serving" observation and the prep-only Release (33) las
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
+| 34. Inline Math After Text — Separator Fix | v0.6.5 | 0/TBD | Not started | - |
+| 35. v0.6.5 Release Prep | v0.6.5 | 0/TBD | Not started | - |
 
 ## Backlog
 
@@ -265,29 +406,17 @@ Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-New items land here as `999.x` entries. Three pending todos were
-**promoted into v0.6.4** (Phases 29–33): `move-documentation-hosting-to-read-the-docs`,
+New items land here as `999.x` entries. **The backlog is currently empty** — item **999.1** (inline
+math after text: missing separator before `#mi()` causes a Typst error) was **promoted into v0.6.5**
+as Phase 34 / requirement MATH-01 on 2026-07-28 and removed from this section. Three earlier pending
+todos were promoted into v0.6.4 (Phases 29–33): `move-documentation-hosting-to-read-the-docs`,
 `github-io-doc-links-404-missing-en-prefix`, and `docs-usage-installation-orphan-class`.
-`add-sphinx-linkcheck-ci-job` stays **open and deferred** — sphinx linkcheck is out of v0.6.4 scope as
+`add-sphinx-linkcheck-ci-job` stays **open and deferred** — sphinx linkcheck is out of scope as
 Future requirement LNK-01 (it structurally cannot see `README.md` / `pyproject.toml`, where the dead
-links actually live); CI-05's repo-wide real-HTTP check covers that class instead. Remaining discrete
-follow-up work stays in `.planning/todos/pending/` — citation-node support, non-str-docname TypeError
-hardening, typing-import modernization, and `derive_typst_lang()` warning-block duplication — see also
-STATE.md Deferred Items.
-
-### Phase 999.1: Inline math after text — missing separator before `#mi()` causes Typst error (BACKLOG)
-
-**Goal:** [Captured for future planning]
-**Requirements:** TBD
-**Plans:** 0 plans
-
-When inline math immediately follows text, the emitted Typst has no semicolon or newline
-between the preceding `#text(...)` call and the `#mi(...)` call, so Typst raises a compile
-error. Likely a translator-level emission issue (`translator.py` math/Text visit ordering).
-
-Plans:
-
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+links actually live); v0.6.4 CI-05's repo-wide real-HTTP check covers that class instead. Remaining
+discrete follow-up work stays in `.planning/todos/pending/` — citation-node support,
+non-str-docname TypeError hardening, typing-import modernization, and `derive_typst_lang()`
+warning-block duplication — see also STATE.md Deferred Items.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28). v0.6.5 phases added 2026-07-28. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*

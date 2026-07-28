@@ -56,14 +56,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MATH-01 | TBD | Pending |
-| REL-03 | TBD | Pending |
+| MATH-01 | Phase 34 | Pending |
+| REL-03 | Phase 35 | Pending |
 
 **Coverage:**
 - v1 requirements: 2 total
-- Mapped to phases: 0
-- Unmapped: 2 ⚠️
+- Mapped to phases: 2
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-28*
-*Last updated: 2026-07-28 after initial definition (milestone v0.6.5)*
+*Last updated: 2026-07-28 after roadmap creation (milestone v0.6.5, Phases 34–35)*

@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.6.5
 milestone_name: inline-math separator hotfix
 status: planning
-last_updated: "2026-07-28T12:40:53.193Z"
+last_updated: "2026-07-28T13:20:00.000Z"
 last_activity: 2026-07-28
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,40 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Planning next milestone (`/gsd-new-milestone`)
+**Current focus:** Phase 34 — Inline Math After Text — Separator Fix (`/gsd-plan-phase 34`)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-07-28 — Milestone v0.6.5 started
+Phase: 34 — Inline Math After Text — Separator Fix
+Plan: — (not yet planned)
+Status: Roadmap created; phase not yet planned
+Last activity: 2026-07-28 — v0.6.5 roadmap created (Phases 34–35), backlog 999.1 promoted to Phase 34
+
+Progress: [--------------------] 0% (0/2 phases)
+
+## Active Milestone (v0.6.5 — inline-math separator hotfix)
+
+**Goal:** Fix backlog item 999.1 — a paragraph where inline math immediately follows text emits Typst
+with no valid separator before the `mi(...)` / `$...$` call, so `typst.compile()` aborts — and release
+v0.6.5 promptly. Minimal hotfix scope: nothing else enters this milestone.
+
+**Phases:**
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 34. Inline Math After Text — Separator Fix | Prose-then-inline-math paragraphs build to PDF on both the mitex and native math paths, pinned by a real-compile fixture proven red pre-fix | MATH-01 |
+| 35. v0.6.5 Release Prep | Version bump + curated CHANGELOG with tail link-block rollover; prep-only (publish at `/gsd-complete-milestone`) | REL-03 |
+
+**Coverage:** 2/2 v1 requirements mapped; no orphans.
+
+**Open question Phase 34 must answer by measurement, not assumption:** the backlog note blamed
+"`translator.py` math/Text visit ordering," but `visit_math` (`translator.py:3936`) already calls
+`_add_paragraph_separator()` (`:3954`). The real root cause is unmeasured — reproduce first, capture
+the emitted `.typ` and the verbatim Typst error, then fix what the measurement shows.
+
+**Milestone invariants (every phase):** zero new runtime dependencies; no `@preview` version bump; the
+four bundled package version strings unchanged across all four sync surfaces (`writer.py`,
+`template_engine.py`, `templates/base.typ`, `examples/**/*.typ`).
 
 ## Shipped Milestone (v0.6.4 — archived)
 
@@ -57,6 +83,7 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 - Total plans completed (project cumulative): 100 (55 through v0.6.2 + 12 in v0.6.3 + 33 in v0.6.4)
 - v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
 - v0.6.4: 6 phases / 33 plans / 79 tasks, 2026-07-25 → 2026-07-28 (shipped)
+- v0.6.5: 2 phases / plans TBD, started 2026-07-28
 
 *Updated after each plan completion*
 
@@ -106,10 +133,14 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 - Run `/gsd-audit-milestone` before each close (v0.6.4 restored it; first verified_closeout since
   v0.4.4).
 
+- Standing GATE-01 bar (since v0.6.0): every node-handler change ships a real
+  `sphinx-build → typst.compile()` regression fixture, recorded **red against the unfixed code**
+  before it is accepted as green.
+
 ### Pending Todos
 
-Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.6.4 close
-(recorded in Deferred Items below):
+Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.6.4 close and
+explicitly out of v0.6.5 scope (minimal hotfix):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
   repo-wide real-HTTP check covers the real failure class.
@@ -119,32 +150,33 @@ Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
 
-Resolved and filed at close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
+Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
 
 ### Blockers/Concerns
 
-**Owner-manual steps from `33-HANDOFF.md` — ALL COMPLETED at close (2026-07-28, measured via the
-RTD public API + real fetches):** both RTD Default branches → `main`, both Default Versions →
-`stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL redirects to
-`/en/stable/` (200) and `/ja/stable/` serves the same release (ja `stable` was auto-activated and
-built green from the translations `v0.6.4` tag). Nothing is owed.
+**Nothing owed from v0.6.4.** All owner-manual steps from `33-HANDOFF.md` completed at close
+(2026-07-28, measured via the RTD public API + real fetches): both RTD Default branches → `main`, both
+Default Versions → `stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL
+redirects to `/en/stable/` (200) and `/ja/stable/` serves the same release; Issue #119 closed.
 
 **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst` Translations
 section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ` is an unguarded
 FOURTH `@preview` version-lockstep site (the sync test watches 3 surfaces + `examples/`); the live
-translations-repo manifests have no structural test coverage in this repository.
+translations-repo manifests have no structural test coverage in this repository. All out of v0.6.5
+scope.
 
 UI note (standing): this project's phases are typesetting/config/docs/hosting work, **not** frontend
 UI — `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui`. Same for
-`api-coverage.verify-pre` false-positives on prose describing RTD API reads as evidence (three
+`api-coverage.verify-pre` false-positives on prose describing compile/render/API-read evidence (three
 recorded overrides in v0.6.4). GATE-01 note: honest-verifier — abstain to `human_needed` rather than
 assert a truth without direct evidence.
 
 ### Roadmap Evolution
 
-Cleared at v0.6.4 close (the milestone's evolution history is preserved in
-`milestones/v0.6.4-ROADMAP.md`). Next entries accrue during the next milestone.
+- **2026-07-28** — v0.6.5 roadmap created: Phases 34–35, continuing numbering from v0.6.4's Phase 33.
+  Backlog item **999.1** promoted into Phase 34 as requirement MATH-01 and removed from ROADMAP.md's
+  Backlog section (the section itself retained with its preamble).
 
 ## Deferred Items
 
@@ -164,6 +196,7 @@ Items acknowledged and carried forward from milestone closes:
 | RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
 | UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
 | SEO (accepted loss) | Old `github.io` URLs 404 with no redirect stubs (owner decision 2026-07-25) | Accepted cost | v0.6.4 scoping |
+| Quality (v0.6.4 review) | 30.1 Warnings: contributing.rst toolchain step; `custom_template.typ` fourth lockstep site; no structural tests over translations-repo manifests | Out of v0.6.5 scope | v0.6.5 scoping |
 | Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
 | Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close |
 | Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
@@ -175,9 +208,12 @@ Items acknowledged and carried forward from milestone closes:
 **Resume file:** None
 
 Last session: 2026-07-28
-Stopped at: v0.6.4 milestone closed (audit passed → archived → merged → tagged → published)
-Resume: `/gsd-new-milestone`.
+Stopped at: v0.6.5 roadmap created (Phases 34–35); requirements traceability updated
+Resume: `/gsd-plan-phase 34`.
 
 ## Operator Next Steps
 
-- Start the next milestone with `/gsd-new-milestone`. (All v0.6.4 owner-manual steps completed 2026-07-28.)
+- Plan the fix phase with `/gsd-plan-phase 34` (add `--skip-ui` if the UI gate false-positives on the
+  render/PDF wording).
+- Phase 34 must **measure** the root cause before fixing: the backlog's "math/Text visit ordering"
+  hypothesis is already contradicted by `visit_math` calling `_add_paragraph_separator()`.
