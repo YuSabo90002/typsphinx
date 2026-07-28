@@ -45,3 +45,13 @@ Construct F: list item whose sole content is inline math -- the
 single-element edge.
 
 * :math:`a+b`
+
+Construct G: a labeled display-math equation inside a list item -- the
+_emit_id_anchors + list-item-separator ordering interaction (WR-02).
+
+* Text before labeled block math.
+
+  .. math:: G = m a
+     :label: construct-g-labeled-eq
+
+  Text after labeled block math.
