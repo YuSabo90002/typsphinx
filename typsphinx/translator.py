@@ -3946,12 +3946,27 @@ class TypstTranslator(SphinxTranslator):
         Requirement 5.2: Inline math should use $...$ format (Typst native)
         Requirement 4.7: Labeled equations should generate <eq:label> format
         Design 3.3: Support both mitex and Typst native math
+        MATH-01 (backlog 999.1): participates in all three separator
+        protocols -- paragraph, code-mode inline concat, and list-item --
+        exactly as visit_literal does, so math is never juxtaposed against
+        a preceding sibling with zero separator characters.
 
         Args:
             node: The inline math node
         """
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
+
+        # Add separator before the mi(...)/$...$ expression.
+        # In a code-mode concat context (def-list term / link body / desc
+        # parameter), adjacent inline expressions must be + concatenated
+        # (except the first); otherwise a list item uses a newline separator.
+        # Shared with visit_Text / visit_literal via the concat helpers
+        # (single source of truth), so math that is a term/link/desc
+        # sibling is + separated.
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
 
         # Extract math content
         math_content = node.astext()
@@ -3977,6 +3992,11 @@ class TypstTranslator(SphinxTranslator):
         if "ids" in node and node["ids"]:
             label = self._namespace_label(self._current_docname(), node["ids"][0])
             self.add_text(f" <{label}>")
+
+        # Mark that content was added / next element needs a separator
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
 
         # Skip children to prevent duplicate output of math content
         raise nodes.SkipNode
