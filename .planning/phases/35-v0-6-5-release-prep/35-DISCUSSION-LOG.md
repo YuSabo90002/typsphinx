@@ -5,180 +5,184 @@
 
 **Date:** 2026-07-28
 **Phase:** 35-v0.6.5 Release Prep
-**Areas discussed:** CHANGELOG の書き方, Phase 34 レビュー 4 Warning の扱い,
-`/gsd-complete-milestone` への申し送り, リリースページの肥大（ユーザー提起）,
-SC#3 の実走証跡の範囲
+**Areas discussed:** CHANGELOG wording, handling of the four Phase 34 review Warnings,
+handoff to `/gsd-complete-milestone`, release-page bloat (raised by the user),
+scope of SC#3 live-run evidence
 
-**提示したが選ばれなかった領域:** なし（4 領域提示中 3 領域を選択、SC#3 は最後に追加で議論）
-
----
-
-## 領域選択
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| CHANGELOG の書き方 | 報告された形と実測で壊れていた形の食い違いをどう書くか | ✓ |
-| Phase 34 レビュー 4 Warning の扱い | 拾うか据え置くか | ✓ |
-| complete-milestone への申し送り | ハンドオフ文書と 2 リポジトリタグ | ✓ |
-| SC#3 の実走証跡の範囲 | docs ビルドを足すか | ✓（最後に追加） |
+**Offered but not selected:** none — three of four offered areas were selected, and SC#3 was
+discussed at the end as an addition.
 
 ---
 
-## CHANGELOG の書き方
-
-### Q1: `### Fixed` 本文で壊れていた範囲をどの粒度で書くか
+## Area selection
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| 文脈を列挙する | 箇条書き項目 / 定義リストの用語 / フィールド値を具体的に列挙。判定しやすいが長い | |
-| 一般文のみ | 「テキストの直後の inline math で落ちていた」だけ。実態より広く読まれる | |
-| 一般文＋括弧で代表例 | 「テキストの直後の inline math（箇条書き項目や定義リストの用語など）」 | ✓ |
-
-**Notes:** 実測で fixture の Construct A（トップレベル段落、空白なし形を含む）は修正前から緑、
-赤だったのは B〜F。この食い違いが質問の前提。
-
-### Q2: display math（list item 内）を別項目にするか
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| 同じ項目に含める | 1 bullet に inline も display も。前例 D-09 の粒度規則 | ✓ |
-| 別の bullet にする | 未追跡の欠陥だったので独立した修正として見せる | |
-
-### Q3: `## [0.6.5]` の節構成
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| リード＋Fixed＋Verified | 0.6.1/0.6.3/0.6.4 の前例踏襲 | ✓ |
-| リード＋Fixed のみ | ホットフィックス最小 | |
-| Fixed のみ（リードなし） | 過去エントリと体裁が変わる | |
-
-### Q4: `### Verified` に載せる項目
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| 不変量2点＋コーパスゲート | 新規依存ゼロ / `@preview` 未バンプ / フルコーパス fatal-free | ✓ |
-| 上記＋fixture の RED→GREEN | GATE-01 のバーを対外にも示す | |
-| 不変量 2 点のみ | Phase 33 D-03 の厳格版 | |
-
-**User's choice:** D-01〜D-04 として CONTEXT に記録。文面の具体は Claude 裁量。
+| CHANGELOG wording | How to write up the divergence between the reported shape and the shapes measured broken | ✓ |
+| Handling of the four Phase 34 review Warnings | Pick them up or park them | ✓ |
+| Handoff to complete-milestone | Handoff document and two-repository tagging | ✓ |
+| Scope of SC#3 live-run evidence | Whether to add the docs builds | ✓ (added at the end) |
 
 ---
 
-## Phase 34 レビュー 4 Warning の扱い
+## CHANGELOG wording
 
-### Q1: どこまで拾うか
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| 全件据え置き（todo 化） | 最小ホットフィックス方針に忠実、リリース最速 | |
-| テスト 3 件だけ拾う | WR-02/03/04 は `typsphinx/` 無変更で不変量 #3 に抵触しない | ✓ |
-| 4 件全部拾う | WR-01 も直す。translator 再変更で GATE-01 と コーパスゲートの再走が必要 | |
-
-### Q2: WR-02 を閉じる形
+### Q1: At what granularity should `### Fixed` describe what was broken?
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| 既存 fixture に Construct G を追加 | ビルド回数が増えず、6 構成と同じ場所に集約 | ✓ |
-| 別 fixture / 別テストにする | 既存出力を動かさないが `sphinx-build` が 2 回分増える | |
+| Enumerate the contexts | Spell out bullet-list items / definition-list terms / field values. Easy to self-diagnose against, but long | |
+| General sentence only | Just "inline math immediately after text used to fail." Reads broader than reality | |
+| General sentence + parenthetical examples | "inline math immediately after text (in bullet-list items, definition-list terms, and the like)" | ✓ |
 
-### Q3: テスト追加のフェーズ内位置付け
+**Notes:** Measured — fixture Construct A (top-level paragraph, including the no-space form) was
+already green before the fix; B–F were the red ones. That divergence is the premise of the question.
+
+### Q2: Should display math (inside a list item) be a separate item?
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| 版バンプの前の独立プラン | REL-03 スコープ外の付随作業として CONTEXT に明記 | ✓ |
-| ROADMAP に SC を 1 つ追加 | verify の判定対象にするがフェーズ境界を公式に広げる | |
+| Same item | One bullet covering both inline and display. The D-09 granularity rule | ✓ |
+| Separate bullet | It was an untracked defect, so show it as an independent fix | |
 
-**User's choice:** D-05〜D-07。WR-01 は todo 化（D-10 で Phase 35 が todo ファイルを作る）。
+### Q3: Section structure of `## [0.6.5]`
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Lead + Fixed + Verified | Follows the 0.6.1 / 0.6.3 / 0.6.4 precedent | ✓ |
+| Lead + Fixed only | Minimal, hotfix-sized | |
+| Fixed only (no lead) | Diverges in form from every past entry | |
+
+### Q4: What goes in `### Verified`?
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Two invariants + corpus gate | Zero new deps / `@preview` unbumped / full corpus fatal-free | ✓ |
+| The above + the fixture's RED→GREEN | Shows the GATE-01 bar externally | |
+| Two invariants only | The strict version of Phase 33 D-03 | |
+
+**User's choice:** recorded in CONTEXT as D-01–D-04. Exact wording at Claude's discretion.
 
 ---
 
-## `/gsd-complete-milestone` への申し送り
+## Handling of the four Phase 34 review Warnings
 
-### Q1: 2 リポジトリタグ（v0.6.4 D-07 の standing cost）を守るか
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| 守る（今回も両方に打つ） | `/ja/stable/` と `/en/stable/` が同じ版を指す状態を維持 | ✓ |
-| 今回は打たない | docs 無変更なので省略。standing cost に例外を作ることになる | |
-
-**Notes:** 実測 — 翻訳リポジトリのタグは `v0.6.4` のみ、RTD の en `stable` も tag `v0.6.4`
-（identifier `2bf6ef3`）。今回の `docs/` 差分はゼロ。
-
-### Q2: 申し送りをどこに書くか
+### Q1: How much to pick up
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| 専用の `35-HANDOFF.md` | Phase 33 前例。complete-milestone がそれ 1 枚を読めば済む | ✓ |
-| SUMMARY / VERIFICATION 内の節 | ファイルを増やさない最小限 | |
-| 作らない | ROADMAP 注記と standing decision に任せる | |
+| Park all four (file as todos) | Faithful to the minimal-hotfix policy; fastest release | |
+| Pick up the three test-side ones | WR-02/03/04 leave `typsphinx/` untouched, so invariant #3 is safe | ✓ |
+| Pick up all four | Also fix WR-01. A second translator change forces re-running GATE-01 and the corpus gate | |
 
-### Q3: 帳簿類をどちらの側でやるか
+### Q2: How to close WR-02
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| WR-01 todo は 35、REL-03 は close 側 | 拾わない決定は今記録、チェックボックスは publish 後 | ✓ |
-| 全部 Phase 35 でやる | REL-03 の `[x]` 化を先行させる | |
-| 全部 close 側に回す | Phase 35 は版バンプ＋CHANGELOG＋テスト＋HANDOFF に専念 | |
+| Add Construct G to the existing fixture | No extra builds; consolidated with the existing six constructs | ✓ |
+| Separate fixture / separate test | Leaves existing output untouched but adds two more `sphinx-build` runs | |
 
-**User's choice:** D-08〜D-10。
+### Q3: How the test additions sit within the phase
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Independent plan before the version bump | Recorded in CONTEXT as work outside REL-03's scope | ✓ |
+| Add one success criterion to the ROADMAP | Makes it a verify target but widens the phase boundary officially | |
+
+**User's choice:** D-05–D-07. WR-01 is filed as a todo (D-10 has Phase 35 write the todo file).
 
 ---
 
-## リリースページの肥大（ユーザー提起）
+## Handoff to `/gsd-complete-milestone`
 
-**提起:** 「次バージョンの release ページだが、コミットを全部挙げつらっているのでくっそ長い。
-コンパクトにしたい」
-
-**実測して提示した事実:** v0.6.4 のリリース本文は 308 行。1〜296 行が `release.yml` の
-"Generate release notes" ステップの `git log $PREV_TAG..$TAG --pretty="- %s (%h)"` によるコミット
-羅列、297〜303 行が Installation、304〜308 行が `generate_release_notes: true` による GitHub
-自動生成分（What's Changed の PR 1 行 + Full Changelog リンク）。自動生成は既にコンパクトで、
-肥大の原因は自前の `git log` ブロック。あわせて `release.yml` が `CHANGELOG.md` を一度も読んで
-いないことも判明（Phase 33 CONTEXT の「CHANGELOG が Release body の単一ソース」は実態と食い違い）。
-
-### Q1: `release.yml` の修正を Phase 35 に入れるか
+### Q1: Keep the two-repository tagging standing cost (v0.6.4 D-07)?
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Phase 35 で直す | v0.6.5 からコンパクトになる。ただしタグ push 時にしか実行されない | |
-| v0.6.5 は見送り、todo に落とす | 最小ホットフィックス方針を守る。今回は 33 コミットなので v0.6.4 よりは短い | ✓ |
+| Keep it (tag both again) | Preserves `/ja/stable/` and `/en/stable/` pointing at the same version | ✓ |
+| Skip it this time | `docs/` unchanged, so omit. Would carve an exception into the standing cost | |
 
-### Q2: 直す場合のリリース本文の形（todo に設計方針として記録）
+**Notes:** Measured — the translations repo carries only `v0.6.4`, and RTD's en `stable` is likewise
+tag `v0.6.4` (identifier `2bf6ef3`). This milestone's `docs/` diff is empty.
+
+### Q2: Where does the handoff live?
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| CHANGELOG 抽出＋Installation＋自動生成 | `git log` を廃し `## [X.Y.Z]` 節を抽出。What's Changed と Full Changelog は残る | ✓ |
-| 自動生成＋Installation のみ | 最も単純だがキュレーションした文章がリリースページに出ない | |
-| コミットを選別して残す | `docs(`/`chore(` を除外。プレフィックス規則に依存する脆い仕組み | |
+| A dedicated `35-HANDOFF.md` | The Phase 33 precedent; complete-milestone reads one file | ✓ |
+| A section inside SUMMARY / VERIFICATION | Minimal, adds no files | |
+| Don't write one | Rely on the ROADMAP note and the standing decision | |
 
-**User's choice:** D-11 — v0.6.5 では見送り、設計方針（CHANGELOG 抽出案）ごと todo に記録する。
+### Q3: Which side does the bookkeeping?
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| WR-01 todo in 35, REL-03 at close | Record the not-picked-up decision now; flip the checkbox post-publish | ✓ |
+| Everything in Phase 35 | Flip REL-03 to `[x]` ahead of the publish | |
+| Everything at close | Phase 35 sticks to bump + CHANGELOG + tests + HANDOFF | |
+
+**User's choice:** D-08–D-10.
 
 ---
 
-## SC#3 の実走証跡の範囲
+## Release-page bloat (raised by the user)
+
+**Raised:** "The release page for the next version lists every single commit, so with this many
+commits it gets absurdly long. I want it compact."
+
+**Measured facts presented back:** the v0.6.4 release body is 308 lines. Lines 1–296 are the commit
+dump from `release.yml`'s "Generate release notes" step
+(`git log $PREV_TAG..$TAG --pretty="- %s (%h)"`); lines 297–303 are Installation; lines 304–308 are
+GitHub's own output from `generate_release_notes: true` (a one-line "What's Changed" PR entry plus the
+Full Changelog link). The auto-generated part is already compact — the bloat is the hand-rolled
+`git log` block. It also came out that `release.yml` never reads `CHANGELOG.md`, so the Phase 33
+CONTEXT claim that the CHANGELOG entry is the single source for the Release body contradicts reality.
+
+### Q1: Fix `release.yml` inside Phase 35?
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| docs ビルドも実走する | `tox -e docs-html` / `docs-pdf` を足す。Phase 28 D-05 の前例 | ✓ |
-| SC 名指しの 3 種だけ | docs は今回 1 行も変わっていない | |
+| Fix it in Phase 35 | v0.6.5 onward gets compact. But the workflow only runs on a tag push | |
+| Skip for v0.6.5, file a todo | Keeps the minimal-hotfix policy; this milestone is 33 commits, shorter than v0.6.4's | ✓ |
 
-**User's choice:** D-12。
+### Q2: If fixed, what shape should the body take? (recorded as the todo's design direction)
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| CHANGELOG extract + Installation + auto-generated | Drop `git log`, extract the `## [X.Y.Z]` section. What's Changed and Full Changelog remain | ✓ |
+| Auto-generated + Installation only | Simplest, but the curated prose never appears on the release page | |
+| Filter the commit list | Exclude `docs(` / `chore(`. A brittle mechanism dependent on prefix conventions | |
+
+**User's choice:** D-11 — skip for v0.6.5 and record the design direction (the CHANGELOG-extract
+approach) in the todo.
+
+---
+
+## Scope of SC#3 live-run evidence
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Also run the docs builds | Add `tox -e docs-html` / `docs-pdf`. The Phase 28 D-05 precedent | ✓ |
+| Only the three SC names | `docs/` did not change by a line this milestone | |
+
+**User's choice:** D-12.
 
 ---
 
 ## Claude's Discretion
 
-- CHANGELOG `[0.6.5]` の具体的な文面・リード段落の言い回し・要件 ID の付け方
-- WR-02/03/04 の assertion の具体的な文字列と Construct G の reST の書き方
-- フェーズ内のプラン分割（順序だけ D-07 で固定）
-- `35-HANDOFF.md` の形式・見出し構成
-- `uv.lock` の再生成手順
-- 2 件の todo ファイルの文面・frontmatter・ファイル名
-- 実走証跡の記録先（`35-VERIFICATION.md` は verify の予約名なので回避すること）
+- The exact wording of the `[0.6.5]` CHANGELOG entry, the lead paragraph, and requirement-ID placement
+- The exact assertion strings for WR-02/03/04 and the reST for Construct G
+- Plan decomposition within the phase (D-07 fixes only the ordering)
+- The format and heading structure of `35-HANDOFF.md`
+- The `uv.lock` regeneration procedure
+- The wording, frontmatter, and filenames of the two todo files
+- Where live-run evidence is recorded (`35-VERIFICATION.md` is reserved by the verifier — avoid it)
 
 ## Deferred Ideas
 
-- **WR-01**: `visit_math_block` の余分な空行（`typsphinx/translator.py:4079-4088`）→ todo 化
-- **`release.yml` のリリース本文改修**（CHANGELOG 抽出方式）→ todo 化、v0.6.6+
-- **30.1 レビューの 3 Warnings** — REQUIREMENTS § Out of Scope で既決、v0.6.5 対象外
-- **5 件の pending todo** — 同上（`todo.match-phase 35` が返したが、既決のため折り込みは問わず）
+- **WR-01**: `visit_math_block`'s redundant blank line (`typsphinx/translator.py:4079-4088`) → todo
+- **Reworking `release.yml`'s release body** (CHANGELOG-extract approach) → todo, v0.6.6+
+- **The three 30.1-review Warnings** — already excluded by REQUIREMENTS § Out of Scope
+- **The five pending todos** — same (returned by `todo.match-phase 35`, but folding was not
+  re-litigated since it is already decided)
