@@ -219,6 +219,16 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**In progress: v0.6.5 — inline-math separator hotfix. Phase 34 complete (2026-07-28), 1/2 phases.**
+MATH-01 is closed: a paragraph mixing prose and inline math — including with no intervening
+whitespace, and inside list items, field bodies, and definition-list terms — now builds through
+`sphinx-build -b typstpdf` on both the mitex and native emission paths instead of aborting the
+Typst compile. The fix is three lines of protocol participation in `visit_math` plus the
+list-item half in `visit_math_block`, matching `visit_literal`'s existing pattern. Suite is
+649 passed / 1 skipped (up 2 from v0.6.4's 647 — the two new GATE-01 tests); `typsphinx/` delta
+this milestone is confined to those two visitors. Remaining: Phase 35 (v0.6.5 release prep —
+version bump + CHANGELOG; publish executes at `/gsd-complete-milestone`).
+
 **Shipped: v0.6.4 — Read the Docs migration (2026-07-28).** All 6 phases (29, 30, 30.1, 31, 32, 33) /
 33 plans complete; milestone audit `passed` (13/13 requirements, integration checker all-wired);
 closeout `verified_closeout`. Documentation now lives at `https://typsphinx.readthedocs.io/` —
@@ -318,13 +328,15 @@ losses: no browser-language auto-redirect; old github.io URLs 404 with no stubs.
 - ✓ GitHub Pages torn down irreversibly behind a freshly re-taken RTD-is-serving gate — v0.6.4 Phase 32 (CI-04): deploy step + permissions removed with the tag-time Release step byte-unchanged, `origin/gh-pages` deleted with `ls-remote` proof, github.io 404 observed live, two guard tests with a recorded red negative control (32-VERIFICATION.md `passed` 12/12)
 - ✓ v0.6.4 published at milestone close: PR #124 merged, `v0.6.4` tagged, `release.yml` → PyPI + GitHub Release; Issue #119 closed with the owner-approved reply; milestone audit `passed` 13/13 — v0.6.4 close (2026-07-28)
 
+- ✓ Inline math immediately following text compiles on both emission paths — v0.6.5 Phase 34 (MATH-01, backlog 999.1): root-caused by measurement as a **scope gap, not a visit-ordering bug** — `visit_math` called only `_add_paragraph_separator()`, which is deliberately a no-op inside a list item (`visit_paragraph` never sets `in_paragraph` there) and inside the five code-mode concat contexts, so math emitted after a sibling juxtaposed with zero separator characters and `typst.compile()` rejected the document. Fixed by applying the existing, already-tested `visit_literal` pattern to the one visitor pair never retrofitted: `visit_math` now participates in all three separator protocols (paragraph / code-mode concat / list-item) and `visit_math_block` in the list-item half only (D-01 — a block node is never a concat-context sibling, so emitting a `+` operator around it would be wrong). Zero new helpers; the mitex/native branch, `_convert_latex_to_typst` call, and label-anchor emission are byte-unchanged. Pinned by a real `typst.compile()` GATE-01 fixture (`tests/fixtures/inline_math_after_text_render_gate/` + `tests/test_inline_math_after_text_render_gate.py`) covering list item / field body / def-list term / list-item block math / top-level control on both the mitex default and `-D typst_use_mitex=0` native paths, **recorded RED against the unfixed translator** with the verbatim `TypstError: expected semicolon or line break` captured, then GREEN — and independently re-reproduced at verification time by restoring the pre-fix translator and re-observing the identical RED. Non-regression proven by set-comparison against the pre-fix baseline (NEW-failures empty, FIXED = the two gate tests, CARRIED empty; 649 passed / 1 skipped), the full-corpus `-b typstpdf` gate fatal-free, a 93-page docs dogfooding PDF, and direct visual inspection of the rendered pages. Zero new runtime dependencies; the four-surface `@preview` version-sync surface untouched — Validated in Phase 34 (34-VERIFICATION.md `passed` 5/5; 34-GATE-EVIDENCE.md)
+
 ### Active
 
 <!-- Current scope: milestone v0.6.5 (inline-math separator hotfix). -->
 
-- [ ] Inline math immediately following text compiles: the emitted Typst carries a valid
+- [x] Inline math immediately following text compiles: the emitted Typst carries a valid
   separator between the preceding text emission and the `mi(...)` / `$...$` call, pinned by a
-  real `typst.compile()` GATE-01 regression fixture (backlog 999.1)
+  real `typst.compile()` GATE-01 regression fixture (backlog 999.1) — Phase 34
 - [ ] v0.6.5 release prepared: version bump (`pyproject.toml` sole literal + `uv.lock`
   lockstep) + curated CHANGELOG entry; publish at `/gsd-complete-milestone`
 
@@ -419,7 +431,9 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-28 — started milestone v0.6.5 (inline-math separator hotfix) via `/gsd-new-milestone`. Scoped from the owner's direction (「999.1を修正してすみやかにverUpしたい」, i.e. "fix 999.1 and version-up promptly"): minimal two-item scope — the backlog 999.1 inline-math-after-text missing-separator Typst compile error, fixed with a GATE-01 real-`typst.compile()` fail-pre-fix regression fixture, plus a prep-only release phase (version bump + CHANGELOG; publish at `/gsd-complete-milestone`). No pending todos or deferred requirements pulled in. Standing invariants: zero new runtime deps, no `@preview` bump, 3-way version-sync surface unchanged. Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.*
+*Last updated: 2026-07-28 — Phase 34 (Inline Math After Text — Separator Fix) complete, 3/3 plans, verification `passed` 5/5. MATH-01 moved Active → Validated. Root cause measured, not guessed: a scope gap in `visit_math`, which called only `_add_paragraph_separator()` — a deliberate no-op inside list items and the five code-mode concat contexts — so math after a sibling juxtaposed with zero separator and the Typst compile aborted. Fixed by applying the existing `visit_literal` separator-protocol pattern to `visit_math` (all three protocols) and `visit_math_block` (list-item half only, D-01); zero new helpers, mitex/native branch and label emission byte-unchanged. Pinned by a GATE-01 real-`typst.compile()` fixture recorded RED pre-fix and independently re-reproduced RED at verification time. Non-regression by set-comparison against the pre-fix baseline (649 passed / 1 skipped, NEW-failures empty), full-corpus `-b typstpdf` fatal-free, 93-page docs dogfooding PDF, visual page inspection. Code review 0 critical / 4 warnings (advisory: WR-01 cosmetic double blank line in `visit_math_block`; WR-02/03/04 uncovered constructs — labeled-equation-in-list-item, Construct F, native-path block math). Milestone invariants held: zero new runtime deps, no `@preview` bump. Next: Phase 35 (v0.6.5 release prep). Prior footer retained below.*
+
+<!-- Prior: 2026-07-28 — started milestone v0.6.5 (inline-math separator hotfix) via `/gsd-new-milestone`. Scoped from the owner's direction (「999.1を修正してすみやかにverUpしたい」, i.e. "fix 999.1 and version-up promptly"): minimal two-item scope — the backlog 999.1 inline-math-after-text missing-separator Typst compile error, fixed with a GATE-01 real-`typst.compile()` fail-pre-fix regression fixture, plus a prep-only release phase (version bump + CHANGELOG; publish at `/gsd-complete-milestone`). No pending todos or deferred requirements pulled in. Standing invariants: zero new runtime deps, no `@preview` bump, 3-way version-sync surface unchanged. Requirements → REQUIREMENTS.md; phases → ROADMAP.md. Prior footer retained below.* -->
 
 <!-- Prior: *Last updated: 2026-07-28 after v0.6.4 milestone close — Read the Docs migration shipped (6 phases / 33 plans, audit `passed` 13/13, verified_closeout): PR #124 merged, `v0.6.4` tagged, `release.yml` → PyPI + GitHub Release; Issue #119 closed; archives at `milestones/v0.6.4-*`. Owner-manual steps owed post-close: two RTD Default-branch flips → `main`, `.gitmodules` `branch` → `main` (translations repo), Default Version `latest` → `stable` after the tag builds green. Next: `/gsd-new-milestone`. Prior footer retained below.* -->
 
