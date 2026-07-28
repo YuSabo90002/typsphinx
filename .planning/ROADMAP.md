@@ -307,7 +307,7 @@ instead of aborting the Typst compile.
      `test_math_fallback.py` modules, the full pytest suite, and the full-corpus `-b typstpdf`
      regression gate all stay green.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -320,7 +320,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 34-03-PLAN.md — regression sweep: full suite vs. pre-fix baseline, lint/type, full-corpus `-b typstpdf` gate, docs dogfooding build, milestone invariants
+- [x] 34-03-PLAN.md — regression sweep: full suite vs. pre-fix baseline, lint/type, full-corpus `-b typstpdf` gate, docs dogfooding build, milestone invariants
 
 ### Phase 35: v0.6.5 Release Prep
 
@@ -406,7 +406,7 @@ describes a fix that has already been proven by Phase 34's real-compile gate.
 | 31. Published-URL Cutover + Repo-Wide Link Guard | v0.6.4 | 5/5 | Complete    | 2026-07-27 |
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
-| 34. Inline Math After Text — Separator Fix | v0.6.5 | 2/3 | In Progress|  |
+| 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | In Progress|  |
 | 35. v0.6.5 Release Prep | v0.6.5 | 0/TBD | Not started | - |
 
 ## Backlog
