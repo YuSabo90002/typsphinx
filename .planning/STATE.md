@@ -5,8 +5,8 @@ milestone_name: inline-math separator hotfix
 current_phase: 35
 current_phase_name: v0.6.5 Release Prep
 status: planning
-stopped_at: Phase 34 planned — RESEARCH.md (root cause measured), PATTERNS.md, VALIDATION.md, 3 plans
-last_updated: "2026-07-28T14:36:12.851Z"
+stopped_at: Phase 35 context gathered
+last_updated: "2026-07-28T15:01:18.645Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 34 complete, transitioned to Phase 35
 progress:
@@ -209,10 +209,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/35-v0-6-5-release-prep/35-CONTEXT.md
 
-Last session: 2026-07-28
-Stopped at: Phase 34 planned — RESEARCH.md (root cause measured), PATTERNS.md, VALIDATION.md, 3 plans
+Last session: 2026-07-28T15:01:18.639Z
+Stopped at: Phase 35 context gathered
 verified by plan-checker (all dimensions pass)
 Resume: `/gsd-execute-phase 34`.
 
