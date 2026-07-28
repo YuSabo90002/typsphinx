@@ -258,6 +258,31 @@ class TestInlineMathAfterTextRenderGate:
                 f"text -- the .typ was not typeset:\n{full_text}"
             )
 
+        # 14. Construct G exact-string positive (mitex path, WR-02) -- the
+        # id anchor and the mitex(...) call are newline-separated, never
+        # juxtaposed on the same line.
+        assert (
+            "[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\n"
+            "mitex(`G = m a" in typ_text
+        ), (
+            "Construct G (labeled display math in a list item, mitex path) "
+            f"did not newline-separate its id anchor from the mitex(...) "
+            f"call:\n{typ_text}"
+        )
+        assert "]mitex(" not in typ_text, (
+            "Construct G's id anchor (mitex path) is juxtaposed directly "
+            f"against mitex( with no separator:\n{typ_text}"
+        )
+
+        # 15. Construct F exact-string positive (WR-03) -- no separator or
+        # leading operator precedes the sole math expression in the list
+        # item.
+        assert "list({\nparbreak()\n\nmi(`a+b`)" in typ_text, (
+            "Construct F (list item whose sole content is inline math) "
+            f"emitted an unexpected separator or operator before the sole "
+            f"math expression:\n{typ_text}"
+        )
+
     def test_typstpdf_separates_inline_math_native_path(
         self, inline_math_after_text_render_gate_dir, temp_build_dir
     ):
@@ -343,3 +368,27 @@ class TestInlineMathAfterTextRenderGate:
                 f"Raw Typst source token {leak!r} leaked into extracted PDF "
                 f"text (native path):\n{full_text}"
             )
+
+        # 8. Construct E native exact-string positive (WR-04) -- the
+        # preceding text emission and the native display-math call are
+        # newline-separated.
+        assert 'text("Text before block math.")\n$ E = m c^2 $' in typ_text, (
+            "Construct E (display math in a list item, native path) did "
+            f"not newline-separate from the preceding paragraph:\n{typ_text}"
+        )
+
+        # 9. Construct G native exact-string positive (WR-02, native half)
+        # -- the id anchor and the native $...$ call are newline-separated,
+        # never juxtaposed on the same line.
+        assert (
+            "[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\n"
+            "$ G = m a" in typ_text
+        ), (
+            "Construct G (labeled display math in a list item, native "
+            f"path) did not newline-separate its id anchor from the "
+            f"native $...$ call:\n{typ_text}"
+        )
+        assert "]$" not in typ_text, (
+            "Construct G's id anchor (native path) is juxtaposed directly "
+            f"against a native $...$ span with no separator:\n{typ_text}"
+        )
