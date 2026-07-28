@@ -351,13 +351,13 @@ a document which used to fail to compile now compiles — and the only remaining
      v0.6.5`. The publish half (tag → `release.yml` → PyPI + GitHub Release, plus the standing
      second-repository tag on `typsphinx-doc-translations`) executes at `/gsd-complete-milestone`.
 
-**Plans**: 5 plans
+**Plans**: 2/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 35-01-PLAN.md — close the three test-side Phase 34 review Warnings (WR-02 / WR-03 / WR-04): Construct G added to the GATE-01 fixture plus four exact-string assertions across both emission paths, zero `typsphinx/` change
-- [ ] 35-02-PLAN.md — file the two deliberate deferrals as pending todos: WR-01's redundant blank line (D-05/D-10) and the `release.yml` release-notes-body rework (D-11)
+- [x] 35-01-PLAN.md — close the three test-side Phase 34 review Warnings (WR-02 / WR-03 / WR-04): Construct G added to the GATE-01 fixture plus four exact-string assertions across both emission paths, zero `typsphinx/` change
+- [x] 35-02-PLAN.md — file the two deliberate deferrals as pending todos: WR-01's redundant blank line (D-05/D-10) and the `release.yml` release-notes-body rework (D-11)
 
 **Wave 2** *(blocked on 35-01 per D-07: tests green before the bump)*
 
@@ -421,7 +421,7 @@ describes a fix that has already been proven by Phase 34's real-compile gate.
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
-| 35. v0.6.5 Release Prep | v0.6.5 | 0/TBD | Not started | - |
+| 35. v0.6.5 Release Prep | v0.6.5 | 2/5 | In Progress|  |
 
 ## Backlog
 
