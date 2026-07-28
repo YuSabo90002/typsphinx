@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.6.5
 milestone_name: inline-math separator hotfix
 current_phase: 35
-current_phase_name: v0-6-5-release-prep
-status: executing
-stopped_at: Phase 35 planned (5 plans, 4 waves)
-last_updated: "2026-07-28T15:48:19.332Z"
+status: completed
+stopped_at: Phase 35 context gathered
+last_updated: "2026-07-28T16:37:28.651Z"
 last_activity: 2026-07-29
-last_activity_desc: Phase 35 execution started
+last_activity_desc: Phase 35 complete
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 3
-  percent: 38
+  completed_plans: 8
+  percent: 100
+current_phase_name: v0-6-5-release-prep
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
 
 ## Current Position
 
-Phase: 35 (v0-6-5-release-prep) — EXECUTING
+Phase: 35
 Plans: 0/5 complete (4 waves)
-Status: Executing Phase 35
-Last activity: 2026-07-29 — Phase 35 execution started
+Status: All phases complete
+Last activity: 2026-07-29 — Phase 35 complete
 
 Progress: [--------------------] 0% (0/2 phases)
 
