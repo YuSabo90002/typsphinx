@@ -150,7 +150,8 @@ class TestInlineMathAfterTextRenderGate:
         # 4. Construct B exact-string positive (bullet list item -- the
         # precision gate: exactly one newline separator, not zero, not two).
         assert (
-            'text("Text before math ")\nmi(`E=mc^2`)\ntext(" text after.")' in typ_text
+            'text("Text before math ")\nmi(`E = m c^2`)\ntext(" text after.")'
+            in typ_text
         ), (
             "Construct B (bullet list item) did not emit exactly one "
             f"newline separator around the inline math call:\n{typ_text}"
@@ -165,13 +166,13 @@ class TestInlineMathAfterTextRenderGate:
         )
 
         # 6. Construct D exact-string positive (definition-list term).
-        assert 'text("Term ") + mi(`E=mc^2`)' in typ_text, (
+        assert 'text("Term ") + mi(`E = m c^2`)' in typ_text, (
             "Construct D (definition-list term) did not '+' concatenate "
             f"the term prose and the inline math call:\n{typ_text}"
         )
 
         # 7. Construct E exact-string positive (visit_math_block, D-01).
-        assert 'text("Text before block math.")\nmitex(`E = mc^2`)' in typ_text, (
+        assert 'text("Text before block math.")\nmitex(`E = m c^2`)' in typ_text, (
             "Construct E (display math in a list item) did not newline-"
             f"separate from the preceding paragraph:\n{typ_text}"
         )
@@ -179,14 +180,14 @@ class TestInlineMathAfterTextRenderGate:
         # 8. Construct A byte-identical control (RESEARCH.md Pitfall 1 --
         # the fix must NOT double-separate the already-working path).
         assert (
-            'par({text("With space before math: ")\nmi(`E=mc^2`)\ntext(" after.")})'
+            'par({text("With space before math: ")\nmi(`E = m c^2`)\ntext(" after.")})'
             in typ_text
         ), (
             "Construct A (top-level paragraph, spaced form) regressed -- "
             f"the plain-paragraph shape must stay byte-identical:\n{typ_text}"
         )
         assert (
-            'par({text("No space where")\nmi(`E=mc^2`)\ntext("immediately follows.")})'
+            'par({text("No space where")\nmi(`E = m c^2`)\ntext("immediately follows.")})'
             in typ_text
         ), (
             "Construct A (top-level paragraph, backslash-escaped no-space "
@@ -289,7 +290,7 @@ class TestInlineMathAfterTextRenderGate:
         typ_output = temp_build_dir / "index.typ"
         assert typ_output.exists(), "index.typ was not emitted"
         typ_text = typ_output.read_text(encoding="utf-8")
-        assert "$E=mc^2$" in typ_text, (
+        assert "$E = m c^2$" in typ_text, (
             "Expected the native $...$ math form in the emitted .typ -- "
             f"the -D typst_use_mitex=0 override did not apply:\n{typ_text}"
         )
@@ -300,13 +301,13 @@ class TestInlineMathAfterTextRenderGate:
         )
 
         # 3. Construct B native exact-string positive.
-        assert 'text("Text before math ")\n$E=mc^2$' in typ_text, (
+        assert 'text("Text before math ")\n$E = m c^2$' in typ_text, (
             "Construct B (bullet list item, native path) did not emit "
             f"exactly one newline separator:\n{typ_text}"
         )
 
         # 4. Construct D native exact-string positive.
-        assert 'text("Term ") + $E=mc^2$' in typ_text, (
+        assert 'text("Term ") + $E = m c^2$' in typ_text, (
             "Construct D (definition-list term, native path) did not '+' "
             f"concatenate the term prose and the native math span:\n{typ_text}"
         )
