@@ -426,3 +426,117 @@ $ git diff --stat af187d36c5bcbbdb0bb5cb03ddc9f37fa6fd7b5e..HEAD
   (`git status --porcelain tests/test_math_mitex.py tests/test_math_native.py tests/test_math_fallback.py`
   is empty at HEAD) and **no `@preview` version string changed**
   (`uv run pytest tests/test_preview_version_sync.py -q` -> `3 passed`).
+
+## Regression sweep — suite, lint, invariants
+
+- **Commit measured:** `0a14da0f37cbad0447f4f8a2424fd6ddc3cee542` (this worktree's
+  HEAD at the start of Plan 03 -- `docs(phase-34): update tracking after wave 2`,
+  the merged state of Plan 01 + Plan 02, before this plan's own append-only edits
+  to this file).
+- **Date:** 2026-07-28T14:13:51Z
+- **Environment provisioning (worktree-only, not a source/test edit):** per
+  CLAUDE.md's "Worktree-isolated execution" section and project memory
+  ("NixOS sandbox test env"), this fresh worktree venv needed two binary
+  symlink fixes before any command could run cleanly -- both are environment
+  plumbing, identical in kind to the documented `.venv/bin/uv` fix, and touch
+  nothing under `typsphinx/`, `tests/`, or any tracked file:
+  - `.venv/bin/uv` -> the Nix-store `uv` (`command -v uv`), replacing the
+    generic-linux ELF `uv` wheel `uv sync` installs (the documented stub-ld
+    hazard).
+  - `.venv/bin/ruff` -> the main checkout's `.venv/bin/ruff` (same pinned
+    version, `0.15.20` on both sides, confirmed via `ruff --version` and
+    `uv.lock`), since the worktree-synced `ruff` wheel is the same
+    generic-linux-ELF-on-NixOS hazard and the main tree's copy is already
+    patchelf'd against the Nix-store `glibc`/`ld-linux`.
+
+### Step 1 -- full-suite command (same as Plan 01's baseline command)
+
+```
+uv run pytest -q --tb=no -rf
+```
+
+Result: `649 passed, 1 skipped in 57.73s` -- `0 failed`.
+
+### Step 2 -- set-difference comparison against Plan 01's pre-fix baseline
+
+Both sorted failing-node-ID lists were written to scratch files and diffed
+with `diff` (not eyeballed):
+
+- **Pre-fix baseline set** (Plan 01's "Sorted list of OTHER failing node IDs"
+  -- the two intentionally-RED gate tests are excluded from this baseline by
+  Plan 01's own accounting, per SC#4): **empty** (zero environmentally-failing
+  tests recorded).
+- **Post-fix failing set** (this run's `FAILED` lines from the `-rf` summary):
+  **empty** (`0 failed`; the pytest short-summary shows zero `FAILED` lines).
+- **NEW** (post-fix minus pre-fix): **empty.** `diff` between the two scratch
+  files reports no difference -- both are empty files. This is the required
+  outcome; no new failure exists anywhere in the 650-test collection.
+- **FIXED** (pre-fix minus post-fix): the two GATE-01 gate tests, verified
+  passing in this run's `tests/test_inline_math_after_text_render_gate.py ..`
+  line (100%, both PASSED):
+  - `tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_mitex_path`
+  - `tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_native_path`
+- **CARRIED** (intersection -- known NixOS-environmental failures): **empty.**
+  Consistent with Plan 01's baseline recording zero environmental failures once
+  the `.venv/bin/uv` symlink fix is applied; the same held here.
+
+### Step 3 -- CI command set (verbatim from CLAUDE.md)
+
+| Command | Exit status |
+|---------|--------------|
+| `uv run black --check .` | `0` -- "All done! 173 files would be left unchanged." |
+| `uv run ruff check .` | `0` -- "All checks passed!" (after the `.venv/bin/ruff` symlink fix above; the unfixed venv-installed `ruff` cannot even start under NixOS -- `Could not start dynamically linked executable: ruff`, a pure exec-environment hazard unrelated to code correctness) |
+| `uv run mypy typsphinx/` | `0` -- "Success: no issues found in 6 source files" |
+
+### Step 4 -- milestone invariants, asserted mechanically over the phase diff
+
+- **Milestone base commit:** `eb696bb` (`docs: v0.6.4 published -- record
+  release run, RTD stable state, owner flips` -- the last commit before
+  `6c9fcde` "docs: start milestone v0.6.5 inline-math separator hotfix").
+- **Command:** `git diff --stat eb696bb...HEAD`
+- **Changed-file list (18 files, 3401 insertions(+), 69 deletions(-)):**
+  ```
+  .planning/PROJECT.md
+  .planning/REQUIREMENTS.md
+  .planning/ROADMAP.md
+  .planning/STATE.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-01-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-01-SUMMARY.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-02-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-02-SUMMARY.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-03-PLAN.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-GATE-EVIDENCE.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-PATTERNS.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-RESEARCH.md
+  .planning/phases/34-inline-math-after-text-separator-fix/34-VALIDATION.md
+  .planning/todos/pending/.gitkeep
+  tests/fixtures/inline_math_after_text_render_gate/conf.py
+  tests/fixtures/inline_math_after_text_render_gate/index.rst
+  tests/test_inline_math_after_text_render_gate.py
+  typsphinx/translator.py
+  ```
+- **Invariant assertions:**
+  - `pyproject.toml` absent from the list -- **zero new runtime/dev
+    dependencies.**
+  - `uv.lock` absent from the list -- confirms the above mechanically (no
+    lockfile drift).
+  - None of the four `@preview` sync surfaces (`typsphinx/writer.py`,
+    `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, any path
+    under `examples/`) appear in the list -- the only `typsphinx/` file
+    touched is `typsphinx/translator.py` (the D-01 separator fix itself).
+  - `uv run pytest tests/test_preview_version_sync.py -q` -> `3 passed` --
+    all three lockstep surfaces (`writer.py`, `template_engine.py`,
+    `templates/base.typ`, and the `examples/**/*.typ` glob the test also
+    covers) agree.
+- **Working-tree cleanliness:** `git status --porcelain typsphinx/ tests/`
+  prints nothing -- this plan modified no source, test, or fixture file (its
+  only edit is this append to `34-GATE-EVIDENCE.md`).
+
+### Verdict
+
+The post-fix failing set is the empty set, a strict (trivial) subset of Plan
+01's empty pre-fix-baseline "other failures" set. The two GATE-01 gate tests
+moved from FAILED (Plan 01's RED) to PASSED (this run), with zero new failures
+anywhere else in the 650-test collection. All three CI commands (`black`,
+`ruff`, `mypy`) exit `0`. All milestone invariants hold, asserted mechanically
+over the `eb696bb...HEAD` diff, not from recollection.
