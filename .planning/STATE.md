@@ -61,8 +61,19 @@ lint/type trio, the full-corpus `-b typstpdf` gate, and both docs dogfooding bui
 todos acknowledged as deferred (below).
 
 **Scope fence held:** Phase 35 was prep-only and took no irreversible action — `git tag -l v0.6.5`
-and `git ls-remote --tags origin v0.6.5` were both empty when it finished. The publish half
-(PR merge, tag push, PyPI, GitHub Release, the second repository's tag) executed here at close.
+and `git ls-remote --tags origin v0.6.5` were both empty when it finished. The publish half executed
+here at close and is complete:
+
+- PR #125 merged to `main` (13/13 CI checks green before merge); `v0.6.5` tagged on merge commit
+  `839d77f` and pushed.
+- Release run 30398631991 green end-to-end after owner approval of the `pypi` environment: PyPI
+  `typsphinx 0.6.5` (wheel + sdist, uploaded 21:15:39–21:15:40Z) and GitHub Release `v0.6.5` with
+  all three assets.
+- `typsphinx-doc-translations` pin advanced to `839d77f` (`update-pin.yml` run 30398664663) and
+  tagged `v0.6.5` at `1891a09` — the standing two-repository tagging cost, discharged.
+- RTD `stable` measured live on both projects: en identifier `839d77f38ffa`, ja identifier
+  `1891a0905322`; root → `/en/stable/` (302→200), `/ja/stable/` 200, both reporting `0.6.5`, both
+  PDFs served. No owner setting flips were needed this time.
 
 ## Shipped Milestone (v0.6.4 — archived)
 
@@ -176,6 +187,11 @@ Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-pre
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
 
 ### Blockers/Concerns
+
+**Nothing owed from v0.6.5.** All six `35-HANDOFF.md` items are discharged, including item 4 (the
+RTD `stable` confirmation), which was measured rather than left owner-manual: both projects'
+`stable` rebuilt on the new tags and serve `0.6.5`. The only carried cost is cosmetic and filed —
+the GitHub Release body is still `release.yml`'s commit dump (D-11).
 
 **Nothing owed from v0.6.4.** All owner-manual steps from `33-HANDOFF.md` completed at close
 (2026-07-28, measured via the RTD public API + real fetches): both RTD Default branches → `main`, both

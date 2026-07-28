@@ -10,7 +10,9 @@ pre-existing ones were already named Out of Scope in the milestone's own REQUIRE
 filed during v0.6.5 are its recorded deliberate deferrals (D-05, D-11) plus one docs-hygiene todo.
 **Phases:** 2 (34–35) · **Plans:** 8 · **Tasks:** 27
 **Requirements:** 2/2 v1 requirements complete (MATH-01, REL-03) · **Known gaps:** none
-**Git:** milestone branch `gsd/v0.6.5-inline-math-separator-hotfix` (72 commits) merged to `main`; tagged `v0.6.5`
+**Git:** milestone branch `gsd/v0.6.5-inline-math-separator-hotfix` (72 commits) merged to `main` via PR #125 (13/13 CI checks green before merge); tagged `v0.6.5` on merge commit `839d77f`
+**Released 2026-07-28/29:** PyPI `typsphinx 0.6.5` (wheel 94,765 B + sdist 324,824 B, uploaded 21:15:39–21:15:40Z) + GitHub Release `v0.6.5` carrying all three assets (`.whl`, `.tar.gz`, and the tag-time `typsphinx.pdf` from `docs.yml`), via release run 30398631991 — green end-to-end after owner approval of the `pypi` environment. Second-repository tag done: `typsphinx-doc-translations` submodule pin advanced to `839d77f` by `update-pin.yml` run 30398664663 and tagged `v0.6.5` at `1891a09`. RTD `stable` rebuilt green on both tags and measured live: en `stable` identifier `839d77f38ffa`, ja `stable` identifier `1891a0905322`, root → `/en/stable/` (302→200), `/ja/stable/` 200, both pages reporting `0.6.5`, both PDFs served (en 1,705,336 B / ja 1,889,332 B). No owner flips were needed — both Default Versions were already `stable` from the v0.6.4 close.
+**Known cosmetic cost (accepted, D-11):** the GitHub Release body is still the `git log` commit dump `release.yml` generates, not the curated `## [0.6.5]` CHANGELOG section — filed as `todos/pending/2026-07-29-release-notes-body-from-changelog-section.md`.
 **Code delta (milestone scope, excl. `.planning/`):** 8 files, +560 / −4 lines — the entire runtime
 change is +45 lines in `typsphinx/translator.py`; the rest is the GATE-01 regression fixture, the
 version bump, and the CHANGELOG entry.
