@@ -120,3 +120,10 @@ None - no external service configuration required.
 ---
 *Phase: 35-v0-6-5-release-prep*
 *Completed: 2026-07-29*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/35-v0-6-5-release-prep/35-04-SUMMARY.md`
+- FOUND commit: `4f14c18` (Task 1)
+- FOUND commit: `0da1af0` (Task 2)
+- FOUND commit: `a8f80cc` (SUMMARY.md)
