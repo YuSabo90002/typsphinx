@@ -249,3 +249,265 @@ committed by this phase.
 **SC#3: MET.** All seven live runs (full pytest suite, `black --check .`, `ruff check .`,
 `mypy typsphinx/`, the isolated corpus-gate confirmation, `tox -e docs-html`, `tox -e docs-pdf`) exit
 0 on the post-bump tree, and the docs builds leave the working tree clean under `docs/`.
+
+---
+
+## SC#4: milestone invariants asserted mechanically over the full diff
+
+**Claim:** the three milestone invariants — zero new runtime dependencies, no `@preview` package
+version bump across the four version-sync surfaces, and (per this milestone's scope note) the
+`typsphinx/` change confined to exactly `typsphinx/translator.py` — hold over the full milestone
+diff, anchored on the merge-base SHA, never on a written-down commit count.
+
+### Diff-range re-measurement (source of truth for this section)
+
+Command:
+```
+$ git merge-base main HEAD
+```
+Verbatim output:
+```
+eb696bb02d135227d880c679fc909513fe6f7d19
+```
+This matches the SHA prefix `eb696bb` recorded in `35-CONTEXT.md` and `35-RESEARCH.md`, and the same
+SHA re-measured in Task 1's own SC#1 section.
+
+Command:
+```
+$ git log --oneline eb696bb..HEAD | wc -l
+```
+Verbatim output:
+```
+63
+```
+This number is a moving target, not a fact to compare against any earlier planning document: every
+`docs(35-...)` tracking commit this phase's own execution makes increments it further (it read 33 at
+discussion time, 36 at research time, and had already reached 63 by this task's own execution —
+purely from accumulating planning-doc and task commits, none of which touch `typsphinx/`, `tests/`,
+or any dependency file — this task's own Task 1 commit alone accounted for one of the increments
+since research). Only the merge-base SHA above is a stable anchor; the invariants below are asserted
+against the SHA-anchored range, never against this count.
+
+### Invariant 1 of 3 — zero new runtime dependencies
+
+Command:
+```
+$ git diff --numstat eb696bb..HEAD -- pyproject.toml
+```
+Verbatim output:
+```
+1	1	pyproject.toml
+```
+
+Command:
+```
+$ git diff --numstat eb696bb..HEAD -- uv.lock
+```
+Verbatim output:
+```
+1	1	uv.lock
+```
+
+Full diffs, shown so a reader can see the changed lines are exactly the version keys:
+
+Command:
+```
+$ git diff eb696bb..HEAD -- pyproject.toml
+```
+Verbatim full diff:
+```diff
+diff --git a/pyproject.toml b/pyproject.toml
+index e101643..82b1efc 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "typsphinx"
+-version = "0.6.4"
++version = "0.6.5"
+ description = "Sphinx extension for Typst output"
+ readme = "README.md"
+ requires-python = ">=3.12"
+```
+Exactly one hunk: the `version` bump (plan 35-03). No line inside `dependencies` or
+`optional-dependencies` changed.
+
+Command:
+```
+$ git diff eb696bb..HEAD -- uv.lock
+```
+Verbatim full diff:
+```diff
+diff --git a/uv.lock b/uv.lock
+index b3e8a78..30d5a50 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -1376,7 +1376,7 @@ wheels = [
+ 
+ [[package]]
+ name = "typsphinx"
+-version = "0.6.4"
++version = "0.6.5"
+ source = { editable = "." }
+ dependencies = [
+     { name = "docutils" },
+```
+Exactly one hunk: the `typsphinx` self-entry's version field — no transitive dependency line moved,
+matching `35-03-SUMMARY.md`'s recorded numstat exactly.
+
+**Positive control** (proves the diff-range and pathspec machinery is actually working — an empty
+result on a broken pathspec would look identical to a genuine pass without this control):
+
+Command:
+```
+$ git diff --numstat eb696bb..HEAD -- typsphinx/translator.py
+```
+Verbatim output:
+```
+45	0	typsphinx/translator.py
+```
+Non-zero (45 insertions, 0 deletions) — matching the fact recorded in `35-CONTEXT.md`'s Specifics
+table and re-verified independently in `35-04-SUMMARY.md`. This proves the numstat/diff machinery
+over this exact range is a working comparison, so the empty/minimal results above are genuine, not a
+silently-broken check.
+
+**Invariant 1: PASS.** `pyproject.toml` and `uv.lock` each carry exactly one insertion and one
+deletion — the version-literal bump — with no dependency array or transitive-dependency line touched
+anywhere.
+
+### Invariant 2 of 3 — no `@preview` package version bump
+
+The four declaration surfaces are `typsphinx/writer.py`, `typsphinx/template_engine.py`,
+`typsphinx/templates/base.typ`, and `examples/`.
+
+Command:
+```
+$ git diff eb696bb..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ examples/
+```
+Verbatim output:
+```
+(empty)
+```
+Empty — none of the four surfaces changed a single byte over the milestone range.
+
+Command (mechanized corroboration):
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+```
+Verbatim output:
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a27886969f004fcff
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_preview_version_sync.py ...                                   [100%]
+
+============================== 3 passed in 0.01s ===============================
+```
+This module (read in full during this task) asserts three things across the same four surfaces:
+that the four `@preview` package versions (`codly`, `codly-languages`, `mitex`, `gentle-clues`)
+agree identically across `writer.py`/`template_engine.py`/`base.typ`
+(`test_preview_versions_identical_across_declaration_sites`), that all four are declared at every
+site (`test_all_four_packages_declared`), and that every `.typ` file under `examples/` pins versions
+matching the canonical `base.typ` values (`test_example_templates_match_canonical_versions`).
+
+**Invariant 2: PASS.**
+
+### Scope note — `typsphinx/` is not untouched this milestone
+
+Unlike the previous milestone (v0.6.4), where `typsphinx/` was entirely untouched, this milestone's
+fix (Phase 34) required a translator change. The assertion here is that the change is **confined**
+to exactly one file, not that `typsphinx/` is unchanged overall.
+
+Command:
+```
+$ git diff --name-only eb696bb..HEAD -- typsphinx/
+```
+Verbatim output:
+```
+typsphinx/translator.py
+```
+Exactly one path. Combined with Invariant 1's positive control above (45 insertions, 0 deletions in
+that same file) and Invariant 2's empty diff on the three `typsphinx/`-internal `@preview` surfaces
+(which are also under `typsphinx/` and are therefore included in this same one-path result), this
+confirms the entire milestone's `typsphinx/`-tree change is the two math-visitor edits in
+`translator.py` and nothing else.
+
+### Cross-reference to the third CHANGELOG `### Verified` claim
+
+The CHANGELOG's third `### Verified` bullet ("The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf`
+re-run remains fatal-free") is evidenced by Task 1's SC#3 § Step 5 above (the isolated
+`test_corpus_gate.py -m slow` run, 1 passed / 1 skipped / 3 deselected) plus SC#3 § Step 1 (the full
+suite, which already executes the same test class). It is not re-run a third time here.
+
+### SC#4 verdict
+
+**SC#4: MET.** Both invariants hold over the SHA-anchored milestone range
+(`eb696bb02d135227d880c679fc909513fe6f7d19..HEAD`, 63 commits at this measurement — a number that
+will keep moving and is not the anchor): zero new runtime dependencies (`pyproject.toml` and
+`uv.lock` each show exactly one insertion and one deletion — the version-literal bump — with a
+working positive control proving the diff machinery itself functions), and no `@preview` version
+bump on any of the four declaration surfaces (empty diff plus a green mechanized guard). The
+`typsphinx/`-tree scope differs from the previous milestone by design — the change is confined to
+exactly `typsphinx/translator.py`, which is the assertion this section proves, not zero change.
+
+---
+
+## SC#5: no irreversible action was taken
+
+**Claim:** no `v0.6.5` tag exists locally or on `origin`, and nothing was published, merged, or
+released by this phase. Run last, after every other command in this task.
+
+Command:
+```
+$ git tag -l v0.6.5
+```
+Verbatim output:
+```
+(empty)
+```
+
+Command:
+```
+$ git ls-remote --tags origin v0.6.5
+```
+Verbatim output:
+```
+(empty)
+```
+
+Both are empty. The release workflow (`.github/workflows/release.yml`) fires only on a tag push, so
+an absent tag on both the local repository and the remote is what makes "nothing was published" a
+mechanical claim rather than an assurance — no other trigger in this repository's CI configuration
+can publish a release.
+
+**Optional `gh` CLI check:** `gh` is available and authenticated in this environment (`gh auth
+status` confirmed a logged-in account with `repo` scope), so the additional query was run rather than
+recorded as unrun:
+
+Command:
+```
+$ gh release view v0.6.5 --repo YuSabo90002/typsphinx
+```
+Verbatim output:
+```
+release not found
+```
+(exit code 1). This confirms no `v0.6.5` GitHub Release exists, corroborating the two empty tag
+checks above through an independent read path.
+
+State explicitly, for the record: no pull request was opened or merged by this phase, no package was
+uploaded to PyPI, no GitHub Release was created, and no Read the Docs setting was changed. This
+task's own actions were limited to reading git/GitHub state and running the read-only/build-only
+commands transcribed above; no tag was created "to check whether it works," nothing was pushed, and
+no pull request was opened.
+
+### SC#5 verdict
+
+**SC#5: MET.** Both no-tag checks (local and remote) are empty, the optional `gh` release query
+independently confirms no `v0.6.5` release exists, and no irreversible action of any kind was taken
+during this phase's execution.
