@@ -1,37 +1,68 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.4
-milestone_name: Read the Docs migration
+milestone: v0.6.5
+milestone_name: inline-math separator hotfix
 status: Awaiting next milestone
-stopped_at: Milestone v0.6.4 closed (audit passed, archived, published)
-last_updated: "2026-07-27T21:51:33.264Z"
-last_activity: 2026-07-28
-last_activity_desc: Milestone v0.6.4 completed and archived
+stopped_at: Milestone v0.6.5 closed and published
+last_updated: "2026-07-28T20:46:45.107Z"
+last_activity: 2026-07-29
+last_activity_desc: Milestone v0.6.5 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 33
-  completed_plans: 33
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 8
+  completed_plans: 8
   percent: 100
-current_phase: 999.1
-current_phase_name: BACKLOG
+current_phase: 35
+current_phase_name: v0-6-5-release-prep
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-28 after v0.6.4 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-29 after v0.6.5 milestone close)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. For v0.6.4 the same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Planning next milestone (`/gsd-new-milestone`)
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
+**Current focus:** Planning the next milestone (`/gsd-new-milestone`) — numbering continues at Phase 36.
 
 ## Current Position
 
-Phase: Milestone v0.6.4 complete (closed 2026-07-28, verified_closeout — audit passed 13/13)
+Phase: Milestone v0.6.5 complete
 Plan: —
-Status: Awaiting next milestone (`/gsd-new-milestone`)
-Last activity: 2026-07-28 — v0.6.4 closed: archived, PR #124 merged, tagged, published
+Status: Awaiting next milestone
+Last activity: 2026-07-29 — Milestone v0.6.5 completed and archived
+
+## No Active Milestone
+
+v0.6.5 shipped 2026-07-29. Start the next one with `/gsd-new-milestone`; phase numbering continues
+at **Phase 36**. `.planning/REQUIREMENTS.md` was archived and removed at close — the next milestone
+defines a fresh one.
+
+## Shipped Milestone (v0.6.5 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.6.5-ROADMAP.md`](milestones/v0.6.5-ROADMAP.md)
+and [`milestones/v0.6.5-REQUIREMENTS.md`](milestones/v0.6.5-REQUIREMENTS.md). Phase artifacts are
+archived under `milestones/v0.6.5-phases/`.
+
+**Delivered:** 2/2 v1 requirements across 2 phases / 8 plans — a document mixing prose and math no
+longer aborts the Typst compile. The defect was root-caused **by measurement**, not from the
+backlog's guess: `visit_math` participated in only one of the translator's three separator protocols
+(paragraph, code-mode concat, list-item), so the fatal surfaced in list items, definition-list terms,
+and collapsed confval field bodies rather than in plain paragraphs. Fixed on both the mitex and
+native emission paths (+45 lines, `typsphinx/translator.py` only), pinned by a real-`typst.compile()`
+GATE-01 fixture recorded RED pre-fix, and released as v0.6.5.
+
+**Closeout type:** `override_closeout` — both phases were `phase_complete` with
+`verification_status: passed` and both requirements complete, but no `v0.6.5-MILESTONE-AUDIT.md` was
+produced (owner accepted at close, 2026-07-29: for a 2-phase / 2-requirement hotfix, Phase 35's
+`35-RELEASE-EVIDENCE.md` had already discharged SC#1–SC#5 against live runs — full pytest, the
+lint/type trio, the full-corpus `-b typstpdf` gate, and both docs dogfooding builds). 8 pending
+todos acknowledged as deferred (below).
+
+**Scope fence held:** Phase 35 was prep-only and took no irreversible action — `git tag -l v0.6.5`
+and `git ls-remote --tags origin v0.6.5` were both empty when it finished. The publish half
+(PR merge, tag push, PyPI, GitHub Release, the second repository's tag) executed here at close.
 
 ## Shipped Milestone (v0.6.4 — archived)
 
@@ -58,9 +89,11 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 
 **Velocity:**
 
-- Total plans completed (project cumulative): 100 (55 through v0.6.2 + 12 in v0.6.3 + 33 in v0.6.4)
+- Total plans completed (project cumulative): 108 (55 through v0.6.2 + 12 in v0.6.3 + 33 in v0.6.4 + 8 in v0.6.5)
 - v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
 - v0.6.4: 6 phases / 33 plans / 79 tasks, 2026-07-25 → 2026-07-28 (shipped)
+- v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
+  to date; a single-defect hotfix scope held end to end with zero scope creep.
 
 *Updated after each plan completion*
 
@@ -102,16 +135,24 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 - `branching_strategy: milestone` — ship unit is the milestone; final phase is prep-only Release;
   publish executes at `/gsd-complete-milestone`; push `main` to `origin` at every close.
+
 - Every release tags **two** repositories (parent + `typsphinx-doc-translations`) — v0.6.4 D-07.
 - Milestone invariant #4 (standing): "anywhere under X" success criteria are checked by a repo-wide
   grep at discovery time, never against the files a requirement happens to name.
+
 - Run `/gsd-audit-milestone` before each close (v0.6.4 restored it; first verified_closeout since
   v0.4.4).
 
+- Standing GATE-01 bar (since v0.6.0): every node-handler change ships a real
+  `sphinx-build → typst.compile()` regression fixture, recorded **red against the unfixed code**
+  before it is accepted as green.
+
 ### Pending Todos
 
-Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.6.4 close
-(recorded in Deferred Items below):
+Eight open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.6.5 close and the
+primary candidate pool for the next milestone's scoping.
+
+Carried from v0.6.2–v0.6.4 (5) — named Out of Scope in v0.6.5's own REQUIREMENTS.md (minimal hotfix):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
   repo-wide real-HTTP check covers the real failure class.
@@ -120,32 +161,47 @@ Five open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
 
-Resolved and filed at close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
+Filed during v0.6.5 (3) — recorded deliberate deferrals, not oversights:
+
+- **visit-math-block-redundant-blank-line-in-list-items** (translator) — Phase 34 review WR-01;
+  `visit_math_block`'s pre-existing unconditional `"\n\n"` doubles with the new
+  `list_item_needs_separator` flag, leaving one redundant blank line. Deferred by D-05 because
+  fixing it would force re-deriving the GATE-01 fixture's expected strings and re-running the
+  full-corpus gate immediately before a release.
+- **release-notes-body-from-changelog-section** (ci) — D-11; `release.yml` should extract the
+  `## [X.Y.Z]` CHANGELOG section instead of dumping `git log --pretty` (~296 lines at v0.6.4).
+- **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
+
+Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
 
 ### Blockers/Concerns
 
-**Owner-manual steps from `33-HANDOFF.md` — ALL COMPLETED at close (2026-07-28, measured via the
-RTD public API + real fetches):** both RTD Default branches → `main`, both Default Versions →
-`stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL redirects to
-`/en/stable/` (200) and `/ja/stable/` serves the same release (ja `stable` was auto-activated and
-built green from the translations `v0.6.4` tag). Nothing is owed.
+**Nothing owed from v0.6.4.** All owner-manual steps from `33-HANDOFF.md` completed at close
+(2026-07-28, measured via the RTD public API + real fetches): both RTD Default branches → `main`, both
+Default Versions → `stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL
+redirects to `/en/stable/` (200) and `/ja/stable/` serves the same release; Issue #119 closed.
 
 **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst` Translations
 section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ` is an unguarded
 FOURTH `@preview` version-lockstep site (the sync test watches 3 surfaces + `examples/`); the live
-translations-repo manifests have no structural test coverage in this repository.
+translations-repo manifests have no structural test coverage in this repository. All out of v0.6.5
+scope.
 
 UI note (standing): this project's phases are typesetting/config/docs/hosting work, **not** frontend
 UI — `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui`. Same for
-`api-coverage.verify-pre` false-positives on prose describing RTD API reads as evidence (three
+`api-coverage.verify-pre` false-positives on prose describing compile/render/API-read evidence (three
 recorded overrides in v0.6.4). GATE-01 note: honest-verifier — abstain to `human_needed` rather than
 assert a truth without direct evidence.
 
 ### Roadmap Evolution
 
-Cleared at v0.6.4 close (the milestone's evolution history is preserved in
-`milestones/v0.6.4-ROADMAP.md`). Next entries accrue during the next milestone.
+- **2026-07-28** — v0.6.5 roadmap created: Phases 34–35, continuing numbering from v0.6.4's Phase 33.
+  Backlog item **999.1** promoted into Phase 34 as requirement MATH-01 and removed from ROADMAP.md's
+  Backlog section (the section itself retained with its preamble).
+- **2026-07-29** — v0.6.5 closed and archived. ROADMAP.md collapsed to a one-line milestone entry
+  plus a `<details>` block; the Backlog section is still empty of `999.x` items, and now names the
+  8 pending todos as the next milestone's candidate pool. Next milestone starts at Phase 36.
 
 ## Deferred Items
 
@@ -165,20 +221,25 @@ Items acknowledged and carried forward from milestone closes:
 | RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
 | UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
 | SEO (accepted loss) | Old `github.io` URLs 404 with no redirect stubs (owner decision 2026-07-25) | Accepted cost | v0.6.4 scoping |
+| Quality (v0.6.4 review) | 30.1 Warnings: contributing.rst toolchain step; `custom_template.typ` fourth lockstep site; no structural tests over translations-repo manifests | Out of v0.6.5 scope | v0.6.5 scoping |
 | Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
 | Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close |
 | Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
 | Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
 | Todo (template_engine) | derive-typst-lang-duplicated-warning-block (review IN-01, Info) | Pending backlog | v0.6.3 close |
+| Verification | No `v0.6.5-MILESTONE-AUDIT.md` produced (owner accepted; Phase 35's `35-RELEASE-EVIDENCE.md` live-run coverage stood in for a 2-phase hotfix) | Accepted at close | v0.6.5 close |
+| Todo (translator) | visit-math-block-redundant-blank-line-in-list-items — Phase 34 review WR-01, deferred by D-05 (fixing it pre-release would force re-deriving the GATE-01 fixture) | Pending backlog | v0.6.5 close |
+| Todo (ci) | release-notes-body-from-changelog-section — `release.yml` release body still a ~296-line commit dump (D-11) | Pending backlog | v0.6.5 close |
+| Todo (docs) | project-md-unterminated-html-comments | Pending backlog | v0.6.5 close |
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** — (no phase in flight)
 
-Last session: 2026-07-28
-Stopped at: v0.6.4 milestone closed (audit passed → archived → merged → tagged → published)
+Last session: 2026-07-29
+Stopped at: Milestone v0.6.5 closed, archived, and published.
 Resume: `/gsd-new-milestone`.
 
 ## Operator Next Steps
 
-- Start the next milestone with `/gsd-new-milestone`. (All v0.6.4 owner-manual steps completed 2026-07-28.)
+- Start the next milestone with /gsd-new-milestone

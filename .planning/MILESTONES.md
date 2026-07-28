@@ -1,5 +1,38 @@
 # Milestones: typsphinx
 
+## v0.6.5 — inline-math separator hotfix (Shipped: 2026-07-29)
+
+**Closeout:** override_closeout — no `v0.6.5-MILESTONE-AUDIT.md` was run (owner decision at close:
+a 2-phase, 2-requirement hotfix where `init.manager` reported both phases `phase_complete=true` /
+`verification_status=passed` and Phase 35's `35-RELEASE-EVIDENCE.md` had already discharged SC#1–SC#5
+against live runs). 8 pending todos acknowledged as deferred (see STATE.md Deferred Items) — the 5
+pre-existing ones were already named Out of Scope in the milestone's own REQUIREMENTS.md, and the 3
+filed during v0.6.5 are its recorded deliberate deferrals (D-05, D-11) plus one docs-hygiene todo.
+**Phases:** 2 (34–35) · **Plans:** 8 · **Tasks:** 27
+**Requirements:** 2/2 v1 requirements complete (MATH-01, REL-03) · **Known gaps:** none
+**Git:** milestone branch `gsd/v0.6.5-inline-math-separator-hotfix` (72 commits) merged to `main`; tagged `v0.6.5`
+**Code delta (milestone scope, excl. `.planning/`):** 8 files, +560 / −4 lines — the entire runtime
+change is +45 lines in `typsphinx/translator.py`; the rest is the GATE-01 regression fixture, the
+version bump, and the CHANGELOG entry.
+
+**Delivered:** A document mixing prose and math no longer aborts the Typst compile. Phase 34
+root-caused the defect **by measurement** rather than from the backlog's guess, fixed it on both the
+mitex and native emission paths, and pinned it with a real-`typst.compile()` fixture recorded RED
+pre-fix; Phase 35 was prep-only, with zero irreversible action taken before this close.
+
+**Key accomplishments:**
+
+- Real-`typst.compile()` regression fixture reproducing the inline-math-after-text separator fatal in a list item, a collapsed confval field body, and a definition-list term, on both the mitex and native math paths, recorded RED against the unfixed translator
+- Made `visit_math` participate in all three separator protocols (paragraph, code-mode concat, list-item) and `visit_math_block` participate in the list-item protocol, turning the GATE-01 gate GREEN on both the mitex and native `-D typst_use_mitex=0` emission paths
+- Post-fix full regression sweep proves zero regression against Plan 01's pre-fix baseline (649 passed/1 skipped/0 failed), clean black/ruff/mypy, a fatal-free full-corpus GATE-02 pass, and a valid 93-page docs PDF — closing all five ROADMAP Phase 34 success criteria with direct evidence
+- Added Construct G (labeled display-math inside a list item) to the GATE-01 fixture and four exact-string assertions derived from real `sphinx-build -b typstpdf` builds, closing all three test-side Warnings from the Phase 34 code review with zero `typsphinx/` changes.
+- Filed two pending-todo records — WR-01's `visit_math_block` redundant blank line and `release.yml`'s release-notes-body rework — so both deliberate v0.6.5 deferrals (D-05/D-10, D-11) are recorded facts rather than lost ones.
+- pyproject.toml/README.md/uv.lock all moved 0.6.4 -> 0.6.5 in lockstep; `uv.lock`'s diff is exactly one line (no transitive dependency re-resolved) and `typsphinx.__version__` confirms the editable-install metadata was regenerated.
+- Inserted the curated `## [0.6.5]` CHANGELOG entry (lead paragraph + one-bullet Fixed + three-bullet Verified) and rolled over the tail link block, discharging ROADMAP Phase 35 SC#2 in both halves.
+- Proved the post-bump v0.6.5 tree green across seven live runs (including both D-12 docs dogfooding builds), proved the three milestone invariants mechanically over the SHA-anchored full milestone diff (merge-base `eb696bb02d135227d880c679fc909513fe6f7d19`) with a positive control, proved no irreversible action was taken (empty local/remote tag checks plus an optional `gh release view` corroboration), and wrote the standalone six-item `35-HANDOFF.md` checklist `/gsd-complete-milestone` will execute — discharging ROADMAP Phase 35 SC#3, SC#4, and SC#5.
+
+---
+
 ## v0.6.4 — Read the Docs migration (Shipped: 2026-07-28)
 
 **Closeout:** verified_closeout — `v0.6.4-MILESTONE-AUDIT.md` passed (13/13 requirements, 6/6 phases
@@ -23,25 +56,30 @@ irreversibly torn down — with every reversible action ordered before the singl
    `READTHEDOCS_LANGUAGE` → `SPHINX_LANGUAGE` → `"en"` `_resolve_language()` seam in `conf.py`; the raw
    build log proves typsphinx installed from the checked-out commit (not a stale PyPI wheel); the root
    URL owned at Default Version = `latest` with real-HTTP fetches re-taken by every later phase.
+
 2. **RTD serves typstpdf's own PDF (Phase 29, RTD-02/RTD-03):** `formats: [pdf]` + a
    `build.jobs.build.pdf` override replaces RTD's LaTeX path; the milestone's one open unknown
    (`@preview` egress from RTD's sandbox) resolved to Branch A — the served PDF content-compared
    against the local `tox -e docs-pdf` baseline (93==93 pages, byte-identical text, CJK font present),
    so the `releases/latest/download/` fallback (RTD-03) was satisfied vacuously.
+
 3. **Japanese site from a separate translations repository (Phase 30.1, I18N-01/I18N-03):**
    `typsphinx-doc-translations` created on the `sphinx-doc-translations` model (submodule pin
    auto-advanced by a repaired `update-pin.yml`, observed moving the pin end to end); `/ja/latest/`
    probed against 100%-translated docnames; the Japanese PDF's 10-NUL-byte glyph defect root-caused to
    Typst's font selection and fixed via a custom template's explicit
    `("Libertinus Serif", "Noto Serif CJK JP")` — owner visual UAT confirmed, no English regression.
+
 4. **The deletion round (Phase 30, I18N-02/DOC-08):** `build_multilang.py`, the language switcher,
    its `conf.py` wiring, every task-runner target, the orphan `docs/usage.rst`/`docs/installation.rst`
    pair with 20 collateral tests, and the relocated `docs/locale/` tree — all gone on a green suite
    with the docs build warning-for-warning identical to baseline.
+
 5. **URL cutover behind a proven guard (Phase 31, DOC-09/DOC-10/CI-05):** advisory lychee `links.yml`
    installed first and recorded red on the unfixed tree (negative control); then all 11 retired-host
    URLs in `README.md`/`pyproject.toml` rewritten and locked by a hermetic regression guard; all 35
    published URLs fetched over real HTTP; About → Website set and verified.
+
 6. **Irreversible Pages teardown, gated (Phase 32, CI-04) + release prep (Phase 33, REL-02):** the
    teardown proceeded only behind freshly re-taken evidence that RTD was serving en HTML, ja HTML
    (1038 CJK chars content-verified) and both PDFs; `gh-pages` deleted with `ls-remote`-proven absence

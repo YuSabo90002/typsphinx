@@ -297,6 +297,49 @@
 
 ---
 
+## Milestone: v0.6.5 — inline-math separator hotfix
+
+**Shipped:** 2026-07-29
+**Phases:** 2 (34, 35) | **Plans:** 8 | **Tasks:** 27 | **Sessions:** ~2 days (2026-07-28 → 2026-07-29)
+
+### What Was Built
+- One defect fixed and released. A paragraph mixing prose and math emitted Typst with no valid separator before the `mi(...)` / `$...$` call, so `typst.compile()` aborted — the build died on a document a user can legitimately write.
+- Phase 34 root-caused it **by measurement**: the backlog note blamed "`translator.py` math/Text visit ordering," but `visit_math` already called `_add_paragraph_separator()`. The real cause was a *scope gap* — that helper is deliberately a no-op inside list items (`visit_paragraph` never sets `in_paragraph` there) and inside the five code-mode concat contexts, so math after a sibling juxtaposed with zero separator characters. The fatal therefore surfaced in list items, definition-list terms, and collapsed confval field bodies, never in a plain paragraph.
+- Fixed by applying the already-tested `visit_literal` pattern to the one visitor pair never retrofitted: `visit_math` now participates in all three separator protocols, `visit_math_block` in the list-item half only (D-01 — a block node is never a concat-context sibling). Zero new helpers; the mitex/native branch, the `_convert_latex_to_typst` call, and label-anchor emission are byte-unchanged.
+- Pinned by a real `typst.compile()` GATE-01 fixture covering five constructs on both the mitex default and `-D typst_use_mitex=0` native paths, recorded RED against the unfixed translator with the verbatim `TypstError: expected semicolon or line break` captured — then independently re-reproduced RED at verification time by restoring the pre-fix translator.
+- Phase 35 was prep-only: version bump in lockstep, a curated `## [0.6.5]` CHANGELOG entry with the tail link-block rollover, Phase 34's three test-side review Warnings closed, and the milestone invariants asserted mechanically over the SHA-anchored full diff. It took no irreversible action — proven by empty `git tag -l` / `git ls-remote --tags` observed at two separate moments.
+
+### What Worked
+- **Treating the backlog note as a hypothesis, not a finding.** The note's premise was checkable and false, and the check was cheap. Fixing the named suspect would have changed nothing; the real cause is not reachable from the guess. The roadmap made this explicit up front ("the root cause is NOT yet known — Phase 34 must measure it before fixing it"), which is why the phase's first plan was a reproduction rather than a fix.
+- **Pattern reuse over new abstraction.** The fix is +45 lines with no new helper, because the separator protocols already had a worked example in `visit_literal`. Non-regression came out clean on a set-comparison against the pre-fix baseline (NEW-failures empty).
+- **The prep/publish fence, proven rather than asserted.** Phase 35 could state exactly what it had *not* done and back it with two independent empty-tag observations, so the close inherited an unambiguous starting state and nothing needed unwinding.
+- **Deliberate deferrals filed as records.** Both things consciously not done (WR-01's cosmetic blank line, the `release.yml` release-notes rework) became todo files during the phase that decided them, so the close had nothing to reconstruct from memory.
+- **Scope held absolutely.** Two requirements in, two requirements out, in two days — the fastest milestone to date and the first with zero scope drift of any kind.
+
+### What Was Inefficient
+- **The release phase was larger than the fix: 5 of 8 plans.** Three of those five (35-01 closing WR-02/03/04, 35-02 filing todos) were Phase 34 cleanup that landed in Phase 35 because Phase 34's code review ran after its verification. Fixture coverage gaps found by review are Phase 34's work; they arrived one phase late and inflated the release phase.
+- **A second consecutive audit-less close in three milestones.** The decision was defensible here (2 phases, 2 requirements, seven live runs already recorded), but v0.6.3 is the standing counter-example, and "the milestone is small" is exactly the reasoning that preceded it.
+- **RESEARCH.md carried a wrong caution.** It warned that WR-04's candidate assertion string needed a spacing fix; measurement showed `visit_math_block`'s native branch intentionally emits `$ E = m c^2 $` with interior spaces — a different code path from inline math's space-free form. Second time this milestone that a prior text's claim about the code was overturned by reading the code.
+- **`phase.complete` auto-flipped REL-03's checkbox** against the phase's own explicit decision (D-10: prep completion is not a publish), and had to be reverted before commit — a known tool behavior that costs a diff review at every release phase.
+
+### Patterns Established
+- **A backlog item's stated cause is an unverified claim.** Promote the *symptom* into the requirement and make the first plan a reproduction that captures the emitted artifact and the verbatim error. The requirement text here said so explicitly, and it paid.
+- **When a bug appears in some containers and not others, suspect protocol participation, not ordering.** Three separator protocols existed; a visitor participating in one of them looks correct in the common case and fails only inside the containers the other two govern.
+- **The release phase's evidence document names what it did not do, with a mechanical proof.** `35-HANDOFF.md`'s "Not done in this phase, by design" list plus the empty-tag observations is now the standard shape.
+
+### Key Lessons
+1. **Root-cause by measurement even when a plausible cause is written down.** Two independent prior texts (the backlog note and RESEARCH.md) each made a specific, checkable, wrong claim about the code. Both were cheap to check and expensive to trust.
+2. **Run the code review before the phase's verification closes, not after.** Every warning it raises that needs work becomes a plan in the *next* phase otherwise — here, 3 of the release phase's 5 plans.
+3. **A no-op guard is not a safe default.** `_add_paragraph_separator()` returning silently inside list items is why this bug was invisible for so long: the call site looked correct and the failure only appeared in containers nobody tested.
+4. **Small milestones are where audit discipline actually erodes.** The reasoning that skips the audit scales with how obviously fine the milestone looks.
+
+### Cost Observations
+- Model mix: not tracked this milestone.
+- Sessions: ~2 calendar days (2026-07-28 → 2026-07-29), 72 branch commits; worktree-isolated executor mode throughout.
+- Notable: the smallest milestone to date by every measure — 2 phases, 8 plans, 8 files changed, +560/−4 lines, of which the runtime change is 45 lines in one file. The proportion is the story: a 45-line fix carried 515 lines of fixture, evidence, and release scaffolding.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -310,6 +353,7 @@
 | v0.6.2 | ~4 days | 9 (incl. 4 inserted) | Rendering fidelity round 2: audit findings clustered by root cause into 3 translator phases; config→output regression gate closed a dead-config *class*; revert-and-restore fixture verification; `override_closeout` driven by an honest-verifier backstop abstention |
 | v0.6.3 | ~3 days | 6 (incl. 1 inserted) | Config & docs 実測整合: fail-loud curated allowlist replaced silent config drops; risks split across phases by failure mode rather than by feature; the worktree `uv` exec hazard root-caused; `override_closeout` with no milestone audit — and the milestone's one real defect (an unbuildable bundled example) found by the close's todo audit, not by any gate |
 | v0.6.4 | ~4 days | 6 (incl. 1 inserted) | Read the Docs migration: first hosting/infra milestone with a zero-`typsphinx/`-change invariant (held); irreversibility-ordered roadmap with the no-undo action isolated behind a freshly-re-taken gate; content-level criteria for present-as-success failure modes; milestone audit returned → first verified_closeout since v0.4.4 |
+| v0.6.5 | ~2 days | 2 | First single-defect hotfix milestone: the requirement text itself mandated measuring the root cause before fixing it, and the backlog's stated cause was overturned; smallest milestone to date (8 plans, 45 runtime lines) with zero scope drift; `override_closeout` with no audit, the second in three milestones |
 
 ### Cumulative Quality
 
@@ -322,6 +366,7 @@
 | v0.6.2 | 567 passed; + cluster A–F translator GATE-01 fixtures, target-name / nested-master / package-only / missing-malformed-master gates, config→output regression gate, `README`↔`pyproject` version-sync ratchet | fast suite green; full-corpus PDF fatal-free, `unknown_visit` empty | 0 new runtime deps |
 | v0.6.3 | 657 passed / 1 skipped; + captioned-table GATE-01 fixtures (2+-table, caption+width, `:numref:`), four `typst_elements` config→output fixtures incl. a negative unknown-key and a copyright-non-leak, `test_typst_lang_gate.py` (18 tests / 7 real-compile fixtures incl. 3 non-regression template paths), and a fourth-surface `@preview` sync check over `examples/**/*.typ` | full suite green; full-corpus PDF fatal-free, `unknown_visit` empty; `sphinx-build -b typstpdf examples/advanced` builds | 0 new runtime deps |
 | v0.6.4 | 647 passed / 1 skipped (net down: 20 collateral tests deleted with their orphan subjects); + `.readthedocs.yaml` structural tests, `_resolve_language()` seam tests, stale-URL regression guard (`test_no_stale_github_io_links.py`), two docs.yml guard tests with recorded red negative controls, advisory lychee `links.yml` | full suite green; live RTD verified serving en+ja HTML and both `typstpdf` PDFs | 0 new runtime deps |
+| v0.6.5 | 649 passed / 1 skipped; + `inline_math_after_text_render_gate` (5 constructs × both emission paths, recorded RED pre-fix and re-reproduced RED at verification) and four exact-string assertions derived from real `sphinx-build -b typstpdf` output | full suite green; full-corpus PDF fatal-free; 93-page docs dogfooding PDF; both `tox -e docs-html` / `docs-pdf` green on the post-bump tree | 0 new runtime deps |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -336,3 +381,4 @@
 9. Cluster audit-derived findings by shared code root cause and gate config on *output* not registration; prove a fixture has teeth by reverting the fix in place (byte-identical restore), and let an unexercisable truth abstain to human rather than counting it green. *(v0.6.2)*
 10. When you make a previously-silent failure loud, sweep the whole repo — including `examples/` — for who depended on the silence; and remember that per-phase verification proves the phases did what they said, not that the repo is shippable. *(v0.6.3 — a bundled sample shipped unbuildable through 6 green phases)*
 11. Order a migration by irreversibility — every reversible action before the one with no undo, which gets its own phase and a freshly re-taken gate — and verify failure modes that present as success with content-level probes aimed at known-sensitive targets. *(v0.6.4 — the glyph defect and the coverage-blind ja probe were both invisible to build status)*
+12. A written root cause — in a backlog note, a research doc, or an issue — is an unverified claim about code that is sitting right there. Reproduce and measure before fixing; make the first plan of a bugfix phase capture the emitted artifact and the verbatim error. *(v0.6.5 — two independent prior texts each made a specific, checkable, wrong claim)*

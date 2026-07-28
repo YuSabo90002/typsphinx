@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-07-29
+
+Fixes a compile-blocking defect where a document mixing prose and math could abort the Typst
+compile: inline and display math no longer emit without a valid separator from surrounding text.
+The runtime change is confined to the math handlers in `typsphinx/translator.py` — both the inline
+and the display-math visitor gained separator participation — with no other file under `typsphinx/`
+touched. Zero new runtime dependencies; the bundled `@preview` version-sync surface is untouched.
+
+### Fixed
+
+- **Inline math immediately after text no longer aborts the `typstpdf` compile (MATH-01)** — in
+  bullet-list items, definition-list terms, and the like (including display math inside a list
+  item, which is the same user-visible change), a missing separator between the preceding text
+  emission and the `mi(...)` / `$...$` call previously produced Typst that failed to compile. Fixed
+  on both emission paths — the mitex default and the native path.
+
+### Verified
+
+- Zero new runtime dependencies across the full milestone diff.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf` re-run remains fatal-free.
+
 ## [0.6.4] - 2026-07-28
 
 Moves documentation hosting from GitHub Pages to Read the Docs: every published URL now resolves
@@ -839,6 +862,7 @@ untouched.
 
 ---
 
+[0.6.5]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.5
 [0.6.4]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.4
 [0.6.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.3
 [0.6.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.2
@@ -854,4 +878,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.5...HEAD
