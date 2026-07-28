@@ -351,7 +351,7 @@ a document which used to fail to compile now compiles — and the only remaining
      v0.6.5`. The publish half (tag → `release.yml` → PyPI + GitHub Release, plus the standing
      second-repository tag on `typsphinx-doc-translations`) executes at `/gsd-complete-milestone`.
 
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -361,7 +361,7 @@ Plans:
 
 **Wave 2** *(blocked on 35-01 per D-07: tests green before the bump)*
 
-- [ ] 35-03-PLAN.md — SC#1 version bump: `pyproject.toml` sole literal → 0.6.5, `uv.lock` regenerated in lockstep, README Status line, `typsphinx.__version__` proven
+- [x] 35-03-PLAN.md — SC#1 version bump: `pyproject.toml` sole literal → 0.6.5, `uv.lock` regenerated in lockstep, README Status line, `typsphinx.__version__` proven
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -421,7 +421,7 @@ describes a fix that has already been proven by Phase 34's real-compile gate.
 | 32. GitHub Pages Teardown (IRREVERSIBLE) | v0.6.4 | 3/3 | Complete    | 2026-07-28 |
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
-| 35. v0.6.5 Release Prep | v0.6.5 | 2/5 | In Progress|  |
+| 35. v0.6.5 Release Prep | v0.6.5 | 3/5 | In Progress|  |
 
 ## Backlog
 
