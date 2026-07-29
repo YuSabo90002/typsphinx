@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 status: planning
-last_updated: "2026-07-29T11:28:31.664Z"
+last_updated: "2026-07-29T00:00:00.000Z"
 last_activity: 2026-07-29
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,23 +19,43 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
-**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Milestone v0.7.0 — API rendering design overhaul. Defining requirements; phase numbering starts at Phase 36.
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
+**Current focus:** Milestone v0.7.0 — API rendering design overhaul. Roadmap created (Phases 36–41, 32/32 requirements mapped). Next: plan Phase 36.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 36 — Shared-Emission Seam Cleanup (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-29 — Milestone v0.7.0 started
+Status: Roadmap created; awaiting phase planning
+Last activity: 2026-07-29 — v0.7.0 roadmap written (Phases 36–41)
+
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (0/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
-Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 35).
+Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 35). Roadmap
+created 2026-07-29: **6 phases (36–41)**, all **32** v1 requirements mapped, no orphans.
 
 **Goal:** Replace the provisionally-chosen Typst representations of the API-description and
 admonition directive families with a real typographic design, so autodoc/API pages render as a
 readable reference document instead of a flat wall of proportional bold text.
+
+**Phase structure:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 36 | Shared-Emission Seam Cleanup | ADM-06, MATH-02 |
+| 37 | Signature Typography — the `desc_*` Family | SIG-01..SIG-09 |
+| 38 | Structural Indentation + Info Fields | IND-01..IND-05, FLD-01..FLD-03 |
+| 39 | Admonition Taxonomy + Rubric Nesting | ADM-01..ADM-05 |
+| 40 | Citations — Full Round Trip | CIT-01..CIT-06 |
+| 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 |
+
+Execution order 36 → 37 → 38 → 39 → 40 → 41. Phase 36 lands first because its acceptance criterion
+is **byte-identical rendering** — the one provable, zero-risk move available, and a prerequisite for
+restyling `desc_signature` and `rubric` independently. 37 → 38 → 39 is a genuine dependency chain
+(signature shape → body/field indent → rubric inheriting that indent). Phase 40 (citations) is
+structurally independent and can be resequenced anywhere after 36.
 
 **Scope (owner-confirmed 2026-07-29, after a mid-scoping concept rethink):** `desc_*` +
 `field_list` redesign; admonition / rubric / topic redesign; full-round-trip `citation` support
@@ -55,7 +75,9 @@ sourced from the CHANGELOG section; v0.7.0 release prep.
 - **The bundled style module itself** — with user override no longer a goal, the translator emits
   complete Typst directly. Every generated `.typ` stays self-contained; no builder change; one
   fewer phase. Accepted costs: more verbose `.typ`, and the shared indent constant living only on
-  the Python side
+  the Python side. **The roadmap honours this — there is no style-module scaffolding phase, and
+  research/SUMMARY.md's six-phase "Reconciled Build Order" (whose Phase 1 was that scaffolding) was
+  re-derived rather than transcribed**
 - **Typst Universe publication** — was only ever the module's future; moot now
 
 **Reference (demoted from "authority" during the rethink):** Sphinx's own LaTeX-rendered PDF —
@@ -71,16 +93,22 @@ parameters readable from the `.sty` sources in the venv (`sphinxlatexobjects.sty
 **Consequence — success criteria split in two:** mechanically checkable structural properties
 (emitted through `raw(...)` not `text(...)`; body indent non-zero; a nested member's left edge
 strictly greater than its parent's, via `pypdf` bounding boxes) versus human visual UAT for the
-aesthetic judgement. Requirements must draw that line per item. The reference's `master`-vs-`v9.1.0`
-version skew mattered only under page-by-page comparison and is now moot.
+aesthetic judgement. The roadmap's success criteria follow each requirement's `[M]`/`[V]` tag; the
+only `[V]` requirement in the milestone is ADM-04 (greyscale distinguishability), carried as an
+explicit owner sign-off criterion on Phase 39. No criterion anywhere says "matches the reference
+page-by-page" — the reference's `master`-vs-`v9.1.0` version skew mattered only under that
+comparison and is now moot.
 
 **GATE-01 methodology change (this milestone):** every prior fixture proved a compile fatal. Every
 design defect here **compiles successfully today**, so RED cannot be `TypstError` — each phase
-defines a structural / regex / `pypdf` RED assertion before any code is written. Citation is the
-exception and keeps the classic RED.
+defines a structural / regex / `pypdf` RED assertion before any code is written. **Phase 40
+(citations) is the sole exception** and keeps the classic RED; Phase 36's RED-substitute is unusual
+and worth naming: equality-of-output (the decoupling must be byte-identical).
 
-`.planning/REQUIREMENTS.md` was archived and removed at the v0.6.5 close; this milestone defines a
-fresh one.
+**Test migration is owned per phase** (milestone invariant #5) — every redesign phase's success
+criteria include re-deriving its own exact-string assertions by hand and recording a file/class
+census. Measured blast radius: 10 test files, 61 render-gate classes. There is no blanket closing
+test-fix phase, deliberately.
 
 ## Shipped Milestone (v0.6.5 — archived)
 
@@ -151,6 +179,8 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 - v0.6.4: 6 phases / 33 plans / 79 tasks, 2026-07-25 → 2026-07-28 (shipped)
 - v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
   to date; a single-defect hotfix scope held end to end with zero scope creep.
+- v0.7.0: 6 phases / 0 plans so far, started 2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but
+  with a much higher test-migration load (10 files, 61 render-gate classes) carried per phase.
 
 *Updated after each plan completion*
 
@@ -202,34 +232,31 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 - Standing GATE-01 bar (since v0.6.0): every node-handler change ships a real
   `sphinx-build → typst.compile()` regression fixture, recorded **red against the unfixed code**
-  before it is accepted as green.
+  before it is accepted as green. **v0.7.0 amends what "red" means** — see the Active Milestone
+  section: every design defect in this milestone compiles fine today, so RED is a structural /
+  regex / `pypdf`-text assertion defined before any code is written, except for CIT-01 (Phase 40),
+  which keeps the classic `TypstError`.
 
 ### Pending Todos
 
-Eight open in `.planning/todos/pending/`, all acknowledged as deferred at the v0.6.5 close and the
-primary candidate pool for the next milestone's scoping.
+Eight open in `.planning/todos/pending/` at the v0.6.5 close; **three were promoted into v0.7.0** on
+2026-07-29 at roadmap creation and are now tracked as requirements, leaving five deferred.
 
-Carried from v0.6.2–v0.6.4 (5) — named Out of Scope in v0.6.5's own REQUIREMENTS.md (minimal hotfix):
+Promoted into v0.7.0 (3):
+
+- **citation-node-support-untracked** (translator, examples) → Phase 40, requirements CIT-01..CIT-06.
+- **visit-math-block-redundant-blank-line-in-list-items** (translator) → Phase 36, requirement
+  MATH-02.
+- **release-notes-body-from-changelog-section** (ci) → Phase 41, requirement REL-04.
+
+Still open and deferred (5):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
   repo-wide real-HTTP check covers the real failure class.
 
-- **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent.
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening.
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
-
-Filed during v0.6.5 (3) — recorded deliberate deferrals, not oversights:
-
-- **visit-math-block-redundant-blank-line-in-list-items** (translator) — Phase 34 review WR-01;
-  `visit_math_block`'s pre-existing unconditional `"\n\n"` doubles with the new
-  `list_item_needs_separator` flag, leaving one redundant blank line. Deferred by D-05 because
-  fixing it would force re-deriving the GATE-01 fixture's expected strings and re-running the
-  full-corpus gate immediately before a release.
-
-- **release-notes-body-from-changelog-section** (ci) — D-11; `release.yml` should extract the
-  `## [X.Y.Z]` CHANGELOG section instead of dumping `git log --pretty` (~296 lines at v0.6.4).
-
 - **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
 
 Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
@@ -240,7 +267,8 @@ Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-pre
 **Nothing owed from v0.6.5.** All six `35-HANDOFF.md` items are discharged, including item 4 (the
 RTD `stable` confirmation), which was measured rather than left owner-manual: both projects'
 `stable` rebuilt on the new tags and serve `0.6.5`. The only carried cost is cosmetic and filed —
-the GitHub Release body is still `release.yml`'s commit dump (D-11).
+the GitHub Release body is still `release.yml`'s commit dump (D-11) — and it is now scoped as
+v0.7.0's REL-04 (Phase 41).
 
 **Nothing owed from v0.6.4.** All owner-manual steps from `33-HANDOFF.md` completed at close
 (2026-07-28, measured via the RTD public API + real fetches): both RTD Default branches → `main`, both
@@ -250,14 +278,24 @@ redirects to `/en/stable/` (200) and `/ja/stable/` serves the same release; Issu
 **Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst` Translations
 section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ` is an unguarded
 FOURTH `@preview` version-lockstep site (the sync test watches 3 surfaces + `examples/`); the live
-translations-repo manifests have no structural test coverage in this repository. All out of v0.6.5
-scope.
+translations-repo manifests have no structural test coverage in this repository. Out of v0.7.0
+scope, but note the second one is adjacent to Phase 41's invariant check — any new font selection
+this milestone introduces touches that same file.
+
+**v0.7.0 risk carried into planning (from research, not yet resolved):** the signature-overflow
+strategy (SIG-07) is an open question — the v0.6.1 FID-01a fix was for wide *tables*, and Phase 37
+must measure real long signatures from the Sphinx `doc/` corpus before choosing between ZWSP
+injection, explicit break points, or a size reduction. Also open: any new `set text(font: ...)` for
+monospace signatures can silently shadow the `Noto Serif CJK JP` fallback in the `ja` build — Typst
+emits neither a warning nor an error, so the D-03 four-check bar is a Phase 41 success criterion.
 
 UI note (standing): this project's phases are typesetting/config/docs/hosting work, **not** frontend
-UI — `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui`. Same for
-`api-coverage.verify-pre` false-positives on prose describing compile/render/API-read evidence (three
-recorded overrides in v0.6.4). GATE-01 note: honest-verifier — abstain to `human_needed` rather than
-assert a truth without direct evidence.
+UI — `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui`. The v0.7.0
+roadmap deliberately carries no `UI hint` annotations for this reason, even though phases 37–39 use
+words like "layout", "page", and "render". Same for `api-coverage.verify-pre` false-positives on
+prose describing compile/render/API-read evidence (three recorded overrides in v0.6.4). GATE-01
+note: honest-verifier — abstain to `human_needed` rather than assert a truth without direct
+evidence.
 
 ### Roadmap Evolution
 
@@ -268,6 +306,14 @@ assert a truth without direct evidence.
 - **2026-07-29** — v0.6.5 closed and archived. ROADMAP.md collapsed to a one-line milestone entry
   plus a `<details>` block; the Backlog section is still empty of `999.x` items, and now names the
   8 pending todos as the next milestone's candidate pool. Next milestone starts at Phase 36.
+
+- **2026-07-29** — v0.7.0 roadmap created: **Phases 36–41**, 32/32 v1 requirements mapped, zero
+  orphans. Derived from this milestone's requirements rather than transcribed from
+  `research/SUMMARY.md`'s "Reconciled Build Order", whose Phase 1 (style-module scaffolding) no
+  longer exists after the owner dropped the bundled module. Three pending todos promoted into the
+  milestone (citation support, `visit_math_block` blank line, `release.yml` CHANGELOG extraction).
+  REQUIREMENTS.md's coverage tally was corrected from "29 total" to the measured **32** — a tally
+  error only; no requirement was added, removed, or reworded.
 
 ## Deferred Items
 
@@ -287,25 +333,31 @@ Items acknowledged and carried forward from milestone closes:
 | RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
 | UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
 | SEO (accepted loss) | Old `github.io` URLs 404 with no redirect stubs (owner decision 2026-07-25) | Accepted cost | v0.6.4 scoping |
-| Quality (v0.6.4 review) | 30.1 Warnings: contributing.rst toolchain step; `custom_template.typ` fourth lockstep site; no structural tests over translations-repo manifests | Out of v0.6.5 scope | v0.6.5 scoping |
+| Quality (v0.6.4 review) | 30.1 Warnings: contributing.rst toolchain step; `custom_template.typ` fourth lockstep site; no structural tests over translations-repo manifests | Out of v0.6.5 and v0.7.0 scope | v0.6.5 scoping |
 | Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
-| Todo (translator, examples) | citation-node-support-untracked | Pending backlog | v0.6.2 close |
+| Todo (translator, examples) | citation-node-support-untracked | **Promoted to v0.7.0 Phase 40** (CIT-01..CIT-06) 2026-07-29 | v0.6.2 close |
 | Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
 | Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
 | Todo (template_engine) | derive-typst-lang-duplicated-warning-block (review IN-01, Info) | Pending backlog | v0.6.3 close |
 | Verification | No `v0.6.5-MILESTONE-AUDIT.md` produced (owner accepted; Phase 35's `35-RELEASE-EVIDENCE.md` live-run coverage stood in for a 2-phase hotfix) | Accepted at close | v0.6.5 close |
-| Todo (translator) | visit-math-block-redundant-blank-line-in-list-items — Phase 34 review WR-01, deferred by D-05 (fixing it pre-release would force re-deriving the GATE-01 fixture) | Pending backlog | v0.6.5 close |
-| Todo (ci) | release-notes-body-from-changelog-section — `release.yml` release body still a ~296-line commit dump (D-11) | Pending backlog | v0.6.5 close |
+| Todo (translator) | visit-math-block-redundant-blank-line-in-list-items — Phase 34 review WR-01, deferred by D-05 (fixing it pre-release would force re-deriving the GATE-01 fixture) | **Promoted to v0.7.0 Phase 36** (MATH-02) 2026-07-29 | v0.6.5 close |
+| Todo (ci) | release-notes-body-from-changelog-section — `release.yml` release body still a ~296-line commit dump (D-11) | **Promoted to v0.7.0 Phase 41** (REL-04) 2026-07-29 | v0.6.5 close |
 | Todo (docs) | project-md-unterminated-html-comments | Pending backlog | v0.6.5 close |
+| Styling (v0.7.0 scoping) | STY-01/STY-02/STY-03: user-overridable per-directive styling, the bundled Typst style module, and its Typst Universe publication | Deferred to Future (goal narrowed by owner) | v0.7.0 scoping |
+| Rendering (v0.7.0 scoping) | TOP-01: box `.. contents::` (local TOC) as the reference does — D-05's box-less choice stands now that the reference is not an authority | Deferred to Future | v0.7.0 scoping |
+| Citations (v0.7.0 scoping) | CIT-07: `sphinxcontrib-bibtex` support (`:cite:` role, `.bib` files) — a different node family; would use Typst's native `bibliography()`/`cite()` | Deferred to Future | v0.7.0 scoping |
 
 ## Session Continuity
 
 **Resume file:** — (no phase in flight)
 
 Last session: 2026-07-29
-Stopped at: Milestone v0.6.5 closed, archived, and published.
-Resume: `/gsd-new-milestone`.
+Stopped at: v0.7.0 roadmap created (Phases 36–41), REQUIREMENTS.md traceability populated 32/32.
+Resume: `/gsd-plan-phase 36`.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review `.planning/ROADMAP.md` (Phases 36–41) and the populated traceability table in
+  `.planning/REQUIREMENTS.md`.
+- Plan the first phase with `/gsd-plan-phase 36` — its acceptance criterion is byte-identical
+  rendering, so it is the cheapest place to establish the milestone's RED-assertion discipline.

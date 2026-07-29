@@ -224,18 +224,63 @@ Standing constraints this milestone must not violate. Verified mechanically at r
 
 ## Traceability
 
-Populated during roadmap creation.
+Populated during roadmap creation (2026-07-29). Every v1 requirement maps to exactly one phase.
+Phase numbering continues from v0.6.5's last phase (35).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(pending roadmap)_ | — | — |
+| SIG-01 | Phase 37 | Pending |
+| SIG-02 | Phase 37 | Pending |
+| SIG-03 | Phase 37 | Pending |
+| SIG-04 | Phase 37 | Pending |
+| SIG-05 | Phase 37 | Pending |
+| SIG-06 | Phase 37 | Pending |
+| SIG-07 | Phase 37 | Pending |
+| SIG-08 | Phase 37 | Pending |
+| SIG-09 | Phase 37 | Pending |
+| IND-01 | Phase 38 | Pending |
+| IND-02 | Phase 38 | Pending |
+| IND-03 | Phase 38 | Pending |
+| IND-04 | Phase 38 | Pending |
+| IND-05 | Phase 38 | Pending |
+| FLD-01 | Phase 38 | Pending |
+| FLD-02 | Phase 38 | Pending |
+| FLD-03 | Phase 38 | Pending |
+| ADM-01 | Phase 39 | Pending |
+| ADM-02 | Phase 39 | Pending |
+| ADM-03 | Phase 39 | Pending |
+| ADM-04 | Phase 39 | Pending |
+| ADM-05 | Phase 39 | Pending |
+| ADM-06 | Phase 36 | Pending |
+| CIT-01 | Phase 40 | Pending |
+| CIT-02 | Phase 40 | Pending |
+| CIT-03 | Phase 40 | Pending |
+| CIT-04 | Phase 40 | Pending |
+| CIT-05 | Phase 40 | Pending |
+| CIT-06 | Phase 40 | Pending |
+| MATH-02 | Phase 36 | Pending |
+| REL-04 | Phase 41 | Pending |
+| REL-05 | Phase 41 | Pending |
+
+**Per-phase totals:**
+
+| Phase | Name | Requirements | Count |
+|-------|------|--------------|-------|
+| 36 | Shared-Emission Seam Cleanup | ADM-06, MATH-02 | 2 |
+| 37 | Signature Typography — the `desc_*` Family | SIG-01..SIG-09 | 9 |
+| 38 | Structural Indentation + Info Fields | IND-01..IND-05, FLD-01..FLD-03 | 8 |
+| 39 | Admonition Taxonomy + Rubric Nesting | ADM-01..ADM-05 | 5 |
+| 40 | Citations — Full Round Trip | CIT-01..CIT-06 | 6 |
+| 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 | 2 |
 
 **Coverage:**
 
-- v1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️ (roadmap not yet created)
+- v1 requirements: **32** total (9 SIG + 5 IND + 3 FLD + 6 ADM + 6 CIT + 1 MATH + 2 REL). *Corrected
+  2026-07-29 during roadmap creation — this line previously read "29 total", which was a tally
+  error; no requirement was added, removed, or reworded.*
+- Mapped to phases: 32
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-29*
-*Last updated: 2026-07-29 after the mid-scoping concept narrowing*
+*Last updated: 2026-07-29 — traceability populated at roadmap creation (Phases 36–41)*
