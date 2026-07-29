@@ -22,6 +22,9 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
 admonition directive families with a real typographic design, so autodoc/API pages render as a
 readable reference document — monospace signatures, hanging-indented bodies, and visually
 distinguishable nesting — instead of the flat wall of proportional bold text they are today.
+**typsphinx itself produces the good-looking output; making that styling user-overridable is
+explicitly NOT a goal of this milestone** (owner decision 2026-07-29, after research measured that
+Typst cannot deliver the shape that goal wanted — see Key context).
 
 **Target features:**
 
@@ -38,22 +41,19 @@ distinguishable nesting — instead of the flat wall of proportional bold text t
 - **admonition / rubric / topic redesign** — the same provisional-representation class.
   `visit_rubric` is `strong()` + an unconditional `linebreak()`; because rubric also carries
   autodoc's "Options" heading, this lands directly on API pages
-- **Style consolidated into an importable Typst module** — the styling primitives move out of
-  inline `translator.py` string emission into one Typst module shipped inside typsphinx. The
-  builder copies it to the output directory alongside `_template.typ`, and the translator imports
-  it from every generated `.typ` (Typst's `#include()` does not inherit imports, so each file must
-  re-declare — the same constraint `writer.py` already handles for the four `@preview` imports).
-  The three in-repo custom templates (`examples/advanced/_templates/custom.typ`,
-  `docs/source/_typst/custom_template.typ`,
-  `examples/charged-ieee/approach2/source/_templates/_template.typ`) keep working unmodified — this
-  route is deliberately **not** a breaking change. The module's API boundary is drawn so that
-  publishing it to Typst Universe later is possible; **publication itself is out of this milestone**
 - **citation support — full round trip** — greenfield: `translator.py` contains zero citation
   handlers (the only mention is a comment recording that `citation`/`citation_reference` were left
-  untouched by D-07). `visit_citation` / `visit_label` / `visit_citation_reference` render a
-  `thebibliography`-equivalent labelled list plus a working `[Label]` → definition link, to the
-  point where the citation syntax Phase 22.2 stripped out of `examples/charged-ieee/` can be
-  restored
+  untouched by D-07), so a document containing a citation emits adjacent expressions with no
+  separator and **fails the Typst compile outright**. `visit_citation` / `visit_label` /
+  `visit_citation_reference` render a labelled hanging-indent reference list plus a working
+  `[Label]` → definition link and the docutils-supplied back-references, to the point where the
+  citation syntax Phase 22.2 stripped out of `examples/charged-ieee/` can be restored.
+  **Typst's own `bibliography()`/`cite()` machinery is deliberately not used** — measured
+  2026-07-29: `cite()` alone fails with "the document does not contain a bibliography", and
+  `bibliography()` consumes structured `.bib`/Hayagriva data in order to CSL-format and reorder it.
+  docutils citations carry no structured fields (the body is already-written prose), and docutils
+  has already resolved every reference (`citation_reference.refid` → `citation.ids[0]`, plus
+  `backrefs`), so the work is pure typesetting with `link`/`label`/`grid`, verified to compile
 - **`visit_math_block` redundant blank line** (v0.6.5 review WR-01, pending todo) — folded in
   because this milestone touches separator and spacing behaviour broadly; fixing it in isolation
   was deferred by v0.6.5 D-05 only because it would have forced re-deriving the GATE-01 fixture's
@@ -66,30 +66,58 @@ distinguishable nesting — instead of the flat wall of proportional bold text t
 
 **Key context:**
 
-- **Design authority — Sphinx's own LaTeX-rendered PDF** (owner decision 2026-07-29):
-  `https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`, measured live the same day —
-  `200`, `application/pdf`, 3,227,122 bytes, **703 pages**, `/Producer: pdfTeX-1.40.22`,
-  `/Creator: LaTeX with hyperref`, built 2026-07-22. This is the LaTeX rendering of **the same
-  Sphinx `doc/` corpus** that `tests/test_corpus_gate.py` already drives through `-b typstpdf`, so
-  it gives a PDF-to-PDF comparison on identical source with **no TeX toolchain required** (none is
-  installed: `pdflatex`/`latexmk`/`xelatex`/`lualatex`/`tex` all absent). It reuses the v0.6.1
-  visual-audit method with the authority swapped from `-b html` to LaTeX PDF
-- **Known version skew in the authority:** the RTD project exposes exactly one active version,
-  `master` (RTD API v3, `count: 1`, measured 2026-07-29), while `test_corpus_gate.py` clones the tag
-  matching the installed Sphinx (`v9.1.0`). Harmless for typographic authority (indent amounts,
-  monospace choice, box treatment do not move between those refs) but must be settled during
-  planning if any success criterion compares page-by-page
-- **Secondary, precise reference:** the LaTeX sources ship inside the venv and can be read directly
-  for exact parameters — `sphinx/texinputs/sphinxlatexobjects.sty` (386 lines — the `\pysigline` /
-  `\py@sigparams` / `\sphinxbfcode` object typesetting), `sphinxlatexadmonitions.sty` (408),
-  `sphinxpackageboxes.sty` (827)
+- **Sphinx's LaTeX-rendered PDF is a REFERENCE, not an authority** (owner decision 2026-07-29,
+  revised from the initial "authority" framing): `https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`,
+  measured live the same day — `200`, `application/pdf`, 3,227,122 bytes, **703 pages**,
+  `/Producer: pdfTeX-1.40.22`, `/Creator: LaTeX with hyperref`, built 2026-07-22. It renders **the
+  same Sphinx `doc/` corpus** that `tests/test_corpus_gate.py` already drives through `-b typstpdf`,
+  and needs **no TeX toolchain** (none is installed: `pdflatex`/`latexmk`/`xelatex`/`lualatex`/`tex`
+  all absent). Its measured values are the **starting point** — the recurring ≈22–25pt indent
+  quantum, the per-node font roles (`desc_name` bold monospace, `desc_addname` regular monospace,
+  `desc_parameter` italic proportional), the four admonition colour buckets — but the milestone
+  deliberately diverges wherever Typst can do better. The goal is output that is good **as Typst**,
+  not a LaTeX lookalike
+- **Consequence for success criteria:** with the reference demoted, "matches the authority" is no
+  longer the bar. Criteria split in two — **mechanically checkable structural properties** (the
+  signature is emitted through `raw(...)` rather than `text(...)`; the description body carries a
+  non-zero indent; a nested member's left edge is strictly greater than its parent's, measurable via
+  `pypdf` bounding boxes) and **human visual UAT** for the aesthetic judgement. Requirements must
+  draw that line explicitly per item rather than leaving it implicit
+- **The reference's version skew is now harmless:** the RTD project exposes exactly one active
+  version, `master` (RTD API v3, `count: 1`, measured 2026-07-29), while `test_corpus_gate.py`
+  clones the tag matching the installed Sphinx (`v9.1.0`). This mattered only under page-by-page
+  comparison, which the demotion removes
+- **Precise parameter source:** the LaTeX sources ship inside the venv and can be read directly —
+  `sphinx/texinputs/sphinxlatexobjects.sty` (386 lines — the `\pysigline` / `\py@sigparams` /
+  `\sphinxbfcode` object typesetting), `sphinxlatexadmonitions.sty` (408), `sphinxpackageboxes.sty`
+  (827)
+- **No bundled Typst style module — the translator emits complete Typst directly** (owner decision
+  2026-07-29). A module was researched and would have worked, but its main justification was letting
+  users override the styling per directive, and that goal was dropped. Choosing direct emission keeps
+  every generated `.typ` self-contained (portable and compilable on its own, with no sibling
+  `_typsphinx.typ` dependency), needs no builder change, and removes a whole phase. The accepted
+  costs: the emitted `.typ` is more verbose, and the shared indent constant lives only on the Python
+  side
+- **User-overridable per-directive styling is out of scope, and was measured to be unavailable in
+  the shape originally wanted.** `show`/`set` selectors accept only genuine element functions — a
+  bare `#let` function cannot be selected (`typst error: only element functions can be used as
+  selectors`), and user-defined element types remain unimplemented upstream (`typst/typst#147`, open
+  since 2023-03-22, no committed timeline). Label selectors (`show <label>: …`) were verified to
+  deliver the equivalent capability if it is ever wanted again — recorded so the finding is not lost
 - **Known cost, accepted:** the emitted `.typ` shape changes broadly, so existing exact-string test
-  assertions are invalidated at scale — GATE-01 fixtures need their expected strings re-derived and
-  the GATE-02 full-corpus gate re-run
+  assertions are invalidated at scale (measured blast radius: 10 test files, 61 render-gate classes).
+  GATE-01 fixtures need their expected strings re-derived and the GATE-02 full-corpus gate re-run
+- **GATE-01 methodology change (this milestone only):** every prior fixture proved a compile fatal —
+  RED was a `TypstError`, GREEN a valid `%PDF`. Every design defect in this milestone **compiles
+  successfully today**, so "does not compile" is unavailable as the RED state. Each phase must define
+  a structural / regex / `pypdf`-text RED assertion **before** any code is written, or the standing
+  invariant degrades into regenerating expected strings from whatever the new code happens to emit.
+  Citation is the one exception — it is a genuine compile fatal today and keeps the classic RED
 - **Standing invariants carried forward:** zero new runtime dependencies; the `@preview` package
-  count stays at **four** (this milestone creates no fifth version-lockstep site — the new module is
-  bundled, not fetched); every node-handler change ships a real `typst.compile()` GATE-01 regression
-  fixture recorded **red against the unfixed code** before being accepted as green
+  count stays at **four** with no new version-lockstep site (research confirmed every required
+  primitive — `raw`, `par(hanging-indent:)`, `block(inset:/stroke:/breakable:)`, `grid`, `terms`,
+  `pad` — is Typst 0.15 standard library); every node-handler change ships a real `typst.compile()`
+  GATE-01 regression fixture recorded **red against the unfixed code** before being accepted as green
 
 **Carried-forward deferred items (still out of this milestone):** CFG-01 (user-configurable
 `@preview` versions), XOS-01 (macOS/Windows `docs-pdf` CI), DEG-03 (real rendering for
@@ -448,10 +476,9 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 - [ ] `field_list` (Parameters / Returns / Raises / Return type) renders as an aligned layout rather
       than bold inline labels followed by loose paragraphs
 - [ ] admonition / rubric / topic representations redesigned to the same standard
-- [ ] Styling primitives live in one importable Typst module bundled with typsphinx, imported by
-      every generated `.typ`, leaving the three in-repo custom templates working unmodified
-- [ ] `citation` / `label` / `citation_reference` render as a labelled bibliography with working
-      `[Label]` → definition links, so `examples/charged-ieee`'s citation syntax can be restored
+- [ ] `citation` / `label` / `citation_reference` render as a labelled reference list with working
+      `[Label]` → definition links and back-references, so `examples/charged-ieee`'s citation syntax
+      can be restored — a document containing a citation currently fails the Typst compile outright
 - [ ] `visit_math_block` no longer emits a redundant blank line inside a list item
 - [ ] The GitHub Release body is the curated `## [X.Y.Z]` CHANGELOG section, not a commit dump
 - [ ] v0.7.0 released to PyPI with a curated CHANGELOG entry

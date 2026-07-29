@@ -37,28 +37,47 @@ Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 3
 admonition directive families with a real typographic design, so autodoc/API pages render as a
 readable reference document instead of a flat wall of proportional bold text.
 
-**Scope (owner-confirmed 2026-07-29):** `desc_*` + `field_list` redesign; admonition / rubric /
-topic redesign; styling consolidated into an importable Typst module bundled with typsphinx;
-full-round-trip `citation` support (greenfield — zero handlers exist today); the v0.6.5 WR-01
-`visit_math_block` blank-line todo; `release.yml`'s release-notes body sourced from the CHANGELOG
-section; v0.7.0 release prep.
+**Scope (owner-confirmed 2026-07-29, after a mid-scoping concept rethink):** `desc_*` +
+`field_list` redesign; admonition / rubric / topic redesign; full-round-trip `citation` support
+(greenfield — zero handlers exist today, and a citation currently fails the Typst compile
+outright); the v0.6.5 WR-01 `visit_math_block` blank-line todo; `release.yml`'s release-notes body
+sourced from the CHANGELOG section; v0.7.0 release prep.
 
-**Design authority:** Sphinx's own LaTeX-rendered PDF —
+**Dropped during the rethink (2026-07-29):**
+
+- **User-overridable per-directive styling** — the original concept had typsphinx ship a Typst
+  module whose functions users could restyle from their own template. Research measured that
+  Typst's `show`/`set` selectors accept only genuine element functions (`typst error: only element
+  functions can be used as selectors`), and user-defined element types are unimplemented upstream
+  (`typst/typst#147`, open since 2023-03-22). Label selectors (`show <label>: …`) were verified to
+  deliver the equivalent capability, but the owner narrowed the goal to "typsphinx itself produces
+  good output," so the whole user-configurability axis is out
+- **The bundled style module itself** — with user override no longer a goal, the translator emits
+  complete Typst directly. Every generated `.typ` stays self-contained; no builder change; one
+  fewer phase. Accepted costs: more verbose `.typ`, and the shared indent constant living only on
+  the Python side
+- **Typst Universe publication** — was only ever the module's future; moot now
+
+**Reference (demoted from "authority" during the rethink):** Sphinx's own LaTeX-rendered PDF —
 `https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`, measured live 2026-07-29 as
-`200` / `application/pdf` / 3,227,122 B / **703 pages** / `pdfTeX-1.40.22` /
-`LaTeX with hyperref`, built 2026-07-22. It renders the same Sphinx `doc/` corpus that
-`tests/test_corpus_gate.py` drives through `-b typstpdf`, so PDF-to-PDF comparison needs **no TeX
-toolchain** (none is installed here — `pdflatex`/`latexmk`/`xelatex`/`lualatex`/`tex` all absent).
-Exact typographic parameters can be read from the `.sty` sources in the venv
-(`sphinxlatexobjects.sty` 386 lines, `sphinxlatexadmonitions.sty` 408, `sphinxpackageboxes.sty` 827).
+`200` / `application/pdf` / 3,227,122 B / **703 pages** / `pdfTeX-1.40.22` / `LaTeX with hyperref`,
+built 2026-07-22. It renders the same Sphinx `doc/` corpus that `tests/test_corpus_gate.py` drives
+through `-b typstpdf`, and needs **no TeX toolchain** (none is installed here). Its measured values
+are the starting point — the ≈22–25pt indent quantum, the per-node font roles, the four admonition
+colour buckets — but the milestone deliberately diverges where Typst can do better. Exact
+parameters readable from the `.sty` sources in the venv (`sphinxlatexobjects.sty` 386 lines,
+`sphinxlatexadmonitions.sty` 408, `sphinxpackageboxes.sty` 827).
 
-**Open item for planning:** the RTD project exposes exactly one active version, `master` (RTD API
-v3 `count: 1`, measured 2026-07-29), while the corpus gate clones the tag matching the installed
-Sphinx (`v9.1.0`). Harmless for typographic authority; must be settled if any success criterion
-compares page-by-page.
+**Consequence — success criteria split in two:** mechanically checkable structural properties
+(emitted through `raw(...)` not `text(...)`; body indent non-zero; a nested member's left edge
+strictly greater than its parent's, via `pypdf` bounding boxes) versus human visual UAT for the
+aesthetic judgement. Requirements must draw that line per item. The reference's `master`-vs-`v9.1.0`
+version skew mattered only under page-by-page comparison and is now moot.
 
-**Explicitly deferred:** publishing the style module to Typst Universe (only the API boundary is
-drawn for it this milestone).
+**GATE-01 methodology change (this milestone):** every prior fixture proved a compile fatal. Every
+design defect here **compiles successfully today**, so RED cannot be `TypstError` — each phase
+defines a structural / regex / `pypdf` RED assertion before any code is written. Citation is the
+exception and keeps the classic RED.
 
 `.planning/REQUIREMENTS.md` was archived and removed at the v0.6.5 close; this milestone defines a
 fresh one.
