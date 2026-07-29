@@ -1,43 +1,67 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6.5
-milestone_name: inline-math separator hotfix
-status: Awaiting next milestone
-stopped_at: Milestone v0.6.5 closed and published
-last_updated: "2026-07-28T20:46:45.107Z"
+milestone: v0.7.0
+milestone_name: API rendering design overhaul
+status: planning
+last_updated: "2026-07-29T11:28:31.664Z"
 last_activity: 2026-07-29
-last_activity_desc: Milestone v0.6.5 completed and archived
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
-current_phase: 35
-current_phase_name: v0-6-5-release-prep
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-29 after v0.6.5 milestone close)
+See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
-**Current focus:** Planning the next milestone (`/gsd-new-milestone`) — numbering continues at Phase 36.
+**Current focus:** Milestone v0.7.0 — API rendering design overhaul. Defining requirements; phase numbering starts at Phase 36.
 
 ## Current Position
 
-Phase: Milestone v0.6.5 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-29 — Milestone v0.6.5 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-29 — Milestone v0.7.0 started
 
-## No Active Milestone
+## Active Milestone (v0.7.0 — API rendering design overhaul)
 
-v0.6.5 shipped 2026-07-29. Start the next one with `/gsd-new-milestone`; phase numbering continues
-at **Phase 36**. `.planning/REQUIREMENTS.md` was archived and removed at close — the next milestone
-defines a fresh one.
+Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 35).
+
+**Goal:** Replace the provisionally-chosen Typst representations of the API-description and
+admonition directive families with a real typographic design, so autodoc/API pages render as a
+readable reference document instead of a flat wall of proportional bold text.
+
+**Scope (owner-confirmed 2026-07-29):** `desc_*` + `field_list` redesign; admonition / rubric /
+topic redesign; styling consolidated into an importable Typst module bundled with typsphinx;
+full-round-trip `citation` support (greenfield — zero handlers exist today); the v0.6.5 WR-01
+`visit_math_block` blank-line todo; `release.yml`'s release-notes body sourced from the CHANGELOG
+section; v0.7.0 release prep.
+
+**Design authority:** Sphinx's own LaTeX-rendered PDF —
+`https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`, measured live 2026-07-29 as
+`200` / `application/pdf` / 3,227,122 B / **703 pages** / `pdfTeX-1.40.22` /
+`LaTeX with hyperref`, built 2026-07-22. It renders the same Sphinx `doc/` corpus that
+`tests/test_corpus_gate.py` drives through `-b typstpdf`, so PDF-to-PDF comparison needs **no TeX
+toolchain** (none is installed here — `pdflatex`/`latexmk`/`xelatex`/`lualatex`/`tex` all absent).
+Exact typographic parameters can be read from the `.sty` sources in the venv
+(`sphinxlatexobjects.sty` 386 lines, `sphinxlatexadmonitions.sty` 408, `sphinxpackageboxes.sty` 827).
+
+**Open item for planning:** the RTD project exposes exactly one active version, `master` (RTD API
+v3 `count: 1`, measured 2026-07-29), while the corpus gate clones the tag matching the installed
+Sphinx (`v9.1.0`). Harmless for typographic authority; must be settled if any success criterion
+compares page-by-page.
+
+**Explicitly deferred:** publishing the style module to Typst Universe (only the API boundary is
+drawn for it this milestone).
+
+`.planning/REQUIREMENTS.md` was archived and removed at the v0.6.5 close; this milestone defines a
+fresh one.
 
 ## Shipped Milestone (v0.6.5 — archived)
 
@@ -66,11 +90,14 @@ here at close and is complete:
 
 - PR #125 merged to `main` (13/13 CI checks green before merge); `v0.6.5` tagged on merge commit
   `839d77f` and pushed.
+
 - Release run 30398631991 green end-to-end after owner approval of the `pypi` environment: PyPI
   `typsphinx 0.6.5` (wheel + sdist, uploaded 21:15:39–21:15:40Z) and GitHub Release `v0.6.5` with
   all three assets.
+
 - `typsphinx-doc-translations` pin advanced to `839d77f` (`update-pin.yml` run 30398664663) and
   tagged `v0.6.5` at `1891a09` — the standing two-repository tagging cost, discharged.
+
 - RTD `stable` measured live on both projects: en identifier `839d77f38ffa`, ja identifier
   `1891a0905322`; root → `/en/stable/` (302→200), `/ja/stable/` 200, both reporting `0.6.5`, both
   PDFs served. No owner setting flips were needed this time.
@@ -167,6 +194,7 @@ Carried from v0.6.2–v0.6.4 (5) — named Out of Scope in v0.6.5's own REQUIREM
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
   repo-wide real-HTTP check covers the real failure class.
+
 - **citation-node-support-untracked** (translator, examples) — `visit_citation` handler absent.
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening.
 - **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
@@ -179,8 +207,10 @@ Filed during v0.6.5 (3) — recorded deliberate deferrals, not oversights:
   `list_item_needs_separator` flag, leaving one redundant blank line. Deferred by D-05 because
   fixing it would force re-deriving the GATE-01 fixture's expected strings and re-running the
   full-corpus gate immediately before a release.
+
 - **release-notes-body-from-changelog-section** (ci) — D-11; `release.yml` should extract the
   `## [X.Y.Z]` CHANGELOG section instead of dumping `git log --pretty` (~296 lines at v0.6.4).
+
 - **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
 
 Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
@@ -215,6 +245,7 @@ assert a truth without direct evidence.
 - **2026-07-28** — v0.6.5 roadmap created: Phases 34–35, continuing numbering from v0.6.4's Phase 33.
   Backlog item **999.1** promoted into Phase 34 as requirement MATH-01 and removed from ROADMAP.md's
   Backlog section (the section itself retained with its preamble).
+
 - **2026-07-29** — v0.6.5 closed and archived. ROADMAP.md collapsed to a one-line milestone entry
   plus a `<details>` block; the Backlog section is still empty of `999.x` items, and now names the
   8 pending todos as the next milestone's candidate pool. Next milestone starts at Phase 36.

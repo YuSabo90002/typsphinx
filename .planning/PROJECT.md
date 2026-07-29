@@ -16,12 +16,87 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced.
 
-## Current Milestone: none — v0.6.5 shipped 2026-07-29
+## Current Milestone: v0.7.0 API rendering design overhaul
 
-No milestone is active. Start the next one with `/gsd-new-milestone`; phase numbering continues at
-**Phase 36**. The candidate pool is the 8 records in `.planning/todos/pending/` plus the deferred
-requirements (CFG-01, XOS-01, DEG-03, XREF-02, CONF-06, RTD-05, LNK-01) — see STATE.md Deferred
-Items. `.planning/REQUIREMENTS.md` was archived and removed at the v0.6.5 close.
+**Goal:** Replace the provisionally-chosen Typst representations of the API-description and
+admonition directive families with a real typographic design, so autodoc/API pages render as a
+readable reference document — monospace signatures, hanging-indented bodies, and visually
+distinguishable nesting — instead of the flat wall of proportional bold text they are today.
+
+**Target features:**
+
+- **`desc_*` + `field_list` redesign** — the four defects measured 2026-07-29 by building a
+  `py:` domain sample through `-b typst` (the same doctree autodoc produces): (1) signatures emit
+  `strong({text("class") text(" ") text("TemplateEngine") ...})` — proportional bold, never
+  monospace; (2) `visit_desc_content`/`depart_desc_content` are **both `pass`**, so the description
+  body is flush left with the signature and no hanging indent exists; (3) a nested
+  `py:method::`/`py:attribute::` renders at the same left margin as a top-level `py:function::`, so
+  class membership is visually unrecoverable; (4) `field_list` emits
+  `strong(text("Parameters") + text(": "))` followed by a `list(...)`/`par(...)` — bold inline
+  labels, no aligned two-column layout. Also visible in the same output: doubled `parbreak()`
+  runs producing uneven inter-element spacing
+- **admonition / rubric / topic redesign** — the same provisional-representation class.
+  `visit_rubric` is `strong()` + an unconditional `linebreak()`; because rubric also carries
+  autodoc's "Options" heading, this lands directly on API pages
+- **Style consolidated into an importable Typst module** — the styling primitives move out of
+  inline `translator.py` string emission into one Typst module shipped inside typsphinx. The
+  builder copies it to the output directory alongside `_template.typ`, and the translator imports
+  it from every generated `.typ` (Typst's `#include()` does not inherit imports, so each file must
+  re-declare — the same constraint `writer.py` already handles for the four `@preview` imports).
+  The three in-repo custom templates (`examples/advanced/_templates/custom.typ`,
+  `docs/source/_typst/custom_template.typ`,
+  `examples/charged-ieee/approach2/source/_templates/_template.typ`) keep working unmodified — this
+  route is deliberately **not** a breaking change. The module's API boundary is drawn so that
+  publishing it to Typst Universe later is possible; **publication itself is out of this milestone**
+- **citation support — full round trip** — greenfield: `translator.py` contains zero citation
+  handlers (the only mention is a comment recording that `citation`/`citation_reference` were left
+  untouched by D-07). `visit_citation` / `visit_label` / `visit_citation_reference` render a
+  `thebibliography`-equivalent labelled list plus a working `[Label]` → definition link, to the
+  point where the citation syntax Phase 22.2 stripped out of `examples/charged-ieee/` can be
+  restored
+- **`visit_math_block` redundant blank line** (v0.6.5 review WR-01, pending todo) — folded in
+  because this milestone touches separator and spacing behaviour broadly; fixing it in isolation
+  was deferred by v0.6.5 D-05 only because it would have forced re-deriving the GATE-01 fixture's
+  expected strings immediately before a release
+- **`release.yml` release-notes body from CHANGELOG** — the v0.6.4 GitHub Release body is 308
+  lines, of which 296 are the workflow's own `git log --pretty` commit dump; `release.yml` never
+  opens `CHANGELOG.md` at all today. Extract the `## [X.Y.Z]` section instead
+- **v0.7.0 release prep** — version bump + curated CHANGELOG entry in the final phase (the standing
+  v0.5.0 Phase 10 pattern); publish executes at `/gsd-complete-milestone`
+
+**Key context:**
+
+- **Design authority — Sphinx's own LaTeX-rendered PDF** (owner decision 2026-07-29):
+  `https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`, measured live the same day —
+  `200`, `application/pdf`, 3,227,122 bytes, **703 pages**, `/Producer: pdfTeX-1.40.22`,
+  `/Creator: LaTeX with hyperref`, built 2026-07-22. This is the LaTeX rendering of **the same
+  Sphinx `doc/` corpus** that `tests/test_corpus_gate.py` already drives through `-b typstpdf`, so
+  it gives a PDF-to-PDF comparison on identical source with **no TeX toolchain required** (none is
+  installed: `pdflatex`/`latexmk`/`xelatex`/`lualatex`/`tex` all absent). It reuses the v0.6.1
+  visual-audit method with the authority swapped from `-b html` to LaTeX PDF
+- **Known version skew in the authority:** the RTD project exposes exactly one active version,
+  `master` (RTD API v3, `count: 1`, measured 2026-07-29), while `test_corpus_gate.py` clones the tag
+  matching the installed Sphinx (`v9.1.0`). Harmless for typographic authority (indent amounts,
+  monospace choice, box treatment do not move between those refs) but must be settled during
+  planning if any success criterion compares page-by-page
+- **Secondary, precise reference:** the LaTeX sources ship inside the venv and can be read directly
+  for exact parameters — `sphinx/texinputs/sphinxlatexobjects.sty` (386 lines — the `\pysigline` /
+  `\py@sigparams` / `\sphinxbfcode` object typesetting), `sphinxlatexadmonitions.sty` (408),
+  `sphinxpackageboxes.sty` (827)
+- **Known cost, accepted:** the emitted `.typ` shape changes broadly, so existing exact-string test
+  assertions are invalidated at scale — GATE-01 fixtures need their expected strings re-derived and
+  the GATE-02 full-corpus gate re-run
+- **Standing invariants carried forward:** zero new runtime dependencies; the `@preview` package
+  count stays at **four** (this milestone creates no fifth version-lockstep site — the new module is
+  bundled, not fetched); every node-handler change ships a real `typst.compile()` GATE-01 regression
+  fixture recorded **red against the unfixed code** before being accepted as green
+
+**Carried-forward deferred items (still out of this milestone):** CFG-01 (user-configurable
+`@preview` versions), XOS-01 (macOS/Windows `docs-pdf` CI), DEG-03 (real rendering for
+`graphviz`/`inheritance_diagram`), XREF-02 (xrefs to external URLs), CONF-06 (`typst_elements`'s
+remaining keys), RTD-05 (PR preview builds), LNK-01 (`sphinx linkcheck` CI job), plus the pending
+todos not named above (non-`str` docname TypeError hardening, typing-import modernization,
+`derive_typst_lang()` duplicated warning block, PROJECT.md unterminated HTML comments).
 
 <details>
 <summary>v0.6.5 milestone brief (as scoped 2026-07-28) — retained for reference</summary>
@@ -366,10 +441,20 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 ### Active
 
-<!-- Cleared at the v0.6.5 close. The next milestone's scope comes from /gsd-new-milestone. -->
+<!-- v0.7.0 API rendering design overhaul — scoped 2026-07-29. REQ-IDs land in REQUIREMENTS.md. -->
 
-(None — no milestone is active. Candidate pool: the 8 pending todos and the deferred requirements
-listed in STATE.md Deferred Items.)
+- [ ] API descriptions (`desc_*`) render with monospace signatures, hanging-indented bodies, and
+      visually distinguishable nesting, judged against Sphinx's own LaTeX-rendered PDF
+- [ ] `field_list` (Parameters / Returns / Raises / Return type) renders as an aligned layout rather
+      than bold inline labels followed by loose paragraphs
+- [ ] admonition / rubric / topic representations redesigned to the same standard
+- [ ] Styling primitives live in one importable Typst module bundled with typsphinx, imported by
+      every generated `.typ`, leaving the three in-repo custom templates working unmodified
+- [ ] `citation` / `label` / `citation_reference` render as a labelled bibliography with working
+      `[Label]` → definition links, so `examples/charged-ieee`'s citation syntax can be restored
+- [ ] `visit_math_block` no longer emits a redundant blank line inside a list item
+- [ ] The GitHub Release body is the curated `## [X.Y.Z]` CHANGELOG section, not a commit dump
+- [ ] v0.7.0 released to PyPI with a curated CHANGELOG entry
 
 ### Out of Scope
 
@@ -468,7 +553,9 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-29 after the v0.6.5 milestone close (`/gsd-complete-milestone`) — full evolution review complete. **v0.6.5 (inline-math separator hotfix) shipped: 2 phases / 8 plans / 27 tasks, 2/2 v1 requirements validated.** A document mixing prose and math no longer aborts the Typst compile. The defect was root-caused **by measurement** rather than from the backlog note's guess — the note blamed "math/Text visit ordering," but `visit_math` already called `_add_paragraph_separator()`; the real cause was a scope gap (participation in one of the translator's three separator protocols), so the fatal surfaced in list items, definition-list terms, and collapsed confval field bodies rather than in plain paragraphs. Fixed on both the mitex and native emission paths by applying the existing `visit_literal` pattern (+45 lines, `translator.py` only, zero new helpers), pinned by a GATE-01 real-`typst.compile()` fixture recorded RED pre-fix and independently re-reproduced RED at verification. Milestone code delta 8 files / +560 / −4; zero new runtime dependencies; all four `@preview` version-sync surfaces byte-unchanged. Closeout `override_closeout`: no `v0.6.5-MILESTONE-AUDIT.md` (owner decision at close — for a 2-phase hotfix, `35-RELEASE-EVIDENCE.md`'s seven live runs already covered the audit's requirement-coverage and integration ground), 8 pending todos acknowledged as deferred. Requirements Active cleared; archived to `milestones/v0.6.5-ROADMAP.md` + `v0.6.5-REQUIREMENTS.md` with phase artifacts under `milestones/v0.6.5-phases/`; `.planning/REQUIREMENTS.md` removed (fresh one comes from `/gsd-new-milestone`); ROADMAP.md collapsed to a one-line milestone entry. Next: `/gsd-new-milestone` (numbering continues at Phase 36). Prior footer retained below.*
+*Last updated: 2026-07-29 after starting milestone **v0.7.0 API rendering design overhaul** (`/gsd-new-milestone`) — phase numbering continues at **Phase 36**. Scope confirmed with the owner over four decisions: (1) the design authority is **Sphinx's own LaTeX-rendered PDF** at `app.readthedocs.org/projects/sphinx/downloads/pdf/master/` — measured live this day as 200 / `application/pdf` / 3,227,122 B / 703 pages / pdfTeX-1.40.22, and it is the LaTeX rendering of the very corpus `test_corpus_gate.py` already drives through `-b typstpdf`, so PDF-to-PDF comparison needs no TeX install (none exists on this machine); the RTD project exposes only `master` as active while the gate pins `v9.1.0`, a skew recorded for planning to settle. (2) The styling primitives are consolidated into **one importable Typst module bundled inside typsphinx**, copied beside `_template.typ` and imported per generated file — chosen over emitting inline or adding `#let`s to `base.typ` precisely because it leaves the three in-repo custom templates working unmodified; **Typst Universe publication is explicitly deferred**, only the API boundary is drawn for it. (3) Scope covers `desc_*` + `field_list` **and** admonition / rubric / topic. (4) Version is **v0.7.0**, a minor bump, because the rendered output changes on every page. `citation` support is full round-trip (definition + reference + backlink) and is greenfield — `translator.py` has zero citation handlers today. Also folded in: the v0.6.5 WR-01 `visit_math_block` blank-line todo (this milestone touches separator behaviour broadly, which was the sole reason D-05 deferred it) and the `release.yml` release-notes-body rework (the v0.6.4 Release body is 308 lines of which 296 are a commit dump; the workflow never reads `CHANGELOG.md`). The four provisional-representation defects were measured, not assumed, by building a `py:` domain sample through `-b typst`: proportional-bold signatures, `visit_desc_content`/`depart_desc_content` both `pass` (no hanging indent), nested members at the top-level margin, and `field_list` as bold inline labels. Accepted cost: the emitted `.typ` shape changes broadly, invalidating exact-string assertions at scale. Standing invariants unchanged — zero new runtime dependencies, the `@preview` count stays at four, GATE-01 fail-pre-fix fixtures per node-handler change. Next: define REQUIREMENTS.md, then the roadmap. Prior footer retained below.*
+
+<!-- Prior: *Last updated: 2026-07-29 after the v0.6.5 milestone close (`/gsd-complete-milestone`) — full evolution review complete. **v0.6.5 (inline-math separator hotfix) shipped: 2 phases / 8 plans / 27 tasks, 2/2 v1 requirements validated.** A document mixing prose and math no longer aborts the Typst compile. The defect was root-caused **by measurement** rather than from the backlog note's guess — the note blamed "math/Text visit ordering," but `visit_math` already called `_add_paragraph_separator()`; the real cause was a scope gap (participation in one of the translator's three separator protocols), so the fatal surfaced in list items, definition-list terms, and collapsed confval field bodies rather than in plain paragraphs. Fixed on both the mitex and native emission paths by applying the existing `visit_literal` pattern (+45 lines, `translator.py` only, zero new helpers), pinned by a GATE-01 real-`typst.compile()` fixture recorded RED pre-fix and independently re-reproduced RED at verification. Milestone code delta 8 files / +560 / −4; zero new runtime dependencies; all four `@preview` version-sync surfaces byte-unchanged. Closeout `override_closeout`: no `v0.6.5-MILESTONE-AUDIT.md` (owner decision at close — for a 2-phase hotfix, `35-RELEASE-EVIDENCE.md`'s seven live runs already covered the audit's requirement-coverage and integration ground), 8 pending todos acknowledged as deferred. Requirements Active cleared; archived to `milestones/v0.6.5-ROADMAP.md` + `v0.6.5-REQUIREMENTS.md` with phase artifacts under `milestones/v0.6.5-phases/`; `.planning/REQUIREMENTS.md` removed (fresh one comes from `/gsd-new-milestone`); ROADMAP.md collapsed to a one-line milestone entry. Next: `/gsd-new-milestone` (numbering continues at Phase 36). Prior footer retained below.* -->
 
 <!-- Prior: *Last updated: 2026-07-29 — Phase 35 (v0.6.5 Release Prep) complete, 5/5 plans, verification `passed` 5/5. **All v0.6.5 phases (34, 35) are complete — the milestone is ready for `/gsd-complete-milestone`.** Prep half delivered and independently re-measured at verification: `pyproject.toml` sole literal / `README.md` Status / `uv.lock` all at `0.6.5` with `typsphinx.__version__` reporting it and both version-sync guard tests green (SC#1); curated `## [0.6.5]` CHANGELOG entry matching D-01–D-04 (1 Fixed bullet, 3 Verified bullets, no BREAKING) with the tail link block rolled over — 25 insertions / exactly 1 deletion, no historical entry disturbed (SC#2); the post-bump tree green on a live run across pytest (649 passed / 1 skipped), black / ruff / mypy, the corpus gate, and both `tox -e docs-html` / `docs-pdf` dogfooding builds per D-12 (SC#3); milestone invariants asserted mechanically over the `eb696bb`-anchored full diff with a positive control proving the pathspec works — `uv.lock` delta is the 1-line self-pin (zero new runtime deps), all four `@preview` sync surfaces byte-empty, `typsphinx/` name-only diff exactly `translator.py` from Phase 34 (SC#4); scope fence held — `git tag -l v0.6.5` and `git ls-remote --tags origin v0.6.5` both empty, re-confirmed independently by the verifier (SC#5). Phase 34's three test-side review Warnings closed: Construct G (labeled `.. math::` inside a list item) added to the GATE-01 fixture plus four exact-string assertions across both emission paths, each proven able to fail by a one-character RED/GREEN perturbation — zero `typsphinx/` change. Notable measurement: RESEARCH.md's caution that WR-04's candidate string needed a spacing fix was itself wrong — `visit_math_block`'s native branch intentionally emits `$ E = m c^2 $` with interior spaces, a different code path from inline math's space-free form. Code review `clean` (0/0/0, 5 files). Deferred by decision and filed as todos: WR-01 (`visit_math_block` redundant blank line — needs a translator change, D-05/D-10) and the `release.yml` release-notes-body rework (D-11). REL-03 deliberately left `[ ]` per D-10 — prep completion is not a publish; the flip, the tag, `release.yml` → PyPI + GitHub Release, and the standing second tag on `typsphinx-doc-translations` all execute at close per `35-HANDOFF.md`'s six-item checklist. Next: `/gsd-complete-milestone`. Prior footer retained below.* -->
 
