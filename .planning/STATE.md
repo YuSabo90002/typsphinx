@@ -2,9 +2,12 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
+current_phase: 36
 status: planning
-last_updated: "2026-07-29T00:00:00.000Z"
+stopped_at: Phase 36 context gathered
+last_updated: "2026-07-30T14:44:29.288Z"
 last_activity: 2026-07-29
+last_activity_desc: v0.7.0 roadmap written (Phases 36–41)
 progress:
   total_phases: 6
   completed_phases: 0
@@ -72,12 +75,14 @@ sourced from the CHANGELOG section; v0.7.0 release prep.
   (`typst/typst#147`, open since 2023-03-22). Label selectors (`show <label>: …`) were verified to
   deliver the equivalent capability, but the owner narrowed the goal to "typsphinx itself produces
   good output," so the whole user-configurability axis is out
+
 - **The bundled style module itself** — with user override no longer a goal, the translator emits
   complete Typst directly. Every generated `.typ` stays self-contained; no builder change; one
   fewer phase. Accepted costs: more verbose `.typ`, and the shared indent constant living only on
   the Python side. **The roadmap honours this — there is no style-module scaffolding phase, and
   research/SUMMARY.md's six-phase "Reconciled Build Order" (whose Phase 1 was that scaffolding) was
   re-derived rather than transcribed**
+
 - **Typst Universe publication** — was only ever the module's future; moot now
 
 **Reference (demoted from "authority" during the rethink):** Sphinx's own LaTeX-rendered PDF —
@@ -179,6 +184,7 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 - v0.6.4: 6 phases / 33 plans / 79 tasks, 2026-07-25 → 2026-07-28 (shipped)
 - v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
   to date; a single-defect hotfix scope held end to end with zero scope creep.
+
 - v0.7.0: 6 phases / 0 plans so far, started 2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but
   with a much higher test-migration load (10 files, 61 render-gate classes) carried per phase.
 
@@ -247,6 +253,7 @@ Promoted into v0.7.0 (3):
 - **citation-node-support-untracked** (translator, examples) → Phase 40, requirements CIT-01..CIT-06.
 - **visit-math-block-redundant-blank-line-in-list-items** (translator) → Phase 36, requirement
   MATH-02.
+
 - **release-notes-body-from-changelog-section** (ci) → Phase 41, requirement REL-04.
 
 Still open and deferred (5):
@@ -349,15 +356,16 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** — (no phase in flight)
+**Resume file:** .planning/phases/36-shared-emission-seam-cleanup/36-CONTEXT.md
 
-Last session: 2026-07-29
-Stopped at: v0.7.0 roadmap created (Phases 36–41), REQUIREMENTS.md traceability populated 32/32.
+Last session: 2026-07-30T14:44:29.282Z
+Stopped at: Phase 36 context gathered
 Resume: `/gsd-plan-phase 36`.
 
 ## Operator Next Steps
 
 - Review `.planning/ROADMAP.md` (Phases 36–41) and the populated traceability table in
   `.planning/REQUIREMENTS.md`.
+
 - Plan the first phase with `/gsd-plan-phase 36` — its acceptance criterion is byte-identical
   rendering, so it is the cheapest place to establish the milestone's RED-assertion discipline.
