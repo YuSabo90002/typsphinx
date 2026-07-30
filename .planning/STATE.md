@@ -5,7 +5,7 @@ milestone_name: API rendering design overhaul
 current_phase: 36
 status: planning
 stopped_at: Phase 36 context gathered
-last_updated: "2026-07-30T14:44:29.288Z"
+last_updated: "2026-07-30T14:45:38.465Z"
 last_activity: 2026-07-29
 last_activity_desc: v0.7.0 roadmap written (Phases 36–41)
 progress:
@@ -321,6 +321,8 @@ evidence.
   milestone (citation support, `visit_math_block` blank line, `release.yml` CHANGELOG extraction).
   REQUIREMENTS.md's coverage tally was corrected from "29 total" to the measured **32** — a tally
   error only; no requirement was added, removed, or reworded.
+
+- Phase 36 edited: SC#3 corrected from measurement: the redundant blank line is after the math, not before; PDF-extracted-text RED is impossible (fix yields a byte-identical PDF), so the PDF assertion becomes an invariance guard
 
 ## Deferred Items
 

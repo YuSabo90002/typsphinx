@@ -294,9 +294,14 @@ visually**, which makes it verifiable by diff rather than by judgement.
      **byte-identical** across the decoupling change alone, proven by a recorded diff of two real
      `sphinx-build -b typst` runs. This is the phase's RED-substitute — per milestone invariant #4,
      "does not compile" is unavailable, so equality-of-output is the assertion.
-  3. Block math inside a list item renders with exactly one blank line before it, asserted
-     structurally on the emitted `.typ` and on the compiled PDF's extracted text, with the assertion
-     recorded RED against the unfixed translator before the fix lands.
+  3. Block math inside a list item is followed by exactly one blank line — the redundant second
+     blank line between the math expression and the following `parbreak()` is gone — asserted
+     structurally on the emitted `.typ`, on both the mitex and native emission paths and on both the
+     plain and `:label:`-carrying forms, with the assertion recorded RED against the unfixed
+     translator before the fix lands. The compiled PDF carries a companion **invariance** assertion
+     rather than a RED one: measured 2026-07-30, the fix produces a byte-identical PDF (22,855
+     bytes) and identical `pypdf`-extracted text, so the PDF's role here is to prove the change is
+     inert, not to fail before the fix.
   4. The exact-string assertions this phase invalidates are re-derived by hand (never regenerated
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
