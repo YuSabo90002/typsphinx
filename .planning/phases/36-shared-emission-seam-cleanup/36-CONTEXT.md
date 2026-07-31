@@ -79,8 +79,8 @@ discussion (see Deferred Ideas).
 Neither of these was selected for discussion; decided from measurement, recorded here so planning
 does not re-open them.
 
-- **D-06: take the todo's option (a) — drop the `list_item_needs_separator` bookkeeping — and
-  additionally reset the flag to `False`.** Option (b) (gating the pre-existing unconditional
+- **D-06: take the todo's option (a) — drop the `list_item_needs_separator` bookkeeping — and additionally reset the flag to `False`.**
+  Option (b) (gating the pre-existing unconditional
   `"\n\n"` to `not in_list_item`) yields **zero** blank lines after the math inside a list item, not
   one, so it does not satisfy SC#3 as corrected. Option (a) yields exactly one. **But a naive (a) is
   incomplete:** for a `:label:`-carrying equation, `_emit_id_anchors` sets
@@ -90,8 +90,8 @@ does not re-open them.
   `.. math:: :label: eq-labeled` inside a bullet item. The fix must clear the flag, not just refrain
   from setting it, and the fixture must cover both the plain and the `:label:` paths on both the
   mitex and native (`-D typst_use_mitex=0`) emission paths.
-- **D-07: split the phase into a byte-identical decoupling change and a byte-changing MATH-02
-  change, in separate plans and separate commits, decoupling first.** SC#2's recorded diff of two
+- **D-07: split the phase into a byte-identical decoupling change and a byte-changing MATH-02 change, in separate plans and separate commits, decoupling first.**
+  SC#2's recorded diff of two
   real `sphinx-build -b typst` runs is taken against the **decoupling commit alone** — mixing
   MATH-02 into the same diff destroys the only evidence this phase has that the rewiring was
   harmless.
