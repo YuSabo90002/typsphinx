@@ -306,7 +306,24 @@ visually**, which makes it verifiable by diff rather than by judgement.
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
      the pre-change baseline recorded alongside.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 36-01-PLAN.md — pre-change baselines against the untouched translator: the SC#2 combined-construct fixture, a committed golden `.typ`, the SC#1 (AST, `literal_strong`-tolerant) + SC#2 (byte-identity) gate module recorded RED/GREEN, and `36-GATE-EVIDENCE.md` with the pre-change full-suite and lint baselines
+
+**Wave 2**
+
+- [ ] 36-02-PLAN.md — ADM-06: `visit_desc_signature`/`depart_desc_signature` and `visit_rubric`/`depart_rubric` each get their own verbatim copy of `visit_strong`'s body (D-01/D-02/D-03), in one commit touching only `typsphinx/translator.py`, with the empty SC#2 diff recorded against two named commits (D-07)
+
+**Wave 3**
+
+- [ ] 36-03-PLAN.md — MATH-02: Construct H plus the two pre-fix PDF-text baselines, the SC#3 exactly-one-blank-line assertions recorded RED on both emission paths and both forms, then the one-token `visit_math_block` fix (D-06) and GREEN with a PDF text-invariance guard (D-04)
+
+**Wave 4**
+
+- [ ] 36-04-PLAN.md — SC#4: full suite compared by set-difference against the Plan 01 baseline, lint/type trio, milestone invariants, the full-corpus `-b typstpdf` gate, the test-migration census (invariant #5, re-measured not inherited), the deferred `par()`-loss todo routed to Phase 39 (D-02), and the phase verdict table
 
 ### Phase 37: Signature Typography — the `desc_*` Family
 **Goal**: An API signature reads as a signature rather than as a run of proportional bold text —
