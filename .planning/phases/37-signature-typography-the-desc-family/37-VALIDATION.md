@@ -4,8 +4,8 @@ slug: signature-typography-the-desc-family
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-01
 ---
 
@@ -147,7 +147,7 @@ whole-suite run.*
 
 | Behavior | Requirement | Why Manual | Test Instructions | Status |
 |----------|-------------|------------|--------------------|--------|
-| Visual confirmation that `block()`'s non-spacing cosmetic defaults (`inset`, `fill`, `stroke`) introduce no visible artifact | D-10 / Assumption A2 | Automated assertions cover spacing (measured) and page containment, but not "does it look wrong" | Build the phase's own GATE-01 fixture to PDF and eyeball the signature block against the pre-phase render | Discharged by `37-08` Task 3 (owner checkpoint) — see `37-08-SUMMARY.md` for the owner's verbatim response and the date |
+| Visual confirmation that `block()`'s non-spacing cosmetic defaults (`inset`, `fill`, `stroke`) introduce no visible artifact | D-10 / Assumption A2 | Automated assertions cover spacing (measured) and page containment, but not "does it look wrong" | Build the phase's own GATE-01 fixture to PDF and eyeball the signature block against the pre-phase render | **Discharged 2026-08-01.** Owner reviewed `/tmp/sig37-before/index.pdf` (phase-start), `/tmp/sig37/index.pdf` (current), and `docs/_build/pdf/typsphinx.pdf` (the project's own API pages) against `37-08` Task 3's checkpoint. Verbatim verdict: **"approved"**. See `37-08-SUMMARY.md` for the full record. |
 
 *Every other phase behavior has automated verification. Note this row is narrower than it may look:
 the owner already saw a before/after/final rendering comparison during `37-09`'s own gap-closure
@@ -173,12 +173,10 @@ question.*
       `pytest tests/test_translator.py -k "desc or signature" -x`, completes in ~1-2s on this
       worktree — well under the 10s bar; the full `-m "not slow"` suite itself completes in 43.85s,
       which is the *phase-boundary* sample, not the per-commit one)
-- [ ] `nyquist_compliant: true` set in frontmatter — **left `false` pending this plan's own Task 3**.
-      Every mechanical box above is checked, but the phase's one Manual-Only Verification row is not
-      yet discharged at the time this file was written (Task 2 runs before Task 3 in this plan's own
-      task order). This file is intentionally NOT re-edited to flip the frontmatter flag from inside
-      Task 3's checkpoint response — the flip, if the owner approves, happens once, here, and is
-      recorded in `37-08-SUMMARY.md` alongside the owner's verbatim response. If the owner reports a
-      defect instead, this flag stays `false` with that reason recorded in the SUMMARY.
+- [x] `nyquist_compliant: true` set in frontmatter — flipped 2026-08-01, after the owner's
+      "approved" verdict on `37-08` Task 3's checkpoint discharged the phase's one remaining
+      Manual-Only Verification row. Every mechanical box above was already checked before this one;
+      this was the last outstanding item.
 
-**Approval:** pending owner sign-off on `37-08` Task 3's checkpoint.
+**Approval:** approved — owner's verbatim response to `37-08` Task 3, 2026-08-01: "approved". Full
+record in `37-08-SUMMARY.md`.
