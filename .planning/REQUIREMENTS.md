@@ -92,12 +92,9 @@ wrapper) and agreeing within 3pt.
 - [x] **FLD-01** [M]: A field list (Parameters / Returns / Return type / Raises / Variables) is
       indented one step beyond the surrounding description body. Today it is not indented at all.
 
-- [ ] **FLD-02** [M]: A field body with multiple values renders as a **bulleted list**; a
+- [x] **FLD-02** [M]: A field body with multiple values renders as a **bulleted list**; a
       single-value body stays inline prose. (The inline half already works via
       `_last_field_body_was_inline`; the bulleted half must be verified to survive the redesign.)
-      *Partially met after Phase 38: holds at top level, but the single-value inline half is
-      bypassed inside a list item — `visit_paragraph`/`depart_paragraph` test `in_list_item`
-      before `_field_body_unwrapped_paragraph`. See 38-VERIFICATION.md gap 1 / 38-REVIEW.md CR-01.*
 
 - [x] **FLD-03** [M]: Inside a field body, a parameter's **name and type carry monospace treatment
       distinct from the plain-bold field label** — the reference deliberately uses a *different*
@@ -280,7 +277,7 @@ Phase numbering continues from v0.6.5's last phase (35).
 | IND-04 | Phase 38 | Complete |
 | IND-05 | Phase 38 | Complete |
 | FLD-01 | Phase 38 | Complete |
-| FLD-02 | Phase 38 | Gap — partially met (list-item nesting) |
+| FLD-02 | Phase 38 | Complete |
 | FLD-03 | Phase 38 | Complete |
 | ADM-01 | Phase 39 | Pending |
 | ADM-02 | Phase 39 | Pending |
