@@ -302,3 +302,166 @@ that is a real regression, not environmental noise.
 | `uv run black --check .` | `0` | "All done! ✨ 🍰 ✨ / 175 files would be left unchanged." |
 | `uv run ruff check .` | `0` | "All checks passed!" |
 | `uv run mypy typsphinx/` | `0` | "Success: no issues found in 6 source files" |
+
+## Post-decoupling diff (SC#1, SC#2, D-03, D-07)
+
+- **Baseline commit (pre-decoupling, recorded by Plan 01):**
+  `b37ea402733c9ed6610c873349dca4c520ae7f22` (`test(36-01): capture
+  pre-decoupling golden and ship SC#1+SC#2 gate`).
+- **Decoupling commit (this plan, post-decoupling):**
+  `8708ab0de6f8b3fe979705c51888de2691982dc4` (`feat(36-02): decouple
+  visit_rubric/depart_rubric from visit_strong`, Task 2's commit -- the
+  final commit in this plan that touches `typsphinx/translator.py`; Task
+  1's commit `12547a2` is its immediate ancestor within the same plan).
+
+### Build commands (two independent worktrees, one per commit)
+
+```
+# baseline commit, checked out into a throwaway git worktree with its own
+# per-worktree venv (same provisioning steps as CLAUDE.md prescribes)
+uv run python -m sphinx -b typst -q -E tests/fixtures/desc_rubric_decoupling_render_gate <scratch>/baseline-build
+
+# decoupling commit, this plan's own worktree
+uv run python -m sphinx -b typst -q -E tests/fixtures/desc_rubric_decoupling_render_gate <scratch>/decoupled-build
+```
+
+Both exited `0` with empty stdout/stderr.
+
+### SC#2 byte-identity diff (the proof)
+
+```
+diff <scratch>/baseline-build/index.typ <scratch>/decoupled-build/index.typ
+```
+
+Verbatim output: **(empty)** -- the command printed nothing. Exit status
+`0`. The emitted `.typ` is byte-identical across the decoupling change
+alone; this is SC#2's discharge.
+
+### `git diff --stat` between the two named commits
+
+A note on measurement first: `git diff --stat` between two commits
+reflects the FULL tree difference, including any commits by other
+plans/agents that happen to sit between them in history -- it is not
+scoped to "this plan's own commits". Measured directly:
+
+```
+$ git diff --stat b37ea402733c9ed6610c873349dca4c520ae7f22 8708ab0de6f8b3fe979705c51888de2691982dc4
+ .planning/ROADMAP.md                               |  45 ++-
+ .planning/STATE.md                                 |  17 +-
+ .../36-01-SUMMARY.md                               | 133 +++++++++
+ .../36-GATE-EVIDENCE.md                            | 304 +++++++++++++++++++++
+ typsphinx/translator.py                            | 188 ++++++++++++-
+ 5 files changed, 663 insertions(+), 24 deletions(-)
+```
+
+The four non-`translator.py` paths are all attributable to work that
+landed BETWEEN the baseline commit and this plan's start -- Plan 01's own
+Task 3 evidence/summary commits, and the orchestrator's
+"docs(phase-36): update tracking after wave 1" commit
+(`037504fd224275249c3a303c9c614888a3e9582f`, this plan's actual starting
+commit) -- none of it authored by this plan's tasks. Confirmed
+`typsphinx/translator.py` is byte-identical between the baseline commit
+and this plan's starting commit (`git diff b37ea40 037504fd --
+typsphinx/translator.py` produces no output), so re-running the same
+`--stat` from the content-identical starting point isolates this plan's
+own change cleanly:
+
+```
+$ git diff --stat 037504fd224275249c3a303c9c614888a3e9582f 8708ab0de6f8b3fe979705c51888de2691982dc4
+ typsphinx/translator.py | 188 ++++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 175 insertions(+), 13 deletions(-)
+```
+
+Exactly one path, `typsphinx/translator.py` -- no test file, no fixture,
+no config rides in the decoupling change (D-07).
+
+### D-03 decision taken
+
+Verbatim copy, unreachable branches kept. Both `visit_desc_signature`/
+`depart_desc_signature` (Task 1) and `visit_rubric`/`depart_rubric` (Task
+2) retain the full body of `visit_strong`/`depart_strong` including the
+`_add_paragraph_separator()` call, the markup-mode `#` prefix computation,
+and the `_enter_inline_concat_element()`/`_exit_inline_concat_element()`
+pair -- all three proven inert when entered from `desc_signature`/`rubric`
+by 36-RESEARCH.md. They were kept, not pruned, because the binding
+constraint is a zero diff (SC#2) and keeping inert branches costs nothing,
+while pruning them would stake byte-identity on three separate
+unreachability proofs instead of on a mechanical verbatim copy. The
+pre-existing two-blank-line redundancy in `visit_rubric`'s R2 construct
+(propagated target inside a list item) was reproduced exactly, not tidied
+-- confirmed present, unchanged, in both the baseline and decoupled builds
+above (the empty `diff` covers this region too).
+
+## SC#1 delegation census (post-decoupling)
+
+Command:
+```
+grep -n "dummy_strong = nodes.strong()" typsphinx/translator.py
+```
+
+Verbatim output:
+```
+5303:        dummy_strong = nodes.strong()
+5309:        dummy_strong = nodes.strong()
+```
+
+Count: **2** (down from the pre-decoupling **6** recorded above).
+
+| Line | Owning method | Disposition |
+|------|----------------|-------------|
+| 5303 | `visit_literal_strong` | OUT OF SCOPE -- survives by design |
+| 5309 | `depart_literal_strong` | OUT OF SCOPE -- survives by design |
+
+`visit_literal_strong`/`depart_literal_strong` are FLD-03's bold-literal
+field-list-value node and belong to Phase 38; they were not touched by
+this plan (36-RESEARCH.md Pitfall 1).
+
+Verbatim passing output of the SC#1+SC#2+compile-sanity gate module:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae705662415abf531
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_desc_rubric_decoupling_render_gate.py ...                     [100%]
+
+============================== 3 passed in 0.57s ===============================
+```
+
+All three test methods pass, including the SC#1 delegation assertion,
+which flips RED (recorded pre-decoupling above) to GREEN with this plan.
+
+### Regression net
+
+Command (the five pre-existing render gates that already exercise this
+seam, plus the new SC#1/SC#2 gate):
+```
+uv run pytest tests/test_desc_rubric_decoupling_render_gate.py tests/test_desc_signature_concat_render_gate.py tests/test_desc_signature_anchor_render_gate.py tests/test_desc_sig_space_render_gate.py tests/test_rubric_option_concat_render_gate.py tests/test_rubric_propagated_target_render_gate.py -q
+```
+
+Verbatim output:
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae705662415abf531
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 10 items
+
+tests/test_desc_rubric_decoupling_render_gate.py ...                     [ 30%]
+tests/test_desc_signature_concat_render_gate.py ..                       [ 50%]
+tests/test_desc_signature_anchor_render_gate.py .                        [ 60%]
+tests/test_desc_sig_space_render_gate.py ..                              [ 80%]
+tests/test_rubric_option_concat_render_gate.py .                         [ 90%]
+tests/test_rubric_propagated_target_render_gate.py .                     [100%]
+
+============================== 10 passed in 2.65s ==============================
+```
+
+All ten tests pass. `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`
+is confirmed unchanged since the baseline commit
+(`git diff b37ea40 -- tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`
+produces no output).
