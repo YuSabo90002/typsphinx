@@ -436,7 +436,7 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: 8/8 plans executed
+**Plans**: 9 plans (8/9 executed — 38-09 is post-verification gap closure)
 
 **Wave 1**
 
@@ -460,6 +460,10 @@ before the body wrapper is put around it)
 **Wave 5**
 
 - [x] 38-08-PLAN.md — closeout: both page-count constants re-measured once, the misnamed constant renamed (second folded todo), D-08's 97→87 whole-document claim checked, the full-corpus gate and supply-chain invariants, the census finalised against reality, and the owner's visual sign-off
+
+**Wave 6** (gap closure — `38-VERIFICATION.md` returned `gaps_found`, 7/8 must-haves)
+
+- [ ] 38-09-PLAN.md — FLD-02 gap closure: `_field_body_unwrapped_paragraph` given priority over `in_list_item` in `visit_paragraph`/`depart_paragraph` so a single-value field's label and value share one line inside a list item too, with a new list-item fixture construct recorded RED first; plus WR-01's positive table-cell regression construct for the `add_text` conversions and WR-02's `SHARED_INDENT_STEP` import
 
 ### Phase 39: Admonition Taxonomy + Rubric Nesting
 
