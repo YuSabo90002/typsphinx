@@ -6022,26 +6022,119 @@ class TypstTranslator(SphinxTranslator):
 
     # Literal nodes for API documentation
 
+    def _emit_field_body_monospace_leaf(
+        self, node: nodes.Element, wrapper: str
+    ) -> None:
+        """Emit a complete ``wrapper(raw("..."))`` call for a field-body
+        monospace leaf (``literal_strong`` / ``literal_emphasis``), then
+        raise ``nodes.SkipNode`` -- mirroring ``visit_literal``'s leaf-
+        emission shape (``typsphinx/translator.py:1487-1565``): the
+        paragraph separator, the concat-separator-or-list-item-newline
+        fallback, the call itself, then the mark-content-or-list-item-
+        separator fallback.
+
+        Escaping goes through the shared ``escape_typst_string`` helper
+        -- the SAME one ``visit_literal``'s leaf branch uses -- and
+        deliberately NOT through ``_escape_signature_text`` /
+        ``_emit_signature_leaf_wrapper``. Those unconditionally inject
+        the SIG-07 zero-width-space break opportunity after every ``.``,
+        and no FLD-03 requirement or CONTEXT decision authorizes that
+        inside a field body: field bodies are not measured to overflow
+        the way dotted signature qualnames are, and a parameter name
+        copied out of the PDF must stay pasteable (38-EMISSION-
+        CONTRACT.md section 5.3).
+
+        ``wrapper`` is ``"strong"`` (bold monospace -- the parameter
+        name, contract section 5.2 row 1) or ``"emph"`` (italic
+        monospace -- the parameter type, section 5.2 row 2), D-05's
+        deliberately-different-from-the-signature-family recipe.
+
+        No special-casing on the node's parent: a resolvable ``:type:``
+        nests this call inside an emitted ``link(...)`` call, and it
+        composes correctly because ``link()``'s body argument is just a
+        content value -- the same reason the signature family's own
+        resolved-xref rule already works (37-EMISSION-CONTRACT.md
+        section 5.2 rule 3, contract section 5.4).
+
+        Monospace is reached ONLY through Typst's ``raw(...)``
+        primitive -- never by naming a font family, which would
+        silently shadow the Japanese build's CJK fallback with neither
+        a warning nor an error.
+        """
+        self._add_paragraph_separator()
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        escaped = escape_typst_string(node.astext())
+        prefix = "#" if self._in_markup_mode else ""
+        self.add_text(f'{prefix}{wrapper}(raw("{escaped}"))')
+
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+
+        raise nodes.SkipNode
+
     def visit_literal_strong(self, node: nodes.inline) -> None:
-        """Visit a literal_strong node (bold literal text in field lists)."""
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+        """Visit a literal_strong node: a field-body parameter name.
+
+        Emits ``strong(raw("<escaped>"))`` -- bold monospace (FLD-03,
+        38-EMISSION-CONTRACT.md section 5.2 row 1), deliberately
+        DIFFERENT from the signature family's own name recipe (D-05):
+        the reference's own recipe for a field-body parameter name,
+        distinct from the plain-bold proportional field label.
+        Delegates to :meth:`_emit_field_body_monospace_leaf`, which
+        raises ``nodes.SkipNode`` -- ``depart_literal_strong`` is
+        therefore never called (mirrors ``visit_literal`` /
+        ``depart_literal``).
+
+        No longer delegates through a dummy ``nodes.strong()`` node to
+        :meth:`visit_strong` (D-09) -- this is deliberate: D-05 makes
+        this node's target emission (bold MONOSPACE) diverge from
+        ``strong``'s own emission (bold PROPORTIONAL), so the
+        delegation was no longer a viable base to build on.
+        """
+        self._emit_field_body_monospace_leaf(node, "strong")
 
     def depart_literal_strong(self, node: nodes.inline) -> None:
-        """Depart a literal_strong node."""
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        """Depart a literal_strong node.
+
+        Unreachable: ``visit_literal_strong`` raises ``nodes.SkipNode``,
+        so docutils' dispatcher never calls this depart. Kept as a stub
+        -- exactly as ``depart_literal`` already is -- because the
+        docutils dispatcher contract still wants a paired depart method
+        present.
+        """
+        pass
 
     def visit_literal_emphasis(self, node: nodes.inline) -> None:
-        """Visit a literal_emphasis node (emphasized literal text in field lists)."""
-        # Create a dummy emphasis node and use its visitor logic
-        dummy_emph = nodes.emphasis()
-        self.visit_emphasis(dummy_emph)
+        """Visit a literal_emphasis node: a field-body parameter type.
+
+        Emits ``emph(raw("<escaped>"))`` -- italic monospace (FLD-03,
+        38-EMISSION-CONTRACT.md section 5.2 row 2), deliberately
+        DIFFERENT from the signature family's own type recipe (D-05):
+        the reference's own recipe for a field-body parameter type,
+        distinct from the plain-bold proportional field label.
+        Delegates to :meth:`_emit_field_body_monospace_leaf`, which
+        raises ``nodes.SkipNode`` -- ``depart_literal_emphasis`` is
+        therefore never called (mirrors ``visit_literal`` /
+        ``depart_literal``).
+
+        No longer delegates through a dummy ``nodes.emphasis()`` node
+        to :meth:`visit_emphasis` (D-09) -- the last two dummy-node
+        delegation sites in the translator, removed for the same
+        reason ``visit_literal_strong``'s docstring gives.
+        """
+        self._emit_field_body_monospace_leaf(node, "emph")
 
     def depart_literal_emphasis(self, node: nodes.inline) -> None:
-        """Depart a literal_emphasis node."""
-        # Use emphasis's depart logic
-        dummy_emph = nodes.emphasis()
-        self.depart_emphasis(dummy_emph)
+        """Depart a literal_emphasis node.
+
+        Unreachable: ``visit_literal_emphasis`` raises
+        ``nodes.SkipNode``, so docutils' dispatcher never calls this
+        depart. Kept as a stub -- exactly as ``depart_literal`` already
+        is -- because the docutils dispatcher contract still wants a
+        paired depart method present.
+        """
+        pass

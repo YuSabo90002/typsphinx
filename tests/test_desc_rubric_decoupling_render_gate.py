@@ -13,12 +13,28 @@ here as two structural assertions instead:
 
 - SC#1 (this module's ``test_desc_signature_and_rubric_do_not_delegate_to_
   visit_strong``): the four decoupled methods must no longer call
-  ``self.visit_strong``/``self.depart_strong`` on a dummy node, while the
-  two ``visit_literal_strong``/``depart_literal_strong`` methods -- a
-  different, unrelated shared-delegation site (FLD-03's bold literal
-  field-list values) -- must still delegate. Pre-decoupling this fails: all
-  six sites still delegate, and this method's own RED capture (recorded in
+  ``self.visit_strong``/``self.depart_strong`` on a dummy node. At the time
+  this gate was authored, ``visit_literal_strong``/``depart_literal_strong``
+  -- a different, unrelated shared-delegation site (FLD-03's bold literal
+  field-list values) -- were required to KEEP delegating, as an "over-reach
+  guard" against a decoupling that went further than ADM-06's own four
+  targets. Pre-decoupling (Phase 36) this failed: all six sites still
+  delegated, and this method's own RED capture (recorded in
   ``36-GATE-EVIDENCE.md``) IS the RED substitute for a compile fatal.
+
+  **Phase 38 (38-07, D-05/D-09) inverts the over-reach guard's own
+  premise.** FLD-03 gives ``literal_strong``/``literal_emphasis`` their own
+  leaf-emission bodies (bold/italic MONOSPACE, diverging from ``strong``'s
+  plain bold PROPORTIONAL emission), so the delegation this guard protected
+  is no longer a viable implementation and is itself removed -- the last
+  two dummy-node delegation sites in the translator. ``NO_LONGER_
+  DELEGATING_METHODS`` below (renamed from the Phase-36-era
+  ``RETAINED_DELEGATION_METHODS``) and the ``DUMMY_STRONG_LITERAL`` count
+  are updated to assert the post-Phase-38 state: zero delegating calls, zero
+  remaining ``dummy_strong = nodes.strong()`` constructions. This migration
+  is recorded in ``38-TEST-CENSUS.md`` row A2, which explicitly names this
+  exact assertion as one Phase 38 legitimately trips and must rewrite in the
+  same commit that removes the delegation, not just the code under test.
 - SC#2 (``test_emitted_typ_is_byte_identical_to_golden``): the decoupling
   must not change a single emitted byte. Golden-file equality against
   ``golden.typ`` (captured from this same commit, before any decoupling
@@ -67,17 +83,24 @@ DECOUPLED_METHODS = (
     "depart_rubric",
 )
 
-# The two methods that must KEEP delegating -- the over-reach guard. A
-# decoupling that also strips FLD-03's bold-literal node handling would
-# fail this half of the assertion even though SC#1's own grep only names
-# the desc_signature/rubric sites.
-RETAINED_DELEGATION_METHODS = (
+# Phase 36's over-reach guard named these two methods as the ones that must
+# KEEP delegating (a decoupling that also stripped FLD-03's bold-literal
+# node handling would have failed that half of the assertion even though
+# SC#1's own grep only names the desc_signature/rubric sites). Phase 38
+# (38-07, D-05/D-09) removes literal_strong/literal_emphasis's own
+# delegation -- FLD-03's bold/italic-MONOSPACE emission diverges from
+# strong's/emph's plain-proportional emission, so delegating is no longer a
+# viable base. Renamed and inverted accordingly: these two methods must now
+# emit ZERO delegating calls, same as the four DECOUPLED_METHODS above.
+NO_LONGER_DELEGATING_METHODS = (
     "visit_literal_strong",
     "depart_literal_strong",
 )
 
-# The literal dummy-node construction line every delegation site emits
-# before calling into visit_strong/depart_strong.
+# The literal dummy-node construction line every delegation site emitted
+# before calling into visit_strong/depart_strong. Phase 36 left exactly 2
+# (both owned by literal_strong); Phase 38's 38-07 removes those last 2, so
+# the post-38-07 count is 0.
 DUMMY_STRONG_LITERAL = "dummy_strong = nodes.strong()"
 
 
@@ -172,9 +195,13 @@ class TestDescRubricDecouplingRenderGate:
     """
     Phase 36's SC#1/SC#2 gate: the ADM-06 decoupling must (1) stop
     ``desc_signature``/``rubric`` from delegating to ``visit_strong``/
-    ``depart_strong`` via a dummy ``strong`` node, while leaving
-    ``literal_strong``'s own delegation untouched, and (2) change zero
-    emitted bytes for the fixture's combined constructs.
+    ``depart_strong`` via a dummy ``strong`` node, and (2) change zero
+    emitted bytes for the fixture's combined constructs. Originally (1) also
+    required ``literal_strong``'s own delegation to survive untouched (the
+    "over-reach guard"); Phase 38's 38-07 (D-05/D-09) legitimately removes
+    that delegation too, so (1) now asserts zero delegating calls across all
+    six historically-delegating methods -- see ``NO_LONGER_DELEGATING_
+    METHODS`` above.
 
     Requirements: ADM-06.
     """
@@ -211,31 +238,35 @@ class TestDescRubricDecouplingRenderGate:
                 "been applied yet."
             )
 
-        # (b) The over-reach guard: literal_strong must KEEP delegating.
-        for method_name in RETAINED_DELEGATION_METHODS:
+        # (b) Post-38-07: literal_strong/literal_emphasis must NOT delegate
+        # either -- D-09 removed the last two dummy-node delegation sites in
+        # the translator (38-TEST-CENSUS.md row A2's inversion).
+        for method_name in NO_LONGER_DELEGATING_METHODS:
             assert method_name in functions_by_name, (
                 f"Expected typsphinx/translator.py to define {method_name!r} "
-                "-- literal_strong's own handlers must not be removed."
+                "-- literal_strong's own handlers must not be removed, only "
+                "stop delegating."
             )
             delegating_calls = _delegating_calls_in(functions_by_name[method_name])
-            assert delegating_calls != [], (
-                f"{method_name} no longer delegates to visit_strong/"
-                "depart_strong -- the decoupling over-reached into "
-                "literal_strong (FLD-03's bold-literal field-list value), "
-                "which SC#1's grep does not name and must survive untouched."
+            assert delegating_calls == [], (
+                f"{method_name} still delegates to {delegating_calls} via a "
+                "dummy strong() node -- Phase 38's 38-07 (D-05/D-09) removes "
+                "literal_strong's delegation to visit_strong/depart_strong: "
+                "FLD-03's target emission (bold MONOSPACE) diverges from "
+                "strong's own emission (bold PROPORTIONAL), so the "
+                "delegation is no longer a viable base."
             )
 
-        # (c) Exactly two remaining dummy-node construction sites, both
-        # owned by literal_strong. Pre-decoupling this fails with 6 (the
-        # RED substitute in place of a compile fatal -- 36-RESEARCH.md
-        # Pitfall 1: a bare count-drops-to-zero assertion would be wrong,
-        # since 2 legitimate sites must survive).
+        # (c) Zero remaining dummy-node construction sites. Phase 36 left
+        # exactly 2 (both owned by literal_strong, the "over-reach guard"
+        # surviving pair); Phase 38's 38-07 removes those last 2, so the
+        # count inverts from ``== 2`` to ``== 0``.
         dummy_strong_count = source_text.count(DUMMY_STRONG_LITERAL)
-        assert dummy_strong_count == 2, (
-            f"Expected exactly 2 occurrences of {DUMMY_STRONG_LITERAL!r} in "
-            "typsphinx/translator.py after the decoupling -- both owned by "
-            "visit_literal_strong/depart_literal_strong, which are the only "
-            f"methods still permitted to delegate -- found {dummy_strong_count}."
+        assert dummy_strong_count == 0, (
+            f"Expected zero occurrences of {DUMMY_STRONG_LITERAL!r} in "
+            "typsphinx/translator.py after 38-07's decoupling -- "
+            "visit_literal_strong/depart_literal_strong no longer construct "
+            f"a dummy strong() node -- found {dummy_strong_count}."
         )
 
     def test_emitted_typ_is_byte_identical_to_golden(
