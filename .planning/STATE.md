@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 38
-current_phase_name: structural-indentation-info-fields
-status: executing
-stopped_at: Phase 38 gap closure planned (38-09; 9 plans, 6 waves)
-last_updated: "2026-08-01T14:18:40.346Z"
-last_activity: 2026-08-01
-last_activity_desc: Phase 38 execution started
+current_phase: 39
+current_phase_name: Admonition Taxonomy + Rubric Nesting
+status: planning
+stopped_at: Phase 38 complete — UAT passed, verification passed, security verified; ready to plan Phase 39
+last_updated: "2026-08-01T22:49:15.143Z"
+last_activity: 2026-08-02
+last_activity_desc: Phase 38 complete, transitioned to Phase 39
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 22
-  completed_plans: 21
-  percent: 33
+  completed_plans: 22
+  percent: 50
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 38 — structural-indentation-info-fields
+**Current focus:** Phase 39 — Admonition Taxonomy + Rubric Nesting
 
 ## Current Position
 
-Phase: 38 (structural-indentation-info-fields) — EXECUTING
-Plans: 8/9 complete (6 waves) — 38-09 gap-closure plan pending execution
-Status: Executing Phase 38
-Last activity: 2026-08-01 — Phase 38 execution started
+Phase: 39 — Admonition Taxonomy + Rubric Nesting
+Plans: 0/TBD — not yet planned (Phase 38 closed at 9/9)
+Status: Ready to plan
+Last activity: 2026-08-02 — Phase 38 complete, transitioned to Phase 39
 
-Progress: [███████░░░░░░░░░░░░░] 33% (2/6 phases)
+Progress: [██████████░░░░░░░░░░] 50% (3/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
@@ -372,36 +372,29 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/38-structural-indentation-info-fields/38-09-PLAN.md
+**Resume file:** None
 
-Last session: 2026-08-01T14:15:27.662Z
-Stopped at: Phase 38 gap-closure plan 38-09 created and verified (plan-checker PASSED)
-Resume: `/gsd-execute-phase 38`.
+Last session: 2026-08-02
+Stopped at: Phase 38 complete, ready to plan Phase 39
+Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
 
 ## Operator Next Steps
 
-- Execute the Phase 38 gap-closure plan with `/gsd-execute-phase 38` — 38-09 only (wave 6);
-  38-01…38-08 are executed and summarized. 4 tasks, `autonomous: true`.
+- Plan Phase 39 (Admonition Taxonomy + Rubric Nesting, ADM-01..ADM-05). No `39-CONTEXT.md` exists,
+  so start with `/gsd-discuss-phase 39`. Pass `--skip-ui` — `ui.plan-gate` false-positives on this
+  project's typesetting phases, and 39's wording ("colour buckets", "styled and titled") will trip it
+  harder than 38's did.
 
-- **Why 38-09 exists.** `38-VERIFICATION.md` returned `gaps_found` (7/8 truths verified). FLD-02's
-  "a single-value field body stays inline prose" holds at top level but silently regresses inside a
-  bullet/enumerated list item: `visit_paragraph`/`depart_paragraph` test `in_list_item` before
-  `_field_body_unwrapped_paragraph`, so D-13's forced `parbreak()` fires first and re-splits the
-  label from its value. Reproduced independently by both the code review (CR-01) and the
-  verification pass with a real `sphinx-build -b typst`.
+- **Phase 39 SC#3 depends on Phase 38's shipped indent.** A rubric must inherit its container's
+  indent, which now means consuming `SHARED_INDENT_STEP` (`typsphinx/translator.py:29`) rather than
+  introducing a private literal — the same IND-04 bar Phase 38 was held to.
 
-- **Task 1 must land before Task 2.** The whole existing suite is already green with the fix
-  applied (measured during planning: 728 passed, 1 skipped), so the new list-item construct is the
-  *only* RED→GREEN signal this gap has. Recording that RED against the untouched translator is what
-  makes the closure provable — the same GATE-01 bar Phase 37 held.
+- **ADM-04 is the milestone's only `[V]` requirement** (greyscale distinguishability) and is carried
+  as an explicit owner sign-off criterion on this phase. Expect a real human UAT checkpoint at
+  verify time, not a grep.
 
-- **Two owner-approved sweep-ins ride along** (both non-blocking Warnings from `38-REVIEW.md`):
-  WR-01 adds the missing positive regression for the two `self.body.append` → `self.add_text` fixes
-  this phase shipped (a body-less `desc` and a plain `field_list` in `list-table` cells now compile;
-  a `py:function::` *with* a parameter list still aborts and is deliberately fenced out of scope),
-  and WR-02 replaces the hardcoded `"2.5em"` in `test_desc_content_indent_render_gate.py` with an
-  imported `SHARED_INDENT_STEP`. `38-REVIEW.md`'s IN-01 is explicitly out of scope.
-
-- **Do not flip FLD-02 speculatively.** Task 4 flips `REQUIREMENTS.md`'s checkbox and phase-mapping
-  row to Complete only on the new construct's own recorded RED→GREEN evidence — never on a green
-  suite alone (that prohibition is in `must_haves.prohibitions`).
+- **Phase 38 closed with a documentation correction, not a code change.** UAT test 1 asked whether
+  SC#4/IND-04's "drives … block quotes" prose was stale or an unmet criterion; the owner ruled
+  **stale**, so ROADMAP SC#4 and REQUIREMENTS IND-04 were narrowed to the desc/field contexts and
+  `block_quote` is recorded as an intentional non-consumer (38-CONTEXT.md D-04). Do not re-open this
+  in Phase 39 when touching rubric indentation.
