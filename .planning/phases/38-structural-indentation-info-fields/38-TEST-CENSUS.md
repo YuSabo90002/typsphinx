@@ -449,3 +449,75 @@ correctly-scoped absence, not a gap.
   (90%) correctly predicted at census-writing time and the remaining items discovered honestly during
   the phase's own implementation waves or at this plan's own closeout, never silently absorbed into an
   earlier bucket row.
+
+## Post-verification gap closure (38-09)
+
+**(a) The gap.** `38-VERIFICATION.md` (2026-08-01, run against the `38-08`-closed tree) returned
+`gaps_found`: 7/8 must-haves verified, one PARTIAL. FLD-02's "a single-value field body stays inline
+prose" held at top level (confirmed by fresh pypdf coordinate measurement) but was silently bypassed
+whenever the enclosing `desc` was documented inside a bullet or enumerated list item —
+`visit_paragraph`/`depart_paragraph` checked `self.in_list_item` before
+`self._field_body_unwrapped_paragraph`, and nothing resets `in_list_item` for a descendant
+`field_list`/`field`/`field_body`/`paragraph`, so D-13's forced `parbreak()` fast-path won
+unconditionally and reintroduced the exact pre-Phase-38 label/value line-split defect. Independently
+reproduced by both `38-REVIEW.md` (CR-01) and the verification pass itself with a real
+`sphinx-build -b typst`. `38-09-PLAN.md` closed this gap: a reorder of the two branch checks (no new
+state, no new helper, no new constant) plus a new list-item fixture construct recorded RED against the
+unfixed translator, then GREEN after the reorder.
+
+**(b) New fixture constructs and node ids this plan added.** All are ADDITIONS — new coverage of a
+nesting shape the phase never exercised — not migrations of an existing expected string, so they sit
+in their own section here rather than Bucket A:
+
+- `tests/fixtures/field_body_typography_render_gate/index.rst`: two new sections, "List Item Bullet
+  Single Value Field" (a bullet list item containing a `py:function::` with a lone `:returns:`) and
+  "List Item Enumerated Consecutive Fields" (an enumerated list item containing a `py:function::`
+  carrying `:returns:`/`:rtype:`/`:raises:` in that order).
+- `tests/test_field_body_typography_render_gate.py`: `_H_LI_BULLET`/`_H_LI_ENUM` section constants;
+  `PINNED_FLD02_LIST_ITEM_BULLET_ADJACENCY_STRING`/`PINNED_FLD02_LIST_ITEM_ENUM_ADJACENCY_STRING`
+  (hand-derived, never read from a build's output, per D-14); five new tests —
+  `test_fld02_list_item_bullet_single_value_pdf_adjacency_matches_pinned_string`,
+  `test_fld02_list_item_enum_single_value_pdf_adjacency_matches_pinned_string`,
+  `test_fld02_list_item_single_value_emits_no_forced_break_between_label_and_value`,
+  `test_fld02_list_item_lone_field_has_no_trailing_inter_field_break`,
+  `test_fld02_list_item_consecutive_fields_stay_on_separate_lines`. All five recorded RED against the
+  unfixed translator (Task 1) and GREEN after the branch reorder (Task 2).
+- `tests/fixtures/desc_content_indent_render_gate/index.rst`: a second `list-table` ("Table With Desc
+  And Field List") added to the Table-Cell CONTROL section (WR-01) — a body-less
+  `py:attribute:: ind_table_cell_bodyless_attr_sentinel` and a plain `:note:`/`:warning:` field list,
+  each in its own table cell, proving the two `self.body.append` → `self.add_text` table-cell
+  conversions `38-06` shipped actually compile. The section's own filler-paragraph count (Page-Boundary
+  Desc, D-11/SIG-09) was trimmed from 20 to 18 to compensate for a page-reflow shift the new table's
+  vertical footprint caused elsewhere in the same fixture — see (d) below.
+- `tests/test_desc_content_indent_render_gate.py`: an import of `SHARED_INDENT_STEP` from
+  `typsphinx.translator` (WR-02); one new test,
+  `test_wr01_bodyless_desc_and_plain_field_list_in_table_cell_compile`.
+
+**(c) No pre-existing expected string in any module was migrated by this plan.** `git diff --stat`
+against every file this plan touched shows insertions only against test/fixture bodies plus the
+branch-reorder diff in `typsphinx/translator.py` — no existing pinned string, golden file, or
+previously-committed assertion in ANY module (Bucket A/B/C/D rows above) was edited or deleted. The
+full suite was green both before this plan's translator change (728 passed, 1 skipped, the recorded
+pre-`38-09` baseline) and after it (734 passed, 1 skipped — the +5 list-item tests and +1 WR-01 test,
+net +6, with 0 regressions elsewhere): the branch reorder in Task 2 had **zero exact-string blast
+radius** outside the new list-item constructs it was written to fix, so Bucket A needs no new rows from
+this plan.
+
+**(d) A genuine, honestly-recorded miss.** The WR-01 table construct's added vertical space (Task 3)
+shifted where `tests/fixtures/desc_content_indent_render_gate/index.rst`'s Page-Boundary Desc
+construct's multi-page body paragraph splits across compiled pages, which in turn caused
+`test_d11_sig09_page_boundary_signature_body_and_continuation_indent` to fail: the continuation
+sentinel's own page stopped sharing space with any un-indented anchor content, which is what
+`pypdf`'s `extraction_mode="layout"` heuristic needs to reconstruct relative left-edge indentation (a
+documented technique limitation of this module — see its own docstring — not a translator defect; the
+emitted `pad(left: SHARED_INDENT_STEP, {...})` wrapper at that construct is byte-unchanged). Fixed by
+trimming 2 of the section's 20 filler paragraphs (documented inline in the fixture with a "38-09
+re-tuning note"), re-verified against the same test. Recorded here, honestly, as an unpredicted
+cross-construct interaction this plan's own change caused within a single fixture file — not folded
+silently into (b) above.
+
+**(e) Outside this plan's scope, recorded so it is not a silent miss.**
+`tests/test_field_list_in_list_item_render_gate.py` still hardcodes the indent literal `2.5em` in 2
+places. WR-02 as the owner scoped it (`38-REVIEW.md`) names only
+`tests/test_desc_content_indent_render_gate.py`; the sibling module is explicitly left alone by this
+plan's own scope boundary.

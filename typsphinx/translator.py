@@ -830,29 +830,36 @@ class TypstTranslator(SphinxTranslator):
         Wraps paragraph content in par() function for unified code mode.
         Code mode doesn't auto-recognize paragraph breaks from blank lines.
 
-        Exception: Inside list items, paragraphs are not wrapped in par()
-        to avoid syntax like "- par(text(...))" which is invalid. A 2nd+
+        FLD-02/D-07 (38-EMISSION-CONTRACT.md section 4.2) is checked FIRST,
+        deliberately, ahead of the list-item fast-path below: a field body
+        whose ONLY child is this single paragraph (the ordinary
+        ``:param:``/``:returns:`` docstring shape) skips the ``par({``/
+        ``})`` wrapper, because Typst's ``par(...)`` is intrinsically
+        block-level and starts a new visual line regardless of any
+        separator -- FLD-02's root defect. The order matters because
+        nothing resets ``in_list_item`` for a
+        ``field_list``/``field``/``field_body``/``paragraph`` nested inside
+        a list item, so it remains True for a field-body paragraph
+        documented inside a bullet or enumerated list item; checking
+        ``in_list_item`` first would let it unconditionally win and
+        reintroduce the exact pre-Phase-38 label/value split
+        (38-VERIFICATION.md gap 1, 38-REVIEW.md CR-01). See
+        visit_field_body's docstring for the classification and
+        depart_field_body's for the D-07/D-08 trap this interacts with.
+
+        Exception: Inside list items -- once the FLD-02 case above has
+        already been ruled out -- paragraphs are not wrapped in par() to
+        avoid syntax like "- par(text(...))" which is invalid. A 2nd+
         paragraph in a list item instead gets a real Typst parbreak()
         (FID-02) -- a bare source '\\n' between code-mode statements is
         cosmetic only and produces no visual break, so consecutive
         list-item paragraphs otherwise concatenate onto one running line.
         D-13 (38-EMISSION-CONTRACT.md section 4.5): this stray parbreak()
-        also fires at the head of every bulleted field-list item (a list
-        item whose sole content is a paragraph), and Phase 38 leaves it in
-        place by design -- its exact shape is pinned by
-        tests/test_inline_math_after_text_render_gate.py:291. Do not read
-        the FLD-02 branch below as an oversight of this one; it is a
-        SEPARATE case (a field body directly, never a list item).
-
-        A second exception (FLD-02, D-07, 38-EMISSION-CONTRACT.md section
-        4.2): a field body whose ONLY child is this single paragraph (the
-        ordinary ``:param:``/``:returns:`` docstring shape) also skips the
-        ``par({``/``})`` wrapper -- mirroring the list-item fast-path above
-        -- because Typst's ``par(...)`` is intrinsically block-level and
-        starts a new visual line regardless of any separator, which is
-        FLD-02's root defect. See visit_field_body's docstring for the
-        classification and depart_field_body's for the D-07/D-08 trap this
-        interacts with.
+        also fires at the head of every bulleted list item whose sole
+        content is a paragraph -- an ordinary list-item paragraph, or a
+        multi-value field body's own bulleted list items -- and Phase 38
+        leaves it in place by design; its exact shape is pinned by
+        tests/test_inline_math_after_text_render_gate.py:291.
 
         Args:
             node: The paragraph node
@@ -865,22 +872,24 @@ class TypstTranslator(SphinxTranslator):
         # or strands a `+`. (GATE-02 corpus fatal #20: <xref-modifiers>.)
         self._emit_id_anchors(node)
 
+        # FLD-02/D-07: skip the block-level par(...) wrapper for a
+        # single-value field body's sole paragraph child. Checked BEFORE
+        # in_list_item below -- see this method's docstring for why the
+        # order is load-bearing, not incidental. The paragraph's children
+        # then dispatch unmodified through the SAME inline-concat machinery
+        # visit_field_body activated (_in_field_body /
+        # _field_body_has_content) -- no par() to open, so in_paragraph
+        # stays False and nothing else is emitted here.
+        if self._field_body_unwrapped_paragraph:
+            self.in_paragraph = False
+            return
+
         # Skip par() wrapping inside list items; emit a real parbreak()
         # between the 2nd+ paragraph and its predecessor (FID-02). This is a
         # no-op for the FIRST paragraph in a list item, since
         # list_item_needs_separator is reset to False in visit_list_item.
         if self.in_list_item:
             self._emit_forced_break("parbreak()")
-            self.in_paragraph = False
-            return
-
-        # FLD-02/D-07: skip the block-level par(...) wrapper for a
-        # single-value field body's sole paragraph child. The paragraph's
-        # children then dispatch unmodified through the SAME inline-concat
-        # machinery visit_field_body activated (_in_field_body /
-        # _field_body_has_content) -- no par() to open, so in_paragraph
-        # stays False and nothing else is emitted here.
-        if self._field_body_unwrapped_paragraph:
             self.in_paragraph = False
             return
 
@@ -895,9 +904,28 @@ class TypstTranslator(SphinxTranslator):
 
         Closes par({}) function and adds spacing.
 
+        Mirrors visit_paragraph's ORDER exactly (see that method's
+        docstring for why the order is load-bearing): the FLD-02/D-07
+        branch is checked BEFORE the list-item branch, because
+        ``in_list_item`` remains True for a field-body paragraph nested
+        inside a list item and would otherwise win. No ``par({...})`` was
+        opened for a single-value field body's sole paragraph, so there is
+        nothing to close here either -- and, deliberately,
+        ``list_item_needs_separator`` is NOT set for this case: the
+        field-body paragraph opened no wrapper and emitted no block-level
+        statement of its own, so there is nothing for a following sibling
+        to be separated from that the field-body concat machinery and
+        depart_field_body's own trailing bytes do not already handle.
+
         Args:
             node: The paragraph node
         """
+        # FLD-02/D-07: mirrors the skip in visit_paragraph above. Checked
+        # BEFORE in_list_item below -- see this method's docstring.
+        if self._field_body_unwrapped_paragraph:
+            self.in_paragraph = False
+            return
+
         # Skip closing if inside list items; mark that a paragraph separator
         # is now needed before the next list-item sibling (FID-02) -- this is
         # the piece that was previously MISSING, so the helper in
@@ -905,13 +933,6 @@ class TypstTranslator(SphinxTranslator):
         # 2nd+ paragraph's parbreak().
         if self.in_list_item:
             self.list_item_needs_separator = True
-            return
-
-        # FLD-02/D-07: mirrors the skip in visit_paragraph above -- no
-        # par({...}) was opened for a single-value field body's sole
-        # paragraph, so there is nothing to close here either.
-        if self._field_body_unwrapped_paragraph:
-            self.in_paragraph = False
             return
 
         # Close par({}) content block and add spacing

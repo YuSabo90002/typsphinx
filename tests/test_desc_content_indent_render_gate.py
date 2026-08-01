@@ -66,6 +66,8 @@ from pathlib import Path
 
 import pytest
 
+from typsphinx.translator import SHARED_INDENT_STEP
+
 try:
     import typst
 
@@ -121,6 +123,40 @@ def _run_sphinx_build_typst(
             "sphinx",
             "-b",
             "typst",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _run_sphinx_build_typstpdf(
+    source_dir: Path, build_dir: Path
+) -> subprocess.CompletedProcess:
+    """
+    Run ``sphinx-build -b typstpdf`` as a subprocess and return the
+    completed process (stdout/stderr captured as text). WR-01
+    (38-09 gap closure): the module's other build fixtures drive
+    ``-b typst`` then compile separately via a bare ``typst.compile()``
+    call with no try/except; this helper instead drives the FULL
+    ``typstpdf`` builder as a subprocess so a compile failure surfaces as
+    a non-zero return code and captured stderr, exactly like
+    ``tests/test_field_body_typography_render_gate.py``'s
+    ``_run_sphinx_build_typstpdf`` -- the WR-01 acceptance criteria need a
+    real return code and stderr to assert against.
+
+    Invoked as ``sys.executable -m sphinx`` (never ``uv run
+    sphinx-build``) -- the NixOS PATH-shadowing hazard restated in every
+    render-gate module in this project.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typstpdf",
             str(source_dir),
             str(build_dir),
         ],
@@ -263,10 +299,11 @@ class TestDescContentIndentStructuralGate:
     ):
         """
         IND-01 (38-EMISSION-CONTRACT.md section 2): the ``desc_content``
-        body wrapper's opening token ``pad(left: 2.5em, {`` and its
-        closing token ``})\\n`` must both appear in the emitted ``.typ``,
-        with the opening token positioned AFTER the class signature's own
-        closing anchor (``<index:IndFldNestOuterClass>``, emitted by
+        body wrapper's opening token ``pad(left: SHARED_INDENT_STEP, {``
+        and its closing token ``})\\n`` must both appear in the emitted
+        ``.typ``, with the opening token positioned AFTER the class
+        signature's own closing anchor
+        (``<index:IndFldNestOuterClass>``, emitted by
         ``depart_desc_signature`` -- a handler Phase 38 does not touch,
         D-14's anchor-preservation guarantee) and BEFORE the class body's
         own ``par(`` call -- a positional-index assertion, not a bare
@@ -275,9 +312,10 @@ class TestDescContentIndentStructuralGate:
         NEITHER token exists at all: EXPECTED TO FAIL pre-phase.
         """
         typ_text = desc_content_indent_typ_text
-        assert "pad(left: 2.5em, {" in typ_text, (
+        pad_open = f"pad(left: {SHARED_INDENT_STEP}, {{"
+        assert pad_open in typ_text, (
             "IND-01: expected the desc_content body wrapper's opening "
-            "token 'pad(left: 2.5em, {' somewhere in the emitted .typ -- "
+            f"token {pad_open!r} somewhere in the emitted .typ -- "
             "not found (visit_desc_content is still `pass` pre-phase)."
         )
         assert "})\n" in typ_text, (
@@ -285,7 +323,7 @@ class TestDescContentIndentStructuralGate:
             "token '})\\n' somewhere in the emitted .typ -- not found."
         )
         signature_close_idx = typ_text.index("<index:IndFldNestOuterClass>")
-        pad_open_idx = typ_text.index("pad(left: 2.5em, {", signature_close_idx)
+        pad_open_idx = typ_text.index(pad_open, signature_close_idx)
         body_par_idx = typ_text.index(
             'par({text("Outer class body first paragraph', pad_open_idx
         )
@@ -302,21 +340,22 @@ class TestDescContentIndentStructuralGate:
     ):
         """
         IND-04 (38-EMISSION-CONTRACT.md sections 1, 2, 3): the shared
-        indent step's value (``SHARED_INDENT_STEP`` = ``2.5em``) must
-        appear at BOTH new consumer sites this phase adds -- the
-        ``desc_content`` body wrapper (section 2) and the ``field_list``
-        wrapper (section 3) -- not just at the pre-existing
-        ``desc_signature`` hanging-indent site (Phase 37). Pre-phase
-        neither new site exists (both handlers are ``pass``/untouched),
-        so the wrapper literal ``pad(left: 2.5em, {`` appears ZERO times
-        anywhere in the document: EXPECTED TO FAIL pre-phase.
+        indent step's value (``SHARED_INDENT_STEP``) must appear at BOTH
+        new consumer sites this phase adds -- the ``desc_content`` body
+        wrapper (section 2) and the ``field_list`` wrapper (section 3) --
+        not just at the pre-existing ``desc_signature`` hanging-indent
+        site (Phase 37). Pre-phase neither new site exists (both handlers
+        are ``pass``/untouched), so the wrapper literal
+        ``pad(left: SHARED_INDENT_STEP, {`` appears ZERO times anywhere
+        in the document: EXPECTED TO FAIL pre-phase.
         """
         typ_text = desc_content_indent_typ_text
-        occurrences = typ_text.count("pad(left: 2.5em, {")
+        pad_open = f"pad(left: {SHARED_INDENT_STEP}, {{"
+        occurrences = typ_text.count(pad_open)
         assert occurrences >= 2, (
             "IND-04: expected the shared indent step's value to appear "
             "at BOTH the desc_content wrapper and the field_list wrapper "
-            "(at least 2 occurrences of 'pad(left: 2.5em, {') -- "
+            f"(at least 2 occurrences of {pad_open!r}) -- "
             f"pre-phase neither site exists yet; got {occurrences} "
             "occurrence(s)."
         )
@@ -358,8 +397,8 @@ class TestDescContentIndentStructuralGate:
         1.2): the block-quote construct must still emit Typst's own
         ``quote(block: true, {`` form and must NEVER be wrapped in the
         shared indent step -- the composed literal
-        ``pad(left: 2.5em, {quote(block: true,`` must never appear.
-        ALREADY TRUE pre-phase (``visit_block_quote`` /
+        ``pad(left: SHARED_INDENT_STEP, {quote(block: true,`` must never
+        appear. ALREADY TRUE pre-phase (``visit_block_quote`` /
         ``depart_block_quote`` are untouched by this phase, D-04) and
         must stay true post-phase: a non-regression CONTROL, not a
         per-requirement RED. Not to be re-opened at verify time (D-04).
@@ -369,7 +408,8 @@ class TestDescContentIndentStructuralGate:
             "D-04: expected the block quote's own quote(block: true, { "
             "form somewhere in the emitted .typ -- not found."
         )
-        assert "pad(left: 2.5em, {quote(block: true," not in typ_text, (
+        forbidden_composed = f"pad(left: {SHARED_INDENT_STEP}, {{quote(block: true,"
+        assert forbidden_composed not in typ_text, (
             "D-04: block_quote must NEVER be wrapped in the shared "
             "indent step -- found the forbidden composed form in the "
             "emitted .typ."
@@ -416,7 +456,8 @@ class TestDescContentIndentStructuralGate:
         first_sibling_region = _slice(
             typ_text, "ind_bodyless_confval_one", "ind_bodyless_confval_two"
         )
-        assert first_sibling_region.count("pad(left: 2.5em, {") >= 1, (
+        pad_open = f"pad(left: {SHARED_INDENT_STEP}, {{"
+        assert first_sibling_region.count(pad_open) >= 1, (
             "FLD-01/IND-01 empty: expected at least one desc_content "
             "wrapper pair for the first body-less confval sibling -- "
             f"pre-phase none exists:\n{first_sibling_region}"
@@ -456,6 +497,62 @@ class TestDescContentIndentStructuralGate:
             "Two independent -b typst builds of the SAME fixture produced "
             "DIFFERENT .typ output -- non-deterministic build."
         )
+
+    @pytest.mark.skipif(
+        not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+        reason="typst-py and pypdf are both required for the WR-01 table-cell compile gate",
+    )
+    def test_wr01_bodyless_desc_and_plain_field_list_in_table_cell_compile(
+        self, desc_content_indent_gate_dir, tmp_path_factory
+    ):
+        """
+        WR-01 (38-09 gap closure; 38-REVIEW.md WR-01): positive regression
+        for the table-cell ``add_text`` conversions 38-06 shipped. A
+        body-less ``py:attribute::`` (no parameter list, no body) and a
+        plain generic field list (``:note:``/``:warning:``), each inside
+        its own ``list-table`` cell, must compile through a real
+        ``-b typstpdf`` build -- previously these aborted the ENTIRE
+        compile via the field-list family's and ``depart_desc_signature``'s
+        ``self.body.append(...)`` calls bypassing table-cell routing. A
+        clean return code alone is vacuous, so this asserts more: the
+        compile-failure signatures this codebase produces must be ABSENT
+        from stderr, ``index.pdf`` must exist and be non-empty, and all
+        three new sentinels must be present in the extracted PDF text --
+        proving the construct is actually THERE, not merely that nothing
+        crashed.
+        """
+        build_dir = tmp_path_factory.mktemp("desc_content_indent_wr01") / "_build"
+        result = _run_sphinx_build_typstpdf(desc_content_indent_gate_dir, build_dir)
+        assert result.returncode == 0, (
+            "WR-01: expected -b typstpdf to succeed (return code 0) for a "
+            "body-less desc and a plain field list inside table-table "
+            f"cells:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        for signature in (
+            "expected semicolon or line break",
+            "Typst compilation failed",
+        ):
+            assert signature not in result.stderr, (
+                f"WR-01: found the compile-failure signature {signature!r} "
+                f"in stderr -- the table-cell add_text conversion did not "
+                f"actually fix this construct:\nstderr: {result.stderr}"
+            )
+        pdf_path = build_dir / "index.pdf"
+        assert pdf_path.exists(), "WR-01: index.pdf was not produced"
+        assert pdf_path.stat().st_size > 0, "WR-01: index.pdf is empty"
+        reader = pypdf.PdfReader(str(pdf_path))
+        pdf_text = "\n".join(page.extract_text() for page in reader.pages)
+        for sentinel in (
+            "ind_table_cell_bodyless_attr_sentinel",
+            "ind_table_cell_field_note_sentinel",
+            "ind_table_cell_field_warning_sentinel",
+        ):
+            assert sentinel in pdf_text, (
+                f"WR-01: expected sentinel {sentinel!r} in the extracted "
+                f"PDF text -- the table-cell construct's own content must "
+                f"reach the compiled PDF, not just compile without "
+                f"crashing:\n{pdf_text!r}"
+            )
 
 
 # ---------------------------------------------------------------------------

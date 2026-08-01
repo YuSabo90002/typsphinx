@@ -127,3 +127,37 @@ Single Field List
 .. py:function:: field_single_field_list()
 
    :returns: The only field in this function's field list.
+
+List Item Bullet Single Value Field
+===================================
+
+.. FLD-02 list-item adjacency + empty edge (38-VERIFICATION.md gap 1,
+   38-REVIEW.md CR-01): the enclosing list item is what makes
+   in_list_item True for the nested field-body paragraph below, which is
+   exactly what lets D-13's bulleted-item fast-path short-circuit the
+   FLD-02 inline join before this plan's fix. Exactly one field
+   (:returns:), no sibling fields, so the "lone field, no following
+   sibling" empty edge is reachable here too.
+
+* A bullet list item containing a documented function.
+
+  .. py:function:: fld02_listitem_bullet_function(x)
+
+     :returns: fld02 listitem bullet returns sentinel.
+
+List Item Enumerated Consecutive Fields
+=======================================
+
+.. FLD-02 list-item ordering edge (38-VERIFICATION.md gap 1,
+   38-REVIEW.md CR-01): three consecutive single-value fields (:returns:,
+   :rtype:, :raises:) nested inside an enumerated list item, so both
+   "each label joins its own value" and "consecutive fields stay on
+   separate lines" are reachable in one construct.
+
+#. An enumerated list item containing a documented function.
+
+   .. py:function:: fld02_listitem_enum_function(y)
+
+      :returns: fld02 listitem enum returns sentinel.
+      :rtype: str
+      :raises ValueError: If the enumerated list item case goes wrong.
