@@ -323,8 +323,23 @@ class TestFieldBodyTypographyGate:
     ) -> None:
         """FLD-03 empty edge: a :param: entry with a name but no :type:
         emits exactly one bold-monospace call and zero italic-monospace
-        calls for that entry."""
-        region = _section(typ_text, _H_NOTYPE, _H_NONASCII)
+        calls for that entry.
+
+        Scoped to start at the field list's own label
+        (``strong(text("Parameters") + text(": "))``), not at the section
+        heading: the fixture's ``.. py:function:: field_name_without_type
+        (untyped)`` signature shares the literal string "untyped" with the
+        field-body parameter name it documents, and the signature's own
+        parameter-name rule (SIG-04, 37-EMISSION-CONTRACT.md section 5.2
+        rule 2) unconditionally italicises a bare parameter name regardless
+        of whether it carries a type annotation -- an orthogonal Phase-37
+        mechanism this plan does not touch. Including the ``desc_signature``
+        block in the region would make the "zero italic-monospace calls"
+        assertion fail on that unrelated ``emph(raw("untyped"))``, not on
+        anything this plan's ``literal_emphasis`` handler emits."""
+        section = _section(typ_text, _H_NOTYPE, _H_NONASCII)
+        field_marker = 'strong(text("Parameters") + text(": "))'
+        region = section[section.index(field_marker) :]
         bold_call = _expected_bold_mono("untyped")
         count = region.count(bold_call)
         assert count == 1, (
