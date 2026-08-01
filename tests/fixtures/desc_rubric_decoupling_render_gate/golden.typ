@@ -26,10 +26,11 @@ par({text("Single signature with an id anchor.")})
 block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("connect"))
 raw("(") + emph(raw("host")) + raw(", ") + emph(raw("port")) + raw(", ") + emph(raw("timeout")) + raw("=") + raw("30") + raw(")")}))
 [#metadata(none) <index:connect>]
-par({text("Connect to ")
+pad(left: 2.5em, {par({text("Connect to ")
 emph({text("host")})
 text(".")})
 
+})
 parbreak()
 par({text("Sibling signatures under one directive.")})
 
@@ -42,8 +43,9 @@ raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(")")}))
 linebreak()
 block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
 raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(", ") + emph(raw("symbol")) + raw(")")}))
-par({text("Compile source into a code or AST object.")})
+pad(left: 2.5em, {par({text("Compile source into a code or AST object.")})
 
+})
 parbreak()
 par({text("Plain bold markup – the regression control.")})
 
@@ -58,8 +60,9 @@ strong({text("Options")})
 linebreak()
 block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("--sep"))}))
 [#metadata(none) <index:cmdoption-sep>]
-par({text("If specified, separate source and build directories.")})
+pad(left: 2.5em, {par({text("If specified, separate source and build directories.")})
 
+})
 parbreak()
 par({text("A rubric carrying a propagated target, inside a list item.")})
 
