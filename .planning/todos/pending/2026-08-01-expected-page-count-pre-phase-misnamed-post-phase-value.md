@@ -2,7 +2,7 @@
 created: 2026-08-01T00:00:00+09:00
 title: "`EXPECTED_PAGE_COUNT_PRE_PHASE` in `test_signature_page_boundary_render_gate.py` now holds a post-phase value"
 area: tests
-resolves_phase: null
+resolves_phase: 38
 source: .planning/phases/37-signature-typography-the-desc-family/37-08-PLAN.md Task 2 (§5.2 of 37-GATE-EVIDENCE.md)
 files:
   - tests/test_signature_page_boundary_render_gate.py (the `EXPECTED_PAGE_COUNT_PRE_PHASE` constant and its consumer, `test_page_count_does_not_inflate`)

@@ -3,7 +3,7 @@ created: 2026-08-01
 source: Phase 37 code review (37-REVIEW.md, WR-01)
 area: translator
 severity: warning
-resolves_phase: null
+resolves_phase: 38
 ---
 
 # `_desc_break_marker` goes stale across every `self.body` buffer swap except `in_table`
