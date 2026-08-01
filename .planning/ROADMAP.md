@@ -373,7 +373,32 @@ break nor buried in doubled blank lines.
      blocks are separated by exactly one break — the doubled `parbreak()` runs measured on
      2026-07-29 are gone — and this phase's own exact-string blast radius is migrated within the
      phase, by hand-derived expected strings plus a recorded file/class census.
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1** — every assertion recorded RED against the untouched translator, before any code edit
+(milestone invariant #4; `typsphinx/` is not touched in this wave)
+
+- [ ] 37-01-PLAN.md — SIG-01..SIG-05 per-sub-part structural gate: a fixture exercising all eight measured parameter shapes plus the C++ non-leaf `desc_name`, the empty `desc_addname`, the empty parameter list and a non-ASCII signature, with expectations hand-derived from `37-EMISSION-CONTRACT.md`
+- [ ] 37-02-PLAN.md — SIG-06 (arrow glyph, compiled-PDF), SIG-08 (break count + no-adjacent-breaks) and D-11 (optional-group separator, its own criterion and fixture) gates, with four deliberately-green controls
+- [ ] 37-03-PLAN.md — SIG-07 (synthetic over-length identifier, widest-unbreakable-segment vs. a probe-read column width) and SIG-09 (per-page `pypdf` containment under a forced page break) geometric gates
+- [ ] 37-04-PLAN.md — SC#5 test migration: nine pre-existing exact-string assertions across five modules plus `golden.typ`'s seven signature lines, hand-derived once straight to the final shape, plus the three-bucket census
+
+**Wave 2**
+
+- [ ] 37-05-PLAN.md — SIG-08 / D-12 landed ALONE before the wrapper change (one variable per fixture): `depart_desc`'s duplicate break suppressed by an emission-position marker, not a nesting-depth counter
+
+**Wave 3**
+
+- [ ] 37-06-PLAN.md — the D-10 wrapper (one composed `block`+`par` form with spacing explicitly zeroed), the D-08 shared indent constant, `visit_Text`'s monospace branch with the U+200B escape injection, and the D-01/D-05 bold/italic treatments — SIG-01/02/03/04/07/09
+
+**Wave 4**
+
+- [ ] 37-07-PLAN.md — SIG-05 delimiters, D-11's separator inside its bracket, SIG-06's arrow glyph, and the `golden.typ` byte-identity gate turning green against a golden derived before the code existed
+
+**Wave 5**
+
+- [ ] 37-08-PLAN.md — full-corpus `-b typstpdf` gate, the four milestone invariants verified by command, the consolidated `37-GATE-EVIDENCE.md` verdict table, and the one manual-only owner visual sign-off
 
 ### Phase 38: Structural Indentation + Info Fields
 
