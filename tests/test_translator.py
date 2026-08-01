@@ -3352,7 +3352,17 @@ def test_index_node_is_skipped(simple_document, mock_builder):
 
 
 def test_desc_signature_rendering(simple_document, mock_builder):
-    """Test that desc_signature nodes are rendered in bold."""
+    """Test that desc_signature nodes are rendered in monospace.
+
+    Phase 37: this signature attaches a bare ``nodes.Text`` DIRECTLY to
+    ``desc_signature`` with no ``desc_name`` child at all -- there is no
+    dedicated per-sub-part handler for this shape, so the text goes
+    through ``visit_Text``'s monospace-propagation branch (contract
+    37-EMISSION-CONTRACT.md SS4), never SS5.1's ``strong(raw(...))`` bold
+    wrapper. Do NOT "fix" this assertion to expect ``strong(raw(...))`` --
+    the text has no ``desc_name``/``desc_annotation`` ancestor, so only the
+    flag-driven ``raw(...)`` wrap applies here.
+    """
     from sphinx import addnodes
 
     from typsphinx.translator import TypstTranslator
@@ -3368,7 +3378,15 @@ def test_desc_signature_rendering(simple_document, mock_builder):
     desc.walkabout(translator)
     output = translator.astext()
 
-    assert "TypstBuilder" in output and "strong({" in output
+    assert "TypstBuilder" in output
+    # SS3: the composed block(...)/par(hanging-indent:...) wrapper.
+    assert (
+        "block(above: 0pt, below: 0pt, sticky: true, "
+        "par(hanging-indent: 2.5em, {" in output
+    )
+    # SS4: the bare Text child gets the monospace flag alone -- raw(...),
+    # not strong(raw(...)) -- because it has no desc_name ancestor.
+    assert 'raw("TypstBuilder(app, env)")' in output
 
 
 def test_desc_with_annotation_and_name(simple_document, mock_builder):
@@ -3396,7 +3414,9 @@ def test_desc_with_annotation_and_name(simple_document, mock_builder):
     desc.walkabout(translator)
     output = translator.astext()
 
-    assert 'strong({text("class")' in output and 'text("TypstBuilder")' in output
+    # SS3 + SS5.1: desc_annotation and desc_name are both text-only leaves,
+    # so each emits its own complete strong(raw("...")) call.
+    assert 'strong(raw("class"))' in output and 'strong(raw("TypstBuilder"))' in output
 
 
 def test_desc_parameterlist(simple_document, mock_builder):
@@ -3434,7 +3454,12 @@ def test_desc_parameterlist(simple_document, mock_builder):
     desc.walkabout(translator)
     output = translator.astext()
 
-    assert 'strong({text("function")' in output and "arg1" in output
+    # SS3 + SS5.1: desc_name is a text-only leaf -> strong(raw("function")).
+    # SS4: these desc_parameter children are bare nodes.Text (no
+    # desc_sig_name node exists in this synthetic doctree), so SS5.2's
+    # italic discriminator never fires -- "arg1" gets only the blanket
+    # flag-driven raw(...) wrap, not emph(raw(...)).
+    assert 'strong(raw("function"))' in output and 'raw("arg1")' in output
 
 
 # desc_signature_line / linebreak() tests (DESC-02, Phase 12 Plan 03)
@@ -3676,7 +3701,8 @@ def test_full_api_description_structure(simple_document, mock_builder):
     output = translator.astext()
 
     # Check all parts are present
-    assert 'strong({text("class")' in output and "TypstBuilder" in output
+    # SS3 + SS5.1: desc_annotation is a text-only leaf -> strong(raw("class")).
+    assert 'strong(raw("class"))' in output and "TypstBuilder" in output
     assert "Builder class for Typst output." in output
     assert 'strong(text("Parameters")' in output or "Parameters" in output
     assert "app - Sphinx application" in output
