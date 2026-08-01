@@ -23,8 +23,8 @@ par({text("This fixture combines a single signature, sibling signatures, plain b
 
 par({text("Single signature with an id anchor.")})
 
-strong({text("connect")
-text("(") + text("host") + text(", ") + text("port") + text(", ") + text("timeout") + text("=") + text("30") + text(")")})
+block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("connect"))
+raw("(") + emph(raw("host")) + raw(", ") + emph(raw("port")) + raw(", ") + emph(raw("timeout")) + raw("=") + raw("30") + raw(")")}))
 [#metadata(none) <index:connect>]
 par({text("Connect to ")
 emph({text("host")})
@@ -33,15 +33,15 @@ text(".")})
 parbreak()
 par({text("Sibling signatures under one directive.")})
 
-strong({text("compile")
-text("(") + text("source") + text(")")})
+block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+raw("(") + emph(raw("source")) + raw(")")}))
 [#metadata(none) <index:compile>]
 linebreak()
-strong({text("compile")
-text("(") + text("source") + text(", ") + text("filename") + text(")")})
+block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(")")}))
 linebreak()
-strong({text("compile")
-text("(") + text("source") + text(", ") + text("filename") + text(", ") + text("symbol") + text(")")})
+block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(", ") + emph(raw("symbol")) + raw(")")}))
 par({text("Compile source into a code or AST object.")})
 
 parbreak()
@@ -56,7 +56,7 @@ par({text("The autodoc “Options” rubric shape.")})
 
 strong({text("Options")})
 linebreak()
-strong({text("--sep")})
+block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("--sep"))}))
 [#metadata(none) <index:cmdoption-sep>]
 par({text("If specified, separate source and build directories.")})
 
