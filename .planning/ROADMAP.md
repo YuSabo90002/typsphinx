@@ -436,7 +436,7 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans executed
 
 **Wave 1**
 
@@ -459,7 +459,7 @@ before the body wrapper is put around it)
 
 **Wave 5**
 
-- [ ] 38-08-PLAN.md — closeout: both page-count constants re-measured once, the misnamed constant renamed (second folded todo), D-08's 97→87 whole-document claim checked, the full-corpus gate and supply-chain invariants, the census finalised against reality, and the owner's visual sign-off
+- [x] 38-08-PLAN.md — closeout: both page-count constants re-measured once, the misnamed constant renamed (second folded todo), D-08's 97→87 whole-document claim checked, the full-corpus gate and supply-chain invariants, the census finalised against reality, and the owner's visual sign-off
 
 ### Phase 39: Admonition Taxonomy + Rubric Nesting
 
@@ -621,7 +621,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
-| 38. Structural Indentation + Info Fields | v0.7.0 | 7/8 | In Progress|  |
+| 38. Structural Indentation + Info Fields | v0.7.0 | 8/8 | In Progress|  |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
