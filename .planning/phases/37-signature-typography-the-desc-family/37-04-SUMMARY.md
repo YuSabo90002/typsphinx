@@ -195,6 +195,17 @@ None - no external service configuration required.
 - **Wave 5 (37-08, close-out):** `37-TEST-CENSUS.md` is ready to be finalised/consolidated; the golden.typ 7-vs-9 discrepancy should be reconciled in the phase-level roll-up (the plan's frontmatter/ROADMAP language should be corrected to "9 lines" or the discrepancy explicitly carried forward, not silently dropped).
 - No blockers. `typsphinx/` remains completely untouched by this plan, confirming the deliberate RED window's scope fence held.
 
+## Self-Check: PASSED
+
+- `.planning/phases/37-signature-typography-the-desc-family/37-TEST-CENSUS.md` - FOUND
+- `.planning/phases/37-signature-typography-the-desc-family/37-GATE-EVIDENCE-04.md` - FOUND
+- `.planning/phases/37-signature-typography-the-desc-family/37-04-SUMMARY.md` - FOUND
+- `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ` - FOUND
+- Commit `731228e` (Task 1) - FOUND in `git log --oneline`
+- Commit `fbe805a` (Task 2) - FOUND in `git log --oneline`
+- Commit `fd16d73` (Task 3) - FOUND in `git log --oneline`
+- Commit `cd6250e` (this SUMMARY) - FOUND in `git log --oneline`
+
 ---
 *Phase: 37-signature-typography-the-desc-family*
 *Completed: 2026-08-01*
