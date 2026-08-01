@@ -4,15 +4,15 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 37
 current_phase_name: Signature Typography — the `desc_*` Family
-status: executing
-stopped_at: Phase 37 context gathered
+status: planned
+stopped_at: Phase 37 planned — 8 plans in 5 waves, all gates green
 last_updated: "2026-08-01T04:33:35.142Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 36 complete, transitioned to Phase 37
+last_activity_desc: Phase 37 planned — 8 plans in 5 waves
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 4
+  total_plans: 12
   completed_plans: 4
   percent: 17
 ---
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 36 — shared-emission-seam-cleanup
+**Current focus:** Phase 37 — signature-typography-the-desc-family
 
 ## Current Position
 
 Phase: 37 — Signature Typography — the `desc_*` Family
-Plan: Not started
+Plans: 0/8 complete (5 waves)
 Status: Ready to execute
-Last activity: 2026-08-01 — Phase 36 complete, transitioned to Phase 37
+Last activity: 2026-08-01 — Phase 37 planned (8 plans, 5 waves); requirements 9/9, decisions 11/11, gap analysis 23/23
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (0/6 phases)
+Progress: [███░░░░░░░░░░░░░░░░░] 17% (1/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
@@ -186,8 +186,10 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 - v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
   to date; a single-defect hotfix scope held end to end with zero scope creep.
 
-- v0.7.0: 6 phases / 0 plans so far, started 2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but
-  with a much higher test-migration load (10 files, 61 render-gate classes) carried per phase.
+- v0.7.0: 6 phases / 12 plans so far (4 complete in Phase 36, 8 planned in Phase 37), started
+  2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but with a much higher test-migration load
+  (10 files, 61 render-gate classes) carried per phase. Phase 37 alone migrates 9 exact-string
+  assertions across 5 modules plus `golden.typ`'s 7 signature lines.
 
 *Updated after each plan completion*
 
@@ -290,10 +292,19 @@ translations-repo manifests have no structural test coverage in this repository.
 scope, but note the second one is adjacent to Phase 41's invariant check — any new font selection
 this milestone introduces touches that same file.
 
-**v0.7.0 risk carried into planning (from research, not yet resolved):** the signature-overflow
-strategy (SIG-07) is an open question — the v0.6.1 FID-01a fix was for wide *tables*, and Phase 37
-must measure real long signatures from the Sphinx `doc/` corpus before choosing between ZWSP
-injection, explicit break points, or a size reduction. Also open: any new `set text(font: ...)` for
+**v0.7.0 risk — SIG-07 RESOLVED at Phase 37 planning (2026-08-01), and the answer inverted the
+premise.** The corpus was measured (1,445 real `desc_signature` nodes from Sphinx v9.1.0 `doc/`):
+worst case is a 311-char signature / 41-char qualname / 143pt widest unbreakable token, against a
+production column width of **453.54pt** read from Typst's own `layout()`/`measure()`. **Nothing in
+the real corpus overflows.** The `2.5em` hanging-indent and ZWSP figures in `37-CONTEXT.md` came
+from an artificially narrow 9cm probe frame. Phase 37 keeps the mechanism (`par(hanging-indent:)`
++ U+200B after each `.`) because it is cheap and correct, but its GATE-01 RED fixture is built from
+a **synthetic ~90+ char dotted identifier** — a corpus-derived fixture cannot go RED. The real
+corpus worst case serves as a non-regression control. Two further measured findings the executor
+needs: `block()`'s default spacing adds ~26.5pt per boundary (so the wrapper must be
+`block(above: 0pt, below: 0pt, sticky: true, …)` or SIG-08's defect returns), and ZWSP poisons
+`pypdf` extraction (a spurious U+200B appears at an unrelated glyph boundary), so every compiled-PDF
+assertion must strip U+200B first. Also open: any new `set text(font: ...)` for
 monospace signatures can silently shadow the `Noto Serif CJK JP` fallback in the `ja` build — Typst
 emits neither a warning nor an error, so the D-03 four-check bar is a Phase 41 success criterion.
 
@@ -359,16 +370,23 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/37-signature-typography-the-desc-family/37-CONTEXT.md
+**Resume file:** .planning/phases/37-signature-typography-the-desc-family/37-01-PLAN.md
 
-Last session: 2026-08-01T03:20:08.747Z
-Stopped at: Phase 37 context gathered
-Resume: `/gsd-plan-phase 36`.
+Last session: 2026-08-01T04:33:35.142Z
+Stopped at: Phase 37 planned — 8 plans in 5 waves
+Resume: `/gsd-execute-phase 37`.
 
 ## Operator Next Steps
 
-- Review `.planning/ROADMAP.md` (Phases 36–41) and the populated traceability table in
-  `.planning/REQUIREMENTS.md`.
+- Execute Phase 37 with `/gsd-execute-phase 37` — 8 plans in 5 waves.
 
-- Plan the first phase with `/gsd-plan-phase 36` — its acceptance criterion is byte-identical
-  rendering, so it is the cheapest place to establish the milestone's RED-assertion discipline.
+- **Expect a deliberate RED window.** Wave 1 (plans 01–04) records every assertion RED against the
+  untouched translator *before* any code edit, so from 37-04 landing until Wave 4 closes it the
+  suite is intentionally red — roughly ten test node ids across five modules plus `golden.typ`.
+  Each RED is enumerated **by node id** in the wave evidence files; later waves verify by set
+  difference, never by count. An executor that "repairs" a golden by regenerating it voids the
+  phase's evidence (ROADMAP SC#5 / milestone invariant #4) — that prohibition is recorded in
+  `must_haves.prohibitions`, in T-37-04's threat row, and in 37-07's task action.
+
+- `37-EMISSION-CONTRACT.md` is the byte-level spec every expected string is hand-derived from.
+  It is what makes "hand-derived, not fitted" checkable; read it before touching any fixture.
