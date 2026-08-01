@@ -338,19 +338,40 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
-**In progress: v0.7.0 — API rendering design overhaul. Phase 36 (Shared-Emission Seam Cleanup)
-complete 2026-08-01, 4/4 plans, verification `passed` 4/4.** The milestone's safe first move is
-done: `desc_signature` and `rubric` each own their open/close pair instead of borrowing
-`visit_strong`'s via the dummy-node trick (ADM-06), and `visit_math_block` no longer stacks a
-redundant break on Phase 34's list-item separator flag (MATH-02). The whole phase was verifiable by
-diff rather than by judgement — the decoupling's emitted `.typ` is byte-identical, proven against a
-golden captured before any decoupling edit existed, and the MATH-02 fix is one statement
-(`True` → `False`) with the GREEN strings derived by hand from the recorded RED rather than
-regenerated from the fixed code. Full suite 653 passed / 1 skipped / 0 failed (up 4 from v0.6.5's
-649 — the new gate modules); `typsphinx/` delta this milestone so far is `translator.py` only.
-Phases 37–41 (signature typography, structural indentation, admonition/rubric taxonomy, citations,
-release prep) are unstarted. Deferred out of Phase 36 by decision (D-02) and filed: the `par()`-loss
-leak from the shared `_strong_was_*` slot names, routed to Phase 39, which owns `rubric`.
+**In progress: v0.7.0 — API rendering design overhaul. Phase 37 (Signature Typography — the
+`desc_*` Family) complete 2026-08-01, 9/9 plans, verification `passed` 9/9.** An API signature now
+reads as a signature: `desc_name`/`desc_annotation` in bold monospace, `desc_addname` in
+regular-weight monospace, every parameter-list delimiter through the same monospace primitive, each
+parameter's own name in italic, a real `→` glyph reaching the reader's PDF (SIG-06), a
+hanging-indent + U+200B overflow mechanism (SIG-07), page keep-together (SIG-09), and exactly one
+break between blocks (SIG-08). The folded D-11 defect is fixed too — the optional-group comma now
+lands *inside* the bracket, matching Sphinx's own HTML writer. All nine SIG requirements are
+Complete; `typsphinx/` delta is still `translator.py` only. Suite 686 passed / 1 skipped / 0 failed
+(up 33 from Phase 36's 653), and the slow full-corpus `-b typstpdf` gate passes against 1,445 real
+Sphinx v9.1.0 `doc/` signatures.
+
+The phase's method is worth recording, because it is what made the result checkable. Wave 1 wrote
+every assertion RED against the untouched translator *before* any code edit — 33 node ids, matched
+exactly with zero unexpected failures — and each later wave was verified by node-id **set
+difference**, never by count (flipping 2 / 20 / 11 / 1 with zero regressions at every boundary).
+Expected strings were hand-derived from `37-EMISSION-CONTRACT.md` throughout; `golden.typ` turned
+green in Wave 4 with **zero reconciliation**, independently confirming Wave 1's derivation.
+
+The one genuine mid-flight failure is the most useful thing the phase produced. The post-merge gate
+after Wave 3 caught a Phase 34 invariance golden going red, and the render showed **every** signature
+overlapping the first line of its own description body. The cause was the emission contract itself:
+its `above: 0pt, below: 0pt` mandate came from a probe that did not carry surrounding paragraph flow,
+and compensated for a doubled-gap defect that Wave 2 had already removed at source. Plan 37-09
+(authored mid-execution on the owner's decision) amended the contract with the corrected measurement
+*and the reason the original probe missed*, so Phase 38 does not re-derive the same mistake when it
+wraps `desc_content`.
+
+Phases 38–41 (structural indentation, admonition/rubric taxonomy, citations, release prep) are
+unstarted. Deferred out of Phase 36 by decision (D-02) and filed: the `par()`-loss leak from the
+shared `_strong_was_*` slot names, routed to Phase 39, which owns `rubric`. New from Phase 37's code
+review and filed as todos: `_desc_break_marker` goes stale across `self.body` buffer swaps outside
+the guarded `in_table` path (warning-level, needs a GATE-01 fixture first), an unbalanced `*` in a
+docstring, and `EXPECTED_PAGE_COUNT_PRE_PHASE` now holding a post-phase value.
 
 **Shipped: v0.6.5 — inline-math separator hotfix (2026-07-29).** Both phases (34, 35) complete,
 2/2 requirements. MATH-01 is closed: a paragraph mixing prose and inline math — including with no
