@@ -4078,14 +4078,19 @@ class TypstTranslator(SphinxTranslator):
         # (a code-mode ` <label>` postfix on the equation failed to parse).
         self.add_text("\n\n")
 
-        # Mark that content was added so the next list-item sibling
-        # (visit_paragraph's _emit_forced_break, a nested list, another
-        # block) newline-separates from this equation. The extra newline
-        # this produces on top of the existing "\n\n" is cosmetic in Typst
-        # code mode; consistency with the shared protocol is what prevents
-        # the next sibling from juxtaposing.
+        # MATH-02 (Phase 34 review finding WR-01, Phase 36): unlike every
+        # other block-level handler, this method already emitted its own
+        # unconditional "\n\n" separator above -- so it must CLEAR the
+        # shared flag rather than arm it. Arming it here stacked a second
+        # separator on top of one already emitted, producing a redundant
+        # extra blank line after block math inside a list item. Clearing
+        # (rather than merely not setting) is required for the ``:label:``
+        # path: `_emit_id_anchors` sets the flag to True BEFORE the math is
+        # emitted, so this statement must run unconditionally afterward to
+        # overwrite that state -- one statement covers both the plain and
+        # the labelled forms, on both the mitex and native emission paths.
         if self.in_list_item:
-            self.list_item_needs_separator = True
+            self.list_item_needs_separator = False
 
         # Skip children to prevent duplicate output of math content
         raise nodes.SkipNode

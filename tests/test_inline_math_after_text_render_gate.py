@@ -52,6 +52,17 @@ BLOCK_PROSE_SENTINEL = "Text before block math."
 # as literal text instead).
 LEAK_SIGNATURES = ("mi(", "mitex(", "text(", "par({", "list(")
 
+# MATH-02 / D-04: pre-fix pypdf-extracted PDF-text baselines, captured once
+# in Task 1 from the UNFIXED translator and never regenerated post-fix. The
+# invariance guard (below) asserts the fixed translator's own extracted text
+# still equals these exact baselines.
+PDF_TEXT_BASELINE_MITEX = (
+    Path(__file__).parent / "fixtures" / "inline_math_pdf_text_mitex.golden.txt"
+)
+PDF_TEXT_BASELINE_NATIVE = (
+    Path(__file__).parent / "fixtures" / "inline_math_pdf_text_native.golden.txt"
+)
+
 
 @pytest.fixture
 def inline_math_after_text_render_gate_dir():
@@ -283,6 +294,55 @@ class TestInlineMathAfterTextRenderGate:
             f"math expression:\n{typ_text}"
         )
 
+        # 16. Construct E MATH-02 boundary assertions (mitex path). Exactly
+        # one blank line (two newlines) must separate the block math call
+        # from the following parbreak() -- not two blank lines (the
+        # pre-fix defect) and not zero (which would juxtapose the two).
+        assert (
+            'text("Text before block math.")\nmitex(`E = m c^2`)\n\nparbreak()'
+            in typ_text
+        ), (
+            "Construct E (mitex path) did not emit exactly one blank line "
+            f"after the block math call:\n{typ_text}"
+        )
+        assert "mitex(`E = m c^2`)\n\n\nparbreak()" not in typ_text, (
+            "Construct E (mitex path) still emits the MATH-02 redundant "
+            f"second blank line after the block math call:\n{typ_text}"
+        )
+        assert "mitex(`E = m c^2`)\nparbreak()" not in typ_text, (
+            "Construct E (mitex path) emits zero blank lines after the "
+            f"block math call -- juxtaposed against the next parbreak():\n"
+            f"{typ_text}"
+        )
+
+        # 17. Construct G MATH-02 boundary assertions (mitex path) -- the
+        # same boundary check for the labeled equation. The payload spans
+        # multiple source lines because the directive content's trailing
+        # blank lines flow into node.astext(); copied verbatim from the
+        # pre-fix build, not retyped from the reST.
+        assert "mitex(`G = m a\n\n`)\n\nparbreak()" in typ_text, (
+            "Construct G (mitex path) did not emit exactly one blank line "
+            f"after the labeled block math call:\n{typ_text}"
+        )
+        assert "mitex(`G = m a\n\n`)\n\n\nparbreak()" not in typ_text, (
+            "Construct G (mitex path) still emits the MATH-02 redundant "
+            f"second blank line after the labeled block math call:\n"
+            f"{typ_text}"
+        )
+        assert "mitex(`G = m a\n\n`)\nparbreak()" not in typ_text, (
+            "Construct G (mitex path) emits zero blank lines after the "
+            f"labeled block math call:\n{typ_text}"
+        )
+
+        # 18. Construct H invariance assertion (mitex path, MATH-02
+        # single-element edge) -- with no following sibling inside the
+        # list item, the trailing separator flag has no consumer, so this
+        # emission must be byte-identical before and after the fix.
+        assert "list({\nmitex(`H = m g h`)\n\n\n})" in typ_text, (
+            "Construct H (mitex path, single-element edge) did not match "
+            f"the expected byte-identical emission:\n{typ_text}"
+        )
+
     def test_typstpdf_separates_inline_math_native_path(
         self, inline_math_after_text_render_gate_dir, temp_build_dir
     ):
@@ -392,3 +452,104 @@ class TestInlineMathAfterTextRenderGate:
             "Construct G's id anchor (native path) is juxtaposed directly "
             f"against a native $...$ span with no separator:\n{typ_text}"
         )
+
+        # 10. Construct E MATH-02 boundary assertions (native path).
+        assert (
+            'text("Text before block math.")\n$ E = m c^2 $\n\nparbreak()' in typ_text
+        ), (
+            "Construct E (native path) did not emit exactly one blank "
+            f"line after the block math call:\n{typ_text}"
+        )
+        assert "$ E = m c^2 $\n\n\nparbreak()" not in typ_text, (
+            "Construct E (native path) still emits the MATH-02 redundant "
+            f"second blank line after the block math call:\n{typ_text}"
+        )
+        assert "$ E = m c^2 $\nparbreak()" not in typ_text, (
+            "Construct E (native path) emits zero blank lines after the "
+            f"block math call:\n{typ_text}"
+        )
+
+        # 11. Construct G MATH-02 boundary assertions (native path) -- the
+        # native span's payload spans multiple source lines the same way
+        # the mitex payload does; copied verbatim from the pre-fix build.
+        assert "$ G = m a\n\n $\n\nparbreak()" in typ_text, (
+            "Construct G (native path) did not emit exactly one blank "
+            f"line after the labeled block math call:\n{typ_text}"
+        )
+        assert "$ G = m a\n\n $\n\n\nparbreak()" not in typ_text, (
+            "Construct G (native path) still emits the MATH-02 redundant "
+            f"second blank line after the labeled block math call:\n"
+            f"{typ_text}"
+        )
+        assert "$ G = m a\n\n $\nparbreak()" not in typ_text, (
+            "Construct G (native path) emits zero blank lines after the "
+            f"labeled block math call:\n{typ_text}"
+        )
+
+        # 12. Construct H invariance assertion (native path, MATH-02
+        # single-element edge) -- byte-identical before and after the fix.
+        assert "list({\n$ H = m g h $\n\n\n})" in typ_text, (
+            "Construct H (native path, single-element edge) did not match "
+            f"the expected byte-identical emission:\n{typ_text}"
+        )
+
+    def test_block_math_pdf_text_is_invariant_across_the_math02_fix(
+        self, inline_math_after_text_render_gate_dir, temp_build_dir
+    ):
+        """
+        D-04: the compiled PDF's pypdf-extracted text must be byte-for-byte
+        identical before and after the MATH-02 fix, on both the mitex and
+        native emission paths -- turning "this whitespace-only change is
+        typographically inert" into a test rather than a claim.
+
+        Compares each freshly-built PDF's extracted text against the
+        pre-fix baseline captured once in Task 1
+        (``PDF_TEXT_BASELINE_MITEX`` / ``PDF_TEXT_BASELINE_NATIVE``), which
+        is never regenerated post-fix. PDF *bytes* are deliberately never
+        compared -- Typst embeds a ``CreationDate``/``ModDate`` in every
+        compile, so two builds of identical input differ in bytes even
+        when their extracted text and page count are identical.
+        """
+        import difflib
+
+        import pypdf
+
+        for label, extra_args, baseline_path in (
+            ("mitex", (), PDF_TEXT_BASELINE_MITEX),
+            ("native", ("-D", "typst_use_mitex=0"), PDF_TEXT_BASELINE_NATIVE),
+        ):
+            build_dir = temp_build_dir / label
+            result = _run_sphinx_build_typstpdf(
+                inline_math_after_text_render_gate_dir,
+                build_dir,
+                extra_args=extra_args,
+            )
+            assert result.returncode == 0, (
+                f"sphinx-build -b typstpdf ({label} path) failed:\n"
+                f"stdout: {result.stdout}\nstderr: {result.stderr}"
+            )
+            pdf_output = build_dir / "index.pdf"
+            assert pdf_output.exists(), (
+                f"index.pdf was not produced ({label} path):\n"
+                f"stderr: {result.stderr}"
+            )
+
+            reader = pypdf.PdfReader(str(pdf_output))
+            full_text = "\n".join(page.extract_text() for page in reader.pages)
+            baseline_text = baseline_path.read_text(encoding="utf-8")
+
+            if full_text != baseline_text:
+                diff = "\n".join(
+                    difflib.unified_diff(
+                        baseline_text.splitlines(),
+                        full_text.splitlines(),
+                        fromfile=f"baseline ({label})",
+                        tofile=f"current ({label})",
+                        lineterm="",
+                    )
+                )
+                pytest.fail(
+                    f"Extracted PDF text ({label} path) differs from the "
+                    f"committed pre-fix baseline -- the MATH-02 fix is not "
+                    f"typographically inert:\n{diff}"
+                )
