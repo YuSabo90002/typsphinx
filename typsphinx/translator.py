@@ -5180,14 +5180,34 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_parameterlist node (parameter list container).
 
-        Parameters are concatenated with + inside text parentheses.
+        Parameters are concatenated with + inside monospace parentheses.
+
+        SIG-05 (37-EMISSION-CONTRACT.md section 6): the five parameter-list
+        delimiter sites -- this opening paren, the closing paren in
+        depart_desc_parameterlist, the comma-space separator in
+        depart_desc_parameter, and the optional-group brackets in
+        visit_desc_optional/depart_desc_optional -- all emit through the
+        raw(...) monospace primitive. Every other signature delimiter
+        (operator and punctuation nodes: desc_sig_operator,
+        desc_sig_punctuation, etc.) already reaches monospace "for free"
+        via the self.in_signature_text flag (contract section 4.3) rather
+        than through a dedicated handler, so SIG-05's "every delimiter is
+        monospace" truth is satisfied jointly by these five sites plus that
+        flag -- not by these five sites alone.
+
+        These five delimiters are hardcoded ASCII carrying no user-supplied
+        text, so no escape_typst_string call is added at these sites --
+        that omission is deliberate (T-37-01's mitigation), not an
+        oversight: every site that DOES carry user text already routes
+        through the shared escaping helper via the monospace branch added
+        in plan 37-06.
         """
         # Add separator before opening paren
         if self.in_list_item and self.list_item_needs_separator:
             self.body.append("\n")
 
-        # Output opening paren as text with + after it
-        self.body.append('text("(") + ')
+        # Output opening paren as raw (monospace) with + after it
+        self.body.append('raw("(") + ')
 
         # Mark that parameterlist started
         self.in_desc_parameter = True
@@ -5197,10 +5217,10 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_desc_parameterlist(self, node: addnodes.desc_parameterlist) -> None:
         """Depart a desc_parameterlist node."""
-        # Output closing paren as text, with + before it
+        # Output closing paren as raw (monospace), with + before it
         if self._desc_parameter_has_content:
             self.body.append(" + ")
-        self.body.append('text(")")')
+        self.body.append('raw(")")')
         self.in_desc_parameter = False
 
     def visit_desc_parameter(self, node: addnodes.desc_parameter) -> None:
@@ -5227,9 +5247,9 @@ class TypstTranslator(SphinxTranslator):
 
         Add comma + space between parameters if not last.
         """
-        # Add comma between parameters
+        # Add comma between parameters (raw(...): SIG-05 monospace delimiter)
         if node.next_node(descend=False, siblings=True):
-            self.body.append(' + text(", ")')
+            self.body.append(' + raw(", ")')
             self._desc_parameter_has_content = True
 
     def visit_desc_optional(self, node: addnodes.desc_optional) -> None:
@@ -5246,12 +5266,12 @@ class TypstTranslator(SphinxTranslator):
         """
         if self._desc_parameter_has_content:
             self.add_text(" + ")
-        self.add_text('text("[")')
+        self.add_text('raw("[")')
         self._desc_parameter_has_content = True
 
     def depart_desc_optional(self, node: addnodes.desc_optional) -> None:
         """Depart a desc_optional node."""
-        self.add_text(' + text("]")')
+        self.add_text(' + raw("]")')
         self._desc_parameter_has_content = True
 
     def visit_field_list(self, node: nodes.field_list) -> None:
