@@ -414,6 +414,24 @@ $ grep -l "resolves_phase: 38" .planning/todos/pending/2026-08-01-desc-break-mar
 Both present; neither needed the field added. This is the closure evidence for both todos — the files
 themselves are left in `.planning/todos/pending/` for the orchestrator's own post-merge step to move.
 
+### Human sign-off — one question raised, resolved by measurement
+
+The phase's aesthetic goal (`docs/_build/pdf/typsphinx.pdf`, 90 pages, `tox -e docs-pdf`) was reviewed
+by a human against the plan's own six-point checklist and **APPROVED**. One question was raised during
+the check and is recorded here as this census's own "unpredicted finding, resolved rather than
+absorbed" convention requires:
+
+**Page 37 — the `typsphinx.pdf` module docstring renders flush left, unindented**, unlike the
+surrounding class/function bodies. Not a census miss and not a Phase 38 defect: a module docstring
+(`.. automodule::`) produces no `desc`/`desc_content` node at all (only an index entry and a target;
+the docstring is a plain `paragraph` child of the enclosing `section`), so IND-01's wrapper is
+structurally inapplicable to it — confirmed directly in the emitted `.typ` (no `pad(left: 2.5em, {`
+follows the module's target, unlike the adjacent class's signature) and cross-checked against
+`sphinx -b latex` on the same docs, which shows the identical unwrapped convention for a module
+docstring versus a wrapped `fulllineitems` for a class body. Full reasoning in `38-08-SUMMARY.md`'s
+"Human-Check Verdict" section and `38-GATE-EVIDENCE.md` §6. No todo filed, no code change — this is a
+correctly-scoped absence, not a gap.
+
 ## Final counts (post-`38-07`, closed at `38-08`)
 
 - Bucket A (predicted breaking, all flipped as predicted): **4/4**.

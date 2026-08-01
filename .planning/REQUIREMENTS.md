@@ -89,14 +89,14 @@ wrapper) and agreeing within 3pt.
 
 ### Info fields — `field_list` (FLD)
 
-- [ ] **FLD-01** [M]: A field list (Parameters / Returns / Return type / Raises / Variables) is
+- [x] **FLD-01** [M]: A field list (Parameters / Returns / Return type / Raises / Variables) is
       indented one step beyond the surrounding description body. Today it is not indented at all.
 
-- [ ] **FLD-02** [M]: A field body with multiple values renders as a **bulleted list**; a
+- [x] **FLD-02** [M]: A field body with multiple values renders as a **bulleted list**; a
       single-value body stays inline prose. (The inline half already works via
       `_last_field_body_was_inline`; the bulleted half must be verified to survive the redesign.)
 
-- [ ] **FLD-03** [M]: Inside a field body, a parameter's **name and type carry monospace treatment
+- [x] **FLD-03** [M]: Inside a field body, a parameter's **name and type carry monospace treatment
       distinct from the plain-bold field label** — the reference deliberately uses a *different*
       recipe here than in the signature, and collapsing the two would be wrong.
 
@@ -276,9 +276,9 @@ Phase numbering continues from v0.6.5's last phase (35).
 | IND-03 | Phase 38 | Complete |
 | IND-04 | Phase 38 | Complete |
 | IND-05 | Phase 38 | Complete |
-| FLD-01 | Phase 38 | Pending |
-| FLD-02 | Phase 38 | Pending |
-| FLD-03 | Phase 38 | Pending |
+| FLD-01 | Phase 38 | Complete |
+| FLD-02 | Phase 38 | Complete |
+| FLD-03 | Phase 38 | Complete |
 | ADM-01 | Phase 39 | Pending |
 | ADM-02 | Phase 39 | Pending |
 | ADM-03 | Phase 39 | Pending |

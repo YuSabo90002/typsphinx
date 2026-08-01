@@ -322,7 +322,32 @@ narrative already names in passing (the census miss `38-06` found one assertion 
 A2's SC#1 guard). This file is the gate-pass record; the census is the prediction-accuracy record. Read
 both together.
 
+## 6. Human sign-off (Task 3's human-check)
+
+**Verdict: APPROVED.** The reviewer opened `docs/_build/pdf/typsphinx.pdf` (90 pages, the same build
+measured in §3 above) and approved the plan's own six-point aesthetic checklist.
+
+**One question raised and resolved by measurement, recorded here rather than silently dropped:**
+page 37, the `typsphinx.pdf` module's docstring (produced by `.. automodule:: typsphinx.pdf`) renders
+flush left, unindented, unlike the surrounding class/function bodies. Dismissed as NOT a Phase 38
+defect:
+
+- No `desc`/`desc_content` node exists for a module docstring — `automodule` emits only an index entry
+  and a target; the docstring becomes plain `paragraph` children of the enclosing `section`. IND-01's
+  wrapper is structurally inapplicable, not merely unapplied. Confirmed in the emitted
+  `docs/_build/pdf/api/index.typ`: `[#metadata(none) <api_u2f_index:module-typsphinx.pdf>]` is followed
+  directly by bare `par({text(...)})` with no `pad(left: 2.5em, {`, unlike the adjacent
+  `TypstCompilationError` class, which shows the wrapper immediately after its own signature.
+- Phase 38 only ADDED wrappers around `desc_content` and `field_list`; a node inside neither cannot
+  have changed behaviour. Pre-Phase-38 unchanged.
+- Cross-checked against the reference renderer: `sphinx -b latex` on the same `docs/source` puts the
+  identical module docstring in bare `\sphinxAtStartPar` paragraphs with no `\begin{fulllineitems}`,
+  while the adjacent class body IS wrapped in `fulllineitems` — typsphinx's Typst output matches
+  upstream Sphinx's own LaTeX convention here.
+- **Disposition: no todo filed, no code change.** Full detail in `38-08-SUMMARY.md`'s "Human-Check
+  Verdict" section and `38-TEST-CENSUS.md`'s finalisation section.
+
 ---
 
 *Phase: 38 — Structural Indentation + Info Fields*
-*Consolidated: 2026-08-01, by plan 38-08 Task 2*
+*Consolidated: 2026-08-01, by plan 38-08 Tasks 2-3*

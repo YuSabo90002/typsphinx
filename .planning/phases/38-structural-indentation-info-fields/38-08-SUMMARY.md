@@ -63,6 +63,16 @@ key-decisions:
     git mv registers as a file deletion, which worktree.cleanup-wave blocks unconditionally with no
     bypass -- the orchestrator's own close_phase_todos step performs the actual move on the main tree
     after this wave's worktree merges."
+  - "The reviewer's page-37 question (typsphinx.pdf module docstring rendering flush left/unindented)
+    is dismissed as NOT a Phase 38 defect and NOT in scope, not patched: `.. automodule::` produces no
+    `desc`/`desc_content` node at all for the module docstring (plain `paragraph` children of the
+    enclosing `section`), so IND-01's wrapper is structurally inapplicable -- confirmed in the emitted
+    `.typ` (bare `par({text(...)})` with no `pad(left: 2.5em, {` immediately after the module's
+    metadata target, unlike the adjacent `TypstCompilationError` class). Cross-checked against
+    `sphinx -b latex` on the same docs: the reference renderer puts the identical module docstring in
+    bare `\\sphinxAtStartPar` paragraphs with no `\\begin{fulllineitems}`, while the adjacent class body
+    IS wrapped -- typsphinx's Typst output matches upstream Sphinx's own LaTeX convention here, so
+    changing it would diverge from the reference. No todo filed, no code change."
 
 requirements-completed: [IND-01, IND-02, IND-03, IND-04, IND-05, FLD-01, FLD-02, FLD-03]
 
@@ -124,20 +134,22 @@ coverage:
   - id: D7
     description: "The phase's aesthetic goal -- 'the page shows structure' -- checked by a human
       against the real rendered docs/_build/pdf/typsphinx.pdf, per the plan's own six-point
-      human-check block. NOT YET PERFORMED as of this SUMMARY's writing."
-    verification: []
+      human-check block."
+    verification:
+      - kind: manual_procedural
+        ref: "Human review of docs/_build/pdf/typsphinx.pdf (90 pages, built via tox -e docs-pdf) against the plan's six-point aesthetic checklist"
+        status: pass
     human_judgment: true
     rationale: "Automated gates prove the mechanics (indent columns, wrapper tokens, monospace
-      calls); they cannot prove the rendered result reads well. The plan's own verify block names
-      this a human-check explicitly and states it 'blocks nothing automatically' for other tasks,
-      but this plan's own success_criteria still requires it: 'The phase's aesthetic goal has been
-      looked at, not only measured.' Per this project's checkpoint protocol, an executor must not
-      self-approve a human-judgment criterion."
+      calls); they cannot prove the rendered result reads well. The reviewer approved the six-point
+      checklist and raised one question (page 37, the typsphinx.pdf module docstring rendering flush
+      left) that was investigated and dismissed as out of Phase 38's scope -- recorded in
+      key-decisions above and in the body's Verdict section below."
 
 # Metrics
-duration: ~2h (interim, through Task 3's automatable work; human-check still pending)
+duration: ~2.5h
 completed: 2026-08-01
-status: checkpoint-pending
+status: complete
 ---
 
 # Phase 38 Plan 08: Phase Closeout — Page-Count Re-measure, Corpus Gate, Census Finalisation Summary
@@ -145,19 +157,16 @@ status: checkpoint-pending
 **Both page-count constants re-measured (unchanged), the misnamed constant renamed and its folded
 todo closed, D-08's whole-document claim checked against a real build (90 pages, divergence from the
 session's 87-page prototype explained), the full-corpus gate and every milestone supply-chain
-invariant verified and consolidated into `38-GATE-EVIDENCE.md`, and `38-TEST-CENSUS.md` finalised
-against reality with five honest misses folded in — Tasks 1-3's mechanical work is complete and
-committed. This SUMMARY is written BEFORE the plan's own required human-check (paging through the
-real rendered PDF against six aesthetic criteria), per this project's checkpoint protocol: an executor
-does not self-approve a "looked at by a human" criterion. See "CHECKPOINT REACHED" in this executor's
-own return message for what is being asked of the human/orchestrator next.**
+invariant verified and consolidated into `38-GATE-EVIDENCE.md`, `38-TEST-CENSUS.md` finalised against
+reality with five honest misses folded in, and the phase's aesthetic goal APPROVED by human review of
+the rendered docs PDF — Phase 38 is closed.**
 
 ## Performance
 
-- **Duration:** ~2h (interim; Tasks 1-3's automatable work only)
-- **Tasks:** 3 of 3 tasks' automatable work completed and committed; Task 3's own human-check step
-  is the checkpoint this SUMMARY stops at
-- **Files modified:** 4 (2 page-count test files, 1 new consolidated evidence file, 1 census file)
+- **Duration:** ~2.5h
+- **Tasks:** 3 of 3 tasks complete, including Task 3's human-check
+- **Files modified:** 5 (2 page-count test files, 1 new consolidated evidence file, 1 census file,
+  1 requirements traceability file)
 
 ## Accomplishments
 
@@ -225,9 +234,9 @@ Each task's automatable work was committed atomically:
 
 1. **Task 1: Re-measure page counts, rename the misnamed constant, verify D-08's whole-document claim** - `75d69a0` (test)
 2. **Task 2: Run the full-corpus gate and milestone supply-chain checks, consolidate gate evidence** - `25079ec` (docs)
-3. **Task 3: Finalise the census against reality (mechanical portion)** - `7b9c58b` (docs)
+3. **Task 3: Finalise the census against reality** - `7b9c58b` (docs, mechanical portion) + `586449e` (docs, interim SUMMARY) + this commit (docs, human-check verdict + requirements marked complete)
 
-**Plan metadata:** (this commit, forthcoming — see CHECKPOINT REACHED for what remains)
+**Plan metadata:** (this commit)
 
 ## Files Created/Modified
 
@@ -241,6 +250,9 @@ Each task's automatable work was committed atomically:
   the three wave-1 per-plan evidence files plus this plan's own Task 1/Task 2 evidence.
 - `.planning/phases/38-structural-indentation-info-fields/38-TEST-CENSUS.md` — "Finalisation against
   reality" section appended (pure addition).
+- `.planning/REQUIREMENTS.md` — FLD-01, FLD-02, FLD-03 marked complete (checkbox + traceability table)
+  via `requirements mark-complete`. IND-01..IND-05 were already marked by plan 38-05's own commit
+  `3e27097` and were not re-marked.
 
 ## Decisions Made
 
@@ -288,40 +300,50 @@ functionality, or blocking issues encountered that required a Rule 1/2/3 auto-fi
 
 None — no external service configuration required.
 
-## CHECKPOINT: Human-check pending
+## Human-Check Verdict: APPROVED
 
-This plan's Task 3 has one remaining step this executor cannot perform: paging through the rendered
-`docs/_build/pdf/typsphinx.pdf` (90 pages, built fresh during Task 1 via `tox -e docs-pdf`, unchanged
-since — `typsphinx/` was not touched by any task in this plan) against the plan's own six-point
-aesthetic check, and replying "approved" or describing what reads wrong. See this executor's own
-"CHECKPOINT REACHED" return message for the full text of what is being asked.
+The reviewer opened `docs/_build/pdf/typsphinx.pdf` (90 pages, built via `tox -e docs-pdf` during
+Task 1, unchanged since — `typsphinx/` was not touched by any task in this plan) and approved the
+six-point aesthetic checklist. One question was raised during the check and is recorded here
+faithfully, as instructed, since it is evidence:
 
-Once the human-check is answered, a continuation agent (or this same agent, if resumed) should:
-1. Record the human's verdict in this SUMMARY (replacing this section).
-2. If "approved": update coverage item D7's `verification` to a `manual_procedural` entry with
-   `status: pass`, set this frontmatter's `status:` to `complete`, run the final self-check, update
-   STATE.md/ROADMAP.md/REQUIREMENTS.md per the standard state_updates step (note: `requirements
-   mark-complete` for FLD-01/FLD-02/FLD-03 is still outstanding — IND-01..05 were already marked by
-   plan 38-05's own commit `3e27097`, confirmed by `git log -- .planning/REQUIREMENTS.md`; FLD-01/02/03
-   remain unchecked in `.planning/REQUIREMENTS.md` as of this SUMMARY), and make the final
-   `docs(38-08): complete phase closeout plan` commit.
-2. If the human describes something that reads wrong: apply Rule 1/2/3 deviations as appropriate
-   (documenting them in this SUMMARY), or escalate to Rule 4 if it requires an architectural change
-   to `typsphinx/translator.py` — which this plan's own `<objective>` states makes no change to
-   `typsphinx/`, so any real rendering defect found here is very likely to be a Phase 39+ finding, not
-   a same-plan fix, and should be filed as a todo per this project's standing convention rather than
-   patched inside a plan explicitly scoped to make no translator change.
+**Page 37 — `typsphinx.pdf` module docstring renders flush left, unindented.** Investigated and
+dismissed as NOT a Phase 38 defect and NOT in scope:
+
+- **Structurally there is no `desc` node at all.** `.. automodule:: typsphinx.pdf` expands to a
+  `py:module` directive, which emits only an index entry + target — the module docstring becomes
+  plain `paragraph` children of the enclosing `section`, never a `desc_content`. With no
+  `desc_content`, IND-01's wrapper cannot apply by construction. Confirmed directly in the emitted
+  `docs/_build/pdf/api/index.typ`: the target line
+  `[#metadata(none) <api_u2f_index:module-typsphinx.pdf>]` is followed immediately by a bare
+  `par({text(...)})` with no `pad(left: 2.5em, {`, whereas the adjacent `TypstCompilationError` class
+  shows the wrapper immediately after its own signature.
+- **Phase 38 only ADDED wrappers around `desc_content` and `field_list`** — a node inside neither
+  cannot have gained or lost one. The behaviour is unchanged from pre-Phase-38.
+- **Cross-checked against the reference renderer**: a `sphinx -b latex` build of the same
+  `docs/source` puts the identical module docstring in bare `\sphinxAtStartPar` paragraphs with no
+  `\begin{fulllineitems}`, while the adjacent class body IS wrapped in `fulllineitems` (LaTeX's
+  analogue of `pad(left: 2.5em, {`). typsphinx's Typst output **matches** upstream Sphinx's own LaTeX
+  convention here — changing it would diverge from the reference implementation D-04's own reasoning
+  already leans on (per `38-EMISSION-CONTRACT.md` §1.2's "the reference is a starting point, not an
+  authority" caveat, this is a case where the reference's convention was checked and found consistent,
+  not merely assumed).
+- **Disposition: no todo filed, no code change.** Recorded here, in `38-GATE-EVIDENCE.md` §5 (the
+  human sign-off cross-reference), and in `38-TEST-CENSUS.md`'s finalisation section as a reviewer
+  question raised and resolved by measurement, with the LaTeX cross-check as the evidence.
 
 ## Next Phase Readiness
 
-- Blocked on the human-check above. All of this plan's mechanically-verifiable acceptance criteria are
-  satisfied and committed; only the aesthetic sign-off remains before this phase can be marked
-  complete and the milestone can proceed past Phase 38.
-- No other blockers.
+- Phase 38 is complete. All eight requirements (IND-01..IND-05, FLD-01..FLD-03) are marked complete
+  in `.planning/REQUIREMENTS.md` — IND-01..05 by plan 38-05's own commit `3e27097`, FLD-01..03 by this
+  plan's final commit.
+- The page-37 finding above is explicitly NOT a Phase 39 action item — it is dismissed with reasoning,
+  not deferred. No todo filed.
+- No blockers.
 
 ---
 *Phase: 38-structural-indentation-info-fields*
-*Interim summary written: 2026-08-01 (Tasks 1-3 mechanical work only; human-check pending)*
+*Completed: 2026-08-01*
 
 ## Self-Check: PASSED
 
