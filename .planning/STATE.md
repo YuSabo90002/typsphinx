@@ -5,14 +5,14 @@ milestone_name: API rendering design overhaul
 current_phase: 38
 current_phase_name: structural-indentation-info-fields
 status: executing
-stopped_at: Phase 38 planned (8 plans, 5 waves)
-last_updated: "2026-08-01T11:14:03.855Z"
+stopped_at: Phase 38 gap closure planned (38-09; 9 plans, 6 waves)
+last_updated: "2026-08-01T14:15:27.662Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 38 execution started
+last_activity_desc: Phase 38 gap-closure plan 38-09 created (FLD-02 list-item nesting)
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 21
+  total_plans: 22
   completed_plans: 13
   percent: 33
 ---
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 38 (structural-indentation-info-fields) — EXECUTING
-Plans: 0/8 complete (5 waves)
-Status: Executing Phase 38
-Last activity: 2026-08-01 — Phase 38 execution started
+Phase: 38 (structural-indentation-info-fields) — EXECUTING (gap closure)
+Plans: 8/9 complete (6 waves) — 38-09 gap-closure plan pending execution
+Status: Ready to execute
+Last activity: 2026-08-01 — Phase 38 gap-closure plan 38-09 created (FLD-02 list-item nesting)
 
 Progress: [███████░░░░░░░░░░░░░] 33% (2/6 phases)
 
@@ -372,23 +372,36 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/38-structural-indentation-info-fields/38-CONTEXT.md
+**Resume file:** .planning/phases/38-structural-indentation-info-fields/38-09-PLAN.md
 
-Last session: 2026-08-01T10:17:20.600Z
-Stopped at: Phase 38 context gathered
-Resume: `/gsd-execute-phase 37`.
+Last session: 2026-08-01T14:15:27.662Z
+Stopped at: Phase 38 gap-closure plan 38-09 created and verified (plan-checker PASSED)
+Resume: `/gsd-execute-phase 38`.
 
 ## Operator Next Steps
 
-- Execute Phase 37 with `/gsd-execute-phase 37` — 8 plans in 5 waves.
+- Execute the Phase 38 gap-closure plan with `/gsd-execute-phase 38` — 38-09 only (wave 6);
+  38-01…38-08 are executed and summarized. 4 tasks, `autonomous: true`.
 
-- **Expect a deliberate RED window.** Wave 1 (plans 01–04) records every assertion RED against the
-  untouched translator *before* any code edit, so from 37-04 landing until Wave 4 closes it the
-  suite is intentionally red — roughly ten test node ids across five modules plus `golden.typ`.
-  Each RED is enumerated **by node id** in the wave evidence files; later waves verify by set
-  difference, never by count. An executor that "repairs" a golden by regenerating it voids the
-  phase's evidence (ROADMAP SC#5 / milestone invariant #4) — that prohibition is recorded in
-  `must_haves.prohibitions`, in T-37-04's threat row, and in 37-07's task action.
+- **Why 38-09 exists.** `38-VERIFICATION.md` returned `gaps_found` (7/8 truths verified). FLD-02's
+  "a single-value field body stays inline prose" holds at top level but silently regresses inside a
+  bullet/enumerated list item: `visit_paragraph`/`depart_paragraph` test `in_list_item` before
+  `_field_body_unwrapped_paragraph`, so D-13's forced `parbreak()` fires first and re-splits the
+  label from its value. Reproduced independently by both the code review (CR-01) and the
+  verification pass with a real `sphinx-build -b typst`.
 
-- `37-EMISSION-CONTRACT.md` is the byte-level spec every expected string is hand-derived from.
-  It is what makes "hand-derived, not fitted" checkable; read it before touching any fixture.
+- **Task 1 must land before Task 2.** The whole existing suite is already green with the fix
+  applied (measured during planning: 728 passed, 1 skipped), so the new list-item construct is the
+  *only* RED→GREEN signal this gap has. Recording that RED against the untouched translator is what
+  makes the closure provable — the same GATE-01 bar Phase 37 held.
+
+- **Two owner-approved sweep-ins ride along** (both non-blocking Warnings from `38-REVIEW.md`):
+  WR-01 adds the missing positive regression for the two `self.body.append` → `self.add_text` fixes
+  this phase shipped (a body-less `desc` and a plain `field_list` in `list-table` cells now compile;
+  a `py:function::` *with* a parameter list still aborts and is deliberately fenced out of scope),
+  and WR-02 replaces the hardcoded `"2.5em"` in `test_desc_content_indent_render_gate.py` with an
+  imported `SHARED_INDENT_STEP`. `38-REVIEW.md`'s IN-01 is explicitly out of scope.
+
+- **Do not flip FLD-02 speculatively.** Task 4 flips `REQUIREMENTS.md`'s checkbox and phase-mapping
+  row to Complete only on the new construct's own recorded RED→GREEN evidence — never on a green
+  suite alone (that prohibition is in `must_haves.prohibitions`).
