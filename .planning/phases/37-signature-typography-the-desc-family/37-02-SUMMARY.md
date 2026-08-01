@@ -109,6 +109,18 @@ None - no external service configuration required.
 - Plan 37-08's evidence merge has this plan's `37-GATE-EVIDENCE-02.md` ready, including the plan-ownership table (37-05 for SIG-08, 37-07 for SIG-06/D-11) so the merge does not need to re-derive which plan owns which flip.
 - No blockers. Full repo-wide `uv run pytest -q --tb=no -rf` shows exactly the 5 expected RED failures and 657 passed / 1 skipped elsewhere (the pre-existing, unrelated network-gated skip) -- zero regressions.
 
+## Self-Check: PASSED
+
+- `tests/fixtures/signature_break_and_arrow_gate/conf.py` - FOUND
+- `tests/fixtures/signature_break_and_arrow_gate/index.rst` - FOUND
+- `tests/test_signature_break_and_arrow_gate.py` - FOUND
+- `.planning/phases/37-signature-typography-the-desc-family/37-GATE-EVIDENCE-02.md` - FOUND
+- `.planning/phases/37-signature-typography-the-desc-family/37-02-SUMMARY.md` - FOUND
+- Commit `49e2254` (Task 1) - FOUND in `git log`
+- Commit `e846227` (Task 2) - FOUND in `git log`
+- Commit `2584a9f` (Task 3) - FOUND in `git log`
+- Commit `7076aa9` (this SUMMARY) - FOUND in `git log`
+
 ---
 *Phase: 37-signature-typography-the-desc-family*
 *Completed: 2026-08-01*
