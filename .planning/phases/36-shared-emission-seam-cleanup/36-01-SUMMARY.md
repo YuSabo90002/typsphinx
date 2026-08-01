@@ -124,3 +124,10 @@ None - no external service configuration required.
 ---
 *Phase: 36-shared-emission-seam-cleanup*
 *Completed: 2026-08-01*
+
+## Self-Check: PASSED
+
+All created files confirmed present on disk (conf.py, index.rst, golden.typ,
+test module, 36-GATE-EVIDENCE.md, this SUMMARY.md) and all four commit
+hashes (`73a19db`, `b37ea40`, `61f4477`, `67bb253`) confirmed present in
+`git log`.
