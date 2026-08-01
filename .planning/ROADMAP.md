@@ -373,16 +373,16 @@ break nor buried in doubled blank lines.
      blocks are separated by exactly one break — the doubled `parbreak()` runs measured on
      2026-07-29 are gone — and this phase's own exact-string blast radius is migrated within the
      phase, by hand-derived expected strings plus a recorded file/class census.
-**Plans**: 8 plans
+**Plans**: 4/8 plans executed
 
 Plans:
 **Wave 1** — every assertion recorded RED against the untouched translator, before any code edit
 (milestone invariant #4; `typsphinx/` is not touched in this wave)
 
-- [ ] 37-01-PLAN.md — SIG-01..SIG-05 per-sub-part structural gate: a fixture exercising all eight measured parameter shapes plus the C++ non-leaf `desc_name`, the empty `desc_addname`, the empty parameter list and a non-ASCII signature, with expectations hand-derived from `37-EMISSION-CONTRACT.md`
-- [ ] 37-02-PLAN.md — SIG-06 (arrow glyph, compiled-PDF), SIG-08 (break count + no-adjacent-breaks) and D-11 (optional-group separator, its own criterion and fixture) gates, with four deliberately-green controls
-- [ ] 37-03-PLAN.md — SIG-07 (synthetic over-length identifier, widest-unbreakable-segment vs. a probe-read column width) and SIG-09 (per-page `pypdf` containment under a forced page break) geometric gates
-- [ ] 37-04-PLAN.md — SC#5 test migration: nine pre-existing exact-string assertions across five modules plus `golden.typ`'s seven signature lines, hand-derived once straight to the final shape, plus the three-bucket census
+- [x] 37-01-PLAN.md — SIG-01..SIG-05 per-sub-part structural gate: a fixture exercising all eight measured parameter shapes plus the C++ non-leaf `desc_name`, the empty `desc_addname`, the empty parameter list and a non-ASCII signature, with expectations hand-derived from `37-EMISSION-CONTRACT.md`
+- [x] 37-02-PLAN.md — SIG-06 (arrow glyph, compiled-PDF), SIG-08 (break count + no-adjacent-breaks) and D-11 (optional-group separator, its own criterion and fixture) gates, with four deliberately-green controls
+- [x] 37-03-PLAN.md — SIG-07 (synthetic over-length identifier, widest-unbreakable-segment vs. a probe-read column width) and SIG-09 (per-page `pypdf` containment under a forced page break) geometric gates
+- [x] 37-04-PLAN.md — SC#5 test migration: nine pre-existing exact-string assertions across five modules plus `golden.typ`'s seven signature lines, hand-derived once straight to the final shape, plus the three-bucket census
 
 **Wave 2**
 
@@ -594,7 +594,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
-| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 0/TBD | Not started | - |
+| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 4/8 | In Progress|  |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |

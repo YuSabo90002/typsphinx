@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 37
-current_phase_name: Signature Typography — the `desc_*` Family
-status: planned
+current_phase_name: Signature Typography — the desc_* Family
+status: executing
 stopped_at: Phase 37 planned — 8 plans in 5 waves, all gates green
-last_updated: "2026-08-01T04:33:35.142Z"
+last_updated: "2026-08-01T04:47:35.588Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 37 planned — 8 plans in 5 waves
+last_activity_desc: Phase 37 execution started
 progress:
   total_phases: 6
   completed_phases: 1
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 37 — signature-typography-the-desc-family
+**Current focus:** Phase 37 — Signature Typography — the desc_* Family
 
 ## Current Position
 
-Phase: 37 — Signature Typography — the `desc_*` Family
+Phase: 37 (Signature Typography — the desc_* Family) — EXECUTING
 Plans: 0/8 complete (5 waves)
-Status: Ready to execute
-Last activity: 2026-08-01 — Phase 37 planned (8 plans, 5 waves); requirements 9/9, decisions 11/11, gap analysis 23/23
+Status: Executing Phase 37
+Last activity: 2026-08-01 — Phase 37 execution started
 
 Progress: [███░░░░░░░░░░░░░░░░░] 17% (1/6 phases)
 
@@ -298,7 +298,9 @@ worst case is a 311-char signature / 41-char qualname / 143pt widest unbreakable
 production column width of **453.54pt** read from Typst's own `layout()`/`measure()`. **Nothing in
 the real corpus overflows.** The `2.5em` hanging-indent and ZWSP figures in `37-CONTEXT.md` came
 from an artificially narrow 9cm probe frame. Phase 37 keeps the mechanism (`par(hanging-indent:)`
+
 + U+200B after each `.`) because it is cheap and correct, but its GATE-01 RED fixture is built from
+
 a **synthetic ~90+ char dotted identifier** — a corpus-derived fixture cannot go RED. The real
 corpus worst case serves as a non-regression control. Two further measured findings the executor
 needs: `block()`'s default spacing adds ~26.5pt per boundary (so the wrapper must be
