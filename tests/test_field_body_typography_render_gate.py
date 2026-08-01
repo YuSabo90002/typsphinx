@@ -206,12 +206,27 @@ _H_NOTYPE = "Name Without Type"
 _H_NONASCII = "Non-ASCII Parameter Name"
 _H_COLLAPSED = "Collapsed Inline Control"
 _H_SINGLE_FIELD = "Single Field List"
+_H_LI_BULLET = "List Item Bullet Single Value Field"
+_H_LI_ENUM = "List Item Enumerated Consecutive Fields"
 
 # The exact ROADMAP-hand-derived pinned adjacency string (contract section
 # 4.3 property 1): the label and value of a single-value field share ONE
 # line, separated by ": " -- one space after the colon, no line break. This
 # fixture's :returns: text is "A short stable value." (the trio construct).
 PINNED_FLD02_ADJACENCY_STRING = "Returns: A short stable value."
+
+# 38-09 gap closure (38-VERIFICATION.md gap 1 / 38-REVIEW.md CR-01): the
+# same hand-derivation as PINNED_FLD02_ADJACENCY_STRING above -- label text,
+# a colon, ONE space, then the value text, no line break -- applied to the
+# two new list-item constructs' :returns: values. Derived from D-07's
+# stated property, never from reading a build's output (D-14, milestone
+# invariant #4).
+PINNED_FLD02_LIST_ITEM_BULLET_ADJACENCY_STRING = (
+    "Returns: fld02 listitem bullet returns sentinel."
+)
+PINNED_FLD02_LIST_ITEM_ENUM_ADJACENCY_STRING = (
+    "Returns: fld02 listitem enum returns sentinel."
+)
 
 # FLD-03 per-sub-part parametrize cases: (heading, next_heading, name, type).
 # Spans the multi-value construct (both its entries), the single-entry
@@ -563,6 +578,109 @@ class TestFieldBodyTypographyGate:
             "FLD-01: expected desc_content wrapper open < field_list "
             f"wrapper open < first field label bytes; got "
             f"{desc_content_idx}, {field_list_idx}, {label_idx}"
+        )
+
+    # -- FLD-02 list-item nesting gap (38-09 gap closure; 38-VERIFICATION.md
+    #    gap 1 / 38-REVIEW.md CR-01): visit_paragraph/depart_paragraph check
+    #    self.in_list_item BEFORE self._field_body_unwrapped_paragraph, and
+    #    nothing resets in_list_item for a field_list/field/field_body/
+    #    paragraph nested inside a list item, so D-13's forced parbreak()
+    #    fast-path fires first and reintroduces the pre-Phase-38 label/value
+    #    split -- but only inside a list item. --
+
+    def test_fld02_list_item_bullet_single_value_pdf_adjacency_matches_pinned_string(
+        self, pdf_text: str
+    ) -> None:
+        """FLD-02 list-item adjacency edge (bullet context): a single-value
+        field's label and value are adjacent on ONE line of the compiled
+        PDF's extracted text even when the enclosing desc is documented
+        inside a bullet list item. Mirrors
+        test_fld02_single_value_pdf_adjacency_matches_pinned_string exactly,
+        just nested one list item deeper."""
+        assert PINNED_FLD02_LIST_ITEM_BULLET_ADJACENCY_STRING in pdf_text, (
+            "FLD-02 list-item (bullet): expected the pinned adjacency "
+            f"string {PINNED_FLD02_LIST_ITEM_BULLET_ADJACENCY_STRING!r} in "
+            f"the extracted PDF text -- label and value must share one "
+            f"line even inside a bullet list item:\n{pdf_text!r}"
+        )
+
+    def test_fld02_list_item_enum_single_value_pdf_adjacency_matches_pinned_string(
+        self, pdf_text: str
+    ) -> None:
+        """FLD-02 list-item adjacency edge (enumerated context): the same
+        property as the bullet-context test above, for the enumerated-list
+        construct's :returns: field."""
+        assert PINNED_FLD02_LIST_ITEM_ENUM_ADJACENCY_STRING in pdf_text, (
+            "FLD-02 list-item (enumerated): expected the pinned adjacency "
+            f"string {PINNED_FLD02_LIST_ITEM_ENUM_ADJACENCY_STRING!r} in "
+            f"the extracted PDF text -- label and value must share one "
+            f"line even inside an enumerated list item:\n{pdf_text!r}"
+        )
+
+    def test_fld02_list_item_single_value_emits_no_forced_break_between_label_and_value(
+        self, typ_text: str
+    ) -> None:
+        """FLD-02 list-item adjacency edge, structural twin of the PDF
+        assertion above: the emitted .typ contains no forced paragraph-break
+        call between the label and the value inside the bullet-list-item
+        construct. This is the assertion that names the defect's mechanism
+        directly -- in_list_item's branch firing first inserts exactly this
+        parbreak() between the label and the value."""
+        region = _section(typ_text, _H_LI_BULLET, _H_LI_ENUM)
+        label_call = 'strong(text("Returns") + text(": "))'
+        label_idx = region.index(label_call)
+        value_call = 'text("fld02 listitem bullet returns sentinel.")'
+        value_idx = region.index(value_call, label_idx)
+        between = region[label_idx + len(label_call) : value_idx]
+        assert "parbreak()" not in between, (
+            "FLD-02 list-item (bullet): expected NO forced paragraph-break "
+            f"call between the label and the value inside a bullet list "
+            f"item; found one in:\n{between!r}"
+        )
+
+    def test_fld02_list_item_lone_field_has_no_trailing_inter_field_break(
+        self, typ_text: str
+    ) -> None:
+        """FLD-02 list-item empty edge: the bullet construct's :returns:
+        field has no sibling field, so depart_field_body's D-07/D-08
+        compensating parbreak() -- guarded on the parent field having a
+        following sibling -- must not fire after its value either."""
+        region = _section(typ_text, _H_LI_BULLET, _H_LI_ENUM)
+        value_call = 'text("fld02 listitem bullet returns sentinel.")'
+        value_idx = region.index(value_call)
+        after = region[value_idx + len(value_call) :]
+        assert "parbreak()" not in after, (
+            "FLD-02 list-item (bullet) empty edge: expected NO trailing "
+            f"inter-field parbreak() after the lone field's value; found "
+            f"one in:\n{after!r}"
+        )
+
+    def test_fld02_list_item_consecutive_fields_stay_on_separate_lines(
+        self, pdf_text: str
+    ) -> None:
+        """FLD-02 list-item ordering edge: :returns:, :rtype: and :raises:
+        inside the enumerated list item stay in source order and on
+        separate lines of the extracted PDF text -- mirrors
+        test_fld02_consecutive_single_value_fields_stay_on_separate_lines,
+        scoped to start from the enumerated construct's own 'Returns:'
+        occurrence so the top-level trio's identical labels earlier in the
+        document cannot satisfy this test by accident."""
+        list_item_returns_idx = pdf_text.index(
+            PINNED_FLD02_LIST_ITEM_ENUM_ADJACENCY_STRING
+        )
+        rtype_idx = pdf_text.index("Return type:", list_item_returns_idx)
+        raises_idx = pdf_text.index("Raises:", rtype_idx)
+        between_returns_rtype = pdf_text[list_item_returns_idx:rtype_idx]
+        between_rtype_raises = pdf_text[rtype_idx:raises_idx]
+        assert "\n" in between_returns_rtype, (
+            "FLD-02 list-item ordering: expected 'Returns:' and 'Return "
+            f"type:' to occupy separate lines; found no newline between "
+            f"them: {between_returns_rtype!r}"
+        )
+        assert "\n" in between_rtype_raises, (
+            "FLD-02 list-item ordering: expected 'Return type:' and "
+            f"'Raises:' to occupy separate lines; found no newline "
+            f"between them: {between_rtype_raises!r}"
         )
 
     # -- Determinism --
