@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 36
-status: planning
-stopped_at: Phase 36 context gathered
-last_updated: "2026-07-30T14:45:38.465Z"
-last_activity: 2026-07-29
-last_activity_desc: v0.7.0 roadmap written (Phases 36–41)
+status: planned
+stopped_at: Phase 36 planned (4 plans, 4 waves)
+last_updated: "2026-08-01T00:05:45.000Z"
+last_activity: 2026-08-01
+last_activity_desc: Phase 36 planned — 4 plans in 4 waves, plan-checker passed
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Milestone v0.7.0 — API rendering design overhaul. Roadmap created (Phases 36–41, 32/32 requirements mapped). Next: plan Phase 36.
+**Current focus:** Milestone v0.7.0 — API rendering design overhaul. Roadmap created (Phases 36–41, 32/32 requirements mapped). Phase 36 planned. Next: execute Phase 36.
 
 ## Current Position
 
-Phase: 36 — Shared-Emission Seam Cleanup (not started)
-Plan: —
-Status: Roadmap created; awaiting phase planning
-Last activity: 2026-07-29 — v0.7.0 roadmap written (Phases 36–41)
+Phase: 36 — Shared-Emission Seam Cleanup (planned, not started)
+Plan: — (4 plans across 4 waves; none started)
+Status: Plans written and verified (plan-checker PASSED); ready to execute
+Last activity: 2026-08-01 — Phase 36 planned: research, pattern map, validation strategy, 4 plans
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (0/6 phases)
 
