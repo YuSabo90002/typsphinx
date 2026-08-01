@@ -43,10 +43,10 @@ PDF.
       render **distinctly from `desc_name`** — the reference uses italic proportional. Today they
       emit plain `text()` with no distinguishing style.
 
-- [ ] **SIG-05** [M]: The parameter-list delimiters (`(`, `)`, `,`, `=`, and `desc_optional`'s
+- [x] **SIG-05** [M]: The parameter-list delimiters (`(`, `)`, `,`, `=`, and `desc_optional`'s
       brackets) render in monospace, consistent with the name.
 
-- [ ] **SIG-06** [M]: `desc_returns` renders a real arrow glyph (e.g. `→`) rather than the ASCII
+- [x] **SIG-06** [M]: `desc_returns` renders a real arrow glyph (e.g. `→`) rather than the ASCII
       `->` it emits today.
 
 - [x] **SIG-07** [M]: A long fully-qualified signature **does not overflow the right page margin**.
@@ -266,8 +266,8 @@ Phase numbering continues from v0.6.5's last phase (35).
 | SIG-02 | Phase 37 | Complete |
 | SIG-03 | Phase 37 | Complete |
 | SIG-04 | Phase 37 | Complete |
-| SIG-05 | Phase 37 | Pending |
-| SIG-06 | Phase 37 | Pending |
+| SIG-05 | Phase 37 | Complete |
+| SIG-06 | Phase 37 | Complete |
 | SIG-07 | Phase 37 | Complete |
 | SIG-08 | Phase 37 | Complete |
 | SIG-09 | Phase 37 | Complete |
