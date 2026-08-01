@@ -225,3 +225,209 @@ All three clean. `ruff` required the NixOS-sandbox shim (`ln -sf` the main tree'
 `.venv/bin/ruff` copy into this worktree's `.venv/bin/ruff`, per the project's `nixos-sandbox-test-env`
 memory) — a provisioning step, not a code issue; recorded here so a later plan's own baseline run does
 not rediscover it as a surprise.
+
+---
+
+## Finalisation against reality (written by `38-08` Task 3, phase closeout)
+
+Per row, whether the predicted outcome actually happened, cross-checked against every implementation
+plan's own SUMMARY (`38-05-SUMMARY.md`, `38-06-SUMMARY.md`, `38-07-SUMMARY.md`) and the requirement
+verdict table in `38-GATE-EVIDENCE.md` §4.4. Mirrors `37-TEST-CENSUS.md`'s "Finalisation against
+reality" shape (bucket-by-bucket predicted-vs-actual, an honest-miss section, no earlier bucket row
+edited) — per D-14, only that shape and its "disagreement between grep-by-name and read-the-assertion"
+evidence convention are inherited from Phase 37; this census's own *content* above is unedited by this
+section.
+
+### Bucket A — predicted vs. actual
+
+| # | File / test | Predicted owning plan | Actually flipped at | Match? |
+|---|---|---|---|---|
+| A1 | `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ` byte-identity gate | 38-05 | `655cff1` (38-05 Task 3) — hand-migrated golden, byte-identical to a fresh rebuild on the first attempt, no reconciliation needed | Yes |
+| A2 | `tests/test_desc_rubric_decoupling_render_gate.py::TestDescRubricDecouplingRenderGate::test_desc_signature_and_rubric_do_not_delegate_to_visit_strong` (SC#1 over-reach guard) | 38-07 | `eb16c20` (38-07 Task 2) — migrated in the file the census's own row A2 named, not the two files 38-07's own `files_modified` frontmatter listed (neither contains a `literal_strong`/`literal_emphasis` assertion, confirmed by grep before editing) | Yes |
+| A3 | Both Phase-34 PDF-text goldens (`inline_math_pdf_text_mitex.golden.txt`, `inline_math_pdf_text_native.golden.txt`), jointly owned 38-05/38-06, 38-06 as closing owner | 38-06 | `edf90a2` (38-06 Task 3) — re-measured post both 38-05 and 38-06, hand-verified byte-for-byte identical to the prior baseline outside the one predicted Construct C line-wrap hunk | Yes |
+| A4 | `tests/test_field_list_in_list_item_render_gate.py::TestFieldListInListItemRenderGate::test_typstpdf_separates_field_list_in_list_item_and_produces_pdf` (`par({text("Test Author")})` CR-01 marker) | 38-06 | `edf90a2` (38-06 Task 3) — marker migrated from the `par({text("Test Author")})` substring to `strong(text("Author") + text(": "))`, preserving the same underlying property | Yes |
+
+**4/4 Bucket A predictions held** — every predicted node id flipped at the plan the census named as
+owner, with no early, late, or unpredicted-plan flip. (This is a smaller Bucket A than Phase 37's
+10/10 by design — Phase 38's blast radius is more concentrated, per `38-EMISSION-CONTRACT.md` §7's own
+starting table.)
+
+### Bucket B — predicted stays-green, held
+
+Every predicted stays-green file/test-group held throughout every wave, evidenced by each plan's own
+whole-suite set-difference statement (38-05: 683 passed/17 failed; 38-06: 689/11; 38-07: 700/0 — no
+Bucket-B node id ever appears in a "flipped" or "new failure" list across any of the three plans) and
+re-confirmed directly at this plan's closeout:
+
+```
+$ uv run pytest tests/test_translator.py -k "desc or field_list or rubric or full_api" -v
+9 passed, 108 deselected in 0.03s
+```
+
+All nine of `test_translator.py`'s desc/field-list/rubric-adjacent assertions (the file `38-EMISSION-
+CONTRACT.md` §7 predicted would break, and this census's own Bucket B disagreed with) stayed green
+through the whole phase, confirming the census's Direction-1 disagreement (§ above) held to closeout.
+
+### Bucket C — conditional, re-verified
+
+All three conditional rows re-verified GREEN at this plan's closeout, run directly against the final
+post-38-07 tree:
+
+```
+$ uv run pytest tests/test_confval_field_spacing_render_gate.py::TestConfvalFieldSpacingRenderGate::test_pdf_extracted_text_matches_pinned_sc3_string tests/test_field_list_in_list_item_render_gate.py tests/test_pdf_render_gate.py::TestDescSignatureRenderGate::test_desc_signature_pdf_has_arrow_linebreak_brackets_and_inline -v
+tests/test_confval_field_spacing_render_gate.py::...::test_pdf_extracted_text_matches_pinned_sc3_string PASSED
+tests/test_field_list_in_list_item_render_gate.py::...::test_typstpdf_separates_field_list_in_list_item_and_produces_pdf PASSED
+tests/test_field_list_in_list_item_render_gate.py::...::test_pdf_extracted_text_has_no_stray_version_indent PASSED
+tests/test_pdf_render_gate.py::TestDescSignatureRenderGate::test_desc_signature_pdf_has_arrow_linebreak_brackets_and_inline PASSED
+4 passed
+```
+
+- **PINNED_SC3_STRING row**: re-verified GREEN once 38-06 landed (`38-06-SUMMARY.md` D2 coverage
+  table lists this exact node id as `status: pass`) — the pinned string's short length stayed clear of
+  the widened field-list column at the actual measured indent.
+- **The CR-01 nested-field trap row** (D-12's `_field_body_unwrapped_paragraph` exclusion from
+  `_last_field_body_was_inline`): settled by 38-06's own implementation choice, confirmed by the same
+  file's two node ids above staying GREEN — the FID-09 inter-field separator did not erroneously fire
+  between the newly-inlined single-value fields.
+  38-06's own "Issues Encountered" section records that an early implementation attempt WOULD have
+  tripped this exact trap (caught by `test_fld02_consecutive_single_value_fields_stay_on_separate_lines`
+  going RED during development, never committed in that state) — the fixture did its job.
+- **The empty-`pad(...)`-footprint row** (DESC-02 ordering-sensitive checks in
+  `test_desc_signature_pdf_has_arrow_linebreak_brackets_and_inline`): re-verified GREEN directly at this
+  plan's closeout (command above) — the prediction that an empty `pad(...)` has zero measurable
+  footprint held through the real post-phase build, not merely assumed from the primitive's documented
+  default insets.
+
+### Bucket D — page counts, before/after and re-measuring plan
+
+| Constant | Before (pre-Phase-38 baseline) | After (post-Phase-38, re-measured) | Re-measuring plan |
+|---|---|---|---|
+| `EXPECTED_PAGE_COUNT_CEILING` (renamed from `EXPECTED_PAGE_COUNT_PRE_PHASE`) | 7 | 7 (unchanged) | 38-08 Task 1 |
+| `EXPECTED_PAGE_COUNT` (`signature_typography_gate`) | 4 | 4 (unchanged) | 38-08 Task 1 |
+| This project's own docs (D-08 whole-document claim) | 97 (pre-Phase-38, cited via the discussion session's own prototype) | 90 (measured, `tox -e docs-pdf`) — versus the session's own exploratory 87-page prototype figure | 38-08 Task 1 |
+
+Both named constants stayed at their pre-Phase-38 values because their specific fixtures lack the
+content Phase 38's two page-count-moving mechanisms act on (see `38-GATE-EVIDENCE.md` §3 for the
+per-fixture reasoning). The whole-document figure moved as predicted in direction (down from the
+pre-Phase-38 baseline) with a magnitude that differs from the discussion session's own isolated
+prototype measurement, explained (not absorbed) in `38-GATE-EVIDENCE.md` §3.
+
+### Misses — folded in honestly, not silently absorbed
+
+Five items, none of which this census correctly predicted at census-writing time (plan 38-04, wave 1),
+folded in per this census's own binding instruction ("a census that was wrong in a recorded way is more
+useful than one quietly fixed"). No earlier bucket row above was edited to make a prediction look
+correct — this section is a pure addition, verified by `git diff --stat` on this file.
+
+1. **`38-EMISSION-CONTRACT.md` §7's over-prediction on `test_translator.py`.** §7's starting table
+   named `tests/test_translator.py` as expected-to-break ("the `desc` and field-list structural
+   assertions"), attributing the prediction to §2, §3, §4, and §5 jointly. This census's own Bucket B
+   (Direction 1 of its "Disagreement" section, written at census time) already found and recorded that
+   all nine of that file's desc/field-list/rubric assertions are loose substring checks that survive
+   every one of those sections' changes unchanged — read at census-writing time, not discovered
+   post-hoc. Folded in here as an honest record that §7's starting prediction disagreed with the
+   census, and the census was right: re-confirmed GREEN through all three implementation plans and
+   again at this plan's own closeout (Bucket B above).
+
+2. **`38-EMISSION-CONTRACT.md` §7's under-prediction on the SC#1 delegation guard (row A2).** §7's
+   starting table did not name `tests/test_desc_rubric_decoupling_render_gate.py`'s SC#1
+   `RETAINED_DELEGATION_METHODS` guard at all — this census's own row A2 (written by plan 38-04,
+   reading the full method body per its own `read_first` instruction rather than trusting a
+   name-grep) is what surfaced it, mirroring `37-TEST-CENSUS.md`'s own precedent (its row A5, found the
+   identical way in the identical file's sibling class). Migrated by 38-07 as predicted. This is the
+   census catching a real under-prediction in its own starting input, not a miss in the census's own
+   Bucket A rows.
+
+3. **38-06's own census miss, one assertion upstream of row A4.** Recorded in `38-06-SUMMARY.md`'s
+   Deviations §1 (Rule 1 bug fix): row A4 predicted `tests/test_field_list_in_list_item_render_gate.py`
+   would break at its downstream `par({text("Test Author")})` CR-01 marker (Task 2's field-body reflow).
+   Task 1's own field-list indent wrapper landing independently broke an EARLIER assertion in the same
+   test function first — the field list's own newline-separation proof against the preceding
+   "For example:" paragraph (line 164 at the time) — which the census's row A4 did not separately
+   flag, because it was reading forward from the CR-01 marker's own predicted cause (Task 2's reflow)
+   without separately tracing Task 1's own wrapper-insertion consequence on the SAME file. **This is
+   the census's own miss**, folded in honestly rather than silently absorbed into row A4 as if it had
+   always been part of that row's prediction.
+
+4. **38-03's buffer-swap fixture measured GREEN, contradicting the folded todo's own prose
+   prediction.** The folded todo
+   (`2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md`) predicted the glossary-nested
+   `desc` pair fixture would measure RED pre-phase. It measured GREEN: both `depart_desc` calls for the
+   nested pair run inside the SAME swapped `current_definition_buffer`, so no live cross-buffer
+   comparison occurs for this specific reachable shape. `38-GATE-EVIDENCE-03.md`'s own "Buffer-swap
+   fixture: measured pre-phase outcome" section already recorded this as the todo's own binding
+   honest-measurement instruction requires (never retro-fit a fixture into a RED it did not produce).
+   It became a non-regression control instead of a RED — folded in here as the census's own record of a
+   prediction (the todo's, not this census's own Bucket A) that reality contradicted.
+
+5. **38-07's Rule-1 test fix: the typeless-param FLD-03 test's naming collision.**
+   `test_fld03_typeless_param_exactly_one_bold_mono_zero_italic_mono`'s region sliced from the section
+   heading, which included the fixture's own `desc_signature` for
+   `field_name_without_type(untyped)`. That signature's sole parameter shares the literal string
+   "untyped" with the field-body parameter it documents, and Phase 37's SIG-04 rule unconditionally
+   italicises a signature's bare parameter name regardless of type annotation — an orthogonal,
+   untouched-by-Phase-38 mechanism. With 38-07's correct implementation in place, the region still
+   contained `emph(raw("untyped"))` from the SIGNATURE, tripping the "zero italic-mono calls"
+   assertion on unrelated bytes. Fixed by narrowing the region to start at the field list's own label.
+   This is an authoring oversight in plan 38-02's own fixture/test-region design, surfaced only when
+   38-07's correct implementation still failed the test — not a translator defect, and not itself a
+   Bucket A row (the assertion's *intent* was always correct; only its region boundary was wrong).
+
+### D-13 and D-14 dispositions, restated with their outcome
+
+**D-13 — the stray `parbreak()` at the head of each bulleted field-list item: LEFT IN PLACE, and it
+stayed that way through phase close.** No plan in this phase touched the `self.in_list_item` fast-path
+in `visit_paragraph` that emits it. The still-green pinning test that proves the shape was never
+disturbed: `tests/test_inline_math_after_text_render_gate.py::test_typstpdf_separates_inline_math_mitex_path`,
+asserting `"list({\nparbreak()\n\nmi(\`a+b\`)" in typ_text` — re-confirmed passing in the final
+`uv run pytest -m "not slow" -q` run (700 passed, 0 failed) at this plan's own closeout.
+
+**D-14 — the migration strategy: per-plan hand-derivation with the golden file hand-edited and
+confirmed by rebuild, not regenerated.** This held for the golden, quoting `38-05-SUMMARY.md`'s own
+evidence directly: *"the hand-edited `golden.typ` (Task 3 commit `655cff1`) matched a fresh `-b typst`
+rebuild on the first attempt — `tests/test_desc_rubric_decoupling_render_gate.py::...::
+test_emitted_typ_is_byte_identical_to_golden` passed with no adjustment to the hand-derived bytes."*
+No golden byte was ever pasted from a build's own output and then accepted as the expected string; the
+one documented exception this census's own "Migration strategy (D-14)" section carved out in advance
+— the two Phase-34 PDF-text goldens, re-measured rather than hand-derived, because a PDF-extracted-text
+golden is fundamentally a measurement of a real Typst layout pass — was exercised exactly as specified,
+with the required manual diff-confirmation step performed by 38-06 (`38-06-SUMMARY.md`'s "Authorized
+Scope Extension" section quotes the byte-for-byte diff, confirmed to be solely the predicted Construct C
+line-wrap consequence).
+
+### Folded todos, closed
+
+Both folded todos are closed following this project's standing closure convention: a todo carrying
+`resolves_phase: N` in its frontmatter is moved from `.planning/todos/pending/` to
+`.planning/todos/completed/` by the orchestrator's own `close_phase_todos` step once the phase
+completes, on the main tree, after all wave worktrees merge — never by an individual plan's own
+worktree agent (a `git mv` from inside a worktree registers as a file deletion, which
+`worktree.cleanup-wave` blocks unconditionally with no bypass). Verified directly, both todos already
+carry the field:
+
+```
+$ grep -l "resolves_phase: 38" .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md .planning/todos/pending/2026-08-01-expected-page-count-pre-phase-misnamed-post-phase-value.md
+.planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md
+.planning/todos/pending/2026-08-01-expected-page-count-pre-phase-misnamed-post-phase-value.md
+```
+
+Both present; neither needed the field added. This is the closure evidence for both todos — the files
+themselves are left in `.planning/todos/pending/` for the orchestrator's own post-merge step to move.
+
+## Final counts (post-`38-07`, closed at `38-08`)
+
+- Bucket A (predicted breaking, all flipped as predicted): **4/4**.
+- Bucket B (predicted stays-green, held): **11/11** files/test-groups.
+- Bucket C (predicted conditional, re-verified): **3/3**.
+- Bucket D (page counts, measured before/after): **2/2** constants unchanged, plus the whole-document
+  D-08 claim checked against a real build (moved as predicted in direction, differing in magnitude,
+  explained in `38-GATE-EVIDENCE.md` §3).
+- Misses (unpredicted, folded in honestly): **5** — two contract-§7-vs-census disagreements (one in
+  each direction, both resolved correctly by the census's own reading), one genuine census miss
+  (38-06, one assertion upstream of row A4), one prediction from OUTSIDE this census that reality
+  contradicted (the folded todo's own prose, measured GREEN not RED by 38-03), and one authoring
+  oversight in an earlier plan's own fixture design (38-07's typeless-param region fix).
+- **Total node ids/files this census's full lifecycle accounts for: 20** (4 + 11 + 3 + 2), with 18/20
+  (90%) correctly predicted at census-writing time and the remaining items discovered honestly during
+  the phase's own implementation waves or at this plan's own closeout, never silently absorbed into an
+  earlier bucket row.
