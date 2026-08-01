@@ -775,10 +775,26 @@ class TestDescSignatureRenderGate:
 
         reader = pypdf.PdfReader(str(pdf_output))
         full_text = "\n".join(page.extract_text() for page in reader.pages)
+        # Phase 37 (37-EMISSION-CONTRACT.md section 4.2): every compiled-PDF
+        # text assertion in this phase must strip U+200B before comparing --
+        # once a ZWSP break opportunity exists anywhere in the document,
+        # pypdf.extract_text() has been measured to emit a spurious U+200B
+        # at unrelated glyph boundaries too, not only at injection points.
+        # (This specific fixture's desc_signature runs contain no dotted
+        # name, so the strip is a no-op here today; added defensively so
+        # this function does not regress once 37-06/37-07 land.)
+        full_text = full_text.replace(
+            "\u200b", ""
+        )  # U+200B, written as an explicit escape
 
         # DESC-01: the return arrow, adjacent to the return type.
-        assert "-> int" in full_text, (
-            "Expected the ' -> ' return arrow adjacent to the return type "
+        # Phase 37 (37-EMISSION-CONTRACT.md section 7): the ASCII "->" is
+        # replaced by the real U+2192 glyph, emitted as
+        # raw(" ") + raw("\\u{2192}") + raw(" "), which pypdf extracts as
+        # a real "→" character (measured; the ASCII two-character arrow is
+        # absent from the compiled PDF text).
+        assert "→ int" in full_text, (
+            "Expected the ' → ' return arrow adjacent to the return type "
             "in extracted PDF text -- desc_returns regression"
         )
 
