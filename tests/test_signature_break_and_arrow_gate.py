@@ -22,6 +22,7 @@ See ``.planning/phases/37-signature-typography-the-desc-family/
 a named commit.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -184,6 +185,13 @@ class TestSigBreakStructuralGate:
         ``parbreak()`` per ``desc`` departure, with no suppression logic
         at all): the actual count is 9 (one per ``desc`` node) -- this
         assertion is EXPECTED TO FAIL pre-phase.
+
+        Phase 38 note (D-10, 38-EMISSION-CONTRACT.md section 6.2): from
+        Phase 38 onward ``depart_desc_content``'s body-wrapper closing
+        bytes advance ``len(self.body)`` between an inner and an outer
+        ``desc`` departure, so this count staying at 8 also proves the
+        marker propagates through that close rather than treating it as
+        ordinary emitted content.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
         actual_count = typ_text.count("parbreak()")
@@ -204,6 +212,13 @@ class TestSigBreakStructuralGate:
         is what fails pre-phase in construct 1 (SigBreakOuterClassOne's
         nested method, whose one-line body has nothing after it, so the
         inner and outer ``desc`` departures fire back-to-back).
+
+        Phase 38 note (D-10, 38-EMISSION-CONTRACT.md section 6.2): once
+        the body wrapper lands, the marker must see through its closing
+        bytes (``"})\\n"``) the same way it sees through plain
+        whitespace today -- see this module's
+        ``TestD10BodyWrapperBreakMarkerGate`` for the wrapper-aware form
+        of this same check.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
         lines = typ_text.splitlines()
@@ -237,6 +252,11 @@ class TestSigBreakStructuralGate:
         current behaviour) AND must keep passing post-fix -- if this ever
         goes RED after a fix lands, the fix used a depth counter instead of
         the marker and must be corrected, not this assertion weakened.
+
+        Phase 38 note (D-10, 38-EMISSION-CONTRACT.md section 6.2): this
+        control stays valid unchanged once the body wrapper lands, because
+        the trailing paragraph's own content -- not the wrapper's closing
+        bytes -- is what keeps the marker from matching here.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
         member_idx = typ_text.index("Inner method two body.")
@@ -262,6 +282,11 @@ class TestSigBreakStructuralGate:
         Two back-to-back body-less confval ``desc`` siblings are NOT nested,
         so the SIG-08 fix must never touch this shape -- exactly one
         ``parbreak()`` separates them, both before and after.
+
+        Phase 38 note (D-10, 38-EMISSION-CONTRACT.md section 6.2): neither
+        confval carries a body, so neither gains a body wrapper at all --
+        this control's shape is unaffected by the wrapper's closing bytes
+        and stays byte-unchanged once Phase 38 lands.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
         first_idx = typ_text.index("sig_break_confval_one")
@@ -271,6 +296,178 @@ class TestSigBreakStructuralGate:
             "SIG-08 control: expected exactly one parbreak() between the "
             "two sibling body-less confval desc nodes -- got "
             f"{between.count('parbreak()')}:\n{between}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# D-10 (Phase 38): the body wrapper's closing bytes must not resurrect the
+# doubled-break defect SIG-08 removed. See 38-EMISSION-CONTRACT.md section
+# 6.2. This class is a DELIBERATE, structural RED against the untouched
+# translator (38-03-PLAN.md) -- see the conjunction test's own docstring
+# for why the count alone cannot be RED pre-phase.
+# ---------------------------------------------------------------------------
+
+
+class TestD10BodyWrapperBreakMarkerGate:
+    """
+    Phase 38's D-10 obligation: ``depart_desc_content`` (``pass`` on the
+    untouched translator) will, once Phase 38 lands the
+    ``pad(left: 2.5em, { ... })`` body wrapper (38-EMISSION-CONTRACT.md
+    section 2), make the wrapper's closing bytes (``"})\\n"``) advance
+    ``len(self.body)`` between an inner and an outer ``desc`` departure.
+    Under the SIG-08 marker as ``depart_desc`` implements it today, that
+    advance voids the suppression's premise and reopens the doubled
+    ``parbreak()`` defect the marker exists to remove (reproduced by the
+    research session on this fixture's own construct 1: patching
+    ``depart_desc_content`` to emit any byte takes the total count from 8
+    to 9). The resolution recorded in 38-EMISSION-CONTRACT.md section 6.2
+    -- adopted at plan time, before any translator edit exists -- is
+    marker propagation through ``depart_desc_content``'s close: it
+    records whether the marker still equals ``len(self.body)`` BEFORE
+    emitting its close, emits the close, and if it did, advances the
+    marker past its own bytes, so the outer ``depart_desc`` still sees
+    "nothing happened" and correctly suppresses its own duplicate.
+    ``depart_desc`` itself needs no code change under this fix -- only
+    the docstring correction 38-EMISSION-CONTRACT.md section 6.3 records,
+    which is plan 38-05's to make.
+    """
+
+    # Hand-derived from 38-EMISSION-CONTRACT.md section 2 (SHARED_INDENT_STEP
+    # is "2.5em", locked by D-02), never from running the translator
+    # (ROADMAP SC#5 / milestone invariant #4).
+    BODY_WRAPPER_OPEN = "pad(left: 2.5em, {"
+    BODY_WRAPPER_CLOSE = "})\n"
+
+    def test_d10_wrapper_present_and_break_count_still_eight(
+        self, signature_break_and_arrow_gate_dir, temp_build_dir
+    ):
+        """
+        The D-10 conjunction assertion: the body wrapper's opening AND
+        closing tokens are both present in the emitted .typ, AND the
+        total ``parbreak()`` count is still exactly 8.
+
+        This is deliberately a CONJUNCTION, because neither half alone
+        can be RED pre-phase for the right reason:
+
+        - The wrapper-presence half cannot be RED in isolation from a
+          count regression: pre-phase, ``visit_desc_content`` /
+          ``depart_desc_content`` are ``pass``, so the open token
+          ``"pad(left: 2.5em, {"`` never appears in this fixture at all
+          (38-EMISSION-CONTRACT.md section 1.1's repo-wide grep confirms
+          ``pad(`` appears NOWHERE in ``typsphinx/`` pre-phase) -- this
+          half fails on the wrapper's ABSENCE today, which is Phase 38's
+          own not-yet-built goal state, not by itself a defect signal.
+        - The break-count half alone cannot be RED pre-phase either: it
+          is already 8 and correct today, because
+          ``depart_desc_content`` emits nothing to advance the marker.
+          It only becomes a meaningful regression check once section 2's
+          wrapper lands -- WITHOUT the section 6.2 propagation fix, the
+          count regresses to 9 (37-EMISSION-CONTRACT.md section 8's
+          doubled-break reproduction, replayed on this fixture).
+
+        Only the CONJUNCTION is RED for the right reason at every point
+        in the phase's life: pre-phase it fails on the open token's
+        absence (this test's failure message names the missing wrapper
+        token, not a count mismatch -- the assertions below are ordered
+        so the wrapper-presence checks run first); post-section-2-
+        without-propagation it would fail on the count going to 9; only
+        the specified propagation fix (38-EMISSION-CONTRACT.md section
+        6.2) satisfies both halves at once.
+        """
+        typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
+
+        assert self.BODY_WRAPPER_OPEN in typ_text, (
+            "D-10 conjunction: expected the body wrapper's opening token "
+            f"{self.BODY_WRAPPER_OPEN!r} (38-EMISSION-CONTRACT.md section "
+            "2) somewhere in the emitted .typ -- not found. This fixture "
+            "contains at least one desc_content with a body (construct "
+            "1's SigBreakOuterClassOne), so the wrapper must appear once "
+            "plan 38-05 lands visit_desc_content/depart_desc_content; its "
+            f"absence here is the pre-phase RED state:\n{typ_text}"
+        )
+        assert self.BODY_WRAPPER_CLOSE in typ_text, (
+            "D-10 conjunction: expected the body wrapper's closing token "
+            f"{self.BODY_WRAPPER_CLOSE!r} (38-EMISSION-CONTRACT.md section "
+            f"2) somewhere in the emitted .typ -- not found:\n{typ_text}"
+        )
+        actual_break_count = typ_text.count("parbreak()")
+        assert actual_break_count == 8, (
+            "D-10 conjunction: expected exactly 8 parbreak() statements "
+            "even with the body wrapper's closing bytes present -- got "
+            f"{actual_break_count}. A count of 9 here means the wrapper "
+            "landed WITHOUT the section 6.2 marker-propagation fix "
+            f"(37-EMISSION-CONTRACT.md section 8's regression, replayed):"
+            f"\n{typ_text}"
+        )
+
+    def test_d10_no_adjacent_breaks_separated_only_by_wrapper_close(
+        self, signature_break_and_arrow_gate_dir, temp_build_dir
+    ):
+        """
+        A wrapper-aware SIG-08 adjacency check. The existing
+        ``test_sig08_no_adjacent_break_statements_anywhere`` rejects two
+        ``parbreak()`` statements separated by nothing but whitespace --
+        the pre-Phase-38 textual shape of the doubled-break defect. Once
+        the body wrapper lands (section 2), the SAME underlying defect
+        (marker propagation missing) reproduces in a DIFFERENT textual
+        shape: the two ``parbreak()`` statements are separated by the
+        wrapper's own closing bytes (``"})\\n"``), not by bare
+        whitespace -- exactly the shape the research session reproduced
+        going from 8 to 9 total breaks (38-EMISSION-CONTRACT.md section
+        6.1). This assertion is a forward guard: it cannot be RED
+        pre-phase (the wrapper's closing bytes do not exist yet, so the
+        pattern cannot match at all), but it must stay green once the
+        wrapper lands, and it is THIS test -- not the plain-whitespace
+        adjacency check -- that would catch a propagation regression
+        introduced after plan 38-05.
+        """
+        typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
+        wrapper_close_between_breaks = re.compile(
+            r"parbreak\(\)\s*\}\)\s*\n\s*parbreak\(\)"
+        )
+        matches = wrapper_close_between_breaks.findall(typ_text)
+        assert matches == [], (
+            "D-10: found parbreak() statements separated only by the body "
+            "wrapper's closing bytes ('})\\n') -- the doubled-break "
+            "defect has resurfaced in its post-wrapper shape "
+            f"(38-EMISSION-CONTRACT.md section 6.1):\n{typ_text}"
+        )
+
+    def test_d10_two_level_nesting_yields_exactly_one_break(
+        self, signature_break_and_arrow_gate_dir, temp_build_dir
+    ):
+        """
+        Depth-invariance: construct 1 (SigBreakOuterClassOne containing
+        sig_break_inner_method_one) is TWO levels deep in this fixture --
+        it already contains the exact reproduction shape D-10 needs, and
+        this module's own top-level docstring says not to clone or
+        extend it, so it is not deepened to three levels here. The
+        suppression's early return deliberately does NOT advance the
+        marker (37-EMISSION-CONTRACT.md section 8;
+        ``typsphinx/translator.py``'s ``depart_desc`` docstring), which
+        is what makes it depth-INVARIANT rather than depth-COUNTED -- a
+        depth counter would need to be manually reset at every sibling
+        boundary and is precisely the leak failure mode D-01 forbids.
+        This test asserts that invariance over the two levels this
+        construct has: exactly one ``parbreak()`` is contributed by the
+        whole of construct 1 (the outer class's own departure is
+        suppressed because nothing follows the nested method inside the
+        outer body), not one per nesting boundary. The THREE-level case
+        (a class containing a method containing an attribute) is covered
+        by ``tests/test_desc_content_indent_render_gate.py``'s own
+        fixture from plan 38-01 -- not duplicated here.
+        """
+        typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
+        construct_one_start = typ_text.index("Outer class one body.")
+        construct_two_start = typ_text.index("Outer class two body.")
+        construct_one_region = typ_text[construct_one_start:construct_two_start]
+        assert construct_one_region.count("parbreak()") == 1, (
+            "D-10 depth-invariance: expected exactly one parbreak() "
+            "contributed by the whole two-level construct 1 (outer class "
+            "+ nested method) -- got "
+            f"{construct_one_region.count('parbreak()')}, which would "
+            "indicate a depth-counted rather than marker-based "
+            f"suppression:\n{construct_one_region}"
         )
 
 
