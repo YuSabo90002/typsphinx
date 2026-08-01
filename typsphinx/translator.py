@@ -5036,14 +5036,18 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_returns node (a signature's return-type annotation).
 
-        Emits a literal ' -> ' arrow before the return type (DESC-01).
-        Resolved return-type xref children already stream through the
-        unmodified visit_reference refid branch -- no extra code needed
-        for that case.
+        SIG-06 / D-13 (37-EMISSION-CONTRACT.md section 7): emits a real
+        rightwards-arrow glyph (U+2192) before the return type, not the
+        pre-phase ASCII "->" -- the three-expression monospace form
+        `raw(" ") + raw("\\u{2192}") + raw(" ")` is the exact shape that
+        was compiled and pypdf-extraction-verified this session; a single
+        `raw(" -> ")`-shaped literal was not. Resolved return-type xref
+        children already stream through the unmodified visit_reference
+        refid branch -- no extra code needed for that case.
         """
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
-        self.add_text('text(" -> ")')
+        self.add_text('raw(" ") + raw("\\u{2192}") + raw(" ")')
         if self.in_list_item:
             self.list_item_needs_separator = True
 
@@ -5180,14 +5184,34 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_parameterlist node (parameter list container).
 
-        Parameters are concatenated with + inside text parentheses.
+        Parameters are concatenated with + inside monospace parentheses.
+
+        SIG-05 (37-EMISSION-CONTRACT.md section 6): the five parameter-list
+        delimiter sites -- this opening paren, the closing paren in
+        depart_desc_parameterlist, the comma-space separator in
+        depart_desc_parameter, and the optional-group brackets in
+        visit_desc_optional/depart_desc_optional -- all emit through the
+        raw(...) monospace primitive. Every other signature delimiter
+        (operator and punctuation nodes: desc_sig_operator,
+        desc_sig_punctuation, etc.) already reaches monospace "for free"
+        via the self.in_signature_text flag (contract section 4.3) rather
+        than through a dedicated handler, so SIG-05's "every delimiter is
+        monospace" truth is satisfied jointly by these five sites plus that
+        flag -- not by these five sites alone.
+
+        These five delimiters are hardcoded ASCII carrying no user-supplied
+        text, so no escape_typst_string call is added at these sites --
+        that omission is deliberate (T-37-01's mitigation), not an
+        oversight: every site that DOES carry user text already routes
+        through the shared escaping helper via the monospace branch added
+        in plan 37-06.
         """
         # Add separator before opening paren
         if self.in_list_item and self.list_item_needs_separator:
             self.body.append("\n")
 
-        # Output opening paren as text with + after it
-        self.body.append('text("(") + ')
+        # Output opening paren as raw (monospace) with + after it
+        self.body.append('raw("(") + ')
 
         # Mark that parameterlist started
         self.in_desc_parameter = True
@@ -5197,10 +5221,10 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_desc_parameterlist(self, node: addnodes.desc_parameterlist) -> None:
         """Depart a desc_parameterlist node."""
-        # Output closing paren as text, with + before it
+        # Output closing paren as raw (monospace), with + before it
         if self._desc_parameter_has_content:
             self.body.append(" + ")
-        self.body.append('text(")")')
+        self.body.append('raw(")")')
         self.in_desc_parameter = False
 
     def visit_desc_parameter(self, node: addnodes.desc_parameter) -> None:
@@ -5227,9 +5251,9 @@ class TypstTranslator(SphinxTranslator):
 
         Add comma + space between parameters if not last.
         """
-        # Add comma between parameters
+        # Add comma between parameters (raw(...): SIG-05 monospace delimiter)
         if node.next_node(descend=False, siblings=True):
-            self.body.append(' + text(", ")')
+            self.body.append(' + raw(", ")')
             self._desc_parameter_has_content = True
 
     def visit_desc_optional(self, node: addnodes.desc_optional) -> None:
@@ -5246,12 +5270,43 @@ class TypstTranslator(SphinxTranslator):
         """
         if self._desc_parameter_has_content:
             self.add_text(" + ")
-        self.add_text('text("[")')
+        self.add_text('raw("[")')
         self._desc_parameter_has_content = True
 
     def depart_desc_optional(self, node: addnodes.desc_optional) -> None:
-        """Depart a desc_optional node."""
-        self.add_text(' + text("]")')
+        """
+        Depart a desc_optional node.
+
+        D-11 (37-EMISSION-CONTRACT.md section 6.1): when this optional
+        GROUP itself has a following sibling, Sphinx's own HTML writer
+        puts the separator INSIDE the closing bracket -- measured this
+        session -- so this handler emits the same ", " separator
+        depart_desc_parameter emits, through the monospace primitive,
+        immediately BEFORE the closing bracket.
+
+        Two things are load-bearing here:
+
+        1. The sibling test is against the desc_optional node ITSELF,
+           mirroring what depart_desc_parameter already does for a
+           desc_parameter's own following sibling -- NOT against
+           desc_optional's last child. The group's last parameter has no
+           following sibling of its own, which is exactly why the
+           separator Sphinx emits (because the *group* has one) was
+           previously lost.
+        2. The nested-optional case (e.g. printf(fmt[, args[, more]]))
+           is UNCHANGED by this guard, because both of its optional
+           groups are last children -- this is the fix's non-regression
+           CONTROL, not a case to later "extend" the fix to cover.
+
+        Contract section 6.2 corrects CONTEXT.md D-11's second half: the
+        closing bracket and a following parameter are ALREADY explicitly
+        + joined on the current tree (depart_desc_optional already sets
+        _desc_parameter_has_content = True below), so that half is a
+        non-regression assertion, not a code change.
+        """
+        if node.next_node(descend=False, siblings=True):
+            self.add_text(' + raw(", ")')
+        self.add_text(' + raw("]")')
         self._desc_parameter_has_content = True
 
     def visit_field_list(self, node: nodes.field_list) -> None:
