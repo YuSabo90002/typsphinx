@@ -373,7 +373,7 @@ break nor buried in doubled blank lines.
      blocks are separated by exactly one break — the doubled `parbreak()` runs measured on
      2026-07-29 are gone — and this phase's own exact-string blast radius is migrated within the
      phase, by hand-derived expected strings plus a recorded file/class census.
-**Plans**: 8/9 plans executed
+**Plans**: 9/9 plans executed
 
 Plans:
 
@@ -401,7 +401,7 @@ Plans:
 
 **Wave 5**
 
-- [ ] 37-08-PLAN.md — full-corpus `-b typstpdf` gate, the four milestone invariants verified by command, the consolidated `37-GATE-EVIDENCE.md` verdict table, and the one manual-only owner visual sign-off
+- [x] 37-08-PLAN.md — full-corpus `-b typstpdf` gate, the four milestone invariants verified by command, the consolidated `37-GATE-EVIDENCE.md` verdict table, and the one manual-only owner visual sign-off
 
 ### Phase 38: Structural Indentation + Info Fields
 
@@ -597,7 +597,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
-| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 8/9 | In Progress|  |
+| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | In Progress|  |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
