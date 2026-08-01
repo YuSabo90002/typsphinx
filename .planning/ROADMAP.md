@@ -436,7 +436,7 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: 9 plans (8/9 executed — 38-09 is post-verification gap closure)
+**Plans**: 9/9 plans executed
 
 **Wave 1**
 
@@ -463,7 +463,7 @@ before the body wrapper is put around it)
 
 **Wave 6** (gap closure — `38-VERIFICATION.md` returned `gaps_found`, 7/8 must-haves)
 
-- [ ] 38-09-PLAN.md — FLD-02 gap closure: `_field_body_unwrapped_paragraph` given priority over `in_list_item` in `visit_paragraph`/`depart_paragraph` so a single-value field's label and value share one line inside a list item too, with a new list-item fixture construct recorded RED first; plus WR-01's positive table-cell regression construct for the `add_text` conversions and WR-02's `SHARED_INDENT_STEP` import
+- [x] 38-09-PLAN.md — FLD-02 gap closure: `_field_body_unwrapped_paragraph` given priority over `in_list_item` in `visit_paragraph`/`depart_paragraph` so a single-value field's label and value share one line inside a list item too, with a new list-item fixture construct recorded RED first; plus WR-01's positive table-cell regression construct for the `add_text` conversions and WR-02's `SHARED_INDENT_STEP` import
 
 ### Phase 39: Admonition Taxonomy + Rubric Nesting
 
@@ -625,7 +625,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
-| 38. Structural Indentation + Info Fields | v0.7.0 | 8/8 | In Progress|  |
+| 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | In Progress|  |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
