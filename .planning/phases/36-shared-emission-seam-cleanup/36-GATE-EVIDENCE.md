@@ -620,3 +620,144 @@ post-fix extraction, never baseline-vs-baseline. PDF byte size and PDF byte
 equality were never asserted or recorded, per the plan's explicit prohibition
 (Typst embeds a `CreationDate`/`ModDate`, so two builds of identical input
 differ in bytes).
+
+## GREEN — post-fix run (SC#3, D-04, D-06)
+
+- **Fix commit:** this commit -- Task 3's `typsphinx/translator.py` change
+  and this evidence section land together in one atomic commit (the plan's
+  own acceptance criteria check `git diff HEAD~1 -- typsphinx/translator.py`
+  relative to the RED commit, so the fix must be exactly one commit ahead of
+  RED, precluding a separate self-referencing commit for this section). The
+  definitive SHA is visible via `git log --oneline -1 -- typsphinx/translator.py`
+  once this commit lands; Plan 04 can read it directly from `git log`.
+- **RED commit (Task 2):** `21df46a` (`test(36-03): add SC#3 boundary
+  assertions and D-04 invariance guard, record RED`).
+- **Date:** 2026-08-01
+
+### The fix
+
+Exactly one statement changed in `visit_math_block`'s trailing bookkeeping:
+`self.list_item_needs_separator = True` -> `self.list_item_needs_separator =
+False`, guarded by the same pre-existing `if self.in_list_item:` -- nothing
+else in the method changed. The comment block above the statement was
+rewritten to explain the new behaviour (why this handler must CLEAR the
+shared flag, unlike every other block-level handler that arms it).
+
+### Verbatim pytest passing output
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a767a2485d4791381
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_inline_math_after_text_render_gate.py ...                     [100%]
+
+============================== 3 passed in 1.30s ===============================
+```
+
+All three methods green: the two path tests flip RED to GREEN and the
+invariance guard stays green.
+
+### Post-fix emitted regions per construct
+
+Copied verbatim from a real `sphinx-build -b typst` build against the fixed
+translator, using the same unique-substring lookup as the RED capture --
+never hand-retyped, never assumed.
+
+**Construct E, mitex path** (now two newlines -- one blank line -- before
+`parbreak()`, matching the hand-derived GREEN string exactly):
+```
+text("Text before block math.")\nmitex(`E = m c^2`)\n\nparbreak()
+```
+
+**Construct G, mitex path**:
+```
+[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\nmitex(`G = m a\n\n`)\n\nparbreak()
+```
+
+**Construct E, native path**:
+```
+text("Text before block math.")\n$ E = m c^2 $\n\nparbreak()
+```
+
+**Construct G, native path**:
+```
+[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\n$ G = m a\n\n $\n\nparbreak()
+```
+
+**Construct H region, both paths** -- confirmed byte-identical to the pre-fix
+capture (programmatically compared, `pre_region == post_region` is `True`):
+
+mitex:
+```
+list({\nmitex(`H = m g h`)\n\n\n})
+```
+
+native:
+```
+list({\n$ H = m g h $\n\n\n})
+```
+
+The single-element edge behaved exactly as predicted: with no following
+sibling inside the item, the trailing flag has no consumer, so Construct H's
+emission is unaffected by the fix on both paths.
+
+### PDF text-invariance result
+
+Both PDFs were rebuilt against the fixed translator and their `pypdf`-
+extracted text compared to the Task 1 pre-fix baselines:
+
+| Path | Page count | Extracted text length (chars) | Equals committed baseline |
+|------|------------|-------------------------------|----------------------------|
+| mitex | 3 | 1939 | `True` |
+| native | 3 | 1939 | `True` |
+
+`uv run pytest tests/test_inline_math_after_text_render_gate.py -q -k
+"invariant"` passes (1 passed). **PDF bytes were deliberately NOT
+compared** -- Typst embeds a `CreationDate`/`ModDate` in every compile, so
+two builds of identical input differ in bytes even when their extracted text
+and page count are identical (measured earlier in this phase and in
+36-CONTEXT.md D-04); only extracted text and page count are asserted.
+
+### RED → GREEN verdict
+
+| Assertion | RED commit | GREEN commit | Transition |
+|-----------|------------|---------------|------------|
+| Construct E boundary (mitex): GREEN string present | `21df46a` | this commit | FAIL -> PASS |
+| Construct E boundary (mitex): two-blank-line form absent | `21df46a` | this commit | (unreached under RED; assert #1 failed first) -> PASS |
+| Construct E boundary (mitex): zero-blank-line form absent | `21df46a` | this commit | PASS (always true) -> PASS |
+| Construct G boundary (mitex): GREEN string present | `21df46a` | this commit | FAIL -> PASS |
+| Construct G boundary (mitex): two-blank-line form absent | `21df46a` | this commit | (unreached under RED) -> PASS |
+| Construct G boundary (mitex): zero-blank-line form absent | `21df46a` | this commit | PASS -> PASS |
+| Construct H invariance (mitex) | `21df46a` | this commit | PASS -> PASS (byte-identical both sides) |
+| Construct E boundary (native): GREEN string present | `21df46a` | this commit | FAIL -> PASS |
+| Construct E boundary (native): two-blank-line form absent | `21df46a` | this commit | (unreached under RED) -> PASS |
+| Construct E boundary (native): zero-blank-line form absent | `21df46a` | this commit | PASS -> PASS |
+| Construct G boundary (native): GREEN string present | `21df46a` | this commit | FAIL -> PASS |
+| Construct G boundary (native): two-blank-line form absent | `21df46a` | this commit | (unreached under RED) -> PASS |
+| Construct G boundary (native): zero-blank-line form absent | `21df46a` | this commit | PASS -> PASS |
+| Construct H invariance (native) | `21df46a` | this commit | PASS -> PASS (byte-identical both sides) |
+| PDF-text invariance guard (both paths) | `21df46a` | this commit | PASS -> PASS (trivially green pre-fix, stayed green) |
+
+### Regression net
+
+- `uv run pytest tests/test_inline_math_after_text_render_gate.py -q` --
+  3 passed.
+- `uv run pytest tests/test_desc_rubric_decoupling_render_gate.py -q` --
+  3 passed. The SC#2 golden is untouched by MATH-02 (the decoupling fixture
+  contains no math), confirming D-07's commit separation held.
+- `uv run pytest -q --tb=no -rf` (full suite): **653 passed, 1 skipped, 0
+  failed** -- one more passed than Plan 02's recorded post-decoupling
+  baseline (`652 passed, 1 skipped, 0 failed`), exactly accounting for the
+  one new test method (`test_block_math_pdf_text_is_invariant_across_the_math02_fix`)
+  added in Task 2. Zero regressions anywhere else in the suite.
+- `uv run black --check .`, `uv run ruff check .`, `uv run mypy typsphinx/`
+  all exit `0`.
+- `git status --porcelain typsphinx/` and repo-wide `git status --short`
+  confirm only `typsphinx/translator.py` changed by this task's code edit,
+  plus this evidence file -- `tests/test_math_mitex.py`,
+  `tests/test_math_native.py`, and `tests/test_math_fallback.py` are
+  untouched across the whole phase.
