@@ -20,6 +20,14 @@ logger = logging.getLogger(__name__)
 # valid Typst length units and should pass through unchanged.
 _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
 
+# Shared cross-phase indent quantum (D-08, 37-EMISSION-CONTRACT.md section 1).
+# Phase 37 introduces this as the desc_signature hanging-indent step (SIG-07);
+# Phase 38's IND-04 reuses this SAME constant for desc_content, field_list and
+# block_quote rather than defining a second indent number -- do not introduce
+# another one. Value is the owner's D-06 choice (compiled and compared against
+# three renderings; see 37-CONTEXT.md).
+SHARED_INDENT_STEP = "2.5em"
+
 
 def escape_typst_string(text: str) -> str:
     """Escape arbitrary text for embedding inside a Typst ``"..."`` string literal.
@@ -137,6 +145,17 @@ class TypstTranslator(SphinxTranslator):
         # `par(...)` right after the nested `list(...)` -> `})par(` syntax error.
         self._list_item_stack: List[bool] = []
         self.in_literal_block = False  # Track if currently in a code block
+
+        # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
+        # section 2/4): True for the entire duration of a desc_signature's
+        # emission (set in visit_desc_signature, cleared in
+        # depart_desc_signature). Read by visit_Text, which routes every
+        # signature-text run through the monospace primitive (raw(...))
+        # instead of the proportional text(...) primitive, with no dedicated
+        # per-node handler required for delimiters/keywords/spaces/etc.
+        # A plain scalar, not a stack: desc_signature never nests inside
+        # desc_signature.
+        self.in_signature_text = False
 
         # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8):
         # records len(self.body) immediately after a `desc`'s own parbreak()
@@ -4719,7 +4738,10 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_signature node (API element signature).
 
-        Signatures are rendered in bold using strong({}) wrapper.
+        Signatures are rendered as typeset code: a page-keep-together block
+        carrying a hanging-indent paragraph (SIG-07 + SIG-09, D-10), with
+        every text-bearing descendant routed through the monospace primitive
+        via ``self.in_signature_text`` (SIG-01..SIG-05, read by visit_Text).
 
         Sibling desc_signatures (overloads / alias groups / multi-option
         directives) emit a real Typst linebreak() BEFORE every signature
@@ -4731,18 +4753,30 @@ class TypstTranslator(SphinxTranslator):
         common case) emits zero extra bytes (the flag stays True through
         the only signature) -- byte-for-byte unchanged.
 
-        ADM-06: this handler owns its own emission -- it no longer delegates
-        to visit_strong via a dummy strong() node. The block below is a
-        deliberate verbatim copy of visit_strong's body (D-01: triplication
-        is the decision, not an accident to be refactored away), kept
-        byte-identical to the source it was copied from. Phase 37 (SIG-01..09)
-        is the phase that will make desc_signature's emission diverge from
-        visit_strong's; until then the two are intentionally identical. The
-        `_strong_was_*` attribute names are shared with visit_strong/
-        depart_strong on purpose (D-02) -- renaming them per handler would
-        repair the known "rubric containing inline markup loses par()" leak
-        (see the deferred todo), but that changes emitted bytes, which this
-        plan may not do; the repair is filed for Phase 39.
+        ADM-06 / Phase 37: this handler owns its own emission -- it no
+        longer delegates to visit_strong via a dummy strong() node. The
+        block below WAS a deliberate verbatim copy of visit_strong's body
+        (D-01: triplication is the decision, not an accident to be
+        refactored away) up through Phase 36; Phase 37 is the phase that
+        note anticipated -- desc_signature's emission now diverges from
+        visit_strong's in exactly one literal: the opening wrapper call
+        changes from ``strong({`` to the composed
+        ``block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent:
+        {SHARED_INDENT_STEP}, {`` form (37-EMISSION-CONTRACT.md section 3).
+        ``above: 0pt, below: 0pt`` is mandatory, not cosmetic: measured,
+        ``block()``'s default spacing adds ~26.5pt of vertical gap at each
+        block boundary, which would reintroduce a SIG-08-shaped doubled-gap
+        defect in a new form; ``sticky: true`` was measured to keep working
+        with both zeroed. The hanging indent is D-06's chosen, non-negotiable
+        overflow mechanism (a column-grid alternative and font-shrinking
+        were both measured and rejected by the owner) -- neither may be
+        reintroduced here as an improvement. Everything else in this block
+        (the paragraph-separator call, the concat-element enter/exit pair,
+        the in_paragraph/in_list_item/list_item_needs_separator save-and-
+        restore, and the `_strong_was_*` attribute names shared with
+        visit_strong/depart_strong on purpose, D-02) stays byte-identical --
+        renaming those attributes is Phase 39's deferred repair and would
+        change emitted bytes outside this plan's scope.
         """
         if not self._is_first_desc_signature:
             self._emit_forced_break("linebreak()")
@@ -4776,8 +4810,20 @@ class TypstTranslator(SphinxTranslator):
         # Determine if we need # prefix (in markup mode)
         prefix = "#" if self._in_markup_mode else ""
 
-        # Use strong({}) function with content block
-        self.add_text(f"{prefix}strong({{")
+        # SIG-01..SIG-05: every text-bearing descendant of this signature
+        # routes through visit_Text's monospace branch for the signature's
+        # entire duration (cleared in depart_desc_signature, before the
+        # anchor loop).
+        self.in_signature_text = True
+
+        # SIG-07 + SIG-09 (D-10): the ONE composed wrapper -- block()'s
+        # sticky:true carries the page-keep-together (SIG-09), par()'s
+        # hanging-indent carries the overflow mechanism (SIG-07). Replaces
+        # ONLY the pre-Phase-37 `strong({` literal (contract section 3).
+        self.add_text(
+            f"{prefix}block(above: 0pt, below: 0pt, sticky: true, "
+            f"par(hanging-indent: {SHARED_INDENT_STEP}, {{"
+        )
 
         # Store state to restore in depart
         self._strong_was_in_paragraph = was_in_paragraph
@@ -4793,16 +4839,21 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a desc_signature node.
 
-        ADM-06: this handler owns its own emission -- the block below is a
-        deliberate verbatim copy of depart_strong's body (D-01) rather than a
-        delegation to a dummy strong() node. Phase 37 owns making this
-        diverge from depart_strong's body. The `_strong_was_*` attribute
-        names are shared with depart_strong on purpose (D-02); see
-        visit_desc_signature's docstring for the deferred-repair note.
+        ADM-06 / Phase 37: this handler owns its own emission -- the block
+        below WAS a deliberate verbatim copy of depart_strong's body (D-01)
+        up through Phase 36. Phase 37 makes it diverge in exactly one
+        literal: the closing call changes from ``})`` to ``}))`` -- one
+        ``}`` closing the content block, one ``)`` closing ``par(``, one
+        ``)`` closing ``block(`` (37-EMISSION-CONTRACT.md section 3),
+        matching visit_desc_signature's composed wrapper open. The
+        `_strong_was_*` attribute names are shared with depart_strong on
+        purpose (D-02); see visit_desc_signature's docstring for the
+        deferred-repair note.
         """
         # --- begin verbatim copy of depart_strong's body (D-01) ---
-        # Close strong({}) function
-        self.add_text("})")
+        # Close block(par({...})) -- matches visit_desc_signature's composed
+        # wrapper open (contract section 3).
+        self.add_text("}))")
 
         # Restore paragraph state
         if hasattr(self, "_strong_was_in_paragraph"):
@@ -4826,6 +4877,12 @@ class TypstTranslator(SphinxTranslator):
         # expression is + separated.
         self._exit_inline_concat_element()
         # --- end verbatim copy of depart_strong's body ---
+
+        # SIG-01..SIG-05: clear the monospace-propagation flag now that the
+        # signature's content is closed, before the anchor loop below (the
+        # anchors are orthogonal to typography and were never affected by
+        # the flag).
+        self.in_signature_text = False
 
         # Emit a Typst anchor for every id on the signature so same-document
         # cross-references resolve to this API declaration. depart_reference's
