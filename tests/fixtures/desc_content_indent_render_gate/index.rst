@@ -89,29 +89,41 @@ Table-Cell CONTROL
 ======================
 
 .. CONTROL, deliberately NOT a desc (discovery, recorded verbatim in
-   38-GATE-EVIDENCE-01.md): building this section with a real desc (of
-   ANY shape -- with or without an id, parameters, or a body) inside a
-   list-table cell was attempted and found to abort the ENTIRE Typst
-   compile with "expected semicolon or line break", regardless of Phase
-   38's own changes -- depart_desc_signature's own two
-   self.body.append(...) calls (typsphinx/translator.py:5051, 5053,
-   Phase 37, byte-identical whether or not the signature carries an id)
-   bypass table-cell routing unconditionally, so the signature's closing
-   bytes always juxtapose against whatever code-mode statement follows
-   inside the cell -- confirmed with a minimal repro (a single bare
-   py:attribute::, no fields, no body). A field list inside a table cell
-   was independently confirmed to hit the SAME class of defect via
-   visit_field_name's self.body.append("strong(") (translator.py:5403),
-   exactly matching 38-EMISSION-CONTRACT.md section 3.1's five named
-   sites. Both are PRE-EXISTING defects this plan does not touch --
-   depart_desc_signature is Phase 37's completed work (not in
-   38-CONTEXT.md's in-scope handler list), and the field_list-family
-   sites are in Phase 38's scope but owned by a LATER plan, not this
-   one. Since this plan's fixture must itself compile (Task 1's
-   acceptance criteria), this section keeps only a plain, desc-free
-   table as a non-regression baseline; the desc-in-table-cell/
-   field-list-in-table-cell falsifier the emission contract's section
-   2.1 describes must be added once those sites are fixed.
+   38-GATE-EVIDENCE-01.md): building this section with a real desc
+   carrying a PARAMETER LIST inside a list-table cell was attempted and
+   found to abort the ENTIRE Typst compile with "expected semicolon or
+   line break" -- an unconverted self.body.append(...) pair in
+   visit_desc_parameterlist/depart_desc_parameterlist bypasses
+   table-cell routing unconditionally, so the parameter list's own
+   emitted bytes always juxtapose against whatever code-mode statement
+   follows inside the cell. This is a REAL, reproduced, PRE-EXISTING
+   defect this plan does NOT fix -- it belongs to a later phase (38-09
+   WR-01 scope boundary; the still-unconverted
+   visit_desc_parameterlist/depart_desc_parameterlist handlers are
+   explicitly out of this plan's scope).
+
+   38-06 (this phase's own earlier plan) already converted the OTHER
+   table-cell defect this section used to describe: the field-list
+   family's five self.body.append(...) sites and
+   depart_desc_signature's own two remaining sites (the per-id anchor
+   loop and the trailing spacing newline) now route through
+   self.add_text(...), which correctly dispatches into
+   table_cell_content inside a table cell instead of bypassing it. A
+   body-less desc (no parameter list, no body) and a plain field list
+   therefore now BOTH compile inside a table cell where they previously
+   aborted -- the second list-table below is the positive regression
+   construct proving that measured reality, built via
+   test_wr01_bodyless_desc_and_plain_field_list_in_table_cell_compile.
+   Deliberately parameter-list-free (so it does not touch the
+   still-broken site above) and deliberately free of :param:/:type:
+   fields (IN-01, 38-REVIEW.md, Info-level, out of this plan's scope --
+   those fields are what would exercise
+   _emit_field_body_monospace_leaf's literal_strong/literal_emphasis
+   table-cell zero-width-space handling, an orthogonal concern).
+
+   The original plain-content table below is retained UNCHANGED as the
+   pre-existing non-desc, non-field-list baseline; its caption stays
+   honest.
 
 .. list-table:: Table With Only Plain Content
    :header-rows: 1
@@ -121,6 +133,17 @@ Table-Cell CONTROL
    * - ind_table_cell_plain_row
      - Plain paragraph content in a table cell (no desc, no field list).
        ind_table_cell_plain_body_sentinel
+
+.. list-table:: Table With Desc And Field List
+   :header-rows: 1
+
+   * - Column
+     - Description
+   * - ind_table_cell_desc_row
+     - .. py:attribute:: ind_table_cell_bodyless_attr_sentinel
+   * - ind_table_cell_field_list_row
+     - :note: ind_table_cell_field_note_sentinel
+       :warning: ind_table_cell_field_warning_sentinel
 
 Page-Boundary Desc (D-11, SIG-09)
 =====================================
@@ -133,6 +156,23 @@ Page-Boundary Desc (D-11, SIG-09)
    survive the new desc_content wrapper: the signature and the first line
    of its body must stay on the same page, and a body that crosses a page
    break must keep the SAME left-edge column on the following page.
+
+.. 38-09 re-tuning note: this section's filler-paragraph count was 20
+   before this plan; 38-09's own new "Table With Desc And Field List"
+   table (Table-Cell CONTROL, above) adds vertical space earlier in the
+   document, which shifts this construct's own page-reflow enough that
+   the multi-page body paragraph's LAST page stops sharing a page with
+   any un-indented anchor content -- a known pypdf extraction_mode=
+   "layout" reconstruction limitation (this module's own docstring),
+   not a translator regression: the emitted .typ's pad(left:
+   SHARED_INDENT_STEP, {...}) wrapper is unchanged, byte-identical to
+   pre-38-09 at this construct. Trimmed by 2 filler paragraphs (18
+   remain) to restore the pre-38-09 page split where the continuation
+   sentinel again shares its page with un-indented content, re-verified
+   against test_d11_sig09_page_boundary_signature_body_and_
+   continuation_indent. The construct's own property (18 filler
+   paragraphs is still "enough" to push the signature near a page
+   boundary) is unaffected.
 
 Filler paragraph one before the page-boundary class. ind_page_boundary_filler_paragraph_1_sentinel
 
@@ -169,10 +209,6 @@ Filler paragraph sixteen before the page-boundary class. ind_page_boundary_fille
 Filler paragraph seventeen before the page-boundary class. ind_page_boundary_filler_paragraph_17_sentinel
 
 Filler paragraph eighteen before the page-boundary class. ind_page_boundary_filler_paragraph_18_sentinel
-
-Filler paragraph nineteen before the page-boundary class. ind_page_boundary_filler_paragraph_19_sentinel
-
-Filler paragraph twenty before the page-boundary class. ind_page_boundary_filler_paragraph_20_sentinel
 
 .. py:class:: IndPageBoundaryClass
 
