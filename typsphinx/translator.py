@@ -168,12 +168,24 @@ class TypstTranslator(SphinxTranslator):
         # resets the flag on its own entry).
         self._param_name_seen = False
 
-        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8):
-        # records len(self.body) immediately after a `desc`'s own parbreak()
-        # was emitted, so depart_desc can tell whether anything has been
-        # emitted since -- the discriminator that lets a nested `desc`'s
-        # duplicate break be suppressed without a desc-nesting-depth counter.
-        self._desc_break_marker: int | None = None
+        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8;
+        # made buffer-identifying by 38-05, 38-EMISSION-CONTRACT.md section
+        # 6.4, closing the folded todo
+        # .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        # records (id(self.body), len(self.body)) immediately after a `desc`'s
+        # own parbreak() was emitted, so depart_desc can tell whether anything
+        # has been emitted since -- the discriminator that lets a nested
+        # `desc`'s duplicate break be suppressed without a desc-nesting-depth
+        # counter. The identity half exists because self.body is reassigned
+        # at multiple sites (visit_term/visit_definition via
+        # _saved_body_stack, the admonition-title save/restore, the
+        # figure-caption save/restore, plus the table-cell routing in
+        # add_text) -- a bare position integer recorded against one buffer
+        # could otherwise spuriously match (or fail to match) a position in a
+        # DIFFERENT buffer after a swap. Comparing both halves, rather than
+        # adding a sixth per-site guard, is the fix (the existing in_table
+        # guard already demonstrates that per-site guards do not generalise).
+        self._desc_break_marker: tuple[int, int] | None = None
 
         # Stream-based list rendering state (Issue #61)
         self.is_first_list_item = True  # Track if current item is first in list
@@ -4863,11 +4875,28 @@ class TypstTranslator(SphinxTranslator):
         between two departures there and the marker-based suppression would
         fire wrongly. The `not self.in_table` guard retains the pre-phase
         unconditional behaviour inside tables.
+
+        Buffer-swap hazard (D-10, 38-EMISSION-CONTRACT.md section 6.4,
+        closing the folded todo
+        .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        self.body is reassigned at multiple sites beyond the table-cell one
+        above -- visit_term/visit_definition (via _saved_body_stack), the
+        admonition-title save/restore, and the figure-caption save/restore.
+        A marker recorded as a bare position integer could compare against a
+        DIFFERENT list after such a swap, spuriously suppressing a needed
+        break or spuriously letting a duplicate through. self._desc_break_marker
+        is therefore a (id(self.body), len(self.body)) pair, not a bare int
+        -- comparing both halves closes the hazard without adding a sixth
+        per-site guard, since the existing table-cell guard already
+        demonstrates that per-site guards do not generalise.
         """
-        if not self.in_table and self._desc_break_marker == len(self.body):
+        if not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
+        ):
             return
         self._emit_forced_break("parbreak()")
-        self._desc_break_marker = len(self.body)
+        self._desc_break_marker = (id(self.body), len(self.body))
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
@@ -5195,13 +5224,22 @@ class TypstTranslator(SphinxTranslator):
         self.body, so len(self.body) does not advance there and comparing
         against it would be meaningless (and is never read, since
         depart_desc's own check is guarded the same way).
+
+        The marker is a (id(self.body), len(self.body)) pair, not a bare
+        position integer (D-10, 38-EMISSION-CONTRACT.md section 6.4) --
+        self.body is reassigned at several sites (visit_term/
+        visit_definition, the admonition-title and figure-caption
+        save/restores) and a bare integer could otherwise be compared
+        against a different buffer after a swap. See depart_desc's own
+        docstring for the buffer-swap hazard this closes.
         """
-        marker_was_untouched = not self.in_table and self._desc_break_marker == len(
-            self.body
+        marker_was_untouched = not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
         )
         self.add_text("})\n")
         if marker_was_untouched:
-            self._desc_break_marker = len(self.body)
+            self._desc_break_marker = (id(self.body), len(self.body))
         if self.in_list_item:
             self.list_item_needs_separator = True
 
