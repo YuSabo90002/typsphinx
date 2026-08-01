@@ -240,17 +240,31 @@ class TypstTranslator(SphinxTranslator):
         # its field line (e.g. ':default: The value of **x**') is COLLAPSED by
         # docutils to inline children (Text/strong/literal) directly under
         # field_body -- no wrapping paragraph. Those juxtapose in code mode
-        # unless + separated (bug #8). Activated by visit_field_body only for
-        # an all-inline field body; _field_body_stack saves the prior value for
+        # unless + separated (bug #8). Activated by visit_field_body for an
+        # all-inline field body (the collapsed-inline case) AND for a field
+        # body whose only child is a single nodes.paragraph (FLD-02, D-07,
+        # the ordinary :param:/:returns: docstring case) -- both reuse the
+        # SAME concat context; _field_body_stack saves the prior values for
         # nesting safety.
         self._in_field_body = False
         self._field_body_has_content: bool = False
-        self._field_body_stack: List[Tuple[bool, bool]] = []
+        # Distinguishes the single-paragraph-unwrapped case (this flag True)
+        # from the docutils-collapsed-inline case (this flag False while
+        # _in_field_body is True) -- the ONE new attribute FLD-02 needs
+        # (D-12). visit_paragraph/depart_paragraph read it to skip the
+        # block-level par(...) wrapper; depart_field_body reads it to keep
+        # _last_field_body_was_inline scoped to the genuinely collapsed case
+        # only (the D-07/D-08 trap: naively setting that flag for BOTH cases
+        # would let depart_field's FID-09 inter-field separator fire between
+        # newly-inlined single-value fields and merge them onto one line).
+        self._field_body_unwrapped_paragraph: bool = False
+        self._field_body_stack: List[Tuple[bool, bool, bool]] = []
         # Whether the most recently departed field_body used the collapsed
         # inline form (see visit_field_body). depart_field reads this to
         # decide whether the FID-09 inter-field "  " separator applies --
-        # it is only correct for inline-collapsed bodies, not block-wrapped
-        # (par(...)) bodies (CR-01).
+        # it is only correct for inline-collapsed bodies, never for a
+        # block-wrapped (par(...)) OR single-paragraph-unwrapped body
+        # (CR-01, and FLD-02's D-07/D-08 trap above).
         self._last_field_body_was_inline = False
 
         # Stack of the code-mode concat context suppressed while an inline
@@ -822,6 +836,23 @@ class TypstTranslator(SphinxTranslator):
         (FID-02) -- a bare source '\\n' between code-mode statements is
         cosmetic only and produces no visual break, so consecutive
         list-item paragraphs otherwise concatenate onto one running line.
+        D-13 (38-EMISSION-CONTRACT.md section 4.5): this stray parbreak()
+        also fires at the head of every bulleted field-list item (a list
+        item whose sole content is a paragraph), and Phase 38 leaves it in
+        place by design -- its exact shape is pinned by
+        tests/test_inline_math_after_text_render_gate.py:291. Do not read
+        the FLD-02 branch below as an oversight of this one; it is a
+        SEPARATE case (a field body directly, never a list item).
+
+        A second exception (FLD-02, D-07, 38-EMISSION-CONTRACT.md section
+        4.2): a field body whose ONLY child is this single paragraph (the
+        ordinary ``:param:``/``:returns:`` docstring shape) also skips the
+        ``par({``/``})`` wrapper -- mirroring the list-item fast-path above
+        -- because Typst's ``par(...)`` is intrinsically block-level and
+        starts a new visual line regardless of any separator, which is
+        FLD-02's root defect. See visit_field_body's docstring for the
+        classification and depart_field_body's for the D-07/D-08 trap this
+        interacts with.
 
         Args:
             node: The paragraph node
@@ -840,6 +871,16 @@ class TypstTranslator(SphinxTranslator):
         # list_item_needs_separator is reset to False in visit_list_item.
         if self.in_list_item:
             self._emit_forced_break("parbreak()")
+            self.in_paragraph = False
+            return
+
+        # FLD-02/D-07: skip the block-level par(...) wrapper for a
+        # single-value field body's sole paragraph child. The paragraph's
+        # children then dispatch unmodified through the SAME inline-concat
+        # machinery visit_field_body activated (_in_field_body /
+        # _field_body_has_content) -- no par() to open, so in_paragraph
+        # stays False and nothing else is emitted here.
+        if self._field_body_unwrapped_paragraph:
             self.in_paragraph = False
             return
 
@@ -864,6 +905,13 @@ class TypstTranslator(SphinxTranslator):
         # 2nd+ paragraph's parbreak().
         if self.in_list_item:
             self.list_item_needs_separator = True
+            return
+
+        # FLD-02/D-07: mirrors the skip in visit_paragraph above -- no
+        # par({...}) was opened for a single-value field body's sole
+        # paragraph, so there is nothing to close here either.
+        if self._field_body_unwrapped_paragraph:
+            self.in_paragraph = False
             return
 
         # Close par({}) content block and add spacing
@@ -5592,22 +5640,53 @@ class TypstTranslator(SphinxTranslator):
         shared inline-concat context (bug #5 machinery) so they are ``+``
         separated into one content value.
 
-        Only an ALL-inline field body needs this. A block field body (real
-        ``paragraph``/list/literal-block children) already emits valid,
-        ``\\n\\n``-separated statements via the normal par() path, so it keeps
-        the concat context OFF to avoid a stray ``+`` around a ``par(...)``.
+        A SECOND case reuses the same concat context (FLD-02, D-07,
+        38-EMISSION-CONTRACT.md section 4.2): a field body whose ONLY child
+        is a single ``nodes.paragraph`` -- the ordinary ``:param:``/
+        ``:returns:``/``:rtype:`` docstring shape docutils produces (verified
+        by reading ``sphinx/util/docfields.py``'s ``Field.make_field`` /
+        ``GroupedField.make_field``'s ``can_collapse`` branch: this shape is
+        ALWAYS exactly one paragraph, never heuristic). Pre-phase this value
+        was unconditionally wrapped in Typst's block-level ``par(...)``,
+        which starts a new visual line regardless of any separator -- that
+        is FLD-02's whole defect. ``_field_body_unwrapped_paragraph`` marks
+        this case so ``visit_paragraph``/``depart_paragraph`` can skip the
+        ``par({``/``})`` wrapper for exactly this one paragraph, letting its
+        children dispatch unmodified through the SAME
+        ``_in_field_body``/``_field_body_has_content`` machinery the
+        collapsed-inline case already exercises -- no second concat
+        mechanism.
+
+        A multi-value body (multiple ``:param:`` entries collapsed by
+        docutils into ONE ``field_body`` containing a ``bullet_list``) is
+        neither of the above: its ``all_inline`` check is False and its
+        child count is not exactly one paragraph, so it falls through to the
+        existing block path unchanged (FLD-02's non-regression half).
         """
         self._field_body_stack.append(
-            (self._in_field_body, self._field_body_has_content)
+            (
+                self._in_field_body,
+                self._field_body_has_content,
+                self._field_body_unwrapped_paragraph,
+            )
         )
         all_inline = all(
             isinstance(child, (nodes.Text, nodes.Inline)) for child in node.children
         )
+        single_paragraph = len(node.children) == 1 and isinstance(
+            node.children[0], nodes.paragraph
+        )
         if all_inline:
             self._in_field_body = True
             self._field_body_has_content = False
+            self._field_body_unwrapped_paragraph = False
+        elif single_paragraph:
+            self._in_field_body = True
+            self._field_body_has_content = False
+            self._field_body_unwrapped_paragraph = True
         else:
             self._in_field_body = False
+            self._field_body_unwrapped_paragraph = False
 
     def depart_field_body(self, node: nodes.field_body) -> None:
         """
@@ -5615,12 +5694,53 @@ class TypstTranslator(SphinxTranslator):
 
         Restore the concat context saved by :meth:`visit_field_body` and add a
         newline after the field body.
+
+        The D-07/D-08 trap (FLD-02): ``_last_field_body_was_inline`` gates
+        ``depart_field``'s FID-09 inter-field ``"  "`` separator, which is
+        only correct for the genuinely docutils-collapsed-inline body (two
+        fields legitimately sharing one line, e.g. a confval's
+        ``:type:``/``:default:``). The new single-paragraph-unwrapped case
+        (above) also sets ``_in_field_body = True`` to reuse the SAME concat
+        context, but must NOT let the separator fire between consecutive
+        single-value fields -- doing so would merge ``Returns:``,
+        ``Return type:`` and ``Raises:`` onto one line and produce a ZERO
+        interval where D-08 measured 20.438pt per field. Excluding
+        ``_field_body_unwrapped_paragraph`` from this flag is what keeps the
+        separator scoped to the collapsed-inline case only, with zero change
+        needed to :meth:`depart_field` itself.
+
+        The other half of D-08's own trap: a single-value field body's sole
+        paragraph no longer gets a "free" paragraph boundary from ``par(...)``
+        the way it used to (that block-level wrapper is exactly what
+        visit_paragraph now skips for this case). Consecutive single-value
+        fields must still occupy separate paragraphs -- so when THIS field
+        body was the single-paragraph-unwrapped case AND its parent ``field``
+        has a following sibling, emit a real ``parbreak()`` here, before
+        popping back to the parent's saved state (this is the one place that
+        still has access to both facts at once). Re-derived from the doctree
+        (``node.parent``'s own next-sibling check), not a second new
+        instance attribute. Wrapped in a LEADING newline (unlike
+        _emit_forced_break's list-item-only leading guard): the preceding
+        content here is the paragraph's last bare inline expression with no
+        trailing separator of its own, so a bare "parbreak()" would
+        juxtapose directly against it -- the same "expected semicolon or
+        line break" fatal class this codebase has hit before.
         """
-        # Remember whether THIS field body was collapsed-inline, for
-        # depart_field's separator decision (CR-01), before popping back to
-        # the parent's saved state.
-        self._last_field_body_was_inline = self._in_field_body
-        self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
+        # Remember whether THIS field body was collapsed-inline (never the
+        # single-paragraph-unwrapped case), for depart_field's separator
+        # decision (CR-01/D-08), before popping back to the parent's saved
+        # state.
+        self._last_field_body_was_inline = (
+            self._in_field_body and not self._field_body_unwrapped_paragraph
+        )
+        if self._field_body_unwrapped_paragraph and node.parent is not None:
+            if node.parent.next_node(descend=False, siblings=True) is not None:
+                self.add_text("\nparbreak()\n")
+        (
+            self._in_field_body,
+            self._field_body_has_content,
+            self._field_body_unwrapped_paragraph,
+        ) = self._field_body_stack.pop()
         self.add_text("\n")
 
     def visit_rubric(self, node: nodes.rubric) -> None:
