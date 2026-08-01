@@ -81,8 +81,11 @@ wrapper) and agreeing within 3pt.
       does **not** receive a further indent step. (Stated as a requirement because the naive
       implementation over-indents; the reference never does this.)
 
-- [x] **IND-04** [M]: One shared indent constant drives every indent context — desc nesting, field
-      lists, and block quotes — rather than independent magic numbers per node type.
+- [x] **IND-04** [M]: One shared indent constant drives the desc/field indent contexts — desc
+      nesting and field lists — rather than independent magic numbers per node type. (Block quotes
+      are an intentional non-consumer: they use Typst's own `quote(block: true, …)` default spacing.
+      Scoped by 38-CONTEXT.md D-04, which measured the alternatives; the requirement forbids
+      per-node magic numbers, it does not force one visual depth on every indent context.)
 
 - [x] **IND-05** [M]: The nesting-depth counter **resets correctly across sibling `desc` nodes**, so
       depth cannot leak and accumulate unboundedly across a document.

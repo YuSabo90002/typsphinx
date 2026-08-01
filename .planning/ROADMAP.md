@@ -427,8 +427,11 @@ before the body wrapper is put around it)
      page margin, proven by a fixture with 3+ nesting levels plus a sibling top-level `desc`
      immediately after.
 
-  4. One named indent constant drives desc nesting, field lists, and block quotes — a repo-wide grep
-     over `typsphinx/` finds no second independent indent literal at those sites.
+  4. One named indent constant drives desc nesting and field lists — a repo-wide grep over
+     `typsphinx/` finds no second independent indent literal at those sites. Block quotes are a
+     deliberate non-consumer (38-CONTEXT.md D-04): they keep Typst's own `quote(block: true, …)`
+     default spacing rather than being wrapped in the shared step, so the criterion is "no per-node
+     magic numbers", not "every indent context at the same visual depth".
 
   5. A field list renders one step inside the surrounding description body; a multi-value field body
      renders as a bulleted list while a single-value body stays inline prose; and a parameter's name
