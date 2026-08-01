@@ -1,7 +1,7 @@
 ---
 phase: 38-structural-indentation-info-fields
 verified: 2026-08-02T00:00:00Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -9,10 +9,12 @@ re_verification:
   previous_status: gaps_found
   previous_score: 7/8
   gaps_closed:
+
     - "FLD-02: A field body with multiple values renders as a bulleted list; a single-value body stays inline prose (list-item nesting case)"
   gaps_remaining: []
   regressions: []
 human_verification:
+
   - test: >
       Read ROADMAP.md's Phase 38 Success Criterion #4 ("One named indent constant drives desc
       nesting, field lists, and block quotes — a repo-wide grep over typsphinx/ finds no second
@@ -47,7 +49,7 @@ visually recoverable, a nested member's own signature aligns with its parent's b
 over-indenting, and the field-list block follows the same single constant instead of a private
 magic number.
 **Verified:** 2026-08-02
-**Status:** human_needed
+**Status:** passed (was `human_needed`; resolved by UAT 2026-08-02 — see "Human verification resolved" below)
 **Re-verification:** Yes — after gap closure (plan 38-09, wave 6)
 
 ## Summary
@@ -242,8 +244,10 @@ only the *stale header comment* that still asserts block_quote is a consumer (se
 above).
 
 This verification does **not** resolve the tension in either direction:
+
 - It does not fail IND-04 as a gap, because the grep-checkable criterion holds and D-04 is a
   recorded, reasoned, owner-level decision from this phase's own context-gathering.
+
 - It does not silently accept the ROADMAP/REQUIREMENTS prose as accurate either, because "drives ...
   block quotes" is not true of the code as shipped, and — unlike FLD-02's stale parenthetical, which
   38-09 explicitly corrected — the SC#4/IND-04 prose was never updated to reflect D-04's narrower
@@ -256,10 +260,12 @@ Routed to human verification (see frontmatter) rather than decided here.
 1. **Documentation-vs-scope: does ROADMAP SC#4 / REQUIREMENTS IND-04's "drives ... block quotes"
    prose need correcting to match D-04's narrower, shipped scope, or was block_quote participation
    actually intended and the implementation is the thing that needs to change?**
+
    - **Test:** Read the finding above (also in frontmatter `human_verification`).
    - **Expected:** A decision — either accept D-04's reading and edit the two prose sentences (the
      same treatment FLD-02's stale parenthetical got in this phase), or treat this as a real,
      unmet SC#4/IND-04 clause and open a follow-up.
+
    - **Why human:** Values/scope call already made once by the project owner (D-04), but never
      reconciled with the roadmap/requirements wording it reinterprets; not something a grep or a
      test can adjudicate.
@@ -273,9 +279,29 @@ list-item node ids, re-run directly). All 8 requirement IDs are `Complete` in RE
 whole suite is green (734 passed / 1 skipped / 0 failed, confirmed by direct re-run in this pass,
 not inherited from SUMMARY.md), and the lint/type trio is clean.
 
-The phase is held at `human_needed` rather than `passed` solely because of the one open
+The phase was held at `human_needed` rather than `passed` solely because of the one open
 documentation-vs-scope tension above (SC#4/IND-04 prose vs. D-04's shipped, narrower reading), which
 is a wording/values question outside what code inspection can resolve on its own.
+
+## Human verification resolved — 2026-08-02
+
+The project owner reviewed the tension in `/gsd-verify-work 38` (test 1, `38-UAT.md`) and ruled that
+the **prose was stale, not the implementation**: D-04's narrower scope is the binding reading of
+IND-04. `SHARED_INDENT_STEP` drives `desc_content` and `field_list` only; `block_quote` remains an
+intentional non-consumer using Typst's own `quote(block: true, …)` default spacing.
+
+No code or test change followed — `visit_block_quote` / `depart_block_quote` and
+`test_ind04_d04_block_quote_not_converted` stand as shipped. Two documentation corrections were made
+instead (commit `8aee83e`):
+
+- `.planning/ROADMAP.md` Phase 38 SC#4 — dropped "and block quotes" from the driven contexts and
+  added the D-04 non-consumer note, restating the criterion as "no per-node magic numbers" rather
+  than "every indent context at the same visual depth".
+- `.planning/REQUIREMENTS.md` IND-04 — narrowed "every indent context … and block quotes" to the
+  desc/field contexts and added the D-04 parenthetical, mirroring the FLD-02 correction made earlier
+  in this same phase.
+
+Status therefore advances to `passed`.
 
 ---
 
