@@ -5,8 +5,8 @@ milestone_name: API rendering design overhaul
 current_phase: 39
 current_phase_name: Admonition Taxonomy + Rubric Nesting
 status: planning
-stopped_at: Phase 38 complete — UAT passed, verification passed, security verified; ready to plan Phase 39
-last_updated: "2026-08-01T22:49:15.143Z"
+stopped_at: Phase 39 context gathered
+last_updated: "2026-08-01T23:28:44.976Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 38 complete, transitioned to Phase 39
 progress:
@@ -372,10 +372,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/39-admonition-taxonomy-rubric-nesting/39-CONTEXT.md
 
-Last session: 2026-08-02
-Stopped at: Phase 38 complete, ready to plan Phase 39
+Last session: 2026-08-01T23:28:44.968Z
+Stopped at: Phase 39 context gathered
 Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
 
 ## Operator Next Steps
