@@ -465,3 +465,158 @@ All ten tests pass. `tests/fixtures/desc_rubric_decoupling_render_gate/golden.ty
 is confirmed unchanged since the baseline commit
 (`git diff b37ea40 -- tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`
 produces no output).
+
+## RED — pre-fix run (SC#3, D-04, D-06)
+
+- **Commit measured:** `ea70913` (this plan's Task 1 commit, `test(36-03): add
+  Construct H and capture pre-fix PDF-text baselines`) -- `typsphinx/` is
+  untouched at this commit; `git status --porcelain typsphinx/` is empty. The
+  new SC#3 assertions and the PDF-text invariance guard written in this task
+  (Task 2) are run against `typsphinx/translator.py` unchanged since this
+  commit, before Task 3's fix is applied.
+- **Date:** 2026-08-01
+- **Command:**
+  ```
+  uv run pytest tests/test_inline_math_after_text_render_gate.py -q -k "mitex_path or native_path" --tb=short
+  ```
+
+### Verbatim pytest failure output
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a767a2485d4791381
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items / 1 deselected / 2 selected
+
+tests/test_inline_math_after_text_render_gate.py FF                      [100%]
+
+=================================== FAILURES ===================================
+_ TestInlineMathAfterTextRenderGate.test_typstpdf_separates_inline_math_mitex_path _
+tests/test_inline_math_after_text_render_gate.py:301: in test_typstpdf_separates_inline_math_mitex_path
+    assert (
+E   AssertionError: Construct E (mitex path) did not emit exactly one blank line after the block math call:
+E     ... [full emitted .typ elided in this evidence file; the failure below
+E     confirms the exact substring under test] ...
+E   assert 'text("Text before block math.")\nmitex(`E = m c^2`)\n\nparbreak()' in '// Essential package imports\n#import "@preview/codly:1.3.0": *\n#import "@preview/codly-languages:0.1.10": *\n#impor...ruct's emission must be identical before and after the MATH-02 fix.")})\n\nlist({\nmitex(`H = m g h`)\n\n\n})\n\n\n}\n'
+_ TestInlineMathAfterTextRenderGate.test_typstpdf_separates_inline_math_native_path _
+tests/test_inline_math_after_text_render_gate.py:457: in test_typstpdf_separates_inline_math_native_path
+    assert (
+E   AssertionError: Construct E (native path) did not emit exactly one blank line after the block math call:
+E     ... [full emitted .typ elided; see above] ...
+E   assert 'text("Text before block math.")\n$ E = m c^2 $\n\nparbreak()' in '// Essential package imports\n#import "@preview/codly:1.3.0": *\n#import "@preview/codly-languages:0.1.10": *\n#impor...construct's emission must be identical before and after the MATH-02 fix.")})\n\nlist({\n$ H = m g h $\n\n\n})\n\n\n}\n'
+=========================== short test summary info ============================
+FAILED tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_mitex_path
+FAILED tests/test_inline_math_after_text_render_gate.py::TestInlineMathAfterTextRenderGate::test_typstpdf_separates_inline_math_native_path
+======================= 2 failed, 1 deselected in 0.69s ========================
+```
+
+Both failures are on the new Construct E MATH-02 boundary assertion (the GREEN
+one-blank-line string), not a collection error, `ImportError`, missing file, or
+skip. RED confirmed against the unfixed translator, on both emission paths.
+
+### Pre-fix emitted regions per construct
+
+All four regions below were copied verbatim from a real `sphinx-build -b typst`
+build against this commit (unfixed translator), by locating the unique math
+body substring (`E = m c^2` for Construct E, `G = m a` for Construct G) in the
+emitted `index.typ` and reading the surrounding bytes with a Python one-liner
+-- never hand-retyped.
+
+**Construct E, mitex path** (three newlines -- two blank lines -- before
+`parbreak()`):
+```
+text("Text before block math.")\nmitex(`E = m c^2`)\n\n\nparbreak()
+```
+
+**Construct G, mitex path** (the labelled equation's payload spans three
+source lines because the directive content's own trailing blank lines flow
+into `node.astext()`; three newlines before `parbreak()`):
+```
+[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\nmitex(`G = m a\n\n`)\n\n\nparbreak()
+```
+
+**Construct E, native path** (`-D typst_use_mitex=0`):
+```
+text("Text before block math.")\n$ E = m c^2 $\n\n\nparbreak()
+```
+
+**Construct G, native path**:
+```
+[#metadata(none) <index:equation-construct-g-labeled-eq>]\n\n$ G = m a\n\n $\n\n\nparbreak()
+```
+
+**Construct H region, both paths** (the single-element edge -- copied for
+reference; this region is asserted UNCHANGED across the fix, not RED):
+
+mitex:
+```
+list({\nmitex(`H = m g h`)\n\n\n})
+```
+
+native:
+```
+list({\n$ H = m g h $\n\n\n})
+```
+
+### GREEN string derivation
+
+Per this plan's `<critical_plan_constraint>` and the milestone's invariant #4,
+each GREEN string below was derived BY HAND from the pre-fix string recorded
+directly above it, by removing exactly one newline character (the redundant
+one, immediately before the following `parbreak()`) -- nothing else was
+changed, and no string was taken from a fixed build:
+
+1. **Construct E, mitex.** Pre-fix: `...mitex(\`E = m c^2\`)\n\n\nparbreak()`.
+   GREEN: `...mitex(\`E = m c^2\`)\n\nparbreak()` -- the third `\n` removed.
+   No string was taken from a fixed build.
+2. **Construct G, mitex.** Pre-fix: `...\`)\n\n\nparbreak()` (after the
+   labelled payload's closing `` `) ``). GREEN: `...\`)\n\nparbreak()` -- the
+   third `\n` removed, the multi-line payload itself untouched.
+   No string was taken from a fixed build.
+3. **Construct E, native.** Pre-fix: `...$ E = m c^2 $\n\n\nparbreak()`.
+   GREEN: `...$ E = m c^2 $\n\nparbreak()` -- the third `\n` removed. No
+   string was taken from a fixed build.
+4. **Construct G, native.** Pre-fix: `... $\n\n\nparbreak()` (after the
+   labelled native span's closing `` $ ``). GREEN: `... $\n\nparbreak()` --
+   the third `\n` removed. No string was taken from a fixed build.
+
+Construct H's region (both paths) is asserted UNCHANGED -- not derived -- per
+D-06/the plan's measured fact #4: with no following sibling inside the list
+item, the trailing flag has no consumer, so pre-fix and post-fix emission are
+byte-identical by construction.
+
+The zero-blank-line boundary strings (e.g.
+`mitex(\`E = m c^2\`)\nparbreak()`) asserted absent on both sides of the fix
+were derived the same way conceptually (one fewer newline than GREEN) but
+were never observed in either build; they exist purely as the boundary-check
+half of each pair, per the plan's action text.
+
+### PDF-text baseline capture (pre-fix)
+
+Commands (Task 1, same commit `ea70913`):
+```
+uv run python -m sphinx -b typstpdf -q -E tests/fixtures/inline_math_after_text_render_gate <scratch>/build_mitex_pdf
+uv run python -m sphinx -b typstpdf -q -E -D typst_use_mitex=0 tests/fixtures/inline_math_after_text_render_gate <scratch>/build_native_pdf
+```
+Both exited `0`. Extraction (`pypdf.PdfReader`, pages joined with `\n`,
+`extract_text()` per page, matching the existing module idiom):
+
+| Path | Page count | Extracted text length (chars) |
+|------|------------|-------------------------------|
+| mitex | 3 | 1939 |
+| native | 3 | 1939 |
+
+**Measured finding, not assumed:** the two baselines are byte-identical to
+each other (`cmp` exit `0`) -- Typst's math typesetting renders both the
+mitex-converted LaTeX and the native `$...$` form through the same underlying
+Unicode Mathematical Alphanumeric glyph substitution, so the extracted PDF
+text carries no visible difference between the two emission paths for this
+fixture's math bodies. This is a genuine measurement, recorded transparently
+rather than silently reconciled; it does not affect the invariance guard
+itself, which compares each path's pre-fix baseline against that SAME path's
+post-fix extraction, never baseline-vs-baseline. PDF byte size and PDF byte
+equality were never asserted or recorded, per the plan's explicit prohibition
+(Typst embeds a `CreationDate`/`ModDate`, so two builds of identical input
+differ in bytes).
