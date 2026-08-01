@@ -61,14 +61,22 @@ flag on entry). Both mirror the non-reentrancy argument already documented at
 
 ## 3. The `desc_signature` wrapper (D-10, SIG-07 + SIG-09)
 
+> **Post-Wave-3 amendment (2026-08-01, plan 37-09, gap closure).** The post-merge gate caught a
+> regression the original `above: 0pt, below: 0pt` mandate below introduced: every signature's
+> glyphs overlapped the first line of its own description body, reproduced on a rasterised page
+> on two independent fixtures (`37-SPACING-FINDING.md`). This section's wrapper-open string and
+> its `[measured]` justification paragraph are REPLACED below with a corrected, independently
+> re-measured wrapper and figures. The paragraph that follows is the amended text; nothing above
+> this note or below the amended block was changed by this amendment.
+
 **Open** — `visit_desc_signature`, replacing the single literal currently produced by
 `f"{prefix}strong({{"` at the end of the verbatim-`visit_strong` block:
 
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {
+block(sticky: true, par(hanging-indent: 2.5em, {
 ```
 
-built as `f"{prefix}block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: {SHARED_INDENT_STEP}, {{"`.
+built as `f"{prefix}block(sticky: true, par(hanging-indent: {SHARED_INDENT_STEP}, {{"`.
 
 **Close** — `depart_desc_signature`, replacing the literal `"})"`:
 
@@ -78,10 +86,44 @@ built as `f"{prefix}block(above: 0pt, below: 0pt, sticky: true, par(hanging-inde
 
 (one `}` closing the content block, one `)` closing `par(`, one `)` closing `block(`).
 
-`above: 0pt, below: 0pt` is **mandatory, not cosmetic**. `[measured]` Typst `block()`'s default
-spacing adds ~26.5pt of vertical gap at each block boundary (14.39pt plain-flow baseline vs. 40.88pt
-with `block()` defaults vs. 14.48pt with both zeroed), which would reintroduce a SIG-08-shaped
-doubled-gap defect in a new form. `sticky: true` continues to work with both zeroed.
+`above`/`below` are **no longer overridden** — Typst's own `block()` default spacing is used.
+`[measured, re-verified 2026-08-01 in this worktree]` Measured via `context measure(...)` deltas
+(`measure(preceding + signature) - measure(preceding) - measure(signature)`, at this project's own
+11pt document text size, inside real paragraph flow — not an isolated probe): the current
+`block(above: 0pt, below: 0pt, sticky: true, ...)` wrapper produces **exactly 0pt** of vertical gap
+on BOTH the above-side (signature vs. the paragraph before it) and the below-side (signature vs. the
+body paragraph after it). That is the defect: zeroing both removes ALL separation, not a redundant
+amount, so the signature's own line box sits directly against the following paragraph's line box
+with nothing between them. `block(sticky: true, ...)` (no `above`/`below` override) produces
+**13.2pt** on both sides — and this is byte-for-byte identical to the gap between two ordinary,
+un-wrapped paragraphs in sequence at the same text size (also measured at 13.2pt = Typst's default
+1.2em block/paragraph spacing at 11pt), confirming that dropping the override restores exactly the
+paragraph-to-paragraph spacing a signature had before Phase 37 wrapped it in a `block()` at all.
+
+The original figures (14.39pt plain-flow baseline / 40.88pt with `block()` defaults / 14.48pt with
+both zeroed) came from a probe that did not carry the surrounding paragraph flow. Reconstructing
+that probe's likely shape in this worktree: placing a zero-height `context`/`metadata()` marker
+directly after the block, with no intervening paragraph break, reports the SAME position regardless
+of the block's `below` value (0pt, 0.5em, and 1.2em all queried identically) — the `below` margin
+only materializes once genuine block-level content follows and collapses against it, so a probe
+built that way cannot distinguish `0pt` from `1.2em` of `below` spacing and produces a number that
+reflects the probe's own shape rather than the applied spacing. Because of that blind spot, the
+original measurement could not have caught that zeroing both sides removes literally all
+separation, not a supposed ~26.5pt "redundant" amount.
+
+The original stated fear — "would reintroduce a SIG-08-shaped doubled-gap defect in a new form" —
+is **SUPERSEDED**: plan 37-05 already removed the duplicate `parbreak()` at its emission source (the
+`depart_desc` emission-position marker, contract §8), so a nested `py:method::` inside a
+`py:class::` no longer emits two consecutive breaks for block-spacing collapse to double up on. This
+was verified by re-rendering `tests/fixtures/signature_break_and_arrow_gate` (the SIG-08 nested-desc
+fixture) under the corrected `block(sticky: true, ...)` wrapper via
+`typst.compile(format="png", ppi=140)`: the outer class signature, its body, the nested method
+signature, and its body all show uniform, single-gap spacing on the rasterised page — no doubled
+gap, and (unlike the current zeroed wrapper) no overlap either.
+
+The D-10 binding constraint remains satisfied: this is still ONE wrapper, carrying both SIG-07's
+hanging indent and SIG-09's keep-with-next (`sticky: true`) — nothing in this amendment adds a
+second wrapper for Phase 38's `desc_content` to nest inside redundantly.
 
 `[measured]` The full wrapper compiles under `typst-py` 0.15.0 inside a real generated-document code
 block, together with `strong(raw(...))`, `emph(raw(...))`, `raw("\u{2192}")`, and
@@ -325,29 +367,29 @@ Applying §3, §5.1 (all five `desc_name`s are text-only leaves), §5.2 rule 2 (
 **Line 26–27 becomes:**
 
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("connect"))
+block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("connect"))
 raw("(") + emph(raw("host")) + raw(", ") + emph(raw("port")) + raw(", ") + emph(raw("timeout")) + raw("=") + raw("30") + raw(")")}))
 ```
 
 **Lines 36–37, 40–41, 43–44 become:**
 
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
 raw("(") + emph(raw("source")) + raw(")")}))
 ```
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
 raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(")")}))
 ```
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
+block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("compile"))
 raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + raw(", ") + emph(raw("symbol")) + raw(")")}))
 ```
 
 **Line 59 becomes:**
 
 ```
-block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {strong(raw("--sep"))}))
+block(sticky: true, par(hanging-indent: 2.5em, {strong(raw("--sep"))}))
 ```
 
 (the empty `desc_addname` contributes zero bytes and no separator — as it does today).
