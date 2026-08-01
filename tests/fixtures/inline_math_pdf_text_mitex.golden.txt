@@ -18,8 +18,8 @@ Construct C: collapsed field bodies – the concat context. The ​:type​: val
 prose then math (math following a sibling, exactly one separator).
 math_inline_default
 Type: 𝑥  Default: The value of 𝑥 computed inline
-A description paragraph so the confval also exercises the block field-body and normal-paragraph 
-path.
+A description paragraph so the confval also exercises the block field-body and normal-
+paragraph path.
 Construct D: definition-list term – a second concat context.
 Term 𝐸 = 𝑚𝑐2
 Definition body text.

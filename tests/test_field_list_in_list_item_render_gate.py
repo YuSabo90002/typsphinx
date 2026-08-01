@@ -193,19 +193,27 @@ class TestFieldListInListItemRenderGate:
         )
 
         # CR-01 regression: both fields of the top-level :Author:/:Version:
-        # list are paragraph-wrapped (block field bodies), so the FID-09
-        # inter-field text("  ") separator must NOT appear between them --
-        # that separator is only correct for the collapsed-inline field-body
-        # form (see test_confval_field_spacing_render_gate.py). Prior to the
-        # CR-01 fix this landed as a stray leading two-space indent glued to
-        # the "Version" label.
-        author_par_idx = typ_text.index('par({text("Test Author")})')
-        version_strong_idx = typ_text.index('strong(text("Version")', author_par_idx)
-        between_author_and_version = typ_text[author_par_idx:version_strong_idx]
+        # list are single-paragraph field bodies -- pre-Phase-38 these were
+        # paragraph-wrapped (block field bodies); Phase 38 (FLD-02, D-07)
+        # reclassifies this exact shape as single-paragraph-unwrapped and
+        # skips the par(...) wrapper entirely (census row A4, migrated here:
+        # 'par({text("Test Author")})' no longer exists in the emitted .typ
+        # at all, so the marker below is the field NAME's own strong(...)
+        # call instead of the now-absent par() wrapper). The FID-09
+        # inter-field text("  ") separator must still NOT appear between
+        # them -- that separator is only correct for the
+        # docutils-collapsed-inline field-body form (see
+        # test_confval_field_spacing_render_gate.py), never for the
+        # single-paragraph-unwrapped one (D-07/D-08's own trap). Prior to
+        # the original CR-01 fix this landed as a stray leading two-space
+        # indent glued to the "Version" label.
+        author_strong_idx = typ_text.index('strong(text("Author") + text(": "))')
+        version_strong_idx = typ_text.index('strong(text("Version")', author_strong_idx)
+        between_author_and_version = typ_text[author_strong_idx:version_strong_idx]
         assert 'text("  ")' not in between_author_and_version, (
             'A stray inter-field text("  ") separator was emitted between '
-            "the paragraph-wrapped Author and Version fields (CR-01 "
-            f"regression):\n{typ_text}"
+            "the single-paragraph-unwrapped Author and Version fields "
+            f"(CR-01 regression):\n{typ_text}"
         )
 
         # Same CR-01 check for the nested :Organization ID:/:Project ID:/
