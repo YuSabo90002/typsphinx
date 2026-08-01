@@ -1,0 +1,290 @@
+"""
+SIG-09 real-render page-boundary acceptance gate (37-03-PLAN.md Task 2).
+
+Proves that a signature and the first line of its description body are not
+split across a page break: the signature's name, its parameter list, and
+the first line of its description body must all land on the SAME compiled
+page.
+
+Measurement method (contract section 4.2 / RESEARCH.md): every page's text
+is read via plain ``pypdf.extract_text()`` per PAGE (never the all-pages-
+joined pattern ``tests/test_pdf_render_gate.py`` uses elsewhere, which
+cannot express per-page containment) and never the per-glyph position-
+callback extraction mode (measured unusable on Typst-generated PDFs in this
+sandbox). Every extracted page's text strips U+200B first (contract
+section 4.2's spurious-emission hazard), defensively -- this fixture's own
+content injects no U+200B, but the helper stays consistent with every
+other gate in this phase.
+
+Page-height override mechanism (Task 2's required probe, done this
+session): no existing fixture in this project overrides page geometry.
+Three candidates were evaluated:
+
+  (a) a ``typst_elements``/template-parameter override reaching
+      ``project()`` via ``conf.py`` -- REJECTED: ``template_engine.py``'s
+      ``ELEMENTS_ALLOWLIST`` only declares ``papersize``/``fontsize``/
+      ``lang``; there is no page-height key, and adding one is
+      configuration surface this phase does not own.
+  (b) a fixture-local custom ``typst_template`` -- REJECTED: heavier than
+      necessary (a whole parallel template) for a single geometry override
+      this test only needs once.
+  (c) compiling the emitted ``index.typ`` in the test with a small
+      page-geometry preamble prepended -- CHOSEN. Verified by a real
+      ``typst.compile()`` probe this session (see
+      ``_insert_page_override``'s docstring for the exact mechanism and
+      the clobbering hazard it avoids): the emitted ``.typ`` is otherwise
+      UNMODIFIED apart from the inserted preamble, so the artifact under
+      test stays the translator's own output.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+try:
+    import typst
+
+    TYPST_AVAILABLE = True
+except ImportError:
+    TYPST_AVAILABLE = False
+
+try:
+    import pypdf
+
+    PYPDF_AVAILABLE = True
+except ImportError:
+    PYPDF_AVAILABLE = False
+
+# The zero-width space character -- stripped from every compiled-PDF text
+# read (contract section 4.2's spurious-emission hazard), defensively.
+ZWSP = "\u200b"  # U+200B, written as an explicit escape (not an invisible literal)
+
+# Sentinel tokens embedded in
+# tests/fixtures/signature_page_boundary_render_gate/index.rst -- the
+# signature's own name, its first parameter's name, and the first word of
+# its description body's first line. Each is distinctive, at least 12
+# characters, and does not occur elsewhere in the fixture (37-03-PLAN.md
+# Task 2 acceptance criteria).
+NAME_SENTINEL = "sigboundarynamesentinel"
+PARAM_SENTINEL = "sigboundaryparamsentinel"
+BODY_SENTINEL = "SIGBOUNDARYBODYFIRSTLINESENTINEL"
+
+# The short-page geometry under which the untouched translator's
+# signature/body split reproduces (found this session by sweeping page
+# heights against the real compiled fixture -- 100-200pt all reproduce the
+# split; 200pt/20pt was chosen as a round, comfortably-reproducible value).
+PAGE_HEIGHT_PT = 200.0
+PAGE_MARGIN_PT = 20.0
+
+# Measured this session (37-03-PLAN.md Task 2) against the untouched
+# translator at PAGE_HEIGHT_PT/PAGE_MARGIN_PT: the fixture compiles to
+# exactly 6 pages (the title page and the table-of-contents page, both
+# still at the real A4 height since project()'s own pagebreak()s precede
+# `body`, plus 4 short-page content pages). Pinned here as the Pitfall-1
+# spacing non-inflation guard's baseline -- contract section 3 measured
+# that adopting block() without zeroing its above/below spacing adds
+# ~26.5pt per signature boundary, which would inflate the page count.
+EXPECTED_PAGE_COUNT_PRE_PHASE = 6
+
+
+def _run_sphinx_build_typst(
+    source_dir: Path, build_dir: Path
+) -> subprocess.CompletedProcess:
+    """
+    Run `sphinx-build -b typst` as a subprocess and return the completed
+    process. Invoked as `sys.executable -m sphinx` -- see
+    tests/test_pdf_render_gate.py's `_run_sphinx_build_typst` for the full
+    NixOS-sandbox PATH-shadowing rationale this mirrors.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typst",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) -> str:
+    """
+    Insert `#set page(height: ..., margin: ...)` as the FIRST statement of
+    the `body` argument passed into `project()` -- i.e. immediately after
+    the real `#show: project.with(...)` call's closing paren and the blank
+    line that follows it in `template_engine.py`'s `render()` output.
+
+    Verified by a real `typst.compile()` probe this session (Task 2's
+    required probe): a `#set page(...)` placed at the very TOP of the file
+    -- BEFORE `project()`'s own `set page(paper: papersize, ...)` call --
+    is silently CLOBBERED, because Typst's `paper:` keyword sets width AND
+    height together, discarding any earlier explicit height. Placed here
+    instead -- chronologically AFTER `project()`'s own `set page()` call
+    executes, inside the same function body -- only the fields this
+    override explicitly names (`height`, `margin`) are overridden; the
+    paper's width is untouched. `typsphinx/templates/base.typ`'s
+    `project()` renders the title page and the table-of-contents page
+    (each followed by its own `pagebreak()`) BEFORE `body`, so both of
+    those keep the real A4 geometry; only the fixture's own translated
+    content -- starting from `body` -- uses the short page height under
+    test.
+
+    This is mechanism (c) from the module docstring: the emitted `.typ` is
+    otherwise UNMODIFIED apart from this inserted preamble, so the
+    artifact under test stays the translator's own output. Locates the
+    LATER of the document's two `#show: ` statements (the earlier one,
+    `#show: codly-init.with()`, is unrelated) by searching from the
+    `#import "_template.typ"` line onward.
+    """
+    template_import_idx = base_source.index('#import "_template.typ"')
+    show_idx = base_source.index("#show: ", template_import_idx)
+    insertion_idx = base_source.index(")\n\n", show_idx) + len(")\n\n")
+    override = f"#set page(height: {height_pt}pt, margin: {margin_pt}pt)\n\n"
+    return base_source[:insertion_idx] + override + base_source[insertion_idx:]
+
+
+def _compile_and_extract_pages(index_typ_path: Path, build_dir: Path) -> list:
+    """
+    Insert the short-page-geometry override, compile the probe through the
+    real `typst.compile()`, and return a list of per-page extracted text
+    (index 0 = first page) -- a real per-page loop over `reader.pages`,
+    never the all-pages-joined pattern, so per-page containment can be
+    asserted.
+    """
+    base_source = index_typ_path.read_text()
+    probe_source = _insert_page_override(base_source, PAGE_HEIGHT_PT, PAGE_MARGIN_PT)
+    probe_path = build_dir / "sig09_probe.typ"
+    probe_path.write_text(probe_source)
+    pdf_path = build_dir / "sig09_probe.pdf"
+    typst.compile(str(probe_path), output=str(pdf_path))
+
+    reader = pypdf.PdfReader(str(pdf_path))
+    pages = []
+    for page in reader.pages:
+        text = page.extract_text().replace(ZWSP, "")
+        pages.append(text)
+    return pages
+
+
+def _find_page_index(pages: list, token: str):
+    """Return the index of the FIRST page whose text contains `token`, or
+    `None` if it appears on no page."""
+    for i, text in enumerate(pages):
+        if token in text:
+            return i
+    return None
+
+
+@pytest.fixture(scope="class")
+def signature_page_boundary_pages(tmp_path_factory):
+    """
+    Build the signature_page_boundary_render_gate fixture through
+    `-b typst`, compile it (with the short-page override) through the real
+    `typst.compile()`, and return the per-page extracted text -- ONCE per
+    class, so every test method below reads a disjoint slice of the same
+    real compile.
+
+    Depends only on `tmp_path_factory` -- not a function-scoped
+    fixtures-dir fixture -- to avoid a pytest ScopeMismatch (mirrors
+    tests/test_pdf_render_gate.py's `topic_line_block_render_gate_pdf_text`
+    precedent).
+    """
+    source_dir = (
+        Path(__file__).parent / "fixtures" / "signature_page_boundary_render_gate"
+    )
+    build_dir = tmp_path_factory.mktemp("sig09_gate") / "_build"
+    result = _run_sphinx_build_typst(source_dir, build_dir)
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+    index_typ = build_dir / "index.typ"
+    assert index_typ.exists(), "index.typ was not generated"
+    return _compile_and_extract_pages(index_typ, build_dir)
+
+
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the SIG-09 render gate",
+)
+class TestSignaturePageBoundaryRenderGate:
+    """
+    Real-compile per-page acceptance gate for SIG-09.
+
+    Requirements: SIG-09 (37-CONTEXT.md D-09/D-10, 37-RESEARCH.md
+    "D-09 / SIG-09: page-boundary keep-together, empirically proven",
+    37-03-PLAN.md Task 2).
+    """
+
+    def test_two_page_precondition_guard(self, signature_page_boundary_pages):
+        """
+        At least two pages must exist. Without this guard, a fixture that
+        accidentally fits entirely on one page would pass the primary
+        assertion below VACUOUSLY (every sentinel trivially "shares a
+        page" when there is only one page) -- exactly the failure mode
+        milestone invariant #4 exists to prevent. This guard passes
+        pre-phase and must keep passing.
+        """
+        assert len(signature_page_boundary_pages) >= 2, (
+            f"expected at least 2 pages under the short-page geometry "
+            f"({PAGE_HEIGHT_PT}pt height); got "
+            f"{len(signature_page_boundary_pages)} -- the primary "
+            "containment assertion would be vacuous."
+        )
+
+    def test_page_count_does_not_inflate(self, signature_page_boundary_pages):
+        """
+        Pitfall 1 guard: the compiled page count must not GROW beyond the
+        pinned pre-phase baseline. Contract section 3 measured that
+        adopting Typst's `block()` wrapper without explicitly zeroing its
+        `above`/`below` spacing adds ~26.5pt of vertical gap at EVERY
+        signature boundary -- a page-count regression is a cheap way to
+        catch that class of defect. This assertion passes pre-phase (the
+        page count trivially equals its own baseline) and must keep
+        passing after the SIG-09 fix lands.
+        """
+        actual = len(signature_page_boundary_pages)
+        assert actual <= EXPECTED_PAGE_COUNT_PRE_PHASE, (
+            f"page count grew from the pinned pre-phase baseline of "
+            f"{EXPECTED_PAGE_COUNT_PRE_PHASE} to {actual} -- likely the "
+            "block() spacing-inflation regression contract section 3 / "
+            "37-RESEARCH.md Pitfall 1 warns against (block() adopted "
+            "without above: 0pt, below: 0pt)."
+        )
+
+    def test_primary_signature_and_body_share_a_page(
+        self, signature_page_boundary_pages
+    ):
+        """
+        SIG-09 primary: the signature's name, its parameter list, and the
+        first line of its description body must all land on the SAME
+        compiled page.
+
+        Pre-phase (this session, against the untouched translator, at
+        PAGE_HEIGHT_PT/PAGE_MARGIN_PT): the name and the parameter both
+        land on page index 4, but the body's first-line sentinel is pushed
+        to page index 5 -- SIG-09's exact defect, reproduced with a real
+        page-break fixture. This assertion FAILS (RED) against the
+        untouched translator; 37-06 (Wave 3) makes it pass by wrapping the
+        signature in `block(sticky: true, ...)` (D-09/D-10).
+        """
+        pages = signature_page_boundary_pages
+        name_idx = _find_page_index(pages, NAME_SENTINEL)
+        param_idx = _find_page_index(pages, PARAM_SENTINEL)
+        body_idx = _find_page_index(pages, BODY_SENTINEL)
+
+        assert name_idx is not None, f"{NAME_SENTINEL!r} not found on any page"
+        assert param_idx is not None, f"{PARAM_SENTINEL!r} not found on any page"
+        assert body_idx is not None, f"{BODY_SENTINEL!r} not found on any page"
+
+        assert name_idx == param_idx == body_idx, (
+            f"signature name (page index {name_idx}), its parameter list "
+            f"(page index {param_idx}), and the first line of its "
+            f"description body (page index {body_idx}) are NOT all on the "
+            "same page -- SIG-09 page-boundary defect."
+        )
