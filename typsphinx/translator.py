@@ -5466,6 +5466,25 @@ class TypstTranslator(SphinxTranslator):
     def visit_field_list(self, node: nodes.field_list) -> None:
         """
         Visit a field_list node (structured fields like Parameters, Returns).
+
+        Opens the field list's own indent step (FLD-01, D-03,
+        38-EMISSION-CONTRACT.md section 3): ``pad(left: SHARED_INDENT_STEP,
+        {`` -- the SAME shared constant desc_content's body wrapper uses, so
+        under that wrapper's composition (no depth counter, D-01) a field
+        list nested inside a description body simply lands one further step
+        in. Emitted AFTER the existing bug #4 leading-separator guard below,
+        which is unchanged, and routed through self.add_text (D-12), never
+        self.body.append -- a field list inside a table cell misroutes
+        without it (38-EMISSION-CONTRACT.md section 3.1).
+
+        Separator bookkeeping (D-12, decided by the fixture): this handler
+        keeps the SAME leading-guard shape as visit_desc_content's own
+        decision (38-05-SUMMARY.md) and visit_block_quote's bug #4
+        precedent -- consistency with the established block-visitor pattern
+        over a byte-count-minimal implementation. Falsified against
+        tests/test_field_list_in_list_item_render_gate.py (a genuine field
+        list inside a bullet-list item) and confirmed non-regressing
+        against tests/test_desc_bodyless_concat_render_gate.py.
         """
         # Emit a leading newline separator when this field list follows a
         # sibling inside a list item, matching the block-visitor pattern
@@ -5478,14 +5497,21 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
             self.list_item_needs_separator = False
+        self.add_text(f"pad(left: {SHARED_INDENT_STEP}, {{")
 
     def depart_field_list(self, node: nodes.field_list) -> None:
         """
         Depart a field_list node.
 
-        Add spacing after field lists.
+        Closes the indent step opened in visit_field_list: ``})\\n``
+        (38-EMISSION-CONTRACT.md section 3), replacing the pre-phase bare
+        ``self.body.append("\\n")``. Routed through self.add_text (D-12) --
+        the pre-phase direct append bypassed table-cell routing entirely, so
+        a field list inside a table cell misroutes today regardless of the
+        wrapper (section 3.1); this conversion fixes that byte-identically
+        outside a table.
         """
-        self.body.append("\n")
+        self.add_text("})\n")
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
@@ -5521,7 +5547,7 @@ class TypstTranslator(SphinxTranslator):
         if self._last_field_body_was_inline and node.next_node(
             descend=False, siblings=True
         ):
-            self.body.append('\ntext("  ")\n')
+            self.add_text('\ntext("  ")\n')
 
     def visit_field_name(self, node: nodes.field_name) -> None:
         """
@@ -5534,7 +5560,7 @@ class TypstTranslator(SphinxTranslator):
         self.in_paragraph = False
 
         # Use strong() function (no # prefix in code mode)
-        self.body.append("strong(")
+        self.add_text("strong(")
 
         # Store state to restore in depart
         self._field_name_was_in_paragraph = was_in_paragraph
@@ -5545,7 +5571,7 @@ class TypstTranslator(SphinxTranslator):
         # (FID-09) -- the space is a real content value inside the +-joined
         # strong() expression, restoring the "Type: int" colon-space that
         # was previously emitted as a bare colon with no trailing space.
-        self.body.append(' + text(": "))\n')
+        self.add_text(' + text(": "))\n')
 
         # Restore paragraph state
         if hasattr(self, "_field_name_was_in_paragraph"):
@@ -5595,7 +5621,7 @@ class TypstTranslator(SphinxTranslator):
         # the parent's saved state.
         self._last_field_body_was_inline = self._in_field_body
         self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
-        self.body.append("\n")
+        self.add_text("\n")
 
     def visit_rubric(self, node: nodes.rubric) -> None:
         """

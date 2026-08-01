@@ -161,9 +161,21 @@ class TestFieldListInListItemRenderGate:
             "The field list still juxtaposes 'For example:' directly against "
             f"a following strong( inside a list item:\n{typ_text}"
         )
-        assert 'text("For example:")\nstrong(text("Organization ID")' in typ_text, (
+        # Phase 38 (FLD-01, 38-EMISSION-CONTRACT.md section 3): the field
+        # list now opens its own pad(left: 2.5em, {...}) indent wrapper
+        # immediately after the same leading-newline separator this test
+        # was originally written to prove -- hand-migrated per the census's
+        # "migrated at the point the bytes change" rule (row A4 predicted
+        # the downstream par({text("Test Author")})} break below; this
+        # earlier assertion breaks for the identical reason and is a
+        # census miss recorded in the SUMMARY, not a new defect).
+        assert (
+            'text("For example:")\npad(left: 2.5em, {strong(text("Organization ID")'
+            in typ_text
+        ), (
             "Expected the field list to newline-separate from the preceding "
-            f"'For example:' paragraph inside the list item:\n{typ_text}"
+            "'For example:' paragraph inside the list item, with its own "
+            f"Phase 38 indent wrapper immediately following:\n{typ_text}"
         )
 
         # A top-level field list (not nested in a list item) must stay
