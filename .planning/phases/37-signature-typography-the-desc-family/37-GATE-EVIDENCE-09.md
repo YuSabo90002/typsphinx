@@ -246,13 +246,11 @@ Type: 𝑥  Default: The value of 𝑥 computed inline
 
 ### 4.4 Commit message statement
 
-Both golden updates were committed together with `tests/test_signature_page_boundary_render_gate.py`'s
-re-pin in commit `76324bf`'s message body is about the wrapper fix itself; the goldens' own change is
-recorded here and in this plan's `SUMMARY.md` as explicitly **Phase-37-induced signature typography
-(the `block()` wrapper becoming a genuine block-level element), NOT a MATH-02 regression** -- the
-MATH-02 fix (Phase 34/36) is untouched by this plan, and its own invariance claim (no *other* line in
-either extracted-text document moved) still holds, verified by the diffs in section 4.1 above showing
-zero incidental changes.
+Both golden updates were committed in `38ccb3a`, whose message states explicitly that the change is
+**Phase-37-induced signature typography (the `block()` wrapper becoming a genuine block-level
+element), NOT a MATH-02 regression** -- the MATH-02 fix (Phase 34/36) is untouched by this plan, and
+its own invariance claim (no *other* line in either extracted-text document moved) still holds,
+verified by the diffs in section 4.1 above showing zero incidental changes.
 
 ### 4.5 Byte-exact match confirmation
 
@@ -369,9 +367,9 @@ own description body on any page of any fixture.
 | `tests/test_signature_page_boundary_render_gate.py` | 2 | `76324bf` |
 | `tests/test_signature_typography_gate.py` | 2 | `76324bf` |
 | `tests/test_translator.py` | 2 | `76324bf` |
-| `tests/fixtures/inline_math_pdf_text_mitex.golden.txt` | 3 | (this plan's remaining commit) |
-| `tests/fixtures/inline_math_pdf_text_native.golden.txt` | 3 | (this plan's remaining commit) |
-| `.planning/phases/37-signature-typography-the-desc-family/37-GATE-EVIDENCE-09.md` | 3 | (this plan's remaining commit) |
+| `tests/fixtures/inline_math_pdf_text_mitex.golden.txt` | 3 | `38ccb3a` |
+| `tests/fixtures/inline_math_pdf_text_native.golden.txt` | 3 | `38ccb3a` |
+| `.planning/phases/37-signature-typography-the-desc-family/37-GATE-EVIDENCE-09.md` | 3 | `38ccb3a` |
 
 ---
 
