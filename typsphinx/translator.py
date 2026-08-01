@@ -5270,7 +5270,38 @@ class TypstTranslator(SphinxTranslator):
         self._desc_parameter_has_content = True
 
     def depart_desc_optional(self, node: addnodes.desc_optional) -> None:
-        """Depart a desc_optional node."""
+        """
+        Depart a desc_optional node.
+
+        D-11 (37-EMISSION-CONTRACT.md section 6.1): when this optional
+        GROUP itself has a following sibling, Sphinx's own HTML writer
+        puts the separator INSIDE the closing bracket -- measured this
+        session -- so this handler emits the same ", " separator
+        depart_desc_parameter emits, through the monospace primitive,
+        immediately BEFORE the closing bracket.
+
+        Two things are load-bearing here:
+
+        1. The sibling test is against the desc_optional node ITSELF,
+           mirroring what depart_desc_parameter already does for a
+           desc_parameter's own following sibling -- NOT against
+           desc_optional's last child. The group's last parameter has no
+           following sibling of its own, which is exactly why the
+           separator Sphinx emits (because the *group* has one) was
+           previously lost.
+        2. The nested-optional case (e.g. printf(fmt[, args[, more]]))
+           is UNCHANGED by this guard, because both of its optional
+           groups are last children -- this is the fix's non-regression
+           CONTROL, not a case to later "extend" the fix to cover.
+
+        Contract section 6.2 corrects CONTEXT.md D-11's second half: the
+        closing bracket and a following parameter are ALREADY explicitly
+        + joined on the current tree (depart_desc_optional already sets
+        _desc_parameter_has_content = True below), so that half is a
+        non-regression assertion, not a code change.
+        """
+        if node.next_node(descend=False, siblings=True):
+            self.add_text(' + raw(", ")')
         self.add_text(' + raw("]")')
         self._desc_parameter_has_content = True
 
