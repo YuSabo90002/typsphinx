@@ -644,15 +644,28 @@ class TestFieldBodyTypographyGate:
         """FLD-02 list-item empty edge: the bullet construct's :returns:
         field has no sibling field, so depart_field_body's D-07/D-08
         compensating parbreak() -- guarded on the parent field having a
-        following sibling -- must not fire after its value either."""
+        following sibling -- must not fire after its value either.
+
+        Scoped to end at the field_list/desc_content pad-closing tokens
+        (the literal ``})\\n})`` that immediately follows depart_field_body's
+        own unconditional trailing newline): depart_desc's OWN unconditional
+        FID-06 parbreak() always follows shortly after a desc's departure,
+        regardless of field siblings -- that is a DIFFERENT mechanism and
+        must not be conflated with the field-level compensating break under
+        test here, or this test would fail on every desc, defeating its own
+        purpose."""
         region = _section(typ_text, _H_LI_BULLET, _H_LI_ENUM)
         value_call = 'text("fld02 listitem bullet returns sentinel.")'
         value_idx = region.index(value_call)
-        after = region[value_idx + len(value_call) :]
-        assert "parbreak()" not in after, (
+        after_value = region[value_idx + len(value_call) :]
+        pad_close_marker = "})\n})"
+        pad_close_idx = after_value.index(pad_close_marker)
+        field_body_trailer = after_value[:pad_close_idx]
+        assert "parbreak()" not in field_body_trailer, (
             "FLD-02 list-item (bullet) empty edge: expected NO trailing "
-            f"inter-field parbreak() after the lone field's value; found "
-            f"one in:\n{after!r}"
+            f"inter-field parbreak() between the lone field's value and "
+            f"the field_list's own closing bytes; found one in:\n"
+            f"{field_body_trailer!r}"
         )
 
     def test_fld02_list_item_consecutive_fields_stay_on_separate_lines(
