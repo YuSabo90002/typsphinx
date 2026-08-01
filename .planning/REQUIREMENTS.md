@@ -54,7 +54,7 @@ PDF.
       the v0.6.1 FID-01a fix (U+200B injection + fr-weighted columns) was for wide *tables* and must
       not be assumed to transfer to full-width signatures.
 
-- [ ] **SIG-08** [M]: Sibling signatures (overloads, alias groups, multi-option directives) and
+- [x] **SIG-08** [M]: Sibling signatures (overloads, alias groups, multi-option directives) and
       their surrounding blocks are separated by exactly one break — the doubled `parbreak()` runs
       visible in the measured output are gone.
 
@@ -269,7 +269,7 @@ Phase numbering continues from v0.6.5's last phase (35).
 | SIG-05 | Phase 37 | Pending |
 | SIG-06 | Phase 37 | Pending |
 | SIG-07 | Phase 37 | Pending |
-| SIG-08 | Phase 37 | Pending |
+| SIG-08 | Phase 37 | Complete |
 | SIG-09 | Phase 37 | Pending |
 | IND-01 | Phase 38 | Pending |
 | IND-02 | Phase 38 | Pending |
