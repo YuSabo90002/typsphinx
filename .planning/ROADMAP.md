@@ -436,7 +436,7 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: 5/8 plans executed
+**Plans**: 6/8 plans executed
 
 **Wave 1**
 
@@ -451,7 +451,7 @@ before the body wrapper is put around it)
 
 **Wave 3**
 
-- [ ] 38-06-PLAN.md — FLD-01's second nested step (D-03) and FLD-02/D-07's single-paragraph field-body unwrap, with the inter-field separator kept scoped to the collapsed-inline case so consecutive fields stay separate paragraphs
+- [x] 38-06-PLAN.md — FLD-01's second nested step (D-03) and FLD-02/D-07's single-paragraph field-body unwrap, with the inter-field separator kept scoped to the collapsed-inline case so consecutive fields stay separate paragraphs
 
 **Wave 4**
 
@@ -621,7 +621,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
-| 38. Structural Indentation + Info Fields | v0.7.0 | 5/8 | In Progress|  |
+| 38. Structural Indentation + Info Fields | v0.7.0 | 6/8 | In Progress|  |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
