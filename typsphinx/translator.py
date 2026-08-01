@@ -157,6 +157,17 @@ class TypstTranslator(SphinxTranslator):
         # desc_signature.
         self.in_signature_text = False
 
+        # SIG-04 D-05 discriminator state (37-EMISSION-CONTRACT.md section
+        # 2/5.2): True once the CURRENT desc_parameter's own name (its
+        # first text-only-leaf desc_sig_name child) has been emitted, so a
+        # later desc_sig_name in the SAME parameter (part of a type
+        # annotation) falls through to rule 3 instead of being italicised
+        # again. Reset to False in visit_desc_parameter on entry. A scalar,
+        # not a stack: desc_parameter never nests inside desc_parameter (a
+        # desc_optional group holds desc_parameter SIBLINGS, each of which
+        # resets the flag on its own entry).
+        self._param_name_seen = False
+
         # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8):
         # records len(self.body) immediately after a `desc`'s own parbreak()
         # was emitted, so depart_desc can tell whether anything has been
@@ -1041,6 +1052,15 @@ class TypstTranslator(SphinxTranslator):
         setattr(self, ctx[0], True)  # un-suppress the outer context flag
         setattr(self, ctx[1], True)  # this element = a sibling for the next one
 
+    # ------------------------------------------------------------------
+    # Signature typography helpers (Phase 37, SIG-01..SIG-07,
+    # 37-EMISSION-CONTRACT.md sections 4-5). Shared by visit_Text's
+    # in_signature_text branch, visit_desc_name/visit_desc_annotation's
+    # text-only-leaf bold branch, and visit_desc_sig_name's D-05
+    # discriminator -- ONE place each algorithm lives, per D-04's "no
+    # second escaping helper" constraint.
+    # ------------------------------------------------------------------
+
     def _escape_signature_text(self, text: str) -> str:
         """
         Escape a signature text run and inject the SIG-07/D-07
@@ -1069,6 +1089,38 @@ class TypstTranslator(SphinxTranslator):
         """
         escaped = escape_typst_string(text)
         return escaped.replace(".", ".\\u{200B}")
+
+    def _emit_signature_leaf_wrapper(self, node: nodes.Element, wrapper: str) -> None:
+        """
+        Emit a complete ``wrapper(raw("..."))`` call for a text-only-leaf
+        signature node (a ``desc_name`` / ``desc_annotation`` whose every
+        child is ``nodes.Text``, or a leaf ``desc_sig_name``), then raise
+        ``nodes.SkipNode`` -- mirroring ``visit_literal``'s leaf-emission
+        shape (``typsphinx/translator.py:1289-1367``): the paragraph
+        separator, the concat-separator-or-list-item-newline fallback,
+        the call itself (escaped + break-opportunity-injected via
+        :meth:`_escape_signature_text`), then the mark-content-or-list-
+        item-separator fallback.
+
+        ``wrapper`` is ``"strong"`` (contract section 5.1's leaf branch /
+        section 5.2 rule 1) or ``"emph"`` (section 5.2 rule 2) -- the
+        two treatments SIG-01/SIG-04 require, sharing everything except
+        the wrapper call name.
+        """
+        self._add_paragraph_separator()
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        escaped = self._escape_signature_text(node.astext())
+        prefix = "#" if self._in_markup_mode else ""
+        self.add_text(f'{prefix}{wrapper}(raw("{escaped}"))')
+
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+
+        raise nodes.SkipNode
 
     def visit_Text(self, node: nodes.Text) -> None:
         """
@@ -1109,8 +1161,10 @@ class TypstTranslator(SphinxTranslator):
             # Escape + inject the break-opportunity escape via the shared
             # helper (see its docstring for the load-bearing order
             # rationale) -- the SAME algorithm every signature leaf-
-            # emission site reuses, so there is exactly one place the
-            # escape+ZWSP algorithm lives.
+            # emission site (this branch, visit_desc_name/
+            # visit_desc_annotation's bold leaf branch,
+            # visit_desc_sig_name's bold/italic leaf branches) reuses, so
+            # there is exactly one place the escape+ZWSP algorithm lives.
             sig_text_content = self._escape_signature_text(sig_text_content)
 
             self._add_paragraph_separator()
@@ -5051,8 +5105,19 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_annotation(self, node: addnodes.desc_annotation) -> None:
         """
         Visit a desc_annotation node (type annotations like 'class', 'async', etc.).
+
+        SIG-03 (37-EMISSION-CONTRACT.md section 5.1): identical treatment
+        to visit_desc_name -- a desc_annotation and a desc_name in the
+        SAME signature must render with the byte-identical wrapper shape.
+        When every child is a text-only nodes.Text leaf (the py/option/c/
+        rst-domain case), emit the complete bold-monospace form via
+        _emit_signature_leaf_wrapper and skip further descent. Otherwise
+        stay a no-op and let the children dispatch normally under
+        self.in_signature_text -- flattening a non-leaf subtree via
+        node.astext() is the RESEARCH Pitfall 3 hazard.
         """
-        pass
+        if all(isinstance(child, nodes.Text) for child in node.children):
+            self._emit_signature_leaf_wrapper(node, "strong")
 
     def depart_desc_annotation(self, node: addnodes.desc_annotation) -> None:
         """
@@ -5067,6 +5132,11 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_addname(self, node: addnodes.desc_addname) -> None:
         """
         Visit a desc_addname node (module name prefix).
+
+        SIG-02: deliberately stays a no-op. self.in_signature_text alone
+        gives every descendant Text node regular-weight monospace
+        (raw(...), no strong()) via visit_Text's branch -- that IS SIG-02.
+        Do not add a wrapper here.
         """
         pass
 
@@ -5077,11 +5147,31 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_name(self, node: addnodes.desc_name) -> None:
         """
         Visit a desc_name node (function/class name).
+
+        SIG-01 (37-EMISSION-CONTRACT.md section 5.1): when every child is
+        a text-only nodes.Text leaf (the py/option/c/rst-domain case),
+        emit the complete bold-monospace form via
+        _emit_signature_leaf_wrapper and skip further descent. Otherwise
+        (measured: the C++ domain nests a desc_sig_name inside desc_name)
+        stay a no-op and let the nested desc_sig_name handle itself via
+        visit_desc_sig_name's rule 1 -- flattening a non-leaf subtree via
+        node.astext() would silently drop a resolved cross-reference's
+        hyperlink while still passing a substring check (RESEARCH
+        Pitfall 3).
         """
-        pass
+        if all(isinstance(child, nodes.Text) for child in node.children):
+            self._emit_signature_leaf_wrapper(node, "strong")
 
     def depart_desc_name(self, node: addnodes.desc_name) -> None:
-        """Depart a desc_name node."""
+        """
+        Depart a desc_name node.
+
+        Only reached for the non-leaf branch (visit_desc_name's leaf
+        branch raises nodes.SkipNode, so depart is never called for a
+        leaf desc_name -- its separator bookkeeping is functionally
+        preserved through _emit_signature_leaf_wrapper's own
+        mark-content fallback instead).
+        """
         # Mark that next element needs separator (for parameterlist)
         if self.in_list_item:
             self.list_item_needs_separator = True
@@ -5116,10 +5206,20 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_parameter(self, node: addnodes.desc_parameter) -> None:
         """
         Visit a desc_parameter node (individual parameter).
+
+        SIG-04 / D-05 (37-EMISSION-CONTRACT.md section 5.2): resets
+        self._param_name_seen to False for THIS parameter, mirroring
+        visit_desc_parameterlist's existing per-scope
+        _desc_parameter_has_content = False reset idiom -- so
+        visit_desc_sig_name's rule 2 italicises only the FIRST text-only-
+        leaf desc_sig_name child of each parameter. A scalar (not a
+        stack) is correct here: desc_parameter nodes never nest inside
+        desc_parameter nodes -- a desc_optional group holds desc_parameter
+        SIBLINGS, and each resets the flag on its own entry.
         """
+        self._param_name_seen = False
         # No changes needed - already in desc_parameter context from parameterlist
         # Don't reset _desc_parameter_has_content here - it's managed by depart_desc_parameter
-        pass
 
     def depart_desc_parameter(self, node: addnodes.desc_parameter) -> None:
         """
@@ -5432,7 +5532,12 @@ class TypstTranslator(SphinxTranslator):
     # Additional signature nodes (desc_sig_* family)
 
     def visit_desc_sig_keyword(self, node: addnodes.desc_sig_keyword) -> None:
-        """Visit a desc_sig_keyword node (keywords in signatures like 'class', 'def')."""
+        """Visit a desc_sig_keyword node (keywords in signatures like 'class', 'def').
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed.
+        """
         pass
 
     def depart_desc_sig_keyword(self, node: addnodes.desc_sig_keyword) -> None:
@@ -5440,7 +5545,12 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
-        """Visit a desc_sig_space node (whitespace in signatures)."""
+        """Visit a desc_sig_space node (whitespace in signatures).
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed.
+        """
         pass
 
     def depart_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
@@ -5448,15 +5558,90 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:
-        """Visit a desc_sig_name node (names in signatures)."""
-        pass
+        """
+        Visit a desc_sig_name node (names in signatures) -- the D-05
+        discriminator (37-EMISSION-CONTRACT.md section 5.2), three
+        mutually exclusive rules evaluated in order (each SkipNode-raising
+        branch below makes the remaining checks unreachable for THIS
+        node, which is what "mutually exclusive" means here):
+
+        Rule 1: the node's parent is a desc_annotation or desc_name, and
+        this node is itself a text-only leaf -> emit strong(raw(...)) and
+        skip. This is what makes a non-leaf desc_name (measured: the C++
+        domain nests a desc_sig_name inside desc_name) bold via its
+        nested child instead of via desc_name itself. If the node is NOT
+        a leaf, fall through to rule 3.
+
+        Rule 2: the parent is a desc_parameter, this node is a text-only
+        leaf, and self._param_name_seen is False -> set the flag, emit
+        emph(raw(...)), and skip. This is the parameter's OWN name
+        (SIG-04's italic). The leaf guard is the load-bearing safety
+        property: measured across every parameter shape in
+        37-RESEARCH.md's D-05 table plus the C++ domain, the FIRST
+        desc_sig_name direct child of a desc_parameter is always the
+        parameter's own name and always a leaf, while a LATER one belongs
+        to the type annotation and may be a non-leaf (wrapping a resolved
+        nodes.reference) -- if a first child ever arrived non-leaf, rule 3
+        must catch it rather than this rule flattening it and silently
+        dropping a hyperlink.
+
+        Rule 3 (otherwise): no-op. Children dispatch normally under
+        self.in_signature_text, so a type annotation wrapping a resolved
+        cross-reference keeps emitting its UNMODIFIED visit_reference
+        link(...) call with the monospace primitive inside -- the flag
+        fires BENEATH visit_reference, it never replaces or flattens it.
+
+        Deliberately does NOT discriminate on addnodes.pending_xref:
+        measured, the translator never sees one -- Builder.write()
+        resolves references before write_doc runs, so an unresolved xref
+        is stripped to plain content (a bare Text child) and a resolved
+        one becomes nodes.reference. A pending_xref check here would
+        silently never fire -- this is the exact wrong turn
+        37-CONTEXT.md's own D-05 text invites; 37-04-SUMMARY.md's
+        unresolved-C-domain-type measurement (PyTypeObject *type, no
+        intersphinx) independently confirms the mechanical rule-2 output
+        this discriminator produces for a type that never resolves.
+        """
+        parent = node.parent
+        is_leaf = all(isinstance(child, nodes.Text) for child in node.children)
+
+        if (
+            isinstance(parent, (addnodes.desc_annotation, addnodes.desc_name))
+            and is_leaf
+        ):
+            self._emit_signature_leaf_wrapper(node, "strong")
+
+        if (
+            isinstance(parent, addnodes.desc_parameter)
+            and is_leaf
+            and not self._param_name_seen
+        ):
+            self._param_name_seen = True
+            self._emit_signature_leaf_wrapper(node, "emph")
+
+        # Rule 3 (otherwise): pass -- children dispatch normally under
+        # self.in_signature_text.
 
     def depart_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:
-        """Depart a desc_sig_name node."""
+        """
+        Depart a desc_sig_name node.
+
+        Only reached for rule 3 (visit_desc_sig_name's rule 1/rule 2
+        leaf branches raise nodes.SkipNode, so depart is never called for
+        those).
+        """
         pass
 
     def visit_desc_sig_punctuation(self, node: addnodes.desc_sig_punctuation) -> None:
-        """Visit a desc_sig_punctuation node (punctuation in signatures like ':', '=')."""
+        """Visit a desc_sig_punctuation node (punctuation in signatures like ':', '=').
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed. Not given the
+        flatten-and-skip shortcut either: a keyword-only separator
+        operator was measured to wrap an abbreviation node, so
+        flattening here would add a subtree-dropping hazard for no gain.
+        """
         pass
 
     def depart_desc_sig_punctuation(self, node: addnodes.desc_sig_punctuation) -> None:
@@ -5464,7 +5649,16 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_operator(self, node: addnodes.desc_sig_operator) -> None:
-        """Visit a desc_sig_operator node (operators in signatures)."""
+        """Visit a desc_sig_operator node (operators in signatures).
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed. Not given the
+        flatten-and-skip shortcut either: the keyword-only separator
+        operator was measured to wrap an abbreviation node, and
+        flattening it buys nothing while adding a subtree-dropping
+        hazard.
+        """
         pass
 
     def depart_desc_sig_operator(self, node: addnodes.desc_sig_operator) -> None:
