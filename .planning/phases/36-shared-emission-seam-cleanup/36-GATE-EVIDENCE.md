@@ -761,3 +761,179 @@ and page count are identical (measured earlier in this phase and in
   plus this evidence file -- `tests/test_math_mitex.py`,
   `tests/test_math_native.py`, and `tests/test_math_fallback.py` are
   untouched across the whole phase.
+
+## Regression sweep — suite, lint, invariants (SC#4)
+
+- **Commit measured:** `7dde181056d975dc11d99abfa348fda3fe3e9efb` (this
+  plan's starting commit, `docs(phase-36): update tracking after wave 3` --
+  `typsphinx/` and `tests/` are unchanged by this plan; this plan writes
+  only this evidence file and the deferred `par()`-loss todo).
+- **Date:** 2026-08-01T01:03:57Z
+- **Worktree provisioning:** `uv sync --extra dev --extra docs` (the
+  `docs` extra added so a docs dogfooding-style build is available if
+  needed; it installs an already-pinned optional extra from the existing
+  lockfile and adds no new dependency), followed by the documented NixOS
+  stub-ld symlink fix (`.venv/bin/uv` -> the `/nix/store` `uv` binary,
+  `.venv/bin/ruff` -> a `/nix/store` `ruff` build, since no `ruff` was on
+  `PATH` outside `.venv` in this sandbox). Verified `uv run python -c
+  "import typsphinx; print(typsphinx.__file__)"` resolves inside this
+  worktree, not the main checkout.
+
+### Step 1 — full suite
+
+**Command:** `uv run pytest -q --tb=no -rf`
+
+Verbatim tail:
+```
+tests/test_typst_elements_pass_through_gate.py ..........                [ 95%]
+tests/test_typst_lang_gate.py .....................                     [ 98%]
+tests/test_typst_string_escape_gate.py .....                             [ 99%]
+tests/test_wide_table_render_gate.py .                                   [ 99%]
+tests/test_xref_orphan_degrade_render_gate.py .                          [100%]
+
+======================= 653 passed, 1 skipped in 59.64s ========================
+```
+
+Sorted complete set of failing test node IDs: **empty** -- `grep -c
+"^FAILED"` over the captured output returns `0`. No `-rf` failure lines
+were printed at all.
+
+### Step 2 — set-difference comparison against Plan 01's pre-change baseline
+
+Plan 01's recorded baseline (re-read verbatim from this file's own "Pre-
+change full-suite baseline (SC#4)" section above, not from memory): the
+sorted set of OTHER failing node IDs (excluding Plan 01's own intentional
+SC#1 RED, which flipped GREEN in Plan 02) is **empty**.
+
+This plan's post-change sorted set of failing node IDs (Step 1, above) is
+also **empty**.
+
+| Group | Members |
+|-------|---------|
+| Failing before AND after (environmental, carried) | none -- empty |
+| Failing only after (regressions -- would block the phase) | none -- empty |
+| Failing only before (fixed incidentally) | none -- empty |
+
+**Verdict:** all three groups are empty. The post-change failing set is
+identical to the pre-change baseline set (both empty), so SC#4's
+acceptance ("post-change failing node-ID set == the Plan 01 pre-change
+set") is satisfied by direct set equality, not by an absolute-zero
+argument -- it happens that both sets are the empty set in this run,
+consistent with Plan 01's note that the `.venv/bin/uv`/`.venv/bin/ruff`
+symlink fix eliminates the environmental failure class entirely in this
+sandbox.
+
+The total-pass-count trend across the phase's four plans: `1 failed, 651
+passed, 1 skipped` (Plan 01, pre-decoupling) -> `652 passed, 1 skipped, 0
+failed` (Plan 02, post-decoupling) -> `653 passed, 1 skipped, 0 failed`
+(Plan 03, post-MATH-02) -> `653 passed, 1 skipped, 0 failed` (this plan,
+Plan 04 -- unchanged, since this plan adds no test and touches no code).
+
+### Step 3 — lint/type trio
+
+| Command | Exit status | Last output line |
+|---------|--------------|-------------------|
+| `uv run black --check .` | `0` | "All done! ✨ 🍰 ✨ / 175 files would be left unchanged." |
+| `uv run ruff check .` | `0` | "All checks passed!" |
+| `uv run mypy typsphinx/` | `0` | "Success: no issues found in 6 source files" |
+
+### Step 4 — milestone invariants
+
+**Dependency surface unchanged:**
+```
+$ git diff b37ea402733c9ed6610c873349dca4c520ae7f22 HEAD -- pyproject.toml uv.lock
+```
+Verbatim output: **(empty)**. Exit status `0`. Neither file changed
+anywhere in the phase, from the Plan 01 pre-decoupling baseline commit
+through this plan's own HEAD.
+
+**`@preview` lockstep invariant:**
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-af336fd1660ce11ff
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_preview_version_sync.py ...                                   [100%]
+
+============================== 3 passed in 0.01s ===============================
+```
+Exit status `0`.
+
+**Full phase touch-set:**
+```
+$ git diff b37ea402733c9ed6610c873349dca4c520ae7f22 HEAD --name-only
+.planning/REQUIREMENTS.md
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/phases/36-shared-emission-seam-cleanup/36-01-SUMMARY.md
+.planning/phases/36-shared-emission-seam-cleanup/36-02-SUMMARY.md
+.planning/phases/36-shared-emission-seam-cleanup/36-03-SUMMARY.md
+.planning/phases/36-shared-emission-seam-cleanup/36-GATE-EVIDENCE.md
+tests/fixtures/inline_math_after_text_render_gate/index.rst
+tests/fixtures/inline_math_pdf_text_mitex.golden.txt
+tests/fixtures/inline_math_pdf_text_native.golden.txt
+tests/test_inline_math_after_text_render_gate.py
+typsphinx/translator.py
+```
+Every entry is either a test file (`tests/test_inline_math_after_text_render_gate.py`),
+a fixture file (the three `tests/fixtures/...` paths), the single source
+file `typsphinx/translator.py`, or a planning artifact (`.planning/...`).
+This diff is scoped from `b37ea40` (the SHA Plan 02/Plan 03 both name as
+"the Plan 01 baseline commit"), which post-dates Plan 01's own Task 1
+commit (`73a19db`) that created `tests/fixtures/desc_rubric_decoupling_render_gate/`
+and `tests/test_desc_rubric_decoupling_render_gate.py` -- those files are
+therefore already present, unchanged, at `b37ea40` and so do not appear
+in this particular diff even though they are part of the phase's work.
+The Test-migration census below (Task 2) uses the true phase-start commit
+(`83114d2`, immediately preceding Plan 01's first commit) so it lists
+every test file the whole phase touched, not only the subset visible from
+the `b37ea40` baseline.
+
+**No skip/xfail/deselect added:**
+```
+$ git diff b37ea402733c9ed6610c873349dca4c520ae7f22 HEAD -- tests/ | grep -E '^\+.*(xfail|--deselect)'
+```
+Verbatim output: **(empty)**. Exit status `1` (grep found no match).
+
+## Regression sweep — corpus gate (SC#4)
+
+**Command:** `uv run pytest tests/test_corpus_gate.py -q -m slow`
+
+Verbatim output:
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-af336fd1660ce11ff
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 5 items / 3 deselected / 2 selected
+
+tests/test_corpus_gate.py .s                                             [100%]
+
+================= 1 passed, 1 skipped, 3 deselected in 13.98s ==================
+```
+
+Verbose breakdown (`-v -rs`), to attribute the pass and the skip to named
+tests:
+```
+tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error PASSED [ 50%]
+tests/test_corpus_gate.py::test_empty_url_before_after SKIPPED (SC#3
+before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1
+to run it (RESEARCH Open Question 1))                                    [100%]
+```
+
+This gate is a **real pass**, not a skip described as a pass: the full-
+corpus `-b typstpdf` gate itself
+(`TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error`) ran the
+real network-cached Sphinx corpus clone and the real `typst.compile()`
+pipeline end to end and passed fatal-free. The one skip
+(`test_empty_url_before_after`) is a different, unrelated test in the
+same module -- its own documented env-gate requiring
+`TYPSPHINX_CORPUS_REPORT=1`, not part of this phase's regression surface
+(same disposition Phase 34's `34-GATE-EVIDENCE.md` recorded for the
+identical skip). The 3 deselected tests are the module's fast non-`slow`
+unit tests, already exercised in Step 1's full-suite run above.
