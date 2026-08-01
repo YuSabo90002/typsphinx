@@ -4880,19 +4880,33 @@ class TypstTranslator(SphinxTranslator):
         note anticipated -- desc_signature's emission now diverges from
         visit_strong's in exactly one literal: the opening wrapper call
         changes from ``strong({`` to the composed
-        ``block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent:
-        {SHARED_INDENT_STEP}, {`` form (37-EMISSION-CONTRACT.md section 3).
-        ``above: 0pt, below: 0pt`` is mandatory, not cosmetic: measured,
-        ``block()``'s default spacing adds ~26.5pt of vertical gap at each
-        block boundary, which would reintroduce a SIG-08-shaped doubled-gap
-        defect in a new form; ``sticky: true`` was measured to keep working
-        with both zeroed. The hanging indent is D-06's chosen, non-negotiable
-        overflow mechanism (a column-grid alternative and font-shrinking
-        were both measured and rejected by the owner) -- neither may be
-        reintroduced here as an improvement. Everything else in this block
-        (the paragraph-separator call, the concat-element enter/exit pair,
-        the in_paragraph/in_list_item/list_item_needs_separator save-and-
-        restore, and the `_strong_was_*` attribute names shared with
+        ``block(sticky: true, par(hanging-indent: {SHARED_INDENT_STEP}, {``
+        form (37-EMISSION-CONTRACT.md section 3, post-Wave-3 amendment,
+        plan 37-09). ``above``/``below`` are deliberately NOT overridden --
+        Typst's own ``block()`` default spacing is used. An earlier version
+        of this wrapper explicitly zeroed both (``above: 0pt, below: 0pt``);
+        that zeroing was found, by the post-merge gate, to remove ALL
+        vertical separation on both sides of every signature -- not a
+        redundant amount, exactly 0pt -- causing every signature's glyphs to
+        overlap the first line of its own description body. Measured (this
+        plan, via ``context measure(...)`` deltas in real paragraph flow):
+        dropping the override restores 13.2pt on both sides, byte-identical
+        to ordinary paragraph-to-paragraph spacing. The original fear that
+        default spacing would reintroduce a SIG-08-shaped doubled-gap defect
+        does not hold: plan 37-05 already removed the duplicate
+        ``parbreak()`` at its emission source (``depart_desc``'s
+        emission-position marker), so there is no second break left for
+        block-spacing collapse to double up on -- verified by re-rendering
+        the SIG-08 nested-desc fixture under this wrapper, which shows
+        uniform, single-gap spacing. ``sticky: true`` continues to carry
+        SIG-09's keep-with-next unchanged. The hanging indent is D-06's
+        chosen, non-negotiable overflow mechanism (a column-grid alternative
+        and font-shrinking were both measured and rejected by the owner) --
+        neither may be reintroduced here as an improvement. Everything else
+        in this block (the paragraph-separator call, the concat-element
+        enter/exit pair, the in_paragraph/in_list_item/
+        list_item_needs_separator save-and-restore, and the
+        `_strong_was_*` attribute names shared with
         visit_strong/depart_strong on purpose, D-02) stays byte-identical --
         renaming those attributes is Phase 39's deferred repair and would
         change emitted bytes outside this plan's scope.
@@ -4939,8 +4953,14 @@ class TypstTranslator(SphinxTranslator):
         # sticky:true carries the page-keep-together (SIG-09), par()'s
         # hanging-indent carries the overflow mechanism (SIG-07). Replaces
         # ONLY the pre-Phase-37 `strong({` literal (contract section 3).
+        # above/below are NOT overridden (post-Wave-3 amendment, plan
+        # 37-09): Typst's own block() default spacing is used, restoring
+        # ordinary paragraph-to-paragraph separation on both sides of the
+        # signature -- an earlier `above: 0pt, below: 0pt` override
+        # removed ALL of that spacing and made every signature overlap
+        # the first line of its own description body.
         self.add_text(
-            f"{prefix}block(above: 0pt, below: 0pt, sticky: true, "
+            f"{prefix}block(sticky: true, "
             f"par(hanging-indent: {SHARED_INDENT_STEP}, {{"
         )
 

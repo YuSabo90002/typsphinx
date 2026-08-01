@@ -3379,11 +3379,9 @@ def test_desc_signature_rendering(simple_document, mock_builder):
     output = translator.astext()
 
     assert "TypstBuilder" in output
-    # SS3: the composed block(...)/par(hanging-indent:...) wrapper.
-    assert (
-        "block(above: 0pt, below: 0pt, sticky: true, "
-        "par(hanging-indent: 2.5em, {" in output
-    )
+    # SS3: the composed block(...)/par(hanging-indent:...) wrapper
+    # (post-Wave-3 amendment, plan 37-09: no above/below override).
+    assert "block(sticky: true, " "par(hanging-indent: 2.5em, {" in output
     # SS4: the bare Text child gets the monospace flag alone -- raw(...),
     # not strong(raw(...)) -- because it has no desc_name ancestor.
     assert 'raw("TypstBuilder(app, env)")' in output
