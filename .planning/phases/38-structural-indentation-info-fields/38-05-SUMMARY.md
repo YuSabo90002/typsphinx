@@ -230,3 +230,12 @@ None — no external service configuration required.
 ---
 *Phase: 38-structural-indentation-info-fields*
 *Completed: 2026-08-01*
+
+## Self-Check: PASSED
+
+- FOUND: typsphinx/translator.py
+- FOUND: tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ
+- FOUND: .planning/phases/38-structural-indentation-info-fields/38-05-SUMMARY.md
+- FOUND: commit 3b9564e (Task 1)
+- FOUND: commit 8db1899 (Task 2)
+- FOUND: commit 655cff1 (Task 3)
