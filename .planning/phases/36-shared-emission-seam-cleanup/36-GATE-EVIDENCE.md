@@ -937,3 +937,163 @@ same module -- its own documented env-gate requiring
 (same disposition Phase 34's `34-GATE-EVIDENCE.md` recorded for the
 identical skip). The 3 deselected tests are the module's fast non-`slow`
 unit tests, already exercised in Step 1's full-suite run above.
+
+## Test-migration census (SC#4, milestone invariant #5)
+
+Milestone invariant #5 requires test migration to be owned and measured per
+phase, never deferred to a blanket closing pass. The table below is a
+measurement of every test/fixture file the whole phase (Plans 01-03)
+created or modified, scoped from the true phase-start commit `83114d2`
+(`docs(36): create phase plan`, immediately preceding Plan 01's first
+commit `73a19db`) through this plan's own HEAD -- broader than the
+`b37ea40`-scoped diff in Task 1's Step 4, which (as noted there) misses
+Plan 01's own fixture/test-module creation because that landed before
+`b37ea40` was cut.
+
+**Command:** `git diff 83114d2 HEAD --name-only -- tests/`
+
+Verbatim output:
+```
+tests/fixtures/desc_rubric_decoupling_render_gate/conf.py
+tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ
+tests/fixtures/desc_rubric_decoupling_render_gate/index.rst
+tests/fixtures/inline_math_after_text_render_gate/index.rst
+tests/fixtures/inline_math_pdf_text_mitex.golden.txt
+tests/fixtures/inline_math_pdf_text_native.golden.txt
+tests/test_desc_rubric_decoupling_render_gate.py
+tests/test_inline_math_after_text_render_gate.py
+```
+Eight files, no omissions.
+
+### Table
+
+| File | Kind | Render-gate class(es) / test methods | New or extended | Owning plan |
+|------|------|----------------------------------------|-------------------|-------------|
+| `tests/fixtures/desc_rubric_decoupling_render_gate/conf.py` | fixture (Sphinx config) | n/a | new | 01 |
+| `tests/fixtures/desc_rubric_decoupling_render_gate/index.rst` | fixture (source doc) | n/a | new | 01 |
+| `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ` | fixture (golden `.typ`) | n/a | new | 01 |
+| `tests/test_desc_rubric_decoupling_render_gate.py` | test module | `TestDescRubricDecouplingRenderGate`: `test_desc_signature_and_rubric_do_not_delegate_to_visit_strong` (SC#1, ast-based), `test_emitted_typ_is_byte_identical_to_golden` (SC#2), `test_decoupling_fixture_still_compiles_to_pdf` (compile sanity) | new (whole module and all 3 methods) | 01 |
+| `tests/fixtures/inline_math_after_text_render_gate/index.rst` | fixture (source doc) | n/a -- added Construct H to a pre-existing (Phase 34) fixture | extended | 03 |
+| `tests/fixtures/inline_math_pdf_text_mitex.golden.txt` | fixture (PDF-text baseline) | n/a | new | 03 |
+| `tests/fixtures/inline_math_pdf_text_native.golden.txt` | fixture (PDF-text baseline) | n/a | new | 03 |
+| `tests/test_inline_math_after_text_render_gate.py` | test module (pre-existing since Phase 34) | `TestInlineMathAfterTextRenderGate`: `test_typstpdf_separates_inline_math_mitex_path` (pre-existing, **extended** with SC#3 boundary + Construct H assertions), `test_typstpdf_separates_inline_math_native_path` (pre-existing, **extended** the same way), `test_block_math_pdf_text_is_invariant_across_the_math02_fix` (**new**, D-04 invariance guard) | mixed: 2 extended, 1 new | 03 |
+
+Confirmed via `git show 83114d2:tests/test_inline_math_after_text_render_gate.py | grep -n
+"^class \|    def test_"`: the class and its first two methods already existed at the phase-start
+commit (from Phase 34); the third method does not appear there. This is the source for the
+"extended" vs. "new" column above.
+
+### Re-derived exact-string assertion count
+
+Claim under re-measurement: `36-CONTEXT.md`'s "Folded Todos" section states the MATH-02 exact-string
+blast radius is **zero existing assertions** (correcting the original todo's claim that Construct E
+and Construct G's assertions would need re-deriving). This plan re-measures that claim rather than
+inheriting it.
+
+**Command 1** -- search the three math-path-specific test modules for any newline-bearing assertion
+at all:
+```
+$ grep -n 'assert' tests/test_math_mitex.py | grep -c '\n'
+0
+$ grep -n 'assert' tests/test_math_native.py | grep -c '\n'
+0
+$ grep -n 'assert' tests/test_math_fallback.py | grep -c '\n'
+0
+```
+None of these three modules contains a single newline-bearing assertion, so none of their assertions
+could be affected by MATH-02's whitespace change.
+
+**Command 2** -- in the one file that DOES carry newline-bearing math/bold assertions
+(`tests/test_inline_math_after_text_render_gate.py`), locate every pre-existing exact-string
+assertion (as it stood at the phase-start commit `83114d2`) that mentions a math call
+(`mitex(`/`mi(`/`$`) or a bold wrapper (`strong(`), then cross-check the phase diff for any `-` (removed/
+modified) line touching one of those assertions:
+```
+$ git show 83114d2:tests/test_inline_math_after_text_render_gate.py > /tmp/pre_render_gate.py
+$ grep -n '\n' /tmp/pre_render_gate.py | grep -iE 'assert|mitex|strong|bold'
+175:        assert 'text("Text before block math.")\nmitex(`E = m c^2`)' in typ_text, (
+280:        assert "list({\nparbreak()\n\nmi(`a+b`)" in typ_text, (
+329:        assert 'text("Text before math ")\n$E = m c^2$' in typ_text, (
+375:        assert 'text("Text before block math.")\n$ E = m c^2 $' in typ_text, (
+$ git diff 83114d2 HEAD -- tests/test_inline_math_after_text_render_gate.py | grep -n '^-' | grep -v '^---'
+(empty)
+```
+The whole-file diff between the phase-start commit and this plan's HEAD contains **zero removed or
+modified lines** (only additions -- confirmed by the empty second command's output; the only `-` line
+in the raw diff is the `--- a/...` file header, filtered out above). Every one of the four
+pre-existing assertion lines located by Command 2's first `grep` is therefore present, byte-identical,
+in the current file (spot-checked: `grep -n` for each of the four exact strings against the current
+file returns the same text at a shifted line number, confirming addition-only insertion around them,
+not in-place edit).
+
+**Re-derived-assertion count: 0.** `36-CONTEXT.md`'s zero-blast-radius claim is confirmed by direct
+measurement in this plan, not merely inherited. All of this phase's test-file changes are additive
+(new files, new fixtures, new/extended test methods with new assertions) -- no pre-existing
+exact-string assertion anywhere in `tests/` was regenerated, edited, or deleted by this phase.
+
+### `@preview` and dependency invariants (pointer)
+
+Both re-asserted in Task 1's Step 4 above (`## Regression sweep — suite, lint, invariants (SC#4)` §
+"Step 4 — milestone invariants"): `pyproject.toml`/`uv.lock` unchanged since the Plan 01 baseline
+commit, and `tests/test_preview_version_sync.py` passes (3/3), confirming the four `@preview`
+package versions stayed in lockstep across `writer.py`, `template_engine.py`, and
+`templates/base.typ` throughout the whole phase. Not repeated here.
+
+## Diff scope
+
+**Command:** `git diff --stat b37ea402733c9ed6610c873349dca4c520ae7f22 HEAD`
+
+Verbatim output:
+```
+ .planning/REQUIREMENTS.md                          |  38 +-
+ .planning/ROADMAP.md                               |  49 +-
+ .planning/STATE.md                                 |  17 +-
+ .../36-01-SUMMARY.md                               | 133 ++++
+ .../36-02-SUMMARY.md                               | 105 +++
+ .../36-03-SUMMARY.md                               | 172 +++++
+ .../36-GATE-EVIDENCE.md                            | 763 +++++++++++++++++++++
+ .../inline_math_after_text_render_gate/index.rst   |  11 +
+ .../fixtures/inline_math_pdf_text_mitex.golden.txt |  40 ++
+ .../inline_math_pdf_text_native.golden.txt         |  40 ++
+ tests/test_inline_math_after_text_render_gate.py   | 161 +++++
+ typsphinx/translator.py                            | 207 +++++-
+ 12 files changed, 1701 insertions(+), 35 deletions(-)
+```
+
+(The `36-GATE-EVIDENCE.md` line count above reflects the file's state immediately before this plan's
+own two commits append the Task 1 and Task 2 sections; this plan's own additions to that file are not
+yet included in the byte count captured for this section, by construction -- the command was run
+before this plan's edits landed.)
+
+## Phase 36 verdict
+
+| SC | Criterion (short form) | Verdict | Evidence section |
+|----|-------------------------|---------|-------------------|
+| SC#1 | `desc_signature` and `rubric` each own their handler pair; a repo-wide grep finds no remaining dummy-node delegation to `visit_strong`/`depart_strong` from either, while plain `**bold**` still routes through `visit_strong` | **MET** | `36-GATE-EVIDENCE.md` § "RED — pre-decoupling SC#1 delegation check" (RED) and § "SC#1 delegation census (post-decoupling)" (2 remaining sites, both `literal_strong`, out of scope; GREEN) |
+| SC#2 | The decoupling changes no rendering: byte-identical `.typ` for the combined-construct fixture, proven by a diff of two real `-b typst` runs | **MET** | `36-GATE-EVIDENCE.md` § "Post-decoupling diff (SC#1, SC#2, D-03, D-07)" § "SC#2 byte-identity diff (the proof)" -- empty diff, exit 0 |
+| SC#3 | Block math inside a list item is followed by exactly one blank line (not two), on both mitex/native paths and both plain/`:label:` forms, RED before the fix, PDF-text-invariance after | **MET** | `36-GATE-EVIDENCE.md` § "RED — pre-fix run (SC#3, D-04, D-06)" and § "GREEN — post-fix run (SC#3, D-04, D-06)" (RED → GREEN verdict table included) |
+| SC#4 | Re-derived exact-string assertions are re-derived by hand (never regenerated), touched test files/render-gate classes are recorded as a census, and the full suite + lint/type trio + full-corpus `-b typstpdf` gate are green with the pre-change baseline recorded alongside | **MET** | This file § "Regression sweep — suite, lint, invariants (SC#4)", § "Regression sweep — corpus gate (SC#4)", and § "Test-migration census (SC#4, milestone invariant #5)" (this plan) |
+
+**Closing disposition.**
+
+- **ADM-06** ("`rubric` no longer routes through the shared `visit_strong` dummy-node...", and the
+  `desc_signature` half of the same seam): **resolved by this phase**. Both handler pairs now own
+  their emission (SC#1), verified byte-identical against the untouched translator (SC#2).
+- **MATH-02** ("Block math inside a list item emits no redundant blank line"): **resolved by this
+  phase**. The one-statement fix (Plan 03, Task 3) is RED→GREEN with a PDF-text invariance guard
+  (SC#3).
+- **Folded todo `2026-07-29-visit-math-block-redundant-blank-line-in-list-items.md`** (the MATH-02
+  record, `resolves_phase: 36`): resolved by this phase's Plan 03; should be filed to
+  `.planning/todos/completed/` at phase close.
+- **Folded/deferred todo `2026-07-30-rubric-with-inline-markup-leaks-in-list-item-and-drops-par.md`**
+  (the `par()`-loss defect): **stays pending**, per D-02 -- not fixed here because fixing it would
+  change emitted bytes and break SC#2. This plan corrected its front matter
+  (`resolves_phase: 39`) and body to describe the post-decoupling code (the same shared
+  `_strong_was_*` slots are now used by three handler pairs -- `visit_strong`, `visit_rubric`, and
+  `visit_desc_signature` -- rather than by one shared dummy-delegated body), so a reader arriving
+  after Phase 36 does not mistakenly conclude the decoupling already fixed it. Routed to **Phase 39**
+  (owns `rubric` and the admonition taxonomy).
+
+All four ROADMAP Phase 36 success criteria are met with direct, re-measured evidence -- no criterion
+required a HUMAN-NEEDED abstention, no test was excluded/skipped/xfailed/deselected to reach green,
+and no file named `36-VERIFICATION.md` exists in this phase directory.
