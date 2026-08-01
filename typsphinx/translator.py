@@ -5141,9 +5141,9 @@ class TypstTranslator(SphinxTranslator):
             if label_id in seen_labels:
                 continue
             seen_labels.add(label_id)
-            self.body.append(f"\n[#metadata(none) <{label_id}>]")
+            self.add_text(f"\n[#metadata(none) <{label_id}>]")
         # Add extra spacing after signature
-        self.body.append("\n")
+        self.add_text("\n")
 
     def visit_desc_returns(self, node: addnodes.desc_returns) -> None:
         """
