@@ -4,15 +4,15 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 38
 current_phase_name: Structural Indentation + Info Fields
-status: planning
-stopped_at: Phase 38 context gathered
-last_updated: "2026-08-01T10:17:20.606Z"
+status: planned
+stopped_at: Phase 38 planned (8 plans, 5 waves)
+last_updated: "2026-08-01T11:10:41.483Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 37 complete, transitioned to Phase 38
+last_activity_desc: Phase 38 planned — 8 plans in 5 waves, all gates green
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 13
+  total_plans: 21
   completed_plans: 13
   percent: 33
 ---
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 ## Current Position
 
 Phase: 38 — Structural Indentation + Info Fields
-Plans: not yet planned (0/TBD)
-Status: Ready to plan
-Last activity: 2026-08-01 — Phase 37 complete, transitioned to Phase 38
+Plans: 0/8 complete (5 waves)
+Status: Ready to execute
+Last activity: 2026-08-01 — Phase 38 planned (8 plans, 5 waves, all gates green)
 
 Progress: [███████░░░░░░░░░░░░░] 33% (2/6 phases)
 
