@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 38
-current_phase_name: Structural Indentation + Info Fields
-status: planned
+current_phase_name: structural-indentation-info-fields
+status: executing
 stopped_at: Phase 38 planned (8 plans, 5 waves)
-last_updated: "2026-08-01T11:10:41.483Z"
+last_updated: "2026-08-01T11:14:03.855Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 38 planned — 8 plans in 5 waves, all gates green
+last_activity_desc: Phase 38 execution started
 progress:
   total_phases: 6
   completed_phases: 2
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 38 — Structural Indentation + Info Fields
+**Current focus:** Phase 38 — structural-indentation-info-fields
 
 ## Current Position
 
-Phase: 38 — Structural Indentation + Info Fields
+Phase: 38 (structural-indentation-info-fields) — EXECUTING
 Plans: 0/8 complete (5 waves)
-Status: Ready to execute
-Last activity: 2026-08-01 — Phase 38 planned (8 plans, 5 waves, all gates green)
+Status: Executing Phase 38
+Last activity: 2026-08-01 — Phase 38 execution started
 
 Progress: [███████░░░░░░░░░░░░░] 33% (2/6 phases)
 

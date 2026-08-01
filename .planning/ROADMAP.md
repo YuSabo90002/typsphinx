@@ -436,14 +436,14 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: 8 plans
+**Plans**: 4/8 plans executed
 
 **Wave 1**
 
-- [ ] 38-01-PLAN.md — the IND-01..05 + FLD-01 gate: one fixture with three-level nesting, a resumed parent body, a sibling top-level `desc`, a nested field list, body-less/list-item/table-cell/page-boundary controls and a block quote, asserted by `pypdf` layout-mode left-edge columns, plus the SC#4 discovery grep
-- [ ] 38-02-PLAN.md — the FLD-02/FLD-03 gate: per-sub-part monospace assertions (D-06), the inline single-value pinned adjacency string, the consecutive-fields-stay-separate trap, a resolvable `:type:` cross-reference, and D-13's leave-in-place record
-- [ ] 38-03-PLAN.md — D-10 discharged with a fixture: the wrapper-presence + break-count conjunction assertion added to the existing SIG-08 gate, plus the folded buffer-swap todo's `desc`-in-a-glossary-definition fixture with its pre-phase behaviour measured rather than presumed
-- [ ] 38-04-PLAN.md — SC#5/D-14: the re-measured, read-not-grepped test census in four buckets with per-plan ownership, the migration strategy including the golden-file hand-derivation rule, and the whole-suite baseline
+- [x] 38-01-PLAN.md — the IND-01..05 + FLD-01 gate: one fixture with three-level nesting, a resumed parent body, a sibling top-level `desc`, a nested field list, body-less/list-item/table-cell/page-boundary controls and a block quote, asserted by `pypdf` layout-mode left-edge columns, plus the SC#4 discovery grep
+- [x] 38-02-PLAN.md — the FLD-02/FLD-03 gate: per-sub-part monospace assertions (D-06), the inline single-value pinned adjacency string, the consecutive-fields-stay-separate trap, a resolvable `:type:` cross-reference, and D-13's leave-in-place record
+- [x] 38-03-PLAN.md — D-10 discharged with a fixture: the wrapper-presence + break-count conjunction assertion added to the existing SIG-08 gate, plus the folded buffer-swap todo's `desc`-in-a-glossary-definition fixture with its pre-phase behaviour measured rather than presumed
+- [x] 38-04-PLAN.md — SC#5/D-14: the re-measured, read-not-grepped test census in four buckets with per-plan ownership, the migration strategy including the golden-file hand-derivation rule, and the whole-suite baseline
 
 **Wave 2**
 
@@ -621,7 +621,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
-| 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
+| 38. Structural Indentation + Info Fields | v0.7.0 | 4/8 | In Progress|  |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
