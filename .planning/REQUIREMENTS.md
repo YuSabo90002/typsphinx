@@ -28,18 +28,18 @@ Measured 2026-07-29 by building a `py:` domain sample through `-b typst` (the sa
 produces). Reference font roles from `sphinxlatexobjects.sty` + `pdftotext -bbox` on the reference
 PDF.
 
-- [ ] **SIG-01** [M]: A `desc_name` (the object's own name) renders in **bold monospace**. Today it
+- [x] **SIG-01** [M]: A `desc_name` (the object's own name) renders in **bold monospace**. Today it
       renders through `strong({...})` — proportional bold — because `visit_desc_signature` delegates
       wholesale to `visit_strong` via a dummy node.
 
-- [ ] **SIG-02** [M]: A `desc_addname` (the module/class qualifier prefix, e.g. `sphinx.builders.`)
+- [x] **SIG-02** [M]: A `desc_addname` (the module/class qualifier prefix, e.g. `sphinx.builders.`)
       renders in **regular-weight monospace**, visually subordinate to the name. Today it carries no
       styling at all.
 
-- [ ] **SIG-03** [M]: A `desc_annotation` (the leading `class ` / `exception ` keyword) renders in
+- [x] **SIG-03** [M]: A `desc_annotation` (the leading `class ` / `exception ` keyword) renders in
       the **same bold monospace as `desc_name`** — the reference gives it no separate treatment.
 
-- [ ] **SIG-04** [M]: Signature parameters (`desc_parameter`, including any inline type annotation)
+- [x] **SIG-04** [M]: Signature parameters (`desc_parameter`, including any inline type annotation)
       render **distinctly from `desc_name`** — the reference uses italic proportional. Today they
       emit plain `text()` with no distinguishing style.
 
@@ -49,7 +49,7 @@ PDF.
 - [ ] **SIG-06** [M]: `desc_returns` renders a real arrow glyph (e.g. `→`) rather than the ASCII
       `->` it emits today.
 
-- [ ] **SIG-07** [M]: A long fully-qualified signature **does not overflow the right page margin**.
+- [x] **SIG-07** [M]: A long fully-qualified signature **does not overflow the right page margin**.
       The strategy must be derived by measuring real long signatures from the Sphinx `doc/` corpus —
       the v0.6.1 FID-01a fix (U+200B injection + fr-weighted columns) was for wide *tables* and must
       not be assumed to transfer to full-width signatures.
@@ -58,7 +58,7 @@ PDF.
       their surrounding blocks are separated by exactly one break — the doubled `parbreak()` runs
       visible in the measured output are gone.
 
-- [ ] **SIG-09** [M]: A signature and the first line of its description body are **not split across
+- [x] **SIG-09** [M]: A signature and the first line of its description body are **not split across
       a page break**.
 
 ### Indentation and nesting (IND)
@@ -262,15 +262,15 @@ Phase numbering continues from v0.6.5's last phase (35).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SIG-01 | Phase 37 | Pending |
-| SIG-02 | Phase 37 | Pending |
-| SIG-03 | Phase 37 | Pending |
-| SIG-04 | Phase 37 | Pending |
+| SIG-01 | Phase 37 | Complete |
+| SIG-02 | Phase 37 | Complete |
+| SIG-03 | Phase 37 | Complete |
+| SIG-04 | Phase 37 | Complete |
 | SIG-05 | Phase 37 | Pending |
 | SIG-06 | Phase 37 | Pending |
-| SIG-07 | Phase 37 | Pending |
+| SIG-07 | Phase 37 | Complete |
 | SIG-08 | Phase 37 | Complete |
-| SIG-09 | Phase 37 | Pending |
+| SIG-09 | Phase 37 | Complete |
 | IND-01 | Phase 38 | Pending |
 | IND-02 | Phase 38 | Pending |
 | IND-03 | Phase 38 | Pending |
