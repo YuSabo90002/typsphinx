@@ -271,7 +271,7 @@ rework, and closes with prep-only release work.
 CI work. `ui.plan-gate` false-positives on "layout"/"page"/"render" wording here — no phase carries
 a UI hint, and `/gsd-ui-phase` is not applicable.
 
-- [ ] **Phase 36: Shared-Emission Seam Cleanup** - Give `desc_signature` and `rubric` their own emission shape with byte-identical output, and drop `visit_math_block`'s redundant break
+- [x] **Phase 36: Shared-Emission Seam Cleanup** - Give `desc_signature` and `rubric` their own emission shape with byte-identical output, and drop `visit_math_block`'s redundant break (completed 2026-08-01)
 - [ ] **Phase 37: Signature Typography — the `desc_*` Family** - An API signature reads as a signature: monospace name and qualifier, distinguishable parameters, a real arrow, no margin overflow, no mid-signature page break
 - [ ] **Phase 38: Structural Indentation + Info Fields** - Description bodies indent inside their signature, nesting accumulates so class membership is visible, and field lists follow the same single constant
 - [ ] **Phase 39: Admonition Taxonomy + Rubric Nesting** - Admonitions land in the reference's four colour buckets with the generic directive styled and titled; a rubric inherits its container's indent
@@ -568,7 +568,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
-| 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | In Progress|  |
+| 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 0/TBD | Not started | - |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
