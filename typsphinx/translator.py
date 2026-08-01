@@ -5036,14 +5036,18 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_returns node (a signature's return-type annotation).
 
-        Emits a literal ' -> ' arrow before the return type (DESC-01).
-        Resolved return-type xref children already stream through the
-        unmodified visit_reference refid branch -- no extra code needed
-        for that case.
+        SIG-06 / D-13 (37-EMISSION-CONTRACT.md section 7): emits a real
+        rightwards-arrow glyph (U+2192) before the return type, not the
+        pre-phase ASCII "->" -- the three-expression monospace form
+        `raw(" ") + raw("\\u{2192}") + raw(" ")` is the exact shape that
+        was compiled and pypdf-extraction-verified this session; a single
+        `raw(" -> ")`-shaped literal was not. Resolved return-type xref
+        children already stream through the unmodified visit_reference
+        refid branch -- no extra code needed for that case.
         """
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
-        self.add_text('text(" -> ")')
+        self.add_text('raw(" ") + raw("\\u{2192}") + raw(" ")')
         if self.in_list_item:
             self.list_item_needs_separator = True
 
