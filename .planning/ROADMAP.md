@@ -436,7 +436,30 @@ before the body wrapper is put around it)
      label — all asserted on the emitted `.typ` and the extracted PDF text, with this phase's
      exact-string blast radius migrated inside the phase by hand-derived expected strings and a
      recorded census.
-**Plans**: TBD
+**Plans**: 8 plans
+
+**Wave 1**
+
+- [ ] 38-01-PLAN.md — the IND-01..05 + FLD-01 gate: one fixture with three-level nesting, a resumed parent body, a sibling top-level `desc`, a nested field list, body-less/list-item/table-cell/page-boundary controls and a block quote, asserted by `pypdf` layout-mode left-edge columns, plus the SC#4 discovery grep
+- [ ] 38-02-PLAN.md — the FLD-02/FLD-03 gate: per-sub-part monospace assertions (D-06), the inline single-value pinned adjacency string, the consecutive-fields-stay-separate trap, a resolvable `:type:` cross-reference, and D-13's leave-in-place record
+- [ ] 38-03-PLAN.md — D-10 discharged with a fixture: the wrapper-presence + break-count conjunction assertion added to the existing SIG-08 gate, plus the folded buffer-swap todo's `desc`-in-a-glossary-definition fixture with its pre-phase behaviour measured rather than presumed
+- [ ] 38-04-PLAN.md — SC#5/D-14: the re-measured, read-not-grepped test census in four buckets with per-plan ownership, the migration strategy including the golden-file hand-derivation rule, and the whole-suite baseline
+
+**Wave 2**
+
+- [ ] 38-05-PLAN.md — IND-01..05: `desc_content` wrapped in the shared step with zero depth-tracking state (D-01), D-10's marker propagated through the wrapper's close, the folded todo's buffer-identifying marker, and the `golden.typ` byte-identity migration
+
+**Wave 3**
+
+- [ ] 38-06-PLAN.md — FLD-01's second nested step (D-03) and FLD-02/D-07's single-paragraph field-body unwrap, with the inter-field separator kept scoped to the collapsed-inline case so consecutive fields stay separate paragraphs
+
+**Wave 4**
+
+- [ ] 38-07-PLAN.md — FLD-03/D-05: bold-monospace parameter names and italic-monospace types via their own leaf-emission bodies, removing the last two dummy-node delegations (D-09), with no zero-width-space injection and the resolved-xref composition proven
+
+**Wave 5**
+
+- [ ] 38-08-PLAN.md — closeout: both page-count constants re-measured once, the misnamed constant renamed (second folded todo), D-08's 97→87 whole-document claim checked, the full-corpus gate and supply-chain invariants, the census finalised against reality, and the owner's visual sign-off
 
 ### Phase 39: Admonition Taxonomy + Rubric Nesting
 

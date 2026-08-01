@@ -179,7 +179,7 @@ real tooling and none from recall:
   The planner must decide, with a fixture, whether the new emission is correct as-is or needs the
   bookkeeping reshaped — **and must not simply assume Phase 37's mechanism still holds.**
 
-- **D-11: the wrapper must not fight `block(sticky: true, …)`.**
+- **D-11 — the wrapper must not fight `block(sticky: true, …)`.**
   Measured on a deliberately short page: with `pad` around the body, a signature at a page boundary
   still keeps its body's first line on its own page, and a body that crosses a page break keeps its
   indent on the following page (left edge 47.5pt on both pages). So SIG-09 survives D-01 — but this
