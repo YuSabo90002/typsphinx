@@ -319,7 +319,7 @@ visually**, which makes it verifiable by diff rather than by judgement.
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
      the pre-change baseline recorded alongside.
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -336,7 +336,7 @@ Plans:
 
 **Wave 4**
 
-- [ ] 36-04-PLAN.md — SC#4: full suite compared by set-difference against the Plan 01 baseline, lint/type trio, milestone invariants, the full-corpus `-b typstpdf` gate, the test-migration census (invariant #5, re-measured not inherited), the deferred `par()`-loss todo routed to Phase 39 (D-02), and the phase verdict table
+- [x] 36-04-PLAN.md — SC#4: full suite compared by set-difference against the Plan 01 baseline, lint/type trio, milestone invariants, the full-corpus `-b typstpdf` gate, the test-migration census (invariant #5, re-measured not inherited), the deferred `par()`-loss todo routed to Phase 39 (D-02), and the phase verdict table
 
 ### Phase 37: Signature Typography — the `desc_*` Family
 
@@ -568,7 +568,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
-| 36. Shared-Emission Seam Cleanup | v0.7.0 | 3/4 | In Progress|  |
+| 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | In Progress|  |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 0/TBD | Not started | - |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
