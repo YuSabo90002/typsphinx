@@ -168,12 +168,24 @@ class TypstTranslator(SphinxTranslator):
         # resets the flag on its own entry).
         self._param_name_seen = False
 
-        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8):
-        # records len(self.body) immediately after a `desc`'s own parbreak()
-        # was emitted, so depart_desc can tell whether anything has been
-        # emitted since -- the discriminator that lets a nested `desc`'s
-        # duplicate break be suppressed without a desc-nesting-depth counter.
-        self._desc_break_marker: int | None = None
+        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8;
+        # made buffer-identifying by 38-05, 38-EMISSION-CONTRACT.md section
+        # 6.4, closing the folded todo
+        # .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        # records (id(self.body), len(self.body)) immediately after a `desc`'s
+        # own parbreak() was emitted, so depart_desc can tell whether anything
+        # has been emitted since -- the discriminator that lets a nested
+        # `desc`'s duplicate break be suppressed without a desc-nesting-depth
+        # counter. The identity half exists because self.body is reassigned
+        # at multiple sites (visit_term/visit_definition via
+        # _saved_body_stack, the admonition-title save/restore, the
+        # figure-caption save/restore, plus the table-cell routing in
+        # add_text) -- a bare position integer recorded against one buffer
+        # could otherwise spuriously match (or fail to match) a position in a
+        # DIFFERENT buffer after a swap. Comparing both halves, rather than
+        # adding a sixth per-site guard, is the fix (the existing in_table
+        # guard already demonstrates that per-site guards do not generalise).
+        self._desc_break_marker: tuple[int, int] | None = None
 
         # Stream-based list rendering state (Issue #61)
         self.is_first_list_item = True  # Track if current item is first in list
@@ -4826,6 +4838,22 @@ class TypstTranslator(SphinxTranslator):
         update the marker, so three levels of nesting still yield exactly
         one parbreak() rather than one per pair.
 
+        Phase 38 (D-10, 38-EMISSION-CONTRACT.md section 6.2/6.3): the
+        sentence above is still literally true, but the REASON it stays
+        true changed once depart_desc_content stopped being `pass`.
+        depart_desc_content now always appends the body wrapper's closing
+        bytes (`})\\n`) to self.body between an inner desc's departure and
+        this method's own comparison, so a literal reading of "nothing has
+        been appended" would be false for every nested desc -- the
+        suppression would never fire again. It stays correct because
+        depart_desc_content itself propagates this marker through its own
+        close (records whether the marker still matched immediately before
+        emitting `})\\n`, then re-advances the marker past those bytes if it
+        did): the wrapper's closing bytes are deliberately made to count as
+        nothing for this comparison, without actually being absent from the
+        emitted output. depart_desc's own comparison below is therefore
+        unchanged and needs no code change -- only this corrected premise.
+
         This is deliberately NOT implemented as a desc-nesting-depth
         counter. A depth counter would suppress the INNER desc's break
         unconditionally, which is wrong whenever the outer desc_content
@@ -4847,11 +4875,28 @@ class TypstTranslator(SphinxTranslator):
         between two departures there and the marker-based suppression would
         fire wrongly. The `not self.in_table` guard retains the pre-phase
         unconditional behaviour inside tables.
+
+        Buffer-swap hazard (D-10, 38-EMISSION-CONTRACT.md section 6.4,
+        closing the folded todo
+        .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        self.body is reassigned at multiple sites beyond the table-cell one
+        above -- visit_term/visit_definition (via _saved_body_stack), the
+        admonition-title save/restore, and the figure-caption save/restore.
+        A marker recorded as a bare position integer could compare against a
+        DIFFERENT list after such a swap, spuriously suppressing a needed
+        break or spuriously letting a duplicate through. self._desc_break_marker
+        is therefore a (id(self.body), len(self.body)) pair, not a bare int
+        -- comparing both halves closes the hazard without adding a sixth
+        per-site guard, since the existing table-cell guard already
+        demonstrates that per-site guards do not generalise.
         """
-        if not self.in_table and self._desc_break_marker == len(self.body):
+        if not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
+        ):
             return
         self._emit_forced_break("parbreak()")
-        self._desc_break_marker = len(self.body)
+        self._desc_break_marker = (id(self.body), len(self.body))
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
@@ -5102,12 +5147,101 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_content(self, node: addnodes.desc_content) -> None:
         """
         Visit a desc_content node (API description content).
+
+        Opens the shared indent step around the description body
+        (IND-01/02/03/05, D-01, 38-EMISSION-CONTRACT.md section 2):
+        ``pad(left: SHARED_INDENT_STEP, {`` -- the exact block-quote analog
+        (visit_block_quote, above) applied to a run of code-mode body
+        statements, reusing that pattern's own reasoning for why the body
+        must be a ``{ ... }`` content block (bug #15). Routed through
+        self.add_text (D-12), never self.body.append: add_text routes into
+        table_cell_content when self.in_table, and the 38-01 fixture proved
+        a direct append breaks a desc inside a table cell. Nesting composes
+        with NO depth counter (D-01) -- each pad closes structurally when
+        its own node's depart_desc_content runs, so IND-05 (depth cannot
+        leak to a following sibling) is asserted by that closure, not
+        implemented by resetting anything.
+
+        Separator bookkeeping (D-12, decided by the fixture, section 2.6):
+        desc_content structurally always follows a desc_signature departure,
+        which itself unconditionally ends in a raw "\\n" (see
+        depart_desc_signature's anchor-loop spacing line) -- so, unlike
+        block_quote, this leading guard is not required to avoid a Typst
+        parse fatal. It is still emitted, mirroring the block-visitor
+        pattern (bug #4) byte-for-byte with block_quote/field_list, because
+        depart_desc_signature ALSO sets list_item_needs_separator = True
+        when in a list item -- the guard's own "\\n" then lands on top of
+        the signature's already-present "\\n" (a harmless extra blank line
+        in code mode, never a parse error) rather than diverging from every
+        other block visitor's leading-guard shape. Falsified by
+        ``tests/fixtures/desc_content_indent_render_gate/index.rst``'s
+        "List-Item Desc CONTROL" section (a py:function:: nested inside a
+        bullet-list item, exercised via
+        tests/test_desc_content_indent_render_gate.py) and confirmed
+        non-regressing against tests/test_desc_bodyless_concat_render_gate.py
+        (no list item involved, guard is a no-op there).
         """
-        pass
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text(f"pad(left: {SHARED_INDENT_STEP}, {{")
 
     def depart_desc_content(self, node: addnodes.desc_content) -> None:
-        """Depart a desc_content node."""
-        pass
+        """
+        Depart a desc_content node.
+
+        Closes the body wrapper opened in visit_desc_content: ``})\\n``
+        (38-EMISSION-CONTRACT.md section 2). The trailing "\\n" is
+        load-bearing, not cosmetic (section 2.2): depart_desc immediately
+        follows with _emit_forced_break("parbreak()"), which prepends no
+        newline of its own outside a list item, so a bare "})" would
+        juxtapose the pad(...) expression against parbreak() on one
+        physical source line -- the Typst "expected semicolon or line
+        break" fatal class this codebase has hit four separate times.
+        depart_block_quote (the direct analog) already carries the same
+        trailing newline for the same reason.
+
+        D-10 marker propagation (section 6.2): depart_desc suppresses a
+        duplicate parbreak() by testing whether self._desc_break_marker
+        still equals len(self.body) -- "was anything emitted between the
+        two departs". Before this handler had a body, that test was
+        reliable because nothing at all was appended between an inner and
+        an outer desc's departure. Now that this handler always emits the
+        close, len(self.body) would advance on EVERY nested desc's
+        departure and the suppression could never fire again. Fixed by
+        recording, before emitting the close, whether the marker still
+        matches the pre-close position; emitting the close; and if it did
+        match, advancing the marker to the POST-close position. depart_desc
+        then still sees "nothing happened" (its own comparison against the
+        advanced marker is unaffected) and correctly suppresses its own
+        duplicate for a nested desc with no trailing sibling content. This
+        makes the wrapper's closing bytes a byte sequence that counts as
+        nothing for the suppression's purposes, without actually being
+        absent. depart_desc itself needs no code change under this fix
+        (see its own docstring for the corrected premise).
+
+        The `not self.in_table` guard mirrors depart_desc's own: inside a
+        table cell, add_text routes into table_cell_content rather than
+        self.body, so len(self.body) does not advance there and comparing
+        against it would be meaningless (and is never read, since
+        depart_desc's own check is guarded the same way).
+
+        The marker is a (id(self.body), len(self.body)) pair, not a bare
+        position integer (D-10, 38-EMISSION-CONTRACT.md section 6.4) --
+        self.body is reassigned at several sites (visit_term/
+        visit_definition, the admonition-title and figure-caption
+        save/restores) and a bare integer could otherwise be compared
+        against a different buffer after a swap. See depart_desc's own
+        docstring for the buffer-swap hazard this closes.
+        """
+        marker_was_untouched = not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
+        )
+        self.add_text("})\n")
+        if marker_was_untouched:
+            self._desc_break_marker = (id(self.body), len(self.body))
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_desc_inline(self, node: addnodes.desc_inline) -> None:
         """

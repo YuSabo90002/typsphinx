@@ -67,24 +67,24 @@ The reference's recurring indent quantum is **≈22–25pt (≈2.2–2.5em at 10
 independently at three sites (a class's `desc_content`, a nested member's body, a field-list
 wrapper) and agreeing within 3pt.
 
-- [ ] **IND-01** [M]: A `desc_content` body is indented one step relative to its own
+- [x] **IND-01** [M]: A `desc_content` body is indented one step relative to its own
       `desc_signature`. Today `visit_desc_content` and `depart_desc_content` are **both `pass`**, so
       the body sits flush with the signature and no hanging indent exists at all.
 
-- [ ] **IND-02** [M]: Indentation is **cumulative with nesting depth** — a `py:method::` inside a
+- [x] **IND-02** [M]: Indentation is **cumulative with nesting depth** — a `py:method::` inside a
       `py:class::` has its description one step deeper than the class's own body. Today a nested
       member renders at the same left margin as a top-level `py:function::`, so class membership is
       visually unrecoverable. Verified by asserting a nested member's body x-position is strictly
       greater than its parent's.
 
-- [ ] **IND-03** [M]: A nested member's **own signature** aligns with its parent's body margin — it
+- [x] **IND-03** [M]: A nested member's **own signature** aligns with its parent's body margin — it
       does **not** receive a further indent step. (Stated as a requirement because the naive
       implementation over-indents; the reference never does this.)
 
-- [ ] **IND-04** [M]: One shared indent constant drives every indent context — desc nesting, field
+- [x] **IND-04** [M]: One shared indent constant drives every indent context — desc nesting, field
       lists, and block quotes — rather than independent magic numbers per node type.
 
-- [ ] **IND-05** [M]: The nesting-depth counter **resets correctly across sibling `desc` nodes**, so
+- [x] **IND-05** [M]: The nesting-depth counter **resets correctly across sibling `desc` nodes**, so
       depth cannot leak and accumulate unboundedly across a document.
 
 ### Info fields — `field_list` (FLD)
@@ -271,11 +271,11 @@ Phase numbering continues from v0.6.5's last phase (35).
 | SIG-07 | Phase 37 | Complete |
 | SIG-08 | Phase 37 | Complete |
 | SIG-09 | Phase 37 | Complete |
-| IND-01 | Phase 38 | Pending |
-| IND-02 | Phase 38 | Pending |
-| IND-03 | Phase 38 | Pending |
-| IND-04 | Phase 38 | Pending |
-| IND-05 | Phase 38 | Pending |
+| IND-01 | Phase 38 | Complete |
+| IND-02 | Phase 38 | Complete |
+| IND-03 | Phase 38 | Complete |
+| IND-04 | Phase 38 | Complete |
+| IND-05 | Phase 38 | Complete |
 | FLD-01 | Phase 38 | Pending |
 | FLD-02 | Phase 38 | Pending |
 | FLD-03 | Phase 38 | Pending |
