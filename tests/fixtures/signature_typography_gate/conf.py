@@ -1,0 +1,17 @@
+"""Sphinx config for the signature typography GATE-01 fixture (Phase 37, SIG-01..05).
+
+``index`` MUST be a master document -- this fixture exists to be built through
+``-b typst`` (see ``tests/test_signature_typography_gate.py``), so the
+per-sub-part SIG-01..05 assertions can be run against a real emitted
+``index.typ``.
+"""
+
+project = "Signature Typography Gate"
+author = "typsphinx tests"
+release = "0.0.0"
+
+extensions = ["typsphinx"]
+
+typst_documents = [
+    ("index", "index", "Signature Typography Gate", "typsphinx tests"),
+]
