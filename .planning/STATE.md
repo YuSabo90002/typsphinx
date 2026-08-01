@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 37
-current_phase_name: Signature Typography — the desc_* Family
-status: executing
-stopped_at: Phase 37 planned — 8 plans in 5 waves, all gates green
-last_updated: "2026-08-01T04:47:35.588Z"
+current_phase: 38
+current_phase_name: Structural Indentation + Info Fields
+status: planning
+stopped_at: Phase 37 complete — 9 plans in 6 waves, verification passed 9/9
+last_updated: "2026-08-01T08:05:46.976Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 37 execution started
+last_activity_desc: Phase 37 complete, transitioned to Phase 38
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 12
-  completed_plans: 4
-  percent: 17
+  completed_phases: 2
+  total_plans: 13
+  completed_plans: 13
+  percent: 33
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 37 — Signature Typography — the desc_* Family
+**Current focus:** Phase 38 — Structural Indentation + Info Fields
 
 ## Current Position
 
-Phase: 37 (Signature Typography — the desc_* Family) — EXECUTING
-Plans: 0/8 complete (5 waves)
-Status: Executing Phase 37
-Last activity: 2026-08-01 — Phase 37 execution started
+Phase: 38 — Structural Indentation + Info Fields
+Plans: not yet planned (0/TBD)
+Status: Ready to plan
+Last activity: 2026-08-01 — Phase 37 complete, transitioned to Phase 38
 
-Progress: [███░░░░░░░░░░░░░░░░░] 17% (1/6 phases)
+Progress: [███████░░░░░░░░░░░░░] 33% (2/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
