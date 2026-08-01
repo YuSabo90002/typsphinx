@@ -247,19 +247,23 @@ rework, and closes with prep-only release work.
 
 1. **No bundled Typst style module.** The translator emits complete Typst directly, so every
    generated `.typ` stays self-contained. The shared indent constant lives on the Python side.
+
 2. **Sphinx's LaTeX PDF is a reference, not an authority.** No success criterion below is "matches
    the reference page-by-page." The reference's measured values (the ≈22–25pt indent quantum, the
    per-node font roles, the four admonition colour buckets) are design inputs; the criteria are
    either mechanically checkable structural properties or explicit visual-UAT sign-offs, matching
    the `[M]`/`[V]` tag on each requirement.
+
 3. **GATE-01's RED state is redefined for this milestone** (milestone invariant #4). Every prior
    fixture in this project proved a compile fatal; every design defect here **compiles successfully
    today**, so each phase defines a structural / regex / `pypdf`-text RED assertion **before** any
    code is written. **Phase 40 (citations) is the sole exception** and keeps the classic
    `TypstError` RED. Regenerating expected strings from the new code's own output is a violation of
    the invariant, not a shortcut.
+
 4. **Test migration is owned per phase** (milestone invariant #5), never deferred to a blanket
    closing pass. Measured blast radius: 10 test files, 61 render-gate classes.
+
 5. **Standing invariants carried forward:** zero new runtime dependencies; the `@preview` package
    count stays at four with no new version-lockstep site.
 
@@ -277,6 +281,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 ## Phase Details
 
 ### Phase 36: Shared-Emission Seam Cleanup
+
 **Goal**: The two pre-existing emission-shape defects that would otherwise contaminate every later
 phase's fixtures are settled first — `desc_signature` and `rubric` each own their open/close pair
 instead of borrowing `visit_strong`'s via the dummy-node trick, and `visit_math_block` stops
@@ -286,14 +291,17 @@ visually**, which makes it verifiable by diff rather than by judgement.
 **Depends on**: Nothing (first phase of the milestone)
 **Requirements**: ADM-06, MATH-02
 **Success Criteria** (what must be TRUE):
+
   1. `desc_signature` and `rubric` each open and close through their own handler pair — a repo-wide
      grep finds no remaining dummy-node delegation to `visit_strong`/`depart_strong` from either —
      while plain `**bold**` markup still routes through `visit_strong` unchanged.
+
   2. The decoupling changes no rendering: for a fixture exercising signatures, sibling signatures,
      rubrics (including autodoc's "Options" rubric), and bold markup, the emitted `.typ` is
      **byte-identical** across the decoupling change alone, proven by a recorded diff of two real
      `sphinx-build -b typst` runs. This is the phase's RED-substitute — per milestone invariant #4,
      "does not compile" is unavailable, so equality-of-output is the assertion.
+
   3. Block math inside a list item is followed by exactly one blank line — the redundant second
      blank line between the math expression and the following `parbreak()` is gone — asserted
      structurally on the emitted `.typ`, on both the mitex and native emission paths and on both the
@@ -306,16 +314,17 @@ visually**, which makes it verifiable by diff rather than by judgement.
      `CreationDate`/`ModDate`, so two builds of *identical* input differ in the timestamp bytes
      (measured 2026-08-01: same input, two compiles 2s apart, identical length but 88 differing
      bytes). A PDF byte-identity assertion is unsatisfiable independently of this fix.
+
   4. The exact-string assertions this phase invalidates are re-derived by hand (never regenerated
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
      the pre-change baseline recorded alongside.
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 36-01-PLAN.md — pre-change baselines against the untouched translator: the SC#2 combined-construct fixture, a committed golden `.typ`, the SC#1 (AST, `literal_strong`-tolerant) + SC#2 (byte-identity) gate module recorded RED/GREEN, and `36-GATE-EVIDENCE.md` with the pre-change full-suite and lint baselines
+- [x] 36-01-PLAN.md — pre-change baselines against the untouched translator: the SC#2 combined-construct fixture, a committed golden `.typ`, the SC#1 (AST, `literal_strong`-tolerant) + SC#2 (byte-identity) gate module recorded RED/GREEN, and `36-GATE-EVIDENCE.md` with the pre-change full-suite and lint baselines
 
 **Wave 2**
 
@@ -330,6 +339,7 @@ Plans:
 - [ ] 36-04-PLAN.md — SC#4: full suite compared by set-difference against the Plan 01 baseline, lint/type trio, milestone invariants, the full-corpus `-b typstpdf` gate, the test-migration census (invariant #5, re-measured not inherited), the deferred `par()`-loss todo routed to Phase 39 (D-02), and the phase verdict table
 
 ### Phase 37: Signature Typography — the `desc_*` Family
+
 **Goal**: An API signature reads as a signature rather than as a run of proportional bold text —
 each sub-part carries its own typographic role, the return arrow is a real glyph, a long
 fully-qualified signature stays inside the text margin, and a signature is neither split by a page
@@ -338,6 +348,7 @@ break nor buried in doubled blank lines.
 `rubric` or `**bold**`)
 **Requirements**: SIG-01, SIG-02, SIG-03, SIG-04, SIG-05, SIG-06, SIG-07, SIG-08, SIG-09
 **Success Criteria** (what must be TRUE):
+
   1. Each signature sub-part emits a distinct, asserted treatment on the emitted `.typ`: `desc_name`
      and `desc_annotation` in bold monospace, `desc_addname` in regular-weight monospace subordinate
      to the name, the parameter-list delimiters (`(`, `)`, `,`, `=`, and `desc_optional`'s brackets)
@@ -345,15 +356,19 @@ break nor buried in doubled blank lines.
      `desc_name`. Every one of these is a structural assertion — emitted through a monospace
      primitive rather than a bare `text(...)` — recorded RED against the pre-phase translator, whose
      output compiles fine today.
+
   2. `desc_returns` renders a real arrow glyph in the compiled PDF's extracted text, with no ASCII
      `->` remaining anywhere in the signature output.
+
   3. A long fully-qualified signature drawn from the real Sphinx `doc/` corpus stays inside the
      right text margin, measured with `pypdf` bounding boxes — with the overflow strategy derived
      from measurements of actual corpus signatures, not assumed to transfer from the v0.6.1 FID-01a
      wide-table fix.
+
   4. A signature positioned at a page boundary keeps its name, its parameter list, and the first
      line of its description body on the same page, proven by a fixture that pushes a signature near
      a break and a `pypdf` per-page check.
+
   5. Sibling signatures (overloads, alias groups, multi-option directives) and their surrounding
      blocks are separated by exactly one break — the doubled `parbreak()` runs measured on
      2026-07-29 are gone — and this phase's own exact-string blast radius is migrated within the
@@ -361,6 +376,7 @@ break nor buried in doubled blank lines.
 **Plans**: TBD
 
 ### Phase 38: Structural Indentation + Info Fields
+
 **Goal**: The page shows structure. A description body sits one indent step inside its own
 signature, indentation accumulates with nesting depth so a method's membership in its class is
 visually recoverable, a nested member's own signature aligns with its parent's body rather than
@@ -370,17 +386,22 @@ magic number.
 before the body wrapper is put around it)
 **Requirements**: IND-01, IND-02, IND-03, IND-04, IND-05, FLD-01, FLD-02, FLD-03
 **Success Criteria** (what must be TRUE):
+
   1. A `desc_content` body's left edge is strictly greater than its own `desc_signature`'s, measured
      from `pypdf` bounding boxes on a compiled PDF — recorded RED against the pre-phase build, where
      the two edges are equal because both `visit_desc_content` and `depart_desc_content` are `pass`.
+
   2. In a `py:class::` containing a `py:method::`, the method's body edge is strictly greater than
      the class's body edge, while the method's own **signature** aligns with the class body's margin
      and receives no further step — both measured on the same compiled page.
+
   3. Depth does not leak: a top-level `py:function::` following a three-level nest returns to the
      page margin, proven by a fixture with 3+ nesting levels plus a sibling top-level `desc`
      immediately after.
+
   4. One named indent constant drives desc nesting, field lists, and block quotes — a repo-wide grep
      over `typsphinx/` finds no second independent indent literal at those sites.
+
   5. A field list renders one step inside the surrounding description body; a multi-value field body
      renders as a bulleted list while a single-value body stays inline prose; and a parameter's name
      and type inside a field body carry monospace treatment distinct from the plain-bold field
@@ -390,6 +411,7 @@ before the body wrapper is put around it)
 **Plans**: TBD
 
 ### Phase 39: Admonition Taxonomy + Rubric Nesting
+
 **Goal**: Admonitions carry the meaning their type implies — `seealso` grouped with the hints rather
 than the notes, `attention` grouped with the dangers rather than the warnings, and a generic
 `.. admonition::` styled and carrying its own title instead of falling through to the unstyled base
@@ -399,26 +421,32 @@ to the page margin.
 inherit an indent once the indent exists)
 **Requirements**: ADM-01, ADM-02, ADM-03, ADM-04, ADM-05
 **Success Criteria** (what must be TRUE):
+
   1. `seealso` renders in the same bucket as `hint`/`tip` and `attention` in the same bucket as
      `danger`/`error` — asserted on the emitted `.typ` call and confirmed in the compiled PDF, with
      the assertion recorded RED against the pre-phase mapping (which compiles fine today and simply
      picks the wrong bucket).
+
   2. A generic `.. admonition:: Custom Title` renders as a styled box carrying that title, asserted
      both on the emitted call and by the title text surviving into the compiled PDF's extracted
      text.
+
   3. A rubric inside a description body — including autodoc's "Options" heading on a real API
      page — has a left edge strictly greater than the page margin and equal to its containing body's
      edge, measured with `pypdf`.
+
   4. **Visual UAT (ADM-04, `[V]`):** the owner signs off, from a greyscale render of the compiled
      PDF, that the four admonition kinds remain distinguishable without hue — the distinction
      carried by icon and border rather than by the four mid-high-luminance title tints alone — with
      the render and the sign-off recorded in the phase artifacts.
+
   5. This phase's exact-string blast radius is migrated inside the phase by hand-derived expected
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes.
 **Plans**: TBD
 
 ### Phase 40: Citations — Full Round Trip
+
 **Goal**: A document containing docutils citations stops failing the Typst compile and instead
 renders a real reference list — a labelled hanging-indent entry per citation, a working `[Label]` →
 definition link, docutils' own back-references to every citing site, and document order preserved —
@@ -428,20 +456,25 @@ restored and both samples build clean.
 admonition work, needs no document-order pre-pass, and is sequenced here only for convenience
 **Requirements**: CIT-01, CIT-02, CIT-03, CIT-04, CIT-05, CIT-06
 **Success Criteria** (what must be TRUE):
+
   1. A document containing a citation compiles to a valid PDF. **This phase keeps the classic
      GATE-01 RED** — the verbatim `TypstError` produced by the unfixed translator is captured and
      recorded before the fix. It is the sole requirement in the milestone where "does not compile"
      is available as the RED state.
+
   2. A citation definition renders as `[Label]` followed by its entry body, with continuation lines
      aligned past the label — the hanging indent measured from `pypdf` bounding boxes, not asserted
      by eye.
+
   3. An in-text `[Label]` reference resolves to its definition, and each definition carries
      back-references to every citing location — proven on a fixture that includes a forward
      reference (the definition placed after its first use), 2+ citations, and 2+ documents, with
      every label routed through the existing namespace/sanitize helpers so a repeated key across
      documents cannot abort the compile with a duplicate-label fatal.
+
   4. Citation entries appear in document order, unsorted, asserted against the compiled PDF's
      extracted text order.
+
   5. Both `examples/charged-ieee/` approaches carry their citation syntax again and build clean
      through `-b typstpdf`, and the new handlers are checked explicitly against all three separator
      protocols (paragraph, code-mode concat, list-item) rather than by analogy to the footnote
@@ -449,6 +482,7 @@ admonition work, needs no document-order pre-pass, and is sequenced here only fo
 **Plans**: TBD
 
 ### Phase 41: v0.7.0 Release Automation + Release Prep
+
 **Goal**: The release surface matches the work — a reader of the GitHub Release sees the curated
 CHANGELOG section rather than a ~296-line commit dump — and the v0.7.0 tree is bumped, documented,
 and proven green, with every irreversible action still fenced off behind
@@ -457,19 +491,24 @@ and proven green, with every irreversible action still fenced off behind
 proved)
 **Requirements**: REL-04, REL-05
 **Success Criteria** (what must be TRUE):
+
   1. `release.yml` builds the release body from the `## [X.Y.Z]` section of `CHANGELOG.md` — proven
      by executing the extraction against the real file for a real version, with the `git log
      --pretty` commit dump removed rather than left as a fallback path.
+
   2. The version reads 0.7.0 as the sole literal in `pyproject.toml`, with `uv.lock` and `README.md`
      moved in lockstep and `typsphinx.__version__` reporting it, and a curated `## [0.7.0]`
      CHANGELOG entry is in place with the tail link block rolled over.
+
   3. The post-bump tree is green across the full suite, the lint/type trio, the full-corpus
      `-b typstpdf` gate, and both docs dogfooding builds — including a re-run of the `ja` build's
      four-check glyph bar, because any new font selection introduced by this milestone can shadow
      the `Noto Serif CJK JP` fallback silently, with no warning or error.
+
   4. The milestone invariants are proven mechanically over the SHA-anchored full milestone diff:
      zero new runtime dependencies, the `@preview` package count still four with no new
      version-lockstep site, and every node-handler change carrying its recorded-RED GATE-01 fixture.
+
   5. No irreversible action has been taken at phase close — local and remote `v0.7.0` tags are both
      empty — and a standalone handoff checklist records exactly what `/gsd-complete-milestone` will
      execute (merge, tag, `release.yml`, PyPI + GitHub Release, and the standing second tag on
@@ -529,7 +568,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
-| 36. Shared-Emission Seam Cleanup | v0.7.0 | 0/TBD | Not started | - |
+| 36. Shared-Emission Seam Cleanup | v0.7.0 | 1/4 | In Progress|  |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 0/TBD | Not started | - |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
