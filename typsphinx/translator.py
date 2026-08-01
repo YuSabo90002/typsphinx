@@ -1041,6 +1041,35 @@ class TypstTranslator(SphinxTranslator):
         setattr(self, ctx[0], True)  # un-suppress the outer context flag
         setattr(self, ctx[1], True)  # this element = a sibling for the next one
 
+    def _escape_signature_text(self, text: str) -> str:
+        """
+        Escape a signature text run and inject the SIG-07/D-07
+        break-opportunity escape, in the load-bearing order contract
+        section 4 steps 2-3 specify: escape FIRST via the shared,
+        unmodified ``escape_typst_string`` helper (D-04 -- no second
+        escaping helper is written), THEN inject the break-opportunity
+        escape after every period.
+
+        Order is load-bearing: ``escape_typst_string`` doubles
+        backslashes, so injecting the escape sequence before escaping
+        would double ITS backslash too, emitting a literal two-character
+        ``\\\\u{200B}`` instead of the intended Unicode escape sequence.
+        ``.`` is neither produced nor consumed by ``escape_typst_string``,
+        so injecting after escaping is safe in the other direction.
+
+        The injected token is the 8-character Typst Unicode escape
+        ``\\u{200B}`` -- NOT a literal invisible U+200B byte -- so the
+        emitted ``.typ`` stays greppable, diffable and hand-derivable in
+        a golden file. Injection is blanket over every period in the run
+        (no length threshold, mirroring ``visit_literal``'s existing
+        unconditional in-table injection) -- D-07 requires the break
+        opportunity in every long dotted name, and routing every call
+        site through this one helper is what guarantees no dotted-name
+        carrying node type can be missed.
+        """
+        escaped = escape_typst_string(text)
+        return escaped.replace(".", ".\\u{200B}")
+
     def visit_Text(self, node: nodes.Text) -> None:
         """
         Visit a text node.
@@ -1059,6 +1088,42 @@ class TypstTranslator(SphinxTranslator):
         # Inside literal blocks, output text directly (no wrapping)
         if self.in_literal_block:
             self.add_text(text_content)
+            return
+
+        # SIG-01..SIG-05 (37-EMISSION-CONTRACT.md section 4): inside a
+        # desc_signature, every text-bearing descendant routes through the
+        # monospace primitive raw(...) instead of the proportional text(...)
+        # primitive -- this is what makes desc_addname, desc_sig_keyword,
+        # desc_sig_space, desc_sig_punctuation, desc_sig_operator,
+        # inline.default_value, desc_sig_literal_string/number and the
+        # C/C++-only desc_sig_keyword_type get monospace "for free" with no
+        # dedicated per-node handler (contract section 4.3). Unlike
+        # in_literal_block above, this branch is NOT a bare unescaped
+        # emission -- it still escapes and still participates in every
+        # separator protocol (paragraph/concat/list-item), because
+        # signature text is still prose-adjacent content, just typeset in
+        # monospace. Do not collapse this into the in_literal_block shape.
+        if self.in_signature_text:
+            # Same FID-11 soft-wrap collapse as the plain-text path below.
+            sig_text_content = text_content.replace("\n", " ")
+            # Escape + inject the break-opportunity escape via the shared
+            # helper (see its docstring for the load-bearing order
+            # rationale) -- the SAME algorithm every signature leaf-
+            # emission site reuses, so there is exactly one place the
+            # escape+ZWSP algorithm lives.
+            sig_text_content = self._escape_signature_text(sig_text_content)
+
+            self._add_paragraph_separator()
+            if not self._emit_inline_concat_separator():
+                if self.in_list_item and self.list_item_needs_separator:
+                    self.add_text("\n")
+
+            sig_prefix = "#" if self._in_markup_mode else ""
+            self.add_text(f'{sig_prefix}raw("{sig_text_content}")')
+
+            if not self._mark_inline_concat_content():
+                if self.in_list_item:
+                    self.list_item_needs_separator = True
             return
 
         # FID-11: a paragraph authored with reST soft/semantic source line
