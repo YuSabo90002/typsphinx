@@ -40,7 +40,7 @@ Audit mode: verify declared mitigations exist in the implementation — not a fr
 | T-37-05 | Denial of service | `depart_desc` suppressing a structurally-required break, merging two `desc` blocks into one run of text | medium | mitigate | `typsphinx/translator.py:4851` — `if not self.in_table and self._desc_break_marker == len(self.body): return`; marker set only on emission (`:4854`). Named pins present and green: `tests/test_signature_break_and_arrow_gate.py:222` (content-follows-nested-member), `:254` (sibling body-less control). | closed |
 | T-37-06 | Tampering | The `len(self.body)` marker mis-firing inside a table cell, where `add_text` routes elsewhere | low | mitigate | Explicit `not self.in_table` guard retains the pre-phase unconditional behaviour inside tables (`typsphinx/translator.py:4851`, contract §8). | closed |
 | T-37-07 | Information disclosure | A resolved cross-reference silently losing its hyperlink while keeping its glyphs | medium | mitigate | `is_leaf` computed at `typsphinx/translator.py:5686`; rules 1/2 require it and rule 3 is a genuine no-op, so children dispatch under `in_signature_text` and the unmodified `visit_reference` still fires. The assertion targets the link call, not the type-name substring: `tests/test_signature_typography_gate.py:407` asserts `link(<index:Foo>, raw("Foo"))`. | closed |
-| T-37-08 | Denial of service | The `desc_signature` block wrapper's vertical spacing inflating every signature and compounding across a document | medium | mitigate | **Declared mitigation reversed in Wave 4.** The explicit `above: 0pt, below: 0pt` zeroing is absent — the wrapper is `block(sticky: true, par(hanging-indent: 2.5em, {` (`typsphinx/translator.py:4963-4964`), reversed in `76324bf` because the zeroing caused every signature's glyphs to overlap its own body (`37-SPACING-FINDING.md`). Partial replacement present: exact-emission pins on the wrapper literal (`tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ:26,36,40,43,59` under `tests/test_desc_rubric_decoupling_render_gate.py:241`; `tests/test_translator.py:3384`) break immediately on any future `above:`/`below:` edit. The threat does not materialise empirically (auditor A4 measurement: `signature_typography_gate` 13 wrappers → 4 pages shipped and zeroed; `signature_break_and_arrow_gate` 9 wrappers → 3 pages both). **Remaining gap:** the named pin, `test_page_count_does_not_inflate`, had its baseline re-pinned 6→7, moving its firing point from ≥0.9em to ≥16em (~10× the current default), and its fixture holds exactly one signature so it never measured compounding. No committed assertion pins rendered vertical spacing or multi-signature page count. | open — below `high` threshold (non-blocking) |
+| T-37-08 | Denial of service | The `desc_signature` block wrapper's vertical spacing inflating every signature and compounding across a document | medium | mitigate | **Declared mitigation reversed in Wave 4.** The explicit `above: 0pt, below: 0pt` zeroing is absent — the wrapper is `block(sticky: true, par(hanging-indent: 2.5em, {` (`typsphinx/translator.py:4963-4964`), reversed in `76324bf` because the zeroing caused every signature's glyphs to overlap its own body (`37-SPACING-FINDING.md`). Partial replacement present: exact-emission pins on the wrapper literal (`tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ:26,36,40,43,59` under `tests/test_desc_rubric_decoupling_render_gate.py:241`; `tests/test_translator.py:3384`) break immediately on any future `above:`/`below:` edit. The threat does not materialise empirically (auditor A4 measurement: `signature_typography_gate` 13 wrappers → 4 pages shipped and zeroed; `signature_break_and_arrow_gate` 9 wrappers → 3 pages both). The gap that kept this open — no committed assertion pinning multi-signature page count — was closed on 2026-08-01 by `/gsd-validate-phase 37`: `tests/test_signature_typography_multi_signature_page_count_gate.py` asserts the 13-wrapper `signature_typography_gate` fixture at 4 A4 pages, fires at ≥2.3em per side (measured sweep, ~7× tighter than the ≥16em SIG-09 guard), and is the only assertion in the suite that measures compounding across more than one signature. See `37-VALIDATION.md` § Validation Audit 2026-08-01. | closed |
 | T-37-09 | Tampering | An unbalanced optional-group bracket aborting the entire Typst compile rather than failing one assertion | medium | mitigate | `visit_desc_optional` emits one `raw("[")` (`:5293`); `depart_desc_optional` emits the D-11 separator **before** the close (`:5327`, `:5329`) — bracket count unchanged. Nested-optional compiled-PDF control `tests/test_signature_break_and_arrow_gate.py:445`; its compile helper states and honours "no `try`/`except`" (`:120-125`), so a mismatch aborts loudly. | closed |
 | T-37-10 | Tampering (supply chain) | A new runtime dependency or a new `@preview` package slipping in | high | mitigate | `git diff 5a9b08f^..HEAD -- pyproject.toml` empty. `find typsphinx -name "*.typ"` → only `templates/base.typ`; the phase added no `.typ` under the package. `uv run pytest tests/test_preview_version_sync.py` → 3 passed (the three lockstep sites agree). No package-manager install occurs anywhere in this phase, so the package-legitimacy gate has nothing to audit. | closed |
 | T-37-11 | Denial of service | A font selection silently shadowing the Japanese build's CJK fallback — Typst emits neither a warning nor an error | medium | mitigate | `grep -rn "font:" typsphinx/` → no match anywhere in the package; D-04 makes the monospace primitive the only mechanism and no handler in this phase names a font. | closed |
@@ -67,6 +67,7 @@ Audit mode: verify declared mitigations exist in the implementation — not a fr
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-08-01 | 11 | 10 | 1 (medium — non-blocking) | gsd-security-auditor (opus), ASVS L1, `block_on: high` |
+| 2026-08-01 | 11 | 11 | 0 | T-37-08 closed by `/gsd-validate-phase 37` — see `37-VALIDATION.md` § Validation Audit 2026-08-01 |
 
 ## Security Audit 2026-08-01
 
@@ -74,7 +75,7 @@ Audit mode: verify declared mitigations exist in the implementation — not a fr
 |--------|-------|
 | Threats found | 11 |
 | Closed | 10 |
-| Open | 1 |
+| Open | 1 → **0** (T-37-08 closed later the same day, see the trail above) |
 | Open at or above `high` (blocking) | 0 |
 
 ### Audit Notes
@@ -110,11 +111,13 @@ Audit mode: verify declared mitigations exist in the implementation — not a fr
   `[#metadata(none) <…>]` anchors, and all `linebreak()`/`parbreak()` lines are byte-unchanged.
 - No unregistered attack surface appeared — every new emission maps to a registered threat.
 
-### What would close T-37-08
+### What closed T-37-08 (resolved 2026-08-01)
 
-Add a committed multi-signature page-count assertion at real geometry — the
-`signature_typography_gate` fixture (13 wrappers, measured at 4 A4 pages) — which is the
-compounding detector the register named and the suite lacks. Optionally re-tighten the SIG-09
+**Done.** `/gsd-validate-phase 37` added the committed multi-signature page-count assertion at real
+geometry — `tests/test_signature_typography_multi_signature_page_count_gate.py` over the
+`signature_typography_gate` fixture (13 wrappers, independently re-measured at 4 A4 pages, with a
+wrapper-count degenerate-pass guard). Measured firing point: ≥2.3em per side, versus ≥16em for the
+SIG-09 guard. The original recommendation continues below for the record. Optionally re-tighten the SIG-09
 guard, or retire its inflation claim and let it assert only what it can
 (`test_primary_signature_and_body_share_a_page` already carries SIG-09). Relevant because the
 phase moved from an explicitly pinned spacing value to inheriting Typst's upstream default: a

@@ -3,7 +3,7 @@ phase: 37
 slug: signature-typography-the-desc-family
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
-status: draft
+status: validated
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-08-01
@@ -111,9 +111,11 @@ closeout plan itself and is not a row in its own map).
 | 37-09 T1 | 37-09 | 5 | SIG-07/SIG-09 (contract amendment) | — | N/A | manual | re-read §3/§9 for identical wrapper text | ✅ | ✅ green |
 | 37-09 T2 | 37-09 | 5 | SIG-01..04/07/09 (wrapper fix) | T-37-01 | mitigate | integration | `pytest tests/test_signature_typography_gate.py tests/test_signature_page_boundary_render_gate.py tests/test_signature_overflow_render_gate.py tests/test_signature_break_and_arrow_gate.py tests/test_desc_rubric_decoupling_render_gate.py tests/test_desc_bodyless_concat_render_gate.py -q` | ✅ | ✅ green |
 | 37-09 T3 | 37-09 | 5 | SIG-09 (Phase 34 goldens) | — | N/A | integration + other | `pytest -q --tb=short` (whole suite) | ✅ | ✅ green — first fully-green whole-suite result of the phase |
+| GAP-1 | validate-phase audit | — | Multi-signature spacing compounding (T-37-08 residue) | T-37-08 | mitigate | integration (real compile) | `uv run pytest tests/test_signature_typography_multi_signature_page_count_gate.py -v` | ✅ | ✅ green — added 2026-08-01 by this audit |
 
-*Status legend: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky. Every row above was independently
-re-confirmed green in this plan's Task 1 whole-suite run (`658 passed, 29 deselected`).*
+*Status legend: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky. Rows 37-01…37-09 were independently
+re-confirmed green in `37-08` Task 1's whole-suite run (`658 passed, 29 deselected`), and again by
+this audit on the main checkout at the same count before GAP-1 was added (`659 passed` after).*
 
 ---
 
@@ -180,3 +182,64 @@ question.*
 
 **Approval:** approved — owner's verbatim response to `37-08` Task 3, 2026-08-01: "approved". Full
 record in `37-08-SUMMARY.md`.
+
+---
+
+## Validation Audit 2026-08-01
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 1 |
+| Resolved | 1 |
+| Escalated | 0 |
+
+Run by `gsd-nyquist-auditor` (haiku) under `/gsd-validate-phase 37`, State A.
+
+### What was audited
+
+Every test file and node ID named in the Per-Task Verification Map was confirmed to exist, and the
+suite was re-run on the main checkout: `uv run pytest -q -m "not slow"` → **658 passed, 29 deselected
+in 42.82s**, byte-matching the count `37-08` Task 1 recorded. SIG-01…SIG-09 and D-11 all classify
+COVERED. One requirement had no automated sampling at all.
+
+### GAP-1 — multi-signature spacing compounding (MISSING → COVERED)
+
+Surfaced by the security audit the same day (`37-SECURITY.md`, threat T-37-08). Phase 37 moved the
+`desc_signature` wrapper from an explicitly pinned spacing value to inheriting Typst's own default
+(Wave 3 zeroed `above`/`below`; Wave 4 reversed the zeroing because it made signatures overlap their
+bodies). The pin T-37-08 named, `test_page_count_does_not_inflate`, had its baseline re-pinned 6→7
+in the same plan — moving its firing point to ≥16em — and its fixture holds exactly one signature,
+so it structurally cannot measure compounding at all.
+
+**Filled by** `tests/test_signature_typography_multi_signature_page_count_gate.py::TestSignatureTypographyMultiSignaturePageCountGate::test_multi_signature_document_page_count_at_real_geometry`
+— builds `tests/fixtures/signature_typography_gate` (13 signature wrappers) through
+`sphinx-build -b typst`, compiles with `typst.compile()`, and asserts 4 A4 pages, with a
+wrapper-count guard so it cannot pass silently on a changed fixture. Baseline re-derived
+independently by both the auditor and the orchestrator: 13 wrappers → 4 pages.
+
+**Measured sensitivity (orchestrator sweep, variant-swap on the emitted `.typ`, 2026-08-01):**
+
+| per-side spacing | shipped | 0pt | 0.5em | 1.0em | 2.0em | 2.2em | 2.3em | 3.0em | 6em |
+|---|---|---|---|---|---|---|---|---|---|
+| pages | 4 | 4 | 4 | 4 | 4 | 4 | **5** | 5 | 6 |
+
+The gate fires at **≥2.3em** per side — roughly 7× tighter than the ≥16em guard it supplements, and
+it is the only assertion in the suite that measures compounding across more than one signature.
+
+The auditor's returned claim that 1.0em "would inflate to 5+ pages" is **not correct** — measured,
+1.0em still renders 4 pages. The test's docstring was corrected to carry the sweep above instead of
+that estimate, so the file does not repeat the overstated-sensitivity problem this same day's
+security audit flagged in `37-09`'s own justification text.
+
+**What the gate does not catch, and what does:** the collapse direction (`above: 0pt, below: 0pt`,
+the Wave-3 overlap defect) still renders 4 pages, so page count cannot see it. It is pinned
+automatically elsewhere — the Phase 34 MATH-02 golden
+`tests/fixtures/inline_math_pdf_text_mitex.golden.txt:19` keeps `math_inline_default` on its own
+extracted-text line and re-merges the moment the overlap returns, and the wrapper string itself is
+byte-pinned by `desc_rubric_decoupling_render_gate/golden.typ` and
+`tests/test_translator.py::test_desc_signature_rendering`. The residual exposure the new gate
+targets is an upstream `typst-py` default-spacing change, which no in-repo string pin would catch
+and which `drift.yml` re-resolves weekly.
+
+**Post-audit suite:** `uv run pytest -q -m "not slow"` → **659 passed, 29 deselected in 43.24s**.
+`black --check` and `ruff check` pass on the new file.
