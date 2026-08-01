@@ -122,7 +122,7 @@ Bucket taxonomy from `sphinx.sty` — four colour groups, not ten independent st
       than sitting flush to the page margin — it follows structural nesting and gets no indent rule
       of its own. (`rubric` also carries autodoc's "Options" heading, so this lands on API pages.)
 
-- [ ] **ADM-06** [M]: `rubric` no longer routes through the shared `visit_strong` dummy-node
+- [x] **ADM-06** [M]: `rubric` no longer routes through the shared `visit_strong` dummy-node
       delegation, so it and `desc_signature` can be styled independently.
 
 ### Citations (CIT)
@@ -284,7 +284,7 @@ Phase numbering continues from v0.6.5's last phase (35).
 | ADM-03 | Phase 39 | Pending |
 | ADM-04 | Phase 39 | Pending |
 | ADM-05 | Phase 39 | Pending |
-| ADM-06 | Phase 36 | Pending |
+| ADM-06 | Phase 36 | Complete |
 | CIT-01 | Phase 40 | Pending |
 | CIT-02 | Phase 40 | Pending |
 | CIT-03 | Phase 40 | Pending |
