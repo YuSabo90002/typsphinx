@@ -185,3 +185,10 @@ None - no external service configuration required.
 ---
 *Phase: 38-structural-indentation-info-fields*
 *Completed: 2026-08-01*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/38-structural-indentation-info-fields/38-TEST-CENSUS.md`
+- FOUND: `.planning/phases/38-structural-indentation-info-fields/38-04-SUMMARY.md`
+- FOUND commit: `7742b93` (census)
+- FOUND commit: `b810a18` (summary)
