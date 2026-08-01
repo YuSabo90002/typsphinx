@@ -106,7 +106,45 @@ PAGE_MARGIN_PT = 20.0
 # THIS ONE keep-together unit needs, not a per-signature inflation that
 # would compound across a real document. Re-pinned to 7, the real
 # measured page count under the corrected wrapper.
-EXPECTED_PAGE_COUNT_PRE_PHASE = 7
+#
+# RENAMED at Phase 38 close (38-08-PLAN.md Task 1, closing the folded todo
+# `2026-08-01-expected-page-count-pre-phase-misnamed-post-phase-value.md`):
+# the identifier `EXPECTED_PAGE_COUNT_PRE_PHASE` had already held a
+# *post*-Phase-37 value since plan 37-09 re-pinned it above, and Phase 38
+# (structural indentation + info fields) measurably moves page counts in
+# BOTH directions elsewhere in this fixture's blast radius -- shortening a
+# document via the body-less single-value field-body reflow, widening
+# field-list lines via the proportional-to-monospace parameter move -- so
+# the "PRE_PHASE" name would have started lying a second time regardless of
+# whether this specific fixture's own count happened to move. Renamed to
+# `EXPECTED_PAGE_COUNT_CEILING` to describe what the constant actually IS
+# -- the ceiling the `<=` guard below checks against -- rather than tying
+# the name to any one phase's before/after boundary, so a future phase's
+# own re-measure cannot make the name lie a third time.
+#
+# Re-measured 2026-08-01 against the post-Phase-38 translator (this
+# worktree's base commit, 7ae016d, already contains 38-05/38-06/38-07's
+# landed changes -- confirmed directly: `git log --oneline` shows those
+# plans' commits as ancestors, and `typsphinx/translator.py` already
+# contains `pad(left: {SHARED_INDENT_STEP}, {{` at both the desc_content
+# and field_list wrapper sites before this measurement was taken). Real
+# `sphinx-build -b typst` + the SAME `_insert_page_override` mechanism this
+# module already uses + `typst.compile()` + `pypdf.PdfReader`:
+#
+#     $ uv run python <rebuild+compile+len(reader.pages) script, see
+#       38-GATE-EVIDENCE.md Bucket D for the exact command run>
+#     PAGE COUNT (boundary fixture): 7
+#
+# UNCHANGED at 7. Dominant reason: this fixture exists solely to isolate
+# SIG-09's page-boundary keep-together behaviour on ONE artificially short
+# page (PAGE_HEIGHT_PT=200pt) and contains no field list and no body-less
+# single-value field -- neither of Phase 38's two page-count-moving
+# mechanisms (the field-body shortening, the field-list widening) has any
+# bytes to act on in this fixture, so the value that survived Phase 37
+# survives Phase 38 by absence of applicable content, not by coincidence.
+# This is a MEASUREMENT taken against the real post-phase build, never a
+# hand-derived or regenerated expected string (milestone invariant #4).
+EXPECTED_PAGE_COUNT_CEILING = 7
 
 
 def _run_sphinx_build_typst(
@@ -260,26 +298,28 @@ class TestSignaturePageBoundaryRenderGate:
     def test_page_count_does_not_inflate(self, signature_page_boundary_pages):
         """
         Pitfall 1 guard: the compiled page count must not GROW beyond the
-        pinned baseline. Post-Wave-3 amendment (plan 37-09): the baseline
-        itself was re-pinned from 6 to 7 -- see EXPECTED_PAGE_COUNT_PRE_PHASE's
-        own comment for the full reasoning and the above/below sweep data.
-        In short: this fixture is deliberately built with almost no page
-        slack so the SIG-09 signature/body split defect reproduces; once
-        the corrected wrapper restores real paragraph spacing around the
-        boundary signature, that signature + its sticky:true-bound body no
-        longer fits in the room left on page 6, and `sticky: true` correctly
-        pushes the whole unit to page 7 as one piece rather than splitting
-        or overlapping it -- confirmed by
-        `test_primary_signature_and_body_share_a_page` below, which still
-        passes (the unit lands together, just one page later). This guard
-        still catches the failure mode it exists for: a per-signature
-        spacing regression that inflates the page count BEYOND the
-        corrected wrapper's own real, re-measured baseline.
+        pinned ceiling. Post-Wave-3 amendment (plan 37-09): the ceiling
+        itself was re-pinned from 6 to 7 -- see EXPECTED_PAGE_COUNT_CEILING's
+        own comment for the full reasoning and the above/below sweep data
+        (that comment also records Phase 38's own re-measure, unchanged at
+        7, and the rename from EXPECTED_PAGE_COUNT_PRE_PHASE this phase
+        made to close the folded todo). In short: this fixture is
+        deliberately built with almost no page slack so the SIG-09
+        signature/body split defect reproduces; once the corrected wrapper
+        restores real paragraph spacing around the boundary signature, that
+        signature + its sticky:true-bound body no longer fits in the room
+        left on page 6, and `sticky: true` correctly pushes the whole unit
+        to page 7 as one piece rather than splitting or overlapping it --
+        confirmed by `test_primary_signature_and_body_share_a_page` below,
+        which still passes (the unit lands together, just one page later).
+        This guard still catches the failure mode it exists for: a
+        per-signature spacing regression that inflates the page count
+        BEYOND the corrected wrapper's own real, re-measured ceiling.
         """
         actual = len(signature_page_boundary_pages)
-        assert actual <= EXPECTED_PAGE_COUNT_PRE_PHASE, (
-            f"page count grew from the pinned baseline of "
-            f"{EXPECTED_PAGE_COUNT_PRE_PHASE} to {actual} -- likely a "
+        assert actual <= EXPECTED_PAGE_COUNT_CEILING, (
+            f"page count grew from the pinned ceiling of "
+            f"{EXPECTED_PAGE_COUNT_CEILING} to {actual} -- likely a "
             "signature-wrapper spacing regression."
         )
 

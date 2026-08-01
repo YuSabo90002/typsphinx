@@ -87,6 +87,31 @@ except ImportError:
 # Expected page count for signature_typography_gate fixture at A4 geometry
 # (2.5cm margins, 11pt body text, no forced page-height override).
 # Measured 2026-08-01 against real build + compile + pypdf extraction.
+#
+# Re-measured 2026-08-01 at Phase 38 close (38-08-PLAN.md Task 1), against
+# the post-Phase-38 translator (this worktree's base commit, 7ae016d,
+# already contains 38-05/38-06/38-07's landed changes). This fixture's 13
+# signature wrappers include several with real bodies AND field lists
+# (Python-domain autodoc-style directives), so BOTH of Phase 38's
+# page-count-moving mechanisms have bytes to act on here, pulling in
+# opposite directions: the body-less/single-value field-body reflow
+# shortens the document, while moving field-list parameter names/types
+# from proportional to monospace (FLD-03) widens those lines. Real
+# `sphinx-build -b typstpdf` + `pypdf.PdfReader`:
+#
+#     $ uv run python <rebuild+compile+len(reader.pages) script, see
+#       38-GATE-EVIDENCE.md Bucket D for the exact command run>
+#     PAGE COUNT (multi-signature fixture): 4
+#     WRAPPER COUNT: 13
+#
+# UNCHANGED at 4. Dominant reason: this fixture's page budget (4 pages at
+# real A4 geometry) has enough slack that neither the shortening nor the
+# widening effect crosses a page boundary -- the module docstring's own
+# sensitivity sweep above shows the fixture only crosses to 5 pages at a
+# per-signature inflation of >=2.3em, an order of magnitude larger than
+# either of this phase's effects. This is a MEASUREMENT taken against the
+# real post-phase build, never a hand-derived or regenerated expected
+# string (milestone invariant #4).
 EXPECTED_PAGE_COUNT = 4
 
 # Expected number of desc_signature wrappers in the fixture.
