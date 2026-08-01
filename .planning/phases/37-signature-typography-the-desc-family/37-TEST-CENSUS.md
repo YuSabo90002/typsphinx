@@ -106,3 +106,89 @@ Editing either of these three assertions in this plan would destroy that evidenc
 `--sep`-adjacent rubric lookups in `test_rubric_option_concat_render_gate.py` gain an inline
 comment (Task 2) stating they are Phase 39 territory and deliberately unchanged; no value on
 either line changes.
+
+---
+
+## Finalisation against reality (written by `37-08` Task 2, phase closeout)
+
+Per row, whether the predicted outcome actually happened, cross-checked against every plan's own
+SUMMARY (`37-05-SUMMARY.md`, `37-06-SUMMARY.md`, `37-07-SUMMARY.md`, `37-09-SUMMARY.md`) and the
+requirement verdict table in `37-GATE-EVIDENCE.md` §2.
+
+### Bucket A — predicted vs. actual
+
+All 10 predicted node ids flipped RED → GREEN exactly at the plan predicted as owner. No Bucket-A
+row flipped early, late, or at an unpredicted plan.
+
+| # | Predicted owning plan | Actually flipped at | Match? |
+|---|---|---|---|
+| A1 (`test_desc_signature_rendering`) | 37-06 | `f63fe8f` (37-06 Task 3) | Yes |
+| A2 (`test_desc_with_annotation_and_name`) | 37-06 | `f63fe8f` (37-06 Task 3) | Yes |
+| A3 (`test_desc_parameterlist`) | 37-06 | `f63fe8f` (37-06 Task 3) | Yes |
+| A4 (`test_full_api_description_structure`) | 37-06 | `f63fe8f` (37-06 Task 3) | Yes |
+| A5 (`TestDescSignatureConcatRenderGate` xref-hyperlink case) | 37-07 | `7c8dce0` (37-07 Task 1) | Yes |
+| A6 (`TestDescSignatureSiblingsRenderGate`) | 37-07 | `7c8dce0` (37-07 Task 1) | Yes |
+| A7 (`--sep` rubric-adjacent lookup) | 37-06 | `f63fe8f` (37-06 Task 3) | Yes |
+| A8 (`desc_sig_space` FID-07/08 spacing) | 37-06 | `7674e3f` (37-06 Task 2) | Yes |
+| A9 (PDF arrow assertion, `@pytest.mark.slow`) | 37-07 | `6c1d63b` (37-07 Task 3) | Yes |
+| A10 (`golden.typ` byte-identity gate) | 37-07 | `7c8dce0`/`816e252`/`6c1d63b` (37-07, all three tasks contribute; gate turned green with zero golden reconciliation) | Yes |
+
+**A census that was right is evidence the blast radius was understood.** 10/10 Bucket A predictions
+held exactly.
+
+### Bucket B — predicted stays-green
+
+All 8 files in Bucket B stayed green throughout every wave, including through `37-09`'s wrapper
+change — confirmed by the whole-suite set-difference verification in every plan's own SUMMARY
+(no Bucket-B file's node id ever appears in a "flipped" or "new failure" list across `37-05` through
+`37-09`).
+
+### Bucket C — conditional, re-verified
+
+All 4 conditional node ids were re-verified GREEN after `37-05` landed (`37-05-SUMMARY.md`'s
+"Set-Difference Verification" table) and stayed GREEN through `37-06`, `37-07`, and `37-09` — named
+explicitly in `37-GATE-EVIDENCE-09.md` §5.4's "Named falsifiers, explicitly re-verified GREEN" list.
+
+### The census's honest miss — `37-09`'s two unpredicted files
+
+This census could not have predicted plan `37-09` — it did not exist when this census was written
+(Wave 2); it is a gap-closure plan the orchestrator authored **after** the post-merge gate following
+Wave 3 caught the wrapper-overlap defect (`37-SPACING-FINDING.md`). Of `37-09`'s own 5-file blast
+radius, 3 files were already correctly identified as signature-wrapper-sensitive by this census's
+Bucket A (`tests/test_signature_typography_gate.py`, `tests/test_translator.py`,
+`tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`) or by `37-03`'s own SIG-09 gate
+(`tests/test_signature_page_boundary_render_gate.py` — though the SPECIFIC re-pin of
+`EXPECTED_PAGE_COUNT_PRE_PHASE` from 6 to 7 was not itself predicted, only the fixture's general
+wrapper-sensitivity was).
+
+**Two files were genuinely unpredicted, added here now that they are known:**
+
+| File | Bucket | Why it was missed originally |
+|---|---|---|
+| `tests/fixtures/inline_math_pdf_text_mitex.golden.txt` | (new) Bucket D — discovered post-census | Phase 34's MATH-02 asset, structurally unrelated to the `desc_signature` family at census-writing time; this census's 13-file reading pass (from `37-CONTEXT.md`'s starting blast-radius list) had no reason to include it |
+| `tests/fixtures/inline_math_pdf_text_native.golden.txt` | (new) Bucket D — discovered post-census | Same reasoning; the native-mitex mirror of the file above |
+
+**Root cause of the miss (structural, not a modeling error):** pre-Phase-37, `desc_signature`'s
+`strong({...})` wrapper was an INLINE Typst call, so a confval signature could join the same visual
+line as adjacent content when there was room — which is why these two Phase-34 goldens' pre-fix
+baseline shows a signature sharing a line with the following field body. From Wave 3 onward, Phase 37
+wraps `desc_signature` in a genuine `block(...)` — an intrinsically block-level construct that can
+never again share a visual line with a neighbor, REGARDLESS of spacing amount. This layout
+consequence of adopting `block()` at all (D-10) was not itself visible until `37-06`'s
+implementation landed and a full-suite regression run surfaced the collateral failure; `37-09`
+root-caused and fixed it (hand-updating both goldens surgically, pre-fix baselines preserved verbatim
+in `37-GATE-EVIDENCE-09.md` §4.3).
+
+**Disposition, per this census's own stated principle:** "a census that was wrong in a recorded way
+is more useful than one silently corrected." This miss is recorded here rather than silently folded
+into Bucket A after the fact.
+
+## Final counts (post-`37-09`)
+
+- Bucket A (predicted breaking, all flipped as predicted): **10/10**.
+- Bucket B (predicted stays-green, held): **8/8**.
+- Bucket C (predicted conditional, re-verified): **4/4**.
+- Bucket D (unpredicted, discovered by `37-09`): **2** — both Phase-34 PDF-text goldens.
+- **Total node ids/files this census's full lifecycle accounts for: 24**, with 22/24 (92%) correctly
+  predicted at census-writing time and 2/24 (8%) discovered honestly during the phase's own
+  gap-closure wave, not silently absorbed.
