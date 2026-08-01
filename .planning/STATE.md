@@ -5,8 +5,8 @@ milestone_name: API rendering design overhaul
 current_phase: 37
 current_phase_name: Signature Typography — the `desc_*` Family
 status: planning
-stopped_at: Phase 36 context gathered
-last_updated: "2026-08-01T01:24:20.863Z"
+stopped_at: Phase 37 context gathered
+last_updated: "2026-08-01T03:20:08.754Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 36 complete, transitioned to Phase 37
 progress:
@@ -359,10 +359,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/36-shared-emission-seam-cleanup/36-CONTEXT.md
+**Resume file:** .planning/phases/37-signature-typography-the-desc-family/37-CONTEXT.md
 
-Last session: 2026-07-30T14:44:29.282Z
-Stopped at: Phase 36 context gathered
+Last session: 2026-08-01T03:20:08.747Z
+Stopped at: Phase 37 context gathered
 Resume: `/gsd-plan-phase 36`.
 
 ## Operator Next Steps
