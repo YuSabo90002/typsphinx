@@ -299,9 +299,13 @@ visually**, which makes it verifiable by diff rather than by judgement.
      structurally on the emitted `.typ`, on both the mitex and native emission paths and on both the
      plain and `:label:`-carrying forms, with the assertion recorded RED against the unfixed
      translator before the fix lands. The compiled PDF carries a companion **invariance** assertion
-     rather than a RED one: measured 2026-07-30, the fix produces a byte-identical PDF (22,855
-     bytes) and identical `pypdf`-extracted text, so the PDF's role here is to prove the change is
-     inert, not to fail before the fix.
+     rather than a RED one: measured 2026-07-30, the fix produces a PDF of identical size (22,855
+     bytes), identical page count, and identical `pypdf`-extracted text, so the PDF's role here is
+     to prove the change is inert, not to fail before the fix. The PDF invariance assertion must
+     compare extracted text, page count, and size — **never PDF bytes**. Typst embeds
+     `CreationDate`/`ModDate`, so two builds of *identical* input differ in the timestamp bytes
+     (measured 2026-08-01: same input, two compiles 2s apart, identical length but 88 differing
+     bytes). A PDF byte-identity assertion is unsatisfiable independently of this fix.
   4. The exact-string assertions this phase invalidates are re-derived by hand (never regenerated
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
