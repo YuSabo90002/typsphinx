@@ -138,6 +138,13 @@ class TypstTranslator(SphinxTranslator):
         self._list_item_stack: List[bool] = []
         self.in_literal_block = False  # Track if currently in a code block
 
+        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8):
+        # records len(self.body) immediately after a `desc`'s own parbreak()
+        # was emitted, so depart_desc can tell whether anything has been
+        # emitted since -- the discriminator that lets a nested `desc`'s
+        # duplicate break be suppressed without a desc-nesting-depth counter.
+        self._desc_break_marker: int | None = None
+
         # Stream-based list rendering state (Issue #61)
         self.is_first_list_item = True  # Track if current item is first in list
         self.list_item_needs_separator = (
@@ -4656,15 +4663,57 @@ class TypstTranslator(SphinxTranslator):
 
         Add spacing after API description blocks.
 
-        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back
-        body-less desc siblings (e.g. confvals with only :type:/:default:
-        fields, no body paragraph) previously concatenated onto one running
-        line because a bare cosmetic "\\n\\n" produces no visual break in
-        Typst code mode. Applying parbreak() unconditionally (even when the
-        desc's last content already ends in a par()) is verified harmless --
-        no double-gap artifact -- so no body-less-detection guard is needed.
+        Emits a real Typst parbreak() (FID-06) -- back-to-back body-less desc
+        siblings (e.g. confvals with only :type:/:default: fields, no body
+        paragraph) previously concatenated onto one running line because a
+        bare cosmetic "\\n\\n" produces no visual break in Typst code mode.
+        Applying parbreak() (even when the desc's last content already ends
+        in a par()) is verified harmless -- no double-gap artifact -- so no
+        body-less-detection guard is needed for THAT case; sibling body-less
+        desc nodes always have something emitted between their two
+        departures (id anchors, the next signature's wrapper), so the SIG-08
+        suppression below never fires for them (see
+        tests/test_desc_bodyless_concat_render_gate.py, this fix's control).
+
+        SIG-08 (D-12, 37-EMISSION-CONTRACT.md section 8): a nested `desc`
+        (e.g. a py:method:: inside a py:class::) used to emit an
+        unconditional parbreak() for its own departure and again for the
+        outer desc's departure, producing two adjacent parbreak() statements
+        with nothing between them. Suppressed here via an emission-position
+        marker (self._desc_break_marker), mirroring the
+        _is_first_desc_signature scalar-flag idiom (visit_desc, above): if
+        nothing has been appended to self.body since the immediately
+        preceding desc's own parbreak() was recorded, this desc's break is
+        redundant and is skipped. The early return deliberately does NOT
+        update the marker, so three levels of nesting still yield exactly
+        one parbreak() rather than one per pair.
+
+        This is deliberately NOT implemented as a desc-nesting-depth
+        counter. A depth counter would suppress the INNER desc's break
+        unconditionally, which is wrong whenever the outer desc_content
+        continues with more content after the nested member -- the member
+        and the following paragraph would then run together with no
+        separation between them. The correct discriminator is "was anything
+        emitted between the two departures", not "how deep am I" -- a depth
+        counter cannot see the difference between "the outer desc has
+        nothing left" and "the outer desc has more content coming".
+
+        The FID-03 sibling linebreak() in visit_desc_signature is a
+        different mechanism solving a different problem (separating
+        signature LINES within one visual block, not separating one desc
+        paragraph-block from the next) and deliberately does not converge
+        with this one.
+
+        Inside a table cell, add_text routes into table_cell_content rather
+        than self.body (see add_text), so len(self.body) would not advance
+        between two departures there and the marker-based suppression would
+        fire wrongly. The `not self.in_table` guard retains the pre-phase
+        unconditional behaviour inside tables.
         """
+        if not self.in_table and self._desc_break_marker == len(self.body):
+            return
         self._emit_forced_break("parbreak()")
+        self._desc_break_marker = len(self.body)
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
