@@ -319,7 +319,7 @@ visually**, which makes it verifiable by diff rather than by judgement.
      from the new output), the touched test files and render-gate classes are recorded as a census,
      and the full suite, the lint/type trio, and the full-corpus `-b typstpdf` gate are green with
      the pre-change baseline recorded alongside.
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -328,7 +328,7 @@ Plans:
 
 **Wave 2**
 
-- [ ] 36-02-PLAN.md — ADM-06: `visit_desc_signature`/`depart_desc_signature` and `visit_rubric`/`depart_rubric` each get their own verbatim copy of `visit_strong`'s body (D-01/D-02/D-03), in one commit touching only `typsphinx/translator.py`, with the empty SC#2 diff recorded against two named commits (D-07)
+- [x] 36-02-PLAN.md — ADM-06: `visit_desc_signature`/`depart_desc_signature` and `visit_rubric`/`depart_rubric` each get their own verbatim copy of `visit_strong`'s body (D-01/D-02/D-03), in one commit touching only `typsphinx/translator.py`, with the empty SC#2 diff recorded against two named commits (D-07)
 
 **Wave 3**
 
@@ -568,7 +568,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
-| 36. Shared-Emission Seam Cleanup | v0.7.0 | 1/4 | In Progress|  |
+| 36. Shared-Emission Seam Cleanup | v0.7.0 | 2/4 | In Progress|  |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 0/TBD | Not started | - |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
