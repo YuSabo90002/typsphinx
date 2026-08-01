@@ -95,7 +95,7 @@ return annotation, and an overload pair) through `sphinx-build -b typst`, `-b ty
 
 ### Overflow — SIG-07
 
-- **D-06: `par(hanging-indent: …)` plus U+200B injection into long dotted names. Nothing else.**
+- **D-06 — `par(hanging-indent: …)` plus U+200B injection into long dotted names. Nothing else.**
   Measured on A4 with 2.5 cm side margins, using
   `sphinx.ext.autodoc.preserve_defaults.DefaultValueDocumenter(directive: DocumenterBridge, name: str, *, indent: str = '')`:
   - bare concatenation wraps at the spaces inside `text(", ")` but the continuation line sits flush
