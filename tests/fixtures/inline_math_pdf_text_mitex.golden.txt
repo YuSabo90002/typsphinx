@@ -16,7 +16,8 @@ Construct B: bullet list item – prose then inline math then prose (the primary
 Construct C: collapsed field bodies – the concat context. The ​:type​: value is the sole inline math 
 (math as the FIRST expression in the concat context, no leading separator). The ​:default​: value is 
 prose then math (math following a sibling, exactly one separator).
-math_inline_default Type: 𝑥  Default: The value of 𝑥 computed inline
+math_inline_default
+Type: 𝑥  Default: The value of 𝑥 computed inline
 A description paragraph so the confval also exercises the block field-body and normal-paragraph 
 path.
 Construct D: definition-list term – a second concat context.

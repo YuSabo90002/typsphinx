@@ -23,8 +23,9 @@ top of that, by hand, per the contract's own replace() description.
 
 Region-slicing methodology: the plan text asks to "split on the wrapper
 opening literal specified in contract §3". That literal
-(``block(above: 0pt, below: 0pt, sticky: true, par(hanging-indent: 2.5em, {``)
-does not exist anywhere in the PRE-PHASE output (the current wrapper is
+(``block(sticky: true, par(hanging-indent: 2.5em, {``, post-Wave-3
+amendment, plan 37-09) does not exist anywhere in the PRE-PHASE output
+(the current wrapper is
 ``strong({``), so splitting on it pre-phase collapses the whole document into
 one un-isolated blob -- exactly the cross-signature contamination the plan
 warns against. Instead this module slices per-signature regions using the
