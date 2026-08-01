@@ -4676,22 +4676,103 @@ class TypstTranslator(SphinxTranslator):
         running line. A desc with a single signature (the overwhelming
         common case) emits zero extra bytes (the flag stays True through
         the only signature) -- byte-for-byte unchanged.
+
+        ADM-06: this handler owns its own emission -- it no longer delegates
+        to visit_strong via a dummy strong() node. The block below is a
+        deliberate verbatim copy of visit_strong's body (D-01: triplication
+        is the decision, not an accident to be refactored away), kept
+        byte-identical to the source it was copied from. Phase 37 (SIG-01..09)
+        is the phase that will make desc_signature's emission diverge from
+        visit_strong's; until then the two are intentionally identical. The
+        `_strong_was_*` attribute names are shared with visit_strong/
+        depart_strong on purpose (D-02) -- renaming them per handler would
+        repair the known "rubric containing inline markup loses par()" leak
+        (see the deferred todo), but that changes emitted bytes, which this
+        plan may not do; the repair is filed for Phase 39.
         """
         if not self._is_first_desc_signature:
             self._emit_forced_break("linebreak()")
         self._is_first_desc_signature = False
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+
+        # --- begin verbatim copy of visit_strong's body (D-01) ---
+        # Add separator if in paragraph and not first node
+        self._add_paragraph_separator()
+
+        # If this strong is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the strong body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        if not self._enter_inline_concat_element():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        # Temporarily disable paragraph state for children
+        was_in_paragraph = self.in_paragraph
+        self.in_paragraph = False
+
+        # Save and reset list item separator for children (they're inside this element)
+        was_list_item_needs_separator = self.list_item_needs_separator
+
+        # Since strong({}) uses content block, treat it like list_item
+        # Children need newline separators, not + operators
+        was_in_list_item = self.in_list_item
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
+        # Determine if we need # prefix (in markup mode)
+        prefix = "#" if self._in_markup_mode else ""
+
+        # Use strong({}) function with content block
+        self.add_text(f"{prefix}strong({{")
+
+        # Store state to restore in depart
+        self._strong_was_in_paragraph = was_in_paragraph
+        self._strong_was_in_list_item = was_in_list_item
+        self._strong_was_list_item_needs_separator = was_list_item_needs_separator
+        # --- end verbatim copy of visit_strong's body ---
+
         # Reset per signature (DESC-02): each desc_signature starts fresh,
         # so consecutive signatures don't carry over a stray linebreak().
         self._is_first_desc_signature_line = True
 
     def depart_desc_signature(self, node: addnodes.desc_signature) -> None:
-        """Depart a desc_signature node."""
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        """
+        Depart a desc_signature node.
+
+        ADM-06: this handler owns its own emission -- the block below is a
+        deliberate verbatim copy of depart_strong's body (D-01) rather than a
+        delegation to a dummy strong() node. Phase 37 owns making this
+        diverge from depart_strong's body. The `_strong_was_*` attribute
+        names are shared with depart_strong on purpose (D-02); see
+        visit_desc_signature's docstring for the deferred-repair note.
+        """
+        # --- begin verbatim copy of depart_strong's body (D-01) ---
+        # Close strong({}) function
+        self.add_text("})")
+
+        # Restore paragraph state
+        if hasattr(self, "_strong_was_in_paragraph"):
+            self.in_paragraph = self._strong_was_in_paragraph
+            delattr(self, "_strong_was_in_paragraph")
+
+        # Restore in_list_item state
+        if hasattr(self, "_strong_was_in_list_item"):
+            self.in_list_item = self._strong_was_in_list_item
+            delattr(self, "_strong_was_in_list_item")
+
+        # Restore and mark that next element needs separator
+        if hasattr(self, "_strong_was_list_item_needs_separator"):
+            # Restore previous state, then mark next element needs separator
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+            delattr(self, "_strong_was_list_item_needs_separator")
+
+        # Restore the code-mode concat context suppressed for the strong body
+        # and mark this strong as a sibling so the next term/link/desc
+        # expression is + separated.
+        self._exit_inline_concat_element()
+        # --- end verbatim copy of depart_strong's body ---
+
         # Emit a Typst anchor for every id on the signature so same-document
         # cross-references resolve to this API declaration. depart_reference's
         # refid branch emits ``link(<_sanitize_label(refid)>, ...)`` for a
@@ -5036,6 +5117,22 @@ class TypstTranslator(SphinxTranslator):
         Visit a rubric node (section subheading).
 
         Rubrics are rendered as subsection headings using strong({}) wrapper.
+
+        ADM-06: this handler owns its own emission -- it no longer delegates
+        to visit_strong via a dummy strong() node. The block below is a
+        deliberate verbatim copy of visit_strong's body (D-01: triplication
+        is the decision, not an accident to be refactored away). Phase 39
+        (the phase that owns rubric indentation and the admonition taxonomy)
+        is the phase that will make this diverge from visit_strong's body;
+        until then it is intentionally identical. The `_strong_was_*`
+        attribute names are shared with visit_strong/depart_strong on
+        purpose (D-02). Known, pre-existing, and deliberately preserved here:
+        when a rubric containing a propagated target sits inside a list item,
+        the leading separator check below fires a second time against a flag
+        `_emit_id_anchors` already set, on top of the unconditional newline
+        append two lines above, producing two blank lines between the anchor
+        and this opening wrapper -- a cosmetic wart, not fixed in this plan
+        (fixing it changes emitted bytes; Phase 39 owns the repair).
         """
         # A propagated explicit target (``.. _t:`` immediately before a
         # ``.. rubric::``) lands its id on this rubric node; anchor it so a
@@ -5043,9 +5140,43 @@ class TypstTranslator(SphinxTranslator):
         self._emit_id_anchors(node)
         # Add newline before rubric
         self.body.append("\n")
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+
+        # --- begin verbatim copy of visit_strong's body (D-01) ---
+        # Add separator if in paragraph and not first node
+        self._add_paragraph_separator()
+
+        # If this strong is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the strong body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        if not self._enter_inline_concat_element():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        # Temporarily disable paragraph state for children
+        was_in_paragraph = self.in_paragraph
+        self.in_paragraph = False
+
+        # Save and reset list item separator for children (they're inside this element)
+        was_list_item_needs_separator = self.list_item_needs_separator
+
+        # Since strong({}) uses content block, treat it like list_item
+        # Children need newline separators, not + operators
+        was_in_list_item = self.in_list_item
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
+        # Determine if we need # prefix (in markup mode)
+        prefix = "#" if self._in_markup_mode else ""
+
+        # Use strong({}) function with content block
+        self.add_text(f"{prefix}strong({{")
+
+        # Store state to restore in depart
+        self._strong_was_in_paragraph = was_in_paragraph
+        self._strong_was_in_list_item = was_in_list_item
+        self._strong_was_list_item_needs_separator = was_list_item_needs_separator
+        # --- end verbatim copy of visit_strong's body ---
 
     def depart_rubric(self, node: nodes.rubric) -> None:
         """
@@ -5060,10 +5191,41 @@ class TypstTranslator(SphinxTranslator):
         separation from what follows, so this fires unconditionally --
         verified harmless at true end-of-document (nothing follows the
         trailing linebreak()): no compile error, no visible artifact.
+
+        ADM-06: this handler owns its own emission -- the block below is a
+        deliberate verbatim copy of depart_strong's body (D-01) rather than
+        a delegation to a dummy strong() node. Phase 39 owns making it
+        diverge. The `_strong_was_*` attribute names are shared with
+        depart_strong on purpose (D-02); see visit_rubric's docstring for
+        the deferred-repair note.
         """
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        # --- begin verbatim copy of depart_strong's body (D-01) ---
+        # Close strong({}) function
+        self.add_text("})")
+
+        # Restore paragraph state
+        if hasattr(self, "_strong_was_in_paragraph"):
+            self.in_paragraph = self._strong_was_in_paragraph
+            delattr(self, "_strong_was_in_paragraph")
+
+        # Restore in_list_item state
+        if hasattr(self, "_strong_was_in_list_item"):
+            self.in_list_item = self._strong_was_in_list_item
+            delattr(self, "_strong_was_in_list_item")
+
+        # Restore and mark that next element needs separator
+        if hasattr(self, "_strong_was_list_item_needs_separator"):
+            # Restore previous state, then mark next element needs separator
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+            delattr(self, "_strong_was_list_item_needs_separator")
+
+        # Restore the code-mode concat context suppressed for the strong body
+        # and mark this strong as a sibling so the next term/link/desc
+        # expression is + separated.
+        self._exit_inline_concat_element()
+        # --- end verbatim copy of depart_strong's body ---
+
         # depart_strong's closing "})" carries no trailing separator of its
         # own (unlike depart_desc_signature, whose unconditional trailing
         # "\n" is what makes FID-03's leading-linebreak() placement safe at
