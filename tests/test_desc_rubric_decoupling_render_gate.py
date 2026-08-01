@@ -1,0 +1,318 @@
+"""
+Phase 36's SC#1/SC#2 gate for the ADM-06 desc_signature/rubric decoupling.
+
+D-01 says ``visit_strong``'s body must be copied verbatim into
+``visit_desc_signature``/``depart_desc_signature`` and
+``visit_rubric``/``depart_rubric`` -- each gets its own full copy of the
+logic they currently borrow via a throwaway ``nodes.strong()`` dummy node
+and a delegated call into ``visit_strong``/``depart_strong``. Every prior
+GATE-01 fixture in this repo proved a compile fatal (RED == ``TypstError``,
+GREEN == a valid ``%PDF``); ADM-06's defect already compiles fine today, so
+milestone invariant #4 (v0.7.0's GATE-01 methodology change) redefines RED
+here as two structural assertions instead:
+
+- SC#1 (this module's ``test_desc_signature_and_rubric_do_not_delegate_to_
+  visit_strong``): the four decoupled methods must no longer call
+  ``self.visit_strong``/``self.depart_strong`` on a dummy node, while the
+  two ``visit_literal_strong``/``depart_literal_strong`` methods -- a
+  different, unrelated shared-delegation site (FLD-03's bold literal
+  field-list values) -- must still delegate. Pre-decoupling this fails: all
+  six sites still delegate, and this method's own RED capture (recorded in
+  ``36-GATE-EVIDENCE.md``) IS the RED substitute for a compile fatal.
+- SC#2 (``test_emitted_typ_is_byte_identical_to_golden``): the decoupling
+  must not change a single emitted byte. Golden-file equality against
+  ``golden.typ`` (captured from this same commit, before any decoupling
+  edit exists -- D-07) stands in for "does not compile" as the assertion
+  that would catch a regression.
+
+``test_decoupling_fixture_still_compiles_to_pdf`` is a cheap compile-sanity
+leg (36-RESEARCH.md Open Question 2) confirming the fixture -- which
+combines a signature, sibling signatures, plain bold, an autodoc-style
+Options rubric, a rubric with a propagated target inside a list item, and a
+trailing rubric -- still reaches a valid PDF through the real
+``typst.compile()`` path; it asserts nothing about PDF size or bytes
+(Typst embeds a build timestamp in the PDF trailer, so PDF bytes are never
+reproducible -- see ``36-CONTEXT.md`` D-04).
+
+Only SC#1 and SC#2 run everywhere (no class-level skip -- a class-level skip
+would let both pass silently by never running); the compile-sanity leg alone
+is skipped when ``typst-py`` is unavailable.
+"""
+
+import ast
+import difflib
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+try:
+    import typst  # noqa: F401
+
+    TYPST_AVAILABLE = True
+except ImportError:
+    TYPST_AVAILABLE = False
+
+# Resolved relative to this test file's own location, never a bare relative
+# path -- pytest may be invoked from any working directory.
+TRANSLATOR_PATH = Path(__file__).resolve().parents[1] / "typsphinx" / "translator.py"
+
+# The four methods D-01 requires to stop delegating to visit_strong/
+# depart_strong (the ADM-06 decoupling target).
+DECOUPLED_METHODS = (
+    "visit_desc_signature",
+    "depart_desc_signature",
+    "visit_rubric",
+    "depart_rubric",
+)
+
+# The two methods that must KEEP delegating -- the over-reach guard. A
+# decoupling that also strips FLD-03's bold-literal node handling would
+# fail this half of the assertion even though SC#1's own grep only names
+# the desc_signature/rubric sites.
+RETAINED_DELEGATION_METHODS = (
+    "visit_literal_strong",
+    "depart_literal_strong",
+)
+
+# The literal dummy-node construction line every delegation site emits
+# before calling into visit_strong/depart_strong.
+DUMMY_STRONG_LITERAL = "dummy_strong = nodes.strong()"
+
+
+@pytest.fixture
+def desc_rubric_decoupling_render_gate_dir():
+    """Return the path to the desc_rubric_decoupling_render_gate fixture."""
+    return Path(__file__).parent / "fixtures" / "desc_rubric_decoupling_render_gate"
+
+
+@pytest.fixture
+def temp_build_dir(tmp_path):
+    """Provide a temporary directory for build output."""
+    return tmp_path / "_build"
+
+
+def _run_sphinx_build_typst(
+    source_dir: Path, build_dir: Path
+) -> subprocess.CompletedProcess:
+    """
+    Run ``sphinx-build -b typst`` as a subprocess and return the completed
+    process (stdout/stderr captured as text).
+
+    Invoked as ``sys.executable -m sphinx`` (never bare ``sphinx-build`` /
+    ``uv run sphinx-build``) so the exact interpreter/venv already running
+    this test is reused, sidestepping the documented NixOS-sandbox
+    PATH-shadowing hazard (project memory: "NixOS sandbox test env").
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typst",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _run_sphinx_build_typstpdf(
+    source_dir: Path, build_dir: Path
+) -> subprocess.CompletedProcess:
+    """
+    Run ``sphinx-build -b typstpdf`` as a subprocess and return the completed
+    process (stdout/stderr captured as text). Same invocation shape as
+    ``_run_sphinx_build_typst`` above.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typstpdf",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _delegating_calls_in(func_node: ast.AST) -> list[str]:
+    """
+    Walk an ``ast`` function node and return the attribute names of every
+    call of the form ``self.<name>(...)`` where ``<name>`` is
+    ``visit_strong`` or ``depart_strong``.
+
+    An empty list means the function contains no such delegating call.
+    """
+    delegating_names = {"visit_strong", "depart_strong"}
+    found = []
+    for sub_node in ast.walk(func_node):
+        if not isinstance(sub_node, ast.Call):
+            continue
+        call_target = sub_node.func
+        if not isinstance(call_target, ast.Attribute):
+            continue
+        if not isinstance(call_target.value, ast.Name):
+            continue
+        if call_target.value.id != "self":
+            continue
+        if call_target.attr in delegating_names:
+            found.append(call_target.attr)
+    return found
+
+
+class TestDescRubricDecouplingRenderGate:
+    """
+    Phase 36's SC#1/SC#2 gate: the ADM-06 decoupling must (1) stop
+    ``desc_signature``/``rubric`` from delegating to ``visit_strong``/
+    ``depart_strong`` via a dummy ``strong`` node, while leaving
+    ``literal_strong``'s own delegation untouched, and (2) change zero
+    emitted bytes for the fixture's combined constructs.
+
+    Requirements: ADM-06.
+    """
+
+    def test_desc_signature_and_rubric_do_not_delegate_to_visit_strong(self):
+        """
+        The SC#1 assertion. Parses ``typsphinx/translator.py`` with
+        ``ast.parse`` and checks, by method name, which handlers still call
+        ``self.visit_strong``/``self.depart_strong`` on a dummy node.
+
+        Pre-decoupling (this plan) this assertion FAILS -- all six
+        delegation sites still exist, so this is the recorded RED. Runs
+        unconditionally: no fixture, no typst-py requirement, and no skip.
+        """
+        source_text = TRANSLATOR_PATH.read_text(encoding="utf-8")
+        tree = ast.parse(source_text, filename=str(TRANSLATOR_PATH))
+
+        functions_by_name: dict[str, ast.AST] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                functions_by_name[node.name] = node
+
+        # (a) The four decoupled methods must exist and must NOT delegate.
+        for method_name in DECOUPLED_METHODS:
+            assert method_name in functions_by_name, (
+                f"Expected typsphinx/translator.py to define {method_name!r} "
+                "-- the decoupling target is missing entirely."
+            )
+            delegating_calls = _delegating_calls_in(functions_by_name[method_name])
+            assert delegating_calls == [], (
+                f"{method_name} still delegates to {delegating_calls} via a "
+                "dummy strong() node -- the ADM-06 decoupling (D-01: copy "
+                "visit_strong's body verbatim instead of delegating) has not "
+                "been applied yet."
+            )
+
+        # (b) The over-reach guard: literal_strong must KEEP delegating.
+        for method_name in RETAINED_DELEGATION_METHODS:
+            assert method_name in functions_by_name, (
+                f"Expected typsphinx/translator.py to define {method_name!r} "
+                "-- literal_strong's own handlers must not be removed."
+            )
+            delegating_calls = _delegating_calls_in(functions_by_name[method_name])
+            assert delegating_calls != [], (
+                f"{method_name} no longer delegates to visit_strong/"
+                "depart_strong -- the decoupling over-reached into "
+                "literal_strong (FLD-03's bold-literal field-list value), "
+                "which SC#1's grep does not name and must survive untouched."
+            )
+
+        # (c) Exactly two remaining dummy-node construction sites, both
+        # owned by literal_strong. Pre-decoupling this fails with 6 (the
+        # RED substitute in place of a compile fatal -- 36-RESEARCH.md
+        # Pitfall 1: a bare count-drops-to-zero assertion would be wrong,
+        # since 2 legitimate sites must survive).
+        dummy_strong_count = source_text.count(DUMMY_STRONG_LITERAL)
+        assert dummy_strong_count == 2, (
+            f"Expected exactly 2 occurrences of {DUMMY_STRONG_LITERAL!r} in "
+            "typsphinx/translator.py after the decoupling -- both owned by "
+            "visit_literal_strong/depart_literal_strong, which are the only "
+            f"methods still permitted to delegate -- found {dummy_strong_count}."
+        )
+
+    def test_emitted_typ_is_byte_identical_to_golden(
+        self, desc_rubric_decoupling_render_gate_dir, temp_build_dir
+    ):
+        """
+        The SC#2 assertion. Builds the fixture with ``-b typst`` and
+        compares the emitted ``index.typ`` against the committed
+        ``golden.typ`` (captured from this same pre-decoupling commit,
+        D-07) with exact ``str`` equality. Runs unconditionally: no
+        typst-py requirement (no compile needed for a ``-b typst`` build),
+        and no skip.
+        """
+        result = _run_sphinx_build_typst(
+            desc_rubric_decoupling_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        assert typ_output.exists(), "index.typ was not emitted"
+        actual_typ = typ_output.read_text(encoding="utf-8")
+
+        golden_path = desc_rubric_decoupling_render_gate_dir / "golden.typ"
+        golden_typ = golden_path.read_text(encoding="utf-8")
+
+        assert actual_typ == golden_typ, (
+            "Emitted .typ differs from the committed golden -- SC#2's "
+            "byte-identity requirement is violated:\n"
+            + "\n".join(
+                difflib.unified_diff(
+                    golden_typ.splitlines(),
+                    actual_typ.splitlines(),
+                    fromfile="golden.typ",
+                    tofile="actual index.typ",
+                    lineterm="",
+                )
+            )
+        )
+
+    @pytest.mark.skipif(
+        not TYPST_AVAILABLE,
+        reason="typst-py is required for the compile-sanity leg",
+    )
+    def test_decoupling_fixture_still_compiles_to_pdf(
+        self, desc_rubric_decoupling_render_gate_dir, temp_build_dir
+    ):
+        """
+        The cheap compile-sanity leg (36-RESEARCH.md Open Question 2).
+        Builds the fixture with ``-b typstpdf`` and confirms it still
+        reaches a valid PDF. Asserts nothing about PDF size or bytes --
+        Typst embeds a build timestamp in the PDF trailer, so PDF bytes are
+        never reproducible (36-CONTEXT.md D-04).
+        """
+        result = _run_sphinx_build_typstpdf(
+            desc_rubric_decoupling_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        for fatal_signature in (
+            "expected semicolon or line break",
+            "expected comma",
+            "Typst compilation failed",
+        ):
+            assert fatal_signature not in result.stderr, (
+                f"typst.compile() rejected the fixture -- {fatal_signature!r} "
+                f"found in stderr:\n{result.stderr}"
+            )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert (
+            pdf_output.exists()
+        ), f"index.pdf was not produced:\nstderr: {result.stderr}"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"
