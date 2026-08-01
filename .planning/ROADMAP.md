@@ -373,7 +373,7 @@ break nor buried in doubled blank lines.
      blocks are separated by exactly one break — the doubled `parbreak()` runs measured on
      2026-07-29 are gone — and this phase's own exact-string blast radius is migrated within the
      phase, by hand-derived expected strings plus a recorded file/class census.
-**Plans**: 4/8 plans executed
+**Plans**: 5/8 plans executed
 
 Plans:
 **Wave 1** — every assertion recorded RED against the untouched translator, before any code edit
@@ -386,7 +386,7 @@ Plans:
 
 **Wave 2**
 
-- [ ] 37-05-PLAN.md — SIG-08 / D-12 landed ALONE before the wrapper change (one variable per fixture): `depart_desc`'s duplicate break suppressed by an emission-position marker, not a nesting-depth counter
+- [x] 37-05-PLAN.md — SIG-08 / D-12 landed ALONE before the wrapper change (one variable per fixture): `depart_desc`'s duplicate break suppressed by an emission-position marker, not a nesting-depth counter
 
 **Wave 3**
 
@@ -594,7 +594,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
-| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 4/8 | In Progress|  |
+| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 5/8 | In Progress|  |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 0/TBD | Not started | - |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
