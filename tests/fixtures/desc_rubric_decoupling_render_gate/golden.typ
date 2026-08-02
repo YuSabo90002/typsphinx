@@ -73,8 +73,6 @@ text("First bullet text.")
 
 
 [#metadata(none) <index:decoupling-rubric-in-list-target>]
-
-
 strong({text("A Rubric In A List Item")})
 
 linebreak()
