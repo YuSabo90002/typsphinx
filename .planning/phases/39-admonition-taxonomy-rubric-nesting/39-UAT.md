@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 39-admonition-taxonomy-rubric-nesting
 source: [39-01-SUMMARY.md, 39-02-SUMMARY.md, 39-03-SUMMARY.md, 39-04-SUMMARY.md, 39-05-SUMMARY.md, 39-06-SUMMARY.md, 39-07-SUMMARY.md, 39-08-SUMMARY.md]
 started: 2026-08-02T04:10:00Z
-updated: 2026-08-02T04:45:00Z
+updated: 2026-08-02T06:25:00Z
 ---
 
 ## Current Test

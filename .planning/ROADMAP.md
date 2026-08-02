@@ -519,7 +519,7 @@ inherit an indent once the indent exists)
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
      is **not** a pass; it must actually run green at least once before the phase closes.
-**Plans**: 12/13 plans executed
+**Plans**: 13/13 plans complete
 
 Plans:
 **Wave 1**
@@ -557,7 +557,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 39-13-PLAN.md — gap close-out: the full-corpus `-b typstpdf` gate re-run for real, this gap's own exact-string census with the inverted grep guard recorded, and `39-GAP-G39-1-CLOSEOUT.md`
+- [x] 39-13-PLAN.md — gap close-out: the full-corpus `-b typstpdf` gate re-run for real, this gap's own exact-string census with the inverted grep guard recorded, and `39-GAP-G39-1-CLOSEOUT.md`
 
 **Cross-cutting constraints:**
 
@@ -690,7 +690,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
-| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 12/13 | In Progress|  |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete   | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
