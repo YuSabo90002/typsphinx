@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List, Tuple
+from typing import Any, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
@@ -28,6 +28,78 @@ _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
 # another one. Value is the owner's D-06 choice (compiled and compared against
 # three renderings; see 37-CONTEXT.md).
 SHARED_INDENT_STEP = "2.5em"
+
+
+class _ReferenceAnchorDecision(NamedTuple):
+    """
+    The single D-14 citing-site anchor judgement (WR-03, `40.1-CONTEXT.md`
+    D-05/D-06/D-07): "does this ``nodes.reference`` get its own
+    bracket-attached anchor, and if so what is that anchor's label?"
+
+    Before Phase 40.1, this question was answered independently in TWO
+    places -- ``visit_reference``'s own local computation (three
+    conditions: ``node.get("ids")``, ``opens_wrapper``, ``not
+    next_is_target``) and ``_citing_reference_has_own_anchor`` (one
+    condition: ``not next_is_target`` alone, assuming the other two) --
+    and nothing held them together. ``TypstTranslator._reference_anchor_
+    decision`` (below) is now the ONE place that derives every field here,
+    consumed by BOTH ``visit_reference`` (the anchor-EMITTING site) and
+    ``visit_citation``'s backref loop (the anchor-CONSUMING site), so the
+    two cannot silently drift apart again (D-05).
+
+    Every field is derived from the node plus builder state (D-06) --
+    nothing here is passed in pre-computed:
+
+    Attributes:
+        refuri: ``node.get("refuri", "")``.
+        refid: ``node.get("refid", "")``.
+        xref: ``self._resolve_xref_docname(refuri)`` result, or ``None``
+            when ``refuri`` is empty or does not resolve to a local
+            cross-document anchor.
+        degrade_xref_to_text: ``True`` only when ``xref`` resolved AND the
+            builder's ``master_included_docnames`` is non-empty and does
+            NOT contain the target docname -- reproducing
+            ``visit_reference``'s existing ``getattr`` lookup exactly,
+            including the "empty include-set means unknown, never
+            degrade" behaviour mock/hand-built builders rely on.
+        opens_wrapper: ``bool(refuri or refid) and not
+            degrade_xref_to_text`` -- whether ANY link wrapper is opened
+            at all (citation-derived or otherwise).
+        next_is_target: whether the node's immediately-following sibling
+            is a ``nodes.target`` -- has TWO consumers in
+            ``visit_reference`` (Pitfall 3, `40.1-RESEARCH.md`): the D-14
+            eligibility gate below, and the pre-existing
+            target-attachment markup wrap that fires whenever the next
+            sibling is a target regardless of ``ids``/``opens_wrapper``.
+            Both must read this SAME value, computed once.
+        eligible: ``bool(node.get("ids")) and opens_wrapper and not
+            next_is_target`` -- D-05's judgement, unchanged in substance
+            from the pre-Phase-40.1 code, just relocated to the single
+            place it is now written.
+        anchor_label: the anchor label (D-07, via D-13's single
+            ``_namespace_label`` derivation point) when ``eligible``,
+            else ``None``. Returning the LABEL (not just the boolean)
+            means the link target ``visit_citation`` appends and the
+            anchor ``visit_reference`` attaches come from the SAME
+            expression -- closing the second, independent
+            ``_namespace_label`` call this phase measured (D-07).
+
+    This predicate is SILENT (Pitfall 2, `40.1-RESEARCH.md`): no
+    ``logger`` call, no ``add_text``, no translator-state mutation.
+    ``visit_reference``'s existing cross-document degrade-to-text
+    ``logger.warning`` stays exactly where it is, in ``visit_reference``'s
+    own branch -- re-deriving ``degrade_xref_to_text`` here would
+    otherwise double-fire that warning once per degraded reference.
+    """
+
+    refuri: str
+    refid: str
+    xref: Tuple[str, str] | None
+    degrade_xref_to_text: bool
+    opens_wrapper: bool
+    next_is_target: bool
+    eligible: bool
+    anchor_label: str | None
 
 
 def escape_typst_string(text: str) -> str:
@@ -2732,37 +2804,99 @@ class TypstTranslator(SphinxTranslator):
                 return candidate
         return None
 
-    def _citing_reference_has_own_anchor(self, ref_node: nodes.reference) -> bool:
+    def _reference_anchor_decision(
+        self, node: nodes.reference
+    ) -> _ReferenceAnchorDecision:
         """
-        Mirror the D-14 guard in ``visit_reference``: report whether
-        ``ref_node`` (a same-document citing site, looked up via
-        ``_find_citing_reference``) carries its own bracket-attached
-        anchor.
+        The SINGLE D-14 citing-site anchor judgement (WR-03, D-05/D-06/
+        D-07, `40.1-CONTEXT.md`): does ``node`` get its own
+        bracket-attached anchor, and if so what is that anchor's label?
 
-        ``visit_reference``'s D-14 guard is mutually exclusive with
-        ``next_is_target`` -- a citation-derived reference immediately
-        followed by an explicit ``nodes.target`` sibling keeps the
-        target's OWN label instead (one Typst element can carry only one
-        label) and gets no anchor of its own. ``visit_citation`` consults
-        this helper before emitting a back-reference marker so the marker
-        list never targets a label that was never attached (T-40-03).
+        Before Phase 40.1 this was answered independently in TWO places
+        that could silently disagree -- ``visit_reference``'s own local
+        computation (``node.get("ids")``, ``opens_wrapper``, ``not
+        next_is_target``) and the now-deleted ``_citing_reference_has_
+        own_anchor`` (``next_is_target`` alone, assuming the other two
+        held). Both ``visit_reference`` (the anchor-EMITTING site) and
+        ``visit_citation``'s backref loop (the anchor-CONSUMING site, via
+        ``_find_citing_reference``) now call THIS method and consume its
+        answer, so the two cannot drift apart again.
+
+        Derives every field from ``node`` plus builder state ONLY (D-06)
+        -- ``refuri``/``refid``/``xref``/``degrade_xref_to_text``/
+        ``opens_wrapper``/``next_is_target`` are all re-derived here,
+        exactly as ``visit_reference`` computed them locally before this
+        phase, rather than accepting them as pre-computed booleans (a
+        pure predicate over three booleans would leave the DERIVATION
+        drifting upstream even with the judgement unified). When
+        eligible, the anchor label is computed via D-13's single
+        ``_namespace_label`` derivation point (D-07) -- never a second
+        label helper -- so the link target ``visit_citation`` appends and
+        the anchor ``visit_reference`` attaches come from the SAME
+        expression.
+
+        SILENT by contract (Pitfall 2, `40.1-RESEARCH.md`): no
+        ``logger`` call, no ``add_text``, no translator-state mutation.
+        ``visit_reference``'s existing cross-document degrade-to-text
+        warning stays exactly where it is, in ``visit_reference``'s own
+        branch -- this method must never log, or that warning would fire
+        a second time per degraded reference.
+
+        Note on ``next_is_target``'s parentless default: this differs
+        from the deleted ``_citing_reference_has_own_anchor``, which
+        returned ``True`` (i.e. "no target follows") for a parentless
+        node. Here ``next_is_target`` simply defaults to ``False`` when
+        there is no parent to look ahead in, matching
+        ``visit_reference``'s own pre-existing lookahead exactly --
+        ``visit_reference``'s form is the authority; the divergence
+        between the two was itself an instance of the WR-03 defect class
+        this predicate closes.
 
         Args:
-            ref_node: The citing-site reference node (from ``backrefs``).
+            node: The reference node to judge (a citing-site reference
+                looked up via ``_find_citing_reference``, or the node
+                ``visit_reference`` is currently visiting).
 
         Returns:
-            ``False`` only when ``ref_node`` is immediately followed by a
-            ``nodes.target`` sibling; ``True`` otherwise.
+            The full ``_ReferenceAnchorDecision`` for ``node``.
         """
-        parent = ref_node.parent
-        if parent is None:
-            return True
-        index = parent.index(ref_node)
-        if index + 1 < len(parent.children) and isinstance(
-            parent.children[index + 1], nodes.target
-        ):
-            return False
-        return True
+        refuri = node.get("refuri", "")
+        refid = node.get("refid", "")
+
+        xref = self._resolve_xref_docname(refuri) if refuri else None
+        degrade_xref_to_text = False
+        if xref is not None:
+            master_included = getattr(self.builder, "master_included_docnames", None)
+            if master_included and xref[0] not in master_included:
+                degrade_xref_to_text = True
+
+        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
+
+        next_is_target = False
+        if node.parent:
+            node_index = node.parent.index(node)
+            if node_index + 1 < len(node.parent.children):
+                next_node = node.parent.children[node_index + 1]
+                if isinstance(next_node, nodes.target):
+                    next_is_target = True
+
+        eligible = bool(node.get("ids")) and opens_wrapper and not next_is_target
+        anchor_label = (
+            self._namespace_label(self._current_docname(), node["ids"][0])
+            if eligible
+            else None
+        )
+
+        return _ReferenceAnchorDecision(
+            refuri=refuri,
+            refid=refid,
+            xref=xref,
+            degrade_xref_to_text=degrade_xref_to_text,
+            opens_wrapper=opens_wrapper,
+            next_is_target=next_is_target,
+            eligible=eligible,
+            anchor_label=anchor_label,
+        )
 
     def visit_citation(self, node: nodes.citation) -> None:
         """
@@ -2803,8 +2937,18 @@ class TypstTranslator(SphinxTranslator):
         renumbered contiguously (achieved for free by enumerating the
         FILTERED list, never the raw ``backrefs``), in either of two cases:
 
-        - Its citing site's own anchor Task 1 declined to emit
-          (``_citing_reference_has_own_anchor`` returns False).
+        - Its citing site's own anchor ``_reference_anchor_decision``
+          declines to grant (``decision.eligible`` is ``False`` -- WR-03,
+          D-05/D-06/D-07, `40.1-CONTEXT.md`). This is the SAME predicate
+          ``visit_reference`` consults to decide whether to emit that
+          anchor in the first place, so the two sites cannot silently
+          disagree about whether a citing site was actually anchored
+          (the pre-Phase-40.1 defect this closes: a second, independent
+          derivation -- ``_citing_reference_has_own_anchor``, checking
+          only ``next_is_target`` -- could report "anchor exists" for a
+          reference that ``visit_reference`` never anchored, e.g. because
+          its ``opens_wrapper`` was ``False``, reproducing WR-01's
+          dangling-label fatal by a second route).
         - Its citing site cannot be located at all in the resolved doctree
           (``_find_citing_reference`` returns ``None`` -- WR-01,
           `40-REVIEW.md`). Real, reproducible trigger: a citing
@@ -2817,6 +2961,16 @@ class TypstTranslator(SphinxTranslator):
           `40.1-GATE-EVIDENCE-01.md` § 5): the citing site genuinely is
           not in the output document, so dropping its marker is the correct
           answer, not an error to report.
+
+        The appended backref target is now ``decision.anchor_label`` --
+        the SAME predicate's own label, not a second independent
+        ``_namespace_label(docname, refid)`` call (D-07's whole point:
+        the link target and the attached anchor come out of ONE
+        expression). For a same-document backref the two values coincide
+        today (this is exactly why SC#5's byte-identity control still
+        holds after this change), but nothing enforced that equality
+        before -- this closes that unenforced invariant rather than
+        altering any current output.
 
         Separator protocols (SC#5), checked explicitly rather than by
         analogy to the footnote handlers (RESEARCH Pitfall 1 -- a citation
@@ -2894,13 +3048,22 @@ class TypstTranslator(SphinxTranslator):
             # WR-01 (`40-REVIEW.md`): `ref_node is None` must ALSO take the
             # `continue` branch -- a backref naming a citing site the
             # `only`-tag filter pruned from the resolved doctree has no
-            # `nodes.reference` to check `_citing_reference_has_own_anchor`
+            # `nodes.reference` to consult `_reference_anchor_decision`
             # against, and treating "not found" as "eligible" appends a
             # `link()` target for a label nothing ever attaches (see the
             # docstring above and `40.1-GATE-EVIDENCE-01.md`).
-            if ref_node is None or not self._citing_reference_has_own_anchor(ref_node):
+            if ref_node is None:
                 continue
-            backref_targets.append(self._namespace_label(docname, refid))
+            # WR-03 (D-05/D-06/D-07, `40.1-CONTEXT.md`): consult the SAME
+            # shared predicate `visit_reference` uses to decide whether it
+            # anchored this citing site in the first place, and append
+            # ITS label -- not a second, independently-derived
+            # `_namespace_label(docname, refid)` call -- so the two sites
+            # cannot silently disagree (`40.1-GATE-EVIDENCE-03.md`).
+            decision = self._reference_anchor_decision(ref_node)
+            if not decision.eligible:
+                continue
+            backref_targets.append(decision.anchor_label)
 
         if len(backref_targets) == 1:
             label_body = f"link(<{backref_targets[0]}>, {label_content})"
@@ -4180,30 +4343,19 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Get the reference URI
-        refuri = node.get("refuri", "")
-        refid = node.get("refid", "")
-
-        # Resolve a LOCAL cross-document refuri (`<relpath><out_suffix>#anchor`)
-        # up-front and decide whether its TARGET document is actually part of
-        # the compiled master's include-set. A resolved cross-document
-        # reference whose target doc is NOT included -- e.g. an ``:orphan:``
-        # doc, excluded from every toctree, whose .typ is written but never
-        # #include()d -- has no anchor in the compiled master; emitting
-        # link(<targetdoc:anchor>) there would hard-fail typst.compile() with
-        # "label ... does not exist". Such a reference must DEGRADE to plain
-        # text (matching the LaTeX builder's undefined-reference behavior),
-        # which means it opens NO link wrapper -- so this decision has to be
-        # made here, before opens_wrapper / the concat-element enter below.
-        # An empty master include-set (no typst_documents, mock/hand-built test
-        # builders) is treated as "unknown" and never degrades, preserving the
-        # existing cross-document behavior for those paths.
-        xref = self._resolve_xref_docname(refuri) if refuri else None
-        degrade_xref_to_text = False
-        if xref is not None:
-            master_included = getattr(self.builder, "master_included_docnames", None)
-            if master_included and xref[0] not in master_included:
-                degrade_xref_to_text = True
+        # WR-03 (D-05/D-06/D-07, `40.1-CONTEXT.md`): the single shared D-14
+        # eligibility judgement, called ONCE here and consumed for
+        # `refuri`/`refid`/`xref`/`degrade_xref_to_text`/`opens_wrapper`/
+        # `next_is_target`/the D-14 guard below -- this method no longer
+        # re-derives any of them locally, so this call site and
+        # `visit_citation`'s backref loop cannot silently disagree about
+        # whether a citing site was actually anchored (`40.1-GATE-
+        # EVIDENCE-03.md`).
+        decision = self._reference_anchor_decision(node)
+        refuri = decision.refuri
+        refid = decision.refid
+        xref = decision.xref
+        degrade_xref_to_text = decision.degrade_xref_to_text
 
         # An empty-url reference (no refuri and no refid) opens NO wrapper: it
         # renders its children as plain inline content directly in the outer
@@ -4229,7 +4381,7 @@ class TypstTranslator(SphinxTranslator):
         # link wrapper), so like the empty-url path it must NOT enter/suppress a
         # concat context -- its children participate in the outer context.
         in_concat = self._inline_concat_context() is not None
-        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
+        opens_wrapper = decision.opens_wrapper
         if opens_wrapper:
             self._enter_inline_concat_element()
 
@@ -4238,36 +4390,33 @@ class TypstTranslator(SphinxTranslator):
         if not in_concat and self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Check if next sibling is a target node (for label attachment)
-        # This is needed in both list items and paragraphs in unified code mode
-        next_is_target = False
-        if node.parent:
-            node_index = node.parent.index(node)
-            if node_index + 1 < len(node.parent.children):
-                next_node = node.parent.children[node_index + 1]
-                if isinstance(next_node, nodes.target):
-                    next_is_target = True
+        # Whether the next sibling is a target node (for label attachment).
+        # Needed in both list items and paragraphs in unified code mode, AND
+        # by the D-14 guard just below -- both consumers read the SAME
+        # `decision.next_is_target` value, computed once inside the shared
+        # predicate (Pitfall 3, `40.1-RESEARCH.md`).
+        next_is_target = decision.next_is_target
 
         # D-14 (Phase 40): give a citation-derived reference its own anchor so
-        # a citation definition's back-reference marker (Task 2,
-        # visit_citation) has something to link to. Applies only when ALL of:
-        # the reference carries a non-empty own `ids` (verified this session,
-        # 40-RESEARCH.md -- only citation-derived references carry a
-        # populated `ids`; a `:ref:` or toctree-generated reference carries
-        # `ids=[]`), a link wrapper is actually being opened, and next is NOT
-        # a target. Mutually exclusive with next_is_target BY DESIGN:
-        # next_is_target already owns the markup-mode bracket and
+        # a citation definition's back-reference marker (`visit_citation`)
+        # has something to link to. `decision.eligible`/`decision.
+        # anchor_label` are the SAME predicate `visit_citation`'s backref
+        # loop consults (WR-03, `40.1-GATE-EVIDENCE-03.md`) -- applies only
+        # when ALL of: the reference carries a non-empty own `ids` (verified
+        # this session, 40-RESEARCH.md -- only citation-derived references
+        # carry a populated `ids`; a `:ref:` or toctree-generated reference
+        # carries `ids=[]`), a link wrapper is actually being opened, and
+        # next is NOT a target. Mutually exclusive with next_is_target BY
+        # DESIGN: next_is_target already owns the markup-mode bracket and
         # visit_target already attaches ITS OWN label to it -- a Typst
         # element can carry only one label. Consequence, stated honestly: a
         # citation-derived reference immediately followed by an explicit
         # target keeps the target's label and gets no back-reference anchor
-        # of its own; visit_citation (Task 2) guards its own marker emission
-        # against exactly this case via _citing_reference_has_own_anchor.
+        # of its own; visit_citation guards its own marker emission against
+        # exactly this case via the same `decision.eligible`.
         self._reference_own_anchor = None
-        if node.get("ids") and opens_wrapper and not next_is_target:
-            self._reference_own_anchor = self._namespace_label(
-                self._current_docname(), node["ids"][0]
-            )
+        if decision.eligible:
+            self._reference_own_anchor = decision.anchor_label
             self.add_text("[")
             self._in_markup_mode = True
 
