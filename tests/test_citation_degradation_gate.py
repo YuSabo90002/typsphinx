@@ -315,9 +315,7 @@ class TestWr01DanglingLinkTargets:
         self, degradation_gate_build
     ):
         index_typ = _require_typ(degradation_gate_build)
-        dangling = _link_label_targets(index_typ) - _attached_anchor_tokens(
-            index_typ
-        )
+        dangling = _link_label_targets(index_typ) - _attached_anchor_tokens(index_typ)
         assert dangling == set(), (
             "link() target(s) with no matching attached anchor anywhere in "
             f"the document (WR-01): {sorted(dangling)}\n\n{index_typ}"
@@ -336,9 +334,7 @@ class TestWr01RealCompile:
     ``TestCitationRenderGateRealCompile`` shape, D-02: imitate, do not
     import)."""
 
-    def test_wr01_typstpdf_build_compiles_and_emits_pdf(
-        self, degradation_gate_build
-    ):
+    def test_wr01_typstpdf_build_compiles_and_emits_pdf(self, degradation_gate_build):
         result = degradation_gate_build.result
         assert result.returncode == 0, (
             f"sphinx-build -b typstpdf failed (WR-01 classic RED):\n"
@@ -395,8 +391,7 @@ class TestWr01MarkerShapes:
             backrefs = citation.get("backrefs") or []
             live_backrefs = [b for b in backrefs if b in live_ids]
             expected_targets = [
-                _expected_namespace_label(docname, raw_id)
-                for raw_id in live_backrefs
+                _expected_namespace_label(docname, raw_id) for raw_id in live_backrefs
             ]
 
             row = _citation_row_region(index_typ, def_anchor)
@@ -466,9 +461,7 @@ class TestWr01RunAdjacency:
 
     def test_wr01_run_still_renders_as_one_grid(self, degradation_gate_build):
         index_typ = _require_typ(degradation_gate_build)
-        region = _slice(
-            index_typ, "Reference list follows.", "End of citation block."
-        )
+        region = _slice(index_typ, "Reference list follows.", "End of citation block.")
         grid_count = region.count("grid(")
         assert grid_count == 1, (
             f"expected exactly one grid( call across the three adjacent "
@@ -483,8 +476,7 @@ class TestWr01SilentDegradation:
 
     def test_wr01_dropped_backref_is_silent(self, degradation_gate_build):
         combined = (
-            degradation_gate_build.result.stdout
-            + degradation_gate_build.result.stderr
+            degradation_gate_build.result.stdout + degradation_gate_build.result.stderr
         ).lower()
         forbidden_phrases = [
             "skipped back-reference",
