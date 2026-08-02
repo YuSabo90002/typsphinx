@@ -10,6 +10,7 @@ from typing import Any, List, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.locale import admonitionlabels
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxTranslator
 
@@ -302,7 +303,12 @@ class TypstTranslator(SphinxTranslator):
             None  # Body to restore after buffering an admonition title
         )
         self._custom_admonition_title: str | None = (
-            None  # Static Python-literal title (e.g. "Important", "See Also")
+            None  # Static title: for the ten real Sphinx admonition types
+            # (note, warning, tip, important, caution, seealso, hint, error,
+            # danger, attention) this is looked up from
+            # sphinx.locale.admonitionlabels inside _visit_admonition
+            # (D-04/D-05); for todo_node it remains the caller-supplied
+            # inert fallback ("Todo"), since todo_node is not a catalog key.
         )
         self._title_section_ids: List[str] = (
             []  # Parent section's ids, captured in visit_title for the
@@ -4364,6 +4370,21 @@ class TypstTranslator(SphinxTranslator):
         # Reset per-admonition title state; stash the static custom title (if
         # any) for _depart_admonition to consume once the body has closed.
         self._pending_admonition_title = None
+
+        # D-04/D-05: the ten real Sphinx admonition types are looked up ONCE
+        # here, by the node's own docutils class name, against
+        # sphinx.locale.admonitionlabels -- every catalog key is verified
+        # byte-identical to its docutils node class name, so this single
+        # lookup is the whole of D-04/D-05's implementation rather than ten
+        # separate call-site edits. When the class name is not a catalog key
+        # (todo_node, the generic admonition, topic), the caller's own
+        # `custom_title` argument survives untouched. The catalog's values
+        # are lazy i18n proxies, not plain strings, so the str() coercion
+        # here is load-bearing: _depart_admonition's static-title branch
+        # performs string operations on this value.
+        catalog_key = node.__class__.__name__
+        if catalog_key in admonitionlabels:
+            custom_title = str(admonitionlabels[catalog_key])
         self._custom_admonition_title = custom_title
 
         # Open code-mode content-block (NOT markup-mode "[") so the body
@@ -4379,7 +4400,12 @@ class TypstTranslator(SphinxTranslator):
         over a static custom title. The dynamic title is buffered code-mode
         content (from visit_title's admonition branch) and MUST be wrapped
         in a code block `{ ... }`, not a content block `[ ... ]`, so its
-        inline calls (text(...), emph(...)) evaluate.
+        inline calls (text(...), emph(...)) evaluate. The static title (now
+        sourced from the sphinx.locale.admonitionlabels catalog for the ten
+        real types, D-04/D-05) is routed through escape_typst_string
+        (T-39-01) before interpolation, since it can now contain non-ASCII
+        or quote/backslash characters the catalog supplies -- no second,
+        title-specific escaping routine is introduced.
         """
         self.add_text("}")
 
@@ -4387,7 +4413,8 @@ class TypstTranslator(SphinxTranslator):
         if self._pending_admonition_title:
             title_expr = "{" + self._pending_admonition_title + "}"
         elif self._custom_admonition_title:
-            title_expr = f'"{self._custom_admonition_title}"'
+            escaped_title = escape_typst_string(str(self._custom_admonition_title))
+            title_expr = f'"{escaped_title}"'
 
         if title_expr:
             self.add_text(f", title: {title_expr}")
@@ -4423,8 +4450,12 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_important(self, node: nodes.important) -> None:
-        """Visit an important admonition (converts to #warning(title: "Important")[])."""
-        self._visit_admonition(node, "warning", custom_title="Important")
+        """Visit an important admonition (converts to #warning(title: "Important")[]).
+
+        D-04/D-05: the title now comes from the `sphinx.locale.admonitionlabels`
+        catalog lookup in `_visit_admonition`, not this static literal.
+        """
+        self._visit_admonition(node, "warning")
 
     def depart_important(self, node: nodes.important) -> None:
         """Depart an important admonition."""
