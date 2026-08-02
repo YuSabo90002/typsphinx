@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 40
-current_phase_name: Citations — Full Round Trip
-status: planning
-stopped_at: Phase 39 complete and verified — 8/8 plans, ADM-01..ADM-05 all met
-last_updated: "2026-08-02T03:34:53.521Z"
+current_phase: 39
+current_phase_name: Admonition Taxonomy + Rubric Nesting (gap closure G-39-1)
+status: executing
+stopped_at: Phase 39 re-opened for UAT gap G-39-1 — 5 gap-closure plans (39-09..39-13) planned and verified
+last_updated: "2026-08-02T05:12:31.403Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 39 complete, transitioned to Phase 40
+last_activity_desc: Phase 39 gap closure G-39-1 planned (5 plans, waves 5-8); Phase 40 deferred until the gap closes
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 30
+  total_plans: 35
   completed_plans: 30
   percent: 67
 ---
@@ -24,14 +24,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 40 — Citations — Full Round Trip
+**Current focus:** Phase 39 gap closure — G-39-1 (red-family admonition taxonomy sub-division)
 
 ## Current Position
 
-Phase: 40 — Citations — Full Round Trip
-Plans: 0/TBD — not yet planned (Phase 39 closed at 8/8)
-Status: Ready to plan
-Last activity: 2026-08-02 — Phase 39 complete, transitioned to Phase 40
+Phase: 39 — Admonition Taxonomy + Rubric Nesting (re-opened for gap closure)
+Plans: 8/13 — 39-01..39-08 shipped and verified; 39-09..39-13 planned for gap G-39-1
+Status: Ready to execute (waves 5-8)
+Last activity: 2026-08-02 — G-39-1 gap-closure plans created and verified
+
+**Why Phase 39 re-opened:** `39-VERIFICATION.md` passed 5/5, but conversational UAT afterwards
+surfaced `G-39-1` — the owner reversed locked decision D-03 and split the collapsed red admonition
+bucket into three distinct gentle-clues functions (`danger()` / `memo()` / `error()`). The
+closed-phase gate (#3569) was explicitly overridden by the owner on 2026-08-02 to plan this gap
+closure. Phase 40 (Citations) is deferred until G-39-1 closes.
 
 Progress: [█████████████░░░░░░░] 67% (4/6 phases)
 
