@@ -166,3 +166,14 @@ None — no external service configuration required.
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-TEST-CENSUS-G39-1.md
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-GAP-G39-1-CLOSEOUT.md
+- FOUND: .planning/backups/39-VERIFICATION.md.pre-G39-1-amendment.2026-08-02.bak
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-13-SUMMARY.md
+- FOUND commit: a0ba504 (Task 2)
+- FOUND commit: 6a860db (Task 3, non-STATE.md deliverables)
+- FOUND commit: 968e583 (Task 3, STATE.md carve-out)
+- FOUND commit: ff11f4c (SUMMARY.md)
