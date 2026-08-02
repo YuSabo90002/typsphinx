@@ -281,6 +281,15 @@ None - no external service configuration required.
   full non-slow suite shows failures ONLY in the 7 intentionally-recorded RED tests (3 in
   `test_admonition_bucket_render_gate.py`, 4 in `test_admonition_locale_title_precedence_gate.py`).
 
+## Self-Check: PASSED
+
+- FOUND: tests/test_admonition_locale_title_precedence_gate.py
+- FOUND: tests/fixtures/admonition_locale_title_gate/en/conf.py
+- FOUND: tests/fixtures/admonition_locale_title_gate/ja/conf.py
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-GATE-EVIDENCE-05.md
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-09-SUMMARY.md
+- FOUND commits: 29f4247, 791a4d5, 97537cb (all present in `git log --oneline -5`)
+
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
