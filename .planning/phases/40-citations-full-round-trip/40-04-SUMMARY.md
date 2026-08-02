@@ -151,3 +151,10 @@ None - no external service configuration required.
 ---
 *Phase: 40-citations-full-round-trip*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/40-citations-full-round-trip/40-NONREGRESSION.md
+- FOUND: .planning/phases/40-citations-full-round-trip/40-04-SUMMARY.md
+- FOUND commit: ae355f6 (Task 2)
+- FOUND commit: 5720d42 (SUMMARY.md)
