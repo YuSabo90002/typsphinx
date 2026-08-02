@@ -1,16 +1,17 @@
 """
 Phase 39, GATE-01: ADM-01/ADM-02/ADM-03 bucket-routing and catalog-title
-structural gates against the UNTOUCHED translator.
+structural gates against the tree this plan starts from.
 
 Every expected gentle-clues function name and every expected title string
 below is hand-derived from ``.planning/phases/39-admonition-taxonomy-rubric-
-nesting/39-CONTEXT.md`` (the locked bucket table, D-02/D-03/D-09/D-10) and
-from ``sphinx.locale.admonitionlabels`` read directly inside this module --
-never from running the translator whose defects this module records. This
-is a v0.7.0 GATE-01 module: every design defect asserted here **compiles
-fine today** (there is no fatal to catch), so RED is a structural
-region-scoped equality/absence mismatch, never a ``sphinx-build`` failure
-and never a ``typst.compile()`` error.
+nesting/39-CONTEXT.md`` (the locked bucket table, D-02/D-09/D-10), from
+``theme.typ``/``predefined.typ`` in the pinned gentle-clues 1.3.1 sources,
+and from ``sphinx.locale.admonitionlabels`` read directly inside this
+module -- never from running the translator whose defects this module
+records. This is a v0.7.0 GATE-01 module: every design defect asserted here
+**compiles fine today** (there is no fatal to catch), so RED is a
+structural region-scoped equality/absence mismatch, never a
+``sphinx-build`` failure and never a ``typst.compile()`` error.
 
 Region-scoping methodology (T-39-06): every bucket assertion goes through
 ``_clue_open_before``, which resolves the gentle-clues function name that
@@ -22,36 +23,46 @@ to use the expected function, which is exactly the false-positive class a
 mis-routed ``seealso`` riding on the real ``tip`` construct's token would
 produce.
 
-Against the pre-phase translator this module reports:
+**G-39-1 (2026-08-02):** by owner decision, after a live A/B/C render
+comparison, D-03 is superseded -- the red family stops being one collapsed
+``error`` function and becomes three pairwise-distinct gentle-clues
+functions (``error``, ``danger``, ``memo``), one per Sphinx type. The two
+red-family defect cases now expect their own function rather than the
+folded ``error`` function, and a new generalized invariant test asserts the
+whole family's distinctness and title provenance in one build so a future
+silent re-collapse fails rather than passes. This module's docstring
+history at the point D-03 was first satisfied lives in
+``39-GATE-EVIDENCE-01.md``; the G-39-1 reversal is recorded in
+``39-GATE-EVIDENCE-05.md``.
 
-- RED (must flip GREEN once ``visit_seealso``, ``visit_danger``,
-  ``visit_attention``, ``visit_admonition`` and ``visit_topic`` are
-  re-routed, and once ``_visit_admonition``/``_depart_admonition`` gain the
-  ``admonitionlabels`` lookup): the five DEFECT-CASE bucket tests (seealso
-  D-02, attention D-03, danger D-03, generic-admonition D-09, topic D-10),
-  and the catalog-title table-driven test (RED for eight of the ten types --
-  no title argument is emitted at all -- and RED for ``seealso`` on casing:
-  today's static literal is ``"See Also"``, the catalog's is ``"See also"``).
+Against the tree this plan starts from, this module reports:
+
+- RED (must flip GREEN once ``visit_danger`` and ``visit_attention`` are
+  re-routed to their own red-family function, per G-39-1 / plan 39-11): the
+  two red-family point assertions (attention -> ``memo``, danger ->
+  ``danger``) and the generalized red-family invariant test, whose
+  distinctness assertion fails because all three red-family sentinels
+  currently resolve to the single folded ``error`` function.
 - GREEN throughout, by design, as CONTROLS (must never be "fixed" into a
-  defect case): the seven-type bucket-stability test (note, warning, tip,
-  important, caution, hint, error), the catalog-title row for ``important``
-  (its pre-existing static ``custom_title="Important"`` already matches the
-  catalog value byte-for-byte), the base-``clue``-function absence guard
-  over this plan's own ten new admonition-fixture sentinels (none of the
-  ten real Sphinx admonition types has ever routed through the base
-  ``clue`` function, pre-phase or post-phase -- ``clue`` is exclusively used
-  by the generic ``.. admonition::`` and ``.. topic::`` paths, which are
-  precisely the two DEFECT CASES this module already records separately as
-  D-09/D-10 above; re-asserting "not clue" for those two here would just be
-  restating the D-09/D-10 equality assertions in negative form, so this
-  guard deliberately excludes them rather than double-counting a RED this
-  module's own acceptance criteria do not name), and the
-  ``_clue_open_before`` self-check (a missing sentinel raises
-  ``AssertionError`` naming the sentinel, independent of any fixture build).
+  defect case): the seealso/generic-admonition/topic bucket tests and the
+  catalog-title table-driven test (D-02/D-09/D-10/D-04/D-05 were already
+  satisfied by earlier plans in this phase), the seven-type
+  bucket-stability test (note, warning, tip, important, caution, hint,
+  error -- none of these seven ever contained danger or attention, so the
+  red-family sub-division does not touch this table), the base-``clue``-
+  function absence guard over this plan's own ten admonition-fixture
+  sentinels (unaffected: neither ``danger`` nor ``memo`` is the base
+  ``clue`` function), the "attention is not in the warning bucket" test
+  (ADM-02's surviving intent -- green whether attention resolves to
+  ``error`` today or ``memo`` after the routing lands, because neither is
+  ``warning``), and the ``_clue_open_before`` self-checks (a missing
+  sentinel raises ``AssertionError`` naming the sentinel, independent of
+  any fixture build).
 
 See ``.planning/phases/39-admonition-taxonomy-rubric-nesting/
-39-GATE-EVIDENCE-01.md`` for the verbatim RED/CONTROL split recorded
-against a named commit and the corrected fixture-blast-radius grep.
+39-GATE-EVIDENCE-05.md`` for the verbatim RED/CONTROL split recorded
+against a named commit, the corrected fixture-blast-radius grep, and the
+measured ``lang.toml``/``theme.typ`` provenance.
 """
 
 import re
@@ -159,16 +170,25 @@ def topic_bucket_typ_text(
 
 # The full set of gentle-clues function names any admonition/topic call site
 # in typsphinx/translator.py can pass as `clue_type` to `_visit_admonition`
-# -- note/success/warning/error bucket functions, the two non-bucket D-09/
-# D-10 functions, `task` (todo_node, unchanged by this phase), and the base
-# `clue` function itself (present pre-phase; disappears as a passed value
-# after this phase per the phase-wide artifact census).
+# -- note/success/warning/error-family bucket functions, the two non-bucket
+# D-09/D-10 functions, `task` (todo_node, unchanged by this phase), and the
+# base `clue` function itself (present pre-phase; disappears as a passed
+# value after this phase per the phase-wide artifact census).
+#
+# G-39-1 (2026-08-02): `memo` is added here BEFORE any assertion below is
+# re-targeted. `_CLUE_OPEN_RE` is built from this tuple, and
+# `_clue_open_before` resolves a sentinel's box by scanning BACKWARD for the
+# nearest recognized open token -- if `memo` were absent, the attention
+# sentinel would resolve past its own box to whichever box precedes it in
+# the fixture, reporting a neighbour's function name instead of raising. See
+# the interpreter check recorded in 39-09-SUMMARY.md.
 _CLUE_FUNCTION_NAMES = (
     "info",
     "tip",
     "warning",
     "error",
     "danger",
+    "memo",
     "notify",
     "abstract",
     "task",
@@ -336,11 +356,13 @@ def test_clue_open_before_raises_when_no_box_precedes_sentinel() -> None:
 
 
 # ---------------------------------------------------------------------------
-# DEFECT CASES -- ADM-01 (D-02), ADM-02 (D-03 x2), ADM-03 (D-09, D-10).
+# DEFECT CASES -- ADM-01 (D-02), ADM-02/G-39-1 (attention -> memo, danger ->
+# danger, each its own red-family function), ADM-03 (D-09, D-10).
 # Each is RED against the untouched translator; each fails message names its
 # decision. must_haves.prohibitions (ADM-01/ADM-03): every expected function
-# name below is transcribed from 39-CONTEXT.md's locked bucket table, never
-# read back from the translator's current output.
+# name below is transcribed from 39-CONTEXT.md's locked bucket table (as
+# reversed by G-39-1 for the red family) or from `theme.typ`/`predefined.typ`
+# read directly, never read back from the translator's current output.
 # ---------------------------------------------------------------------------
 
 
@@ -353,21 +375,130 @@ def test_seealso_routes_to_tip_bucket(admonition_bucket_typ_text: str) -> None:
     )
 
 
-def test_attention_routes_to_error_bucket(admonition_bucket_typ_text: str) -> None:
-    """D-03: attention joins the error bucket, not the warning bucket."""
+def test_attention_routes_to_memo_function(admonition_bucket_typ_text: str) -> None:
+    """G-39-1: attention resolves to its own 'memo' function, superseding
+    D-03 -- the red family is three pairwise-distinct gentle-clues functions,
+    not one collapsed function."""
     actual = _clue_open_before(admonition_bucket_typ_text, "ADMONATTENTIONSENTINEL")
-    assert actual == "error", (
-        f"D-03 violated: expected attention's box to open with 'error' "
-        f"(the red bucket), got {actual!r}"
+    assert actual == "memo", (
+        f"G-39-1 violated: expected attention's box to open with 'memo' "
+        f"(its own red-family function, superseding D-03's single-function "
+        f"fold), got {actual!r}"
     )
 
 
-def test_danger_routes_to_error_bucket(admonition_bucket_typ_text: str) -> None:
-    """D-03: danger folds into the single error bucket function."""
+def test_danger_routes_to_danger_function(admonition_bucket_typ_text: str) -> None:
+    """G-39-1: danger resolves to its own 'danger' function, superseding
+    D-03 -- the red family is three pairwise-distinct gentle-clues functions,
+    not one collapsed function."""
     actual = _clue_open_before(admonition_bucket_typ_text, "ADMONDANGERSENTINEL")
-    assert actual == "error", (
-        f"D-03 violated: expected danger's box to open with 'error' "
-        f"(the red bucket is a single function post-phase), got {actual!r}"
+    assert actual == "danger", (
+        f"G-39-1 violated: expected danger's box to open with 'danger' "
+        f"(its own red-family function, superseding D-03's single-function "
+        f"fold), got {actual!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# G-39-1: the generalized red-family invariant. A bucket is a gentle-clues
+# function name, never a colour argument (D-01, still standing) -- so the
+# red family's membership is asserted by function id, never by the accent
+# colour literal that would otherwise identify it. Provenance (NOT test
+# data) for each red-family id, hand-transcribed from
+# ``~/.cache/typst/packages/preview/gentle-clues/1.3.1/lib/theme.typ`` this
+# planning session:
+#   - error:  accent rgb(210, 15, 57)  #d20f39 (red),    icon "crossmark.svg"
+#   - danger: accent rgb(254, 100, 11) #fe640b (peach),  icon "danger.svg"
+#   - memo:   accent rgb(230, 69, 83)  #e64553 (maroon), icon "excl.svg"
+# ---------------------------------------------------------------------------
+
+_RED_FAMILY_FUNCTIONS = ("error", "danger", "memo")
+
+
+def test_red_family_types_route_to_distinct_clue_functions(
+    admonition_bucket_typ_text: str,
+) -> None:
+    """
+    G-39-1: the red family is three pairwise-distinct gentle-clues functions,
+    not one collapsed function. Resolves all three red-family sentinels from
+    ONE build (proving region-scope resolution stays stable when three
+    equal-family boxes sit adjacent in the fixture), then asserts, in order:
+    every resolved name is a member of ``_RED_FAMILY_FUNCTIONS``; the three
+    names are pairwise distinct; and each of the three boxes carries a title
+    argument, via ``_title_arg_after``, equal to the quoted
+    ``sphinx.locale.admonitionlabels`` value for that type. RED today: all
+    three sentinels resolve to ``error``, so the distinctness assertion
+    fails even though the membership assertion (vacuously) does not.
+    """
+    sentinel_by_type = {
+        "attention": "ADMONATTENTIONSENTINEL",
+        "danger": "ADMONDANGERSENTINEL",
+        "error": "ADMONERRORSENTINEL",
+    }
+    resolved = {
+        node_type: _clue_open_before(admonition_bucket_typ_text, sentinel)
+        for node_type, sentinel in sentinel_by_type.items()
+    }
+
+    non_members = {
+        node_type: fn
+        for node_type, fn in resolved.items()
+        if fn not in _RED_FAMILY_FUNCTIONS
+    }
+    assert not non_members, (
+        "G-39-1 violated: red-family type(s) resolved to a function outside "
+        f"the hand-transcribed red-family set {_RED_FAMILY_FUNCTIONS!r}: "
+        f"{non_members}"
+    )
+
+    resolved_functions = list(resolved.values())
+    assert len(set(resolved_functions)) == len(resolved_functions), (
+        "G-39-1 violated: the red family is not three pairwise-distinct "
+        f"gentle-clues functions -- resolved {resolved!r}"
+    )
+
+    title_mismatches = []
+    for node_type, sentinel in sentinel_by_type.items():
+        expected_title = f'"{str(admonitionlabels[node_type])}"'
+        actual_title = _title_arg_after(admonition_bucket_typ_text, sentinel)
+        if actual_title != expected_title:
+            title_mismatches.append(
+                f"{sentinel} ({node_type}): expected {expected_title!r}, "
+                f"got {actual_title!r}"
+            )
+    assert not title_mismatches, "Red-family title mismatch(es):\n" + "\n".join(
+        title_mismatches
+    )
+
+
+def test_attention_is_not_in_the_warning_bucket(
+    admonition_bucket_typ_text: str,
+) -> None:
+    """
+    ADM-02's surviving intent, stated positively: leaving the orange warning
+    bucket was the requirement; being byte-identical to the error type was
+    only ever one way of expressing it, and G-39-1 supersedes that way.
+    Green in both directions (today attention resolves to 'error', which
+    already differs from 'warning'; after the routing lands it resolves to
+    'memo', which still differs) -- this test must never be converted into a
+    defect case.
+    """
+    attention_fn = _clue_open_before(
+        admonition_bucket_typ_text, "ADMONATTENTIONSENTINEL"
+    )
+    warning_family_sentinels = (
+        "ADMONWARNINGSENTINEL",
+        "ADMONCAUTIONSENTINEL",
+        "ADMONIMPORTANTSENTINEL",
+    )
+    collisions = []
+    for sentinel in warning_family_sentinels:
+        fn = _clue_open_before(admonition_bucket_typ_text, sentinel)
+        if fn == attention_fn:
+            collisions.append(f"{sentinel} shares {fn!r} with attention")
+    assert not collisions, (
+        "ADM-02 violated: attention shares a function with the warning "
+        "bucket:\n" + "\n".join(collisions)
     )
 
 

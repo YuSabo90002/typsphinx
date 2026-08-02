@@ -50,7 +50,7 @@ Hint Type
 Danger Type
 -----------
 
-.. Requirement ADM-02 (D-03). Expected post-phase gentle-clues function: error. DEFECT CASE -- today emits danger(...).
+.. Requirement ADM-02 (G-39-1, supersedes D-03). Expected function: danger (its own red-family function, not the folded error). DEFECT CASE -- today emits error(...).
 
 .. danger::
 
@@ -112,7 +112,7 @@ See Also Type
 Attention Type
 ---------------
 
-.. Requirement ADM-02 (D-03). Expected post-phase gentle-clues function: error. DEFECT CASE -- today emits warning(...).
+.. Requirement ADM-02 (G-39-1, supersedes D-03). Expected function: memo (its own red-family function, not the folded error). DEFECT CASE -- today emits error(...).
 
 .. attention::
 
