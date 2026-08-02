@@ -4,11 +4,11 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 39
 current_phase_name: Admonition Taxonomy + Rubric Nesting
-status: planning
-stopped_at: Phase 39 context gathered
-last_updated: "2026-08-01T23:28:44.976Z"
+status: executing
+stopped_at: Phase 39 planned — 8 plans in 4 waves, ready to execute
+last_updated: "2026-08-02T00:25:37.902Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 38 complete, transitioned to Phase 39
+last_activity_desc: Phase 39 planned — 8 plans in 4 waves
 progress:
   total_phases: 6
   completed_phases: 3
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 ## Current Position
 
 Phase: 39 — Admonition Taxonomy + Rubric Nesting
-Plans: 0/TBD — not yet planned (Phase 38 closed at 9/9)
-Status: Ready to plan
-Last activity: 2026-08-02 — Phase 38 complete, transitioned to Phase 39
+Plans: 0/8 — planned in 4 waves, not yet executed (Phase 38 closed at 9/9)
+Status: Ready to execute
+Last activity: 2026-08-02 — Phase 39 planned (research, patterns, 8 plans, checker passed)
 
 Progress: [██████████░░░░░░░░░░] 50% (3/6 phases)
 
@@ -380,10 +380,17 @@ Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
 
 ## Operator Next Steps
 
-- Plan Phase 39 (Admonition Taxonomy + Rubric Nesting, ADM-01..ADM-05). No `39-CONTEXT.md` exists,
-  so start with `/gsd-discuss-phase 39`. Pass `--skip-ui` — `ui.plan-gate` false-positives on this
-  project's typesetting phases, and 39's wording ("colour buckets", "styled and titled") will trip it
-  harder than 38's did.
+- **Phase 39 is planned** (2026-08-02): CONTEXT, RESEARCH, PATTERNS, VALIDATION and 8 PLAN files
+  exist; plan-checker passed. Next step is `/gsd-execute-phase 39`. As predicted, `ui.plan-gate`
+  did false-positive on this phase (`{frontend: true, block: true}`) and was overridden as
+  `--skip-ui` — keep passing `--skip-ui` to any re-plan of a typesetting phase.
+- **Two decision-gate format traps hit during Phase 39 planning, both now fixed in place.**
+  (a) `check.decision-coverage-plan` hard-blocked with a false `could-not-parse`: its regexes forbid
+  more than one `:` and any `*` inside the bold `- **D-NN: …**` title, so reST directive syntax
+  (`.. admonition::`) in D-09/D-10's titles broke all three patterns. Fixed by moving the directive
+  spelling into the bullet body; the gate then returned 14/14 covered. Keep D-NN titles free of `::`.
+  (b) `state.planned-phase` updated only `Status` — it left `Plans:`, `stopped_at` and
+  `last_activity_desc` stale despite the workflow claiming it sets the plan count. Hand-corrected.
 
 - **Phase 39 SC#3 depends on Phase 38's shipped indent.** A rubric must inherit its container's
   indent, which now means consuming `SHARED_INDENT_STEP` (`typsphinx/translator.py:29`) rather than

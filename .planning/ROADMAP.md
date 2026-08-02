@@ -516,14 +516,30 @@ inherit an indent once the indent exists)
 **Plans**: 8 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 39-01-PLAN.md — GATE-01 RED for the admonition half: the `admonition_render_gate` fixture extended to a full ten-type census with per-type sentinels, a new region-scoped `.typ` bucket-and-catalog-title gate, the compiled-PDF half for ADM-01/ADM-02, and `39-GATE-EVIDENCE-01.md`
 - [ ] 39-02-PLAN.md — GATE-01 RED for the rubric half: the D-13 inline-markup-in-rubric fixture and its document-wide `par()`-drop assertions, the D-11 newline-run assertion on the existing decoupling fixture, and `39-GATE-EVIDENCE-02.md`
 - [ ] 39-03-PLAN.md — ADM-05's invariance guard (D-12): a two-level `py:class::`/`py:method::` rubric probe and a fully relative `pypdf` layout-mode column module, plus `39-GATE-EVIDENCE-03.md`
 - [ ] 39-04-PLAN.md — the ADM-04 tooling: a blocking `pillow` legitimacy checkpoint, the `[dev]`-extra edit, a one-page four-bucket probe, `scripts/render_admonition_greyscale.py`, and a pipeline smoke test
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 39-05-PLAN.md — ADM-01/ADM-02/ADM-03: the five bucket moves, the `sphinx.locale.admonitionlabels` title source, the static-title escaping fix, and the five-assertion / four-rename test migration
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 39-06-PLAN.md — the folded rubric defects: the `_rubric_was_*` slot rename, the id-anchor separator double-count guard, and the hand-derived `golden.typ` regeneration with the full rubric census re-run
 - [ ] 39-07-PLAN.md — ADM-04's visual UAT: the greyscale artifact rendered from post-fix code, the blocking owner sign-off, and `39-ADM04-SIGNOFF.md`
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 39-08-PLAN.md — SC#5 phase close: the re-measured test census, a corpus gate that actually ran, the milestone-invariant and `@preview`-pin re-checks, and the success-criteria reconciliation
+
+**Cross-cutting constraints:**
+
+- This plan modifies no file under typsphinx/.
+- This plan modifies no file under typsphinx/ and no file under tests/.
 
 ### Phase 40: Citations — Full Round Trip
 
