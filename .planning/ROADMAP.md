@@ -600,7 +600,7 @@ admonition work, needs no document-order pre-pass, and is sequenced here only fo
      through `-b typstpdf`, and the new handlers are checked explicitly against all three separator
      protocols (paragraph, code-mode concat, list-item) rather than by analogy to the footnote
      handlers they superficially resemble.
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -618,7 +618,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 40-04-PLAN.md — close-out: the full-corpus `-b typstpdf` gate actually run green (a skip is not a pass), both REDs mapped selector-by-selector to their GREENs, the stale Phase-40 forward reference in `test_desc_break_marker_buffer_swap_gate.py` settled, and `40-NONREGRESSION.md`
+- [x] 40-04-PLAN.md — close-out: the full-corpus `-b typstpdf` gate actually run green (a skip is not a pass), both REDs mapped selector-by-selector to their GREENs, the stale Phase-40 forward reference in `test_desc_break_marker_buffer_swap_gate.py` settled, and `40-NONREGRESSION.md`
 
 ### Phase 41: v0.7.0 Release Automation + Release Prep
 
@@ -711,7 +711,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
-| 40. Citations — Full Round Trip | v0.7.0 | 4/5 | In Progress|  |
+| 40. Citations — Full Round Trip | v0.7.0 | 5/5 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
