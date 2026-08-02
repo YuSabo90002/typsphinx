@@ -5,8 +5,8 @@ milestone_name: API rendering design overhaul
 current_phase: 41
 current_phase_name: v0.7.0 Release Automation + Release Prep
 status: planning
-stopped_at: Phase 40 context gathered
-last_updated: "2026-08-02T10:54:39.851Z"
+stopped_at: Phase 41 context gathered
+last_updated: "2026-08-02T11:29:00.713Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 40 complete, transitioned to Phase 41
 progress:
@@ -382,10 +382,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/40-citations-full-round-trip/40-CONTEXT.md
+**Resume file:** .planning/phases/41-v0-7-0-release-automation-release-prep/41-CONTEXT.md
 
-Last session: 2026-08-02T07:36:50.690Z
-Stopped at: Phase 40 context gathered
+Last session: 2026-08-02T11:29:00.706Z
+Stopped at: Phase 41 context gathered
 Resume: `/gsd-plan-phase 40` (`40-CONTEXT.md` written 2026-08-02).
 
 ## Operator Next Steps
