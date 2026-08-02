@@ -489,9 +489,20 @@ inherit an indent once the indent exists)
      both on the emitted call and by the title text surviving into the compiled PDF's extracted
      text.
 
-  3. A rubric inside a description body — including autodoc's "Options" heading on a real API
-     page — has a left edge strictly greater than the page margin and equal to its containing body's
-     edge, measured with `pypdf`.
+  3. A rubric inside a description body — including the autodoc-shaped "Options" heading — has a left
+     edge strictly greater than the page margin and equal to its containing body's edge, measured with
+     `pypdf`. **Corrected per 39-CONTEXT.md D-12:** this property was measured 2026-08-02 to hold
+     ALREADY against pre-phase code — Phase 38's `pad(left: SHARED_INDENT_STEP, …)` around
+     `desc_content` carries the rubric structurally and `visit_rubric` performs no indent logic of its
+     own — so a GATE-01 RED cannot be recorded for it. It is therefore asserted as an **invariance
+     guard**, green in both directions, following exactly the resolution Phase 36's SC#3 took for its
+     own already-true PDF claim. The phase's classic RED comes from the folded `par()`-drop defect
+     (D-13) instead, so the milestone's GATE-01 bar is met by real evidence rather than a waiver.
+     Every column comparison is relative (equality or strict inequality between two measured markers)
+     and never a pinned point value, so the gate cannot be satisfied by re-valuing
+     `SHARED_INDENT_STEP` (Phase 38 D-02). The measurement uses a hand-authored
+     `py:class::`/`py:method::` probe rather than live autodoc extraction: the docutils node shape is
+     identical either way, and the hand-authored form keeps the gate deterministic and network-free.
 
   4. **Visual UAT (ADM-04, `[V]`):** the owner signs off, from a greyscale render of the compiled
      PDF, that the four admonition kinds remain distinguishable without hue — the distinction
@@ -500,8 +511,19 @@ inherit an indent once the indent exists)
 
   5. This phase's exact-string blast radius is migrated inside the phase by hand-derived expected
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
-     green after the admonition and rubric changes.
-**Plans**: TBD
+     green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
+     is **not** a pass; it must actually run green at least once before the phase closes.
+**Plans**: 8 plans
+
+Plans:
+- [ ] 39-01-PLAN.md — GATE-01 RED for the admonition half: the `admonition_render_gate` fixture extended to a full ten-type census with per-type sentinels, a new region-scoped `.typ` bucket-and-catalog-title gate, the compiled-PDF half for ADM-01/ADM-02, and `39-GATE-EVIDENCE-01.md`
+- [ ] 39-02-PLAN.md — GATE-01 RED for the rubric half: the D-13 inline-markup-in-rubric fixture and its document-wide `par()`-drop assertions, the D-11 newline-run assertion on the existing decoupling fixture, and `39-GATE-EVIDENCE-02.md`
+- [ ] 39-03-PLAN.md — ADM-05's invariance guard (D-12): a two-level `py:class::`/`py:method::` rubric probe and a fully relative `pypdf` layout-mode column module, plus `39-GATE-EVIDENCE-03.md`
+- [ ] 39-04-PLAN.md — the ADM-04 tooling: a blocking `pillow` legitimacy checkpoint, the `[dev]`-extra edit, a one-page four-bucket probe, `scripts/render_admonition_greyscale.py`, and a pipeline smoke test
+- [ ] 39-05-PLAN.md — ADM-01/ADM-02/ADM-03: the five bucket moves, the `sphinx.locale.admonitionlabels` title source, the static-title escaping fix, and the five-assertion / four-rename test migration
+- [ ] 39-06-PLAN.md — the folded rubric defects: the `_rubric_was_*` slot rename, the id-anchor separator double-count guard, and the hand-derived `golden.typ` regeneration with the full rubric census re-run
+- [ ] 39-07-PLAN.md — ADM-04's visual UAT: the greyscale artifact rendered from post-fix code, the blocking owner sign-off, and `39-ADM04-SIGNOFF.md`
+- [ ] 39-08-PLAN.md — SC#5 phase close: the re-measured test census, a corpus gate that actually ran, the milestone-invariant and `@preview`-pin re-checks, and the success-criteria reconciliation
 
 ### Phase 40: Citations — Full Round Trip
 
