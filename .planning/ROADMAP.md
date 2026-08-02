@@ -717,7 +717,24 @@ proved)
      empty — and a standalone handoff checklist records exactly what `/gsd-complete-milestone` will
      execute (merge, tag, `release.yml`, PyPI + GitHub Release, and the standing second tag on
      `typsphinx-doc-translations`).
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 41-01-PLAN.md — REL-04 end to end: the committed, pytest-covered `## [X.Y.Z]` extraction script (D-06/D-10) recorded RED first, `release.yml`'s `validate`-job existence check (D-09) and `create-release` body swap with the commit dump removed rather than fenced (SC#1), and the D-07 hand-run transcript in `41-REL04-EVIDENCE.md`
+- [ ] 41-02-PLAN.md — SC#2: the curated `## [0.7.0]` CHANGELOG entry (D-01..D-05) with the tail link-block rollover, plus the version bump to 0.7.0 across `pyproject.toml` / `README.md` / `uv.lock` in lockstep
+- [ ] 41-03-PLAN.md — the phase's one `typsphinx/` change (D-12's `visit_desc_sig_name` docstring escape, recorded RED via a docutils parse) and D-13's planning-record hygiene: two already-fixed todos filed to `completed/` after re-measurement, and PROJECT.md's two unterminated HTML comments terminated
+
+**Wave 2**
+
+- [ ] 41-04-PLAN.md — SC#3's `ja` four-check glyph bar as a main-vs-HEAD local comparison (D-15), page sample by measured CJK density unioned with a `raw()`-styled signature page, the owner's visual sign-off collected inside the phase (D-16), and the never-committed translations-repo clone with its SHA recorded (D-17)
+- [ ] 41-05-PLAN.md — SC#3's mechanical half on the post-bump tree: full suite, lint/type trio, the full-corpus `-b typstpdf` gate run in isolation with executed-versus-skipped stated outright, both docs dogfooding builds, and the cross-check of the CHANGELOG's third `### Verified` claim
+- [ ] 41-06-PLAN.md — SC#4's milestone-invariant sweep over a re-measured SHA range covering Phase 40.1 (D-11): zero new runtime dependencies, the `@preview` surface unchanged with every new importing file classified, and the changed-handler census mapped by node name with every single-hit coverage claim spot-checked against real assertions
+
+**Wave 3**
+
+- [ ] 41-07-PLAN.md — SC#5: the SC#1-SC#5 roll-up in `41-RELEASE-EVIDENCE.md` (quoting sibling verdicts, never re-deriving them), the fence proven by two independent observations of empty local and remote `v0.7.0` tags, and the standalone `41-HANDOFF.md` publish checklist
 
 ## Progress
 
