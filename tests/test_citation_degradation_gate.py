@@ -268,26 +268,41 @@ def _live_reference_own_ids(doctree) -> set[str]:
     return ids
 
 
-def _citation_row_region(
-    typ_text: str, def_anchor_token: str
-) -> str:
+def _citation_row_region(typ_text: str, def_anchor_token: str) -> str:
     """
     Return the label-cell fragment (``[#{...} <def_anchor_token>]``) for
     the citation whose OWN definition anchor is ``def_anchor_token`` --
     computed by the caller via ``_expected_namespace_label``, never
     transcribed. Raises a clear ``AssertionError`` if the row cannot be
     found, rather than an uncaught ``ValueError``.
+
+    Locates the row by finding ``def_anchor_token``'s own closing marker
+    first and scanning BACKWARDS for its ``[#{`` opener -- a plain
+    ``.*?`` regex search from the START of ``typ_text`` would instead
+    match the NEAREST-following ``[#{`` opener, which for the second (or
+    later) citation row is a DIFFERENT citation's opener, silently
+    capturing bytes across a cell boundary that do not belong to this
+    row.
     """
-    pattern = re.compile(
-        r"\[#\{(.*?)\} <" + re.escape(def_anchor_token) + r">\]", re.DOTALL
-    )
-    match = pattern.search(typ_text)
-    if match is None:
+    anchor_marker = f"<{def_anchor_token}>]"
+    anchor_idx = typ_text.find(anchor_marker)
+    if anchor_idx == -1:
         raise AssertionError(
             f"No citation label cell found for def anchor "
             f"{def_anchor_token!r} in:\n{typ_text}"
         )
-    return match.group(1)
+    row_start = typ_text.rfind("[#{", 0, anchor_idx)
+    if row_start == -1:
+        raise AssertionError(
+            f"Found def anchor marker {anchor_marker!r} but no preceding "
+            f"'[#{{' label-cell opener in:\n{typ_text}"
+        )
+    inner = typ_text[row_start + len("[#{") : anchor_idx]
+    if inner.endswith("} "):
+        inner = inner[:-2]
+    elif inner.endswith("}"):
+        inner = inner[:-1]
+    return inner
 
 
 class TestWr01DanglingLinkTargets:
