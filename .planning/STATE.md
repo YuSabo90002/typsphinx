@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 40
-current_phase_name: Citations — Full Round Trip
+current_phase_name: citations-full-round-trip
 status: executing
 stopped_at: Phase 40 planned
-last_updated: "2026-08-02T08:32:34.349Z"
+last_updated: "2026-08-02T08:36:48.542Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 40 planned — 4 plans in 3 waves
+last_activity_desc: Phase 40 execution started
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 35
+  total_plans: 39
   completed_plans: 35
   percent: 67
 ---
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 40 — Citations: Full Round Trip (planned — 4 plans in 3 waves, ready to execute)
+**Current focus:** Phase 40 — citations-full-round-trip
 
 ## Current Position
 
-Phase: 40 — Citations — Full Round Trip
+Phase: 40 (citations-full-round-trip) — EXECUTING
 Plans: 0/4 — planned 2026-08-02 (4 plans in 3 waves; `40-RESEARCH.md`, `40-PATTERNS.md`,
 `40-VALIDATION.md` alongside). Context gathered 2026-08-02 (`40-CONTEXT.md`, 14 decisions).
-Status: Ready to execute
-Last activity: 2026-08-02 — Phase 40 planned (plan-checker VERIFICATION PASSED, decisions 14/14, REQ 6/6)
+Status: Executing Phase 40
+Last activity: 2026-08-02 — Phase 40 execution started
 
 **Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
 conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
