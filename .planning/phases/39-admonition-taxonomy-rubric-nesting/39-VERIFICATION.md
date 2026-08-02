@@ -4,7 +4,7 @@ verified: 2026-08-02T03:33:10Z
 status: passed
 score: 5/5 must-haves verified
 behavior_unverified: 0
-overrides_applied: 0
+overrides_applied: 1
 ---
 
 # Phase 39: Admonition Taxonomy + Rubric Nesting Verification Report
@@ -110,5 +110,40 @@ None. All five ROADMAP success criteria (SC#1-SC#5) and all five requirement IDs
 
 ---
 
+## Acknowledged Gate Overrides
+
+### 1. `api-coverage.verify-pre` — false positive, overridden by owner on 2026-08-02
+
+**Gate output:** `block: true`, `detected: true`, `signals: [{verb: "(surface)", noun: "api"}]`,
+message asking for a `COVERAGE.md` enumerating an external-API surface.
+
+**Why it is a false positive.** Phase 39 integrates zero external APIs. It changes
+`typsphinx/translator.py`'s admonition bucket routing, the `sphinx.locale.admonitionlabels`
+title lookup, and `visit_rubric`/`depart_rubric`'s save-slot naming — all in-process
+docutils-node → Typst-markup conversion. The gate's `api` noun signal comes from prose
+occurrences of the word in this phase's planning documents, every one of which was read
+and confirmed unrelated to external-API integration:
+
+| Firing text | File:line | What it actually refers to |
+|---|---|---|
+| "Which real API page SC#3's autodoc 'Options' measurement is taken from" | `39-CONTEXT.md:168`, `39-RESEARCH.md:102`, `39-DISCUSSION-LOG.md:177` | The project's own `docs/source/api/index.rst` autodoc page, used as a measurement subject |
+| "`api/index.rst` autodoc-generated content is the more likely source" | `39-GATE-EVIDENCE-04.md:158` | Same docs page |
+| "PyPI JSON API fetched directly for `pillow`" / "Direct PyPI JSON API fetch" | `39-RESEARCH.md:212`, `:834`, `39-04-PLAN.md:176` | A one-off research-time version lookup by the author, not shipped code — nothing in the repository calls PyPI at build or run time |
+| "depending on which extraction API is used" | `39-03-PLAN.md:264` | The in-process `pypdf` library's Python API, a dev/test dependency |
+| "the per-glyph API is unusable here" | `39-03-PLAN.md:229` | `pypdf`'s per-glyph extraction interface |
+
+**Corroborating measurements:** `git diff` for this phase touches no network code;
+`39-08-SUMMARY.md`'s D4 records "zero new runtime dependencies" re-checked by command at
+phase close (the only dependency added anywhere this phase is `pillow`, confined to
+`pyproject.toml`'s `[dev]` extra for the ADM-04 render pipeline).
+
+**Decision:** owner reviewed the firing evidence above and elected to continue as a false
+positive rather than author a `COVERAGE.md` for a non-existent API surface. No `COVERAGE.md`
+was produced. This is the same detection class as the Phase 18 occurrence (prose-token
+matching in docs/rendering phases). UAT proceeded on this basis.
+
+---
+
 _Verified: 2026-08-02T03:33:10Z_
 _Verifier: Claude (gsd-verifier)_
+_Gate override recorded: 2026-08-02 (verify-work, owner decision)_
