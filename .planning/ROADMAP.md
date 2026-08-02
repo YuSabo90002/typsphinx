@@ -513,7 +513,7 @@ inherit an indent once the indent exists)
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
      is **not** a pass; it must actually run green at least once before the phase closes.
-**Plans**: 8/8 plans executed
+**Plans**: 13 plans — 8/8 shipped 2026-08-02; 5 added 2026-08-02 to close UAT gap G-39-1
 
 Plans:
 **Wave 1**
@@ -535,6 +535,23 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 39-08-PLAN.md — SC#5 phase close: the re-measured test census, a corpus gate that actually ran, the milestone-invariant and `@preview`-pin re-checks, and the success-criteria reconciliation
+
+**Wave 5** *(gap closure for UAT gap G-39-1 — the red family stops being one collapsed function; blocked on Wave 4 completion)*
+
+- [ ] 39-09-PLAN.md — GATE-01 RED for G-39-1: the red family asserted as three distinct clue functions plus a generalized red-family invariant, a new two-locale catalog-title precedence gate with its `en`/`ja` fixture project, and `39-GATE-EVIDENCE-05.md`
+- [ ] 39-10-PLAN.md — the recorded reversal: D-03 marked superseded and D-03-R added to `39-CONTEXT.md`, ADM-02 restated around intent with a red-group sub-division note under ADM-01's preamble, and this SC#1 correction
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 39-11-PLAN.md — the routing change: `danger` to the gentle-clues `danger` id and `attention` to its `memo` id, with the two falsified in-process assertions migrated by hand and the compiled-PDF gate strengthened against a lost title argument
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 39-12-PLAN.md — ADM-04 re-taken: the greyscale probe extended to carry `attention`/`danger`/`error` as three adjacent boxes, the artifact re-rendered from post-change code, and a blocking owner sign-off recorded as a dated amendment
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 39-13-PLAN.md — gap close-out: the full-corpus `-b typstpdf` gate re-run for real, this gap's own exact-string census with the inverted grep guard recorded, and `39-GAP-G39-1-CLOSEOUT.md`
 
 **Cross-cutting constraints:**
 
