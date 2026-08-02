@@ -154,7 +154,7 @@ Greenfield — `translator.py` has zero citation handlers today. Scope is bare d
 deliberately unused — it consumes structured `.bib`/Hayagriva data in order to CSL-format and
 reorder, while docutils citations are already-written prose with references already resolved.
 
-- [ ] **CIT-01** [M]: A document containing a citation **compiles**. Today the unhandled
+- [x] **CIT-01** [M]: A document containing a citation **compiles**. Today the unhandled
       `citation`/`label` nodes emit adjacent expressions with no separator, so `-b typstpdf` fails
       outright and `-b typst` silently writes an invalid `.typ`. *(This is the one requirement in
       the milestone that keeps the classic GATE-01 RED — a real `TypstError` before the fix.)*
@@ -174,7 +174,7 @@ reorder, while docutils citations are already-written prose with references alre
       (both approaches) is **restored**, and both samples build clean. An IEEE paper template
       shipping without a references section is the concrete defect this closes.
 
-- [ ] **CIT-06** [M]: Citation entries render in **document order, unsorted**, matching docutils'
+- [x] **CIT-06** [M]: Citation entries render in **document order, unsorted**, matching docutils'
       own semantics.
 
 ### Spacing regression (MATH)
@@ -306,12 +306,12 @@ Phase numbering continues from v0.6.5's last phase (35).
 | ADM-04 | Phase 39 | Complete |
 | ADM-05 | Phase 39 | Complete |
 | ADM-06 | Phase 36 | Complete |
-| CIT-01 | Phase 40 | Pending |
+| CIT-01 | Phase 40 | Complete |
 | CIT-02 | Phase 40 | Pending |
 | CIT-03 | Phase 40 | Pending |
 | CIT-04 | Phase 40 | Pending |
 | CIT-05 | Phase 40 | Pending |
-| CIT-06 | Phase 40 | Pending |
+| CIT-06 | Phase 40 | Complete |
 | MATH-02 | Phase 36 | Complete |
 | REL-04 | Phase 41 | Pending |
 | REL-05 | Phase 41 | Pending |
