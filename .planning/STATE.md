@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 39
-current_phase_name: admonition-taxonomy-rubric-nesting
-status: executing
-stopped_at: Phase 39 planned — 8 plans in 4 waves, ready to execute
-last_updated: "2026-08-02T02:16:40.655Z"
+current_phase: 40
+current_phase_name: Citations — Full Round Trip
+status: planning
+stopped_at: Phase 39 complete and verified — 8/8 plans, ADM-01..ADM-05 all met
+last_updated: "2026-08-02T03:34:53.521Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 39 execution resumed (wave continue)
+last_activity_desc: Phase 39 complete, transitioned to Phase 40
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 30
-  completed_plans: 26
-  percent: 50
+  completed_plans: 30
+  percent: 67
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 39 — admonition-taxonomy-rubric-nesting
+**Current focus:** Phase 40 — Citations — Full Round Trip
 
 ## Current Position
 
-Phase: 39 (admonition-taxonomy-rubric-nesting) — EXECUTING
-Plans: 0/8 — planned in 4 waves, not yet executed (Phase 38 closed at 9/9)
-Status: Executing Phase 39
-Last activity: 2026-08-02 — Phase 39 execution resumed (wave continue)
+Phase: 40 — Citations — Full Round Trip
+Plans: 0/TBD — not yet planned (Phase 39 closed at 8/8)
+Status: Ready to plan
+Last activity: 2026-08-02 — Phase 39 complete, transitioned to Phase 40
 
-Progress: [██████████░░░░░░░░░░] 50% (3/6 phases)
+Progress: [█████████████░░░░░░░] 67% (4/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
@@ -186,10 +186,11 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
 - v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
   to date; a single-defect hotfix scope held end to end with zero scope creep.
 
-- v0.7.0: 6 phases / 12 plans so far (4 complete in Phase 36, 8 planned in Phase 37), started
+- v0.7.0: 6 phases / 30 plans complete through Phase 39 (36: 4, 37: 9, 38: 9, 39: 8), started
   2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but with a much higher test-migration load
-  (10 files, 61 render-gate classes) carried per phase. Phase 37 alone migrates 9 exact-string
-  assertions across 5 modules plus `golden.typ`'s 7 signature lines.
+  (10 files, 61 render-gate classes) carried per phase. Phase 37 alone migrated 9 exact-string
+  assertions across 5 modules plus `golden.typ`'s 7 signature lines; Phase 39 re-measured its own
+  census and found it matched both the discussion-time and planning-time counts exactly.
 
 *Updated after each plan completion*
 
@@ -372,18 +373,32 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/39-admonition-taxonomy-rubric-nesting/39-CONTEXT.md
+**Resume file:** .planning/phases/39-admonition-taxonomy-rubric-nesting/39-VERIFICATION.md
 
-Last session: 2026-08-01T23:28:44.968Z
-Stopped at: Phase 39 context gathered
-Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
+Last session: 2026-08-02T03:34:53.521Z
+Stopped at: Phase 39 complete and verified (8/8 plans, 5/5 must-haves)
+Resume: `/gsd-discuss-phase 40` (no `40-CONTEXT.md` yet).
 
 ## Operator Next Steps
 
-- **Phase 39 is planned** (2026-08-02): CONTEXT, RESEARCH, PATTERNS, VALIDATION and 8 PLAN files
-  exist; plan-checker passed. Next step is `/gsd-execute-phase 39`. As predicted, `ui.plan-gate`
-  did false-positive on this phase (`{frontend: true, block: true}`) and was overridden as
-  `--skip-ui` — keep passing `--skip-ui` to any re-plan of a typesetting phase.
+- **Phase 39 closed 2026-08-02** — ADM-01..ADM-05 all complete. ADM-04 is MET on **icon-shape**
+  grounds (owner sign-off, `39-ADM04-SIGNOFF.md`), with **title-band luminance recorded as uniform
+  and carrying no distinguishing signal** as an explicit accepted caveat, not a latent defect — do
+  not re-open it as a bug. No styling change was made, no fallback lever was chosen, no todo filed.
+  Full suite green (763 passed / 1 skipped); the full-corpus `-b typstpdf` gate was **re-run for
+  real** (tag `v9.1.0`, PASSED — not a skip). Milestone invariants held: no new runtime dependency,
+  `@preview` count stays 4, gentle-clues pin unchanged at `1.3.1`. Docs dogfood build 91 pages (90
+  pre-phase, +1 explained in `39-GATE-EVIDENCE-04.md` §6). Next: Phase 40 (Citations — Full Round
+  Trip), structurally independent of 39, and the milestone's one classic `TypstError`-RED exception
+  (CIT-01).
+
+- **NixOS worktree provisioning: the `ruff` shim alone is NOT sufficient** (measured during Phase
+  39). A fresh worktree's `uv sync`-installed `.venv/bin/uv` is *also* a generic-linux ELF that
+  fails under the NixOS stub loader (exit 127), and it shadows the correct Nix-store `uv` on `PATH`
+  for any `subprocess.run(["uv", "run", "sphinx-build", …])` child. Both shims are required, once
+  per worktree, resolving via `command -v` **before** any `.venv/bin` entry exists on `PATH`:
+  `for t in uv ruff; do ln -sf "$(command -v $t)" ".venv/bin/$t"; done`. Measured this session: 45
+  failures with exit 127 before the `uv` shim, all passing (763/764) after it.
 
 - **Two decision-gate format traps hit during Phase 39 planning, both now fixed in place.**
   (a) `check.decision-coverage-plan` hard-blocked with a false `could-not-parse`: its regexes forbid
@@ -392,14 +407,6 @@ Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
   spelling into the bullet body; the gate then returned 14/14 covered. Keep D-NN titles free of `::`.
   (b) `state.planned-phase` updated only `Status` — it left `Plans:`, `stopped_at` and
   `last_activity_desc` stale despite the workflow claiming it sets the plan count. Hand-corrected.
-
-- **Phase 39 SC#3 depends on Phase 38's shipped indent.** A rubric must inherit its container's
-  indent, which now means consuming `SHARED_INDENT_STEP` (`typsphinx/translator.py:29`) rather than
-  introducing a private literal — the same IND-04 bar Phase 38 was held to.
-
-- **ADM-04 is the milestone's only `[V]` requirement** (greyscale distinguishability) and is carried
-  as an explicit owner sign-off criterion on this phase. Expect a real human UAT checkpoint at
-  verify time, not a grep.
 
 - **Phase 38 closed with a documentation correction, not a code change.** UAT test 1 asked whether
   SC#4/IND-04's "drives … block quotes" prose was stale or an unmet criterion; the owner ruled
