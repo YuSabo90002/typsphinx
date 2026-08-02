@@ -199,6 +199,15 @@ class TypstTranslator(SphinxTranslator):
         self._in_markup_mode = (
             False  # Track if currently inside markup mode block [...] for # prefix
         )
+        # D-14 (Phase 40): the namespaced <docname:idN> anchor token for the
+        # reference CURRENTLY being emitted, or None. Set in visit_reference,
+        # consumed/cleared in depart_reference. A single scalar slot is
+        # sufficient -- not a stack -- because a reference node cannot nest
+        # inside another reference node (mirrors the existing
+        # _reference_was_list_item_needs_separator precedent). This is a
+        # NEW slot, never a fourth consumer of the _strong_was_* slots
+        # (Phase 36 D-01/D-02 warn against exactly that).
+        self._reference_own_anchor: str | None = None
         self.in_desc_parameter = (
             False  # Track if inside desc_parameter to avoid newlines between text nodes
         )
@@ -3897,6 +3906,29 @@ class TypstTranslator(SphinxTranslator):
                 if isinstance(next_node, nodes.target):
                     next_is_target = True
 
+        # D-14 (Phase 40): give a citation-derived reference its own anchor so
+        # a citation definition's back-reference marker (Task 2,
+        # visit_citation) has something to link to. Applies only when ALL of:
+        # the reference carries a non-empty own `ids` (verified this session,
+        # 40-RESEARCH.md -- only citation-derived references carry a
+        # populated `ids`; a `:ref:` or toctree-generated reference carries
+        # `ids=[]`), a link wrapper is actually being opened, and next is NOT
+        # a target. Mutually exclusive with next_is_target BY DESIGN:
+        # next_is_target already owns the markup-mode bracket and
+        # visit_target already attaches ITS OWN label to it -- a Typst
+        # element can carry only one label. Consequence, stated honestly: a
+        # citation-derived reference immediately followed by an explicit
+        # target keeps the target's label and gets no back-reference anchor
+        # of its own; visit_citation (Task 2) guards its own marker emission
+        # against exactly this case via _citing_reference_has_own_anchor.
+        self._reference_own_anchor = None
+        if node.get("ids") and opens_wrapper and not next_is_target:
+            self._reference_own_anchor = self._namespace_label(
+                self._current_docname(), node["ids"][0]
+            )
+            self.add_text("[")
+            self._in_markup_mode = True
+
         # If next is target, wrap in markup mode for label attachment
         # In unified code mode, labels can only attach in markup mode blocks [...]
         if next_is_target:
@@ -4004,6 +4036,12 @@ class TypstTranslator(SphinxTranslator):
         # Skip link wrapper closing if we skipped it in visit
         if getattr(self, "_skip_link_wrapper", False):
             self._skip_link_wrapper = False
+            # D-14 (Phase 40): defensively clear the anchor slot here too.
+            # This branch is only reachable on a path where opens_wrapper was
+            # False, so visit_reference's D-14 guard never set the slot on
+            # THIS node -- but clearing it unconditionally is cheap insurance
+            # against a stale token leaking into the NEXT reference.
+            self._reference_own_anchor = None
             # Restore list item separator state if needed
             if hasattr(self, "_reference_was_list_item_needs_separator"):
                 if self.in_list_item:
@@ -4016,6 +4054,15 @@ class TypstTranslator(SphinxTranslator):
 
         # Exit link context
         self._in_link = False
+
+        # D-14 (Phase 40): close the own-ids bracket-wrap opened in
+        # visit_reference, if any -- mirrors visit_target's own
+        # `#label("...")` + "]" closing form for the next_is_target case
+        # (the same markup-mode bracket mechanism, just closed here instead
+        # of by a following target sibling).
+        if self._reference_own_anchor:
+            self.add_text(f'#label("{self._reference_own_anchor}")]')
+            self._reference_own_anchor = None
 
         # Restore the outer code-mode concat context suppressed for the link
         # body (entered only on wrapper-opening paths, so the skip-wrapper
