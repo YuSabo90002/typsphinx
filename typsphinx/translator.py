@@ -5827,20 +5827,36 @@ class TypstTranslator(SphinxTranslator):
         can no longer happen: the two save sites no longer write the same
         `self.__dict__` keys.
 
-        Still a known, pre-existing wart, deliberately preserved as of THIS
-        commit (Phase 39's separate D-11 task closes it in a later commit):
-        when a rubric containing a propagated target sits inside a list
-        item, the leading separator check below fires a second time against
-        a flag `_emit_id_anchors` already set, on top of the unconditional
-        newline append two lines above, producing two blank lines between
-        the anchor and this opening wrapper.
+        This commit (D-11) also closes the double-blank-line wart the
+        docstring previously described as deliberately preserved: when a
+        rubric carries a propagated target (anchored via
+        ``_emit_id_anchors`` immediately below), that emitter's own trailing
+        newline is already the separator this rubric needs -- both the
+        unconditional newline append and the leading list-item separator
+        check that used to follow it are now suppressed for an anchored
+        rubric, so it no longer double- (or triple-, via the re-armed
+        list-item flag) counts a separator ``_emit_id_anchors`` already
+        supplied. An unanchored rubric (no propagated target) takes neither
+        branch differently and keeps today's byte shape exactly.
         """
         # A propagated explicit target (``.. _t:`` immediately before a
         # ``.. rubric::``) lands its id on this rubric node; anchor it so a
         # same-/cross-document link(<id>, ...) resolves (no ids -> no-op).
+        # D-11: measure whether _emit_id_anchors actually emitted anything
+        # (it is a no-op for an id-less node) so the guards below can tell
+        # whether it already supplied this rubric's leading separator.
+        body_len_before_anchors = len(self.body)
         self._emit_id_anchors(node)
-        # Add newline before rubric
-        self.body.append("\n")
+        anchors_were_emitted = len(self.body) > body_len_before_anchors
+
+        # D-11: _emit_id_anchors's own trailing "\n" (see its tail, above)
+        # is this rubric's fair, sufficient separator share when it just
+        # anchored a propagated target -- do not add a second one on top of
+        # it. A rubric that anchored nothing owes exactly what it owed
+        # before this guard existed.
+        if not anchors_were_emitted:
+            # Add newline before rubric
+            self.body.append("\n")
 
         # --- begin verbatim copy of visit_strong's body (D-01) ---
         # Add separator if in paragraph and not first node
@@ -5850,8 +5866,20 @@ class TypstTranslator(SphinxTranslator):
         # term / link body / desc parameter), + separate it and suppress that
         # context for the strong body (content mode, where an outer '+' would
         # leak). Otherwise fall back to the list-item newline separator.
+        #
+        # D-11: when _emit_id_anchors just anchored a propagated target, its
+        # tail re-arms ``list_item_needs_separator`` as a side effect of its
+        # OWN bookkeeping (correct for every OTHER body-element handler that
+        # calls it) -- without the ``not anchors_were_emitted`` guard this
+        # branch would double-count that flag on top of the anchor's own
+        # trailing newline, the second half of the same wart the guard above
+        # closes.
         if not self._enter_inline_concat_element():
-            if self.in_list_item and self.list_item_needs_separator:
+            if (
+                not anchors_were_emitted
+                and self.in_list_item
+                and self.list_item_needs_separator
+            ):
                 self.add_text("\n")
 
         # Temporarily disable paragraph state for children
