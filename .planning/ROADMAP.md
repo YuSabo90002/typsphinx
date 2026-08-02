@@ -600,13 +600,13 @@ admonition work, needs no document-order pre-pass, and is sequenced here only fo
      through `-b typstpdf`, and the new handlers are checked explicitly against all three separator
      protocols (paragraph, code-mode concat, list-item) rather than by analogy to the footnote
      handlers they superficially resemble.
-**Plans**: 4 plans
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 40-01-PLAN.md — GATE-01 RED: the two-document `citation_render_gate` fixture covering all eleven citation scenarios, the new `.typ`-plus-compiled-PDF gate module with the eight `-k` selectors 40-VALIDATION.md fixes, and `40-GATE-EVIDENCE-01.md` recording the milestone's sole classic `TypstError` verbatim
-- [ ] 40-02-PLAN.md — CIT-05: both `examples/charged-ieee/` samples restored to the pre-removal blob and byte-identical again (D-11/D-12), ROADMAP SC#3 corrected to D-08's same-document scope with a Roadmap Evolution entry (D-09), and `40-GATE-EVIDENCE-02.md`
+- [x] 40-01-PLAN.md — GATE-01 RED: the two-document `citation_render_gate` fixture covering all eleven citation scenarios, the new `.typ`-plus-compiled-PDF gate module with the eight `-k` selectors 40-VALIDATION.md fixes, and `40-GATE-EVIDENCE-01.md` recording the milestone's sole classic `TypstError` verbatim
+- [x] 40-02-PLAN.md — CIT-05: both `examples/charged-ieee/` samples restored to the pre-removal blob and byte-identical again (D-11/D-12), ROADMAP SC#3 corrected to D-08's same-document scope with a Roadmap Evolution entry (D-09), and `40-GATE-EVIDENCE-02.md`
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -707,7 +707,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
-| 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
+| 40. Citations — Full Round Trip | v0.7.0 | 2/4 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
