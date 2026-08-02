@@ -55,7 +55,7 @@ the collapsed red admonition bucket into three distinct gentle-clues functions (
 re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
 `39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
 
-Progress: [█████████████░░░░░░░] 67% (4/6 phases)
+Progress: [█████████████████░░░] 86% (6/7 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
