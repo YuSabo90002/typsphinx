@@ -30,6 +30,7 @@ Requirements: CIT-01, CIT-02, CIT-03, CIT-04, CIT-06 (CIT-05 is out of scope
 for this plan -- see 40-02-PLAN.md).
 """
 
+import io
 import re
 import subprocess
 import sys
@@ -313,6 +314,138 @@ def _grid_span(typ_text: str, region_start: str, region_end: str | None) -> str:
         )
     grid_start = region.index("grid(")
     return region[grid_start:]
+
+
+def _citing_site_own_anchors(env, builder, docname: str, key_text: str) -> list[str]:
+    """
+    Return, in document order, the expected D-14 own-anchor token
+    (``_namespace_label(docname, ids[0])``) for every citing site in
+    ``docname`` whose text is ``[key_text]`` -- read from Sphinx's
+    RESOLVED doctree, never guessed.
+    """
+    doctree = env.get_and_resolve_doctree(docname, builder)
+    result = []
+    for ref in doctree.findall(docutils_nodes.reference):
+        if ref.astext() == f"[{key_text}]":
+            ids = ref.get("ids", [])
+            if ids:
+                result.append(_expected_namespace_label(docname, ids[0]))
+    return result
+
+
+def _layout_lines(pdf_bytes: bytes, page_index: int) -> str:
+    """
+    Return the ``extraction_mode="layout"`` text for ONE page. Layout mode
+    reconstructs a monospace-like character grid from the PDF's real glyph
+    positions and preserves left-edge indentation as leading whitespace --
+    verified this session (RESEARCH § Code Examples) for the citation grid
+    construct specifically, mirroring the technique established by
+    ``tests/test_rubric_indent_invariance.py``/
+    ``tests/test_desc_content_indent_render_gate.py`` for other constructs.
+    """
+    reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+    return reader.pages[page_index].extract_text(extraction_mode="layout")
+
+
+def _leading_columns(layout_text: str, marker_substring: str) -> int:
+    """
+    Return ``len(line) - len(line.lstrip(" "))`` for the first line of
+    ``layout_text`` containing ``marker_substring``. Raises
+    ``AssertionError`` (not a bare ``ValueError``/``StopIteration``) if the
+    marker is not present, so a missing marker fails as a clear, structural
+    pytest assertion rather than an uncaught exception.
+    """
+    for line in layout_text.splitlines():
+        if marker_substring in line:
+            return len(line) - len(line.lstrip(" "))
+    raise AssertionError(
+        f"{marker_substring!r} not found in the given page's layout text"
+    )
+
+
+def _line_after_marker(layout_text: str, marker_substring: str) -> str:
+    """Return the line immediately following the first line of
+    ``layout_text`` containing ``marker_substring`` -- the wrapped
+    continuation line, for the hanging-indent alignment check."""
+    lines = layout_text.splitlines()
+    for i, line in enumerate(lines):
+        if marker_substring in line:
+            if i + 1 < len(lines):
+                return lines[i + 1]
+            raise AssertionError(
+                f"{marker_substring!r} found on the LAST line of the "
+                "page's layout text -- no continuation line follows"
+            )
+    raise AssertionError(
+        f"{marker_substring!r} not found in the given page's layout text"
+    )
+
+
+def _find_page_and_column(
+    pdf_bytes: bytes, marker_substring: str, start_page: int = 0
+) -> tuple[int, int]:
+    """
+    Search pages ``start_page..`` onward for ``marker_substring`` and
+    return ``(page_index, leading_column)`` for the first page it is found
+    on. Page-index-agnostic by design: located by CONTENT, not a
+    hard-coded page number.
+    """
+    reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+    for i in range(start_page, len(reader.pages)):
+        layout_text = _layout_lines(pdf_bytes, i)
+        if marker_substring in layout_text:
+            return i, _leading_columns(layout_text, marker_substring)
+    raise AssertionError(
+        f"{marker_substring!r} not found on any page from index "
+        f"{start_page} onward (document has {len(reader.pages)} pages)"
+    )
+
+
+def _glyph_x_position(pdf_bytes: bytes, page_index: int, text_substring: str) -> float:
+    """
+    Return the ``cm[4]`` (content-matrix x) of the FIRST glyph run
+    containing ``text_substring`` on the given page, via pypdf's per-glyph
+    ``visitor_text`` callback.
+
+    Verified this session (RESEARCH § Code Examples, a real
+    ``typst.compile()`` + ``pypdf`` probe of a hand-written citation grid):
+    ``cm[4]``/``cm[5]`` carry real, usable per-glyph positions for THIS
+    construct, while ``tm[4]``/``tm[5]`` report ``0.0`` on every glyph --
+    the opposite finding from ``38-RESEARCH.md``'s ``desc_content``/
+    ``field_list`` probe (a DIFFERENT construct), which found ``tm``
+    unusable and did not test ``cm``. This helper reads ``cm``, never
+    ``tm``, for exactly that reason.
+    """
+    reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+    page = reader.pages[page_index]
+    positions: list[float] = []
+
+    def _visitor(text, cm, tm, fontdict, fontsize):
+        if text_substring in text:
+            positions.append(cm[4])
+
+    page.extract_text(visitor_text=_visitor)
+    if not positions:
+        raise AssertionError(
+            f"{text_substring!r} not found via visitor_text on page " f"{page_index}"
+        )
+    return positions[0]
+
+
+def _link_rect_x0_values(pdf_bytes: bytes, page_index: int) -> list[float]:
+    """Return the left-edge (``/Rect`` x0) of every ``/Link`` annotation on
+    the given page."""
+    reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+    page = reader.pages[page_index]
+    annots = page.get("/Annots") or []
+    values = []
+    for annot in annots:
+        obj = annot.get_object()
+        if obj.get("/Subtype") == "/Link":
+            rect = obj.get("/Rect")
+            if rect:
+                values.append(float(rect[0]))
+    return values
 
 
 # Region markers shared by the structural tests below -- every heading this
@@ -658,3 +791,240 @@ class TestCitationRenderGateRealCompile:
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the citation render "
+    "gate's compiled-PDF structural half",
+)
+class TestCitationRenderGateCompiledPdf:
+    """
+    CIT-02 (``layout``), CIT-04/D-01/D-02/D-03/D-08 (``backref``), and
+    CIT-06/SC#4 (``order``) -- compiled-PDF structural assertions, reusing
+    ``citation_gate_build`` rather than compiling the fixture a second
+    time. Every test here requires a real, non-empty ``index.pdf``, which
+    does not exist pre-fix (``TypstPDFBuilder.finish()`` aborts on the
+    classic CIT-01 compile fatal before ever writing a PDF) -- so every
+    test below is RED on a missing artifact, never on an unhandled
+    exception.
+    """
+
+    def test_layout_hanging_indent_and_widest_label_alignment(
+        self, citation_gate_build
+    ):
+        """CIT-02 + D-05 + D-06."""
+        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced -- typst.compile() aborted "
+            "pre-fix on the classic CIT-01 compile fatal:\n"
+            f"stderr: {citation_gate_build.result.stderr}"
+        )
+        pdf_bytes = pdf_output.read_bytes()
+
+        page_index, alpha_column = _find_page_and_column(pdf_bytes, "CITORDERALPHA")
+        layout_text = _layout_lines(pdf_bytes, page_index)
+
+        # The wrapped continuation line of Krizhevsky2012's (padded, multi-
+        # line) entry body must align at the SAME column as its own start
+        # -- the hanging indent CIT-02 asks for.
+        continuation_line = _line_after_marker(layout_text, "CITORDERALPHA")
+        continuation_column = len(continuation_line) - len(
+            continuation_line.lstrip(" ")
+        )
+        assert continuation_column == alpha_column, (
+            "CIT-02: the wrapped continuation line of Krizhevsky2012's "
+            f"entry must align at the same column as its own start "
+            f"({alpha_column}), got {continuation_column}: "
+            f"{continuation_line!r}"
+        )
+        assert alpha_column > 0, (
+            "CIT-02: the entry body must sit strictly PAST the label, not "
+            f"under it (column {alpha_column} must be > 0)"
+        )
+
+        # D-05: all five References entries share ONE grid, so the widest
+        # label (Krizhevsky2012's) governs every row's start column --
+        # every sibling's body must start at the SAME column.
+        for sentinel in (
+            "CITORDERBRAVO",
+            "CITORDERCHARLIE",
+            "CITORDERDELTA",
+            "CITORDERECHO",
+        ):
+            _, column = _find_page_and_column(
+                pdf_bytes, sentinel, start_page=page_index
+            )
+            assert column == alpha_column, (
+                f"D-05: {sentinel}'s body must start at the SAME column "
+                f"as CITORDERALPHA's ({alpha_column}, the widest label's "
+                f"column), got {column}"
+            )
+
+        # D-06 counterpart: the Run Break section's two entries are TWO
+        # independently-aligned runs -- each column must be > 0, but they
+        # are NOT required to match the References run's column (or each
+        # other). This is expected behavior, not a bug (40-CONTEXT.md
+        # D-06).
+        _, break_one_column = _find_page_and_column(
+            pdf_bytes, "CITBREAKONESENTINEL", start_page=page_index
+        )
+        _, break_two_column = _find_page_and_column(
+            pdf_bytes, "CITBREAKTWOSENTINEL", start_page=page_index
+        )
+        assert break_one_column > 0, (
+            "D-06: Break2021's body must sit strictly past its own label "
+            f"(column {break_one_column} must be > 0)"
+        )
+        assert break_two_column > 0, (
+            "D-06: Break2022's body must sit strictly past its own label "
+            f"(column {break_two_column} must be > 0)"
+        )
+
+    def test_backref_markers_order_and_pdf_link_geometry(
+        self, citation_gate_build, citation_gate_env
+    ):
+        """CIT-04 + D-01 + D-02 + D-03 + D-08."""
+        index_typ = _strip_raw_literals(_require_typ(citation_gate_build, "index_typ"))
+        env, builder = citation_gate_env
+
+        refs_grid = _grid_span(index_typ, _REFERENCES_HEADING, _RUN_BREAK_HEADING)
+        alpha_idx = refs_grid.index("CITORDERALPHA")
+        bravo_idx = refs_grid.index("CITORDERBRAVO")
+
+        # (1) Krizhevsky2012's label cell (everything from the grid's open
+        # up to its own body sentinel -- its body text carries no link()
+        # calls itself, so every link( match in this span belongs to the
+        # label cell) must carry exactly TWO back-reference link calls
+        # (2+ backrefs -> plain label + numbered markers, D-03), targeting
+        # -- IN ORDER -- the citing sites' own D-14 anchors, extracted from
+        # Sphinx's resolved doctree, never written as literals.
+        krizhevsky_label_cell = refs_grid[:alpha_idx]
+        backref_matches = list(
+            re.finditer(r"link\(<([^>]+)>[^)]*\)", krizhevsky_label_cell)
+        )
+        backref_targets = [m.group(1) for m in backref_matches]
+        assert len(backref_targets) == 2, (
+            "D-03: Krizhevsky2012's label cell must carry exactly TWO "
+            f"back-reference link calls (2+ backrefs), found "
+            f"{len(backref_targets)}: {backref_targets}"
+        )
+        expected_krizhevsky_own_anchors = _citing_site_own_anchors(
+            env, builder, "index", "Krizhevsky2012"
+        )
+        assert backref_targets == expected_krizhevsky_own_anchors, (
+            "D-08/CIT-04: Krizhevsky2012's back-reference markers must "
+            f"target, in order, the citing sites' own anchors "
+            f"{expected_krizhevsky_own_anchors}; found {backref_targets}"
+        )
+        between_markers = krizhevsky_label_cell[
+            backref_matches[0].end() : backref_matches[1].start()
+        ]
+        assert between_markers == ",", (
+            "D-03: the back-reference marker separator must be a bare "
+            f"comma with no space, found {between_markers!r}"
+        )
+
+        # (2) Solo1998's label cell (from Krizhevsky2012's own body
+        # sentinel up to Solo1998's own body sentinel -- Krizhevsky2012's
+        # body text carries no link() calls, so this span's only link(
+        # matches belong to Solo1998's label cell) must carry exactly ONE
+        # link call (the label ITSELF is the back-link for a single
+        # citing site) and no parenthesised marker digit.
+        solo_region = refs_grid[alpha_idx:bravo_idx]
+        solo_link_matches = re.findall(r"link\(<([^>]+)>", solo_region)
+        assert len(solo_link_matches) == 1, (
+            "D-03: Solo1998's label cell must carry exactly ONE link "
+            f"call, found {len(solo_link_matches)}: {solo_link_matches}"
+        )
+        assert not re.search(r"\(\d+\)", solo_region), (
+            "D-03: a single-backref entry must carry NO parenthesised "
+            f"marker digit (reserved for 2+ backrefs): {solo_region!r}"
+        )
+
+        # (3) D-08: no back-reference marker anywhere in the References
+        # grid may target a second: anchor -- backrefs are same-document
+        # only, even though second.rst cites Krizhevsky2012.
+        all_targets_in_grid = re.findall(r"link\(<([^>]+)>", refs_grid)
+        second_targets = [t for t in all_targets_in_grid if t.startswith("second:")]
+        assert not second_targets, (
+            "D-08: no back-reference marker in index.typ's References "
+            f"grid may target a second: anchor, found: {second_targets}"
+        )
+
+        # (4) Compiled-PDF half: on the page holding CITORDERALPHA, at
+        # least one /Link annotation's left edge (x0) must lie to the
+        # LEFT of CITORDERALPHA's own x position -- i.e. a real, clickable
+        # back-reference marker living in the grid's LEFT column (D-02's
+        # placement claim), not merely a string in the .typ source.
+        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced -- typst.compile() aborted "
+            "pre-fix on the classic CIT-01 compile fatal:\n"
+            f"stderr: {citation_gate_build.result.stderr}"
+        )
+        pdf_bytes = pdf_output.read_bytes()
+        page_index, _ = _find_page_and_column(pdf_bytes, "CITORDERALPHA")
+
+        alpha_x = _glyph_x_position(pdf_bytes, page_index, "CITORDERALPHA")
+        if alpha_x == 0.0:
+            # cm[4] came back zero for this construct on this build --
+            # fall back to the layout-mode column rather than silently
+            # weakening the assertion (explicitly instructed): the
+            # relative LEFT-of comparison below still holds structurally
+            # against the layout-mode column measurement.
+            _, alpha_x = _find_page_and_column(pdf_bytes, "CITORDERALPHA")
+            alpha_x = float(alpha_x)
+
+        link_x0_values = _link_rect_x0_values(pdf_bytes, page_index)
+        assert link_x0_values, (
+            f"No /Link annotations found on page {page_index} -- CIT-04's "
+            "back-reference markers are not real clickable links (pre-fix "
+            "RED: no citation handler exists to emit them)."
+        )
+        assert any(x0 < alpha_x for x0 in link_x0_values), (
+            "D-02: expected at least one /Link annotation whose left "
+            f"edge (x0) lies to the LEFT of CITORDERALPHA's own x "
+            f"position ({alpha_x}) -- i.e. a back-reference marker living "
+            f"in the grid's left column. Link x0 values found: "
+            f"{sorted(link_x0_values)}"
+        )
+
+    def test_order_references_sentinels_match_document_order(self, citation_gate_build):
+        """
+        CIT-06 + ROADMAP SC#4. Document order by construction: docutils'
+        own depth-first traversal order IS document order, and the
+        design contains no sort step to defeat it (40-RESEARCH.md § Don't
+        Hand-Roll). Assert on the SENTINELS, never on label text, because
+        a citation key's label text ALSO appears at its own citing site(s)
+        earlier in the document.
+        """
+        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced -- typst.compile() aborted "
+            "pre-fix on the classic CIT-01 compile fatal:\n"
+            f"stderr: {citation_gate_build.result.stderr}"
+        )
+        pdf_bytes = pdf_output.read_bytes()
+
+        page_index, _ = _find_page_and_column(pdf_bytes, "CITORDERALPHA")
+        layout_text = _layout_lines(pdf_bytes, page_index)
+
+        sentinels = [
+            "CITORDERALPHA",
+            "CITORDERBRAVO",
+            "CITORDERCHARLIE",
+            "CITORDERDELTA",
+            "CITORDERECHO",
+        ]
+        positions = []
+        for sentinel in sentinels:
+            idx = layout_text.find(sentinel)
+            assert idx != -1, f"{sentinel} not found on the References page"
+            positions.append(idx)
+
+        assert positions == sorted(positions), (
+            "CIT-06: the five References sentinels must appear in "
+            "exactly document order (ALPHA<BRAVO<CHARLIE<DELTA<ECHO); "
+            f"found byte offsets {dict(zip(sentinels, positions, strict=True))}"
+        )
