@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 39
-current_phase_name: Admonition Taxonomy + Rubric Nesting
+current_phase_name: admonition-taxonomy-rubric-nesting
 status: executing
 stopped_at: Phase 39 planned — 8 plans in 4 waves, ready to execute
-last_updated: "2026-08-02T00:25:37.902Z"
+last_updated: "2026-08-02T00:43:55.187Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 39 planned — 8 plans in 4 waves
+last_activity_desc: Phase 39 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 22
+  total_plans: 30
   completed_plans: 22
   percent: 50
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 39 — Admonition Taxonomy + Rubric Nesting
+**Current focus:** Phase 39 — admonition-taxonomy-rubric-nesting
 
 ## Current Position
 
-Phase: 39 — Admonition Taxonomy + Rubric Nesting
+Phase: 39 (admonition-taxonomy-rubric-nesting) — EXECUTING
 Plans: 0/8 — planned in 4 waves, not yet executed (Phase 38 closed at 9/9)
-Status: Ready to execute
-Last activity: 2026-08-02 — Phase 39 planned (research, patterns, 8 plans, checker passed)
+Status: Executing Phase 39
+Last activity: 2026-08-02 — Phase 39 execution started
 
 Progress: [██████████░░░░░░░░░░] 50% (3/6 phases)
 
@@ -384,6 +384,7 @@ Resume: `/gsd-discuss-phase 39` (no `39-CONTEXT.md` yet).
   exist; plan-checker passed. Next step is `/gsd-execute-phase 39`. As predicted, `ui.plan-gate`
   did false-positive on this phase (`{frontend: true, block: true}`) and was overridden as
   `--skip-ui` — keep passing `--skip-ui` to any re-plan of a typesetting phase.
+
 - **Two decision-gate format traps hit during Phase 39 planning, both now fixed in place.**
   (a) `check.decision-coverage-plan` hard-blocked with a false `could-not-parse`: its regexes forbid
   more than one `:` and any `*` inside the bold `- **D-NN: …**` title, so reST directive syntax
