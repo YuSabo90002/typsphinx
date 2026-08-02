@@ -606,11 +606,11 @@ Plans:
 - [ ] 40-01-PLAN.md — GATE-01 RED: the two-document `citation_render_gate` fixture covering all eleven citation scenarios, the new `.typ`-plus-compiled-PDF gate module with the eight `-k` selectors 40-VALIDATION.md fixes, and `40-GATE-EVIDENCE-01.md` recording the milestone's sole classic `TypstError` verbatim
 - [ ] 40-02-PLAN.md — CIT-05: both `examples/charged-ieee/` samples restored to the pre-removal blob and byte-identical again (D-11/D-12), ROADMAP SC#3 corrected to D-08's same-document scope with a Roadmap Evolution entry (D-09), and `40-GATE-EVIDENCE-02.md`
 
-**Wave 2**
+**Wave 2** *(blocked on Wave 1 completion)*
 
 - [ ] 40-03-PLAN.md — the source change: `visit_citation`/`depart_citation`/`visit_label` rendering a run of definitions as one hanging-indent grid with HTML-shaped back-reference markers, plus the guarded own-`ids` anchor in `visit_reference` (D-14) proven non-regressive by a before-and-after corpus byte-diff
 
-**Wave 3**
+**Wave 3** *(blocked on Wave 2 completion)*
 
 - [ ] 40-04-PLAN.md — close-out: the full-corpus `-b typstpdf` gate actually run green (a skip is not a pass), both REDs mapped selector-by-selector to their GREENs, the stale Phase-40 forward reference in `test_desc_break_marker_buffer_swap_gate.py` settled, and `40-NONREGRESSION.md`
 
