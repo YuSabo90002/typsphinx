@@ -107,21 +107,25 @@ wrapper) and agreeing within 3pt.
 
 Bucket taxonomy from `sphinx.sty` — four colour groups, not ten independent styles.
 
-- [ ] **ADM-01** [M]: `seealso` renders in the same bucket as `hint`/`tip` (green "success"), not
+- [x] **ADM-01** [M]: `seealso` renders in the same bucket as `hint`/`tip` (green "success"), not
       the blue "note" bucket it uses today.
 
-- [ ] **ADM-02** [M]: `attention` renders in the same bucket as `danger`/`error` (red), not the
+- [x] **ADM-02** [M]: `attention` renders in the same bucket as `danger`/`error` (red), not the
       orange "warning" bucket it uses today.
 
-- [ ] **ADM-03** [M]: A generic `.. admonition::` renders as a **styled box carrying its own custom
+- [x] **ADM-03** [M]: A generic `.. admonition::` renders as a **styled box carrying its own custom
       title**, not the unstyled base `clue` it produces today. The dynamic-title plumbing already
       exists via `_pending_admonition_title`.
 
-- [ ] **ADM-04** [V]: Admonition types stay distinguishable **in greyscale**. The four title-band
+- [x] **ADM-04** [V]: Admonition types stay distinguishable **in greyscale**. The four title-band
       tints are all mid-high-luminance pastels and desaturate to similar greys, so the distinction
-      must be carried by icon and border, not hue alone.
+      must be carried by icon and border, not hue alone. **Met on icon-shape grounds** — the owner's
+      recorded sign-off (`39-ADM04-SIGNOFF.md`) confirms the four kinds are distinguishable via icon
+      shape in the greyscale render; the title-band luminance itself is uniform and carries no
+      distinguishing signal, recorded as an explicit caveat, not a defect, since the requirement
+      only needs *some* non-hue channel to carry the distinction and icon shape does.
 
-- [ ] **ADM-05** [M]: A `rubric` nested inside a description body **indents with that body** rather
+- [x] **ADM-05** [M]: A `rubric` nested inside a description body **indents with that body** rather
       than sitting flush to the page margin — it follows structural nesting and gets no indent rule
       of its own. (`rubric` also carries autodoc's "Options" heading, so this lands on API pages.)
 
@@ -282,11 +286,11 @@ Phase numbering continues from v0.6.5's last phase (35).
 | FLD-01 | Phase 38 | Complete |
 | FLD-02 | Phase 38 | Complete |
 | FLD-03 | Phase 38 | Complete |
-| ADM-01 | Phase 39 | Pending |
-| ADM-02 | Phase 39 | Pending |
-| ADM-03 | Phase 39 | Pending |
-| ADM-04 | Phase 39 | Pending |
-| ADM-05 | Phase 39 | Pending |
+| ADM-01 | Phase 39 | Complete |
+| ADM-02 | Phase 39 | Complete |
+| ADM-03 | Phase 39 | Complete |
+| ADM-04 | Phase 39 | Complete |
+| ADM-05 | Phase 39 | Complete |
 | ADM-06 | Phase 36 | Complete |
 | CIT-01 | Phase 40 | Pending |
 | CIT-02 | Phase 40 | Pending |
