@@ -1,7 +1,6 @@
 """
 Phase 40.1 (Citation Degradation Hardening) degradation gate: WR-01
-(plan ``40.1-01``) and WR-02 (this plan). WR-03 lands in plan ``40.1-03``
-and is NOT covered by this module's `test_wr01_*`/`test_wr02_*` functions --
+(plan ``40.1-01``), WR-02 (plan ``40.1-02``), and WR-03 (this plan) --
 see ``40.1-CONTEXT.md``'s D-03 warning-to-evidence-file mapping.
 
 WR-01 is the milestone's reclaimed classic "does not compile" RED (per
@@ -62,12 +61,41 @@ structural RED->GREEN flip: ``grid(`` appears twice pre-fix, once post-fix.
 controls, GREEN both before and after the fix, bounding the fix to exactly
 the ids-less-target case (G2, ``40.1-CONTEXT.md``/``40.1-02-PLAN.md``).
 
+WR-03 (this plan) closes ``40-REVIEW.md``'s WARNING that the D-14
+citing-site anchor eligibility judgement is written independently in TWO
+places that can silently disagree: ``visit_reference``
+(``typsphinx/translator.py``, three conditions -- ``node.get("ids")``,
+``opens_wrapper``, ``not next_is_target``) and
+``_citing_reference_has_own_anchor`` (re-derives the same answer from the
+``next_is_target`` half alone, assuming the other two). D-08 measured both
+of the assumption's condition-breaking routes against a REAL build this
+session and found NEITHER constructible (``40.1-GATE-EVIDENCE-03.md`` §2):
+Route A (``ids`` empty) is unreachable through
+``_citing_reference_has_own_anchor``'s only real caller, a control-flow
+fact independent of Sphinx version (Pitfall 4); Route B (``opens_wrapper``
+false via ``degrade_xref_to_text``) is unreachable because a node reachable
+through ``_find_citing_reference`` never carries a ``refuri``. WR-03's RED
+therefore hand-assembles a doctree via ``_make_citing_reference`` that
+violates BOTH of those real-build invariants at once -- a citing
+``nodes.reference`` carrying a populated own ``ids`` AND a ``refuri``
+resolving to a document excluded from ``master_included_docnames`` -- which
+degrades ``opens_wrapper`` to ``False`` in ``visit_reference`` (no anchor
+ever emitted) while pre-fix ``_citing_reference_has_own_anchor`` still
+reports "anchor exists" (it only checks ``next_is_target``, which is
+``False`` here), so ``visit_citation``'s backref loop appends a ``link()``
+to a label nothing ever attached -- D-04's classic ``typst.compile()``
+fatal, reproduced on hand-built input this time rather than a real
+``sphinx-build``.
+
 Requirements: WR-01 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#1),
-WR-02 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#2).
+WR-02 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#2), WR-03 (closes
+``40-REVIEW.md``'s WARNING; ROADMAP SC#3).
 See ``40.1-CONTEXT.md`` D-01 (RED provenance), D-02 (this module/fixture
 are new and separate from Phase 40's frozen citation-render-gate pair),
-D-03 (evidence file numbering), D-04 (classic-fatal RED form for WR-01,
-structural RED form for WR-02).
+D-03 (evidence file numbering), D-04 (classic-fatal RED form for WR-01/
+WR-03, structural RED form for WR-02), D-05/D-06/D-07 (WR-03's shared D-14
+predicate), D-08 (WR-03's RED provenance, both routes attempted and
+unreachable).
 """
 
 import re
@@ -75,6 +103,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from docutils import nodes as docutils_nodes
@@ -528,17 +557,18 @@ class TestWr01SilentDegradation:
 
 
 # ---------------------------------------------------------------------------
-# Assembled-doctree half (WR-02 this plan, extended by WR-03 in plan
-# 40.1-03). Built once, generally, here -- shape mirrors
-# tests/conftest.py's `sample_doctree`/`mock_builder` fixtures (D-02: the
-# established repo idiom, not reinvented) plus the extra StubBuilder
-# attributes the D-06/D-08 xref-resolution routes need, which mock_builder
-# lacks. No RST is parsed for either warning (40.1-RESEARCH.md: docutils'
-# target-chaining transform never produces the minimal single-blocker
-# topology via a real sphinx-build -- see 40.1-GATE-EVIDENCE-02.md's D-01
-# attempt list), so this harness bypasses the parser and Sphinx's build
-# pipeline entirely and builds the doctree directly via the docutils node
-# API.
+# Assembled-doctree half (WR-02 from plan 40.1-02, extended by WR-03 in this
+# plan). Built once, generally, here -- shape mirrors tests/conftest.py's
+# `sample_doctree`/`mock_builder` fixtures (D-02: the established repo
+# idiom, not reinvented) plus the extra StubBuilder attributes the
+# D-06/D-08 xref-resolution routes need, which mock_builder lacks. No RST
+# is parsed for either warning (40.1-RESEARCH.md: docutils' target-chaining
+# transform never produces WR-02's minimal single-blocker topology via a
+# real sphinx-build, and NEITHER of WR-03's two D-08 routes is
+# constructible via a real build either -- see 40.1-GATE-EVIDENCE-02.md's
+# and 40.1-GATE-EVIDENCE-03.md's D-01 attempt lists), so this harness
+# bypasses the parser and Sphinx's build pipeline entirely and builds the
+# doctree directly via the docutils node API.
 # ---------------------------------------------------------------------------
 
 
@@ -626,17 +656,85 @@ def _make_citation(
     return cit
 
 
+def _make_citing_reference(
+    *,
+    refuri: str | None = None,
+    refid: str | None = None,
+    ids: tuple[str, ...] = (),
+    text: str = "",
+) -> docutils_nodes.reference:
+    """
+    Build a ``nodes.reference`` with ``refuri``/``refid``/``ids`` written
+    directly onto the node's attribute dict via the docutils node API --
+    never parsed from RST. Added by plan ``40.1-03`` for WR-03's Route B.
+
+    The shape this helper must be able to produce is one a REAL
+    ``sphinx-build`` never emits: a node carrying BOTH a populated own
+    ``ids`` AND a ``refuri`` pointing at a document excluded from
+    ``master_included_docnames``. This deliberately violates a real-build
+    invariant -- recorded here rather than left implicit -- per two facts
+    independently reproduced this session (``40.1-RESEARCH.md`` "WR-03 --
+    the two eligibility routes", carried into ``40.1-GATE-EVIDENCE-03.md``
+    §2's D-08 attempt list):
+
+    1. A same-document citing reference (the only kind that ever appears
+       in a citation's ``backrefs`` list, since ``_find_citing_reference``
+       matches on a node's own ``ids``) always carries ``refid`` and never
+       ``refuri`` -- Sphinx's citation domain resolves same-document
+       citing sites via ``refid`` and cross-document ones via ``refuri``,
+       mutually exclusively on one node.
+    2. ``backrefs`` never contains a cross-document citing site's id -- a
+       cross-document citing reference's own id is never appended to the
+       target citation's ``backrefs`` list, only a same-document one's is.
+
+    Reachable through ``_find_citing_reference`` requires (1) to be false
+    (a ``refuri`` present) and (2) to be false (the id present in
+    ``backrefs``) simultaneously -- a combination no real
+    ``sphinx-build``/docutils transform chain ever produces, hence this
+    helper writes both attributes directly rather than parsing RST.
+    """
+    attrs: dict[str, str] = {}
+    if refuri is not None:
+        attrs["refuri"] = refuri
+    if refid is not None:
+        attrs["refid"] = refid
+    ref = docutils_nodes.reference("", "", **attrs)
+    ref["ids"] = list(ids)
+    if text:
+        ref += docutils_nodes.Text(text)
+    return ref
+
+
+def _render_with_translator(
+    doc: docutils_nodes.document,
+) -> tuple[str, TypstTranslator]:
+    """
+    Instantiate a ``TypstTranslator`` over ``doc`` with a fresh
+    ``_StubBuilder``, walk the tree, and return BOTH the joined emitted
+    body (``translator.astext()``) AND the translator instance itself.
+    Added by plan ``40.1-03`` so the WR-03 invariant backstop tests can
+    call ``translator._reference_anchor_decision(ref)`` directly against
+    the SAME translator/builder state the render used, rather than
+    constructing a second translator that could silently diverge from the
+    one that actually emitted ``body``.
+    """
+    translator = TypstTranslator(doc, _StubBuilder())
+    doc.walkabout(translator)
+    return translator.astext(), translator
+
+
 def _render_body(doc: docutils_nodes.document) -> str:
     """
     Instantiate a ``TypstTranslator`` over ``doc`` with a fresh
     ``_StubBuilder``, walk the tree, and return the joined emitted body
     (``translator.astext()``). The single entry point every WR-02/WR-03
     assembled-doctree test uses to go from a hand-built tree to emitted
-    Typst markup.
+    Typst markup. Delegates to ``_render_with_translator`` (plan
+    ``40.1-03``), discarding the translator instance for callers that
+    only need the body.
     """
-    translator = TypstTranslator(doc, _StubBuilder())
-    doc.walkabout(translator)
-    return translator.astext()
+    body, _translator = _render_with_translator(doc)
+    return body
 
 
 def _compile_body(body: str, tmp_path: Path) -> None:
@@ -749,4 +847,315 @@ class TestWr02RunNeighbourSkipList:
             "a nodes.comment between two citation definitions must not "
             f"break the run (Phase 40 D-06) -- found {grid_count} grid( "
             f"calls:\n{body}"
+        )
+
+
+class TestWr03DegradedCitingSiteAnchor:
+    """
+    WR-03 Route B (D-08): a citing ``nodes.reference`` whose ``refuri``
+    resolves to a document excluded from ``master_included_docnames``
+    degrades ``opens_wrapper`` to ``False`` in ``visit_reference`` (no D-14
+    anchor is ever emitted for it -- the cross-document
+    degrade-to-text branch takes over first), but pre-fix
+    ``_citing_reference_has_own_anchor`` re-derives eligibility from its
+    ``next_is_target`` half ALONE and reports "anchor exists" (``False``
+    here, since no ``nodes.target`` sibling follows). ``visit_citation``'s
+    backref loop therefore still appends a ``link()`` targeting the citing
+    site's own label -- a label nothing ever attached, D-04's classic
+    ``typst.compile()`` fatal.
+
+    This topology is NOT constructible via a real ``sphinx-build`` on
+    EITHER of D-08's two candidate routes (``40.1-GATE-EVIDENCE-03.md``
+    §2), so the doctree is assembled directly via
+    ``_make_citing_reference`` (Pattern 4, ``40.1-RESEARCH.md``), violating
+    the two real-build invariants that helper's own docstring records.
+    """
+
+    def _build_degraded_doctree(self) -> docutils_nodes.document:
+        """
+        A ``nodes.section`` containing, in order: a ``nodes.paragraph``
+        wrapping a citing reference with
+        ``refuri="second.typ#krizhevsky2012"``, ``ids=["id1"]`` and a
+        ``[Krizhevsky2012]`` ``Text`` child; then a ``nodes.citation`` with
+        ``ids=["krizhevsky2012"]``, ``docname="index"``,
+        ``backrefs=["id1"]``. Rendered with ``_StubBuilder``, whose
+        ``master_included_docnames`` is ``{"index"}``, so ``"second"``
+        degrades (Pattern 4, ``40.1-RESEARCH.md``, verified this session --
+        see ``40.1-GATE-EVIDENCE-03.md`` §4 for the reproduced verbatim
+        body).
+        """
+        doc = _make_document()
+        section = docutils_nodes.section()
+        para = docutils_nodes.paragraph()
+        ref = _make_citing_reference(
+            refuri="second.typ#krizhevsky2012",
+            ids=("id1",),
+            text="[Krizhevsky2012]",
+        )
+        para += ref
+        section += para
+        cit = _make_citation(
+            "krizhevsky2012", "Krizhevsky, A. et al.", backrefs=["id1"]
+        )
+        section += cit
+        doc += section
+        return doc
+
+    def test_wr03_degraded_citing_site_emits_no_dangling_backref(self):
+        """
+        The core id-agnostic WR-03 assertion, mirroring WR-01's own
+        (``TestWr01DanglingLinkTargets``): every ``link()`` target
+        anywhere in the emitted body must have a matching attached anchor
+        somewhere in the same document. Pre-fix this difference contains
+        the citing site's own namespaced label (``index:id1``), because
+        ``visit_reference`` degraded the reference to plain text (no
+        anchor) while ``_citing_reference_has_own_anchor`` reported
+        "anchor exists" from the ``next_is_target`` half alone.
+        """
+        doc = self._build_degraded_doctree()
+        body = _render_body(doc)
+        dangling = _link_label_targets(body) - _attached_anchor_tokens(body)
+        assert dangling == set(), (
+            "link() target(s) with no matching attached anchor anywhere in "
+            f"the document (WR-03): {sorted(dangling)}\n\n{body}"
+        )
+
+    @pytest.mark.skipif(
+        not TYPST_AVAILABLE,
+        reason="typst-py is required for WR-03's real-compile half",
+    )
+    def test_wr03_degraded_citing_site_body_compiles(self, tmp_path):
+        """
+        D-04's classic-fatal RED, this time on hand-built input: pre-fix,
+        compiling the emitted body raises ``typst.TypstError: label
+        `<index:id1>` does not exist in the document`` (verbatim, captured
+        in ``40.1-GATE-EVIDENCE-03.md`` §4) -- the exact same fatal class
+        WR-01's fixture reproduces via a real build.
+        """
+        doc = self._build_degraded_doctree()
+        body = _render_body(doc)
+        _compile_body(body, tmp_path)
+
+    def test_wr03_degraded_citation_renders_plain_label_shape(self):
+        """
+        The G1-class shape obligation WR-01's marker-shape tests carry
+        (``TestWr01MarkerShapes``): once the sole backref is filtered out,
+        the citation has zero LIVE backrefs, so under Phase 40's D-03/D-07
+        it must render as a plain, non-linked bracketed label carrying
+        only its own definition anchor -- never a ``link()`` call.
+        """
+        doc = self._build_degraded_doctree()
+        body = _render_body(doc)
+        def_anchor = _expected_namespace_label("index", "krizhevsky2012")
+        row = _citation_row_region(body, def_anchor)
+        assert "link(" not in row, (
+            "citation 'krizhevsky2012' has zero LIVE backrefs (its sole "
+            "backref's citing site degraded to plain text) but its row "
+            f"still carries a link() call -- should be a plain, non-linked "
+            f"label (Phase 40 D-07):\n{row}"
+        )
+        assert f"<{def_anchor}>" in body, (
+            f"citation 'krizhevsky2012' own definition anchor "
+            f"{def_anchor!r} is missing from the emitted body:\n{body}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# WR-03 invariant backstops (Task 2, added WITH the fix -- these tests
+# CANNOT exist before `_reference_anchor_decision` does, so they are not
+# and cannot be the RED; the RED is TestWr03DegradedCitingSiteAnchor above,
+# recorded pre-fix in 40.1-GATE-EVIDENCE-03.md). Per 40.1-CONTEXT.md's
+# assumption-delta decision, these are a COMPANION to the refactor, not a
+# substitute for it -- they exist to make a FUTURE re-introduction of a
+# second, disagreeing derivation site fail loudly, not to stand in for
+# doing the refactor itself.
+# ---------------------------------------------------------------------------
+
+
+def _wr03_case_refid_no_following_target():
+    """Case (i): ``refid`` set, ``ids`` populated, no following target --
+    the ONLY case expected to be eligible."""
+    doc = _make_document()
+    section = docutils_nodes.section()
+    para = docutils_nodes.paragraph()
+    ref = _make_citing_reference(refid="target-a", ids=("citer-a",), text="[A]")
+    para += ref
+    section += para
+    doc += section
+    return doc, ref
+
+
+def _wr03_case_refid_followed_by_target():
+    """Case (ii): ``refid`` set, ``ids`` populated, followed by a
+    ``nodes.target`` that carries its OWN ``ids`` -- ``next_is_target`` is
+    ``True``, so NOT eligible (the target's own label wins instead)."""
+    doc = _make_document()
+    section = docutils_nodes.section()
+    para = docutils_nodes.paragraph()
+    ref = _make_citing_reference(refid="target-b", ids=("citer-b",), text="[B]")
+    para += ref
+    tgt = docutils_nodes.target()
+    tgt["ids"] = ["real-target-b"]
+    para += tgt
+    section += para
+    doc += section
+    return doc, ref
+
+
+def _wr03_case_refuri_excluded_document():
+    """Case (iii): ``refuri`` resolving to a document excluded from
+    ``master_included_docnames``, ``ids`` populated -- ``opens_wrapper``
+    degrades to ``False``, so NOT eligible (Route B, WR-03's own RED
+    topology, minus the pre-existing citation/backrefs half)."""
+    doc = _make_document()
+    section = docutils_nodes.section()
+    para = docutils_nodes.paragraph()
+    ref = _make_citing_reference(
+        refuri="second.typ#anchor-c", ids=("citer-c",), text="[C]"
+    )
+    para += ref
+    section += para
+    doc += section
+    return doc, ref
+
+
+def _wr03_case_refid_empty_ids():
+    """Case (iv): ``refid`` set, ``ids`` EMPTY -- Route A's own shape
+    (Pitfall 4). Not eligible; the invariant test covers it as defensive
+    code, not as a demonstrated bug (no RED is built on this route,
+    ``40.1-GATE-EVIDENCE-03.md`` §2)."""
+    doc = _make_document()
+    section = docutils_nodes.section()
+    para = docutils_nodes.paragraph()
+    ref = _make_citing_reference(refid="target-d", ids=(), text="[D]")
+    para += ref
+    section += para
+    doc += section
+    return doc, ref
+
+
+class TestWr03EligibilityDecisionAgreesWithEmission:
+    """
+    The invariant backstop tying ``_reference_anchor_decision``'s own
+    answer to what ``visit_reference`` ACTUALLY emitted, across every
+    eligibility-affecting shape RESEARCH identified. Not a substitute for
+    the refactor (D-05/D-06/D-07 already make the disagreement
+    structurally impossible) -- this closes the loop by asserting the
+    predicate's *contract* holds against real emitted output, so a FUTURE
+    regression that reintroduces a second, disagreeing derivation site
+    fails loudly here rather than silently.
+    """
+
+    @pytest.mark.parametrize(
+        "case_name, build_case, expected_eligible",
+        [
+            ("refid_no_following_target", _wr03_case_refid_no_following_target, True),
+            ("refid_followed_by_target", _wr03_case_refid_followed_by_target, False),
+            ("refuri_excluded_document", _wr03_case_refuri_excluded_document, False),
+            ("refid_empty_ids", _wr03_case_refid_empty_ids, False),
+        ],
+    )
+    def test_wr03_eligibility_decision_and_emitted_anchor_agree(
+        self, case_name, build_case, expected_eligible
+    ):
+        doc, ref = build_case()
+        body, translator = _render_with_translator(doc)
+        decision = translator._reference_anchor_decision(ref)
+
+        assert decision.eligible is expected_eligible, (
+            f"case {case_name!r}: decision.eligible={decision.eligible!r}, "
+            f"expected {expected_eligible!r}\n\n{body}"
+        )
+
+        ref_ids = ref.get("ids") or []
+        own_label = _expected_namespace_label("index", ref_ids[0]) if ref_ids else None
+
+        if decision.eligible:
+            assert (
+                decision.anchor_label is not None
+            ), f"case {case_name!r}: eligible but anchor_label is None"
+            assert decision.anchor_label == own_label, (
+                f"case {case_name!r}: anchor_label {decision.anchor_label!r} "
+                f"!= expected {own_label!r}"
+            )
+        else:
+            assert decision.anchor_label is None, (
+                f"case {case_name!r}: not eligible but anchor_label is "
+                f"{decision.anchor_label!r} (expected None)"
+            )
+
+        # Case (ii) is why this assertion is written against the
+        # reference's OWN label rather than "no #label( anywhere in the
+        # body" -- the following target legitimately attaches its own
+        # (`real-target-b`), and that must NOT be confused with the
+        # citing reference's own (absent) anchor.
+        attached = _attached_anchor_tokens(body)
+        if own_label is not None:
+            if decision.eligible:
+                assert own_label in attached, (
+                    f"case {case_name!r}: eligible but own label "
+                    f"{own_label!r} not found in attached anchors:\n{body}"
+                )
+            else:
+                assert own_label not in attached, (
+                    f"case {case_name!r}: not eligible but own label "
+                    f"{own_label!r} WAS found in attached anchors -- the "
+                    f"reference must not get its own anchor when "
+                    f"ineligible:\n{body}"
+                )
+
+
+class TestWr03XrefResolutionAndWarningFireOnce:
+    """
+    The direct guard on Pitfall 2 (`40.1-RESEARCH.md`): the D-06 rewrite
+    must not cause ``_resolve_xref_docname`` to run twice per reference
+    (once inside the predicate, once again in ``visit_reference``'s own
+    downstream branches), and the cross-document degrade-to-text warning
+    must fire exactly once per degraded reference, not twice.
+    """
+
+    @staticmethod
+    def _build_cross_doc_reference_doctree() -> docutils_nodes.document:
+        """A single citing reference whose ``refuri`` resolves to
+        ``"second"``, excluded from ``_StubBuilder.master_included_docnames``
+        (``{"index"}``) -- degrades to plain text."""
+        doc = _make_document()
+        section = docutils_nodes.section()
+        para = docutils_nodes.paragraph()
+        ref = _make_citing_reference(
+            refuri="second.typ#anchor", ids=("citer-e",), text="[E]"
+        )
+        para += ref
+        section += para
+        doc += section
+        return doc
+
+    def test_wr03_xref_resolution_happens_once_per_reference(self):
+        original_resolve = TypstTranslator._resolve_xref_docname
+        with mock.patch.object(
+            TypstTranslator,
+            "_resolve_xref_docname",
+            autospec=True,
+            side_effect=original_resolve,
+        ) as mocked_resolve:
+            doc = self._build_cross_doc_reference_doctree()
+            _render_body(doc)
+        assert mocked_resolve.call_count == 1, (
+            "expected _resolve_xref_docname to be called exactly ONCE per "
+            f"reference (Pitfall 2, 40.1-RESEARCH.md) -- called "
+            f"{mocked_resolve.call_count} times"
+        )
+
+        with mock.patch("typsphinx.translator.logger.warning") as mocked_warning:
+            doc = self._build_cross_doc_reference_doctree()
+            _render_body(doc)
+        assert mocked_warning.call_count == 1, (
+            "expected the cross-document degrade-to-text warning to fire "
+            f"exactly ONCE per degraded reference (Pitfall 2) -- fired "
+            f"{mocked_warning.call_count} times"
+        )
+        (message,), _kwargs = mocked_warning.call_args
+        assert "second" in message, (
+            "expected the warning message to name the non-included "
+            f"document 'second' -- got: {message!r}"
         )
