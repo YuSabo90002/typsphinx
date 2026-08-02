@@ -2641,6 +2641,307 @@ class TypstTranslator(SphinxTranslator):
         # marker Text, e.g. "1"/"2") must never render.
         raise nodes.SkipNode
 
+    def _citation_run_neighbour(self, node: nodes.citation, offset: int) -> bool:
+        """
+        Scan ``node.parent.children`` in direction ``offset`` (``-1``/``+1``)
+        from ``node``'s own index, skipping siblings that emit NOTHING (a
+        docutils ``comment`` or ``system_message`` -- ``visit_comment``
+        raises ``SkipNode`` before emitting anything), and report whether the
+        first sibling that WOULD emit is another ``nodes.citation``.
+
+        Both ``visit_citation`` (``offset=-1``, "is my PREVIOUS emitting
+        sibling also a citation") and ``depart_citation`` (``offset=+1``, "is
+        my NEXT emitting sibling also a citation") use this SAME helper, in
+        opposite directions (D-05's run detection). Mirrors the established
+        ``next_is_target`` sibling-lookahead idiom (``visit_reference``).
+
+        Scanning THROUGH emit-nothing siblings is load-bearing, not a
+        nicety: this repository's fixture convention puts a comment above
+        and between constructs (D-06), and treating a comment as a run
+        break would silently split one rendered reference list into two
+        independently-aligned grids with no error anywhere.
+
+        Args:
+            node: The citation node currently being visited/departed.
+            offset: ``-1`` to look at the previous sibling, ``+1`` for next.
+
+        Returns:
+            ``True`` when the first emitting neighbour in that direction is
+            another citation (so the run continues); ``False`` otherwise
+            (no parent, no such neighbour, or it emits something else).
+        """
+        if node.parent is None:
+            return False
+        children = node.parent.children
+        i = node.parent.index(node) + offset
+        while 0 <= i < len(children):
+            sibling = children[i]
+            if isinstance(sibling, (nodes.comment, nodes.system_message)):
+                i += offset
+                continue
+            return isinstance(sibling, nodes.citation)
+        return False
+
+    def _find_citing_reference(self, refid: str) -> nodes.reference | None:
+        """
+        Find the same-document citing-site ``nodes.reference`` whose own
+        ``ids`` contains ``refid`` (a docutils ``backrefs`` entry).
+
+        Deliberately does NOT use ``self.document.ids[refid]``: measured
+        this session that docutils' id registry can retain a STALE pointer
+        to the ORIGINAL ``citation_reference`` node for a citing site nested
+        several containers deep (e.g. inside a list item) even after
+        Sphinx's citation-domain transform has replaced it in the tree with
+        a resolved ``nodes.reference`` -- the stale node's own ``.parent``
+        still points at its former parent, but it is no longer a member of
+        that parent's ``.children``, so a naive ``parent.index(node)`` call
+        raises ``ValueError``. Scanning ``self.document.findall(...)``
+        queries the CURRENT tree structure directly and is immune to this.
+
+        Args:
+            refid: A docutils id string from a citation's ``backrefs`` list.
+
+        Returns:
+            The matching reference node, or ``None`` if not found.
+        """
+        for candidate in self.document.findall(nodes.reference):
+            if refid in (candidate.get("ids") or []):
+                return candidate
+        return None
+
+    def _citing_reference_has_own_anchor(self, ref_node: nodes.reference) -> bool:
+        """
+        Mirror the D-14 guard in ``visit_reference``: report whether
+        ``ref_node`` (a same-document citing site, looked up via
+        ``_find_citing_reference``) carries its own bracket-attached
+        anchor.
+
+        ``visit_reference``'s D-14 guard is mutually exclusive with
+        ``next_is_target`` -- a citation-derived reference immediately
+        followed by an explicit ``nodes.target`` sibling keeps the
+        target's OWN label instead (one Typst element can carry only one
+        label) and gets no anchor of its own. ``visit_citation`` consults
+        this helper before emitting a back-reference marker so the marker
+        list never targets a label that was never attached (T-40-03).
+
+        Args:
+            ref_node: The citing-site reference node (from ``backrefs``).
+
+        Returns:
+            ``False`` only when ``ref_node`` is immediately followed by a
+            ``nodes.target`` sibling; ``True`` otherwise.
+        """
+        parent = ref_node.parent
+        if parent is None:
+            return True
+        index = parent.index(ref_node)
+        if index + 1 < len(parent.children) and isinstance(
+            parent.children[index + 1], nodes.target
+        ):
+            return False
+        return True
+
+    def visit_citation(self, node: nodes.citation) -> None:
+        """
+        Visit a citation definition node (D-01..D-08, D-13, D-14, SC#5).
+
+        Renders a RUN of consecutive sibling ``citation`` nodes as ONE
+        two-column ``grid(columns: (auto, 1fr))`` (D-05): the first
+        citation of a run opens the grid, each citation emits its own
+        label/body row, and the last citation of a run (``depart_citation``)
+        closes it. Run adjacency is decided by ``_citation_run_neighbour``,
+        which scans THROUGH emit-nothing siblings (a comment must NOT break
+        a run; a real paragraph MUST, D-06).
+
+        Deliberately does NOT call ``_emit_id_anchors`` -- the citation
+        anchors its OWN id via the label cell's bracket-wrap below instead;
+        calling both would define the SAME label twice and abort the whole
+        compile at Typst's semantic pass, the exact hazard ``visit_table``'s
+        captioned-table comment documents.
+
+        Label cell shapes (D-03/D-07), all sharing one derivation point
+        (``_namespace_label`` over the CITATION's OWN ``node["docname"]``,
+        never ``_current_docname()`` -- D-13, load-bearing for D-10's
+        duplicate-key-across-two-documents case):
+
+        - Zero backrefs: a plain, non-linked ``[Label]`` (D-07 -- the
+          deliberate INVERSE of the footnote precedent, Phase 14 D-09,
+          which silently drops an unreferenced footnote).
+        - Exactly one backref: the label text itself (inside the brackets)
+          becomes the back-link; no parenthesised marker (D-03).
+        - Two or more backrefs: the bracketed label stays plain, followed
+          by a parenthesised, comma-separated (no space) list of one-based
+          ordinal markers, each linking to its own citing site (D-02/D-03).
+          Built via an array ``.join(",")`` rather than ``+``-concatenation
+          specifically so the separator is a BARE "," with nothing else
+          between the two ``link(...)`` calls at the .typ-source level.
+
+        A backref whose citing site's own anchor Task 1 declined to emit
+        (``_citing_reference_has_own_anchor`` returns False) is skipped, and
+        the remaining markers' ordinals are renumbered contiguously --
+        achieved for free by enumerating the FILTERED list, never the raw
+        ``backrefs``.
+
+        Separator protocols (SC#5), checked explicitly rather than by
+        analogy to the footnote handlers (RESEARCH Pitfall 1 -- a citation
+        is a Body element, never Inline, and cannot structurally nest in
+        any of the five code-mode concat contexts, all Inline-only):
+
+        - Paragraph protocol: mirrors ``_visit_admonition`` exactly -- no
+          leading separator at top level; the previous sibling's own
+          trailing break already separates it, and the grid's own trailing
+          break (``depart_citation``) separates it from what follows.
+        - List-item protocol: the leading newline on grid open (this
+          method, first row of a run only) and ``list_item_needs_separator``
+          set on grid close (``depart_citation``), both mirrored from the
+          admonition pair.
+        - Code-mode concat protocol: N/A on this (definition) side by
+          construction -- a Body-level citation cannot appear inside any of
+          ``_CONCAT_CONTEXTS`` (all Inline-only: desc parameter, link body,
+          def-list term, field body, attribution). The concat protocol
+          matters on the CITING side instead (Task 1, ``visit_reference``,
+          exercised by the fixture's definition-list-term citing site).
+
+        Args:
+            node: The citation definition node.
+        """
+        is_first_of_run = not self._citation_run_neighbour(node, -1)
+        if is_first_of_run:
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+            # column-gutter/row-gutter values are Claude's Discretion (D-04).
+            # Deliberately NOT "em"-suffixed literals (Phase 38 IND-04/SC#4,
+            # tests/test_desc_content_indent_render_gate.py, asserts
+            # translator.py carries exactly ONE numeric em-suffixed literal
+            # -- the SHARED_INDENT_STEP assignment -- and citations must not
+            # add a second one; 40-CONTEXT.md's own D-04/D-05 discretion
+            # note separately says the citation grid does not consume or
+            # redefine SHARED_INDENT_STEP, since it solves alignment via an
+            # `auto`-sized grid column, not a fixed hanging-indent width).
+            # "pt" units sidestep that gate entirely while landing close to
+            # the RESEARCH probe's own 0.5em/0.8em suggestion.
+            self.add_text(
+                "grid(\n  columns: (auto, 1fr),\n"
+                "  column-gutter: 6pt,\n  row-gutter: 9pt,\n"
+            )
+
+        # Render the label cell's content by walking the label node's OWN
+        # CHILDREN (never the label node itself -- visit_label below skips
+        # it) through the NORMAL visitor chain via the established
+        # buffer-swap idiom (mirrors visit_footnote_reference): save
+        # self.body, swap in a fresh list, walk, join, restore. This is
+        # what routes the label's text through the SAME central
+        # escape_typst_string path every other text node uses -- the whole
+        # of this phase's V5 input-validation surface. in_paragraph and
+        # paragraph_has_content are saved/restored around the swap because
+        # a nested paragraph child (not expected for a label, but the
+        # convention is applied uniformly) unconditionally resets both on
+        # depart, which would silently clobber the OUTER separator state.
+        label_node = node.children[0] if node.children else None
+        saved_body = self.body
+        self.body = []
+        was_in_paragraph = self.in_paragraph
+        was_paragraph_has_content = self.paragraph_has_content
+        self.in_paragraph = False
+        if label_node is not None:
+            for child in label_node.children:
+                child.walkabout(self)
+        label_content = "".join(self.body)
+        self.body = saved_body
+        self.in_paragraph = was_in_paragraph
+        self.paragraph_has_content = was_paragraph_has_content
+
+        docname = node.get("docname")
+        backref_targets = []
+        for refid in node.get("backrefs") or []:
+            ref_node = self._find_citing_reference(refid)
+            if ref_node is not None and not self._citing_reference_has_own_anchor(
+                ref_node
+            ):
+                continue
+            backref_targets.append(self._namespace_label(docname, refid))
+
+        if len(backref_targets) == 1:
+            label_body = f"link(<{backref_targets[0]}>, {label_content})"
+        else:
+            label_body = label_content
+
+        label_expr = f'text("[") + {label_body} + text("]")'
+
+        if len(backref_targets) >= 2:
+            markers = ",".join(
+                f"link(<{target}>, [{i}])"
+                for i, target in enumerate(backref_targets, start=1)
+            )
+            label_expr += f' + text(" (") + ({markers}).join(",") + text(")")'
+
+        # Attach the citation's OWN definition anchor via the bracket-wrap
+        # label-attachment form -- the same shape depart_term uses --
+        # derived from the citation's OWN docname (D-13), never
+        # _current_docname(). No ids at all -> no attachment, per Claude's
+        # Discretion in the plan (rather than emitting a malformed one).
+        ids = node.get("ids") or []
+        if ids:
+            def_anchor = self._namespace_label(docname, ids[0])
+            self.add_text(f"[#{{{label_expr}}} <{def_anchor}>], ")
+        else:
+            self.add_text(f"{label_expr}, ")
+
+        # Open the body cell as a bare code block (NOT a function call) so
+        # the citation's remaining children (its paragraph(s)) evaluate
+        # inside it via the NORMAL visitor chain, exactly the way
+        # _visit_admonition opens its own content block. The wrapping block
+        # is what lets a MULTI-paragraph citation body join into one valid
+        # grid-cell argument instead of juxtaposing as two adjacent
+        # statements (the phase's classic defect shape).
+        self.add_text("{")
+
+    def depart_citation(self, node: nodes.citation) -> None:
+        """
+        Depart a citation definition node.
+
+        Closes the body cell's code block and emits the row-trailing comma
+        so the next row is a separate ``grid(...)`` argument. If the next
+        emitting sibling is another citation (``_citation_run_neighbour``),
+        the grid stays open for that row. Otherwise closes the grid call and
+        emits the trailing break the same way ``_depart_admonition`` does,
+        and sets ``list_item_needs_separator`` when inside a list item.
+
+        Args:
+            node: The citation definition node.
+        """
+        self.add_text("},")
+
+        if self._citation_run_neighbour(node, 1):
+            return
+
+        self.add_text("\n)\n\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
+    def visit_label(self, node: nodes.label) -> None:
+        """
+        Visit a citation's ``label`` child node.
+
+        Fires for citations ONLY -- ``visit_footnote`` raises ``SkipNode``
+        before its own ``label`` child is ever reached, and
+        ``visit_footnote_reference`` walks ``footnote_node.children[1:]``,
+        skipping its ``label`` child positionally rather than via a real
+        handler. ``visit_citation`` above already renders THIS label's own
+        children via a dedicated buffer-swap before the citation's
+        remaining children (this node included) are walked normally by
+        docutils -- so this handler's only job is to prevent the label's
+        text from rendering a SECOND time into the body cell. As a side
+        effect, this also removes the second ``unknown node type: <label
+        ...>`` warning the shipped samples emit today (40-GATE-EVIDENCE-01/
+        02.md).
+
+        Raises:
+            nodes.SkipNode: Always -- the label's children were already
+                rendered by visit_citation.
+        """
+        raise nodes.SkipNode
+
     def visit_table(self, node: nodes.table) -> None:
         """
         Visit a table node.
