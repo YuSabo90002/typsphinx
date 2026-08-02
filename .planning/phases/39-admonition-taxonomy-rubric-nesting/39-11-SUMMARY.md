@@ -150,3 +150,13 @@ None - no external service configuration required.
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: typsphinx/translator.py
+- FOUND: tests/test_admonitions.py
+- FOUND: tests/test_pdf_render_gate.py
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-11-SUMMARY.md
+- FOUND commit: 0430d47 (Task 1)
+- FOUND commit: bf91cbe (Task 2)
+- FOUND commit: 1707119 (SUMMARY)
