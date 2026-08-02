@@ -106,3 +106,14 @@ None - no external service configuration required.
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: tests/fixtures/rubric_indent_invariance_gate/conf.py
+- FOUND: tests/fixtures/rubric_indent_invariance_gate/index.rst
+- FOUND: tests/test_rubric_indent_invariance.py
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-GATE-EVIDENCE-03.md
+- FOUND: .planning/phases/39-admonition-taxonomy-rubric-nesting/39-03-SUMMARY.md
+- FOUND commit 96fb09e (Task 1)
+- FOUND commit 8946e6a (Task 2)
+- FOUND commit c6e5ee7 (SUMMARY)
