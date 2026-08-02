@@ -2776,11 +2776,24 @@ class TypstTranslator(SphinxTranslator):
           specifically so the separator is a BARE "," with nothing else
           between the two ``link(...)`` calls at the .typ-source level.
 
-        A backref whose citing site's own anchor Task 1 declined to emit
-        (``_citing_reference_has_own_anchor`` returns False) is skipped, and
-        the remaining markers' ordinals are renumbered contiguously --
-        achieved for free by enumerating the FILTERED list, never the raw
-        ``backrefs``.
+        A backref is skipped, and the remaining markers' ordinals are
+        renumbered contiguously (achieved for free by enumerating the
+        FILTERED list, never the raw ``backrefs``), in either of two cases:
+
+        - Its citing site's own anchor Task 1 declined to emit
+          (``_citing_reference_has_own_anchor`` returns False).
+        - Its citing site cannot be located at all in the resolved doctree
+          (``_find_citing_reference`` returns ``None`` -- WR-01,
+          `40-REVIEW.md`). Real, reproducible trigger: a citing
+          ``[Label]_`` inside a ``.. only::`` block whose tag is never set.
+          Sphinx's ``only``-tag filter transform runs AFTER the citation
+          domain populates ``backrefs``, so a backref id can survive
+          referencing a node the writer never sees; unfixed, this appended
+          a ``link()`` target for a label nothing ever attaches -- a
+          whole-document Typst compile fatal. Silent, deliberately (G1,
+          `40.1-GATE-EVIDENCE-01.md` § 5): the citing site genuinely is
+          not in the output document, so dropping its marker is the correct
+          answer, not an error to report.
 
         Separator protocols (SC#5), checked explicitly rather than by
         analogy to the footnote handlers (RESEARCH Pitfall 1 -- a citation
@@ -2855,9 +2868,14 @@ class TypstTranslator(SphinxTranslator):
         backref_targets = []
         for refid in node.get("backrefs") or []:
             ref_node = self._find_citing_reference(refid)
-            if ref_node is not None and not self._citing_reference_has_own_anchor(
-                ref_node
-            ):
+            # WR-01 (`40-REVIEW.md`): `ref_node is None` must ALSO take the
+            # `continue` branch -- a backref naming a citing site the
+            # `only`-tag filter pruned from the resolved doctree has no
+            # `nodes.reference` to check `_citing_reference_has_own_anchor`
+            # against, and treating "not found" as "eligible" appends a
+            # `link()` target for a label nothing ever attaches (see the
+            # docstring above and `40.1-GATE-EVIDENCE-01.md`).
+            if ref_node is None or not self._citing_reference_has_own_anchor(ref_node):
                 continue
             backref_targets.append(self._namespace_label(docname, refid))
 
