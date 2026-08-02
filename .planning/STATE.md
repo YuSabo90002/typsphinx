@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 41
-current_phase_name: v0.7.0 Release Automation + Release Prep
+current_phase: 40.1
+current_phase_name: Citation Degradation Hardening
 status: planning
-stopped_at: Phase 41 context gathered
-last_updated: "2026-08-02T11:29:00.713Z"
+stopped_at: Phase 40.1 context gathered
+last_updated: "2026-08-02T12:01:18.346Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 40 complete, transitioned to Phase 41
+last_activity_desc: Phase 41 context gathered; Phase 40.1 inserted ahead of it
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
   total_plans: 40
   completed_plans: 40
-  percent: 83
+  percent: 71
 ---
 
 # Project State
@@ -24,15 +24,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 40 — citations-full-round-trip
+**Current focus:** Phase 40.1 — citation-degradation-hardening
 
 ## Current Position
 
-Phase: 41 — v0.7.0 Release Automation + Release Prep
-Plans: 0/4 — planned 2026-08-02 (4 plans in 3 waves; `40-RESEARCH.md`, `40-PATTERNS.md`,
-`40-VALIDATION.md` alongside). Context gathered 2026-08-02 (`40-CONTEXT.md`, 14 decisions).
+Phase: 40.1 — Citation Degradation Hardening (INSERTED 2026-08-02, after Phase 40)
+Plans: 0/TBD — not planned. Context gathered 2026-08-02 (`40.1-CONTEXT.md`, 8 decisions).
 Status: Ready to plan
-Last activity: 2026-08-02 — Phase 40 complete, transitioned to Phase 41
+Last activity: 2026-08-02 — Phase 40.1 context gathered
+
+**Execution order note:** Phase 41's context is already gathered (`41-CONTEXT.md`, 17 decisions,
+2026-08-02) and it stays the milestone's last phase, but **Phase 40.1 executes first**. Phase 41's
+SC#4 proves "every node-handler change carries its recorded-RED GATE-01 fixture" over the full
+milestone diff, and per `41-CONTEXT.md` D-11 that sweep must cover Phase 40.1's translator changes —
+so 40.1 cannot land after it. Phase 40.1's own open question, recorded in the roadmap as SC#4: all
+three warnings are structurally provable but none was reproduced against a real `sphinx-build`, so
+each RED's provenance (real build vs. a doctree assembled directly for the translator) must be
+established and recorded per warning, not assumed.
 
 **Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
 conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
@@ -62,13 +70,16 @@ readable reference document instead of a flat wall of proportional bold text.
 | 38 | Structural Indentation + Info Fields | IND-01..IND-05, FLD-01..FLD-03 |
 | 39 | Admonition Taxonomy + Rubric Nesting | ADM-01..ADM-05 |
 | 40 | Citations — Full Round Trip | CIT-01..CIT-06 |
+| 40.1 | Citation Degradation Hardening (INSERTED) | none new — closes `40-REVIEW.md` WR-01..03 |
 | 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 |
 
-Execution order 36 → 37 → 38 → 39 → 40 → 41. Phase 36 lands first because its acceptance criterion
-is **byte-identical rendering** — the one provable, zero-risk move available, and a prerequisite for
-restyling `desc_signature` and `rubric` independently. 37 → 38 → 39 is a genuine dependency chain
-(signature shape → body/field indent → rubric inheriting that indent). Phase 40 (citations) is
-structurally independent and can be resequenced anywhere after 36.
+Execution order 36 → 37 → 38 → 39 → 40 → **40.1** → 41. Phase 36 lands first because its acceptance
+criterion is **byte-identical rendering** — the one provable, zero-risk move available, and a
+prerequisite for restyling `desc_signature` and `rubric` independently. 37 → 38 → 39 is a genuine
+dependency chain (signature shape → body/field indent → rubric inheriting that indent). Phase 40
+(citations) is structurally independent and can be resequenced anywhere after 36. Phase 40.1 was
+inserted 2026-08-02 and its position relative to 41 is fixed — see the Execution order note under
+Current Position.
 
 **Scope (owner-confirmed 2026-07-29, after a mid-scoping concept rethink):** `desc_*` +
 `field_list` redesign; admonition / rubric / topic redesign; full-round-trip `citation` support
@@ -347,6 +358,15 @@ evidence.
   error only; no requirement was added, removed, or reworded.
 
 - Phase 36 edited: SC#3 corrected from measurement: the redundant blank line is after the math, not before; PDF-extracted-text RED is impossible (fix yields a byte-identical PDF), so the PDF assertion becomes an invariance guard
+- **2026-08-02** — Phase **40.1 inserted** after Phase 40 (URGENT): Citation Degradation Hardening.
+  Closes `40-REVIEW.md`'s WR-01 / WR-02 / WR-03 — three graceful-degradation gaps in the citation
+  code, of which WR-01 can reach a real Typst compile fatal (a `link()` to a label nothing attaches)
+  — each with a recorded-RED fixture per milestone invariant #4. Kept **out of** Phase 41 by owner
+  decision during Phase 41's discussion (`41-CONTEXT.md` D-11): closing them there would have made
+  the release-prep phase enlarge the very proof obligation its own SC#4 discharges, on the
+  translator, immediately before a release. Consequence recorded in both files: Phase 41's SC#4
+  sweep must cover 40.1's node-handler changes, so 40.1 executes first. No requirement IDs were
+  added, removed, or reworded — 40.1 hardens code CIT-01/CIT-03/CIT-04 already delivered.
 
 ## Deferred Items
 
@@ -382,10 +402,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/41-v0-7-0-release-automation-release-prep/41-CONTEXT.md
+**Resume file:** .planning/phases/40.1-citation-degradation-hardening/40.1-CONTEXT.md
 
-Last session: 2026-08-02T11:29:00.706Z
-Stopped at: Phase 41 context gathered
+Last session: 2026-08-02T12:01:18.339Z
+Stopped at: Phase 40.1 context gathered
 Resume: `/gsd-plan-phase 40` (`40-CONTEXT.md` written 2026-08-02).
 
 ## Operator Next Steps
