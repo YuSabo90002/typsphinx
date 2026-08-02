@@ -513,15 +513,15 @@ inherit an indent once the indent exists)
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
      is **not** a pass; it must actually run green at least once before the phase closes.
-**Plans**: 8 plans
+**Plans**: 4/8 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 39-01-PLAN.md — GATE-01 RED for the admonition half: the `admonition_render_gate` fixture extended to a full ten-type census with per-type sentinels, a new region-scoped `.typ` bucket-and-catalog-title gate, the compiled-PDF half for ADM-01/ADM-02, and `39-GATE-EVIDENCE-01.md`
-- [ ] 39-02-PLAN.md — GATE-01 RED for the rubric half: the D-13 inline-markup-in-rubric fixture and its document-wide `par()`-drop assertions, the D-11 newline-run assertion on the existing decoupling fixture, and `39-GATE-EVIDENCE-02.md`
-- [ ] 39-03-PLAN.md — ADM-05's invariance guard (D-12): a two-level `py:class::`/`py:method::` rubric probe and a fully relative `pypdf` layout-mode column module, plus `39-GATE-EVIDENCE-03.md`
-- [ ] 39-04-PLAN.md — the ADM-04 tooling: a blocking `pillow` legitimacy checkpoint, the `[dev]`-extra edit, a one-page four-bucket probe, `scripts/render_admonition_greyscale.py`, and a pipeline smoke test
+- [x] 39-01-PLAN.md — GATE-01 RED for the admonition half: the `admonition_render_gate` fixture extended to a full ten-type census with per-type sentinels, a new region-scoped `.typ` bucket-and-catalog-title gate, the compiled-PDF half for ADM-01/ADM-02, and `39-GATE-EVIDENCE-01.md`
+- [x] 39-02-PLAN.md — GATE-01 RED for the rubric half: the D-13 inline-markup-in-rubric fixture and its document-wide `par()`-drop assertions, the D-11 newline-run assertion on the existing decoupling fixture, and `39-GATE-EVIDENCE-02.md`
+- [x] 39-03-PLAN.md — ADM-05's invariance guard (D-12): a two-level `py:class::`/`py:method::` rubric probe and a fully relative `pypdf` layout-mode column module, plus `39-GATE-EVIDENCE-03.md`
+- [x] 39-04-PLAN.md — the ADM-04 tooling: a blocking `pillow` legitimacy checkpoint, the `[dev]`-extra edit, a one-page four-bucket probe, `scripts/render_admonition_greyscale.py`, and a pipeline smoke test
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -667,7 +667,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
-| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 0/TBD | Not started | - |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 4/8 | In Progress|  |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
