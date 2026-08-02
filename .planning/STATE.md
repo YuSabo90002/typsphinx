@@ -5,16 +5,16 @@ milestone_name: API rendering design overhaul
 current_phase: 39
 current_phase_name: Admonition Taxonomy + Rubric Nesting (gap closure G-39-1)
 status: executing
-stopped_at: Phase 39 re-opened for UAT gap G-39-1 — 5 gap-closure plans (39-09..39-13) planned and verified
-last_updated: "2026-08-02T05:12:31.403Z"
+stopped_at: Phase 39 gap closure G-39-1 — waves 5-6 complete (39-09..39-11); waves 7-8 remaining
+last_updated: "2026-08-02T05:17:46.730Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 39 gap closure G-39-1 planned (5 plans, waves 5-8); Phase 40 deferred until the gap closes
+last_activity_desc: G-39-1 waves 5-6 executed — red family split into danger/memo/error, full suite green (774 passed)
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 3
   total_plans: 35
   completed_plans: 30
-  percent: 67
+  percent: 50
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 39 — Admonition Taxonomy + Rubric Nesting (re-opened for gap closure)
-Plans: 8/13 — 39-01..39-08 shipped and verified; 39-09..39-13 planned for gap G-39-1
-Status: Ready to execute (waves 5-8)
-Last activity: 2026-08-02 — G-39-1 gap-closure plans created and verified
+Phase: 39 — Admonition Taxonomy + Rubric Nesting (re-opened for gap closure) — EXECUTING
+Plans: 11/13 — 39-01..39-08 shipped and verified; 39-09..39-11 complete (G-39-1 waves 5-6); 39-12 (ADM-04 re-sign-off, blocking checkpoint) and 39-13 (gap close-out) remaining
+Status: Executing waves 7-8
+Last activity: 2026-08-02 — G-39-1 routing change landed; full suite 774 passed / 1 skipped / 0 failed
 
 **Why Phase 39 re-opened:** `39-VERIFICATION.md` passed 5/5, but conversational UAT afterwards
 surfaced `G-39-1` — the owner reversed locked decision D-03 and split the collapsed red admonition
@@ -39,7 +39,7 @@ bucket into three distinct gentle-clues functions (`danger()` / `memo()` / `erro
 closed-phase gate (#3569) was explicitly overridden by the owner on 2026-08-02 to plan this gap
 closure. Phase 40 (Citations) is deferred until G-39-1 closes.
 
-Progress: [█████████████░░░░░░░] 67% (4/6 phases)
+Progress: [██████████░░░░░░░░░░] 50% (3/6 phases — 39 re-opened for gap closure)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 

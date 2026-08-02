@@ -519,7 +519,7 @@ inherit an indent once the indent exists)
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
      is **not** a pass; it must actually run green at least once before the phase closes.
-**Plans**: 13 plans — 8/8 shipped 2026-08-02; 5 added 2026-08-02 to close UAT gap G-39-1
+**Plans**: 11/13 plans executed
 
 Plans:
 **Wave 1**
@@ -544,12 +544,12 @@ Plans:
 
 **Wave 5** *(gap closure for UAT gap G-39-1 — the red family stops being one collapsed function; blocked on Wave 4 completion)*
 
-- [ ] 39-09-PLAN.md — GATE-01 RED for G-39-1: the red family asserted as three distinct clue functions plus a generalized red-family invariant, a new two-locale catalog-title precedence gate with its `en`/`ja` fixture project, and `39-GATE-EVIDENCE-05.md`
-- [ ] 39-10-PLAN.md — the recorded reversal: D-03 marked superseded and D-03-R added to `39-CONTEXT.md`, ADM-02 restated around intent with a red-group sub-division note under ADM-01's preamble, and this SC#1 correction
+- [x] 39-09-PLAN.md — GATE-01 RED for G-39-1: the red family asserted as three distinct clue functions plus a generalized red-family invariant, a new two-locale catalog-title precedence gate with its `en`/`ja` fixture project, and `39-GATE-EVIDENCE-05.md`
+- [x] 39-10-PLAN.md — the recorded reversal: D-03 marked superseded and D-03-R added to `39-CONTEXT.md`, ADM-02 restated around intent with a red-group sub-division note under ADM-01's preamble, and this SC#1 correction
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 39-11-PLAN.md — the routing change: `danger` to the gentle-clues `danger` id and `attention` to its `memo` id, with the two falsified in-process assertions migrated by hand and the compiled-PDF gate strengthened against a lost title argument
+- [x] 39-11-PLAN.md — the routing change: `danger` to the gentle-clues `danger` id and `attention` to its `memo` id, with the two falsified in-process assertions migrated by hand and the compiled-PDF gate strengthened against a lost title argument
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
@@ -690,7 +690,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
-| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 8/8 | Complete    | 2026-08-02 |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 11/13 | In Progress|  |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
