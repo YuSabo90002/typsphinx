@@ -65,7 +65,9 @@ auto_covered: 23
     `.. attention::` renders in `memo()` (maroon `#e64553` + `excl.svg` exclamation);
     `.. error::` stays `error()` (red `#d20f39` + `crossmark.svg`). Three distinct
     clue functions where the phase shipped one.
-  status: failed
+  status: closed
+  closed_at: 2026-08-02
+  closed_by: [39-09, 39-10, 39-11, 39-12, 39-13]
   reason: >
     User reported: 「うわ、デンジャーはgentle-clueのデンジャーに振った方が良かったかも」
     → 「Bでもっかい再構成しないとまずいな」 → 「Attentionはgentle-cleuのmemoにすっか」.
@@ -88,6 +90,7 @@ auto_covered: 23
     - "Rendered live during UAT: `memo`'s maroon title band is visually near-identical to `error`'s red band; the two separate almost entirely on icon shape (! vs ×). So attention stays in the red family — ADM-02's 'not the orange warning bucket' intent survives — while gaining a distinct glyph."
     - "Sphinx's own sphinx.sty:853-860 puts attention/danger/error in ONE colour bucket (`sphinx-error-title-*`, hsl(0,37%)) but sphinx.sty:933-943 gives each a DISTINCT icon (attention `triangle-exclamation`, danger `radiation`, error `circle-xmark`). The owner's taxonomy matches Sphinx on the icon axis and diverges on the colour axis (Sphinx: one red; owner: three red-family accents)."
     - "gentle-clues supplies its own linguify titles for these ids (`memo` = \"Memorize\" in en, no `ja` entry → falls back to en; `danger` = \"Danger\"/「危険」). The `custom_title` path from `sphinx.locale.admonitionlabels` must keep overriding all of them, or `.. attention::` would render as \"Memorize\"."
+    - "CORRECTION (plan 39-09, confirmed in 39-CONTEXT.md's D-03-R section): the bullet directly above is wrong about `memo`'s Japanese entry. The installed `lang.toml` DOES carry `[lang.ja] memo = \"覚える\"` (line 168) — it does not fall back to `en`. This changes nothing functionally, since `custom_title` already overrides every predefined id's default title in both locales; see `39-GATE-EVIDENCE-05.md` for the measurement. The bullet above is left as originally written so this record shows what was believed at UAT time, not only what is true."
   artifacts:
     - path: "typsphinx/translator.py"
       issue: "`visit_danger` (line 4517) and `visit_attention` (line 4525) both route to `_visit_admonition(node, \"error\")`; must route to `\"danger\"` and `\"memo\"` respectively"
