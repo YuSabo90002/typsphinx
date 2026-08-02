@@ -288,10 +288,13 @@ class TestAdmonitionPdfRenderGate:
 
     def test_admonitionbuckettitlegate(self, admonition_render_gate_pdf_text):
         """
-        ADM-01/ADM-02 compiled-PDF half: the seealso, attention and danger
-        body sentinels survive into pypdf-extracted text, and their
-        rendered header text reads as their `sphinx.locale.admonitionlabels`
-        English values.
+        ADM-01/ADM-02 compiled-PDF half, corrected and strengthened for
+        D-03-R (gap G-39-1): the seealso, attention and danger body
+        sentinels survive into pypdf-extracted text, and their rendered
+        header text reads as their `sphinx.locale.admonitionlabels`
+        English values -- regardless of which gentle-clues function boxes
+        them, since the catalog title always wins over the function's own
+        default (D-04/D-05).
 
         Named `test_admonitionbuckettitlegate` (no underscore inside the
         selectable run) so it is selected verbatim by
@@ -301,15 +304,27 @@ class TestAdmonitionPdfRenderGate:
         that contiguity (test_admonitiontitleregression_multichild's own
         docstring records the same rule).
 
-        RED today on the three header-text assertions: the seealso box
-        renders the pre-phase hardcoded literal "See Also" (wrong casing
-        vs. the catalog's "See also"), and the attention/danger boxes
-        render gentle-clues' own default titles derived from their
-        function ids ("Warning"/"Danger" as `warning(...)`/`danger(...)`
-        emits them today, not through this admonition's title argument at
-        all) -- none of the three catalog-derived expected strings is
-        present. NOT RED on the body sentinels, which survive unchanged
-        regardless of which bucket function boxes them.
+        The body sentinels and the three catalog-title assertions are all
+        bucket-independent: they were already green before G-39-1's
+        routing change (attention/danger boxed by `error(...)`) and stay
+        green after it (attention boxed by `memo(...)`, danger by
+        `danger(...)`) because the catalog `custom_title` always overrides
+        whichever function's own default title would otherwise surface --
+        this is exactly why this test needed no expected-string migration
+        for G-39-1 and is strengthened with a new negative assertion
+        instead, below.
+
+        The negative assertion below is meaningful only for attention:
+        gentle-clues' own English default title for the `memo` id is
+        "Memorize" (`lang.toml` `[lang.en]`), which differs from the
+        Sphinx catalog's "Attention", so a lost `title` argument would
+        leak "Memorize" into the compiled PDF and this assertion would
+        catch it. No matching guard exists for danger: gentle-clues' own
+        English default for the `danger` id is "Danger" (`lang.toml`
+        `[lang.en]`), which is byte-identical to the Sphinx catalog's
+        "Danger" for the same type in English -- so a lost title argument
+        for danger cannot be told apart from a correct one by a text
+        search here (this holds in Japanese too: both are "危険").
         """
         full_text = admonition_render_gate_pdf_text
 
@@ -330,6 +345,22 @@ class TestAdmonitionPdfRenderGate:
                 f"'{expected_title}' (sphinx.locale.admonitionlabels) in "
                 "extracted PDF text -- D-04/D-05 title-source regression"
             )
+
+        # G-39-1: gentle-clues' own English default title for the `memo`
+        # id ("Memorize", lang.toml [lang.en]) must never leak into the
+        # compiled PDF in place of the catalog's "Attention" -- the
+        # highest-risk regression in this gap (a dropped title argument
+        # would rename the box while every routing assertion still
+        # passes). No equivalent guard is possible for danger: see the
+        # docstring above.
+        memo_package_default_title_en = "Memorize"
+        assert memo_package_default_title_en not in full_text, (
+            "G-39-1 violated: gentle-clues' own English default title for "
+            f"the memo id ({memo_package_default_title_en!r}) leaked into "
+            "the compiled PDF -- the attention admonition's title argument "
+            "was dropped, so gentle-clues' own default surfaced instead of "
+            "the sphinx.locale.admonitionlabels catalog title"
+        )
 
         for leaked_token in LEAK_SIGNATURES:
             assert leaked_token not in full_text, (
