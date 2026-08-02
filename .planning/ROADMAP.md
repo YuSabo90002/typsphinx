@@ -483,7 +483,13 @@ inherit an indent once the indent exists)
   1. `seealso` renders in the same bucket as `hint`/`tip` and `attention` in the same bucket as
      `danger`/`error` — asserted on the emitted `.typ` call and confirmed in the compiled PDF, with
      the assertion recorded RED against the pre-phase mapping (which compiles fine today and simply
-     picks the wrong bucket).
+     picks the wrong bucket). **Corrected per `39-CONTEXT.md` D-03-R (gap G-39-1, dated
+     2026-08-02):** the clause above asserting that attention belongs alongside danger/error in one
+     function is superseded — the red group is now three distinct clue functions
+     (`danger`/`memo`/`error`), so no single function identity holds across all three types. The
+     surviving requirement is that `attention` leaves the orange warning group for the red family
+     (the group of clue functions sharing the red hue range). The `seealso` half of this criterion
+     is unaffected.
 
   2. A generic `.. admonition:: Custom Title` renders as a styled box carrying that title, asserted
      both on the emitted call and by the title text surviving into the compiled PDF's extracted
@@ -687,6 +693,20 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 8/8 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
+
+## Roadmap Evolution
+
+One-bullet-per-amendment record of in-place corrections to this file, mirrored in STATE.md's
+own "Roadmap Evolution" log. This section did not exist before 2026-08-02; it is created here to
+hold the first ROADMAP.md-native entry (STATE.md's mirror already carried the Phase 36 SC#3
+precedent this entry follows).
+
+- **2026-08-02** — Phase 39's SC#1 corrected after UAT gap `G-39-1` reversed `39-CONTEXT.md` D-03
+  by owner decision (`D-03-R`): the clause asserting `attention` sits in the same bucket as
+  `danger`/`error` is superseded, since the red group is now three distinct clue functions
+  (`danger`/`memo`/`error`) rather than one. The surviving requirement is that `attention` leaves
+  the orange warning group for the red family. No requirement was added, removed, or re-assigned
+  to a different phase.
 
 ## Backlog
 
