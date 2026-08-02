@@ -242,6 +242,12 @@ All three tasks' acceptance criteria and `<verify>` automated checks were run di
 - No file under `typsphinx/` or `tests/` was touched; plan 39-09 (the sibling GATE-01 RED plan for
   this same gap, running in a parallel worktree) is unaffected by this plan's edits.
 
+## Self-Check: PASSED
+
+- `39-CONTEXT.md`, `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`, and this SUMMARY.md all
+  exist on disk (verified via `test -f`).
+- Commits `7c8cfb9`, `43cfec4`, `03f79f7`, and `a2c6770` all exist in `git log --oneline --all`.
+
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
