@@ -34,12 +34,13 @@ def create_document():
 
 
 class TestTopicConversion:
-    """Test `.. topic::` node conversion to a clue box (D-02)."""
+    """Test `.. topic::` node conversion to an abstract box (D-02/D-10)."""
 
     def test_topic_converts_to_clue_box(self, temp_sphinx_app: SphinxTestApp):
-        """A plain nodes.topic with a title+paragraph renders as a clue
-        box, not a heading -- proves D-02's widened visit_title buffer-swap
-        branch is entered for a `topic` parent (not just `Admonition`).
+        """A plain nodes.topic with a title+paragraph renders as an
+        abstract box (D-10), not a heading -- proves D-02's widened
+        visit_title buffer-swap branch is entered for a `topic` parent
+        (not just `Admonition`).
         """
         topic = nodes.topic()
         title = nodes.title(text="A Topic Title")
@@ -56,7 +57,7 @@ class TestTopicConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "clue({" in output
+        assert "abstract({" in output
         assert ", title: {" in output
         assert "heading(level:" not in output
         assert output.count("A Topic Title") == 1
@@ -87,7 +88,7 @@ class TestTopicConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "clue({" in output
+        assert "abstract({" in output
         assert ", title: {" in output
         assert "emph({" in output
         assert output.count("A Topic") == 1
@@ -131,6 +132,11 @@ class TestContentsTopicConversion:
 
         output = translator.astext()
         assert "strong({" in output
+        # Reviewed 39-05 (D-10): this box-less `.. contents::` path is
+        # unaffected by the abstract-function reroute -- it emits no clue
+        # box at all (of any function name), so this assertion stays as
+        # "clue({" not in output rather than being widened to also check
+        # "abstract({". Left deliberately unchanged.
         assert "clue({" not in output
         assert "heading(level:" not in output
         assert output.count("Table of Contents") == 1
