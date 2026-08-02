@@ -5,10 +5,10 @@ milestone_name: API rendering design overhaul
 current_phase: 40
 current_phase_name: Citations — Full Round Trip
 status: planning
-stopped_at: Phase 39 complete and verified (13/13 plans, 5/5 must-haves; gap G-39-1 closed)
-last_updated: "2026-08-02T06:44:58.836Z"
+stopped_at: Phase 40 context gathered
+last_updated: "2026-08-02T07:36:50.697Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 39 complete, transitioned to Phase 40
+last_activity_desc: Phase 40 context gathered — ready to plan
 progress:
   total_phases: 6
   completed_phases: 4
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 ## Current Position
 
 Phase: 40 — Citations — Full Round Trip
-Plans: 0/TBD — not yet planned. Phase 39 closed at 13/13 with gap G-39-1 resolved.
+Plans: 0/TBD — not yet planned. Context gathered 2026-08-02 (`40-CONTEXT.md`, 14 decisions).
 Status: Ready to plan
-Last activity: 2026-08-02 — Phase 39 complete, transitioned to Phase 40
+Last activity: 2026-08-02 — Phase 40 context gathered
 
 **Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
 conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
@@ -381,11 +381,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/39-admonition-taxonomy-rubric-nesting/39-VERIFICATION.md
+**Resume file:** .planning/phases/40-citations-full-round-trip/40-CONTEXT.md
 
-Last session: 2026-08-02T03:34:53.521Z
-Stopped at: Phase 39 complete and verified (8/8 plans, 5/5 must-haves)
-Resume: `/gsd-discuss-phase 40` (no `40-CONTEXT.md` yet).
+Last session: 2026-08-02T07:36:50.690Z
+Stopped at: Phase 40 context gathered
+Resume: `/gsd-plan-phase 40` (`40-CONTEXT.md` written 2026-08-02).
 
 ## Operator Next Steps
 
