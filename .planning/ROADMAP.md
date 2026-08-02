@@ -666,7 +666,7 @@ Closes `40-REVIEW.md` WR-01, WR-02, WR-03.
      citation fixture is **byte-identical** — measured in `40-REVIEW.md`, that fixture reaches none
      of these three branches, so byte-identity there is the control proving the change is confined
      to the degradation paths.
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -683,7 +683,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 40.1-04-PLAN.md — close-out: SC#5's four gates plus the full-corpus `-b typstpdf` gate observed green, byte-identity proven by sha256, and the change-site → RED manifest Phase 41's SC#4 sweep consumes (`40.1-NONREGRESSION.md`)
+- [x] 40.1-04-PLAN.md — close-out: SC#5's four gates plus the full-corpus `-b typstpdf` gate observed green, byte-identity proven by sha256, and the change-site → RED manifest Phase 41's SC#4 sweep consumes (`40.1-NONREGRESSION.md`)
 
 ### Phase 41: v0.7.0 Release Automation + Release Prep
 
@@ -779,7 +779,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
-| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 3/4 | In Progress|  |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
