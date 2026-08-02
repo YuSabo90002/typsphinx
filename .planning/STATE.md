@@ -398,6 +398,15 @@ Resume: `/gsd-discuss-phase 40` (no `40-CONTEXT.md` yet).
   Trip), structurally independent of 39, and the milestone's one classic `TypstError`-RED exception
   (CIT-01).
 
+- **Phase 39's gap G-39-1 closed 2026-08-02** (`39-GAP-G39-1-CLOSEOUT.md`) — the owner reversed
+  D-03 after a live A/B/C render comparison: the red family (`danger`/`attention`/`error`) is now
+  three pairwise-distinct gentle-clues functions (`danger`/`memo`/`error`) instead of one collapsed
+  `error()` call. ADM-04's sign-off was re-taken against a new seven-box artifact and remains MET
+  (owner's verbatim `"approved"`, `39-ADM04-SIGNOFF.md`'s amendment). The full-corpus `-b typstpdf`
+  gate was re-run for real (tag `v9.1.0`, PASSED — not a skip); full suite 774 passed / 1 skipped;
+  milestone invariants held (no new runtime dependency, `@preview` count stays 4, gentle-clues pin
+  unchanged at `1.3.1` across all four lockstep sites).
+
 - **NixOS worktree provisioning: the `ruff` shim alone is NOT sufficient** (measured during Phase
   39). A fresh worktree's `uv sync`-installed `.venv/bin/uv` is *also* a generic-linux ELF that
   fails under the NixOS stub loader (exit 127), and it shadows the correct Nix-store `uv` on `PATH`
