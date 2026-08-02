@@ -276,6 +276,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 - [x] **Phase 38: Structural Indentation + Info Fields** - Description bodies indent inside their signature, nesting accumulates so class membership is visible, and field lists follow the same single constant (completed 2026-08-02)
 - [x] **Phase 39: Admonition Taxonomy + Rubric Nesting** - Admonitions land in the reference's four colour buckets with the generic directive styled and titled; a rubric inherits its container's indent (completed 2026-08-02)
 - [x] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back (completed 2026-08-02)
+- [ ] **Phase 40.1: Citation Degradation Hardening (INSERTED)** - The three graceful-degradation gaps `40-REVIEW.md` found are closed with recorded-RED fixtures, so a citing-site topology the Phase 40 fixture never builds degrades instead of emitting a dangling `link()`
 - [ ] **Phase 41: v0.7.0 Release Automation + Release Prep** - The GitHub Release body comes from the curated CHANGELOG section, and the v0.7.0 tree is prepared and proven green with no irreversible publish
 
 ## Phase Details
@@ -620,6 +621,60 @@ Plans:
 
 - [x] 40-04-PLAN.md — close-out: the full-corpus `-b typstpdf` gate actually run green (a skip is not a pass), both REDs mapped selector-by-selector to their GREENs, the stale Phase-40 forward reference in `test_desc_break_marker_buffer_swap_gate.py` settled, and `40-NONREGRESSION.md`
 
+### Phase 40.1: Citation Degradation Hardening (INSERTED)
+
+**Goal**: The citation feature's own graceful-degradation contract is applied consistently, so a
+citing-site topology Phase 40's fixture never constructs degrades quietly instead of emitting a
+`link()` to a label nothing ever attaches — which is a Typst compile **fatal**, not a cosmetic
+defect. The three gaps `40-REVIEW.md` records (WR-01, WR-02, WR-03) are closed under milestone
+invariant #4's RED-before-fix discipline. Inserted 2026-08-02 during Phase 41's discussion: closing
+them inside the release-prep phase would have meant that phase enlarging the very proof obligation
+its own SC#4 discharges, on the translator, immediately before a release.
+**Depends on**: Phase 40 (the code the warnings describe)
+**Requirements**: None new — hardening of the code CIT-01 / CIT-03 / CIT-04 already delivered.
+Closes `40-REVIEW.md` WR-01, WR-02, WR-03.
+**Success Criteria** (what must be TRUE):
+
+  1. **WR-01** — `_find_citing_reference` returning `None` is treated as "skip", not "eligible".
+     `visit_citation`'s backref loop (`typsphinx/translator.py:2856-2862` as reviewed) no longer
+     appends a namespaced label for a `refid` whose citing `nodes.reference` could not be located,
+     so the emitted back-reference marker can never target a label nothing attaches. The assertion
+     is recorded RED against the unfixed translator before the fix lands.
+
+  2. **WR-02** — `_citation_run_neighbour` treats an ids-less `nodes.target` as non-breaking, the
+     same way it already treats `comment` and `system_message`. A run of citation definitions
+     separated by such a target still emits **one** `grid(columns: (auto, 1fr))` rather than two
+     independently-aligned grids, asserted structurally on the emitted `.typ` and recorded RED
+     first (`typsphinx/translator.py:2644-2683` as reviewed).
+
+  3. **WR-03** — the D-14 eligibility answer is derived once, so `visit_reference` and
+     `_citing_reference_has_own_anchor` cannot silently drift apart. Proven by a case where the two
+     conditions `visit_reference` checks beyond `next_is_target` (`node.get("ids")` and
+     `opens_wrapper`) are false, which today would make `_citing_reference_has_own_anchor` report
+     "anchor exists" for a reference that was never anchored — WR-01's dangling-label hazard by a
+     second route.
+
+  4. **The RED for each of the three is real and its provenance is recorded.** `40-REVIEW.md`
+     states all three are structurally provable but **none was reproduced against a real
+     `sphinx-build`**. This phase first establishes, per warning, whether a real Sphinx build can
+     construct the topology; where it cannot, the RED is taken against a doctree assembled directly
+     for the translator (the `tests/test_translator.py` style) and that substitution is recorded
+     with its reason, never left implicit. Milestone invariant #4 is satisfied, not waived.
+
+  5. **Non-regression:** Phase 40's citation render-gate module, the full suite, the lint/type trio,
+     and the full-corpus `-b typstpdf` gate are all green, and the `.typ` emitted for Phase 40's own
+     citation fixture is **byte-identical** — measured in `40-REVIEW.md`, that fixture reaches none
+     of these three branches, so byte-identity there is the control proving the change is confined
+     to the degradation paths.
+**Plans**: 4 plans
+
+Plans:
+
+- [ ] 40.1-01-PLAN.md — WR-01: fail-closed backref filter, the new D-02 test module + fixture directory, the SC#5 pre-phase baseline, and a real-`sphinx-build` RED (`40.1-GATE-EVIDENCE-01.md`)
+- [ ] 40.1-02-PLAN.md — WR-02: the assembled-doctree harness and a structural `count("grid(")` RED, then the one-disjunct run-adjacency fix (`40.1-GATE-EVIDENCE-02.md`)
+- [ ] 40.1-03-PLAN.md — WR-03: the D-08 Route-B assembled RED reaching the classic compile fatal, then D-05/D-06/D-07's shared eligibility predicate replacing both derivation sites (`40.1-GATE-EVIDENCE-03.md`)
+- [ ] 40.1-04-PLAN.md — close-out: SC#5's four gates plus the full-corpus `-b typstpdf` gate observed green, byte-identity proven by sha256, and the change-site → RED manifest Phase 41's SC#4 sweep consumes (`40.1-NONREGRESSION.md`)
+
 ### Phase 41: v0.7.0 Release Automation + Release Prep
 
 **Goal**: The release surface matches the work — a reader of the GitHub Release sees the curated
@@ -659,9 +714,11 @@ proved)
 **Execution Order:**
 Active milestone phases execute in numeric order (decimal insertions between their surrounding
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already
-proven by the preceding phases' gates. For v0.7.0: 36 → 37 → 38 → 39 → 40 → 41. Phase 40
+proven by the preceding phases' gates. For v0.7.0: 36 → 37 → 38 → 39 → 40 → **40.1** → 41. Phase 40
 (citations) is structurally independent and could be resequenced anywhere after Phase 36 if it
-becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
+becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phase 40.1 was inserted
+2026-08-02 and its position is **not** negotiable relative to 41: Phase 41's SC#4 sweep must cover
+40.1's node-handler changes, so 40.1 lands first.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -712,6 +769,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
