@@ -59,9 +59,19 @@ auto_covered: 23
 ## Gaps
 
 - gap_id: G-39-1
-  truth: "`.. danger::` renders in gentle-clues' own `danger()` bucket (peach `#fe640b`, lightning icon), distinct from `error()`"
+  truth: >
+    The red-family types stop being one collapsed function. `.. danger::` renders in
+    gentle-clues' own `danger()` (peach `#fe640b` + `danger.svg` lightning);
+    `.. attention::` renders in `memo()` (maroon `#e64553` + `excl.svg` exclamation);
+    `.. error::` stays `error()` (red `#d20f39` + `crossmark.svg`). Three distinct
+    clue functions where the phase shipped one.
   status: failed
-  reason: "User reported: 「うわ、デンジャーはgentle-clueのデンジャーに振った方が良かったかも」→ 「Bでもっかい再構成しないとまずいな」. Owner chose option B after being shown the live A/B/C render comparison and the ADM-02 / D-03 conflict below."
+  reason: >
+    User reported: 「うわ、デンジャーはgentle-clueのデンジャーに振った方が良かったかも」
+    → 「Bでもっかい再構成しないとまずいな」 → 「Attentionはgentle-cleuのmemoにすっか」.
+    Owner chose option B for `danger` after being shown the live A/B/C render
+    comparison and the ADM-02 / D-03 conflict, then extended it to `attention` →
+    `memo()` after being shown Sphinx's own per-type icon assignment.
   severity: major
   test: 1
   root_cause: >
@@ -69,28 +79,35 @@ auto_covered: 23
     39-CONTEXT.md's D-03 ("`danger` folds into `error` too") collapsed
     `attention`, `danger` and `error` onto a single `error()` call so that
     ADM-02's phrase "the same bucket as `danger`/`error` (red)" would be
-    well-defined. `typsphinx/translator.py:4517` (`visit_danger`) therefore
-    calls `_visit_admonition(node, "error")`.
+    well-defined. `typsphinx/translator.py:4517` (`visit_danger`) and `:4525`
+    (`visit_attention`) therefore both call `_visit_admonition(node, "error")`.
+    The owner's new taxonomy keeps all three in the red FAMILY but gives each its
+    own clue function, which is what Sphinx itself does on the icon axis.
   measured_context:
-    - "gentle-clues 1.3.1 theme.typ: `danger` accent `#fe640b` (peach) + `danger.svg` (lightning); `error` accent `#d20f39` (red) + `crossmark.svg`."
-    - "Sphinx's own sphinx.sty:853-860 puts attention/danger/error in ONE colour bucket (`sphinx-error-title-*`, hsl(0,37%)) but gives each a DISTINCT icon (sphinx.sty:933-943 — attention `triangle-exclamation`, danger `radiation`, error `circle-xmark`). Option B diverges from Sphinx on colour; option C (rejected by owner) would have matched Sphinx on both axes."
-    - "Live A/B/C render comparison produced during this UAT and shown to the owner."
+    - "gentle-clues 1.3.1 lib/theme.typ: `danger` accent `#fe640b` (peach) + `danger.svg`; `error` accent `#d20f39` (red) + `crossmark.svg`; `memo` accent `#e64553` (maroon) + `excl.svg`. Verified by reading the installed package at ~/.cache/typst/packages/preview/gentle-clues/1.3.1."
+    - "Rendered live during UAT: `memo`'s maroon title band is visually near-identical to `error`'s red band; the two separate almost entirely on icon shape (! vs ×). So attention stays in the red family — ADM-02's 'not the orange warning bucket' intent survives — while gaining a distinct glyph."
+    - "Sphinx's own sphinx.sty:853-860 puts attention/danger/error in ONE colour bucket (`sphinx-error-title-*`, hsl(0,37%)) but sphinx.sty:933-943 gives each a DISTINCT icon (attention `triangle-exclamation`, danger `radiation`, error `circle-xmark`). The owner's taxonomy matches Sphinx on the icon axis and diverges on the colour axis (Sphinx: one red; owner: three red-family accents)."
+    - "gentle-clues supplies its own linguify titles for these ids (`memo` = \"Memorize\" in en, no `ja` entry → falls back to en; `danger` = \"Danger\"/「危険」). The `custom_title` path from `sphinx.locale.admonitionlabels` must keep overriding all of them, or `.. attention::` would render as \"Memorize\"."
   artifacts:
     - path: "typsphinx/translator.py"
-      issue: "`visit_danger` (line 4517) routes to `_visit_admonition(node, \"error\")`; must route to `\"danger\"`"
+      issue: "`visit_danger` (line 4517) and `visit_attention` (line 4525) both route to `_visit_admonition(node, \"error\")`; must route to `\"danger\"` and `\"memo\"` respectively"
+    - path: "typsphinx/writer.py:158, typsphinx/template_engine.py:615, typsphinx/templates/base.typ:19"
+      issue: "CHECKED during UAT — all three import sites use the glob form `#import \"@preview/gentle-clues:1.3.1\": *`, so `memo` and `danger` are already in scope. No import change needed; no @preview version bump, so tests/test_preview_version_sync.py is unaffected."
     - path: ".planning/REQUIREMENTS.md"
-      issue: "ADM-02's wording — \"`attention` renders in the same bucket as `danger`/`error` (red)\" — presupposes danger is red. Under B, danger is peach. The requirement's text must be restated (e.g. \"`attention` renders in the red `error` bucket, not the orange warning bucket\") or ADM-02 becomes self-contradictory."
+      issue: "ADM-02's wording — \"`attention` renders in the same bucket as `danger`/`error` (red)\" — presupposes a single red bucket. Under the new taxonomy all three are distinct functions with distinct accents, so the requirement is self-contradictory as written. Restate it around the intent (attention leaves the orange warning bucket for the red family) rather than around function identity. ADM-01's preamble (\"four colour groups, not ten independent styles\") also needs a note that the red group is deliberately sub-divided."
     - path: ".planning/phases/39-admonition-taxonomy-rubric-nesting/39-CONTEXT.md"
       issue: "D-03 and the resulting bucket table (lines 78, 87) record the folded routing as the locked contract; both need a recorded reversal, not a silent edit."
     - path: "tests/test_admonition_bucket_render_gate.py"
-      issue: "`test_danger_routes_to_error_bucket` asserts the old routing; also `test_control_buckets_never_move` and the base-clue-absence guard reference the folded set"
+      issue: "`test_danger_routes_to_error_bucket` and `test_attention_routes_to_error_bucket` assert the folded routing; `test_control_buckets_never_move` and `test_no_real_admonition_type_ever_uses_base_clue` reference the folded set; 39-05/D2's grep guard (`_visit_admonition([^)]*\"danger\"` returns 0) now inverts — it must assert exactly one danger call site, not zero"
     - path: "tests/test_admonitions.py"
-      issue: "`test_danger_converts_to_error` asserts `error(` for danger"
+      issue: "`test_danger_converts_to_error` and `test_attention_converts_to_error` assert `error(` for both types"
     - path: "tests/test_pdf_render_gate.py"
-      issue: "`TestAdmonitionPdfRenderGate::test_admonitionbuckettitlegate` asserts danger's compiled-PDF bucket"
+      issue: "`TestAdmonitionPdfRenderGate::test_admonitionbuckettitlegate` asserts danger's and attention's compiled-PDF bucket"
+    - path: "tests/fixtures/admonition_greyscale_probe/"
+      issue: "The one-page probe carries note/tip/seealso/warning/error/attention. With attention and danger now distinct, the probe should cover all three red-family types so the re-taken ADM-04 render actually evidences the new taxonomy. Watch the one-page constraint (39-RESEARCH.md Pitfall 4 — typst-py PNG export needs a page-number template above one page)."
   missing:
-    - "Route `visit_danger` to the `danger` clue function"
-    - "Confirm the catalog title still wins over gentle-clues' own `danger` default (linguify would otherwise supply \"Danger\"/「危険」 — the `custom_title` path must keep overriding it, and the `ja` catalog value 「危険」 must still be what is emitted)"
-    - "Restate ADM-02 so it no longer asserts danger is red; record the D-03 reversal in 39-CONTEXT.md"
-    - "Migrate the danger-specific expected strings in the three test files above; re-run the full-corpus `-b typstpdf` gate"
-    - "Re-render 39-ADM04-GREYSCALE.png from post-change code and re-take the ADM-04 sign-off — the greyscale artifact currently on record shows danger inside the red bucket"
+    - "Route `visit_danger` → `\"danger\"` and `visit_attention` → `\"memo\"`"
+    - "Confirm the `sphinx.locale.admonitionlabels` `custom_title` path still wins over gentle-clues' own linguify defaults for BOTH new ids — otherwise `.. attention::` renders as \"Memorize\" (memo has no `ja` entry and falls back to en). The `ja` catalog values 「注意」/「危険」 must still be what is emitted."
+    - "Restate ADM-02 (and note the red-group sub-division under ADM-01's preamble) so neither asserts a single collapsed red bucket; record the D-03 reversal in 39-CONTEXT.md"
+    - "Migrate the danger/attention expected strings in the three test files above; invert 39-05/D2's zero-call-site grep guard; re-run the full-corpus `-b typstpdf` gate"
+    - "Extend the greyscale probe fixture to cover attention/danger/error separately, re-render 39-ADM04-GREYSCALE.png from post-change code, and re-take the ADM-04 sign-off — the artifact currently on record shows all three folded into the red bucket. The new taxonomy is expected to IMPROVE the greyscale verdict (three distinct glyphs: ! / ⚡ / ×), which was the owner's original complaint."
