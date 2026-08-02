@@ -24,26 +24,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 40.1 — citation-degradation-hardening
+**Current focus:** Phase 41 — v0-7-0-release-automation-release-prep
 
 ## Current Position
 
 Phase: 41 — v0.7.0 Release Automation + Release Prep
-Plans: 0/4 — planned 2026-08-02. Four plans in four waves, strictly sequential (every plan touches
-`typsphinx/translator.py` and the one shared test module, so `files_modified` overlap serializes
-them — which is also what makes RED-before-fix provable). Context gathered 2026-08-02
-(`40.1-CONTEXT.md`, 8 decisions); plan-checker passed with no blockers and no warnings.
+Plans: 0/TBD — not yet planned. Context gathered 2026-08-02 (`41-CONTEXT.md`, 17 decisions);
+`/gsd-plan-phase 41` is the next step. This is the milestone's last phase.
 Status: Ready to plan
 Last activity: 2026-08-02 — Phase 40.1 complete, transitioned to Phase 41
 
-**Execution order note:** Phase 41's context is already gathered (`41-CONTEXT.md`, 17 decisions,
-2026-08-02) and it stays the milestone's last phase, but **Phase 40.1 executes first**. Phase 41's
-SC#4 proves "every node-handler change carries its recorded-RED GATE-01 fixture" over the full
-milestone diff, and per `41-CONTEXT.md` D-11 that sweep must cover Phase 40.1's translator changes —
-so 40.1 cannot land after it. Phase 40.1's own open question, recorded in the roadmap as SC#4: all
-three warnings are structurally provable but none was reproduced against a real `sphinx-build`, so
-each RED's provenance (real build vs. a doctree assembled directly for the translator) must be
-established and recorded per warning, not assumed.
+**Execution order note (resolved 2026-08-02):** Phase 41's SC#4 proves "every node-handler change
+carries its recorded-RED GATE-01 fixture" over the full milestone diff, and per `41-CONTEXT.md` D-11
+that sweep must cover Phase 40.1's translator changes — so 40.1 had to land first, and it has
+(complete 2026-08-02, verification `passed` 5/5). Phase 40.1's own open question, recorded in the
+roadmap as SC#4, is discharged: each RED's provenance is established and recorded per warning rather
+than assumed — WR-01 against a real `sphinx-build`, WR-02 and WR-03 against directly-assembled
+doctrees with the exhausted real-build attempt lists and the reasons each shape is unconstructible.
+**What Phase 41's SC#4 sweep should read is `40.1-NONREGRESSION.md` §4** — a change-site → RED
+manifest (evidence file, RED form, provenance, pytest selector, recording commit per row), written
+for exactly that purpose.
 
 **Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
 conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
