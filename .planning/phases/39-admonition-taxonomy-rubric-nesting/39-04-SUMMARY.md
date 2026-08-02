@@ -167,6 +167,17 @@ None — no external service configuration required. `pillow` was already approv
 - No blockers. `pillow==12.3.0` is locked in `uv.lock`; any worktree branching from this wave's commits gets a manifest and lock that agree (re-sync still required per the standing worktree-isolation convention).
 - The current render (built against pre-fix code, not committed) shows the pre-phase bucket assignments (`seealso` → `info(`, `attention` → `warning(`), confirming the pipeline works but is NOT yet the ADM-04 evidence — exactly as this plan's scope intends.
 
+## Self-Check: PASSED
+
+All 8 claimed files verified present on disk (`pyproject.toml`, `uv.lock`,
+`tests/fixtures/admonition_greyscale_probe/conf.py`,
+`tests/fixtures/admonition_greyscale_probe/index.rst`,
+`tests/fixtures/admonition_greyscale_probe/_templates/minimal.typ`,
+`scripts/render_admonition_greyscale.py`,
+`tests/test_admonition_greyscale_pipeline.py`, this SUMMARY.md). All 3 task
+commit hashes (`a5be0b9`, `3cdd6b3`) plus the SUMMARY commit (`bdb1ec2`)
+verified present in `git log --oneline`.
+
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
