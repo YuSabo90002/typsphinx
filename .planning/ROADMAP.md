@@ -690,7 +690,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
-| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete   | 2026-08-02 |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 

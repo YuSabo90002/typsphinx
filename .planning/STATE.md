@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 39
-current_phase_name: Admonition Taxonomy + Rubric Nesting (gap closure G-39-1)
-status: executing
-stopped_at: Phase 39 gap closure G-39-1 — waves 5-6 complete (39-09..39-11); waves 7-8 remaining
-last_updated: "2026-08-02T05:17:46.730Z"
+current_phase: 40
+current_phase_name: Citations — Full Round Trip
+status: planning
+stopped_at: Phase 39 complete and verified (13/13 plans, 5/5 must-haves; gap G-39-1 closed)
+last_updated: "2026-08-02T06:44:58.836Z"
 last_activity: 2026-08-02
-last_activity_desc: G-39-1 waves 5-6 executed — red family split into danger/memo/error, full suite green (774 passed)
+last_activity_desc: Phase 39 complete, transitioned to Phase 40
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 35
-  completed_plans: 30
-  percent: 50
+  completed_plans: 35
+  percent: 67
 ---
 
 # Project State
@@ -24,22 +24,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 39 gap closure — G-39-1 (red-family admonition taxonomy sub-division)
+**Current focus:** Phase 40 — Citations: Full Round Trip (not yet planned)
 
 ## Current Position
 
-Phase: 39 — Admonition Taxonomy + Rubric Nesting (re-opened for gap closure) — EXECUTING
-Plans: 11/13 — 39-01..39-08 shipped and verified; 39-09..39-11 complete (G-39-1 waves 5-6); 39-12 (ADM-04 re-sign-off, blocking checkpoint) and 39-13 (gap close-out) remaining
-Status: Executing waves 7-8
-Last activity: 2026-08-02 — G-39-1 routing change landed; full suite 774 passed / 1 skipped / 0 failed
+Phase: 40 — Citations — Full Round Trip
+Plans: 0/TBD — not yet planned. Phase 39 closed at 13/13 with gap G-39-1 resolved.
+Status: Ready to plan
+Last activity: 2026-08-02 — Phase 39 complete, transitioned to Phase 40
 
-**Why Phase 39 re-opened:** `39-VERIFICATION.md` passed 5/5, but conversational UAT afterwards
-surfaced `G-39-1` — the owner reversed locked decision D-03 and split the collapsed red admonition
-bucket into three distinct gentle-clues functions (`danger()` / `memo()` / `error()`). The
-closed-phase gate (#3569) was explicitly overridden by the owner on 2026-08-02 to plan this gap
-closure. Phase 40 (Citations) is deferred until G-39-1 closes.
+**Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
+conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
+the collapsed red admonition bucket into three distinct gentle-clues functions (`danger()` /
+`memo()` / `error()`). The closed-phase gate (#3569) was explicitly overridden by the owner on
+2026-08-02 to plan this gap closure. Plans 39-09..39-13 closed it: routing landed, ADM-04
+re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
+`39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
 
-Progress: [██████████░░░░░░░░░░] 50% (3/6 phases — 39 re-opened for gap closure)
+Progress: [█████████████░░░░░░░] 67% (4/6 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
