@@ -669,10 +669,20 @@ Closes `40-REVIEW.md` WR-01, WR-02, WR-03.
 **Plans**: 4 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 40.1-01-PLAN.md — WR-01: fail-closed backref filter, the new D-02 test module + fixture directory, the SC#5 pre-phase baseline, and a real-`sphinx-build` RED (`40.1-GATE-EVIDENCE-01.md`)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 40.1-02-PLAN.md — WR-02: the assembled-doctree harness and a structural `count("grid(")` RED, then the one-disjunct run-adjacency fix (`40.1-GATE-EVIDENCE-02.md`)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 40.1-03-PLAN.md — WR-03: the D-08 Route-B assembled RED reaching the classic compile fatal, then D-05/D-06/D-07's shared eligibility predicate replacing both derivation sites (`40.1-GATE-EVIDENCE-03.md`)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 40.1-04-PLAN.md — close-out: SC#5's four gates plus the full-corpus `-b typstpdf` gate observed green, byte-identity proven by sha256, and the change-site → RED manifest Phase 41's SC#4 sweep consumes (`40.1-NONREGRESSION.md`)
 
 ### Phase 41: v0.7.0 Release Automation + Release Prep
