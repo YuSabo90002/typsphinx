@@ -4439,8 +4439,12 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_seealso(self, node: addnodes.seealso) -> None:
-        """Visit a seealso admonition (converts to #info(title: "See Also")[])."""
-        self._visit_admonition(node, "info", custom_title="See Also")
+        """Visit a seealso admonition (converts to #tip[]).
+
+        D-02: seealso joins the success bucket (the same `tip` function
+        `visit_hint`/`visit_tip` already pass), not the note bucket.
+        """
+        self._visit_admonition(node, "tip")
 
     def depart_seealso(self, node: addnodes.seealso) -> None:
         """Depart a seealso admonition."""
@@ -4449,8 +4453,8 @@ class TypstTranslator(SphinxTranslator):
     def visit_hint(self, node: nodes.hint) -> None:
         """Visit a hint admonition (converts to #tip[]).
 
-        gentle-clues 1.3.1 has no dedicated `hint` clue; `tip` is the
-        verified closest semantic analog (see RESEARCH.md D-06 mapping).
+        D-02: hint is in the success bucket (`tip`), alongside `tip` itself
+        and (as of this phase) `seealso`.
         """
         self._visit_admonition(node, "tip")
 
@@ -4499,49 +4503,51 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_danger(self, node: nodes.danger) -> None:
-        """Visit a danger admonition (converts to #danger[])."""
-        self._visit_admonition(node, "danger")
+        """Visit a danger admonition (converts to #error[]).
+
+        D-03: danger folds into the single error-bucket function, the same
+        one `visit_error` passes -- the red bucket is one function post-phase.
+        """
+        self._visit_admonition(node, "error")
 
     def depart_danger(self, node: nodes.danger) -> None:
         """Depart a danger admonition."""
         self._depart_admonition()
 
     def visit_attention(self, node: nodes.attention) -> None:
-        """Visit an attention admonition (converts to #warning[]).
+        """Visit an attention admonition (converts to #error[]).
 
-        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is
-        the verified analog, consistent with the existing `caution`/
-        `important` → `warning` precedent (see RESEARCH.md D-06 mapping).
+        D-03: attention joins the error bucket, the same function
+        `visit_error` passes, not the warning bucket.
         """
-        self._visit_admonition(node, "warning")
+        self._visit_admonition(node, "error")
 
     def depart_attention(self, node: nodes.attention) -> None:
         """Depart an attention admonition."""
         self._depart_admonition()
 
     def visit_admonition(self, node: nodes.admonition) -> None:
-        """Visit a generic ``.. admonition::`` (converts to #clue[]).
+        """Visit a generic ``.. admonition::`` (converts to #notify[]).
 
-        Maps to the base gentle-clues `clue` function (unstyled — no
-        predefined icon/accent-color), since the generic directive always
-        supplies its own directive-derived title (see RESEARCH.md D-06
-        mapping). The title flows through the existing admonition-aware
+        D-09: maps to the gentle-clues `notify` function (accent `#1e66f5`),
+        since the generic directive always supplies its own directive-
+        derived title. The title flows through the existing admonition-aware
         `visit_title`/`depart_title` buffer-swap automatically; no
         `custom_title` is passed here.
         """
-        self._visit_admonition(node, "clue")
+        self._visit_admonition(node, "notify")
 
     def depart_admonition(self, node: nodes.admonition) -> None:
         """Depart a generic admonition."""
         self._depart_admonition()
 
     def visit_topic(self, node: nodes.topic) -> None:
-        """Visit a topic node (BLK-02/D-01/D-02/D-05).
+        """Visit a topic node (BLK-02/D-01/D-02/D-05/D-10).
 
-        A `.. topic::` renders as a titled `clue` box, reusing the same
-        admonition helper as `.. admonition::` (D-01) -- the widened
-        visit_title/depart_title buffer-swap (D-02) is what makes the
-        title actually get consumed by _depart_admonition.
+        A non-contents `.. topic::` renders as a titled `abstract` box
+        (D-10), reusing the same admonition helper as `.. admonition::`
+        (D-01) -- the widened visit_title/depart_title buffer-swap (D-02) is
+        what makes the title actually get consumed by _depart_admonition.
 
         A `.. contents::` topic (carrying the `contents` class) is instead
         box-less pass-through (D-05): its title is rendered as a bold label
@@ -4556,7 +4562,7 @@ class TypstTranslator(SphinxTranslator):
             # a propagated target's id here too (no ids -> no-op).
             self._emit_id_anchors(node)
             return
-        self._visit_admonition(node, "clue")
+        self._visit_admonition(node, "abstract")
 
     def depart_topic(self, node: nodes.topic) -> None:
         """Depart a topic node (BLK-02/D-01/D-02/D-05)."""
