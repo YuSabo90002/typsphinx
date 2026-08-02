@@ -209,3 +209,12 @@ None - no external service configuration required.
 ---
 *Phase: 39-admonition-taxonomy-rubric-nesting*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: `typsphinx/translator.py`
+- FOUND: `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`
+- FOUND: `.planning/phases/39-admonition-taxonomy-rubric-nesting/39-06-SUMMARY.md`
+- FOUND commit `db70c2a` (Task 1: rubric save-slot rename)
+- FOUND commit `5a45b20` (Task 2: separator double-count guard)
+- FOUND commit `d5205d4` (Task 3: golden regeneration)
