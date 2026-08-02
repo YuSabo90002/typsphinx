@@ -5808,27 +5808,55 @@ class TypstTranslator(SphinxTranslator):
         Rubrics are rendered as subsection headings using strong({}) wrapper.
 
         ADM-06: this handler owns its own emission -- it no longer delegates
-        to visit_strong via a dummy strong() node. The block below is a
-        deliberate verbatim copy of visit_strong's body (D-01: triplication
-        is the decision, not an accident to be refactored away). Phase 39
-        (the phase that owns rubric indentation and the admonition taxonomy)
-        is the phase that will make this diverge from visit_strong's body;
-        until then it is intentionally identical. The `_strong_was_*`
-        attribute names are shared with visit_strong/depart_strong on
-        purpose (D-02). Known, pre-existing, and deliberately preserved here:
-        when a rubric containing a propagated target sits inside a list item,
-        the leading separator check below fires a second time against a flag
-        `_emit_id_anchors` already set, on top of the unconditional newline
-        append two lines above, producing two blank lines between the anchor
-        and this opening wrapper -- a cosmetic wart, not fixed in this plan
-        (fixing it changes emitted bytes; Phase 39 owns the repair).
+        to visit_strong via a dummy strong() node. The block below started as
+        a verbatim copy of visit_strong's body (D-01: triplication is the
+        decision, not an accident to be refactored away), and Phase 39 was
+        named, at the time that copy was made, as the phase that would make
+        it diverge.
+
+        Phase 39 (D-13) has now made that divergence real for the save
+        slots: this handler's three save slots are ``_rubric_was_*``, not
+        the ``_strong_was_*`` names visit_strong/depart_strong and
+        visit_desc_signature/depart_desc_signature still share between
+        themselves (that pair's own sharing stays deliberate and unedited,
+        D-02). Before this change, a nested inline ``strong`` firing while
+        THIS rubric's state was saved under the shared name would silently
+        clobber it -- `depart_strong`'s own `delattr` calls would delete the
+        keys `depart_rubric` still needed to restore, leaving
+        `self.in_list_item` stuck `True` for the rest of the document. That
+        can no longer happen: the two save sites no longer write the same
+        `self.__dict__` keys.
+
+        This commit (D-11) also closes the double-blank-line wart the
+        docstring previously described as deliberately preserved: when a
+        rubric carries a propagated target (anchored via
+        ``_emit_id_anchors`` immediately below), that emitter's own trailing
+        newline is already the separator this rubric needs -- both the
+        unconditional newline append and the leading list-item separator
+        check that used to follow it are now suppressed for an anchored
+        rubric, so it no longer double- (or triple-, via the re-armed
+        list-item flag) counts a separator ``_emit_id_anchors`` already
+        supplied. An unanchored rubric (no propagated target) takes neither
+        branch differently and keeps today's byte shape exactly.
         """
         # A propagated explicit target (``.. _t:`` immediately before a
         # ``.. rubric::``) lands its id on this rubric node; anchor it so a
         # same-/cross-document link(<id>, ...) resolves (no ids -> no-op).
+        # D-11: measure whether _emit_id_anchors actually emitted anything
+        # (it is a no-op for an id-less node) so the guards below can tell
+        # whether it already supplied this rubric's leading separator.
+        body_len_before_anchors = len(self.body)
         self._emit_id_anchors(node)
-        # Add newline before rubric
-        self.body.append("\n")
+        anchors_were_emitted = len(self.body) > body_len_before_anchors
+
+        # D-11: _emit_id_anchors's own trailing "\n" (see its tail, above)
+        # is this rubric's fair, sufficient separator share when it just
+        # anchored a propagated target -- do not add a second one on top of
+        # it. A rubric that anchored nothing owes exactly what it owed
+        # before this guard existed.
+        if not anchors_were_emitted:
+            # Add newline before rubric
+            self.body.append("\n")
 
         # --- begin verbatim copy of visit_strong's body (D-01) ---
         # Add separator if in paragraph and not first node
@@ -5838,8 +5866,20 @@ class TypstTranslator(SphinxTranslator):
         # term / link body / desc parameter), + separate it and suppress that
         # context for the strong body (content mode, where an outer '+' would
         # leak). Otherwise fall back to the list-item newline separator.
+        #
+        # D-11: when _emit_id_anchors just anchored a propagated target, its
+        # tail re-arms ``list_item_needs_separator`` as a side effect of its
+        # OWN bookkeeping (correct for every OTHER body-element handler that
+        # calls it) -- without the ``not anchors_were_emitted`` guard this
+        # branch would double-count that flag on top of the anchor's own
+        # trailing newline, the second half of the same wart the guard above
+        # closes.
         if not self._enter_inline_concat_element():
-            if self.in_list_item and self.list_item_needs_separator:
+            if (
+                not anchors_were_emitted
+                and self.in_list_item
+                and self.list_item_needs_separator
+            ):
                 self.add_text("\n")
 
         # Temporarily disable paragraph state for children
@@ -5861,10 +5901,16 @@ class TypstTranslator(SphinxTranslator):
         # Use strong({}) function with content block
         self.add_text(f"{prefix}strong({{")
 
-        # Store state to restore in depart
-        self._strong_was_in_paragraph = was_in_paragraph
-        self._strong_was_in_list_item = was_in_list_item
-        self._strong_was_list_item_needs_separator = was_list_item_needs_separator
+        # Store state to restore in depart. D-13: these are the rubric's OWN
+        # slots (``_rubric_was_*``), no longer the ``_strong_was_*`` names
+        # visit_strong/depart_strong (and visit_desc_signature/
+        # depart_desc_signature) still share between themselves -- a nested
+        # inline ``strong`` firing while this rubric's state is saved here
+        # can no longer overwrite it and have depart_strong's own delattr
+        # calls delete it out from under depart_rubric.
+        self._rubric_was_in_paragraph = was_in_paragraph
+        self._rubric_was_in_list_item = was_in_list_item
+        self._rubric_was_list_item_needs_separator = was_list_item_needs_separator
         # --- end verbatim copy of visit_strong's body ---
 
     def depart_rubric(self, node: nodes.rubric) -> None:
@@ -5881,33 +5927,35 @@ class TypstTranslator(SphinxTranslator):
         verified harmless at true end-of-document (nothing follows the
         trailing linebreak()): no compile error, no visible artifact.
 
-        ADM-06: this handler owns its own emission -- the block below is a
-        deliberate verbatim copy of depart_strong's body (D-01) rather than
-        a delegation to a dummy strong() node. Phase 39 owns making it
-        diverge. The `_strong_was_*` attribute names are shared with
-        depart_strong on purpose (D-02); see visit_rubric's docstring for
-        the deferred-repair note.
+        ADM-06: this handler owns its own emission -- the block below started
+        as a verbatim copy of depart_strong's body (D-01) rather than a
+        delegation to a dummy strong() node. Phase 39 (D-13) has now made it
+        diverge: it restores from its own ``_rubric_was_*`` slots, not the
+        ``_strong_was_*`` names depart_strong (and depart_desc_signature)
+        still share between themselves (that pair's own sharing stays
+        deliberate and unedited, D-02) -- see visit_rubric's docstring for
+        the full rationale.
         """
         # --- begin verbatim copy of depart_strong's body (D-01) ---
         # Close strong({}) function
         self.add_text("})")
 
         # Restore paragraph state
-        if hasattr(self, "_strong_was_in_paragraph"):
-            self.in_paragraph = self._strong_was_in_paragraph
-            delattr(self, "_strong_was_in_paragraph")
+        if hasattr(self, "_rubric_was_in_paragraph"):
+            self.in_paragraph = self._rubric_was_in_paragraph
+            delattr(self, "_rubric_was_in_paragraph")
 
         # Restore in_list_item state
-        if hasattr(self, "_strong_was_in_list_item"):
-            self.in_list_item = self._strong_was_in_list_item
-            delattr(self, "_strong_was_in_list_item")
+        if hasattr(self, "_rubric_was_in_list_item"):
+            self.in_list_item = self._rubric_was_in_list_item
+            delattr(self, "_rubric_was_in_list_item")
 
         # Restore and mark that next element needs separator
-        if hasattr(self, "_strong_was_list_item_needs_separator"):
+        if hasattr(self, "_rubric_was_list_item_needs_separator"):
             # Restore previous state, then mark next element needs separator
             if self.in_list_item:
                 self.list_item_needs_separator = True
-            delattr(self, "_strong_was_list_item_needs_separator")
+            delattr(self, "_rubric_was_list_item_needs_separator")
 
         # Restore the code-mode concat context suppressed for the strong body
         # and mark this strong as a sibling so the next term/link/desc
