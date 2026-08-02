@@ -1,8 +1,8 @@
 """
 Phase 40.1 (Citation Degradation Hardening) degradation gate: WR-01
-(this plan). WR-02 / WR-03 land in plans ``40.1-02`` / ``40.1-03`` and are
-NOT covered by this module's `test_wr01_*` functions -- see
-``40.1-CONTEXT.md``'s D-03 warning-to-evidence-file mapping.
+(plan ``40.1-01``) and WR-02 (this plan). WR-03 lands in plan ``40.1-03``
+and is NOT covered by this module's `test_wr01_*`/`test_wr02_*` functions --
+see ``40.1-CONTEXT.md``'s D-03 warning-to-evidence-file mapping.
 
 WR-01 is the milestone's reclaimed classic "does not compile" RED (per
 ``40.1-CONTEXT.md`` D-04): pre-fix, ``visit_citation``'s backref loop
@@ -37,10 +37,37 @@ Sphinx's OWN resolved doctree (``env.get_and_resolve_doctree``) -- never
 guessed or transcribed (the "never a hard-coded label string" corollary,
 ``40.1-PATTERNS.md``).
 
-Requirements: WR-01 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#1).
+WR-02 (this plan) is a SILENT structural misalignment, not a compile fatal
+(D-04): ``_citation_run_neighbour`` (``typsphinx/translator.py:2644-2683``)
+skips only ``nodes.comment``/``nodes.system_message`` when scanning for the
+next emitting sibling of a citation, but an ids-less ``nodes.target`` also
+emits zero bytes into the body (``visit_target``'s "ids falsy" branch) and
+is not on that skip list -- so it is treated as a real, run-breaking
+sibling, silently splitting one intended reference list into TWO
+independently-aligned ``grid(columns: (auto, 1fr))`` calls instead of one.
+Per D-01, every plausible RST shape for the minimal single-blocker topology
+was attempted this session and none reproduces it (docutils' target-chaining
+transform never leaves a solitary ids-less target -- see
+``40.1-GATE-EVIDENCE-02.md`` § "D-01 attempt list" for the full five-attempt
+enumeration), so WR-02's RED falls back to a directly-assembled doctree,
+bypassing the RST parser and Sphinx's build pipeline entirely. Because the
+misaligned output still compiles cleanly, WR-02's RED is a STRUCTURAL
+assertion on the emitted body -- ``body.count("grid(") == 1`` -- rather than
+a ``typst.compile()`` failure.
+
+``test_wr02_idsless_target_between_citations_keeps_one_grid`` is the
+structural RED->GREEN flip: ``grid(`` appears twice pre-fix, once post-fix.
+``test_wr02_target_with_ids_still_breaks_the_run`` and
+``test_wr02_comment_between_citations_keeps_one_grid`` are negative
+controls, GREEN both before and after the fix, bounding the fix to exactly
+the ids-less-target case (G2, ``40.1-CONTEXT.md``/``40.1-02-PLAN.md``).
+
+Requirements: WR-01 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#1),
+WR-02 (closes ``40-REVIEW.md``'s WARNING; ROADMAP SC#2).
 See ``40.1-CONTEXT.md`` D-01 (RED provenance), D-02 (this module/fixture
 are new and separate from Phase 40's frozen citation-render-gate pair),
-D-03 (evidence file numbering), D-04 (classic-fatal RED form).
+D-03 (evidence file numbering), D-04 (classic-fatal RED form for WR-01,
+structural RED form for WR-02).
 """
 
 import re
@@ -51,6 +78,8 @@ from pathlib import Path
 
 import pytest
 from docutils import nodes as docutils_nodes
+from docutils.parsers.rst import states
+from docutils.utils import Reporter
 
 from typsphinx.translator import TypstTranslator
 
@@ -495,4 +524,229 @@ class TestWr01SilentDegradation:
             "G1 requires a dropped back-reference to degrade silently; "
             f"found forbidden phrase(s) {offending} in the build's combined "
             f"output:\n{combined}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Assembled-doctree half (WR-02 this plan, extended by WR-03 in plan
+# 40.1-03). Built once, generally, here -- shape mirrors
+# tests/conftest.py's `sample_doctree`/`mock_builder` fixtures (D-02: the
+# established repo idiom, not reinvented) plus the extra StubBuilder
+# attributes the D-06/D-08 xref-resolution routes need, which mock_builder
+# lacks. No RST is parsed for either warning (40.1-RESEARCH.md: docutils'
+# target-chaining transform never produces the minimal single-blocker
+# topology via a real sphinx-build -- see 40.1-GATE-EVIDENCE-02.md's D-01
+# attempt list), so this harness bypasses the parser and Sphinx's build
+# pipeline entirely and builds the doctree directly via the docutils node
+# API.
+# ---------------------------------------------------------------------------
+
+
+class _MockConfig:
+    """Minimal stand-in config object -- ``TypstTranslator`` reads
+    ``builder.config`` in a few places but neither WR-02 nor WR-03's
+    topologies exercise any config-dependent branch."""
+
+
+class _MockDomains:
+    """Minimal stand-in for ``env.domains`` -- unused by WR-02/WR-03's
+    topologies but required for attribute access to succeed without
+    raising."""
+
+
+class _MockEnv:
+    domains = _MockDomains()
+
+
+class _StubBuilder:
+    """
+    A locally-scoped stub builder for the assembled-doctree harness, NOT
+    imported from ``tests/conftest.py``'s ``mock_builder`` and NOT from the
+    frozen ``tests/test_citation_render_gate.py`` module (D-02).
+
+    Shaped on ``conftest.py``'s ``mock_builder`` (nested ``MockConfig``/
+    ``MockDomains``/``MockEnv``) plus four extra attributes that fixture's
+    ``mock_builder`` lacks and the D-06/D-08 xref-resolution routes need:
+    ``out_suffix``, ``current_docname``, ``master_included_docnames``
+    (deliberately excluding ``"second"`` -- plan ``40.1-03`` depends on that
+    exclusion to exercise the ``degrade_xref_to_text`` route), and
+    ``get_target_uri``. WR-02's own topology needs none of these four --
+    they exist here because this harness is shared with (and extended by)
+    plan ``40.1-03``, which does need them, and building the harness once,
+    generally, avoids a second near-duplicate stub later.
+    """
+
+    config = _MockConfig()
+    env = _MockEnv()
+    out_suffix = ".typ"
+    current_docname = "index"
+    master_included_docnames = {"index"}
+
+    def get_target_uri(self, docname: str, typ: str | None = None) -> str:
+        return docname + self.out_suffix
+
+
+def _make_document() -> docutils_nodes.document:
+    """
+    Build a minimal ``nodes.document`` the same way
+    ``tests/conftest.py``'s ``sample_doctree`` fixture does: a real
+    ``Reporter``, ``doc.settings`` as a docutils ``states.Struct()`` with
+    just the attributes ``TypstTranslator``'s constructor and visitor chain
+    touch. No RST parser and no Sphinx application are involved.
+    """
+    reporter = Reporter("", 2, 4)
+    doc = docutils_nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+    return doc
+
+
+def _make_citation(
+    key: str, text: str, *, backrefs: list[str] | None = None
+) -> docutils_nodes.citation:
+    """
+    Build a ``nodes.citation`` with ``ids=[key]``, ``docname="index"``, an
+    empty ``backrefs`` list by default (overridable -- WR-03 needs a
+    non-empty one), a ``nodes.label`` child carrying ``key`` as its text,
+    and a ``nodes.paragraph`` body child carrying ``text``. Mirrors Pattern
+    3's ``make_citation`` helper verified in ``40.1-RESEARCH.md``.
+    """
+    cit = docutils_nodes.citation()
+    cit["ids"] = [key]
+    cit["docname"] = "index"
+    cit["backrefs"] = list(backrefs) if backrefs is not None else []
+    label = docutils_nodes.label()
+    label += docutils_nodes.Text(key)
+    cit += label
+    body = docutils_nodes.paragraph()
+    body += docutils_nodes.Text(text)
+    cit += body
+    return cit
+
+
+def _render_body(doc: docutils_nodes.document) -> str:
+    """
+    Instantiate a ``TypstTranslator`` over ``doc`` with a fresh
+    ``_StubBuilder``, walk the tree, and return the joined emitted body
+    (``translator.astext()``). The single entry point every WR-02/WR-03
+    assembled-doctree test uses to go from a hand-built tree to emitted
+    Typst markup.
+    """
+    translator = TypstTranslator(doc, _StubBuilder())
+    doc.walkabout(translator)
+    return translator.astext()
+
+
+def _compile_body(body: str, tmp_path: Path) -> None:
+    """
+    Wrap ``body`` exactly the way ``TypstWriter.translate()`` wraps a
+    non-master document's body (``typsphinx/writer.py:138-141``): prepend
+    ``"#{\\n"`` unless already present, append ``"}\\n"`` unless already
+    present. Write the wrapped body to a ``.typ`` file under ``tmp_path``
+    and compile it via ``typst.compile()``. No template and no
+    ``@preview`` imports are needed here -- citation output uses no
+    package function.
+
+    Not exercised by any ``test_wr02_*`` test (WR-02 compiles cleanly by
+    construction, D-04 -- its RED is the structural ``grid(`` count
+    instead); written here because it belongs to the shared harness, and
+    plan ``40.1-03`` uses it for WR-03's classic compile-fatal RED/GREEN.
+    Callers must guard on ``TYPST_AVAILABLE`` themselves.
+    """
+    if not body.startswith("#{"):
+        body = "#{\n" + body
+    if not body.endswith("}\n"):
+        body = body + "}\n"
+    typ_path = tmp_path / "probe.typ"
+    typ_path.write_text(body, encoding="utf-8")
+    import typst
+
+    typst.compile(str(typ_path))
+
+
+class TestWr02RunNeighbourSkipList:
+    """
+    WR-02: ``_citation_run_neighbour``'s inert-sibling skip list must treat
+    an ids-less ``nodes.target`` the same as ``nodes.comment``/
+    ``nodes.system_message`` -- it emits zero bytes into the body
+    (``visit_target``'s "ids falsy" branch) and must not break a run of
+    citation definitions into two independently-aligned grids.
+    """
+
+    def test_wr02_idsless_target_between_citations_keeps_one_grid(self):
+        """
+        The structural RED/GREEN. A ``nodes.section`` containing, in
+        order: citation ``a2020``, a bare ``nodes.target()`` with
+        ``ids=[]``, citation ``b2020``. RESEARCH verified this emits
+        ``grid(`` twice against the unfixed helper (Pattern 3,
+        ``40.1-RESEARCH.md``) -- that is the RED; the fix must make it 1.
+        """
+        doc = _make_document()
+        section = docutils_nodes.section()
+        section += _make_citation("a2020", "First entry.")
+        tgt = docutils_nodes.target()
+        tgt["ids"] = []
+        section += tgt
+        section += _make_citation("b2020", "Second entry.")
+        doc += section
+
+        body = _render_body(doc)
+        grid_count = body.count("grid(")
+        assert grid_count == 1, (
+            "expected exactly one grid( call across the citation run "
+            "separated only by an ids-less nodes.target (WR-02, D-05 run "
+            f"rule) -- found {grid_count}:\n{body}"
+        )
+
+    def test_wr02_target_with_ids_still_breaks_the_run(self):
+        """
+        Negative control bounding the fix: identical topology, except the
+        intervening target carries ``ids=["some-target"]``. A target that
+        really does emit an anchor (``visit_target``'s "ids falsy" branch
+        is not taken) is still a real, run-breaking sibling -- this must
+        stay GREEN (``grid(`` count of 2) both before and after the fix,
+        proving the skip list widened by exactly one measured case and no
+        further (G2, ``40.1-CONTEXT.md``/``40.1-02-PLAN.md``).
+        """
+        doc = _make_document()
+        section = docutils_nodes.section()
+        section += _make_citation("a2020", "First entry.")
+        tgt = docutils_nodes.target()
+        tgt["ids"] = ["some-target"]
+        section += tgt
+        section += _make_citation("b2020", "Second entry.")
+        doc += section
+
+        body = _render_body(doc)
+        grid_count = body.count("grid(")
+        assert grid_count == 2, (
+            "an ids-carrying nodes.target really does emit an anchor and "
+            "must still break the citation run into two independent "
+            f"grid( calls -- found {grid_count}:\n{body}"
+        )
+
+    def test_wr02_comment_between_citations_keeps_one_grid(self):
+        """
+        Regression guard for the skip-list behaviour Phase 40 D-06 already
+        established: a ``nodes.comment`` between two citation definitions
+        must not break the run either. Green both before and after this
+        plan's fix -- the shape the new disjunct must not disturb.
+        """
+        doc = _make_document()
+        section = docutils_nodes.section()
+        section += _make_citation("a2020", "First entry.")
+        comment = docutils_nodes.comment()
+        comment += docutils_nodes.Text("a comment between citations")
+        section += comment
+        section += _make_citation("b2020", "Second entry.")
+        doc += section
+
+        body = _render_body(doc)
+        grid_count = body.count("grid(")
+        assert grid_count == 1, (
+            "a nodes.comment between two citation definitions must not "
+            f"break the run (Phase 40 D-06) -- found {grid_count} grid( "
+            f"calls:\n{body}"
         )

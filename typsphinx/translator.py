@@ -2646,8 +2646,9 @@ class TypstTranslator(SphinxTranslator):
         Scan ``node.parent.children`` in direction ``offset`` (``-1``/``+1``)
         from ``node``'s own index, skipping siblings that emit NOTHING (a
         docutils ``comment`` or ``system_message`` -- ``visit_comment``
-        raises ``SkipNode`` before emitting anything), and report whether the
-        first sibling that WOULD emit is another ``nodes.citation``.
+        raises ``SkipNode`` before emitting anything -- or an ids-less
+        ``nodes.target``, WR-02 below), and report whether the first sibling
+        that WOULD emit is another ``nodes.citation``.
 
         Both ``visit_citation`` (``offset=-1``, "is my PREVIOUS emitting
         sibling also a citation") and ``depart_citation`` (``offset=+1``, "is
@@ -2660,6 +2661,26 @@ class TypstTranslator(SphinxTranslator):
         and between constructs (D-06), and treating a comment as a run
         break would silently split one rendered reference list into two
         independently-aligned grids with no error anywhere.
+
+        WR-02 (`40-REVIEW.md`): an ids-less ``nodes.target`` is ALSO skipped,
+        for the same reason -- ``visit_target``'s "ids falsy" branch
+        (``not node.get("ids")``) never writes an anchor, so treating it as a
+        real (non-citation) sibling silently split one intended run into two
+        independently-aligned grids, with no error anywhere (the same defect
+        class as the comment/system_message case above, just a different
+        node type). Measured caveat, recorded rather than papered over: this
+        inertness is *approximate* inside list items -- ``visit_target``
+        still writes a leading ``"\\n"`` when ``self.in_list_item and
+        self.list_item_needs_separator``, and unconditionally sets
+        ``self.list_item_needs_separator = True`` afterwards when
+        ``self.in_list_item`` -- so an ids-less target is strictly *weaker*
+        than ``comment``, whose ``visit_comment`` raises ``SkipNode`` before
+        touching any separator state at all. This stays a literal,
+        one-disjunct case rather than a general "does this node emit bytes"
+        predicate (G2, `40.1-CONTEXT.md`/`40.1-02-PLAN.md`): the general
+        claim would be false as written (per the list-item caveat just
+        above), and generalising the emit-nothing concept beyond citations is
+        explicitly deferred out of this phase.
 
         Args:
             node: The citation node currently being visited/departed.
@@ -2676,7 +2697,9 @@ class TypstTranslator(SphinxTranslator):
         i = node.parent.index(node) + offset
         while 0 <= i < len(children):
             sibling = children[i]
-            if isinstance(sibling, (nodes.comment, nodes.system_message)):
+            if isinstance(sibling, (nodes.comment, nodes.system_message)) or (
+                isinstance(sibling, nodes.target) and not sibling.get("ids")
+            ):
                 i += offset
                 continue
             return isinstance(sibling, nodes.citation)
