@@ -4,15 +4,15 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 41
 current_phase_name: v0.7.0 Release Automation + Release Prep
-status: planning
-stopped_at: Phase 40.1 context gathered
-last_updated: "2026-08-02T14:19:50.758Z"
-last_activity: 2026-08-02
-last_activity_desc: Phase 40.1 complete, transitioned to Phase 41
+status: executing
+stopped_at: Phase 41 planned (7 plans, 3 waves)
+last_updated: "2026-08-03T00:30:00.000Z"
+last_activity: 2026-08-03
+last_activity_desc: Phase 41 planned — 7 plans across 3 waves
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 44
+  total_plans: 51
   completed_plans: 44
   percent: 86
 ---
@@ -29,10 +29,12 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 ## Current Position
 
 Phase: 41 — v0.7.0 Release Automation + Release Prep
-Plans: 0/TBD — not yet planned. Context gathered 2026-08-02 (`41-CONTEXT.md`, 17 decisions);
-`/gsd-plan-phase 41` is the next step. This is the milestone's last phase.
-Status: Ready to plan
-Last activity: 2026-08-02 — Phase 40.1 complete, transitioned to Phase 41
+Plans: 0/7 — planned 2026-08-03 across 3 waves (research, pattern map, and validation strategy all
+recorded; plan-checker passed with no blockers). Context was gathered 2026-08-02 (`41-CONTEXT.md`,
+17 decisions, all 17 covered by plans). `/gsd-execute-phase 41` is the next step. This is the
+milestone's last phase.
+Status: Ready to execute
+Last activity: 2026-08-03 — Phase 41 planned (7 plans, 3 waves)
 
 **Execution order note (resolved 2026-08-02):** Phase 41's SC#4 proves "every node-handler change
 carries its recorded-RED GATE-01 fixture" over the full milestone diff, and per `41-CONTEXT.md` D-11
