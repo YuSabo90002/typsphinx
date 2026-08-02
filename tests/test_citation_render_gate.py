@@ -272,7 +272,7 @@ def _expected_own_id_anchors(env, builder, docname: str) -> set[str]:
     RESEARCH's real doctree evidence), the namespaced anchor Sphinx's own
     docutils resolution assigned it.
     """
-    doctree = env.get_and_resolve_doctree(docname, builder)
+    doctree = env.get_and_resolve_doctree(docname, builder, tags=builder.tags)
     expected = set()
     for ref in doctree.findall(docutils_nodes.reference):
         ids = ref.get("ids", [])
@@ -323,7 +323,7 @@ def _citing_site_own_anchors(env, builder, docname: str, key_text: str) -> list[
     ``docname`` whose text is ``[key_text]`` -- read from Sphinx's
     RESOLVED doctree, never guessed.
     """
-    doctree = env.get_and_resolve_doctree(docname, builder)
+    doctree = env.get_and_resolve_doctree(docname, builder, tags=builder.tags)
     result = []
     for ref in doctree.findall(docutils_nodes.reference):
         if ref.astext() == f"[{key_text}]":
@@ -494,7 +494,9 @@ class TestCitationRenderGateStructural:
         assert expected_krizhevsky in link_targets_index, (
             "index.typ's Krizhevsky2012 citing site did not emit "
             f"link(<{expected_krizhevsky}>, ...) -- this half already works "
-            f"pre-fix (visit_reference is unmodified); emitted link "
+            f"pre-fix (visit_reference's pre-existing refid/xref branches "
+            f"are unchanged by this phase; D-14 only ADDS an own-ids "
+            f"anchor on top of them); emitted link "
             f"targets: {sorted(link_targets_index)}"
         )
         assert expected_krizhevsky in definition_anchors_index, (
@@ -632,9 +634,12 @@ class TestCitationRenderGateStructural:
 
         # (b) Code-mode concat boundary: the definition-list term's
         # emission joins the citing reference to its sibling text with the
-        # concat operator, with no operator left dangling. Already true
-        # pre-fix -- visit_reference is unmodified by this phase, this is
-        # a non-regression CONTROL within the same test.
+        # concat operator, with no operator left dangling. visit_reference's
+        # pre-existing refid/xref branches are unchanged by this phase, but
+        # D-14 ADDS an own-ids bracket-wrap anchor around the citing
+        # reference here too (this citing site's citation has backrefs, so
+        # the anchor is load-bearing, not incidental) -- this sub-check
+        # tolerates that wrap rather than assuming the pre-fix shape.
         concat_region = _slice(index_typ, "terms(separator:", _NESTED_HEADING)
         expected_concat_target = _expected_namespace_label("index", "concat2000")
         assert (
