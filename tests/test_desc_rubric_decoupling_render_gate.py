@@ -57,6 +57,7 @@ is skipped when ``typst-py`` is unavailable.
 
 import ast
 import difflib
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -347,3 +348,125 @@ class TestDescRubricDecouplingRenderGate:
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    def test_propagated_target_rubric_separator_run_is_not_yet_one(
+        self, desc_rubric_decoupling_render_gate_dir, temp_build_dir
+    ):
+        """
+        Phase 39's D-11 wart RED. RED today; expected GREEN once plan 39-06
+        lands the fix. Measures the run of newline characters between the
+        propagated-target anchor
+        (``[#metadata(none) <index:decoupling-rubric-in-list-target>]``,
+        emitted for the rubric inside the fixture's list item) and the
+        following rubric's ``strong({`` wrapper open.
+
+        Hand derivation, newline by newline, against
+        ``typsphinx/translator.py:394-465`` (``_emit_id_anchors``) and
+        ``typsphinx/translator.py:5789-5798`` (``visit_rubric``'s opening
+        block) -- NOT authored by running a candidate fix and copying its
+        output (``must_haves.prohibitions``, ADM-05):
+
+        - ``_emit_id_anchors`` line 460-461: because ``in_list_item`` and
+          ``list_item_needs_separator`` are both ``True`` (set by the
+          preceding "First bullet text." list-item text), it appends ONE
+          leading ``"\\n"`` before the anchor.
+        - ``_emit_id_anchors`` line 462-463: for the rubric's one pending
+          id, it appends ``f"\\n[#metadata(none) <{label_id}>]\\n"`` --
+          note this ALSO carries its own leading ``"\\n"`` (folds into the
+          run before the anchor) and its own TRAILING ``"\\n"`` immediately
+          after the anchor's closing ``"]"``. That trailing newline is the
+          anchor's fair share of the run this test measures.
+        - ``_emit_id_anchors`` line 464-465: its tail re-arms
+          ``list_item_needs_separator = True`` because we are still inside
+          the list item.
+        - ``visit_rubric`` line 5793-5794: appends an UNCONDITIONAL
+          ``"\\n"`` ("Add newline before rubric") regardless of any flag --
+          the first newline the rubric itself owes at this site.
+        - ``visit_rubric`` line 5804-5806: ``_add_paragraph_separator()``
+          is a no-op (not inside a paragraph); then, because
+          ``list_item_needs_separator`` was JUST re-armed by
+          ``_emit_id_anchors``'s own tail two steps above, the leading
+          list-item separator check fires AGAIN and appends a SECOND
+          ``"\\n"`` -- double-counting a flag ``_emit_id_anchors`` had
+          already discharged with its own trailing newline.
+
+        Today's run is therefore 1 (anchor's own trailing newline) + 1
+        (rubric's unconditional newline) + 1 (rubric's separator-check
+        double-count) = 3. The rubric owes ZERO further newlines at this
+        site -- the anchor's own trailing newline already supplies the one
+        separator needed -- so the correct run, once the double-count is
+        removed, is 1.
+        """
+        result = _run_sphinx_build_typst(
+            desc_rubric_decoupling_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_output = temp_build_dir / "index.typ"
+        actual_typ = typ_output.read_text(encoding="utf-8")
+
+        anchor = "[#metadata(none) <index:decoupling-rubric-in-list-target>]"
+        anchor_index = actual_typ.find(anchor)
+        assert anchor_index != -1, (
+            f"Expected propagated-target anchor {anchor!r} not found in "
+            f"emitted .typ:\n{actual_typ}"
+        )
+        after_anchor = actual_typ[anchor_index + len(anchor) :]
+        newline_run = re.match(r"\n*", after_anchor).group(0)
+        measured_run = len(newline_run)
+
+        expected_post_fix_run = 1
+        assert measured_run == expected_post_fix_run, (
+            f"D-11: measured a run of {measured_run} newline(s) between the "
+            "propagated-target anchor and the rubric's strong({ wrapper "
+            f"open (expected {expected_post_fix_run}, hand-derived above: "
+            "_emit_id_anchors's own trailing newline is the anchor's fair "
+            "share; visit_rubric's unconditional newline plus its "
+            "re-armed separator check double-count on top of it). RED "
+            "today (the untouched translator measures 3, from the "
+            "double-count); expected GREEN once plan 39-06 lands the fix."
+        )
+
+    def test_control_non_propagated_target_rubrics_keep_current_byte_shape(
+        self, desc_rubric_decoupling_render_gate_dir, temp_build_dir
+    ):
+        """
+        CONTROL for the D-11 wart above. Passes today and must keep passing
+        after plan 39-06's fix -- a fix that strips separators
+        indiscriminately (rather than the specific
+        ``_emit_id_anchors``/``visit_rubric`` double-count above) would
+        break this assertion, since neither of these two rubrics carries a
+        propagated target. Expected strings derived by reading
+        ``golden.typ`` directly (D-07's byte-for-byte capture of this same
+        commit), never by re-running the translator.
+        """
+        result = _run_sphinx_build_typst(
+            desc_rubric_decoupling_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        typ_output = temp_build_dir / "index.typ"
+        actual_typ = typ_output.read_text(encoding="utf-8")
+
+        # The autodoc-style "Options" rubric -- from golden.typ.
+        options_rubric_shape = (
+            'par({text("The autodoc “Options” rubric shape.")})'
+            '\n\n\nstrong({text("Options")})\nlinebreak()'
+        )
+        # The rubric at true end-of-document -- from golden.typ.
+        trailing_rubric_shape = (
+            'par({text("A rubric at true end-of-document.")})'
+            '\n\n\nstrong({text("Trailing Heading")})\nlinebreak()'
+        )
+        assert options_rubric_shape in actual_typ, (
+            "CONTROL regression: the autodoc-style Options rubric's byte "
+            f"shape (no propagated target) changed:\n{actual_typ}"
+        )
+        assert trailing_rubric_shape in actual_typ, (
+            "CONTROL regression: the trailing end-of-document rubric's "
+            f"byte shape (no propagated target) changed:\n{actual_typ}"
+        )
