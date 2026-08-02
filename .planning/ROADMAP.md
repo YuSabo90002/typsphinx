@@ -276,7 +276,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 - [x] **Phase 38: Structural Indentation + Info Fields** - Description bodies indent inside their signature, nesting accumulates so class membership is visible, and field lists follow the same single constant (completed 2026-08-02)
 - [x] **Phase 39: Admonition Taxonomy + Rubric Nesting** - Admonitions land in the reference's four colour buckets with the generic directive styled and titled; a rubric inherits its container's indent (completed 2026-08-02)
 - [x] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back (completed 2026-08-02)
-- [ ] **Phase 40.1: Citation Degradation Hardening (INSERTED)** - The three graceful-degradation gaps `40-REVIEW.md` found are closed with recorded-RED fixtures, so a citing-site topology the Phase 40 fixture never builds degrades instead of emitting a dangling `link()`
+- [x] **Phase 40.1: Citation Degradation Hardening (INSERTED)** - The three graceful-degradation gaps `40-REVIEW.md` found are closed with recorded-RED fixtures, so a citing-site topology the Phase 40 fixture never builds degrades instead of emitting a dangling `link()` (completed 2026-08-02)
 - [ ] **Phase 41: v0.7.0 Release Automation + Release Prep** - The GitHub Release body comes from the curated CHANGELOG section, and the v0.7.0 tree is prepared and proven green with no irreversible publish
 
 ## Phase Details
@@ -779,7 +779,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
-| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | In Progress|  |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

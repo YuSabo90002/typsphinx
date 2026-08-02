@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 40.1
-current_phase_name: citation-degradation-hardening
-status: executing
-stopped_at: Phase 40.1 planned
-last_updated: "2026-08-02T12:55:17.650Z"
+current_phase: 41
+current_phase_name: v0.7.0 Release Automation + Release Prep
+status: planning
+stopped_at: Phase 40.1 context gathered
+last_updated: "2026-08-02T14:19:50.758Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 40.1 execution started
+last_activity_desc: Phase 40.1 complete, transitioned to Phase 41
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 44
-  completed_plans: 40
-  percent: 71
+  completed_plans: 44
+  percent: 86
 ---
 
 # Project State
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 40.1 (citation-degradation-hardening) — EXECUTING
+Phase: 41 — v0.7.0 Release Automation + Release Prep
 Plans: 0/4 — planned 2026-08-02. Four plans in four waves, strictly sequential (every plan touches
 `typsphinx/translator.py` and the one shared test module, so `files_modified` overlap serializes
 them — which is also what makes RED-before-fix provable). Context gathered 2026-08-02
 (`40.1-CONTEXT.md`, 8 decisions); plan-checker passed with no blockers and no warnings.
-Status: Executing Phase 40.1
-Last activity: 2026-08-02 — Phase 40.1 execution started
+Status: Ready to plan
+Last activity: 2026-08-02 — Phase 40.1 complete, transitioned to Phase 41
 
 **Execution order note:** Phase 41's context is already gathered (`41-CONTEXT.md`, 17 decisions,
 2026-08-02) and it stays the milestone's last phase, but **Phase 40.1 executes first**. Phase 41's
