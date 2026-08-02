@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 40.1
-current_phase_name: Citation Degradation Hardening
+current_phase_name: citation-degradation-hardening
 status: executing
 stopped_at: Phase 40.1 planned
-last_updated: "2026-08-02T12:52:46.164Z"
+last_updated: "2026-08-02T12:55:17.650Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 40.1 planned (4 plans, 4 waves)
+last_activity_desc: Phase 40.1 execution started
 progress:
   total_phases: 7
   completed_phases: 5
@@ -28,13 +28,13 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 40.1 — Citation Degradation Hardening (INSERTED 2026-08-02, after Phase 40)
+Phase: 40.1 (citation-degradation-hardening) — EXECUTING
 Plans: 0/4 — planned 2026-08-02. Four plans in four waves, strictly sequential (every plan touches
 `typsphinx/translator.py` and the one shared test module, so `files_modified` overlap serializes
 them — which is also what makes RED-before-fix provable). Context gathered 2026-08-02
 (`40.1-CONTEXT.md`, 8 decisions); plan-checker passed with no blockers and no warnings.
-Status: Ready to execute
-Last activity: 2026-08-02 — Phase 40.1 planned (4 plans, 4 waves)
+Status: Executing Phase 40.1
+Last activity: 2026-08-02 — Phase 40.1 execution started
 
 **Execution order note:** Phase 41's context is already gathered (`41-CONTEXT.md`, 17 decisions,
 2026-08-02) and it stays the milestone's last phase, but **Phase 40.1 executes first**. Phase 41's

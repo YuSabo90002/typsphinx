@@ -666,12 +666,12 @@ Closes `40-REVIEW.md` WR-01, WR-02, WR-03.
      citation fixture is **byte-identical** — measured in `40-REVIEW.md`, that fixture reaches none
      of these three branches, so byte-identity there is the control proving the change is confined
      to the degradation paths.
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 40.1-01-PLAN.md — WR-01: fail-closed backref filter, the new D-02 test module + fixture directory, the SC#5 pre-phase baseline, and a real-`sphinx-build` RED (`40.1-GATE-EVIDENCE-01.md`)
+- [x] 40.1-01-PLAN.md — WR-01: fail-closed backref filter, the new D-02 test module + fixture directory, the SC#5 pre-phase baseline, and a real-`sphinx-build` RED (`40.1-GATE-EVIDENCE-01.md`)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -779,7 +779,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
-| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 0/TBD | Not started | - |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 1/4 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
