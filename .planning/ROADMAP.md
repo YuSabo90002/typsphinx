@@ -600,7 +600,7 @@ admonition work, needs no document-order pre-pass, and is sequenced here only fo
      through `-b typstpdf`, and the new handlers are checked explicitly against all three separator
      protocols (paragraph, code-mode concat, list-item) rather than by analogy to the footnote
      handlers they superficially resemble.
-**Plans**: 2/4 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -610,9 +610,13 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 40-03-PLAN.md — the source change: `visit_citation`/`depart_citation`/`visit_label` rendering a run of definitions as one hanging-indent grid with HTML-shaped back-reference markers, plus the guarded own-`ids` anchor in `visit_reference` (D-14) proven non-regressive by a before-and-after corpus byte-diff
+- [x] 40-03-PLAN.md — the source change: `visit_citation`/`depart_citation`/`visit_label` rendering a run of definitions as one hanging-indent grid with HTML-shaped back-reference markers, plus the guarded own-`ids` anchor in `visit_reference` (D-14) proven non-regressive by a before-and-after corpus byte-diff
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 40-05-PLAN.md — gap closure: repair the four defective assertions 40-01 authored into `tests/test_citation_render_gate.py` (two helpers calling `get_and_resolve_doctree` without `tags=`, a sentinel-column measurement that reads the line's leading whitespace instead of the marker's column, and a concat sub-check demanding a bare `link(` that contradicts D-14), re-prove the corrected module still goes RED against the pre-40-03 translator, and record all four as amendments against measurement in `40-GATE-EVIDENCE-01.md`
+
+**Wave 4** *(blocked on Wave 3 completion)*
 
 - [ ] 40-04-PLAN.md — close-out: the full-corpus `-b typstpdf` gate actually run green (a skip is not a pass), both REDs mapped selector-by-selector to their GREENs, the stale Phase-40 forward reference in `test_desc_break_marker_buffer_swap_gate.py` settled, and `40-NONREGRESSION.md`
 
@@ -707,7 +711,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
-| 40. Citations — Full Round Trip | v0.7.0 | 2/4 | In Progress|  |
+| 40. Citations — Full Round Trip | v0.7.0 | 3/5 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
