@@ -225,18 +225,35 @@ def _strip_raw_literals(typ_text: str) -> str:
 
 
 _ATTACHED_ANCHOR_RE = re.compile(r"(?<!link\()<([A-Za-z0-9_.:-]+)>")
+_ATTACHED_ANCHOR_CALL_RE = re.compile(r'#label\("([A-Za-z0-9_.:-]+)"\)')
 _OWN_ID_SUFFIX_RE = re.compile(r":id\d+$")
 
 
 def _attached_anchor_tokens(typ_text: str) -> set[str]:
     """
-    Every bracket-attached anchor token (the ``[... <label>]`` postfix
-    attachment form) in ``typ_text`` -- i.e. every ``<label>`` NOT
-    immediately preceded by ``link(``, which would make it a link TARGET
-    rather than a definition/citing-site ANCHOR. Distinguishes "this node
-    anchors itself here" from "this node points at some other anchor".
+    Every attached anchor token in ``typ_text`` -- i.e. every label this
+    translator ATTACHES to preceding content, never a link TARGET.
+
+    This translator emits an attached anchor through two syntactically
+    different but semantically equivalent Typst forms, both already
+    present in the merged translator (verified this session by reading
+    ``typsphinx/translator.py`` directly, not guessed): the markup-mode
+    bracket-postfix shorthand ``[... <label>]`` (``visit_citation``'s own
+    definition anchor, ``depart_term``'s heading anchors), and the
+    explicit function-call form ``#label("...")`` (``visit_target``'s
+    pre-existing ``next_is_target`` case, and D-14's own-ids anchor added
+    to ``visit_reference``/``depart_reference``). ``<name>`` is parser
+    sugar for ``#label("name")`` -- Typst attaches both identically to the
+    immediately preceding content -- so a helper that recognised only the
+    bracket form would read a real, working ``#label(...)`` anchor as
+    "missing" (confirmed: a real ``-b typst`` build of this fixture emits
+    ``[#link(<index:krizhevsky2012>, ...)#label("index:id1")]`` for the
+    first Krizhevsky2012 citing site, and the corresponding ``-b typstpdf``
+    real-compile test passes clean, proving that attachment resolves).
     """
-    return set(_ATTACHED_ANCHOR_RE.findall(typ_text))
+    bracket_form = set(_ATTACHED_ANCHOR_RE.findall(typ_text))
+    call_form = set(_ATTACHED_ANCHOR_CALL_RE.findall(typ_text))
+    return bracket_form | call_form
 
 
 def _definition_anchor_tokens(typ_text: str) -> set[str]:
@@ -272,7 +289,7 @@ def _expected_own_id_anchors(env, builder, docname: str) -> set[str]:
     RESEARCH's real doctree evidence), the namespaced anchor Sphinx's own
     docutils resolution assigned it.
     """
-    doctree = env.get_and_resolve_doctree(docname, builder)
+    doctree = env.get_and_resolve_doctree(docname, builder, tags=builder.tags)
     expected = set()
     for ref in doctree.findall(docutils_nodes.reference):
         ids = ref.get("ids", [])
@@ -323,7 +340,7 @@ def _citing_site_own_anchors(env, builder, docname: str, key_text: str) -> list[
     ``docname`` whose text is ``[key_text]`` -- read from Sphinx's
     RESOLVED doctree, never guessed.
     """
-    doctree = env.get_and_resolve_doctree(docname, builder)
+    doctree = env.get_and_resolve_doctree(docname, builder, tags=builder.tags)
     result = []
     for ref in doctree.findall(docutils_nodes.reference):
         if ref.astext() == f"[{key_text}]":
@@ -347,17 +364,30 @@ def _layout_lines(pdf_bytes: bytes, page_index: int) -> str:
     return reader.pages[page_index].extract_text(extraction_mode="layout")
 
 
-def _leading_columns(layout_text: str, marker_substring: str) -> int:
+def _marker_column(layout_text: str, marker_substring: str) -> int:
     """
-    Return ``len(line) - len(line.lstrip(" "))`` for the first line of
-    ``layout_text`` containing ``marker_substring``. Raises
-    ``AssertionError`` (not a bare ``ValueError``/``StopIteration``) if the
-    marker is not present, so a missing marker fails as a clear, structural
-    pytest assertion rather than an uncaught exception.
+    Return ``line.index(marker_substring)`` -- the column AT WHICH the
+    marker itself begins -- for the first line of ``layout_text``
+    containing ``marker_substring``. Raises ``AssertionError`` (not a bare
+    ``ValueError``/``StopIteration``) if the marker is not present, so a
+    missing marker fails as a clear, structural pytest assertion rather
+    than an uncaught exception.
+
+    This is deliberately NOT ``len(line) - len(line.lstrip(" "))`` (the
+    line's own leading whitespace), which is the pattern
+    ``tests/test_rubric_indent_invariance.py`` uses for ITS marker. There,
+    the marker is the first glyph on its own line, so the two quantities
+    coincide. In a citation grid, the label cell occupies the same
+    physical line AHEAD OF the sentinel on an entry's first line (e.g.
+    ``[Krizhevsky2012] (1,2)      CITORDERALPHA ...``), so the line's
+    leading whitespace is 0 (the label starts the line) while the marker
+    itself starts at the grid's real body column. Every call site in this
+    module means "the column at which this entry's body starts", which is
+    what the marker's own start column measures, not the line's.
     """
     for line in layout_text.splitlines():
         if marker_substring in line:
-            return len(line) - len(line.lstrip(" "))
+            return line.index(marker_substring)
     raise AssertionError(
         f"{marker_substring!r} not found in the given page's layout text"
     )
@@ -386,15 +416,23 @@ def _find_page_and_column(
 ) -> tuple[int, int]:
     """
     Search pages ``start_page..`` onward for ``marker_substring`` and
-    return ``(page_index, leading_column)`` for the first page it is found
+    return ``(page_index, marker_column)`` for the first page it is found
     on. Page-index-agnostic by design: located by CONTENT, not a
     hard-coded page number.
+
+    ``marker_column`` is ``_marker_column``'s measurement -- the column at
+    which the marker substring itself begins, not the line's own leading
+    whitespace. Every call site of this helper wants "the column at which
+    this entry's body starts" (CIT-02/D-05's hanging-indent and
+    widest-label-alignment claims), and on an entry's first line the
+    marker sits past the label cell, so the marker's own start column is
+    the correct quantity -- see ``_marker_column``'s docstring.
     """
     reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
     for i in range(start_page, len(reader.pages)):
         layout_text = _layout_lines(pdf_bytes, i)
         if marker_substring in layout_text:
-            return i, _leading_columns(layout_text, marker_substring)
+            return i, _marker_column(layout_text, marker_substring)
     raise AssertionError(
         f"{marker_substring!r} not found on any page from index "
         f"{start_page} onward (document has {len(reader.pages)} pages)"
@@ -494,7 +532,9 @@ class TestCitationRenderGateStructural:
         assert expected_krizhevsky in link_targets_index, (
             "index.typ's Krizhevsky2012 citing site did not emit "
             f"link(<{expected_krizhevsky}>, ...) -- this half already works "
-            f"pre-fix (visit_reference is unmodified); emitted link "
+            f"pre-fix (visit_reference's pre-existing refid/xref branches "
+            f"are unchanged by this phase; D-14 only ADDS an own-ids "
+            f"anchor on top of them); emitted link "
             f"targets: {sorted(link_targets_index)}"
         )
         assert expected_krizhevsky in definition_anchors_index, (
@@ -632,17 +672,47 @@ class TestCitationRenderGateStructural:
 
         # (b) Code-mode concat boundary: the definition-list term's
         # emission joins the citing reference to its sibling text with the
-        # concat operator, with no operator left dangling. Already true
-        # pre-fix -- visit_reference is unmodified by this phase, this is
-        # a non-regression CONTROL within the same test.
+        # concat operator, with no operator left dangling. visit_reference's
+        # pre-existing refid/xref branches are unchanged by this phase, but
+        # D-14 ADDS an own-ids bracket-wrap anchor around the citing
+        # reference here too (this citing site's citation has backrefs, so
+        # the anchor is load-bearing, not incidental) -- this sub-check
+        # tolerates that wrap rather than assuming the pre-fix shape.
         concat_region = _slice(index_typ, "terms(separator:", _NESTED_HEADING)
         expected_concat_target = _expected_namespace_label("index", "concat2000")
-        assert (
-            f'text("Concat Term ") + link(<{expected_concat_target}>,' in concat_region
-        ), (
-            "Concat Protocol's term must '+'-join its leading text to the "
-            f"citing reference with no dangling operator:\n{concat_region}"
+
+        # SC#5's concat protocol requires the term's leading text and the
+        # citing reference to be '+'-joined with no operator left dangling
+        # -- it does NOT require a bare `link(` immediately after the `+`.
+        # D-14 wraps a citation-derived citing site as
+        # `[#link(<...>, ...)#label("...")]`; that bracket-wrap satisfies
+        # the concat protocol in substance (operands `+`-joined, no
+        # operator left without a right operand), so this regex tolerates
+        # an optional `[#` between the operator and `link(`.
+        concat_operand_match = re.search(
+            r'text\("Concat Term "\) \+ (?:\[#)?link\(<([^>]+)>', concat_region
         )
+        assert concat_operand_match, (
+            "Concat Protocol's term must '+'-join its leading text to the "
+            "citing reference (tolerating D-14's bracket-wrap around a "
+            f"bare link(...)):\n{concat_region}"
+        )
+        assert concat_operand_match.group(1) == expected_concat_target, (
+            "SC#5/D-14: the concat operator's right operand must be the "
+            f"citing reference targeting {expected_concat_target!r}, found "
+            f"link target {concat_operand_match.group(1)!r} instead"
+        )
+
+        # No '+' concat operator anywhere in the region is left without a
+        # right operand -- a broader dangling-operator guard than the
+        # single Concat Term check above.
+        for plus_match in re.finditer(r" \+ ", concat_region):
+            right_operand = concat_region[plus_match.end() :].lstrip()
+            assert right_operand and not right_operand.startswith((")", "}", ",")), (
+                "SC#5: a '+' concat operator in the region has no right "
+                f"operand (dangling operator) at position "
+                f"{plus_match.start()}:\n{concat_region}"
+            )
 
         # (a) Paragraph boundary: the References run's grid must open as
         # its own statement -- not abutting the preceding heading/paragraph
@@ -930,16 +1000,29 @@ class TestCitationRenderGateCompiledPdf:
         # body text carries no link() calls, so this span's only link(
         # matches belong to Solo1998's label cell) must carry exactly ONE
         # link call (the label ITSELF is the back-link for a single
-        # citing site) and no parenthesised marker digit.
+        # citing site) and no 2+-backref marker-group opener.
         solo_region = refs_grid[alpha_idx:bravo_idx]
         solo_link_matches = re.findall(r"link\(<([^>]+)>", solo_region)
         assert len(solo_link_matches) == 1, (
             "D-03: Solo1998's label cell must carry exactly ONE link "
             f"call, found {len(solo_link_matches)}: {solo_link_matches}"
         )
-        assert not re.search(r"\(\d+\)", solo_region), (
-            "D-03: a single-backref entry must carry NO parenthesised "
-            f"marker digit (reserved for 2+ backrefs): {solo_region!r}"
+        # A single-backref entry's label_expr never appends the 2+-backref
+        # marker group: visit_citation only emits that group's opening
+        # fragment, ``text(" (")``, when 2+ backrefs exist (verified this
+        # session by reading typsphinx/translator.py). A naive
+        # ``\(\d+\)`` scan of the raw .typ SOURCE is unsound here: it can
+        # never match the REAL 2+-marker shape (each ordinal is emitted
+        # inside a ``[1]``/``[2]`` content block passed to link(), never
+        # adjacent to a literal '('), and this span still carries the
+        # TAIL of Krizhevsky2012's own body prose (e.g. "Hinton, G. E.
+        # (2012)"), which a bare digit-in-parens scan misreads as a
+        # marker. Scanning for the marker group's own source fragment
+        # avoids both the false negative and the false positive.
+        assert 'text(" (")' not in solo_region, (
+            "D-03: a single-backref entry must not emit the 2+-backref "
+            f"marker-group opener (reserved for 2+ backrefs): "
+            f"{solo_region!r}"
         )
 
         # (3) D-08: no back-reference marker anywhere in the References

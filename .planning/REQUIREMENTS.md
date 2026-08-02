@@ -159,18 +159,18 @@ reorder, while docutils citations are already-written prose with references alre
       outright and `-b typst` silently writes an invalid `.typ`. *(This is the one requirement in
       the milestone that keeps the classic GATE-01 RED — a real `TypstError` before the fix.)*
 
-- [ ] **CIT-02** [M]: A citation definition renders as a **labelled entry with a hanging indent** —
+- [x] **CIT-02** [M]: A citation definition renders as a **labelled entry with a hanging indent** —
       `[Label]` followed by the entry body, with continuation lines aligned past the label.
 
-- [ ] **CIT-03** [M]: An in-text `[Label]` reference **links to its definition**, resolved from
+- [x] **CIT-03** [M]: An in-text `[Label]` reference **links to its definition**, resolved from
       docutils' own `refid`. No document-order pre-pass is required (verified by executing docutils:
       `citation_reference.refid` resolves directly to `citation.ids[0]`, and Typst's `link(<label>)`
       resolves whole-document regardless of source order).
 
-- [ ] **CIT-04** [M]: A definition carries **back-references to every citing location**, from
+- [x] **CIT-04** [M]: A definition carries **back-references to every citing location**, from
       docutils' `backrefs` — the same navigation Sphinx's HTML renders as `(1,2)`.
 
-- [ ] **CIT-05** [M]: The citation syntax Phase 22.2 stripped out of `examples/charged-ieee/`
+- [x] **CIT-05** [M]: The citation syntax Phase 22.2 stripped out of `examples/charged-ieee/`
       (both approaches) is **restored**, and both samples build clean. An IEEE paper template
       shipping without a references section is the concrete defect this closes.
 
@@ -307,10 +307,10 @@ Phase numbering continues from v0.6.5's last phase (35).
 | ADM-05 | Phase 39 | Complete |
 | ADM-06 | Phase 36 | Complete |
 | CIT-01 | Phase 40 | Complete |
-| CIT-02 | Phase 40 | Pending |
-| CIT-03 | Phase 40 | Pending |
-| CIT-04 | Phase 40 | Pending |
-| CIT-05 | Phase 40 | Pending |
+| CIT-02 | Phase 40 | Complete |
+| CIT-03 | Phase 40 | Complete |
+| CIT-04 | Phase 40 | Complete |
+| CIT-05 | Phase 40 | Complete |
 | CIT-06 | Phase 40 | Complete |
 | MATH-02 | Phase 36 | Complete |
 | REL-04 | Phase 41 | Pending |
