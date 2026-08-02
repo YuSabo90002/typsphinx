@@ -513,7 +513,7 @@ inherit an indent once the indent exists)
      strings plus a recorded file/class census, and the full-corpus `-b typstpdf` gate is re-run
      green after the admonition and rubric changes. The corpus gate skips gracefully offline — a skip
      is **not** a pass; it must actually run green at least once before the phase closes.
-**Plans**: 4/8 plans executed
+**Plans**: 5/8 plans executed
 
 Plans:
 **Wave 1**
@@ -525,7 +525,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 39-05-PLAN.md — ADM-01/ADM-02/ADM-03: the five bucket moves, the `sphinx.locale.admonitionlabels` title source, the static-title escaping fix, and the five-assertion / four-rename test migration
+- [x] 39-05-PLAN.md — ADM-01/ADM-02/ADM-03: the five bucket moves, the `sphinx.locale.admonitionlabels` title source, the static-title escaping fix, and the five-assertion / four-rename test migration
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -667,7 +667,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
-| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 4/8 | In Progress|  |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 5/8 | In Progress|  |
 | 40. Citations — Full Round Trip | v0.7.0 | 0/TBD | Not started | - |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
