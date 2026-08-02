@@ -666,7 +666,7 @@ Closes `40-REVIEW.md` WR-01, WR-02, WR-03.
      citation fixture is **byte-identical** — measured in `40-REVIEW.md`, that fixture reaches none
      of these three branches, so byte-identity there is the control proving the change is confined
      to the degradation paths.
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -679,7 +679,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 40.1-03-PLAN.md — WR-03: the D-08 Route-B assembled RED reaching the classic compile fatal, then D-05/D-06/D-07's shared eligibility predicate replacing both derivation sites (`40.1-GATE-EVIDENCE-03.md`)
+- [x] 40.1-03-PLAN.md — WR-03: the D-08 Route-B assembled RED reaching the classic compile fatal, then D-05/D-06/D-07's shared eligibility predicate replacing both derivation sites (`40.1-GATE-EVIDENCE-03.md`)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -779,7 +779,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
-| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 2/4 | In Progress|  |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 3/4 | In Progress|  |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
