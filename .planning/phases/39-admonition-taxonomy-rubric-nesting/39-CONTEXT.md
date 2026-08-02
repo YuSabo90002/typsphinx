@@ -76,8 +76,9 @@ Measured from `sphinx.sty` (Sphinx's own four title-band groups, lines 819–860
   admonition and enlarges the exact-string migration.
 - **D-02: the success bucket is `tip` (teal `#179299`), not `success` (green `#40a02b`).** `hint` and `tip` already emit `tip(…)`, so ADM-01 is discharged by moving `seealso` into it. ADM-01's parenthetical "(green 'success')" names Sphinx's bucket, not a required Typst colour; the teal stays.
 - **D-03: `danger` folds into `error` too.** Measured: today `danger` emits `danger(…)` = peach `#fe640b` while `error` emits `error(…)` = red `#d20f39`, so "the same bucket as danger/error" is not well-defined against pre-phase code. Collapsing `attention`, `danger` and `error` onto `error(…)` makes the red bucket a single function, which is what ADM-02 asserts.
+  **Superseded 2026-08-02 under gap G-39-1.** See "Reversal — recorded 2026-08-02 (gap G-39-1)" below and decision **D-03-R**: the red family stays a family of three distinct clue functions rather than one collapsed `error()` call.
 
-Resulting bucket table (this is the contract the planner implements):
+Resulting bucket table (this is the contract the planner implements). **The `error` row is superseded 2026-08-02 under gap G-39-1** — see the reversal section below for the red family's replacement table. The `note`, `success` and `warning` rows are unchanged and still in force:
 
 | Bucket | Function | accent (measured) | Sphinx types routed to it |
 |---|---|---|---|
@@ -183,6 +184,80 @@ Phase 38's `pad(left: SHARED_INDENT_STEP, …)` already carries the rubric; the 
   (`typsphinx/translator.py:5781-5787`): a rubric carrying a propagated target inside a list item
   runs the leading-separator check twice on top of an unconditional newline. Not filed as a separate
   todo; folded by D-11 because the docstring names Phase 39 as its owner.
+
+### Reversal — recorded 2026-08-02 (gap G-39-1)
+
+**This is a deliberate design reversal by the owner, made after a live A/B/C render comparison
+shown during UAT — it is not a defect repair.** D-03 above was a correct implementation of what
+ADM-02 asked for at the time it was written; the owner is now asking for something different,
+having seen the folded red bucket rendered. The owner's three messages are quoted verbatim below
+from `39-UAT.md`'s `reason` field, each followed by an accurate English rendering that preserves
+the nuance rather than paraphrasing it away, following the same discipline `39-ADM04-SIGNOFF.md`
+§4 uses for a recorded owner verdict elsewhere in this phase.
+
+**Message 1:**
+
+> 「うわ、デンジャーはgentle-clueのデンジャーに振った方が良かったかも」
+
+English rendering: *"Oh — maybe it would have been better to route `danger` to gentle-clues' own
+`danger` [function] after all."* (An exclamation of realization, followed by second-guessing the
+D-03 fold specifically for `danger`.)
+
+**Message 2:**
+
+> 「Bでもっかい再構成しないとまずいな」
+
+English rendering: *"I need to restructure this again with option B, or it's going to be a
+problem."* (もっかい = もう一回, "one more time"; まずいな carries "that would be bad/not good,"
+i.e. leaving it as-is is unacceptable — this is the moment the reversal becomes a decision rather
+than a passing thought.)
+
+**Message 3:**
+
+> 「Attentionはgentle-cleuのmemoにすっか」
+
+English rendering: *"Let's make `attention` [go to] gentle-clues' `memo` [function]."* (すっか is a
+casual contraction of する か, "shall we/let's do [it]" — the owner extending the same reversal
+from `danger` to `attention` after being shown Sphinx's own per-type icon assignment.)
+
+- **D-03-R: the red family sub-divides into three distinct clue functions.** All three red-family
+  types stay in the red family; each gets its own gentle-clues function rather than being
+  collapsed onto one. The mapping: `danger` routes to the package's own `danger` id (function
+  `danger(...)`), `attention` routes to the package's `memo` id (function `memo(...)`), and `error`
+  is unchanged (function `error(...)`). D-01's rule — a bucket is expressed as a function name,
+  never as a colour argument — is explicitly **NOT** reversed by D-03-R; only the cardinality of
+  the red bucket changes, from one function to three.
+
+Red-family table (measured 2026-08-02 from the installed
+`~/.cache/typst/packages/preview/gentle-clues/1.3.1/lib/theme.typ`; the accent column is measured
+provenance for this record, never an emitted value — D-01 stands, no `accent-color:` argument is
+passed anywhere):
+
+| Sphinx type | Clue function | accent (measured provenance) | icon (measured) | Requirement served |
+|---|---|---|---|---|
+| `danger` | `danger` | `#fe640b` (peach) | `danger.svg` | ADM-02 |
+| `attention` | `memo` | `#e64553` (maroon) | `excl.svg` | ADM-02 |
+| `error` | `error` | `#d20f39` (red) | `crossmark.svg` | ADM-02 |
+
+Two measured facts bound the change and are recorded here rather than assumed: all three
+`@preview` import sites (`typsphinx/writer.py:158`, `typsphinx/template_engine.py:615`,
+`typsphinx/templates/base.typ:19`) already use the wildcard form
+`#import "@preview/gentle-clues:1.3.1": *`, so both `danger` and `memo` are already in scope and
+no pin moves — `tests/test_preview_version_sync.py`'s three-surface (plus `examples/`) check is
+unaffected. gentle-clues supplies its own linguify default title for every predefined id it ships,
+including `memo` (`en` = "Memorize"), so the `sphinx.locale.admonitionlabels` `custom_title` path
+from D-04/D-05 must keep winning over both new ids' defaults, exactly as it already does for
+`danger`/`error`/`note`/etc. `39-UAT.md`'s `measured_context` claimed the `memo` id has no
+Japanese entry and falls back to `en` — that claim is **wrong**: the installed `lang.toml` carries
+a `[lang.ja]` block with `memo = "覚える"` (line 168 of
+`~/.cache/typst/packages/preview/gentle-clues/1.3.1/lib/lang.toml`, read directly this session).
+This does not change what typsphinx emits, since `custom_title` already overrides gentle-clues'
+own titles for every predefined id — but the record should state the measured value rather than
+repeat the UAT's incorrect claim.
+
+**What this reversal does NOT touch:** ADM-01's success bucket, the warning group, ADM-03's
+generic-admonition (`notify`) and topic (`abstract`) routing, ADM-05's rubric work, and D-04/D-05's
+`sphinx.locale.admonitionlabels` title source. All of those stand exactly as recorded above.
 
 </decisions>
 

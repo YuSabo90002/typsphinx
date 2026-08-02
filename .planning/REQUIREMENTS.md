@@ -107,11 +107,25 @@ wrapper) and agreeing within 3pt.
 
 Bucket taxonomy from `sphinx.sty` — four colour groups, not ten independent styles.
 
+      **Amended 2026-08-02 (gap G-39-1):** the red group is deliberately sub-divided into three
+      distinct clue functions (`danger`/`memo`/`error`, per `39-CONTEXT.md` D-03-R) under this gap;
+      the note, success and warning groups remain one function each — this preamble's claim is
+      about colour GROUPING and was never a claim about function cardinality. Measured reason:
+      Sphinx's own `sphinx.sty` gives the three red types one colour bucket and three distinct
+      icons, so a per-type icon inside one hue group is the reference behaviour, not a divergence
+      from it.
+
 - [x] **ADM-01** [M]: `seealso` renders in the same bucket as `hint`/`tip` (green "success"), not
       the blue "note" bucket it uses today.
 
 - [x] **ADM-02** [M]: `attention` renders in the same bucket as `danger`/`error` (red), not the
       orange "warning" bucket it uses today.
+
+      - **Amended 2026-08-02 (gap G-39-1):** the parenthetical bucket-identity clause above is
+        superseded — under `39-CONTEXT.md` D-03-R the red group contains three distinct clue
+        functions (`danger`/`memo`/`error`), so that clause has no single referent. Restated around
+        intent: `attention` must leave the orange warning group and render in the **red family** — the group of clue functions sharing the red hue range — and must NOT require `attention` to be
+        the same function as `danger` or `error`.
 
 - [x] **ADM-03** [M]: A generic `.. admonition::` renders as a **styled box carrying its own custom
       title**, not the unstyled base `clue` it produces today. The dynamic-title plumbing already
