@@ -186,3 +186,14 @@ None - no external service configuration required.
 ---
 *Phase: 40-citations-full-round-trip*
 *Completed: 2026-08-02*
+
+## Self-Check: PASSED
+
+- FOUND: tests/test_citation_render_gate.py
+- FOUND: .planning/phases/40-citations-full-round-trip/40-GATE-EVIDENCE-01.md
+- FOUND: .planning/REQUIREMENTS.md
+- FOUND: .planning/phases/40-citations-full-round-trip/40-05-SUMMARY.md
+- FOUND commit: 622ba76 (Task 1)
+- FOUND commit: da2684f (Task 2)
+- FOUND commit: 51912df (Task 3)
+- FOUND commit: 8fe9a16 (SUMMARY.md)
