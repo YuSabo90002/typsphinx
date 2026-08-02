@@ -4534,24 +4534,29 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_danger(self, node: nodes.danger) -> None:
-        """Visit a danger admonition (converts to #error[]).
+        """Visit a danger admonition (converts to #danger[]).
 
-        D-03: danger folds into the single error-bucket function, the same
-        one `visit_error` passes -- the red bucket is one function post-phase.
+        D-03-R (gap G-39-1): supersedes D-03. The red family is three
+        pairwise-distinct gentle-clues functions, not one collapsed
+        function -- danger routes to its own `danger` id rather than to
+        the function `visit_error` passes.
         """
-        self._visit_admonition(node, "error")
+        self._visit_admonition(node, "danger")
 
     def depart_danger(self, node: nodes.danger) -> None:
         """Depart a danger admonition."""
         self._depart_admonition()
 
     def visit_attention(self, node: nodes.attention) -> None:
-        """Visit an attention admonition (converts to #error[]).
+        """Visit an attention admonition (converts to #memo[]).
 
-        D-03: attention joins the error bucket, the same function
-        `visit_error` passes, not the warning bucket.
+        D-03-R (gap G-39-1): supersedes D-03. The red family is three
+        pairwise-distinct gentle-clues functions, not one collapsed
+        function -- attention routes to its own `memo` id rather than to
+        the function `visit_error` passes, and it is still not in the
+        warning bucket.
         """
-        self._visit_admonition(node, "error")
+        self._visit_admonition(node, "memo")
 
     def depart_attention(self, node: nodes.attention) -> None:
         """Depart an attention admonition."""

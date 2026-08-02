@@ -364,11 +364,12 @@ class TestAdmonitionConversion:
         assert "error[" not in output
         assert 'par({text("This is an error.")})' in output
 
-    def test_danger_converts_to_error(self, temp_sphinx_app: SphinxTestApp):
-        """Test that nodes.danger converts to error[] (D-03).
+    def test_danger_converts_to_danger_function(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.danger converts to danger[] (D-03-R, gap G-39-1).
 
-        danger folds into the single error-bucket function -- the same
-        one visit_error passes -- making the red bucket one function.
+        D-03-R supersedes D-03: the red family is three pairwise-distinct
+        gentle-clues functions, not one collapsed function -- danger
+        routes to its own `danger` id.
         """
         danger = nodes.danger()
         para = nodes.paragraph(text="This is dangerous.")
@@ -383,15 +384,17 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "error({" in output
-        assert "error[" not in output
+        assert "danger({" in output
+        assert "danger[" not in output
         assert 'par({text("This is dangerous.")})' in output
 
-    def test_attention_converts_to_error(self, temp_sphinx_app: SphinxTestApp):
-        """Test that nodes.attention converts to error[] (D-03).
+    def test_attention_converts_to_memo_function(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.attention converts to memo[] (D-03-R, gap G-39-1).
 
-        attention joins the error bucket -- the same function visit_error
-        passes -- not the warning bucket.
+        D-03-R supersedes D-03: the red family is three pairwise-distinct
+        gentle-clues functions, not one collapsed function -- attention
+        routes to its own `memo` id, and it is still not in the warning
+        bucket.
         """
         attention = nodes.attention()
         para = nodes.paragraph(text="Pay attention.")
@@ -406,8 +409,8 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "error({" in output
-        assert "error[" not in output
+        assert "memo({" in output
+        assert "memo[" not in output
         assert 'par({text("Pay attention.")})' in output
 
     def test_generic_admonition_converts_to_notify(
