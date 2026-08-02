@@ -568,9 +568,9 @@ Plans:
 
 **Goal**: A document containing docutils citations stops failing the Typst compile and instead
 renders a real reference list — a labelled hanging-indent entry per citation, a working `[Label]` →
-definition link, docutils' own back-references to every citing site, and document order preserved —
-to the point where the citation syntax Phase 22.2 stripped out of `examples/charged-ieee/` is
-restored and both samples build clean.
+definition link, docutils' own back-references to every same-document citing site, and document
+order preserved — to the point where the citation syntax Phase 22.2 stripped out of
+`examples/charged-ieee/` is restored and both samples build clean.
 **Depends on**: Nothing in this milestone — citation is structurally independent of the `desc_*` and
 admonition work, needs no document-order pre-pass, and is sequenced here only for convenience
 **Requirements**: CIT-01, CIT-02, CIT-03, CIT-04, CIT-05, CIT-06
@@ -586,10 +586,12 @@ admonition work, needs no document-order pre-pass, and is sequenced here only fo
      by eye.
 
   3. An in-text `[Label]` reference resolves to its definition, and each definition carries
-     back-references to every citing location — proven on a fixture that includes a forward
-     reference (the definition placed after its first use), 2+ citations, and 2+ documents, with
-     every label routed through the existing namespace/sanitize helpers so a repeated key across
-     documents cannot abort the compile with a duplicate-label fatal.
+     back-references to every citing location docutils itself recorded in the definition's own
+     `backrefs` — same-document only; a cross-document citing site gets a working forward link and
+     no back-reference, matching Sphinx's own HTML builder — proven on a fixture that includes a
+     forward reference (the definition placed after its first use), 2+ citations, and 2+ documents,
+     with every label routed through the existing namespace/sanitize helpers so a repeated key
+     across documents cannot abort the compile with a duplicate-label fatal.
 
   4. Citation entries appear in document order, unsorted, asserted against the compiled PDF's
      extracted text order.
@@ -721,6 +723,15 @@ precedent this entry follows).
   (`danger`/`memo`/`error`) rather than one. The surviving requirement is that `attention` leaves
   the orange warning group for the red family. No requirement was added, removed, or re-assigned
   to a different phase.
+
+- **2026-08-02** — Phase 40's SC#3 and Goal paragraph corrected from an unqualified "every citing
+  location"/"every citing site" back-reference claim to the same-document scope
+  `40-CONTEXT.md` D-08 established (recorded as D-09): docutils populates a citation definition's
+  own `backrefs` with same-document citing sites only, measured against a real two-document build,
+  and Sphinx's own HTML builder has the identical limitation (Sphinx's LaTeX builder renders no
+  back-references at all). A cross-document citing site still resolves a working forward link, it
+  simply gets no back-reference. No requirement was added, removed, or re-assigned to a different
+  phase.
 
 ## Backlog
 
