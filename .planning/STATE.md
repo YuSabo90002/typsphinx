@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 40
-current_phase_name: citations-full-round-trip
-status: executing
-stopped_at: Phase 40 planned
-last_updated: "2026-08-02T08:36:48.542Z"
+current_phase: 41
+current_phase_name: v0.7.0 Release Automation + Release Prep
+status: planning
+stopped_at: Phase 40 context gathered
+last_updated: "2026-08-02T10:54:39.851Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 40 execution started
+last_activity_desc: Phase 40 complete, transitioned to Phase 41
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 39
-  completed_plans: 35
-  percent: 67
+  completed_phases: 5
+  total_plans: 40
+  completed_plans: 40
+  percent: 83
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 40 (citations-full-round-trip) — EXECUTING
+Phase: 41 — v0.7.0 Release Automation + Release Prep
 Plans: 0/4 — planned 2026-08-02 (4 plans in 3 waves; `40-RESEARCH.md`, `40-PATTERNS.md`,
 `40-VALIDATION.md` alongside). Context gathered 2026-08-02 (`40-CONTEXT.md`, 14 decisions).
-Status: Executing Phase 40
-Last activity: 2026-08-02 — Phase 40 execution started
+Status: Ready to plan
+Last activity: 2026-08-02 — Phase 40 complete, transitioned to Phase 41
 
 **Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
 conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split

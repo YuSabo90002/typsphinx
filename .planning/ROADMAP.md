@@ -275,7 +275,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 - [x] **Phase 37: Signature Typography — the `desc_*` Family** - An API signature reads as a signature: monospace name and qualifier, distinguishable parameters, a real arrow, no margin overflow, no mid-signature page break (completed 2026-08-01)
 - [x] **Phase 38: Structural Indentation + Info Fields** - Description bodies indent inside their signature, nesting accumulates so class membership is visible, and field lists follow the same single constant (completed 2026-08-02)
 - [x] **Phase 39: Admonition Taxonomy + Rubric Nesting** - Admonitions land in the reference's four colour buckets with the generic directive styled and titled; a rubric inherits its container's indent (completed 2026-08-02)
-- [ ] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back
+- [x] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back (completed 2026-08-02)
 - [ ] **Phase 41: v0.7.0 Release Automation + Release Prep** - The GitHub Release body comes from the curated CHANGELOG section, and the v0.7.0 tree is prepared and proven green with no irreversible publish
 
 ## Phase Details
@@ -711,7 +711,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain.
 | 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
 | 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
-| 40. Citations — Full Round Trip | v0.7.0 | 5/5 | In Progress|  |
+| 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
