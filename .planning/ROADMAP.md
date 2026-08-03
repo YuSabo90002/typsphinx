@@ -717,14 +717,14 @@ proved)
      empty — and a standalone handoff checklist records exactly what `/gsd-complete-milestone` will
      execute (merge, tag, `release.yml`, PyPI + GitHub Release, and the standing second tag on
      `typsphinx-doc-translations`).
-**Plans**: 7 plans
+**Plans**: 3/7 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 41-01-PLAN.md — REL-04 end to end: the committed, pytest-covered `## [X.Y.Z]` extraction script (D-06/D-10) recorded RED first, `release.yml`'s `validate`-job existence check (D-09) and `create-release` body swap with the commit dump removed rather than fenced (SC#1), and the D-07 hand-run transcript in `41-REL04-EVIDENCE.md`
-- [ ] 41-02-PLAN.md — SC#2: the curated `## [0.7.0]` CHANGELOG entry (D-01..D-05) with the tail link-block rollover, plus the version bump to 0.7.0 across `pyproject.toml` / `README.md` / `uv.lock` in lockstep
-- [ ] 41-03-PLAN.md — the phase's one `typsphinx/` change (D-12's `visit_desc_sig_name` docstring escape, recorded RED via a docutils parse) and D-13's planning-record hygiene: two already-fixed todos filed to `completed/` after re-measurement, and PROJECT.md's two unterminated HTML comments terminated
+- [x] 41-01-PLAN.md — REL-04 end to end: the committed, pytest-covered `## [X.Y.Z]` extraction script (D-06/D-10) recorded RED first, `release.yml`'s `validate`-job existence check (D-09) and `create-release` body swap with the commit dump removed rather than fenced (SC#1), and the D-07 hand-run transcript in `41-REL04-EVIDENCE.md`
+- [x] 41-02-PLAN.md — SC#2: the curated `## [0.7.0]` CHANGELOG entry (D-01..D-05) with the tail link-block rollover, plus the version bump to 0.7.0 across `pyproject.toml` / `README.md` / `uv.lock` in lockstep
+- [x] 41-03-PLAN.md — the phase's one `typsphinx/` change (D-12's `visit_desc_sig_name` docstring escape, recorded RED via a docutils parse) and D-13's planning-record hygiene: two already-fixed todos filed to `completed/` after re-measurement, and PROJECT.md's two unterminated HTML comments terminated
 
 **Wave 2**
 
@@ -797,7 +797,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
-| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 0/TBD | Not started | - |
+| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 3/7 | In Progress|  |
 
 ## Roadmap Evolution
 
