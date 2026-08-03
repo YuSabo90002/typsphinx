@@ -15,7 +15,28 @@ findings:
   info: 2
   total: 3
 status: issues_found
+resolution:
+  resolved: [CR-01]
+  open: [IN-01, IN-02]
+  resolved_in: e9044ec
+  resolved_at: 2026-08-03
 ---
+
+> **Resolution note (2026-08-03, added by the orchestrator after this report was written).**
+> **CR-01 is fixed** in commit `e9044ec`, at the owner's decision to close it inside Phase 41 rather
+> than defer it. **IN-01 and IN-02 remain open** and were deliberately left alone.
+>
+> One correction to CR-01 as written below: the report presents the interpolation as code Phase 41
+> introduced. Measured against the phase base commit (`git show 30354ba:.github/workflows/release.yml`),
+> the same anti-pattern already existed at lines 42 (`TAG="${{ github.event.inputs.tag }}"` — the actual
+> untrusted entry point) and 53. Phase 41 added one further instance (line 63); it did not add new
+> reachability, since anyone able to reach line 63 already reached line 53 with the same value. That is
+> why the fix converted **every** shell-context interpolation in the file rather than only the line this
+> phase added — repairing line 63 alone would have left the entry point open. The finding itself stands;
+> only its attribution to this phase needed narrowing.
+>
+> Full change record, including the post-fix re-verification of the D-09 step ordering and the job
+> `needs:` graph, is in `41-REL04-EVIDENCE.md` § "Addendum — post-review hardening of `release.yml`".
 
 # Phase 41: Code Review Report
 
