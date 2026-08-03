@@ -185,6 +185,24 @@ reorder, while docutils citations are already-written prose with references alre
       forced re-deriving the GATE-01 fixture's expected strings immediately before a release; this
       milestone re-derives them anyway.
 
+### Tables and labels (TBL)
+
+Added 2026-08-03 when backlog item 999.2 was promoted into this milestone as Phase 42
+(`/gsd-review-backlog`, owner decision). The ID continues the TBL series from v0.6.3, which owns the
+captioned-table `figure()` wrap this defect lives in (TBL-01/TBL-02, Phase 25) — the defect is not a
+v0.7.0 regression, it has shipped in every release since 2026-07-25.
+
+- [ ] **TBL-03** [M]: A captioned table immediately preceded by a standalone target (`.. _label:`)
+      emits Typst labels for **both** ids — the `:name:`-derived one and the target's — so the
+      surviving reference resolves. Today only the `:name:`-derived label is emitted while the
+      reference to the dropped id survives, and the compile fails on a dangling label; the
+      caption-less table path is reported unaffected and must stay byte-for-byte unchanged (Phase 25
+      SC#2). **Not yet reproduced in-repo** — the report is the owner's; a minimal `.rst`, the Typst
+      error text, and the observed `node["ids"]` contents are the phase's first work, and whether
+      captioned **figures** share the defect must be answered either way. Keeps the classic GATE-01
+      `TypstError` RED (milestone invariant #4's second exception alongside CIT-01), since the defect
+      fails the compile today rather than compiling wrong.
+
 ### Release and CI (REL)
 
 - [ ] **REL-04** [M]: The GitHub Release body is the **curated `## [X.Y.Z]` CHANGELOG section**, not
@@ -267,8 +285,11 @@ Standing constraints this milestone must not violate. Verified mechanically at r
 4. **GATE-01 RED is redefined for this milestone.** Every prior fixture proved a compile fatal; every
    design defect here compiles successfully today, so RED must be a structural / regex /
    `pypdf`-text assertion defined **before** any code is written. Regenerating expected strings from
-   the new code's own output is a violation of this invariant, not a shortcut. CIT-01 is the sole
-   exception and keeps the classic `TypstError` RED.
+   the new code's own output is a violation of this invariant, not a shortcut. CIT-01 keeps the
+   classic `TypstError` RED as the exception — joined by **TBL-03** when Phase 42 was promoted in on
+   2026-08-03, on the same grounds (it fails the compile today rather than compiling wrong). The
+   "every prior fixture proved a compile fatal" framing above describes the milestone as originally
+   scoped; two of its requirements now do so as well.
 
 5. **Test migration is owned per phase**, never deferred to a single blanket closing pass. Measured
    blast radius: 10 test files, 61 render-gate classes.
@@ -278,8 +299,8 @@ Standing constraints this milestone must not violate. Verified mechanically at r
 
 ## Traceability
 
-Populated during roadmap creation (2026-07-29). Every v1 requirement maps to exactly one phase.
-Phase numbering continues from v0.6.5's last phase (35).
+Populated during roadmap creation (2026-07-29), extended 2026-08-03 with TBL-03 / Phase 42. Every
+v1 requirement maps to exactly one phase. Phase numbering continues from v0.6.5's last phase (35).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -315,6 +336,7 @@ Phase numbering continues from v0.6.5's last phase (35).
 | MATH-02 | Phase 36 | Complete |
 | REL-04 | Phase 41 | Pending |
 | REL-05 | Phase 41 | Pending |
+| TBL-03 | Phase 42 | Pending |
 
 **Per-phase totals:**
 
@@ -326,14 +348,17 @@ Phase numbering continues from v0.6.5's last phase (35).
 | 39 | Admonition Taxonomy + Rubric Nesting | ADM-01..ADM-05 | 5 |
 | 40 | Citations — Full Round Trip | CIT-01..CIT-06 | 6 |
 | 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 | 2 |
+| 42 | Captioned Table Drops Preceding Target Label | TBL-03 | 1 |
 
 **Coverage:**
 
-- v1 requirements: **32** total (9 SIG + 5 IND + 3 FLD + 6 ADM + 6 CIT + 1 MATH + 2 REL). *Corrected
-  2026-07-29 during roadmap creation — this line previously read "29 total", which was a tally
-  error; no requirement was added, removed, or reworded.*
+- v1 requirements: **33** total (9 SIG + 5 IND + 3 FLD + 6 ADM + 6 CIT + 1 MATH + 2 REL + 1 TBL).
+  *Corrected 2026-07-29 during roadmap creation — this line previously read "29 total", which was a
+  tally error; no requirement was added, removed, or reworded.* *Raised from 32 to 33 on 2026-08-03
+  when TBL-03 / Phase 42 was promoted out of backlog item 999.2 — this one **is** a real addition to
+  an already-complete milestone, by owner decision; see the ROADMAP's Roadmap Evolution entry.*
 
-- Mapped to phases: 32
+- Mapped to phases: 33
 - Unmapped: 0 ✓
 
 ---

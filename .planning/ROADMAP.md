@@ -10,7 +10,7 @@
 - ✅ **v0.6.3 — config & docs measured fidelity + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 - ✅ **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (shipped 2026-07-29) → [archive](milestones/v0.6.5-ROADMAP.md)
-- 🚧 **v0.7.0 — API rendering design overhaul** — Phases 36–41 (in progress, started 2026-07-29)
+- 🚧 **v0.7.0 — API rendering design overhaul** — Phases 36–42 (in progress, started 2026-07-29)
 
 ## Phases
 
@@ -278,6 +278,19 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 - [x] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back (completed 2026-08-02)
 - [x] **Phase 40.1: Citation Degradation Hardening (INSERTED)** - The three graceful-degradation gaps `40-REVIEW.md` found are closed with recorded-RED fixtures, so a citing-site topology the Phase 40 fixture never builds degrades instead of emitting a dangling `link()` (completed 2026-08-02)
 - [x] **Phase 41: v0.7.0 Release Automation + Release Prep** - The GitHub Release body comes from the curated CHANGELOG section, and the v0.7.0 tree is prepared and proven green with no irreversible publish (completed 2026-08-03)
+- [ ] **Phase 42: Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG)** - A captioned table preceded by a standalone target emits Typst labels for both ids, so the surviving reference resolves instead of failing the compile on a dangling label
+
+**Phase 42 was promoted out of the backlog on 2026-08-03, after Phase 41 had already completed**
+(`/gsd-review-backlog`, owner decision). Two consequences the milestone close must honour:
+
+- **The v0.7.0 publish now blocks on Phase 42** (owner decision 2026-08-03). The milestone is 7/8,
+  not 7/7; `/gsd-complete-milestone` runs after Phase 42 verifies, not before.
+- **Phase 41's release-prep artifacts need a delta pass over Phase 42's changes**, because they were
+  produced against a tree that did not contain them: the curated `## [0.7.0]` CHANGELOG entry (SC#2)
+  gains no line for TBL-03 on its own, and SC#4's milestone-invariant sweep — in particular "every
+  node-handler change carries its recorded-RED GATE-01 fixture" — was measured over a SHA range that
+  ends before Phase 42. Phase 42's own plan owns closing both, and `41-HANDOFF.md`'s checklist is
+  executed only after that.
 
 ## Phase Details
 
@@ -736,6 +749,68 @@ Plans:
 
 - [x] 41-07-PLAN.md — SC#5: the SC#1-SC#5 roll-up in `41-RELEASE-EVIDENCE.md` (quoting sibling verdicts, never re-deriving them), the fence proven by two independent observations of empty local and remote `v0.7.0` tags, and the standalone `41-HANDOFF.md` publish checklist
 
+### Phase 42: Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG)
+
+**Goal**: A captioned table that is immediately preceded by a standalone target (`.. _label:`)
+emits Typst labels for **both** ids — the `:name:`-derived one and the target's — so the surviving
+reference resolves instead of failing the compile on a dangling label. Promoted from backlog item
+999.2 on 2026-08-03 (`/gsd-review-backlog`, owner decision); filed 2026-08-03 from the pending todo
+`2026-08-03-captioned-table-drops-preceding-target-label.md`, itself promoted from `SEED-002`.
+**Depends on**: Nothing in this milestone. It is *sequenced* after Phase 41 because it was promoted
+after Phase 41 closed, not because it consumes Phase 41's output. The dependency runs the other
+way: Phase 41's SC#2 CHANGELOG entry and SC#4 invariant sweep must be re-checked against this
+phase's diff before the publish (see the note under the milestone phase list).
+**Requirements**: TBL-03
+**Not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is TBL-01/TBL-02 from
+**Phase 25 (v0.6.3, shipped 2026-07-25)**, so this has shipped in every release since. It is in
+v0.7.0 because the owner elected to fix it before the v0.7.0 publish, not because v0.7.0 caused it.
+**Severity**: hard compile failure (the document does not build), squarely inside the project's
+stated core value that an emitted reference must actually resolve.
+**Reproduction status: NOT yet reproduced in-repo.** The report is the owner's, verbatim; no minimal
+`.rst`, no captured Typst error text, and no observed `node["ids"]` contents exist yet. Establishing
+those is the first work of the phase — planning must not start from the breadcrumb hypothesis.
+**Success Criteria** (what must be TRUE):
+
+  1. A minimal `.rst` snippet reproduces the failure with the Typst error text captured verbatim,
+     and the actual `node["ids"]` / `node["names"]` contents at `depart_table` are recorded —
+     settling whether the standalone target's id reaches the handler at all before any fix is
+     chosen.
+
+  2. Whether captioned **figures** exhibit the same drop is answered either way, with the measurement
+     recorded. `translator.py:517` notes `depart_figure` likewise self-anchors `ids[0]`, and the
+     table path was modelled on it (Phase 25, D-04) — so the same class of defect may apply.
+
+  3. A captioned table preceded by a standalone target compiles, and **both** labels resolve: the
+     `:name:`-derived reference and the target-derived one. No "label … occurs multiple times"
+     fatal is introduced in trading the dangling label away — the risk the in-code TBL-02 /
+     Critical-Pitfall-3 rationale at `translator.py:3341` warns about.
+
+  4. The caption-less table path is **byte-for-byte unchanged** (Phase 25 SC#2), proven by diff over
+     an emitted fixture rather than by inspection.
+
+  5. Per milestone invariant #4 this is a *classic* GATE-01 candidate — the fixture is recorded RED
+     as a real `TypstError` against the unfixed code before the fix lands, not as a structural
+     assertion.
+
+  6. Phase 41's release-prep artifacts are reconciled with this phase's diff: the curated `## [0.7.0]`
+     CHANGELOG entry gains its TBL-03 line, and SC#4's "every node-handler change carries its
+     recorded-RED GATE-01 fixture" sweep is re-measured over a SHA range that includes Phase 42.
+
+**Plans**: 0 plans
+
+Open questions the phase must settle before a fix is chosen:
+
+- Does the standalone target's id reach `depart_table` in `node["ids"]` at all? The breadcrumb at
+  `translator.py:3341` (`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))`) *does*
+  appear to emit `ids[1:]`, and carries an in-code TBL-02 / Critical-Pitfall-3 rationale that
+  re-anchoring `ids[0]` there is a Typst "label … occurs multiple times" fatal. A naive change at
+  that line risks trading a dangling label for a duplicate-label fatal.
+- Do captioned **figures** exhibit the same drop? `translator.py:517` notes `depart_figure`
+  likewise self-anchors `ids[0]`, and the table path was modelled on it (Phase 25, D-04). Untested.
+
+Plans:
+- [ ] TBD (create with /gsd-plan-phase)
+
 ## Progress
 
 **Execution Order:**
@@ -746,6 +821,12 @@ proven by the preceding phases' gates. For v0.7.0: 36 → 37 → 38 → 39 → 4
 becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phase 40.1 was inserted
 2026-08-02 and its position is **not** negotiable relative to 41: Phase 41's SC#4 sweep must cover
 40.1's node-handler changes, so 40.1 lands first.
+
+**Amended 2026-08-03:** Phase 42 was promoted out of the backlog after Phase 41 had already
+completed, so it runs **after** the release-prep phase rather than before it — the one place this
+milestone's "prep-only Release phase last" ordering is broken. The owner accepted that and blocked
+the publish on Phase 42 instead of resequencing: order is 36 → 37 → 38 → 39 → 40 → 40.1 → 41 → 42,
+and Phase 42's SC#6 carries the reconciliation Phase 41 would otherwise have owned.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -798,6 +879,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
+| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 0/0 | Not started | — |
 
 ## Roadmap Evolution
 
@@ -822,17 +904,31 @@ precedent this entry follows).
   simply gets no back-reference. No requirement was added, removed, or re-assigned to a different
   phase.
 
+- **2026-08-03** — Backlog item **999.2** promoted into v0.7.0 as **Phase 42** at
+  `/gsd-review-backlog`, by owner decision, *after* Phase 41 had already completed. This is the
+  first amendment in this project's history that **adds a requirement to an already-complete
+  milestone**: v0.7.0 goes from 7/7 to 7/8, the milestone line becomes Phases 36–42, and new
+  requirement **TBL-03** is added to `REQUIREMENTS.md` (v1 total 32 → 33). The owner also decided
+  the v0.7.0 publish **blocks on Phase 42** rather than shipping first and deferring the fix, so
+  `/gsd-complete-milestone` no longer runs next. Phase 42's SC#6 carries the resulting
+  reconciliation debt — Phase 41's CHANGELOG entry (SC#2) and invariant sweep (SC#4) were both
+  measured against a tree that predates Phase 42. Nothing was removed or re-assigned away from
+  another phase.
+
 ## Backlog
 
 Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-backlog`, or
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-New items land here as `999.x` entries. **One item is open: 999.2** (detailed below). Item **999.1**
-(inline
+New items land here as `999.x` entries. **No item is open** — the backlog is empty as of 2026-08-03.
+Item **999.1** (inline
 math after text: missing separator before `#mi()` causes a Typst error) was promoted into v0.6.5 as
-Phase 34 / requirement MATH-01 and **shipped in v0.6.5** (2026-07-29). Numbering resumes at 999.2
-rather than reusing 999.1, so the promoted item's number stays unambiguous. Three earlier
+Phase 34 / requirement MATH-01 and **shipped in v0.6.5** (2026-07-29). Item **999.2** (a captioned
+table drops the id of an immediately preceding standalone target) was promoted into v0.7.0 as
+**Phase 42 / requirement TBL-03** on 2026-08-03 at `/gsd-review-backlog`. Numbering does not reuse
+retired numbers, so the next item filed here is **999.3** — this keeps each promoted item's original
+number unambiguous. Three earlier
 pending todos were promoted into v0.6.4 (Phases 29–33):
 `move-documentation-hosting-to-read-the-docs`, `github-io-doc-links-404-missing-en-prefix`, and
 `docs-usage-installation-orphan-class`. `add-sphinx-linkcheck-ci-job` stays **open and deferred** —
@@ -846,50 +942,16 @@ real-HTTP check covers that class instead.
 - `visit-math-block-redundant-blank-line-in-list-items` → Phase 36 (MATH-02)
 - `release-notes-body-from-changelog-section` → Phase 41 (REL-04)
 
+**Promoted into v0.7.0 later, at `/gsd-review-backlog`** (2026-08-03, via backlog item 999.2):
+
+- `captioned-table-drops-preceding-target-label` → Phase 42 (TBL-03). The todo record stays
+  **pending** until the phase executes; it is the detail record, the Phase 42 entry above is the
+  sequencing record.
+
 **Still open and deferred** (5, see STATE.md Deferred Items): `add-sphinx-linkcheck-ci-job`
 (LNK-01), `non-str-docname-typeerror-in-typstpdf-finish`,
 `modernize-typing-imports-drop-up006-up035-ignore`, `derive-typst-lang-duplicated-warning-block`,
 `project-md-unterminated-html-comments`.
 
-### Phase 999.2: Captioned Table Drops Preceding Target Label (BACKLOG)
-
-**Goal:** A captioned table that is immediately preceded by a standalone target (`.. _label:`)
-emits Typst labels for **both** ids — the `:name:`-derived one and the target's — so the surviving
-reference resolves instead of failing the compile on a dangling label. Filed 2026-08-03 from the
-pending todo `2026-08-03-captioned-table-drops-preceding-target-label.md` (itself promoted from
-`SEED-002`), at the owner's direction, as a phase candidate for the next milestone.
-
-**Why it is in the backlog, not v0.7.0:** v0.7.0 is complete (7/7 phases, awaiting
-`/gsd-complete-milestone`), and the defect is **not a v0.7.0 regression** — the captioned-table
-`figure()` wrap it lives in is TBL-01/TBL-02 from **Phase 25 (v0.6.3, shipped 2026-07-25)**, so this
-has shipped in every release since. It does not block the v0.7.0 publish.
-
-**Severity:** hard compile failure (the document does not build), squarely inside the project's
-stated core value that an emitted reference must actually resolve.
-
-**Reproduction status: NOT yet reproduced in-repo.** The report is the owner's, verbatim; no minimal
-`.rst`, no captured Typst error text, and no observed `node["ids"]` contents exist yet. Establishing
-those is the first work of the phase — planning must not start from the breadcrumb hypothesis.
-
-**Requirements:** TBD (assign at `/gsd-review-backlog` / `/gsd-new-milestone`)
-**Plans:** 0 plans
-
-Open questions the phase must settle before a fix is chosen:
-
-- Does the standalone target's id reach `depart_table` in `node["ids"]` at all? The breadcrumb at
-  `translator.py:3341` (`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))`) *does*
-  appear to emit `ids[1:]`, and carries an in-code TBL-02 / Critical-Pitfall-3 rationale that
-  re-anchoring `ids[0]` there is a Typst "label … occurs multiple times" fatal. A naive change at
-  that line risks trading a dangling label for a duplicate-label fatal.
-- Do captioned **figures** exhibit the same drop? `translator.py:517` notes `depart_figure`
-  likewise self-anchors `ids[0]`, and the table path was modelled on it (Phase 25, D-04). Untested.
-- The caption-less path must stay byte-for-byte unchanged (Phase 25 SC#2).
-
-Per milestone invariant #4 this is a *classic* GATE-01 candidate — it fails to compile today, so the
-recorded-RED fixture can be a real `TypstError` rather than a structural assertion.
-
-Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
-
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29). v0.7.0 phases added 2026-07-29. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29). v0.7.0 phases added 2026-07-29; Phase 42 promoted out of the backlog and added 2026-08-03. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*

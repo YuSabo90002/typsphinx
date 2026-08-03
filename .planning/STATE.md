@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 41
-status: completed
-stopped_at: Phase 41 complete — v0.7.0 prepped, publish pending at /gsd-complete-milestone
-last_updated: "2026-08-03T12:40:24.809Z"
+current_phase: 42
+status: in_progress
+stopped_at: Phase 42 promoted out of backlog 999.2 (2026-08-03) — not planned yet; the v0.7.0 publish blocks on it
+last_updated: "2026-08-03T12:55:26.000Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 41 complete
+last_activity_desc: Phase 42 promoted from backlog 999.2
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 7
   total_plans: 51
   completed_plans: 51
-  percent: 100
-current_phase_name: v0-7-0-release-automation-release-prep
+  percent: 88
+current_phase_name: captioned-table-drops-preceding-target-label
 ---
 
 # Project State
@@ -24,17 +24,39 @@ current_phase_name: v0-7-0-release-automation-release-prep
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.7.0 milestone close — all 7 phases complete; next action is `/gsd-complete-milestone`
+**Current focus:** Phase 42 (promoted from backlog 999.2 on 2026-08-03) — next action is `/gsd-discuss-phase 42`, **not** `/gsd-complete-milestone`
 
 ## Current Position
 
-Phase: 41 — v0.7.0 Release Automation + Release Prep (COMPLETE, the milestone's last phase)
+Phase: **42 — Captioned Table Drops Preceding Target Label (NOT STARTED, no plans yet)**. Promoted
+out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after* Phase 41
+had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total 32 → 33) and
+the milestone went from 7/7 to 7/8 — the first time this project has added a requirement to an
+already-complete milestone.
+
+**The v0.7.0 publish blocks on Phase 42** (owner decision, same session): `/gsd-complete-milestone`
+runs after Phase 42 verifies, not before. Two reconciliation items carried by Phase 42's SC#6,
+because Phase 41's artifacts were produced against a tree that predates it:
+
+1. The curated `## [0.7.0]` CHANGELOG entry (41 SC#2) has no TBL-03 line.
+2. SC#4's milestone-invariant sweep — in particular "every node-handler change carries its
+   recorded-RED GATE-01 fixture" — was measured over a SHA range that ends before Phase 42.
+
+The defect itself is **not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is
+TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25). It is **not yet reproduced in-repo** — the
+report is the owner's, verbatim; establishing a minimal `.rst`, the Typst error text, and the
+observed `node["ids"]` contents is the phase's first work. Do not plan from the breadcrumb
+hypothesis at `translator.py:3341`.
+
+### Phase 41 (previous position — COMPLETE)
+
+Phase: 41 — v0.7.0 Release Automation + Release Prep (COMPLETE)
 Plans: 7/7 — executed 2026-08-03 across 3 waves. Verification `passed` 5/5 (`41-VERIFICATION.md`),
 each success criterion re-measured by the verifier rather than taken from the phase's own evidence
 files. Full suite 805 passed / 1 skipped; `black` / `ruff` / `mypy` clean; full-corpus `-b typstpdf`
 gate executed and PASSED; both docs dogfooding builds exit 0. The `ja` glyph bar's fourth check is
 the owner's own sign-off (`41-JA-GLYPHBAR-SIGNOFF.md`, verbatim: `approved`).
-Status: All phases complete — v0.7.0 is prepped but NOT published
+Status: Complete — v0.7.0 is prepped but NOT published, and now waits on Phase 42 as well
 Last activity: 2026-08-03 — Phase 41 complete
 
 **Nothing irreversible has happened.** Local and remote `v0.7.0` tags are both empty (measured twice
@@ -75,12 +97,14 @@ the collapsed red admonition bucket into three distinct gentle-clues functions (
 re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
 `39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
 
-Progress: [████████████████████] 100% (7/7 phases)
+Progress: [█████████████████░░░] 88% (7/8 phases — Phase 42 added 2026-08-03)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
 Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 35). Roadmap
-created 2026-07-29: **6 phases (36–41)**, all **32** v1 requirements mapped, no orphans.
+created 2026-07-29: **6 phases (36–41)**, all **32** v1 requirements mapped, no orphans. Amended
+2026-08-03: **Phase 42 promoted in from backlog 999.2**, adding requirement TBL-03 — **8 phases
+(36–42, incl. 40.1)**, **33** v1 requirements, still no orphans.
 
 **Goal:** Replace the provisionally-chosen Typst representations of the API-description and
 admonition directive families with a real typographic design, so autodoc/API pages render as a
@@ -97,8 +121,12 @@ readable reference document instead of a flat wall of proportional bold text.
 | 40 | Citations — Full Round Trip | CIT-01..CIT-06 |
 | 40.1 | Citation Degradation Hardening (INSERTED) | none new — closes `40-REVIEW.md` WR-01..03 |
 | 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 |
+| 42 | Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG) | TBL-03 |
 
-Execution order 36 → 37 → 38 → 39 → 40 → **40.1** → 41. Phase 36 lands first because its acceptance
+Execution order 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 42 runs after the
+release-prep phase — the one place this milestone's "prep-only Release phase last" ordering is
+broken — because it was promoted in after 41 had closed; the owner blocked the publish on it rather
+than resequencing. Phase 36 lands first because its acceptance
 criterion is **byte-identical rendering** — the one provable, zero-risk move available, and a
 prerequisite for restyling `desc_signature` and `rubric` independently. 37 → 38 → 39 is a genuine
 dependency chain (signature shape → body/field indent → rubric inheriting that indent). Phase 40
@@ -315,17 +343,23 @@ Still open and deferred (5):
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
 - **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
 
-Added during v0.7.0 (1):
+Added during v0.7.0, then promoted (1):
 
-- **captioned-table-drops-preceding-target-label** (translator) — captured 2026-08-03 during Phase 41
+- **captioned-table-drops-preceding-target-label** (translator) — **promoted 2026-08-03 into Phase
+  42, requirement TBL-03** at `/gsd-review-backlog`. The todo record stays **pending** until the
+  phase executes (it is the detail record; the ROADMAP Phase 42 entry is the sequencing record).
+  History below is retained as filed:
+
+  Captured 2026-08-03 during Phase 41
   as SEED-002, promoted to a todo the same day at the owner's request. A captioned table emits only
   its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target,
   leaving a dangling label that fails the compile; caption-less tables are reported fine. **Not yet
   reproduced in-repo** — the todo's Acceptance section requires a minimal case, the Typst error text,
-  and the observed `node["ids"]` before a fix is designed. **Filed 2026-08-03 as backlog Phase 999.2**
-  at the owner's direction (`/gsd-capture --list` → "file it as a phase"); the todo stays pending and
-  the ROADMAP Backlog entry carries the open questions. Not a v0.7.0 regression — the captioned-table
-  `figure()` wrap is TBL-01/TBL-02 from Phase 25 (v0.6.3), so it does not block the v0.7.0 publish.
+  and the observed `node["ids"]` before a fix is designed. Filed 2026-08-03 as backlog Phase 999.2
+  at the owner's direction (`/gsd-capture --list` → "file it as a phase"), then promoted the same day
+  (above). Not a v0.7.0 regression — the captioned-table `figure()` wrap is TBL-01/TBL-02 from Phase
+  25 (v0.6.3). **The "does not block the v0.7.0 publish" clause filed with this todo is superseded:**
+  the owner decided at promotion that the publish *does* wait on Phase 42.
 
 Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
@@ -405,6 +439,20 @@ evidence.
   sweep must cover 40.1's node-handler changes, so 40.1 executes first. No requirement IDs were
   added, removed, or reworded — 40.1 hardens code CIT-01/CIT-03/CIT-04 already delivered.
 
+- **2026-08-03** — Backlog item **999.2 promoted into v0.7.0 as Phase 42** at `/gsd-review-backlog`,
+  by owner decision, *after* Phase 41 had already completed. Unlike every prior amendment in this
+  log, this one **adds a requirement to an already-complete milestone**: new requirement **TBL-03**
+  (Tables and labels — a captioned table preceded by a standalone target must emit both labels),
+  v1 total 32 → 33, milestone 7/7 → 7/8, milestone line Phases 36–41 → 36–42. The owner also decided
+  the **v0.7.0 publish blocks on Phase 42** rather than shipping first and deferring the fix, so
+  `/gsd-complete-milestone` is no longer the next action. Two consequences recorded in both files:
+  Phase 41's curated `## [0.7.0]` CHANGELOG entry (SC#2) has no TBL-03 line, and its SC#4
+  invariant sweep was measured over a SHA range ending before Phase 42 — Phase 42's own SC#6 owns
+  reconciling both before the publish. TBL-03 also joins CIT-01 as milestone invariant #4's second
+  classic-`TypstError`-RED exception, and invariant #4's wording was amended accordingly. Nothing was
+  removed or re-assigned away from another phase. The ROADMAP Backlog section is now empty; the next
+  item filed there is 999.3.
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -439,13 +487,29 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/40.1-citation-degradation-hardening/40.1-CONTEXT.md
+**Resume file:** .planning/ROADMAP.md § Phase Details → Phase 42 (the phase directory
+`.planning/phases/42-captioned-table-drops-preceding-target-label/` is empty — no CONTEXT yet).
 
-Last session: 2026-08-02T12:01:18.339Z
-Stopped at: Phase 40.1 context gathered
-Resume: `/gsd-plan-phase 40` (`40-CONTEXT.md` written 2026-08-02).
+Last session: 2026-08-03T12:55:26.000Z
+Stopped at: Phase 42 promoted out of backlog 999.2; nothing planned yet
+Resume: `/gsd-discuss-phase 42`, then `/gsd-plan-phase 42`.
 
 ## Operator Next Steps
+
+- **Next action is Phase 42, not the v0.7.0 publish** (owner decision 2026-08-03 at
+  `/gsd-review-backlog`). `41-HANDOFF.md`'s 7-item publish checklist is still valid and still
+  un-executed — local and remote `v0.7.0` tags remain empty — but it runs *after* Phase 42 verifies.
+  Before running it, close Phase 42's SC#6: add the TBL-03 line to the curated `## [0.7.0]` CHANGELOG
+  entry, and re-measure Phase 41's SC#4 invariant sweep over a SHA range that includes Phase 42's
+  translator change (the "every node-handler change carries its recorded-RED GATE-01 fixture" clause
+  is the one that actually grows).
+
+- **Phase 42's first work is reproduction, not fixing.** The defect is the owner's report verbatim
+  and has never been reproduced in-repo. `/gsd-discuss-phase 42` should treat the breadcrumb at
+  `translator.py:3341` as a place to look, not a diagnosis — that line already emits `ids[1:]` and
+  carries an in-code TBL-02 / Critical-Pitfall-3 rationale that re-anchoring `ids[0]` there is a
+  Typst "label … occurs multiple times" fatal, so a naive change trades a dangling label for a
+  duplicate-label one.
 
 - **Phase 39 closed 2026-08-02** — ADM-01..ADM-05 all complete. ADM-04 is MET on **icon-shape**
   grounds (owner sign-off, `39-ADM04-SIGNOFF.md`), with **title-band luminance recorded as uniform

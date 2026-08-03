@@ -338,8 +338,18 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
-**v0.7.0 — API rendering design overhaul: all seven phases complete (36, 37, 38, 39, 40, 40.1, 41),
-51/51 plans. Prepped but NOT published — the milestone now awaits `/gsd-complete-milestone`.**
+**v0.7.0 — API rendering design overhaul: 7 of 8 phases complete (36, 37, 38, 39, 40, 40.1, 41),
+51/51 plans. Prepped but NOT published — and the publish now waits on Phase 42, not on
+`/gsd-complete-milestone` alone.**
+
+**Amended 2026-08-03 (`/gsd-review-backlog`, owner decision):** backlog item 999.2 was promoted into
+this milestone as **Phase 42 — Captioned Table Drops Preceding Target Label**, adding requirement
+**TBL-03** (v1 total 32 → 33) *after* Phase 41 had already completed. The owner decided the v0.7.0
+publish blocks on it. Consequently the paragraphs below describing Phase 41 as the milestone's last
+phase are accurate as of Phase 41's close but no longer describe the milestone's end state: Phase 42
+must be discussed, planned, executed and verified first, and its SC#6 owns reconciling Phase 41's
+CHANGELOG entry (no TBL-03 line) and SC#4 invariant sweep (SHA range ends before Phase 42) with the
+new diff. Next action: `/gsd-discuss-phase 42`.
 
 Phase 41 (v0.7.0 Release Automation + Release Prep) completed 2026-08-03, 7/7 plans across 3 waves,
 verification `passed` 5/5 SC. `release.yml` now builds the GitHub Release body from `CHANGELOG.md`'s

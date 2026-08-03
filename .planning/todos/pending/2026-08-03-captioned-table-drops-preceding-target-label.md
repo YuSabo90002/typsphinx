@@ -3,7 +3,7 @@ created: 2026-08-03T21:24:40+09:00
 title: A captioned table emits only its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target, leaving a dangling label that fails the compile
 area: translator
 resolves_phase: null
-roadmap_entry: "999.2 (backlog, filed 2026-08-03)"
+roadmap_entry: "Phase 42 / TBL-03 (promoted 2026-08-03 from backlog 999.2)"
 source: .planning/seeds/SEED-002-captioned-table-drops-preceding-target-label.md (promoted 2026-08-03)
 files:
   - typsphinx/translator.py (`depart_table` at line 3249 — the captioned vs. caption-less branch)
@@ -35,12 +35,17 @@ next section.
 ## Status
 
 Filed 2026-08-03 as **backlog Phase 999.2** in `.planning/ROADMAP.md` (§ Backlog), at the owner's
-direction. The todo stays **pending** — the backlog entry is the sequencing record, this file stays
-the detail record. Promote with `/gsd-review-backlog` or pull it in at `/gsd-new-milestone`.
+direction, and **promoted the same day into v0.7.0 as Phase 42 / requirement TBL-03** at
+`/gsd-review-backlog`. The todo stays **pending** until the phase executes — the ROADMAP Phase 42
+entry is the sequencing record, this file stays the detail record. Next action:
+`/gsd-discuss-phase 42`.
 
 Not a v0.7.0 regression: the captioned-table `figure()` wrap it lives in is TBL-01/TBL-02 from
-Phase 25 (v0.6.3, shipped 2026-07-25), so this has shipped in every release since and does not
-block the pending v0.7.0 publish.
+Phase 25 (v0.6.3, shipped 2026-07-25), so this has shipped in every release since.
+**Superseded at promotion:** this record originally said the defect does not block the pending
+v0.7.0 publish. The owner decided on 2026-08-03 that it does — `/gsd-complete-milestone` now runs
+after Phase 42 verifies. Phase 42's SC#6 additionally owns reconciling Phase 41's CHANGELOG entry
+and invariant sweep with this fix's diff.
 
 ## Solution
 
