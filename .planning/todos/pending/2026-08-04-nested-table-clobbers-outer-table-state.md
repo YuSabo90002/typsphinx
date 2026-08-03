@@ -2,7 +2,7 @@
 created: 2026-08-04T00:52:00+09:00
 title: A table nested inside a list-table cell clobbers the outer table's in-progress state, silently emitting the inner table's body under the outer table's caption
 area: translator
-resolves_phase: null
+resolves_phase: 43
 roadmap_entry: null
 source: "Phase 42 / 42-REVIEW.md IN-02 (2026-08-03) -- captioned-table-drops-preceding-target-label; independently reproduced by the orchestrator 2026-08-04"
 files:

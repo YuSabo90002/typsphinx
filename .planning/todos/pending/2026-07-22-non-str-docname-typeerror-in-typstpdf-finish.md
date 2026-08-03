@@ -2,6 +2,7 @@
 created: 2026-07-22T00:00:00+09:00
 title: 非 str の docname が TypstPDFBuilder.finish() で raw TypeError を起こす
 area: builder, tests
+resolves_phase: 44
 source: .planning/phases/22.3-typstpdf-builder-warning-hardening/22.3-RESEARCH.md (Pitfall 4)
 files:
   - typsphinx/builder.py (`finish()` — `_directory_preserving_relpath` 呼び出し, `try:` ブロックより前)

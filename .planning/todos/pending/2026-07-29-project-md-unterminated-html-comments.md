@@ -2,6 +2,7 @@
 created: 2026-07-29T01:55:00+09:00
 title: Two unterminated HTML comments in PROJECT.md's archived-footer tail
 area: planning docs
+resolves_phase: 45
 files:
   - .planning/PROJECT.md (lines 492 and 506 as measured at commit 279aea5 — the two `<!-- Prior: ...` footers missing their closing token)
 ---

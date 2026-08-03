@@ -3,7 +3,7 @@ created: 2026-08-04T01:20:00+09:00
 title: "`_emit_id_anchors`'s docstring still calls `depart_figure` the \"sole user\" of `skip_ids`, false since Phase 25 and now actively misleading after Phase 42"
 area: translator
 severity: warning
-resolves_phase: null
+resolves_phase: 43
 roadmap_entry: null
 source: "Phase 42 / 42-REVIEW.md WR-01 (2026-08-03) -- captioned-table-drops-preceding-target-label; provenance dated by the orchestrator 2026-08-04"
 files:

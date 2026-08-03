@@ -2,6 +2,7 @@
 created: 2026-08-04T05:51:32+09:00
 title: The docs changelog page is frozen at 0.4.0 — 12 releases missing
 area: docs
+resolves_phase: 45
 severity: minor
 files:
   - docs/source/changelog.rst

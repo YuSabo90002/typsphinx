@@ -2,7 +2,7 @@
 created: 2026-08-03T23:26:31+09:00
 title: A captioned table whose title renders to an empty string may anchor its ids on neither the visit nor the depart path, leaving a dangling reference
 area: translator
-resolves_phase: null
+resolves_phase: 43
 roadmap_entry: null
 source: "Phase 42 / D-08 (2026-08-03) -- captioned-table-drops-preceding-target-label"
 files:

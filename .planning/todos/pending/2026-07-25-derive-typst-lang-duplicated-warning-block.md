@@ -2,6 +2,7 @@
 created: 2026-07-25T00:00:00+09:00
 title: derive_typst_lang() の警告ブロックが 2 つの棄却分岐で逐語的に重複
 area: template_engine
+resolves_phase: 45
 source: .planning/phases/27.1-typst-text-lang-from-sphinx-language-config/27.1-REVIEW.md (IN-01, Info)
 files:
   - typsphinx/template_engine.py (`derive_typst_lang()` の 2 つの棄却分岐)
