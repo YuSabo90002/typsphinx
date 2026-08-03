@@ -199,6 +199,15 @@ None - no external service configuration required.
   release-prep evidence roll-up; this plan's SC#4 proof is a direct input to that closing plan's
   own claims.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-SC4-INVARIANTS.md`
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-06-SUMMARY.md`
+- FOUND commit `204c58a` (Task 1)
+- FOUND commit `536601e` (Task 2)
+- FOUND commit `f45d261` (Task 3)
+- FOUND commit `01037d0` (this SUMMARY)
+
 ---
 *Phase: 41-v0-7-0-release-automation-release-prep*
 *Completed: 2026-08-03*
