@@ -9,7 +9,7 @@ v1 requirement except the two publish-gated REL rows was already `Complete` befo
 are Phase 41 D-14's own recorded deferrals to v0.7.1+, one is a planning-docs hygiene record, and
 the single dormant seed (SEED-001) was never scoped into this milestone.
 **Phases:** 8 (36–42, incl. inserted 40.1) · **Plans:** 57 · **Tasks:** 158
-**Requirements:** 33/33 v1 requirements complete · **Known gaps:** none
+**Requirements:** 32/33 v1 requirements complete · **Known gaps:** 1 (REL-04 — see below)
 **Timeline:** 2026-07-29 → 2026-08-04 (7 days)
 **Git:** milestone branch `gsd/v0.7.0-api-rendering-design-overhaul` (477 commits) merged to `main`; tagged `v0.7.0` on the merge commit
 **Code delta (milestone scope, excl. `.planning/`):** 80 files, +14,619 / −339 lines. The runtime
@@ -17,9 +17,37 @@ change is concentrated in `typsphinx/translator.py` (the `desc_*`, `field_list`,
 and citation handler families); the remainder is the RED-recorded regression gates each node-handler
 change carries, the CHANGELOG-section extractor + `release.yml` rework, the version bump, and the
 CHANGELOG entry.
-**First release with curated release notes:** REL-04 means this tag's GitHub Release body is the
-curated `## [0.7.0]` CHANGELOG section rather than the `git log --pretty` commit dump every prior
-release shipped (the v0.6.4 body was 308 lines, 296 of them the dump).
+**Released 2026-08-04:** PyPI `typsphinx 0.7.0` (wheel 122,514 B + sdist 477,342 B) published by
+release run `30848860064` after owner approval of the `pypi` environment (15-minute wait timer).
+GitHub Release `Release v0.7.0` carries all three assets (`.whl`, `.tar.gz`, and the tag-time
+`typsphinx.pdf` from `docs.yml`) with the curated `## [0.7.0]` CHANGELOG body. Second-repository tag
+done: `typsphinx-doc-translations` pin advanced to `75fd8ed` by `update-pin.yml` run `30848873442`
+(commit `a2150b1f`) and tagged `v0.7.0` there. PR #129 merged to `main` with 15/15 CI checks green;
+`v0.7.0` tagged on merge commit `75fd8ed`.
+
+### Known Gaps
+
+**REL-04 — not met; carried to v0.7.1.** The requirement is that the GitHub Release body is the
+curated `## [X.Y.Z]` CHANGELOG section rather than a `git log --pretty` commit dump. The workflow
+change landed correctly in Phase 41 (plan 41-01), but its **first real tag push failed**: the
+`create-release` job runs `uv run python scripts/extract_changelog_section.py` and that job has no
+`astral-sh/setup-uv` step — `validate` and `build` both do; `create-release` never needed uv until
+REL-04 wired the extractor into it. Run `30848860064` went `validate` ✓ → `build` ✓ →
+`publish-pypi` ✓ → `create-release` ✗ (`uv: command not found`, exit 127). `41-HANDOFF.md` item 1
+had flagged this tag push as "the first moment that check exercises in anger"; it was, and it broke.
+
+The v0.7.0 release body and the missing wheel/sdist assets were **repaired by hand** at the close, so
+the published artifact matches what REL-04 describes. The automation has still never produced it.
+`release.yml`'s `create-release` job gained the missing `Install uv` / `Set up Python` steps on
+`main` after the release; REL-04 closes only when a real tag push exercises it end to end.
+
+**Two CI-surface defects this milestone's own branch never saw until the release PR.** Alongside
+REL-04, the Windows test lanes went RED on PR #129 — three signature render-gate modules added in
+Phase 37 read and wrote `.typ` files with a bare `Path.read_text()`/`write_text()`, so Windows'
+cp1252 default could not decode UTF-8 output (820 passed / 1 failed; Linux and macOS fully green).
+Fixed in `9a544db` before merge. Both defects share a cause: **the milestone branch was never pushed
+until the release PR**, so neither Windows CI nor a real tag push ran against it at any point during
+the eight phases.
 
 **Delivered:** API reference pages became readable. Autodoc/API output moved from a flat wall of
 proportional bold text to a typeset reference document — monospace signatures with hanging-indent
@@ -70,6 +98,8 @@ every node-handler change carries its own recorded-RED GATE-01 fixture.
   interpolation in `release.yml` to `env:` passing (code-review CR-01), and left a standalone
   seven-item publish handoff checklist with zero irreversible action taken — the tag state was
   probed empty twice, 2m44s apart, to prove the fence held.
+  **The extractor itself is correct and hand-verified; what failed at the real tag push is the job
+  that calls it — see Known Gaps above.**
 
 ---
 

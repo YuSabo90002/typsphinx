@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 status: Awaiting next milestone
-stopped_at: Milestone v0.7.0 archived; publish in progress at /gsd-complete-milestone
+stopped_at: Milestone v0.7.0 shipped and archived; REL-04 carried to v0.7.1
 last_updated: "2026-08-03T15:38:44.326Z"
 last_activity: 2026-08-04
 last_activity_desc: Milestone v0.7.0 completed and archived
@@ -43,9 +43,18 @@ under `milestones/v0.7.0-phases/`. The MILESTONES.md entry carries the stats, th
 accomplishments, and the release record.
 
 **Shipped 2026-08-04.** 8 phases (36–42, incl. inserted 40.1) · 57 plans · 158 tasks ·
-33/33 v1 requirements complete · `override_closeout` (no milestone audit; 6 open artifacts
-acknowledged — see Deferred Items). Timeline 2026-07-29 → 2026-08-04 (7 days, 477 commits).
-Code delta excluding `.planning/`: 80 files, +14,619 / −339 lines.
+**32/33** v1 requirements complete (REL-04 carried to v0.7.1) · `override_closeout` (no milestone
+audit; 6 open artifacts acknowledged — see Deferred Items). Timeline 2026-07-29 → 2026-08-04
+(7 days, 477 commits). Code delta excluding `.planning/`: 80 files, +14,619 / −339 lines.
+
+**Published 2026-08-04.** PR #129 merged to `main` (15/15 CI checks green) and `v0.7.0` tagged on
+merge commit `75fd8ed`. Release run `30848860064`: `validate` ✓ → `build` ✓ → `publish-pypi` ✓
+(after owner approval of the `pypi` environment, 15-minute wait timer) → `create-release` ✗. PyPI
+`typsphinx 0.7.0` is live (wheel 122,514 B + sdist 477,342 B). The GitHub Release
+`Release v0.7.0` was repaired by hand and now carries all three assets (`.whl`, `.tar.gz`, and the
+tag-time `typsphinx.pdf` from `docs.yml`) with the curated `## [0.7.0]` CHANGELOG body plus
+GitHub's auto-generated notes. Second-repository tag done: `typsphinx-doc-translations` pin advanced
+to `75fd8ed` by `update-pin.yml` run `30848873442` (commit `a2150b1f`) and tagged `v0.7.0` there.
 
 **What shipped:** API reference pages became readable — monospace signatures with hanging-indent
 wrapping and no margin overflow (SIG-01..09), description bodies and field lists indenting by
@@ -53,7 +62,9 @@ nesting depth off one shared `SHARED_INDENT_STEP` constant (IND-01..05, FLD-01..
 re-bucketed onto a taxonomy the owner signed off against a desaturated render (ADM-01..06),
 greenfield full-round-trip docutils citations with degradation hardening (CIT-01..06 + Phase 40.1),
 two remaining compile fatals closed (MATH-02, TBL-03), and the GitHub Release body sourced from the
-curated `## [0.7.0]` CHANGELOG section for the first time (REL-04, REL-05).
+curated `## [0.7.0]` CHANGELOG section — the last of these delivered as a mechanism (REL-04) but
+**not** exercised end to end by the release, see Blockers/Concerns; REL-05 (the release itself) is
+complete.
 
 **Standing invariants held:** zero new runtime dependencies; the `@preview` package count stayed at
 four with no new version-lockstep site; every node-handler change carries its own recorded-RED
@@ -210,7 +221,8 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 **Nine open in `.planning/todos/pending/` when this close began.** One
 (`visit-desc-sig-name-docstring-unbalanced-asterisk-warning`) was filed to `todos/completed/` here
-per `41-HANDOFF.md` item 7, leaving **eight**. All are acknowledged and recorded in Deferred Items
+per `41-HANDOFF.md` item 7, and one was filed *by* this close
+(`release-create-job-missing-uv-verify-end-to-end`, the REL-04 gap), leaving **nine**. All are acknowledged and recorded in Deferred Items
 above; none blocks the release.
 
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
@@ -225,6 +237,11 @@ Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 Planning-record hygiene (1):
 
 - **project-md-unterminated-html-comments** (planning docs).
+
+Filed at the v0.7.0 close (1):
+
+- **release-create-job-missing-uv-verify-end-to-end** (ci, release) — the REL-04 gap above. Closes
+  only when a real tag push runs `create-release` to completion.
 
 Filed during v0.7.0 and still open (3):
 
@@ -247,10 +264,22 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 
 ### Blockers/Concerns
 
-**v0.7.0 close — publish status recorded below once the release run completes.** The seven-item
-`41-HANDOFF.md` checklist is what this close executes; item 5 (confirming Read the Docs `stable` is
-green at `v0.7.0` on both the `en` and `ja` projects) is the only owner-manual step, and it runs
-only after the release workflow and the second-repository tag both show green.
+**Owed from v0.7.0: REL-04.** The requirement — the GitHub Release body sourced from the curated
+`## [X.Y.Z]` CHANGELOG section — is **not met**. The extractor Phase 41 wrote is correct and
+hand-verified, but the `create-release` job calls `uv run …` with no `astral-sh/setup-uv` step
+(`validate` and `build` both have one; `create-release` never needed uv until REL-04 wired the
+extractor into it), so the first real tag push died at `uv: command not found`, exit 127. The
+release body and its missing wheel/sdist were repaired by hand; `release.yml`'s `create-release` job
+gained the two missing steps on `main` afterwards. **REL-04 closes only when a real tag push runs
+`create-release` to completion** — carried to v0.7.1, and it is the only item in PROJECT.md's
+Requirements Active.
+
+**Both defects this close surfaced share one cause: the milestone branch was never pushed until the
+release PR.** The Windows lanes went RED on PR #129 (three Phase 37 signature render-gate modules
+read `.typ` with a bare `Path.read_text()`, so Windows' cp1252 could not decode UTF-8 — fixed in
+`9a544db` before merge), and `create-release` had never run against a real tag. Neither Windows CI
+nor a tag push touched the branch during any of the eight phases. Pushing the milestone branch early
+— even without opening a PR — would have caught the first one eight phases sooner.
 
 **Carried forward, non-blocking:** eight pending todos (Deferred Items) and one dormant seed. The
 most significant is `nested-table-clobbers-outer-table-state` — a real, severe, pre-existing bug
@@ -387,6 +416,7 @@ Items acknowledged and carried forward from milestone closes:
 | Todo (translator) | emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user | Acknowledged, filed during Phase 42 (review WR-01) — deliberately not fixed in-phase because touching `translator.py` after the SC#4/SC#6 artifacts were recorded would move the change outside the SHA range they measured | v0.7.0 close |
 | Todo (translator) | nested-table-clobbers-outer-table-state | Acknowledged, filed during Phase 42 (review IN-02) — a real, severe, **pre-existing** bug verified byte-identical pre- and post-fix: a table nested in a `list-table` cell silently drops the outer table structure because `in_table`/`table_cell_content` are scalars, not a stack. Did not block v0.7.0; a strong candidate for the next milestone | v0.7.0 close |
 | Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf — README Quick Start does not say that `.typ` files are not compiled to PDF unless `typst_documents` is configured | Dormant; never scoped into v0.7.0 | v0.7.0 close |
+| Todo (ci, release) | release-create-job-missing-uv-verify-end-to-end — REL-04's `create-release` job failed on the v0.7.0 tag push (`uv: command not found`); workflow fixed on `main`, release repaired by hand, but the automation is still unproven | **Carried to v0.7.1 as an open requirement**, not merely a todo | v0.7.0 close |
 
 ## Session Continuity
 
