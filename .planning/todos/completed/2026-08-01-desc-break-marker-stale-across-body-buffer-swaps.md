@@ -58,3 +58,42 @@ regression fixture recorded **red against the unfixed code** before it is accept
 
 Related: [[gsd-execute-worktrees-unsafe-editable-install]] for how to run the fixture in an
 isolated worktree.
+
+## Resolved
+
+Filed to `completed/` by Phase 41 (`.planning/phases/41-v0-7-0-release-automation-release-prep/`,
+2026-08-03). Phase 41 files this record; the fix itself landed in an earlier phase (Phase 38,
+per `resolves_phase: 38` above), not in Phase 41.
+
+Re-verified in this worktree (commit range through `c81ca29`), by grep against
+`typsphinx/translator.py`:
+
+- `self._desc_break_marker: tuple[int, int] | None = None` — initialized at line 261, confirming
+  the marker's shape is a 2-tuple, not a bare int.
+- `depart_desc` (~line 5542-5548):
+  ```python
+  if not self.in_table and self._desc_break_marker == (
+      id(self.body),
+      len(self.body),
+  ):
+      return
+  self._emit_forced_break("parbreak()")
+  self._desc_break_marker = (id(self.body), len(self.body))
+  ```
+  Both the comparison (line 5542) and the reassignment (line 5548) use the `(id(self.body),
+  len(self.body))` tuple shape.
+- The second comparison/assignment site (~line 5885-5891):
+  ```python
+  marker_was_untouched = not self.in_table and self._desc_break_marker == (
+      id(self.body),
+      len(self.body),
+  )
+  self.add_text("})\n")
+  if marker_was_untouched:
+      self._desc_break_marker = (id(self.body), len(self.body))
+  ```
+  Same tuple shape at both the comparison (line 5885) and the reassignment (line 5891).
+
+All three sites (init + two comparison/assignment pairs) carry the `(id(self.body),
+len(self.body))` shape the "How to apply" section above proposed. The fix is in place; no code
+change was made by Phase 41 for this item.

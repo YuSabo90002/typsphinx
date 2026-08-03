@@ -30,3 +30,23 @@ Rename the constant to something that describes what it actually holds post-`37-
 `uv run pytest tests/test_signature_page_boundary_render_gate.py -v` stays green. Low priority — pure
 naming hygiene, no behavior change; the existing comment already prevents actual confusion about the
 value's provenance.
+
+## Resolved
+
+Filed to `completed/` by Phase 41 (`.planning/phases/41-v0-7-0-release-automation-release-prep/`,
+2026-08-03). Phase 41 files this record; the fix itself landed in an earlier phase (Phase 38, per
+`resolves_phase: 38` above), not in Phase 41.
+
+Re-verified in this worktree by grep against `tests/test_signature_page_boundary_render_gate.py`:
+
+```
+147:EXPECTED_PAGE_COUNT_CEILING = 7
+```
+
+The constant is named `EXPECTED_PAGE_COUNT_CEILING` (not the todo's suggested
+`EXPECTED_PAGE_COUNT`/`EXPECTED_PAGE_COUNT_POST_PHASE_37`, but the same rename intent: a name that
+no longer claims to be a pre-phase value), and its value is `7` — matching the post-`37-09`
+re-pin this todo describes. `grep -rn "EXPECTED_PAGE_COUNT_PRE_PHASE" tests/` under this worktree
+returns only two comment-line mentions (lines 112 and 305) that narrate the historical rename;
+the old name does not appear as a live Python identifier anywhere under `tests/`. The fix is in
+place; no code change was made by Phase 41 for this item.
