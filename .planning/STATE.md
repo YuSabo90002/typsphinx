@@ -21,7 +21,8 @@ See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
 **Current focus:** Milestone **v0.7.1 (bug-fix round)** — roadmap created, **Phases 43-46**,
-11/11 v1 requirements mapped with zero orphans. Next action: `/gsd-plan-phase 43`.
+12/12 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion).
+Next action: `/gsd-plan-phase 43`.
 
 ## Current Position
 
@@ -37,11 +38,12 @@ Last activity: 2026-08-04 — v0.7.1 roadmap created (Phases 43-46)
 deliberately skipped (owner decision 2026-08-04 — a maintenance round over already-diagnosed defects,
 each carrying a file/line-level todo, with the one new-behaviour item CONF-08 resolved by direct
 measurement of Sphinx 9.1.0's LaTeX builder), so this milestone has **no `research/SUMMARY.md`**.
-Coverage: **11/11** v1 requirements mapped, zero orphans, zero duplicates.
+Coverage: **12/12** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
+added 2026-08-04 by owner decision at Phase 43 discussion).
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
-| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; an empty-titled caption still anchors its ids | TBL-04, TBL-05, QUA-01 |
+| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; a nested figure stops dropping the outer caption; an empty-titled caption still anchors its ids | TBL-04, TBL-05, FIG-01, QUA-01 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
 | 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
 | 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |

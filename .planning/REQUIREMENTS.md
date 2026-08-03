@@ -32,6 +32,22 @@ continues at **Phase 43**.
       a value check, `if self.table_caption:`. When a title renders to `""` the two disagree and
       neither path anchors.)
 
+### Figures
+
+- [ ] **FIG-01**: A figure nested inside another figure renders both figures correctly — the
+      enclosing figure's caption, ids and state all survive the inner figure's visit and departure,
+      and the inner figure renders inside the enclosing figure's legend rather than replacing or
+      corrupting it. (Added 2026-08-04 during Phase 43 discussion, on the owner's decision to fold
+      the figure path into the same fix. Measured that day: `.. figure::` nested in another
+      `.. figure::`'s caption body puts the inner figure inside a docutils `legend` node; typsphinx
+      has no `legend` handler, so `sphinx-build` emits `WARNING: unknown node type: <legend>`, the
+      outer caption `OUTERFIGCAP` disappears entirely, and the inner `figure(...)` is injected as a
+      content block straight after the outer `image("img.png")`. Sphinx's own LaTeX builder handles
+      the same input without a warning — outer `\caption{OUTERFIGCAP}\label{index:id1}` survives and
+      the inner figure is emitted inside a `sphinxlegend` environment. The second layer,
+      `self.in_figure` / `self.figure_caption` being scalars with the same shape as the TBL-04
+      clobber, is covered by this requirement as an implementation means, not as its own row.)
+
 ### Configuration
 
 - [ ] **CONF-08**: With `typst_documents` unset, `sphinx-build -b typstpdf` produces a PDF instead of
@@ -122,7 +138,7 @@ Explicitly excluded, with reasoning.
 | A rehearsal mechanism for `create-release` (test tag / `workflow_dispatch` dry run) | Owner decision 2026-08-04. REL-04 closes on the real tag push at `/gsd-complete-milestone`; if it fails again it carries forward again. |
 | Bumping to v0.8.0 to absorb CONF-08's output-filename rename | Owner decision 2026-08-04, taken after the rename was stated explicitly. The framing accepted: the renamed path produced no PDF at all before, so it is a broken path being repaired rather than a working one being changed. |
 | Deriving `<root_doc>.typ` instead of `<project>.typ` (which would rename nothing) | Owner chose the LaTeX-consistent shape over the rename-free one. |
-| New translation features, new reST constructs, new node handlers | This is a maintenance cycle, not a feature cycle. |
+| New translation features, new reST constructs, new node handlers | This is a maintenance cycle, not a feature cycle. **One exception, taken by owner decision 2026-08-04:** FIG-01 adds a `legend` node handler. It is admitted because it is not new capability for its own sake — it is the repair path for a measured silent-data-loss defect (the outer figure's caption disappears today), which is the same class of defect the rest of this milestone closes. |
 | Typing-import modernization | Forbidden by `CLAUDE.md` until its own todo lands — see Future Requirements. |
 
 ## Traceability
@@ -133,6 +149,7 @@ Filled during roadmap creation.
 |-------------|-------|--------|
 | TBL-04 | Phase 43 | Pending |
 | TBL-05 | Phase 43 | Pending |
+| FIG-01 | Phase 43 | Pending |
 | QUA-01 | Phase 43 | Pending |
 | CONF-08 | Phase 44 | Pending |
 | BLD-01 | Phase 44 | Pending |
@@ -144,14 +161,17 @@ Filled during roadmap creation.
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
-- v1 requirements: 11 total
-- Mapped to phases: 11
+- v1 requirements: 12 total
+- Mapped to phases: 12
 - Unmapped: 0 ✓
 
 **Phase mapping notes:**
 
 - **Phase 43** groups both table defects with QUA-01 because all three live in `translator.py`'s
-  table/anchor code; the docstring QUA-01 corrects describes a helper Phase 43 calls.
+  table/anchor code; the docstring QUA-01 corrects describes a helper Phase 43 calls. **FIG-01 was
+  added to Phase 43 on 2026-08-04 during phase discussion** (owner decision), because the nested-
+  figure defect shares the scalar-state shape TBL-04 fixes and lives in the same file — making the
+  same class of change once rather than twice.
 - **Phase 44** groups CONF-08 and BLD-01 because both change `TypstPDFBuilder.finish()` — the
   derivation and the input hardening are made once, in one place.
 - **Phase 45** follows Phase 44 because DOC-11 must document the behaviour CONF-08 actually shipped,
@@ -186,4 +206,4 @@ Standing bars this milestone inherits and must not relax:
 
 ---
 *Requirements defined: 2026-08-04*
-*Last updated: 2026-08-04 at v0.7.1 roadmap creation (traceability filled: Phases 43-46, 11/11 mapped)*
+*Last updated: 2026-08-04 at Phase 43 discussion (FIG-01 added by owner decision; Phases 43-46, 12/12 mapped)*

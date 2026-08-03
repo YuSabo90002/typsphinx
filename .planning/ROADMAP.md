@@ -331,7 +331,7 @@ not open questions):
 config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"page"/"render"/
 "table" wording here — no phase carries a UI hint, and `/gsd-ui-phase` is not applicable.
 
-- [ ] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, and a captioned table whose title renders empty still anchors its ids
+- [ ] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, a figure nested in a figure no longer drops the outer caption (FIG-01, added 2026-08-04), and a captioned table whose title renders empty still anchors its ids
 - [ ] **Phase 44: `typst_documents` Default Derivation + Builder Input Hardening** - Following the Quick Start exactly produces a PDF instead of zero output, and a malformed docname fails with an actionable typsphinx error
 - [ ] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out the output-filename change), proven green, and handed off with no irreversible action taken
@@ -350,7 +350,7 @@ third item is the stale `_emit_id_anchors` docstring that sits in the same file,
 code: it has claimed `depart_figure` is the sole `skip_ids` user since Phase 25, and Phase 42 made
 that actively misleading by adding `depart_table` as a second caller.
 **Depends on**: Nothing (first phase of the milestone)
-**Requirements**: TBL-04, TBL-05, QUA-01
+**Requirements**: TBL-04, TBL-05, FIG-01, QUA-01
 **Success Criteria** (what must be TRUE):
 
   1. A document containing a `list-table` with a table nested inside one of its cells compiles to a
@@ -361,22 +361,43 @@ that actively misleading by adding `depart_table` as a second caller.
 
   2. A captioned table whose title renders to an empty or whitespace-only string emits its id
      anchors, so a `:ref:`/`:numref:` pointing at that table resolves instead of leaving a dangling
-     label. `visit_table`'s structural pre-check and `depart_table`'s value check no longer disagree
-     about whether the table is captioned — proven on the same recorded-RED gate, with the
-     dangling-label failure reproduced first.
+     label — proven on the same recorded-RED gate, with the dangling-label failure reproduced first.
+     **Axis decided 2026-08-04 (Phase 43 discussion, D-05) by measuring Sphinx's own LaTeX builder
+     on the identical input:** id anchoring is made independent of the captioned decision, exactly
+     as LaTeX does it (empty-rendered caption → no `\sphinxcaption`, no table number, but
+     `\phantomsection\label{...}` still emitted, no warning). So `depart_table` keeps its
+     truthiness check for *rendering* — an empty-rendered caption stays a bare `table(...)`, is not
+     figure-wrapped, and consumes no table number — while the id anchors are emitted on that path
+     too. The two checks are therefore allowed to keep disagreeing about "captioned"; what must no
+     longer be true is that a table's ids go unanchored on either path.
 
   3. `_emit_id_anchors`'s docstring names its actual callers, verified by a repo-wide grep for its
      call sites rather than by trusting the docstring — no surviving claim that `depart_figure` is
      the sole `skip_ids` user.
 
   4. No collateral change to existing output: the full pytest suite, `black`/`ruff`/`mypy`, and the
-     full-corpus `-b typstpdf` gate are green, and documents containing neither a nested table nor an
-     empty-titled caption emit byte-identical `.typ` across the change (recorded diff against a
-     pre-change baseline).
+     full-corpus `-b typstpdf` gate are green, and documents containing neither a nested table, nor a
+     nested figure, nor an empty-titled caption emit byte-identical `.typ` across the change.
+     **Corpus decided 2026-08-04 (D-04):** the `42-GATE-EVIDENCE-05.md` two-build method (old tree
+     exported with `git archive`, `typsphinx.__file__` asserted to point into it, plus a positive
+     control) is run over **all of `docs/source` and every root under `tests/roots`** — the figure
+     path is in scope this phase, so existing figure-bearing documents must be covered too, not only
+     table-bearing ones.
 
   5. The milestone branch is on `origin` and CI has run against it — pushed during this phase, not
      at the release PR (milestone invariant #5). Evidence: a `git ls-remote --heads origin` hit for
      the milestone branch plus at least one completed CI run on it including the Windows lanes.
+
+  6. **(FIG-01 — added 2026-08-04 by owner decision during phase discussion; appended rather than
+     inserted so criteria 1-5 keep their numbers, which milestone invariant #5 and prior artifacts
+     already cite.)** A document with a figure nested inside another figure compiles to a PDF in
+     which **both** figures appear correctly: the outer figure's caption, its ids and its state all
+     survive the inner figure's visit and departure, and the inner figure renders inside the outer
+     figure's legend. `sphinx-build` emits no `unknown node type: <legend>` warning. Proven on a
+     recorded-RED fixture, structural over the emitted `.typ` plus PDF text (today's output drops
+     the outer caption entirely — measured 2026-08-04). Sphinx's own LaTeX builder is the reference
+     behaviour for the same input (outer `\caption{...}\label{...}` survives; the inner figure is
+     emitted inside a `sphinxlegend` environment; no warning).
 **Plans**: TBD
 
 ### Phase 44: `typst_documents` Default Derivation + Builder Input Hardening
@@ -629,6 +650,20 @@ precedent this entry follows).
   a todo. **Milestone invariant #5 is new**: the milestone branch is pushed to `origin` from Phase 43
   rather than at the release PR, because both defects that surfaced at the v0.7.0 close share the
   cause that it never was.
+
+- **2026-08-04** — **Phase 43 discussion amends Phase 43** (owner decision, `/gsd-discuss-phase 43`).
+  New requirement **FIG-01** (a figure nested in a figure keeps the outer caption, ids and state)
+  is added to `REQUIREMENTS.md` and mapped to Phase 43; v0.7.1 coverage goes 11/11 → **12/12**,
+  still zero orphans. Phase 43 gains **SC#6** — appended, not inserted, so criteria 1-5 keep the
+  numbers that milestone invariant #5 and prior artifacts cite. Two existing criteria were amended
+  in place: **SC#2** now names the axis chosen for TBL-05 (id anchoring made independent of the
+  captioned decision, matching Sphinx's LaTeX builder measured on the identical input — empty-
+  rendered caption gets no caption line and no table number, but still gets its labels, and no
+  warning), and **SC#4** widens the byte-invariance corpus to all of `docs/source` plus every root
+  under `tests/roots` because the figure path is now in scope. The milestone's "no new node
+  handlers" out-of-scope row keeps one stated exception: FIG-01's `legend` handler, admitted as the
+  repair path for measured silent data loss rather than as new capability. Nothing was removed or
+  re-assigned away from another phase.
 
 ## Backlog
 
