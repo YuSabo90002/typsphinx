@@ -313,3 +313,13 @@ none of the editable-install isolation hazard that motivates running everything 
 ---
 *Phase: 41-v0-7-0-release-automation-release-prep*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-03-SUMMARY.md`
+- FOUND: `.planning/todos/completed/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md`
+- FOUND: `.planning/todos/completed/2026-08-01-expected-page-count-pre-phase-misnamed-post-phase-value.md`
+- FOUND commit `c81ca29` (Task 1: docstring fix)
+- FOUND commit `15db2db` (Task 2: todo filing)
+- FOUND commit `43a2a78` (Task 3: PROJECT.md comment termination)
+- FOUND commit `0b7275a` (this SUMMARY.md)
