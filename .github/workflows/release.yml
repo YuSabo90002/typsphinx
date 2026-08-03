@@ -58,6 +58,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify CHANGELOG has a section for this version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! uv run python scripts/extract_changelog_section.py "$VERSION" >/dev/null; then
+            echo "::error::CHANGELOG.md has no usable '## [$VERSION]' section -- add a curated release-notes entry before tagging."
+            exit 1
+          fi
+
       - name: Run tests
         run: uv run pytest tests/ -v
 
@@ -154,17 +162,9 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.tag }}"
 
-          # Get previous tag
-          PREV_TAG=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || echo "")
-
-          # Generate changelog
-          if [ -n "$PREV_TAG" ]; then
-            echo "## Changes since $PREV_TAG" > release_notes.md
-            echo "" >> release_notes.md
-            git log $PREV_TAG..$TAG --pretty=format:"- %s (%h)" >> release_notes.md
-          else
-            echo "## Initial Release" > release_notes.md
-          fi
+          # Curated release-notes body, sourced from CHANGELOG.md's own
+          # `## [X.Y.Z]` section (REL-04) -- not a `git log` commit dump.
+          uv run python scripts/extract_changelog_section.py "${TAG#v}" > release_notes.md
 
           echo "" >> release_notes.md
           echo "## Installation" >> release_notes.md
