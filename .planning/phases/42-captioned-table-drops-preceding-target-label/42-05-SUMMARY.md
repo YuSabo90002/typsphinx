@@ -142,3 +142,10 @@ plan in this phase's wave 3.
 ---
 *Phase: 42-captioned-table-drops-preceding-target-label*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-GATE-EVIDENCE-05.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-05-SUMMARY.md`
+- FOUND: commit `0c167c1` (evidence file)
+- FOUND: commit `ca5efb2` (this summary)
