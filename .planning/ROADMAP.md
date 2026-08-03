@@ -717,7 +717,7 @@ proved)
      empty — and a standalone handoff checklist records exactly what `/gsd-complete-milestone` will
      execute (merge, tag, `release.yml`, PyPI + GitHub Release, and the standing second tag on
      `typsphinx-doc-translations`).
-**Plans**: 3/7 plans executed
+**Plans**: 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -728,9 +728,9 @@ Plans:
 
 **Wave 2**
 
-- [ ] 41-04-PLAN.md — SC#3's `ja` four-check glyph bar as a main-vs-HEAD local comparison (D-15), page sample by measured CJK density unioned with a `raw()`-styled signature page, the owner's visual sign-off collected inside the phase (D-16), and the never-committed translations-repo clone with its SHA recorded (D-17)
-- [ ] 41-05-PLAN.md — SC#3's mechanical half on the post-bump tree: full suite, lint/type trio, the full-corpus `-b typstpdf` gate run in isolation with executed-versus-skipped stated outright, both docs dogfooding builds, and the cross-check of the CHANGELOG's third `### Verified` claim
-- [ ] 41-06-PLAN.md — SC#4's milestone-invariant sweep over a re-measured SHA range covering Phase 40.1 (D-11): zero new runtime dependencies, the `@preview` surface unchanged with every new importing file classified, and the changed-handler census mapped by node name with every single-hit coverage claim spot-checked against real assertions
+- [x] 41-04-PLAN.md — SC#3's `ja` four-check glyph bar as a main-vs-HEAD local comparison (D-15), page sample by measured CJK density unioned with a `raw()`-styled signature page, the owner's visual sign-off collected inside the phase (D-16), and the never-committed translations-repo clone with its SHA recorded (D-17)
+- [x] 41-05-PLAN.md — SC#3's mechanical half on the post-bump tree: full suite, lint/type trio, the full-corpus `-b typstpdf` gate run in isolation with executed-versus-skipped stated outright, both docs dogfooding builds, and the cross-check of the CHANGELOG's third `### Verified` claim
+- [x] 41-06-PLAN.md — SC#4's milestone-invariant sweep over a re-measured SHA range covering Phase 40.1 (D-11): zero new runtime dependencies, the `@preview` surface unchanged with every new importing file classified, and the changed-handler census mapped by node name with every single-hit coverage claim spot-checked against real assertions
 
 **Wave 3**
 
@@ -797,7 +797,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
-| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 3/7 | In Progress|  |
+| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 6/7 | In Progress|  |
 
 ## Roadmap Evolution
 
