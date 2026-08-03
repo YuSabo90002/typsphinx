@@ -2,6 +2,7 @@
 created: 2026-07-29T00:50:46+09:00
 title: Block math inside a list item emits one redundant blank line
 area: translator, tests
+resolves_phase: 36
 files:
   - typsphinx/translator.py (the `visit_math_block` site carrying both separation mechanisms, around lines 4079-4088 as measured in the Phase 34 review)
   - tests/test_inline_math_after_text_render_gate.py (the exact-string assertions for Constructs E and G that would have to be re-derived once the emitted shape changes)

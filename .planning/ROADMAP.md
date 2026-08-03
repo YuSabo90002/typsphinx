@@ -10,9 +10,7 @@
 - ✅ **v0.6.3 — config & docs measured fidelity + captioned tables** — Phases 24–28 (+27.1) (shipped 2026-07-25) → [archive](milestones/v0.6.3-ROADMAP.md)
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 - ✅ **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (shipped 2026-07-29) → [archive](milestones/v0.6.5-ROADMAP.md)
-
-**No active milestone.** v0.6.5 shipped 2026-07-29. Start the next one with `/gsd-new-milestone`;
-phase numbering continues from v0.6.5's last phase (35), so the next milestone starts at Phase 36.
+- ✅ **v0.7.0 — API rendering design overhaul** — Phases 36–42 (+40.1) (shipped 2026-08-04) → [archive](milestones/v0.7.0-ROADMAP.md)
 
 ## Phases
 
@@ -23,8 +21,8 @@ phase numbering continues from v0.6.5's last phase (35), so the next milestone s
 
 Decimal phases appear between their surrounding integers in numeric order. Numbering is
 **continuous across milestones** — each milestone continues from the prior one's last phase
-(never resets to 1). The next milestone continues from v0.6.5's last phase (35), so it starts at
-Phase 36.
+(never resets to 1). v0.7.0 ran Phases 36–42 (continuing from v0.6.5's last phase, 35), so the next
+milestone starts at **Phase 43**.
 
 <details>
 <summary>✅ v0.4.4 — CI-repair + modernize (Phases 1–5) — SHIPPED 2026-07-05</summary>
@@ -236,12 +234,57 @@ tags).
 
 </details>
 
+<details>
+<summary>✅ v0.7.0 — API rendering design overhaul (Phases 36–42, incl. 40.1) — SHIPPED 2026-08-04</summary>
+
+Replaced the provisionally-chosen Typst representations of the API-description and admonition
+directive families with a real typographic design, so autodoc/API pages render as a readable
+reference document — monospace signatures with hanging-indent wrapping, description bodies and field
+lists indenting by nesting depth off one shared constant, and admonitions re-bucketed onto a taxonomy
+that survives greyscale — instead of the flat wall of proportional bold text they were. Added
+full-round-trip docutils citation support (greenfield: a citation failed the Typst compile outright
+before), closed two compile-fatal defects (MATH-02's redundant list-item break and TBL-03's dropped
+captioned-table target label), and sourced the GitHub Release body from the curated CHANGELOG section
+for the first time in this project's history. Zero new runtime dependencies; the `@preview` package
+count stayed at four with no new version-lockstep site; every node-handler change carries its own
+recorded-RED GATE-01 fixture. Full phase detail, success criteria, decisions, and tech-debt notes are
+preserved in [`milestones/v0.7.0-ROADMAP.md`](milestones/v0.7.0-ROADMAP.md).
+
+- [x] Phase 36: Shared-Emission Seam Cleanup (4/4 plans) — completed 2026-08-01
+- [x] Phase 37: Signature Typography — the `desc_*` Family (9/9 plans) — completed 2026-08-01
+- [x] Phase 38: Structural Indentation + Info Fields (9/9 plans) — completed 2026-08-02
+- [x] Phase 39: Admonition Taxonomy + Rubric Nesting (13/13 plans) — completed 2026-08-02
+- [x] Phase 40: Citations — Full Round Trip (5/5 plans) — completed 2026-08-02
+- [x] Phase 40.1: Citation Degradation Hardening (INSERTED) (4/4 plans) — completed 2026-08-02
+- [x] Phase 41: v0.7.0 Release Automation + Release Prep (7/7 plans) — completed 2026-08-03
+- [x] Phase 42: Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG) (6/6 plans) — completed 2026-08-04
+
+**First milestone to add a requirement after completing** — Phase 42 was promoted out of backlog
+item 999.2 on 2026-08-03, *after* Phase 41 had already closed, taking v0.7.0 from 7/7 to 7/8 and
+`REQUIREMENTS.md` from 32 to 33 v1 requirements. The owner blocked the publish on it rather than
+resequencing, so the "prep-only Release phase last" ordering is broken exactly once here.
+
+**Standing cost carried forward (unchanged from v0.6.4):** every release tags two repositories — the
+parent and `typsphinx-doc-translations` (`/ja/stable/` resolves against the translations repo's own
+tags).
+
+</details>
+
 ## Progress
 
 **Execution Order:**
 Active milestone phases execute in numeric order (decimal insertions between their surrounding
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already
-proven by the preceding phases' gates. No milestone is currently active.
+proven by the preceding phases' gates.
+
+**v0.7.0 (shipped)** ran 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 40 (citations) was
+structurally independent of the 37 → 38 → 39 dependency chain. Phase 40.1 was inserted 2026-08-02
+ahead of 41 because Phase 41's SC#4 sweep had to cover 40.1's node-handler changes. Phase 42 was
+promoted out of the backlog on 2026-08-03 after Phase 41 had already completed, so it ran **after**
+the release-prep phase — the one place this ordering rule is broken — and carried the reconciliation
+(CHANGELOG entry + invariant sweep) Phase 41 would otherwise have owned.
+
+**Next milestone** starts at **Phase 43**.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -287,6 +330,48 @@ proven by the preceding phases' gates. No milestone is currently active.
 | 33. v0.6.4 Release Prep | v0.6.4 | 4/4 | Complete    | 2026-07-28 |
 | 34. Inline Math After Text — Separator Fix | v0.6.5 | 3/3 | Complete    | 2026-07-28 |
 | 35. v0.6.5 Release Prep | v0.6.5 | 5/5 | Complete    | 2026-07-29 |
+| 36. Shared-Emission Seam Cleanup | v0.7.0 | 4/4 | Complete    | 2026-08-01 |
+| 37. Signature Typography — the `desc_*` Family | v0.7.0 | 9/9 | Complete    | 2026-08-01 |
+| 38. Structural Indentation + Info Fields | v0.7.0 | 9/9 | Complete    | 2026-08-02 |
+| 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
+| 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
+| 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
+| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
+| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
+
+## Roadmap Evolution
+
+One-bullet-per-amendment record of in-place corrections to this file, mirrored in STATE.md's
+own "Roadmap Evolution" log. This section did not exist before 2026-08-02; it is created here to
+hold the first ROADMAP.md-native entry (STATE.md's mirror already carried the Phase 36 SC#3
+precedent this entry follows).
+
+- **2026-08-02** — Phase 39's SC#1 corrected after UAT gap `G-39-1` reversed `39-CONTEXT.md` D-03
+  by owner decision (`D-03-R`): the clause asserting `attention` sits in the same bucket as
+  `danger`/`error` is superseded, since the red group is now three distinct clue functions
+  (`danger`/`memo`/`error`) rather than one. The surviving requirement is that `attention` leaves
+  the orange warning group for the red family. No requirement was added, removed, or re-assigned
+  to a different phase.
+
+- **2026-08-02** — Phase 40's SC#3 and Goal paragraph corrected from an unqualified "every citing
+  location"/"every citing site" back-reference claim to the same-document scope
+  `40-CONTEXT.md` D-08 established (recorded as D-09): docutils populates a citation definition's
+  own `backrefs` with same-document citing sites only, measured against a real two-document build,
+  and Sphinx's own HTML builder has the identical limitation (Sphinx's LaTeX builder renders no
+  back-references at all). A cross-document citing site still resolves a working forward link, it
+  simply gets no back-reference. No requirement was added, removed, or re-assigned to a different
+  phase.
+
+- **2026-08-03** — Backlog item **999.2** promoted into v0.7.0 as **Phase 42** at
+  `/gsd-review-backlog`, by owner decision, *after* Phase 41 had already completed. This is the
+  first amendment in this project's history that **adds a requirement to an already-complete
+  milestone**: v0.7.0 goes from 7/7 to 7/8, the milestone line becomes Phases 36–42, and new
+  requirement **TBL-03** is added to `REQUIREMENTS.md` (v1 total 32 → 33). The owner also decided
+  the v0.7.0 publish **blocks on Phase 42** rather than shipping first and deferring the fix, so
+  `/gsd-complete-milestone` no longer runs next. Phase 42's SC#6 carries the resulting
+  reconciliation debt — Phase 41's CHANGELOG entry (SC#2) and invariant sweep (SC#4) were both
+  measured against a tree that predates Phase 42. Nothing was removed or re-assigned away from
+  another phase.
 
 ## Backlog
 
@@ -294,9 +379,14 @@ Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-New items land here as `999.x` entries. **The backlog is currently empty** — item **999.1** (inline
+New items land here as `999.x` entries. **No item is open** — the backlog is empty as of 2026-08-03.
+Item **999.1** (inline
 math after text: missing separator before `#mi()` causes a Typst error) was promoted into v0.6.5 as
-Phase 34 / requirement MATH-01 on 2026-07-28 and **shipped in v0.6.5** (2026-07-29). Three earlier
+Phase 34 / requirement MATH-01 and **shipped in v0.6.5** (2026-07-29). Item **999.2** (a captioned
+table drops the id of an immediately preceding standalone target) was promoted into v0.7.0 as
+**Phase 42 / requirement TBL-03** on 2026-08-03 at `/gsd-review-backlog`. Numbering does not reuse
+retired numbers, so the next item filed here is **999.3** — this keeps each promoted item's original
+number unambiguous. Three earlier
 pending todos were promoted into v0.6.4 (Phases 29–33):
 `move-documentation-hosting-to-read-the-docs`, `github-io-doc-links-404-missing-en-prefix`, and
 `docs-usage-installation-orphan-class`. `add-sphinx-linkcheck-ci-job` stays **open and deferred** —
@@ -304,16 +394,22 @@ sphinx linkcheck is out of scope as Future requirement LNK-01 (it structurally c
 `README.md` / `pyproject.toml`, where the dead links actually live); v0.6.4 CI-05's repo-wide
 real-HTTP check covers that class instead.
 
-**Candidates for the next milestone** — 8 open records in `.planning/todos/pending/`, none scoped
-into a milestone yet (see also STATE.md Deferred Items):
+**Pending todos promoted into v0.7.0** (3 of the 8 open records, 2026-07-29):
 
-- Pre-existing (5): citation-node support, non-str-docname `TypeError` hardening in
-  `typstpdf.finish()`, typing-import modernization (drop the `UP006`/`UP035` ruff ignores),
-  `derive_typst_lang()` duplicated warning block, sphinx-linkcheck CI job (LNK-01).
-- Filed during v0.6.5 (3): `visit_math_block`'s redundant blank line in list items (Phase 34 review
-  WR-01, deferred by D-05 to avoid re-deriving the GATE-01 fixture immediately before a release),
-  `release.yml`'s release-notes body sourced from the `## [X.Y.Z]` CHANGELOG section instead of a
-  ~296-line commit dump (D-11), and PROJECT.md's unterminated HTML comments.
+- `citation-node-support-untracked` → Phase 40 (CIT-01..CIT-06)
+- `visit-math-block-redundant-blank-line-in-list-items` → Phase 36 (MATH-02)
+- `release-notes-body-from-changelog-section` → Phase 41 (REL-04)
+
+**Promoted into v0.7.0 later, at `/gsd-review-backlog`** (2026-08-03, via backlog item 999.2):
+
+- `captioned-table-drops-preceding-target-label` → Phase 42 (TBL-03). The todo record stays
+  **pending** until the phase executes; it is the detail record, the Phase 42 entry above is the
+  sequencing record.
+
+**Still open and deferred** (5, see STATE.md Deferred Items): `add-sphinx-linkcheck-ci-job`
+(LNK-01), `non-str-docname-typeerror-in-typstpdf-finish`,
+`modernize-typing-imports-drop-up006-up035-ignore`, `derive-typst-lang-duplicated-warning-block`,
+`project-md-unterminated-html-comments`.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04). v0.7.0 phases added 2026-07-29; Phase 42 promoted out of the backlog and added 2026-08-03. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*

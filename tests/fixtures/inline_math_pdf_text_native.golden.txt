@@ -1,0 +1,41 @@
+Inline Math After Text Render Gate
+Test Author
+1.0.0
+1
+1 Contents
+Contents
+2 Inline Math After Text Render Gate . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+2
+2 Inline Math After Text Render Gate
+Construct A: control – top-level paragraph (already works today; this shape must stay byte-identical, 
+it is a regression guard, not a defect reproduction).
+With space before math: 𝐸 = 𝑚𝑐2 after.
+No space where𝐸 = 𝑚𝑐2immediately follows.
+Construct B: bullet list item – prose then inline math then prose (the primary failing shape).
+• Text before math 𝐸 = 𝑚𝑐2 text after.
+Construct C: collapsed field bodies – the concat context. The ​:type​: value is the sole inline math 
+(math as the FIRST expression in the concat context, no leading separator). The ​:default​: value is 
+prose then math (math following a sibling, exactly one separator).
+math_inline_default
+Type: 𝑥  Default: The value of 𝑥 computed inline
+A description paragraph so the confval also exercises the block field-body and normal-
+paragraph path.
+Construct D: definition-list term – a second concat context.
+Term 𝐸 = 𝑚𝑐2
+Definition body text.
+Construct E: display math inside a list item – the visit_math_block scope.
+• Text before block math.
+𝐸 = 𝑚𝑐2
+Text after block math.
+Construct F: list item whose sole content is inline math – the single-element edge.
+• 𝑎 + 𝑏
+Construct G: a labeled display-math equation inside a list item – the _emit_id_anchors + list-item-
+separator ordering interaction (WR-02).
+• Text before labeled block math.
+𝐺 = 𝑚𝑎
+Text after labeled block math.
+Construct H: a list item whose sole content is display math – the block-math single-element edge 
+(MATH-02). With no following sibling inside the item, there is nothing for the trailing separator flag 
+to affect, so this construct’s emission must be identical before and after the MATH-02 fix.
+• 𝐻 = 𝑚𝑔ℎ
+3

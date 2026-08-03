@@ -1,231 +1,594 @@
-# Architecture Research — v0.6.4 Read the Docs Migration
+# Architecture Research: v0.7.0 Style-Module Integration
 
-**Domain:** Docs hosting / CI-build-pipeline migration (GitHub Pages → Read the Docs) for a Sphinx extension project. No `typsphinx/` runtime code changes.
-**Researched:** 2026-07-25
-**Confidence:** HIGH for repo-internal facts (all grep-verified with file:line); MEDIUM for RTD platform behavior (official docs fetched and quoted below); explicitly labeled **UNVERIFIED** for the two things no documentation source resolves — see "Open Risks."
+**Domain:** Sphinx→Typst compiler extension (subsequent-milestone integration research, not
+greenfield)
+**Researched:** 2026-07-29
+**Confidence:** HIGH (every claim below is a direct file:line read of the current repo state,
+several confirmed by executing docutils/Sphinx directly — see per-section notes)
 
-## Standard Architecture
+## Verdict Summary
 
-### System Overview — the two build paths after migration
+- A new bundled Typst module (call it `typsphinx/templates/_typsphinx.typ` — must live under
+  `typsphinx/templates/` to ride the existing package-data glob, `pyproject.toml:71`) is written
+  **unconditionally**, once per build, from a new builder method modeled on but structurally
+  **not identical to** `_write_template_file()` — because unlike `_template.typ` it must exist
+  even on the `typst_package`-alone route (§1).
+- Its import must be injected at **two** independent emission sites in `writer.py`'s
+  `translate()` (§2) — the master path goes through `TemplateEngine.render()`
+  (`template_engine.py:571-658`) and the included path is the inline import-prelude
+  (`writer.py:149-166`) — because `TypstTranslator` emits calls into this module from
+  `self.body`, and `self.body` is identical code whether the document is a master or an
+  `#include()`d child.
+- The three in-repo custom templates are **verified safe by construction**: nothing in
+  `builder.py`/`template_engine.py` ever parses or rewrites `typst_template` content — it is
+  loaded as an opaque string (`_try_load_file`, `template_engine.py:719-733`) and only the
+  function name `project` is imported from it by name (`template_engine.py:624`,
+  `writer.py`'s `_write_template_file` calls the same engine). The one real collision risk is
+  **not** with the custom templates themselves but with a hypothetical style-module design that
+  re-imports `@preview/gentle-clues` internally — flagged as an open design question in §3.
+- `desc_*`/`field_*`/`rubric`/admonition redesign touches five interacting shared protocols
+  (§4); the admonition helper pair is the safest per-node seam, `field_body`'s inline-concat
+  context is the most fragile.
+- Citations need **no footnote-style pre-pass** — confirmed by executing docutils directly
+  (§6) — because Typst's `link(<label>, ...)` (already used for `:ref:`-style xrefs) resolves
+  against the WHOLE compiled document regardless of source order, unlike `footnote()`, whose
+  stdlib API forces the body to be supplied at the call site, which is what made the FN-01
+  pre-pass necessary for footnotes specifically.
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         GitHub repository (main + tags)              │
-│   docs/source/conf.py · docs/source/**/*.rst · docs/locale/ja/*.po   │
-│   .readthedocs.yaml (NEW)                                             │
-└───────────────┬───────────────────────────────┬──────────────────────┘
-                │                                │
-                ▼                                ▼
-   ┌─────────────────────────────┐   ┌──────────────────────────────────┐
-   │   Read the Docs (RTD)       │   │   GitHub Actions (docs.yml)       │
-   │   reads .readthedocs.yaml   │   │   reads tox.ini                   │
-   │   ONLY — never sees tox.ini │   │                                   │
-   ├─────────────────────────────┤   ├──────────────────────────────────┤
-   │ Project "typsphinx" (en)    │   │ tox -e docs-html  (was:           │
-   │  - RTD's own sphinx-build   │   │   docs-multilang)                 │
-   │    via `sphinx:` key        │   │  → CI artifact only, NOT deployed │
-   │    (no tox; RTD IS the      │   │    anywhere (no gh-pages target)  │
-   │    task runner here)        │   │ tox -e docs-pdf                   │
-   │  - build.jobs.build.pdf:    │   │  → regression gate (fatal-free    │
-   │    sphinx-build -b typstpdf │   │    typstpdf compile) + tag-time   │
-   │    → $READTHEDOCS_OUTPUT/   │   │    Release-asset attachment       │
-   │    pdf/                     │   │    (UNCHANGED responsibility)     │
-   │  - versions: latest+stable  │   │ sphinx-build -b linkcheck (NEW,   │
-   ├─────────────────────────────┤   │  advisory, non-blocking)          │
-   │ Project "typsphinx-ja" (ja) │   └──────────────────────────────────┘
-   │  - Translation of the       │
-   │    parent, linked in RTD's  │
-   │    Admin → Translations UI  │
-   │  - SAME repo, SAME commit,  │
-   │    SAME conf.py             │
-   │  - Project Language: ja     │
-   │    → READTHEDOCS_LANGUAGE   │
-   │    =ja at build time        │
-   └─────────────────────────────┘
-```
+---
 
-**Responsibility split (deliberate, not accidental overlap):**
+## 1. Where the style module is written, and by whom
 
-| Concern | RTD | GitHub Actions (`docs.yml`) | Overlap? |
-|---|---|---|---|
-| HTML publish (en) | Yes — the live site | No (was gh-pages; step deleted) | None — CI no longer publishes anything |
-| HTML publish (ja) | Yes — separate RTD project | No | None |
-| PDF publish/download | Yes — RTD "Downloads" flyout | No | None |
-| PDF as **regression gate** | No | Yes — `tox -e docs-pdf` fails the build/blocks merge on a fatal `TypstCompilationError` | **Deliberate.** RTD builds are async, off the PR critical path, and a red RTD build does not block a merge or fail a check. `tox -e docs-pdf` in CI is the only mechanism that gates a PR on "does the PDF still compile" before merge. Losing it would mean a broken typstpdf pipeline could reach `main` and only be discovered when RTD's build for that commit silently fails hours later. |
-| PDF as GitHub Release asset | No | Yes — `softprops/action-gh-release@v3`, tag-only | None — this is a distribution channel RTD doesn't provide (a downloadable artifact attached to the GitHub Release page itself, not the docs site) |
-| Local dev iteration | No (RTD only builds on push/PR/tag webhooks) | N/A | `tox -e docs-html` / `tox -e docs-pdf` remain the developer-facing entry points, unchanged |
-| Link-rot detection | No | Yes — new advisory `linkcheck` job | None — new capability, not previously covered by either path |
+### The existing `_template.typ` write path (traced)
 
-**Concrete edits:**
+`TypstBuilder.prepare_writing()` (`typsphinx/builder.py:318-332`) is the once-per-build hook —
+called from `write()` (`builder.py:365`) before any document is translated. It does exactly two
+things: construct `self.writer = TypstWriter(self)`, then call `self._write_template_file()`.
 
-- **`.readthedocs.yaml`** (NEW, repo root — RTD requires it at the root, not under `docs/`):
-  ```yaml
-  version: 2
-  build:
-    os: ubuntu-24.04
-    tools:
-      python: "3.12"
-    jobs:
-      build:
-        pdf:
-          - sphinx-build -b typstpdf docs/source $READTHEDOCS_OUTPUT/pdf
-  python:
-    install:
-      - method: pip
-        path: .
-        extra_requirements:
-          - docs
-  sphinx:
-    configuration: docs/source/conf.py
-  formats:
-    - pdf
-  ```
-  HTML is deliberately **not** overridden under `build.jobs.build.html` — RTD's own `sphinx:` key already runs `sphinx-build -b html` using `sphinx.configuration`; declaring a custom `html` job would be redundant and would additionally have to reimplement RTD's own output-path/versioning wiring for no benefit. Only `pdf` is overridden because `typstpdf` is not a format RTD knows how to invoke itself (RTD's built-in "pdf" format assumes the Sphinx LaTeX builder + `latexmk`, which this project deliberately does not use).
-
-- **`tox.ini`:** delete `[testenv:docs-multilang]` (§ Deletion blast radius). No new tox env needed for RTD — RTD never invokes tox (see "RTD vs tox" decision below). `docs-html` / `docs-pdf` / `docs` envs are unchanged and remain the local-dev + CI entry points.
-
-- **`.github/workflows/docs.yml`:**
-  - Line 34–35: `Build multi-language HTML documentation` / `tox -e docs-multilang` → replace with `tox -e docs-html` (single language, CI-artifact-only, no publish target).
-  - Lines 40–43 (`Copy PDF to multi-language build`): delete — there is no multilang tree to copy into anymore.
-  - Lines 57–63 (`Deploy to GitHub Pages`, `peaceiris/actions-gh-pages@v4`): delete.
-  - Lines 65–71 (`Upload PDF to Release`, tag-only): **keep**, unchanged.
-  - `tox -e docs-pdf` step (line 38, "Build PDF documentation (English only)"): **keep**, unchanged — this is the regression gate described above. Its step name currently says "(English only)" as a description of what it happens to do today; that's accurate as-is (see Q3) and needs no rename unless the phase wants to make the "this is the CI gate, not the RTD publish path" distinction explicit in the step name.
-  - Upload-artifact steps: HTML artifact path changes from `docs/_build/multilang` to `docs/_build/html` (since `build_multilang.py`'s output tree goes away); PDF artifact path (`docs/_build/pdf/*.pdf`) is unchanged.
-  - **New job/step:** `sphinx-build -b linkcheck docs/source docs/_build/linkcheck` — advisory (`continue-on-error: true`), same precedent as `drift.yml` (D-07, never a required check).
-
-- **RTD vs. tox — recommendation:** **RTD bypasses tox entirely; do not invoke tox from `.readthedocs.yaml`.** Rationale: RTD's `python.install` step already provisions an environment equivalent to what a tox env would build (installs the project + `docs` extras into RTD's own venv); wrapping that in `tox -e docs-html`/`tox -e docs-pdf` from inside `build.jobs` would mean tox creates a *second*, redundant venv nested inside RTD's already-provisioned one via `tox-uv`'s `uv-venv-lock-runner`, which additionally wants `uv sync --locked` semantics RTD's build image doesn't natively provide without an extra `uv` install step. For the HTML path, RTD's own `sphinx:` key already drives `sphinx-build` directly — there is no tox invocation to make at all, since RTD is the task runner. For the PDF `build.jobs.build.pdf` override, invoking `sphinx-build -b typstpdf docs/source $READTHEDOCS_OUTPUT/pdf` directly is simpler, faster, and matches what `tox -e docs-pdf` runs internally anyway (`changedir = docs; sphinx-build -b typstpdf source _build/pdf`) — the tox env buys nothing extra here since RTD's build environment *is* the isolated environment tox would otherwise build. Tox's role as "the project's task runner" is preserved for humans and CI (`docs.yml`, local dev); RTD is a separate build system with its own manifest format and does not read `tox.ini` at all.
-
-### Component Responsibilities (docs pipeline only)
-
-| Component | Responsibility | Status after migration |
-|---|---|---|
-| `.readthedocs.yaml` | RTD's sole build manifest — Python env, Sphinx config path, PDF override job, declared formats | NEW |
-| `docs/source/conf.py` | Single conf.py built by BOTH RTD projects (en parent, ja translation) from the same commit | MODIFIED (language seam only — see below) |
-| `docs.yml` (`build-docs` job) | CI regression gate (`docs-pdf`) + CI-only HTML build artifact (`docs-html`) + advisory `linkcheck`; no longer a deploy pipeline | MODIFIED |
-| `docs/build_multilang.py` | Built the old GH Pages multilang tree + JS redirect page | DELETED (see blast radius) |
-| `docs/source/_templates/language-switcher.html` | Furo sidebar language links, hand-rolled | DELETED — RTD injects its own version/language flyout widget outside Sphinx's template system entirely |
-| `docs/source/_templates/page.html` | Sets `sessionStorage['typsphinx_lang']` so the old root redirect page wouldn't re-redirect a returning visitor | DELETED (see below — **not named in the milestone brief, found by grep**) |
-| `docs/source/_static/custom.css` | Styles `.language-switcher` | MODIFIED (strip the language-switcher rule block; file itself likely stays for other custom styling — verify no other selectors exist before deciding delete vs. trim) |
-| `docs/locale/ja/**/*.po` (13 files) | sphinx-intl translation catalogs | UNCHANGED — orthogonal to the hosting mechanism |
-| `gh-pages` branch (remote) | Old GH Pages publish target | DELETED |
-
-## The `language` Seam (Q2)
-
-**Current state (grep-verified):** `docs/source/conf.py:51` — `language = os.getenv("SPHINX_LANGUAGE", "en")`. The only two producers of `SPHINX_LANGUAGE` in the whole repo are `docs/build_multilang.py:44` (sets it per-language before each `sphinx-build -b html -D language=<code>` subprocess call) and the CI-only default noted in `.planning/codebase/INTEGRATIONS.md:67`. There is no other consumer of `SPHINX_LANGUAGE` anywhere in the tree (confirmed by repo-wide grep — the only three hits are `build_multilang.py:44`, `conf.py:50-51` comment+read, and historical/planning-doc prose).
-
-**Confirmed from RTD's official docs** ([environment-variables reference](https://docs.readthedocs.com/platform/stable/reference/environment-variables.html)): `READTHEDOCS_LANGUAGE` — *"The locale name... for the project being built. This value comes from the project's configured language code."* This is a per-**project** setting configured in each RTD project's Admin → Settings → Language dropdown, not something Sphinx or RTD auto-derives from `conf.py`. RTD does **not** document passing `-D language=` itself, and does not document rewriting `conf.py`'s `language` value for you — the project is responsible for making its own `conf.py` respect `READTHEDOCS_LANGUAGE`, exactly the same shape as the existing `SPHINX_LANGUAGE` mechanism.
-
-**Recommended seam design:**
+`_write_template_file()` (`builder.py:521-592`) is **conditionally skipped**:
 
 ```python
-language = os.getenv("READTHEDOCS_LANGUAGE", os.getenv("SPHINX_LANGUAGE", "en"))
+# builder.py:565-566
+if typst_package and not raw_template_path:
+    return
 ```
 
-- **RTD (both projects):** `READTHEDOCS` is set to `"True"` and `READTHEDOCS_LANGUAGE` is populated automatically by RTD's own build harness from each project's Admin-configured Language field — the en parent project must have Language=`en`, the ja translation project must have Language=`ja` (this is a manual RTD-console step, already captured in the milestone's "requires user operation" list as part of "2 プロジェクト作成"; the per-project Language dropdown should be called out explicitly as its own sub-step, not assumed implicit in project creation).
-- **Local `tox -e docs-html`:** `READTHEDOCS` is unset on a dev machine, so `os.getenv("READTHEDOCS_LANGUAGE", ...)` falls through to the existing `SPHINX_LANGUAGE` (or the `"en"` default) unchanged — zero behavior change for local/CI use.
-- **`sphinx-intl` workflows on `docs/locale/ja/`:** entirely unaffected. `docs/Makefile`'s `gettext` / `locale-init` / `locale-update` targets never read `SPHINX_LANGUAGE` or `READTHEDOCS_LANGUAGE` at all — they run `sphinx-build -M gettext` (language-agnostic extraction) and `sphinx-intl update -p ... -l ja` (which takes `-l ja` as an explicit CLI flag, not an env var). This seam change touches nothing in that workflow.
-- **`build_multilang.py`'s deletion leaves no other consumer of `SPHINX_LANGUAGE` orphaned** — it was the only place that ever *set* the variable; `conf.py` is the only place that *reads* it, and it will keep reading it (now with `READTHEDOCS_LANGUAGE` layered in front) for the local/CI path.
-- **Phase 27.1 interaction:** `template_engine.py::derive_typst_lang()` derives the Typst `lang:` parameter from `config.language` (Sphinx's resolved value), not from either env var directly — so once `conf.py`'s `language` resolves correctly from `READTHEDOCS_LANGUAGE`, the already-shipped CONF-07 wiring (Typst-native "Table N"/"表 1" labels) picks it up for free on both RTD projects with no further changes.
+i.e. it writes `_template.typ` (`builder.py:588`) **only when a custom `typst_template` is
+configured** (with or without a package — D-03 lets `typst_template` win). On the
+package-alone route (`typst_package` set, `typst_template` unset) it is never written, because
+`writer.py:288-291` also skips computing an import path for it in that case
+(`template_file = None`). This conditional-skip is *load-bearing* for `_template.typ` — the
+package IS the template in that route, so importing a nonexistent `_template.typ` would abort
+the compile (this exact bug is documented as the "Unconditional Shared Template Import" anti-
+pattern in `.planning/codebase/ARCHITECTURE.md:262-268`).
 
-## PDF Placement (Q3)
+### Why the style module CANNOT reuse this same conditional
 
-**Lifecycle stage:** `build.jobs.build.pdf` (not `post_build`). Per RTD's [build customization reference](https://docs.readthedocs.com/platform/stable/build-customization.html), the build lifecycle is: `post_checkout → pre_system_dependencies → post_system_dependencies → pre_create_environment → post_create_environment → pre_install → post_install → pre_build → build → post_build`. The `build` step is **format-specific**: `build.jobs.build.html`, `build.jobs.build.pdf`, `build.jobs.build.epub`, `build.jobs.build.htmlzip` can each be overridden independently, and *"declaring one format's build job does not disable the defaults for the others"* — HTML keeps using RTD's own `sphinx:`-driven build untouched while only `pdf` is overridden. This is the correct slot rather than `post_build` because `post_build` is documented as running *after* all format builds complete and is meant for post-processing existing output, not producing a whole missing format from scratch — and because RTD explicitly gates a custom `pdf` job behind declaring `formats: [pdf]` in the top-level config (confirmed: *"If any of the pdf, epub, or htmlzip steps are overridden, they should be included in the formats list"*, [config-file v2 reference](https://docs.readthedocs.com/platform/stable/config-file/v2.html)).
+The style module is a different kind of dependency. `_template.typ` supplies the `project()`
+template *function* — only relevant to whichever code path calls
+`#show: project.with(...)`. The style module instead supplies helper functions that
+**`TypstTranslator`'s node handlers call directly while emitting `self.body`** (e.g. a
+redesigned `visit_desc_signature` emitting `#api-signature(...)` instead of raw `strong({...})`).
+`self.body` is generated identically regardless of routing — master-with-custom-template,
+master-with-bundled-default, master-with-package-alone, and every **included** document (which
+never touches `TemplateEngine` at all, see §2) all run the same `TypstTranslator` over the same
+node types. Therefore the style module's import cannot be gated on `typst_template`/
+`typst_package` the way `_template.typ` is: **it must be written and importable in every
+routing branch**, including the one branch (`typst_package` alone) where `_write_template_file`
+deliberately no-ops.
 
-**Interaction with the HTML output directory:** none — `$READTHEDOCS_OUTPUT/html/` and `$READTHEDOCS_OUTPUT/pdf/` are independent format directories RTD serves side-by-side; the PDF job does not need to run after or depend on the HTML job's output, and both can execute from the same checked-out `docs/source` tree.
+### Concrete new code path
 
-**Should the ja translation project also build a PDF?** The current CI step is explicitly named "Build PDF documentation (English only)" (`docs.yml:37`) and that framing is accurate as-is — CI has never built a Japanese PDF. For RTD: because `.readthedocs.yaml` is committed once and read identically by *both* the en parent and ja translation projects (same repo, same commit), the `build.jobs.build.pdf` override applies to **both** by default unless something suppresses it per-project. RTD does not document a per-translation-project override of `build.jobs` in the config file itself — the same YAML applies everywhere. Practically this means: either (a) accept that the ja project also produces and serves a PDF (the `sphinx-build -b typstpdf docs/source ...` command already resolves `language` from `READTHEDOCS_LANGUAGE=ja` via the seam above, so the ja PDF would legitimately render "表 1"/"図 1" per CONF-07, giving a real localized PDF essentially for free), or (b) branch the `build.jobs.build.pdf` command on `$READTHEDOCS_LANGUAGE` to skip PDF generation for `ja` and only produce it on `en` (e.g. `[ "$READTHEDOCS_LANGUAGE" = "en" ] && sphinx-build -b typstpdf ... || true`, combined with per-project `formats:` — note `formats` itself is a single shared list in the same file, so suppressing the *download entry* for `ja` would need the shell command to still exit 0 without producing a file, which may leave a dangling "pdf" download link with no file. **Recommend (a):** ship the PDF for both projects — it is a natural consequence of already having the ja translation project build the exact same file, costs one extra `typst.compile()` per RTD build (cheap relative to the whole doc build), and turns "PDF is English-only" from a hard constraint into a bonus capability the migration unlocks, rather than a limitation to engineer around.
+Add a sibling method, e.g. `_write_style_module_file()`, called unconditionally from
+`prepare_writing()` right alongside the existing call:
 
-## Deletion Blast Radius (Q4)
+```python
+# builder.py:318-332, extended
+def prepare_writing(self, docnames: Set[str]) -> None:
+    self.writer = TypstWriter(self)
+    self._write_template_file()        # unchanged, still conditional
+    self._write_style_module_file()    # NEW, unconditional
+```
 
-Every artifact named for deletion in the milestone brief, cross-referenced against a repo-wide grep (file:line cited; `.git/` and `.planning/milestones/**` historical-record hits excluded from the "must fix" set — those are append-only history and correctly left alone per the D-02/D-10 CHANGELOG precedent already established in this project):
+Implementation shape mirrors `_write_template_file`'s file-read-and-write tail
+(`builder.py:584-592`) but with no `typst_package`/`typst_template` branching: read the bundled
+module's source via `Path(__file__).parent / "templates" / "_typsphinx.typ"` (same directory
+`TemplateEngine.get_default_template_path()` already resolves via `template_engine.py:260-272`,
+so no new search-path concept is needed) and write it verbatim to
+`path.join(self.outdir, "_typsphinx.typ")`.
 
-| Artifact | Grep-found consumers that must be updated/removed together | Verdict |
+**Packaging note (load-bearing):** `pyproject.toml:71` — `"typsphinx" = ["templates/*.typ"]` —
+is the *only* package-data glob in the project. The new module file must physically live inside
+`typsphinx/templates/` (not a new `typsphinx/styles/` directory) or the glob needs a matching
+edit, or the module silently ships missing from the built wheel while local dev (running from a
+source checkout) keeps working — the exact "green in dev, broken once packaged" failure shape
+this project has hit before with `@preview` version drift.
+
+### Nested master documents and relative-path resolution
+
+`_template.typ` is always written at the **outdir root** (`builder.py:588`), regardless of
+where any given master document lives (`api/index` vs `index`). A master's import path is
+computed *purely from its own docname's directory depth* by
+`TypstWriter._compute_template_import_path()` (`writer.py:73-119`):
+
+```python
+# writer.py:118-119
+depth = len(PurePosixPath(docname).parent.parts)
+return "".join(["../"] * depth) + "_template.typ"
+```
+
+This function is deliberately depth-based rather than a docname-to-docname relativizer — the
+docstring (`writer.py:74-117`) records the CR-01 defect this replaced: relativizing against a
+synthetic `"_template"` sentinel docname could collide with a real directory literally named
+`_template`. **The style module needs the identical treatment**, and for a stronger reason than
+`_template.typ` does: it must resolve correctly not just for masters but for **every included
+document at any nesting depth**, because included documents get their import prelude
+independently (see §2) and are never routed through `_compute_template_import_path` today (that
+function is currently called from only the master branch, `writer.py:291`). The clean move is
+to generalize `_compute_template_import_path` into a filename-parameterized helper (e.g.
+`_compute_outdir_relative_import_path(docname, filename)`) reusable from both the master branch
+and the included-document branch — same depth arithmetic, different target filename
+(`_template.typ` vs `_typsphinx.typ`), avoiding a second depth-computation implementation
+diverging from the first.
+
+---
+
+## 2. Where the import gets emitted — both writer.py paths
+
+`TypstWriter.translate()` (`writer.py:121-292`) is the single control point, and it branches on
+`is_master = self._is_master_document(docname)` at `writer.py:147`. **Both branches must gain
+the style-module import**, because both branches assemble a complete standalone `.typ` file
+that `self.body` (produced identically by `TypstTranslator` in both cases,
+`writer.py:131-134`) is appended into.
+
+### Included-document path (writer.py:149-166)
+
+Today this branch hardcodes a fixed import prelude with **no filesystem-relative import** at
+all — the four imports are `@preview` package references, resolved by Typst's package manager,
+not by path:
+
+```python
+# writer.py:153-163 (current)
+imports = []
+imports.append("// Essential imports for included document")
+imports.append('#import "@preview/codly:1.3.0": *')
+imports.append('#import "@preview/codly-languages:0.1.10": *')
+imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+imports.append('#import "@preview/gentle-clues:1.3.1": *')
+imports.append("")
+imports.append("// Initialize codly")
+imports.append("#show: codly-init.with()")
+imports.append("#codly(languages: codly-languages)")
+imports.append("")
+self.output = "\n".join(imports) + "\n" + body
+```
+
+The new style-module import is a **filesystem path** import, unlike the four `@preview` lines —
+so it needs the depth-aware helper from §1, computed from `docname` (already in scope as the
+parameter to this whole method chain via `self.builder.current_docname`, `writer.py:144`), and
+inserted into this `imports` list, e.g. immediately after the four `@preview` lines and before
+`self.output = ...` is assembled. **Ordering constraint:** it must come *before* `body` is
+appended (trivially true here — the whole `imports` block already precedes `body` at
+`writer.py:165`), and it should come *after* the `@preview` imports if the style module's own
+top-level code references any of `codly`/`mitex`/`gentle-clues` names — see §3 for why that
+matters (module scoping).
+
+### Master-document path (writer.py:168-292, through TemplateEngine.render())
+
+This branch never assembles `self.output` directly — it delegates everything after body-content
+gathering to `template_engine.TemplateEngine.render()` (`writer.py:292` →
+`template_engine.py:571-658`). `render()` is where the file's full import section is actually
+built:
+
+```python
+# template_engine.py:594-619 (current)
+package_import = self.generate_package_import()          # @package import, if typst_package set
+...
+will_inline_default_template = not template_file and not self.typst_package
+if not will_inline_default_template:
+    output_parts.append("// Essential package imports")
+    output_parts.append('#import "@preview/codly:1.3.0": *')
+    ... (4 @preview imports + codly-init block) ...
+
+if template_file:
+    template_func = self.typst_template_function_name or "project"
+    output_parts.append(f'#import "{template_file}": {template_func}')
+else:
+    if not self.typst_package:
+        template = self.load_template()          # inlines base.typ, which ITSELF
+        output_parts.append(template)             # carries the same 4 @preview imports
+
+output_parts.append(f"#show: {template_func}.with(")
+... params ...
+output_parts.append(body)
+```
+
+**Critical asymmetry vs. the `@preview` imports:** the hoisted block at `template_engine.py:610-
+619` is deliberately gated by `will_inline_default_template` — it is skipped precisely when the
+bundled `base.typ` is about to be inlined, because `base.typ` *itself* already contains those
+four `#import` lines (`typsphinx/templates/base.typ:7-19`), and duplicating them would double-
+import the same package (flagged explicitly in the code comment, `template_engine.py:606-608`,
+as avoiding CR-01 duplicate-line churn). **The new style module is not inside `base.typ`** (it
+is a separate file, §1), so this same exception must **not** apply to it — the style-module
+import has to be emitted in **all three** cases: custom `template_file` set, bundled-default
+inlined, and `typst_package`-alone. Concretely this means adding a *new*, unconditionally-
+emitted `output_parts.append(...)` line to `render()` — placed before the `#show: ...` call
+(`template_engine.py:636`) since translator-emitted calls in `body` (appended at
+`template_engine.py:656`) need the module's names bound by the time Typst reaches that source
+position, and `#import` bindings are available for any code after them in the same file
+regardless of where `#show:` sits.
+
+**Ordering recap (both paths):** style-module import can be placed either immediately before or
+after the four `@preview` imports — Typst import order among *unrelated* files does not matter
+for compilation — but it must precede any code that calls into it, i.e. it must precede
+`#show: project.with(...)` and precede `body`. Placing it *after* the `@preview` block is the
+simpler convention to hold (groups "third-party" vs. "typsphinx's own" imports), and matters
+only if the module itself needs a `@preview` name resolved from the **outer** file's scope,
+which per §3 it can't rely on anyway.
+
+**Function needed:** `render()`'s signature (`template_engine.py:571-573`,
+`render(self, params, body, template_file=None)`) does not currently receive a style-module
+import path at all — the caller (`writer.py:292`) will need to pass one (or `render()` computes
+it itself from a `docname` it does not currently receive as a parameter — passing it in from
+`writer.py`, mirroring how `template_file` is already computed there at `writer.py:291`, is the
+lower-friction change since `TypstWriter.translate()` already has `docname` in scope at
+`writer.py:144`).
+
+---
+
+## 3. The override story — verified, plus one real open risk
+
+### Verified: custom-template content is never touched
+
+Both write paths that matter — `builder.py:_write_template_file()` (writes `_template.typ` to
+disk) and `writer.py:translate()`'s master branch (imports it) — load a custom template purely
+as opaque bytes:
+
+- `TemplateEngine.resolve_template()` (`template_engine.py:274-330`) walks
+  explicit-path → search-path → bundled-default priority and returns raw file content via
+  `_try_load_file()` (`template_engine.py:719-733`), a bare `open(...).read()`.
+- `render()` never parses that content — it either imports the function name `project` from it
+  by reference (`template_engine.py:624`, when `template_file` is set) or, for the bundled-
+  default-inline case only, string-concatenates it verbatim into `output_parts`
+  (`template_engine.py:630-631`).
+
+So a custom template's own file on disk is **never rewritten, never re-parsed, never string-
+substituted**. Since the style module is written to a *different* file (`_typsphinx.typ`, not
+`_template.typ`), and its import is injected as a *new, additive* line in the generated master
+`.typ` (§2) rather than by editing the custom template's source, the three in-repo custom
+templates —
+
+- `examples/advanced/_templates/custom.typ`
+- `docs/source/_typst/custom_template.typ`
+- `examples/charged-ieee/approach2/source/_templates/_template.typ`
+
+— compile with **byte-identical own content** before and after this milestone. Each was read in
+full (see files list) and confirmed to declare only its own `@preview` imports (all three
+independently import the same four packages at the same pinned versions, guarded by
+`tests/test_preview_version_sync.py`'s `test_example_templates_match_canonical_versions`) plus,
+for the two non-`approach2` templates, their own `#let project(...)` definition. None of the
+three imports anything from a file named `_typsphinx.typ` — they don't need to, because the
+NEW `#import "_typsphinx.typ": *` line lives in the *generated* master `.typ` file (added by
+`render()`, §2), not inside the custom template file itself.
+
+### Where a real collision *could* occur — module scoping (flag for planning)
+
+The one non-obvious risk, confirmed by reading how Typst resolves imports (not by executing
+typst — no typst CLI is installed in this environment; this is inferred from the existing
+codebase's own documented understanding of Typst import semantics, e.g.
+`translator.py:3287-3320`'s label-syntax notes and `template_engine.py:606-608`'s explicit
+double-import-avoidance comment): **a `#import`ed Typst file's own top-level code runs in that
+file's own lexical scope, not the importing file's scope.** Concretely: if the style module's
+own Typst source calls `info(...)` (a `gentle-clues` function) to help render a redesigned
+admonition, that call resolves against whatever `_typsphinx.typ` itself has imported — **not**
+against the `#import "@preview/gentle-clues:1.3.1": *` line that already exists in the outer
+`.typ` file (`template_engine.py:614` / `writer.py:157` / `base.typ:17`). If the style module
+needs `gentle-clues`/`codly`/`mitex` internally, it would need to `#import` them itself,
+independently — which would make it a **fourth** site carrying the same four version pins that
+`tests/test_preview_version_sync.py` (`tests/test_preview_version_sync.py:1-34`) currently
+enforces across exactly three sites (`writer.py`, `template_engine.py`, `templates/base.typ`).
+This is explicitly the class of hazard the milestone brief says must NOT be introduced
+("the `@preview` package count stays at four... this milestone creates no fifth version-
+lockstep site — the new module is bundled, not fetched" — `.planning/PROJECT.md:89-92`); that
+sentence guarantees the module itself isn't a fifth *fetched* package, but does not by itself
+prevent the module from becoming a fourth *internal* site re-declaring the same four existing
+pins.
+
+**Recommendation for requirements/roadmap:** scope the style module to typography primitives
+that need **no** `@preview` package dependency at all (monospace signature blocks, hanging-
+indent bodies, two-column field tables, nesting indent — none of gentle-clues/codly/mitex is
+needed for these). Keep admonition rendering's actual `info(`/`warning(`/etc. calls exactly
+where they are today (`translator.py:_visit_admonition`/`_depart_admonition`,
+`translator.py:4106-4164`), which already execute in the OUTER file's scope where those names
+are already bound — i.e. redesign admonition *typography* (spacing/title treatment) without
+routing the gentle-clues call itself through the style module. If a later requirement genuinely
+needs the module to wrap gentle-clues calls, that is a version-sync-surface decision that should
+be made explicitly (and `test_preview_version_sync.py` extended to a fourth site) rather than
+falling out of an implementation detail.
+
+---
+
+## 4. Translator methods in scope and the shared protocols they touch
+
+### `__init__`-declared state relevant to this milestone (`translator.py:66-262`)
+
+| Protocol | State variables | Declared at |
 |---|---|---|
-| `docs/build_multilang.py` | `tox.ini:84` (`[testenv:docs-multilang]` → delete env); `docs/Makefile:35-37` (`multilang:` target, **not named in the milestone brief** — must also be deleted, it's the only other invoker); `docs/Makefile:40-43` (`serve-multilang:` target depends on `multilang` — delete too, it has no other purpose) | DELETE the script + both Makefile targets |
-| `[testenv:docs-multilang]` (`tox.ini:78-84`) | Only consumer is `docs.yml:35` (`uv run tox -e docs-multilang`) — already being changed to `docs-html` | DELETE |
-| `docs/source/_templates/language-switcher.html` | `docs/source/conf.py:85` (`html_sidebars["**"]` list includes `"language-switcher.html"`) | DELETE file + remove list entry |
-| `html_context`/`html_sidebars` wiring (`conf.py:65-89`) | Self-contained in `conf.py`; `html_css_files = ["custom.css"]` (`conf.py:67-68`) references the CSS file, not this block | MODIFY: remove `html_context` (lines 71-77) and the `language-switcher.html` sidebar entry (line 85); **keep** `html_css_files`/`custom.css` wiring itself since the file may retain non-language-switcher rules |
-| `docs/source/_static/custom.css` | Only rule block is `.language-switcher*` (confirmed — read the full 41-line file, it contains nothing else) | Since the file's **entire** content is language-switcher CSS with no other rules, this is effectively a DELETE, not a trim — remove both the file and the `html_css_files = ["custom.css"]` line in `conf.py:66-68` (a dangling reference to a missing static file would otherwise emit a Sphinx build warning) |
-| `docs/source/_templates/page.html` | **Not named in the milestone brief — found by grep.** Sole consumer/counterpart is `docs/build_multilang.py:86` (`sessionStorage.getItem('typsphinx_lang')` in the old redirect page, which reads what `page.html:8` writes). No other file references `page.html` or `sessionStorage`/`typsphinx_lang`. Once `build_multilang.py`'s redirect page is gone, this template writes to a sessionStorage key nothing ever reads again. | DELETE — dead the moment `build_multilang.py` is deleted; add to the phase's file list even though the milestone brief didn't name it |
-| `gh-pages` branch | `remotes/origin/gh-pages` exists (confirmed via `git branch -a`); `.planning/STATE.md:47` documents it as a standing fact ("Milestone branches deleted; only `main` and `gh-pages` remain") | DELETE remote branch (`git push origin --delete gh-pages`) as its own explicit step, separate from the `docs.yml` edit — the branch persists independently of the workflow that used to write to it |
-| `docs.yml` deploy step (`:57-63`) + PDF-copy step (`:40-43`) | Self-contained in the one workflow file; no other file invokes `peaceiris/actions-gh-pages` or reads `docs/_build/multilang/en/` | DELETE both blocks |
-| `docs/usage.rst` | **Confirmed unreachable**: `docs/source/index.rst`'s toctrees list `installation`, `quickstart`, `user_guide/*`, `examples/*`, `api/index`, `contributing`, `changelog` — no `usage` entry anywhere in `docs/source/**/index.rst`. `tests/test_documentation_usage.py` (11 test functions, `tests/test_documentation_usage.py:14-149`) hard-asserts `docs/usage.rst` exists and has specific content — **this is the exact Phase-27 trap** (the orphan `docs/configuration.rst` deletion redenned the suite via its own collateral test until that test was deleted in the same commit). `CHANGELOG.md:632` references it historically (leave alone, D-02 precedent). | DELETE the `.rst` file AND `tests/test_documentation_usage.py` together, in the same change |
-| `docs/installation.rst` (root, dead tree — distinct from the live `docs/source/installation.rst`, 1383 bytes, referenced by `index.rst:35` toctree) | `tests/test_documentation_installation.py` (10 test functions, `tests/test_documentation_installation.py:12-143`) hard-asserts `docs/installation.rst` exists via `os.path.join(..., "docs", "installation.rst")` — same trap, confirmed by reading the test header. `docs/locale/ja/LC_MESSAGES/installation.po` msgid comments reference `../../source/installation.rst` (a **different, live** file — the po file belongs to the canonical `docs/source/installation.rst`, not the orphan; do not touch the `.po` file). `CHANGELOG.md:631` historical, leave alone. | DELETE the root `.rst` file AND `tests/test_documentation_installation.py` together; do **not** touch `docs/source/installation.rst` or its `.po` catalog — they are the live, toctree-reachable file |
-| README.md github.io links | Grep found **10** occurrences, not the 9 the milestone brief counted: line 8 (badge), line 12, line 267, and lines 271–277 (7 deep links, one per line). *(Flagging per the project's own "verify roadmap claims before asking" precedent — recount at execution time rather than trusting either number blind.)* | MODIFY: repoint all 10 to the final RTD URL once known |
-| `pyproject.toml:56` `Documentation` URL | Currently `https://github.com/YuSabo90002/typsphinx#readme` | MODIFY → RTD URL |
-| `.planning/codebase/INTEGRATIONS.md` | No literal github.io URL string in the file (grep-confirmed — only the repo's `Hosting:` line references GitHub itself, `INTEGRATIONS.md:45-46`); the file's `CI Pipeline` bullet for `docs.yml` (`INTEGRATIONS.md:52`) still describes the old "PDF via typstpdf builder on push" framing with no publish-destination mention, and its `Environment Configuration` section (`INTEGRATIONS.md:67`) still lists `SPHINX_LANGUAGE` as the CI-only env var | MODIFY — this file is prose describing current architecture, not a URL string to find/replace; needs a paragraph-level update reflecting RTD as the hosting/build system and the `READTHEDOCS_LANGUAGE` seam, not a grep-and-replace |
-| `CHANGELOG.md:393`, `:631-632` | Historical entries | **Leave alone** — Phase 24's D-02 precedent (this project already has a standing decision to not rewrite CHANGELOG history) |
+| Paragraph separation | `in_paragraph`, `paragraph_has_content` | `translator.py:129-130` |
+| List-item separation | `in_list_item`, `_list_item_stack`, `list_item_needs_separator`, `is_first_list_item` | `translator.py:131-145` |
+| Code-mode concat contexts | `in_desc_parameter`/`_desc_parameter_has_content` (desc-specific), `_in_field_body`/`_field_body_has_content`/`_field_body_stack` (field-specific), `_in_link`/`_link_has_content`, `_in_attribution`, `_in_term`, generic `_inline_concat_stack` + `_enter_inline_concat_element()`/`_exit_inline_concat_element()` (`translator.py:977-1030`, referenced at `translator.py:1216-1220`) | `translator.py:152-229` |
+| Buffer-swap for titles/captions | `_saved_body_for_figure_caption`, `_saved_body_for_admonition_title`, `_in_admonition_title`, `_pending_admonition_title`, `_title_section_ids` | `translator.py:112-247` |
+| Id-anchor emission | `_emit_id_anchors()` (`translator.py:331-393`), `_namespace_label()`/`_sanitize_label()` (`translator.py:3287-3380`) | shared helper, not per-node state |
+| Forced hard breaks | `_emit_forced_break()` (`translator.py:289-317`) | shared helper |
 
-**Net new consumer found NOT in the milestone brief:** `docs/Makefile`'s `multilang`/`serve-multilang` targets and `docs/source/_templates/page.html`. Both are dead the moment `build_multilang.py` is deleted and should be added to whichever phase deletes it.
+### Handler inventory in scope
 
-## New vs. Modified vs. Deleted (Q5)
+**`desc_*` family** (`translator.py:4619-5134`):
 
-**New files:**
-- `.readthedocs.yaml` (repo root)
+| Method | Current emission | Shared protocol touched |
+|---|---|---|
+| `visit_desc`/`depart_desc` (4619, 4648) | `_emit_id_anchors`; resets `_is_first_desc_signature`; `depart` emits unconditional `parbreak()` via `_emit_forced_break` | id-anchor; forced-break |
+| `visit_desc_signature`/`depart_desc_signature` (4664, 4690) | delegates to `visit_strong`/`depart_strong` (dummy node trick); emits sibling `linebreak()` via `_emit_forced_break`; emits `[#metadata(none) <id>]` anchors per id | forced-break; id-anchor; **borrows the `strong` inline-block protocol wholesale** |
+| `visit_desc_returns` (4724) | `text(" -> ")`, guarded by `in_list_item`/`list_item_needs_separator` | list-item separation |
+| `visit_desc_signature_line`/`depart` (4743, 4763) | per-line `linebreak()`, first-line suppressed via `_is_first_desc_signature_line` | forced-break, but manually inlined rather than via `_emit_forced_break` (predates the helper — worth folding in during the redesign) |
+| `visit_desc_content`/`depart_desc_content` (4767, 4773) | **both `pass`** — this is defect (2) from PROJECT.md verbatim | none currently — this is exactly the seam that needs the new hanging-indent wrapper |
+| `visit_desc_inline`/`depart` (4777) | `pass` (deliberately, to suppress `strong()`, comment at 4782-4787) | none |
+| `visit_desc_annotation`/`depart` (4794) | `pass`/`pass` | none |
+| `visit_desc_addname`/`visit_desc_name` (4810, 4820) | `pass`; `depart_desc_name` sets `list_item_needs_separator` | list-item separation |
+| `visit_desc_parameterlist`/`depart` (4832, 4851) | opens `text("(") + `, manages `in_desc_parameter`/`_desc_parameter_has_content`, closes `text(")")` | **desc-specific concat context** (a THIRD hand-rolled concat pattern alongside the field-body one and the generic `_inline_concat_stack`) |
+| `visit_desc_parameter`/`depart` (4859, 4867) | `depart` appends `+ text(", ")` when a following sibling exists | desc-parameter concat |
+| `visit_desc_optional`/`depart` (4878, 4895) | literal `[`/`]` bracket wrap, reuses `_desc_parameter_has_content` | desc-parameter concat |
+| `desc_sig_keyword`/`desc_sig_space`/`desc_sig_name`/`desc_sig_punctuation`/`desc_sig_operator` (5096-5134) | all `pass`/`pass` | none — these are exactly where monospace-run styling for signature TEXT needs to attach, since today the wrapping `strong()` from `visit_desc_signature` is the ONLY styling any of this text gets |
 
-**New CI job/step:**
-- `sphinx-build -b linkcheck` step in `docs.yml` (advisory, `continue-on-error`)
+**`field_list`/`field`/`field_name`/`field_body`** (`translator.py:4900-5033`):
 
-**Modified files:**
-- `docs/source/conf.py` — `language` seam (line 51: layer `READTHEDOCS_LANGUAGE` in front of `SPHINX_LANGUAGE`); remove `html_context`/`html_sidebars` language wiring (lines 65-89); remove `html_css_files`/`custom.css` reference (lines 66-68, since the CSS file is deleted); add `linkcheck_ignore` per the milestone brief
-- `.github/workflows/docs.yml` — replace `docs-multilang` → `docs-html` step; delete PDF-copy step; delete GH Pages deploy step; keep `docs-pdf` + tag-time Release attachment unchanged; update artifact upload paths; add linkcheck job
-- `tox.ini` — delete `[testenv:docs-multilang]`
-- `docs/Makefile` — delete `multilang`/`serve-multilang` targets (found this session, not in the original brief)
-- `README.md` — 10 URL occurrences repointed
-- `pyproject.toml` — `Documentation` URL (line 56)
-- `.planning/codebase/INTEGRATIONS.md` — hosting/CI-pipeline prose updated
-- `pyproject.toml` version bump (final release phase only — out of scope for the architecture phases, in scope for the last phase)
+| Method | Current emission | Shared protocol touched |
+|---|---|---|
+| `visit_field_list` (4900) | conditional leading `\n` if `in_list_item` and separator pending | list-item separation |
+| `depart_field_list` (4916) | trailing `\n`; sets `list_item_needs_separator` | list-item separation |
+| `visit_field`/`depart_field` (4929, 4935) | `depart` emits `\ntext("  ")\n` inter-field spacer **only when** `_last_field_body_was_inline` and a following sibling exists | reads `_last_field_body_was_inline`, set by `depart_field_body` |
+| `visit_field_name`/`depart_field_name` (4960, 4976) | opens `strong(`, temporarily clears `in_paragraph`, closes with `+ text(": "))\n` | paragraph-state save/restore; this IS the "bold inline label" defect (4) from PROJECT.md |
+| `visit_field_body`/`depart_field_body` (4989, 5020) | detects **all-inline** vs **block** body shape; activates `_in_field_body` concat context only for the all-inline case; pushes/pops `_field_body_stack` | field-body concat context (own protocol, distinct from desc-parameter's) |
 
-**Deleted files:**
-- `docs/build_multilang.py`
-- `docs/source/_templates/language-switcher.html`
-- `docs/source/_templates/page.html` (found this session)
-- `docs/source/_static/custom.css`
-- `docs/usage.rst` + `tests/test_documentation_usage.py`
-- `docs/installation.rst` (root orphan only) + `tests/test_documentation_installation.py`
-- `gh-pages` remote branch (not a repo file — a git ref deletion, separate operational step)
+**`rubric`** (`translator.py:5034-5076`): delegates open/close to `visit_strong`/`depart_strong`
+(dummy-node trick, same as `desc_signature`); `depart_rubric` emits an **unconditional**
+`linebreak()` via `_emit_forced_break`, with an explicit extra `add_text("\n")` first because
+(per its own docstring, `translator.py:5067-5075`) `depart_strong`'s `})` carries no trailing
+separator the way `depart_desc_signature`'s does — this asymmetry is exactly what let the
+FID-04 rubric/next-line-merge bug through originally and would need to be re-derived if
+`depart_strong`'s trailing-separator behavior changes as part of the redesign.
 
-**Unchanged (explicitly, to avoid accidental scope creep):**
-- `docs/source/installation.rst` (the live, toctree-reachable file — do not confuse with the deleted root orphan)
-- `docs/locale/ja/**/*.po` (all 13 files) and the `docs/Makefile` `gettext`/`locale-init`/`locale-update` targets
-- `tox -e docs-pdf`, `tox -e docs-html`, `tox -e docs` envs
-- `docs.yml`'s tag-time `Upload PDF to Release` step
-- `typsphinx/` runtime code, `@preview` package versions, the 3-way version-sync surface
+**`topic`/admonition helpers** (`translator.py:4106-4335`): `_visit_admonition`/
+`_depart_admonition` is the single shared implementation behind 13 distinct
+`visit_note`/`visit_warning`/`visit_tip`/.../`visit_admonition`/`visit_topic` wrappers
+(`translator.py:4170-4335`). It opens a **code-mode content-block call**
+(`f"{clue_type}({{"`, `translator.py:4140`) — i.e. it is NOT delegating to `visit_strong`'s
+inline-block protocol the way `desc_signature`/`rubric` do; it has its own, simpler open/close
+shape. Title handling is via the buffer-swap idiom in `visit_title`'s admonition-aware branch
+(`translator.py:541-557`) — this is the **fourth** distinct buffer-swap consumer alongside
+figure captions, table captions, and (per D-05) `.. contents::` topic titles, all sharing the
+"swap `self.body` out, accumulate, swap back, wrap in `{...}`" pattern but each with its own
+save/restore variable names (no shared helper function exists yet — worth extracting one if
+the redesign adds a fifth buffer-swap consumer, e.g. a citation body).
 
-## Suggested Build Order (Q6)
+### Which protocols are most likely to be disturbed
 
-Respecting the hard dependency constraints already identified in the milestone context (RTD must be green before Pages is removed; URLs can't be rewritten until the final RTD URL exists; `stable` only becomes real at the v0.6.4 tag) plus the ones this research surfaced (the `language` seam must land before the ja translation project is created, since RTD will build whatever `conf.py` says the moment the project exists; the orphan-pair deletion must delete its collateral tests in the same change, per the Phase 27 precedent):
+1. **The `strong()`-delegation trick** (`desc_signature`, `rubric` both call
+   `self.visit_strong(dummy_strong)`/`self.depart_strong(dummy_strong)`) is the single highest-
+   blast-radius seam: any change to `visit_strong`'s inline-block open/close shape
+   (`translator.py:1203-1262`) — e.g. to stop emitting literal `strong({...})` and instead emit
+   a new monospace-signature wrapper — simultaneously changes two unrelated node families that
+   currently share it *for convenience*, not by design intent. The redesign should almost
+   certainly **stop delegating** and give `desc_signature` its own open/close pair, decoupling
+   it from `strong`'s general-purpose bold-inline behavior (which callers elsewhere, e.g. plain
+   `**bold**` markup, still need unchanged).
+2. **The desc-parameter concat context** (`in_desc_parameter`/`_desc_parameter_has_content`) is
+   a hand-rolled third implementation of "join adjacent inline children with `+`" alongside the
+   generic `_inline_concat_stack` machinery (`_enter_inline_concat_element`/
+   `_exit_inline_concat_element`) and the field-body-specific `_in_field_body` context. A
+   redesign that reworks parameter-list rendering (e.g. into a real hanging-indent parameter
+   table) touches this concat context directly and should decide whether to fold it into the
+   generic stack machinery rather than adding a fourth hand-rolled variant.
+3. **`_last_field_body_was_inline`** cross-talk between `depart_field_body` and `depart_field`
+   is a narrow, easy-to-silently-break coupling: any redesign of `field_body`'s emission shape
+   that changes when/whether the all-inline detection fires will silently change whether
+   `depart_field`'s inter-field spacer fires, without an obvious test failure signature (it's a
+   whitespace-only change, not a compile fatal).
+4. **Buffer-swap idiom proliferation**: if citation rendering (§6) or a redesigned admonition
+   title needs its own buffer-swap, this is the fifth hand-copied instance of the same pattern
+   — a natural, low-risk factoring opportunity (extract `_swap_body_buffer()`/
+   `_restore_body_buffer()` helpers) that would reduce the redesign's own blast radius rather
+   than expand it.
 
-1. **`.readthedocs.yaml` + `language` seam.** Add the RTD config file and the `READTHEDOCS_LANGUAGE`/`SPHINX_LANGUAGE` fallback in `conf.py`. This can be validated locally/in CI (env var unset → falls through to existing behavior, zero regression) before any RTD project exists. This is the prerequisite for everything downstream — RTD can't build without it, and the language seam must be correct *before* the ja project is created (manual RTD step) so its very first build already resolves `ja` correctly rather than needing a second pass.
+---
 
-2. **RTD en parent project created + building green (manual RTD console step + verification).** This is the "RTD green before Pages removal" gate — confirm both HTML and the `typstpdf`-via-`build.jobs.build.pdf` PDF build succeed on RTD's actual infrastructure before touching anything else. This phase is where the milestone's sole named technical unknown (does the `typst-py` wheel work in RTD's build image) gets resolved empirically, and where this research's own flagged UNVERIFIED risk (does typst's `@preview` package fetch succeed against RTD's build-sandbox network policy) also gets resolved empirically — both are only answerable by an actual RTD build, not by more research.
+## 5. Suggested build order
 
-3. **RTD ja translation project created + linked (manual RTD console steps) + `docs/usage.rst`/`docs/installation.rst` orphan-pair resolution + multilang-machinery deletion.** These are independent of each other and can be sequenced within the same phase or split, but both must happen only after step 2 proves the `.readthedocs.yaml`/`conf.py` combination is sound (no point building the ja project against a broken config, and no point deleting the multilang machinery before RTD's own translation-flyout replacement is confirmed working, or GH Pages would go dark with no working replacement). The orphan-pair deletion must delete `tests/test_documentation_usage.py`/`tests/test_documentation_installation.py` in the same commit as their subject files (Phase 27 precedent).
+Ordered by hard dependency, not narrative convenience — each step's own regression gate
+(GATE-01 fixture, per the milestone's standing invariant) should be green before the next step
+begins, since later steps assume the module import machinery already resolves.
 
-4. **GitHub Pages removal** (`docs.yml` deploy step + PDF-copy step deletion, `docs-multilang`→`docs-html` swap, `gh-pages` branch deletion, `tox.ini`/`docs/Makefile` cleanup) + **advisory `linkcheck` CI job.** Only now, once steps 2–3 prove RTD serves both languages and the PDF correctly, is it safe to cut the old host — this is the literal "RTD green before Pages removal" ordering constraint. The linkcheck job has no ordering dependency on the rest and could be added any time after step 1, but grouping it here keeps "everything that touches `docs.yml`" in one phase.
+1. **Style-module plumbing (additive, low blast radius).** Land `typsphinx/templates/_typsphinx.typ`
+   as an *empty or near-empty* module (even a single comment + one placeholder function), the
+   new `_write_style_module_file()` builder method (§1), and both import-injection sites in
+   `writer.py`/`template_engine.py` (§2). This step touches **zero** `visit_*`/`depart_*`
+   translator methods and produces byte-identical body content — its own regression gate is
+   "every existing GATE-01/GATE-02 fixture still compiles and its body content is unchanged;
+   the new `_typsphinx.typ` file appears in `outdir` and is importable from a master, an
+   included doc, a custom-template master, and a package-alone master." This step is **required
+   before any translator method below can call into the module** and should be the first phase.
+2. **`desc_*`/`field_list` redesign (broad blast radius).** Depends on step 1 (needs real module
+   functions to call). Internally sequence: (a) decouple `desc_signature`/`rubric` from the
+   `visit_strong` delegation trick first (§4 finding 1) since it is a prerequisite for changing
+   either independently without cross-breaking the other; (b) implement `desc_content`'s hanging
+   indent (currently dead `pass`/`pass`, so this is pure addition, not modification of existing
+   behavior); (c) implement nesting-depth-aware indentation for nested `py:method::`; (d)
+   redesign `field_list`'s two-column layout. This is the highest-blast-radius step — it touches
+   the desc-parameter concat context and invalidates GATE-01 fixture strings at scale (an
+   accepted cost per PROJECT.md).
+3. **Admonition/rubric/topic redesign (moderate blast radius, additive-shaped).** Can proceed in
+   parallel with step 2 once step 1 lands, since `_visit_admonition`/`_depart_admonition` is
+   structurally independent of the `desc_*` family (no shared state beyond the generic
+   `in_list_item` protocol both already participate in). Sequence rubric's `depart_rubric`
+   asymmetric-separator fix (§4, FID-04 note) together with this step since rubric shares the
+   `visit_strong` delegation being decoupled in step 2(a) — these two should not land out of
+   order relative to that decoupling, or rubric silently reverts to the old shared-strong shape.
+4. **Citation support (additive, greenfield, independently landable).** No dependency on steps
+   2-3 (citations render through the existing `link()`/`_emit_id_anchors` machinery, §6, not
+   through desc/field/admonition machinery). Could land in parallel with step 2 once step 1 is
+   done, or before it — the only shared dependency is the style-module plumbing from step 1 if
+   the bibliography-list rendering is styled through the new module (a design choice, not a
+   hard requirement — a first cut could render entirely with existing `list()`/`link()`
+   primitives with zero module dependency).
+5. **`visit_math_block` blank-line fix + `release.yml` CHANGELOG extraction.** Both are
+   self-contained, unrelated to the module/translator work above (different files entirely:
+   `visit_math_block` is a narrow single-method fix, `release.yml` is CI-only). Safe to land at
+   any point, but grouping them at the end (their historical position in the milestone
+   description) avoids interleaving unrelated diffs with the desc/field GATE-01 fixture churn
+   from step 2.
+6. **Release prep (version bump + CHANGELOG).** Standard final phase, depends on everything
+   above being green.
 
-5. **URL rewrite** (README's 10 occurrences, `pyproject.toml:56`, `.planning/codebase/INTEGRATIONS.md`) + **Issue #119 close + repository About Website field.** This must come *after* step 4, not before — the final RTD URL slug is only fully confirmed once the project exists and is serving correctly (steps 2–3), and rewriting URLs to point at a not-yet-green RTD project would trade one broken link class for another. The About Website field and Issue #119 close both depend on having a real, working URL to put in them.
+**Explicit blast-radius call-outs:**
+- **Safe/additive:** style-module plumbing (step 1), `desc_content` implementation (currently
+  dead code), citation handlers (greenfield, no existing behavior to regress).
+- **Broad blast radius:** `desc_signature`/`rubric` strong-delegation decoupling (touches two
+  node families' shared code path), `field_list`/`field_body` redesign (touches three
+  interacting concat/separator protocols simultaneously and invalidates exact-string test
+  fixtures at scale per the milestone's own accepted-cost note).
 
-6. **v0.6.4 release (final phase).** Tag `v0.6.4` — this is also the moment `stable` becomes a real, buildable RTD version for the first time (RTD's 2023-09-25 policy fails builds on tags lacking `.readthedocs.yaml`, and `v0.6.4` is the first tag that will have one). Bump `pyproject.toml`, curate `CHANGELOG.md`, publish per the established `branching_strategy: milestone` process. **This phase cannot move earlier** — `stable` cannot be verified real until the tag exists, and the tag is standard last-phase practice in this project regardless.
+---
 
-## Open Risks (label: UNVERIFIED)
+## 6. Citation integration
 
-Neither of these is resolvable by more documentation research — they require an actual RTD build to observe:
+### Where the nodes appear in the doctree — verified by executing docutils
 
-1. **`typst-py` wheel installability on RTD's build image.** Already flagged as the milestone's sole named technical unknown. typst-py ships PyO3/maturin-built wheels for common Linux x86_64 targets on PyPI, which makes success likely on RTD's `ubuntu-24.04` image, but this is inference, not confirmation.
-2. **Network egress for Typst's `@preview` package fetch during compile.** `typst.compile()` fetches `@preview/codly`, `@preview/codly-languages`, `@preview/mitex`, `@preview/gentle-clues` from the Typst Universe registry (`packages.typst.org`) on first use if not already cached, caching the result under `~/.cache/typst/packages`. Web search did not surface a definitive RTD statement on build-sandbox outbound network policy (general RTD docs describe PyPI/npm/conda package-index access for dependency installation but say nothing about arbitrary HTTPS fetches mid-build). If RTD's build sandbox restricts outbound traffic to package indices only, the `typstpdf` `build.jobs.build.pdf` step could fail to resolve the `@preview` imports on a cold cache, independent of whether the `typst-py` wheel itself installs correctly. This is a second, more specific risk than "does the wheel install" and should be verified in the same empirical phase (step 2 of the build order above), ideally by observing the actual RTD build log for the `@preview` package downloads.
+Ran `docutils.core.publish_doctree()` directly (full parse + transform pipeline, the same
+pipeline Sphinx's read phase drives) against:
+
+```rst
+Intro paragraph citing [Ref1]_ inline.
+
+.. [Ref1] First reference bibliography entry.
+```
+
+Result:
+
+```
+<document source="<string>">
+    <paragraph>
+        Intro paragraph citing
+        <citation_reference ids="citation-reference-1" refid="ref1">
+            Ref1
+         inline.
+    <citation backrefs="citation-reference-1" ids="ref1" names="ref1">
+        <label>
+            Ref1
+        <paragraph>
+            First reference bibliography entry.
+```
+
+This confirms, concretely:
+
+- **`citation_reference`** appears **inline**, wherever `[Ref1]_` occurs in running prose —
+  structurally a sibling of `Text` nodes inside a `paragraph`, exactly like
+  `footnote_reference`.
+- **`citation`** appears as a **document/section-level block sibling**, at its own definition
+  position in source order — in the tested (and the project's own stripped `charged-ieee`)
+  examples this is typically clustered at the end of the document, but nothing in the docutils
+  grammar requires that; a `citation` can appear anywhere a block-level element is valid.
+- **After the transform pipeline runs**, `citation_reference` carries a resolved **`refid`**
+  attribute (`refid="ref1"`) pointing directly at the `citation` node's own `id` — **not** the
+  pre-transform `refname` that a raw parse (no transforms) would leave behind. This is the same
+  shape `footnote_reference.refid` already has by the time `TypstTranslator` sees it (both
+  Sphinx's read phase and this test both run full docutils transforms before the translator is
+  ever invoked), confirmed structurally identical to the pattern
+  `visit_footnote_reference` already reads (`translator.py:2335`, `node.get("refid")`).
+- **`citation.ids[0]` matches `citation_reference.refid` directly, one-to-one** — no dict lookup
+  ambiguity, and `citation` additionally carries a `backrefs` attribute back to the citing
+  reference(s) (not required for a first cut, but available for a "jump back to citation" link
+  later).
+- `citation`'s own first child is a `<label>` node carrying the visible bracket text (`Ref1`) —
+  structurally identical in position to `footnote`'s own `label` child that
+  `visit_footnote_reference`'s docstring already documents skipping
+  (`translator.py:2300-2308`, "skipping the footnote node's leading `label` child").
+
+### Does citation rendering need a footnote-style pre-pass?
+
+**No — and the reason is a concrete, verifiable difference in the Typst API each target uses,
+not a stylistic preference.**
+
+The footnote mechanism (`visit_document`'s FN-01 index, `translator.py:429-434`, plus the lazy
+render in `visit_footnote_reference`, `translator.py:2295-2401`) exists specifically because
+Typst's `footnote()` stdlib function is an **API that requires the note's body content to be
+supplied as an argument at the call site**: `footnote({...body...})` on first use,
+`footnote(<label>)` on reuse. Since `footnote_reference` nodes routinely appear in doctree order
+*before* their defining `footnote` node (the milestone's own footnote work found this exact
+ordering, per the docstring at `translator.py:410-424`, citing "footnote definitions are
+frequently positioned AFTER their citing footnote_references... e.g. under a trailing
+`.. rubric:: Footnotes`"), the translator cannot render the first reference correctly without
+already knowing the full body — hence the document-order pre-pass built in `visit_document`
+before any body content streams.
+
+Citations do not need this, because the target rendering shape described in the milestone
+("a `thebibliography`-equivalent labelled list plus a working `[Label]` → definition link") maps
+onto Typst's **label/link** mechanism instead — the same one `visit_pending_xref`/
+`depart_reference` already use for same-document `:ref:` cross-references
+(`translator.py:3685-3701`, the `link(<label>, ...)` pattern). Typst resolves `<label>`
+anchors and `link(<label>, ...)` references **against the whole compiled document**,
+independent of which came first in source order — this is exactly what already lets
+`visit_pending_xref`/`_emit_id_anchors` handle arbitrary forward AND backward same-document
+references today with no pre-pass of any kind (a target can be anchored after the link that
+points to it, and the link still resolves once the whole document compiles). Citation, therefore:
+
+- `visit_citation` can run its own `_emit_id_anchors`-style anchor (namespaced via
+  `_namespace_label(docname, node["ids"][0])`, the same helper every other anchor site uses)
+  purely locally, at its own natural traversal position, rendering the definition entry (label
+  text from its `label` child + body from its `paragraph` child) with **no dependency on
+  anything having been recorded earlier**.
+- `visit_citation_reference` can equally locally emit `link(<namespaced-refid>, [...its own
+  children...])`, exactly mirroring the existing same-document-refid branch at
+  `translator.py:3685-3701`, with **no pre-pass lookup needed** — the target's existence is
+  guaranteed by Typst's whole-document label resolution, and a genuinely dangling refid (a
+  malformed doctree) would surface as Typst's own "label does not exist" compile fatal, the same
+  graceful-failure mode every other same-document link already has, rather than needing typsphinx
+  to detect and warn about it proactively (though doing so, mirroring the existing dangling-
+  footnote warning at `translator.py:2338-2343`, is cheap defensive parity worth keeping).
+
+**Net finding:** citation support is a genuinely local, three-method addition
+(`visit_citation`/`visit_label`(as citation's child)/`visit_citation_reference`, each following
+an existing precedent — `_emit_id_anchors` for the definition anchor, the `link(<label>, ...)`
+pattern for the reference) with **no new pre-pass machinery required**, distinguishing it
+structurally from the footnote mechanism it superficially resembles.
+
+---
 
 ## Sources
 
-- [Configuration file reference (v2) — Read the Docs](https://docs.readthedocs.com/platform/stable/config-file/v2.html) — `formats`, `build.jobs.build.<format>`, `sphinx.configuration`/`sphinx.builder`, `python.install` schema
-- [Build process customization — Read the Docs](https://docs.readthedocs.com/platform/stable/build-customization.html) — full `build.jobs` lifecycle stage order, format-specific build override semantics
-- [Build process overview — Read the Docs](https://docs.readthedocs.io/en/stable/builds.html)
-- [Environment variable reference — Read the Docs](https://docs.readthedocs.com/platform/stable/reference/environment-variables.html) — `READTHEDOCS`, `READTHEDOCS_PROJECT`, `READTHEDOCS_LANGUAGE`, `READTHEDOCS_VERSION` definitions
-- [How to manage translations for Sphinx projects — Read the Docs](https://docs.readthedocs.com/platform/stable/guides/manage-translations-sphinx.html)
-- [Localization and Internationalization — Read the Docs](https://docs.readthedocs.com/platform/en/stable/localization.html) — "each language must have its own project... add each of the other projects as Translations of the parent project"
-- ["You can now partially or completely override the build process" — Read the Docs blog, 2025-01](https://about.readthedocs.com/blog/2025/01/override-build-process-with-build-jobs/)
-- Repo-internal facts: grep-verified against the working tree at commit `771ec56` (2026-07-25) — see file:line citations inline above
+- `typsphinx/builder.py` (full read) — `_write_template_file` (521-592), `prepare_writing`
+  (318-332), `write` (334-394), `_compute_master_included_docnames` (95-131)
+- `typsphinx/writer.py` (full read) — `translate()` (121-292), `_is_master_document` (41-71),
+  `_compute_template_import_path` (73-119)
+- `typsphinx/template_engine.py` (full read) — `render()` (571-658), `resolve_template()`
+  (274-330), `map_parameters()` (387-483), `resolve_package_for_engine()` (152-176)
+- `typsphinx/translator.py` (targeted read: 1-262 init/helpers, 400-500 document/title,
+  1203-1262 strong, 2278-2401 footnote, 3287-3380 label helpers, 3650-3751 reference,
+  4106-4335 admonition/topic, 4619-5134 desc/field/rubric)
+- `pyproject.toml:67-71` — package-data glob (`"typsphinx" = ["templates/*.typ"]`)
+- `tests/test_preview_version_sync.py` (full read) — 3-way `@preview` version-sync gate
+- `typsphinx/templates/base.typ` (lines 1-80) — bundled default template's own import block
+- `examples/advanced/_templates/custom.typ`, `docs/source/_typst/custom_template.typ`,
+  `examples/charged-ieee/approach2/source/_templates/_template.typ` (headers read in full) —
+  the three custom templates whose non-breakage is verified in §3
+- `.planning/todos/pending/2026-07-22-citation-node-support-untracked.md` — origin record of the
+  citation gap, confirms `translator.py` has zero citation handlers today
+- `.planning/PROJECT.md:19-100` — v0.7.0 milestone scope (read in full)
+- `.planning/codebase/ARCHITECTURE.md` (full read) — baseline architecture map, anti-patterns
+  section corroborating the `_write_template_file` conditional-skip rationale
+- Direct execution: `docutils.core.publish_doctree()` against a two-node citation sample
+  (this session) — confirms `citation_reference.refid` → `citation.ids[0]` resolution shape
+  used in §6
 
 ---
-*Architecture research for: RTD migration (typsphinx v0.6.4)*
-*Researched: 2026-07-25*
+*Architecture research for: typsphinx v0.7.0 API rendering design overhaul*
+*Researched: 2026-07-29*

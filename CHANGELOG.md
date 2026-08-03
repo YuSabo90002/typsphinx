@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-04
+
+API reference pages become readable in this release: autodoc/API output moves from a flat wall of
+proportional bold text to something that reads as a typeset reference document — monospace
+signatures, a hanging indent on description bodies, and visually distinguishable nesting between a
+class and its members. The appearance of every emitted `.typ` file and its compiled PDF changes for
+anyone building API documentation. Citations gain full round-trip support alongside this: a
+document containing a citation no longer fails the Typst compile outright.
+
+### Added
+
+- **Citations — full round trip (CIT-01, CIT-02, CIT-03, CIT-04, CIT-05, CIT-06)** — `.. [Label]`
+  definitions render as labelled hanging-indent entries in document order, `[Label]_` in-text
+  references link to their definition, and each definition carries back-references to every citing
+  location. Previously a document containing a citation failed the Typst compile outright — zero
+  citation handlers existed. The citation syntax removed from `examples/charged-ieee/` in Phase 22.2
+  is restored.
+
+### Changed
+
+- **Signatures render as real typography (SIG-01, SIG-02, SIG-03, SIG-04, SIG-05, SIG-06, SIG-07,
+  SIG-08, SIG-09)** — object names, module/class qualifiers, keywords, parameters, and delimiters
+  now render in bold and regular-weight monospace with italic proportional parameters and a real
+  arrow glyph for return annotations, replacing the flat proportional-bold text emitted before. Long
+  signatures wrap without overflowing the page margin, sibling signatures are separated by exactly
+  one break, and a signature never splits from the first line of its body across a page break.
+- **Description bodies and field lists indent by nesting depth (IND-01, IND-02, IND-03, IND-04,
+  IND-05, FLD-01, FLD-02, FLD-03)** — a description body now indents relative to its own signature,
+  cumulatively with nesting depth, off one shared indent constant, so a nested class member's body
+  is visibly deeper than its parent's while the nested member's own signature aligns with its
+  parent's body margin. Field lists (Parameters / Returns / Return type / Raises / Variables) indent
+  one step beyond the surrounding body, and a field body's parameter names and types carry monospace
+  treatment distinct from the plain-bold field label.
+- **Admonition taxonomy re-bucketed and rubric now indents with its body (ADM-01, ADM-02, ADM-03,
+  ADM-04, ADM-05, ADM-06)** — `seealso` joins the green `hint`/`tip` bucket and `attention` joins the
+  red family instead of the orange warning bucket it used before, a generic `.. admonition::` renders
+  as a styled box carrying its own title, and a `rubric` nested inside a description body (including
+  autodoc's "Options" heading) indents with that body instead of sitting flush against the page
+  margin.
+
+### Fixed
+
+- **Block math inside a list item no longer emits a redundant blank line (MATH-02)** — the extra
+  blank line between the math expression and the following paragraph break, carried over from the
+  v0.6.5 Phase 34 review, is gone.
+- **A captioned table immediately preceded by a standalone target no longer drops the target's
+  label (TBL-03)** — both the table's own name-derived label and the propagated target's label
+  are now emitted, so a reference to either resolves instead of aborting the compile on a
+  dangling label.
+
+### Verified
+
+- Zero new runtime dependencies across the full milestone diff.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf` re-run remains fatal-free.
+
 ## [0.6.5] - 2026-07-29
 
 Fixes a compile-blocking defect where a document mixing prose and math could abort the Typst
@@ -862,6 +919,7 @@ untouched.
 
 ---
 
+[0.7.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.0
 [0.6.5]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.5
 [0.6.4]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.4
 [0.6.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.3
@@ -878,4 +936,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.7.0...HEAD

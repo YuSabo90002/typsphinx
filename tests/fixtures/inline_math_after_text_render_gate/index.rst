@@ -55,3 +55,14 @@ _emit_id_anchors + list-item-separator ordering interaction (WR-02).
      :label: construct-g-labeled-eq
 
   Text after labeled block math.
+
+Construct H: a list item whose sole content is display math -- the
+block-math single-element edge (MATH-02). With no following sibling
+inside the item, there is nothing for the trailing separator flag to
+affect, so this construct's emission must be identical before and after
+the MATH-02 fix.
+
+*
+  .. math::
+
+     H = m g h

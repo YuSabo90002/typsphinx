@@ -6,10 +6,11 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List, Tuple
+from typing import Any, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.locale import admonitionlabels
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxTranslator
 
@@ -19,6 +20,86 @@ logger = logging.getLogger(__name__)
 # length_or_percentage_or_unitless / length_or_unitless) that are already
 # valid Typst length units and should pass through unchanged.
 _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
+
+# Shared cross-phase indent quantum (D-08, 37-EMISSION-CONTRACT.md section 1).
+# Phase 37 introduces this as the desc_signature hanging-indent step (SIG-07);
+# Phase 38's IND-04 reuses this SAME constant for desc_content, field_list and
+# block_quote rather than defining a second indent number -- do not introduce
+# another one. Value is the owner's D-06 choice (compiled and compared against
+# three renderings; see 37-CONTEXT.md).
+SHARED_INDENT_STEP = "2.5em"
+
+
+class _ReferenceAnchorDecision(NamedTuple):
+    """
+    The single D-14 citing-site anchor judgement (WR-03, `40.1-CONTEXT.md`
+    D-05/D-06/D-07): "does this ``nodes.reference`` get its own
+    bracket-attached anchor, and if so what is that anchor's label?"
+
+    Before Phase 40.1, this question was answered independently in TWO
+    places -- ``visit_reference``'s own local computation (three
+    conditions: ``node.get("ids")``, ``opens_wrapper``, ``not
+    next_is_target``) and ``_citing_reference_has_own_anchor`` (one
+    condition: ``not next_is_target`` alone, assuming the other two) --
+    and nothing held them together. ``TypstTranslator._reference_anchor_
+    decision`` (below) is now the ONE place that derives every field here,
+    consumed by BOTH ``visit_reference`` (the anchor-EMITTING site) and
+    ``visit_citation``'s backref loop (the anchor-CONSUMING site), so the
+    two cannot silently drift apart again (D-05).
+
+    Every field is derived from the node plus builder state (D-06) --
+    nothing here is passed in pre-computed:
+
+    Attributes:
+        refuri: ``node.get("refuri", "")``.
+        refid: ``node.get("refid", "")``.
+        xref: ``self._resolve_xref_docname(refuri)`` result, or ``None``
+            when ``refuri`` is empty or does not resolve to a local
+            cross-document anchor.
+        degrade_xref_to_text: ``True`` only when ``xref`` resolved AND the
+            builder's ``master_included_docnames`` is non-empty and does
+            NOT contain the target docname -- reproducing
+            ``visit_reference``'s existing ``getattr`` lookup exactly,
+            including the "empty include-set means unknown, never
+            degrade" behaviour mock/hand-built builders rely on.
+        opens_wrapper: ``bool(refuri or refid) and not
+            degrade_xref_to_text`` -- whether ANY link wrapper is opened
+            at all (citation-derived or otherwise).
+        next_is_target: whether the node's immediately-following sibling
+            is a ``nodes.target`` -- has TWO consumers in
+            ``visit_reference`` (Pitfall 3, `40.1-RESEARCH.md`): the D-14
+            eligibility gate below, and the pre-existing
+            target-attachment markup wrap that fires whenever the next
+            sibling is a target regardless of ``ids``/``opens_wrapper``.
+            Both must read this SAME value, computed once.
+        eligible: ``bool(node.get("ids")) and opens_wrapper and not
+            next_is_target`` -- D-05's judgement, unchanged in substance
+            from the pre-Phase-40.1 code, just relocated to the single
+            place it is now written.
+        anchor_label: the anchor label (D-07, via D-13's single
+            ``_namespace_label`` derivation point) when ``eligible``,
+            else ``None``. Returning the LABEL (not just the boolean)
+            means the link target ``visit_citation`` appends and the
+            anchor ``visit_reference`` attaches come from the SAME
+            expression -- closing the second, independent
+            ``_namespace_label`` call this phase measured (D-07).
+
+    This predicate is SILENT (Pitfall 2, `40.1-RESEARCH.md`): no
+    ``logger`` call, no ``add_text``, no translator-state mutation.
+    ``visit_reference``'s existing cross-document degrade-to-text
+    ``logger.warning`` stays exactly where it is, in ``visit_reference``'s
+    own branch -- re-deriving ``degrade_xref_to_text`` here would
+    otherwise double-fire that warning once per degraded reference.
+    """
+
+    refuri: str
+    refid: str
+    xref: Tuple[str, str] | None
+    degrade_xref_to_text: bool
+    opens_wrapper: bool
+    next_is_target: bool
+    eligible: bool
+    anchor_label: str | None
 
 
 def escape_typst_string(text: str) -> str:
@@ -138,6 +219,47 @@ class TypstTranslator(SphinxTranslator):
         self._list_item_stack: List[bool] = []
         self.in_literal_block = False  # Track if currently in a code block
 
+        # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
+        # section 2/4): True for the entire duration of a desc_signature's
+        # emission (set in visit_desc_signature, cleared in
+        # depart_desc_signature). Read by visit_Text, which routes every
+        # signature-text run through the monospace primitive (raw(...))
+        # instead of the proportional text(...) primitive, with no dedicated
+        # per-node handler required for delimiters/keywords/spaces/etc.
+        # A plain scalar, not a stack: desc_signature never nests inside
+        # desc_signature.
+        self.in_signature_text = False
+
+        # SIG-04 D-05 discriminator state (37-EMISSION-CONTRACT.md section
+        # 2/5.2): True once the CURRENT desc_parameter's own name (its
+        # first text-only-leaf desc_sig_name child) has been emitted, so a
+        # later desc_sig_name in the SAME parameter (part of a type
+        # annotation) falls through to rule 3 instead of being italicised
+        # again. Reset to False in visit_desc_parameter on entry. A scalar,
+        # not a stack: desc_parameter never nests inside desc_parameter (a
+        # desc_optional group holds desc_parameter SIBLINGS, each of which
+        # resets the flag on its own entry).
+        self._param_name_seen = False
+
+        # SIG-08 emission-position marker (37-EMISSION-CONTRACT.md section 8;
+        # made buffer-identifying by 38-05, 38-EMISSION-CONTRACT.md section
+        # 6.4, closing the folded todo
+        # .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        # records (id(self.body), len(self.body)) immediately after a `desc`'s
+        # own parbreak() was emitted, so depart_desc can tell whether anything
+        # has been emitted since -- the discriminator that lets a nested
+        # `desc`'s duplicate break be suppressed without a desc-nesting-depth
+        # counter. The identity half exists because self.body is reassigned
+        # at multiple sites (visit_term/visit_definition via
+        # _saved_body_stack, the admonition-title save/restore, the
+        # figure-caption save/restore, plus the table-cell routing in
+        # add_text) -- a bare position integer recorded against one buffer
+        # could otherwise spuriously match (or fail to match) a position in a
+        # DIFFERENT buffer after a swap. Comparing both halves, rather than
+        # adding a sixth per-site guard, is the fix (the existing in_table
+        # guard already demonstrates that per-site guards do not generalise).
+        self._desc_break_marker: tuple[int, int] | None = None
+
         # Stream-based list rendering state (Issue #61)
         self.is_first_list_item = True  # Track if current item is first in list
         self.list_item_needs_separator = (
@@ -149,6 +271,15 @@ class TypstTranslator(SphinxTranslator):
         self._in_markup_mode = (
             False  # Track if currently inside markup mode block [...] for # prefix
         )
+        # D-14 (Phase 40): the namespaced <docname:idN> anchor token for the
+        # reference CURRENTLY being emitted, or None. Set in visit_reference,
+        # consumed/cleared in depart_reference. A single scalar slot is
+        # sufficient -- not a stack -- because a reference node cannot nest
+        # inside another reference node (mirrors the existing
+        # _reference_was_list_item_needs_separator precedent). This is a
+        # NEW slot, never a fourth consumer of the _strong_was_* slots
+        # (Phase 36 D-01/D-02 warn against exactly that).
+        self._reference_own_anchor: str | None = None
         self.in_desc_parameter = (
             False  # Track if inside desc_parameter to avoid newlines between text nodes
         )
@@ -191,17 +322,31 @@ class TypstTranslator(SphinxTranslator):
         # its field line (e.g. ':default: The value of **x**') is COLLAPSED by
         # docutils to inline children (Text/strong/literal) directly under
         # field_body -- no wrapping paragraph. Those juxtapose in code mode
-        # unless + separated (bug #8). Activated by visit_field_body only for
-        # an all-inline field body; _field_body_stack saves the prior value for
+        # unless + separated (bug #8). Activated by visit_field_body for an
+        # all-inline field body (the collapsed-inline case) AND for a field
+        # body whose only child is a single nodes.paragraph (FLD-02, D-07,
+        # the ordinary :param:/:returns: docstring case) -- both reuse the
+        # SAME concat context; _field_body_stack saves the prior values for
         # nesting safety.
         self._in_field_body = False
         self._field_body_has_content: bool = False
-        self._field_body_stack: List[Tuple[bool, bool]] = []
+        # Distinguishes the single-paragraph-unwrapped case (this flag True)
+        # from the docutils-collapsed-inline case (this flag False while
+        # _in_field_body is True) -- the ONE new attribute FLD-02 needs
+        # (D-12). visit_paragraph/depart_paragraph read it to skip the
+        # block-level par(...) wrapper; depart_field_body reads it to keep
+        # _last_field_body_was_inline scoped to the genuinely collapsed case
+        # only (the D-07/D-08 trap: naively setting that flag for BOTH cases
+        # would let depart_field's FID-09 inter-field separator fire between
+        # newly-inlined single-value fields and merge them onto one line).
+        self._field_body_unwrapped_paragraph: bool = False
+        self._field_body_stack: List[Tuple[bool, bool, bool]] = []
         # Whether the most recently departed field_body used the collapsed
         # inline form (see visit_field_body). depart_field reads this to
         # decide whether the FID-09 inter-field "  " separator applies --
-        # it is only correct for inline-collapsed bodies, not block-wrapped
-        # (par(...)) bodies (CR-01).
+        # it is only correct for inline-collapsed bodies, never for a
+        # block-wrapped (par(...)) OR single-paragraph-unwrapped body
+        # (CR-01, and FLD-02's D-07/D-08 trap above).
         self._last_field_body_was_inline = False
 
         # Stack of the code-mode concat context suppressed while an inline
@@ -239,7 +384,12 @@ class TypstTranslator(SphinxTranslator):
             None  # Body to restore after buffering an admonition title
         )
         self._custom_admonition_title: str | None = (
-            None  # Static Python-literal title (e.g. "Important", "See Also")
+            None  # Static title: for the ten real Sphinx admonition types
+            # (note, warning, tip, important, caution, seealso, hint, error,
+            # danger, attention) this is looked up from
+            # sphinx.locale.admonitionlabels inside _visit_admonition
+            # (D-04/D-05); for todo_node it remains the caller-supplied
+            # inert fallback ("Todo"), since todo_node is not a catalog key.
         )
         self._title_section_ids: List[str] = (
             []  # Parent section's ids, captured in visit_title for the
@@ -767,12 +917,36 @@ class TypstTranslator(SphinxTranslator):
         Wraps paragraph content in par() function for unified code mode.
         Code mode doesn't auto-recognize paragraph breaks from blank lines.
 
-        Exception: Inside list items, paragraphs are not wrapped in par()
-        to avoid syntax like "- par(text(...))" which is invalid. A 2nd+
+        FLD-02/D-07 (38-EMISSION-CONTRACT.md section 4.2) is checked FIRST,
+        deliberately, ahead of the list-item fast-path below: a field body
+        whose ONLY child is this single paragraph (the ordinary
+        ``:param:``/``:returns:`` docstring shape) skips the ``par({``/
+        ``})`` wrapper, because Typst's ``par(...)`` is intrinsically
+        block-level and starts a new visual line regardless of any
+        separator -- FLD-02's root defect. The order matters because
+        nothing resets ``in_list_item`` for a
+        ``field_list``/``field``/``field_body``/``paragraph`` nested inside
+        a list item, so it remains True for a field-body paragraph
+        documented inside a bullet or enumerated list item; checking
+        ``in_list_item`` first would let it unconditionally win and
+        reintroduce the exact pre-Phase-38 label/value split
+        (38-VERIFICATION.md gap 1, 38-REVIEW.md CR-01). See
+        visit_field_body's docstring for the classification and
+        depart_field_body's for the D-07/D-08 trap this interacts with.
+
+        Exception: Inside list items -- once the FLD-02 case above has
+        already been ruled out -- paragraphs are not wrapped in par() to
+        avoid syntax like "- par(text(...))" which is invalid. A 2nd+
         paragraph in a list item instead gets a real Typst parbreak()
         (FID-02) -- a bare source '\\n' between code-mode statements is
         cosmetic only and produces no visual break, so consecutive
         list-item paragraphs otherwise concatenate onto one running line.
+        D-13 (38-EMISSION-CONTRACT.md section 4.5): this stray parbreak()
+        also fires at the head of every bulleted list item whose sole
+        content is a paragraph -- an ordinary list-item paragraph, or a
+        multi-value field body's own bulleted list items -- and Phase 38
+        leaves it in place by design; its exact shape is pinned by
+        tests/test_inline_math_after_text_render_gate.py:291.
 
         Args:
             node: The paragraph node
@@ -784,6 +958,18 @@ class TypstTranslator(SphinxTranslator):
         # wrap and outside any inline concat context -- so it never juxtaposes
         # or strands a `+`. (GATE-02 corpus fatal #20: <xref-modifiers>.)
         self._emit_id_anchors(node)
+
+        # FLD-02/D-07: skip the block-level par(...) wrapper for a
+        # single-value field body's sole paragraph child. Checked BEFORE
+        # in_list_item below -- see this method's docstring for why the
+        # order is load-bearing, not incidental. The paragraph's children
+        # then dispatch unmodified through the SAME inline-concat machinery
+        # visit_field_body activated (_in_field_body /
+        # _field_body_has_content) -- no par() to open, so in_paragraph
+        # stays False and nothing else is emitted here.
+        if self._field_body_unwrapped_paragraph:
+            self.in_paragraph = False
+            return
 
         # Skip par() wrapping inside list items; emit a real parbreak()
         # between the 2nd+ paragraph and its predecessor (FID-02). This is a
@@ -805,9 +991,28 @@ class TypstTranslator(SphinxTranslator):
 
         Closes par({}) function and adds spacing.
 
+        Mirrors visit_paragraph's ORDER exactly (see that method's
+        docstring for why the order is load-bearing): the FLD-02/D-07
+        branch is checked BEFORE the list-item branch, because
+        ``in_list_item`` remains True for a field-body paragraph nested
+        inside a list item and would otherwise win. No ``par({...})`` was
+        opened for a single-value field body's sole paragraph, so there is
+        nothing to close here either -- and, deliberately,
+        ``list_item_needs_separator`` is NOT set for this case: the
+        field-body paragraph opened no wrapper and emitted no block-level
+        statement of its own, so there is nothing for a following sibling
+        to be separated from that the field-body concat machinery and
+        depart_field_body's own trailing bytes do not already handle.
+
         Args:
             node: The paragraph node
         """
+        # FLD-02/D-07: mirrors the skip in visit_paragraph above. Checked
+        # BEFORE in_list_item below -- see this method's docstring.
+        if self._field_body_unwrapped_paragraph:
+            self.in_paragraph = False
+            return
+
         # Skip closing if inside list items; mark that a paragraph separator
         # is now needed before the next list-item sibling (FID-02) -- this is
         # the piece that was previously MISSING, so the helper in
@@ -1015,6 +1220,76 @@ class TypstTranslator(SphinxTranslator):
         setattr(self, ctx[0], True)  # un-suppress the outer context flag
         setattr(self, ctx[1], True)  # this element = a sibling for the next one
 
+    # ------------------------------------------------------------------
+    # Signature typography helpers (Phase 37, SIG-01..SIG-07,
+    # 37-EMISSION-CONTRACT.md sections 4-5). Shared by visit_Text's
+    # in_signature_text branch, visit_desc_name/visit_desc_annotation's
+    # text-only-leaf bold branch, and visit_desc_sig_name's D-05
+    # discriminator -- ONE place each algorithm lives, per D-04's "no
+    # second escaping helper" constraint.
+    # ------------------------------------------------------------------
+
+    def _escape_signature_text(self, text: str) -> str:
+        """
+        Escape a signature text run and inject the SIG-07/D-07
+        break-opportunity escape, in the load-bearing order contract
+        section 4 steps 2-3 specify: escape FIRST via the shared,
+        unmodified ``escape_typst_string`` helper (D-04 -- no second
+        escaping helper is written), THEN inject the break-opportunity
+        escape after every period.
+
+        Order is load-bearing: ``escape_typst_string`` doubles
+        backslashes, so injecting the escape sequence before escaping
+        would double ITS backslash too, emitting a literal two-character
+        ``\\\\u{200B}`` instead of the intended Unicode escape sequence.
+        ``.`` is neither produced nor consumed by ``escape_typst_string``,
+        so injecting after escaping is safe in the other direction.
+
+        The injected token is the 8-character Typst Unicode escape
+        ``\\u{200B}`` -- NOT a literal invisible U+200B byte -- so the
+        emitted ``.typ`` stays greppable, diffable and hand-derivable in
+        a golden file. Injection is blanket over every period in the run
+        (no length threshold, mirroring ``visit_literal``'s existing
+        unconditional in-table injection) -- D-07 requires the break
+        opportunity in every long dotted name, and routing every call
+        site through this one helper is what guarantees no dotted-name
+        carrying node type can be missed.
+        """
+        escaped = escape_typst_string(text)
+        return escaped.replace(".", ".\\u{200B}")
+
+    def _emit_signature_leaf_wrapper(self, node: nodes.Element, wrapper: str) -> None:
+        """
+        Emit a complete ``wrapper(raw("..."))`` call for a text-only-leaf
+        signature node (a ``desc_name`` / ``desc_annotation`` whose every
+        child is ``nodes.Text``, or a leaf ``desc_sig_name``), then raise
+        ``nodes.SkipNode`` -- mirroring ``visit_literal``'s leaf-emission
+        shape (``typsphinx/translator.py:1289-1367``): the paragraph
+        separator, the concat-separator-or-list-item-newline fallback,
+        the call itself (escaped + break-opportunity-injected via
+        :meth:`_escape_signature_text`), then the mark-content-or-list-
+        item-separator fallback.
+
+        ``wrapper`` is ``"strong"`` (contract section 5.1's leaf branch /
+        section 5.2 rule 1) or ``"emph"`` (section 5.2 rule 2) -- the
+        two treatments SIG-01/SIG-04 require, sharing everything except
+        the wrapper call name.
+        """
+        self._add_paragraph_separator()
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        escaped = self._escape_signature_text(node.astext())
+        prefix = "#" if self._in_markup_mode else ""
+        self.add_text(f'{prefix}{wrapper}(raw("{escaped}"))')
+
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+
+        raise nodes.SkipNode
+
     def visit_Text(self, node: nodes.Text) -> None:
         """
         Visit a text node.
@@ -1033,6 +1308,44 @@ class TypstTranslator(SphinxTranslator):
         # Inside literal blocks, output text directly (no wrapping)
         if self.in_literal_block:
             self.add_text(text_content)
+            return
+
+        # SIG-01..SIG-05 (37-EMISSION-CONTRACT.md section 4): inside a
+        # desc_signature, every text-bearing descendant routes through the
+        # monospace primitive raw(...) instead of the proportional text(...)
+        # primitive -- this is what makes desc_addname, desc_sig_keyword,
+        # desc_sig_space, desc_sig_punctuation, desc_sig_operator,
+        # inline.default_value, desc_sig_literal_string/number and the
+        # C/C++-only desc_sig_keyword_type get monospace "for free" with no
+        # dedicated per-node handler (contract section 4.3). Unlike
+        # in_literal_block above, this branch is NOT a bare unescaped
+        # emission -- it still escapes and still participates in every
+        # separator protocol (paragraph/concat/list-item), because
+        # signature text is still prose-adjacent content, just typeset in
+        # monospace. Do not collapse this into the in_literal_block shape.
+        if self.in_signature_text:
+            # Same FID-11 soft-wrap collapse as the plain-text path below.
+            sig_text_content = text_content.replace("\n", " ")
+            # Escape + inject the break-opportunity escape via the shared
+            # helper (see its docstring for the load-bearing order
+            # rationale) -- the SAME algorithm every signature leaf-
+            # emission site (this branch, visit_desc_name/
+            # visit_desc_annotation's bold leaf branch,
+            # visit_desc_sig_name's bold/italic leaf branches) reuses, so
+            # there is exactly one place the escape+ZWSP algorithm lives.
+            sig_text_content = self._escape_signature_text(sig_text_content)
+
+            self._add_paragraph_separator()
+            if not self._emit_inline_concat_separator():
+                if self.in_list_item and self.list_item_needs_separator:
+                    self.add_text("\n")
+
+            sig_prefix = "#" if self._in_markup_mode else ""
+            self.add_text(f'{sig_prefix}raw("{sig_text_content}")')
+
+            if not self._mark_inline_concat_content():
+                if self.in_list_item:
+                    self.list_item_needs_separator = True
             return
 
         # FID-11: a paragraph authored with reST soft/semantic source line
@@ -2400,6 +2713,439 @@ class TypstTranslator(SphinxTranslator):
         # marker Text, e.g. "1"/"2") must never render.
         raise nodes.SkipNode
 
+    def _citation_run_neighbour(self, node: nodes.citation, offset: int) -> bool:
+        """
+        Scan ``node.parent.children`` in direction ``offset`` (``-1``/``+1``)
+        from ``node``'s own index, skipping siblings that emit NOTHING (a
+        docutils ``comment`` or ``system_message`` -- ``visit_comment``
+        raises ``SkipNode`` before emitting anything -- or an ids-less
+        ``nodes.target``, WR-02 below), and report whether the first sibling
+        that WOULD emit is another ``nodes.citation``.
+
+        Both ``visit_citation`` (``offset=-1``, "is my PREVIOUS emitting
+        sibling also a citation") and ``depart_citation`` (``offset=+1``, "is
+        my NEXT emitting sibling also a citation") use this SAME helper, in
+        opposite directions (D-05's run detection). Mirrors the established
+        ``next_is_target`` sibling-lookahead idiom (``visit_reference``).
+
+        Scanning THROUGH emit-nothing siblings is load-bearing, not a
+        nicety: this repository's fixture convention puts a comment above
+        and between constructs (D-06), and treating a comment as a run
+        break would silently split one rendered reference list into two
+        independently-aligned grids with no error anywhere.
+
+        WR-02 (`40-REVIEW.md`): an ids-less ``nodes.target`` is ALSO skipped,
+        for the same reason -- ``visit_target``'s "ids falsy" branch
+        (``not node.get("ids")``) never writes an anchor, so treating it as a
+        real (non-citation) sibling silently split one intended run into two
+        independently-aligned grids, with no error anywhere (the same defect
+        class as the comment/system_message case above, just a different
+        node type). Measured caveat, recorded rather than papered over: this
+        inertness is *approximate* inside list items -- ``visit_target``
+        still writes a leading ``"\\n"`` when ``self.in_list_item and
+        self.list_item_needs_separator``, and unconditionally sets
+        ``self.list_item_needs_separator = True`` afterwards when
+        ``self.in_list_item`` -- so an ids-less target is strictly *weaker*
+        than ``comment``, whose ``visit_comment`` raises ``SkipNode`` before
+        touching any separator state at all. This stays a literal,
+        one-disjunct case rather than a general "does this node emit bytes"
+        predicate (G2, `40.1-CONTEXT.md`/`40.1-02-PLAN.md`): the general
+        claim would be false as written (per the list-item caveat just
+        above), and generalising the emit-nothing concept beyond citations is
+        explicitly deferred out of this phase.
+
+        Args:
+            node: The citation node currently being visited/departed.
+            offset: ``-1`` to look at the previous sibling, ``+1`` for next.
+
+        Returns:
+            ``True`` when the first emitting neighbour in that direction is
+            another citation (so the run continues); ``False`` otherwise
+            (no parent, no such neighbour, or it emits something else).
+        """
+        if node.parent is None:
+            return False
+        children = node.parent.children
+        i = node.parent.index(node) + offset
+        while 0 <= i < len(children):
+            sibling = children[i]
+            if isinstance(sibling, (nodes.comment, nodes.system_message)) or (
+                isinstance(sibling, nodes.target) and not sibling.get("ids")
+            ):
+                i += offset
+                continue
+            return isinstance(sibling, nodes.citation)
+        return False
+
+    def _find_citing_reference(self, refid: str) -> nodes.reference | None:
+        """
+        Find the same-document citing-site ``nodes.reference`` whose own
+        ``ids`` contains ``refid`` (a docutils ``backrefs`` entry).
+
+        Deliberately does NOT use ``self.document.ids[refid]``: measured
+        this session that docutils' id registry can retain a STALE pointer
+        to the ORIGINAL ``citation_reference`` node for a citing site nested
+        several containers deep (e.g. inside a list item) even after
+        Sphinx's citation-domain transform has replaced it in the tree with
+        a resolved ``nodes.reference`` -- the stale node's own ``.parent``
+        still points at its former parent, but it is no longer a member of
+        that parent's ``.children``, so a naive ``parent.index(node)`` call
+        raises ``ValueError``. Scanning ``self.document.findall(...)``
+        queries the CURRENT tree structure directly and is immune to this.
+
+        Args:
+            refid: A docutils id string from a citation's ``backrefs`` list.
+
+        Returns:
+            The matching reference node, or ``None`` if not found.
+        """
+        for candidate in self.document.findall(nodes.reference):
+            if refid in (candidate.get("ids") or []):
+                return candidate
+        return None
+
+    def _reference_anchor_decision(
+        self, node: nodes.reference
+    ) -> _ReferenceAnchorDecision:
+        """
+        The SINGLE D-14 citing-site anchor judgement (WR-03, D-05/D-06/
+        D-07, `40.1-CONTEXT.md`): does ``node`` get its own
+        bracket-attached anchor, and if so what is that anchor's label?
+
+        Before Phase 40.1 this was answered independently in TWO places
+        that could silently disagree -- ``visit_reference``'s own local
+        computation (``node.get("ids")``, ``opens_wrapper``, ``not
+        next_is_target``) and the now-deleted ``_citing_reference_has_
+        own_anchor`` (``next_is_target`` alone, assuming the other two
+        held). Both ``visit_reference`` (the anchor-EMITTING site) and
+        ``visit_citation``'s backref loop (the anchor-CONSUMING site, via
+        ``_find_citing_reference``) now call THIS method and consume its
+        answer, so the two cannot drift apart again.
+
+        Derives every field from ``node`` plus builder state ONLY (D-06)
+        -- ``refuri``/``refid``/``xref``/``degrade_xref_to_text``/
+        ``opens_wrapper``/``next_is_target`` are all re-derived here,
+        exactly as ``visit_reference`` computed them locally before this
+        phase, rather than accepting them as pre-computed booleans (a
+        pure predicate over three booleans would leave the DERIVATION
+        drifting upstream even with the judgement unified). When
+        eligible, the anchor label is computed via D-13's single
+        ``_namespace_label`` derivation point (D-07) -- never a second
+        label helper -- so the link target ``visit_citation`` appends and
+        the anchor ``visit_reference`` attaches come from the SAME
+        expression.
+
+        SILENT by contract (Pitfall 2, `40.1-RESEARCH.md`): no
+        ``logger`` call, no ``add_text``, no translator-state mutation.
+        ``visit_reference``'s existing cross-document degrade-to-text
+        warning stays exactly where it is, in ``visit_reference``'s own
+        branch -- this method must never log, or that warning would fire
+        a second time per degraded reference.
+
+        Note on ``next_is_target``'s parentless default: this differs
+        from the deleted ``_citing_reference_has_own_anchor``, which
+        returned ``True`` (i.e. "no target follows") for a parentless
+        node. Here ``next_is_target`` simply defaults to ``False`` when
+        there is no parent to look ahead in, matching
+        ``visit_reference``'s own pre-existing lookahead exactly --
+        ``visit_reference``'s form is the authority; the divergence
+        between the two was itself an instance of the WR-03 defect class
+        this predicate closes.
+
+        Args:
+            node: The reference node to judge (a citing-site reference
+                looked up via ``_find_citing_reference``, or the node
+                ``visit_reference`` is currently visiting).
+
+        Returns:
+            The full ``_ReferenceAnchorDecision`` for ``node``.
+        """
+        refuri = node.get("refuri", "")
+        refid = node.get("refid", "")
+
+        xref = self._resolve_xref_docname(refuri) if refuri else None
+        degrade_xref_to_text = False
+        if xref is not None:
+            master_included = getattr(self.builder, "master_included_docnames", None)
+            if master_included and xref[0] not in master_included:
+                degrade_xref_to_text = True
+
+        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
+
+        next_is_target = False
+        if node.parent:
+            node_index = node.parent.index(node)
+            if node_index + 1 < len(node.parent.children):
+                next_node = node.parent.children[node_index + 1]
+                if isinstance(next_node, nodes.target):
+                    next_is_target = True
+
+        eligible = bool(node.get("ids")) and opens_wrapper and not next_is_target
+        anchor_label = (
+            self._namespace_label(self._current_docname(), node["ids"][0])
+            if eligible
+            else None
+        )
+
+        return _ReferenceAnchorDecision(
+            refuri=refuri,
+            refid=refid,
+            xref=xref,
+            degrade_xref_to_text=degrade_xref_to_text,
+            opens_wrapper=opens_wrapper,
+            next_is_target=next_is_target,
+            eligible=eligible,
+            anchor_label=anchor_label,
+        )
+
+    def visit_citation(self, node: nodes.citation) -> None:
+        """
+        Visit a citation definition node (D-01..D-08, D-13, D-14, SC#5).
+
+        Renders a RUN of consecutive sibling ``citation`` nodes as ONE
+        two-column ``grid(columns: (auto, 1fr))`` (D-05): the first
+        citation of a run opens the grid, each citation emits its own
+        label/body row, and the last citation of a run (``depart_citation``)
+        closes it. Run adjacency is decided by ``_citation_run_neighbour``,
+        which scans THROUGH emit-nothing siblings (a comment must NOT break
+        a run; a real paragraph MUST, D-06).
+
+        Deliberately does NOT call ``_emit_id_anchors`` -- the citation
+        anchors its OWN id via the label cell's bracket-wrap below instead;
+        calling both would define the SAME label twice and abort the whole
+        compile at Typst's semantic pass, the exact hazard ``visit_table``'s
+        captioned-table comment documents.
+
+        Label cell shapes (D-03/D-07), all sharing one derivation point
+        (``_namespace_label`` over the CITATION's OWN ``node["docname"]``,
+        never ``_current_docname()`` -- D-13, load-bearing for D-10's
+        duplicate-key-across-two-documents case):
+
+        - Zero backrefs: a plain, non-linked ``[Label]`` (D-07 -- the
+          deliberate INVERSE of the footnote precedent, Phase 14 D-09,
+          which silently drops an unreferenced footnote).
+        - Exactly one backref: the label text itself (inside the brackets)
+          becomes the back-link; no parenthesised marker (D-03).
+        - Two or more backrefs: the bracketed label stays plain, followed
+          by a parenthesised, comma-separated (no space) list of one-based
+          ordinal markers, each linking to its own citing site (D-02/D-03).
+          Built via an array ``.join(",")`` rather than ``+``-concatenation
+          specifically so the separator is a BARE "," with nothing else
+          between the two ``link(...)`` calls at the .typ-source level.
+
+        A backref is skipped, and the remaining markers' ordinals are
+        renumbered contiguously (achieved for free by enumerating the
+        FILTERED list, never the raw ``backrefs``), in either of two cases:
+
+        - Its citing site's own anchor ``_reference_anchor_decision``
+          declines to grant (``decision.eligible`` is ``False`` -- WR-03,
+          D-05/D-06/D-07, `40.1-CONTEXT.md`). This is the SAME predicate
+          ``visit_reference`` consults to decide whether to emit that
+          anchor in the first place, so the two sites cannot silently
+          disagree about whether a citing site was actually anchored
+          (the pre-Phase-40.1 defect this closes: a second, independent
+          derivation -- ``_citing_reference_has_own_anchor``, checking
+          only ``next_is_target`` -- could report "anchor exists" for a
+          reference that ``visit_reference`` never anchored, e.g. because
+          its ``opens_wrapper`` was ``False``, reproducing WR-01's
+          dangling-label fatal by a second route).
+        - Its citing site cannot be located at all in the resolved doctree
+          (``_find_citing_reference`` returns ``None`` -- WR-01,
+          `40-REVIEW.md`). Real, reproducible trigger: a citing
+          ``[Label]_`` inside a ``.. only::`` block whose tag is never set.
+          Sphinx's ``only``-tag filter transform runs AFTER the citation
+          domain populates ``backrefs``, so a backref id can survive
+          referencing a node the writer never sees; unfixed, this appended
+          a ``link()`` target for a label nothing ever attaches -- a
+          whole-document Typst compile fatal. Silent, deliberately (G1,
+          `40.1-GATE-EVIDENCE-01.md` § 5): the citing site genuinely is
+          not in the output document, so dropping its marker is the correct
+          answer, not an error to report.
+
+        The appended backref target is now ``decision.anchor_label`` --
+        the SAME predicate's own label, not a second independent
+        ``_namespace_label(docname, refid)`` call (D-07's whole point:
+        the link target and the attached anchor come out of ONE
+        expression). For a same-document backref the two values coincide
+        today (this is exactly why SC#5's byte-identity control still
+        holds after this change), but nothing enforced that equality
+        before -- this closes that unenforced invariant rather than
+        altering any current output.
+
+        Separator protocols (SC#5), checked explicitly rather than by
+        analogy to the footnote handlers (RESEARCH Pitfall 1 -- a citation
+        is a Body element, never Inline, and cannot structurally nest in
+        any of the five code-mode concat contexts, all Inline-only):
+
+        - Paragraph protocol: mirrors ``_visit_admonition`` exactly -- no
+          leading separator at top level; the previous sibling's own
+          trailing break already separates it, and the grid's own trailing
+          break (``depart_citation``) separates it from what follows.
+        - List-item protocol: the leading newline on grid open (this
+          method, first row of a run only) and ``list_item_needs_separator``
+          set on grid close (``depart_citation``), both mirrored from the
+          admonition pair.
+        - Code-mode concat protocol: N/A on this (definition) side by
+          construction -- a Body-level citation cannot appear inside any of
+          ``_CONCAT_CONTEXTS`` (all Inline-only: desc parameter, link body,
+          def-list term, field body, attribution). The concat protocol
+          matters on the CITING side instead (Task 1, ``visit_reference``,
+          exercised by the fixture's definition-list-term citing site).
+
+        Args:
+            node: The citation definition node.
+        """
+        is_first_of_run = not self._citation_run_neighbour(node, -1)
+        if is_first_of_run:
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+            # column-gutter/row-gutter values are Claude's Discretion (D-04).
+            # Deliberately NOT "em"-suffixed literals (Phase 38 IND-04/SC#4,
+            # tests/test_desc_content_indent_render_gate.py, asserts
+            # translator.py carries exactly ONE numeric em-suffixed literal
+            # -- the SHARED_INDENT_STEP assignment -- and citations must not
+            # add a second one; 40-CONTEXT.md's own D-04/D-05 discretion
+            # note separately says the citation grid does not consume or
+            # redefine SHARED_INDENT_STEP, since it solves alignment via an
+            # `auto`-sized grid column, not a fixed hanging-indent width).
+            # "pt" units sidestep that gate entirely while landing close to
+            # the RESEARCH probe's own 0.5em/0.8em suggestion.
+            self.add_text(
+                "grid(\n  columns: (auto, 1fr),\n"
+                "  column-gutter: 6pt,\n  row-gutter: 9pt,\n"
+            )
+
+        # Render the label cell's content by walking the label node's OWN
+        # CHILDREN (never the label node itself -- visit_label below skips
+        # it) through the NORMAL visitor chain via the established
+        # buffer-swap idiom (mirrors visit_footnote_reference): save
+        # self.body, swap in a fresh list, walk, join, restore. This is
+        # what routes the label's text through the SAME central
+        # escape_typst_string path every other text node uses -- the whole
+        # of this phase's V5 input-validation surface. in_paragraph and
+        # paragraph_has_content are saved/restored around the swap because
+        # a nested paragraph child (not expected for a label, but the
+        # convention is applied uniformly) unconditionally resets both on
+        # depart, which would silently clobber the OUTER separator state.
+        label_node = node.children[0] if node.children else None
+        saved_body = self.body
+        self.body = []
+        was_in_paragraph = self.in_paragraph
+        was_paragraph_has_content = self.paragraph_has_content
+        self.in_paragraph = False
+        if label_node is not None:
+            for child in label_node.children:
+                child.walkabout(self)
+        label_content = "".join(self.body)
+        self.body = saved_body
+        self.in_paragraph = was_in_paragraph
+        self.paragraph_has_content = was_paragraph_has_content
+
+        docname = node.get("docname")
+        backref_targets = []
+        for refid in node.get("backrefs") or []:
+            ref_node = self._find_citing_reference(refid)
+            # WR-01 (`40-REVIEW.md`): `ref_node is None` must ALSO take the
+            # `continue` branch -- a backref naming a citing site the
+            # `only`-tag filter pruned from the resolved doctree has no
+            # `nodes.reference` to consult `_reference_anchor_decision`
+            # against, and treating "not found" as "eligible" appends a
+            # `link()` target for a label nothing ever attaches (see the
+            # docstring above and `40.1-GATE-EVIDENCE-01.md`).
+            if ref_node is None:
+                continue
+            # WR-03 (D-05/D-06/D-07, `40.1-CONTEXT.md`): consult the SAME
+            # shared predicate `visit_reference` uses to decide whether it
+            # anchored this citing site in the first place, and append
+            # ITS label -- not a second, independently-derived
+            # `_namespace_label(docname, refid)` call -- so the two sites
+            # cannot silently disagree (`40.1-GATE-EVIDENCE-03.md`).
+            decision = self._reference_anchor_decision(ref_node)
+            if not decision.eligible:
+                continue
+            backref_targets.append(decision.anchor_label)
+
+        if len(backref_targets) == 1:
+            label_body = f"link(<{backref_targets[0]}>, {label_content})"
+        else:
+            label_body = label_content
+
+        label_expr = f'text("[") + {label_body} + text("]")'
+
+        if len(backref_targets) >= 2:
+            markers = ",".join(
+                f"link(<{target}>, [{i}])"
+                for i, target in enumerate(backref_targets, start=1)
+            )
+            label_expr += f' + text(" (") + ({markers}).join(",") + text(")")'
+
+        # Attach the citation's OWN definition anchor via the bracket-wrap
+        # label-attachment form -- the same shape depart_term uses --
+        # derived from the citation's OWN docname (D-13), never
+        # _current_docname(). No ids at all -> no attachment, per Claude's
+        # Discretion in the plan (rather than emitting a malformed one).
+        ids = node.get("ids") or []
+        if ids:
+            def_anchor = self._namespace_label(docname, ids[0])
+            self.add_text(f"[#{{{label_expr}}} <{def_anchor}>], ")
+        else:
+            self.add_text(f"{label_expr}, ")
+
+        # Open the body cell as a bare code block (NOT a function call) so
+        # the citation's remaining children (its paragraph(s)) evaluate
+        # inside it via the NORMAL visitor chain, exactly the way
+        # _visit_admonition opens its own content block. The wrapping block
+        # is what lets a MULTI-paragraph citation body join into one valid
+        # grid-cell argument instead of juxtaposing as two adjacent
+        # statements (the phase's classic defect shape).
+        self.add_text("{")
+
+    def depart_citation(self, node: nodes.citation) -> None:
+        """
+        Depart a citation definition node.
+
+        Closes the body cell's code block and emits the row-trailing comma
+        so the next row is a separate ``grid(...)`` argument. If the next
+        emitting sibling is another citation (``_citation_run_neighbour``),
+        the grid stays open for that row. Otherwise closes the grid call and
+        emits the trailing break the same way ``_depart_admonition`` does,
+        and sets ``list_item_needs_separator`` when inside a list item.
+
+        Args:
+            node: The citation definition node.
+        """
+        self.add_text("},")
+
+        if self._citation_run_neighbour(node, 1):
+            return
+
+        self.add_text("\n)\n\n")
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
+    def visit_label(self, node: nodes.label) -> None:
+        """
+        Visit a citation's ``label`` child node.
+
+        Fires for citations ONLY -- ``visit_footnote`` raises ``SkipNode``
+        before its own ``label`` child is ever reached, and
+        ``visit_footnote_reference`` walks ``footnote_node.children[1:]``,
+        skipping its ``label`` child positionally rather than via a real
+        handler. ``visit_citation`` above already renders THIS label's own
+        children via a dedicated buffer-swap before the citation's
+        remaining children (this node included) are walked normally by
+        docutils -- so this handler's only job is to prevent the label's
+        text from rendering a SECOND time into the body cell. As a side
+        effect, this also removes the second ``unknown node type: <label
+        ...>`` warning the shipped samples emit today (40-GATE-EVIDENCE-01/
+        02.md).
+
+        Raises:
+            nodes.SkipNode: Always -- the label's children were already
+                rendered by visit_citation.
+        """
+        raise nodes.SkipNode
+
     def visit_table(self, node: nodes.table) -> None:
         """
         Visit a table node.
@@ -2586,13 +3332,6 @@ class TypstTranslator(SphinxTranslator):
                     )
                 else:
                     self.body.append(f"{figure_code}\n\n")
-
-                # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored
-                # above as the figure's own <label> -- anchoring it again
-                # here would define it TWICE (Typst "label ... occurs
-                # multiple times" compile fatal). Anchor only a PROPAGATED
-                # remainder id (ids[1:]); no-op when there is none.
-                self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
             else:
                 # Caption-less path: byte-for-byte unchanged (SC#2).
                 if converted_width is not None:
@@ -2602,7 +3341,34 @@ class TypstTranslator(SphinxTranslator):
                 else:
                     self.body.append(f"{table_code}\n\n")
 
+        # TBL-03 (Phase 42): captured BEFORE self.table_caption is reset
+        # below, because the original `if self.table_caption:` condition
+        # cannot be re-evaluated after that reset -- re-reading it there
+        # would evaluate False for every captioned table and silently
+        # disable the propagated-anchor emission below while leaving the
+        # caption-less path (which never had a bug) looking correct. The
+        # `self.table_colcount > 0` conjunct mirrors the enclosing guard
+        # this call site sat inside before the move, so a degenerate
+        # zero-column captioned table keeps its current (no-op) emission.
+        was_captioned = self.table_colcount > 0 and bool(self.table_caption)
+
         self.in_table = False
+
+        # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored above
+        # as the figure's own <label> -- anchoring it again here would
+        # define it TWICE (Typst "label ... occurs multiple times" compile
+        # fatal). Anchor only a PROPAGATED remainder id (ids[1:]); no-op
+        # when there is none.
+        #
+        # TBL-03 (Phase 42): this call must run AFTER self.in_table is
+        # cleared above. add_text() (see that method) diverts every append
+        # into self.table_cell_content while self.in_table is set, and that
+        # buffer is `del`eted a few statements below -- so an anchor emitted
+        # from the old pre-reset call site never reached self.body at all;
+        # it was silently discarded along with the buffer.
+        if was_captioned:
+            self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+
         self.table_cells = []
         self.table_colcount = 0
         self.table_colwidths = []
@@ -3597,30 +4363,19 @@ class TypstTranslator(SphinxTranslator):
         # Add separator if in paragraph and not first node
         self._add_paragraph_separator()
 
-        # Get the reference URI
-        refuri = node.get("refuri", "")
-        refid = node.get("refid", "")
-
-        # Resolve a LOCAL cross-document refuri (`<relpath><out_suffix>#anchor`)
-        # up-front and decide whether its TARGET document is actually part of
-        # the compiled master's include-set. A resolved cross-document
-        # reference whose target doc is NOT included -- e.g. an ``:orphan:``
-        # doc, excluded from every toctree, whose .typ is written but never
-        # #include()d -- has no anchor in the compiled master; emitting
-        # link(<targetdoc:anchor>) there would hard-fail typst.compile() with
-        # "label ... does not exist". Such a reference must DEGRADE to plain
-        # text (matching the LaTeX builder's undefined-reference behavior),
-        # which means it opens NO link wrapper -- so this decision has to be
-        # made here, before opens_wrapper / the concat-element enter below.
-        # An empty master include-set (no typst_documents, mock/hand-built test
-        # builders) is treated as "unknown" and never degrades, preserving the
-        # existing cross-document behavior for those paths.
-        xref = self._resolve_xref_docname(refuri) if refuri else None
-        degrade_xref_to_text = False
-        if xref is not None:
-            master_included = getattr(self.builder, "master_included_docnames", None)
-            if master_included and xref[0] not in master_included:
-                degrade_xref_to_text = True
+        # WR-03 (D-05/D-06/D-07, `40.1-CONTEXT.md`): the single shared D-14
+        # eligibility judgement, called ONCE here and consumed for
+        # `refuri`/`refid`/`xref`/`degrade_xref_to_text`/`opens_wrapper`/
+        # `next_is_target`/the D-14 guard below -- this method no longer
+        # re-derives any of them locally, so this call site and
+        # `visit_citation`'s backref loop cannot silently disagree about
+        # whether a citing site was actually anchored (`40.1-GATE-
+        # EVIDENCE-03.md`).
+        decision = self._reference_anchor_decision(node)
+        refuri = decision.refuri
+        refid = decision.refid
+        xref = decision.xref
+        degrade_xref_to_text = decision.degrade_xref_to_text
 
         # An empty-url reference (no refuri and no refid) opens NO wrapper: it
         # renders its children as plain inline content directly in the outer
@@ -3646,7 +4401,7 @@ class TypstTranslator(SphinxTranslator):
         # link wrapper), so like the empty-url path it must NOT enter/suppress a
         # concat context -- its children participate in the outer context.
         in_concat = self._inline_concat_context() is not None
-        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
+        opens_wrapper = decision.opens_wrapper
         if opens_wrapper:
             self._enter_inline_concat_element()
 
@@ -3655,15 +4410,35 @@ class TypstTranslator(SphinxTranslator):
         if not in_concat and self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Check if next sibling is a target node (for label attachment)
-        # This is needed in both list items and paragraphs in unified code mode
-        next_is_target = False
-        if node.parent:
-            node_index = node.parent.index(node)
-            if node_index + 1 < len(node.parent.children):
-                next_node = node.parent.children[node_index + 1]
-                if isinstance(next_node, nodes.target):
-                    next_is_target = True
+        # Whether the next sibling is a target node (for label attachment).
+        # Needed in both list items and paragraphs in unified code mode, AND
+        # by the D-14 guard just below -- both consumers read the SAME
+        # `decision.next_is_target` value, computed once inside the shared
+        # predicate (Pitfall 3, `40.1-RESEARCH.md`).
+        next_is_target = decision.next_is_target
+
+        # D-14 (Phase 40): give a citation-derived reference its own anchor so
+        # a citation definition's back-reference marker (`visit_citation`)
+        # has something to link to. `decision.eligible`/`decision.
+        # anchor_label` are the SAME predicate `visit_citation`'s backref
+        # loop consults (WR-03, `40.1-GATE-EVIDENCE-03.md`) -- applies only
+        # when ALL of: the reference carries a non-empty own `ids` (verified
+        # this session, 40-RESEARCH.md -- only citation-derived references
+        # carry a populated `ids`; a `:ref:` or toctree-generated reference
+        # carries `ids=[]`), a link wrapper is actually being opened, and
+        # next is NOT a target. Mutually exclusive with next_is_target BY
+        # DESIGN: next_is_target already owns the markup-mode bracket and
+        # visit_target already attaches ITS OWN label to it -- a Typst
+        # element can carry only one label. Consequence, stated honestly: a
+        # citation-derived reference immediately followed by an explicit
+        # target keeps the target's label and gets no back-reference anchor
+        # of its own; visit_citation guards its own marker emission against
+        # exactly this case via the same `decision.eligible`.
+        self._reference_own_anchor = None
+        if decision.eligible:
+            self._reference_own_anchor = decision.anchor_label
+            self.add_text("[")
+            self._in_markup_mode = True
 
         # If next is target, wrap in markup mode for label attachment
         # In unified code mode, labels can only attach in markup mode blocks [...]
@@ -3772,6 +4547,12 @@ class TypstTranslator(SphinxTranslator):
         # Skip link wrapper closing if we skipped it in visit
         if getattr(self, "_skip_link_wrapper", False):
             self._skip_link_wrapper = False
+            # D-14 (Phase 40): defensively clear the anchor slot here too.
+            # This branch is only reachable on a path where opens_wrapper was
+            # False, so visit_reference's D-14 guard never set the slot on
+            # THIS node -- but clearing it unconditionally is cheap insurance
+            # against a stale token leaking into the NEXT reference.
+            self._reference_own_anchor = None
             # Restore list item separator state if needed
             if hasattr(self, "_reference_was_list_item_needs_separator"):
                 if self.in_list_item:
@@ -3784,6 +4565,15 @@ class TypstTranslator(SphinxTranslator):
 
         # Exit link context
         self._in_link = False
+
+        # D-14 (Phase 40): close the own-ids bracket-wrap opened in
+        # visit_reference, if any -- mirrors visit_target's own
+        # `#label("...")` + "]" closing form for the next_is_target case
+        # (the same markup-mode bracket mechanism, just closed here instead
+        # of by a following target sibling).
+        if self._reference_own_anchor:
+            self.add_text(f'#label("{self._reference_own_anchor}")]')
+            self._reference_own_anchor = None
 
         # Restore the outer code-mode concat context suppressed for the link
         # body (entered only on wrapper-opening paths, so the skip-wrapper
@@ -4078,14 +4868,19 @@ class TypstTranslator(SphinxTranslator):
         # (a code-mode ` <label>` postfix on the equation failed to parse).
         self.add_text("\n\n")
 
-        # Mark that content was added so the next list-item sibling
-        # (visit_paragraph's _emit_forced_break, a nested list, another
-        # block) newline-separates from this equation. The extra newline
-        # this produces on top of the existing "\n\n" is cosmetic in Typst
-        # code mode; consistency with the shared protocol is what prevents
-        # the next sibling from juxtaposing.
+        # MATH-02 (Phase 34 review finding WR-01, Phase 36): unlike every
+        # other block-level handler, this method already emitted its own
+        # unconditional "\n\n" separator above -- so it must CLEAR the
+        # shared flag rather than arm it. Arming it here stacked a second
+        # separator on top of one already emitted, producing a redundant
+        # extra blank line after block math inside a list item. Clearing
+        # (rather than merely not setting) is required for the ``:label:``
+        # path: `_emit_id_anchors` sets the flag to True BEFORE the math is
+        # emitted, so this statement must run unconditionally afterward to
+        # overwrite that state -- one statement covers both the plain and
+        # the labelled forms, on both the mitex and native emission paths.
         if self.in_list_item:
-            self.list_item_needs_separator = True
+            self.list_item_needs_separator = False
 
         # Skip children to prevent duplicate output of math content
         raise nodes.SkipNode
@@ -4133,6 +4928,21 @@ class TypstTranslator(SphinxTranslator):
         # Reset per-admonition title state; stash the static custom title (if
         # any) for _depart_admonition to consume once the body has closed.
         self._pending_admonition_title = None
+
+        # D-04/D-05: the ten real Sphinx admonition types are looked up ONCE
+        # here, by the node's own docutils class name, against
+        # sphinx.locale.admonitionlabels -- every catalog key is verified
+        # byte-identical to its docutils node class name, so this single
+        # lookup is the whole of D-04/D-05's implementation rather than ten
+        # separate call-site edits. When the class name is not a catalog key
+        # (todo_node, the generic admonition, topic), the caller's own
+        # `custom_title` argument survives untouched. The catalog's values
+        # are lazy i18n proxies, not plain strings, so the str() coercion
+        # here is load-bearing: _depart_admonition's static-title branch
+        # performs string operations on this value.
+        catalog_key = node.__class__.__name__
+        if catalog_key in admonitionlabels:
+            custom_title = str(admonitionlabels[catalog_key])
         self._custom_admonition_title = custom_title
 
         # Open code-mode content-block (NOT markup-mode "[") so the body
@@ -4148,7 +4958,12 @@ class TypstTranslator(SphinxTranslator):
         over a static custom title. The dynamic title is buffered code-mode
         content (from visit_title's admonition branch) and MUST be wrapped
         in a code block `{ ... }`, not a content block `[ ... ]`, so its
-        inline calls (text(...), emph(...)) evaluate.
+        inline calls (text(...), emph(...)) evaluate. The static title (now
+        sourced from the sphinx.locale.admonitionlabels catalog for the ten
+        real types, D-04/D-05) is routed through escape_typst_string
+        (T-39-01) before interpolation, since it can now contain non-ASCII
+        or quote/backslash characters the catalog supplies -- no second,
+        title-specific escaping routine is introduced.
         """
         self.add_text("}")
 
@@ -4156,7 +4971,8 @@ class TypstTranslator(SphinxTranslator):
         if self._pending_admonition_title:
             title_expr = "{" + self._pending_admonition_title + "}"
         elif self._custom_admonition_title:
-            title_expr = f'"{self._custom_admonition_title}"'
+            escaped_title = escape_typst_string(str(self._custom_admonition_title))
+            title_expr = f'"{escaped_title}"'
 
         if title_expr:
             self.add_text(f", title: {title_expr}")
@@ -4192,8 +5008,12 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_important(self, node: nodes.important) -> None:
-        """Visit an important admonition (converts to #warning(title: "Important")[])."""
-        self._visit_admonition(node, "warning", custom_title="Important")
+        """Visit an important admonition (converts to #warning(title: "Important")[]).
+
+        D-04/D-05: the title now comes from the `sphinx.locale.admonitionlabels`
+        catalog lookup in `_visit_admonition`, not this static literal.
+        """
+        self._visit_admonition(node, "warning")
 
     def depart_important(self, node: nodes.important) -> None:
         """Depart an important admonition."""
@@ -4208,8 +5028,12 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_seealso(self, node: addnodes.seealso) -> None:
-        """Visit a seealso admonition (converts to #info(title: "See Also")[])."""
-        self._visit_admonition(node, "info", custom_title="See Also")
+        """Visit a seealso admonition (converts to #tip[]).
+
+        D-02: seealso joins the success bucket (the same `tip` function
+        `visit_hint`/`visit_tip` already pass), not the note bucket.
+        """
+        self._visit_admonition(node, "tip")
 
     def depart_seealso(self, node: addnodes.seealso) -> None:
         """Depart a seealso admonition."""
@@ -4218,8 +5042,8 @@ class TypstTranslator(SphinxTranslator):
     def visit_hint(self, node: nodes.hint) -> None:
         """Visit a hint admonition (converts to #tip[]).
 
-        gentle-clues 1.3.1 has no dedicated `hint` clue; `tip` is the
-        verified closest semantic analog (see RESEARCH.md D-06 mapping).
+        D-02: hint is in the success bucket (`tip`), alongside `tip` itself
+        and (as of this phase) `seealso`.
         """
         self._visit_admonition(node, "tip")
 
@@ -4268,7 +5092,13 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_danger(self, node: nodes.danger) -> None:
-        """Visit a danger admonition (converts to #danger[])."""
+        """Visit a danger admonition (converts to #danger[]).
+
+        D-03-R (gap G-39-1): supersedes D-03. The red family is three
+        pairwise-distinct gentle-clues functions, not one collapsed
+        function -- danger routes to its own `danger` id rather than to
+        the function `visit_error` passes.
+        """
         self._visit_admonition(node, "danger")
 
     def depart_danger(self, node: nodes.danger) -> None:
@@ -4276,41 +5106,42 @@ class TypstTranslator(SphinxTranslator):
         self._depart_admonition()
 
     def visit_attention(self, node: nodes.attention) -> None:
-        """Visit an attention admonition (converts to #warning[]).
+        """Visit an attention admonition (converts to #memo[]).
 
-        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is
-        the verified analog, consistent with the existing `caution`/
-        `important` → `warning` precedent (see RESEARCH.md D-06 mapping).
+        D-03-R (gap G-39-1): supersedes D-03. The red family is three
+        pairwise-distinct gentle-clues functions, not one collapsed
+        function -- attention routes to its own `memo` id rather than to
+        the function `visit_error` passes, and it is still not in the
+        warning bucket.
         """
-        self._visit_admonition(node, "warning")
+        self._visit_admonition(node, "memo")
 
     def depart_attention(self, node: nodes.attention) -> None:
         """Depart an attention admonition."""
         self._depart_admonition()
 
     def visit_admonition(self, node: nodes.admonition) -> None:
-        """Visit a generic ``.. admonition::`` (converts to #clue[]).
+        """Visit a generic ``.. admonition::`` (converts to #notify[]).
 
-        Maps to the base gentle-clues `clue` function (unstyled — no
-        predefined icon/accent-color), since the generic directive always
-        supplies its own directive-derived title (see RESEARCH.md D-06
-        mapping). The title flows through the existing admonition-aware
+        D-09: maps to the gentle-clues `notify` function (accent `#1e66f5`),
+        since the generic directive always supplies its own directive-
+        derived title. The title flows through the existing admonition-aware
         `visit_title`/`depart_title` buffer-swap automatically; no
         `custom_title` is passed here.
         """
-        self._visit_admonition(node, "clue")
+        self._visit_admonition(node, "notify")
 
     def depart_admonition(self, node: nodes.admonition) -> None:
         """Depart a generic admonition."""
         self._depart_admonition()
 
     def visit_topic(self, node: nodes.topic) -> None:
-        """Visit a topic node (BLK-02/D-01/D-02/D-05).
+        """Visit a topic node (BLK-02/D-01/D-02/D-05/D-10).
 
-        A `.. topic::` renders as a titled `clue` box, reusing the same
-        admonition helper as `.. admonition::` (D-01) -- the widened
-        visit_title/depart_title buffer-swap (D-02) is what makes the
-        title actually get consumed by _depart_admonition.
+        A non-contents `.. topic::` renders as a titled `abstract` box
+        (D-10), reusing the same admonition helper as `.. admonition::`
+        (D-01) -- the widened visit_title/depart_title buffer-swap (D-02) is
+        what makes the title actually get consumed by _depart_admonition.
 
         A `.. contents::` topic (carrying the `contents` class) is instead
         box-less pass-through (D-05): its title is rendered as a bold label
@@ -4325,7 +5156,7 @@ class TypstTranslator(SphinxTranslator):
             # a propagated target's id here too (no ids -> no-op).
             self._emit_id_anchors(node)
             return
-        self._visit_admonition(node, "clue")
+        self._visit_admonition(node, "abstract")
 
     def depart_topic(self, node: nodes.topic) -> None:
         """Depart a topic node (BLK-02/D-01/D-02/D-05)."""
@@ -4651,21 +5482,99 @@ class TypstTranslator(SphinxTranslator):
 
         Add spacing after API description blocks.
 
-        Emits a real Typst parbreak() unconditionally (FID-06) -- back-to-back
-        body-less desc siblings (e.g. confvals with only :type:/:default:
-        fields, no body paragraph) previously concatenated onto one running
-        line because a bare cosmetic "\\n\\n" produces no visual break in
-        Typst code mode. Applying parbreak() unconditionally (even when the
-        desc's last content already ends in a par()) is verified harmless --
-        no double-gap artifact -- so no body-less-detection guard is needed.
+        Emits a real Typst parbreak() (FID-06) -- back-to-back body-less desc
+        siblings (e.g. confvals with only :type:/:default: fields, no body
+        paragraph) previously concatenated onto one running line because a
+        bare cosmetic "\\n\\n" produces no visual break in Typst code mode.
+        Applying parbreak() (even when the desc's last content already ends
+        in a par()) is verified harmless -- no double-gap artifact -- so no
+        body-less-detection guard is needed for THAT case; sibling body-less
+        desc nodes always have something emitted between their two
+        departures (id anchors, the next signature's wrapper), so the SIG-08
+        suppression below never fires for them (see
+        tests/test_desc_bodyless_concat_render_gate.py, this fix's control).
+
+        SIG-08 (D-12, 37-EMISSION-CONTRACT.md section 8): a nested `desc`
+        (e.g. a py:method:: inside a py:class::) used to emit an
+        unconditional parbreak() for its own departure and again for the
+        outer desc's departure, producing two adjacent parbreak() statements
+        with nothing between them. Suppressed here via an emission-position
+        marker (self._desc_break_marker), mirroring the
+        _is_first_desc_signature scalar-flag idiom (visit_desc, above): if
+        nothing has been appended to self.body since the immediately
+        preceding desc's own parbreak() was recorded, this desc's break is
+        redundant and is skipped. The early return deliberately does NOT
+        update the marker, so three levels of nesting still yield exactly
+        one parbreak() rather than one per pair.
+
+        Phase 38 (D-10, 38-EMISSION-CONTRACT.md section 6.2/6.3): the
+        sentence above is still literally true, but the REASON it stays
+        true changed once depart_desc_content stopped being `pass`.
+        depart_desc_content now always appends the body wrapper's closing
+        bytes (`})\\n`) to self.body between an inner desc's departure and
+        this method's own comparison, so a literal reading of "nothing has
+        been appended" would be false for every nested desc -- the
+        suppression would never fire again. It stays correct because
+        depart_desc_content itself propagates this marker through its own
+        close (records whether the marker still matched immediately before
+        emitting `})\\n`, then re-advances the marker past those bytes if it
+        did): the wrapper's closing bytes are deliberately made to count as
+        nothing for this comparison, without actually being absent from the
+        emitted output. depart_desc's own comparison below is therefore
+        unchanged and needs no code change -- only this corrected premise.
+
+        This is deliberately NOT implemented as a desc-nesting-depth
+        counter. A depth counter would suppress the INNER desc's break
+        unconditionally, which is wrong whenever the outer desc_content
+        continues with more content after the nested member -- the member
+        and the following paragraph would then run together with no
+        separation between them. The correct discriminator is "was anything
+        emitted between the two departures", not "how deep am I" -- a depth
+        counter cannot see the difference between "the outer desc has
+        nothing left" and "the outer desc has more content coming".
+
+        The FID-03 sibling linebreak() in visit_desc_signature is a
+        different mechanism solving a different problem (separating
+        signature LINES within one visual block, not separating one desc
+        paragraph-block from the next) and deliberately does not converge
+        with this one.
+
+        Inside a table cell, add_text routes into table_cell_content rather
+        than self.body (see add_text), so len(self.body) would not advance
+        between two departures there and the marker-based suppression would
+        fire wrongly. The `not self.in_table` guard retains the pre-phase
+        unconditional behaviour inside tables.
+
+        Buffer-swap hazard (D-10, 38-EMISSION-CONTRACT.md section 6.4,
+        closing the folded todo
+        .planning/todos/pending/2026-08-01-desc-break-marker-stale-across-body-buffer-swaps.md):
+        self.body is reassigned at multiple sites beyond the table-cell one
+        above -- visit_term/visit_definition (via _saved_body_stack), the
+        admonition-title save/restore, and the figure-caption save/restore.
+        A marker recorded as a bare position integer could compare against a
+        DIFFERENT list after such a swap, spuriously suppressing a needed
+        break or spuriously letting a duplicate through. self._desc_break_marker
+        is therefore a (id(self.body), len(self.body)) pair, not a bare int
+        -- comparing both halves closes the hazard without adding a sixth
+        per-site guard, since the existing table-cell guard already
+        demonstrates that per-site guards do not generalise.
         """
+        if not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
+        ):
+            return
         self._emit_forced_break("parbreak()")
+        self._desc_break_marker = (id(self.body), len(self.body))
 
     def visit_desc_signature(self, node: addnodes.desc_signature) -> None:
         """
         Visit a desc_signature node (API element signature).
 
-        Signatures are rendered in bold using strong({}) wrapper.
+        Signatures are rendered as typeset code: a page-keep-together block
+        carrying a hanging-indent paragraph (SIG-07 + SIG-09, D-10), with
+        every text-bearing descendant routed through the monospace primitive
+        via ``self.in_signature_text`` (SIG-01..SIG-05, read by visit_Text).
 
         Sibling desc_signatures (overloads / alias groups / multi-option
         directives) emit a real Typst linebreak() BEFORE every signature
@@ -4676,22 +5585,158 @@ class TypstTranslator(SphinxTranslator):
         running line. A desc with a single signature (the overwhelming
         common case) emits zero extra bytes (the flag stays True through
         the only signature) -- byte-for-byte unchanged.
+
+        ADM-06 / Phase 37: this handler owns its own emission -- it no
+        longer delegates to visit_strong via a dummy strong() node. The
+        block below WAS a deliberate verbatim copy of visit_strong's body
+        (D-01: triplication is the decision, not an accident to be
+        refactored away) up through Phase 36; Phase 37 is the phase that
+        note anticipated -- desc_signature's emission now diverges from
+        visit_strong's in exactly one literal: the opening wrapper call
+        changes from ``strong({`` to the composed
+        ``block(sticky: true, par(hanging-indent: {SHARED_INDENT_STEP}, {``
+        form (37-EMISSION-CONTRACT.md section 3, post-Wave-3 amendment,
+        plan 37-09). ``above``/``below`` are deliberately NOT overridden --
+        Typst's own ``block()`` default spacing is used. An earlier version
+        of this wrapper explicitly zeroed both (``above: 0pt, below: 0pt``);
+        that zeroing was found, by the post-merge gate, to remove ALL
+        vertical separation on both sides of every signature -- not a
+        redundant amount, exactly 0pt -- causing every signature's glyphs to
+        overlap the first line of its own description body. Measured (this
+        plan, via ``context measure(...)`` deltas in real paragraph flow):
+        dropping the override restores 13.2pt on both sides, byte-identical
+        to ordinary paragraph-to-paragraph spacing. The original fear that
+        default spacing would reintroduce a SIG-08-shaped doubled-gap defect
+        does not hold: plan 37-05 already removed the duplicate
+        ``parbreak()`` at its emission source (``depart_desc``'s
+        emission-position marker), so there is no second break left for
+        block-spacing collapse to double up on -- verified by re-rendering
+        the SIG-08 nested-desc fixture under this wrapper, which shows
+        uniform, single-gap spacing. ``sticky: true`` continues to carry
+        SIG-09's keep-with-next unchanged. The hanging indent is D-06's
+        chosen, non-negotiable overflow mechanism (a column-grid alternative
+        and font-shrinking were both measured and rejected by the owner) --
+        neither may be reintroduced here as an improvement. Everything else
+        in this block (the paragraph-separator call, the concat-element
+        enter/exit pair, the in_paragraph/in_list_item/
+        list_item_needs_separator save-and-restore, and the
+        `_strong_was_*` attribute names shared with
+        visit_strong/depart_strong on purpose, D-02) stays byte-identical --
+        renaming those attributes is Phase 39's deferred repair and would
+        change emitted bytes outside this plan's scope.
         """
         if not self._is_first_desc_signature:
             self._emit_forced_break("linebreak()")
         self._is_first_desc_signature = False
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+
+        # --- begin verbatim copy of visit_strong's body (D-01) ---
+        # Add separator if in paragraph and not first node
+        self._add_paragraph_separator()
+
+        # If this strong is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the strong body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        if not self._enter_inline_concat_element():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        # Temporarily disable paragraph state for children
+        was_in_paragraph = self.in_paragraph
+        self.in_paragraph = False
+
+        # Save and reset list item separator for children (they're inside this element)
+        was_list_item_needs_separator = self.list_item_needs_separator
+
+        # Since strong({}) uses content block, treat it like list_item
+        # Children need newline separators, not + operators
+        was_in_list_item = self.in_list_item
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
+        # Determine if we need # prefix (in markup mode)
+        prefix = "#" if self._in_markup_mode else ""
+
+        # SIG-01..SIG-05: every text-bearing descendant of this signature
+        # routes through visit_Text's monospace branch for the signature's
+        # entire duration (cleared in depart_desc_signature, before the
+        # anchor loop).
+        self.in_signature_text = True
+
+        # SIG-07 + SIG-09 (D-10): the ONE composed wrapper -- block()'s
+        # sticky:true carries the page-keep-together (SIG-09), par()'s
+        # hanging-indent carries the overflow mechanism (SIG-07). Replaces
+        # ONLY the pre-Phase-37 `strong({` literal (contract section 3).
+        # above/below are NOT overridden (post-Wave-3 amendment, plan
+        # 37-09): Typst's own block() default spacing is used, restoring
+        # ordinary paragraph-to-paragraph separation on both sides of the
+        # signature -- an earlier `above: 0pt, below: 0pt` override
+        # removed ALL of that spacing and made every signature overlap
+        # the first line of its own description body.
+        self.add_text(
+            f"{prefix}block(sticky: true, "
+            f"par(hanging-indent: {SHARED_INDENT_STEP}, {{"
+        )
+
+        # Store state to restore in depart
+        self._strong_was_in_paragraph = was_in_paragraph
+        self._strong_was_in_list_item = was_in_list_item
+        self._strong_was_list_item_needs_separator = was_list_item_needs_separator
+        # --- end verbatim copy of visit_strong's body ---
+
         # Reset per signature (DESC-02): each desc_signature starts fresh,
         # so consecutive signatures don't carry over a stray linebreak().
         self._is_first_desc_signature_line = True
 
     def depart_desc_signature(self, node: addnodes.desc_signature) -> None:
-        """Depart a desc_signature node."""
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        """
+        Depart a desc_signature node.
+
+        ADM-06 / Phase 37: this handler owns its own emission -- the block
+        below WAS a deliberate verbatim copy of depart_strong's body (D-01)
+        up through Phase 36. Phase 37 makes it diverge in exactly one
+        literal: the closing call changes from ``})`` to ``}))`` -- one
+        ``}`` closing the content block, one ``)`` closing ``par(``, one
+        ``)`` closing ``block(`` (37-EMISSION-CONTRACT.md section 3),
+        matching visit_desc_signature's composed wrapper open. The
+        `_strong_was_*` attribute names are shared with depart_strong on
+        purpose (D-02); see visit_desc_signature's docstring for the
+        deferred-repair note.
+        """
+        # --- begin verbatim copy of depart_strong's body (D-01) ---
+        # Close block(par({...})) -- matches visit_desc_signature's composed
+        # wrapper open (contract section 3).
+        self.add_text("}))")
+
+        # Restore paragraph state
+        if hasattr(self, "_strong_was_in_paragraph"):
+            self.in_paragraph = self._strong_was_in_paragraph
+            delattr(self, "_strong_was_in_paragraph")
+
+        # Restore in_list_item state
+        if hasattr(self, "_strong_was_in_list_item"):
+            self.in_list_item = self._strong_was_in_list_item
+            delattr(self, "_strong_was_in_list_item")
+
+        # Restore and mark that next element needs separator
+        if hasattr(self, "_strong_was_list_item_needs_separator"):
+            # Restore previous state, then mark next element needs separator
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+            delattr(self, "_strong_was_list_item_needs_separator")
+
+        # Restore the code-mode concat context suppressed for the strong body
+        # and mark this strong as a sibling so the next term/link/desc
+        # expression is + separated.
+        self._exit_inline_concat_element()
+        # --- end verbatim copy of depart_strong's body ---
+
+        # SIG-01..SIG-05: clear the monospace-propagation flag now that the
+        # signature's content is closed, before the anchor loop below (the
+        # anchors are orthogonal to typography and were never affected by
+        # the flag).
+        self.in_signature_text = False
+
         # Emit a Typst anchor for every id on the signature so same-document
         # cross-references resolve to this API declaration. depart_reference's
         # refid branch emits ``link(<_sanitize_label(refid)>, ...)`` for a
@@ -4717,22 +5762,26 @@ class TypstTranslator(SphinxTranslator):
             if label_id in seen_labels:
                 continue
             seen_labels.add(label_id)
-            self.body.append(f"\n[#metadata(none) <{label_id}>]")
+            self.add_text(f"\n[#metadata(none) <{label_id}>]")
         # Add extra spacing after signature
-        self.body.append("\n")
+        self.add_text("\n")
 
     def visit_desc_returns(self, node: addnodes.desc_returns) -> None:
         """
         Visit a desc_returns node (a signature's return-type annotation).
 
-        Emits a literal ' -> ' arrow before the return type (DESC-01).
-        Resolved return-type xref children already stream through the
-        unmodified visit_reference refid branch -- no extra code needed
-        for that case.
+        SIG-06 / D-13 (37-EMISSION-CONTRACT.md section 7): emits a real
+        rightwards-arrow glyph (U+2192) before the return type, not the
+        pre-phase ASCII "->" -- the three-expression monospace form
+        `raw(" ") + raw("\\u{2192}") + raw(" ")` is the exact shape that
+        was compiled and pypdf-extraction-verified this session; a single
+        `raw(" -> ")`-shaped literal was not. Resolved return-type xref
+        children already stream through the unmodified visit_reference
+        refid branch -- no extra code needed for that case.
         """
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
-        self.add_text('text(" -> ")')
+        self.add_text('raw(" ") + raw("\\u{2192}") + raw(" ")')
         if self.in_list_item:
             self.list_item_needs_separator = True
 
@@ -4767,12 +5816,101 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_content(self, node: addnodes.desc_content) -> None:
         """
         Visit a desc_content node (API description content).
+
+        Opens the shared indent step around the description body
+        (IND-01/02/03/05, D-01, 38-EMISSION-CONTRACT.md section 2):
+        ``pad(left: SHARED_INDENT_STEP, {`` -- the exact block-quote analog
+        (visit_block_quote, above) applied to a run of code-mode body
+        statements, reusing that pattern's own reasoning for why the body
+        must be a ``{ ... }`` content block (bug #15). Routed through
+        self.add_text (D-12), never self.body.append: add_text routes into
+        table_cell_content when self.in_table, and the 38-01 fixture proved
+        a direct append breaks a desc inside a table cell. Nesting composes
+        with NO depth counter (D-01) -- each pad closes structurally when
+        its own node's depart_desc_content runs, so IND-05 (depth cannot
+        leak to a following sibling) is asserted by that closure, not
+        implemented by resetting anything.
+
+        Separator bookkeeping (D-12, decided by the fixture, section 2.6):
+        desc_content structurally always follows a desc_signature departure,
+        which itself unconditionally ends in a raw "\\n" (see
+        depart_desc_signature's anchor-loop spacing line) -- so, unlike
+        block_quote, this leading guard is not required to avoid a Typst
+        parse fatal. It is still emitted, mirroring the block-visitor
+        pattern (bug #4) byte-for-byte with block_quote/field_list, because
+        depart_desc_signature ALSO sets list_item_needs_separator = True
+        when in a list item -- the guard's own "\\n" then lands on top of
+        the signature's already-present "\\n" (a harmless extra blank line
+        in code mode, never a parse error) rather than diverging from every
+        other block visitor's leading-guard shape. Falsified by
+        ``tests/fixtures/desc_content_indent_render_gate/index.rst``'s
+        "List-Item Desc CONTROL" section (a py:function:: nested inside a
+        bullet-list item, exercised via
+        tests/test_desc_content_indent_render_gate.py) and confirmed
+        non-regressing against tests/test_desc_bodyless_concat_render_gate.py
+        (no list item involved, guard is a no-op there).
         """
-        pass
+        if self.in_list_item and self.list_item_needs_separator:
+            self.add_text("\n")
+        self.add_text(f"pad(left: {SHARED_INDENT_STEP}, {{")
 
     def depart_desc_content(self, node: addnodes.desc_content) -> None:
-        """Depart a desc_content node."""
-        pass
+        """
+        Depart a desc_content node.
+
+        Closes the body wrapper opened in visit_desc_content: ``})\\n``
+        (38-EMISSION-CONTRACT.md section 2). The trailing "\\n" is
+        load-bearing, not cosmetic (section 2.2): depart_desc immediately
+        follows with _emit_forced_break("parbreak()"), which prepends no
+        newline of its own outside a list item, so a bare "})" would
+        juxtapose the pad(...) expression against parbreak() on one
+        physical source line -- the Typst "expected semicolon or line
+        break" fatal class this codebase has hit four separate times.
+        depart_block_quote (the direct analog) already carries the same
+        trailing newline for the same reason.
+
+        D-10 marker propagation (section 6.2): depart_desc suppresses a
+        duplicate parbreak() by testing whether self._desc_break_marker
+        still equals len(self.body) -- "was anything emitted between the
+        two departs". Before this handler had a body, that test was
+        reliable because nothing at all was appended between an inner and
+        an outer desc's departure. Now that this handler always emits the
+        close, len(self.body) would advance on EVERY nested desc's
+        departure and the suppression could never fire again. Fixed by
+        recording, before emitting the close, whether the marker still
+        matches the pre-close position; emitting the close; and if it did
+        match, advancing the marker to the POST-close position. depart_desc
+        then still sees "nothing happened" (its own comparison against the
+        advanced marker is unaffected) and correctly suppresses its own
+        duplicate for a nested desc with no trailing sibling content. This
+        makes the wrapper's closing bytes a byte sequence that counts as
+        nothing for the suppression's purposes, without actually being
+        absent. depart_desc itself needs no code change under this fix
+        (see its own docstring for the corrected premise).
+
+        The `not self.in_table` guard mirrors depart_desc's own: inside a
+        table cell, add_text routes into table_cell_content rather than
+        self.body, so len(self.body) does not advance there and comparing
+        against it would be meaningless (and is never read, since
+        depart_desc's own check is guarded the same way).
+
+        The marker is a (id(self.body), len(self.body)) pair, not a bare
+        position integer (D-10, 38-EMISSION-CONTRACT.md section 6.4) --
+        self.body is reassigned at several sites (visit_term/
+        visit_definition, the admonition-title and figure-caption
+        save/restores) and a bare integer could otherwise be compared
+        against a different buffer after a swap. See depart_desc's own
+        docstring for the buffer-swap hazard this closes.
+        """
+        marker_was_untouched = not self.in_table and self._desc_break_marker == (
+            id(self.body),
+            len(self.body),
+        )
+        self.add_text("})\n")
+        if marker_was_untouched:
+            self._desc_break_marker = (id(self.body), len(self.body))
+        if self.in_list_item:
+            self.list_item_needs_separator = True
 
     def visit_desc_inline(self, node: addnodes.desc_inline) -> None:
         """
@@ -4794,8 +5932,19 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_annotation(self, node: addnodes.desc_annotation) -> None:
         """
         Visit a desc_annotation node (type annotations like 'class', 'async', etc.).
+
+        SIG-03 (37-EMISSION-CONTRACT.md section 5.1): identical treatment
+        to visit_desc_name -- a desc_annotation and a desc_name in the
+        SAME signature must render with the byte-identical wrapper shape.
+        When every child is a text-only nodes.Text leaf (the py/option/c/
+        rst-domain case), emit the complete bold-monospace form via
+        _emit_signature_leaf_wrapper and skip further descent. Otherwise
+        stay a no-op and let the children dispatch normally under
+        self.in_signature_text -- flattening a non-leaf subtree via
+        node.astext() is the RESEARCH Pitfall 3 hazard.
         """
-        pass
+        if all(isinstance(child, nodes.Text) for child in node.children):
+            self._emit_signature_leaf_wrapper(node, "strong")
 
     def depart_desc_annotation(self, node: addnodes.desc_annotation) -> None:
         """
@@ -4810,6 +5959,11 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_addname(self, node: addnodes.desc_addname) -> None:
         """
         Visit a desc_addname node (module name prefix).
+
+        SIG-02: deliberately stays a no-op. self.in_signature_text alone
+        gives every descendant Text node regular-weight monospace
+        (raw(...), no strong()) via visit_Text's branch -- that IS SIG-02.
+        Do not add a wrapper here.
         """
         pass
 
@@ -4820,11 +5974,31 @@ class TypstTranslator(SphinxTranslator):
     def visit_desc_name(self, node: addnodes.desc_name) -> None:
         """
         Visit a desc_name node (function/class name).
+
+        SIG-01 (37-EMISSION-CONTRACT.md section 5.1): when every child is
+        a text-only nodes.Text leaf (the py/option/c/rst-domain case),
+        emit the complete bold-monospace form via
+        _emit_signature_leaf_wrapper and skip further descent. Otherwise
+        (measured: the C++ domain nests a desc_sig_name inside desc_name)
+        stay a no-op and let the nested desc_sig_name handle itself via
+        visit_desc_sig_name's rule 1 -- flattening a non-leaf subtree via
+        node.astext() would silently drop a resolved cross-reference's
+        hyperlink while still passing a substring check (RESEARCH
+        Pitfall 3).
         """
-        pass
+        if all(isinstance(child, nodes.Text) for child in node.children):
+            self._emit_signature_leaf_wrapper(node, "strong")
 
     def depart_desc_name(self, node: addnodes.desc_name) -> None:
-        """Depart a desc_name node."""
+        """
+        Depart a desc_name node.
+
+        Only reached for the non-leaf branch (visit_desc_name's leaf
+        branch raises nodes.SkipNode, so depart is never called for a
+        leaf desc_name -- its separator bookkeeping is functionally
+        preserved through _emit_signature_leaf_wrapper's own
+        mark-content fallback instead).
+        """
         # Mark that next element needs separator (for parameterlist)
         if self.in_list_item:
             self.list_item_needs_separator = True
@@ -4833,14 +6007,34 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a desc_parameterlist node (parameter list container).
 
-        Parameters are concatenated with + inside text parentheses.
+        Parameters are concatenated with + inside monospace parentheses.
+
+        SIG-05 (37-EMISSION-CONTRACT.md section 6): the five parameter-list
+        delimiter sites -- this opening paren, the closing paren in
+        depart_desc_parameterlist, the comma-space separator in
+        depart_desc_parameter, and the optional-group brackets in
+        visit_desc_optional/depart_desc_optional -- all emit through the
+        raw(...) monospace primitive. Every other signature delimiter
+        (operator and punctuation nodes: desc_sig_operator,
+        desc_sig_punctuation, etc.) already reaches monospace "for free"
+        via the self.in_signature_text flag (contract section 4.3) rather
+        than through a dedicated handler, so SIG-05's "every delimiter is
+        monospace" truth is satisfied jointly by these five sites plus that
+        flag -- not by these five sites alone.
+
+        These five delimiters are hardcoded ASCII carrying no user-supplied
+        text, so no escape_typst_string call is added at these sites --
+        that omission is deliberate (T-37-01's mitigation), not an
+        oversight: every site that DOES carry user text already routes
+        through the shared escaping helper via the monospace branch added
+        in plan 37-06.
         """
         # Add separator before opening paren
         if self.in_list_item and self.list_item_needs_separator:
             self.body.append("\n")
 
-        # Output opening paren as text with + after it
-        self.body.append('text("(") + ')
+        # Output opening paren as raw (monospace) with + after it
+        self.body.append('raw("(") + ')
 
         # Mark that parameterlist started
         self.in_desc_parameter = True
@@ -4850,19 +6044,29 @@ class TypstTranslator(SphinxTranslator):
 
     def depart_desc_parameterlist(self, node: addnodes.desc_parameterlist) -> None:
         """Depart a desc_parameterlist node."""
-        # Output closing paren as text, with + before it
+        # Output closing paren as raw (monospace), with + before it
         if self._desc_parameter_has_content:
             self.body.append(" + ")
-        self.body.append('text(")")')
+        self.body.append('raw(")")')
         self.in_desc_parameter = False
 
     def visit_desc_parameter(self, node: addnodes.desc_parameter) -> None:
         """
         Visit a desc_parameter node (individual parameter).
+
+        SIG-04 / D-05 (37-EMISSION-CONTRACT.md section 5.2): resets
+        self._param_name_seen to False for THIS parameter, mirroring
+        visit_desc_parameterlist's existing per-scope
+        _desc_parameter_has_content = False reset idiom -- so
+        visit_desc_sig_name's rule 2 italicises only the FIRST text-only-
+        leaf desc_sig_name child of each parameter. A scalar (not a
+        stack) is correct here: desc_parameter nodes never nest inside
+        desc_parameter nodes -- a desc_optional group holds desc_parameter
+        SIBLINGS, and each resets the flag on its own entry.
         """
+        self._param_name_seen = False
         # No changes needed - already in desc_parameter context from parameterlist
         # Don't reset _desc_parameter_has_content here - it's managed by depart_desc_parameter
-        pass
 
     def depart_desc_parameter(self, node: addnodes.desc_parameter) -> None:
         """
@@ -4870,9 +6074,9 @@ class TypstTranslator(SphinxTranslator):
 
         Add comma + space between parameters if not last.
         """
-        # Add comma between parameters
+        # Add comma between parameters (raw(...): SIG-05 monospace delimiter)
         if node.next_node(descend=False, siblings=True):
-            self.body.append(' + text(", ")')
+            self.body.append(' + raw(", ")')
             self._desc_parameter_has_content = True
 
     def visit_desc_optional(self, node: addnodes.desc_optional) -> None:
@@ -4889,17 +6093,67 @@ class TypstTranslator(SphinxTranslator):
         """
         if self._desc_parameter_has_content:
             self.add_text(" + ")
-        self.add_text('text("[")')
+        self.add_text('raw("[")')
         self._desc_parameter_has_content = True
 
     def depart_desc_optional(self, node: addnodes.desc_optional) -> None:
-        """Depart a desc_optional node."""
-        self.add_text(' + text("]")')
+        """
+        Depart a desc_optional node.
+
+        D-11 (37-EMISSION-CONTRACT.md section 6.1): when this optional
+        GROUP itself has a following sibling, Sphinx's own HTML writer
+        puts the separator INSIDE the closing bracket -- measured this
+        session -- so this handler emits the same ", " separator
+        depart_desc_parameter emits, through the monospace primitive,
+        immediately BEFORE the closing bracket.
+
+        Two things are load-bearing here:
+
+        1. The sibling test is against the desc_optional node ITSELF,
+           mirroring what depart_desc_parameter already does for a
+           desc_parameter's own following sibling -- NOT against
+           desc_optional's last child. The group's last parameter has no
+           following sibling of its own, which is exactly why the
+           separator Sphinx emits (because the *group* has one) was
+           previously lost.
+        2. The nested-optional case (e.g. printf(fmt[, args[, more]]))
+           is UNCHANGED by this guard, because both of its optional
+           groups are last children -- this is the fix's non-regression
+           CONTROL, not a case to later "extend" the fix to cover.
+
+        Contract section 6.2 corrects CONTEXT.md D-11's second half: the
+        closing bracket and a following parameter are ALREADY explicitly
+        + joined on the current tree (depart_desc_optional already sets
+        _desc_parameter_has_content = True below), so that half is a
+        non-regression assertion, not a code change.
+        """
+        if node.next_node(descend=False, siblings=True):
+            self.add_text(' + raw(", ")')
+        self.add_text(' + raw("]")')
         self._desc_parameter_has_content = True
 
     def visit_field_list(self, node: nodes.field_list) -> None:
         """
         Visit a field_list node (structured fields like Parameters, Returns).
+
+        Opens the field list's own indent step (FLD-01, D-03,
+        38-EMISSION-CONTRACT.md section 3): ``pad(left: SHARED_INDENT_STEP,
+        {`` -- the SAME shared constant desc_content's body wrapper uses, so
+        under that wrapper's composition (no depth counter, D-01) a field
+        list nested inside a description body simply lands one further step
+        in. Emitted AFTER the existing bug #4 leading-separator guard below,
+        which is unchanged, and routed through self.add_text (D-12), never
+        self.body.append -- a field list inside a table cell misroutes
+        without it (38-EMISSION-CONTRACT.md section 3.1).
+
+        Separator bookkeeping (D-12, decided by the fixture): this handler
+        keeps the SAME leading-guard shape as visit_desc_content's own
+        decision (38-05-SUMMARY.md) and visit_block_quote's bug #4
+        precedent -- consistency with the established block-visitor pattern
+        over a byte-count-minimal implementation. Falsified against
+        tests/test_field_list_in_list_item_render_gate.py (a genuine field
+        list inside a bullet-list item) and confirmed non-regressing
+        against tests/test_desc_bodyless_concat_render_gate.py.
         """
         # Emit a leading newline separator when this field list follows a
         # sibling inside a list item, matching the block-visitor pattern
@@ -4912,14 +6166,21 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
             self.list_item_needs_separator = False
+        self.add_text(f"pad(left: {SHARED_INDENT_STEP}, {{")
 
     def depart_field_list(self, node: nodes.field_list) -> None:
         """
         Depart a field_list node.
 
-        Add spacing after field lists.
+        Closes the indent step opened in visit_field_list: ``})\\n``
+        (38-EMISSION-CONTRACT.md section 3), replacing the pre-phase bare
+        ``self.body.append("\\n")``. Routed through self.add_text (D-12) --
+        the pre-phase direct append bypassed table-cell routing entirely, so
+        a field list inside a table cell misroutes today regardless of the
+        wrapper (section 3.1); this conversion fixes that byte-identically
+        outside a table.
         """
-        self.body.append("\n")
+        self.add_text("})\n")
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
@@ -4955,7 +6216,7 @@ class TypstTranslator(SphinxTranslator):
         if self._last_field_body_was_inline and node.next_node(
             descend=False, siblings=True
         ):
-            self.body.append('\ntext("  ")\n')
+            self.add_text('\ntext("  ")\n')
 
     def visit_field_name(self, node: nodes.field_name) -> None:
         """
@@ -4968,7 +6229,7 @@ class TypstTranslator(SphinxTranslator):
         self.in_paragraph = False
 
         # Use strong() function (no # prefix in code mode)
-        self.body.append("strong(")
+        self.add_text("strong(")
 
         # Store state to restore in depart
         self._field_name_was_in_paragraph = was_in_paragraph
@@ -4979,7 +6240,7 @@ class TypstTranslator(SphinxTranslator):
         # (FID-09) -- the space is a real content value inside the +-joined
         # strong() expression, restoring the "Type: int" colon-space that
         # was previously emitted as a bare colon with no trailing space.
-        self.body.append(' + text(": "))\n')
+        self.add_text(' + text(": "))\n')
 
         # Restore paragraph state
         if hasattr(self, "_field_name_was_in_paragraph"):
@@ -5000,22 +6261,53 @@ class TypstTranslator(SphinxTranslator):
         shared inline-concat context (bug #5 machinery) so they are ``+``
         separated into one content value.
 
-        Only an ALL-inline field body needs this. A block field body (real
-        ``paragraph``/list/literal-block children) already emits valid,
-        ``\\n\\n``-separated statements via the normal par() path, so it keeps
-        the concat context OFF to avoid a stray ``+`` around a ``par(...)``.
+        A SECOND case reuses the same concat context (FLD-02, D-07,
+        38-EMISSION-CONTRACT.md section 4.2): a field body whose ONLY child
+        is a single ``nodes.paragraph`` -- the ordinary ``:param:``/
+        ``:returns:``/``:rtype:`` docstring shape docutils produces (verified
+        by reading ``sphinx/util/docfields.py``'s ``Field.make_field`` /
+        ``GroupedField.make_field``'s ``can_collapse`` branch: this shape is
+        ALWAYS exactly one paragraph, never heuristic). Pre-phase this value
+        was unconditionally wrapped in Typst's block-level ``par(...)``,
+        which starts a new visual line regardless of any separator -- that
+        is FLD-02's whole defect. ``_field_body_unwrapped_paragraph`` marks
+        this case so ``visit_paragraph``/``depart_paragraph`` can skip the
+        ``par({``/``})`` wrapper for exactly this one paragraph, letting its
+        children dispatch unmodified through the SAME
+        ``_in_field_body``/``_field_body_has_content`` machinery the
+        collapsed-inline case already exercises -- no second concat
+        mechanism.
+
+        A multi-value body (multiple ``:param:`` entries collapsed by
+        docutils into ONE ``field_body`` containing a ``bullet_list``) is
+        neither of the above: its ``all_inline`` check is False and its
+        child count is not exactly one paragraph, so it falls through to the
+        existing block path unchanged (FLD-02's non-regression half).
         """
         self._field_body_stack.append(
-            (self._in_field_body, self._field_body_has_content)
+            (
+                self._in_field_body,
+                self._field_body_has_content,
+                self._field_body_unwrapped_paragraph,
+            )
         )
         all_inline = all(
             isinstance(child, (nodes.Text, nodes.Inline)) for child in node.children
         )
+        single_paragraph = len(node.children) == 1 and isinstance(
+            node.children[0], nodes.paragraph
+        )
         if all_inline:
             self._in_field_body = True
             self._field_body_has_content = False
+            self._field_body_unwrapped_paragraph = False
+        elif single_paragraph:
+            self._in_field_body = True
+            self._field_body_has_content = False
+            self._field_body_unwrapped_paragraph = True
         else:
             self._in_field_body = False
+            self._field_body_unwrapped_paragraph = False
 
     def depart_field_body(self, node: nodes.field_body) -> None:
         """
@@ -5023,29 +6315,166 @@ class TypstTranslator(SphinxTranslator):
 
         Restore the concat context saved by :meth:`visit_field_body` and add a
         newline after the field body.
+
+        The D-07/D-08 trap (FLD-02): ``_last_field_body_was_inline`` gates
+        ``depart_field``'s FID-09 inter-field ``"  "`` separator, which is
+        only correct for the genuinely docutils-collapsed-inline body (two
+        fields legitimately sharing one line, e.g. a confval's
+        ``:type:``/``:default:``). The new single-paragraph-unwrapped case
+        (above) also sets ``_in_field_body = True`` to reuse the SAME concat
+        context, but must NOT let the separator fire between consecutive
+        single-value fields -- doing so would merge ``Returns:``,
+        ``Return type:`` and ``Raises:`` onto one line and produce a ZERO
+        interval where D-08 measured 20.438pt per field. Excluding
+        ``_field_body_unwrapped_paragraph`` from this flag is what keeps the
+        separator scoped to the collapsed-inline case only, with zero change
+        needed to :meth:`depart_field` itself.
+
+        The other half of D-08's own trap: a single-value field body's sole
+        paragraph no longer gets a "free" paragraph boundary from ``par(...)``
+        the way it used to (that block-level wrapper is exactly what
+        visit_paragraph now skips for this case). Consecutive single-value
+        fields must still occupy separate paragraphs -- so when THIS field
+        body was the single-paragraph-unwrapped case AND its parent ``field``
+        has a following sibling, emit a real ``parbreak()`` here, before
+        popping back to the parent's saved state (this is the one place that
+        still has access to both facts at once). Re-derived from the doctree
+        (``node.parent``'s own next-sibling check), not a second new
+        instance attribute. Wrapped in a LEADING newline (unlike
+        _emit_forced_break's list-item-only leading guard): the preceding
+        content here is the paragraph's last bare inline expression with no
+        trailing separator of its own, so a bare "parbreak()" would
+        juxtapose directly against it -- the same "expected semicolon or
+        line break" fatal class this codebase has hit before.
         """
-        # Remember whether THIS field body was collapsed-inline, for
-        # depart_field's separator decision (CR-01), before popping back to
-        # the parent's saved state.
-        self._last_field_body_was_inline = self._in_field_body
-        self._in_field_body, self._field_body_has_content = self._field_body_stack.pop()
-        self.body.append("\n")
+        # Remember whether THIS field body was collapsed-inline (never the
+        # single-paragraph-unwrapped case), for depart_field's separator
+        # decision (CR-01/D-08), before popping back to the parent's saved
+        # state.
+        self._last_field_body_was_inline = (
+            self._in_field_body and not self._field_body_unwrapped_paragraph
+        )
+        if self._field_body_unwrapped_paragraph and node.parent is not None:
+            if node.parent.next_node(descend=False, siblings=True) is not None:
+                self.add_text("\nparbreak()\n")
+        (
+            self._in_field_body,
+            self._field_body_has_content,
+            self._field_body_unwrapped_paragraph,
+        ) = self._field_body_stack.pop()
+        self.add_text("\n")
 
     def visit_rubric(self, node: nodes.rubric) -> None:
         """
         Visit a rubric node (section subheading).
 
         Rubrics are rendered as subsection headings using strong({}) wrapper.
+
+        ADM-06: this handler owns its own emission -- it no longer delegates
+        to visit_strong via a dummy strong() node. The block below started as
+        a verbatim copy of visit_strong's body (D-01: triplication is the
+        decision, not an accident to be refactored away), and Phase 39 was
+        named, at the time that copy was made, as the phase that would make
+        it diverge.
+
+        Phase 39 (D-13) has now made that divergence real for the save
+        slots: this handler's three save slots are ``_rubric_was_*``, not
+        the ``_strong_was_*`` names visit_strong/depart_strong and
+        visit_desc_signature/depart_desc_signature still share between
+        themselves (that pair's own sharing stays deliberate and unedited,
+        D-02). Before this change, a nested inline ``strong`` firing while
+        THIS rubric's state was saved under the shared name would silently
+        clobber it -- `depart_strong`'s own `delattr` calls would delete the
+        keys `depart_rubric` still needed to restore, leaving
+        `self.in_list_item` stuck `True` for the rest of the document. That
+        can no longer happen: the two save sites no longer write the same
+        `self.__dict__` keys.
+
+        This commit (D-11) also closes the double-blank-line wart the
+        docstring previously described as deliberately preserved: when a
+        rubric carries a propagated target (anchored via
+        ``_emit_id_anchors`` immediately below), that emitter's own trailing
+        newline is already the separator this rubric needs -- both the
+        unconditional newline append and the leading list-item separator
+        check that used to follow it are now suppressed for an anchored
+        rubric, so it no longer double- (or triple-, via the re-armed
+        list-item flag) counts a separator ``_emit_id_anchors`` already
+        supplied. An unanchored rubric (no propagated target) takes neither
+        branch differently and keeps today's byte shape exactly.
         """
         # A propagated explicit target (``.. _t:`` immediately before a
         # ``.. rubric::``) lands its id on this rubric node; anchor it so a
         # same-/cross-document link(<id>, ...) resolves (no ids -> no-op).
+        # D-11: measure whether _emit_id_anchors actually emitted anything
+        # (it is a no-op for an id-less node) so the guards below can tell
+        # whether it already supplied this rubric's leading separator.
+        body_len_before_anchors = len(self.body)
         self._emit_id_anchors(node)
-        # Add newline before rubric
-        self.body.append("\n")
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+        anchors_were_emitted = len(self.body) > body_len_before_anchors
+
+        # D-11: _emit_id_anchors's own trailing "\n" (see its tail, above)
+        # is this rubric's fair, sufficient separator share when it just
+        # anchored a propagated target -- do not add a second one on top of
+        # it. A rubric that anchored nothing owes exactly what it owed
+        # before this guard existed.
+        if not anchors_were_emitted:
+            # Add newline before rubric
+            self.body.append("\n")
+
+        # --- begin verbatim copy of visit_strong's body (D-01) ---
+        # Add separator if in paragraph and not first node
+        self._add_paragraph_separator()
+
+        # If this strong is a sibling in a code-mode concat context (def-list
+        # term / link body / desc parameter), + separate it and suppress that
+        # context for the strong body (content mode, where an outer '+' would
+        # leak). Otherwise fall back to the list-item newline separator.
+        #
+        # D-11: when _emit_id_anchors just anchored a propagated target, its
+        # tail re-arms ``list_item_needs_separator`` as a side effect of its
+        # OWN bookkeeping (correct for every OTHER body-element handler that
+        # calls it) -- without the ``not anchors_were_emitted`` guard this
+        # branch would double-count that flag on top of the anchor's own
+        # trailing newline, the second half of the same wart the guard above
+        # closes.
+        if not self._enter_inline_concat_element():
+            if (
+                not anchors_were_emitted
+                and self.in_list_item
+                and self.list_item_needs_separator
+            ):
+                self.add_text("\n")
+
+        # Temporarily disable paragraph state for children
+        was_in_paragraph = self.in_paragraph
+        self.in_paragraph = False
+
+        # Save and reset list item separator for children (they're inside this element)
+        was_list_item_needs_separator = self.list_item_needs_separator
+
+        # Since strong({}) uses content block, treat it like list_item
+        # Children need newline separators, not + operators
+        was_in_list_item = self.in_list_item
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
+        # Determine if we need # prefix (in markup mode)
+        prefix = "#" if self._in_markup_mode else ""
+
+        # Use strong({}) function with content block
+        self.add_text(f"{prefix}strong({{")
+
+        # Store state to restore in depart. D-13: these are the rubric's OWN
+        # slots (``_rubric_was_*``), no longer the ``_strong_was_*`` names
+        # visit_strong/depart_strong (and visit_desc_signature/
+        # depart_desc_signature) still share between themselves -- a nested
+        # inline ``strong`` firing while this rubric's state is saved here
+        # can no longer overwrite it and have depart_strong's own delattr
+        # calls delete it out from under depart_rubric.
+        self._rubric_was_in_paragraph = was_in_paragraph
+        self._rubric_was_in_list_item = was_in_list_item
+        self._rubric_was_list_item_needs_separator = was_list_item_needs_separator
+        # --- end verbatim copy of visit_strong's body ---
 
     def depart_rubric(self, node: nodes.rubric) -> None:
         """
@@ -5060,10 +6489,43 @@ class TypstTranslator(SphinxTranslator):
         separation from what follows, so this fires unconditionally --
         verified harmless at true end-of-document (nothing follows the
         trailing linebreak()): no compile error, no visible artifact.
+
+        ADM-06: this handler owns its own emission -- the block below started
+        as a verbatim copy of depart_strong's body (D-01) rather than a
+        delegation to a dummy strong() node. Phase 39 (D-13) has now made it
+        diverge: it restores from its own ``_rubric_was_*`` slots, not the
+        ``_strong_was_*`` names depart_strong (and depart_desc_signature)
+        still share between themselves (that pair's own sharing stays
+        deliberate and unedited, D-02) -- see visit_rubric's docstring for
+        the full rationale.
         """
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        # --- begin verbatim copy of depart_strong's body (D-01) ---
+        # Close strong({}) function
+        self.add_text("})")
+
+        # Restore paragraph state
+        if hasattr(self, "_rubric_was_in_paragraph"):
+            self.in_paragraph = self._rubric_was_in_paragraph
+            delattr(self, "_rubric_was_in_paragraph")
+
+        # Restore in_list_item state
+        if hasattr(self, "_rubric_was_in_list_item"):
+            self.in_list_item = self._rubric_was_in_list_item
+            delattr(self, "_rubric_was_in_list_item")
+
+        # Restore and mark that next element needs separator
+        if hasattr(self, "_rubric_was_list_item_needs_separator"):
+            # Restore previous state, then mark next element needs separator
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+            delattr(self, "_rubric_was_list_item_needs_separator")
+
+        # Restore the code-mode concat context suppressed for the strong body
+        # and mark this strong as a sibling so the next term/link/desc
+        # expression is + separated.
+        self._exit_inline_concat_element()
+        # --- end verbatim copy of depart_strong's body ---
+
         # depart_strong's closing "})" carries no trailing separator of its
         # own (unlike depart_desc_signature, whose unconditional trailing
         # "\n" is what makes FID-03's leading-linebreak() placement safe at
@@ -5094,7 +6556,12 @@ class TypstTranslator(SphinxTranslator):
     # Additional signature nodes (desc_sig_* family)
 
     def visit_desc_sig_keyword(self, node: addnodes.desc_sig_keyword) -> None:
-        """Visit a desc_sig_keyword node (keywords in signatures like 'class', 'def')."""
+        """Visit a desc_sig_keyword node (keywords in signatures like 'class', 'def').
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed.
+        """
         pass
 
     def depart_desc_sig_keyword(self, node: addnodes.desc_sig_keyword) -> None:
@@ -5102,7 +6569,12 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
-        """Visit a desc_sig_space node (whitespace in signatures)."""
+        """Visit a desc_sig_space node (whitespace in signatures).
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed.
+        """
         pass
 
     def depart_desc_sig_space(self, node: addnodes.desc_sig_space) -> None:
@@ -5110,15 +6582,90 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:
-        """Visit a desc_sig_name node (names in signatures)."""
-        pass
+        """
+        Visit a desc_sig_name node (names in signatures) -- the D-05
+        discriminator (37-EMISSION-CONTRACT.md section 5.2), three
+        mutually exclusive rules evaluated in order (each SkipNode-raising
+        branch below makes the remaining checks unreachable for THIS
+        node, which is what "mutually exclusive" means here):
+
+        Rule 1: the node's parent is a desc_annotation or desc_name, and
+        this node is itself a text-only leaf -> emit strong(raw(...)) and
+        skip. This is what makes a non-leaf desc_name (measured: the C++
+        domain nests a desc_sig_name inside desc_name) bold via its
+        nested child instead of via desc_name itself. If the node is NOT
+        a leaf, fall through to rule 3.
+
+        Rule 2: the parent is a desc_parameter, this node is a text-only
+        leaf, and self._param_name_seen is False -> set the flag, emit
+        emph(raw(...)), and skip. This is the parameter's OWN name
+        (SIG-04's italic). The leaf guard is the load-bearing safety
+        property: measured across every parameter shape in
+        37-RESEARCH.md's D-05 table plus the C++ domain, the FIRST
+        desc_sig_name direct child of a desc_parameter is always the
+        parameter's own name and always a leaf, while a LATER one belongs
+        to the type annotation and may be a non-leaf (wrapping a resolved
+        nodes.reference) -- if a first child ever arrived non-leaf, rule 3
+        must catch it rather than this rule flattening it and silently
+        dropping a hyperlink.
+
+        Rule 3 (otherwise): no-op. Children dispatch normally under
+        self.in_signature_text, so a type annotation wrapping a resolved
+        cross-reference keeps emitting its UNMODIFIED visit_reference
+        link(...) call with the monospace primitive inside -- the flag
+        fires BENEATH visit_reference, it never replaces or flattens it.
+
+        Deliberately does NOT discriminate on addnodes.pending_xref:
+        measured, the translator never sees one -- Builder.write()
+        resolves references before write_doc runs, so an unresolved xref
+        is stripped to plain content (a bare Text child) and a resolved
+        one becomes nodes.reference. A pending_xref check here would
+        silently never fire -- this is the exact wrong turn
+        37-CONTEXT.md's own D-05 text invites; 37-04-SUMMARY.md's
+        unresolved-C-domain-type measurement (``PyTypeObject *type``, no
+        intersphinx) independently confirms the mechanical rule-2 output
+        this discriminator produces for a type that never resolves.
+        """
+        parent = node.parent
+        is_leaf = all(isinstance(child, nodes.Text) for child in node.children)
+
+        if (
+            isinstance(parent, (addnodes.desc_annotation, addnodes.desc_name))
+            and is_leaf
+        ):
+            self._emit_signature_leaf_wrapper(node, "strong")
+
+        if (
+            isinstance(parent, addnodes.desc_parameter)
+            and is_leaf
+            and not self._param_name_seen
+        ):
+            self._param_name_seen = True
+            self._emit_signature_leaf_wrapper(node, "emph")
+
+        # Rule 3 (otherwise): pass -- children dispatch normally under
+        # self.in_signature_text.
 
     def depart_desc_sig_name(self, node: addnodes.desc_sig_name) -> None:
-        """Depart a desc_sig_name node."""
+        """
+        Depart a desc_sig_name node.
+
+        Only reached for rule 3 (visit_desc_sig_name's rule 1/rule 2
+        leaf branches raise nodes.SkipNode, so depart is never called for
+        those).
+        """
         pass
 
     def visit_desc_sig_punctuation(self, node: addnodes.desc_sig_punctuation) -> None:
-        """Visit a desc_sig_punctuation node (punctuation in signatures like ':', '=')."""
+        """Visit a desc_sig_punctuation node (punctuation in signatures like ':', '=').
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed. Not given the
+        flatten-and-skip shortcut either: a keyword-only separator
+        operator was measured to wrap an abbreviation node, so
+        flattening here would add a subtree-dropping hazard for no gain.
+        """
         pass
 
     def depart_desc_sig_punctuation(self, node: addnodes.desc_sig_punctuation) -> None:
@@ -5126,7 +6673,16 @@ class TypstTranslator(SphinxTranslator):
         pass
 
     def visit_desc_sig_operator(self, node: addnodes.desc_sig_operator) -> None:
-        """Visit a desc_sig_operator node (operators in signatures)."""
+        """Visit a desc_sig_operator node (operators in signatures).
+
+        Stays a no-op: self.in_signature_text already gives this node's
+        Text children monospace via visit_Text's branch (contract
+        section 4.3) -- no dedicated handler is needed. Not given the
+        flatten-and-skip shortcut either: the keyword-only separator
+        operator was measured to wrap an abbreviation node, and
+        flattening it buys nothing while adding a subtree-dropping
+        hazard.
+        """
         pass
 
     def depart_desc_sig_operator(self, node: addnodes.desc_sig_operator) -> None:
@@ -5135,26 +6691,119 @@ class TypstTranslator(SphinxTranslator):
 
     # Literal nodes for API documentation
 
+    def _emit_field_body_monospace_leaf(
+        self, node: nodes.Element, wrapper: str
+    ) -> None:
+        """Emit a complete ``wrapper(raw("..."))`` call for a field-body
+        monospace leaf (``literal_strong`` / ``literal_emphasis``), then
+        raise ``nodes.SkipNode`` -- mirroring ``visit_literal``'s leaf-
+        emission shape (``typsphinx/translator.py:1487-1565``): the
+        paragraph separator, the concat-separator-or-list-item-newline
+        fallback, the call itself, then the mark-content-or-list-item-
+        separator fallback.
+
+        Escaping goes through the shared ``escape_typst_string`` helper
+        -- the SAME one ``visit_literal``'s leaf branch uses -- and
+        deliberately NOT through ``_escape_signature_text`` /
+        ``_emit_signature_leaf_wrapper``. Those unconditionally inject
+        the SIG-07 zero-width-space break opportunity after every ``.``,
+        and no FLD-03 requirement or CONTEXT decision authorizes that
+        inside a field body: field bodies are not measured to overflow
+        the way dotted signature qualnames are, and a parameter name
+        copied out of the PDF must stay pasteable (38-EMISSION-
+        CONTRACT.md section 5.3).
+
+        ``wrapper`` is ``"strong"`` (bold monospace -- the parameter
+        name, contract section 5.2 row 1) or ``"emph"`` (italic
+        monospace -- the parameter type, section 5.2 row 2), D-05's
+        deliberately-different-from-the-signature-family recipe.
+
+        No special-casing on the node's parent: a resolvable ``:type:``
+        nests this call inside an emitted ``link(...)`` call, and it
+        composes correctly because ``link()``'s body argument is just a
+        content value -- the same reason the signature family's own
+        resolved-xref rule already works (37-EMISSION-CONTRACT.md
+        section 5.2 rule 3, contract section 5.4).
+
+        Monospace is reached ONLY through Typst's ``raw(...)``
+        primitive -- never by naming a font family, which would
+        silently shadow the Japanese build's CJK fallback with neither
+        a warning nor an error.
+        """
+        self._add_paragraph_separator()
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
+
+        escaped = escape_typst_string(node.astext())
+        prefix = "#" if self._in_markup_mode else ""
+        self.add_text(f'{prefix}{wrapper}(raw("{escaped}"))')
+
+        if not self._mark_inline_concat_content():
+            if self.in_list_item:
+                self.list_item_needs_separator = True
+
+        raise nodes.SkipNode
+
     def visit_literal_strong(self, node: nodes.inline) -> None:
-        """Visit a literal_strong node (bold literal text in field lists)."""
-        # Create a dummy strong node and use its visitor logic
-        dummy_strong = nodes.strong()
-        self.visit_strong(dummy_strong)
+        """Visit a literal_strong node: a field-body parameter name.
+
+        Emits ``strong(raw("<escaped>"))`` -- bold monospace (FLD-03,
+        38-EMISSION-CONTRACT.md section 5.2 row 1), deliberately
+        DIFFERENT from the signature family's own name recipe (D-05):
+        the reference's own recipe for a field-body parameter name,
+        distinct from the plain-bold proportional field label.
+        Delegates to :meth:`_emit_field_body_monospace_leaf`, which
+        raises ``nodes.SkipNode`` -- ``depart_literal_strong`` is
+        therefore never called (mirrors ``visit_literal`` /
+        ``depart_literal``).
+
+        No longer delegates through a dummy ``nodes.strong()`` node to
+        :meth:`visit_strong` (D-09) -- this is deliberate: D-05 makes
+        this node's target emission (bold MONOSPACE) diverge from
+        ``strong``'s own emission (bold PROPORTIONAL), so the
+        delegation was no longer a viable base to build on.
+        """
+        self._emit_field_body_monospace_leaf(node, "strong")
 
     def depart_literal_strong(self, node: nodes.inline) -> None:
-        """Depart a literal_strong node."""
-        # Use strong's depart logic
-        dummy_strong = nodes.strong()
-        self.depart_strong(dummy_strong)
+        """Depart a literal_strong node.
+
+        Unreachable: ``visit_literal_strong`` raises ``nodes.SkipNode``,
+        so docutils' dispatcher never calls this depart. Kept as a stub
+        -- exactly as ``depart_literal`` already is -- because the
+        docutils dispatcher contract still wants a paired depart method
+        present.
+        """
+        pass
 
     def visit_literal_emphasis(self, node: nodes.inline) -> None:
-        """Visit a literal_emphasis node (emphasized literal text in field lists)."""
-        # Create a dummy emphasis node and use its visitor logic
-        dummy_emph = nodes.emphasis()
-        self.visit_emphasis(dummy_emph)
+        """Visit a literal_emphasis node: a field-body parameter type.
+
+        Emits ``emph(raw("<escaped>"))`` -- italic monospace (FLD-03,
+        38-EMISSION-CONTRACT.md section 5.2 row 2), deliberately
+        DIFFERENT from the signature family's own type recipe (D-05):
+        the reference's own recipe for a field-body parameter type,
+        distinct from the plain-bold proportional field label.
+        Delegates to :meth:`_emit_field_body_monospace_leaf`, which
+        raises ``nodes.SkipNode`` -- ``depart_literal_emphasis`` is
+        therefore never called (mirrors ``visit_literal`` /
+        ``depart_literal``).
+
+        No longer delegates through a dummy ``nodes.emphasis()`` node
+        to :meth:`visit_emphasis` (D-09) -- the last two dummy-node
+        delegation sites in the translator, removed for the same
+        reason ``visit_literal_strong``'s docstring gives.
+        """
+        self._emit_field_body_monospace_leaf(node, "emph")
 
     def depart_literal_emphasis(self, node: nodes.inline) -> None:
-        """Depart a literal_emphasis node."""
-        # Use emphasis's depart logic
-        dummy_emph = nodes.emphasis()
-        self.depart_emphasis(dummy_emph)
+        """Depart a literal_emphasis node.
+
+        Unreachable: ``visit_literal_emphasis`` raises
+        ``nodes.SkipNode``, so docutils' dispatcher never calls this
+        depart. Kept as a stub -- exactly as ``depart_literal`` already
+        is -- because the docutils dispatcher contract still wants a
+        paired depart method present.
+        """
+        pass

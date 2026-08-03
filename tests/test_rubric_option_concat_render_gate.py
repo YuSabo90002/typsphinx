@@ -129,9 +129,18 @@ class TestRubricOptionConcatRenderGate:
 
         # D-05: structural assert -- the rubric's strong({...}) must be
         # followed by a linebreak() token BEFORE the next option's own
-        # strong({...}), on the path between the two.
+        # signature wrapper, on the path between the two.
+        #
+        # 'Structure Options' is a RUBRIC, not a desc_signature -- Phase 39
+        # territory (37-CONTEXT.md domain boundary; Phase 36 already
+        # decoupled rubric from desc_signature). Left byte-identical on
+        # purpose; do not migrate this lookup.
         rubric_idx = typ_text.index('strong({text("Structure Options")})')
-        option_idx = typ_text.index('strong({text("--sep")})')
+        # '--sep' IS a desc_signature (.. option::) -- Phase 37 SS3 + SS5.1:
+        # desc_name is a text-only leaf and desc_addname has zero children
+        # (contract 37-EMISSION-CONTRACT.md section 9's worked '--sep'
+        # derivation), so it becomes one complete strong(raw("--sep")) call.
+        option_idx = typ_text.index('strong(raw("--sep"))')
         assert option_idx > rubric_idx, (
             "Expected the '--sep' option signature to follow the rubric "
             f"heading in document order:\n{typ_text}"
@@ -147,6 +156,9 @@ class TestRubricOptionConcatRenderGate:
         # emit its own trailing linebreak() (unconditional, per RESEARCH
         # Site 3) with nothing after it -- and the build above already
         # proved this compiles cleanly.
+        #
+        # 'Trailing Heading' is ALSO a rubric -- Phase 39 territory, same as
+        # 'Structure Options' above. Left byte-identical on purpose.
         trailing_idx = typ_text.index('strong({text("Trailing Heading")})')
         trailing_region = typ_text[trailing_idx : trailing_idx + 120]
         assert "linebreak()" in trailing_region, (

@@ -2,6 +2,7 @@
 created: 2026-07-29T00:50:46+09:00
 title: The GitHub Release body should be the CHANGELOG section, not a commit dump
 area: ci, release
+resolves_phase: 41
 files:
   - .github/workflows/release.yml (the `create-release` job's `Generate release notes` step at line 152, whose commit-dump command sits at line 164 and whose Installation block starts at line 170)
   - CHANGELOG.md (the source the reworked step would extract the `## [X.Y.Z]` section from)

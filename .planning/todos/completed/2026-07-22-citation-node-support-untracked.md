@@ -2,6 +2,7 @@
 created: 2026-07-22T00:00:00+09:00
 title: translator に citation / label ノードのハンドラが無い（未追跡の機能欠落）
 area: translator, examples
+resolves_phase: 40
 source: .planning/phases/22.2-dead-config-value-sweep/ (plans 22.2-02, 22.2-06 の実行時に発見)
 files:
   - typsphinx/translator.py:2257 (「citation ハンドラ無し」のコード内コメント)

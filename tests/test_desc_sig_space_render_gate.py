@@ -144,33 +144,66 @@ class TestDescSigSpaceRenderGate:
         assert typ_output.exists(), "index.typ was not emitted"
         typ_text = typ_output.read_text(encoding="utf-8")
 
+        # Phase 37 (37-EMISSION-CONTRACT.md section 3 + section 4): every
+        # desc_sig_space / desc_sig_keyword_type / bare signature Text node
+        # routes through the monospace branch, so text(...) becomes
+        # raw(...) at each of these sites. The test's SUBJECT is the SPACE
+        # surviving as its own separate statement -- migrated straight to
+        # its raw(...) shape so the assertion still fails if the space
+        # disappears, not just if the wrapper name changes.
+
         # FID-07: the 'class ' annotation prefix keeps its trailing space as
-        # a real text(" ") statement, not a merged 'text("classsphinx...")'.
-        assert 'text("class")\ntext(" ")\ntext("sphinx' in typ_text, (
+        # a real raw(" ") statement, not a merged 'raw("classsphinx...")'.
+        assert 'raw("class")\nraw(" ")\nraw("sphinx' in typ_text, (
             "Expected the 'class ' annotation-prefix space as a separate "
-            'text(" ") statement between text("class") and the dotted '
+            'raw(" ") statement between raw("class") and the dotted '
             f"class name (FID-07 regression):\n{typ_text}"
         )
 
         # FID-08: the C signature's return-type-to-pointer and
-        # pointer-to-name spaces, on the strong({...}) run.
+        # pointer-to-name spaces, on the signature wrapper's run.
+        #
+        # "PyType_GenericAlloc" is desc_name wrapping a desc_sig_name (a
+        # non-leaf desc_name, the C++/measured case) -- SS5.1's "otherwise"
+        # branch stays pass and the nested desc_sig_name's OWN parent is
+        # desc_name, so SS5.2 rule 1 fires: strong(raw(...)), not plain
+        # raw(...). "PyObject" (the return type) has no desc_annotation/
+        # desc_name ancestor, so it stays flag-driven plain raw(...).
         assert (
-            'text("PyObject")\ntext(" ")\ntext("*")\ntext("PyType_GenericAlloc")'
+            'raw("PyObject")\nraw(" ")\nraw("*")\nstrong(raw("PyType_GenericAlloc"))'
             in typ_text
         ), (
             "Expected the C signature's return-type/pointer/name run to "
-            'keep every inter-token space as a separate text(" ") '
+            'keep every inter-token space as a separate raw(" ") '
             f"statement (FID-08 regression):\n{typ_text}"
         )
 
         # FID-08: the desc_parameter '+'-concat form keeps its content
         # spaces between the parameter's type and its name.
+        #
+        # MEASURED discrepancy from contract 37-EMISSION-CONTRACT.md section
+        # 5.2's narrative ("the first desc_sig_name direct child of a
+        # desc_parameter is always the parameter's own name"): this fixture
+        # has NO intersphinx inventory, so "PyTypeObject" (the TYPE) never
+        # resolves to a reference and is never wrapped by one -- it stays a
+        # bare desc_sig_name DIRECT child of desc_parameter, making it (not
+        # "type") the first such child. Rule 2 therefore fires on
+        # "PyTypeObject" (emph) and "type" -- the second desc_sig_name for
+        # this parameter, with self._param_name_seen already True -- falls
+        # through to rule 3 (plain, flag-driven raw()). This is the mirror
+        # image of the intspx-resolved "MyType *obj" case in
+        # tests/test_desc_signature_concat_render_gate.py, where the type
+        # DOES resolve and IS wrapped in a reference, leaving "obj" as the
+        # first direct desc_sig_name child. Recorded as a discrepancy in the
+        # 37-04-SUMMARY.md Deviations section -- do not "fix" this assertion
+        # to italicise "type" instead; that is not what SS5.2 rule 2
+        # mechanically produces for an unresolved C type.
         assert (
-            'text("PyTypeObject") + text(" ") + text("*") + text("type")' in typ_text
+            'emph(raw("PyTypeObject")) + raw(" ") + raw("*") + raw("type")' in typ_text
         ), (
             "Expected the desc_parameter concat form to keep the "
             "parameter's type-to-pointer-to-name spaces as real "
-            f'text(" ") values (FID-08 regression):\n{typ_text}'
+            f'raw(" ") values (FID-08 regression):\n{typ_text}'
         )
 
         pdf_output = temp_build_dir / "index.pdf"
@@ -226,6 +259,20 @@ class TestDescSigSpaceRenderGate:
 
         reader = pypdf.PdfReader(str(pdf_output))
         full_text = "\n".join(page.extract_text() for page in reader.pages)
+        # Phase 37 (37-EMISSION-CONTRACT.md section 4.2, deviation Rule 2):
+        # this fixture's desc_addname contains a dotted name
+        # ("sphinx.builders.html."). Once the ZWSP break opportunity exists
+        # anywhere in the document, pypdf.extract_text() has been measured
+        # to emit a spurious U+200B at UNRELATED glyph boundaries too, not
+        # only at injection points -- every compiled-PDF text assertion in
+        # this phase must normalise it away before comparing, or the test
+        # will flake in a way that looks like a rendering bug. Currently a
+        # no-op (no ZWSP exists pre-Phase-37); added defensively ahead of
+        # 37-06 so this test does not regress once monospace propagation
+        # lands.
+        full_text = full_text.replace(
+            "\u200b", ""
+        )  # U+200B, written as an explicit escape
 
         # FID-07: the 'class ' annotation prefix renders with a real space.
         assert "class sphinx" in full_text, (

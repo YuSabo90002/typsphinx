@@ -129,8 +129,14 @@ class TestAdmonitionConversion:
         assert "warning[" not in output
         assert 'par({text("Be cautious.")})' in output
 
-    def test_seealso_converts_to_info_with_title(self, temp_sphinx_app: SphinxTestApp):
-        """Test that addnodes.seealso converts to info(title: "See Also")[]."""
+    def test_seealso_converts_to_tip_with_title(self, temp_sphinx_app: SphinxTestApp):
+        """Test that addnodes.seealso converts to tip(title: "See also")[] (D-02).
+
+        seealso joins the success bucket (the same `tip` function hint/tip
+        already pass), and its title now comes from the
+        sphinx.locale.admonitionlabels catalog, whose casing ("See also")
+        differs from the old hardcoded literal ("See Also").
+        """
         seealso = addnodes.seealso()
         para = nodes.paragraph(text="See related documentation.")
         seealso += para
@@ -144,9 +150,9 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "info({" in output
-        assert "info[" not in output
-        assert ', title: "See Also"' in output
+        assert "tip({" in output
+        assert "tip[" not in output
+        assert ', title: "See also"' in output
         assert 'par({text("See related documentation.")})' in output
 
     def test_admonition_with_multiple_paragraphs(self, temp_sphinx_app: SphinxTestApp):
@@ -358,8 +364,13 @@ class TestAdmonitionConversion:
         assert "error[" not in output
         assert 'par({text("This is an error.")})' in output
 
-    def test_danger_converts_to_danger(self, temp_sphinx_app: SphinxTestApp):
-        """Test that nodes.danger converts to danger[] (D-06)."""
+    def test_danger_converts_to_danger_function(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.danger converts to danger[] (D-03-R, gap G-39-1).
+
+        D-03-R supersedes D-03: the red family is three pairwise-distinct
+        gentle-clues functions, not one collapsed function -- danger
+        routes to its own `danger` id.
+        """
         danger = nodes.danger()
         para = nodes.paragraph(text="This is dangerous.")
         danger += para
@@ -377,12 +388,13 @@ class TestAdmonitionConversion:
         assert "danger[" not in output
         assert 'par({text("This is dangerous.")})' in output
 
-    def test_attention_converts_to_warning(self, temp_sphinx_app: SphinxTestApp):
-        """Test that nodes.attention converts to warning[] (D-06).
+    def test_attention_converts_to_memo_function(self, temp_sphinx_app: SphinxTestApp):
+        """Test that nodes.attention converts to memo[] (D-03-R, gap G-39-1).
 
-        gentle-clues 1.3.1 has no dedicated `attention` clue; `warning` is
-        the verified analog, consistent with the existing `caution`/
-        `important` -> `warning` precedent.
+        D-03-R supersedes D-03: the red family is three pairwise-distinct
+        gentle-clues functions, not one collapsed function -- attention
+        routes to its own `memo` id, and it is still not in the warning
+        bucket.
         """
         attention = nodes.attention()
         para = nodes.paragraph(text="Pay attention.")
@@ -397,18 +409,22 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "warning({" in output
-        assert "warning[" not in output
+        assert "memo({" in output
+        assert "memo[" not in output
         assert 'par({text("Pay attention.")})' in output
 
-    def test_generic_admonition_converts_to_clue(self, temp_sphinx_app: SphinxTestApp):
-        """Test that a generic nodes.admonition converts to clue[] (D-06).
+    def test_generic_admonition_converts_to_notify(
+        self, temp_sphinx_app: SphinxTestApp
+    ):
+        """Test that a generic nodes.admonition converts to notify[] (D-09).
 
         Uses the real docutils shape produced by `.. admonition:: <title>` —
         a `nodes.admonition` with a real `nodes.title` child — rather than
         an injected title on an unrelated admonition type. The title flows
         through the same buffer-swap `visit_title`/`depart_title` path used
-        by all other admonition types.
+        by all other admonition types. `nodes.admonition`'s class name
+        ("admonition") is not a sphinx.locale.admonitionlabels catalog key,
+        so no static title is injected here.
         """
         admonition = nodes.admonition()
         title = nodes.title(text="My Note")
@@ -425,9 +441,42 @@ class TestAdmonitionConversion:
         doc.walkabout(translator)
 
         output = translator.astext()
-        assert "clue({" in output
-        assert "clue[" not in output
+        assert "notify({" in output
+        assert "notify[" not in output
         assert ", title: {" in output
         assert output.count("My Note") == 1
         assert "heading(" not in output
         assert 'par({text("Generic admonition body.")})' in output
+
+    def test_note_with_own_title_wins_over_catalog(
+        self, temp_sphinx_app: SphinxTestApp
+    ):
+        """A directive-supplied title wins over the sphinx.locale.
+        admonitionlabels catalog value (D-04/D-05 precedence, T-39-12).
+
+        Uses nodes.note -- a real catalog key whose English catalog value
+        is "Note" -- carrying its own title child, proving the dynamic
+        (node-derived) title path in _depart_admonition still takes
+        priority over the static catalog lookup Task 2 introduced, and
+        that the catalog value never leaks through when a title child is
+        present.
+        """
+        note = nodes.note()
+        title = nodes.title(text="Custom Note Title")
+        para = nodes.paragraph(text="Content here.")
+        note += title
+        note += para
+
+        doc = create_document()
+        doc += note
+
+        writer = TypstWriter(temp_sphinx_app.builder)
+        writer.document = doc
+        translator = TypstTranslator(doc, temp_sphinx_app.builder)
+        doc.walkabout(translator)
+
+        output = translator.astext()
+        assert "info({" in output
+        assert ", title: {" in output
+        assert output.count("Custom Note Title") == 1
+        assert '"Note"' not in output  # the catalog value must not leak through

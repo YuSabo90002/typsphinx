@@ -35,11 +35,21 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev --locked
 
+      # Every `${{ }}` below is passed through `env:` rather than interpolated
+      # into the script body. A `${{ }}` inside `run:` is substituted BEFORE
+      # bash parses the script, so a tag name containing `"`, backticks, or
+      # `$(...)` -- none of which git forbids -- would execute as code in a job
+      # holding `contents: write` / `id-token: write`. Via `env:` the value
+      # reaches bash as data. Keep this invariant: no `${{ }}` inside any
+      # `run:` block in this file.
       - name: Extract version from tag
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
           else
             TAG="${GITHUB_REF#refs/tags/}"
           fi
@@ -48,13 +58,23 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Verify version matches pyproject.toml
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
         run: |
           PYPROJECT_VERSION=$(uv run python -c "import sys, importlib; tomllib = importlib.import_module('tomllib' if sys.version_info >= (3, 11) else 'tomli'); print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          TAG_VERSION="${{ steps.version.outputs.version }}"
           echo "pyproject.toml version: $PYPROJECT_VERSION"
           echo "Tag version: $TAG_VERSION"
           if [ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]; then
             echo "::error::Version mismatch: pyproject.toml has $PYPROJECT_VERSION but tag is $TAG_VERSION"
+            exit 1
+          fi
+
+      - name: Verify CHANGELOG has a section for this version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ! uv run python scripts/extract_changelog_section.py "$VERSION" >/dev/null; then
+            echo "::error::CHANGELOG.md has no usable '## [$VERSION]' section -- add a curated release-notes entry before tagging."
             exit 1
           fi
 
@@ -139,11 +159,15 @@ jobs:
           name: dist-packages
           path: dist/
 
+      # Same `env:`-not-interpolation invariant as the validate job above.
       - name: Extract version from tag
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
           else
             TAG="${GITHUB_REF#refs/tags/}"
           fi
@@ -151,20 +175,12 @@ jobs:
 
       - name: Generate release notes
         id: notes
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-
-          # Get previous tag
-          PREV_TAG=$(git describe --tags --abbrev=0 $TAG^ 2>/dev/null || echo "")
-
-          # Generate changelog
-          if [ -n "$PREV_TAG" ]; then
-            echo "## Changes since $PREV_TAG" > release_notes.md
-            echo "" >> release_notes.md
-            git log $PREV_TAG..$TAG --pretty=format:"- %s (%h)" >> release_notes.md
-          else
-            echo "## Initial Release" > release_notes.md
-          fi
+          # Curated release-notes body, sourced from CHANGELOG.md's own
+          # `## [X.Y.Z]` section (REL-04) -- not a `git log` commit dump.
+          uv run python scripts/extract_changelog_section.py "${TAG#v}" > release_notes.md
 
           echo "" >> release_notes.md
           echo "## Installation" >> release_notes.md

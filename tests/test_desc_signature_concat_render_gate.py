@@ -158,17 +158,24 @@ class TestDescSignatureConcatRenderGate:
         typ_text = typ_output.read_text(encoding="utf-8")
 
         # The leading-reference parameter must keep the concat '+' and its right
-        # operand on ONE statement: 'text("(") + link(' -- pre-fix the newline
+        # operand on ONE statement: 'raw("(") + link(' -- pre-fix the newline
         # split the '+' from the link, so NO single line contains this substring
         # (an empty match list here IS the pre-fix failure).
+        #
+        # Phase 37 (37-04-PLAN.md Task 2, deviation Rule 2 -- found by reading
+        # this file in full rather than only the two lines contract
+        # 37-EMISSION-CONTRACT.md section 11 names for this module): section 6
+        # swaps the opening-paren delimiter from a text primitive to raw(...),
+        # so 'text("(") + link(' can never match again once the delimiter
+        # change lands. Migrated straight to the final Phase 37 shape.
         #
         # A whole-file '+\\n' grep would false-positive on the template's own
         # Typst (a trailing binary operator legitimately continues an expression
         # in some grouping contexts), so scope the stray-operator check to the
         # parameter-list line, where a stranded '+' is unambiguously the bug.
-        param_lines = [ln for ln in typ_text.splitlines() if 'text("(") + link(' in ln]
+        param_lines = [ln for ln in typ_text.splitlines() if 'raw("(") + link(' in ln]
         assert param_lines, (
-            "Expected a parameter-list line emitting 'text(\"(\") + link(' on "
+            "Expected a parameter-list line emitting 'raw(\"(\") + link(' on "
             "one statement -- the '+' was split from its link operand by a "
             f"stray newline (the fix is not applied):\n{typ_text}"
         )
@@ -177,7 +184,7 @@ class TestDescSignatureConcatRenderGate:
         # The whole parameter list is on this one line (closing paren present),
         # and the line strands no '+' at either boundary (no leading '+' at the
         # start of the statement, no trailing '+' before its end).
-        assert 'text(")")' in param_line, (
+        assert 'raw(")")' in param_line, (
             "The parameter list was split across lines (closing paren not on the "
             "same statement as the opening) -- the concat/newline collision is "
             f"not fixed:\n{param_line!r}"
@@ -264,12 +271,19 @@ class TestDescSignatureSiblingsRenderGate:
         )
 
         # Sanity: the linebreak() tokens sit strictly between the sibling
-        # strong({...}) signature blocks, not before the first or after the
-        # last.
-        first_sig_idx = typ_text.index('strong({text("compile")')
+        # signature blocks, not before the first or after the last.
+        #
+        # Phase 37 (37-EMISSION-CONTRACT.md section 3 + 5.1 + 5.2 rule 2 +
+        # section 6, worked derivation section 9): desc_name is a text-only
+        # leaf -> strong(raw("compile")); each parameter's own desc_sig_name
+        # is the first child of its desc_parameter and a leaf -> emph(raw(...));
+        # the parameter-list delimiters swap to raw(...). This fixture is the
+        # same compile(source[, filename[, symbol]]) shape section 9 derives
+        # golden.typ's signature lines from.
+        first_sig_idx = typ_text.index('strong(raw("compile"))')
         last_sig_close_idx = typ_text.rindex(
-            'text("(") + text("source") + text(", ") + text("filename") + '
-            'text(", ") + text("symbol") + text(")")'
+            'raw("(") + emph(raw("source")) + raw(", ") + emph(raw("filename")) + '
+            'raw(", ") + emph(raw("symbol")) + raw(")")'
         )
         siblings_span = typ_text[first_sig_idx:last_sig_close_idx]
         assert siblings_span.count("linebreak()") == 2, (
@@ -279,7 +293,7 @@ class TestDescSignatureSiblingsRenderGate:
 
         # The lone-signature construct (solo(source)) must emit no
         # linebreak() at all around it.
-        solo_idx = typ_text.index('strong({text("solo")')
+        solo_idx = typ_text.index('strong(raw("solo"))')
         solo_region = typ_text[solo_idx : solo_idx + 200]
         assert "linebreak()" not in solo_region, (
             "The lone solo(source) signature must stay byte-unchanged -- "

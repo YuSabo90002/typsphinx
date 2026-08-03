@@ -11,6 +11,14 @@ PDF. This module closes that gap by running the full pipeline for real:
 and asserting that none of the literal-source leak signatures (the
 paragraph-call / text-call / raw-call open-paren forms) appear in the
 extracted PDF prose.
+
+Phase 39 extends ``TestAdmonitionPdfRenderGate`` with the compiled-PDF half
+of ADM-01/ADM-02: the seealso, attention and danger body sentinels and their
+``sphinx.locale.admonitionlabels`` catalog titles must survive into
+pypdf-extracted text from a real ``typst.compile()``, alongside this
+module's pre-existing literal-source-leak negative control. The class's
+single compile is shared via a class-scoped fixture (extracted from the
+previously test-method-inline compile) rather than run twice.
 """
 
 import re
@@ -19,6 +27,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from sphinx.locale import admonitionlabels
 
 try:
     import typst
@@ -178,73 +187,180 @@ def _run_sphinx_build_typst(
     )
 
 
+@pytest.fixture(scope="class")
+def admonition_render_gate_pdf_text(tmp_path_factory):
+    """
+    Build + real-compile the admonition_render_gate fixture ONCE per class
+    and return the pypdf-extracted PDF text.
+
+    Class-scoped (Phase 39 extraction of the pre-existing D-04 inline
+    compile) so `test_admonition_pdf_has_no_literal_source_leak` and the
+    new Phase 39 header-text test below assert disjoint slices of the SAME
+    real-compile artifact rather than re-running sphinx-build/
+    typst.compile() twice -- the `topic_line_block_render_gate_pdf_text`
+    fixture above is the precedent this mirrors. Depends only on
+    `tmp_path_factory` (session-scoped-compatible), not on the
+    function-scoped `admonition_render_gate_dir`/`temp_build_dir` fixtures,
+    to avoid a pytest ScopeMismatch (a class-scoped fixture may not depend
+    on a narrower, function-scoped one).
+    """
+    source_dir = Path(__file__).parent / "fixtures" / "admonition_render_gate"
+    build_dir = tmp_path_factory.mktemp("admonition_render_gate") / "_build"
+
+    # sphinx-build -b typst on the fixture.
+    #
+    # Invoked as `sys.executable -m sphinx` (the sphinx-build console entry
+    # point's module form) rather than shelling out to `uv run
+    # sphinx-build`: this guarantees the exact interpreter/venv already
+    # running this test is reused, with no dependency on external PATH
+    # resolution of a `uv` executable. This matters in this project's dev
+    # sandbox specifically -- a stray non-Nix `uv` binary installed into
+    # `.venv/bin` (shadowing the correct Nix-provided `uv` earlier on PATH
+    # for subprocess children) makes `["uv", "run", ...]` exit 127 ("Could
+    # not start dynamically linked executable") when invoked from inside a
+    # pytest-launched subprocess, even though the same command succeeds
+    # when run directly in a shell. `sys.executable -m sphinx` sidesteps
+    # that PATH-shadowing hazard entirely.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typst",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+    index_typ = build_dir / "index.typ"
+    assert index_typ.exists(), "index.typ was not generated"
+
+    # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except: any
+    # fatal aborts the entire compile here and fails every dependent test
+    # method loudly, rather than merely failing a string-agreement check.
+    pdf_output = build_dir / "index.pdf"
+    typst.compile(str(index_typ), output=str(pdf_output))
+
+    assert pdf_output.exists(), "PDF file was not created"
+    assert pdf_output.stat().st_size > 0, "PDF file is empty"
+    with open(pdf_output, "rb") as f:
+        magic = f.read(4)
+        assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    reader = pypdf.PdfReader(str(pdf_output))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
+
 @pytest.mark.skipif(
     not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
     reason="typst-py and pypdf are both required for the D-04 render gate",
 )
 class TestAdmonitionPdfRenderGate:
     """
-    Real-compile acceptance gate for the admonition markup/code-mode fix.
+    Real-compile acceptance gate for the admonition markup/code-mode fix
+    (D-04), extended in Phase 39 for ADM-01/ADM-02's compiled-PDF half.
 
-    Requirements: D-04 (08.1-RESEARCH.md, 08.1-VALIDATION.md).
+    Requirements: D-04 (08.1-RESEARCH.md, 08.1-VALIDATION.md);
+    ADM-01/ADM-02 (39-CONTEXT.md D-02/D-03, 39-VALIDATION.md).
     """
 
     def test_admonition_pdf_has_no_literal_source_leak(
-        self, admonition_render_gate_dir, temp_build_dir
+        self, admonition_render_gate_pdf_text
     ):
         """
-        Compile the admonition render-gate fixture to PDF and confirm the
-        extracted text contains typeset prose, not literal Typst source.
+        Confirm the extracted PDF text contains typeset prose, not literal
+        Typst source. Unchanged behaviour -- only its compile is now shared
+        via the class-scoped fixture above rather than run inline.
         """
-        # 1. sphinx-build -b typst on the fixture.
-        #
-        # Invoked as `sys.executable -m sphinx` (the sphinx-build console
-        # entry point's module form) rather than shelling out to `uv run
-        # sphinx-build`: this guarantees the exact interpreter/venv already
-        # running this test is reused, with no dependency on external PATH
-        # resolution of a `uv` executable. This matters in this project's
-        # dev sandbox specifically -- a stray non-Nix `uv` binary installed
-        # into `.venv/bin` (shadowing the correct Nix-provided `uv` earlier
-        # on PATH for subprocess children) makes `["uv", "run", ...]` exit
-        # 127 ("Could not start dynamically linked executable") when invoked
-        # from inside a pytest-launched subprocess, even though the same
-        # command succeeds when run directly in a shell. `sys.executable -m
-        # sphinx` sidesteps that PATH-shadowing hazard entirely.
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "sphinx",
-                "-b",
-                "typst",
-                str(admonition_render_gate_dir),
-                str(temp_build_dir),
-            ],
-            capture_output=True,
-            text=True,
+        full_text = admonition_render_gate_pdf_text
+
+        for leaked_token in LEAK_SIGNATURES:
+            assert leaked_token not in full_text, (
+                f"Literal Typst source '{leaked_token}' leaked into rendered "
+                "PDF text -- admonition markup/code-mode mismatch regression"
+            )
+
+    def test_admonitionbuckettitlegate(self, admonition_render_gate_pdf_text):
+        """
+        ADM-01/ADM-02 compiled-PDF half, corrected and strengthened for
+        D-03-R (gap G-39-1): the seealso, attention and danger body
+        sentinels survive into pypdf-extracted text, and their rendered
+        header text reads as their `sphinx.locale.admonitionlabels`
+        English values -- regardless of which gentle-clues function boxes
+        them, since the catalog title always wins over the function's own
+        default (D-04/D-05).
+
+        Named `test_admonitionbuckettitlegate` (no underscore inside the
+        selectable run) so it is selected verbatim by
+        `-k AdmonitionBucketTitleGate` (39-VALIDATION.md's per-requirement
+        command) -- pytest's `-k` performs a case-insensitive CONTIGUOUS
+        substring match against the test node id, and an underscore breaks
+        that contiguity (test_admonitiontitleregression_multichild's own
+        docstring records the same rule).
+
+        The body sentinels and the three catalog-title assertions are all
+        bucket-independent: they were already green before G-39-1's
+        routing change (attention/danger boxed by `error(...)`) and stay
+        green after it (attention boxed by `memo(...)`, danger by
+        `danger(...)`) because the catalog `custom_title` always overrides
+        whichever function's own default title would otherwise surface --
+        this is exactly why this test needed no expected-string migration
+        for G-39-1 and is strengthened with a new negative assertion
+        instead, below.
+
+        The negative assertion below is meaningful only for attention:
+        gentle-clues' own English default title for the `memo` id is
+        "Memorize" (`lang.toml` `[lang.en]`), which differs from the
+        Sphinx catalog's "Attention", so a lost `title` argument would
+        leak "Memorize" into the compiled PDF and this assertion would
+        catch it. No matching guard exists for danger: gentle-clues' own
+        English default for the `danger` id is "Danger" (`lang.toml`
+        `[lang.en]`), which is byte-identical to the Sphinx catalog's
+        "Danger" for the same type in English -- so a lost title argument
+        for danger cannot be told apart from a correct one by a text
+        search here (this holds in Japanese too: both are "危険").
+        """
+        full_text = admonition_render_gate_pdf_text
+
+        for sentinel in (
+            "ADMONSEEALSOSENTINEL",
+            "ADMONATTENTIONSENTINEL",
+            "ADMONDANGERSENTINEL",
+        ):
+            assert sentinel in full_text, (
+                f"Expected sentinel '{sentinel}' in extracted PDF text -- "
+                "body content regression, independent of bucket routing"
+            )
+
+        for catalog_key in ("seealso", "attention", "danger"):
+            expected_title = str(admonitionlabels[catalog_key])
+            assert expected_title in full_text, (
+                f"Expected the {catalog_key} admonition's catalog title "
+                f"'{expected_title}' (sphinx.locale.admonitionlabels) in "
+                "extracted PDF text -- D-04/D-05 title-source regression"
+            )
+
+        # G-39-1: gentle-clues' own English default title for the `memo`
+        # id ("Memorize", lang.toml [lang.en]) must never leak into the
+        # compiled PDF in place of the catalog's "Attention" -- the
+        # highest-risk regression in this gap (a dropped title argument
+        # would rename the box while every routing assertion still
+        # passes). No equivalent guard is possible for danger: see the
+        # docstring above.
+        memo_package_default_title_en = "Memorize"
+        assert memo_package_default_title_en not in full_text, (
+            "G-39-1 violated: gentle-clues' own English default title for "
+            f"the memo id ({memo_package_default_title_en!r}) leaked into "
+            "the compiled PDF -- the attention admonition's title argument "
+            "was dropped, so gentle-clues' own default surfaced instead of "
+            "the sphinx.locale.admonitionlabels catalog title"
         )
-        assert result.returncode == 0, (
-            f"sphinx-build failed:\n"
-            f"stdout: {result.stdout}\n"
-            f"stderr: {result.stderr}"
-        )
-
-        index_typ = temp_build_dir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
-
-        # 2. Compile the emitted .typ to PDF with typst-py.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
-
-        assert pdf_output.exists(), "PDF file was not created"
-        assert pdf_output.stat().st_size > 0, "PDF file is empty"
-        with open(pdf_output, "rb") as f:
-            magic = f.read(4)
-            assert magic == b"%PDF", "Generated file is not a valid PDF"
-
-        # 3. Extract text with pypdf and assert no literal-source leak.
-        reader = pypdf.PdfReader(str(pdf_output))
-        full_text = "\n".join(page.extract_text() for page in reader.pages)
 
         for leaked_token in LEAK_SIGNATURES:
             assert leaked_token not in full_text, (
@@ -775,10 +891,26 @@ class TestDescSignatureRenderGate:
 
         reader = pypdf.PdfReader(str(pdf_output))
         full_text = "\n".join(page.extract_text() for page in reader.pages)
+        # Phase 37 (37-EMISSION-CONTRACT.md section 4.2): every compiled-PDF
+        # text assertion in this phase must strip U+200B before comparing --
+        # once a ZWSP break opportunity exists anywhere in the document,
+        # pypdf.extract_text() has been measured to emit a spurious U+200B
+        # at unrelated glyph boundaries too, not only at injection points.
+        # (This specific fixture's desc_signature runs contain no dotted
+        # name, so the strip is a no-op here today; added defensively so
+        # this function does not regress once 37-06/37-07 land.)
+        full_text = full_text.replace(
+            "\u200b", ""
+        )  # U+200B, written as an explicit escape
 
         # DESC-01: the return arrow, adjacent to the return type.
-        assert "-> int" in full_text, (
-            "Expected the ' -> ' return arrow adjacent to the return type "
+        # Phase 37 (37-EMISSION-CONTRACT.md section 7): the ASCII "->" is
+        # replaced by the real U+2192 glyph, emitted as
+        # raw(" ") + raw("\\u{2192}") + raw(" "), which pypdf extracts as
+        # a real "→" character (measured; the ASCII two-character arrow is
+        # absent from the compiled PDF text).
+        assert "→ int" in full_text, (
+            "Expected the ' → ' return arrow adjacent to the return type "
             "in extracted PDF text -- desc_returns regression"
         )
 
