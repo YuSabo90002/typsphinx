@@ -3332,13 +3332,6 @@ class TypstTranslator(SphinxTranslator):
                     )
                 else:
                     self.body.append(f"{figure_code}\n\n")
-
-                # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored
-                # above as the figure's own <label> -- anchoring it again
-                # here would define it TWICE (Typst "label ... occurs
-                # multiple times" compile fatal). Anchor only a PROPAGATED
-                # remainder id (ids[1:]); no-op when there is none.
-                self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
             else:
                 # Caption-less path: byte-for-byte unchanged (SC#2).
                 if converted_width is not None:
@@ -3348,7 +3341,34 @@ class TypstTranslator(SphinxTranslator):
                 else:
                     self.body.append(f"{table_code}\n\n")
 
+        # TBL-03 (Phase 42): captured BEFORE self.table_caption is reset
+        # below, because the original `if self.table_caption:` condition
+        # cannot be re-evaluated after that reset -- re-reading it there
+        # would evaluate False for every captioned table and silently
+        # disable the propagated-anchor emission below while leaving the
+        # caption-less path (which never had a bug) looking correct. The
+        # `self.table_colcount > 0` conjunct mirrors the enclosing guard
+        # this call site sat inside before the move, so a degenerate
+        # zero-column captioned table keeps its current (no-op) emission.
+        was_captioned = self.table_colcount > 0 and bool(self.table_caption)
+
         self.in_table = False
+
+        # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored above
+        # as the figure's own <label> -- anchoring it again here would
+        # define it TWICE (Typst "label ... occurs multiple times" compile
+        # fatal). Anchor only a PROPAGATED remainder id (ids[1:]); no-op
+        # when there is none.
+        #
+        # TBL-03 (Phase 42): this call must run AFTER self.in_table is
+        # cleared above. add_text() (see that method) diverts every append
+        # into self.table_cell_content while self.in_table is set, and that
+        # buffer is `del`eted a few statements below -- so an anchor emitted
+        # from the old pre-reset call site never reached self.body at all;
+        # it was silently discarded along with the buffer.
+        if was_captioned:
+            self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+
         self.table_cells = []
         self.table_colcount = 0
         self.table_colwidths = []
