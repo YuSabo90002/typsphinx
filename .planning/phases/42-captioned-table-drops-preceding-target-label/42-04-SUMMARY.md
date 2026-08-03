@@ -175,6 +175,15 @@ None - no external service configuration required.
   landed, no production change).
 - No blockers.
 
+## Self-Check: PASSED
+
+- FOUND: `typsphinx/translator.py`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-GATE-EVIDENCE-04.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-04-SUMMARY.md`
+- FOUND commit: `e5575f3` (fix)
+- FOUND commit: `798ab72` (docs, evidence)
+- FOUND commit: `fc9203c` (docs, this SUMMARY)
+
 ---
 *Phase: 42-captioned-table-drops-preceding-target-label*
 *Completed: 2026-08-03*
