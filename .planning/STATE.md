@@ -1,39 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7.0
-milestone_name: API rendering design overhaul
-status: Awaiting next milestone
-stopped_at: Milestone v0.7.0 shipped and archived; REL-04 carried to v0.7.1
-last_updated: "2026-08-03T15:38:44.326Z"
+milestone: v0.7.1
+milestone_name: bug-fix round
+status: planning
+last_updated: "2026-08-03T21:10:12.536Z"
 last_activity: 2026-08-04
-last_activity_desc: Milestone v0.7.0 completed and archived
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 57
-  completed_plans: 57
-  percent: 100
-current_phase: 42
-current_phase_name: captioned-table-drops-preceding-target-label
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-04 at the v0.7.0 milestone close)
+See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Planning the next milestone (starts at **Phase 43**) — run `/gsd-new-milestone`.
+**Current focus:** Milestone **v0.7.1 (bug-fix round)** — defining requirements. Phase numbering
+continues at **Phase 43**.
 
 ## Current Position
 
-Phase: — (no active milestone)
+Phase: Not started (defining requirements)
 Plan: —
-Status: v0.7.0 shipped 2026-08-04; awaiting next milestone
-Last activity: 2026-08-04 — Milestone v0.7.0 completed, archived, and published
-
-Progress: [████████████████████] v0.7.0 100% (8/8 phases, 57/57 plans)
+Status: Defining requirements
+Last activity: 2026-08-04 — Milestone v0.7.1 started
 
 ## Shipped Milestone (v0.7.0 — archived)
 
@@ -85,9 +80,11 @@ the two classic-`TypstError` exceptions.
    selectors stayed RED after the handlers landed; all four were defects in the gate module itself,
    and the corrected module was re-proved 9/9 RED against the pre-fix translator three independent
    times before being trusted.
+
 2. **A locked decision was reversed on evidence.** Shown a live render at UAT the owner overturned
    D-03 and re-opened an already-closed Phase 39 (5/5 verified) rather than filing the difference
    as debt.
+
 3. **A recurring tooling hazard was made falsifiable.** `phase.complete` auto-flipping REL-04/REL-05
    against a CONTEXT decision was caught and reverted in Phase 41, then pre-empted in Phase 42 by
    `42-CLOSEOUT-GUARD.md`, which recorded the four at-risk lines verbatim with a file checksum. It
@@ -237,6 +234,7 @@ Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
   lychee check already covers the one new link this release adds.
+
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder, tests) — input-validation hardening.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — refactor, no release bearing.
 - **modernize-typing-imports-drop-up006-up035-ignore** (source) — **do not act on this until the
@@ -257,6 +255,7 @@ Filed during v0.7.0 and still open (3):
 - **emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user** (translator, Phase 42
   review WR-01) — a stale docstring, deliberately not fixed in-phase so the change would not fall
   outside the SHA range Phase 42's SC#4/SC#6 evidence measured.
+
 - **nested-table-clobbers-outer-table-state** (translator, Phase 42 review IN-02) — a real, severe,
   **pre-existing** bug: a table nested inside a `list-table` cell silently drops the outer table
   structure, because `in_table`/`table_cell_content` are scalars rather than a stack. Verified
@@ -439,4 +438,5 @@ Resume: `/gsd-new-milestone` (next milestone starts at **Phase 43**).
 
 - ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
   Shipped Milestone). Nothing owner-manual is outstanding.
+
 - Start the next milestone with `/gsd-new-milestone` — phase numbering continues at **Phase 43**.
