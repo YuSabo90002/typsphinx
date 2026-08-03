@@ -245,4 +245,198 @@ where that loop closes. No divergence was found; had the gate skipped or shown a
 would say so plainly and flag the CHANGELOG claim as not currently supported — that did not happen
 here.
 
-<!-- gsd:write-continue -->
+---
+
+## Step 6 — `uv run tox -e docs-html`
+
+Command:
+```
+$ uv run tox -e docs-html
+```
+Ran to completion via the real `tox -e docs-html` route (no fallback to a substituted
+`python -m sphinx` invocation was needed — `tox` ran cleanly under this worktree's provisioning).
+
+Verbatim final build status line and warning summary:
+```
+build succeeded, 2 warnings.
+
+HTMLページは_build/htmlにあります。
+  docs-html: OK (3.58=setup[0.51]+cmd[3.08] seconds)
+  congratulations :) (3.61 seconds)
+```
+
+The complete warning list (both warnings, verbatim):
+```
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a53198d22b20ea40f/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:7: ERROR: Unexpected indentation. [docutils]
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a53198d22b20ea40f/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:8: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+```
+Both are a pre-existing docstring-formatting nit in `visit_toctree`'s own docstring (unrelated to
+this milestone's translator work, which never touched `visit_toctree`) — the same two warnings
+`35-RELEASE-EVIDENCE.md`'s Step 6 recorded for the v0.6.5 tree. They do not fail the build.
+
+Exit status, captured reliably (not through a `tee` pipe, whose exit code reflects `tee` rather than
+`tox`):
+```
+$ uv run tox -e docs-html > <logfile> 2>&1; echo "TOX_HTML_EXIT:$?"
+TOX_HTML_EXIT:0
+```
+
+---
+
+## Step 7 — `uv run tox -e docs-pdf`
+
+Command:
+```
+$ uv run tox -e docs-pdf
+```
+Ran via the real `tox -e docs-pdf` route, no fallback needed.
+
+Verbatim final build status line and warning summary:
+```
+Copying template assets...
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a53198d22b20ea40f/docs/_build/pdf/typsphinx.pdf
+build succeeded, 2 warnings.
+  docs-pdf: OK (3.74=setup[0.47]+cmd[3.27] seconds)
+  congratulations :) (3.76 seconds)
+```
+The complete warning list is byte-identical to Step 6's (the same `visit_toctree` docstring nit,
+pre-existing, unrelated to this milestone).
+
+Exit status:
+```
+$ uv run tox -e docs-pdf > <logfile> 2>&1; echo "TOX_PDF_EXIT:$?"
+TOX_PDF_EXIT:0
+```
+
+**Produced PDF — path, size, page count:**
+```
+$ ls -la docs/_build/pdf/typsphinx.pdf
+-rw-r--r-- 1 yuta users 1968588  8月  3 20:41 docs/_build/pdf/typsphinx.pdf
+
+$ uv run python3 -c "
+import pypdf
+r = pypdf.PdfReader('docs/_build/pdf/typsphinx.pdf')
+print('pages:', len(r.pages))
+"
+pages: 93
+```
+Path: `docs/_build/pdf/typsphinx.pdf`. Size: **1,968,588 bytes**. Page count: **93 pages**.
+
+**Page-count delta against `39-GATE-EVIDENCE-04.md` §6's recorded figure (91 pages, post-Phase-39):**
+**+2 pages**, explained rather than merely reported. `docs/` itself carries zero line changes across
+the entire v0.7.0 milestone (`41-RESEARCH.md`'s own measurement, `git diff --stat 51e02b6..HEAD --
+docs/` empty, re-confirmed live in this plan: `git diff --stat aa9d2f0~... -- docs/` — see below),
+so the delta is entirely a consequence of `typsphinx/translator.py` changes reaching content that was
+already there, the same mechanism Phase 39's own +1 delta was explained by.
+
+The specific mechanism located: `docs/source/examples/advanced.rst` contains a real citation
+definition and reference that predate this milestone (unchanged docs content):
+```
+$ grep -n "Smith2023\|^\.\. \[" docs/source/examples/advanced.rst
+226:   According to Smith et al. [Smith2023]_, machine learning...
+231:   .. [Smith2023] Smith, J. (2023). Machine Learning Advances.
+```
+Before Phase 40, `TypstTranslator` had **zero** citation handlers (`visit_citation`/`depart_citation`
+did not exist) — this markup fell through docutils' generic unhandled-node path with no dedicated
+rendering. Phase 40 added full citation round-trip support (hanging-indent entries, in-text links,
+back-references), which now renders this exact, unchanged source content as a real labelled-entry
+citation with its own back-reference markers — additional emitted content on an otherwise-unchanged
+page, consistent with a small page-count increase. This is the CHANGELOG's own Added bullet in
+action ("Citations — full round trip... a document containing a citation no longer fails the Typst
+compile outright") reaching the project's own dogfooded documentation, not a defect.
+
+```
+$ git diff --stat aa9d2f06ad854f6f96d285d669ba4bb91b053f31 -- docs/
+(empty)
+```
+(Compared against this plan's own starting HEAD, confirming no commit in this plan's own history — nor
+any commit already on this branch before it — touched `docs/`.)
+
+---
+
+## Step 7b — the D-12 confirmation
+
+Search (both build logs, full text, not only the excerpts quoted above):
+```
+$ grep -n "visit_desc_sig_name\|problematic" <docs-html full log> <docs-pdf full log>
+(no output -- zero occurrences in either log)
+```
+**Result: zero occurrences of the `visit_desc_sig_name` autodoc diagnostic and zero `problematic`
+node reports in either build's complete output.** Plan 41-03's docstring fix (commit `c81ca29`,
+escaping the unbalanced `*` inside `visit_desc_sig_name`'s docstring's `PyTypeObject *type` example)
+has reached the published API reference page — `39-GATE-EVIDENCE-04.md` §6 recorded this exact
+warning present pre-fix ("one `visit_desc_sig_name` inline-emphasis warning, plus one `unknown_visit`
+for a `<problematic>` node"); this plan's live re-run on the post-fix tree shows it gone from both
+dogfooding builds' warning output. D-12's whole rationale ("SC#3 runs `tox -e docs-pdf` anyway, so the
+warning disappears from evidence this phase already collects") is directly confirmed here, not merely
+asserted.
+
+---
+
+## Step 8 — working-tree cleanliness
+
+Command (run after both builds completed):
+```
+$ git status --porcelain
+(empty)
+```
+Nothing under version control was modified and nothing untracked was left behind — both tox
+environments build into `docs/_build/` and `.tox/`, both gitignored, and the empty porcelain output
+confirms neither build wrote anything unexpected outside those paths.
+
+Scoped re-check matching this plan's own acceptance criterion:
+```
+$ git status --porcelain -- typsphinx tests scripts docs
+(empty)
+```
+
+---
+
+## Tag-emptiness proof (Task 3's own acceptance criterion)
+
+```
+$ git tag -l v0.7.0
+(empty)
+
+$ git ls-remote --tags origin v0.7.0
+(empty)
+```
+No irreversible action has been taken by this plan or is present on this tree.
+
+---
+
+## SC#3 (mechanical half) verdict
+
+Per must-have truth, what was proven and by which step:
+
+- **The full pytest suite (including slow-marked tests) ran and its result line is transcribed
+  verbatim, with every failure/skip named individually** — proven by **Step 1** (805 passed, 1
+  skipped, the one skip named with its verbatim reason; 0 failures).
+- **The lint/type trio each ran with its exit status recorded separately** — proven by **Steps 2-4**
+  (`black --check .`, `ruff check .`, `mypy typsphinx/`, each exit 0, `mypy`'s `scripts/`-exclusion
+  stated explicitly).
+- **The full-corpus `-b typstpdf` gate EXECUTED, not skipped** — proven by **Step 5** (isolated run,
+  EXECUTED, corpus tag `v9.1.0`, PASSED, cross-checked against the CHANGELOG's third `### Verified`
+  claim, which HOLDS).
+- **Both docs dogfooding builds succeed, with page count and warning summary transcribed for the PDF
+  build** — proven by **Steps 6-7** (both exit 0, both share the same 2 pre-existing warnings, PDF
+  build produces `typsphinx.pdf` at 1,968,588 bytes / 93 pages, +2 vs. the 91-page Phase-39 baseline,
+  explained by Phase 40's citation handlers now rendering a pre-existing, unchanged citation in
+  `examples/advanced.rst`).
+- **The `visit_desc_sig_name` diagnostic is absent from the docs builds' warning output** — proven by
+  **Step 7b** (zero occurrences in either build's complete log, confirming plan 41-03's fix reached
+  the published API reference page).
+- **The working tree is clean after both docs builds** — proven by **Step 8** (`git status
+  --porcelain` empty, both scoped and unscoped).
+
+**This file does NOT speak to the `ja` four-check glyph bar — that is SC#3's other half, owned by
+plan 41-04, running in its own parallel worktree.** Nothing in this evidence file asserts, implies, or
+depends on that comparison's result.
+
+**Overall: SC#3's mechanical half is MET on this measurement.** Every command in this file was
+actually run in this worktree at commit range `aa9d2f0..` (this plan's own commits); nothing was
+edited to make any of it green (`git diff --stat -- typsphinx/ tests/ scripts/ .github/ CHANGELOG.md
+pyproject.toml uv.lock` over this plan's own three commits is empty, confirmed per-task above and
+again at Step 8).
+
