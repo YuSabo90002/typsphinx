@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 42
+current_phase_name: captioned-table-drops-preceding-target-label
 status: in_progress
-stopped_at: Phase 42 promoted out of backlog 999.2 (2026-08-03) — not planned yet; the v0.7.0 publish blocks on it
-last_updated: "2026-08-03T12:55:26.000Z"
+stopped_at: Phase 42 context gathered
+last_updated: "2026-08-03T13:21:23.938Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 42 promoted from backlog 999.2
+last_activity_desc: Phase 42 context gathered
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 51
   completed_plans: 51
   percent: 88
-current_phase_name: captioned-table-drops-preceding-target-label
+current_phase: 42
 ---
 
 # Project State
@@ -487,12 +487,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/ROADMAP.md § Phase Details → Phase 42 (the phase directory
-`.planning/phases/42-captioned-table-drops-preceding-target-label/` is empty — no CONTEXT yet).
+**Resume file:** .planning/phases/42-captioned-table-drops-preceding-target-label/42-CONTEXT.md
+(CONTEXT.md and DISCUSSION-LOG.md exist; no plans yet).
 
-Last session: 2026-08-03T12:55:26.000Z
-Stopped at: Phase 42 promoted out of backlog 999.2; nothing planned yet
-Resume: `/gsd-discuss-phase 42`, then `/gsd-plan-phase 42`.
+Last session: 2026-08-03T13:21:23.930Z
+Stopped at: Phase 42 context gathered
+Resume: `/gsd-plan-phase 42`.
 
 ## Operator Next Steps
 
