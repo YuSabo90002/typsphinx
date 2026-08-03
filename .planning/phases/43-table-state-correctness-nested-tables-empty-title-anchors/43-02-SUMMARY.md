@@ -190,3 +190,11 @@ None - no external service configuration required.
 ---
 *Phase: 43-table-state-correctness-nested-tables-empty-title-anchors*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/43-table-state-correctness-nested-tables-empty-title-anchors/43-GATE-EVIDENCE-02.md`
+- FOUND: `.planning/phases/43-table-state-correctness-nested-tables-empty-title-anchors/43-02-SUMMARY.md`
+- FOUND: commit `7ec7aae` (Task 2: push + evidence)
+- FOUND: commit `e40f442` (SUMMARY.md)
+- FOUND: `refs/heads/gsd/v0.7.1-bug-fix-round` on `origin`
