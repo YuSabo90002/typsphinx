@@ -797,7 +797,7 @@ those is the first work of the phase — planning must not start from the breadc
      CHANGELOG entry gains its TBL-03 line, and SC#4's "every node-handler change carries its
      recorded-RED GATE-01 fixture" sweep is re-measured over a SHA range that includes Phase 42.
 
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 
 Open questions the phase must settle before a fix is chosen:
 
@@ -815,7 +815,7 @@ Plans (3 waves; the RED-recording commit strictly precedes the fix commit):
 - [x] 42-01-PLAN.md — wave 1: the TBL-03 GATE-01 fixture (D-01's four failing shapes plus the caption-less control) and the classic real-`TypstError` RED recorded against unfixed `depart_table` (SC#1, SC#5)
 - [x] 42-02-PLAN.md — wave 1: the permanent figure regression gate over D-10's three measured shapes, answering whether captioned figures share the drop (SC#2, D-09, D-10)
 - [x] 42-03-PLAN.md — wave 1: the repo-wide misrouting sweep with a formal image-path re-measurement, plus the D-08 whitespace-only-title todo (D-06, D-07, D-08)
-- [ ] 42-04-PLAN.md — wave 2: the fix — the `was_captioned`-gated call-ordering move inside `depart_table` — and the recorded GREEN with structural assertions (SC#3, D-02, D-03, D-05)
+- [x] 42-04-PLAN.md — wave 2: the fix — the `was_captioned`-gated call-ordering move inside `depart_table` — and the recorded GREEN with structural assertions (SC#3, D-02, D-03, D-05)
 - [ ] 42-05-PLAN.md — wave 3: caption-less byte invariance proven by an empty two-worktree diff between named pre-fix and post-fix commits (SC#4, D-04)
 - [ ] 42-06-PLAN.md — wave 3: the Phase 41 reconciliation — the TBL-03 CHANGELOG line, the SC#4 invariant sweep re-measured over a range including Phase 42, and the REL-04/REL-05 flip guard (SC#6)
 
@@ -887,7 +887,7 @@ and Phase 42's SC#6 carries the reconciliation Phase 41 would otherwise have own
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
-| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 3/6 | In Progress|  |
+| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 4/6 | In Progress|  |
 
 ## Roadmap Evolution
 
