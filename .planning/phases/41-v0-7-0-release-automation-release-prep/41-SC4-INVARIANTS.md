@@ -539,4 +539,220 @@ Both scratch scripts (`census.py`, `coverage_map.py`) live under `/tmp/claude-10
 the repository entirely — and were never `git add`ed. No new file appears anywhere under
 `typsphinx/`, `tests/`, or `scripts/`.
 
-<!-- gsd:write-continue -->
+---
+
+## Spot-check — the single-hit mappings
+
+Per Task 2's coverage table, exactly three handlers are single-hit: `visit_desc_sig_keyword`,
+`visit_desc_sig_punctuation`, `visit_desc_sig_space` — all three map only to
+`tests/test_desc_sig_space_render_gate.py`. Each is verified below against that module's actual
+assertions and against the real doctree the module's own fixture produces, not accepted on the grep
+hit alone.
+
+**Method:** built and inspected the fixture's real doctree (`sphinx-build -b typstpdf
+tests/fixtures/desc_sig_space_render_gate <scratch>`, then unpickled `.doctrees/index.doctree` and
+enumerated every `addnodes.desc_sig_keyword` / `desc_sig_space` / `desc_sig_punctuation` /
+`desc_sig_operator` / `desc_sig_name` node with `findall()`), to confirm which node types the
+fixture's RST actually produces before crediting the module's `.typ`/PDF assertions to them:
+
+```
+$ uv run python /tmp/.../inspect_doctree.py
+desc_sig_keyword: count=1 texts=['class']
+desc_sig_space: count=6 texts=[' ', ' ', ' ', ' ', ' ', ' ']
+desc_sig_punctuation: count=4 texts=['*', '*', '(', ')']
+desc_sig_operator: count=1 texts=['*']
+desc_sig_name: count=9 texts=['PyObject', 'PyType_GenericAlloc', 'PyTypeObject', 'type', 'Py_ssize_t', 'nitems', 'a', 'f', 'a']
+```
+
+The fixture's `.. py:class:: sphinx.builders.html.StandaloneHTMLBuilder` directive produces exactly
+one `desc_sig_keyword` node (text `"class"`) immediately followed by a `desc_sig_space` node; the
+`.. c:function:: PyObject *PyType_GenericAlloc(...)` directive produces `desc_sig_punctuation` nodes
+for the pointer stars (`"*"`) and the parameter-list parens.
+
+| Handler | Module | Assertion(s) quoted | Verdict |
+|---|---|---|---|
+| `visit_desc_sig_keyword` | `test_desc_sig_space_render_gate.py` | `test_typstpdf_desc_sig_space_produces_pdf_with_structural_spaces`: `assert 'raw("class")\n raw(" ")\n raw("sphinx' in typ_text` (FID-07). The doctree confirms `desc_sig_keyword`'s sole occurrence is the `"class"` text this assertion checks for — `visit_desc_sig_keyword`'s no-op lets this `Text` child stream through `visit_Text`'s monospace branch to produce exactly the quoted `raw("class")`. Also `test_pdf_extracted_text_has_no_merged_tokens`: `assert "class sphinx" in full_text` / `assert "classsphinx" not in full_text`. | **COVERED** |
+| `visit_desc_sig_punctuation` | `test_desc_sig_space_render_gate.py` | `test_typstpdf_desc_sig_space_produces_pdf_with_structural_spaces`: `assert 'raw("PyObject")\n raw(" ")\n raw("*")\n strong(raw("PyType_GenericAlloc"))' in typ_text` (FID-08). The doctree confirms the `"*"` (pointer star) between `PyObject` and `PyType_GenericAlloc` is a `desc_sig_punctuation` node — `visit_desc_sig_punctuation`'s no-op lets this `Text` child stream through to the quoted `raw("*")`. | **COVERED** |
+| `visit_desc_sig_space` | `test_desc_sig_space_render_gate.py` | Same FID-07 assertion as `visit_desc_sig_keyword` above (`raw(" ")` between `raw("class")` and `raw("sphinx`) plus this module's own docstring naming `visit_desc_sig_space` as the literal shipping bug this fixture was built to catch (the historical `self.body.append(" ")` + `SkipNode` short-circuit that discarded the node's real content-space value). The doctree confirms 6 real `desc_sig_space` nodes exist in this fixture, one of which is the exact FID-07 subject. | **COVERED** |
+
+**No single-hit handler is NOT COVERED.** All three verdicts rest on a quoted assertion tied to a
+doctree-confirmed node occurrence, not on the module mentioning the node name in prose — no open
+SC#4 gap is recorded from this spot-check.
+
+---
+
+## Phase 40.1 coverage (D-11 fold-in)
+
+Per `41-CONTEXT.md` D-11, this section reproduces `40.1-NONREGRESSION.md` §4's change-site → RED
+manifest (written expressly for this sweep) rather than re-deriving it, and confirms each row's
+named referents actually resolve in this repository.
+
+| # | Change site | Warning | Evidence file (existence confirmed) | RED commit (resolution confirmed) |
+|---|---|---|---|---|
+| 1 | `visit_citation`'s backref loop (fail-closed condition) | WR-01 | `40.1-GATE-EVIDENCE-01.md` | `0ebe8c3` |
+| 2 | `_citation_run_neighbour` (skip-list widened for ids-less targets) | WR-02 | `40.1-GATE-EVIDENCE-02.md` | `7aa1fe3` |
+| 3 | `_ReferenceAnchorDecision` / `_reference_anchor_decision` (new shared predicate) + `visit_reference` rewiring | WR-03 | `40.1-GATE-EVIDENCE-03.md` | `ae9a0fe` |
+| 4 | Deletion of `_citing_reference_has_own_anchor` | WR-03 (same evidence file as row 3) | `40.1-GATE-EVIDENCE-03.md` | `ae9a0fe` (shared with row 3) |
+
+```
+$ test -f .planning/phases/40.1-citation-degradation-hardening/40.1-GATE-EVIDENCE-01.md && echo "FOUND: 40.1-GATE-EVIDENCE-01.md"
+FOUND: 40.1-GATE-EVIDENCE-01.md
+$ test -f .planning/phases/40.1-citation-degradation-hardening/40.1-GATE-EVIDENCE-02.md && echo "FOUND: 40.1-GATE-EVIDENCE-02.md"
+FOUND: 40.1-GATE-EVIDENCE-02.md
+$ test -f .planning/phases/40.1-citation-degradation-hardening/40.1-GATE-EVIDENCE-03.md && echo "FOUND: 40.1-GATE-EVIDENCE-03.md"
+FOUND: 40.1-GATE-EVIDENCE-03.md
+
+$ git cat-file -e 0ebe8c3 && echo "0ebe8c3 resolves"
+0ebe8c3 resolves
+$ git cat-file -e 7aa1fe3 && echo "7aa1fe3 resolves"
+7aa1fe3 resolves
+$ git cat-file -e ae9a0fe && echo "ae9a0fe resolves"
+ae9a0fe resolves
+```
+
+All three evidence files exist at their recorded paths; all three RED commit SHAs resolve as real
+objects in this repository. The fold-in rests on verified referents, not on `40.1-NONREGRESSION.md`'s
+word alone (per the plan's own T-41-25 mitigation).
+
+### Cross-checking the 4 change sites against Task 2's handler census
+
+- **Row 1** (`visit_citation`): present in Task 2's 51-handler census (a `visit_`-prefixed node
+  handler). Directly covered.
+- **Row 2** (`_citation_run_neighbour`): **absent from the 51-handler list by design** — it is a
+  private helper method, not a `visit_`/`depart_` node handler, so it correctly falls outside a
+  handler census by name. It IS present in Task 2's separately-recorded "non-handler methods the
+  same census touched" list (`_citation_run_neighbour` appears there verbatim). Not a silent gap.
+- **Row 3** (`_ReferenceAnchorDecision` / `_reference_anchor_decision`, plus `visit_reference`'s
+  rewiring): the new predicate method (`_reference_anchor_decision`) is a private helper, correctly
+  absent from the handler list and present in the non-handler list; its caller, `visit_reference`,
+  **is** in the 51-handler census (it is a rewired, not newly created, handler — `visit_reference`
+  existed at BASE and gets its diff-hunk attribution from being edited to call the new predicate).
+  Covered via its caller.
+- **Row 4** (deletion of `_citing_reference_has_own_anchor`): **absent from BOTH the handler census
+  AND the non-handler-methods list, for a structural reason distinct from rows 2/3** — measured
+  directly:
+
+  ```
+  $ git show 51e02b6b61b314c99740883fb4bee7ce7b9be76b:typsphinx/translator.py | grep -n "_citing_reference_has_own_anchor"
+  (no output)
+  $ git show aa9d2f06ad854f6f96d285d669ba4bb91b053f31:typsphinx/translator.py | grep -n "_citing_reference_has_own_anchor"
+  (three docstring/comment mentions, no `def` line)
+  ```
+
+  `_citing_reference_has_own_anchor` does not exist as a function at either endpoint of the
+  `BASE..HEAD` range — it was **both created and deleted entirely inside the range** (created in
+  Phase 40, deleted by Phase 40.1's own commit `41d2683`). A two-endpoint hunk-attribution census
+  (this plan's method, and `41-RESEARCH.md`'s) can only attribute a line to a function that appears
+  in one of the two endpoint snapshots' `def`-line lists; a function whose entire lifecycle (birth
+  and death) falls strictly between the two endpoints leaves no trace in either snapshot's function
+  list, so no diff line can ever be attributed to it by this method. This is a structural blind spot
+  of two-endpoint hunk attribution, not a hidden coverage gap: the deletion's real effect — the
+  caller now calling `_reference_anchor_decision` directly — is fully captured via `visit_reference`
+  (row 3's coverage), and `40.1-NONREGRESSION.md` §4 itself records rows 3 and 4 as "one indivisible
+  fix" sharing the same RED. Stated explicitly here rather than left silent.
+
+---
+
+## This phase's own translator change (D-12 classification)
+
+`visit_desc_sig_name`'s docstring carries a real edit this phase (commit `c81ca29`, "escape the
+unbalanced asterisk in `visit_desc_sig_name`'s docstring (D-12)"), which is why `visit_desc_sig_name`
+appears in Task 2's census. This is classified here, on its own measurement:
+
+```
+$ git show c81ca29 -- typsphinx/translator.py
+diff --git a/typsphinx/translator.py b/typsphinx/translator.py
+index a63f79c..136eb97 100644
+--- a/typsphinx/translator.py
++++ b/typsphinx/translator.py
+@@ -6602,7 +6602,7 @@ class TypstTranslator(SphinxTranslator):
+         one becomes nodes.reference. A pending_xref check here would
+         silently never fire -- this is the exact wrong turn
+         37-CONTEXT.md's own D-05 text invites; 37-04-SUMMARY.md's
+-        unresolved-C-domain-type measurement (PyTypeObject *type, no
++        unresolved-C-domain-type measurement (``PyTypeObject *type``, no
+         intersphinx) independently confirms the mechanical rule-2 output
+         this discriminator produces for a type that never resolves.
+         """
+```
+
+The single changed line sits inside `visit_desc_sig_name`'s docstring (the method's `def` is at
+line 6564; its docstring runs to the closing `"""` this hunk's last context line shows; the first
+executable statement, `parent = node.parent`, follows immediately after). **No `self.`, `return`,
+`if`, `raise`, or `def` line moved** — the change wraps an already-documented C type expression in
+RST inline-literal backticks so a lone `*` no longer parses as an unterminated inline-emphasis
+start-string.
+
+**Classification: DOCSTRING-ONLY.** This change:
+
+- Alters no emitted `.typ` shape — the executable body of `visit_desc_sig_name` (rules 1/2/3 of the
+  D-05 discriminator) is byte-identical before and after this commit.
+- Creates NO GATE-01 fixture obligation under milestone invariant #4 — there is no behavioural
+  change for a fixture to pin.
+- Is proven by this plan's OWN measurement above (the commit's full diff, re-run against the
+  current range), not merely cross-referenced from the commit message's own claim.
+
+**`visit_desc_sig_name` also carries real Phase 37-era behavioural changes in this same range** —
+it is one of the four handlers with match-count 4 in Task 2's coverage table
+(`test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`,
+`test_signature_typography_gate.py`, `test_translator.py`), covering its D-05 discriminator's three
+rules (SIG-04's italic parameter name, the C++ non-leaf `desc_name` bold-wrapping case, and the
+unresolved-type fallthrough this very docstring documents). **Both facts are on the record
+together:** the handler's *behaviour* is gate-covered from Phase 37; this phase's *docstring* edit
+inside the same handler carries no separate fixture obligation.
+
+---
+
+## SC#4 verdict
+
+| Invariant | What was measured | By which command(s) | Verdict |
+|---|---|---|---|
+| 1 — zero new runtime dependencies | `pyproject.toml`'s `dependencies` array and `[dependency-groups]` table, both sides of the range; `uv.lock`'s third-party version movement | `git diff BASE..HEAD -- pyproject.toml`, `git show {BASE,HEAD}:pyproject.toml \| sed -n '/^dependencies/,/^\]/p'`, `git diff --stat/-- uv.lock`, `grep -E '^[+-]name = \|^[+-]version = '` | **PROVEN**, with a stated non-breaching finding: the `dev` extra (not `dependencies` or `[dependency-groups]`) gained one dev-only package (`pillow`, Phase 39 D-07) — outside the runtime-dependency scope the invariant and CHANGELOG claim 1 actually assert |
+| 2 — the `@preview` surface | All three declaration sites, both sides of the range; every newly added file carrying a `@preview` import, classified | `grep -n "@preview" {writer.py,template_engine.py,base.typ}` on both `HEAD` and `git show BASE:...`; `git diff --diff-filter=A --name-only \| xargs grep -l "@preview"`; `uv run pytest tests/test_preview_version_sync.py -v` | **PROVEN** — three sites line-for-line identical, four package versions unchanged, no new production sync site, two genuine fixture-mirrors both current, `docs/`'s pre-existing fourth site named as a carried Warning |
+| 3 — every node-handler change carries a recorded-RED GATE-01 fixture | The hunk-attributed handler census (51 handlers, re-derived); the node-name coverage map (all 51 mapped); the 3 single-hit handlers spot-checked against real assertions and a doctree-confirmed node occurrence; Phase 40.1's 4-row RED manifest folded in with existence + SHA-resolution confirmation; D-12's own change classified as docstring-only with its own proof | `census.py` (hunk attribution over `git diff -U0`), `coverage_map.py` (node-name grep over `tests/*.py`), `inspect_doctree.py` (real doctree node enumeration), `test -f` / `git cat-file -e` for the 40.1 fold-in, `git show c81ca29` for D-12 | **PROVEN**, within this plan's own defined scope: the 48 multi-hit handlers rest on the node-name coverage map's "necessary but not sufficient" strength (per-hunk assertion tracing for all 48 was not independently performed — only the 3 single-hit rows, per this plan's own acceptance criteria and `41-RESEARCH.md` Open Question 2's recommendation) |
+
+**No invariant is NOT PROVEN.** Invariant 3's PROVEN verdict carries one explicit scope
+qualification (above) rather than an unqualified blanket claim — stated so a future reader does not
+read "PROVEN" as "every one of 51 handlers individually assertion-traced."
+
+### Executed versus skipped — a skip is not a pass (every command in this file)
+
+| Command | Executed? | Skipped anything? |
+|---|---|---|
+| `git merge-base main HEAD` / `git describe --tags` / `git rev-parse HEAD` / commit count | Yes — all ran, fresh values recorded | None |
+| `git merge-base --is-ancestor` (×3, Phase 40.1 commits) / `git log ... \| grep 40.1` | Yes — all ran, all confirmed ancestors | None |
+| `git diff BASE..HEAD -- pyproject.toml` (full diff) | Yes | None |
+| `git show {BASE,HEAD}:pyproject.toml \| sed` (dependencies array, both sides) | Yes | None |
+| `git diff --stat/full -- uv.lock` + `grep -E name/version` | Yes | None |
+| `git log --oneline --all \| grep pillow` | Yes | None |
+| `grep -n "@preview"` (HEAD, 3 files) / `git show BASE:... \| grep` (3 files) | Yes — all 6 invocations ran | None |
+| `git diff --diff-filter=A --name-only \| xargs grep -l "@preview"` | Yes | None |
+| `git diff --stat -- docs/` | Yes (empty result, confirmed) | None |
+| `uv run pytest tests/test_preview_version_sync.py -v` | Yes — all 3 collected ran | None — 3 passed |
+| `census.py` (hunk-attributed handler census) | Yes | None |
+| `coverage_map.py` (node-name grep over `tests/*.py`) | Yes — all 51 handlers processed | None |
+| `sphinx-build -b typstpdf` on `tests/fixtures/desc_sig_space_render_gate` | Yes — real build, real PDF produced | None |
+| `inspect_doctree.py` (real doctree node enumeration) | Yes | None |
+| `test -f` (×3, 40.1 evidence files) / `git cat-file -e` (×3, 40.1 RED SHAs) | Yes — all 6 ran | None — all 6 confirmed |
+| `git show c81ca29 -- typsphinx/translator.py` (D-12 diff) | Yes | None |
+| `git status --porcelain -- typsphinx tests scripts` (×2, after Task 1/2/3) | Yes — run repeatedly | None — empty every time |
+
+**No command anywhere in this file returned a skip standing in for a pass.** Every invariant, every
+spot-check, and every fold-in confirmation rests on a command that genuinely ran to a real observed
+result in this worktree.
+
+---
+
+## Scratch tooling — final confirmation
+
+Three scratch scripts were used across this file's three tasks: `census.py`, `coverage_map.py`,
+`diffcheck.py`, and `inspect_doctree.py` — all under `/tmp/claude-1000/.../scratchpad/`, none
+`git add`ed, none referenced by any committed file.
+
+```
+$ git status --porcelain -- typsphinx tests scripts
+(no output)
+```
+
+No census/coverage/spot-check tooling was added anywhere in this repository.
+
