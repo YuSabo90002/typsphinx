@@ -2,7 +2,8 @@
 created: 2026-08-01T00:00:00+09:00
 title: "`visit_desc_sig_name`'s docstring has an unbalanced `*` that emits a docutils warning and a stray `problematic` node in the API reference docs"
 area: translator, docs
-resolves_phase: null
+resolves_phase: 41
+resolved: 2026-08-04 (filed at the v0.7.0 milestone close per 41-HANDOFF.md item 7; fix landed in plan 41-03, D-12 — zero warning occurrences confirmed in 41-GREEN-TREE-EVIDENCE.md step 7b)
 source: .planning/phases/37-signature-typography-the-desc-family/37-08-PLAN.md Task 1 (`tox -e docs-pdf` output)
 files:
   - typsphinx/translator.py (`visit_desc_sig_name`'s docstring, the phrase "PyTypeObject *type, no intersphinx")

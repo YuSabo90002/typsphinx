@@ -1,5 +1,78 @@
 # Milestones: typsphinx
 
+## v0.7.0 — API rendering design overhaul (Shipped: 2026-08-04)
+
+**Closeout:** override_closeout — no `v0.7.0-MILESTONE-AUDIT.md` was run (owner decision at close:
+`init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, and every
+v1 requirement except the two publish-gated REL rows was already `Complete` before the close began).
+6 open artifacts acknowledged as deferred (see STATE.md Deferred Items) — 4 of the 5 pending todos
+are Phase 41 D-14's own recorded deferrals to v0.7.1+, one is a planning-docs hygiene record, and
+the single dormant seed (SEED-001) was never scoped into this milestone.
+**Phases:** 8 (36–42, incl. inserted 40.1) · **Plans:** 57 · **Tasks:** 158
+**Requirements:** 33/33 v1 requirements complete · **Known gaps:** none
+**Timeline:** 2026-07-29 → 2026-08-04 (7 days)
+**Git:** milestone branch `gsd/v0.7.0-api-rendering-design-overhaul` (477 commits) merged to `main`; tagged `v0.7.0` on the merge commit
+**Code delta (milestone scope, excl. `.planning/`):** 80 files, +14,619 / −339 lines. The runtime
+change is concentrated in `typsphinx/translator.py` (the `desc_*`, `field_list`, admonition/rubric,
+and citation handler families); the remainder is the RED-recorded regression gates each node-handler
+change carries, the CHANGELOG-section extractor + `release.yml` rework, the version bump, and the
+CHANGELOG entry.
+**First release with curated release notes:** REL-04 means this tag's GitHub Release body is the
+curated `## [0.7.0]` CHANGELOG section rather than the `git log --pretty` commit dump every prior
+release shipped (the v0.6.4 body was 308 lines, 296 of them the dump).
+
+**Delivered:** API reference pages became readable. Autodoc/API output moved from a flat wall of
+proportional bold text to a typeset reference document — monospace signatures with hanging-indent
+wrapping, description bodies and field lists that indent by nesting depth off one shared constant,
+and admonitions re-bucketed onto a taxonomy that survives greyscale. Citations gained full
+round-trip support: a document containing one no longer fails the Typst compile outright. Zero new
+runtime dependencies; the `@preview` package count stayed at four with no new version-lockstep site;
+every node-handler change carries its own recorded-RED GATE-01 fixture.
+
+**Key accomplishments:**
+
+- **Signature typography (SIG-01..SIG-09, Phase 37)** — replaced `desc_signature`'s `strong({...})`
+  wrapper with a composed `block(sticky: true, par(hanging-indent: 2.5em, …))`, routed every
+  signature text run through `raw(...)` with ZWSP break-opportunity injection, and implemented the
+  D-05 discriminator so names/annotations render bold monospace while each parameter renders italic
+  and a resolved cross-reference keeps its hyperlink. Long signatures wrap without overflowing the
+  margin and never split from the first line of their body across a page break — both proven by
+  Typst-probe geometric render gates recorded RED against the untouched translator.
+- **Structural indentation + info fields (IND-01..IND-05, FLD-01..FLD-03, Phase 38)** —
+  `visit_desc_content` gained a real `pad(left: 2.5em, …)` body (no depth counter), `field_list`
+  nests its own `SHARED_INDENT_STEP` pad inside it, and a single-value field body renders inline
+  with its label. Field-body parameter names and types carry monospace treatment distinct from the
+  plain-bold field label. The translator's last dummy-node delegation sites were replaced by one
+  shared leaf-emission helper.
+- **Admonition taxonomy + rubric nesting (ADM-01..ADM-06, Phases 36 & 39)** — all ten real
+  admonition titles centralized on a single `sphinx.locale.admonitionlabels` lookup, five
+  gentle-clues call sites re-routed, and the red family split into three pairwise-distinct functions
+  after the owner reversed locked decision D-03 on a post-render greyscale probe. Phase 36 first
+  decoupled the shared-emission seam so `desc_signature` and `rubric` could be restyled
+  independently — with a recorded empty diff proving byte-identical `.typ` across the change.
+- **Citations — full round trip (CIT-01..CIT-06, Phases 40 & 40.1)** — greenfield
+  `visit_citation`/`depart_citation`/`visit_label` (run-scoped hanging-indent grid with
+  back-reference markers) plus a guarded own-anchor addition to `visit_reference`. Phase 40.1 then
+  hardened the degradation paths: `.. only::`-pruned citing sites fail closed instead of emitting a
+  dangling `link()` target, ids-less `nodes.target` siblings no longer split one citation run into
+  two independently-aligned grids, and the duplicated anchor-eligibility judgement collapsed into
+  one shared predicate.
+- **Two compile-fatal defects closed (MATH-02, TBL-03)** — `visit_math_block` now clears rather than
+  arms the shared list-item separator flag (one blank line, not two, with a PDF-text invariance
+  guard proving zero visible change), and `depart_table`'s `_emit_id_anchors` call moved past the
+  `in_table` reset so a captioned table preceded by a standalone target emits both labels instead of
+  aborting the compile on a dangling one. TBL-03 was promoted out of backlog item 999.2 on
+  2026-08-03 *after* Phase 41 had already closed — the first requirement this project has added to
+  an already-complete milestone.
+- **Release notes sourced from the CHANGELOG (REL-04, Phase 41)** — a stdlib-only, positional
+  `## [X.Y.Z]` extractor, pytest-covered and wired into both `release.yml` jobs, replacing the
+  ~296-line `git log --pretty` dump. The same phase also converted every shell-context `${{ }}`
+  interpolation in `release.yml` to `env:` passing (code-review CR-01), and left a standalone
+  seven-item publish handoff checklist with zero irreversible action taken — the tag state was
+  probed empty twice, 2m44s apart, to prove the fence held.
+
+---
+
 ## v0.6.5 — inline-math separator hotfix (Shipped: 2026-07-29)
 
 **Closeout:** override_closeout — no `v0.6.5-MILESTONE-AUDIT.md` was run (owner decision at close:

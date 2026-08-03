@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
-current_phase: 42
-status: completed
-stopped_at: Phase 42 complete and verified (6/6 plans, 6/6 SC) — milestone v0.7.0 awaits /gsd-complete-milestone
-last_updated: "2026-08-03T15:15:13.342Z"
+status: Awaiting next milestone
+stopped_at: Milestone v0.7.0 archived; publish in progress at /gsd-complete-milestone
+last_updated: "2026-08-03T15:38:44.326Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 42 complete
+last_activity_desc: Milestone v0.7.0 completed and archived
 progress:
   total_phases: 8
   completed_phases: 8
   total_plans: 57
   completed_plans: 57
   percent: 100
+current_phase: 42
 current_phase_name: captioned-table-drops-preceding-target-label
 ---
 
@@ -21,205 +21,59 @@ current_phase_name: captioned-table-drops-preceding-target-label
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
+See: .planning/PROJECT.md (updated 2026-08-04 at the v0.7.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.7.0 milestone close — all 8 phases complete; next action `/gsd-complete-milestone`
+**Current focus:** Planning the next milestone (starts at **Phase 43**) — run `/gsd-new-milestone`.
 
 ## Current Position
 
-Phase: 42 — Captioned Table Drops Preceding Target Label (COMPLETE)
+Phase: — (no active milestone)
+Plan: —
+Status: v0.7.0 shipped 2026-08-04; awaiting next milestone
+Last activity: 2026-08-04 — Milestone v0.7.0 completed, archived, and published
 
-Promoted out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after*
-Phase 41 had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total
-32 → 33) and the milestone went from 7/7 to 7/8 — the first time this project has added a requirement
-to an already-complete milestone. **TBL-03 is now validated** (`- [x]`, Traceability `Complete`).
+Progress: [████████████████████] v0.7.0 100% (8/8 phases, 57/57 plans)
 
-Plans: **6/6 complete**, executed 2026-08-04 across 3 waves in isolated worktrees. Verification
-`passed` 6/6 SC (`42-VERIFICATION.md`), each criterion re-measured by the verifier against the
-codebase rather than taken from the phase's own evidence files. Code review 0 critical / 1 warning /
-2 info (`42-REVIEW.md`). Full suite **821 passed / 1 skipped / 0 failed**; `black` / `ruff` / `mypy`
-clean.
+## Shipped Milestone (v0.7.0 — archived)
 
-**The fix is one call site.** `depart_table`'s trailing
-`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))` fired while `self.in_table` was still
-True, so `add_text()` (`translator.py:423-437`) diverted the propagated-target anchor into
-`self.table_cell_content` — a buffer `del`eted a few statements later and never read again. The
-anchor was not misplaced, it was **discarded**. Moving that call past `self.in_table = False`, gated
-on a `was_captioned` boolean captured before `self.table_caption` is reset, is the entire production
-change (`e5575f3`, the only commit in the phase touching `typsphinx/`).
+Full phase detail, success criteria, and decisions: [`milestones/v0.7.0-ROADMAP.md`](milestones/v0.7.0-ROADMAP.md)
+and [`milestones/v0.7.0-REQUIREMENTS.md`](milestones/v0.7.0-REQUIREMENTS.md). Phase artifacts are
+under `milestones/v0.7.0-phases/`. The MILESTONES.md entry carries the stats, the curated
+accomplishments, and the release record.
 
-**The RED-before-GREEN contract held structurally, not by prose.** TBL-03 is milestone invariant #4's
-second classic-RED exception (alongside CIT-01) because it fails the Typst compile rather than
-compiling wrong. `git merge-base --is-ancestor d28f2c8 e5575f3` returns true, and wave 1 left
-`typsphinx/` byte-unchanged — so the real `TypstError` RED (7 failed / 814 passed, all 7 inside the
-new gate module) was genuinely recorded against unfixed production code before the fix landed.
+**Shipped 2026-08-04.** 8 phases (36–42, incl. inserted 40.1) · 57 plans · 158 tasks ·
+33/33 v1 requirements complete · `override_closeout` (no milestone audit; 6 open artifacts
+acknowledged — see Deferred Items). Timeline 2026-07-29 → 2026-08-04 (7 days, 477 commits).
+Code delta excluding `.planning/`: 80 files, +14,619 / −339 lines.
 
-**The two open questions were closed by measurement.** Captioned figures do *not* share the drop
-(SC#2), answered with a real build and now protected by a permanent figure-side regression gate. A
-sweep of all 21 `_emit_id_anchors` call sites found `depart_table` the sole misrouted one, with the
-image path a recorded null result. SC#4's caption-less byte-invariance carries its own positive
-control — two distinct resolved `typsphinx.__file__` paths and a deliberately non-empty diff for the
-captioned shapes — so the empty caption-less diff is meaningful rather than the false-empty an
-unprovisioned worktree produces.
+**What shipped:** API reference pages became readable — monospace signatures with hanging-indent
+wrapping and no margin overflow (SIG-01..09), description bodies and field lists indenting by
+nesting depth off one shared `SHARED_INDENT_STEP` constant (IND-01..05, FLD-01..03), admonitions
+re-bucketed onto a taxonomy the owner signed off against a desaturated render (ADM-01..06),
+greenfield full-round-trip docutils citations with degradation hardening (CIT-01..06 + Phase 40.1),
+two remaining compile fatals closed (MATH-02, TBL-03), and the GitHub Release body sourced from the
+curated `## [0.7.0]` CHANGELOG section for the first time (REL-04, REL-05).
 
-**SC#6 reconciled Phase 41's artifacts**, which were produced against a tree that predates this
-phase: the curated `## [0.7.0]` CHANGELOG entry gained its TBL-03 line, and the milestone-invariant
-sweep was re-measured over a SHA range including Phase 42 (`42-SC4-INVARIANTS.md`).
-`42-CLOSEOUT-GUARD.md` armed the REL-04/REL-05 checkbox-flip guard that hit Phase 41 — and the
-post-`phase.complete` diff came back clean, touching only TBL-03's two legitimate lines.
+**Standing invariants held:** zero new runtime dependencies; the `@preview` package count stayed at
+four with no new version-lockstep site; every node-handler change carries its own recorded-RED
+GATE-01 fixture — with v0.7.0's amended definition of RED (structural / regex / `pypdf`-text
+assertions written before any code, since these defects compiled fine), and CIT-01 and TBL-03 as
+the two classic-`TypstError` exceptions.
 
-The defect itself was **not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is
-TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25), so it had shipped in every release since.
+**Three durable lessons** (carried into PROJECT.md Key Decisions):
 
-**Two findings deliberately left open, neither blocking v0.7.0:** code review WR-01 (the
-`_emit_id_anchors` docstring still calls `depart_figure` the "sole user" of `skip_ids`, false since
-Phase 25) was not fixed because touching `translator.py` after the SC#4 and SC#6 artifacts were
-recorded would move the change outside the SHA range they measured; and IN-02, a real, severe,
-*pre-existing* bug verified byte-identical pre- and post-fix — a table nested inside a `list-table`
-cell silently drops the outer table structure, because `in_table`/`table_cell_content` are scalars
-rather than a stack.
-
-### Phase 41 (previous position — COMPLETE)
-
-Phase: 41 — v0.7.0 Release Automation + Release Prep (COMPLETE)
-Plans: 7/7 — executed 2026-08-03 across 3 waves. Verification `passed` 5/5 (`41-VERIFICATION.md`),
-each success criterion re-measured by the verifier rather than taken from the phase's own evidence
-files. Full suite 805 passed / 1 skipped; `black` / `ruff` / `mypy` clean; full-corpus `-b typstpdf`
-gate executed and PASSED; both docs dogfooding builds exit 0. The `ja` glyph bar's fourth check is
-the owner's own sign-off (`41-JA-GLYPHBAR-SIGNOFF.md`, verbatim: `approved`).
-Status: All phases complete
-Last activity: 2026-08-04 — Phase 42 complete
-
-**Nothing irreversible has happened.** Local and remote `v0.7.0` tags are both empty (measured twice
-independently inside the phase, and again by the verifier). The publish half is a written checklist:
-`.planning/phases/41-v0-7-0-release-automation-release-prep/41-HANDOFF.md`, 7 ordered items, each
-with its owner. `/gsd-complete-milestone` executes it.
-
-**REL-04 and REL-05 are deliberately still `[ ]` / Pending in `REQUIREMENTS.md`** — flipping them is
-close-side work (handoff item 6), because REL-05's own text requires "the publish executed at
-`/gsd-complete-milestone`" and REL-04's body swap is first exercised by that same tag push.
-`phase.complete` auto-flipped all four lines (checkboxes + Traceability rows) on 2026-08-03 against
-this decision; the flip was measured against a pre-run copy and reverted before commit, exactly as
-`41-HANDOFF.md` item 6 warned it would be needed. Re-check this after any future `phase.complete`.
-
-**One post-plan commit is not covered by any plan SUMMARY:** `e9044ec` fixes `41-REVIEW.md`'s CR-01
-(shell injection — `${{ }}` interpolated inside `run:` blocks in `.github/workflows/release.yml`),
-converting every shell-context interpolation in that file to `env:` passing. The owner elected to
-close it inside Phase 41. `41-REL04-EVIDENCE.md` carries an addendum re-establishing SC#1 and D-09
-against the changed file; `41-REVIEW.md` records the resolution and a scope correction (the
-anti-pattern pre-dated the phase at two other sites).
-
-**Execution order note (resolved 2026-08-02):** Phase 41's SC#4 proves "every node-handler change
-carries its recorded-RED GATE-01 fixture" over the full milestone diff, and per `41-CONTEXT.md` D-11
-that sweep must cover Phase 40.1's translator changes — so 40.1 had to land first, and it has
-(complete 2026-08-02, verification `passed` 5/5). Phase 40.1's own open question, recorded in the
-roadmap as SC#4, is discharged: each RED's provenance is established and recorded per warning rather
-than assumed — WR-01 against a real `sphinx-build`, WR-02 and WR-03 against directly-assembled
-doctrees with the exhausted real-build attempt lists and the reasons each shape is unconstructible.
-**What Phase 41's SC#4 sweep should read is `40.1-NONREGRESSION.md` §4** — a change-site → RED
-manifest (evidence file, RED form, provenance, pytest selector, recording commit per row), written
-for exactly that purpose.
-
-**Why Phase 39 was re-opened (historical — now closed):** `39-VERIFICATION.md` passed 5/5, but
-conversational UAT afterwards surfaced `G-39-1` — the owner reversed locked decision D-03 and split
-the collapsed red admonition bucket into three distinct gentle-clues functions (`danger()` /
-`memo()` / `error()`). The closed-phase gate (#3569) was explicitly overridden by the owner on
-2026-08-02 to plan this gap closure. Plans 39-09..39-13 closed it: routing landed, ADM-04
-re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
-`39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
-
-Progress: [████████████████████] 100% (8/8 phases — Phase 42 completed 2026-08-04)
-
-## Active Milestone (v0.7.0 — API rendering design overhaul)
-
-Started 2026-07-29. Phase numbering continues at **Phase 36** (v0.6.5 ended at 35). Roadmap
-created 2026-07-29: **6 phases (36–41)**, all **32** v1 requirements mapped, no orphans. Amended
-2026-08-03: **Phase 42 promoted in from backlog 999.2**, adding requirement TBL-03 — **8 phases
-(36–42, incl. 40.1)**, **33** v1 requirements, still no orphans.
-
-**Goal:** Replace the provisionally-chosen Typst representations of the API-description and
-admonition directive families with a real typographic design, so autodoc/API pages render as a
-readable reference document instead of a flat wall of proportional bold text.
-
-**Phase structure:**
-
-| Phase | Name | Requirements |
-|-------|------|--------------|
-| 36 | Shared-Emission Seam Cleanup | ADM-06, MATH-02 |
-| 37 | Signature Typography — the `desc_*` Family | SIG-01..SIG-09 |
-| 38 | Structural Indentation + Info Fields | IND-01..IND-05, FLD-01..FLD-03 |
-| 39 | Admonition Taxonomy + Rubric Nesting | ADM-01..ADM-05 |
-| 40 | Citations — Full Round Trip | CIT-01..CIT-06 |
-| 40.1 | Citation Degradation Hardening (INSERTED) | none new — closes `40-REVIEW.md` WR-01..03 |
-| 41 | v0.7.0 Release Automation + Release Prep | REL-04, REL-05 |
-| 42 | Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG) | TBL-03 |
-
-Execution order 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 42 runs after the
-release-prep phase — the one place this milestone's "prep-only Release phase last" ordering is
-broken — because it was promoted in after 41 had closed; the owner blocked the publish on it rather
-than resequencing. Phase 36 lands first because its acceptance
-criterion is **byte-identical rendering** — the one provable, zero-risk move available, and a
-prerequisite for restyling `desc_signature` and `rubric` independently. 37 → 38 → 39 is a genuine
-dependency chain (signature shape → body/field indent → rubric inheriting that indent). Phase 40
-(citations) is structurally independent and can be resequenced anywhere after 36. Phase 40.1 was
-inserted 2026-08-02 and its position relative to 41 is fixed — see the Execution order note under
-Current Position.
-
-**Scope (owner-confirmed 2026-07-29, after a mid-scoping concept rethink):** `desc_*` +
-`field_list` redesign; admonition / rubric / topic redesign; full-round-trip `citation` support
-(greenfield — zero handlers exist today, and a citation currently fails the Typst compile
-outright); the v0.6.5 WR-01 `visit_math_block` blank-line todo; `release.yml`'s release-notes body
-sourced from the CHANGELOG section; v0.7.0 release prep.
-
-**Dropped during the rethink (2026-07-29):**
-
-- **User-overridable per-directive styling** — the original concept had typsphinx ship a Typst
-  module whose functions users could restyle from their own template. Research measured that
-  Typst's `show`/`set` selectors accept only genuine element functions (`typst error: only element
-  functions can be used as selectors`), and user-defined element types are unimplemented upstream
-  (`typst/typst#147`, open since 2023-03-22). Label selectors (`show <label>: …`) were verified to
-  deliver the equivalent capability, but the owner narrowed the goal to "typsphinx itself produces
-  good output," so the whole user-configurability axis is out
-
-- **The bundled style module itself** — with user override no longer a goal, the translator emits
-  complete Typst directly. Every generated `.typ` stays self-contained; no builder change; one
-  fewer phase. Accepted costs: more verbose `.typ`, and the shared indent constant living only on
-  the Python side. **The roadmap honours this — there is no style-module scaffolding phase, and
-  research/SUMMARY.md's six-phase "Reconciled Build Order" (whose Phase 1 was that scaffolding) was
-  re-derived rather than transcribed**
-
-- **Typst Universe publication** — was only ever the module's future; moot now
-
-**Reference (demoted from "authority" during the rethink):** Sphinx's own LaTeX-rendered PDF —
-`https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`, measured live 2026-07-29 as
-`200` / `application/pdf` / 3,227,122 B / **703 pages** / `pdfTeX-1.40.22` / `LaTeX with hyperref`,
-built 2026-07-22. It renders the same Sphinx `doc/` corpus that `tests/test_corpus_gate.py` drives
-through `-b typstpdf`, and needs **no TeX toolchain** (none is installed here). Its measured values
-are the starting point — the ≈22–25pt indent quantum, the per-node font roles, the four admonition
-colour buckets — but the milestone deliberately diverges where Typst can do better. Exact
-parameters readable from the `.sty` sources in the venv (`sphinxlatexobjects.sty` 386 lines,
-`sphinxlatexadmonitions.sty` 408, `sphinxpackageboxes.sty` 827).
-
-**Consequence — success criteria split in two:** mechanically checkable structural properties
-(emitted through `raw(...)` not `text(...)`; body indent non-zero; a nested member's left edge
-strictly greater than its parent's, via `pypdf` bounding boxes) versus human visual UAT for the
-aesthetic judgement. The roadmap's success criteria follow each requirement's `[M]`/`[V]` tag; the
-only `[V]` requirement in the milestone is ADM-04 (greyscale distinguishability), carried as an
-explicit owner sign-off criterion on Phase 39. No criterion anywhere says "matches the reference
-page-by-page" — the reference's `master`-vs-`v9.1.0` version skew mattered only under that
-comparison and is now moot.
-
-**GATE-01 methodology change (this milestone):** every prior fixture proved a compile fatal. Every
-design defect here **compiles successfully today**, so RED cannot be `TypstError` — each phase
-defines a structural / regex / `pypdf` RED assertion before any code is written. **Phase 40
-(citations) is the sole exception** and keeps the classic RED; Phase 36's RED-substitute is unusual
-and worth naming: equality-of-output (the decoupling must be byte-identical).
-
-**Test migration is owned per phase** (milestone invariant #5) — every redesign phase's success
-criteria include re-deriving its own exact-string assertions by hand and recording a file/class
-census. Measured blast radius: 10 test files, 61 render-gate classes. There is no blanket closing
-test-fix phase, deliberately.
+1. **The gate held under pressure rather than being laundered.** In Phase 40 four of nine gate
+   selectors stayed RED after the handlers landed; all four were defects in the gate module itself,
+   and the corrected module was re-proved 9/9 RED against the pre-fix translator three independent
+   times before being trusted.
+2. **A locked decision was reversed on evidence.** Shown a live render at UAT the owner overturned
+   D-03 and re-opened an already-closed Phase 39 (5/5 verified) rather than filing the difference
+   as debt.
+3. **A recurring tooling hazard was made falsifiable.** `phase.complete` auto-flipping REL-04/REL-05
+   against a CONTEXT decision was caught and reverted in Phase 41, then pre-empted in Phase 42 by
+   `42-CLOSEOUT-GUARD.md`, which recorded the four at-risk lines verbatim with a file checksum. It
+   did not recur — the hazard looks specific to release-prep phases rather than universal.
 
 ## Shipped Milestone (v0.6.5 — archived)
 
@@ -354,49 +208,55 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
-Eight open in `.planning/todos/pending/` at the v0.6.5 close; **three were promoted into v0.7.0** on
-2026-07-29 at roadmap creation and are now tracked as requirements, leaving five deferred.
+**Nine open in `.planning/todos/pending/` when this close began.** One
+(`visit-desc-sig-name-docstring-unbalanced-asterisk-warning`) was filed to `todos/completed/` here
+per `41-HANDOFF.md` item 7, leaving **eight**. All are acknowledged and recorded in Deferred Items
+above; none blocks the release.
 
-Promoted into v0.7.0 (3):
+Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
-- **citation-node-support-untracked** (translator, examples) → Phase 40, requirements CIT-01..CIT-06.
-- **visit-math-block-redundant-blank-line-in-list-items** (translator) → Phase 36, requirement
-  MATH-02.
+- **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
+  lychee check already covers the one new link this release adds.
+- **non-str-docname-typeerror-in-typstpdf-finish** (builder, tests) — input-validation hardening.
+- **derive-typst-lang-duplicated-warning-block** (template_engine) — refactor, no release bearing.
+- **modernize-typing-imports-drop-up006-up035-ignore** (source) — **do not act on this until the
+  todo lands**; `CLAUDE.md` carries the same instruction independently.
 
-- **release-notes-body-from-changelog-section** (ci) → Phase 41, requirement REL-04.
+Planning-record hygiene (1):
 
-Still open and deferred (5):
+- **project-md-unterminated-html-comments** (planning docs).
 
-- **add-sphinx-linkcheck-ci-job** (ci, docs) — deferred as Future requirement LNK-01; CI-05's
-  repo-wide real-HTTP check covers the real failure class.
+Filed during v0.7.0 and still open (3):
 
-- **non-str-docname-typeerror-in-typstpdf-finish** (builder) — input-validation hardening.
-- **modernize-typing-imports-drop-up006-up035-ignore** (typing) — do not "modernize" until it lands.
-- **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
-- **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
+- **table-whitespace-only-title-anchor-divergence** (translator, Phase 42).
+- **emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user** (translator, Phase 42
+  review WR-01) — a stale docstring, deliberately not fixed in-phase so the change would not fall
+  outside the SHA range Phase 42's SC#4/SC#6 evidence measured.
+- **nested-table-clobbers-outer-table-state** (translator, Phase 42 review IN-02) — a real, severe,
+  **pre-existing** bug: a table nested inside a `list-table` cell silently drops the outer table
+  structure, because `in_table`/`table_cell_content` are scalars rather than a stack. Verified
+  byte-identical pre- and post-Phase-42. **The strongest single candidate for the next milestone.**
 
-Added during v0.7.0, then promoted (1):
+One dormant seed: **SEED-001-readme-quickstart-typst-documents-pdf** (README Quick Start omits that
+`.typ` output is not compiled to PDF unless `typst_documents` is set).
 
-- **captioned-table-drops-preceding-target-label** (translator) — **promoted 2026-08-03 into Phase
-  42, requirement TBL-03** at `/gsd-review-backlog`. The todo record stays **pending** until the
-  phase executes (it is the detail record; the ROADMAP Phase 42 entry is the sequencing record).
-  History below is retained as filed:
-
-  Captured 2026-08-03 during Phase 41
-  as SEED-002, promoted to a todo the same day at the owner's request. A captioned table emits only
-  its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target,
-  leaving a dangling label that fails the compile; caption-less tables are reported fine. **Not yet
-  reproduced in-repo** — the todo's Acceptance section requires a minimal case, the Typst error text,
-  and the observed `node["ids"]` before a fix is designed. Filed 2026-08-03 as backlog Phase 999.2
-  at the owner's direction (`/gsd-capture --list` → "file it as a phase"), then promoted the same day
-  (above). Not a v0.7.0 regression — the captioned-table `figure()` wrap is TBL-01/TBL-02 from Phase
-  25 (v0.6.3). **The "does not block the v0.7.0 publish" clause filed with this todo is superseded:**
-  the owner decided at promotion that the publish *does* wait on Phase 42.
-
-Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
-**docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
+Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-support-untracked`
+(→ CIT-01..06), `visit-math-block-redundant-blank-line-in-list-items` (→ MATH-02),
+`release-notes-body-from-changelog-section` (→ REL-04), `captioned-table-drops-preceding-target-label`
+(→ TBL-03, backlog 999.2).
 
 ### Blockers/Concerns
+
+**v0.7.0 close — publish status recorded below once the release run completes.** The seven-item
+`41-HANDOFF.md` checklist is what this close executes; item 5 (confirming Read the Docs `stable` is
+green at `v0.7.0` on both the `en` and `ja` projects) is the only owner-manual step, and it runs
+only after the release workflow and the second-repository tag both show green.
+
+**Carried forward, non-blocking:** eight pending todos (Deferred Items) and one dormant seed. The
+most significant is `nested-table-clobbers-outer-table-state` — a real, severe, pre-existing bug
+where a table nested inside a `list-table` cell silently drops the outer table structure. It is not
+a v0.7.0 regression (verified byte-identical pre- and post-Phase-42) and is the strongest single
+candidate for the next milestone.
 
 **Nothing owed from v0.6.5.** All six `35-HANDOFF.md` items are discharged, including item 4 (the
 RTD `stable` confirmation), which was measured rather than left owner-manual: both projects'
@@ -516,71 +376,29 @@ Items acknowledged and carried forward from milestone closes:
 | Styling (v0.7.0 scoping) | STY-01/STY-02/STY-03: user-overridable per-directive styling, the bundled Typst style module, and its Typst Universe publication | Deferred to Future (goal narrowed by owner) | v0.7.0 scoping |
 | Rendering (v0.7.0 scoping) | TOP-01: box `.. contents::` (local TOC) as the reference does — D-05's box-less choice stands now that the reference is not an authority | Deferred to Future | v0.7.0 scoping |
 | Citations (v0.7.0 scoping) | CIT-07: `sphinxcontrib-bibtex` support (`:cite:` role, `.bib` files) — a different node family; would use Typst's native `bibliography()`/`cite()` | Deferred to Future | v0.7.0 scoping |
+| Verification | No `v0.7.0-MILESTONE-AUDIT.md` produced (owner accepted: `init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, and every v1 requirement except the two publish-gated REL rows was already Complete) | Accepted at close | v0.7.0 close |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #1; `links.yml`'s repo-wide lychee check already covers this release's one new link) | v0.7.0 close |
+| Todo (builder, tests) | non-str-docname-typeerror-in-typstpdf-finish | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #2 — a builder behaviour change unrelated to REL-04/REL-05) | v0.7.0 close |
+| Todo (source) | modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #4, **doubly deliberate** — `CLAUDE.md` independently instructs "don't modernize typing imports until that todo lands") | v0.7.0 close |
+| Todo (template_engine) | derive-typst-lang-duplicated-warning-block | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #3 — a refactor with no release bearing) | v0.7.0 close |
+| Todo (planning docs) | project-md-unterminated-html-comments | Acknowledged, deferred — planning-record hygiene only, no code or published-output effect | v0.7.0 close |
+| Todo (translator) | visit-desc-sig-name-docstring-unbalanced-asterisk-warning | **Resolved by Phase 41 plan 41-03 (D-12); filed to `todos/completed/` at this close** per `41-HANDOFF.md` item 7 | v0.7.0 close |
+| Todo (translator) | table-whitespace-only-title-anchor-divergence | Acknowledged, filed during Phase 42 — a divergence adjacent to TBL-03 but outside its requirement | v0.7.0 close |
+| Todo (translator) | emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user | Acknowledged, filed during Phase 42 (review WR-01) — deliberately not fixed in-phase because touching `translator.py` after the SC#4/SC#6 artifacts were recorded would move the change outside the SHA range they measured | v0.7.0 close |
+| Todo (translator) | nested-table-clobbers-outer-table-state | Acknowledged, filed during Phase 42 (review IN-02) — a real, severe, **pre-existing** bug verified byte-identical pre- and post-fix: a table nested in a `list-table` cell silently drops the outer table structure because `in_table`/`table_cell_content` are scalars, not a stack. Did not block v0.7.0; a strong candidate for the next milestone | v0.7.0 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf — README Quick Start does not say that `.typ` files are not compiled to PDF unless `typst_documents` is configured | Dormant; never scoped into v0.7.0 | v0.7.0 close |
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/42-captioned-table-drops-preceding-target-label/42-CONTEXT.md
-(CONTEXT.md and DISCUSSION-LOG.md exist; no plans yet).
+**Resume file:** none — no phase is in progress. The milestone's phase artifacts are archived under
+`.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-03T13:21:23.930Z
-Stopped at: Phase 42 context gathered
-Resume: `/gsd-plan-phase 42`.
+Last session: 2026-08-04
+Stopped at: v0.7.0 milestone archived; publish executing at `/gsd-complete-milestone`
+Resume: `/gsd-new-milestone` (next milestone starts at **Phase 43**).
 
 ## Operator Next Steps
 
-- **Next action is Phase 42, not the v0.7.0 publish** (owner decision 2026-08-03 at
-  `/gsd-review-backlog`). `41-HANDOFF.md`'s 7-item publish checklist is still valid and still
-  un-executed — local and remote `v0.7.0` tags remain empty — but it runs *after* Phase 42 verifies.
-  Before running it, close Phase 42's SC#6: add the TBL-03 line to the curated `## [0.7.0]` CHANGELOG
-  entry, and re-measure Phase 41's SC#4 invariant sweep over a SHA range that includes Phase 42's
-  translator change (the "every node-handler change carries its recorded-RED GATE-01 fixture" clause
-  is the one that actually grows).
-
-- **Phase 42's first work is reproduction, not fixing.** The defect is the owner's report verbatim
-  and has never been reproduced in-repo. `/gsd-discuss-phase 42` should treat the breadcrumb at
-  `translator.py:3341` as a place to look, not a diagnosis — that line already emits `ids[1:]` and
-  carries an in-code TBL-02 / Critical-Pitfall-3 rationale that re-anchoring `ids[0]` there is a
-  Typst "label … occurs multiple times" fatal, so a naive change trades a dangling label for a
-  duplicate-label one.
-
-- **Phase 39 closed 2026-08-02** — ADM-01..ADM-05 all complete. ADM-04 is MET on **icon-shape**
-  grounds (owner sign-off, `39-ADM04-SIGNOFF.md`), with **title-band luminance recorded as uniform
-  and carrying no distinguishing signal** as an explicit accepted caveat, not a latent defect — do
-  not re-open it as a bug. No styling change was made, no fallback lever was chosen, no todo filed.
-  Full suite green (763 passed / 1 skipped); the full-corpus `-b typstpdf` gate was **re-run for
-  real** (tag `v9.1.0`, PASSED — not a skip). Milestone invariants held: no new runtime dependency,
-  `@preview` count stays 4, gentle-clues pin unchanged at `1.3.1`. Docs dogfood build 91 pages (90
-  pre-phase, +1 explained in `39-GATE-EVIDENCE-04.md` §6). Next: Phase 40 (Citations — Full Round
-  Trip), structurally independent of 39, and the milestone's one classic `TypstError`-RED exception
-  (CIT-01).
-
-- **Phase 39's gap G-39-1 closed 2026-08-02** (`39-GAP-G39-1-CLOSEOUT.md`) — the owner reversed
-  D-03 after a live A/B/C render comparison: the red family (`danger`/`attention`/`error`) is now
-  three pairwise-distinct gentle-clues functions (`danger`/`memo`/`error`) instead of one collapsed
-  `error()` call. ADM-04's sign-off was re-taken against a new seven-box artifact and remains MET
-  (owner's verbatim `"approved"`, `39-ADM04-SIGNOFF.md`'s amendment). The full-corpus `-b typstpdf`
-  gate was re-run for real (tag `v9.1.0`, PASSED — not a skip); full suite 774 passed / 1 skipped;
-  milestone invariants held (no new runtime dependency, `@preview` count stays 4, gentle-clues pin
-  unchanged at `1.3.1` across all four lockstep sites).
-
-- **NixOS worktree provisioning: the `ruff` shim alone is NOT sufficient** (measured during Phase
-  39). A fresh worktree's `uv sync`-installed `.venv/bin/uv` is *also* a generic-linux ELF that
-  fails under the NixOS stub loader (exit 127), and it shadows the correct Nix-store `uv` on `PATH`
-  for any `subprocess.run(["uv", "run", "sphinx-build", …])` child. Both shims are required, once
-  per worktree, resolving via `command -v` **before** any `.venv/bin` entry exists on `PATH`:
-  `for t in uv ruff; do ln -sf "$(command -v $t)" ".venv/bin/$t"; done`. Measured this session: 45
-  failures with exit 127 before the `uv` shim, all passing (763/764) after it.
-
-- **Two decision-gate format traps hit during Phase 39 planning, both now fixed in place.**
-  (a) `check.decision-coverage-plan` hard-blocked with a false `could-not-parse`: its regexes forbid
-  more than one `:` and any `*` inside the bold `- **D-NN: …**` title, so reST directive syntax
-  (`.. admonition::`) in D-09/D-10's titles broke all three patterns. Fixed by moving the directive
-  spelling into the bullet body; the gate then returned 14/14 covered. Keep D-NN titles free of `::`.
-  (b) `state.planned-phase` updated only `Status` — it left `Plans:`, `stopped_at` and
-  `last_activity_desc` stale despite the workflow claiming it sets the plan count. Hand-corrected.
-
-- **Phase 38 closed with a documentation correction, not a code change.** UAT test 1 asked whether
-  SC#4/IND-04's "drives … block quotes" prose was stale or an unmet criterion; the owner ruled
-  **stale**, so ROADMAP SC#4 and REQUIREMENTS IND-04 were narrowed to the desc/field contexts and
-  `block_quote` is recorded as an intentional non-consumer (38-CONTEXT.md D-04). Do not re-open this
-  in Phase 39 when touching rubric indentation.
+- Confirm Read the Docs `stable` is green at `v0.7.0` on **both** projects (`41-HANDOFF.md` item 5)
+  — owner-manual, via the RTD public API or real fetches (no authentication needed).
+- Start the next milestone with `/gsd-new-milestone` — phase numbering continues at **Phase 43**.

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-08-03
+## [0.7.0] - 2026-08-04
 
 API reference pages become readable in this release: autodoc/API output moves from a flat wall of
 proportional bold text to something that reads as a typeset reference document — monospace
