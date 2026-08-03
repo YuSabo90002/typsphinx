@@ -295,6 +295,15 @@ Still open and deferred (5):
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — review IN-01 (Info), waived.
 - **project-md-unterminated-html-comments** (docs) — PROJECT.md hygiene.
 
+Added during v0.7.0 (1):
+
+- **captioned-table-drops-preceding-target-label** (translator) — captured 2026-08-03 during Phase 41
+  as SEED-002, promoted to a todo the same day at the owner's request. A captioned table emits only
+  its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target,
+  leaving a dangling label that fails the compile; caption-less tables are reported fine. **Not yet
+  reproduced in-repo** — the todo's Acceptance section requires a minimal case, the Typst error text,
+  and the observed `node["ids"]` before a fix is designed.
+
 Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.
 

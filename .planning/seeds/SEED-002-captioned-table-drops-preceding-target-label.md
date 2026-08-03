@@ -1,11 +1,20 @@
 ---
 id: SEED-002
-status: dormant
+status: promoted
 planted: 2026-08-03
 planted_during: v0.7.0 — API rendering design overhaul / Phase 41
+promoted: 2026-08-03
+promoted_to: .planning/todos/pending/2026-08-03-captioned-table-drops-preceding-target-label.md
 trigger_when: when relevant
 scope: unknown
 ---
+
+> **Promoted 2026-08-03 — this seed is closed.** It was filed as a seed first, then promoted at the
+> owner's request because it is a reproducible defect rather than a forward-looking idea. The live
+> record is the todo at
+> `.planning/todos/pending/2026-08-03-captioned-table-drops-preceding-target-label.md`; edit that,
+> not this file. Kept for provenance only, and marked `status: promoted` so it no longer surfaces
+> during `/gsd-new-milestone` scans.
 
 # SEED-002: Captioned tables emit only the `:name:`-derived Typst label and drop the id of an immediately preceding standalone target, leaving a dangling label that fails the compile
 

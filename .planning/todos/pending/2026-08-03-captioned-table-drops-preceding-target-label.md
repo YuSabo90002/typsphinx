@@ -1,0 +1,69 @@
+---
+created: 2026-08-03T21:24:40+09:00
+title: A captioned table emits only its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target, leaving a dangling label that fails the compile
+area: translator
+resolves_phase: null
+source: .planning/seeds/SEED-002-captioned-table-drops-preceding-target-label.md (promoted 2026-08-03)
+files:
+  - typsphinx/translator.py (`depart_table` at line 3249 — the captioned vs. caption-less branch)
+  - typsphinx/translator.py (line 3318-3328 — the captioned path self-anchors `node["ids"][0]` as the figure's `<label>`)
+  - typsphinx/translator.py (line 3341 — `_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))`)
+  - typsphinx/translator.py (`visit_target` at line 3689 / `depart_target` at line 3763)
+---
+
+## Problem
+
+Reported by the project owner on 2026-08-03, verbatim:
+
+> キャプション付き表で typsphinx は Typst ラベルを `:name:` 由来の 1 個しか出さず、直前の独立ターゲットの id を捨てる。リンクだけ残り dangling label で失敗。キャプションなしの表は正常。
+
+In English: for a **captioned** table, typsphinx emits only one Typst label — the one derived from
+`:name:` — and drops the id contributed by a standalone target (`.. _label:`) placed immediately
+before the table. The reference to the dropped label still survives in the output, so the Typst
+compile fails on a dangling label. A **caption-less** table is reported to behave correctly.
+
+This is a hard compile failure, not a cosmetic degradation: the document does not build. It is also
+squarely in the project's stated core value — a reference the project emits must actually resolve —
+applied to intra-document cross-references.
+
+**Reproduction status: NOT yet reproduced in-repo.** The statement above is the owner's report. No
+minimal `.rst` case, no captured Typst error text, and no observed `node["ids"]` contents have been
+recorded yet. Establish those first (see Acceptance below) — do not start from the hypothesis in the
+next section.
+
+## Solution
+
+TBD — investigate before choosing an approach.
+
+Breadcrumbs collected 2026-08-03 at the Phase 41 tree. **These are places to start looking, not a
+diagnosis:**
+
+- `typsphinx/translator.py:3249` — `depart_table`. The captioned path (`if self.table_caption:`) and
+  the caption-less path (`else:`) diverge here, matching the reported "caption-less is fine"
+  asymmetry.
+- `typsphinx/translator.py:3318-3328` — the captioned path self-anchors **`node["ids"][0]` only** as
+  the figure's own `<label>`.
+- `typsphinx/translator.py:3341` — `self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))`.
+  Note for whoever picks this up: this line *does* appear to emit the remainder ids (`ids[1:]`), and
+  carries an in-code rationale (TBL-02 / Critical Pitfall 3) that re-anchoring `ids[0]` here would be
+  a Typst "label ... occurs multiple times" fatal. So the drop may originate **upstream** — the
+  standalone target's id may never reach `node["ids"]` at all, or may land at an index this logic
+  skips. Confirm which before assuming the fix belongs at this line; a naive change here risks
+  trading a dangling label for a duplicate-label fatal.
+- `typsphinx/translator.py:3689` / `:3763` — `visit_target` / `depart_target`, which handle the
+  standalone `.. _label:` preceding the table.
+- `typsphinx/translator.py:517` — an existing note that a captioned **figure** likewise self-anchors
+  `ids[0]`. The table path was modelled on `depart_figure` (Phase 25, D-04), so the same class of
+  bug may apply to captioned figures. Untested — check it as part of the same investigation.
+
+Related history: the captioned-table `figure()` wrap is TBL-01/TBL-02 from Phase 25.
+
+## Acceptance
+
+- [ ] A minimal `.rst` snippet reproduces the failure, with the Typst error text captured verbatim
+- [ ] The actual `node["ids"]` / `node["names"]` contents in the failing case are recorded, settling
+      whether the target's id reaches `depart_table` at all
+- [ ] Whether captioned **figures** exhibit the same drop is answered either way
+- [ ] A GATE-01-style fixture is recorded RED before the fix lands (project convention)
+- [ ] The fix does not regress the caption-less path (byte-for-byte unchanged, Phase 25 SC#2) and does
+      not introduce a duplicate-label fatal
