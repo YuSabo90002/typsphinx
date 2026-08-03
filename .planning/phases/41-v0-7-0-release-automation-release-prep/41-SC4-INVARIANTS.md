@@ -362,4 +362,181 @@ ambiguous.
 **No divergence found.** Both claims hold as measured against this session's re-run, and no
 CHANGELOG edit is warranted or made by this plan (which does not edit `CHANGELOG.md`).
 
+---
+
+## Invariant 3 of 3 — every node-handler change carries a recorded-RED GATE-01 fixture
+
+### The census method
+
+Implemented as a scratch script under `/tmp` (never committed — confirmed at the end of this
+section), following `41-RESEARCH.md`'s hunk-boundary + function-start-line attribution method
+verbatim: read `typsphinx/translator.py` at both `BASE` and `HEAD` via `git show`, build an ordered
+`(line_number, function_name)` list on each side from `def <name>(` lines, walk
+`git diff -U0 BASE..HEAD -- typsphinx/translator.py`, and attribute every removed line to the
+enclosing function on the BASE side and every added line to the enclosing function on the HEAD
+side. The union, filtered to names starting `visit_` or `depart_`, is the census.
+
+### Census output (re-derived this session, BASE=`51e02b6`, HEAD=`aa9d2f0`)
+
+```
+$ uv run python /tmp/.../census.py
+COUNT=51
+```
+
+**51 handlers touched**, full sorted list:
+
+`depart_citation`, `depart_desc`, `depart_desc_content`, `depart_desc_name`,
+`depart_desc_optional`, `depart_desc_parameter`, `depart_desc_parameterlist`,
+`depart_desc_sig_name`, `depart_desc_signature`, `depart_field`, `depart_field_body`,
+`depart_field_list`, `depart_field_name`, `depart_literal_emphasis`, `depart_literal_strong`,
+`depart_paragraph`, `depart_reference`, `depart_rubric`, `visit_Text`, `visit_admonition`,
+`visit_attention`, `visit_citation`, `visit_danger`, `visit_desc_addname`,
+`visit_desc_annotation`, `visit_desc_content`, `visit_desc_name`, `visit_desc_optional`,
+`visit_desc_parameter`, `visit_desc_parameterlist`, `visit_desc_returns`,
+`visit_desc_sig_keyword`, `visit_desc_sig_name`, `visit_desc_sig_operator`,
+`visit_desc_sig_punctuation`, `visit_desc_sig_space`, `visit_desc_signature`,
+`visit_field_body`, `visit_field_list`, `visit_field_name`, `visit_hint`, `visit_important`,
+`visit_label`, `visit_literal_emphasis`, `visit_literal_strong`, `visit_math_block`,
+`visit_paragraph`, `visit_reference`, `visit_rubric`, `visit_seealso`, `visit_topic`.
+
+**Brand-new on the HEAD side** (present in HEAD's function list, absent from BASE's — i.e. the
+handler did not exist at all at the milestone base): `depart_citation`, `visit_citation`,
+`visit_label`. All three are Phase 40's greenfield citation handlers (CIT-01..CIT-06) — zero
+citation handlers existed at `v0.6.5-1-g51e02b6`.
+
+**Non-handler methods the same census touched** (context for the scope statement — these are
+helper/private methods whose diff hunks fall inside them, not `visit_`/`depart_` handlers, so they
+are outside SC#4's own "node-handler change" wording but recorded here per the plan's "record the
+non-handler methods... as context" instruction): `__init__`, `_citation_run_neighbour`,
+`_depart_admonition`, `_emit_field_body_monospace_leaf`, `_emit_signature_leaf_wrapper`,
+`_escape_signature_text`, `_exit_inline_concat_element`, `_find_citing_reference`,
+`_reference_anchor_decision`, `_visit_admonition`.
+
+### Cross-check against `41-RESEARCH.md`'s recorded 51
+
+**Delta: zero handlers differ — the count is 51 and the sorted name list is byte-for-byte
+identical to `41-RESEARCH.md`'s "Code Examples" list**, despite the range's tip moving from the
+research session's measurement point (369 commits past BASE at the time) to this session's 394. A
+programmatic set-difference (both directions) over the two 51-name lists returns empty in both
+directions.
+
+**This is explained, not merely reported as a bare "0":**
+
+- **This phase's own D-12 commit** (`c81ca29`, "escape the unbalanced asterisk in
+  `visit_desc_sig_name`'s docstring") touches `typsphinx/translator.py` inside the body of
+  `visit_desc_sig_name` — but `visit_desc_sig_name` **already appears** in the research session's
+  51-name list (it carries real Phase 37-era SIG behavioural changes independent of this
+  docstring). D-12's edit therefore adds diff *lines* inside an already-touched function; it adds
+  no *new* handler name to the union, so the census count and name set are unaffected by it. (Step
+  3 below reproduces this specific commit's diff to confirm it is docstring-only.)
+- **Every other commit landed since the research session's measurement** (this phase's own
+  planning-record commits, the CHANGELOG/version-bump commits, this plan's own Task 1 commit, and
+  Phase 40.1's housekeeping) either does not touch `typsphinx/translator.py` at all, or — where it
+  does (D-12, above) — lands inside a function already in the union. No commit since the research
+  session introduced a new touched handler.
+- The three Phase 40.1 fix commits (`e8d4f42`, `9928f93`, `41d2683`) were **already inside the
+  range at the research session's own measurement time** (Phase 40.1 had already landed before
+  Phase 41's research session ran, per `41-CONTEXT.md`'s own execution-order note) — so their
+  contribution to the census (the `_citation_run_neighbour`, `_reference_anchor_decision`,
+  `_find_citing_reference` non-handler entries, and no new `visit_`/`depart_` name since WR-01/02/03
+  only edit already-touched citation-family handlers/helpers) was already reflected in the
+  research session's 51, not newly discovered here.
+
+### The coverage map (node-name grep, per Pitfall 4)
+
+Method: for each of the 51 censused handlers, strip the leading `visit_`/`depart_` prefix to get
+the **node name**, then `grep -l <node> tests/*.py` (top-level test modules only — not
+`tests/fixtures/**`, which are fixture data, not gate assertions) to find every covering gate
+module. Searching for the literal *method* name (`visit_desc_addname` etc., prefix included) was
+verified first to reproduce Pitfall 4's false-negative: e.g. `grep -l visit_desc_addname
+tests/*.py` returns **zero** hits, while `grep -l desc_addname tests/*.py` returns four — gate
+modules describe the docutils/Sphinx *node*, never the Python visitor method with its
+`visit_`/`depart_` prefix.
+
+| Handler | Node name | Match count | Covering gate module(s) |
+|---|---|---|---|
+| `depart_citation` | `citation` | 5 | `test_citation_degradation_gate.py`, `test_citation_render_gate.py`, `test_corpus_gate.py`, `test_desc_break_marker_buffer_swap_gate.py`, `test_pdf_render_gate.py` |
+| `depart_desc` | `desc` | 29 | `test_admonition_greyscale_pipeline.py`, `test_citation_render_gate.py`, `test_confval_field_spacing_render_gate.py`, `test_corpus_gate.py`, `test_deflist_nested_definition_render_gate.py`, `test_deflist_term_concat_render_gate.py`, `test_deflist_term_inline_children_gate.py`, `test_desc_bodyless_concat_render_gate.py`, `test_desc_break_marker_buffer_swap_gate.py`, `test_desc_container_propagated_target_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_anchor_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_examples_charged_ieee_gate.py`, `test_field_body_typography_render_gate.py`, `test_nested_master_render_gate.py`, `test_pdf_render_gate.py`, `test_rubric_indent_invariance.py`, `test_rubric_option_concat_render_gate.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_signature_typography_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_substitution_definition_render_gate.py`, `test_translator.py` |
+| `depart_desc_content` | `desc_content` | 7 | `test_citation_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_rubric_indent_invariance.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_translator.py` |
+| `depart_desc_name` | `desc_name` | 6 | `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_rubric_option_concat_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `depart_desc_optional` | `desc_optional` | 3 | `test_pdf_render_gate.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_typography_gate.py` |
+| `depart_desc_parameter` | `desc_parameter` | 7 | `test_confval_field_spacing_render_gate.py`, `test_deflist_term_concat_render_gate.py`, `test_deflist_term_inline_children_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `depart_desc_parameterlist` | `desc_parameterlist` | 3 | `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `depart_desc_sig_name` | `desc_sig_name` | 4 | `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `depart_desc_signature` | `desc_signature` | 16 | `test_deflist_nested_definition_render_gate.py`, `test_desc_container_propagated_target_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_anchor_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_pdf_render_gate.py`, `test_rubric_option_concat_render_gate.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_signature_typography_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_translator.py` |
+| `depart_field` | `field` | 18 | `test_citation_render_gate.py`, `test_confval_field_body_render_gate.py`, `test_confval_field_spacing_render_gate.py`, `test_cross_doc_label_namespace_render_gate.py`, `test_desc_bodyless_concat_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_inline_math_after_text_render_gate.py`, `test_package_only_config_gate.py`, `test_readme_version_sync.py`, `test_rubric_option_concat_render_gate.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_table_in_list_item_render_gate.py`, `test_translator.py` |
+| `depart_field_body` | `field_body` | 6 | `test_citation_render_gate.py`, `test_confval_field_body_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_translator.py` |
+| `depart_field_list` | `field_list` | 7 | `test_citation_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_table_in_list_item_render_gate.py`, `test_translator.py` |
+| `depart_field_name` | `field_name` | 4 | `test_confval_field_spacing_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_translator.py` |
+| `depart_literal_emphasis` | `literal_emphasis` | 2 | `test_desc_rubric_decoupling_render_gate.py`, `test_field_body_typography_render_gate.py` |
+| `depart_literal_strong` | `literal_strong` | 2 | `test_desc_rubric_decoupling_render_gate.py`, `test_field_body_typography_render_gate.py` |
+| `depart_paragraph` | `paragraph` | 34 | `conftest.py`, `test_admonitions.py`, `test_changelog_extraction.py`, `test_citation_degradation_gate.py`, `test_citation_render_gate.py`, `test_confval_field_body_render_gate.py`, `test_corpus_gate.py`, `test_deflist_definition_multiblock_render_gate.py`, `test_deflist_nested_definition_render_gate.py`, `test_desc_bodyless_concat_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_desc_sig_space_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_footnotes.py`, `test_inline_math_after_text_render_gate.py`, `test_inline_references.py`, `test_list_item_nested_block_render_gate.py`, `test_package_only_config_gate.py`, `test_paragraph_concat_render_gate.py`, `test_paragraph_propagated_target_render_gate.py`, `test_paragraph_soft_newline_render_gate.py`, `test_pdf_render_gate.py`, `test_ref_target_nested_list_render_gate.py`, `test_rubric_indent_invariance.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_target_label_render_gate.py`, `test_topics.py`, `test_translator.py`, `test_wide_table_render_gate.py` |
+| `depart_reference` | `reference` | 41 | `test_builder_requirement13.py`, `test_citation_degradation_gate.py`, `test_citation_render_gate.py`, `test_corpus_gate.py`, `test_cross_doc_label_namespace_render_gate.py`, `test_deflist_nested_definition_render_gate.py`, `test_deflist_term_inline_children_gate.py`, `test_desc_container_propagated_target_render_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_anchor_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_duplicate_include_label_render_gate.py`, `test_examples_charged_ieee_gate.py`, `test_external_link_style_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_footnotes.py`, `test_glob_image_render_gate.py`, `test_inline_references.py`, `test_integration_nested_toctree.py`, `test_label_at_char_render_gate.py`, `test_nested_master_render_gate.py`, `test_nested_toctree_paths.py`, `test_no_stale_github_io_links.py`, `test_package_only_config_gate.py`, `test_package_template_routing.py`, `test_paragraph_propagated_target_render_gate.py`, `test_pdf_render_gate.py`, `test_readthedocs_config.py`, `test_ref_target_nested_list_render_gate.py`, `test_rubric_indent_invariance.py`, `test_rubric_propagated_target_render_gate.py`, `test_signature_typography_gate.py`, `test_static_asset_copy_gate.py`, `test_substitution_definition_render_gate.py`, `test_target_label_render_gate.py`, `test_template_assets.py`, `test_template_engine.py`, `test_template_import_path.py`, `test_topics.py`, `test_translator.py`, `test_xref_orphan_degrade_render_gate.py` |
+| `depart_rubric` | `rubric` | 11 | `test_admonition_bucket_render_gate.py`, `test_admonition_greyscale_pipeline.py`, `test_admonition_locale_title_precedence_gate.py`, `test_citation_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_rubric_indent_invariance.py`, `test_rubric_option_concat_render_gate.py`, `test_rubric_propagated_target_render_gate.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_translator.py` |
+| `visit_Text` | `Text` | 22 | `test_admonitions.py`, `test_builder_requirement13.py`, `test_citation_degradation_gate.py`, `test_confval_field_body_render_gate.py`, `test_deflist_term_concat_render_gate.py`, `test_deflist_term_inline_children_gate.py`, `test_desc_sig_space_render_gate.py`, `test_epigraph_render_gate.py`, `test_examples_basic.py`, `test_footnotes.py`, `test_inline_math_after_text_render_gate.py`, `test_inline_references.py`, `test_line_blocks.py`, `test_math_mitex.py`, `test_paragraph_soft_newline_render_gate.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_typography_gate.py`, `test_table_in_list_item_render_gate.py`, `test_topics.py`, `test_translator.py`, `test_typst_string_escape_gate.py`, `test_xref_orphan_degrade_render_gate.py` |
+| `visit_admonition` | `admonition` | 11 | `test_admonition_bucket_render_gate.py`, `test_admonition_greyscale_pipeline.py`, `test_admonition_locale_title_precedence_gate.py`, `test_admonitions.py`, `test_citation_render_gate.py`, `test_desc_break_marker_buffer_swap_gate.py`, `test_line_blocks.py`, `test_paragraph_propagated_target_render_gate.py`, `test_pdf_render_gate.py`, `test_preview_smoke_gate.py`, `test_topics.py` |
+| `visit_attention` | `attention` | 4 | `test_admonition_bucket_render_gate.py`, `test_admonition_locale_title_precedence_gate.py`, `test_admonitions.py`, `test_pdf_render_gate.py` |
+| `visit_citation` | `citation` | 5 | `test_citation_degradation_gate.py`, `test_citation_render_gate.py`, `test_corpus_gate.py`, `test_desc_break_marker_buffer_swap_gate.py`, `test_pdf_render_gate.py` |
+| `visit_danger` | `danger` | 4 | `test_admonition_bucket_render_gate.py`, `test_admonition_locale_title_precedence_gate.py`, `test_admonitions.py`, `test_pdf_render_gate.py` |
+| `visit_desc_addname` | `desc_addname` | 4 | `test_desc_sig_space_render_gate.py`, `test_rubric_option_concat_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_typography_gate.py` |
+| `visit_desc_annotation` | `desc_annotation` | 3 | `test_desc_sig_space_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `visit_desc_content` | `desc_content` | 7 | `test_citation_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_rubric_indent_invariance.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_translator.py` |
+| `visit_desc_name` | `desc_name` | 6 | `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_rubric_option_concat_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `visit_desc_optional` | `desc_optional` | 3 | `test_pdf_render_gate.py`, `test_signature_break_and_arrow_gate.py`, `test_signature_typography_gate.py` |
+| `visit_desc_parameter` | `desc_parameter` | 7 | `test_confval_field_spacing_render_gate.py`, `test_deflist_term_concat_render_gate.py`, `test_deflist_term_inline_children_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `visit_desc_parameterlist` | `desc_parameterlist` | 3 | `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `visit_desc_returns` | `desc_returns` | 2 | `test_pdf_render_gate.py`, `test_signature_break_and_arrow_gate.py` |
+| `visit_desc_sig_keyword` | `desc_sig_keyword` | **1** | `test_desc_sig_space_render_gate.py` |
+| `visit_desc_sig_name` | `desc_sig_name` | 4 | `test_desc_sig_space_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_signature_typography_gate.py`, `test_translator.py` |
+| `visit_desc_sig_operator` | `desc_sig_operator` | 2 | `test_desc_sig_space_render_gate.py`, `test_signature_typography_gate.py` |
+| `visit_desc_sig_punctuation` | `desc_sig_punctuation` | **1** | `test_desc_sig_space_render_gate.py` |
+| `visit_desc_sig_space` | `desc_sig_space` | **1** | `test_desc_sig_space_render_gate.py` |
+| `visit_desc_signature` | `desc_signature` | 16 | `test_deflist_nested_definition_render_gate.py`, `test_desc_container_propagated_target_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_desc_sig_space_render_gate.py`, `test_desc_signature_anchor_render_gate.py`, `test_desc_signature_concat_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_pdf_render_gate.py`, `test_rubric_option_concat_render_gate.py`, `test_rubric_strong_nesting_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_signature_typography_gate.py`, `test_signature_typography_multi_signature_page_count_gate.py`, `test_translator.py` |
+| `visit_field_body` | `field_body` | 6 | `test_citation_render_gate.py`, `test_confval_field_body_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_translator.py` |
+| `visit_field_list` | `field_list` | 7 | `test_citation_render_gate.py`, `test_desc_content_indent_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_table_in_list_item_render_gate.py`, `test_translator.py` |
+| `visit_field_name` | `field_name` | 4 | `test_confval_field_spacing_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_translator.py` |
+| `visit_hint` | `hint` | 3 | `test_admonition_bucket_render_gate.py`, `test_admonitions.py`, `test_pdf_render_gate.py` |
+| `visit_important` | `important` | 2 | `test_admonition_bucket_render_gate.py`, `test_admonitions.py` |
+| `visit_label` | `label` | 40 | `test_admonition_bucket_render_gate.py`, `test_admonition_locale_title_precedence_gate.py`, `test_admonitions.py`, `test_citation_degradation_gate.py`, `test_citation_render_gate.py`, `test_confval_field_body_render_gate.py`, `test_corpus_gate.py`, `test_cross_doc_label_namespace_render_gate.py`, `test_deflist_definition_multiblock_render_gate.py`, `test_deflist_nested_definition_render_gate.py`, `test_deflist_term_concat_render_gate.py`, `test_desc_container_propagated_target_render_gate.py`, `test_desc_rubric_decoupling_render_gate.py`, `test_desc_signature_anchor_render_gate.py`, `test_duplicate_include_label_render_gate.py`, `test_external_link_style_render_gate.py`, `test_field_body_typography_render_gate.py`, `test_field_list_in_list_item_render_gate.py`, `test_footnotes.py`, `test_inline_math_after_text_render_gate.py`, `test_inline_references.py`, `test_label_at_char_render_gate.py`, `test_list_item_nested_block_render_gate.py`, `test_math_fallback.py`, `test_math_mitex.py`, `test_math_native.py`, `test_paragraph_propagated_target_render_gate.py`, `test_pdf_render_gate.py`, `test_ref_target_nested_list_render_gate.py`, `test_rubric_propagated_target_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_typography_gate.py`, `test_substitution_definition_render_gate.py`, `test_target_label_render_gate.py`, `test_template_import_path.py`, `test_topics.py`, `test_typst_lang_gate.py`, `test_typst_string_escape_gate.py`, `test_xref_orphan_degrade_render_gate.py` |
+| `visit_literal_emphasis` | `literal_emphasis` | 2 | `test_desc_rubric_decoupling_render_gate.py`, `test_field_body_typography_render_gate.py` |
+| `visit_literal_strong` | `literal_strong` | 2 | `test_desc_rubric_decoupling_render_gate.py`, `test_field_body_typography_render_gate.py` |
+| `visit_math_block` | `math_block` | 5 | `test_inline_math_after_text_render_gate.py`, `test_math_fallback.py`, `test_math_mitex.py`, `test_math_native.py`, `test_rubric_propagated_target_render_gate.py` |
+| `visit_paragraph` | `paragraph` | 34 | (same 34 modules as `depart_paragraph` above) |
+| `visit_reference` | `reference` | 41 | (same 41 modules as `depart_reference` above) |
+| `visit_rubric` | `rubric` | 11 | (same 11 modules as `depart_rubric` above) |
+| `visit_seealso` | `seealso` | 3 | `test_admonition_bucket_render_gate.py`, `test_admonitions.py`, `test_pdf_render_gate.py` |
+| `visit_topic` | `topic` | 8 | `test_admonition_bucket_render_gate.py`, `test_cross_doc_label_namespace_render_gate.py`, `test_footnotes.py`, `test_pdf_render_gate.py`, `test_rubric_propagated_target_render_gate.py`, `test_signature_overflow_render_gate.py`, `test_signature_page_boundary_render_gate.py`, `test_topics.py` |
+
+**Zero handlers have zero matches** — all 51 map to at least one gate module by this method,
+confirming `41-RESEARCH.md`'s Pitfall 4 finding: the apparent gap the literal-method-name search
+produces is a search-method false negative, not a real coverage gap.
+
+**Three handlers are single-hit**: `visit_desc_sig_keyword`, `visit_desc_sig_punctuation`, and
+`visit_desc_sig_space` — all three map only to `tests/test_desc_sig_space_render_gate.py`. These
+are the exact handlers `41-RESEARCH.md`'s Open Question 2 named as the likeliest false-positive
+family (trivial-looking signature pass-through handlers) and are the subject of Task 3's spot-check.
+
+### What this map does and does not establish
+
+**This map shows that the node type's name appears somewhere in the listed gate module(s) — that
+is necessary but NOT sufficient proof of coverage.** A grep hit only confirms the module mentions
+the node by name (in an assertion, a fixture path, a docstring, or a comment); it does not by
+itself prove that module's assertions actually exercise this milestone's specific diff hunks for
+that handler. A module could, in principle, mention a node name only in prose explaining what the
+node used to render as, without asserting anything about its current behaviour — that would be a
+false-positive coverage claim this map alone cannot distinguish from real coverage. Task 3 responds
+to this limitation directly by reading each single-hit module's actual `assert` statements rather
+than accepting the grep hit as proof.
+
+### Scratch tooling confirmation
+
+```
+$ git status --porcelain -- typsphinx tests scripts
+(no output)
+```
+
+Both scratch scripts (`census.py`, `coverage_map.py`) live under `/tmp/claude-1000/...` — outside
+the repository entirely — and were never `git add`ed. No new file appears anywhere under
+`typsphinx/`, `tests/`, or `scripts/`.
+
 <!-- gsd:write-continue -->
