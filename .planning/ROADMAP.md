@@ -244,10 +244,13 @@ lists indenting by nesting depth off one shared constant, and admonitions re-buc
 that survives greyscale — instead of the flat wall of proportional bold text they were. Added
 full-round-trip docutils citation support (greenfield: a citation failed the Typst compile outright
 before), closed two compile-fatal defects (MATH-02's redundant list-item break and TBL-03's dropped
-captioned-table target label), and sourced the GitHub Release body from the curated CHANGELOG section
-for the first time in this project's history. Zero new runtime dependencies; the `@preview` package
-count stayed at four with no new version-lockstep site; every node-handler change carries its own
-recorded-RED GATE-01 fixture. Full phase detail, success criteria, decisions, and tech-debt notes are
+captioned-table target label), and built the machinery to source the GitHub Release body from the
+curated CHANGELOG section. Zero new runtime dependencies; the `@preview` package count stayed at four
+with no new version-lockstep site; every node-handler change carries its own recorded-RED GATE-01
+fixture. **Shipped with one known gap: REL-04.** That machinery failed on its own first real tag push
+(`create-release` calls `uv run` in the one release job with no `setup-uv` step); PyPI published, the
+GitHub Release did not, and the v0.7.0 release was repaired by hand. `release.yml` is fixed on `main`;
+REL-04 closes when a real tag push exercises it end to end — 32/33 requirements, carried to v0.7.1. Full phase detail, success criteria, decisions, and tech-debt notes are
 preserved in [`milestones/v0.7.0-ROADMAP.md`](milestones/v0.7.0-ROADMAP.md).
 
 - [x] Phase 36: Shared-Emission Seam Cleanup (4/4 plans) — completed 2026-08-01
