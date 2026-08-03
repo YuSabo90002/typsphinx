@@ -398,7 +398,14 @@ that actively misleading by adding `depart_table` as a second caller.
      the outer caption entirely — measured 2026-08-04). Sphinx's own LaTeX builder is the reference
      behaviour for the same input (outer `\caption{...}\label{...}` survives; the inner figure is
      emitted inside a `sphinxlegend` environment; no warning).
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
+
+Plans:
+- [ ] 43-01-PLAN.md — TBL-04: nested-table container state (tracer + shape/depth/header-cell expansion)
+- [ ] 43-02-PLAN.md — SC#5: push the milestone branch to `origin` and start CI (developer-confirmed)
+- [ ] 43-03-PLAN.md — FIG-01: `legend` node handler + figure-state save/restore across nesting
+- [ ] 43-04-PLAN.md — TBL-05: id anchoring independent of rendered-caption truthiness; QUA-01 docstring
+- [ ] 43-05-PLAN.md — SC#4 two-build byte invariance; SC#5 completed CI run + Phase 44 handoff
 
 ### Phase 44: `typst_documents` Default Derivation + Builder Input Hardening
 
