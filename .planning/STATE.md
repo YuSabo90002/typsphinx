@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
+current_phase: 43
+current_phase_name: Table State Correctness — Nested Tables + Empty-Title Anchors
 status: planning
-last_updated: "2026-08-04T00:00:00.000Z"
+stopped_at: Phase 43 context gathered (FIG-01 added; TBL-05 axis decided from LaTeX measurement)
+last_updated: "2026-08-03T21:55:07.749Z"
 last_activity: 2026-08-04
+last_activity_desc: v0.7.1 roadmap created (Phases 43-46)
 progress:
   total_phases: 4
   completed_phases: 0
@@ -494,11 +498,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in progress. The milestone's phase artifacts are archived under
+**Resume file:** .planning/phases/43-table-state-correctness-nested-tables-empty-title-anchors/43-CONTEXT.md
 `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-04
-Stopped at: v0.7.1 roadmap created — Phases 43–46, 11/11 requirements mapped
+Last session: 2026-08-03T21:55:07.740Z
+Stopped at: Phase 43 context gathered (FIG-01 added; TBL-05 axis decided from LaTeX measurement)
 Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
 
 ## Operator Next Steps
