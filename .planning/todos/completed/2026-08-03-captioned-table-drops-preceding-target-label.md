@@ -2,7 +2,7 @@
 created: 2026-08-03T21:24:40+09:00
 title: A captioned table emits only its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target, leaving a dangling label that fails the compile
 area: translator
-resolves_phase: null
+resolves_phase: 42
 roadmap_entry: "Phase 42 / TBL-03 (promoted 2026-08-03 from backlog 999.2)"
 source: .planning/seeds/SEED-002-captioned-table-drops-preceding-target-label.md (promoted 2026-08-03)
 files:
@@ -76,10 +76,46 @@ Related history: the captioned-table `figure()` wrap is TBL-01/TBL-02 from Phase
 
 ## Acceptance
 
-- [ ] A minimal `.rst` snippet reproduces the failure, with the Typst error text captured verbatim
-- [ ] The actual `node["ids"]` / `node["names"]` contents in the failing case are recorded, settling
+- [x] A minimal `.rst` snippet reproduces the failure, with the Typst error text captured verbatim
+- [x] The actual `node["ids"]` / `node["names"]` contents in the failing case are recorded, settling
       whether the target's id reaches `depart_table` at all
-- [ ] Whether captioned **figures** exhibit the same drop is answered either way
-- [ ] A GATE-01-style fixture is recorded RED before the fix lands (project convention)
-- [ ] The fix does not regress the caption-less path (byte-for-byte unchanged, Phase 25 SC#2) and does
+- [x] Whether captioned **figures** exhibit the same drop is answered either way
+- [x] A GATE-01-style fixture is recorded RED before the fix lands (project convention)
+- [x] The fix does not regress the caption-less path (byte-for-byte unchanged, Phase 25 SC#2) and does
       not introduce a duplicate-label fatal
+
+## Resolution
+
+Closed by **Phase 42 (Captioned Table Drops Preceding Target Label)**, completed 2026-08-04 —
+6/6 plans, verification `passed` 6/6 SC, requirement TBL-03 validated.
+
+The root cause was not a misplaced anchor but a **discarded** one. `depart_table`'s trailing
+`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))` fired while `self.in_table` was
+still `True`, so `add_text()` diverted the propagated-target anchor into `self.table_cell_content`
+— a buffer `del`eted a few statements later and never read again. The whole production fix is that
+one call moved past `self.in_table = False`, gated on a `was_captioned` boolean captured before
+`self.table_caption` is reset (`e5575f3`, the only commit in the phase touching `typsphinx/`).
+
+Answers to the questions this todo left open:
+
+- **The target's id does reach `depart_table`** — `node["ids"] == ['tbl-name', 'tbl-target']`,
+  recorded in `42-GATE-EVIDENCE-01.md` along with the verbatim
+  `TypstError: label \`<index:tbl-target>\` does not exist in the document`.
+- **Captioned figures do NOT share the drop** — measured, not inferred; `add_text` never consults
+  `self.in_figure`. `42-GATE-EVIDENCE-02.md`. A permanent figure-side regression gate
+  (`tests/test_figure_propagated_target_render_gate.py`) now guards that path.
+- **No duplicate-label fatal was introduced** — `skip_ids` was carried across byte-for-byte, and the
+  emitted `.typ` for all four failing shapes was checked for duplicate labels
+  (`42-GATE-EVIDENCE-04.md`).
+- **The caption-less path is byte-for-byte unchanged** — proven by an empty two-build diff carrying
+  a positive control (two distinct resolved `typsphinx.__file__` paths plus a deliberately non-empty
+  diff for the captioned shapes), `42-GATE-EVIDENCE-05.md`.
+
+RED-before-GREEN held structurally: `git merge-base --is-ancestor d28f2c8 e5575f3` returns true, and
+wave 1 left `typsphinx/` byte-unchanged, so the real `TypstError` RED was recorded against unfixed
+production code. Suite 7 failed / 814 passed → **821 passed / 1 skipped / 0 failed**.
+
+Two related defects were split out rather than absorbed:
+`2026-08-03-table-whitespace-only-title-anchor-divergence.md` (D-08, the visit/depart captioned-check
+disagreement) and `2026-08-04-nested-table-clobbers-outer-table-state.md` (review IN-02, pre-existing
+nested-table state clobber).
