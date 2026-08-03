@@ -215,3 +215,15 @@ None - no external service configuration required.
 ---
 *Phase: 41-v0-7-0-release-automation-release-prep*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-JA-GLYPH-BAR.md`
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-JA-GLYPHBAR-SIGNOFF.md`
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-04-SUMMARY.md`
+- CONFIRMED ABSENT: `.planning/phases/41-v0-7-0-release-automation-release-prep/translations-repo/`
+- CONFIRMED ABSENT: `/tmp/p41-main-tree` from `git worktree list`
+- CONFIRMED EMPTY: `git ls-files '*.pdf'`
+- FOUND commit `e1a47af` (Task 2: checks 1-3 evidence)
+- FOUND commit `2996429` (Task 4: owner sign-off + cleanup)
+- FOUND commit `ae2d69e` (this SUMMARY.md)
