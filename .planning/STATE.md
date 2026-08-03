@@ -322,7 +322,10 @@ Added during v0.7.0 (1):
   its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target,
   leaving a dangling label that fails the compile; caption-less tables are reported fine. **Not yet
   reproduced in-repo** — the todo's Acceptance section requires a minimal case, the Typst error text,
-  and the observed `node["ids"]` before a fix is designed.
+  and the observed `node["ids"]` before a fix is designed. **Filed 2026-08-03 as backlog Phase 999.2**
+  at the owner's direction (`/gsd-capture --list` → "file it as a phase"); the todo stays pending and
+  the ROADMAP Backlog entry carries the open questions. Not a v0.7.0 regression — the captioned-table
+  `figure()` wrap is TBL-01/TBL-02 from Phase 25 (v0.6.3), so it does not block the v0.7.0 publish.
 
 Resolved and filed at the v0.6.4 close: **github-io-doc-links-404-missing-en-prefix** (Phase 31) and
 **docs-usage-installation-orphan-class** (Phase 30) → `todos/completed/`.

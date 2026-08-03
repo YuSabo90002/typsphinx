@@ -3,6 +3,7 @@ created: 2026-08-03T21:24:40+09:00
 title: A captioned table emits only its `:name:`-derived Typst label and drops the id of an immediately preceding standalone target, leaving a dangling label that fails the compile
 area: translator
 resolves_phase: null
+roadmap_entry: "999.2 (backlog, filed 2026-08-03)"
 source: .planning/seeds/SEED-002-captioned-table-drops-preceding-target-label.md (promoted 2026-08-03)
 files:
   - typsphinx/translator.py (`depart_table` at line 3249 — the captioned vs. caption-less branch)
@@ -30,6 +31,16 @@ applied to intra-document cross-references.
 minimal `.rst` case, no captured Typst error text, and no observed `node["ids"]` contents have been
 recorded yet. Establish those first (see Acceptance below) — do not start from the hypothesis in the
 next section.
+
+## Status
+
+Filed 2026-08-03 as **backlog Phase 999.2** in `.planning/ROADMAP.md` (§ Backlog), at the owner's
+direction. The todo stays **pending** — the backlog entry is the sequencing record, this file stays
+the detail record. Promote with `/gsd-review-backlog` or pull it in at `/gsd-new-milestone`.
+
+Not a v0.7.0 regression: the captioned-table `figure()` wrap it lives in is TBL-01/TBL-02 from
+Phase 25 (v0.6.3, shipped 2026-07-25), so this has shipped in every release since and does not
+block the pending v0.7.0 publish.
 
 ## Solution
 

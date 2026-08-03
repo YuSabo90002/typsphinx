@@ -828,9 +828,11 @@ Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-
 pull a whole cluster into the next milestone via `/gsd-new-milestone`.
 Numbered 999.x so milestone reorganization never renumbers or drops them.
 
-New items land here as `999.x` entries. **The backlog is currently empty** — item **999.1** (inline
+New items land here as `999.x` entries. **One item is open: 999.2** (detailed below). Item **999.1**
+(inline
 math after text: missing separator before `#mi()` causes a Typst error) was promoted into v0.6.5 as
-Phase 34 / requirement MATH-01 and **shipped in v0.6.5** (2026-07-29). Three earlier
+Phase 34 / requirement MATH-01 and **shipped in v0.6.5** (2026-07-29). Numbering resumes at 999.2
+rather than reusing 999.1, so the promoted item's number stays unambiguous. Three earlier
 pending todos were promoted into v0.6.4 (Phases 29–33):
 `move-documentation-hosting-to-read-the-docs`, `github-io-doc-links-404-missing-en-prefix`, and
 `docs-usage-installation-orphan-class`. `add-sphinx-linkcheck-ci-job` stays **open and deferred** —
@@ -848,6 +850,46 @@ real-HTTP check covers that class instead.
 (LNK-01), `non-str-docname-typeerror-in-typstpdf-finish`,
 `modernize-typing-imports-drop-up006-up035-ignore`, `derive-typst-lang-duplicated-warning-block`,
 `project-md-unterminated-html-comments`.
+
+### Phase 999.2: Captioned Table Drops Preceding Target Label (BACKLOG)
+
+**Goal:** A captioned table that is immediately preceded by a standalone target (`.. _label:`)
+emits Typst labels for **both** ids — the `:name:`-derived one and the target's — so the surviving
+reference resolves instead of failing the compile on a dangling label. Filed 2026-08-03 from the
+pending todo `2026-08-03-captioned-table-drops-preceding-target-label.md` (itself promoted from
+`SEED-002`), at the owner's direction, as a phase candidate for the next milestone.
+
+**Why it is in the backlog, not v0.7.0:** v0.7.0 is complete (7/7 phases, awaiting
+`/gsd-complete-milestone`), and the defect is **not a v0.7.0 regression** — the captioned-table
+`figure()` wrap it lives in is TBL-01/TBL-02 from **Phase 25 (v0.6.3, shipped 2026-07-25)**, so this
+has shipped in every release since. It does not block the v0.7.0 publish.
+
+**Severity:** hard compile failure (the document does not build), squarely inside the project's
+stated core value that an emitted reference must actually resolve.
+
+**Reproduction status: NOT yet reproduced in-repo.** The report is the owner's, verbatim; no minimal
+`.rst`, no captured Typst error text, and no observed `node["ids"]` contents exist yet. Establishing
+those is the first work of the phase — planning must not start from the breadcrumb hypothesis.
+
+**Requirements:** TBD (assign at `/gsd-review-backlog` / `/gsd-new-milestone`)
+**Plans:** 0 plans
+
+Open questions the phase must settle before a fix is chosen:
+
+- Does the standalone target's id reach `depart_table` in `node["ids"]` at all? The breadcrumb at
+  `translator.py:3341` (`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))`) *does*
+  appear to emit `ids[1:]`, and carries an in-code TBL-02 / Critical-Pitfall-3 rationale that
+  re-anchoring `ids[0]` there is a Typst "label … occurs multiple times" fatal. A naive change at
+  that line risks trading a dangling label for a duplicate-label fatal.
+- Do captioned **figures** exhibit the same drop? `translator.py:517` notes `depart_figure`
+  likewise self-anchors `ids[0]`, and the table path was modelled on it (Phase 25, D-04). Untested.
+- The caption-less path must stay byte-for-byte unchanged (Phase 25 SC#2).
+
+Per milestone invariant #4 this is a *classic* GATE-01 candidate — it fails to compile today, so the
+recorded-RED fixture can be a real `TypstError` rather than a structural assertion.
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
 
 ---
 *Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29). v0.7.0 phases added 2026-07-29. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
