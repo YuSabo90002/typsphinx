@@ -363,7 +363,7 @@ owner's visual look).
 
 ## Check 4 — Owner Visual Confirmation
 
-**status: awaiting owner**
+**status: MET — see `41-JA-GLYPHBAR-SIGNOFF.md` for the owner's verbatim answer and grounds.**
 
 Both mechanical checks (1-3) show no failure signature: page count unchanged, CJK text total
 essentially unchanged (no drop), and the one CJK-coverage font (`NotoSerifCJKjp-ExtraLight`)
@@ -386,8 +386,7 @@ correct character even when it visually renders wrong.
 - Before (`main`): `/tmp/p41-main-out/typsphinx.pdf` (SHA-256 `495ced3ea21651c3301d6d4eda819ebf35a2f1c7c66b80d704cdb7115df27187`)
 - After (HEAD): `/tmp/p41-head-out/typsphinx.pdf` (SHA-256 `b64cf3563c04be2052eede5a629250a7c829db1118fdf44a82804746494f605f`)
 
-Owner's verdict and verbatim words are recorded in
-`41-JA-GLYPHBAR-SIGNOFF.md` once collected (Task 3/4 of this plan).
+Owner's verdict and verbatim words are recorded in `41-JA-GLYPHBAR-SIGNOFF.md`.
 
 ---
 
@@ -418,5 +417,5 @@ file as a stand-in for that look.
 
 None. All checks specified by this plan (page count, CJK density, font enumeration, and the
 provenance/freshness/import checks) were run against both real, freshly-built PDFs. Check 4 (owner
-visual confirmation) is intentionally left `status: awaiting owner` above — it is not a check that
-was skipped, but the one check this file cannot itself discharge.
+visual confirmation) was not a check this file could discharge itself — it is recorded in full in
+`41-JA-GLYPHBAR-SIGNOFF.md`, MET on the owner's verbatim "approved".
