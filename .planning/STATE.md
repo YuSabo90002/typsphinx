@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 status: planning
-last_updated: "2026-08-03T21:10:12.536Z"
+last_updated: "2026-08-04T00:00:00.000Z"
 last_activity: 2026-08-04
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,15 +20,59 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Milestone **v0.7.1 (bug-fix round)** — defining requirements. Phase numbering
-continues at **Phase 43**.
+**Current focus:** Milestone **v0.7.1 (bug-fix round)** — roadmap created, **Phases 43-46**,
+11/11 v1 requirements mapped with zero orphans. Next action: `/gsd-plan-phase 43`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 43 — Table State Correctness — Nested Tables + Empty-Title Anchors (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-04 — Milestone v0.7.1 started
+Status: Roadmap complete, phase not yet planned
+Progress: [--------------------] 0% (0/4 phases)
+Last activity: 2026-08-04 — v0.7.1 roadmap created (Phases 43-46)
+
+## Active Milestone (v0.7.1 — bug-fix round)
+
+**Roadmap created 2026-08-04: Phases 43-46**, derived from `REQUIREMENTS.md` alone. Research was
+deliberately skipped (owner decision 2026-08-04 — a maintenance round over already-diagnosed defects,
+each carrying a file/line-level todo, with the one new-behaviour item CONF-08 resolved by direct
+measurement of Sphinx 9.1.0's LaTeX builder), so this milestone has **no `research/SUMMARY.md`**.
+Coverage: **11/11** v1 requirements mapped, zero orphans, zero duplicates.
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; an empty-titled caption still anchors its ids | TBL-04, TBL-05, QUA-01 |
+| 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
+| 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
+| 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
+
+**Three structural constraints this roadmap encodes:**
+
+1. **Milestone invariant #5 (new).** The milestone branch is pushed to `origin` in **Phase 43**, not
+   at the release PR — it is Phase 43's SC#5. Both defects that surfaced at the v0.7.0 close share
+   the cause that the branch was never pushed until the release PR, so neither Windows CI nor a real
+   tag push ran against it during eight phases.
+
+2. **REL-04 does not close in Phase 46.** Phase 46 owns only its in-phase share — verifying the
+   already-on-`main` `create-release` fix (the `astral-sh/setup-uv` + `Set up Python` steps) and
+   exercising the extractor against the new `## [0.7.1]` section — plus an explicit handoff item.
+   The requirement closes when a real tag push runs `create-release` to completion at
+   `/gsd-complete-milestone`, or it carries again. Reporting it done on the strength of a correct
+   workflow file is the precise error v0.7.0 made; `phase.complete` has a recorded habit of
+   auto-flipping REL rows against a CONTEXT decision, so the Phase 46 close must diff before commit.
+
+3. **Phase 46 is prep-only.** No tag, no PyPI, no GitHub Release — the standing v0.5.0 Phase 10
+   pattern under `branching_strategy: milestone`. The publish executes at `/gsd-complete-milestone`,
+   including the standing second tag on `typsphinx-doc-translations`.
+
+**Sequencing note:** the chain 43 → 44 → 45 → 46 is genuinely dependent, not merely numbered.
+Phase 44 hardens the same `TypstPDFBuilder.finish()` its own derivation rewrites (so CONF-08 and
+BLD-01 are one change, not two); Phase 45's README work documents behaviour that must already have
+landed in Phase 44; the `0.7.1` entry for DOC-12's changelog page lands in Phase 46's lockstep edit
+alongside `CHANGELOG.md`.
+
+**Not a frontend UI milestone** — no phase carries a UI hint. `ui.plan-gate` false-positives on
+"table"/"render"/"page" wording here; use `--skip-ui`.
 
 ## Shipped Milestone (v0.7.0 — archived)
 
@@ -223,6 +267,18 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**Eight of the ten open records are now v0.7.1 requirements** (promoted at roadmap creation
+2026-08-04): `nested-table-clobbers-outer-table-state` → TBL-04,
+`table-whitespace-only-title-anchor-divergence` → TBL-05,
+`emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user` → QUA-01,
+`non-str-docname-typeerror-in-typstpdf-finish` → BLD-01,
+`derive-typst-lang-duplicated-warning-block` → QUA-02, `project-md-unterminated-html-comments` →
+QUA-03, `docs-changelog-page-stale-at-0-4-0` → DOC-12, and
+`release-create-job-missing-uv-verify-end-to-end` → REL-04 (an open requirement, not merely a todo).
+The dormant seed SEED-001 became CONF-08 + DOC-11. Each record stays **pending** until its phase
+executes. Still deferred and NOT in scope: `add-sphinx-linkcheck-ci-job` (Future LNK-01) and
+`modernize-typing-imports-drop-up006-up035-ignore` (forbidden by `CLAUDE.md`).
+
 **Ten open in `.planning/todos/pending/`.** Nine when this close began: one
 (`visit-desc-sig-name-docstring-unbalanced-asterisk-warning`) was filed to `todos/completed/` here
 per `41-HANDOFF.md` item 7, and one was filed *by* this close
@@ -367,6 +423,15 @@ evidence.
   sweep must cover 40.1's node-handler changes, so 40.1 executes first. No requirement IDs were
   added, removed, or reworded — 40.1 hardens code CIT-01/CIT-03/CIT-04 already delivered.
 
+- **2026-08-04** — v0.7.1 roadmap created: **Phases 43–46**, 11/11 v1 requirements mapped, zero
+  orphans. Derived from `REQUIREMENTS.md` alone — no `research/SUMMARY.md` exists for this milestone
+  (research deliberately skipped, owner decision 2026-08-04). Eight pending todos plus the dormant
+  SEED-001 were promoted into requirements; `release-create-job-missing-uv-verify-end-to-end` is
+  carried as the open requirement REL-04 rather than as a todo. Milestone invariant #5 is new and is
+  encoded as Phase 43's SC#5 (push the milestone branch to `origin` from the first phase). The final
+  phase (46) is prep-only, pairing REL-06 with REL-04's verification-and-handoff share only —
+  REL-04 itself closes at the publish.
+
 - **2026-08-03** — Backlog item **999.2 promoted into v0.7.0 as Phase 42** at `/gsd-review-backlog`,
   by owner decision, *after* Phase 41 had already completed. Unlike every prior amendment in this
   log, this one **adds a requirement to an already-complete milestone**: new requirement **TBL-03**
@@ -431,12 +496,15 @@ Items acknowledged and carried forward from milestone closes:
 `.planning/milestones/v0.7.0-phases/`.
 
 Last session: 2026-08-04
-Stopped at: v0.7.0 milestone archived; publish executing at `/gsd-complete-milestone`
-Resume: `/gsd-new-milestone` (next milestone starts at **Phase 43**).
+Stopped at: v0.7.1 roadmap created — Phases 43–46, 11/11 requirements mapped
+Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
 
 ## Operator Next Steps
 
 - ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
   Shipped Milestone). Nothing owner-manual is outstanding.
 
-- Start the next milestone with `/gsd-new-milestone` — phase numbering continues at **Phase 43**.
+- Plan the first phase with `/gsd-plan-phase 43`.
+- **Phase 43 must push the milestone branch to `origin`** (milestone invariant #5) so CI — including
+  the Windows lanes — runs against every subsequent phase rather than first meeting the branch at
+  the release PR.

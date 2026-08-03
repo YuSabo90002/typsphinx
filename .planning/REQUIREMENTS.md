@@ -131,22 +131,37 @@ Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TBL-04 | TBD | Pending |
-| TBL-05 | TBD | Pending |
-| CONF-08 | TBD | Pending |
-| BLD-01 | TBD | Pending |
-| DOC-11 | TBD | Pending |
-| DOC-12 | TBD | Pending |
-| QUA-01 | TBD | Pending |
-| QUA-02 | TBD | Pending |
-| QUA-03 | TBD | Pending |
-| REL-04 | TBD | Pending |
-| REL-06 | TBD | Pending |
+| TBL-04 | Phase 43 | Pending |
+| TBL-05 | Phase 43 | Pending |
+| QUA-01 | Phase 43 | Pending |
+| CONF-08 | Phase 44 | Pending |
+| BLD-01 | Phase 44 | Pending |
+| DOC-11 | Phase 45 | Pending |
+| DOC-12 | Phase 45 | Pending |
+| QUA-02 | Phase 45 | Pending |
+| QUA-03 | Phase 45 | Pending |
+| REL-06 | Phase 46 | Pending |
+| REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11 ⚠️ (filled by the roadmapper)
+- Mapped to phases: 11
+- Unmapped: 0 ✓
+
+**Phase mapping notes:**
+
+- **Phase 43** groups both table defects with QUA-01 because all three live in `translator.py`'s
+  table/anchor code; the docstring QUA-01 corrects describes a helper Phase 43 calls.
+- **Phase 44** groups CONF-08 and BLD-01 because both change `TypstPDFBuilder.finish()` — the
+  derivation and the input hardening are made once, in one place.
+- **Phase 45** follows Phase 44 because DOC-11 must document the behaviour CONF-08 actually shipped,
+  including the measured output filename. QUA-02 (`template_engine.py`) and QUA-03 (`.planning/`
+  docs hygiene) ride along as small independent items rather than each becoming a phase.
+- **Phase 46** is prep-only and takes **zero irreversible action**. REL-04's row stays open through
+  the phase by design: its acceptance evidence is a real tag push whose `create-release` job runs to
+  completion, which only `/gsd-complete-milestone` can generate. The phase discharges the
+  verification-and-handoff share only; do not flip this row on the strength of the workflow file
+  being correct.
 
 ## Milestone Invariants
 
@@ -171,4 +186,4 @@ Standing bars this milestone inherits and must not relax:
 
 ---
 *Requirements defined: 2026-08-04*
-*Last updated: 2026-08-04 at milestone v0.7.1 scoping*
+*Last updated: 2026-08-04 at v0.7.1 roadmap creation (traceability filled: Phases 43-46, 11/11 mapped)*
