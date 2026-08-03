@@ -274,3 +274,103 @@ All three sections above are MET. `release.yml` itself was not executed (explici
 glossed over) — SC#1's demonstration is a direct hand-run of the committed extractor, and D-09's
 proof is a structural read of the workflow's own job graph, both fully sufficient for what this
 plan's success criteria ask for without requiring a real tag push.
+
+---
+
+## Addendum — post-review hardening of `release.yml` (2026-08-03, after plan 41-01 closed)
+
+**Why this addendum exists.** Everything above was measured against the `release.yml` that plan 41-01
+committed. The phase's `execute:post` code review (`41-REVIEW.md`, CR-01) then found a shell-injection
+defect in that file, and the owner elected to fix it inside Phase 41 rather than defer it. That fix
+changes `release.yml`, so the transcriptions above no longer describe the file byte-for-byte. This
+section records what changed and re-establishes the claims the change could have disturbed.
+
+### The finding, and its accurate scope
+
+CR-01 flagged that the new `validate`-job step interpolated a GitHub Actions expression directly into
+the shell script body:
+
+```yaml
+VERSION="${{ steps.version.outputs.version }}"
+```
+
+A `${{ }}` inside `run:` is substituted **before** bash parses the script, so a tag name containing
+`"`, a backtick, or `$(...)` — none of which git forbids — executes as code in a job holding
+`contents: write` / `id-token: write`.
+
+**Scope correction, measured rather than assumed.** The review presented this as code Phase 41
+introduced. The same anti-pattern already existed at the phase base commit `30354ba`, verified by
+`git show 30354ba:.github/workflows/release.yml`:
+
+| Line (at base) | Interpolation | Introduced by |
+|---|---|---|
+| 42 | `TAG="${{ github.event.inputs.tag }}"` | pre-existing — the actual untrusted entry point |
+| 53 | `TAG_VERSION="${{ steps.version.outputs.version }}"` | pre-existing |
+| 63 | `VERSION="${{ steps.version.outputs.version }}"` | **added by plan 41-01** |
+
+Phase 41 therefore propagated an existing anti-pattern into one additional step; it did not add new
+reachability, since anyone able to reach line 63 already reached line 53 with the same value. The
+corollary drove the fix's scope: repairing line 63 alone would have left the entry point open, so all
+shell-context interpolations in the file were converted, not just the one this phase added.
+
+### The change
+
+Every `${{ }}` appearing inside a `run:` block is now passed through an `env:` block, so the value
+reaches bash as data rather than as script text. Converted sites: the `validate` job's
+`Extract version from tag`, `Verify version matches pyproject.toml`, and
+`Verify CHANGELOG has a section for this version`; and the `create-release` job's
+`Extract version from tag` and `Generate release notes`. A comment recording the invariant — *no
+`${{ }}` inside any `run:` block in this file* — sits above the first converted step.
+
+`${{ }}` occurrences in `with:` and `env:` values (e.g. `tag_name:`, `password:`, `GITHUB_TOKEN:`) are
+untouched and are not shell contexts.
+
+### Re-verification after the change
+
+Mechanized check that no shell-context interpolation survives, run against the post-fix file:
+
+```
+$ python - <<'PY'   # yaml.safe_load over .github/workflows/release.yml
+  ... for each job, for each step, flag any run: body containing "${{"
+PY
+OK: no ${{ }} interpolation inside any run: block
+```
+
+The two claims this addendum could have disturbed were re-measured, not assumed:
+
+```
+$ python -c "... print each job's needs ..."
+validate: needs=None
+build: needs=validate
+publish-pypi: needs=build
+create-release: needs=['build', 'publish-pypi']
+publish-testpypi: needs=build
+
+$ python -c "... enumerate validate job steps ..."
+4 Extract version from tag
+5 Verify version matches pyproject.toml
+6 Verify CHANGELOG has a section for this version
+7 Run tests
+8 Run linters
+9 Type check
+```
+
+D-09's ordering therefore still holds: the CHANGELOG existence check remains inside `validate`,
+strictly upstream of `build`, `publish-pypi`, and `create-release`. The commit-dump removal
+(SC#1's second half) is untouched by this change — the `Generate release notes` step still calls the
+extractor with no fallback, and `generate_release_notes: true` plus the Installation block are
+unchanged.
+
+Project gates re-run on the post-fix tree: `pytest` 805 passed / 1 skipped, the six extraction
+contract tests green on their own, and `black --check .` / `ruff check .` / `mypy typsphinx/` all
+clean.
+
+### Still open (not fixed here)
+
+`41-REVIEW.md`'s two Info findings were left alone, outside the owner's fix decision: the uncaught
+`FileNotFoundError` when `--changelog-path` points at a missing file (exit code is still non-zero, so
+the gate behaves correctly — only the diagnostic is ugly), and the extraction tests' coupling to the
+real `CHANGELOG.md` wording.
+
+`release.yml` was still never executed in this phase. This addendum, like the sections above, is a
+structural proof over the file's own contents.
