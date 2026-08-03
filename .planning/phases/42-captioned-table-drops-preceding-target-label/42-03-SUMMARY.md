@@ -126,3 +126,13 @@ None - no external service configuration required.
 ---
 *Phase: 42-captioned-table-drops-preceding-target-label*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-GATE-EVIDENCE-03.md`
+- FOUND: `.planning/todos/pending/2026-08-03-table-whitespace-only-title-anchor-divergence.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-03-SUMMARY.md`
+- FOUND commit: `5df4d6b`
+- FOUND commit: `4ad2194`
+- FOUND commit: `6441f73`
+- FOUND commit: `6516aaa`
