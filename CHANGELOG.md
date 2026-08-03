@@ -52,6 +52,10 @@ document containing a citation no longer fails the Typst compile outright.
 - **Block math inside a list item no longer emits a redundant blank line (MATH-02)** — the extra
   blank line between the math expression and the following paragraph break, carried over from the
   v0.6.5 Phase 34 review, is gone.
+- **A captioned table immediately preceded by a standalone target no longer drops the target's
+  label (TBL-03)** — both the table's own name-derived label and the propagated target's label
+  are now emitted, so a reference to either resolves instead of aborting the compile on a
+  dangling label.
 
 ### Verified
 
