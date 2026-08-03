@@ -141,3 +141,12 @@ None - no external service configuration required.
 ---
 *Phase: 41-v0-7-0-release-automation-release-prep*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-GREEN-TREE-EVIDENCE.md`
+- FOUND: `.planning/phases/41-v0-7-0-release-automation-release-prep/41-05-SUMMARY.md`
+- FOUND: commit `80b66f5` (Task 1 - full suite + lint/type trio)
+- FOUND: commit `8451a1d` (Task 2 - corpus gate + CHANGELOG cross-check)
+- FOUND: commit `b483cac` (Task 3 - docs builds + tree cleanliness)
+- FOUND: commit `db131a2` (SUMMARY.md)
