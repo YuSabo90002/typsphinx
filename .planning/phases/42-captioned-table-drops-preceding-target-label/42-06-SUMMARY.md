@@ -147,3 +147,16 @@ SC#6 is discharged: the curated `## [0.7.0]` CHANGELOG entry carries its TBL-03 
 ---
 *Phase: 42-captioned-table-drops-preceding-target-label*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: `CHANGELOG.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-SC4-INVARIANTS.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-CLOSEOUT-GUARD.md`
+- FOUND: `.planning/phases/42-captioned-table-drops-preceding-target-label/42-06-SUMMARY.md`
+- FOUND commit: `d57f6d1` (Task 1)
+- FOUND commit: `d3bc623` (Task 2)
+- FOUND commit: `527e3f6` (Task 3)
+- FOUND commit: `a47fdb2` (SUMMARY)
+
+All claimed files exist on disk and all claimed commits resolve in `git log --all`.
