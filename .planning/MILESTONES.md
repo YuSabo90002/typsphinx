@@ -25,6 +25,13 @@ done: `typsphinx-doc-translations` pin advanced to `75fd8ed` by `update-pin.yml`
 (commit `a2150b1f`) and tagged `v0.7.0` there. PR #129 merged to `main` with 15/15 CI checks green;
 `v0.7.0` tagged on merge commit `75fd8ed`.
 
+**Read the Docs `stable` measured live 2026-08-04 (`41-HANDOFF.md` item 5, both projects):** root
+`https://typsphinx.readthedocs.io/` → `/en/stable/` (302 → 200); `en` `stable` identifier
+`75fd8ed5` (the v0.7.0 merge commit), `ja` `stable` identifier `a2150b1f` (the translations repo's
+own v0.7.0 tag); both pages report `0.7.0`; both PDFs served (`en` 1,965,123 B / `ja` 2,152,807 B,
+`application/pdf`). Both builds `finished` / `success`. No owner setting flips were needed — both
+Default Versions were already `stable` from the v0.6.4 close.
+
 ### Known Gaps
 
 **REL-04 — not met; carried to v0.7.1.** The requirement is that the GitHub Release body is the

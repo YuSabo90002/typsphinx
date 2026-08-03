@@ -56,6 +56,13 @@ tag-time `typsphinx.pdf` from `docs.yml`) with the curated `## [0.7.0]` CHANGELO
 GitHub's auto-generated notes. Second-repository tag done: `typsphinx-doc-translations` pin advanced
 to `75fd8ed` by `update-pin.yml` run `30848873442` (commit `a2150b1f`) and tagged `v0.7.0` there.
 
+**Read the Docs `stable` measured live 2026-08-04 (`41-HANDOFF.md` item 5, both projects):** root
+`https://typsphinx.readthedocs.io/` → `/en/stable/` (302 → 200); `en` `stable` identifier
+`75fd8ed5` (the v0.7.0 merge commit), `ja` `stable` identifier `a2150b1f` (the translations repo's
+own v0.7.0 tag); both pages report `0.7.0`; both PDFs served (`en` 1,965,123 B / `ja` 2,152,807 B,
+`application/pdf`). Both builds `finished` / `success`. No owner setting flips were needed — both
+Default Versions were already `stable` from the v0.6.4 close.
+
 **What shipped:** API reference pages became readable — monospace signatures with hanging-indent
 wrapping and no margin overflow (SIG-01..09), description bodies and field lists indenting by
 nesting depth off one shared `SHARED_INDENT_STEP` constant (IND-01..05, FLD-01..03), admonitions
@@ -429,6 +436,6 @@ Resume: `/gsd-new-milestone` (next milestone starts at **Phase 43**).
 
 ## Operator Next Steps
 
-- Confirm Read the Docs `stable` is green at `v0.7.0` on **both** projects (`41-HANDOFF.md` item 5)
-  — owner-manual, via the RTD public API or real fetches (no authentication needed).
+- ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
+  Shipped Milestone). Nothing owner-manual is outstanding.
 - Start the next milestone with `/gsd-new-milestone` — phase numbering continues at **Phase 43**.
