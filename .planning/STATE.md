@@ -4,7 +4,7 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 42
 status: completed
-stopped_at: Phase 42 context gathered
+stopped_at: Phase 42 complete and verified (6/6 plans, 6/6 SC) — milestone v0.7.0 awaits /gsd-complete-milestone
 last_updated: "2026-08-03T15:15:13.342Z"
 last_activity: 2026-08-04
 last_activity_desc: Phase 42 complete
@@ -24,45 +24,61 @@ current_phase_name: captioned-table-drops-preceding-target-label
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 42 — captioned-table-drops-preceding-target-label
+**Current focus:** v0.7.0 milestone close — all 8 phases complete; next action `/gsd-complete-milestone`
 
 ## Current Position
 
-Phase: 42
-out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after* Phase 41
-had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total 32 → 33) and
-the milestone went from 7/7 to 7/8 — the first time this project has added a requirement to an
-already-complete milestone.
+Phase: 42 — Captioned Table Drops Preceding Target Label (COMPLETE)
 
-Plans: **0/6 complete**, 3 waves, planned 2026-08-03. Plan-checker returned `VERIFICATION PASSED`
-on the first iteration; requirements coverage 1/1 (TBL-03), decision coverage 10/10 (D-01..D-10).
-Wave 1 (`42-01`, `42-02`, `42-03`) is fully parallel — no `files_modified` overlap. Wave 2 is the
-single production change (`42-04`, `typsphinx/translator.py`); wave 3 (`42-05`, `42-06`) is the
-byte-invariance evidence and the Phase 41 reconciliation. The RED-before-GREEN contract is enforced
-structurally, not by prose: `42-04` sits behind `depends_on: ["42-01"]` and must prove the RED commit
-is an ancestor of the fix commit via `git merge-base --is-ancestor`.
+Promoted out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after*
+Phase 41 had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total
+32 → 33) and the milestone went from 7/7 to 7/8 — the first time this project has added a requirement
+to an already-complete milestone. **TBL-03 is now validated** (`- [x]`, Traceability `Complete`).
 
-**The reproduction is no longer open.** Phase 42's research reproduced the failure in-repo against a
-real `-b typstpdf` build (`TypstError: label \`<index:tbl-target>\` does not exist in the document`),
-inspected the pickled doctree (`node["ids"] == ['tbl-name', 'tbl-target']` — the target's id *does*
-reach `depart_table`), and root-caused it: `add_text()` (`translator.py:423-437`) gates buffer
-diversion on `self.in_table` alone, and `depart_table`'s trailing `_emit_id_anchors` call fires at
-line 3341 while that flag is still set, so the anchor lands in a buffer deleted at lines 3367-3368.
-`depart_figure` is unaffected because `add_text` never consults `self.in_figure`. These are research
-findings, not phase evidence — SC#1/SC#2 still require their own recorded reproductions.
+Plans: **6/6 complete**, executed 2026-08-04 across 3 waves in isolated worktrees. Verification
+`passed` 6/6 SC (`42-VERIFICATION.md`), each criterion re-measured by the verifier against the
+codebase rather than taken from the phase's own evidence files. Code review 0 critical / 1 warning /
+2 info (`42-REVIEW.md`). Full suite **821 passed / 1 skipped / 0 failed**; `black` / `ruff` / `mypy`
+clean.
 
-**The v0.7.0 publish blocks on Phase 42** (owner decision, same session): `/gsd-complete-milestone`
-runs after Phase 42 verifies, not before. Two reconciliation items carried by Phase 42's SC#6,
-because Phase 41's artifacts were produced against a tree that predates it:
+**The fix is one call site.** `depart_table`'s trailing
+`_emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))` fired while `self.in_table` was still
+True, so `add_text()` (`translator.py:423-437`) diverted the propagated-target anchor into
+`self.table_cell_content` — a buffer `del`eted a few statements later and never read again. The
+anchor was not misplaced, it was **discarded**. Moving that call past `self.in_table = False`, gated
+on a `was_captioned` boolean captured before `self.table_caption` is reset, is the entire production
+change (`e5575f3`, the only commit in the phase touching `typsphinx/`).
 
-1. The curated `## [0.7.0]` CHANGELOG entry (41 SC#2) has no TBL-03 line.
-2. SC#4's milestone-invariant sweep — in particular "every node-handler change carries its
-   recorded-RED GATE-01 fixture" — was measured over a SHA range that ends before Phase 42.
+**The RED-before-GREEN contract held structurally, not by prose.** TBL-03 is milestone invariant #4's
+second classic-RED exception (alongside CIT-01) because it fails the Typst compile rather than
+compiling wrong. `git merge-base --is-ancestor d28f2c8 e5575f3` returns true, and wave 1 left
+`typsphinx/` byte-unchanged — so the real `TypstError` RED (7 failed / 814 passed, all 7 inside the
+new gate module) was genuinely recorded against unfixed production code before the fix landed.
 
-The defect itself is **not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is
-TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25). It was reproduced and root-caused during
-Phase 42's research (see above); the *phase's* own recorded reproduction is still owed as SC#1's
-deliverable, since research measurements are reference material, not phase evidence (D-07).
+**The two open questions were closed by measurement.** Captioned figures do *not* share the drop
+(SC#2), answered with a real build and now protected by a permanent figure-side regression gate. A
+sweep of all 21 `_emit_id_anchors` call sites found `depart_table` the sole misrouted one, with the
+image path a recorded null result. SC#4's caption-less byte-invariance carries its own positive
+control — two distinct resolved `typsphinx.__file__` paths and a deliberately non-empty diff for the
+captioned shapes — so the empty caption-less diff is meaningful rather than the false-empty an
+unprovisioned worktree produces.
+
+**SC#6 reconciled Phase 41's artifacts**, which were produced against a tree that predates this
+phase: the curated `## [0.7.0]` CHANGELOG entry gained its TBL-03 line, and the milestone-invariant
+sweep was re-measured over a SHA range including Phase 42 (`42-SC4-INVARIANTS.md`).
+`42-CLOSEOUT-GUARD.md` armed the REL-04/REL-05 checkbox-flip guard that hit Phase 41 — and the
+post-`phase.complete` diff came back clean, touching only TBL-03's two legitimate lines.
+
+The defect itself was **not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is
+TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25), so it had shipped in every release since.
+
+**Two findings deliberately left open, neither blocking v0.7.0:** code review WR-01 (the
+`_emit_id_anchors` docstring still calls `depart_figure` the "sole user" of `skip_ids`, false since
+Phase 25) was not fixed because touching `translator.py` after the SC#4 and SC#6 artifacts were
+recorded would move the change outside the SHA range they measured; and IN-02, a real, severe,
+*pre-existing* bug verified byte-identical pre- and post-fix — a table nested inside a `list-table`
+cell silently drops the outer table structure, because `in_table`/`table_cell_content` are scalars
+rather than a stack.
 
 ### Phase 41 (previous position — COMPLETE)
 
@@ -113,7 +129,7 @@ the collapsed red admonition bucket into three distinct gentle-clues functions (
 re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
 `39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
 
-Progress: [█████████████████░░░] 88% (7/8 phases — Phase 42 added 2026-08-03)
+Progress: [████████████████████] 100% (8/8 phases — Phase 42 completed 2026-08-04)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
