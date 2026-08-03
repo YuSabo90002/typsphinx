@@ -154,11 +154,21 @@ for the close).
 Move both from `.planning/todos/pending/` to `.planning/todos/completed/`, confirmed present at
 `.planning/todos/pending/` by directory listing during this phase's own execution:
 
-- `2026-07-29-release-notes-body-from-changelog-section.md` — this **is** REL-04; delivered end to
-  end by plan 41-01 (`41-REL04-EVIDENCE.md`).
+- ~~`2026-07-29-release-notes-body-from-changelog-section.md`~~ — this **is** REL-04; delivered end
+  to end by plan 41-01 (`41-REL04-EVIDENCE.md`). **ALREADY DONE — no action needed at close.**
+  See the amendment below.
 - `2026-08-01-visit-desc-sig-name-docstring-unbalanced-asterisk-warning.md` — D-12; delivered by
   plan 41-03 (confirmed fixed and reaching the published API reference with zero warning
-  occurrences in `41-GREEN-TREE-EVIDENCE.md` § "Step 7b").
+  occurrences in `41-GREEN-TREE-EVIDENCE.md` § "Step 7b"). **Still to do at close.**
+
+**Amendment (2026-08-03, at phase close).** The first of the two was moved during the phase's own
+close-out, not at `/gsd-complete-milestone`. Cause: it carries `resolves_phase: 41` in its
+frontmatter, and `execute-phase`'s automatic `close_phase_todos` step moves every pending todo
+tagged with the completing phase — so the deferral this item describes was not actually available for
+that file. The move is factually correct (REL-04's workflow change landed in plan 41-01), so it was
+allowed to stand rather than being reverted to preserve the ordering. The second file has
+`resolves_phase: null` and was therefore untouched, so it remains genuine close-side work exactly as
+written above.
 
 Note the asymmetry with D-13's two already-fixed todos (`2026-08-01-desc-break-marker-stale-...md`
 and `2026-08-01-expected-page-count-...md`), which this phase already moved to
