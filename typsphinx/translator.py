@@ -6602,7 +6602,7 @@ class TypstTranslator(SphinxTranslator):
         one becomes nodes.reference. A pending_xref check here would
         silently never fire -- this is the exact wrong turn
         37-CONTEXT.md's own D-05 text invites; 37-04-SUMMARY.md's
-        unresolved-C-domain-type measurement (PyTypeObject *type, no
+        unresolved-C-domain-type measurement (``PyTypeObject *type``, no
         intersphinx) independently confirms the mechanical rule-2 output
         this discriminator produces for a type that never resolves.
         """
