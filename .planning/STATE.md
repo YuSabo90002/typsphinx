@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 41
-current_phase_name: v0-7-0-release-automation-release-prep
-status: executing
-stopped_at: Phase 41 planned (7 plans, 3 waves)
-last_updated: "2026-08-03T11:21:18.870Z"
+status: completed
+stopped_at: Phase 41 complete — v0.7.0 prepped, publish pending at /gsd-complete-milestone
+last_updated: "2026-08-03T12:40:24.809Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 41 execution started
+last_activity_desc: Phase 41 complete
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 51
-  completed_plans: 44
-  percent: 86
+  completed_plans: 51
+  percent: 100
+current_phase_name: v0-7-0-release-automation-release-prep
 ---
 
 # Project State
@@ -24,17 +24,37 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 41 — v0-7-0-release-automation-release-prep
+**Current focus:** v0.7.0 milestone close — all 7 phases complete; next action is `/gsd-complete-milestone`
 
 ## Current Position
 
-Phase: 41 (v0-7-0-release-automation-release-prep) — EXECUTING
-Plans: 0/7 — planned 2026-08-03 across 3 waves (research, pattern map, and validation strategy all
-recorded; plan-checker passed with no blockers). Context was gathered 2026-08-02 (`41-CONTEXT.md`,
-17 decisions, all 17 covered by plans). `/gsd-execute-phase 41` is the next step. This is the
-milestone's last phase.
-Status: Executing Phase 41
-Last activity: 2026-08-03 — Phase 41 execution started
+Phase: 41 — v0.7.0 Release Automation + Release Prep (COMPLETE, the milestone's last phase)
+Plans: 7/7 — executed 2026-08-03 across 3 waves. Verification `passed` 5/5 (`41-VERIFICATION.md`),
+each success criterion re-measured by the verifier rather than taken from the phase's own evidence
+files. Full suite 805 passed / 1 skipped; `black` / `ruff` / `mypy` clean; full-corpus `-b typstpdf`
+gate executed and PASSED; both docs dogfooding builds exit 0. The `ja` glyph bar's fourth check is
+the owner's own sign-off (`41-JA-GLYPHBAR-SIGNOFF.md`, verbatim: `approved`).
+Status: All phases complete — v0.7.0 is prepped but NOT published
+Last activity: 2026-08-03 — Phase 41 complete
+
+**Nothing irreversible has happened.** Local and remote `v0.7.0` tags are both empty (measured twice
+independently inside the phase, and again by the verifier). The publish half is a written checklist:
+`.planning/phases/41-v0-7-0-release-automation-release-prep/41-HANDOFF.md`, 7 ordered items, each
+with its owner. `/gsd-complete-milestone` executes it.
+
+**REL-04 and REL-05 are deliberately still `[ ]` / Pending in `REQUIREMENTS.md`** — flipping them is
+close-side work (handoff item 6), because REL-05's own text requires "the publish executed at
+`/gsd-complete-milestone`" and REL-04's body swap is first exercised by that same tag push.
+`phase.complete` auto-flipped all four lines (checkboxes + Traceability rows) on 2026-08-03 against
+this decision; the flip was measured against a pre-run copy and reverted before commit, exactly as
+`41-HANDOFF.md` item 6 warned it would be needed. Re-check this after any future `phase.complete`.
+
+**One post-plan commit is not covered by any plan SUMMARY:** `e9044ec` fixes `41-REVIEW.md`'s CR-01
+(shell injection — `${{ }}` interpolated inside `run:` blocks in `.github/workflows/release.yml`),
+converting every shell-context interpolation in that file to `env:` passing. The owner elected to
+close it inside Phase 41. `41-REL04-EVIDENCE.md` carries an addendum re-establishing SC#1 and D-09
+against the changed file; `41-REVIEW.md` records the resolution and a scope correction (the
+anti-pattern pre-dated the phase at two other sites).
 
 **Execution order note (resolved 2026-08-02):** Phase 41's SC#4 proves "every node-handler change
 carries its recorded-RED GATE-01 fixture" over the full milestone diff, and per `41-CONTEXT.md` D-11
@@ -55,7 +75,7 @@ the collapsed red admonition bucket into three distinct gentle-clues functions (
 re-signed-off by the owner against a post-reversal render, corpus gate re-run green, and
 `39-UAT.md` gap G-39-1 marked `status: closed` on 2026-08-02. Phase 40 is no longer deferred.
 
-Progress: [█████████████████░░░] 86% (6/7 phases)
+Progress: [████████████████████] 100% (7/7 phases)
 
 ## Active Milestone (v0.7.0 — API rendering design overhaul)
 
