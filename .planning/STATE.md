@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
+current_phase: 42
 current_phase_name: captioned-table-drops-preceding-target-label
-status: in_progress
+status: executing
 stopped_at: Phase 42 planned — ready to execute
-last_updated: "2026-08-03T14:13:15.000Z"
+last_updated: "2026-08-03T14:15:52.226Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 42 planned (6 plans, 3 waves)
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 57
   completed_plans: 51
   percent: 88
-current_phase: 42
+last_activity_desc: Phase 42 planned (6 plans, 3 waves)
 ---
 
 # Project State
@@ -24,11 +24,11 @@ current_phase: 42
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 42 (promoted from backlog 999.2 on 2026-08-03) — next action is `/gsd-execute-phase 42`, **not** `/gsd-complete-milestone`
+**Current focus:** Phase 42 — captioned-table-drops-preceding-target-label
 
 ## Current Position
 
-Phase: **42 — Captioned Table Drops Preceding Target Label (PLANNED, ready to execute)**. Promoted
+Phase: 42 (captioned-table-drops-preceding-target-label) — EXECUTING
 out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after* Phase 41
 had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total 32 → 33) and
 the milestone went from 7/7 to 7/8 — the first time this project has added a requirement to an
@@ -72,8 +72,8 @@ each success criterion re-measured by the verifier rather than taken from the ph
 files. Full suite 805 passed / 1 skipped; `black` / `ruff` / `mypy` clean; full-corpus `-b typstpdf`
 gate executed and PASSED; both docs dogfooding builds exit 0. The `ja` glyph bar's fourth check is
 the owner's own sign-off (`41-JA-GLYPHBAR-SIGNOFF.md`, verbatim: `approved`).
-Status: Complete — v0.7.0 is prepped but NOT published, and now waits on Phase 42 as well
-Last activity: 2026-08-03 — Phase 41 complete
+Status: Executing Phase 42
+Last activity: 2026-08-03
 
 **Nothing irreversible has happened.** Local and remote `v0.7.0` tags are both empty (measured twice
 independently inside the phase, and again by the verifier). The publish half is a written checklist:

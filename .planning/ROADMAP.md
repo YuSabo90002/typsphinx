@@ -285,6 +285,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 
 - **The v0.7.0 publish now blocks on Phase 42** (owner decision 2026-08-03). The milestone is 7/8,
   not 7/7; `/gsd-complete-milestone` runs after Phase 42 verifies, not before.
+
 - **Phase 41's release-prep artifacts need a delta pass over Phase 42's changes**, because they were
   produced against a tree that did not contain them: the curated `## [0.7.0]` CHANGELOG entry (SC#2)
   gains no line for TBL-03 on its own, and SC#4's milestone-invariant sweep — in particular "every
@@ -796,7 +797,7 @@ those is the first work of the phase — planning must not start from the breadc
      CHANGELOG entry gains its TBL-03 line, and SC#4's "every node-handler change carries its
      recorded-RED GATE-01 fixture" sweep is re-measured over a SHA range that includes Phase 42.
 
-**Plans**: 6 plans
+**Plans**: 3/6 plans executed
 
 Open questions the phase must settle before a fix is chosen:
 
@@ -805,13 +806,15 @@ Open questions the phase must settle before a fix is chosen:
   appear to emit `ids[1:]`, and carries an in-code TBL-02 / Critical-Pitfall-3 rationale that
   re-anchoring `ids[0]` there is a Typst "label … occurs multiple times" fatal. A naive change at
   that line risks trading a dangling label for a duplicate-label fatal.
+
 - Do captioned **figures** exhibit the same drop? `translator.py:517` notes `depart_figure`
   likewise self-anchors `ids[0]`, and the table path was modelled on it (Phase 25, D-04). Untested.
 
 Plans (3 waves; the RED-recording commit strictly precedes the fix commit):
-- [ ] 42-01-PLAN.md — wave 1: the TBL-03 GATE-01 fixture (D-01's four failing shapes plus the caption-less control) and the classic real-`TypstError` RED recorded against unfixed `depart_table` (SC#1, SC#5)
-- [ ] 42-02-PLAN.md — wave 1: the permanent figure regression gate over D-10's three measured shapes, answering whether captioned figures share the drop (SC#2, D-09, D-10)
-- [ ] 42-03-PLAN.md — wave 1: the repo-wide misrouting sweep with a formal image-path re-measurement, plus the D-08 whitespace-only-title todo (D-06, D-07, D-08)
+
+- [x] 42-01-PLAN.md — wave 1: the TBL-03 GATE-01 fixture (D-01's four failing shapes plus the caption-less control) and the classic real-`TypstError` RED recorded against unfixed `depart_table` (SC#1, SC#5)
+- [x] 42-02-PLAN.md — wave 1: the permanent figure regression gate over D-10's three measured shapes, answering whether captioned figures share the drop (SC#2, D-09, D-10)
+- [x] 42-03-PLAN.md — wave 1: the repo-wide misrouting sweep with a formal image-path re-measurement, plus the D-08 whitespace-only-title todo (D-06, D-07, D-08)
 - [ ] 42-04-PLAN.md — wave 2: the fix — the `was_captioned`-gated call-ordering move inside `depart_table` — and the recorded GREEN with structural assertions (SC#3, D-02, D-03, D-05)
 - [ ] 42-05-PLAN.md — wave 3: caption-less byte invariance proven by an empty two-worktree diff between named pre-fix and post-fix commits (SC#4, D-04)
 - [ ] 42-06-PLAN.md — wave 3: the Phase 41 reconciliation — the TBL-03 CHANGELOG line, the SC#4 invariant sweep re-measured over a range including Phase 42, and the REL-04/REL-05 flip guard (SC#6)
@@ -884,7 +887,7 @@ and Phase 42's SC#6 carries the reconciliation Phase 41 would otherwise have own
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
-| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 0/0 | Not started | — |
+| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 3/6 | In Progress|  |
 
 ## Roadmap Evolution
 
