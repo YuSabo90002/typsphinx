@@ -4,14 +4,14 @@ milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase_name: captioned-table-drops-preceding-target-label
 status: in_progress
-stopped_at: Phase 42 context gathered
-last_updated: "2026-08-03T13:21:23.938Z"
+stopped_at: Phase 42 planned — ready to execute
+last_updated: "2026-08-03T14:13:15.000Z"
 last_activity: 2026-08-03
-last_activity_desc: Phase 42 context gathered
+last_activity_desc: Phase 42 planned (6 plans, 3 waves)
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 51
+  total_plans: 57
   completed_plans: 51
   percent: 88
 current_phase: 42
@@ -24,15 +24,32 @@ current_phase: 42
 See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 42 (promoted from backlog 999.2 on 2026-08-03) — next action is `/gsd-discuss-phase 42`, **not** `/gsd-complete-milestone`
+**Current focus:** Phase 42 (promoted from backlog 999.2 on 2026-08-03) — next action is `/gsd-execute-phase 42`, **not** `/gsd-complete-milestone`
 
 ## Current Position
 
-Phase: **42 — Captioned Table Drops Preceding Target Label (NOT STARTED, no plans yet)**. Promoted
+Phase: **42 — Captioned Table Drops Preceding Target Label (PLANNED, ready to execute)**. Promoted
 out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after* Phase 41
 had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total 32 → 33) and
 the milestone went from 7/7 to 7/8 — the first time this project has added a requirement to an
 already-complete milestone.
+
+Plans: **0/6 complete**, 3 waves, planned 2026-08-03. Plan-checker returned `VERIFICATION PASSED`
+on the first iteration; requirements coverage 1/1 (TBL-03), decision coverage 10/10 (D-01..D-10).
+Wave 1 (`42-01`, `42-02`, `42-03`) is fully parallel — no `files_modified` overlap. Wave 2 is the
+single production change (`42-04`, `typsphinx/translator.py`); wave 3 (`42-05`, `42-06`) is the
+byte-invariance evidence and the Phase 41 reconciliation. The RED-before-GREEN contract is enforced
+structurally, not by prose: `42-04` sits behind `depends_on: ["42-01"]` and must prove the RED commit
+is an ancestor of the fix commit via `git merge-base --is-ancestor`.
+
+**The reproduction is no longer open.** Phase 42's research reproduced the failure in-repo against a
+real `-b typstpdf` build (`TypstError: label \`<index:tbl-target>\` does not exist in the document`),
+inspected the pickled doctree (`node["ids"] == ['tbl-name', 'tbl-target']` — the target's id *does*
+reach `depart_table`), and root-caused it: `add_text()` (`translator.py:423-437`) gates buffer
+diversion on `self.in_table` alone, and `depart_table`'s trailing `_emit_id_anchors` call fires at
+line 3341 while that flag is still set, so the anchor lands in a buffer deleted at lines 3367-3368.
+`depart_figure` is unaffected because `add_text` never consults `self.in_figure`. These are research
+findings, not phase evidence — SC#1/SC#2 still require their own recorded reproductions.
 
 **The v0.7.0 publish blocks on Phase 42** (owner decision, same session): `/gsd-complete-milestone`
 runs after Phase 42 verifies, not before. Two reconciliation items carried by Phase 42's SC#6,
@@ -43,10 +60,9 @@ because Phase 41's artifacts were produced against a tree that predates it:
    recorded-RED GATE-01 fixture" — was measured over a SHA range that ends before Phase 42.
 
 The defect itself is **not a v0.7.0 regression**: the captioned-table `figure()` wrap it lives in is
-TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25). It is **not yet reproduced in-repo** — the
-report is the owner's, verbatim; establishing a minimal `.rst`, the Typst error text, and the
-observed `node["ids"]` contents is the phase's first work. Do not plan from the breadcrumb
-hypothesis at `translator.py:3341`.
+TBL-01/TBL-02 from Phase 25 (v0.6.3, shipped 2026-07-25). It was reproduced and root-caused during
+Phase 42's research (see above); the *phase's* own recorded reproduction is still owed as SC#1's
+deliverable, since research measurements are reference material, not phase evidence (D-07).
 
 ### Phase 41 (previous position — COMPLETE)
 
