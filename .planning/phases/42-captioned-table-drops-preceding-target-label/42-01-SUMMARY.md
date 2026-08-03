@@ -125,3 +125,14 @@ Wave 1's other two plans (42-02, 42-03) proceed independently in this same wave.
 ---
 *Phase: 42-captioned-table-drops-preceding-target-label*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: tests/fixtures/captioned_table_propagated_target_render_gate/conf.py
+- FOUND: tests/fixtures/captioned_table_propagated_target_render_gate/index.rst
+- FOUND: tests/test_captioned_table_propagated_target_render_gate.py
+- FOUND: .planning/phases/42-captioned-table-drops-preceding-target-label/42-GATE-EVIDENCE-01.md
+- FOUND commit: b2a3564
+- FOUND commit: d28f2c8
+- FOUND commit: 1b715cd
+- FOUND commit: 543d38a
