@@ -172,7 +172,7 @@ def _measure_widths(index_typ_path: Path, build_dir: Path, segments: list) -> tu
 
     Returns ``(column_width_pt, [segment_width_pt, ...])``.
     """
-    base_source = index_typ_path.read_text()
+    base_source = index_typ_path.read_text(encoding="utf-8")
     lines = [
         "",
         "#pagebreak()",
@@ -185,7 +185,7 @@ def _measure_widths(index_typ_path: Path, build_dir: Path, segments: list) -> tu
     probe_source = base_source + "\n" + "\n".join(lines) + "\n"
 
     probe_path = build_dir / "sig07_probe.typ"
-    probe_path.write_text(probe_source)
+    probe_path.write_text(probe_source, encoding="utf-8")
     pdf_path = build_dir / "sig07_probe.pdf"
     typst.compile(str(probe_path), output=str(pdf_path))
 
@@ -279,7 +279,7 @@ class TestSignatureOverflowRenderGate:
         par(hanging-indent: ...) (D-06).
         """
         index_typ, build_dir = signature_overflow_built
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, SYNTHETIC_NAME)
         combined = addname + name
         segments = combined.split(ZWSP_ESCAPE)
@@ -308,7 +308,7 @@ class TestSignatureOverflowRenderGate:
         translator.
         """
         index_typ, _ = signature_overflow_built
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         assert "par(hanging-indent: 2.5em" in typ_source, (
             "expected the desc_signature wrapper to carry "
             "par(hanging-indent: 2.5em, ...) -- D-06's chosen, "
@@ -329,7 +329,7 @@ class TestSignatureOverflowRenderGate:
         assertion FAILS (RED) against the untouched translator.
         """
         index_typ, _ = signature_overflow_built
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, SYNTHETIC_NAME)
         combined = addname + name
         expected_periods = SYNTHETIC_IDENTIFIER.count(".")
@@ -354,7 +354,7 @@ class TestSignatureOverflowRenderGate:
         converted into the RED case.
         """
         index_typ, build_dir = signature_overflow_built
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, CONTROL_NAME_ANCHOR)
         combined = addname + name
         segments = combined.split(ZWSP_ESCAPE)

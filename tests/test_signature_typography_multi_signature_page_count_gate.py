@@ -188,7 +188,7 @@ class TestSignatureTypographyMultiSignaturePageCountGate:
         # Degenerate-pass guard: verify the fixture contains the expected
         # number of signature wrappers. If this fails, the fixture changed,
         # and the page count assertion is testing the wrong document.
-        typ_content = typ_file.read_text()
+        typ_content = typ_file.read_text(encoding="utf-8")
         wrapper_pattern = "block(sticky: true, par(hanging-indent:"
         actual_wrapper_count = typ_content.count(wrapper_pattern)
 

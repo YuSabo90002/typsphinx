@@ -215,10 +215,10 @@ def _compile_and_extract_pages(index_typ_path: Path, build_dir: Path) -> list:
     never the all-pages-joined pattern, so per-page containment can be
     asserted.
     """
-    base_source = index_typ_path.read_text()
+    base_source = index_typ_path.read_text(encoding="utf-8")
     probe_source = _insert_page_override(base_source, PAGE_HEIGHT_PT, PAGE_MARGIN_PT)
     probe_path = build_dir / "sig09_probe.typ"
-    probe_path.write_text(probe_source)
+    probe_path.write_text(probe_source, encoding="utf-8")
     pdf_path = build_dir / "sig09_probe.pdf"
     typst.compile(str(probe_path), output=str(pdf_path))
 
