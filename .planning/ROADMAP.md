@@ -278,7 +278,7 @@ a UI hint, and `/gsd-ui-phase` is not applicable.
 - [x] **Phase 40: Citations — Full Round Trip** - A document with docutils citations compiles and renders a labelled, linked, back-referenced reference list; `examples/charged-ieee/` gets its citations back (completed 2026-08-02)
 - [x] **Phase 40.1: Citation Degradation Hardening (INSERTED)** - The three graceful-degradation gaps `40-REVIEW.md` found are closed with recorded-RED fixtures, so a citing-site topology the Phase 40 fixture never builds degrades instead of emitting a dangling `link()` (completed 2026-08-02)
 - [x] **Phase 41: v0.7.0 Release Automation + Release Prep** - The GitHub Release body comes from the curated CHANGELOG section, and the v0.7.0 tree is prepared and proven green with no irreversible publish (completed 2026-08-03)
-- [ ] **Phase 42: Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG)** - A captioned table preceded by a standalone target emits Typst labels for both ids, so the surviving reference resolves instead of failing the compile on a dangling label
+- [x] **Phase 42: Captioned Table Drops Preceding Target Label (PROMOTED FROM BACKLOG)** - A captioned table preceded by a standalone target emits Typst labels for both ids, so the surviving reference resolves instead of failing the compile on a dangling label (completed 2026-08-04)
 
 **Phase 42 was promoted out of the backlog on 2026-08-03, after Phase 41 had already completed**
 (`/gsd-review-backlog`, owner decision). Two consequences the milestone close must honour:
@@ -887,7 +887,7 @@ and Phase 42's SC#6 carries the reconciliation Phase 41 would otherwise have own
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
-| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | In Progress|  |
+| 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 
 ## Roadmap Evolution
 

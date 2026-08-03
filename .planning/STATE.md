@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.7.0
 milestone_name: API rendering design overhaul
 current_phase: 42
-current_phase_name: captioned-table-drops-preceding-target-label
-status: executing
-stopped_at: Phase 42 planned — ready to execute
-last_updated: "2026-08-03T14:15:52.226Z"
-last_activity: 2026-08-03
+status: completed
+stopped_at: Phase 42 context gathered
+last_updated: "2026-08-03T15:15:13.342Z"
+last_activity: 2026-08-04
+last_activity_desc: Phase 42 complete
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 57
-  completed_plans: 51
-  percent: 88
-last_activity_desc: Phase 42 planned (6 plans, 3 waves)
+  completed_plans: 57
+  percent: 100
+current_phase_name: captioned-table-drops-preceding-target-label
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29 at the v0.7.0 milestone start)
 
 ## Current Position
 
-Phase: 42 (captioned-table-drops-preceding-target-label) — EXECUTING
+Phase: 42
 out of backlog item 999.2 on 2026-08-03 at `/gsd-review-backlog` by owner decision, *after* Phase 41
 had already completed. Requirement **TBL-03** was added to `REQUIREMENTS.md` (v1 total 32 → 33) and
 the milestone went from 7/7 to 7/8 — the first time this project has added a requirement to an
@@ -72,8 +72,8 @@ each success criterion re-measured by the verifier rather than taken from the ph
 files. Full suite 805 passed / 1 skipped; `black` / `ruff` / `mypy` clean; full-corpus `-b typstpdf`
 gate executed and PASSED; both docs dogfooding builds exit 0. The `ja` glyph bar's fourth check is
 the owner's own sign-off (`41-JA-GLYPHBAR-SIGNOFF.md`, verbatim: `approved`).
-Status: Executing Phase 42
-Last activity: 2026-08-03
+Status: All phases complete
+Last activity: 2026-08-04 — Phase 42 complete
 
 **Nothing irreversible has happened.** Local and remote `v0.7.0` tags are both empty (measured twice
 independently inside the phase, and again by the verifier). The publish half is a written checklist:

@@ -192,7 +192,7 @@ Added 2026-08-03 when backlog item 999.2 was promoted into this milestone as Pha
 captioned-table `figure()` wrap this defect lives in (TBL-01/TBL-02, Phase 25) — the defect is not a
 v0.7.0 regression, it has shipped in every release since 2026-07-25.
 
-- [ ] **TBL-03** [M]: A captioned table immediately preceded by a standalone target (`.. _label:`)
+- [x] **TBL-03** [M]: A captioned table immediately preceded by a standalone target (`.. _label:`)
       emits Typst labels for **both** ids — the `:name:`-derived one and the target's — so the
       surviving reference resolves. Today only the `:name:`-derived label is emitted while the
       reference to the dropped id survives, and the compile fails on a dangling label; the
@@ -336,7 +336,7 @@ v1 requirement maps to exactly one phase. Phase numbering continues from v0.6.5'
 | MATH-02 | Phase 36 | Complete |
 | REL-04 | Phase 41 | Pending |
 | REL-05 | Phase 41 | Pending |
-| TBL-03 | Phase 42 | Pending |
+| TBL-03 | Phase 42 | Complete |
 
 **Per-phase totals:**
 
