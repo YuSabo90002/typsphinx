@@ -254,4 +254,210 @@ shape. No other call site in §1.5 is MISROUTED. Consequently there is no non-im
 a todo for from this task; the sweep's non-image output is a clean bill for every call site other
 than the phase's own known defect.
 
-<!-- gsd:write-continue -->
+## 2. Image-path re-measurement, formal, with a real build (Task 2, D-07)
+
+D-07's requirement: the image-path measurement made during phase discussion
+(`42-CONTEXT.md` § "Measured during this discussion (scratchpad only — NOT phase evidence)") is
+reference material only and is NOT admissible as phase evidence. This section re-takes that
+measurement from scratch, formally, inside this plan, against a real `-b typstpdf` build. §1.5
+above flagged two IMAGE-PATH call sites — `depart_figure` (`:2518`) and `visit_image` (`:3644`) —
+each already classified SAFE by static reading (neither observes `self.in_table`, the only flag
+`add_text` branches on). This section verifies that classification with an executable measurement,
+per the owner's condition (D-06): "an image-path finding is fixed inside this phase."
+
+### 2.1 Probe project
+
+Built under the session scratchpad, **not** under `tests/`, `typsphinx/`, `docs/`, or `examples/`,
+and not committed to the repository. Two shapes, matching the two IMAGE-PATH call sites: a
+standalone target immediately before a bare `.. image::`, and a standalone target immediately
+before a captioned `.. figure::`, each followed by a `:ref:` back to the target with explicit link
+text. The image file is a 1×1 PNG copied from the already-committed
+`tests/fixtures/figure_target_caption_render_gate/image.png` fixture asset — no new binary
+introduced.
+
+`conf.py` (verbatim):
+
+```python
+"""THROWAWAY probe project -- Phase 42 Plan 03, D-07 formal image-path re-measurement.
+
+Not committed to the repository. Built under the session scratchpad only, to
+formally re-take (per D-07) the image-path measurement that 42-CONTEXT.md's
+"Measured during this discussion (scratchpad only -- NOT phase evidence)"
+section reports informally: whether a standalone target immediately preceding
+a bare `.. image::` or a captioned `.. figure::` drops its propagated id the
+same way depart_table does.
+"""
+
+project = "Image Path Probe"
+author = "typsphinx tests"
+release = "0.0.0"
+
+extensions = ["typsphinx"]
+
+# index must be a master document so the writer emits the full template.
+typst_documents = [
+    ("index", "index", "Image Path Probe", "typsphinx tests"),
+]
+```
+
+`index.rst` (verbatim):
+
+```rst
+Image Path Probe
+=================
+
+Bare Image Shape
+-----------------
+
+.. _img-target:
+
+.. image:: image.png
+
+See the :ref:`bare image target <img-target>`.
+
+Captioned Figure Shape
+------------------------
+
+.. _fig-target:
+
+.. figure:: image.png
+
+   A caption.
+
+See the :ref:`captioned figure target <fig-target>`.
+```
+
+### 2.2 Build command, exit status, stderr
+
+Command (run from inside this worktree, per the standing `uv run` provisioning requirement):
+
+```
+uv run python -m sphinx -b typstpdf -q -E "$PROBE_DIR" "$OUT_DIR"
+```
+
+Exit status: **`0`**
+
+stdout: empty (the `-q` flag suppresses normal build-progress lines; none printed because there
+were none to suppress beyond the standard progress banner, which `-q` elides).
+
+stderr: **empty** — no warnings, no errors, no `TypstCompilationError`.
+
+Output directory listing after the build:
+
+```
+_template.typ
+image.png
+index.pdf     (23854 bytes)
+index.typ
+.doctrees/
+```
+
+`index.pdf` **was produced** — a real, non-empty PDF, not a partial/failed artifact.
+
+### 2.3 Emitted `.typ` — label definitions and link references
+
+Full emitted `index.typ` body (verbatim):
+
+```typst
+#{
+[#heading(level: 1, {text("Image Path Probe")}) <index:image-path-probe>]
+
+[#heading(level: 2, {text("Bare Image Shape")}) <index:bare-image-shape>]
+
+
+[#metadata(none) <index:img-target>]
+image("image.png")
+
+par({text("See the ")
+link(<index:img-target>, 
+text("bare image target"))
+text(".")})
+
+
+[#heading(level: 2, {text("Captioned Figure Shape")}) <index:captioned-figure-shape>]
+
+[#figure(
+  image("image.png"),
+  caption: {text("A caption.")}
+) <index:id1>]
+
+
+[#metadata(none) <index:fig-target>]
+par({text("See the ")
+link(<index:fig-target>, 
+text("captioned figure target"))
+text(".")})
+
+
+
+}
+```
+
+Command: `grep -n '<index:' index.typ`
+
+```
+20:[#heading(level: 1, {text("Image Path Probe")}) <index:image-path-probe>]
+22:[#heading(level: 2, {text("Bare Image Shape")}) <index:bare-image-shape>]
+25:[#metadata(none) <index:img-target>]
+29:link(<index:img-target>, 
+34:[#heading(level: 2, {text("Captioned Figure Shape")}) <index:captioned-figure-shape>]
+39:) <index:id1>]
+42:[#metadata(none) <index:fig-target>]
+44:link(<index:fig-target>,
+```
+
+Command: `grep -n 'link(' index.typ`
+
+```
+29:link(<index:img-target>, 
+44:link(<index:fig-target>,
+```
+
+### 2.4 Per-call-site verdict
+
+- **Bare `.. image::` site (`visit_image`, `:3644`).** The standalone target `.. _img-target:`
+  propagates onto the `image` node's `ids`. Line 25 shows `[#metadata(none) <index:img-target>]`
+  emitted by `visit_image`'s `_emit_id_anchors(node)` call, immediately before the `image(...)`
+  call on line 26. Line 29's `link(<index:img-target>, ...)` — the compiled `:ref:` — resolves
+  against it. **No misrouting. SAFE, confirmed by real build.**
+- **Captioned `.. figure::` site (`depart_figure`, `:2518`).** The figure has no `:name:`, so
+  docutils assigns the auto id `id1` to `ids[0]` (self-anchored as the figure's own `<label>` at
+  line 39, per D-02 — the first id always owns the figure label). The standalone target
+  `.. _fig-target:` propagates a SECOND id onto `ids[1:]`, anchored separately by
+  `depart_figure`'s `_emit_id_anchors(node, skip_ids={ids[0]})` call at line 42. Line 44's
+  `link(<index:fig-target>, ...)` resolves against it. **No misrouting. SAFE, confirmed by real
+  build.**
+
+### 2.5 NULL RESULT — D-06's image-path condition is moot
+
+**No image-path misrouting exists.** Both IMAGE-PATH call sites flagged in §1.5 (`visit_image`
+and `depart_figure`) were re-measured here with a real `-b typstpdf` build, independently of the
+static classification in §1 and independently of the discussion-time measurement D-07 rules
+inadmissible. The commands that established this: the `sphinx -m sphinx -b typstpdf -q -E`
+invocation in §2.2 (exit `0`, empty stderr, `index.pdf` produced), and the `grep -n '<index:'` /
+`grep -n 'link('` commands in §2.3, whose output shows every `link(<index:...>)` reference matched
+by a `<index:...>` label definition — including the propagated-target labels `img-target` and
+`fig-target`, the exact class of id `depart_table`'s bug drops. Measured at commit
+`19a6378e6b12ec086e3e3af11f93e736a30c0cb3` (same commit as §1, unfixed tree). **D-06's condition
+"an image-path finding is fixed inside this phase" is therefore moot — there is nothing to fix.**
+No production code was changed by this plan.
+
+**Cross-reference, not a dependency:** the figure half of the image path is ALSO permanently
+gated by plan 42-02's `tests/test_figure_propagated_target_render_gate.py` (a parallel wave-1
+plan, not present in this worktree). That gate and this measurement are independent lines of
+evidence for the same conclusion — this section does not depend on it, and was measured
+standalone.
+
+## 3. Summary — D-06 and D-07 disposition
+
+- **D-06 (repo-wide sweep, result recorded either way):** satisfied. §1 is the static half (21
+  call sites enumerated and classified from the live tree); §2 is the dynamic image-path half (a
+  real build). The sole MISROUTED finding across both halves is `depart_table` — the phase's own
+  already-known defect, fixed by plan 42-04, not a new finding requiring its own todo. The
+  image-path half is a NULL RESULT (§2.5) — D-06's "fixed inside this phase" branch does not
+  fire.
+- **D-07 (image-path measurement re-taken formally, discussion-time measurement inadmissible):**
+  satisfied. §2 is a from-scratch, real-build measurement taken inside this plan's own worktree at
+  a named commit, independent of `42-CONTEXT.md`'s discussion-time scratchpad measurement and of
+  `42-RESEARCH.md` § 5.
+
