@@ -717,7 +717,7 @@ proved)
      empty — and a standalone handoff checklist records exactly what `/gsd-complete-milestone` will
      execute (merge, tag, `release.yml`, PyPI + GitHub Release, and the standing second tag on
      `typsphinx-doc-translations`).
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 Plans:
 **Wave 1**
@@ -734,7 +734,7 @@ Plans:
 
 **Wave 3**
 
-- [ ] 41-07-PLAN.md — SC#5: the SC#1-SC#5 roll-up in `41-RELEASE-EVIDENCE.md` (quoting sibling verdicts, never re-deriving them), the fence proven by two independent observations of empty local and remote `v0.7.0` tags, and the standalone `41-HANDOFF.md` publish checklist
+- [x] 41-07-PLAN.md — SC#5: the SC#1-SC#5 roll-up in `41-RELEASE-EVIDENCE.md` (quoting sibling verdicts, never re-deriving them), the fence proven by two independent observations of empty local and remote `v0.7.0` tags, and the standalone `41-HANDOFF.md` publish checklist
 
 ## Progress
 
@@ -797,7 +797,7 @@ becomes convenient; Phases 37 → 38 → 39 are a genuine dependency chain. Phas
 | 39. Admonition Taxonomy + Rubric Nesting | v0.7.0 | 13/13 | Complete    | 2026-08-02 |
 | 40. Citations — Full Round Trip | v0.7.0 | 5/5 | Complete    | 2026-08-02 |
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
-| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 6/7 | In Progress|  |
+| 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | In Progress|  |
 
 ## Roadmap Evolution
 
