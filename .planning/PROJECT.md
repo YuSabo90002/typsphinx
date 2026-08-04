@@ -429,6 +429,33 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.7.1 (bug-fix round) — Phase 43 complete 2026-08-04, 6/5 plans across 4 waves (5 planned + 1
+gap closure), verification `passed` 6/6 SC. TBL-04, TBL-05, FIG-01 and QUA-01 all validated.**
+
+Three container-state defects in `TypstTranslator` shared one root cause: scalar state that a nested
+container of the same kind silently clobbered. The phase replaced each with a guarded stack —
+`_push_table_state`/`_pop_table_state` (TBL-04), `_push_figure_state`/`_pop_figure_state` plus a new
+`visit_legend`/`depart_legend` handler (FIG-01), and a `_table_is_captioned` snapshot splitting a
+table's RENDERING decision from its ANCHORING decision (TBL-05). The whole production change is
+confined to `typsphinx/translator.py` (+518/−53); no other module, no dependency change.
+
+**The phase's own code review then found a BLOCKER in code the phase had just introduced** —
+`visit_legend` saved separator state in flat scalars, so a legend inside a legend leaked
+`in_list_item=True` into the rest of the document, emitting silently wrong Typst with exit 0 and no
+warning. It was reproduced independently before any fix, closed by gap-closure plan 43-06 with a real
+stack and a regression gate, and plan 43-05's SC#4/SC#5 evidence was regenerated against the fixed
+tip. Worth remembering: the original FIG-01 work looked complete and passed its own gates — the
+defect class the phase existed to fix survived one level up in the very handler that fixed it.
+
+**Two milestone-process facts established here.** (1) `.github/workflows/ci.yml`'s `push:` trigger is
+scoped to `branches: [main, develop]`, so pushing a milestone branch registers **no** `ci.yml` run —
+CI on a milestone branch must be started via the pre-existing `workflow_dispatch` trigger
+(`gh workflow run ci.yml --ref <branch>`). This is a second, independent reason the v0.7.0 Windows
+lanes never ran, beyond "the branch was never pushed". (2) Milestone invariant #5 was discharged
+inside the first phase of the milestone rather than at the release PR: `gsd/v0.7.1-bug-fix-round` is
+on `origin`, and CI run `30870536482` against the phase's final tip completed `success` across all 12
+lanes including both Windows lanes.
+
 **v0.7.0 — API rendering design overhaul: 8 of 8 phases complete (36, 37, 38, 39, 40, 40.1, 41, 42),
 57/57 plans. Prepped and fully verified but NOT published — the remaining work is the publish itself.
 Next action: `/gsd-complete-milestone`.**
@@ -769,17 +796,23 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
       CHANGELOG section, proven by a **real tag push** that runs `create-release` to completion. The
       `release.yml` fix is already on `main`; what is owed is the end-to-end exercise, which only the
       next release can provide.
-- [ ] A table nested inside a `list-table` cell renders both tables correctly — the enclosing table's
-      accumulated state survives the inner table's visit and departure.
-- [ ] A captioned table whose title renders to an empty string still anchors its ids, so no reference
-      to it is left dangling.
+- [x] A table nested inside a `list-table` cell renders both tables correctly — the enclosing table's
+      accumulated state survives the inner table's visit and departure. *(TBL-04, validated in
+      Phase 43.)*
+- [x] A captioned table whose title renders to an empty string still anchors its ids, so no reference
+      to it is left dangling. *(TBL-05, validated in Phase 43.)*
+- [x] A figure nested inside another figure's legend keeps the outer figure's caption, ids and state,
+      and a plain-text legend no longer aborts the compile. *(FIG-01 — added to this milestone
+      2026-08-04 by owner decision during Phase 43 discussion; validated in Phase 43, including the
+      legend-in-legend gap found by the phase's own code review.)*
 - [ ] The published documentation's changelog page carries every release through v0.7.1.
 - [ ] Following the README Quick Start exactly produces a PDF — `typst_documents` defaults to a
       `root_doc`-derived master (target `<project>.typ`) as Sphinx's LaTeX builder does, and the
       Quick Start documents the config explicitly.
-- [ ] Four carried quality/hardening todos closed: the `_emit_id_anchors` docstring, non-`str`
-      docname `TypeError` hardening in `TypstPDFBuilder.finish()`, `derive_typst_lang()`'s duplicated
-      warning block, and this file's two unterminated HTML comments.
+- [ ] Four carried quality/hardening todos closed — **1 of 4 done**: the `_emit_id_anchors` docstring
+      (QUA-01, validated in Phase 43); still owed are non-`str` docname `TypeError` hardening in
+      `TypstPDFBuilder.finish()`, `derive_typst_lang()`'s duplicated warning block, and this file's
+      two unterminated HTML comments.
 - [ ] v0.7.1 released — version bump + curated CHANGELOG entry in the final phase; publish executes
       at `/gsd-complete-milestone`.
 
