@@ -169,3 +169,170 @@ class TestNestedTableRenderGate:
                 "TBL-04 nested-table state clobber regression (list-table "
                 f"in list-table):\n{full_text}"
             )
+
+    def test_grid_table_in_list_table_preserves_outer_cells_and_caption(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 2 (grid table nested in list-table). D-01's second nesting
+        shape: proves the fix generalizes across the OUTER table's directive
+        TYPE (list-table) combined with an INNER table of a DIFFERENT
+        directive type (grid ``.. table::``) -- not just the one shape
+        (list-table in list-table) Task 1 measured.
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        for sentinel in (
+            "NT2HEADA",
+            "NT2HEADB",
+            "NT2PLAIN",
+            "NT2OUTERCAP",
+            "NT2INNERA",
+            "NT2INNERB",
+        ):
+            assert sentinel in typ_text, (
+                f"Expected sentinel '{sentinel}' in emitted index.typ -- "
+                f"TBL-04 nested-table state clobber regression (grid table "
+                f"in list-table):\n{typ_text}"
+            )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert pdf_output.exists() and pdf_output.stat().st_size > 0
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+        for sentinel in ("NT2HEADA", "NT2HEADB", "NT2PLAIN", "NT2INNERA"):
+            assert sentinel in full_text, (
+                f"Expected sentinel '{sentinel}' in extracted PDF text -- "
+                "TBL-04 nested-table state clobber regression (grid table "
+                f"in list-table):\n{full_text}"
+            )
+
+    def test_list_table_in_grid_table_keeps_leaked_cell_inside_outer_table(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 3 (list-table nested in a grid ``.. table::``). D-01's third
+        nesting shape, PLUS the ordering edge CONTEXT.md's ``<specifics>``
+        section 2 measured: the outer grid table's OTHER cell (``NT3OUTERD``)
+        must render INSIDE the outer table rather than leaking out as a bare
+        ``par(...)`` after it. Asserted POSITIONALLY: the offset of
+        ``NT3OUTERD`` must be smaller than the offset of the ``kind: table``
+        argument that closes THIS section's outer table's figure wrapper --
+        proving the cell is inside the table() call, not after the closing
+        figure().
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        for sentinel in ("NT3OUTERCAP", "NT3INNERA", "NT3INNERB", "NT3OUTERD"):
+            assert sentinel in typ_text, (
+                f"Expected sentinel '{sentinel}' in emitted index.typ -- "
+                f"TBL-04 nested-table state clobber regression (list-table "
+                f"in grid table):\n{typ_text}"
+            )
+
+        # Isolate this section's own slice of the document so the "kind:
+        # table" search cannot accidentally match a DIFFERENT section's
+        # figure close.
+        section_start = typ_text.index(
+            'Section 3: list-table in grid table")}) '
+            "<index:section-3-list-table-in-grid-table>]"
+        )
+        section_end = typ_text.index(
+            'Section 4: three-level nest")}) <index:section-4-three-level-nest>]'
+        )
+        section_text = typ_text[section_start:section_end]
+
+        outerd_offset = section_text.find("NT3OUTERD")
+        kind_table_offset = section_text.find("kind: table")
+        assert outerd_offset != -1 and kind_table_offset != -1, (
+            "Expected both 'NT3OUTERD' and 'kind: table' in section 3's "
+            f"slice of the emitted index.typ:\n{section_text}"
+        )
+        assert outerd_offset < kind_table_offset, (
+            "NT3OUTERD leaked OUTSIDE the outer table -- it must appear "
+            "BEFORE the 'kind: table' argument that closes the outer "
+            f"table's figure wrapper, not after it:\n{section_text}"
+        )
+
+    def test_three_level_nest_preserves_every_levels_own_cells(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 4 (a three-level table nest). D-01's depth-generalization
+        case: the fix must generalize over NESTING DEPTH, not just over the
+        one shape measured first -- if it passes the three two-level shapes
+        but fails three-deep, that is a signal the fix shape is wrong.
+        Asserts all three levels' own cells are present, AND that the three
+        ``table(`` calls nest (their offsets are strictly increasing in
+        source order), so a level cannot have been hoisted out of its
+        parent.
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        for sentinel in (
+            "NT4L1CAP",
+            "NT4L1PLAIN",
+            "NT4L2PLAIN",
+            "NT4L3A",
+            "NT4L3B",
+        ):
+            assert sentinel in typ_text, (
+                f"Expected sentinel '{sentinel}' in emitted index.typ -- "
+                f"TBL-04 three-level nest regression:\n{typ_text}"
+            )
+
+        section_start = typ_text.index(
+            'Section 4: three-level nest")}) <index:section-4-three-level-nest>]'
+        )
+        section_end = typ_text.index(
+            'Section 5: nested table inside a header cell")}) '
+            "<index:section-5-nested-table-inside-a-header-cell>]"
+        )
+        section_text = typ_text[section_start:section_end]
+
+        first_table = section_text.find("table(")
+        assert (
+            first_table != -1
+        ), f"Expected at least one 'table(' call in section 4:\n{section_text}"
+        second_table = section_text.find("table(", first_table + len("table("))
+        assert second_table != -1, (
+            "Expected a SECOND 'table(' call (level 2 nested inside level "
+            f"1) in section 4:\n{section_text}"
+        )
+        third_table = section_text.find("table(", second_table + len("table("))
+        assert third_table != -1, (
+            "Expected a THIRD 'table(' call (level 3 nested inside level 2) "
+            f"in section 4:\n{section_text}"
+        )
+        assert first_table < second_table < third_table, (
+            "The three 'table(' calls in section 4 do not appear in "
+            "strictly increasing source order -- a level may have been "
+            f"hoisted out of its parent:\n{section_text}"
+        )

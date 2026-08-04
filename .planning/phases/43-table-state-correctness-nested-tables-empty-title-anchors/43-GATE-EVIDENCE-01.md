@@ -343,3 +343,98 @@ $ awk '/def _pop_table_state/,/def visit_tgroup/' typsphinx/translator.py | grep
 1
 ```
 
+## GREEN — Task 2 (Sections 2, 3, 4), measured after re-verifying the SAME fix generalizes
+
+Task 1's fix (no additional code change was needed for Task 2 -- the same save/restore stack
+already generalizes over shape and depth by construction, one push per nesting level with no
+per-depth special case). Three new test methods were added to
+`tests/test_nested_table_render_gate.py`:
+`test_grid_table_in_list_table_preserves_outer_cells_and_caption` (section 2),
+`test_list_table_in_grid_table_keeps_leaked_cell_inside_outer_table` (section 3, the ordering
+edge, with a POSITIONAL assertion), and
+`test_three_level_nest_preserves_every_levels_own_cells` (section 4, the depth edge, with a
+POSITIONAL assertion that the three `table(` calls nest in strictly increasing source order).
+
+### pytest run, all four tests (GREEN)
+
+```
+$ uv run python -m pytest tests/test_nested_table_render_gate.py -x -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+collected 4 items
+
+tests/test_nested_table_render_gate.py ....                              [100%]
+
+============================== 4 passed in 1.37s ===============================
+```
+
+### Emitted `index.typ`, Section 3 (verbatim, post-fix — GREEN, the ordering edge)
+
+```typst
+[#heading(level: 2, {text("Section 3: list-table in grid table")}) <index:section-3-list-table-in-grid-table>]
+
+[#figure(
+table(
+  columns: (34fr, 11fr),
+  {table(
+  columns: (50fr, 50fr),
+  {par({text("NT3INNERA")})},
+  {par({text("NT3INNERB")})},
+)},
+  {par({text("NT3OUTERD")})},
+),
+  caption: {text("NT3OUTERCAP")},
+  kind: table
+) <index:id3>]
+```
+
+`NT3OUTERD` is now the outer table's SECOND cell, emitted INSIDE the outer `table(...)` call
+(right after the nested inner table's own cell) -- not leaking out as a bare `par(...)` after
+the closing `figure(...)`, which is what the unfixed translator did (see the RED section
+above). The positional assertion in the test (`NT3OUTERD`'s offset < `kind: table`'s offset,
+within this section's own slice of the document) confirms this ordering directly.
+
+### Emitted `index.typ`, Section 4 (verbatim, post-fix — GREEN, the depth edge)
+
+```typst
+[#heading(level: 2, {text("Section 4: three-level nest")}) <index:section-4-three-level-nest>]
+
+[#figure(
+table(
+  columns: (50fr, 50fr),
+  {par({text("NT4L1PLAIN")})},
+  {table(
+  columns: (50fr, 50fr),
+  {par({text("NT4L2PLAIN")})},
+  {table(
+  columns: (50fr, 50fr),
+  {par({text("NT4L3A")})},
+  {par({text("NT4L3B")})},
+)},
+)},
+),
+  caption: {text("NT4L1CAP")},
+  kind: table
+) <index:id4>]
+```
+
+All three levels' own cells are present, and the three `table(` calls visibly nest (level 3
+inside level 2 inside level 1) -- the fix's one-push-per-level design generalizes to
+arbitrary depth with no per-depth branch, confirmed by
+`grep -Ec 'depth *[=<>]=? *[23]' typsphinx/translator.py` == 0.
+
+**Acceptance-criteria checks, measured this session:**
+
+```
+$ grep -c 'def test_' tests/test_nested_table_render_gate.py
+4
+$ grep -c 'NT2INNERA' tests/test_nested_table_render_gate.py
+2
+$ grep -c 'NT3OUTERD' tests/test_nested_table_render_gate.py
+6
+$ grep -c 'NT4L3B' tests/test_nested_table_render_gate.py
+1
+$ grep -Ec 'depth *[=<>]=? *[23]' typsphinx/translator.py
+0
+```
+
