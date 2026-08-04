@@ -121,3 +121,58 @@ class TestDefaultTypstDocumentsDerivationGate:
             f"Expected no typsphinx nothing-to-compile warning:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
+
+    def test_explicit_typst_documents_wins(self, tmp_path):
+        """
+        SC#2: an explicitly-set single-entry typst_documents naming target
+        "manual.typ" produces exactly manual.typ and manual.pdf and nothing
+        else -- the derived default (which would have named this project
+        explicitwinsgate.typ) contributes no extra target and does not
+        rename the explicit one.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            EXPLICIT_WINS_GATE_FIXTURE_DIR, build_dir, "typstpdf"
+        )
+
+        assert result.returncode == 0, (
+            f"Expected a successful build with an explicit typst_documents:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        manual_typ = build_dir / "manual.typ"
+        assert manual_typ.exists(), (
+            f"Expected the explicit target manual.typ:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert "EXPLICITWINSBODY" in manual_typ.read_text(encoding="utf-8"), (
+            f"Expected the fixture's sentinel body text in manual.typ:\n"
+            f"{manual_typ.read_text(encoding='utf-8')}"
+        )
+        manual_pdf = build_dir / "manual.pdf"
+        assert manual_pdf.exists(), (
+            f"Expected the explicit target manual.pdf:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert manual_pdf.read_bytes()[:4] == b"%PDF", (
+            f"Expected manual.pdf to start with the %PDF magic bytes:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        # SC#2: nothing else. The derived default (which would have named
+        # this project's target explicitwinsgate.typ/.pdf) must not also
+        # appear alongside the explicit target, and the un-renamed
+        # index.typ/.pdf must not appear either.
+        unexpected = [
+            build_dir / "explicitwinsgate.typ",
+            build_dir / "explicitwinsgate.pdf",
+            build_dir / "index.typ",
+            build_dir / "index.pdf",
+        ]
+        still_present = [str(p) for p in unexpected if p.exists()]
+        assert not still_present, (
+            f"SC#2 violation: the explicit typst_documents setting must "
+            f"produce exactly the target it names and nothing else, but "
+            f"found unexpected output(s): {still_present}\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )

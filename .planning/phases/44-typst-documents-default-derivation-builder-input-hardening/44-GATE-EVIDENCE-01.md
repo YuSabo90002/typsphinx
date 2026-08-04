@@ -365,4 +365,106 @@ either module.
 
 ## 5. SC#2 — the explicit setting wins
 
-_Appended after Task 3._
+### Build command and exit status
+
+```
+$ uv run python -m sphinx -b typstpdf -E tests/fixtures/explicit_typst_documents_wins_gate /tmp/gate01-sc2
+...
+preparing documents... Template written to /tmp/gate01-sc2/_template.typ
+done
+writing output... [index] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/gate01-sc2/manual.pdf
+build succeeded.
+```
+
+**Exit status: 0.**
+
+### `ls -la` of the build directory
+
+```
+total 28
+drwxr-xr-x 1 yuta users    84  8月  4 14:14 .
+drwxrwxrwt 1 root root  67784  8月  4 14:14 ..
+drwxr-xr-x 1 yuta users    62  8月  4 14:14 .doctrees
+-rw-r--r-- 1 yuta users  2438  8月  4 14:14 _template.typ
+-rw-r--r-- 1 yuta users 17677  8月  4 14:14 manual.pdf
+-rw-r--r-- 1 yuta users   520  8月  4 14:14 manual.typ
+```
+
+Exactly `manual.typ` + `manual.pdf` — no `explicitwinsgate.typ`/`.pdf`, no
+`index.typ`/`.pdf`.
+
+### Passing pytest output
+
+```
+$ uv run python -m pytest tests/test_default_typst_documents_gate.py -x -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a4dc8670ea2a386f8
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 2 items
+
+tests/test_default_typst_documents_gate.py ..                            [100%]
+
+============================== 2 passed in 0.60s ===============================
+```
+
+## 6. Deviations discovered while proving the whole-plan gate
+
+Two deviations surfaced while running the plan-level `<verification>` (full
+suite + black/ruff/mypy), both auto-fixed under the executor's Rule 1/Rule 3
+(fix directly caused by this plan's own production change / blocking issue
+preventing the required green signal) and recorded here for transparency:
+
+**(a) `tests/test_builder_requirement13.py` also encoded the old
+`[]`-default, missed by the planning-time census.** `44-CONTEXT.md`'s
+repo-wide count ("all 103 `conf.py` files that mention `typst_documents`
+already set it") only covered `tests/fixtures/*/conf.py` files on disk. It
+did not cover `conf.py` content written inline by a test fixture function
+(`multifile_srcdir` in `test_builder_requirement13.py`, which sets `project
+= 'Multi-File Test'` and omits `typst_documents`). Running the full suite
+after Task 2's fix surfaced 3 additional failures there
+(`test_builder_generates_independent_typ_files`,
+`test_toctree_with_nested_paths_generates_correct_includes`,
+`test_toctree_with_missing_document_warning`), all asserting on the old
+literal `index.typ`. Fixed the same way as `test_builder.py`'s two tests:
+renamed the assertion target to the derived stem
+(`make_filename_from_project("Multi-File Test")` -> `multi-filetest.typ`,
+confirmed live) with a CONF-08 traceability comment on each. Re-run:
+`uv run python -m pytest tests/test_builder_requirement13.py -q` -> `5
+passed`. Plan 44-04 still owns the exhaustive repo-wide audit; this is only
+the instance the plan's own full-suite verification step surfaced.
+
+**(b) The worktree's `.venv/bin/uv` and `.venv/bin/ruff` needed the
+documented NixOS-sandbox shim before `uv run python -m pytest -q` (full
+suite) or `uv run black`/`ruff`/`mypy` could give a trustworthy signal.**
+`uv sync --extra dev` installs generic-linux ELF wheels for `uv` and `ruff`
+into this fresh worktree venv; NixOS cannot exec them directly (`exit
+127`), which produced 45-48 failures in
+`tests/test_integration_{advanced,basic,multi_doc,nested_toctree}.py` (they
+`subprocess.run(["uv","run","sphinx-build",...])`) that were pre-existing
+environmental noise, not caused by this plan's diff. Fixed per this
+project's established runbook: `ln -sf <nix-store uv> .venv/bin/uv` and
+`ln -sf <main-tree's already-patchelf'd ruff> .venv/bin/ruff`, each verified
+with the acceptance test `.venv/bin/<tool> --version` actually executing
+before re-running the suite. Not a code change; no commit needed for this
+fix (venv contents are gitignored). Confirmed clean afterwards:
+`uv run python -m pytest -q` -> `852 passed, 1 skipped`.
+
+### Full-suite and lint/type gate (plan-level `<verification>`)
+
+```
+$ uv run python -m pytest -q
+852 passed, 1 skipped in 77.26s
+
+$ uv run black --check .
+All done! 221 files would be left unchanged.
+
+$ uv run ruff check .
+All checks passed!
+
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```

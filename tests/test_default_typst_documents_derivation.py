@@ -107,9 +107,7 @@ class TestUnsetExplicitEmptyAndOrderingResolution:
         # with or replaced by the derived default.
         assert app.config.typst_documents == []
 
-    def test_explicit_entry_with_same_target_never_merges_with_derived(
-        self, tmp_path
-    ):
+    def test_explicit_entry_with_same_target_never_merges_with_derived(self, tmp_path):
         """An explicit single-entry list whose target name is byte-identical
         to what the derivation would produce for the same project resolves
         to exactly that one explicit entry -- length 1, no duplication."""
@@ -146,9 +144,7 @@ class TestUnsetExplicitEmptyAndOrderingResolution:
             "    ('second', 'second.typ', 'Second', 'Test Author'),\n"
             "]\n"
         )
-        (srcdir / "index.rst").write_text(
-            "Title\n=====\n\n.. toctree::\n\n   second\n"
-        )
+        (srcdir / "index.rst").write_text("Title\n=====\n\n.. toctree::\n\n   second\n")
         (srcdir / "second.rst").write_text("Second\n======\n\nBody.\n")
 
         app = SphinxTestApp(srcdir=srcdir, builddir=tmp_path / "build")
