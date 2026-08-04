@@ -150,14 +150,119 @@ FAILED tests/test_default_typst_documents_gate.py::TestDefaultTypstDocumentsDeri
 
 ## 2. RED commit
 
-RED commit SHA: `PENDING — filled in immediately after the commit below`
+RED commit SHA: `eeb930429c2608c5245f2769fc6b7edbbed206c5`
 
 Plan 44-03 consumes this SHA as the pre-change side of the SC#4 two-build
-record. This commit touches no path under `typsphinx/`.
+record. This commit touches no path under `typsphinx/` (confirmed:
+`git show --stat eeb930429c2608c5245f2769fc6b7edbbed206c5 --name-only | grep -c '^typsphinx/'`
+→ `0`).
 
 ## 3. GREEN — after the derivation
 
-_Appended after Task 1(e)._
+After implementing `_default_typst_documents(config)` in `typsphinx/builder.py`
+and switching the `typst_documents` registration to that callable default in
+`typsphinx/__init__.py`.
+
+### `sphinx-build -b typstpdf`
+
+```
+$ uv run python -m sphinx -b typstpdf -E tests/fixtures/default_typst_documents_gate /tmp/gate01-green-typstpdf
+...
+preparing documents... Template written to /tmp/gate01-green-typstpdf/_template.typ
+done
+writing output... [index] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/gate01-green-typstpdf/quickstartdefaultgate.pdf
+build succeeded.
+```
+
+**Exit status: 0.**
+
+`ls -la /tmp/gate01-green-typstpdf/`:
+
+```
+total 28
+drwxr-xr-x 1 yuta users   144  8月  4 14:11 .
+drwxrwxrwt 1 root root  67646  8月  4 14:11 ..
+drwxr-xr-x 1 yuta users    62  8月  4 14:11 .doctrees
+-rw-r--r-- 1 yuta users  2438  8月  4 14:11 _template.typ
+-rw-r--r-- 1 yuta users 17308  8月  4 14:11 quickstartdefaultgate.pdf
+-rw-r--r-- 1 yuta users   532  8月  4 14:11 quickstartdefaultgate.typ
+```
+
+**`quickstartdefaultgate.typ` is 532 bytes** (RED's `index.typ` was 412
+bytes — the file grew because the template import + function call are now
+present). Full content:
+
+```
+// Essential package imports
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.10": *
+#import "@preview/mitex:0.2.7": mi, mitex
+#import "@preview/gentle-clues:1.3.1": *
+
+#show: codly-init.with()
+#codly(languages: codly-languages)
+
+#import "_template.typ": project
+
+#show: project.with(
+  title: "Quickstart Default Gate",
+  authors: ("Test Author",),
+  date: "1.0.0",
+  lang: "en",
+)
+
+#{
+[#heading(level: 1, {text("Quickstart Default Gate")}) <index:quickstart-default-gate>]
+
+par({text("QSDEFAULTBODY")})
+
+
+}
+```
+
+Lines 10 (`#import "_template.typ": project`) and 12-17 (`#show:
+project.with(...)`) are the template import and template function call —
+proving `root_doc` ("index") is now treated as a master document, unlike
+RED's untemplated `index.typ`.
+
+### `sphinx-build -b typst`
+
+```
+$ uv run python -m sphinx -b typst -E tests/fixtures/default_typst_documents_gate /tmp/gate01-green-typst
+...
+build succeeded.
+```
+
+**Exit status: 0.**
+
+### `pytest tests/test_default_typst_documents_gate.py -x -q`
+
+```
+$ uv run python -m pytest tests/test_default_typst_documents_gate.py -x -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a4dc8670ea2a386f8
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_default_typst_documents_gate.py .                             [100%]
+
+============================== 1 passed in 0.34s ===============================
+```
+
+### Acceptance-criteria commands (all measured this session)
+
+- `grep -c 'Quickstart Default Gate' tests/fixtures/default_typst_documents_gate/conf.py` → `2`
+- AST assignment census: `uv run python -c "import ast; print(sorted({t.id for n in ast.parse(open('tests/fixtures/default_typst_documents_gate/conf.py').read()).body if isinstance(n, ast.Assign) for t in n.targets if isinstance(t, ast.Name)}))"` → `['author', 'copyright', 'extensions', 'project', 'release']`
+- `grep -c 'def _default_typst_documents' typsphinx/builder.py` → `1`
+- `grep -c 'make_filename_from_project' typsphinx/builder.py` → `3` (the import, the docstring mention, and the call — ≥2 required)
+- `grep -c '_default_typst_documents' typsphinx/__init__.py` → `2` (the import and the registration)
+- `uv run python -c "import typsphinx, types; c=types.SimpleNamespace(root_doc='index', project='My Cool Project', author='A. Author'); print(typsphinx.builder._default_typst_documents(c))"` → `[('index', 'mycoolproject.typ', 'My Cool Project', 'A. Author', 'typst')]`
+- `uv run python -m sphinx -b typstpdf -E tests/fixtures/default_typst_documents_gate /tmp/gate01-accept` → exit 0; `quickstartdefaultgate.pdf` exists; `index.typ` absent
+- `uv run python -m pytest tests/test_missing_and_malformed_master_gate.py tests/test_builder_output_stem.py tests/test_pdf_generation.py -q` → `56 passed`
 
 ## 4. Existing tests updated for CONF-08 (SC#5 share)
 

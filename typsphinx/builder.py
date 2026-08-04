@@ -14,14 +14,37 @@ from typing import List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
+from sphinx.config import Config
 from sphinx.errors import ExtensionError
 from sphinx.util import logging
-from sphinx.util.osutil import ensuredir
+from sphinx.util.osutil import ensuredir, make_filename_from_project
 
 from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
+
+
+def _default_typst_documents(config: Config) -> list:
+    """Sphinx-native default for ``typst_documents``, mirroring
+    ``sphinx.builders.latex.default_latex_documents`` (CONF-08).
+
+    Derives a single master entry from ``root_doc``/``project``/``author``,
+    with the target name in LaTeX's own shape (``make_filename_from_project``).
+    Only invoked when the user has NOT set ``typst_documents`` in conf.py --
+    an explicit setting (including an explicit ``[]``) always wins, because
+    Sphinx's ``Config.__getattr__`` checks ``_raw_config`` before falling
+    back to this callable default.
+    """
+    return [
+        (
+            config.root_doc,
+            make_filename_from_project(config.project) + ".typ",
+            config.project,
+            config.author,
+            "typst",
+        )
+    ]
 
 
 class TypstBuilder(Builder):
