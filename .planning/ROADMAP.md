@@ -503,10 +503,21 @@ concurrent heading-shape change.
   2. Nested toctrees compose: a grandchild reached through two nested toctree scopes resolves at
      level 3, proving the per-scope `offset: 1` accumulates.
 
-  3. Master-document output is unchanged. The master renders at `offset: 0`, so `depth == level`
-     there; a before/after build of the full `docs/source` corpus plus every root under
-     `tests/roots` shows byte-identical `.typ` for every master document, with any diff confined to
-     toctree-included files.
+  3. Master-document output is unchanged **in resolved level**, and the source diff is confined to
+     the heading keyword. The master renders at `offset: 0`, so `depth == level` there. Proven two
+     ways over a before/after build of the full `docs/source` corpus plus every root under
+     `tests/roots`: **(a)** each master compiles and `typst.query(…, 'heading', field='level')`
+     returns an identical level sequence before and after; **(b)** applying the mechanical
+     `heading(level:` → `heading(depth:` substitution to the pre-fix `.typ` files leaves a
+     byte-identical result against the post-fix files — for included documents as well as masters,
+     so the change is proved not to have leaked anywhere else. Both halves are required: (a) alone
+     would miss a non-heading diff, (b) alone would not show the substituted text still resolves to
+     the same level. Literal byte-identity of master `.typ` files is **not** achievable and is
+     deliberately not claimed: masters emit the same heading call as included documents, so the
+     keyword change lands in master output too — measured 2026-08-04, four sites in
+     `docs/_build/pdf/typsphinx.typ` (lines 23, 30, 86, 140). This supersedes the original SC#3,
+     which required "byte-identical `.typ` for every master document" and was therefore
+     unsatisfiable under the locked repair. Rationale: `44.1-CONTEXT.md` D-01 / D-02.
 
   4. The `max(1, …)` clamp survives with a rewritten rationale: `depth` is likewise `>= 1`, so the
      clamp stays, but the comment no longer justifies it as an absolute-level floor (it supersedes
@@ -775,6 +786,16 @@ precedent this entry follows).
   hands Phase 46 a measured before/after filename pair that must not be taken across a concurrent
   heading-shape change. Nothing was removed or re-assigned away from another phase; Phases 45 and 46
   keep their numbers, requirements and criteria unchanged.
+
+- **2026-08-04** — **Phase 44.1 SC#3 rewritten** during `/gsd-discuss-phase 44.1`. The original
+  wording demanded "byte-identical `.typ` for every master document", which cannot hold under the
+  locked repair: masters emit the same heading call as included documents, so the
+  `level:` → `depth:` substitution lands in master output too (measured: four sites in
+  `docs/_build/pdf/typsphinx.typ` at lines 23, 30, 86, 140). Left as written, `gsd-verifier` would
+  have returned NOT-MET against a criterion no correct implementation could satisfy. The criterion
+  now requires two proofs — resolved-level invariance via `typst.query`, and byte-invariance after
+  normalizing the one keyword substitution. Scope, requirement mapping and every other criterion are
+  unchanged; only SC#3's text moved. Rationale: `44.1-CONTEXT.md` D-01 / D-02.
 
 ## Backlog
 
