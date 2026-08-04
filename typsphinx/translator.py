@@ -211,6 +211,28 @@ class TypstTranslator(SphinxTranslator):
             # figure() call is wrapped in block(width: ...)[...] (D-03/Pitfall 3).
         )
 
+        # FIG-01 (Phase 43): a figure nested inside another figure's legend
+        # would otherwise clobber the enclosing figure's in-progress scalar
+        # state, since every figure_* scalar above is a flat instance
+        # attribute with no notion of "which figure is currently being
+        # filled" -- mirrors _table_state_stack's TBL-04 fix (plan 43-01).
+        # _push_figure_state()/_pop_figure_state() save/restore a full
+        # snapshot of that scalar set around a NESTED visit_figure/
+        # depart_figure pair only (never for a top-level figure, which stays
+        # byte-identical) -- see the docstrings on those two methods.
+        self._figure_state_stack: List[Dict[str, Any]] = []
+
+        # Whether THIS figure (the one currently open) has a legend child --
+        # set in visit_figure from a scan of node.children (the doctree is
+        # fully built before any visiting begins, so this check is reliable
+        # at visit time, same reasoning visit_table's captioned pre-check
+        # documents). Gates the {...} body-wrap that lets the legend's
+        # content join the image() call as ONE positional body argument
+        # (43-RESEARCH.md Pattern 2). Never True for a figure with no
+        # legend child, so an image-only figure's emitted bytes are
+        # unaffected (SC#4).
+        self._figure_has_legend: bool = False
+
         # Code block container state (Issue #20)
         self.in_captioned_code_block = False
         self.code_block_caption = ""
@@ -2446,6 +2468,20 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The figure node
         """
+        # FIG-01 (Phase 43): self.in_figure already True means an ENCLOSING
+        # figure is still open -- this figure node is NESTED inside its
+        # legend (docutils' second-and-later-body-block classification).
+        # Push a snapshot of the outer figure's in-progress scalar state
+        # (see _push_figure_state's docstring for the full set) BEFORE
+        # resetting below for the inner figure's own use, or the inner
+        # figure's own depart_figure clobbers the outer's caption/width/
+        # legend-flag (the FIG-01 defect). Read self.in_figure BEFORE
+        # overwriting it, so the push only fires on genuine nesting; the
+        # top-level (non-nested) path below is byte-identical to
+        # pre-FIG-01 behavior.
+        if self.in_figure:
+            self._push_figure_state()
+
         self.in_figure = True
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
@@ -2479,6 +2515,19 @@ class TypstTranslator(SphinxTranslator):
             self._convert_length_to_typst(figwidth) if figwidth else None
         )
 
+        # FIG-01: a legend child means this figure's body is MORE than just
+        # the image -- the legend's content must join the image() call as
+        # ONE positional body argument, or Typst raises a parse error at the
+        # argument boundary (43-RESEARCH.md Pattern 2, Pitfall 4). Checked
+        # here (doctree already fully built at visit time, same reliability
+        # as visit_table's own captioned pre-check documents), so the `{`
+        # opened below is unconditionally closed by depart_legend before
+        # this figure's own depart_figure ever runs (docutils' balanced
+        # walkabout() guarantees the matching legend child is visited).
+        self._figure_has_legend = any(
+            isinstance(child, nodes.legend) for child in node.children
+        )
+
         if self._figure_block_width is not None:
             self.add_text(f"block(width: {self._figure_block_width})[#figure(\n")
         elif node.get("ids"):
@@ -2486,6 +2535,13 @@ class TypstTranslator(SphinxTranslator):
         else:
             # Start figure with potential label (no # prefix in code mode)
             self.add_text("figure(\n")
+
+        # Gated on legend presence ONLY -- an unconditional wrap would
+        # change the emitted bytes for every existing image-only figure in
+        # the corpus, breaking SC#4 byte-invariance (43-RESEARCH.md
+        # Pitfall 5/Anti-Patterns). depart_legend emits the matching `}`.
+        if self._figure_has_legend:
+            self.add_text("{\n")
 
     def depart_figure(self, node: nodes.figure) -> None:
         """
@@ -2527,11 +2583,24 @@ class TypstTranslator(SphinxTranslator):
         # so it is not defined twice. Empty/single-id figures -> no-op.
         self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
 
-        self._figure_block_width = None
-
-        self.in_figure = False
-        self.figure_content = []
-        self.figure_caption = ""
+        # FIG-01 (Phase 43): restore the enclosing figure's scalar state
+        # when THIS figure was nested inside another figure's legend;
+        # otherwise fall through to the pre-FIG-01 unconditional teardown
+        # (mirrors depart_table's was_nested branch, plan 43-01). was_nested
+        # is read BEFORE popping -- _pop_figure_state() mutates the stack,
+        # so "was there an enclosing frame for THIS figure" must be
+        # captured first. Unlike depart_table, depart_figure already routes
+        # every emission above through self.add_text (which only branches
+        # on self.in_table, never self.in_figure -- see add_text), so no
+        # routing-destination change is needed here: everything already
+        # streamed into self.body in document order regardless of nesting.
+        was_nested = bool(self._figure_state_stack)
+        self._pop_figure_state()
+        if not was_nested:
+            self._figure_block_width = None
+            self.in_figure = False
+            self.figure_content = []
+            self.figure_caption = ""
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4; mirrors depart_table's
@@ -2597,6 +2666,60 @@ class TypstTranslator(SphinxTranslator):
             self.in_paragraph = self._caption_was_in_paragraph
             self.paragraph_has_content = self._caption_was_paragraph_has_content
         self.in_caption = False
+
+    def visit_legend(self, node: nodes.legend) -> None:
+        """
+        Visit a figure's legend node (FIG-01, Phase 43).
+
+        A ``legend`` is docutils' name for a figure's body content beyond
+        its first caption paragraph (or, when the figure has no caption at
+        all, everything after an empty first-comment placeholder --
+        43-GATE-EVIDENCE-03.md). Before this handler existed,
+        ``unknown_visit`` fired (warn and continue -- it does NOT skip
+        children), so the legend's children streamed unwrapped directly
+        after the enclosing figure's ``image(...)`` call, which Typst
+        parses as an unwanted second argument -- a hard compile fatal
+        (``TypstError: expected comma``/``unexpected argument``,
+        43-RESEARCH.md Pitfall 4), not merely a dropped caption.
+
+        ``visit_figure`` has already opened a ``{`` code block (gated on
+        ``self._figure_has_legend``) so the legend's content joins the
+        image as ONE positional body argument. This handler's only job is
+        to establish the SEPARATOR context so the legend's first child
+        newline-separates from the preceding ``image(...)`` expression
+        instead of juxtaposing against it -- reusing the existing
+        in-list-item separator machinery (the same mechanism
+        ``visit_paragraph``/``_emit_forced_break`` already use for a
+        paragraph inside a real bullet-list item), rather than inventing a
+        new one. Save/restore both values for nesting safety (a legend can
+        itself contain a real list item).
+
+        No styling is emitted -- a bare structural pass-through, matching
+        Sphinx's own LaTeX writer (43-RESEARCH.md/CONTEXT Deferred Ideas
+        fences legend styling out of this phase).
+
+        Args:
+            node: The legend node
+        """
+        self._legend_saved_in_list_item = self.in_list_item
+        self._legend_saved_list_item_needs_separator = self.list_item_needs_separator
+        self.in_list_item = True
+        self.list_item_needs_separator = True
+
+    def depart_legend(self, node: nodes.legend) -> None:
+        """
+        Depart a figure's legend node (FIG-01, Phase 43).
+
+        Emits the closing ``}`` for the body block ``visit_figure`` opened
+        (gated on ``self._figure_has_legend``), then restores the
+        separator-context values ``visit_legend`` saved.
+
+        Args:
+            node: The legend node
+        """
+        self.add_text("\n}")
+        self.in_list_item = self._legend_saved_in_list_item
+        self.list_item_needs_separator = self._legend_saved_list_item_needs_separator
 
     def visit_footnote(self, node: nodes.footnote) -> None:
         """
@@ -3219,6 +3342,61 @@ class TypstTranslator(SphinxTranslator):
         self.in_thead = frame["in_thead"]
         self.current_morecols = frame["current_morecols"]
         self.current_morerows = frame["current_morerows"]
+
+    def _push_figure_state(self) -> None:
+        """
+        Save the enclosing figure's in-progress scalar state onto a private
+        stack before resetting those scalars for a NESTED figure's own use
+        (FIG-01, Phase 43).
+
+        Mirrors ``_push_table_state`` (TBL-04, plan 43-01): a nested figure
+        arises when a ``figure`` node's ``legend`` child itself contains
+        another ``figure`` node (docutils' second-and-later-body-block
+        classification, 43-RESEARCH.md Pitfall 4). Covers ``in_figure``,
+        ``figure_content``, ``figure_caption``, ``_figure_block_width``,
+        ``_figure_has_legend`` and ``_saved_body_for_figure_caption`` -- the
+        full clobber-prone scalar set touched anywhere in
+        ``visit_figure``/``depart_figure``/``visit_caption``/``depart_caption``.
+
+        Called only from ``visit_figure`` when ``self.in_figure`` is already
+        True (i.e. this figure node is nested inside another figure's
+        legend) -- never for a top-level figure, so the top-level path
+        pushes nothing.
+        """
+        self._figure_state_stack.append(
+            {
+                "in_figure": self.in_figure,
+                "figure_content": self.figure_content,
+                "figure_caption": self.figure_caption,
+                "_figure_block_width": self._figure_block_width,
+                "_figure_has_legend": self._figure_has_legend,
+                "_saved_body_for_figure_caption": self._saved_body_for_figure_caption,
+            }
+        )
+
+    def _pop_figure_state(self) -> None:
+        """
+        Restore the enclosing figure's scalar state after a NESTED figure's
+        ``depart_figure`` has finished emitting its own rendered markup
+        (FIG-01, Phase 43).
+
+        A no-op on an empty stack (ASVS V5, threat T-43-02): an unbalanced
+        ``depart_figure`` from a malformed doctree -- one with no matching
+        prior nested ``visit_figure`` -- must take the top-level teardown
+        path in the caller instead of raising ``IndexError`` out of the
+        translator and killing a CI build. Never call
+        ``self._figure_state_stack.pop()`` or index ``[-1]`` directly;
+        always guard through this method.
+        """
+        if not self._figure_state_stack:
+            return
+        frame = self._figure_state_stack.pop()
+        self.in_figure = frame["in_figure"]
+        self.figure_content = frame["figure_content"]
+        self.figure_caption = frame["figure_caption"]
+        self._figure_block_width = frame["_figure_block_width"]
+        self._figure_has_legend = frame["_figure_has_legend"]
+        self._saved_body_for_figure_caption = frame["_saved_body_for_figure_caption"]
 
     def visit_table(self, node: nodes.table) -> None:
         """

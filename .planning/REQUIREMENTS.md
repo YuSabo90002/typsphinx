@@ -35,7 +35,7 @@ continues at **Phase 43**.
 
 ### Figures
 
-- [ ] **FIG-01**: A figure nested inside another figure renders both figures correctly — the
+- [x] **FIG-01**: A figure nested inside another figure renders both figures correctly — the
       enclosing figure's caption, ids and state all survive the inner figure's visit and departure,
       and the inner figure renders inside the enclosing figure's legend rather than replacing or
       corrupting it. (Added 2026-08-04 during Phase 43 discussion, on the owner's decision to fold
@@ -155,7 +155,7 @@ Filled during roadmap creation.
 |-------------|-------|--------|
 | TBL-04 | Phase 43 | Complete |
 | TBL-05 | Phase 43 | Pending |
-| FIG-01 | Phase 43 | Pending |
+| FIG-01 | Phase 43 | Complete |
 | QUA-01 | Phase 43 | Pending |
 | CONF-08 | Phase 44 | Pending |
 | BLD-01 | Phase 44 | Pending |
