@@ -471,7 +471,7 @@ Plans:
 - [x] 44-03-PLAN.md — SC#4: two-build measured before/after pair + Phase 46 CHANGELOG source text
 - [x] 44-04-PLAN.md — SC#5: repo-wide test-update audit + full-suite / lint / type phase gate
 
-**Wave 5** *(gap closure — blocked on Wave 3 completion)*
+**Wave 4** *(gap closure — blocked on Wave 3 completion)*
 
 - [ ] 44-05-PLAN.md — CR-01 gap closure: reject a target name colliding with a real docname or the reserved `_template`, gated on both the derived-default and explicit paths
 
