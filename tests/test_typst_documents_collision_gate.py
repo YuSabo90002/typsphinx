@@ -30,7 +30,9 @@ except ImportError:
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 DERIVED_DOCNAME_COLLISION_FIXTURE_DIR = FIXTURES_DIR / "derived_docname_collision_gate"
-DERIVED_TEMPLATE_COLLISION_FIXTURE_DIR = FIXTURES_DIR / "derived_template_collision_gate"
+DERIVED_TEMPLATE_COLLISION_FIXTURE_DIR = (
+    FIXTURES_DIR / "derived_template_collision_gate"
+)
 EXPLICIT_DOCNAME_COLLISION_FIXTURE_DIR = (
     FIXTURES_DIR / "explicit_docname_collision_gate"
 )
