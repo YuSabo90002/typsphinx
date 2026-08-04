@@ -4,15 +4,15 @@ milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 44
 current_phase_name: "`typst_documents` Default Derivation + Builder Input Hardening"
-status: planning
-stopped_at: Phase 44 context gathered
-last_updated: "2026-08-04T04:17:19.237Z"
+status: executing
+stopped_at: Phase 44 planned
+last_updated: "2026-08-04T05:02:47.128Z"
 last_activity: 2026-08-04
 last_activity_desc: Phase 43 complete, transitioned to Phase 44
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 5
+  total_plans: 9
   completed_plans: 5
   percent: 20
 ---
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 43 — table-state-correctness-nested-tables-empty-title-anchors
+**Current focus:** Phase 44 — typst-documents-default-derivation-builder-input-hardening
 13/13 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion).
-Next action: `/gsd-execute-phase 43`.
+Next action: `/gsd-execute-phase 44`.
 
 ## Current Position
 
 Phase: 44 — `typst_documents` Default Derivation + Builder Input Hardening
-Plan: Not started
-Status: Ready to plan
+Plan: 4 plans in 3 waves
+Status: Ready to execute
 Progress: [####----------------] 20% (1/5 phases)
 Last activity: 2026-08-04 — Phase 43 complete, transitioned to Phase 44
 

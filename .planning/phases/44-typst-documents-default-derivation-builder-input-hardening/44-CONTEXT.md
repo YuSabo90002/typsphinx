@@ -49,8 +49,8 @@ the README/`configuration.rst` documentation of the new default (DOC-11, Phase 4
   who want another name set `typst_documents` explicitly, which always wins (SC#2).
   — **Reversibility:** reversible — adding a fallback branch later is local to the derivation function.
 
-- **D-02: The derived entry is a 5-tuple in LaTeX's shape, and the wiring of explicit `[2]`/`[3]` is
-  deferred to a todo.** Derived value:
+- **D-02: The derived entry is a 5-tuple in LaTeX's shape.** The wiring of explicit `[2]`/`[3]` is
+  deferred to a todo. Derived value:
   `[(config.root_doc, make_filename_from_project(config.project) + ".typ", config.project, config.author, "typst")]`.
   The trailing `.typ` is included because `default_latex_documents` includes `.tex`;
   `_resolve_output_stem` strips a literal trailing `.typ` already (builder.py:180), so both forms
@@ -77,8 +77,8 @@ the README/`configuration.rst` documentation of the new default (DOC-11, Phase 4
 
 ### Opt-out semantics
 
-- **D-03: An explicit `typst_documents = []` stays an opt-out — the `WARNING` is kept at `WARNING`
-  severity and only its wording is corrected.** Once the derived default lands, unset can never be
+- **D-03: An explicit `typst_documents = []` stays an opt-out.** The `WARNING` is kept at `WARNING`
+  severity and only its wording is corrected. Once the derived default lands, unset can never be
   empty (verified: with a callable default, `config.typst_documents` returns the derived list when
   unset and `[]` when the user wrote `[]`), so the existing message at `builder.py:907-909` —
   `"No documents defined in typst_documents. Nothing to compile."` — is only reachable via an
