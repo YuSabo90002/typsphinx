@@ -62,11 +62,19 @@ continues at **Phase 43**.
       relative, resolving to `offset + depth` — so the offset is inert. Measured against the pinned
       `typst>=0.15.0,<0.16` (typst-py 0.15.0): under `set heading(offset: 2)`,
       `heading(level: 1, …)` resolves to level 1 while `heading(depth: 1, …)` resolves to level 3,
-      `typst.query(…, 'heading', field='level')` → `[1, 3]`. The repair is to emit `depth:`. Master
-      documents render at `offset: 0`, where `depth == level`, so their output must be
-      byte-identical. Several existing tests assert the literal `heading(level: N` string and encode
-      the buggy contract — they must be updated deliberately, with owner sign-off and a re-proof
-      that the new assertions fail against the pre-fix commit.)
+      `typst.query(…, 'heading', field='level')` → `[1, 3]`. The repair has **two** parts (D-07,
+      2026-08-05): **(1)** `visit_title` emits `depth:` instead of `level:`; **(2)** `visit_toctree`
+      emits a context-relative `set heading(offset: heading.offset + 1)` increment instead of an
+      absolute assignment, so nested toctree scopes accumulate rather than replacing their parent's
+      offset. Master documents render at `offset: 0`, where `depth == level`, so their **resolved
+      heading level** is invariant — not their byte sequence: masters emit the same `heading()` call
+      as included documents, so the keyword change lands in master output too. Proven by two stacked
+      measurements, neither sufficient alone: resolved-level equality (`typst.query(…, 'heading',
+      field='level')` identical before/after) plus normalised byte equality (the diff-derived
+      emitted-form substitutions applied to the pre-fix `.typ` leave the post-fix files unchanged).
+      Several existing tests assert the literal `heading(level: N` string and encode the buggy
+      contract — they must be updated deliberately, with owner sign-off and a re-proof that the new
+      assertions fail against the pre-fix commit.)
 
 ### Configuration
 

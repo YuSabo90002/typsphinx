@@ -572,23 +572,20 @@ was deleted at commit `2c31b89` because it was built on the falsified one-part p
 
 - [ ] 44.1-04-PLAN.md — SC#3 both invariance halves over the measured corpus with their positive controls, the SC#8 permanent guard, the SC#7 discharge map, and D-01's TOC-01 correction in REQUIREMENTS.md
 
-> **Superseded, 2026-08-05.** The planning note below was written before D-07 and is now false in its
-> forward-looking half: SC#2 was resolved by owner decision to option-a *before* this re-plan, so no
-> plan in this phase stops to ask the owner about it. The note's measurements remain correct and are
-> the reason the repair has two parts. Plan 44.1-04 retires the false sentence while preserving the
-> measurements, and removes this marker with it.
-
-> **Planning finding, 2026-08-04 — SC#2 rests on a falsified premise.** Measured against typst-py
-> 0.15.0: Typst's `set heading(offset: N)` is an absolute assignment on the style chain, not an
-> increment, so nested toctree scopes **replace** rather than accumulate. With the locked
-> `visit_title` repair alone, the grandchild in `tests/fixtures/integration_nested_toctree` resolves
-> at level **2**, not 3 — SC#1 is met and SC#2 is not. Writing each scope as
-> `context { set heading(offset: heading.offset + 1) … }` was verified end-to-end through real
-> `include()` calls to give the full sequence 1/2/3/4, meeting both. That change exceeds the scope
-> `44.1-CONTEXT.md` locks, so plan 44.1-03 puts it to the owner as a blocking `checkpoint:decision`
-> rather than resolving it by planner preference. `44.1-CONTEXT.md`'s claim that "nested toctree
-> scopes then accumulate" and the source todo's "should now compose correctly at 3+ levels" are both
-> superseded by this measurement.
+> **Planning finding, 2026-08-04 — SC#2 rested on a falsified premise, resolved by owner decision
+> D-07 (2026-08-05).** Measured against typst-py 0.15.0: Typst's `set heading(offset: N)` is an
+> absolute assignment on the style chain, not an increment, so nested toctree scopes **replace**
+> rather than accumulate. With the locked `visit_title` repair alone, the grandchild in
+> `tests/fixtures/integration_nested_toctree` resolves at level **2**, not 3 — SC#1 is met and SC#2
+> is not. Writing each scope as `context { set heading(offset: heading.offset + 1) … }` was verified
+> end-to-end through real `include()` calls to give the full sequence 1/2/3/4, meeting both. This
+> measured `[1, 2, 2]` versus `[1, 2, 3]` finding is preserved here because it remains the reason the
+> repair has two parts, not one: `44.1-CONTEXT.md`'s claim that "nested toctree scopes then
+> accumulate" and the source todo's "should now compose correctly at 3+ levels" were both superseded
+> by this measurement. The question this finding originally raised was answered by owner decision
+> D-07 (option-a) *before* planning proceeded, so no plan in this phase stops to ask the owner about
+> it — the note's forward-looking sentence describing a pending blocking decision is retired with
+> this rewrite; the measurement itself is not.
 
 ### Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)
 
