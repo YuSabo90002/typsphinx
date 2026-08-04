@@ -654,12 +654,15 @@ the plan set reproduces: 108 `conf.py` files, 111 entries, 107 four-tuples, 3 fi
 divergent-`entry[2]` entries (one inert), 0 divergent-`entry[3]` entries. The plans name both stale
 figure sets as superseded rather than silently replacing them.*
 
-**Plans**: 3 plans
-- [ ] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
+**Plans**: 1/3 plans executed
+
+- [x] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
       `writer.py` + `template_engine.py` production diff (D-01/D-02/D-03/D-05), and the three
       measured-RED assertion migrations (D-07)
+
 - [ ] 44.2-02-PLAN.md — the precedence matrix (SC#2), multi-master no-leak for title AND author
       (SC#3), and D-03's four-route uniformity invariant
+
 - [ ] 44.2-03-PLAN.md — the corpus partition measured on both sides of the change (SC#4), the
       `configuration.rst` contract repair (SC#5, D-10/D-11), the `typst_authors` removal filed as
       Future Requirement `CONF-10` (D-06), and the phase gate (SC#6)
