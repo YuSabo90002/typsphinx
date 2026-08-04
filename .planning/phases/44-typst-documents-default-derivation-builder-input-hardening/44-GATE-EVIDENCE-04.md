@@ -354,3 +354,198 @@ phase to notice. This plan does not fix it (its own `files_modified` is scoped t
 this evidence file only); it is surfaced for the orchestrator's post-wave
 `requirements.mark-complete` step to close, or for Phase 45/46 to catch if it is
 not.
+
+## 5. Full suite
+
+**Worktree provisioning (this session, before any command below):**
+```
+$ uv sync --extra dev   # (run with VIRTUAL_ENV/UV_PROJECT_ENVIRONMENT unset)
+   ... Resolved 129 packages, Installed typsphinx==0.7.0 (editable, this worktree)
+$ ln -sf /nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv .venv/bin/uv
+$ ln -sf /home/yuta/Documents/typsphinx/.venv/bin/ruff .venv/bin/ruff   # main tree's own patchelf'd binary
+$ readlink -f .venv/bin/uv
+/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv
+$ readlink -f .venv/bin/ruff
+/home/yuta/Documents/typsphinx/.venv/bin/ruff
+$ .venv/bin/uv --version
+uv 0.11.25 (x86_64-unknown-linux-gnu)
+$ .venv/bin/ruff --version
+ruff 0.15.20
+```
+Both acceptance tests actually executed (not just resolved outside `.venv`) — the
+documented NixOS-sandbox shim from `44-01-SUMMARY.md`/`44-02-SUMMARY.md`, re-applied
+here since this is a fresh worktree.
+
+**Command and full summary line:**
+```
+$ uv run python -m pytest -q
+... (855 test files' worth of dot output omitted for brevity; full run below is the
+last ~20 lines) ...
+tests/test_typst_elements_pass_through_gate.py ..........                [ 96%]
+tests/test_typst_lang_gate.py .....................                     [ 99%]
+tests/test_typst_string_escape_gate.py .....                             [ 99%]
+tests/test_wide_table_render_gate.py .                                   [ 99%]
+tests/test_xref_orphan_degrade_render_gate.py .                          [100%]
+
+================== 855 passed, 1 skipped in 79.55s (0:01:19) ===================
+```
+
+**Exit status: 0.**
+
+**Divergence check against the orchestrator's reference measurement** (recorded in
+this plan's own prompt, measured on the main tree at the same base commit
+`b819c8bfaeb18745db44ee909ed2d12314b673b6`): reference was `855 passed, 1 skipped`
+— this worktree's re-measurement is **identical**, `855 passed, 1 skipped`. No
+divergence to record.
+
+**This repository configures no `-m` filter anywhere** — confirmed by reading the
+three configuration surfaces directly this session, not assumed:
+```
+$ grep -n "addopts\|markers" pyproject.toml
+79:addopts = "-v --strict-markers"
+80:markers = [
+$ grep -n "pytest" tox.ini
+14:description = Run tests with pytest
+19:    pytest>=8.4,<10
+20:    pytest-cov>=4.0
+23:    pytest {posargs:tests/}
+51:    pytest --cov=typsphinx --cov-report=term-missing --cov-report=html {posargs:tests/}
+$ grep -n "pytest\|tox" .github/workflows/ci.yml
+39:      - name: Run tests with tox
+40:        run: uv run tox -e ${{ matrix.tox-env }}
+69:      - name: Run lint with tox
+70:        run: uv run tox -e lint
+91:        run: uv run tox -e type
+112:        run: uv run tox -e cov -- --cov-report=xml
+```
+`addopts` carries only `-v --strict-markers`; every `tox.ini` test environment calls
+plain `pytest {posargs:tests/}`; CI invokes tox environments, never `pytest -m`
+directly. So the full run above genuinely includes the slow full-corpus gate — proven
+by name, not assumed:
+```
+$ uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7ea89f4fa3d64727
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_corpus_gate.py .                                              [100%]
+
+============================== 1 passed in 14.05s ===============================
+```
+
+`tests/test_preview_version_sync.py` — the phase introduced no new `@preview`
+version-lockstep site:
+```
+$ uv run python -m pytest tests/test_preview_version_sync.py -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7ea89f4fa3d64727
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_preview_version_sync.py ...                                   [100%]
+
+============================== 3 passed in 0.01s ===============================
+```
+
+No test was red at any point in this session. No `skip`, `xfail`, deselect, or
+weakened assertion was applied anywhere in this phase's diff (confirmed by the
+PHASE_BASE..HEAD diff in §4 above — none of the 20 changed/added files under
+`tests/` contain a new `@pytest.mark.skip`/`xfail`/`pytest.skip(` call; the sole
+skip in the full-suite summary, `1 skipped`, pre-dates this phase and is unrelated
+to CONF-08/BLD-01).
+
+## 6. Lint and types
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+225 files would be left unchanged.
+```
+**Exit status: 0.**
+
+```
+$ uv run ruff check .
+All checks passed!
+```
+**Exit status: 0.**
+
+```
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```
+**Exit status: 0.**
+
+No console-script fallback was needed — `uv run black`, `uv run ruff`, `uv run mypy`
+all resolved and ran directly once the `.venv/bin/uv` and `.venv/bin/ruff` NixOS
+shims were in place (§5).
+
+**Typing-import modernization check (`CLAUDE.md` standing prohibition):** `ruff`
+still ignores `UP006`/`UP035` —
+```
+$ grep -n "UP006\|UP035" pyproject.toml
+123:    "UP035",  # typing.Dict/List/Set deprecation; modernization deferred (see .planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md)
+124:    "UP006",  # Use dict instead of Dict; same deferral as UP035 above
+```
+and `typsphinx/builder.py`'s typing import is untouched by this phase's diff —
+confirmed by reading the PHASE_BASE..HEAD diff of that file directly (§4's diff
+excerpt below), not merely grepping the final state:
+```
+$ git diff 8bb43d181f95c5c807613bae99f22fe00ea963a0..HEAD -- typsphinx/builder.py | head -8
+diff --git a/typsphinx/builder.py b/typsphinx/builder.py
+index 120798b..6391697 100644
+--- a/typsphinx/builder.py
++++ b/typsphinx/builder.py
+@@ -14,9 +14,10 @@ from typing import List, Set, Tuple
+
+ from docutils import nodes
+```
+Line 14 (`from typing import List, Set, Tuple`) does not appear in either the `+` or
+`-` side of the diff — it is untouched context. `ruff check .` passing with
+`UP006`/`UP035` still in the ignore list, plus this line-level confirmation, together
+satisfy this section's sentence requirement: **this phase's diff modernized no
+typing import.**
+
+## 7. Manifests and verdict
+
+**Zero-new-runtime-dependency proof:**
+```
+$ git diff --stat 8bb43d181f95c5c807613bae99f22fe00ea963a0..HEAD -- pyproject.toml uv.lock
+```
+(no output — the command produces nothing, confirming neither file changed across
+the phase)
+
+This emptiness is the zero-new-runtime-dependency milestone invariant, measured
+rather than assumed. It is also the reason `44-RESEARCH.md` records the Package
+Legitimacy Audit as not applicable: no package-manager install occurs anywhere in
+this phase, so there was never a candidate package name to verify.
+
+**`typsphinx/` diff scope:**
+```
+$ git diff --stat 8bb43d181f95c5c807613bae99f22fe00ea963a0..HEAD -- typsphinx/
+ typsphinx/__init__.py |  4 ++--
+ typsphinx/builder.py  | 49 +++++++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 49 insertions(+), 4 deletions(-)
+```
+Confirmed: only `typsphinx/__init__.py` and `typsphinx/builder.py` — no other
+production file changed across the phase.
+
+**This plan's own working tree, confirming it changed no code and no test:**
+```
+$ git status --porcelain typsphinx/ tests/
+```
+(no output)
+
+### SC#1-SC#5 verdict table
+
+| Criterion | Evidence file / section | Status |
+|-----------|--------------------------|--------|
+| **SC#1** — unset `typst_documents` produces a PDF, named via `make_filename_from_project(project)`, warning gone | `44-GATE-EVIDENCE-01.md` §3 (GREEN: `quickstartdefaultgate.typ`/`.pdf` produced, template applied, no "no master documents" warning in the GREEN transcript) | **MET** |
+| **SC#2** — an explicit `typst_documents` always wins, producing exactly its named targets and nothing else | `44-GATE-EVIDENCE-01.md` §5 (`manual.typ`/`.pdf` only — no `explicitwinsgate.*`, no `index.*`) | **MET** |
+| **SC#3** — a non-`str` docname fails with an actionable typsphinx-level error, not a raw `TypeError` | `44-GATE-EVIDENCE-02.md` §§1-2 (RED: bare `TypeError` from `posixpath.dirname`, exit 2, whole build dies → GREEN: typsphinx-authored `WARNING` naming the offending value `123`, aggregate `ExtensionError`, the valid master still compiles) | **MET** |
+| **SC#4** — the output-filename rename is measured (before/after pair), handed to Phase 46 | `44-GATE-EVIDENCE-03.md` (plan 44-03's output) | **NOT-MET — cannot verify from this worktree.** Plan 44-03 is a concurrent sibling executing in its own worktree in this same wave (per this plan's `<parallel_execution>` instructions); `44-GATE-EVIDENCE-03.md` does not exist in this worktree's tree as of `HEAD` (confirmed: `ls .planning/phases/44-.../44-GATE-EVIDENCE-03.md` → "No such file or directory"). This plan does not assume SC#4 is met by proxy of 44-03's SUMMARY frontmatter reporting success elsewhere; it is recorded NOT-MET here on the honest-verifier principle (abstain rather than assert without direct evidence), for the orchestrator to re-verify once both wave-3 worktrees merge. |
+| **SC#5** — every existing test that encoded the old default is traceably updated; full suite + `black`/`ruff`/`mypy` + full-corpus gate are green | This file, `44-GATE-EVIDENCE-04.md`, §§1-6 (repo-wide census, corrected blast-radius grep, per-file verdict table, phase file inventory, full suite `855 passed, 1 skipped` + corpus gate + preview-sync gate, `black`/`ruff`/`mypy` all exit 0) | **MET** |
