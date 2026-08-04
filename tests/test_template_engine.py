@@ -926,16 +926,36 @@ class TestTypstAuthorsConfig:
         assert formatted == '("John Doe", "Jane Smith",)'
 
     def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
-        """D-07: typst_authors reaches map_parameters()/render() as a native
-        list[dict], never as a pre-rendered quoted string (BUG-C)"""
+        """D-07/D-05: typst_authors reaches map_parameters()/render() as a
+        native list[dict], never as a pre-rendered quoted string (BUG-C).
+
+        CONF-09 (Phase 44.2, D-05): the `typst_authors` block was moved to
+        run BEFORE the mapping loop instead of after it, so a mapped author
+        value now overwrites the typst_authors seed on every route where
+        "author" is an active `parameter_mapping` key -- which this test's
+        PREVIOUS shape was (the default mapping maps "author", so
+        `params["authors"]` ended up as the mapping loop's authors-tuple,
+        not the typst_authors list[dict], measured RED this session:
+        `isinstance(('Ada Lovelace',), list)` is False).
+
+        typst_authors remains authoritative ONLY on a route where "author"
+        is NOT an active mapping key -- the package-alone route with a
+        custom mapping that omits "author", matching
+        tests/fixtures/package_only_config_gate/conf.py's own shape. This
+        test now exercises exactly that route so it still pins what it
+        exists to pin: typst_authors reaches render() as a native array of
+        dictionaries and never as a quoted string (the double-formatting
+        regression guard below is unchanged)."""
         engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            parameter_mapping={"project": "title"},
             typst_authors={
                 "Ada Lovelace": {
                     "department": "Computing",
                     "organization": "Analytical Engine Society",
                     "email": "ada@example.org",
                 }
-            }
+            },
         )
 
         sphinx_metadata = {

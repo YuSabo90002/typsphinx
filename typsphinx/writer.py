@@ -9,6 +9,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from docutils import writers
+from sphinx.util import logging
 
 from typsphinx.template_engine import (
     TemplateEngine,
@@ -16,6 +17,60 @@ from typsphinx.template_engine import (
     resolve_package_for_engine,
 )
 from typsphinx.translator import TypstTranslator
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_entry_element(
+    typst_documents: list, docname: str, index: int, default: str
+) -> str:
+    """First-match ``typst_documents`` entry[index] lookup with fallback.
+
+    CONF-09 (Phase 44.2, D-01/D-02): reads element ``index`` (2 for title,
+    3 for author) off the FIRST entry whose ``entry[0] == docname`` --
+    mirroring ``TypstWriter._is_master_document()``'s own first-match walk
+    and ``builder.py``'s ``_resolve_output_stem()`` guard conventions. Two
+    entries naming the same docname resolve silently to the first; no
+    warning or list-wide second-match scan is added (that shape belongs to
+    the out-of-scope duplicate-*target* defect, not this helper).
+
+    - No matching entry, or entry too short to have ``index``, or the
+      element is ``None`` -> ``default`` (silent, D-02).
+    - Element present and a ``str`` (including ``""``) -> returned verbatim
+      (D-01: an empty string is a value, not a fallback signal).
+    - Element present but not a ``str`` -> a logged warning naming
+      the element index, the docname and the value it is falling back to,
+      then ``default`` (D-02). This is the one case that cannot be passed
+      through: the template engine's numeric-formatting branch would emit
+      an unquoted value, and Typst's ``document(title:)`` argument requires
+      a string or content, so the compile would abort.
+
+    Args:
+        typst_documents: The raw ``typst_documents`` config list.
+        docname: The current master document's docname.
+        index: The tuple element to resolve (2 for title, 3 for author).
+        default: The value to fall back to (``config.project`` or
+            ``config.author``).
+
+    Returns:
+        The resolved ``str`` value.
+    """
+    for entry in typst_documents:
+        if entry and entry[0] == docname:
+            if len(entry) <= index:
+                return default
+            value = entry[index]
+            if value is None:
+                return default
+            if not isinstance(value, str):
+                logger.warning(
+                    f"typst_documents element [{index}] for docname "
+                    f"{docname!r} is not a str: {value!r} -- "
+                    f"falling back to {default!r}"
+                )
+                return default
+            return value
+    return default
 
 
 class TypstWriter(writers.Writer):
@@ -204,9 +259,23 @@ class TypstWriter(writers.Writer):
         # nothing in DEFAULT_PARAMETER_MAPPING names it and typst_elements no
         # longer rides along in this dict (D-08), so it can never reach
         # project() (structural non-leak, CONF-04/SC#4).
+        #
+        # CONF-09 (D-01/D-02/D-03): "project"/"author" are no longer read
+        # straight off `config` -- they are resolved through the CURRENT
+        # master's own `typst_documents` entry first, via
+        # `_resolve_entry_element()`, with `config.project`/`config.author`
+        # as the silent fallback for an absent/short/None element. The
+        # dict's KEYS stay unchanged (only their values are now
+        # entry-resolved), which is what reaches every template route
+        # (A1-A4) without introducing a new template parameter.
+        typst_documents_cfg = getattr(config, "typst_documents", []) or []
         sphinx_metadata = {
-            "project": config.project,
-            "author": config.author,
+            "project": _resolve_entry_element(
+                typst_documents_cfg, docname, 2, config.project
+            ),
+            "author": _resolve_entry_element(
+                typst_documents_cfg, docname, 3, config.author
+            ),
             "release": config.release,
         }
 

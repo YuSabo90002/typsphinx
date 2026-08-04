@@ -416,7 +416,49 @@ class TemplateEngine:
             sphinx.errors.ExtensionError: if ``typst_elements`` contains a
                 key not present in ``ELEMENTS_ALLOWLIST`` (D-06/D-07).
         """
-        params = {}
+        # Explicit annotation (not just `params = {}`): the typst_authors
+        # seed below is now the FIRST `params[...] =` assignment in this
+        # method (D-05's reorder), so without this annotation mypy would
+        # narrow params' inferred value type to `list[dict[str, Any]]` from
+        # that single site instead of `Any`, and every other key's
+        # differently-typed assignment later in the method would then be a
+        # type error.
+        params: Dict[str, Any] = {}
+
+        # CONF-09 (Phase 44.2, D-05): typst_authors now SEEDS "authors"
+        # FIRST, before the mapping loop below -- superseding its previous
+        # position as an unconditional override that ran LAST. A mapped
+        # author value (whether it came from an explicit typst_documents
+        # entry[3] or a silent config.author fallback -- by the time
+        # map_parameters() runs, the two are the same plain string and
+        # cannot be told apart) now overwrites this seed on every route
+        # where "author" is an active key in self.parameter_mapping, which
+        # is every route except a package-alone build using a custom
+        # typst_template_mapping that specifically OMITS "author" --
+        # exactly the shape tests/fixtures/package_only_config_gate/conf.py
+        # pins. typst_authors survives ONLY there.
+        #
+        # A dedicated "explicit entry[3] wins" override cannot be built
+        # instead: D-03's substitution point already unifies an explicit
+        # entry[3] and a silent config.author fallback into the same
+        # sphinx_metadata["author"] string before map_parameters() ever
+        # sees it, so there is no signal left here to distinguish "this is
+        # an override" from "this is the default" -- and D-05's own
+        # "unbreaks typst_authors + bundled base.typ" goal requires the
+        # broader behaviour anyway: on that path, config.author (with no
+        # typst_documents override at all) must ALSO beat typst_authors.
+        #
+        # Must stay a native Python list[dict] structure here (never
+        # pre-render it to Typst source), so _format_typst_value()'s
+        # existing list/dict recursion serializes it as a Typst array of
+        # dictionaries -- pre-rendering would re-enter the string branch
+        # and produce a quoted string literal instead (the
+        # double-formatting trap).
+        if self.typst_authors:
+            params["authors"] = [
+                {"name": name, **details}
+                for name, details in self.typst_authors.items()
+            ]
 
         # Apply mapping
         for sphinx_key, template_key in self.parameter_mapping.items():
@@ -442,27 +484,10 @@ class TemplateEngine:
             if "date" not in params:
                 params["date"] = None
 
-        # D-07: typst_authors (explicit config) overrides whatever "authors"
-        # already resolved to -- a native Python list[dict] that
-        # _format_typst_value()'s existing list/dict recursion serializes as
-        # a Typst array of dictionaries. Must stay a native Python structure;
-        # never pre-render it to Typst source here, or it re-enters
-        # _format_typst_value()'s string branch and comes out as a quoted
-        # string literal instead of an array (the double-formatting trap).
-        # Applies on both the package path and the template path -- runs
-        # after the package-aware back-fill guard above, so on the package
-        # path "authors" is present only when the user actually configured
-        # typst_authors.
-        if self.typst_authors:
-            params["authors"] = [
-                {"name": name, **details}
-                for name, details in self.typst_authors.items()
-            ]
-
-        # CONF-04: additive elements merge -- runs LAST, after the
-        # typst_authors override above, without disturbing the
-        # `if not self.typst_package` back-fill guard or the typst_authors
-        # override itself. Validate each key against ELEMENTS_ALLOWLIST
+        # CONF-04: additive elements merge -- runs LAST, without disturbing
+        # the `if not self.typst_package` back-fill guard above or the
+        # typst_authors seed at the top of this method. Validate each key
+        # against ELEMENTS_ALLOWLIST
         # BEFORE it is ever added to params (D-06/D-07, Pitfall 2): an
         # unrecognized key raises loudly here instead of being silently
         # dropped (today's bug) or passed through as an undeclared kwarg
