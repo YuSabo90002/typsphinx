@@ -429,6 +429,43 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.7.1 (bug-fix round) — Phase 44 complete 2026-08-04, 5/5 plans across 4 waves (4 planned + 1
+gap closure), verification `passed` 6/6 must-haves. CONF-08 and BLD-01 both validated.**
+
+`typst_documents` no longer defaults to `[]`. It resolves to a Sphinx-native derived default —
+registered as a callable default exactly the way Sphinx's own LaTeX builder registers
+`latex_documents` — deriving from `root_doc`/`project`/`author` with the target name in LaTeX's own
+shape, `make_filename_from_project(project)` → `<project>.typ`. Following the Quick Start with no
+`typst_documents` line now produces a real PDF instead of exiting 0 with one warning and zero output.
+An explicitly-set `typst_documents` always wins; an explicit empty list stays a deliberate opt-out.
+BLD-01 rode along in the same method: a non-`str` docname reaching `TypstPDFBuilder.finish()` now
+fails with an actionable typsphinx-level error instead of a raw `TypeError` out of `path.dirname()`.
+**The accepted, owner-stated cost is a user-visible rename** of the existing `-b typst` output for
+anyone who never set `typst_documents`; the before/after pair was measured on real builds
+(44-GATE-EVIDENCE-03.md) and is the source text Phase 46 owes the CHANGELOG.
+
+**The phase's own code review again found a BLOCKER in the surface the phase had just widened** —
+the same shape as Phase 43, and worth remembering as a pattern rather than a coincidence. Making the
+default derived meant a pre-existing collision mechanism became reachable with ZERO configuration:
+an ordinary project named after its first chapter (`project = "Chapter 1"` alongside a
+toctree-included `chapter1.rst`) had the derived master silently destroy that chapter's rendered
+output on `-b typst` (exit 0, no warning) and hard-fail `-b typstpdf` with `TypstError: cyclic
+import`; a project slugifying to `_template` clobbered the shared template file every master
+imports. Gap-closure plan 44-05 closed it at the single normalization site both the write path and
+the PDF read-back path already flow through (`_resolve_output_stem`), comparing the
+directory-qualified effective path — not the bare stem — against `env.found_docs` and the reserved
+`_template`, then warning and falling back to the docname. Four real `sphinx-build` subprocess
+scenarios cover (docname collision × `_template` clobber) × (derived path × explicit path).
+
+**One defect of the same class remains open and is deliberately NOT closed here (CR-02).** Two
+explicit `typst_documents` entries naming the same target as *each other* still silently drop one
+master's output at exit 0 with no warning — neither target is itself a docname, so the new
+`found_docs` membership test cannot fire. It is not a regression of this phase (it predates the
+derived default and needs a deliberately duplicated explicit config, unreachable from the Quick
+Start), 44-05 recorded it as an out-of-scope observation before executing, and 44-VERIFICATION.md
+independently judged it outside all five SCs. Filed as
+`.planning/todos/pending/2026-08-04-duplicate-typst-documents-target-silently-drops-a-master.md`.
+
 **v0.7.1 (bug-fix round) — Phase 43 complete 2026-08-04, 6/5 plans across 4 waves (5 planned + 1
 gap closure), verification `passed` 6/6 SC. TBL-04, TBL-05, FIG-01 and QUA-01 all validated.**
 
@@ -808,11 +845,14 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 - [ ] The published documentation's changelog page carries every release through v0.7.1.
 - [ ] Following the README Quick Start exactly produces a PDF — `typst_documents` defaults to a
       `root_doc`-derived master (target `<project>.typ`) as Sphinx's LaTeX builder does, and the
-      Quick Start documents the config explicitly.
-- [ ] Four carried quality/hardening todos closed — **1 of 4 done**: the `_emit_id_anchors` docstring
-      (QUA-01, validated in Phase 43); still owed are non-`str` docname `TypeError` hardening in
-      `TypstPDFBuilder.finish()`, `derive_typst_lang()`'s duplicated warning block, and this file's
-      two unterminated HTML comments.
+      Quick Start documents the config explicitly. **Builder half done** (CONF-08, validated in
+      Phase 44, including the zero-configuration name-collision gap found by the phase's own code
+      review); the *documenting it in the Quick Start* half is Phase 45's.
+- [ ] Four carried quality/hardening todos closed — **2 of 4 done**: the `_emit_id_anchors` docstring
+      (QUA-01, validated in Phase 43) and non-`str` docname `TypeError` hardening in
+      `TypstPDFBuilder.finish()` (BLD-01, validated in Phase 44); still owed are
+      `derive_typst_lang()`'s duplicated warning block and this file's two unterminated HTML
+      comments.
 - [ ] v0.7.1 released — version bump + curated CHANGELOG entry in the final phase; publish executes
       at `/gsd-complete-milestone`.
 
