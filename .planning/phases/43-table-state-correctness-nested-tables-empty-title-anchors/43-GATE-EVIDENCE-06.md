@@ -302,11 +302,19 @@ discipline.
 | SC | Statement | Discharged by | Status |
 |----|-----------|----------------|--------|
 | SC#1 | TBL-04: a table nested inside another table's cell no longer clobbers the enclosing table's cells, column count, column widths and caption | `43-GATE-EVIDENCE-01.md` | Met |
-| SC#2 | FIG-01: a figure nested inside another figure keeps the outer figure's caption, ids and state; the inner figure renders inside the legend | `43-GATE-EVIDENCE-04.md` §"D5" cross-references `43-GATE-EVIDENCE-03.md` as FIG-01's own RED-to-GREEN record; primary evidence `43-GATE-EVIDENCE-03.md`, with the CR-01 legend-in-legend gap closed by `43-GATE-EVIDENCE-07.md` (plan 43-06) | Met |
-| SC#3 | TBL-05: a captioned table whose title renders to the empty string still anchors its ids | `43-GATE-EVIDENCE-04.md` | Met |
+| SC#2 | TBL-05: a captioned table whose title renders to an empty or whitespace-only string emits its id anchors | `43-GATE-EVIDENCE-04.md` | Met |
+| SC#3 | QUA-01: `_emit_id_anchors`'s docstring names its actual callers, verified by a repo-wide grep for its call sites | `43-GATE-EVIDENCE-04.md` | Met |
 | SC#4 | Byte-invariance: every document with no nested table, no nested figure and no empty-titled caption emits byte-identical `.typ` across the phase's whole change (including the CR-01 gap closure), proven by the two-build method with isolation proof and positive control | `43-GATE-EVIDENCE-05.md` (this plan, Task 1, regenerated against the CR-01-fixed tip) — partial coverage also recorded per-plan in `43-GATE-EVIDENCE-01.md` (TBL-04's own three-fixture sweep) and `43-GATE-EVIDENCE-03.md` (FIG-01's image-only control) | Met |
 | SC#5 | The milestone branch reaches `origin` and a COMPLETED CI run, including both Windows lanes, runs against it during this phase | First half (pushed during the phase): `43-GATE-EVIDENCE-02.md`. Second half (completed run against the phase's TRUE final tip, all lanes named): **this file** (`43-GATE-EVIDENCE-06.md`, regenerated) | Met |
-| SC#6 | QUA-01: `_emit_id_anchors`'s docstring no longer calls `depart_figure` the sole `skip_ids` user | `43-GATE-EVIDENCE-04.md` | Met |
+| SC#6 | FIG-01: a figure nested inside another figure's legend keeps the outer figure's caption, ids and state; the inner figure renders inside the legend | Primary evidence `43-GATE-EVIDENCE-03.md` (FIG-01's own RED-to-GREEN record, cross-referenced from `43-GATE-EVIDENCE-04.md` §"D5"), with the CR-01 legend-in-legend gap closed by `43-GATE-EVIDENCE-07.md` (plan 43-06) | Met |
+
+> **Numbering correction (orchestrator, post-verification).** An earlier revision of this table
+> attached the wrong SC numbers to three rows — it mapped SC#2→FIG-01, SC#3→TBL-05 and SC#6→QUA-01.
+> `.planning/ROADMAP.md` § Phase 43 is authoritative: SC#2 is TBL-05, SC#3 is QUA-01, and SC#6 is
+> FIG-01 (appended by owner decision during phase discussion, hence last). Only the labels were
+> wrong — every row already pointed at the correct evidence file, and every plan file and every
+> other evidence file used the correct numbering. Corrected here so the mapping is safe to rely on
+> at milestone close.
 
 No criterion has a blank row. Every one of the six roadmap Success Criteria for Phase 43 is now
 discharged with a named evidence file and section, against the phase's actual final tip (i.e.
