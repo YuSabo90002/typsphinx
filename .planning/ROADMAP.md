@@ -11,12 +11,13 @@
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 - ✅ **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (shipped 2026-07-29) → [archive](milestones/v0.6.5-ROADMAP.md)
 - ✅ **v0.7.0 — API rendering design overhaul** — Phases 36–42 (+40.1) (shipped 2026-08-04) → [archive](milestones/v0.7.0-ROADMAP.md)
-- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (active, started 2026-08-04)
+- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1) (active, started 2026-08-04)
 
-**Active milestone: v0.7.1 — bug-fix round.** Four phases (43–46): the two table defects Phase 42's
-own review filed, the `typst_documents` first-run onboarding break plus the builder-input hardening
-that sits in the same method, documentation currency and the carried hygiene todos, then prep-only
-release. Phase numbering continues from v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
+**Active milestone: v0.7.1 — bug-fix round.** Five phases (43–46, plus the inserted 44.1): the two
+table defects Phase 42's own review filed, the `typst_documents` first-run onboarding break plus the
+builder-input hardening that sits in the same method, the toctree heading-offset defect inserted
+2026-08-04, documentation currency and the carried hygiene todos, then prep-only release. Phase
+numbering continues from v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
 
 ## Phases
 
@@ -333,6 +334,7 @@ config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"
 
 - [x] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, a figure nested in a figure no longer drops the outer caption (FIG-01, added 2026-08-04), and a captioned table whose title renders empty still anchors its ids (completed 2026-08-04)
 - [ ] **Phase 44: `typst_documents` Default Derivation + Builder Input Hardening** - Following the Quick Start exactly produces a PDF instead of zero output, and a malformed docname fails with an actionable typsphinx error
+- [ ] **Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)** - A document reached through a toctree renders its headings one level deeper than its parent, so the PDF outline nests instead of being flat
 - [ ] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out the output-filename change), proven green, and handed off with no irreversible action taken
 
@@ -453,6 +455,79 @@ the derivation touches — the change is made once, in one place, with one set o
   5. Every existing test that encoded the old `[]`-default behaviour is updated deliberately (each
      change traceable to this requirement rather than absorbed silently), and the full suite,
      `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green.
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 44-01-PLAN.md — CONF-08: the derived default (tracer end-to-end) + SC#2 explicit-wins + D-01's degradation table
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 44-02-PLAN.md — BLD-01: non-`str` docname guard; D-03 opt-out wording; Discretion (d) resolved
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 44-03-PLAN.md — SC#4: two-build measured before/after pair + Phase 46 CHANGELOG source text
+- [ ] 44-04-PLAN.md — SC#5: repo-wide test-update audit + full-suite / lint / type phase gate
+
+### Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)
+
+**Goal**: A document reached through a toctree renders its headings one level deeper than its
+parent, so the PDF outline nests instead of being flat. `visit_toctree` already wraps its generated
+`include()` calls in a scope carrying `set heading(offset: 1)`
+(`typsphinx/translator.py:4761-4762`), but `visit_title` emits the heading with the **absolute**
+`level:` parameter (`translator.py:800-809`), and in Typst `level:` overrides the ambient
+`heading(offset: ...)` — only `depth:` is relative, resolving to `offset + depth`. So the offset the
+toctree sets has no effect at all. Measured against the pinned `typst>=0.15.0,<0.16` (typst-py
+0.15.0): under `set heading(offset: 2)`, `heading(level: 1, …)` resolves to level 1 while
+`heading(depth: 1, …)` resolves to level 3 (`typst.query(…, 'heading', field='level')` → `[1, 3]`).
+The repair is to emit `depth:` in `visit_title`. Inserted 2026-08-04 from the todo
+`toctree-heading-offset-ignored-because-visit-title-emits-abs` (severity: major), filed the same day
+Phase 43 closed. It sits after Phase 44 rather than before it because both touch output the Quick
+Start path produces, and Phase 44's measured before/after filename pair must not be taken across a
+concurrent heading-shape change.
+**Depends on**: Phase 44
+**Requirements**: TOC-01
+**Success Criteria** (what must be TRUE):
+
+  1. A multi-document project whose master pulls in a child via `toctree` renders the child's
+     top-level heading one level below the master's — asserted on the **resolved** level via
+     `typst.query(…, 'heading', field='level')` against a compiled document, not by grepping the
+     `.typ` source.
+
+  2. Nested toctrees compose: a grandchild reached through two nested toctree scopes resolves at
+     level 3, proving the per-scope `offset: 1` accumulates.
+
+  3. Master-document output is unchanged. The master renders at `offset: 0`, so `depth == level`
+     there; a before/after build of the full `docs/source` corpus plus every root under
+     `tests/roots` shows byte-identical `.typ` for every master document, with any diff confined to
+     toctree-included files.
+
+  4. The `max(1, …)` clamp survives with a rewritten rationale: `depth` is likewise `>= 1`, so the
+     clamp stays, but the comment no longer justifies it as an absolute-level floor (it supersedes
+     D-06's stated reason, which was that Typst rejects `level: 0`).
+
+  5. **GATE-01**: the change ships a real `sphinx-build → typst.compile()` regression fixture
+     recorded **red against the unfixed code** before it is accepted as green. The RED here is a
+     structural assertion — today's build compiles cleanly and merely nests wrongly — so the red
+     proof is the queried level, not an exception.
+
+  6. The tests that encode the buggy contract as a literal `heading(level: N` string
+     (`tests/test_translator.py:83,97`, `tests/test_topics.py:161-208`,
+     `tests/test_toctree_requirement13.py:88-108`, `tests/test_pdf_render_gate.py:2766`, and the
+     golden fixture `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`) are updated
+     **deliberately** — with owner sign-off, each edit traceable to TOC-01, and the new assertions
+     re-proved failing against the pre-fix commit. No observed value is transcribed from the
+     post-fix run into an assertion without that proof.
+
+  7. Non-section titles are confirmed unaffected: admonition, topic and table-caption titles return
+     before the heading path, and the `.. contents::` topic label is unchanged — asserted, not
+     assumed.
+
+  8. Neither the master template (`templates/base.typ`) nor `_write_template_file` introduces its
+     own `heading(offset:)` that would shift the master — verified by inspection and by SC#3's
+     byte-invariance result.
 **Plans**: TBD
 
 ### Phase 45: Documentation Currency + Carried Hygiene
@@ -547,12 +622,14 @@ Active milestone phases execute in numeric order (decimal insertions between the
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already
 proven by the preceding phases' gates.
 
-**v0.7.1 (active)** runs 43 → 44 → 45 → 46. The chain is genuinely sequential, not merely numbered:
-Phase 44 hardens the same `TypstPDFBuilder.finish()` method its own derivation rewrites, Phase 45's
-README work documents behaviour that must already have landed in Phase 44, and Phase 46's CHANGELOG
-describes all three. Phase 43 goes first because it carries milestone invariant #5 — the milestone
-branch reaches `origin` there, so the remaining three phases run with CI (including the Windows
-lanes) watching every push.
+**v0.7.1 (active)** runs 43 → 44 → **44.1** → 45 → 46. The chain is genuinely sequential, not merely
+numbered: Phase 44 hardens the same `TypstPDFBuilder.finish()` method its own derivation rewrites,
+Phase 45's README work documents behaviour that must already have landed in Phase 44, and Phase 46's
+CHANGELOG describes all of it. Phase 43 goes first because it carries milestone invariant #5 — the
+milestone branch reaches `origin` there, so every later phase runs with CI (including the Windows
+lanes) watching each push. Phase 44.1 was inserted 2026-08-04 **after** 44 rather than before it:
+both phases change what the Quick Start path emits, and Phase 44's SC#4 hands Phase 46 a measured
+before/after filename pair that must not be taken across a concurrent heading-shape change.
 
 **v0.7.0 (shipped)** ran 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 40 (citations) was
 structurally independent of the 37 → 38 → 39 dependency chain. Phase 40.1 was inserted 2026-08-02
@@ -615,6 +692,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 0/TBD | Not started | - |
+| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 0/TBD | Not started | - |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
@@ -683,6 +761,17 @@ precedent this entry follows).
   repair path for measured silent data loss rather than as new capability. Nothing was removed or
   re-assigned away from another phase.
 
+- **2026-08-04** — **Phase 44.1 inserted** (`/gsd-phase --insert 44`) for the todo
+  `toctree-heading-offset-ignored-because-visit-title-emits-abs` (severity: major), filed the same
+  day Phase 43 closed: `visit_toctree`'s `set heading(offset: 1)` is inert because `visit_title`
+  emits an absolute `level:`, which Typst lets override the ambient offset, so included documents'
+  headings render flat instead of nested. New requirement **TOC-01** is added to `REQUIREMENTS.md`
+  and mapped to Phase 44.1; v0.7.1 coverage goes 12/12 → **13/13**, still zero orphans. Placed
+  **after** Phase 44, not before: both change what the Quick Start path emits, and Phase 44's SC#4
+  hands Phase 46 a measured before/after filename pair that must not be taken across a concurrent
+  heading-shape change. Nothing was removed or re-assigned away from another phase; Phases 45 and 46
+  keep their numbers, requirements and criteria unchanged.
+
 ## Backlog
 
 Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-backlog`, or
@@ -708,6 +797,9 @@ real-HTTP check covers that class instead.
 - `table-whitespace-only-title-anchor-divergence` → Phase 43 (TBL-05)
 - `emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user` → Phase 43 (QUA-01)
 - `non-str-docname-typeerror-in-typstpdf-finish` → Phase 44 (BLD-01)
+- `toctree-heading-offset-ignored-because-visit-title-emits-abs` → Phase 44.1 (TOC-01) — filed and
+  promoted 2026-08-04, after the roadmap was created; the phase was inserted rather than folded into
+  an existing one.
 - `SEED-001-readme-quickstart-typst-documents-pdf` → Phase 44 (CONF-08) + Phase 45 (DOC-11)
 - `docs-changelog-page-stale-at-0-4-0` → Phase 45 (DOC-12)
 - `derive-typst-lang-duplicated-warning-block` → Phase 45 (QUA-02)
@@ -725,4 +817,4 @@ phase entry above is the sequencing record.
 milestone-candidate work.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04). v0.7.1 phases added 2026-08-04. Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04). v0.7.1 phases added 2026-08-04 (Phase 44.1 inserted 2026-08-04). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
