@@ -70,7 +70,7 @@ continues at **Phase 43**.
 
 ### Configuration
 
-- [ ] **CONF-08**: With `typst_documents` unset, `sphinx-build -b typstpdf` produces a PDF instead of
+- [x] **CONF-08**: With `typst_documents` unset, `sphinx-build -b typstpdf` produces a PDF instead of
       exiting 0 with a warning and zero output — `typst_documents` resolves to a default derived from
       `root_doc`, `project` and `author`, with the target name in Sphinx's own LaTeX shape
       (`<project>.typ`, from `make_filename_from_project(project)`). An explicitly-set
@@ -176,7 +176,7 @@ Filled during roadmap creation.
 | TBL-05 | Phase 43 | Complete |
 | FIG-01 | Phase 43 | Complete |
 | QUA-01 | Phase 43 | Complete |
-| CONF-08 | Phase 44 | Pending |
+| CONF-08 | Phase 44 | Complete |
 | BLD-01 | Phase 44 | Pending |
 | TOC-01 | Phase 44.1 | Pending |
 | DOC-11 | Phase 45 | Pending |
