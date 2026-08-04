@@ -560,14 +560,26 @@ class TypstTranslator(SphinxTranslator):
         ``]list(`` juxtaposition, never a stranded ``+``).
 
         ``skip_ids`` lets a caller that ALREADY anchors one of the node's ids
-        by another mechanism suppress a duplicate definition here. The sole
-        user is ``depart_figure``: a captioned figure self-anchors ``ids[0]``
-        inside its own ``[#figure(...) <label>]`` markup block, but a
-        PROPAGATED explicit target lands a DIFFERENT id in ``ids[1:]`` that
-        would otherwise dangle -- so the figure passes ``skip_ids={ids[0]}`` to
-        anchor only the propagated remainder. When every id is skipped the
-        method is a no-op (list-item bookkeeping is untouched), keeping output
-        byte-for-byte identical.
+        by another mechanism suppress a duplicate definition here. There are
+        two such callers, ``depart_figure`` and ``depart_table`` (Phase 25),
+        and they share one rationale: both wrap their content in a Typst
+        ``figure(...)`` that self-anchors ``ids[0]`` as that figure's own
+        ``<label>`` postfix, so re-anchoring ``ids[0]`` here too would define
+        the same label TWICE -- a Typst "label ... occurs multiple times"
+        compile fatal. Both still need ``ids[1:]`` anchored here, because
+        docutils' ``PropagateTargets`` transform lands an immediately
+        preceding ``.. _target:``'s id there, and a same-document ``:ref:``
+        to it would otherwise dangle. ``depart_table`` additionally passes an
+        EMPTY ``skip_ids`` (anchoring every id, including ``ids[0]``) for a
+        table that is structurally captioned but did NOT actually take the
+        figure-wrapped branch (TBL-05, Phase 43: a title node whose rendered
+        content is the empty string) -- nothing else self-anchors ``ids[0]``
+        for that table, so skipping it here would leave it unanchored. The
+        table caller also has a firing-order constraint the figure caller
+        does not (Phase 42 / TBL-03): see the inline comments at its own
+        call site for why it must run after ``self.in_table`` is cleared.
+        When every id is skipped the method is a no-op (list-item bookkeeping
+        is untouched), keeping output byte-for-byte identical.
 
         Args:
             node: The body-element node whose ``ids`` should be anchored.
