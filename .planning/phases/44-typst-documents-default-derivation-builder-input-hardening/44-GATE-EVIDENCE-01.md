@@ -266,7 +266,102 @@ tests/test_default_typst_documents_gate.py .                             [100%]
 
 ## 4. Existing tests updated for CONF-08 (SC#5 share)
 
-_Appended after Task 2._
+This section covers only what THIS plan (44-01) touched. The repo-wide
+version of this audit is plan 44-04's job.
+
+### Verbatim pre-change failure output
+
+Measured with `uv run python -m pytest tests/test_builder.py -q` immediately
+after the GREEN commit landed (i.e. against the derivation already in
+place, before either test was updated):
+
+```
+FAILED tests/test_builder.py::test_write_doc_creates_output_file - AssertionError: assert False
+ +  where False = exists()
+ +    where exists = PosixPath('.../build/html/index.typ').exists
+
+FAILED tests/test_builder.py::test_write_doc_generates_typst_content - FileNotFoundError: [Errno 2] No such file or directory: '.../build/html/index.typ'
+
+2 failed, 18 passed in 0.30s
+```
+
+Both failures are exactly the predicted mechanism: `temp_sphinx_app`'s
+`conf.py` omits `typst_documents` and sets `project = 'Test Project'`, so
+`_resolve_output_stem("index")` now returns `testproject` (via
+`make_filename_from_project("Test Project")`) and `write_doc` writes
+`testproject.typ`, not `index.typ`.
+
+### Route taken
+
+**Route 1 — rename to the derived target name.** Both
+`test_write_doc_creates_output_file` and
+`test_write_doc_generates_typst_content` were updated to assert on
+`Path(builder.outdir) / "testproject.typ"` instead of `"index.typ"`, each
+with a comment naming CONF-08 and explaining the filename now comes from
+`make_filename_from_project(project)`. The measured failure was *only* the
+filename (a clean `AssertionError`/`FileNotFoundError` on the path, no
+exception from applying the full template inside the unit-level harness),
+so the rename route was viable and Route 2 (pinning
+`builder.config.typst_documents = []`) was not needed.
+
+### Diff of `tests/test_builder.py`
+
+```diff
+     # Write a document
+     builder.write_doc("index", sample_doctree)
+
+-    # Check that output file was created
+-    output_file = Path(builder.outdir) / "index.typ"
++    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
++    # config value now resolves through _default_typst_documents, which
++    # names the "index" master's output via
++    # make_filename_from_project("Test Project") -> "testproject.typ"
++    # rather than the old literal "index.typ".
++    output_file = Path(builder.outdir) / "testproject.typ"
+     assert output_file.exists()
+     assert output_file.is_file()
+```
+
+```diff
+     # Write a document
+     builder.write_doc("index", sample_doctree)
+
+-    # Check that output file contains Typst content
+-    output_file = Path(builder.outdir) / "index.typ"
++    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
++    # config value now resolves through _default_typst_documents, which
++    # names the "index" master's output via
++    # make_filename_from_project("Test Project") -> "testproject.typ"
++    # rather than the old literal "index.typ".
++    output_file = Path(builder.outdir) / "testproject.typ"
+     content = output_file.read_text()
+```
+
+### `tests/test_config.py`, `tests/test_builder_output_stem.py`,
+`tests/test_pdf_generation.py` needed no change
+
+Proof, not assertion of belief — `uv run python -m pytest
+tests/test_default_typst_documents_derivation.py tests/test_builder.py
+tests/test_config.py tests/test_builder_output_stem.py
+tests/test_pdf_generation.py -q`:
+
+```
+tests/test_default_typst_documents_derivation.py .............          [ 13%]
+tests/test_builder.py ....................                              [ 34%]
+tests/test_config.py ........                                           [ 43%]
+tests/test_builder_output_stem.py ........................              [ 68%]
+tests/test_pdf_generation.py ..............................             [100%]
+
+95 passed in 1.38s
+```
+
+`test_config.py`'s `test_default_typst_documents_config` and
+`test_typst_documents_config_structure` assert only that the config value
+exists and is a `list` (`test_config.py:6-19`) — both still hold under a
+callable default, so no change was needed there. Every fixture in
+`test_builder_output_stem.py` and `test_pdf_generation.py` sets
+`typst_documents` explicitly, so the derived default changes nothing for
+either module.
 
 ## 5. SC#2 — the explicit setting wins
 
