@@ -178,7 +178,13 @@ class TypstBuilder(Builder):
             ``logger.warning`` is emitted and a safe fallback is returned
             instead -- ``path.basename`` of the offending stem for a
             path-bearing target (D-06/D-07), or the docname itself for a
-            degenerate target (edge: empty).
+            degenerate target (edge: empty). When the resolved stem's
+            directory-qualified effective path equals another real docname
+            in ``self.env.found_docs`` or the reserved ``_template``
+            basename (CR-01), a ``logger.warning`` is emitted and the
+            docname itself is returned, so a derived or explicit target
+            name can never silently overwrite another document's output or
+            the shared ``_template.typ`` infrastructure file.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
 
@@ -252,6 +258,27 @@ class TypstBuilder(Builder):
             logger.warning(
                 "empty typst_documents target name for docname "
                 f"{docname!r} -- falling back to {docname!r}"
+            )
+            return docname
+
+        # CR-01 collision guard. Two facts make this comparison correct:
+        # (1) _write_template_file() writes "_template.typ" at the outdir
+        #     ROOT only (never nested), so reserving the "_template"
+        #     basename is a root-level equality test, not a basename test;
+        # (2) the value that actually determines the written path is NOT
+        #     the bare stem -- _directory_preserving_relpath() re-prefixes
+        #     a nested docname's stem with that docname's own directory
+        #     before it is joined with self.outdir -- so the comparison
+        #     must be made on that directory-qualified effective path.
+        effective = self._directory_preserving_relpath(docname, stem)
+        found_docs = getattr(self.env, "found_docs", None) or set()
+        if effective != docname and (
+            effective in found_docs or effective == "_template"
+        ):
+            logger.warning(
+                f"typst_documents target name {target!r} for docname "
+                f"{docname!r} collides with an existing document or the "
+                f"reserved template file -- falling back to {docname!r}"
             )
             return docname
 
