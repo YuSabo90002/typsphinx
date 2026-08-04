@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
@@ -187,6 +187,16 @@ class TypstTranslator(SphinxTranslator):
             # the caption title's buffering, mirrors the admonition-title
             # save/restore idiom
         )
+
+        # TBL-04 (Phase 43): a table nested inside another table's cell
+        # would otherwise clobber the enclosing table's in-progress scalar
+        # state, since every table_* scalar above is a flat instance
+        # attribute with no notion of "which table is currently being
+        # filled". _push_table_state()/_pop_table_state() save/restore a
+        # full snapshot of that scalar set around a NESTED visit_table/
+        # depart_table pair only (never for a top-level table, which stays
+        # byte-identical) -- see the docstrings on those two methods.
+        self._table_state_stack: List[Dict[str, Any]] = []
 
         # Figure-specific state
         self.figure_content = []
@@ -3146,6 +3156,70 @@ class TypstTranslator(SphinxTranslator):
         """
         raise nodes.SkipNode
 
+    def _push_table_state(self) -> None:
+        """
+        Save the enclosing table's in-progress scalar state onto a private
+        stack before resetting those scalars for a NESTED table's own use
+        (TBL-04, Phase 43).
+
+        Covers the full clobber-prone scalar set -- not just the 5 the
+        original bug report named, but the larger set RESEARCH.md Pitfall 1
+        measured to share the identical unconditional-write/
+        unconditional-read shape: ``table_cells``, ``table_colcount``,
+        ``table_colwidths``, ``table_caption``, ``table_cell_content``
+        (existence + value), ``in_thead``, and ``current_morecols``/
+        ``current_morerows``. The latter two are read via ``getattr`` with
+        a ``0`` default (ASVS V5): they are set lazily by the FIRST
+        ``visit_entry`` ever called on this translator instance, so a
+        malformed doctree that somehow reaches a nested table before any
+        entry at all must not raise ``AttributeError`` here.
+
+        Called only from ``visit_table`` when ``self.in_table`` is already
+        True (i.e. this table node is nested inside another table's cell) --
+        never for a top-level table, so the top-level path pushes nothing.
+        """
+        self._table_state_stack.append(
+            {
+                "table_cells": self.table_cells,
+                "table_colcount": self.table_colcount,
+                "table_colwidths": self.table_colwidths,
+                "table_caption": self.table_caption,
+                "table_cell_content": getattr(self, "table_cell_content", None),
+                "in_thead": self.in_thead,
+                "current_morecols": getattr(self, "current_morecols", 0),
+                "current_morerows": getattr(self, "current_morerows", 0),
+            }
+        )
+
+    def _pop_table_state(self) -> None:
+        """
+        Restore the enclosing table's scalar state after a NESTED table's
+        ``depart_table`` has finished building its own rendered markup
+        (TBL-04, Phase 43).
+
+        A no-op on an empty stack (ASVS V5 / threat T-43-01): an unbalanced
+        ``depart_table`` from a malformed doctree -- one with no matching
+        prior nested ``visit_table`` -- must take the top-level path in the
+        caller instead of raising ``IndexError`` out of the translator and
+        killing a CI build. Never call ``self._table_state_stack.pop()`` or
+        index ``[-1]`` directly; always guard through this method.
+        """
+        if not self._table_state_stack:
+            return
+        frame = self._table_state_stack.pop()
+        self.table_cells = frame["table_cells"]
+        self.table_colcount = frame["table_colcount"]
+        self.table_colwidths = frame["table_colwidths"]
+        self.table_caption = frame["table_caption"]
+        if frame["table_cell_content"] is None:
+            if hasattr(self, "table_cell_content"):
+                del self.table_cell_content
+        else:
+            self.table_cell_content = frame["table_cell_content"]
+        self.in_thead = frame["in_thead"]
+        self.current_morecols = frame["current_morecols"]
+        self.current_morerows = frame["current_morerows"]
+
     def visit_table(self, node: nodes.table) -> None:
         """
         Visit a table node.
@@ -3190,6 +3264,26 @@ class TypstTranslator(SphinxTranslator):
         if self.in_list_item and self.list_item_needs_separator:
             self.body.append("\n")
             self.list_item_needs_separator = False
+
+        # TBL-04 (Phase 43): self.in_table already True means an ENCLOSING
+        # table is still open -- this table node is NESTED inside one of
+        # its cells. Push a snapshot of the outer table's in-progress
+        # scalar state (see _push_table_state's docstring for the full
+        # set) before resetting for the inner table's own use below, or
+        # the inner table's own depart_table clobbers the outer's
+        # accumulated state (the TBL-04 defect). table_cell_content,
+        # table_caption and in_thead are ALSO reset here, inside this
+        # nested branch only, so the inner table starts genuinely fresh
+        # instead of inheriting a caption/header-row flag left over from
+        # the outer table's own in-progress title/thead -- both the push
+        # and these extra resets live inside this branch, so the
+        # top-level (non-nested) path below is byte-identical to
+        # pre-TBL-04 behavior.
+        if self.in_table:
+            self._push_table_state()
+            self.table_cell_content = []
+            self.table_caption = None
+            self.in_thead = False
 
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
@@ -3265,7 +3359,13 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The table node
         """
-        # Generate Typst table() syntax (no # prefix in unified code mode)
+        # Generate Typst table() syntax (no # prefix in unified code mode).
+        # Built as a local string (emission_str), never appended directly
+        # here -- TBL-04 (Phase 43) needs to decide AFTER this block
+        # whether the string's destination is the enclosing cell's buffer
+        # (nested table) or self.body (top-level table); see the
+        # destination-decision block below.
+        emission_str: str | None = None
         if self.table_colcount > 0:
             # LEN-01: :width: is assigned to node["width"] by docutils'
             # Table.set_table_width(), shared by RSTTable/CSVTable/ListTable
@@ -3274,9 +3374,6 @@ class TypstTranslator(SphinxTranslator):
             # width: kwarg (verified real-compile failure, same as figure),
             # so a converted value wraps the WHOLE table() call in
             # block(width: ...)[...] instead (16-RESEARCH.md Pitfall 3).
-            # Use self.body.append directly (NEVER self.add_text) at this
-            # site -- see the comment below about the stale
-            # table_cell_content buffer misrouting hazard.
             width = node.get("width")
             converted_width = self._convert_length_to_typst(width) if width else None
 
@@ -3320,26 +3417,24 @@ class TypstTranslator(SphinxTranslator):
                         self._current_docname(), node["ids"][0]
                     )
                     if converted_width is not None:
-                        self.body.append(
+                        emission_str = (
                             f"block(width: {converted_width})[#{figure_code} "
                             f"<{label}>]\n\n"
                         )
                     else:
-                        self.body.append(f"[#{figure_code} <{label}>]\n\n")
+                        emission_str = f"[#{figure_code} <{label}>]\n\n"
                 elif converted_width is not None:
-                    self.body.append(
+                    emission_str = (
                         f"block(width: {converted_width})[#{figure_code}]\n\n"
                     )
                 else:
-                    self.body.append(f"{figure_code}\n\n")
+                    emission_str = f"{figure_code}\n\n"
             else:
                 # Caption-less path: byte-for-byte unchanged (SC#2).
                 if converted_width is not None:
-                    self.body.append(
-                        f"block(width: {converted_width})[#{table_code}]\n\n"
-                    )
+                    emission_str = f"block(width: {converted_width})[#{table_code}]\n\n"
                 else:
-                    self.body.append(f"{table_code}\n\n")
+                    emission_str = f"{table_code}\n\n"
 
         # TBL-03 (Phase 42): captured BEFORE self.table_caption is reset
         # below, because the original `if self.table_caption:` condition
@@ -3350,9 +3445,41 @@ class TypstTranslator(SphinxTranslator):
         # `self.table_colcount > 0` conjunct mirrors the enclosing guard
         # this call site sat inside before the move, so a degenerate
         # zero-column captioned table keeps its current (no-op) emission.
+        # Computed BEFORE the nested/top-level destination decision below,
+        # since that decision may pop-and-restore self.table_caption to an
+        # ENCLOSING table's value -- was_captioned must reflect THIS
+        # table's own captioned status, not the outer one's.
         was_captioned = self.table_colcount > 0 and bool(self.table_caption)
 
-        self.in_table = False
+        # TBL-04 (Phase 43): decide the emission string's destination as an
+        # EXPLICIT branch, never a blanket switch to self.add_text (Pitfall
+        # 2 -- with self.in_table still True at this point, add_text would
+        # misroute a TOP-LEVEL table's own render into whatever buffer
+        # in_table's dispatch happens to point at, losing it entirely).
+        # was_nested is captured BEFORE popping: _pop_table_state() mutates
+        # the stack, so "was there an enclosing frame for THIS table" must
+        # be read first.
+        was_nested = bool(self._table_state_stack)
+
+        if was_nested:
+            # NESTED: restore the enclosing table's frame FIRST, then
+            # append this table's own rendered markup into the RESTORED
+            # enclosing cell's buffer -- never self.body. self.in_table
+            # stays True (an enclosing table is still open) and
+            # table_cell_content is NOT deleted; only the OUTERMOST
+            # table's close (the else branch below, on a future depart)
+            # does that, per the Phase 25 lifetime invariant extended
+            # below.
+            self._pop_table_state()
+            if emission_str is not None:
+                self.table_cell_content.append(emission_str)
+        else:
+            # TOP-LEVEL: byte-for-byte identical to pre-TBL-04 behavior --
+            # self.body.append directly (never self.add_text; see Pitfall
+            # 2 above), then clear self.in_table.
+            if emission_str is not None:
+                self.body.append(emission_str)
+            self.in_table = False
 
         # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored above
         # as the figure's own <label> -- anchoring it again here would
@@ -3360,32 +3487,52 @@ class TypstTranslator(SphinxTranslator):
         # fatal). Anchor only a PROPAGATED remainder id (ids[1:]); no-op
         # when there is none.
         #
-        # TBL-03 (Phase 42): this call must run AFTER self.in_table is
-        # cleared above. add_text() (see that method) diverts every append
-        # into self.table_cell_content while self.in_table is set, and that
-        # buffer is `del`eted a few statements below -- so an anchor emitted
-        # from the old pre-reset call site never reached self.body at all;
-        # it was silently discarded along with the buffer.
+        # TBL-03 (Phase 42): for a TOP-LEVEL table this call must run AFTER
+        # self.in_table is cleared above -- add_text() (see that method)
+        # diverts every append into self.table_cell_content while
+        # self.in_table is set, and that buffer is `del`eted a few
+        # statements below, so an anchor emitted from the old pre-reset
+        # call site never reached self.body at all. For a NESTED table,
+        # self.in_table is still True and table_cell_content has already
+        # been restored to the ENCLOSING cell's buffer above, so add_text()
+        # correctly routes this call's markup into that same buffer,
+        # immediately after this table's own emission_str.
         if was_captioned:
             self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
 
-        self.table_cells = []
-        self.table_colcount = 0
-        self.table_colwidths = []
-        self.table_caption = None
-        # Stale-buffer root-cause fix (25-RESEARCH.md Verified Mechanism 2):
-        # table_cell_content is created by the FIRST table's visit_entry and
-        # reset to [] (not deleted) at every depart_entry, so it persists as
-        # an EXISTING attribute for the rest of the translator's lifetime.
-        # A subsequent table's caption title is visited before any of that
-        # table's OWN visit_entry calls -- if table_cell_content still
-        # exists (stale from a prior table), add_text() silently routes the
-        # caption's content into it instead of falling through to
-        # self.body, and the caption is lost entirely. Only `del` (not a
-        # reset to []) makes hasattr() False again, so the NEXT table's
-        # pre-entry add_text() calls correctly fall through.
-        if hasattr(self, "table_cell_content"):
-            del self.table_cell_content
+        if not was_nested:
+            # OUTERMOST close only: reset the scalar set for the next
+            # top-level table / sibling, and delete table_cell_content so
+            # hasattr() goes False for the NEXT table (Phase 25 invariant,
+            # extended by TBL-04: a NESTED table's own close never reaches
+            # this branch -- was_nested is True there -- so an inner
+            # table's departure no longer tears down the outer table's
+            # still-in-progress state).
+            self.table_cells = []
+            self.table_colcount = 0
+            self.table_colwidths = []
+            self.table_caption = None
+            # Stale-buffer root-cause fix (25-RESEARCH.md Verified Mechanism
+            # 2): table_cell_content is created by the FIRST table's
+            # visit_entry and reset to [] (not deleted) at every
+            # depart_entry, so it persists as an EXISTING attribute for the
+            # rest of the translator's lifetime. A subsequent table's
+            # caption title is visited before any of that table's OWN
+            # visit_entry calls -- if table_cell_content still exists
+            # (stale from a prior table), add_text() silently routes the
+            # caption's content into it instead of falling through to
+            # self.body, and the caption is lost entirely. Only `del` (not
+            # a reset to []) makes hasattr() False again, so the NEXT
+            # table's pre-entry add_text() calls correctly fall through.
+            # TBL-04 (Phase 43): the `del` now fires ONLY when this table
+            # was NOT nested, i.e. when the closing table is the OUTERMOST
+            # one (the stack was already empty before this depart's own
+            # pop attempt) -- an inner table's own close takes the
+            # was_nested branch above instead and never reaches here, so
+            # table_cell_content survives for the enclosing table to keep
+            # appending into.
+            if hasattr(self, "table_cell_content"):
+                del self.table_cell_content
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
