@@ -927,8 +927,16 @@ class TypstPDFBuilder(TypstBuilder):
         typst_documents = getattr(self.config, "typst_documents", [])
 
         if not typst_documents:
+            # D-03: since typst_documents gained a derived default
+            # (CONF-08), this branch is reachable ONLY via an explicit
+            # `typst_documents = []` -- unset now resolves through
+            # _default_typst_documents instead of ever being empty. The
+            # wording says so, rather than reading as if the setting were
+            # absent.
             logger.warning(
-                "No documents defined in typst_documents. Nothing to compile."
+                "typst_documents is explicitly set to an empty list -- "
+                "nothing will be compiled. Remove the setting entirely to "
+                "use the derived default (root_doc/project/author)."
             )
             return
 
@@ -949,6 +957,20 @@ class TypstPDFBuilder(TypstBuilder):
                 failures.append((repr(doc_tuple), "malformed typst_documents entry"))
                 continue
             docname = doc_tuple[0]
+            # BLD-01: _resolve_output_stem tolerates a docname of any type
+            # (it only does `==` comparisons), but _directory_preserving_
+            # relpath does not -- it calls posixpath.dirname(docname), which
+            # raises a raw TypeError for anything that is not a str. Catch
+            # it here, before either helper runs, so the failure joins the
+            # existing failures list instead of killing the whole build.
+            if not isinstance(docname, str):
+                message = (
+                    f"typst_documents entry has a non-str docname: "
+                    f"{docname!r} -- expected a str"
+                )
+                logger.warning(message)
+                failures.append((repr(docname), message))
+                continue
             stem = self._resolve_output_stem(docname)
             relative_path = self._directory_preserving_relpath(docname, stem)
             typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))
