@@ -432,4 +432,218 @@ Unit-level edge coverage (all in `tests/test_builder_output_stem.py`):
 `test_resolve_output_stem_falls_back_on_reserved_template_name`,
 `test_resolve_output_stem_tolerates_env_without_found_docs`.
 
-<!-- gsd:write-continue -->
+## 6. Regression boundary and phase gate
+
+### Repo-wide pre-existing collision re-measurement
+
+Re-measured (not trusted from the planner's table) with a script that walks
+every non-`.venv` `conf.py`, statically parses (via `ast`) each
+`typst_documents` assignment's literal `(docname, target, ...)` entries,
+computes the effective outdir-relative path the same way
+`_resolve_output_stem` + `_directory_preserving_relpath` do (suffix strip,
+D-06/D-07 path-guard basename reduction, directory-qualification against
+the docname), and reports any whose effective path equals a sibling
+document's docname or `_template`, against the sibling `.rst`/`.md` files
+in that fixture's own directory.
+
+```
+$ uv run python <scan-script>
+conf.py files scanned (non-.venv): 111
+conf.py files mentioning typst_documents: 111
+conf.py files with a parseable typst_documents assignment: 108
+unparseable/non-literal entries: 1
+  - (tests/fixtures/non_str_docname_gate/conf.py, "non-literal entry (None, 'manual.typ')")
+COLLISIONS FOUND: 2
+  - (tests/fixtures/explicit_docname_collision_gate/conf.py, 'index', 'chapter1.typ', 'chapter1')
+  - (tests/fixtures/explicit_template_collision_gate/conf.py, 'index', '_template.typ', '_template')
+```
+
+**Divergence from the planner's table, stated plainly:** planning
+measurement 5 recorded "0 collisions" for the pre-existing repo. This
+re-measurement's raw count is **2, not 0** — but both hits are
+`explicit_docname_collision_gate/conf.py` and
+`explicit_template_collision_gate/conf.py`, the two fixtures **this very
+plan created in Task 2**, whose entire purpose is to collide by design (the
+explicit-`typst_documents` half of CR-01's coverage). Excluding this plan's
+own deliberately-colliding gate fixtures, the re-measured count over every
+OTHER conf.py in the repo (106 of the 108 parseable files) is **0**,
+confirming the planner's measurement for the pre-existing tree. This is not
+a real pre-existing defect — it is the two new tests behaving exactly as
+designed. The 3 non-parseable mentions (`derived_docname_collision_gate`,
+`derived_template_collision_gate`, `default_typst_documents_gate`) are the
+fixtures whose conf.py mentions "typst_documents" only in a header comment
+(no assignment at all, by design — they exercise the derived default,
+which this static scan cannot see since it never appears literally in
+conf.py). The 1 unparseable entry
+(`tests/fixtures/non_str_docname_gate/conf.py`) is BLD-01's own
+deliberately-malformed fixture — its second `typst_documents` entry uses
+the integer literal `123` as a docname, which this scan's `str`-only
+literal filter correctly excludes rather than mis-comparing.
+
+### `uv run python -m pytest -q` (full suite)
+
+**Worktree provisioning note:** this worktree's `.venv/bin/uv` and
+`.venv/bin/ruff` are generic-linux ELF wheels that NixOS cannot exec
+directly (exit 127) -- the documented NixOS-sandbox shim
+(`ln -sf <nix-store uv> .venv/bin/uv`, `ln -sf <main-tree's own
+patchelf'd ruff> .venv/bin/ruff`) was re-applied this session, matching
+`44-GATE-EVIDENCE-01.md` § 6(b) and `44-GATE-EVIDENCE-04.md` § 5. Without
+it, 45 tests in `tests/test_integration_{multi_doc,nested_toctree}.py`
+fail with pre-existing environmental noise (subprocess `uv run
+sphinx-build` calls that cannot exec) -- observed once this session before
+the shim was applied, confirmed unrelated to this plan's diff, and not
+recorded as a defect here.
+
+```
+$ .venv/bin/uv --version
+uv 0.11.25 (x86_64-unknown-linux-gnu)
+$ .venv/bin/ruff --version
+ruff 0.15.20
+
+$ uv run python -m pytest -q
+================== 863 passed, 1 skipped in 78.99s (0:01:18) ===================
+```
+
+**Exit status: 0.** `863 passed, 1 skipped` is **greater than or equal to**
+the `855 passed, 1 skipped` baseline recorded in `44-GATE-EVIDENCE-04.md`
+§ 5, by **exactly 8** -- the number of tests this plan added (2 subprocess
+tests in Task 1 + 3 subprocess tests + 3 unit tests in Task 2 = 8). No
+divergence.
+
+### Slow corpus gate, selected and green
+
+This repository configures no `-m` filter anywhere (`pyproject.toml`
+`addopts = "-v --strict-markers"`, no `markers`-based deselection; every
+`tox.ini` environment calls plain `pytest {posargs:tests/}`; CI invokes
+tox environments, never `pytest -m` directly) — confirmed again this
+session:
+
+```
+$ grep -n "addopts\|markers" pyproject.toml
+79:addopts = "-v --strict-markers"
+80:markers = [
+```
+
+So the full-suite run above genuinely includes the slow corpus gate,
+proven by name:
+
+```
+$ uv run python -m pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-afea23cfd766dd160
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_corpus_gate.py .                                              [100%]
+
+============================== 1 passed in 13.90s ===============================
+```
+
+### Lint and type gate
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+230 files would be left unchanged.
+```
+**Exit status: 0.**
+
+```
+$ uv run ruff check .
+All checks passed!
+```
+**Exit status: 0.**
+
+```
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```
+**Exit status: 0.**
+
+**Deviation recorded:** `black --check .` initially failed
+(`would reformat tests/test_typst_documents_collision_gate.py`) — a
+line-wrap the multi-line constant assignment I added in Task 2 exceeded
+the 88-column limit. Auto-fixed under Rule 1 (directly caused by this
+plan's own diff, surfaced by this task's own `<verify>` step): ran `uv run
+black tests/test_typst_documents_collision_gate.py`, re-ran `black
+--check .` to confirm clean, and committed the reformat separately
+(`style(44-05): black-format DERIVED_TEMPLATE_COLLISION_FIXTURE_DIR
+line-wrap`) before this section was written. No behavior change; the
+collision gate tests were re-run and still pass (`5 passed`) after the
+reformat.
+
+### Manifests and typing-import prohibition
+
+```
+$ git diff --stat 7ad417e6d16a0b3891023f2b85db677ede02e24f..HEAD -- pyproject.toml uv.lock
+(no output)
+```
+
+**Empty diff — no new runtime dependency.**
+
+```
+$ grep -c 'from typing import List, Set, Tuple' typsphinx/builder.py
+1
+```
+
+The `List`/`Set`/`Tuple` typing imports at the top of `typsphinx/builder.py`
+are untouched by this plan's diff:
+
+```
+$ git diff 7ad417e6d16a0b3891023f2b85db677ede02e24f..HEAD -- typsphinx/builder.py | head -20
+diff --git a/typsphinx/builder.py b/typsphinx/builder.py
+...
+@@ -178,7 +178,13 @@ class TypstBuilder(Builder):
+             ``logger.warning`` is emitted and a safe fallback is returned
+             instead -- ``path.basename`` of the offending stem for a
+             path-bearing target (D-06/D-07), or the docname itself for a
+-            degenerate target (edge: empty).
++            degenerate target (edge: empty). When the resolved stem's
+...
+```
+
+Only the docstring and the new guard branch (further down the diff) are
+touched — line 13's `from typing import List, Set, Tuple` never appears in
+either side of the diff.
+
+No test was skipped, `xfail`-ed, deselected, or weakened anywhere in this
+plan's diff — confirmed by grepping the diff itself:
+
+```
+$ git diff 7ad417e6d16a0b3891023f2b85db677ede02e24f..HEAD -- tests/ | grep -E '^\+.*(pytest\.mark\.skip|pytest\.mark\.xfail|pytest\.skip\()' | grep -v skipif
+(no output)
+```
+
+## 7. Gap-closure verdict and deferred notes
+
+| # | `missing:` item (44-VERIFICATION.md, verbatim) | Evidence | Status |
+|---|--------------------------------------------------|----------|--------|
+| 1 | `_resolve_output_stem` never checks a resolved stem's collision against `self.env.found_docs` or the reserved `_template` basename, so an ordinary project name that slugifies onto an existing docname silently destroys that document's output (`-b typst`, exit 0, no warning) or hard-fails the PDF compile (`-b typstpdf`, `TypstError: cyclic import`). | § 2-3 (RED/GREEN, derived-default docname collision); § 4-5 (RED/GREEN, derived-default template collision, explicit docname collision, explicit template collision); guard implemented at `typsphinx/builder.py::_resolve_output_stem`. Test node ids: `tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_docname_collision_keeps_both_documents`, `::test_derived_default_docname_collision_produces_pdf`, `::test_derived_default_template_collision_preserves_shared_template`; unit tests `tests/test_builder_output_stem.py::test_resolve_output_stem_falls_back_on_docname_collision`, `::test_resolve_output_stem_falls_back_on_reserved_template_name`, `::test_resolve_output_stem_tolerates_env_without_found_docs`. | **GAP CLOSED** |
+| 2 | Neither collision kind (docname collision, `_template` clobber) is gate-tested on either path (derived-default, explicit `typst_documents`) — four real `sphinx-build` subprocess scenarios are missing entirely. | § 5's scenario-to-test-node-id table: all four scenarios (derived-docname, derived-template, explicit-docname, explicit-template) covered by real `sphinx-build` subprocess tests in `tests/test_typst_documents_collision_gate.py` (5 tests total, one scenario has both a `-b typst` and a `-b typstpdf` variant). Node ids: `test_derived_default_docname_collision_keeps_both_documents`, `test_derived_default_docname_collision_produces_pdf`, `test_derived_default_template_collision_preserves_shared_template`, `test_explicit_target_docname_collision_keeps_both_documents`, `test_explicit_target_template_collision_preserves_shared_template`. | **GAP CLOSED** |
+
+**What the fix costs.** In the collision case the derived master is
+written as `index.typ` (or `index.pdf`), not `<project>.typ` — a
+deliberate degradation away from SC#1's promised filename shape, traded
+for not destroying a real document or the shared template infrastructure.
+SC#1's own evidence (`44-GATE-EVIDENCE-01.md`) is unaffected: its fixture
+(`default_typst_documents_gate`, `project = "Quickstart Default Gate"`) is
+collision-free by construction and was re-measured green in this plan's
+own full-suite run (§ 6, `863 passed`).
+
+**Deferred notes, recorded not planned:**
+
+- **WR-01** (the `None`-vs-empty-list warning wording at
+  `builder.py:929-941`) — owner-excluded from this plan per the objective's
+  explicit scope statement. Classified non-blocking by the verifier.
+- **IN-01** (the vacuous `"Nothing to compile"` assertion in
+  `tests/test_default_typst_documents_gate.py:120-123`) — owner-excluded
+  from this plan per the objective's explicit scope statement. Classified
+  non-blocking by the verifier.
+- **Master-vs-master target collision** (two explicit `typst_documents`
+  entries naming the SAME target as each other) — planning measurement 8
+  noted this is a different mechanism (neither stem is in `found_docs`,
+  since neither target is itself a docname), so this plan's guard does not
+  fire on it. Not required by either of 44-VERIFICATION.md's `missing:`
+  items; recorded here as a deferred observation, not a gap.
