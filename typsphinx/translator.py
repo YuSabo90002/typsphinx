@@ -794,19 +794,23 @@ class TypstTranslator(SphinxTranslator):
         self._title_section_ids = (
             node.parent.get("ids") if isinstance(node.parent, nodes.section) else None
         ) or []
-        # D-06: clamp to a minimum of level 1 -- a top-level titled
-        # non-section (section_level == 0) would otherwise emit
-        # heading(level: 0, ...), which Typst rejects (levels are >= 1).
-        emitted_level = max(1, self.section_level)
+        # TOC-01/D-07: clamp to a minimum of 1 -- a top-level titled
+        # non-section (section_level == 0) would otherwise pass a rejected
+        # depth argument of 0 to the heading call below. Typst's relative
+        # depth argument is constrained the same way its absolute level
+        # argument was (values must be >= 1), so this clamp's mechanism
+        # survives the level->depth switch unchanged; only the argument it
+        # clamps is relative now, not an absolute final level.
+        emitted_depth = max(1, self.section_level)
         # Pitfall-1 fix: wrap the title content in a code block {...} so
         # multi-child title content is one expression, not several
         # juxtaposed statements (mirrors _depart_admonition's existing
         # {...} wrap of the buffered admonition title).
         if self._title_section_ids:
-            self.add_text(f"[#heading(level: {emitted_level}, {{")
+            self.add_text(f"[#heading(depth: {emitted_depth}, {{")
         else:
             # Use heading() function (no # prefix in code mode)
-            self.add_text(f"heading(level: {emitted_level}, {{")
+            self.add_text(f"heading(depth: {emitted_depth}, {{")
 
     def depart_title(self, node: nodes.title) -> None:
         """
@@ -4721,12 +4725,23 @@ class TypstTranslator(SphinxTranslator):
 
         Requirement 13: Multi-document integration and toctree processing
         - Generate #include() for each entry
-        - Apply #set heading(offset: 1) to lower heading levels
+        - D-07: apply `set heading(offset: heading.offset + 1)` -- a
+          context-relative increment, not an absolute assignment -- to
+          lower heading levels. `set` is an absolute assignment on Typst's
+          style chain, so a nested toctree scope would otherwise *replace*
+          its parent's offset instead of adding to it, and nested toctrees
+          would not compose. An included document's `.typ` is also a
+          single shared file that different masters may include at
+          different depths, so no single absolute value could be correct
+          at every include site; a relative expression evaluated at
+          layout time removes the need for one to exist.
         - Issue #5: Fix relative paths for nested toctrees
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
           - Generate single #[...] block containing all includes
-          - Apply #set heading(offset: 1) once per toctree
+          - D-07: apply `heading.offset + 1` once per toctree, inside a
+            `context { ... }` block (required because `heading.offset` is
+            a context-dependent style query)
 
         Args:
             node: The toctree node
@@ -4757,9 +4772,14 @@ class TypstTranslator(SphinxTranslator):
 
         # Generate scope block for all includes (unified code mode)
         # Use {...} scope block to isolate set rules while maintaining code mode
+        # D-07: `context` is required because `heading.offset` is a
+        # context-dependent style query -- `set` alone cannot read the
+        # ambient offset it is about to modify. This is a relative
+        # increment, not an absolute assignment, so nested toctree scopes
+        # accumulate instead of replacing their parent's offset.
         # Start scope block (no # prefix in code mode)
-        self.add_text("{\n")
-        self.add_text("  set heading(offset: 1)\n")
+        self.add_text("context {\n")
+        self.add_text("  set heading(offset: heading.offset + 1)\n")
 
         # Generate include() for each entry within the scope block
         # Each included file has its own imports, so block scope is safe.
