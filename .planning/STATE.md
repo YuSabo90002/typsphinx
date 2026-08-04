@@ -5,14 +5,14 @@ milestone_name: bug-fix round
 current_phase: 44.1
 current_phase_name: Relative Heading Depth for Toctree Nesting
 status: executing
-stopped_at: Phase 44.1 planned
-last_updated: "2026-08-04T10:38:26.813Z"
+stopped_at: "Phase 44.1 context revised: SC#2 = option-a (D-07); plans removed for regeneration"
+last_updated: "2026-08-04T16:55:13.974Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 44.1 planned — 4 plans in 3 waves
+last_activity_desc: Phase 44.1 planned (4 plans, 3 waves; wave 2 carries a blocking
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 14
+  total_plans: 10
   completed_plans: 10
   percent: 29
 ---
@@ -555,8 +555,8 @@ Items acknowledged and carried forward from milestone closes:
 **Resume file:** .planning/phases/44.1-relative-heading-depth-for-toctree-nesting/44.1-CONTEXT.md
 `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-04T09:34:08.318Z
-Stopped at: Phase 44.1 context gathered
+Last session: 2026-08-04T16:55:13.963Z
+Stopped at: Phase 44.1 context revised: SC#2 = option-a (D-07); plans removed for regeneration
 Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
 
 ## Operator Next Steps
