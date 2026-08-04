@@ -11,12 +11,14 @@
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 - ✅ **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (shipped 2026-07-29) → [archive](milestones/v0.6.5-ROADMAP.md)
 - ✅ **v0.7.0 — API rendering design overhaul** — Phases 36–42 (+40.1) (shipped 2026-08-04) → [archive](milestones/v0.7.0-ROADMAP.md)
-- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1) (active, started 2026-08-04)
+- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1, 44.2, 45.1) (active, started 2026-08-04)
 
-**Active milestone: v0.7.1 — bug-fix round.** Five phases (43–46, plus the inserted 44.1): the two
-table defects Phase 42's own review filed, the `typst_documents` first-run onboarding break plus the
-builder-input hardening that sits in the same method, the toctree heading-offset defect inserted
-2026-08-04, documentation currency and the carried hygiene todos, then prep-only release. Phase
+**Active milestone: v0.7.1 — bug-fix round.** Seven phases (43–46, plus the inserted 44.1, 44.2 and
+45.1): the two table defects Phase 42's own review filed, the `typst_documents` first-run onboarding
+break plus the builder-input hardening that sits in the same method, the toctree heading-offset
+defect inserted 2026-08-04, the `typst_documents` title/author consumption gap inserted 2026-08-04
+(reversing Phase 44's D-02 deferral), documentation currency and the carried hygiene todos, the
+custom-template parameter-contract defect inserted 2026-08-04, then prep-only release. Phase
 numbering continues from v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
 
 ## Phases
@@ -335,8 +337,10 @@ config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"
 - [x] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, a figure nested in a figure no longer drops the outer caption (FIG-01, added 2026-08-04), and a captioned table whose title renders empty still anchors its ids (completed 2026-08-04)
 - [x] **Phase 44: `typst_documents` Default Derivation + Builder Input Hardening** - Following the Quick Start exactly produces a PDF instead of zero output, and a malformed docname fails with an actionable typsphinx error (completed 2026-08-04)
 - [ ] **Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)** - A document reached through a toctree renders its headings one level deeper than its parent, so the PDF outline nests instead of being flat
+- [ ] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win
 - [ ] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close
-- [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out the output-filename change), proven green, and handed off with no irreversible action taken
+- [ ] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument, and the contract published in the docs matches what typsphinx actually passes
+- [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out both user-visible changes: the output-filename rename and the rendered title/author change), proven green, and handed off with no irreversible action taken
 
 ## Phase Details
 
@@ -543,6 +547,93 @@ concurrent heading-shape change.
   8. Neither the master template (`templates/base.typ`) nor `_write_template_file` introduces its
      own `heading(offset:)` that would shift the master — verified by inspection and by SC#3's
      byte-invariance result.
+**Plans**: 4 plans
+
+**Wave 1**
+
+- [ ] 44.1-01-PLAN.md — tracer: resolved-level render gate recorded RED, then the two-site `visit_title` relative-depth repair turns it green (SC#1, SC#4, SC#5)
+
+**Wave 2** *(parallel; disjoint files)*
+
+- [ ] 44.1-02-PLAN.md — migrate the 12 D-04 test sites with per-site pre-fix re-proof and per-guard non-vacuity proof (SC#6, SC#7 topic half)
+- [ ] 44.1-03-PLAN.md — SC#2 nested-toctree accumulation: blocking owner decision on the measured non-accumulating offset, then the selected outcome
+
+**Wave 3**
+
+- [ ] 44.1-04-PLAN.md — SC#3 two-part invariance evidence over the measured corpus, SC#7/SC#8 discharge map, and the TOC-01 stale-claim correction
+
+> **Planning finding, 2026-08-04 — SC#2 rests on a falsified premise.** Measured against typst-py
+> 0.15.0: Typst's `set heading(offset: N)` is an absolute assignment on the style chain, not an
+> increment, so nested toctree scopes **replace** rather than accumulate. With the locked
+> `visit_title` repair alone, the grandchild in `tests/fixtures/integration_nested_toctree` resolves
+> at level **2**, not 3 — SC#1 is met and SC#2 is not. Writing each scope as
+> `context { set heading(offset: heading.offset + 1) … }` was verified end-to-end through real
+> `include()` calls to give the full sequence 1/2/3/4, meeting both. That change exceeds the scope
+> `44.1-CONTEXT.md` locks, so plan 44.1-03 puts it to the owner as a blocking `checkpoint:decision`
+> rather than resolving it by planner preference. `44.1-CONTEXT.md`'s claim that "nested toctree
+> scopes then accumulate" and the source todo's "should now compose correctly at 3+ levels" are both
+> superseded by this measurement.
+
+### Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)
+
+**Goal**: The `typst_documents` entry elements the documentation publishes actually take effect.
+`docs/source/user_guide/configuration.rst` has published a five-element contract — source, output
+stem, **title**, **author**, class — since before this milestone, but typsphinx reads only
+`entry[0]` and `entry[1]`. Measured 2026-08-04 over the whole repo, the complete set of indexed
+accesses is `writer.py:68`, `builder.py:141`, `builder.py:194-195`, `builder.py:986`; `[2]`, `[3]`
+and `[4]` are referenced by nothing. The title and author that reach the template come from
+`config.project` / `config.author` / `typst_authors` via `template_engine.py` instead, so a user who
+writes `typst_documents = [("index", "manual.typ", "My Handbook", "Jane Doe")]` gets a PDF titled
+with `project` and authored by `author`. Sphinx's LaTeX builder does read them
+(`LaTeXBuilder.write_documents()` destructures `docname, targetname, title, author, themename =
+entry[:5]`, and an explicit entry's title/author override `config.project` / `config.author`), so
+this is a divergence from the reference implementation, not an undefined area. It contradicts the
+project's core value directly: documented configuration must actually take effect.
+
+Blast radius measured for the repo's own corpus: of **104** `typst_documents` entries, only **5**
+have `entry[2] != project` — `examples/advanced/conf.py`, `tests/fixtures/integration_basic/`,
+`tests/fixtures/integration_sibling/`, `tests/fixtures/template_named_dir_master/`, and
+`tests/roots/test-basic/`. The other 99 produce identical output.
+
+**Depends on**: Phase 44.1 — ordering, for evidence hygiene. Phase 44 owns the same
+`typst_documents` surface and its SC#4 handed Phase 46 a measured before/after output-filename pair;
+Phase 44.1's SC#3 takes a byte-invariance measurement over `docs/source` **and every root under
+`tests/roots`** — and `tests/roots/test-basic/conf.py` is one of the five entries this phase
+changes. Running after 44.1 keeps that baseline uncontaminated. It runs **before** Phases 45 / 45.1
+for the same reason Phase 45 follows Phase 44: those phases document behaviour, and the behaviour
+must have landed first. In particular `docs/source/user_guide/templates.rst:189` currently claims
+`title` comes "from `typst_documents`" — false today, true once this phase lands — which is a claim
+Phase 45.1's SC#2 must check rather than rewrite.
+**Requirements**: CONF-09
+**Success Criteria** (what must be TRUE):
+
+  1. An explicit `typst_documents` entry's `[2]` title and `[3]` author reach the rendered document:
+     a build of a project configured with a title and author that both differ from `config.project`
+     / `config.author` produces a PDF carrying the entry's values — verified from the compiled
+     output (document metadata and/or rendered title block), not from the emitted `.typ` alone.
+
+  2. Precedence is defined and asserted for every combination that can occur, not just the happy
+     path: entry value present vs. absent vs. empty-string; `config.project` / `config.author`
+     as the fallback; and `typst_authors` (`template_engine.py`'s D-07 override, which today wins
+     over `authors` on both the package and template paths) versus `entry[3]`. The chosen order is
+     stated in the phase's own artifacts before it is implemented, and each rule has a test.
+
+  3. Multi-master builds keep per-document values: two masters with different `entry[2]`/`entry[3]`
+     each render their own, with no leakage between documents — the state-leak shape this codebase
+     has hit before (`effective_elements` in `writer.py:250-252` is a fresh dict for exactly this
+     reason).
+
+  4. The five in-repo entries whose `entry[2]` differs from `project` are handled deliberately: each
+     is either updated or left to change, with the resulting output difference measured and stated.
+     The other 99 entries are shown to produce identical output.
+
+  5. The published contract is made true rather than merely satisfied: the fifth element
+     (`configuration.rst`'s "Document class (usually 'typst')") is either given a meaning or
+     documented as accepted-and-ignored, so no element of the five-element contract is left silently
+     inert after this phase.
+
+  6. The full pytest suite and `black` / `ruff` / `mypy` are green, and GATE-01's real-compile
+     acceptance corpus still builds fatal-free.
 **Plans**: TBD
 
 ### Phase 45: Documentation Currency + Carried Hygiene
@@ -583,6 +674,63 @@ verbatim-duplicated rejection warning in `template_engine.py`, and the untermina
      beyond QUA-02's single-site warning refactor.
 **Plans**: TBD
 
+### Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)
+
+**Goal**: A reader who writes a custom template from the published documentation gets a build that
+works. Today they get a hard failure: `docs/source/user_guide/templates.rst:186-192` publishes the
+contract as exactly four parameters (`title`, `authors`, `date`, `body`), but `writer.py:259-261`
+merges `extract_toctree_options()` into the parameters unconditionally, so any master document with
+a toctree also receives `toctree_maxdepth` / `toctree_numbered` / `toctree_caption`, and the
+CONF-04 elements merge adds any configured `typst_elements` key (`papersize` / `fontsize` / `lang`,
+`ELEMENTS_ALLOWLIST`) on top. Typst rejects undeclared named arguments, so the documented example
+aborts the compile. Reproduced end to end 2026-08-04 (Sphinx 9.1.0, typst-py 0.15.0) with the
+`templates.rst:144-149` example verbatim: `TypstError: unexpected argument: toctree_maxdepth`. The
+project's own docs build only survives because the in-repo example
+`docs/source/_typst/custom_template.typ:64-74` happens to declare all six.
+
+**The fix route is deliberately left open** — the source todo records three (correct the published
+contract; withhold the parameters a custom template never declared, as CONF-07 already does for
+`lang` via `uses_bundled_default_template()`; or give `project()` an argument sink). Each has a
+different compatibility consequence and the choice belongs to `/gsd-discuss-phase 45.1`. The
+criteria below are written to be satisfiable by any of them.
+
+**Depends on**: Phase 45 — sequencing, not a code dependency. The two phases touch disjoint files
+(Phase 45: `README.md`, `docs/source/changelog.rst`, `derive_typst_lang()`, `.planning/PROJECT.md`),
+but both edit published documentation, and Phase 45's SC#1/#2 evidence is a clean build of pages
+this phase may also touch. Running after 45 keeps each phase's build evidence attributable.
+**Requirements**: DOC-13
+**Success Criteria** (what must be TRUE):
+
+  1. A Sphinx project whose custom template declares **exactly** the parameters the published
+     documentation lists, built with `sphinx-build -b typstpdf` over a master document that has a
+     toctree **and** a `typst_elements` setting, completes without a Typst `unexpected argument`
+     error — proven by a real build, not by reading the documentation.
+
+  2. The published contract and shipped behaviour agree in **both** directions: every parameter
+     typsphinx can pass to a user-authored template is accounted for in
+     `docs/source/user_guide/templates.rst`, and every parameter that documentation tells a reader
+     to declare is one typsphinx actually passes. Checked by enumerating the emission sites
+     (`writer.py`'s `map_parameters()` + `extract_toctree_options()` + the `ELEMENTS_ALLOWLIST`
+     merge), not by reviewing the prose alone.
+
+  3. A regression test locks the contract: it builds a project whose custom template declares only
+     the documented parameters and asserts the build succeeds. It must be proved failing against
+     the pre-fix commit before it is accepted — no value observed in a post-fix run may be
+     transcribed into an assertion without that proof.
+
+  4. The standing consequence is recorded wherever the template contract is documented: **adding a
+     template parameter is a breaking change for a correctly-written custom template** (verified:
+     `unexpected argument` on a minimal case). This is what makes the next parameter addition a
+     deliberate decision rather than a repeat of this defect.
+
+  5. The repository's own custom-template example still builds — `tox -e docs-pdf` is clean — and
+     the bundled `templates/base.typ` path is unaffected: a build using the default template emits
+     the same parameter set it does today, or the difference is stated and justified.
+
+  6. The full pytest suite and `black` / `ruff` / `mypy` are green, and no behaviour outside the
+     template-parameter contract changed.
+**Plans**: TBD
+
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
 **Goal**: The v0.7.1 tree is ready to publish and proven green, with **zero irreversible action
@@ -606,8 +754,9 @@ and the release then failed — this phase must not repeat that. REL-04 closes a
      `0.7.1`; all three version-sync guard tests stay green.
 
   2. `CHANGELOG.md` carries a curated `## [0.7.1]` entry covering every v1 requirement this milestone
-     delivered, which **explicitly calls out CONF-08's output-filename change** (using Phase 44's
-     measured before/after filenames) as a user-visible behavioural change inside a patch release;
+     delivered, which **explicitly calls out both user-visible behavioural changes inside a patch
+     release** — CONF-08's output-filename change (using Phase 44's measured before/after filenames)
+     and CONF-09's rendered title/author change (Phase 44.2, which reversed Phase 44's D-02);
      the tail link block advances (new tag link + `Unreleased` compare); and `docs/source/changelog.rst`
      gains the matching `0.7.1` entry in the same edit, so DOC-12's page is current at the tag.
 
@@ -637,14 +786,22 @@ Active milestone phases execute in numeric order (decimal insertions between the
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already
 proven by the preceding phases' gates.
 
-**v0.7.1 (active)** runs 43 → 44 → **44.1** → 45 → 46. The chain is genuinely sequential, not merely
-numbered: Phase 44 hardens the same `TypstPDFBuilder.finish()` method its own derivation rewrites,
-Phase 45's README work documents behaviour that must already have landed in Phase 44, and Phase 46's
-CHANGELOG describes all of it. Phase 43 goes first because it carries milestone invariant #5 — the
-milestone branch reaches `origin` there, so every later phase runs with CI (including the Windows
-lanes) watching each push. Phase 44.1 was inserted 2026-08-04 **after** 44 rather than before it:
-both phases change what the Quick Start path emits, and Phase 44's SC#4 hands Phase 46 a measured
-before/after filename pair that must not be taken across a concurrent heading-shape change.
+**v0.7.1 (active)** runs 43 → 44 → **44.1** → **44.2** → 45 → **45.1** → 46. The chain is genuinely
+sequential,
+not merely numbered: Phase 44 hardens the same `TypstPDFBuilder.finish()` method its own derivation
+rewrites, Phase 45's README work documents behaviour that must already have landed in Phase 44, and
+Phase 46's CHANGELOG describes all of it. Phase 43 goes first because it carries milestone
+invariant #5 — the milestone branch reaches `origin` there, so every later phase runs with CI
+(including the Windows lanes) watching each push. Phase 44.1 was inserted 2026-08-04 **after** 44
+rather than before it: both phases change what the Quick Start path emits, and Phase 44's SC#4 hands
+Phase 46 a measured before/after filename pair that must not be taken across a concurrent
+heading-shape change. Phase 44.2 was inserted 2026-08-04 **after** 44.1 and **before** 45 for both
+reasons at once: `tests/roots/test-basic/conf.py` is one of the five entries it changes and is
+inside 44.1's SC#3 byte-invariance corpus, so it must not run first; and Phases 45/45.1 document
+behaviour, so the behaviour must land before they describe it. Phase 45.1 was inserted 2026-08-04
+**after** 45 for the weaker of the two reasons — no code dependency, but both phases edit published
+documentation, and keeping them adjacent-but-ordered keeps each one's build evidence attributable
+to it.
 
 **v0.7.0 (shipped)** ran 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 40 (citations) was
 structurally independent of the 37 → 38 → 39 dependency chain. Phase 40.1 was inserted 2026-08-02
@@ -797,6 +954,40 @@ precedent this entry follows).
   normalizing the one keyword substitution. Scope, requirement mapping and every other criterion are
   unchanged; only SC#3's text moved. Rationale: `44.1-CONTEXT.md` D-01 / D-02.
 
+- **2026-08-04** — **Phase 45.1 inserted** (`/gsd-phase --insert 45`) for the todo
+  `documented-custom-template-parameter-contract-is-wrong-and-t` (severity: major), filed the same
+  day from Phase 44.1's `<deferred>` block: `templates.rst:186-192` publishes a four-parameter
+  custom-template contract, but `writer.py:259-261` also passes the three `toctree_*` parameters
+  unconditionally and the CONF-04 merge adds any configured `typst_elements` key, so the documented
+  example aborts the Typst compile on an undeclared argument (reproduced end to end:
+  `unexpected argument: toctree_maxdepth`). New requirement **DOC-13** is added to `REQUIREMENTS.md`
+  and mapped to Phase 45.1; v0.7.1 coverage goes 13/13 → **14/14**, still zero orphans. Placed
+  **after** Phase 45 on the weaker sequencing argument — no code dependency, disjoint files, but
+  both phases edit published documentation and each one's build evidence should be attributable to
+  it. **The fix route is deliberately unfixed at insertion**: the todo records three (correct the
+  documentation; withhold undeclared parameters as CONF-07 already does for `lang` via
+  `uses_bundled_default_template()`; or add an argument sink to `project()`), each with a different
+  compatibility consequence, and the choice belongs to `/gsd-discuss-phase 45.1`. The six success
+  criteria are written to be satisfiable by any of them. Nothing was removed or re-assigned away
+  from another phase; Phase 46 keeps its number, requirements and criteria unchanged.
+
+- **2026-08-04** — **Phase 44.2 inserted, reversing Phase 44's D-02** (`/gsd-phase --insert 44`;
+  owner decision, taken explicitly and recorded here because it overturns a prior owner decision).
+  D-02 (`44-CONTEXT.md:52-74`) deferred the **consumption** of `typst_documents`' `[2]` title and
+  `[3]` author out of v0.7.1, on the reasoning that it would put a second user-visible change beside
+  CONF-08's output-filename rename in a patch release. Phase 44 shipped the *shape* (a 5-tuple in
+  LaTeX's form) without the wiring. **That deferral is now reversed** and the wiring lands in this
+  milestone as **CONF-09**; v0.7.1 coverage goes 14/14 → **15/15**, still zero orphans. What changed
+  since D-02: the same documentation the deferral left standing turned out to be load-bearing for
+  Phase 45.1 — `templates.rst:189` tells readers `title` comes "from `typst_documents`", which is
+  false while the wiring is missing, so 45.1's SC#2 (published contract and behaviour agree in both
+  directions) would otherwise have had to *document the gap* rather than close it. The patch-release
+  argument still holds and is accepted as a cost: v0.7.1's CHANGELOG now has two user-visible
+  changes to call out, not one — Phase 46's REL-06 entry must name both. Placed after 44.1 and
+  before 45: `tests/roots/test-basic/conf.py` is one of the five affected entries and sits inside
+  44.1's SC#3 byte-invariance corpus, and Phases 45/45.1 must document behaviour that has already
+  landed. Nothing was removed or re-assigned away from another phase.
+
 ## Backlog
 
 Candidate work not yet scoped into a milestone. Promote items with `/gsd-review-backlog`, or
@@ -825,6 +1016,14 @@ real-HTTP check covers that class instead.
 - `toctree-heading-offset-ignored-because-visit-title-emits-abs` → Phase 44.1 (TOC-01) — filed and
   promoted 2026-08-04, after the roadmap was created; the phase was inserted rather than folded into
   an existing one.
+
+- `typst-documents-title-author-elements-ignored` → Phase 44.2 (CONF-09) — promoted 2026-08-04 by
+  owner decision **reversing Phase 44's D-02**, which had placed it outside v0.7.1. See the Roadmap
+  Evolution entry for what changed.
+- `documented-custom-template-parameter-contract-is-wrong-and-t` → Phase 45.1 (DOC-13) — filed and
+  promoted 2026-08-04 out of Phase 44.1's `<deferred>` block, after the roadmap was created; the
+  phase was inserted rather than folded into Phase 45, because the fix may land in `writer.py` or
+  `templates/base.typ` rather than in documentation alone and that route is not yet chosen.
 
 - `SEED-001-readme-quickstart-typst-documents-pdf` → Phase 44 (CONF-08) + Phase 45 (DOC-11)
 - `docs-changelog-page-stale-at-0-4-0` → Phase 45 (DOC-12)
