@@ -336,7 +336,7 @@ config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"
 
 - [x] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, a figure nested in a figure no longer drops the outer caption (FIG-01, added 2026-08-04), and a captioned table whose title renders empty still anchors its ids (completed 2026-08-04)
 - [x] **Phase 44: `typst_documents` Default Derivation + Builder Input Hardening** - Following the Quick Start exactly produces a PDF instead of zero output, and a malformed docname fails with an actionable typsphinx error (completed 2026-08-04)
-- [ ] **Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)** - A document reached through a toctree renders its headings one level deeper than its parent, so the PDF outline nests instead of being flat
+- [x] **Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)** - A document reached through a toctree renders its headings one level deeper than its parent, so the PDF outline nests instead of being flat (completed 2026-08-05)
 - [ ] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win
 - [ ] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close
 - [ ] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument, and the contract published in the docs matches what typsphinx actually passes
@@ -877,7 +877,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 5/5 | Complete    | 2026-08-04 |
-| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | In Progress|  |
+| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | Complete    | 2026-08-05 |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 

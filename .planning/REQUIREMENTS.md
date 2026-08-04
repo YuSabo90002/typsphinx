@@ -51,7 +51,7 @@ continues at **Phase 43**.
 
 ### Toctree and heading structure
 
-- [ ] **TOC-01**: A document reached through a `toctree` renders its headings one level deeper than
+- [x] **TOC-01**: A document reached through a `toctree` renders its headings one level deeper than
       its parent, so the PDF outline nests rather than being flat — and nested toctrees compose, a
       grandchild resolving one level deeper again. (Added 2026-08-04, after this milestone's roadmap
       was created, from the todo `toctree-heading-offset-ignored-because-visit-title-emits-abs`,
@@ -209,7 +209,7 @@ Filled during roadmap creation.
 | QUA-01 | Phase 43 | Complete |
 | CONF-08 | Phase 44 | Complete |
 | BLD-01 | Phase 44 | Complete |
-| TOC-01 | Phase 44.1 | Pending |
+| TOC-01 | Phase 44.1 | Complete |
 | CONF-09 | Phase 44.2 | Pending |
 | DOC-11 | Phase 45 | Pending |
 | DOC-12 | Phase 45 | Pending |

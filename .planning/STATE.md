@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 44.1
-current_phase_name: relative-heading-depth-for-toctree-nesting
-status: executing
-stopped_at: "Phase 44.1 re-planned against the D-07-revised CONTEXT: 4 plans, 3 waves, no blocking checkpoint"
-last_updated: "2026-08-04T17:46:44.724Z"
+current_phase: 44.2
+current_phase_name: "`typst_documents` Title and Author Consumption"
+status: planning
+stopped_at: "Phase 44.1 context revised: SC#2 = option-a (D-07); plans removed for regeneration"
+last_updated: "2026-08-04T19:19:21.503Z"
 last_activity: 2026-08-05
-last_activity_desc: Phase 44.1 execution started
+last_activity_desc: Phase 44.1 complete, transitioned to Phase 44.2
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 10
-  percent: 29
+  completed_plans: 14
+  percent: 43
 ---
 
 # Project State
@@ -32,11 +32,11 @@ Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
-Phase: 44.1 (relative-heading-depth-for-toctree-nesting) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 44.1
+Phase: 44.2 — `typst_documents` Title and Author Consumption
+Plan: Not started
+Status: Ready to plan
 Progress: [######--------------] 29% (2/7 phases)
-Last activity: 2026-08-05 — Phase 44.1 execution started
+Last activity: 2026-08-05 — Phase 44.1 complete, transitioned to Phase 44.2
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
