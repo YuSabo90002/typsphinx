@@ -174,3 +174,11 @@ None - no external service configuration required.
 ---
 *Phase: 44-typst-documents-default-derivation-builder-input-hardening*
 *Completed: 2026-08-04*
+
+## Self-Check: PASSED
+
+All key files confirmed present on disk (`typsphinx/builder.py`,
+`typsphinx/__init__.py`, both new fixture `conf.py`s, both new test
+modules, `44-GATE-EVIDENCE-01.md`, this summary) and all 5 commits
+(`eeb9304`, `1409591`, `dbcc07c`, `38e73b4`, `ef5c83d`) confirmed present
+in `git log --oneline --all`. No missing items.
