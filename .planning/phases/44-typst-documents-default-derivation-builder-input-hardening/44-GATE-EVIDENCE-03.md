@@ -289,4 +289,252 @@ recorded above; the post-change figure appears in § 5 below) are what this reco
 measured in THIS session, and they match plan 44-01's own `44-GATE-EVIDENCE-01.md` § 1 RED
 measurement exactly (same fixture, same commit lineage), which is the correct cross-check — not
 `44-CONTEXT.md`'s figures, which were never claimed to apply to this fixture.
-<!-- gsd:write-continue -->
+---
+
+## 4. Post-change worktree isolation proof
+
+**Worktree creation:**
+```
+git worktree add --detach <scratch>/post-wt b819c8bfaeb18745db44ee909ed2d12314b673b6
+```
+Output:
+```
+Preparing worktree (detached HEAD b819c8b)
+HEAD is now at b819c8b docs(phase-44): update tracking after wave 2
+```
+
+**Provisioning:**
+```
+(cd <scratch>/post-wt && env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev)
+```
+Exited `0`; the resolved package set included:
+```
+typsphinx==0.7.0 (from file:///tmp/claude-1000/-home-yuta-Documents-typsphinx/d723f150-0645-48be-bfff-30b5818e11fb/scratchpad/measure-44-03/post-wt)
+```
+
+**Shim:**
+```
+ln -sf /nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv <scratch>/post-wt/.venv/bin/uv
+readlink -f <scratch>/post-wt/.venv/bin/uv
+```
+```
+/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv
+```
+**Acceptance test:** `<scratch>/post-wt/.venv/bin/uv --version`
+```
+uv 0.11.25 (x86_64-unknown-linux-gnu)
+```
+
+**Isolation proof:**
+```
+(cd <scratch>/post-wt && uv run python -c "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())")
+```
+```
+/tmp/claude-1000/-home-yuta-Documents-typsphinx/d723f150-0645-48be-bfff-30b5818e11fb/scratchpad/measure-44-03/post-wt/typsphinx/__init__.py
+```
+
+**Both recorded `typsphinx.__file__` paths, side by side:**
+
+| Side | Path |
+|------|------|
+| pre-change | `.../measure-44-03/pre-wt/typsphinx/__init__.py` |
+| post-change | `.../measure-44-03/post-wt/typsphinx/__init__.py` |
+
+The two paths differ (`pre-wt` vs. `post-wt`), and neither is the main checkout
+(`/home/yuta/Documents/typsphinx`) nor this plan's own agent worktree
+(`/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a9f98e59c06aeda5d`) — direct, positive
+evidence the two builds in §§ 3 and 5 ran against genuinely different copies of `typsphinx`, which
+is what makes the pairing in § 6 meaningful rather than vacuous.
+
+---
+
+## 5. Post-change builds
+
+Both builds run from inside `<scratch>/post-wt` against the SAME fixture,
+`tests/fixtures/default_typst_documents_gate`, used in § 3.
+
+### `sphinx-build -b typstpdf`
+
+**Command:**
+```
+uv run python -m sphinx -b typstpdf -E tests/fixtures/default_typst_documents_gate <scratch>/post-pdf
+```
+
+**Output:**
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [en]... 完了
+出力先ディレクトリを作成しています... 完了
+ビルド中 [mo]: 更新された 0 件のpoファイル
+出力中...
+ビルド中 [typstpdf]: 更新された 1 件のソースファイル
+環境データを更新中[新しい設定] 1 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[100%] index
+
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... 完了
+preparing documents... Template written to <scratch>/post-pdf/_template.typ
+done
+writing output... [index] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: <scratch>/post-pdf/quickstartdefaultgate.pdf
+build succeeded.
+```
+
+**Exit status: 0.** **Typsphinx warnings emitted: none.** In particular, no
+`WARNING: No documents defined in typst_documents. Nothing to compile.` — that warning is gone
+because `typst_documents` now resolves to a derived non-empty list.
+
+**`ls -la <scratch>/post-pdf/`:**
+```
+total 28
+drwxr-xr-x 1 yuta users   144  8月  4 14:49 .
+drwxr-xr-x 1 yuta users    86  8月  4 14:49 ..
+drwxr-xr-x 1 yuta users    62  8月  4 14:49 .doctrees
+-rw-r--r-- 1 yuta users  2438  8月  4 14:49 _template.typ
+-rw-r--r-- 1 yuta users 17308  8月  4 14:49 quickstartdefaultgate.pdf
+-rw-r--r-- 1 yuta users   532  8月  4 14:49 quickstartdefaultgate.typ
+```
+
+**PDF count** (`find <scratch>/post-pdf -name '*.pdf' | wc -l`): **`1`**
+
+**`quickstartdefaultgate.typ` byte size** (`wc -c <scratch>/post-pdf/quickstartdefaultgate.typ`):
+**`532`**
+
+**First 20 lines of `quickstartdefaultgate.typ` (verbatim — the file has 25 lines total, all shown):**
+```
+1	// Essential package imports
+2	#import "@preview/codly:1.3.0": *
+3	#import "@preview/codly-languages:0.1.10": *
+4	#import "@preview/mitex:0.2.7": mi, mitex
+5	#import "@preview/gentle-clues:1.3.1": *
+6	
+7	#show: codly-init.with()
+8	#codly(languages: codly-languages)
+9	
+10	#import "_template.typ": project
+11	
+12	#show: project.with(
+13	  title: "Quickstart Default Gate",
+14	  authors: ("Test Author",),
+15	  date: "1.0.0",
+16	  lang: "en",
+17	)
+18	
+19	#{
+20	[#heading(level: 1, {text("Quickstart Default Gate")}) <index:quickstart-default-gate>]
+```
+
+Lines 10 (`#import "_template.typ": project`) and 12-17 (`#show: project.with(...)`) are the
+template import and template function call — present here, absent in § 3's pre-change head. This is
+D-05's content half, post-change: `root_doc` ("index") is now treated as a master document.
+
+**First four bytes of `quickstartdefaultgate.pdf`** (`head -c 4 <scratch>/post-pdf/quickstartdefaultgate.pdf | od -c`):
+```
+%   P   D   F
+```
+A real PDF (the `%PDF` magic header).
+
+### `sphinx-build -b typst`
+
+**Command:**
+```
+uv run python -m sphinx -b typst -E tests/fixtures/default_typst_documents_gate <scratch>/post-typ
+```
+
+**Output (tail):**
+```
+preparing documents... Template written to <scratch>/post-typ/_template.typ
+done
+writing output... [index] done
+build succeeded.
+```
+
+**Exit status: 0.**
+
+---
+
+## 6. The measured before/after pair
+
+| Cell | Pre-change (§ 3, PRE `eeb9304`) | Post-change (§ 5, POST `b819c8b`) |
+|------|----------------------------------|-------------------------------------|
+| Emitted `.typ` filename | `index.typ` | `quickstartdefaultgate.typ` |
+| Emitted `.typ` byte size | 412 bytes | 532 bytes |
+| Template applied (yes/no) | No — `@preview` imports + body only | Yes — `_template.typ` import + `#show: project.with(...)` call |
+| Number of `.pdf` files written | 0 | 1 |
+| Emitted `.pdf` filename | (none) | `quickstartdefaultgate.pdf` |
+| Typsphinx warnings emitted | 1 (`No documents defined in typst_documents. Nothing to compile.`) | 0 |
+
+Every cell above is a figure recorded in § 3 or § 5 of this same file.
+
+**What a user who never set `typst_documents` experiences on upgrade (two sentences):** the emitted
+Typst artifact for their root document is renamed from `index.typ` to a project-derived name
+(`<make_filename_from_project(project)>.typ`, e.g. `quickstartdefaultgate.typ` for this fixture),
+and it is no longer a bare `@preview`-imports-plus-body fragment but a fully templated document —
+which matters specifically to anyone who previously wrote `#include("index.typ")` from their own
+Typst source, since that include path and the included file's internal structure both change.
+
+---
+
+## 7. CHANGELOG source text for Phase 46 (REL-06)
+
+Phase 46 should quote or adapt the block below directly rather than re-derive it; the underlying
+figures live in §§ 3, 5 and 6 of this file.
+
+```markdown
+### Changed
+
+- With `typst_documents` unset, `sphinx-build -b typst`/`-b typstpdf` now emits the root document's
+  Typst output under a project-derived filename (e.g. `index.typ` → `quickstartdefaultgate.typ` for
+  a project named "Quickstart Default Gate") instead of the previous literal `index.typ`. If you
+  `#include()` the old file from your own Typst source, update the include path.
+- The same unset-config output is now a fully templated Typst document (the shared template's
+  `#show: project.with(...)` wrapper applied) rather than a bare fragment of `@preview` imports plus
+  body content — and, as a consequence, `sphinx-build -b typstpdf` with `typst_documents` unset now
+  produces a real PDF where it previously produced none.
+```
+
+---
+
+## 8. Cleanup
+
+**Command:** `git worktree remove --force <scratch>/pre-wt`
+
+**Command:** `git worktree remove --force <scratch>/post-wt`
+
+**Command:** `git worktree list` (after both removals)
+
+```
+/home/yuta/Documents/typsphinx                                           b819c8b [gsd/v0.7.1-bug-fix-round]
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7ea89f4fa3d64727 b819c8b [worktree-agent-a7ea89f4fa3d64727] locked
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a9f98e59c06aeda5d 5f2ce54 [worktree-agent-a9f98e59c06aeda5d] locked
+```
+
+Neither `pre-wt` nor `post-wt` appears in the listing above. The main checkout and this plan's own
+agent worktree (`agent-a9f98e59c06aeda5d`) are expected to appear; `agent-a7ea89f4fa3d64727` is the
+concurrently-running sibling executor's worktree (plan 44-04) — its presence here is expected and is
+NOT a leak of this plan's throwaway worktrees, which were named `pre-wt`/`post-wt` and lived entirely
+under `/tmp`, outside `.claude/worktrees/`.
+
+**Command:** `git status --porcelain typsphinx/ tests/`
+
+```
+(no output)
+```
+
+Empty — this plan changed no production code and no test.
+
+---
+
+## 9. Verdict
+
+| Success criterion | Discharged by | Status |
+|--------------------|----------------|--------|
+| ROADMAP SC#4 — the output-filename rename is measured, not assumed, on two real builds of the same project across two named commits, covering both D-05 halves (rename + content structure change) | § 1 (two named commits, pathspec-scoped production diff), § 2 & § 4 (per-side `typsphinx.__file__` isolation proofs, proven distinct), § 3 & § 5 (four real builds, exit codes, warnings, byte sizes, verbatim heads, PDF counts), § 6 (the paired table), § 7 (Phase 46 CHANGELOG source text) | **MET** |
+
+**Not owned by this file:**
+- SC#1/SC#2 (the derivation itself, the explicit-setting-wins guarantee) — plan 44-01,
+  `44-GATE-EVIDENCE-01.md`.
+- SC#3 (BLD-01's non-`str` docname hardening) — plan 44-02, `44-GATE-EVIDENCE-02.md`.
+- SC#5 (the repo-wide existing-test audit) — plan 44-04, `44-GATE-EVIDENCE-04.md`.
