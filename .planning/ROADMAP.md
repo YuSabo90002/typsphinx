@@ -490,7 +490,16 @@ parent, so the PDF outline nests instead of being flat. `visit_toctree` already 
 toctree sets has no effect at all. Measured against the pinned `typst>=0.15.0,<0.16` (typst-py
 0.15.0): under `set heading(offset: 2)`, `heading(level: 1, …)` resolves to level 1 while
 `heading(depth: 1, …)` resolves to level 3 (`typst.query(…, 'heading', field='level')` → `[1, 3]`).
-The repair is to emit `depth:` in `visit_title`. Inserted 2026-08-04 from the todo
+The repair has **two** parts. **(1)** `visit_title` emits `depth:` instead of `level:`. **(2)**
+`visit_toctree` emits a *context-relative* offset increment instead of an absolute one — measured
+2026-08-05, `set heading(offset: N)` is an absolute assignment on Typst's style chain, so a nested
+scope **replaces** its parent's offset rather than adding to it (three nesting levels query as
+`[1, 2, 2]`), while `context { set heading(offset: heading.offset + 1) }` accumulates (`[1, 2, 3]`).
+Part 2 was added by owner decision on 2026-08-05 after part 1 alone was measured to leave the
+grandchild in `tests/fixtures/integration_nested_toctree` at level 2, i.e. SC#2 unmet; it also makes
+the emitted offset well-defined when one included `.typ` is shared by masters that reach it at
+different depths. Rationale and measurements: `44.1-CONTEXT.md` D-07. This supersedes the original
+one-part statement here, which named only `visit_title`. Inserted 2026-08-04 from the todo
 `toctree-heading-offset-ignored-because-visit-title-emits-abs` (severity: major), filed the same day
 Phase 43 closed. It sits after Phase 44 rather than before it because both touch output the Quick
 Start path produces, and Phase 44's measured before/after filename pair must not be taken across a
