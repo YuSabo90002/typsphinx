@@ -949,6 +949,20 @@ class TypstPDFBuilder(TypstBuilder):
                 failures.append((repr(doc_tuple), "malformed typst_documents entry"))
                 continue
             docname = doc_tuple[0]
+            # BLD-01: _resolve_output_stem tolerates a docname of any type
+            # (it only does `==` comparisons), but _directory_preserving_
+            # relpath does not -- it calls posixpath.dirname(docname), which
+            # raises a raw TypeError for anything that is not a str. Catch
+            # it here, before either helper runs, so the failure joins the
+            # existing failures list instead of killing the whole build.
+            if not isinstance(docname, str):
+                message = (
+                    f"typst_documents entry has a non-str docname: "
+                    f"{docname!r} -- expected a str"
+                )
+                logger.warning(message)
+                failures.append((repr(docname), message))
+                continue
             stem = self._resolve_output_stem(docname)
             relative_path = self._directory_preserving_relpath(docname, stem)
             typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))
