@@ -455,7 +455,7 @@ the derivation touches — the change is made once, in one place, with one set o
   5. Every existing test that encoded the old `[]`-default behaviour is updated deliberately (each
      change traceable to this requirement rather than absorbed silently), and the full suite,
      `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green.
-**Plans**: 4/4 plans executed
+**Plans**: 5 plans (4/4 executed; 44-05 gap closure planned 2026-08-04)
 
 Plans:
 **Wave 1**
@@ -470,6 +470,10 @@ Plans:
 
 - [x] 44-03-PLAN.md — SC#4: two-build measured before/after pair + Phase 46 CHANGELOG source text
 - [x] 44-04-PLAN.md — SC#5: repo-wide test-update audit + full-suite / lint / type phase gate
+
+**Wave 5** *(gap closure — blocked on Wave 3 completion)*
+
+- [ ] 44-05-PLAN.md — CR-01 gap closure: reject a target name colliding with a real docname or the reserved `_template`, gated on both the derived-default and explicit paths
 
 ### Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)
 
