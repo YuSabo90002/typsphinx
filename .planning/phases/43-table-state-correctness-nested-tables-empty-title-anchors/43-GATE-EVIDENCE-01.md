@@ -438,3 +438,201 @@ $ grep -Ec 'depth *[=<>]=? *[23]' typsphinx/translator.py
 0
 ```
 
+## GREEN — Task 3 (Sections 5, 6, 7 + byte-invariance + full-gate sweep)
+
+No additional `typsphinx/translator.py` change was needed for Task 3 either -- Task 1's fix
+already restored `self.in_thead` as part of the eight-scalar snapshot, so the header-cell edge
+(section 5) already passed when measured this session. Three more test methods were added to
+`tests/test_nested_table_render_gate.py`:
+`test_nested_table_inside_header_cell_keeps_outer_header_classification` (section 5, the A2
+falsification case), `test_adjacency_empty_cell_and_sibling_tables_all_render_correctly`
+(section 6, with a balanced-brace top-level cell-count proof that the empty cells were not
+dropped), and `test_top_level_control_table_is_bare_table_no_figure_wrapper` (section 7, the
+control case).
+
+### RESEARCH Assumption A2 — resolution
+
+**A2 is CONFIRMED (the hazard was real, and the fix closes it).** RESEARCH could not isolate
+`in_thead`'s own contribution in its own probe because the general TBL-04 clobber collapsed the
+whole outer table in that probe. This plan's section-5 fixture isolates it cleanly: the RED
+transcript above shows the outer table's SECOND header cell (`NT5HEADB`) leaking out as a bare,
+un-tabled `par({text("NT5HEADB")})` on the unfixed translator (the entire outer table structure
+collapses, exactly the general TBL-04 shape). Post-fix, `NT5HEADB` is correctly emitted INSIDE
+the outer table's own `table.header(...)` group (see the emitted `.typ` excerpt below), and
+`NT5BODYA`/`NT5BODYB` are correctly classified as body cells, appearing only AFTER that group
+closes. This is the eight-scalar snapshot's `in_thead` entry doing exactly what it was designed
+for.
+
+### pytest run, all seven tests (GREEN)
+
+```
+$ uv run python -m pytest tests/test_nested_table_render_gate.py -x -q
+============================= test session starts ==============================
+collected 7 items
+
+tests/test_nested_table_render_gate.py .......                           [100%]
+
+============================== 7 passed in 2.32s ===============================
+```
+
+### Emitted `index.typ`, Section 5 (verbatim, post-fix — GREEN, the A2 case)
+
+```typst
+[#heading(level: 2, {text("Section 5: nested table inside a header cell")}) <index:section-5-nested-table-inside-a-header-cell>]
+
+table(
+  columns: (50fr, 50fr),
+  table.header(
+    {table(
+  columns: (100fr),
+  table.header(
+    {par({text("NT5INNERHEAD")})},
+  ),
+  {par({text("NT5INNERBODY")})},
+)},
+    {par({text("NT5HEADB")})},
+  ),
+  {par({text("NT5BODYA")})},
+  {par({text("NT5BODYB")})},
+)
+```
+
+### Emitted `index.typ`, Section 6 (verbatim, post-fix — GREEN, adjacency + empty cell + siblings)
+
+```typst
+[#heading(level: 2, {text("Section 6: adjacency, empty cell, and sibling tables")}) <index:section-6-adjacency-empty-cell-and-sibling-tables>]
+
+table(
+  columns: (50fr, 50fr),
+  {par({text("NT6TEXTBEFORE")})
+
+table(
+  columns: (100fr),
+  {par({text("NT6INNERA")})},
+)},
+  {},
+  {par({text("NT6ROWTWO")})},
+  {},
+)
+
+table(
+  columns: (100fr),
+  {par({text("NT7SIBA")})},
+)
+
+table(
+  columns: (100fr),
+  {par({text("NT7SIBB")})},
+)
+```
+
+`NT6TEXTBEFORE` precedes the nested table's own `NT6INNERA` cell inside the SAME outer cell
+(the sibling text survives). The outer table's own `table(...)` call emits exactly 4 top-level
+`{...}` cell entries (2 columns x 2 rows, including the two deliberately empty `{}`  cells) --
+confirmed via the balanced-brace counter in the test, proving no empty cell was dropped.
+`NT7SIBA`/`NT7SIBB` each render in their own separate top-level `table(...)` call, unaffected by
+the nesting fix (they are siblings, not nested).
+
+### Emitted `index.typ`, Section 7 (verbatim, post-fix — GREEN, top-level control)
+
+```typst
+[#heading(level: 2, {text("Section 7: top-level control")}) <index:section-7-top-level-control>]
+
+par({text("This section must stay byte-unchanged by the TBL-04 fix – a caption-less top-level table with no nested table anywhere in it.")})
+
+table(
+  columns: (50fr, 50fr),
+  {par({text("NT8CTRLA")})},
+  {par({text("NT8CTRLB")})},
+)
+```
+
+A bare `table(` call, no `figure(` wrapper -- the caption-less top-level path is untouched, as
+required.
+
+### Byte-invariance sweep (SC#4, this plan's half) — two-build method, `42-GATE-EVIDENCE-05.md`'s
+### method verbatim
+
+Pre-fix side: `git archive 05d49334d80705a4884ae63af9ba6e9e60b20be0` (this plan's own RED
+commit, `typsphinx/translator.py` untouched) exported into a scratch directory, provisioned with
+its own `uv sync --extra dev`. Post-fix side: this worktree, with the Task 1 fix committed.
+
+```
+$ uv run python -c "import typsphinx; print(typsphinx.__file__)"   # pre-fix side (scratch export)
+/tmp/.../scratchpad/red_export/typsphinx/__init__.py
+
+$ uv run python -c "import typsphinx; print(typsphinx.__file__)"   # post-fix side (this worktree)
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6bb86c0b7e8dd195/typsphinx/__init__.py
+```
+
+Two DIFFERENT paths, confirming the two builds ran different code, not the same package twice.
+
+Three pre-existing table fixtures, built `-b typst` from BOTH sides and diffed:
+
+```
+$ diff <pre-fix>/table_in_list_item_render_gate/index.typ <post-fix>/table_in_list_item_render_gate/index.typ
+(empty, exit 0)
+
+$ diff <pre-fix>/wide_table_render_gate/index.typ <post-fix>/wide_table_render_gate/index.typ
+(empty, exit 0)
+
+$ diff <pre-fix>/captioned_table_propagated_target_render_gate/index.typ <post-fix>/captioned_table_propagated_target_render_gate/index.typ
+(empty, exit 0)
+```
+
+All three diffs are empty: the fix does not change the emitted output for any of these three
+pre-existing, non-nested table fixtures.
+
+**Positive control** (per D-04: "an empty diff means nothing without the positive control"): the
+SAME two-build method applied to THIS plan's own `nested_table_render_gate` fixture, which is
+KNOWN to differ (that is the entire RED/GREEN evidence recorded above):
+
+```
+$ diff <pre-fix>/nested_table_render_gate/index.typ <post-fix>/nested_table_render_gate/index.typ > /tmp/.../positive_control_diff.txt
+$ echo "diff exit code: $?"
+diff exit code: 1
+$ wc -l /tmp/.../positive_control_diff.txt
+100 /tmp/.../positive_control_diff.txt
+```
+
+Non-empty (100 lines), exit code 1 -- proving the two sides genuinely ran different translator
+code, so the three empty diffs above are meaningful, not an artifact of comparing identical
+trees.
+
+### Full suite + CI lint/type gates (GREEN)
+
+```
+$ uv run python -m pytest -q
+================== 828 passed, 1 skipped in 75.06s (0:01:15) ===================
+
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+213 files would be left unchanged.
+
+$ uv run ruff check .
+All checks passed!
+
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+
+$ git diff --stat pyproject.toml uv.lock
+(empty -- no new dependency, milestone invariant #1 held)
+```
+
+**Acceptance-criteria checks, measured this session:**
+
+```
+$ grep -c 'def test_' tests/test_nested_table_render_gate.py
+7
+$ grep -c 'NT5HEADB' tests/test_nested_table_render_gate.py
+4
+$ grep -c 'NT5BODYA' tests/test_nested_table_render_gate.py
+5
+$ grep -c 'NT6ROWTWO' tests/test_nested_table_render_gate.py
+3
+$ grep -c 'NT7SIBB' tests/test_nested_table_render_gate.py
+5
+$ grep -c 'NT8CTRLA' tests/test_nested_table_render_gate.py
+3
+```
+

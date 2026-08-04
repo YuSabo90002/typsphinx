@@ -88,6 +88,56 @@ def _run_sphinx_build_typstpdf(
     )
 
 
+def _extract_paren_block(text: str, open_idx: int) -> str:
+    """
+    Return the substring from ``text[open_idx]`` (which MUST be an opening
+    ``(``) to its matching closing ``)``, inclusive, using simple depth
+    counting over ``(``/``)`` characters only.
+
+    Used to isolate ONE specific ``table(...)`` call's own argument list
+    from the flattened ``.typ`` text, even when that call's cell content
+    contains further nested ``table(...)`` calls (which introduce their own
+    balanced parens at a deeper level).
+    """
+    depth = 0
+    for i in range(open_idx, len(text)):
+        char = text[i]
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return text[open_idx : i + 1]
+    raise ValueError(f"Unbalanced parens starting at index {open_idx}")
+
+
+def _count_top_level_brace_entries(text: str) -> int:
+    """
+    Count ``{...}`` groups that open and close at brace-DEPTH ZERO within
+    ``text`` -- i.e. top-level cell entries, not brace pairs nested inside
+    another cell's own content (e.g. a nested table's own cells, or a
+    ``text(...)``/``par(...)`` call's argument braces one level deeper).
+
+    Every table cell this translator emits (``_format_table_cell``) is
+    wrapped in exactly one top-level ``{...}`` code block, so this count
+    equals the number of cells a ``table(...)`` call actually emits --
+    used to prove a full row's cell count (including empty cells) survived
+    TBL-04's fix, since a naive per-line indentation count is unreliable
+    once a cell's own content is itself a nested ``table(...)`` call (whose
+    OWN cells also happen to use the same 2-space relative indent).
+    """
+    depth = 0
+    count = 0
+    for char in text:
+        if char == "{":
+            if depth == 0:
+                count += 1
+            depth += 1
+        elif char == "}":
+            depth -= 1
+    return count
+
+
 @pytest.mark.skipif(
     not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
     reason="typst-py and pypdf are both required for the GATE-01 render gate",
@@ -336,3 +386,192 @@ class TestNestedTableRenderGate:
             "strictly increasing source order -- a level may have been "
             f"hoisted out of its parent:\n{section_text}"
         )
+
+    def test_nested_table_inside_header_cell_keeps_outer_header_classification(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 5 (a nested table inside the OUTER table's FIRST header
+        cell). This is the RESEARCH Pitfall 1 / Assumption A2 falsification
+        case: without restoring ``self.in_thead`` across the inner table's
+        own ``depart_thead``, the outer table's SECOND header cell
+        (``NT5HEADB``) is silently misclassified as a body cell once the
+        inner table's ``depart_thead`` clears ``self.in_thead`` back to
+        False.
+
+        Asserts ``NT5HEADB`` is emitted INSIDE the outer table's
+        ``table.header(`` group, while ``NT5BODYA`` (an outer BODY cell)
+        appears only AFTER that group closes. Also asserts ``NT5INNERHEAD``
+        (the inner table's own header cell) is present anywhere in the
+        emitted ``.typ``.
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        assert "NT5INNERHEAD" in typ_text, (
+            "Expected the inner table's own header cell 'NT5INNERHEAD' "
+            f"anywhere in the emitted index.typ:\n{typ_text}"
+        )
+
+        section_start = typ_text.index(
+            'Section 5: nested table inside a header cell")}) '
+            "<index:section-5-nested-table-inside-a-header-cell>]"
+        )
+        section_end = typ_text.index(
+            'Section 6: adjacency, empty cell, and sibling tables")}) '
+            "<index:section-6-adjacency-empty-cell-and-sibling-tables>]"
+        )
+        section_text = typ_text[section_start:section_end]
+
+        header_start = section_text.find("table.header(")
+        bodya_pos = section_text.find("NT5BODYA")
+        assert header_start != -1 and bodya_pos != -1, (
+            "Expected both 'table.header(' and 'NT5BODYA' in section 5's "
+            f"slice of the emitted index.typ:\n{section_text}"
+        )
+        header_region = section_text[header_start:bodya_pos]
+
+        assert "NT5HEADB" in header_region, (
+            "NT5HEADB (the outer table's SECOND header cell) was NOT "
+            "classified as a header cell -- self.in_thead was not "
+            "restored after the inner table's own depart_thead cleared "
+            f"it (RESEARCH Assumption A2):\n{section_text}"
+        )
+        assert "NT5BODYA" not in header_region, (
+            "NT5BODYA (an outer BODY cell) was found INSIDE the outer "
+            f"table's table.header(...) group:\n{section_text}"
+        )
+
+    def test_adjacency_empty_cell_and_sibling_tables_all_render_correctly(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 6 (sibling text + a nested table in the SAME cell, an
+        outer row with a deliberately EMPTY cell, and two SIBLING top-level
+        tables following the main one).
+
+        Asserts:
+
+        - ``NT6TEXTBEFORE`` and ``NT6INNERA`` are both present, with
+          ``NT6TEXTBEFORE`` preceding ``NT6INNERA`` (the sibling text in
+          the same cell survives the nested table, in source order);
+        - ``NT6ROWTWO`` is present, and the outer ``table(...)`` call still
+          emits its FULL cell count (4 top-level ``{...}`` entries, matching
+          its 2-column x 2-row shape) -- proving the deliberately empty
+          cells were NOT dropped;
+        - ``NT7SIBA``/``NT7SIBB`` are both present, each inside its OWN
+          ``table(...)`` call (they are SIBLING top-level tables, not
+          nested inside the main one).
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        section_start = typ_text.index(
+            'Section 6: adjacency, empty cell, and sibling tables")}) '
+            "<index:section-6-adjacency-empty-cell-and-sibling-tables>]"
+        )
+        section_end = typ_text.index(
+            'Section 7: top-level control")}) <index:section-7-top-level-control>]'
+        )
+        section_text = typ_text[section_start:section_end]
+
+        textbefore_pos = section_text.find("NT6TEXTBEFORE")
+        innera_pos = section_text.find("NT6INNERA")
+        assert textbefore_pos != -1 and innera_pos != -1, (
+            "Expected both 'NT6TEXTBEFORE' and 'NT6INNERA' in section 6:\n"
+            f"{section_text}"
+        )
+        assert textbefore_pos < innera_pos, (
+            "NT6TEXTBEFORE must precede NT6INNERA in source order (the "
+            "sibling text in the same cell must survive the nested "
+            f"table):\n{section_text}"
+        )
+
+        assert (
+            "NT6ROWTWO" in section_text
+        ), f"Expected 'NT6ROWTWO' in section 6:\n{section_text}"
+
+        # Isolate the main outer table(...) call's own argument list (the
+        # FIRST 'table(' in this section, bounded by matching parens) and
+        # count its top-level cell entries -- must be 4 (2 columns x 2
+        # rows), proving the deliberately-empty cells were emitted, not
+        # dropped.
+        main_table_open = section_text.index("(", section_text.index("table("))
+        main_table_block = _extract_paren_block(section_text, main_table_open)
+        cell_count = _count_top_level_brace_entries(main_table_block)
+        assert cell_count == 4, (
+            "Expected the outer table's own table(...) call to emit 4 "
+            "top-level cell entries (2 columns x 2 rows, including the "
+            "deliberately empty cells) -- a dropped empty cell would "
+            f"lower this count. Got {cell_count}. Block:\n{main_table_block}"
+        )
+
+        # The two SIBLING top-level tables: NT7SIBA and NT7SIBB must each
+        # be present, inside their OWN separate table(...) call (found
+        # AFTER the main outer table's own closing paren, i.e. outside
+        # main_table_block).
+        after_main_table = section_text[
+            section_text.index(main_table_block) + len(main_table_block) :
+        ]
+        assert "NT7SIBA" in after_main_table and "NT7SIBB" in after_main_table, (
+            "Expected NT7SIBA and NT7SIBB as SIBLING top-level tables "
+            f"AFTER the main outer table's own close:\n{after_main_table}"
+        )
+        siba_table_count = after_main_table.count("table(\n  columns: (100fr),")
+        assert siba_table_count >= 2, (
+            "Expected NT7SIBA and NT7SIBB to each render inside their OWN "
+            f"separate table(...) call:\n{after_main_table}"
+        )
+
+    def test_top_level_control_table_is_bare_table_no_figure_wrapper(
+        self, nested_table_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 7 (a caption-less top-level table, no nesting anywhere in
+        it). ``NT8CTRLA``/``NT8CTRLB`` must be present, and the emitted
+        ``.typ`` for this section must contain a bare ``table(`` call with
+        NO ``figure(`` wrapper -- the caption-less top-level path stays
+        completely untouched by TBL-04's fix.
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_table_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        section_start = typ_text.index(
+            'Section 7: top-level control")}) <index:section-7-top-level-control>]'
+        )
+        section_text = typ_text[section_start:]
+
+        assert (
+            "NT8CTRLA" in section_text and "NT8CTRLB" in section_text
+        ), f"Expected NT8CTRLA and NT8CTRLB in section 7:\n{section_text}"
+        assert "figure(" not in section_text, (
+            "The caption-less top-level control table must NOT be "
+            f"figure-wrapped:\n{section_text}"
+        )
+        assert (
+            "table(" in section_text
+        ), f"Expected a bare table( call in section 7:\n{section_text}"
