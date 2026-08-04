@@ -180,6 +180,35 @@ Acknowledged, deliberately not in this milestone.
 
 - **TOP-01**: box `.. contents::` (local TOC) as Sphinx's LaTeX output does
 
+### Filed during this milestone
+
+- **CONF-10**: remove the `typst_authors` config value. `typst_authors` is pure sugar over
+  `typst_template_function["params"]["authors"]` — rendering the same author dictionary through
+  both routes was measured (Phase 44.2 D-06) to produce a **byte-identical** `authors:` value, the
+  only difference being the order of named arguments in the emitted call, which is semantically
+  irrelevant in Typst. Not done in Phase 44.2 because it is a breaking change and v0.7.1 is a patch
+  release already carrying two user-visible changes (CONF-08's output-filename rename and CONF-09's
+  title/author change), both of which REL-06 requires the CHANGELOG to call out — a third would
+  contradict that boundary. Phase 44.2 already narrowed the setting's own scope: after its D-05
+  reorder, `typst_authors` remains authoritative only on a package-alone build (`typst_package` set,
+  no `typst_template`) whose active `parameter_mapping` does not map `"author"` — measured in
+  `44.2-01-SUMMARY.md` for the fixture that deliberately sets a custom mapping omitting `"author"`,
+  and independently confirmed in `44.2-GATE-EVIDENCE-03.md` § 4-5 for a real in-repo file
+  (`examples/charged-ieee/approach1/conf.py`) that hits the same narrowing for a different reason —
+  `typst_package` set with `typst_template_mapping` left completely unset, which
+  `TemplateEngine.__init__` resolves to an *empty* mapping rather than the default one, so
+  `"author"` is never an active key there either. The removal must touch: the config registration in
+  `typsphinx/__init__.py`, the override block in `typsphinx/template_engine.py`, both
+  `typst_authors` sections in `docs/source/user_guide/configuration.rst`, the `typst_authors`
+  mention in `docs/source/examples/advanced.rst`, and the `typst_authors` tests in
+  `tests/test_template_engine.py` and `tests/test_package_only_config_gate.py`. It owes one
+  migration: `examples/charged-ieee/approach1/conf.py`'s `typst_authors` block moves into that
+  file's already-present `typst_template_function` dict. A deferred defect travels with it:
+  `typst_authors` combined with the bundled default template produces no PDF at all (the template's
+  document-author assignment receives an array of dictionaries where a string is expected) — Phase
+  44.2's D-05 incidentally unbreaks the case where an entry also supplies an author, but a project
+  setting only `typst_authors` stays broken until this removal lands.
+
 ### Open todos not scoped here
 
 - **`modernize-typing-imports-drop-up006-up035-ignore`** — deferred *doubly deliberately*:
