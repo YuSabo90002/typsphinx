@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 43
-current_phase_name: Table State Correctness — Nested Tables + Empty-Title Anchors
-status: ready_to_execute
+current_phase_name: table-state-correctness-nested-tables-empty-title-anchors
+status: executing
 stopped_at: Phase 43 planned — 5 plans in 4 waves, plan-checker VERIFICATION PASSED
-last_updated: "2026-08-04T00:00:00.000Z"
+last_updated: "2026-08-03T23:50:09.860Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 43 planned (5 plans, 4 waves)
+last_activity_desc: Phase 43 execution started
 progress:
   total_phases: 4
   completed_phases: 0
@@ -24,17 +24,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Milestone **v0.7.1 (bug-fix round)** — roadmap created, **Phases 43-46**,
+**Current focus:** Phase 43 — table-state-correctness-nested-tables-empty-title-anchors
 12/12 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion).
 Next action: `/gsd-execute-phase 43`.
 
 ## Current Position
 
-Phase: 43 — Table State Correctness — Nested Tables + Empty-Title Anchors (planned)
-Plan: 0/5 complete — 43-01 (tracer, TBL-04), 43-02 (SC#5 branch push), 43-03 (FIG-01), 43-04 (TBL-05 + QUA-01), 43-05 (SC#4 byte-invariance + CI handoff)
-Status: Ready to execute — plan-checker VERIFICATION PASSED, 4/4 requirements and 8/8 CONTEXT decisions covered
+Phase: 43 (table-state-correctness-nested-tables-empty-title-anchors) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 43
 Progress: [--------------------] 0% (0/4 phases)
-Last activity: 2026-08-04 — Phase 43 planned (5 plans, 4 waves)
+Last activity: 2026-08-04 — Phase 43 execution started
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
