@@ -292,6 +292,15 @@ per `41-HANDOFF.md` item 7, and one was filed *by* this close
 post-release on 2026-08-04 (`docs-changelog-page-stale-at-0-4-0`, minor). All are acknowledged and
 recorded in Deferred Items above; none blocks the release.
 
+**Count as of 2026-08-04: 8 files in `.planning/todos/pending/`** (the "ten" above counts records
+that have since been promoted to requirements or filed to `completed/`). The newest is
+`toctree-heading-offset-ignored-because-visit-title-emits-abs` (translator, **major**), captured
+2026-08-04: `visit_title` emits Typst's absolute `heading(level: N)`, which overrides the
+`set heading(offset: 1)` that `visit_toctree` wraps its `include()`s in — so toctree'd documents
+never nest and the PDF outline is flat. Fix is `depth:` instead of `level:`
+(`level = offset + depth`), verified against typst-py 0.15.0. Not yet mapped to a v0.7.1
+requirement.
+
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
