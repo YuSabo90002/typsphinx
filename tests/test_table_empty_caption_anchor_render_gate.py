@@ -210,7 +210,13 @@ class TestTableEmptyCaptionAnchorRenderGate:
         assert pdf_output.exists(), "index.pdf was not produced"
 
         reader = pypdf.PdfReader(str(pdf_output))
-        full_text = "\n".join(page.extract_text() for page in reader.pages)
+        raw_text = "\n".join(page.extract_text() for page in reader.pages)
+        # Typst's default figure numbering emits a NON-BREAKING space
+        # (U+00A0) between "Table" and the number (measured this session:
+        # pypdf extracts "Table\xa01: TECREALCAP") -- normalize to a
+        # regular space before matching so the assertion is about the
+        # numbering VALUE, not this typographic detail.
+        full_text = raw_text.replace("\xa0", " ")
 
         for sentinel in ("TEC1A", "TEC1B", "TEC2A", "TEC2B", "TECREALCAP"):
             assert sentinel in full_text, (
