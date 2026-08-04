@@ -190,7 +190,203 @@ file records that commit's SHA in a small follow-up commit.)*
 
 ## Task 2 — GREEN (post-fix translator)
 
-*(Filled in after the fix lands — see below.)*
+### Fix commit SHA
+
+`0b6cbbc7610ff06d7989dd95bcefc3c6659df0a2` — `typsphinx/translator.py`
+(`_table_is_captioned` init + `_push_table_state`/`_pop_table_state` snapshot
+entries + `visit_table`/`depart_table` split) plus a test-file NBSP-matching
+fix (`tests/test_table_empty_caption_anchor_render_gate.py`, unrelated to the
+translator's behaviour — Typst emits a non-breaking space between "Table" and
+the figure number, which the initial assertion did not account for).
+
+### Command and exit status
+
+```
+$ .venv/bin/python -m sphinx -b typstpdf -E tests/fixtures/table_empty_caption_anchor_render_gate /tmp/tecarg-green
+EXIT: 0
+```
+
+### Full build log (`/tmp/tecarg-green.log`)
+
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [en]... 完了
+出力先ディレクトリを作成しています... 完了
+ビルド中 [mo]: 更新された 0 件のpoファイル
+出力中...
+ビルド中 [typstpdf]: 更新された 1 件のソースファイル
+環境データを更新中[新しい設定] 1 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[100%] index
+
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... 完了
+preparing documents... Template written to /tmp/tecarg-green/_template.typ
+done
+writing output... [index] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/tecarg-green/index.pdf
+build succeeded.
+```
+
+`index.pdf` exists: 36847 bytes.
+
+### Emitted `index.typ` (GREEN, full contents)
+
+```typst
+// Essential package imports
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.10": *
+#import "@preview/mitex:0.2.7": mi, mitex
+#import "@preview/gentle-clues:1.3.1": *
+
+#show: codly-init.with()
+#codly(languages: codly-languages)
+
+#import "_template.typ": project
+
+#show: project.with(
+  title: "Table Empty Caption Anchor Render Gate",
+  authors: ("typsphinx tests",),
+  date: "0.0.0",
+  lang: "en",
+)
+
+#{
+[#heading(level: 1, {text("Table Empty Caption Anchor Render Gate")}) <index:table-empty-caption-anchor-render-gate>]
+
+par({text("This fixture reproduces TBL-05 (Phase 43): a captioned table whose title renders to the empty string anchors its ids on NEITHER ")
+raw("visit_table")
+text("’s structural pre-check nor ")
+raw("depart_table")
+text("’s rendered-caption truthiness check, leaving a propagated target’s anchor unemitted and a same-document ")
+raw("​:ref:")
+text(" dangling – aborting the whole ")
+raw("typst.compile()")
+text(" at Typst’s semantic label-resolution pass.")})
+
+[#heading(level: 2, {text("Empty-rendered caption")}) <index:empty-rendered-caption>]
+
+table(
+  columns: (7fr, 7fr),
+  {par({text("TEC1A")})},
+  {par({text("TEC1B")})},
+)
+
+
+[#metadata(none) <index:id1>]
+
+[#metadata(none) <index:tbl-target>]
+par({text("See ")
+link(<index:tbl-target>, 
+text("the table"))
+text(".")})
+
+
+[#heading(level: 2, {text("Real-caption numbering control")}) <index:real-caption-numbering-control>]
+
+par({text("This section is the D-05 control: if the empty-rendered-caption table above were figure-wrapped it would consume a table number and this table would render as “Table 2” instead of “Table 1”.")})
+
+[#figure(
+table(
+  columns: (7fr, 7fr),
+  {par({text("TEC2A")})},
+  {par({text("TEC2B")})},
+),
+  caption: {text("TECREALCAP")},
+  kind: table
+) <index:tec-real-name>]
+
+par({text("See ")
+link(<index:tec-real-name>, 
+text("Table 1"))
+text(" for the real-caption table’s own cross-reference.")})
+
+
+
+}
+```
+
+**The propagated `tbl-target` anchor is now present**: both
+`[#metadata(none) <index:id1>]` and `[#metadata(none) <index:tbl-target>]`
+appear right after the bare (NOT figure-wrapped) `table(...)` call for the
+empty-rendered-caption table -- the `link(<index:tbl-target>, ...)` reference
+now resolves. The second table (real caption) is still figure-wrapped with
+`kind: table` and its own `<index:tec-real-name>` label, unchanged.
+
+### PDF-extracted text (GREEN, via `pypdf`)
+
+```
+Table Empty Caption Anchor Render Gate
+typsphinx tests
+0.0.0
+1
+1 Contents
+Contents
+2 Table Empty Caption Anchor Render Gate . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+2.1 Empty-rendered caption . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+2.2 Real-caption numbering control . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+2
+2 Table Empty Caption Anchor Render Gate
+This fixture reproduces TBL-05 (Phase 43): a captioned table whose title renders to the empty string
+anchors its ids on NEITHER visit_table's structural pre-check nor depart_table's rendered-
+caption truthiness check, leaving a propagated target's anchor unemitted and a same-document
+:ref: dangling – aborting the whole typst.compile() at Typst's semantic label-resolution pass.
+2.1 Empty-rendered caption
+TEC1A TEC1B
+See the table.
+2.2 Real-caption numbering control
+This section is the D-05 control: if the empty-rendered-caption table above were figure-wrapped it
+would consume a table number and this table would render as "Table 2" instead of "Table 1".
+TEC2A TEC2B
+Table 1: TECREALCAP
+See Table 1 for the real-caption table's own cross-reference.
+3
+```
+
+**D-05 numbering control confirmed**: the real-caption table renders as
+`Table 1: TECREALCAP`, NOT `Table 2` -- the empty-rendered-caption table
+above it consumed no table number, proving it is not figure-wrapped.
+
+### Warning diff (D-06)
+
+```
+$ grep -i "warning" /tmp/tecarg-red.log || echo "NO WARNING IN RED LOG"
+NO WARNING IN RED LOG
+
+$ grep -i "warning" /tmp/tecarg-green.log || echo "NO WARNING IN GREEN LOG"
+NO WARNING IN GREEN LOG
+```
+
+**Empty diff**: neither the RED nor the GREEN build emits any `WARNING` --
+the pre-fix failure is a Typst compile FATAL (an `ExtensionError` wrapping a
+`TypstError`), never a Sphinx-level warning about the caption, and the fix
+introduces no new warning either. D-06 satisfied.
+
+### Full suite + lint/type gates (GREEN, this session)
+
+```
+$ .venv/bin/python -m pytest tests/test_table_empty_caption_anchor_render_gate.py -x -q
+2 passed in 0.69s
+
+$ .venv/bin/python -m pytest tests/test_captioned_table_propagated_target_render_gate.py tests/test_nested_table_render_gate.py tests/test_nested_figure_render_gate.py -q
+22 passed in 4.54s
+
+$ .venv/bin/python -m pytest -q
+836 passed, 1 skipped in 77.65s (834 baseline + 2 new)
+
+$ .venv/bin/python -m black --check .
+All done! 217 files would be left unchanged.
+
+$ .venv/bin/ruff check .
+All checks passed!
+
+$ .venv/bin/python -m mypy typsphinx/
+Success: no issues found in 6 source files
+
+$ git diff --stat pyproject.toml uv.lock
+(empty -- no new runtime dependency)
+```
 
 ---
 
