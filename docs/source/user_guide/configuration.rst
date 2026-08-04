@@ -41,9 +41,26 @@ Each tuple contains:
    component is not supported: a path-bearing value produces a build
    warning and the file is written under its basename next to the source
    document.
-3. **Document title**
-4. **Author**
-5. **Document class** (usually "typst")
+3. **Document title** -- the entry's own value is used when present,
+   including an empty string, which renders as an empty title: an empty
+   string is a *value*, not a signal to fall back. When the element is
+   absent or ``None``, typsphinx falls back to ``project``. A non-``str``
+   value emits a build warning and then falls back to ``project`` as well.
+4. **Author** -- resolved the same way as the title: a present value wins
+   (including ``""``); an absent, ``None``, or non-``str`` value falls back
+   to ``author``, with a build warning for the non-``str`` case. This
+   entry value additionally takes precedence over ``typst_authors`` (see
+   `Author Information`_ below), and ``typst_template_function``'s
+   dict-form ``params`` take precedence over *both* -- a user who has
+   named both the template function and its arguments has already made a
+   more specific decision than either.
+5. **Document class** (usually "typst") -- **accepted and ignored**:
+   typsphinx reads nothing from this position today, and a five-element
+   tuple is valid and behaves identically to a four-element one. Real
+   five-element tuples already exist in this repository --
+   ``docs/source/conf.py`` and both ``examples/charged-ieee`` configs
+   (``approach1`` and ``approach2``) all set one -- so this is not merely
+   a hypothetical shape.
 
 Template Configuration
 ----------------------
@@ -164,6 +181,24 @@ Include detailed author information:
        }
    }
 
+**Precedence.** An entry's own author element (the fourth position in
+`Typst Documents`_ above) takes precedence over this setting whenever the
+active template route maps ``"author"`` at all -- which is every route
+except a package-alone build (``typst_package`` set, no
+``typst_template``) using a custom ``typst_template_mapping`` that
+specifically omits ``"author"``. ``typst_template_function``'s dict-form
+``params`` take precedence over both.
+
+.. note::
+
+   ``typst_authors`` is fully replaceable by ``typst_template_function``'s
+   ``params["authors"]`` -- rendering the same author dictionary through
+   both routes was measured to produce a byte-identical ``authors:``
+   value, differing only in the order of named arguments in the emitted
+   call (semantically irrelevant in Typst). ``typst_authors`` is
+   **slated for removal** in a future major release; new configurations
+   should prefer ``typst_template_function``'s ``params`` instead.
+
 Paper Size and Format
 ---------------------
 
@@ -272,7 +307,8 @@ Here's a complete ``conf.py`` example:
        }
    }
 
-   # Author details
+   # Author details (see "Author Information" above for the precedence
+   # rule and the typst_authors forward-removal notice)
    typst_authors = {
        "My Name": {
            "department": "Engineering",
