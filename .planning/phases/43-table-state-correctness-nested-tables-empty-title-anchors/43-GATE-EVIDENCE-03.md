@@ -336,9 +336,12 @@ Task 2 must reproduce this exact span byte-for-byte after the fix (SC#4).
 
 ### RED commit
 
-Committed BEFORE any `typsphinx/` change: `<RED_COMMIT_SHA>` (see SUMMARY.md — recorded there
-after the commit is made, since this file cannot record its own commit's SHA without a
-self-referential amend, matching plan 43-01's precedent).
+Committed BEFORE any `typsphinx/` change: `13acf9f24c4afa5de62159dab130471a82e6a79a`
+(`git log --format=%H -- tests/fixtures/nested_figure_render_gate` → this SHA;
+`git diff <base> 13acf9f24c4afa5de62159dab130471a82e6a79a -- typsphinx/translator.py` is empty).
+Recorded via a small follow-up commit that touches only this evidence file, mirroring plan
+43-01's precedent for the self-reference problem (the RED commit cannot record its own SHA
+without a forbidden amend).
 
 ## GREEN — measured after the fix (Task 2)
 
