@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 43
-current_phase_name: table-state-correctness-nested-tables-empty-title-anchors
-status: executing
-stopped_at: Phase 43 planned — 5 plans in 4 waves, plan-checker VERIFICATION PASSED
-last_updated: "2026-08-03T23:50:09.860Z"
+current_phase: 44
+current_phase_name: "`typst_documents` Default Derivation + Builder Input Hardening"
+status: planning
+stopped_at: Phase 43 context gathered (FIG-01 added; TBL-05 axis decided from LaTeX measurement)
+last_updated: "2026-08-04T02:23:49.933Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 43 execution started
+last_activity_desc: Phase 43 complete, transitioned to Phase 44
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 0
-  percent: 0
+  completed_plans: 5
+  percent: 25
 ---
 
 # Project State
@@ -30,11 +30,11 @@ Next action: `/gsd-execute-phase 43`.
 
 ## Current Position
 
-Phase: 43 (table-state-correctness-nested-tables-empty-title-anchors) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 43
+Phase: 44 — `typst_documents` Default Derivation + Builder Input Hardening
+Plan: Not started
+Status: Ready to plan
 Progress: [--------------------] 0% (0/4 phases)
-Last activity: 2026-08-04 — Phase 43 execution started
+Last activity: 2026-08-04 — Phase 43 complete, transitioned to Phase 44
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 

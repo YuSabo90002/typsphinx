@@ -26,7 +26,7 @@ continues at **Phase 43**.
       unconditionally resets them on entry and `depart_table` unconditionally tears them down on
       exit. Pre-existing, verified byte-identical pre- and post-Phase-42.)
 
-- [ ] **TBL-05**: A captioned table whose title renders to an empty or whitespace-only string still
+- [x] **TBL-05**: A captioned table whose title renders to an empty or whitespace-only string still
       emits its id anchors, so a `:ref:`/`:numref:` to that table resolves instead of leaving a
       dangling label. (Root cause: `visit_table`'s captioned pre-check is structural —
       `bool(node.children) and isinstance(node.children[0], nodes.title)` — while `depart_table`'s is
@@ -81,7 +81,7 @@ continues at **Phase 43**.
 
 ### Code quality and planning hygiene
 
-- [ ] **QUA-01**: `_emit_id_anchors`'s docstring describes its actual callers — it currently calls
+- [x] **QUA-01**: `_emit_id_anchors`'s docstring describes its actual callers — it currently calls
       `depart_figure` the sole user of `skip_ids`, which has been false since Phase 25 and became
       actively misleading when Phase 42 added `depart_table` as a second caller.
 
@@ -154,9 +154,9 @@ Filled during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TBL-04 | Phase 43 | Complete |
-| TBL-05 | Phase 43 | Pending |
+| TBL-05 | Phase 43 | Complete |
 | FIG-01 | Phase 43 | Complete |
-| QUA-01 | Phase 43 | Pending |
+| QUA-01 | Phase 43 | Complete |
 | CONF-08 | Phase 44 | Pending |
 | BLD-01 | Phase 44 | Pending |
 | DOC-11 | Phase 45 | Pending |
