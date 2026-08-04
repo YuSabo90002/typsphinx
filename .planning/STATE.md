@@ -4,17 +4,17 @@ milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 44.1
 current_phase_name: Relative Heading Depth for Toctree Nesting
-status: planning
-stopped_at: Phase 44.1 context gathered
-last_updated: "2026-08-04T09:34:08.332Z"
+status: executing
+stopped_at: Phase 44.1 planned
+last_updated: "2026-08-04T10:38:26.813Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 44 complete, transitioned to Phase 44.1
+last_activity_desc: Phase 44.1 planned — 4 plans in 3 waves
 progress:
-  total_phases: 5
+  total_phases: 7
   completed_phases: 2
-  total_plans: 10
+  total_plans: 14
   completed_plans: 10
-  percent: 40
+  percent: 29
 ---
 
 # Project State
@@ -24,36 +24,44 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 44 — typst-documents-default-derivation-builder-input-hardening
-13/13 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
-TOC-01 added 2026-08-04 with the Phase 44.1 insertion).
-Next action: `/gsd-execute-phase 44`.
+**Current focus:** Phase 44.1 — relative-heading-depth-for-toctree-nesting
+15/15 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
+TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
+insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02).
+Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
 Phase: 44.1 — Relative Heading Depth for Toctree Nesting
 Plan: Not started
-Status: Ready to plan
-Progress: [####----------------] 20% (1/5 phases)
-Last activity: 2026-08-04 — Phase 44 complete, transitioned to Phase 44.1
+Status: Ready to execute
+Progress: [######--------------] 29% (2/7 phases)
+Last activity: 2026-08-04 — Phase 44.1 planned (4 plans, 3 waves; wave 2 carries a blocking
+SC#2 decision checkpoint in `44.1-03`)
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
-**Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, inserted 2026-08-04), derived from
+**Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, **44.2** and **45.1**, all inserted
+2026-08-04), derived from
 `REQUIREMENTS.md` alone. Research was deliberately skipped (owner decision 2026-08-04 — a maintenance
 round over already-diagnosed defects, each carrying a file/line-level todo, with the one
 new-behaviour item CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder), so this
 milestone has **no `research/SUMMARY.md`**.
-Coverage: **13/13** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
+Coverage: **15/15** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
 added 2026-08-04 by owner decision at Phase 43 discussion; **TOC-01** added 2026-08-04 with the
-Phase 44.1 insertion).
+Phase 44.1 insertion; **DOC-13** added 2026-08-04 with the Phase 45.1 insertion; **CONF-09** added
+2026-08-04 with the Phase 44.2 insertion, which **reverses Phase 44's D-02** — the entry
+title/author wiring is back inside v0.7.1, and the milestone now owes **two** user-visible CHANGELOG
+callouts rather than one).
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; a nested figure stops dropping the outer caption; an empty-titled caption still anchors its ids | TBL-04, TBL-05, FIG-01, QUA-01 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | A toctree'd document's headings render one level deeper than its parent instead of flat — `visit_title` emits relative `depth:` so `set heading(offset: 1)` applies | TOC-01 |
+| 44.2 `typst_documents` Title and Author Consumption (INSERTED) | An explicit entry's `[2]` title / `[3]` author actually reach the rendered PDF, overriding `project`/`author` as LaTeX does — reverses Phase 44's D-02 | CONF-09 |
 | 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
+| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways | DOC-13 |
 | 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
 
 **Three structural constraints this roadmap encodes:**
@@ -75,10 +83,12 @@ Phase 44.1 insertion).
    pattern under `branching_strategy: milestone`. The publish executes at `/gsd-complete-milestone`,
    including the standing second tag on `typsphinx-doc-translations`.
 
-**Sequencing note:** the chain 43 → 44 → 45 → 46 is genuinely dependent, not merely numbered.
-Phase 44 hardens the same `TypstPDFBuilder.finish()` its own derivation rewrites (so CONF-08 and
-BLD-01 are one change, not two); Phase 45's README work documents behaviour that must already have
-landed in Phase 44; the `0.7.1` entry for DOC-12's changelog page lands in Phase 46's lockstep edit
+**Sequencing note:** the chain 43 → 44 → 44.1 → 44.2 → 45 → 45.1 → 46 is genuinely dependent, not
+merely numbered. Phase 44 hardens the same `TypstPDFBuilder.finish()` its own derivation rewrites
+(so CONF-08 and BLD-01 are one change, not two); Phase 44.2 runs after 44.1 because
+`tests/roots/test-basic/conf.py` is inside 44.1's SC#3 byte-invariance corpus and is one of the five
+entries 44.2 changes; Phases 45 and 45.1 document behaviour, so everything they describe must have
+landed first; the `0.7.1` entry for DOC-12's changelog page lands in Phase 46's lockstep edit
 alongside `CHANGELOG.md`.
 
 **Not a frontend UI milestone** — no phase carries a UI hint. `ui.plan-gate` false-positives on
@@ -356,6 +366,23 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 
 ### Blockers/Concerns
 
+**Phase 44.1 SC#2 rests on a falsified premise — a blocking decision waits in wave 2.** Measured
+2026-08-04 during planning and re-measured independently by the orchestrator against the pinned
+typst-py 0.15.0, through real `include()` calls on `tests/fixtures/integration_nested_toctree`:
+Typst's `set heading(offset: N)` is an **absolute assignment** on the style chain, not an increment,
+so a nested scope *replaces* its parent's offset instead of adding to it. `44.1-CONTEXT.md`
+(`<code_context>` "Integration Points") and the source todo both assert that nested toctree scopes
+"accumulate"; neither was verified and both are wrong. Consequence: the locked repair (emit `depth:`
+in `visit_title`, leave `visit_toctree` untouched) satisfies **SC#1** — child resolves at 2 — but
+leaves **SC#2 unmet**, the grandchild resolving at 2 rather than 3. Only
+`context { set heading(offset: heading.offset + 1) }` yields 1 / 2 / 3 / 4. Meeting SC#2 therefore
+requires widening a locked scope, which no planner or executor may do, so `44.1-03` stops as a
+`checkpoint:decision` offering **option-a** (change `visit_toctree`; SC#2 met, scope widened, the two
+`tests/test_toctree_requirement13.py` assertions change) or **option-b** (leave it; re-scope SC#2 as
+unsatisfiable per the SC#3 precedent, file a todo, mark the SC#2 tests `xfail`). Both branches are
+executable; the plan's acceptance criteria are split `Both options` / `Option-a only` /
+`Option-b only`, and D-03's `templates/base.typ` fence holds either way.
+
 **Owed from v0.7.0: REL-04.** The requirement — the GitHub Release body sourced from the curated
 `## [X.Y.Z]` CHANGELOG section — is **not met**. The extractor Phase 41 wrote is correct and
 hand-verified, but the `create-release` job calls `uv run …` with no `astral-sh/setup-uv` step
@@ -476,6 +503,8 @@ evidence.
   item filed there is 999.3.
 
 - Phase 44.1 inserted after Phase 44: Relative Heading Depth for Toctree Nesting — TOC-01 added; toctree set heading(offset: 1) is inert because visit_title emits absolute level: (URGENT)
+- Phase 45.1 inserted after Phase 45: Custom-Template Parameter Contract Correction (DOC-13) — documented 4-param contract vs. the toctree_*/typst_elements parameters actually passed; fix route left open for discuss-phase (URGENT)
+- Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
 
 ## Deferred Items
 
