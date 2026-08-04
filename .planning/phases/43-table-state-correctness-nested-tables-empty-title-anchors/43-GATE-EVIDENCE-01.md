@@ -253,6 +253,93 @@ FAILED tests/test_nested_table_render_gate.py::TestNestedTableRenderGate::test_l
 `git show --stat 05d49334d80705a4884ae63af9ba6e9e60b20be0` lists only the three test/fixture
 files). This SHA is the pre-fix side plan 43-05's two-build byte-invariance proof consumes.
 
-## GREEN — appended after Task 1's fix commit, below (not yet measured at this point in the
-## file's history -- see the "Task 1 GREEN" section further down, added after the fix lands).
+## GREEN — Task 1 (Section 1 only), measured after the fix
+
+The fix (`typsphinx/translator.py`): `visit_table`/`depart_table` now push a full snapshot of
+the enclosing table's scalar state onto a private `self._table_state_stack` when a table is
+already open (i.e. this table node is NESTED), reset for the inner table's own use, and
+pop-and-restore that snapshot in `depart_table` before deciding whether the inner table's
+rendered markup goes into the restored enclosing cell's buffer (nested) or `self.body`
+(top-level). See `_push_table_state`/`_pop_table_state` docstrings in `typsphinx/translator.py`
+for the full eight-scalar snapshot set (`table_cells`, `table_colcount`, `table_colwidths`,
+`table_caption`, `table_cell_content`, `in_thead`, `current_morecols`, `current_morerows`).
+
+### pytest run against the FIXED translator (GREEN)
+
+```
+$ uv run python -m pytest tests/test_nested_table_render_gate.py -x -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+collected 1 item
+
+tests/test_nested_table_render_gate.py .                                 [100%]
+
+============================== 1 passed in 0.45s ===============================
+```
+
+### Regression check: pre-existing table gates still pass (GREEN)
+
+```
+$ uv run python -m pytest tests/test_table_in_list_item_render_gate.py tests/test_wide_table_render_gate.py tests/test_captioned_table_propagated_target_render_gate.py -q
+collected 11 items
+...........                                                              [100%]
+============================== 11 passed in 0.99s ===============================
+```
+
+### Emitted `index.typ`, Section 1 (verbatim, post-fix — GREEN)
+
+```typst
+[#heading(level: 2, {text("Section 1: list-table in list-table")}) <index:section-1-list-table-in-list-table>]
+
+[#figure(
+table(
+  columns: (50fr, 50fr),
+  table.header(
+    {par({text("NT1HEADA")})},
+    {par({text("NT1HEADB")})},
+  ),
+  {par({text("NT1PLAIN")})},
+  {table(
+  columns: (50fr, 50fr),
+  {par({text("NT1INNERA")})},
+  {par({text("NT1INNERB")})},
+)},
+),
+  caption: {text("NT1OUTERCAP")},
+  kind: table
+) <index:id1>]
+```
+
+The OUTER table's header cells (`NT1HEADA`/`NT1HEADB`, now correctly inside
+`table.header(...)`), its plain body cell (`NT1PLAIN`) and its own caption (`NT1OUTERCAP`) are
+all present, and the INNER table's own cells (`NT1INNERA`/`NT1INNERB`) render as a nested
+`table(...)` call inside the outer's second body cell -- exactly the shape TBL-04 requires.
+
+### Extracted PDF text, Section 1 (verbatim, `pypdf` — GREEN)
+
+```
+2.1 Section 1: list-table in list-table
+NT1HEADA NT1HEADB
+NT1PLAIN NT1INNERA NT1INNERB
+Table 1: NT1OUTERCAP
+```
+
+**Per-sentinel result (Section 1, GREEN):** `NT1OUTERCAP`, `NT1HEADA`, `NT1HEADB`, `NT1PLAIN`,
+`NT1INNERA`, `NT1INNERB` are all PRESENT in both the emitted `index.typ` and the
+`pypdf`-extracted PDF text -- confirming the fix closes Task 1's scoped defect (Section 1).
+Sections 2-7 remain in their RED state recorded above until Tasks 2 and 3 extend the test
+coverage and, where measurement shows it necessary, extend the fix.
+
+**Acceptance-criteria checks, measured this session:**
+
+```
+$ grep -c '_table_state_stack' typsphinx/translator.py
+6
+$ grep -c 'def _push_table_state' typsphinx/translator.py
+1
+$ grep -c 'def _pop_table_state' typsphinx/translator.py
+1
+$ awk '/def _pop_table_state/,/def visit_tgroup/' typsphinx/translator.py | grep -c 'if not self._table_state_stack'
+1
+```
 
