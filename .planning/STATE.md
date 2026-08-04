@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 44.1
-current_phase_name: Relative Heading Depth for Toctree Nesting
+current_phase_name: relative-heading-depth-for-toctree-nesting
 status: executing
 stopped_at: "Phase 44.1 re-planned against the D-07-revised CONTEXT: 4 plans, 3 waves, no blocking checkpoint"
-last_updated: "2026-08-05T00:00:00.000Z"
+last_updated: "2026-08-04T17:46:44.724Z"
 last_activity: 2026-08-05
-last_activity_desc: Phase 44.1 re-planned (4 plans, 3 waves; SC#2 locked as option-a, so no
+last_activity_desc: Phase 44.1 execution started
 progress:
   total_phases: 7
   completed_phases: 2
@@ -32,11 +32,11 @@ Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
-Phase: 44.1 — Relative Heading Depth for Toctree Nesting
-Plan: Not started (4 plans, 3 waves)
-Status: Ready to execute
+Phase: 44.1 (relative-heading-depth-for-toctree-nesting) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 44.1
 Progress: [######--------------] 29% (2/7 phases)
-Last activity: 2026-08-05 — Phase 44.1 re-planned against the D-07-revised CONTEXT after the
+Last activity: 2026-08-05 — Phase 44.1 execution started
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
