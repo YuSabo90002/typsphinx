@@ -80,9 +80,7 @@ class TestNonStrDocnameGate:
     Requirements: BLD-01.
     """
 
-    def test_non_str_docname_fails_build_but_good_master_still_compiles(
-        self, tmp_path
-    ):
+    def test_non_str_docname_fails_build_but_good_master_still_compiles(self, tmp_path):
         """
         A build over the fixture fails overall, but the one valid master
         (``index``) still compiles to a real PDF, and no raw ``TypeError``
@@ -131,8 +129,7 @@ class TestNonStrDocnameGate:
         )
         index_typ_content = (build_dir / "index.typ").read_text(encoding="utf-8")
         assert "NONSTRBODY" in index_typ_content, (
-            f"Expected the sentinel NONSTRBODY in index.typ:\n"
-            f"{index_typ_content}"
+            f"Expected the sentinel NONSTRBODY in index.typ:\n" f"{index_typ_content}"
         )
         assert (build_dir / "index.pdf").exists(), (
             f"D-02's attempt-all-then-raise contract failed end to end: "
@@ -141,7 +138,9 @@ class TestNonStrDocnameGate:
             f"stderr: {result.stderr}"
         )
         with open(build_dir / "index.pdf", "rb") as f:
-            assert f.read(4) == b"%PDF", "index.pdf does not start with the PDF magic bytes"
+            assert (
+                f.read(4) == b"%PDF"
+            ), "index.pdf does not start with the PDF magic bytes"
 
         assert not (build_dir / "manual.typ").exists(), (
             f"No .typ should exist for the bad entry's target name:\n"

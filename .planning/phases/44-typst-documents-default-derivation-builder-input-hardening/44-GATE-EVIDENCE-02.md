@@ -107,3 +107,89 @@ tests/test_pdf_generation.py ..............................              [100%]
 
 ============================== 33 passed in 1.82s ==============================
 ```
+
+## 3. D-03 — the opt-out wording
+
+**Old message text** (from `git show faf5011:typsphinx/builder.py`, the pre-Task-2
+state of this plan's own commit history):
+```
+"No documents defined in typst_documents. Nothing to compile."
+```
+
+**New message text** (target text from the plan, implemented verbatim):
+```
+"typst_documents is explicitly set to an empty list -- nothing will "
+"be compiled. Remove the setting entirely to use the derived default "
+"(root_doc/project/author)."
+```
+
+**Build 1 — `typstpdf` side:**
+```
+Command: uv run python -m sphinx -b typstpdf -E tests/fixtures/empty_typst_documents_optout_gate <build>
+Exit status: 0
+```
+Verbatim stderr:
+```
+WARNING: typst_documents is explicitly set to an empty list -- nothing will be compiled. Remove the setting entirely to use the derived default (root_doc/project/author).
+```
+`ls -la <build>`:
+```
+index.typ present, no .pdf anywhere in the tree (confirmed via a recursive
+glob for *.pdf, which returned zero matches)
+```
+
+**Build 2 — `-b typst` side (Discretion (d)):**
+```
+Command: uv run python -m sphinx -b typst -E tests/fixtures/empty_typst_documents_optout_gate <build2>
+Exit status: 0
+```
+Verbatim stderr:
+```
+(empty -- no output at all)
+```
+`ls -la <build2>`:
+```
+index.typ present (containing the OPTOUTBODY sentinel), no warning of any
+kind
+```
+
+**Passing pytest output:**
+```
+$ uv run python -m pytest tests/test_empty_typst_documents_optout_gate.py -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6a5cf7bb6242bf35
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 2 items
+
+tests/test_empty_typst_documents_optout_gate.py ..                       [100%]
+
+============================== 2 passed in 0.43s ===============================
+```
+
+## 4. Discretion (d) — resolved
+
+**Decision: NO — `sphinx-build -b typst` alone does not warn on an explicit empty
+`typst_documents`.** Three measured grounds (restated from `44-02-PLAN.md`
+`<discretion_resolution>`, and now behaviourally pinned by
+`test_typst_side_stays_silent_discretion_d` above):
+
+1. **The two builders are not in the same state.** With an empty list, `-b typstpdf`
+   produces zero artifacts of its declared kind (no PDF at all), which is what makes a
+   warning informative. `-b typst` still writes a `.typ` for every document regardless
+   of `typst_documents` — measured above: `index.typ` was written in Build 2 with no
+   warning — so there is no missing output to warn about.
+2. **Adding it would be a second undiscussed behaviour change in a patch release.**
+   Every project that today sets `typst_documents = []` and builds with `-b typst`
+   would gain a new WARNING, and any such build running under `-W` would flip from
+   success to failure. That is precisely the class of change D-02 refused to fold in
+   alongside CONF-08's rename.
+3. **The LaTeX precedent does not transfer.** Sphinx's LaTeX builder warns because an
+   empty `latex_documents` means no documents will be written at all; typsphinx's
+   `-b typst` writes them all regardless, so the analogy that justifies D-03's
+   `typstpdf`-side wording does not reach the `-b typst` side.
+
+**Assertion that pins it:** `tests/test_empty_typst_documents_optout_gate.py::TestEmptyTypstDocumentsOptoutGate::test_typst_side_stays_silent_discretion_d` asserts `"explicitly set to an empty list" not in result.stderr` for a real `-b typst` build over the same fixture used for the `typstpdf` side, and its docstring restates the three grounds above so a future maintainer reading only the test knows the omission is a decision, not an oversight.
+
+**Reversibility:** reversible — adding the warning later is one `logger.warning` call in `TypstBuilder`; nothing in the current implementation or this gate depends on its absence beyond the assertion itself.

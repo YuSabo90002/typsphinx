@@ -927,8 +927,16 @@ class TypstPDFBuilder(TypstBuilder):
         typst_documents = getattr(self.config, "typst_documents", [])
 
         if not typst_documents:
+            # D-03: since typst_documents gained a derived default
+            # (CONF-08), this branch is reachable ONLY via an explicit
+            # `typst_documents = []` -- unset now resolves through
+            # _default_typst_documents instead of ever being empty. The
+            # wording says so, rather than reading as if the setting were
+            # absent.
             logger.warning(
-                "No documents defined in typst_documents. Nothing to compile."
+                "typst_documents is explicitly set to an empty list -- "
+                "nothing will be compiled. Remove the setting entirely to "
+                "use the derived default (root_doc/project/author)."
             )
             return
 
