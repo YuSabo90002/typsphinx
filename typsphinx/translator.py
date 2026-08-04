@@ -188,6 +188,21 @@ class TypstTranslator(SphinxTranslator):
             # save/restore idiom
         )
 
+        # TBL-05 (Phase 43): the STRUCTURAL captioned decision computed in
+        # visit_table (`is_captioned`) -- whether this table's first child
+        # is a nodes.title at all, independent of whether that title's
+        # RENDERED content happens to be empty. Stashed here so depart_table
+        # can gate its id-anchoring call on this value instead of on
+        # self.table_caption's truthiness (D-05/D-07): a title whose only
+        # child is a raw node with a non-typst format renders to the empty
+        # string (visit_raw raises SkipNode), so the two checks can
+        # genuinely disagree, and when they do the table's ids must still
+        # anchor on at least one path or a same-document reference dangles.
+        # Joins _push_table_state/_pop_table_state's snapshot set below, so
+        # a nested captioned table's own decision does not clobber the
+        # enclosing table's.
+        self._table_is_captioned: bool = False
+
         # TBL-04 (Phase 43): a table nested inside another table's cell
         # would otherwise clobber the enclosing table's in-progress scalar
         # state, since every table_* scalar above is a flat instance
@@ -545,14 +560,26 @@ class TypstTranslator(SphinxTranslator):
         ``]list(`` juxtaposition, never a stranded ``+``).
 
         ``skip_ids`` lets a caller that ALREADY anchors one of the node's ids
-        by another mechanism suppress a duplicate definition here. The sole
-        user is ``depart_figure``: a captioned figure self-anchors ``ids[0]``
-        inside its own ``[#figure(...) <label>]`` markup block, but a
-        PROPAGATED explicit target lands a DIFFERENT id in ``ids[1:]`` that
-        would otherwise dangle -- so the figure passes ``skip_ids={ids[0]}`` to
-        anchor only the propagated remainder. When every id is skipped the
-        method is a no-op (list-item bookkeeping is untouched), keeping output
-        byte-for-byte identical.
+        by another mechanism suppress a duplicate definition here. There are
+        two such callers, ``depart_figure`` and ``depart_table`` (Phase 25),
+        and they share one rationale: both wrap their content in a Typst
+        ``figure(...)`` that self-anchors ``ids[0]`` as that figure's own
+        ``<label>`` postfix, so re-anchoring ``ids[0]`` here too would define
+        the same label TWICE -- a Typst "label ... occurs multiple times"
+        compile fatal. Both still need ``ids[1:]`` anchored here, because
+        docutils' ``PropagateTargets`` transform lands an immediately
+        preceding ``.. _target:``'s id there, and a same-document ``:ref:``
+        to it would otherwise dangle. ``depart_table`` additionally passes an
+        EMPTY ``skip_ids`` (anchoring every id, including ``ids[0]``) for a
+        table that is structurally captioned but did NOT actually take the
+        figure-wrapped branch (TBL-05, Phase 43: a title node whose rendered
+        content is the empty string) -- nothing else self-anchors ``ids[0]``
+        for that table, so skipping it here would leave it unanchored. The
+        table caller also has a firing-order constraint the figure caller
+        does not (Phase 42 / TBL-03): see the inline comments at its own
+        call site for why it must run after ``self.in_table`` is cleared.
+        When every id is skipped the method is a no-op (list-item bookkeeping
+        is untouched), keeping output byte-for-byte identical.
 
         Args:
             node: The body-element node whose ``ids`` should be anchored.
@@ -3290,12 +3317,16 @@ class TypstTranslator(SphinxTranslator):
         measured to share the identical unconditional-write/
         unconditional-read shape: ``table_cells``, ``table_colcount``,
         ``table_colwidths``, ``table_caption``, ``table_cell_content``
-        (existence + value), ``in_thead``, and ``current_morecols``/
-        ``current_morerows``. The latter two are read via ``getattr`` with
-        a ``0`` default (ASVS V5): they are set lazily by the FIRST
-        ``visit_entry`` ever called on this translator instance, so a
-        malformed doctree that somehow reaches a nested table before any
-        entry at all must not raise ``AttributeError`` here.
+        (existence + value), ``in_thead``, ``current_morecols``/
+        ``current_morerows``, and ``_table_is_captioned`` (TBL-05, plan
+        43-04: the STRUCTURAL captioned decision, which has the identical
+        per-table clobber shape -- a nested captioned table's own decision
+        must not overwrite the enclosing table's when the inner table's
+        depart_table finishes). The morecols/morerows pair is read via
+        ``getattr`` with a ``0`` default (ASVS V5): they are set lazily by
+        the FIRST ``visit_entry`` ever called on this translator instance,
+        so a malformed doctree that somehow reaches a nested table before
+        any entry at all must not raise ``AttributeError`` here.
 
         Called only from ``visit_table`` when ``self.in_table`` is already
         True (i.e. this table node is nested inside another table's cell) --
@@ -3311,6 +3342,7 @@ class TypstTranslator(SphinxTranslator):
                 "in_thead": self.in_thead,
                 "current_morecols": getattr(self, "current_morecols", 0),
                 "current_morerows": getattr(self, "current_morerows", 0),
+                "_table_is_captioned": self._table_is_captioned,
             }
         )
 
@@ -3342,6 +3374,7 @@ class TypstTranslator(SphinxTranslator):
         self.in_thead = frame["in_thead"]
         self.current_morecols = frame["current_morecols"]
         self.current_morerows = frame["current_morerows"]
+        self._table_is_captioned = frame["_table_is_captioned"]
 
     def _push_figure_state(self) -> None:
         """
@@ -3422,6 +3455,16 @@ class TypstTranslator(SphinxTranslator):
         # call entirely for a captioned table; depart_table calls it with
         # skip_ids={ids[0]} AFTER emitting the figure's own <label>.
         # Non-captioned tables keep this unconditional call, unchanged.
+        #
+        # TBL-05 (Phase 43, D-07): this STRUCTURAL result is stashed on
+        # self._table_is_captioned (below, AFTER the nested-table push) for
+        # depart_table's anchoring decision. It is NOT made value-aware here
+        # -- the doctree is fully built at visit_table time, but the
+        # title's RENDERED content is only known after visit_title/
+        # depart_title run, and a title whose only child is a raw node with
+        # a non-typst format renders to the empty string (visit_raw raises
+        # SkipNode) while its astext() is non-empty. Any astext()-based
+        # pre-check would misclassify that case.
         is_captioned = bool(node.children) and isinstance(node.children[0], nodes.title)
         if not is_captioned:
             self._emit_id_anchors(node)
@@ -3467,6 +3510,11 @@ class TypstTranslator(SphinxTranslator):
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
         self.table_colwidths = []  # Per-column colwidth accumulator (D-01)
+        # TBL-05: assigned AFTER the push above (never before) -- the push
+        # must capture the ENCLOSING table's own _table_is_captioned value
+        # before this table's decision overwrites it, mirroring how
+        # table_cells/table_colcount/table_colwidths are reset here too.
+        self._table_is_captioned = is_captioned
 
     def _build_columns_fr_arg(self) -> str:
         """
@@ -3533,6 +3581,18 @@ class TypstTranslator(SphinxTranslator):
         bracket-close lands inside whichever markup bracket was opened.
         A caption-less table takes the byte-for-byte UNCHANGED plain-table
         path (SC#2).
+
+        TBL-05 (Phase 43, D-05): RENDERING and ANCHORING are two separate
+        decisions that are allowed to disagree, deliberately, matching
+        Sphinx's own LaTeX builder measured against identical input.
+        RENDERING keeps gating on ``self.table_caption``'s truthiness
+        (unchanged from the paragraph above). ANCHORING instead gates on
+        ``self._table_is_captioned``, the STRUCTURAL decision stashed by
+        ``visit_table`` -- so a table whose title node exists but renders to
+        the empty string still anchors its ids, even though it is NOT
+        figure-wrapped and consumes NO table number. See the inline
+        comments around ``structural_is_captioned``/``was_captioned`` below
+        for the exact split.
 
         Args:
             node: The table node
@@ -3627,7 +3687,26 @@ class TypstTranslator(SphinxTranslator):
         # since that decision may pop-and-restore self.table_caption to an
         # ENCLOSING table's value -- was_captioned must reflect THIS
         # table's own captioned status, not the outer one's.
+        #
+        # TBL-05 (Phase 43, D-05): was_captioned now ALSO answers "did this
+        # table take the figure-wrapped branch above" -- it is exactly the
+        # same condition the `if self.table_caption:` branch above tested,
+        # captured here before any reset. This is reused below to decide
+        # whether ids[0] is already self-anchored by that figure's own
+        # <label> postfix (skip it) or not (anchor it too).
         was_captioned = self.table_colcount > 0 and bool(self.table_caption)
+
+        # TBL-05 (Phase 43, D-05/D-07): the STRUCTURAL captioned decision
+        # from visit_table, read here -- BEFORE the nested/top-level
+        # destination decision below, for the identical reason was_captioned
+        # is captured here rather than after: _table_is_captioned now joins
+        # _push_table_state/_pop_table_state's snapshot set (TBL-04), so a
+        # NESTED table's own depart_table would otherwise read the
+        # ENCLOSING table's restored value instead of its own. This is the
+        # ANCHORING gate (independent of whether the caption rendered to
+        # anything); was_captioned above stays the RENDERING gate. The two
+        # are allowed to disagree -- see the class docstring note below.
+        structural_is_captioned = self._table_is_captioned
 
         # TBL-04 (Phase 43): decide the emission string's destination as an
         # EXPLICIT branch, never a blanket switch to self.add_text (Pitfall
@@ -3675,8 +3754,29 @@ class TypstTranslator(SphinxTranslator):
         # been restored to the ENCLOSING cell's buffer above, so add_text()
         # correctly routes this call's markup into that same buffer,
         # immediately after this table's own emission_str.
-        if was_captioned:
-            self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+        #
+        # TBL-05 (Phase 43, D-05): the GATE is now structural_is_captioned
+        # (matches visit_table's unconditional-anchor skip above -- this
+        # call fires exactly when that one did NOT, so a non-captioned
+        # table is never anchored twice), not was_captioned. This closes
+        # the TBL-05 dangling-anchor defect: a table whose title node
+        # exists but renders to the empty string is structurally captioned
+        # (visit_table skipped its own anchor call) yet was NOT
+        # figure-wrapped above (was_captioned is False, since
+        # self.table_caption stripped to ""), so without this change its
+        # ids were anchored on NEITHER path. Whether ids[0] is skipped
+        # still depends on was_captioned specifically -- it answers "did
+        # this table actually take the figure-wrapped branch that
+        # self-anchors ids[0]", which is a strictly narrower question than
+        # "is this table structurally captioned". A table that is
+        # structurally captioned but did NOT figure-wrap (was_captioned
+        # False) anchors EVERY id here, since nothing else anchored ids[0]
+        # for it (D-05's "not figure-wrapped, consumes no table number"
+        # rendering side, matched by "anchors every id" on the anchoring
+        # side).
+        if structural_is_captioned:
+            skip_ids = set(node.get("ids", [])[:1]) if was_captioned else set()
+            self._emit_id_anchors(node, skip_ids=skip_ids)
 
         if not was_nested:
             # OUTERMOST close only: reset the scalar set for the next
