@@ -556,8 +556,8 @@ concurrent heading-shape change.
   8. Neither the master template (`templates/base.typ`) nor `_write_template_file` introduces its
      own `heading(offset:)` that would shift the master — verified by inspection and by SC#3's
      byte-invariance result.
-**Plans**: 4/4 plans executed
-was deleted at commit `2c31b89` because it was built on the falsified one-part premise)*
+**Plans**: 4/4 plans executed *(re-planned 2026-08-05 against the D-07-revised CONTEXT; the prior
+4-plan set was deleted at commit `2c31b89` because it was built on the falsified one-part premise)*
 
 **Wave 1**
 
