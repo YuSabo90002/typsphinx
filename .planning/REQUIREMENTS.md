@@ -49,6 +49,25 @@ continues at **Phase 43**.
       `self.in_figure` / `self.figure_caption` being scalars with the same shape as the TBL-04
       clobber, is covered by this requirement as an implementation means, not as its own row.)
 
+### Toctree and heading structure
+
+- [ ] **TOC-01**: A document reached through a `toctree` renders its headings one level deeper than
+      its parent, so the PDF outline nests rather than being flat — and nested toctrees compose, a
+      grandchild resolving one level deeper again. (Added 2026-08-04, after this milestone's roadmap
+      was created, from the todo `toctree-heading-offset-ignored-because-visit-title-emits-abs`,
+      severity major. Root cause: `visit_toctree` wraps its generated `include()` calls in a scope
+      carrying `set heading(offset: 1)` (`translator.py:4761-4762`), but `visit_title` emits the
+      heading with the **absolute** `level:` parameter (`translator.py:800-809`). In Typst `level:`
+      is the final absolute level and overrides the ambient `heading(offset: …)`; only `depth:` is
+      relative, resolving to `offset + depth` — so the offset is inert. Measured against the pinned
+      `typst>=0.15.0,<0.16` (typst-py 0.15.0): under `set heading(offset: 2)`,
+      `heading(level: 1, …)` resolves to level 1 while `heading(depth: 1, …)` resolves to level 3,
+      `typst.query(…, 'heading', field='level')` → `[1, 3]`. The repair is to emit `depth:`. Master
+      documents render at `offset: 0`, where `depth == level`, so their output must be
+      byte-identical. Several existing tests assert the literal `heading(level: N` string and encode
+      the buggy contract — they must be updated deliberately, with owner sign-off and a re-proof
+      that the new assertions fail against the pre-fix commit.)
+
 ### Configuration
 
 - [ ] **CONF-08**: With `typst_documents` unset, `sphinx-build -b typstpdf` produces a PDF instead of
@@ -159,6 +178,7 @@ Filled during roadmap creation.
 | QUA-01 | Phase 43 | Complete |
 | CONF-08 | Phase 44 | Pending |
 | BLD-01 | Phase 44 | Pending |
+| TOC-01 | Phase 44.1 | Pending |
 | DOC-11 | Phase 45 | Pending |
 | DOC-12 | Phase 45 | Pending |
 | QUA-02 | Phase 45 | Pending |
@@ -168,8 +188,8 @@ Filled during roadmap creation.
 
 **Coverage:**
 
-- v1 requirements: 12 total
-- Mapped to phases: 12
+- v1 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
 
 **Phase mapping notes:**
@@ -182,6 +202,13 @@ Filled during roadmap creation.
 
 - **Phase 44** groups CONF-08 and BLD-01 because both change `TypstPDFBuilder.finish()` — the
   derivation and the input hardening are made once, in one place.
+
+- **Phase 44.1** was **inserted 2026-08-04**, after the roadmap was created, to carry TOC-01 alone.
+  It is not folded into Phase 44 (which owns `TypstPDFBuilder.finish()`) or Phase 45 (documentation
+  and hygiene) because it changes `visit_title`'s emitted heading form — a translator change under
+  GATE-01 with its own deliberate test-churn cost. It runs **after** Phase 44 rather than before:
+  both change what the Quick Start path emits, and Phase 44's SC#4 hands Phase 46 a measured
+  before/after filename pair that must not be taken across a concurrent heading-shape change.
 
 - **Phase 45** follows Phase 44 because DOC-11 must document the behaviour CONF-08 actually shipped,
   including the measured output filename. QUA-02 (`template_engine.py`) and QUA-03 (`.planning/`
