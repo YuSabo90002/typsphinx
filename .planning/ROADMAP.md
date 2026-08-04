@@ -398,7 +398,7 @@ that actively misleading by adding `depart_table` as a second caller.
      the outer caption entirely — measured 2026-08-04). Sphinx's own LaTeX builder is the reference
      behaviour for the same input (outer `\caption{...}\label{...}` survives; the inner figure is
      emitted inside a `sphinxlegend` environment; no warning).
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -416,7 +416,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 43-05-PLAN.md — SC#4 two-build byte invariance; SC#5 completed CI run + Phase 44 handoff
+- [x] 43-05-PLAN.md — SC#4 two-build byte invariance; SC#5 completed CI run + Phase 44 handoff
 
 ### Phase 44: `typst_documents` Default Derivation + Builder Input Hardening
 
@@ -613,7 +613,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 40.1 Citation Degradation Hardening (INSERTED) | v0.7.0 | 4/4 | Complete    | 2026-08-02 |
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
-| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 4/5 | In Progress|  |
+| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 5/5 | In Progress|  |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 0/TBD | Not started | - |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
