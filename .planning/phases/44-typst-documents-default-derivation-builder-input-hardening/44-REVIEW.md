@@ -1,5 +1,316 @@
 ---
 phase: 44-typst-documents-default-derivation-builder-input-hardening
+reviewed: 2026-08-04T00:00:00Z
+depth: standard
+files_reviewed: 28
+files_reviewed_list:
+  - typsphinx/builder.py
+  - typsphinx/__init__.py
+  - tests/test_builder.py
+  - tests/test_builder_output_stem.py
+  - tests/test_builder_requirement13.py
+  - tests/test_default_typst_documents_derivation.py
+  - tests/test_default_typst_documents_gate.py
+  - tests/test_empty_typst_documents_optout_gate.py
+  - tests/test_non_str_docname_gate.py
+  - tests/test_typst_documents_collision_gate.py
+  - tests/fixtures/default_typst_documents_gate/conf.py
+  - tests/fixtures/default_typst_documents_gate/index.rst
+  - tests/fixtures/empty_typst_documents_optout_gate/conf.py
+  - tests/fixtures/empty_typst_documents_optout_gate/index.rst
+  - tests/fixtures/explicit_typst_documents_wins_gate/conf.py
+  - tests/fixtures/explicit_typst_documents_wins_gate/index.rst
+  - tests/fixtures/non_str_docname_gate/conf.py
+  - tests/fixtures/non_str_docname_gate/index.rst
+  - tests/fixtures/derived_docname_collision_gate/conf.py
+  - tests/fixtures/derived_docname_collision_gate/index.rst
+  - tests/fixtures/derived_docname_collision_gate/chapter1.rst
+  - tests/fixtures/derived_template_collision_gate/conf.py
+  - tests/fixtures/derived_template_collision_gate/index.rst
+  - tests/fixtures/explicit_docname_collision_gate/conf.py
+  - tests/fixtures/explicit_docname_collision_gate/index.rst
+  - tests/fixtures/explicit_docname_collision_gate/chapter1.rst
+  - tests/fixtures/explicit_template_collision_gate/conf.py
+  - tests/fixtures/explicit_template_collision_gate/index.rst
+findings:
+  critical: 1
+  warning: 2
+  info: 2
+  total: 5
+status: issues_found
+---
+
+# Phase 44: Code Review Report
+
+**Reviewed:** 2026-08-04T00:00:00Z
+**Depth:** standard
+**Files Reviewed:** 28
+**Status:** issues_found
+
+## Summary
+
+Reviewed plan 44-05's CR-01 gap-closure (the collision guard added to
+`_resolve_output_stem`) together with the full CONF-08/BLD-01 surface from
+plans 01-04 (`_default_typst_documents`, its `__init__.py` registration, the
+`isinstance(docname, str)` hardening in `TypstPDFBuilder.finish()`), and
+every test/fixture in the file list.
+
+The CR-01 fix itself is sound for the exact two scenarios it targets
+(derived-or-explicit target colliding with a real docname's own output
+path, and colliding with the reserved `_template.typ`): the four new
+subprocess gate tests reproduce the original silent-corruption and
+hard-failure repros from the prior review and confirm both are now warned
+and safely degraded. `_default_typst_documents` remains a pure function of
+its `config` argument, the degradation table matches
+`make_filename_from_project` exactly, and explicit-vs-derived precedence
+(SC#2) is gate-tested against real `sphinx-build` subprocesses.
+
+However, adversarial testing against the same collision-guard code found a
+**new, reproducible silent-data-loss bug the CR-01 guard does not cover**:
+two `typst_documents` entries whose *targets* collide with **each other**
+(rather than with a real docname or `_template`) are not detected at all —
+one master's entire compiled output silently overwrites the other's, with
+no warning and exit code 0 for both `-b typst` and `-b typstpdf`. This is
+the same failure class Phase 44's own CR-01 was written to close, on the
+very function (`_resolve_output_stem`) plan 44-05 just modified, and it is
+easier to trigger than either of the two now-fixed cases (an ordinary
+two-master project with a copy-pasted or coincidentally-identical target
+name, no docname coincidence required). See CR-02 below, with a live
+reproduction against this checkout.
+
+WR-01 and IN-01 from the prior (2026-08-04T06:11:48Z) review remain present
+and unchanged, and are explicitly out of scope for 44-05 per the phase
+owner's decision — re-listed below under their original IDs, not as new
+findings.
+
+## Critical Issues
+
+### CR-02: Two `typst_documents` entries whose target names collide with each other (not with a real docname or `_template`) are not detected — one master's output silently overwrites the other's
+
+**File:** `typsphinx/builder.py:264-283` (`_resolve_output_stem`'s CR-01
+collision guard), interacting with `typsphinx/builder.py:384-444` (`write()`)
+and `typsphinx/builder.py:925-1039` (`TypstPDFBuilder.finish()`)
+
+**Issue:**
+
+The CR-01 guard added by plan 44-05 only rejects a resolved target whose
+directory-qualified effective path equals `self.env.found_docs` (a real
+document's own output path) or the reserved `"_template"` basename. It
+never checks the resolved target against **other entries in the same
+`typst_documents` list**. When two masters (whether both explicit, or one
+explicit and one derived) resolve to the same effective path, `write()`
+writes both docnames' bodies to that one path in `sorted(docnames)` order,
+so the alphabetically-later docname's `write_doc()` call silently
+overwrites the earlier one's file with no warning and no error — the
+earlier master's document vanishes entirely from the build output.
+
+Live reproduction against this checkout (`-b typst`):
+
+```python
+# conf.py
+typst_documents = [
+    ("index", "manual.typ", "Index Master", author),
+    ("other", "manual.typ", "Other Master", author),
+]
+```
+
+```
+$ sphinx-build -b typst src build
+writing output... [index] done
+writing output... [other] done
+build succeeded.
+
+$ ls build/*.typ
+build/_template.typ
+build/manual.typ
+
+$ grep -c 'INDEX-MASTER-BODY-UNIQUE' build/manual.typ
+0
+$ grep -c 'OTHER-MASTER-BODY-UNIQUE' build/manual.typ
+1
+```
+
+`build succeeded`, exit 0, **zero warning**. The `index` master's entire
+document is gone from disk with no trace.
+
+The `-b typstpdf` counterpart is worse — it does not even fail loudly (the
+docname-collision case at least hard-fails with `TypstError: cyclic
+import`; this one does not, because there is no self-reference):
+
+```
+$ sphinx-build -b typstpdf src build
+...
+Compiling 2 master document(s) to PDF...
+Generated PDF: build/manual.pdf
+Generated PDF: build/manual.pdf
+build succeeded.
+
+$ ls build/*.pdf
+build/manual.pdf
+```
+
+Both masters "successfully" compile and both log lines claim
+`Generated PDF: build/manual.pdf` — the exact same path, twice — silently
+discarding the `index` master's PDF. A user watching the log sees two
+successful compiles and one file; nothing before this points at data loss.
+
+This is not a synthetic edge case: it happens whenever any two
+`typst_documents` entries share a target name (explicit copy-paste error,
+two masters both left at an identical explicit `"manual.typ"`, or one
+explicit entry that happens to match what `_default_typst_documents` would
+derive for a second, unlisted master added later). None of the four new
+CR-01 gate tests, nor any other test in this file list, exercises a
+two-entry `typst_documents` with colliding targets.
+
+**Fix:** Extend the CR-01 guard to also check the resolved effective path
+against every *other* `typst_documents` entry's resolved effective path
+(not just `found_docs`/`_template`), e.g. by resolving all entries' stems
+up front (in `prepare_writing()` or lazily with memoization) and tracking
+which effective paths have already been claimed by an earlier entry in
+list order:
+
+```python
+# In prepare_writing(), after self.writer is created:
+self._claimed_output_paths: dict[str, str] = {}  # effective path -> docname
+
+# In _resolve_output_stem, after the existing found_docs/_template check
+# and before the final `return stem`:
+claimed_by = self._claimed_output_paths.get(effective)
+if effective != docname and claimed_by is not None and claimed_by != docname:
+    logger.warning(
+        f"typst_documents target name {target!r} for docname {docname!r} "
+        f"collides with the target already claimed by {claimed_by!r} -- "
+        f"falling back to {docname!r}"
+    )
+    return docname
+self._claimed_output_paths.setdefault(effective, docname)
+```
+
+Add a gate test mirroring `test_typst_documents_collision_gate.py`'s
+existing pattern: two masters with identical explicit target names, asserting
+both `.typ`/`.pdf` files exist under their own docnames (or one falls back
+with a warning) rather than one silently vanishing.
+
+## Warnings
+
+### WR-01 (deferred, unchanged from prior review): The corrected D-03 "empty list" warning wording asserts a fact that does not hold for every value that reaches its branch
+
+**File:** `typsphinx/builder.py:954-968`
+
+Re-verified present and unchanged: `typst_documents = getattr(self.config,
+"typst_documents", [])` (no `or []` normalization) followed by
+`if not typst_documents:` is also true for `typst_documents = None`, for
+which the message "typst_documents is explicitly set to an empty list" is
+factually wrong. Per the phase owner's decision recorded in
+`44-CONTEXT.md`, this is explicitly out of scope for plan 44-05 and is
+re-listed here under its original ID rather than as a new finding. See the
+prior review (`2026-08-04T06:11:48Z`, preserved further down in this file's
+git history) for the full analysis and suggested fix.
+
+### WR-02: The CR-01 collision warning (and every other `_resolve_output_stem` warning branch) is logged twice under `-b typstpdf`, because `write_doc()` and `finish()` both re-resolve the same docname without caching
+
+**File:** `typsphinx/builder.py:880-924` (`TypstPDFBuilder.write_doc`) and
+`typsphinx/builder.py:1001` (`TypstPDFBuilder.finish`)
+
+**Issue:** `TypstPDFBuilder.write_doc()` calls
+`self._resolve_output_stem(docname)` once per document during the write
+phase; `TypstPDFBuilder.finish()` calls it again, per master, during the
+PDF-compile phase, purely to re-derive the `.typ` read-back path. Because
+`_resolve_output_stem` is stateless and re-runs its full warning logic on
+every call, any docname that triggers a `logger.warning` branch (the
+D-06/D-07 path guard, the degenerate-target fallback, or the new CR-01
+collision guard) logs that warning **twice** for `-b typstpdf`, while
+`-b typst` (whose `write_doc()` never calls `_resolve_output_stem` a second
+time) logs it once. Verified live against this checkout:
+
+```
+$ sphinx-build -b typstpdf tests/fixtures/derived_docname_collision_gate build
+writing output... [index]WARNING: typst_documents target name 'chapter1.typ'
+  for docname 'index' collides with an existing document or the reserved
+  template file -- falling back to 'index'
+...
+WARNING: typst_documents target name 'chapter1.typ' for docname 'index'
+  collides with an existing document or the reserved template file --
+  falling back to 'index'
+```
+
+The same collision is reported twice for the same docname, which reads as
+if two separate problems were found (or that a compile ran twice) and is
+inconsistent with the single-warning behavior of `-b typst` for the exact
+same misconfiguration. This duplicate-logging pattern predates Phase 44 for
+the pre-existing D-06/D-07 branches, but the new CR-01 collision warning
+inherits it unmodified, and none of the new gate tests assert warning
+*count* (they only assert substring presence), so the duplication is
+undetected by the current suite.
+
+**Fix:** Cache the resolved stem per docname for the duration of a build
+(e.g. `self._resolved_stems: dict[str, str] = {}` populated in
+`write_doc()` and consulted by `finish()` instead of re-calling
+`_resolve_output_stem`), so every warning branch logs exactly once
+regardless of builder.
+
+## Info
+
+### IN-01 (deferred, unchanged from prior review): Vacuous assertion in `test_default_typst_documents_gate.py` cannot distinguish pass from fail
+
+**File:** `tests/test_default_typst_documents_gate.py:120-123`
+
+Re-verified present and unchanged: `assert "Nothing to compile" not in
+result.stderr` can never fail given the current D-03 wording ("...nothing
+will be compiled...", different substring), making the assertion
+permanently vacuous. Per the phase owner's decision, explicitly out of
+scope for plan 44-05 and re-listed here under its original ID. See the
+prior review for the full analysis and suggested fix.
+
+### IN-02: `_resolve_output_stem` and `TypstPDFBuilder.finish()` are both large, multi-branch functions, which makes gaps like CR-02 easy to introduce and easy to miss in review
+
+**File:** `typsphinx/builder.py:156-288` (`_resolve_output_stem`, ~132
+lines) and `typsphinx/builder.py:925-1039` (`TypstPDFBuilder.finish`, ~115
+lines)
+
+**Issue:** `_resolve_output_stem` now carries five independent concerns in
+one function body: entry lookup, suffix stripping, the D-06/D-07 path
+guard, the degenerate-target guard, and the CR-01 collision guard — each
+individually well-commented and well-tested in isolation, but the
+function's overall length and branching depth is exactly the kind of
+surface where a sibling collision case (CR-02) is easy to add a guard for
+in one spot and miss in another. Similarly, `finish()` interleaves
+malformed-entry handling, the BLD-01 type guard, stem re-resolution, and
+PDF compilation in one 115-line loop body.
+
+**Fix:** Not a functional defect on its own — flagged as a maintainability
+note. Consider extracting the path guard and the collision guard in
+`_resolve_output_stem` into two separately-named, separately-tested helper
+functions (e.g. `_guard_path_bearing_target(stem) -> str` and
+`_guard_collision(docname, stem) -> str | None`), and extracting `finish()`'s
+per-entry validation (malformed tuple / non-str docname / stem resolution)
+into a helper that returns either a validated `(docname, typ_file)` pair or
+a failure message, so future collision classes are checked in one place
+that already returns "warn and fall back" rather than being re-derived at
+each new guard's insertion point.
+
+---
+
+_Reviewed: 2026-08-04T00:00:00Z_
+_Reviewer: Claude (gsd-code-reviewer)_
+_Depth: standard_
+
+---
+
+## Appendix A — Archived prior review (2026-08-04T06:11:48Z, plans 01-04)
+
+This review file is rewritten wholesale on each `/gsd-code-review` run. The prior
+review's CR-01 finding and the orchestrator's independent re-measurement of it are
+cited by `44-GATE-EVIDENCE-05.md` ("44-REVIEW.md § CR-01", "§ Orchestrator independent
+re-measurement of CR-01 A-D"), so they are preserved verbatim below rather than left as
+dangling references. CR-01 itself is FIXED as of plan 44-05 (commit `edca2de`); the
+content below is historical. Original file also recoverable at commit `6aa452b`.
+
+<details>
+<summary>Prior review, verbatim</summary>
+
+---
+phase: 44-typst-documents-default-derivation-builder-input-hardening
 reviewed: 2026-08-04T06:11:48Z
 depth: standard
 files_reviewed: 16
@@ -285,3 +596,5 @@ it, so the `#let project(...)` definition every emitted document imports no long
 **Verdict: CR-01 CONFIRMED as reported.** All four measurements reproduce. The reviewer's
 statement that no gate test in this phase covers the scenario is also confirmed — every new
 fixture's `project` value is collision-free by construction.
+
+</details>
