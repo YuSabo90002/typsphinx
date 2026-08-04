@@ -57,6 +57,11 @@ NF2_CAPTION = "NF2CAP"
 NF2_LEGEND_TEXT = "NF2LEGENDTEXT"
 NF3_CONTROL_CAPTION = "NF3CTRLCAP"
 NF4_LEGEND_ONLY = "NF4LEGENDONLY"
+NF5_OUTER_CAPTION = "NF5OUTERCAP"
+NF5_OUTER_LEGEND = "NF5OUTERLEGEND"
+NF5_INNER_CAPTION = "NF5INNERCAP"
+NF5_INNER_LEGEND = "NF5INNERLEGEND"
+NF5_TRAILING_PARA = "NF5TRAILINGPARA"
 
 
 @pytest.fixture
@@ -285,3 +290,74 @@ class TestNestedFigureRenderGate:
             f"Expected no-caption legend sentinel '{NF4_LEGEND_ONLY}' in "
             f"extracted PDF text:\n{full_text}"
         )
+
+    def test_legend_in_legend_does_not_leak_list_item_state(
+        self, nested_figure_render_gate_dir, temp_build_dir
+    ):
+        """
+        Section 5 (43-REVIEW.md CR-01): the outer figure's legend contains
+        an INNER figure that itself has BOTH a caption and its own legend.
+        Pre-fix, ``visit_legend``/``depart_legend`` saved
+        ``in_list_item``/``list_item_needs_separator`` into two flat
+        instance attributes instead of a real stack, so the inner legend's
+        ``visit_legend`` clobbers the outer legend's saved values with its
+        own already-mutated ``True``/``True`` -- the outer
+        ``depart_legend`` then restores the WRONG value, leaking
+        ``in_list_item = True`` into every sibling for the rest of the
+        document.
+
+        Asserts on the RENDERED result, in the same style as
+        ``test_image_only_control_is_byte_unchanged`` above: the top-level
+        paragraph immediately after the outer figure must render through
+        the NORMAL top-level paragraph path (``par({...})``), not the
+        list-item/legend path (a bare ``parbreak()`` followed by an
+        unwrapped ``text(...)``). Also asserts both captions and both
+        legend sentinels appear in the extracted PDF text, so this test
+        cannot pass by breaking the nesting it is meant to protect.
+        """
+        result = _run_sphinx_build_typstpdf(
+            nested_figure_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        typ_output = temp_build_dir / "index.typ"
+        assert typ_output.exists(), "index.typ was not emitted"
+        typ_text = typ_output.read_text(encoding="utf-8")
+
+        expected_trailing_para = f'par({{text("{NF5_TRAILING_PARA} sentinel text.")}})'
+        assert expected_trailing_para in typ_text, (
+            "The trailing top-level paragraph after the legend-in-legend "
+            "figure did not render through the normal paragraph path -- "
+            "in_list_item leaked as True past the outer figure's "
+            f"depart_legend (43-REVIEW.md CR-01):\n{typ_text}"
+        )
+
+        leaked_form = f'parbreak()\n\ntext("{NF5_TRAILING_PARA} sentinel text.")'
+        assert leaked_form not in typ_text, (
+            "The trailing paragraph emitted the LEAKED list-item form "
+            f"(parbreak() + bare text(...)) instead of par({{...}}):\n{typ_text}"
+        )
+
+        pdf_output = temp_build_dir / "index.pdf"
+        assert pdf_output.exists(), (
+            "index.pdf was not produced -- typst.compile() aborted on the "
+            f"legend-in-legend shape:\nstderr: {result.stderr}"
+        )
+        reader = pypdf.PdfReader(str(pdf_output))
+        full_text = "\n".join(page.extract_text() for page in reader.pages)
+
+        for sentinel in (
+            NF5_OUTER_CAPTION,
+            NF5_OUTER_LEGEND,
+            NF5_INNER_CAPTION,
+            NF5_INNER_LEGEND,
+            NF5_TRAILING_PARA,
+        ):
+            assert sentinel in full_text, (
+                f"Expected sentinel '{sentinel}' in extracted PDF text -- "
+                f"a test that passes by dropping content is not a valid "
+                f"regression gate:\n{full_text}"
+            )

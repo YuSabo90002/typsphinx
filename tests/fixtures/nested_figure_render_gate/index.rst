@@ -60,3 +60,31 @@ session via a direct ``publish_doctree`` probe (recorded in
    ..
 
    NF4LEGENDONLY
+
+Legend containing a figure that itself has a caption and a legend
+-------------------------------------------------------------------
+
+Reproduces 43-REVIEW.md CR-01: the outer figure's legend contains an INNER
+figure that itself has BOTH a caption AND its own legend (not merely a
+caption, as Section 1 above does). ``visit_legend``/``depart_legend``'s
+pre-fix save/restore used two flat instance attributes instead of a real
+stack, so the inner legend's ``visit_legend`` clobbers the outer legend's
+saved values with its own already-mutated ``True``/``True`` before the
+outer ``depart_legend`` ever restores them -- leaking ``in_list_item =
+True`` into every sibling for the rest of the document. Section 1's inner
+figure has no legend of its own, so it does NOT trigger this; the inner
+figure here needs both a caption and a legend to reproduce the clobber.
+
+.. figure:: img.png
+
+   NF5OUTERCAP
+
+   NF5OUTERLEGEND
+
+   .. figure:: img.png
+
+      NF5INNERCAP
+
+      NF5INNERLEGEND
+
+NF5TRAILINGPARA sentinel text.

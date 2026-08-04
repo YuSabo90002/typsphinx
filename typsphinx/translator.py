@@ -264,6 +264,23 @@ class TypstTranslator(SphinxTranslator):
         # following a nested list as top-level and emits an unseparated
         # `par(...)` right after the nested `list(...)` -> `})par(` syntax error.
         self._list_item_stack: List[bool] = []
+
+        # Stack of (in_list_item, list_item_needs_separator) pairs pushed by
+        # visit_legend and popped by depart_legend (43-REVIEW.md CR-01,
+        # Phase 43 gap closure). A figure's legend borrows the in-list-item
+        # separator machinery purely to newline-separate its first child
+        # from the preceding image(...) expression (see visit_legend's
+        # docstring) -- but a legend can itself contain a NESTED figure
+        # whose own legend also visits. Two flat scalars cannot represent
+        # more than one level: the inner legend's visit_legend would
+        # overwrite the outer legend's saved values with its own
+        # already-mutated True/True before the outer depart_legend ever
+        # restores them, leaking in_list_item=True into every sibling for
+        # the rest of the document. A real stack (mirroring
+        # _list_item_stack immediately above) makes each nesting level
+        # independent, exactly like _push_figure_state/_pop_figure_state
+        # does for the figure scalars proper.
+        self._legend_list_item_stack: List[Tuple[bool, bool]] = []
         self.in_literal_block = False  # Track if currently in a code block
 
         # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
@@ -2718,8 +2735,17 @@ class TypstTranslator(SphinxTranslator):
         in-list-item separator machinery (the same mechanism
         ``visit_paragraph``/``_emit_forced_break`` already use for a
         paragraph inside a real bullet-list item), rather than inventing a
-        new one. Save/restore both values for nesting safety (a legend can
-        itself contain a real list item).
+        new one.
+
+        Pushes onto ``self._legend_list_item_stack`` (43-REVIEW.md CR-01)
+        rather than saving into flat scalars -- a legend can itself contain
+        a NESTED figure whose own legend also visits (a legend-in-legend
+        shape), and two flat scalars cannot represent more than one
+        nesting level: the inner legend's own save would overwrite the
+        outer legend's saved values before the outer ``depart_legend``
+        ever restores them. Mirrors ``_list_item_stack``
+        (``visit_list_item``/``depart_list_item``, immediately above in
+        ``__init__``) and ``_push_figure_state``/``_pop_figure_state``.
 
         No styling is emitted -- a bare structural pass-through, matching
         Sphinx's own LaTeX writer (43-RESEARCH.md/CONTEXT Deferred Ideas
@@ -2728,25 +2754,39 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The legend node
         """
-        self._legend_saved_in_list_item = self.in_list_item
-        self._legend_saved_list_item_needs_separator = self.list_item_needs_separator
+        self._legend_list_item_stack.append(
+            (self.in_list_item, self.list_item_needs_separator)
+        )
         self.in_list_item = True
         self.list_item_needs_separator = True
 
     def depart_legend(self, node: nodes.legend) -> None:
         """
-        Depart a figure's legend node (FIG-01, Phase 43).
+        Depart a figure's legend node (FIG-01, Phase 43; stacked in the
+        CR-01 gap closure).
 
         Emits the closing ``}`` for the body block ``visit_figure`` opened
-        (gated on ``self._figure_has_legend``), then restores the
-        separator-context values ``visit_legend`` saved.
+        (gated on ``self._figure_has_legend``), then pops the
+        separator-context values ``visit_legend`` pushed.
+
+        A no-op-safe pop (ASVS V5, mirroring ``depart_list_item``'s and
+        ``_pop_figure_state``'s guard): an unbalanced ``depart_legend`` from
+        a malformed doctree -- one with no matching prior ``visit_legend``
+        -- falls back to ``False``/``False`` instead of raising
+        ``IndexError`` out of the translator. Never call
+        ``self._legend_list_item_stack.pop()`` or index ``[-1]`` directly.
 
         Args:
             node: The legend node
         """
         self.add_text("\n}")
-        self.in_list_item = self._legend_saved_in_list_item
-        self.list_item_needs_separator = self._legend_saved_list_item_needs_separator
+        if self._legend_list_item_stack:
+            self.in_list_item, self.list_item_needs_separator = (
+                self._legend_list_item_stack.pop()
+            )
+        else:
+            self.in_list_item = False
+            self.list_item_needs_separator = False
 
     def visit_footnote(self, node: nodes.footnote) -> None:
         """
