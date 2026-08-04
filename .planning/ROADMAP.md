@@ -455,12 +455,12 @@ the derivation touches — the change is made once, in one place, with one set o
   5. Every existing test that encoded the old `[]`-default behaviour is updated deliberately (each
      change traceable to this requirement rather than absorbed silently), and the full suite,
      `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green.
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 44-01-PLAN.md — CONF-08: the derived default (tracer end-to-end) + SC#2 explicit-wins + D-01's degradation table
+- [x] 44-01-PLAN.md — CONF-08: the derived default (tracer end-to-end) + SC#2 explicit-wins + D-01's degradation table
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -691,7 +691,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
-| 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 0/TBD | Not started | - |
+| 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 1/4 | In Progress|  |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 0/TBD | Not started | - |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
@@ -800,6 +800,7 @@ real-HTTP check covers that class instead.
 - `toctree-heading-offset-ignored-because-visit-title-emits-abs` → Phase 44.1 (TOC-01) — filed and
   promoted 2026-08-04, after the roadmap was created; the phase was inserted rather than folded into
   an existing one.
+
 - `SEED-001-readme-quickstart-typst-documents-pdf` → Phase 44 (CONF-08) + Phase 45 (DOC-11)
 - `docs-changelog-page-stale-at-0-4-0` → Phase 45 (DOC-12)
 - `derive-typst-lang-duplicated-warning-block` → Phase 45 (QUA-02)

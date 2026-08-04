@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 44
-current_phase_name: "`typst_documents` Default Derivation + Builder Input Hardening"
+current_phase_name: typst-documents-default-derivation-builder-input-hardening
 status: executing
 stopped_at: Phase 44 planned
-last_updated: "2026-08-04T05:02:47.128Z"
+last_updated: "2026-08-04T05:07:55.467Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 43 complete, transitioned to Phase 44
+last_activity_desc: Phase 44 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -31,11 +31,11 @@ Next action: `/gsd-execute-phase 44`.
 
 ## Current Position
 
-Phase: 44 — `typst_documents` Default Derivation + Builder Input Hardening
-Plan: 4 plans in 3 waves
-Status: Ready to execute
+Phase: 44 (typst-documents-default-derivation-builder-input-hardening) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 44
 Progress: [####----------------] 20% (1/5 phases)
-Last activity: 2026-08-04 — Phase 43 complete, transitioned to Phase 44
+Last activity: 2026-08-04 — Phase 44 execution started
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
