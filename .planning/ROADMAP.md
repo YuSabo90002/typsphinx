@@ -556,7 +556,7 @@ concurrent heading-shape change.
   8. Neither the master template (`templates/base.typ`) nor `_write_template_file` introduces its
      own `heading(offset:)` that would shift the master — verified by inspection and by SC#3's
      byte-invariance result.
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 was deleted at commit `2c31b89` because it was built on the falsified one-part premise)*
 
 **Wave 1**
@@ -570,7 +570,7 @@ was deleted at commit `2c31b89` because it was built on the falsified one-part p
 
 **Wave 3**
 
-- [ ] 44.1-04-PLAN.md — SC#3 both invariance halves over the measured corpus with their positive controls, the SC#8 permanent guard, the SC#7 discharge map, and D-01's TOC-01 correction in REQUIREMENTS.md
+- [x] 44.1-04-PLAN.md — SC#3 both invariance halves over the measured corpus with their positive controls, the SC#8 permanent guard, the SC#7 discharge map, and D-01's TOC-01 correction in REQUIREMENTS.md
 
 > **Planning finding, 2026-08-04 — SC#2 rested on a falsified premise, resolved by owner decision
 > D-07 (2026-08-05).** Measured against typst-py 0.15.0: Typst's `set heading(offset: N)` is an
@@ -877,7 +877,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 5/5 | Complete    | 2026-08-04 |
-| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 3/4 | In Progress|  |
+| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | In Progress|  |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
