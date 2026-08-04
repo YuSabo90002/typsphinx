@@ -108,9 +108,12 @@ typst_documents = [
     assert "doc_authors:" in content
     assert "version_number:" in content
 
-    # Check values are correct
-    assert '"My Custom Project"' in content
-    assert '"Custom Author"' in content
+    # CONF-09 (Phase 44.2, D-03): the entry's own title/author
+    # (typst_documents = [('index', 'index', 'Test', 'Author')]) now win
+    # over config.project ('My Custom Project') / config.author
+    # ('Custom Author') -- measured from a build run in this session.
+    assert '"Test"' in content
+    assert '"Author"' in content
     assert '"2.0.0"' in content
 
 
@@ -151,9 +154,12 @@ typst_documents = [
     # Custom mapping for project
     assert "document_title:" in content
 
-    # Default mappings for others (title, authors, date are default names)
-    # Since only 'project' is mapped, TemplateEngine should still provide defaults
-    assert "Test Project" in content
+    # CONF-09 (Phase 44.2, D-03): the entry's own title
+    # (typst_documents = [('index', 'index', 'Test', 'Author')]) now wins
+    # over config.project ('Test Project') -- measured from a build run in
+    # this session. The custom-mapped parameter NAME assertion above is
+    # unaffected by this change.
+    assert 'document_title: "Test"' in content
 
 
 def test_invalid_mapping_type(make_app, tmp_path):
