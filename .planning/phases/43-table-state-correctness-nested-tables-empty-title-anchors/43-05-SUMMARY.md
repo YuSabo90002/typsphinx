@@ -169,4 +169,8 @@ None - no external service configuration required. The `gh` CLI was already auth
 *Phase: 43-table-state-correctness-nested-tables-empty-title-anchors*
 *Completed: 2026-08-04*
 
-## Self-Check: PENDING
+## Self-Check: PASSED
+
+All claimed created files verified present on disk (`43-GATE-EVIDENCE-05.md`,
+`43-GATE-EVIDENCE-06.md`, `43-05-SUMMARY.md`). All three claimed commits verified present in
+`git log` (`6571bff`, `fa99b9d`, `b618dbd`, the last being this SUMMARY's own commit).
