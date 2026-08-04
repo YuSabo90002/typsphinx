@@ -1,61 +1,17 @@
 ---
 phase: 44-typst-documents-default-derivation-builder-input-hardening
-verified: 2026-08-04T07:00:00Z
-status: gaps_found
-score: 5/6 must-haves verified
+verified: 2026-08-04T08:00:00Z
+status: passed
+score: 6/6 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "A user who follows the Quick Start exactly gets a PDF, without a reachable configuration-free path to silent content loss or a hard build failure (ROADMAP Phase 44 goal statement; CR-01, 44-REVIEW.md)."
-    status: failed
-    reason: >
-      Neither `_default_typst_documents` (typsphinx/builder.py:28-47) nor
-      `_resolve_output_stem` (typsphinx/builder.py:156-261), the single normalization
-      site every derived AND explicit `typst_documents` target name flows through,
-      checks a resolved output stem for collision against another real docname in
-      `self.env.found_docs`, or against the reserved `_template.typ` basename that
-      `_write_template_file()` unconditionally writes at outdir root before any
-      document is written. Before this phase, triggering the collision required an
-      explicit, deliberately-crafted `typst_documents` entry. After this phase it is
-      reachable with ZERO configuration: an ordinary `project` name whose
-      `make_filename_from_project` slug happens to equal an existing docname (e.g.
-      `project = "Chapter 1"` alongside a toctree-included `chapter1.rst` -- a
-      thoroughly ordinary docs layout, a project named after its first chapter) makes
-      the derived master's `-b typst` write silently overwrite `chapter1.rst`'s own
-      output with the index master's content, and its content is then gone from disk
-      with exit 0 and no warning; `-b typstpdf` on the identical input hard-fails with
-      `TypstError: cyclic import`. A `project` name that slugifies to `_template`
-      (e.g. `"_Template"`) clobbers the shared `_template.typ` infrastructure file
-      itself, breaking every master's `#import "_template.typ": project`.
-
-      Independently reproduced by this verifier on the current HEAD (6aa452b), not
-      merely re-read from 44-REVIEW.md: a fresh fixture with `project = "Chapter 1"`,
-      `index.rst` toctree-including `chapter1.rst` (body marker
-      `UNIQUE-CHAPTER-MARKER-XYZ`), built with `sphinx-build -b typst`, exits 0,
-      writes only `chapter1.typ` (no `index.typ`), and
-      `grep -c UNIQUE-CHAPTER-MARKER-XYZ out/chapter1.typ` returns `0` -- the real
-      chapter's rendered body is gone. This matches CR-01 and the orchestrator's own
-      independent re-measurement in `44-REVIEW.md` ("## Orchestrator independent
-      re-measurement of CR-01") exactly.
-
-      This is not a pre-existing, unrelated defect merely surfaced by this phase: the
-      collision *mechanism* in `_resolve_output_stem` is pre-existing, but it was only
-      reachable by an explicit, deliberately-crafted `typst_documents` entry before
-      CONF-08. CONF-08 is precisely the change that makes it reachable by an ordinary,
-      unset-config Quick Start project with a common docs layout -- on the exact path
-      the phase goal ("a user who follows the Quick Start exactly gets a PDF") exists
-      to make reliable. None of this phase's own new gate fixtures
-      (`default_typst_documents_gate`, `explicit_typst_documents_wins_gate`,
-      `non_str_docname_gate`, `empty_typst_documents_optout_gate`) exercises this
-      scenario -- every fixture's `project` value was chosen so its derived stem never
-      collides with an existing docname or `_template`, so no test in the phase's own
-      suite would catch a regression here.
-    artifacts:
-      - path: "typsphinx/builder.py"
-        issue: "_resolve_output_stem (lines 156-261) resolves both the derived and any explicit typst_documents target name with no check against self.env.found_docs or the reserved \"_template\" basename before the stem is handed to write()/_write_template_file()."
-    missing:
-      - "A collision check in _resolve_output_stem (or immediately after it) that rejects any resolved stem equal to another docname actually present in self.env.found_docs (other than the docname being resolved) or equal to \"_template\", with a logger.warning and a safe fallback to the docname itself -- matching the existing D-06/D-07 degenerate-target handling style (44-REVIEW.md CR-01 fix sketch)."
-      - "A new gate test mirroring both reproduced cases (derived-default-triggered docname collision, e.g. project=\"Chapter 1\" + chapter1.rst; and the _template.typ clobber, e.g. project=\"_Template\") asserting no file is silently overwritten and a warning fires, for both the derived-default path and an explicit typst_documents entry that produces the same collision."
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/6
+  gaps_closed:
+    - "A user who follows the Quick Start exactly gets a PDF, without a reachable configuration-free path to silent content loss or a hard build failure (CR-01)."
+  gaps_remaining: []
+  regressions: []
 prohibitions_flagged: []
 human_verification: []
 ---
@@ -67,9 +23,9 @@ defaults to `[]` and `TypstPDFBuilder.finish()` returns early on it, so `sphinx-
 exits 0, emits one `WARNING`, and produces zero PDFs. This phase derives a Sphinx-native default
 (mirroring `latex_documents`) and hardens `TypstPDFBuilder.finish()` against a non-`str` docname
 (BLD-01).
-**Verified:** 2026-08-04T07:00:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-08-04T08:00:00Z
+**Status:** passed
+**Re-verification:** Yes — after gap closure (plan 44-05, closing CR-01)
 
 ## Goal Achievement
 
@@ -77,74 +33,81 @@ exits 0, emits one `WARNING`, and produces zero PDFs. This phase derives a Sphin
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | SC#1 — a project whose `conf.py` never mentions `typst_documents`, built with `sphinx-build -b typstpdf`, produces a PDF named `make_filename_from_project(project)`, warning gone | ✓ VERIFIED | `44-GATE-EVIDENCE-01.md` §§1,3: RED against unchanged code (exit 0, `index.typ`, zero PDFs, `WARNING: No documents defined...`) → GREEN after the derivation (exit 0, `quickstartdefaultgate.typ`+`.pdf`, template applied, no warning). Re-confirmed by this verifier: `uv run python -m pytest tests/test_default_typst_documents_gate.py -q` passes in the full-suite run below, and `typsphinx/builder.py:28-47` (`_default_typst_documents`) and `typsphinx/__init__.py`'s registration were read directly and match the derivation described. |
-| 2 | SC#2 — an explicit `typst_documents` always wins, producing exactly the targets it names and nothing else | ✓ VERIFIED | `44-GATE-EVIDENCE-01.md` §5: real `sphinx-build -b typstpdf` over `tests/fixtures/explicit_typst_documents_wins_gate` produces exactly `manual.typ`+`manual.pdf`; `ls -la` confirms no `explicitwinsgate.*` and no `index.*`. |
-| 3 | SC#3 — a non-`str` docname reaching `TypstPDFBuilder.finish()` fails with an actionable typsphinx-level error naming the offending value, not a raw `TypeError` | ✓ VERIFIED | `44-GATE-EVIDENCE-02.md` §§1-2: RED (bare `TypeError` from `posixpath.dirname`, exit 2, whole build dies, no aggregate message) → GREEN (`isinstance(docname, str)` guard at `typsphinx/builder.py:966`, typsphinx-authored `WARNING: typst_documents entry has a non-str docname: 123 -- expected a str`, aggregate `ExtensionError`, `TypeError` absent, the valid master's `index.typ`/`.pdf` still written). Guard code read directly and confirmed present at HEAD. |
-| 4 | SC#4 — the output-filename rename is measured, not assumed, and the measured pair is handed to Phase 46 as CHANGELOG source text | ✓ VERIFIED | `44-GATE-EVIDENCE-03.md` §§1-9: two named commits, per-side `typsphinx.__file__` isolation proofs (distinct paths, neither the main checkout), four real builds (pre: `index.typ`/412B/no template/0 PDFs/1 warning; post: `quickstartdefaultgate.typ`/532B/templated/1 PDF/0 warnings), paired table, quotable CHANGELOG block in §7. `44-GATE-EVIDENCE-04.md` §8 (orchestrator addendum) independently re-confirms this post-merge, reading the file's own sections rather than trusting 44-03's SUMMARY. |
-| 5 | SC#5 — every existing test that encoded the old `[]`-default is updated deliberately and traceably; full suite, `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green | ✓ VERIFIED | `44-GATE-EVIDENCE-04.md` §§1-7: repo-wide census (107 `conf.py` files, 2 intentional new exceptions), corrected blast-radius grep surfacing `tests/test_builder.py` (missed by `44-RESEARCH.md`'s original pattern set) plus the reconciled `tests/test_builder_requirement13.py` discovery, per-file verdict table (2 CHANGED, 9 VERIFIED-NO-CHANGE, each with a proof), full suite `855 passed, 1 skipped` including `test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error` by node id, `black`/`ruff`/`mypy` all exit 0, `pyproject.toml`/`uv.lock` diff empty. **Independently re-run by this verifier** on the current checkout (HEAD `6aa452b`, main tree, not a worktree): `uv run python -m pytest -q` → `855 passed, 1 skipped in 78.39s`; `uv run black --check .` → clean; `uv run ruff check .` → clean; `uv run mypy typsphinx/` → clean. Matches the recorded baseline exactly. |
-| 6 | A user who follows the Quick Start exactly gets a PDF, without a reachable configuration-free path to silent content loss or a hard build failure (phase goal statement, judged goal-backward against CR-01) | ✗ FAILED | See Gaps Summary and the `gaps` frontmatter entry. Independently reproduced by this verifier (not merely re-read from `44-REVIEW.md`): `project = "Chapter 1"` + toctree-included `chapter1.rst` → `sphinx-build -b typst` exits 0, writes only `chapter1.typ` (the index master's content, self-referential `include`), and `chapter1.rst`'s own rendered body (`UNIQUE-CHAPTER-MARKER-XYZ`) is verified absent from disk (`grep -c` → `0`). |
+| 1 | SC#1 — a project whose `conf.py` never mentions `typst_documents`, built with `sphinx-build -b typstpdf`, produces a PDF named `make_filename_from_project(project)`, warning gone | ✓ VERIFIED (regression-checked) | `44-GATE-EVIDENCE-01.md` §§1,3 (original evidence, unchanged); re-confirmed here via the full-suite re-run (`863 passed, 1 skipped`, includes `tests/test_default_typst_documents_gate.py`) and direct read of `typsphinx/builder.py:28-47` (`_default_typst_documents`), unchanged by plan 44-05 except for the docstring's added CR-01 sentence. |
+| 2 | SC#2 — an explicit `typst_documents` always wins, producing exactly the targets it names and nothing else | ✓ VERIFIED (regression-checked) | `44-GATE-EVIDENCE-01.md` §5 (original evidence, unchanged); the `explicit_typst_documents_wins_gate` fixture is still exercised in the full-suite re-run. |
+| 3 | SC#3 — a non-`str` docname reaching `TypstPDFBuilder.finish()` fails with an actionable typsphinx-level error naming the offending value, not a raw `TypeError` | ✓ VERIFIED (regression-checked) | `44-GATE-EVIDENCE-02.md` §§1-2 (original evidence, unchanged); guard read directly at `typsphinx/builder.py:966`, present and unmodified by plan 44-05. |
+| 4 | SC#4 — the output-filename rename is measured, not assumed, and the measured pair is handed to Phase 46 as CHANGELOG source text | ✓ VERIFIED (regression-checked) | `44-GATE-EVIDENCE-03.md` §§1-9 and `44-GATE-EVIDENCE-04.md` §8 (original evidence, unchanged); the fixture that discharges SC#4 (`default_typst_documents_gate`, `project = "Quickstart Default Gate"`) is collision-free by construction, so plan 44-05's guard does not touch its output — confirmed by the full-suite re-run showing no change to this fixture's expected content. |
+| 5 | SC#5 — every existing test that encoded the old `[]`-default is updated deliberately and traceably; full suite, `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green | ✓ VERIFIED (re-measured) | Independently re-run by this verifier on current HEAD (`35d05ca`, main tree, not a worktree): `uv run python -m pytest -q` → `863 passed, 1 skipped in 79.37s` (the +8 over the `855 passed, 1 skipped` 44-04 baseline is exactly plan 44-05's new tests — 5 collision-gate subprocess tests + 3 unit tests); `uv run black --check .` → clean (`230 files would be left unchanged`); `uv run ruff check .` → `All checks passed!`; `uv run mypy typsphinx/` → `Success: no issues found in 6 source files`. No source file has changed since this suite ran (`git diff --name-only f891eee..HEAD -- typsphinx tests pyproject.toml` is empty), so the result still holds at the tip commit verified here. |
+| 6 | A user who follows the Quick Start exactly gets a PDF, without a reachable configuration-free path to silent content loss or a hard build failure (phase goal statement; CR-01, closed by plan 44-05) | ✓ VERIFIED | **Gap closed.** Independently reproduced by this verifier against current HEAD, not merely re-read from `44-GATE-EVIDENCE-05.md` or `44-05-SUMMARY.md`: built `tests/fixtures/derived_docname_collision_gate` (`project = "Chapter 1"`, `index.rst` toctree-including `chapter1.rst`) with `uv run python -m sphinx -b typst`. Exit 0; BOTH `index.typ` and `chapter1.typ` present on disk; `grep -c UNIQUE-CHAPTER-MARKER-XYZ chapter1.typ` = 1 (the real chapter's body is intact, not overwritten); stderr contains `WARNING: typst_documents target name 'chapter1.typ' for docname 'index' collides with an existing document or the reserved template file -- falling back to 'index'`. Same fixture with `-b typstpdf`: exit 0; `index.pdf` produced, 19976 bytes, first four bytes `%PDF`; no `cyclic import` text anywhere in the output. `typsphinx/builder.py::_resolve_output_stem` (lines 264-283) read directly: the guard computes `effective = self._directory_preserving_relpath(docname, stem)`, compares against `getattr(self.env, "found_docs", None) or set()` and the reserved `"_template"` basename, warns, and falls back to the docname — exactly matching the fix sketch in `44-REVIEW.md`'s original CR-01 finding. `uv run python -m pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q` → `32 passed` (5 subprocess gate tests covering all four scenarios — derived-docname, derived-template, explicit-docname, explicit-template — plus 27 unit tests including the 3 new collision/edge-case ones). |
 
-**Score:** 5/6 truths verified (0 present, behavior-unverified)
+**Score:** 6/6 truths verified (0 present, behavior-unverified)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `typsphinx/builder.py::_default_typst_documents` | Pure derivation callable, `(root_doc, <slug>.typ, project, author, "typst")` | ✓ VERIFIED | Present at lines 28-47, matches D-01/D-02 exactly; body is a single `return`, no memoization, confirmed by reading the source directly. |
-| `typsphinx/__init__.py` registration | `add_config_value("typst_documents", _default_typst_documents, "html", [list])` | ✓ VERIFIED | Import and registration both present (`grep -c '_default_typst_documents' typsphinx/__init__.py` == 2 per `44-GATE-EVIDENCE-01.md`). |
-| `typsphinx/builder.py` BLD-01 guard | `isinstance(docname, str)` guard before the path helpers, joining the existing `failures` list | ✓ VERIFIED | Present at line 966, matches the sibling empty-entry guard's warn/append/continue shape, confirmed by direct read. |
-| `typsphinx/builder.py` D-03 wording | Opt-out warning restated as "explicitly set to an empty list" | ✓ VERIFIED | Present at lines 936-940, WARNING severity unchanged. |
-| `typsphinx/builder.py` collision guard (CR-01 fix) | A check rejecting a resolved stem that collides with `self.env.found_docs` or `"_template"` | ✗ MISSING | `_resolve_output_stem` (lines 156-261) contains no reference to `self.env.found_docs` or `"_template"` anywhere in its body — confirmed by direct read and by `grep -n "found_docs" typsphinx/builder.py`, whose three matches (307, 379, 979) are all unrelated to this method. |
-| Four `44-GATE-EVIDENCE-*.md` files | RED/GREEN records for CONF-08, BLD-01, SC#4, SC#5 | ✓ VERIFIED | All four exist, read in full, and their commands/outputs are internally consistent with the code at HEAD. |
-| `44-REVIEW.md` | Code review with CR-01 blocker + orchestrator independent reproduction | ✓ VERIFIED | Present, committed, contains both the reviewer's findings and a distinct orchestrator re-measurement section. |
+| `typsphinx/builder.py::_default_typst_documents` | Pure derivation callable | ✓ VERIFIED | Present at lines 28-47, unchanged by plan 44-05. |
+| `typsphinx/__init__.py` registration | `add_config_value("typst_documents", _default_typst_documents, "html", [list])` | ✓ VERIFIED | Present, unchanged. |
+| `typsphinx/builder.py` BLD-01 guard | `isinstance(docname, str)` guard | ✓ VERIFIED | Present at line 966, unchanged. |
+| `typsphinx/builder.py` collision guard (CR-01 fix) | A check rejecting a resolved stem that collides with `self.env.found_docs` or `"_template"` | ✓ VERIFIED (was MISSING in prior verification) | Present at `typsphinx/builder.py:264-283`, inside `_resolve_output_stem`, read directly. Uses `self._directory_preserving_relpath(docname, stem)` as the comparison value (not the bare stem), matching planning measurement 1 in `44-05-PLAN.md` about nested docnames. Falls back to the docname with an f-string `logger.warning`, matching the sibling D-06/D-07 style. |
+| `tests/test_typst_documents_collision_gate.py` | Real `sphinx-build` subprocess gate covering (docname collision x reserved-template clobber) x (derived-default path x explicit path) | ✓ VERIFIED | Exists, 5 tests, all pass independently (`uv run python -m pytest tests/test_typst_documents_collision_gate.py -q` → `5 passed`). |
+| `tests/test_builder_output_stem.py` (extended) | 3 new unit tests for the collision guard and the `found_docs`-absent edge case | ✓ VERIFIED | `test_resolve_output_stem_falls_back_on_docname_collision`, `test_resolve_output_stem_falls_back_on_reserved_template_name`, `test_resolve_output_stem_tolerates_env_without_found_docs` all present and passing. |
+| Four new fixture directories | `derived_docname_collision_gate`, `derived_template_collision_gate`, `explicit_docname_collision_gate`, `explicit_template_collision_gate` | ✓ VERIFIED | All four exist with the expected `conf.py`/`.rst` files; contents match the plan's described load-bearing properties (e.g. `derived_docname_collision_gate/conf.py` has no `typst_documents` line, `project = "Chapter 1"`). |
+| `44-GATE-EVIDENCE-05.md` | RED/GREEN record + gap-closure verdict for both `missing:` items | ✓ VERIFIED | Sections 1-7 present; § 7's two-row verdict table marks both `missing:` items `GAP CLOSED` with test node ids that this verifier independently re-ran and confirmed pass. |
+| `44-REVIEW.md` | Post-44-05 code review including a new finding, CR-02 | ✓ VERIFIED (see judgment below) | Present; CR-02 independently reproduced by this verifier (see "New Finding Outside Declared Scope" below). |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `typsphinx/__init__.py::setup` | `typsphinx/builder.py::_default_typst_documents` | `add_config_value("typst_documents", _default_typst_documents, ...)` | ✓ WIRED | Confirmed by direct read of both files. |
-| `typsphinx/builder.py::_default_typst_documents` | `sphinx.util.osutil.make_filename_from_project` | target name derivation | ✓ WIRED | Import present, call present in the function body. |
-| `sphinx.config.Config.__getattr__` | `typsphinx/writer.py::_is_master_document` | unset config resolves to the derived list, root_doc becomes a master | ✓ WIRED | Confirmed by `44-GATE-EVIDENCE-01.md` §3's emitted `.typ` carrying the template import/call, and independently by this verifier's own repro build (root_doc's output was templated). |
-| `TypstPDFBuilder.finish` loop | terminal `ExtensionError` | non-str-docname failures append to the existing `failures` list | ✓ WIRED | Confirmed by direct read at lines 966-971 and `44-GATE-EVIDENCE-02.md`'s GREEN transcript. |
-| `_default_typst_documents` output / any explicit `typst_documents` target | `self.env.found_docs` / `"_template"` reserved name | collision check | ✗ NOT_WIRED | No such check exists anywhere in `_resolve_output_stem`, `write()`, or `_write_template_file()`. This is the CR-01 gap. |
+| `typsphinx/__init__.py::setup` | `typsphinx/builder.py::_default_typst_documents` | `add_config_value` | ✓ WIRED | Unchanged, confirmed by direct read. |
+| `_default_typst_documents` output / any explicit `typst_documents` target | `self.env.found_docs` / `"_template"` reserved name | collision check inside `_resolve_output_stem` | ✓ WIRED (was NOT_WIRED in prior verification) | `typsphinx/builder.py:274-283` reads `found_docs = getattr(self.env, "found_docs", None) or set()` and compares `effective` against it and against `"_template"`, warning and falling back. Both `TypstBuilder.write_doc` and `TypstPDFBuilder.finish` call this same normalization site, so `-b typst` and `-b typstpdf` cannot disagree. Confirmed by direct read and by independent build reproduction above. |
+| `TypstPDFBuilder.finish` loop | terminal `ExtensionError` | non-str-docname failures append to `failures` | ✓ WIRED | Unchanged, confirmed by direct read. |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|-------------|-------------|--------|----------|
-| CONF-08 | 44-01, 44-02, 44-03, 44-04 | With `typst_documents` unset, `-b typstpdf` produces a PDF; derived from `root_doc`/`project`/`author`; explicit setting always wins | ✓ SATISFIED (for the non-colliding case) | `.planning/REQUIREMENTS.md:73` marked `[x]` and `Complete` at line 179. The core derivation, precedence, and opt-out behavior are all verified truths 1/2/5 above. Truth 6 (CR-01) shows the derivation is not yet safe against a docname/`_template` collision — a gap within CONF-08's surface, not a separate requirement. |
-| BLD-01 | 44-02, 44-04 | A non-`str` docname reaching `finish()` fails with an actionable typsphinx-level error | ✓ SATISFIED | `.planning/REQUIREMENTS.md:87` marked `[x]` and `Complete` at line 180 (the tracking gap noted by `44-GATE-EVIDENCE-04.md` and `44-WINDOWS.md` window #2 was closed by the orchestrator, confirmed: `WINDOWS.md` shows `open_count: 0`, window #2 `status: fixed`). Truth 3 above verifies the implementation directly. |
+| CONF-08 | 44-01, 44-02, 44-03, 44-04, 44-05 | With `typst_documents` unset, `-b typstpdf` produces a PDF; derived from `root_doc`/`project`/`author`; explicit setting always wins; derivation is now also collision-safe | ✓ SATISFIED | Truths 1, 2, 5, 6 above. `.planning/REQUIREMENTS.md:73` marked `[x]`/`Complete` at line 179 — this flip (made by the 44-05 executor in commit `c8d0f84`, before this re-verification) is confirmed accurate by this verdict; no revert needed. |
+| BLD-01 | 44-02, 44-04, 44-05 | A non-`str` docname reaching `finish()` fails with an actionable typsphinx-level error | ✓ SATISFIED | Truth 3 above. `.planning/REQUIREMENTS.md:87` marked `[x]`/`Complete` at line 180 — confirmed accurate. |
 
-No orphaned requirements: `.planning/REQUIREMENTS.md`'s "Phase 44" mappings cover exactly CONF-08 and BLD-01, both of which appear in every plan's `requirements:` frontmatter across the phase.
+No orphaned requirements: `.planning/REQUIREMENTS.md`'s "Phase 44" mappings cover exactly CONF-08 and BLD-01, and every plan (44-01 through 44-05) lists at least one of them in its `requirements:` frontmatter.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `typsphinx/builder.py` | 929 | `if not typst_documents:` also fires for `typst_documents = None`, but the message at 936-940 unconditionally asserts "explicitly set to an empty list" | ⚠️ Warning (WR-01, `44-REVIEW.md`) | Cosmetic/diagnostic-accuracy only — the *behavior* (nothing compiled, WARNING severity) is correct for `None`; only the wording is misleading. Does not block the phase goal. Confirmed still present at HEAD. |
-| `tests/test_default_typst_documents_gate.py` | 120 | `assert "Nothing to compile" not in result.stderr` — the *old* pre-phase wording, which can never appear post-phase regardless of correctness (current wording is "...nothing will be compiled...") | ℹ️ Info (IN-01, `44-REVIEW.md`) | Vacuous assertion; the surrounding `pdf_file.exists()` checks already prove the derived default was consulted, so this doesn't mask a real gap, but it can't catch a future wording regression either. Confirmed still present at HEAD. |
+| `typsphinx/builder.py` | 929 | `if not typst_documents:` also fires for `typst_documents = None`, but the message unconditionally asserts "explicitly set to an empty list" (WR-01) | ⚠️ Warning | Cosmetic/diagnostic-accuracy only. Owner-excluded from plan 44-05's scope; carried forward as a deferred note in `44-GATE-EVIDENCE-05.md` §7. Does not block the phase goal. |
+| `tests/test_default_typst_documents_gate.py` | 120 | Vacuous assertion against old pre-phase wording (IN-01) | ℹ️ Info | Test-hygiene only; owner-excluded from plan 44-05's scope. Does not block the phase goal. |
+| `typsphinx/builder.py` | 880-1039 | `write_doc()` and `finish()` both re-resolve the same docname's stem independently, so any warning branch (including the new CR-01 collision warning) logs twice under `-b typstpdf` (WR-02, new in `44-REVIEW.md`) | ⚠️ Warning | Cosmetic duplicate-logging only — behavior (warn + safe fallback) is correct; only the count is doubled. Does not block the phase goal or any SC. Not remediated by this phase; carried forward as a finding for a future phase or backlog. |
+| `typsphinx/builder.py` | 156-288, 925-1039 | `_resolve_output_stem` and `finish()` are both large multi-concern functions, flagged as the kind of surface where a sibling collision case (CR-02) is easy to miss (IN-02, new in `44-REVIEW.md`) | ℹ️ Info | Maintainability note only, no functional defect. |
 
-Neither WR-01 nor IN-01 rises to blocker severity — both are cosmetic/test-hygiene issues that do not affect whether the phase goal is achieved, consistent with `44-REVIEW.md`'s own classification (`warning`/`info`, not `critical`).
+None of these rise to blocker severity; none contain unresolved `TBD`/`FIXME`/`XXX` markers (`grep -n -E "TBD|FIXME|XXX" typsphinx/builder.py tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py` returns nothing).
+
+### New Finding Outside Declared Scope — CR-02 (judged out of scope for Phase 44)
+
+`44-REVIEW.md` (post-44-05 review) reports CR-02: two `typst_documents` entries whose **target names collide with each other** (neither is itself a docname) silently overwrite one master's output with the other's — `-b typst` exits 0 with zero warning, `-b typstpdf` reports "Generated PDF" twice for the same path with zero warning. This verifier independently reproduced it against current HEAD (not merely re-read from the review): a fixture with `typst_documents = [("index", "manual.typ", ...), ("other", "manual.typ", ...)]` and real `index.rst`/`other.rst` builds with `-b typst` at exit 0, no collision warning, writes only one `manual.typ`, and the `index` master's marker count in that file is `0` while `other`'s is `1` — matching the review's transcript exactly.
+
+**Judgment: CR-02 is a real, reproducible defect, but it is out of scope for Phase 44's goal and its five ROADMAP Success Criteria, for these reasons:**
+
+1. **Not reachable via the Quick Start path.** The phase goal is "a user who follows the Quick Start exactly gets a PDF" — i.e., `typst_documents` left unset, or set to a single explicit entry (SC#2's fixture). `_default_typst_documents` only ever derives one tuple (for `root_doc`), so it can never itself produce two colliding entries. CR-02 requires a user to deliberately author **two or more** explicit `typst_documents` entries with the same target name — an affirmative, non-default configuration action no Quick Start user takes.
+2. **Pre-existing mechanism, not introduced by this phase.** The entry-lookup loop in `_resolve_output_stem` that CR-02 exploits (matching `entry[0] == docname` per explicit entry) predates the CONF-08 derivation — explicit `typst_documents` target names were already a feature (Issue #117, cited in the method's own docstring) before Phase 44 touched this method. Two explicit entries sharing a target could always collide this way, with or without a derived default.
+3. **None of the five ROADMAP SCs mention multi-master explicit-vs-explicit collision detection** — SC#2 only requires a *single* explicit entry to win over the derived default; it does not test two explicit entries against each other.
+4. **Already transparently recorded, not silently dropped.** Plan 44-05's own planning measurement 8 flagged this exact mechanism as "out of scope, recorded not planned" before execution, and `44-GATE-EVIDENCE-05.md` §7 lists it under "deferred notes" as a distinct mechanism from CR-01 that this phase's guard does not address.
+
+This verifier's recommendation: **route CR-02 to a follow-up phase or the backlog** (e.g. an explicit-vs-explicit collision guard extending the same `_resolve_output_stem` site, per the review's own fix sketch using a per-build `_claimed_output_paths` map) rather than treating it as a Phase 44 blocker. It does not change this phase's `passed` verdict because it cannot fire on the zero-configuration or single-explicit-entry paths the phase goal and its SCs describe. WR-02 (double-logging of the same warning under `-b typstpdf`) is a related, lower-severity cosmetic finding from the same review, also deferred for the same reason (cosmetic only, not a data-loss/build-failure path).
 
 ### Human Verification Required
 
-None. CR-01 is a code-level, deterministically-reproducible defect (reproduced twice: once by the code reviewer, once independently by the execute-phase orchestrator, once again independently by this verifier) — it does not require human judgment to confirm, only a fix.
+None. CR-01's closure is a code-level, deterministically-reproducible fix (guard present, wired, gate-tested, independently reproduced twice more by this verifier). CR-02 is likewise deterministic but judged out of scope above; it needs a planning decision (route to a phase), not human UAT.
 
 ### Gaps Summary
 
-**CR-01 — the derivation makes a pre-existing collision mechanism reachable with zero configuration, undermining the phase goal for a plausible subset of Quick Start users.**
+No gaps remain against Phase 44's goal or its five ROADMAP Success Criteria. The single gap from the prior verification (CR-01 — the derived default made a pre-existing collision mechanism reachable with zero configuration) is closed: the guard exists at the single normalization site (`_resolve_output_stem`), is wired into both the `-b typst` write path and the `-b typstpdf` read-back path, is gate-tested across all four scenario combinations named in the prior verification's `missing:` list, and was independently reproduced fixed by this verifier via real `sphinx-build` invocations (not merely re-read from `44-05-SUMMARY.md` or `44-GATE-EVIDENCE-05.md`). All five original ROADMAP Success Criteria remain independently verified on regression check, and the full suite/lint/type gate is green at `863 passed, 1 skipped` — exactly the 44-04 baseline (`855 passed, 1 skipped`) plus plan 44-05's 8 new tests, with no source change since that run.
 
-The phase's four Success Criteria (SC#1-SC#5) are each independently and narrowly satisfied: the derivation function is correct and pure, explicit settings win, the non-`str` docname hardening works and reports through the existing aggregate mechanism, the filename/content rename is measured and handed to Phase 46, and the full test/lint/type/corpus gate is green. All five are re-confirmed here against the live codebase, not merely against the SUMMARY/GATE-EVIDENCE narrative — this verifier independently re-ran the full suite (`855 passed, 1 skipped`), `black`, `ruff`, `mypy`, and read every piece of production code named above directly.
-
-However, the ROADMAP phase goal is broader than the five enumerated SCs: **"A user who follows the Quick Start exactly gets a PDF."** None of SC#1-SC#5 was written to cover a project with more than one document, and the phase's own new fixtures are all single-document or deliberately collision-free by construction — so nothing in the phase's own verification surface would ever exercise the scenario CR-01 describes. But a Sphinx project with a toctree and a docname that happens to match the project-name slug is not an edge case; it is an entirely ordinary documentation layout (a project named after its main topic or first chapter — the code review's own example, `project = "Chapter 1"` next to `chapter1.rst`, is about as vanilla as a docs layout gets). Before this phase, that same project would have needed an explicit, deliberately-crafted `typst_documents` entry to hit the collision. After this phase, with `typst_documents` left completely unset — i.e., exactly the "follows the Quick Start exactly" user this phase exists to serve — the same collision fires automatically, silently destroying a real document's content on `-b typst` (exit 0, no warning) or hard-failing `-b typstpdf` with an opaque `TypstError: cyclic import` that gives the user no indication their project name is the cause.
-
-This verifier independently reproduced both failure modes against the current HEAD (6aa452b) rather than relying on `44-REVIEW.md`'s transcript or the orchestrator's re-measurement: a fresh two-document fixture (`project = "Chapter 1"`, `index.rst` toctree-including `chapter1.rst`) built with `sphinx-build -b typst` exits 0 and leaves only `chapter1.typ` on disk, containing the index master's content; a `grep` for the real chapter's unique body marker in that file returns zero matches. The `_template.typ`-clobber variant reported in `44-REVIEW.md` (`project = "_Template"`) was not independently re-run here but was not needed to be — the mechanism (no collision check anywhere in `_resolve_output_stem`) is the same code path, confirmed present by direct source read.
-
-**Judgment on SC#1 specifically, as instructed:** SC#1's literal wording ("a Sphinx project whose `conf.py` never mentions `typst_documents`... produces a PDF... measured on a real build") is satisfied for the specific fixture that discharges it — a single-document project with no toctree, where no collision can occur. SC#1 is not FAILED by CR-01; it is narrowly true and its own evidence is sound. What CR-01 undermines is the broader, unenumerated phase-goal claim that sits above SC#1-SC#5 in `ROADMAP.md`'s prose — a goal-backward gap the task list did not anticipate, which is exactly the class of shortfall this verification step exists to catch. SC#2 through SC#5 are unaffected by CR-01: SC#2's fixture is a single explicit entry with no collision; SC#3's fixture is a valid+malformed pair with no filename collision; SC#4 measures the rename/content-change pair on the same collision-free fixture SC#1 uses; SC#5 is a test/lint/type/manifest audit that CR-01 does not touch.
-
-The project owner has already decided to close this gap inside Phase 44 via gap closure (per this verification's brief). `44-REVIEW.md` provides a concrete fix sketch (a collision check in `_resolve_output_stem` falling back to the docname itself with a `logger.warning`, mirroring the existing D-06/D-07 degenerate-target handling), which the `missing` list above carries forward for `/gsd-plan-phase 44 --gaps` to consume, along with a requirement for a new gate test covering both reproduced cases (docname collision and `_template.typ` clobber) for both the derived-default path and an explicit `typst_documents` entry.
+A new finding, CR-02 (explicit-vs-explicit target collision, distinct mechanism from CR-01), surfaced in the post-44-05 code review and was independently reproduced by this verifier. It is judged out of scope for Phase 44 (see above) because it requires a deliberately duplicated explicit `typst_documents` configuration unreachable via the Quick Start path or any of the five SCs, and the mechanism predates this phase. It is recorded here, not silently dropped, so it can be routed to a follow-up phase or the backlog rather than lost.
 
 ---
 
-*Verified: 2026-08-04T07:00:00Z*
+*Verified: 2026-08-04T08:00:00Z*
 *Verifier: Claude (gsd-verifier)*

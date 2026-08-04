@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 44
-current_phase_name: typst-documents-default-derivation-builder-input-hardening
-status: executing
-stopped_at: Phase 44 planned
-last_updated: "2026-08-04T07:35:11.492Z"
+current_phase: 44.1
+current_phase_name: Relative Heading Depth for Toctree Nesting
+status: planning
+stopped_at: Phase 44 context gathered
+last_updated: "2026-08-04T08:24:44.960Z"
 last_activity: 2026-08-04
-last_activity_desc: Phase 44 execution started
+last_activity_desc: Phase 44 complete, transitioned to Phase 44.1
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
-  completed_plans: 9
-  percent: 20
+  completed_plans: 10
+  percent: 40
 ---
 
 # Project State
@@ -31,11 +31,11 @@ Next action: `/gsd-execute-phase 44`.
 
 ## Current Position
 
-Phase: 44 (typst-documents-default-derivation-builder-input-hardening) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 44
+Phase: 44.1 — Relative Heading Depth for Toctree Nesting
+Plan: Not started
+Status: Ready to plan
 Progress: [####----------------] 20% (1/5 phases)
-Last activity: 2026-08-04 — Phase 44 execution started
+Last activity: 2026-08-04 — Phase 44 complete, transitioned to Phase 44.1
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
