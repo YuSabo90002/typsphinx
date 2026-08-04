@@ -392,4 +392,120 @@ $ git diff --stat pyproject.toml uv.lock
 
 ## Task 3 — QUA-01 docstring correction
 
-*(Filled in after the docstring fix lands — see below.)*
+Re-grepped in THIS session, in THIS worktree, AFTER waves 1-3 of this phase
+(43-01 TBL-04, 43-03 FIG-01, and this plan's own Task 2 TBL-05 fix) had all
+landed -- per D-08's explicit instruction not to trust the todo's/CONTEXT's
+recorded counts, and per the plan's requirement to re-derive them at fix
+time since this phase changes the file.
+
+### `grep -n '_emit_id_anchors(' typsphinx/translator.py`
+
+```
+528:    def _emit_id_anchors(
+900:        self._emit_id_anchors(node)
+931:            self._emit_id_anchors(node)
+1007:        self._emit_id_anchors(node)
+1824:        self._emit_id_anchors(node)
+1879:        self._emit_id_anchors(node)
+1957:        self._emit_id_anchors(node)
+2008:        self._emit_id_anchors(node)
+2180:        self._emit_id_anchors(node)
+2599:        self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+3458:            self._emit_id_anchors(node)
+3767:            self._emit_id_anchors(node, skip_ids=skip_ids)
+3965:        self._emit_id_anchors(node)
+4077:            self._emit_id_anchors(node)
+5247:        self._emit_id_anchors(node)
+5335:        self._emit_id_anchors(node)
+5570:            self._emit_id_anchors(node)
+5602:            self._emit_id_anchors(node)
+5743:        self._emit_id_anchors(node)
+5769:        self._emit_id_anchors(node)
+5880:        self._emit_id_anchors(node)
+6825:        self._emit_id_anchors(node)
+```
+
+**Total call-site count: 21** (line 528 is the `def`, not a call; the
+remaining 21 lines are all calls).
+
+### `grep -n 'skip_ids' typsphinx/translator.py`
+
+```
+529:        self, node: nodes.Node, skip_ids: set[str] | None = None
+562:        ``skip_ids`` lets a caller that ALREADY anchors one of the node's ids
+567:        would otherwise dangle -- so the figure passes ``skip_ids={ids[0]}`` to  [pre-edit; see below]
+574:            skip_ids: Raw docutils ids to NOT anchor here (already anchored by
+580:        skip = skip_ids or set()
+2599:        self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+3444:        # skip_ids={ids[0]} AFTER emitting the figure's own <label>.
+3766:            skip_ids = set(node.get("ids", [])[:1]) if was_captioned else set()
+3767:            self._emit_id_anchors(node, skip_ids=skip_ids)
+```
+
+**`skip_ids` caller count: exactly 2** — line 2599, inside `depart_figure`
+(function defined at line 2561), and line 3767, inside `depart_table`
+(function defined at line 3557), confirmed by:
+
+```
+$ awk 'NR==2599{print NR": "$0} /^    def /{fn=$0; fnline=NR} NR==2599{print "  in function (line "fnline"): "fn}' typsphinx/translator.py
+2599:         self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+  in function (line 2561):     def depart_figure(self, node: nodes.figure) -> None:
+
+$ awk 'NR==3767{print NR": "$0} /^    def /{fn=$0; fnline=NR} NR==3767{print "  in function (line "fnline"): "fn}' typsphinx/translator.py
+3767:             self._emit_id_anchors(node, skip_ids=skip_ids)
+  in function (line 3557):     def depart_table(self, node: nodes.table) -> None:
+```
+
+**No discrepancy against D-08's expectation**: still exactly the two callers
+named there (`depart_figure`, `depart_table`), no third caller introduced by
+this phase. `depart_table`'s call site now reads `skip_ids=skip_ids` (a local
+computed on the preceding line) rather than the inline expression it used
+before Task 2's fix — the plan 43-04 Task 2 fix made the `skip_ids` value
+CONDITIONAL (`set(node.get("ids", [])[:1]) if was_captioned else set()`)
+rather than unconditionally always `{ids[0]}`, but the CALLER remains
+`depart_table` either way.
+
+### Docstring rewrite
+
+The `_emit_id_anchors` docstring's `skip_ids` paragraph was rewritten to name
+both `depart_figure` and `depart_table` by name, state the shared rationale
+once (self-anchored `ids[0]` -> duplicate-label fatal; propagated `ids[1:]`
+-> dangling reference), note `depart_table`'s TBL-05 refinement (an empty
+`skip_ids` when the table did not actually figure-wrap), and point at the
+inline comments at `depart_table`'s own call site for the Phase 42 / TBL-03
+firing-order constraint rather than restating them. The word "sole" no
+longer appears in the docstring, and no exhaustive list of all 21 call sites
+was added (D-08: an exhaustive list is exactly what rotted into this
+requirement in the first place).
+
+### Verification (comment-only diff)
+
+```
+$ git diff --stat
+ typsphinx/translator.py | 28 ++++++++++++++++++++--------
+ 1 file changed, 20 insertions(+), 8 deletions(-)
+
+$ git diff --stat -- typsphinx/  (this task's own commit, isolated)
+ typsphinx/translator.py | ... (docstring only)
+
+$ awk '/def _emit_id_anchors/,/def visit_document/' typsphinx/translator.py | grep -c 'depart_figure'
+1
+$ awk '/def _emit_id_anchors/,/def visit_document/' typsphinx/translator.py | grep -c 'depart_table'
+2
+$ awk '/def _emit_id_anchors/,/def visit_document/' typsphinx/translator.py | grep -c 'The sole'
+0
+
+$ .venv/bin/python -m pytest -q
+836 passed, 1 skipped in 76.56s (0:01:16)
+
+$ .venv/bin/python -m black --check .
+All done! 217 files would be left unchanged.
+
+$ .venv/bin/ruff check .
+All checks passed!
+
+$ .venv/bin/python -m mypy typsphinx/
+Success: no issues found in 6 source files
+```
+
+No behaviour change (comment-only diff), suite still green.
