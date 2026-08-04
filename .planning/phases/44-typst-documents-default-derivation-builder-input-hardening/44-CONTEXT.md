@@ -50,7 +50,20 @@ the README/`configuration.rst` documentation of the new default (DOC-11, Phase 4
   — **Reversibility:** reversible — adding a fallback branch later is local to the derivation function.
 
 - **D-02: The derived entry is a 5-tuple in LaTeX's shape.** The wiring of explicit `[2]`/`[3]` is
-  deferred to a todo. Derived value:
+  deferred to a todo.
+
+  > **⚠ SUPERSEDED 2026-08-04 — the deferral was reversed, this decision's *shape* half still
+  > stands.** Owner decision taken after Phase 45.1 was created: the missing consumption is now
+  > **in** v0.7.1 as **Phase 44.2 / CONF-09**, not outside it. What changed: `templates.rst:189`
+  > tells readers `title` comes "from `typst_documents`", which is false while the wiring is
+  > missing, so Phase 45.1's SC#2 (published contract and behaviour agree both ways) would have had
+  > to document the gap rather than close it. The patch-release cost this decision weighed is
+  > accepted rather than avoided: v0.7.1 now ships two user-visible changes, and Phase 46's
+  > CHANGELOG must call out both. Everything below about the derived entry's *shape* — what Phase 44
+  > actually built — is unchanged and still accurate. See `ROADMAP.md` §Roadmap Evolution,
+  > 2026-08-04, "Phase 44.2 inserted".
+
+  Derived value:
   `[(config.root_doc, make_filename_from_project(config.project) + ".typ", config.project, config.author, "typst")]`.
   The trailing `.typ` is included because `default_latex_documents` includes `.tex`;
   `_resolve_output_stem` strips a literal trailing `.typ` already (builder.py:180), so both forms

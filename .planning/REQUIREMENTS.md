@@ -82,6 +82,19 @@ continues at **Phase 43**.
       `conf.py`, it resolves to `[('index', 'probeproject.tex', 'Probe Project', 'Probe Author',
       'manual')]`.)
 
+- [ ] **CONF-09**: An explicit `typst_documents` entry's `[2]` title and `[3]` author take effect in
+      the rendered document, overriding `config.project` / `config.author` as they do in Sphinx's
+      LaTeX builder, with a defined and tested precedence against `typst_authors` and a defined
+      fallback when the element is absent or empty. No element of the published five-element
+      contract is left silently inert. (Measured 2026-08-04: the complete set of indexed accesses is
+      `writer.py:68`, `builder.py:141`, `builder.py:194-195`, `builder.py:986` — `[2]`, `[3]` and
+      `[4]` are read by nothing, while `configuration.rst` and `templates.rst:189` both tell readers
+      they are. Blast radius: 5 of 104 in-repo entries have `entry[2] != project`.) **This
+      requirement reverses Phase 44's D-02**, which deferred the consumption out of v0.7.1 — owner
+      decision 2026-08-04. **Second accepted CHANGELOG callout alongside CONF-08's rename:** for a
+      user whose entry title/author differ from `project`/`author`, the rendered title and author
+      change inside a patch release.
+
 ### Builder robustness
 
 - [x] **BLD-01**: A non-`str` docname reaching `TypstPDFBuilder.finish()` fails with an actionable
@@ -97,6 +110,15 @@ continues at **Phase 43**.
 
 - [ ] **DOC-12**: The published documentation's changelog page carries every release through v0.7.1.
       (`docs/source/changelog.rst` is frozen at 0.4.0; 12 releases are missing.)
+
+- [ ] **DOC-13**: A custom template that declares exactly the parameters the published documentation
+      lists compiles — the published contract and the parameters typsphinx actually passes agree in
+      both directions, and the standing consequence (adding a template parameter breaks a
+      correctly-written custom template) is recorded where the contract is documented.
+      (`templates.rst:186-192` lists four parameters; `writer.py:259-261` also passes three
+      `toctree_*` parameters unconditionally, and the CONF-04 merge adds any configured
+      `typst_elements` key. Reproduced 2026-08-04: `TypstError: unexpected argument:
+      toctree_maxdepth` on the documented example. Filed from Phase 44.1's `<deferred>` block.)
 
 ### Code quality and planning hygiene
 
@@ -125,7 +147,8 @@ continues at **Phase 43**.
 
 - [ ] **REL-06**: v0.7.1 is released — `pyproject.toml` bumped as the sole version literal with
       `uv.lock` and `README.md` in lockstep, a curated `## [0.7.1]` CHANGELOG entry (explicitly
-      calling out CONF-08's output-filename change), the post-bump tree proven green live, and the
+      calling out **both** user-visible changes — CONF-08's output-filename rename and CONF-09's
+      rendered title/author change), the post-bump tree proven green live, and the
       publish (merge → tag → `release.yml` → PyPI + GitHub Release, plus the standing second tag on
       `typsphinx-doc-translations`) executed at `/gsd-complete-milestone`.
 
@@ -179,17 +202,19 @@ Filled during roadmap creation.
 | CONF-08 | Phase 44 | Complete |
 | BLD-01 | Phase 44 | Complete |
 | TOC-01 | Phase 44.1 | Pending |
+| CONF-09 | Phase 44.2 | Pending |
 | DOC-11 | Phase 45 | Pending |
 | DOC-12 | Phase 45 | Pending |
 | QUA-02 | Phase 45 | Pending |
 | QUA-03 | Phase 45 | Pending |
+| DOC-13 | Phase 45.1 | Pending |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
 
-- v1 requirements: 13 total
-- Mapped to phases: 13
+- v1 requirements: 15 total
+- Mapped to phases: 15
 - Unmapped: 0 ✓
 
 **Phase mapping notes:**
@@ -210,9 +235,25 @@ Filled during roadmap creation.
   both change what the Quick Start path emits, and Phase 44's SC#4 hands Phase 46 a measured
   before/after filename pair that must not be taken across a concurrent heading-shape change.
 
+- **Phase 44.2** was **inserted 2026-08-04**, after the roadmap was created, to carry CONF-09 alone —
+  **reversing Phase 44's D-02**, which had deferred this consumption out of the milestone. It is not
+  folded back into Phase 44 (complete and shipped) and runs after Phase 44.1 because
+  `tests/roots/test-basic/conf.py` is one of the five affected entries and sits inside 44.1's SC#3
+  byte-invariance corpus. It runs before Phases 45 and 45.1 for the same reason Phase 45 follows
+  Phase 44: those phases document behaviour, which must land first — `templates.rst:189`'s claim
+  that `title` comes from `typst_documents` is exactly the claim CONF-09 makes true and DOC-13 must
+  then verify rather than rewrite.
+
 - **Phase 45** follows Phase 44 because DOC-11 must document the behaviour CONF-08 actually shipped,
   including the measured output filename. QUA-02 (`template_engine.py`) and QUA-03 (`.planning/`
   docs hygiene) ride along as small independent items rather than each becoming a phase.
+
+- **Phase 45.1** was **inserted 2026-08-04**, after the roadmap was created, to carry DOC-13 alone.
+  It is not folded into Phase 45 (documentation currency) because the repair may land in
+  `writer.py`'s parameter merge or in `templates/base.typ` rather than in documentation alone — the
+  route is deliberately unchosen at insertion, and Phase 45's criteria are all documentation-side.
+  It runs **after** Phase 45 on sequencing rather than dependency: the two touch disjoint files, but
+  both edit published documentation and each phase's build evidence should be attributable to it.
 
 - **Phase 46** is prep-only and takes **zero irreversible action**. REL-04's row stays open through
   the phase by design: its acceptance evidence is a real tag push whose `create-release` job runs to
