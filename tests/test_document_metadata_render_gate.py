@@ -38,7 +38,6 @@ except ImportError:
     TYPST_AVAILABLE = False
 
 try:
-    import pypdf
     from pypdf import PdfReader
 
     PYPDF_AVAILABLE = True
@@ -135,12 +134,12 @@ class TestEntryTitleAuthorRenderGate:
         metadata = reader.metadata
 
         # Positive: the entry's own values reached the PDF.
-        assert metadata.title == "My Handbook", (
-            f"Expected the entry's title 'My Handbook', got {metadata.title!r}"
-        )
-        assert metadata.author == "Jane Doe", (
-            f"Expected the entry's author 'Jane Doe', got {metadata.author!r}"
-        )
+        assert (
+            metadata.title == "My Handbook"
+        ), f"Expected the entry's title 'My Handbook', got {metadata.title!r}"
+        assert (
+            metadata.author == "Jane Doe"
+        ), f"Expected the entry's author 'Jane Doe', got {metadata.author!r}"
 
         # Negative: the config-wide fallback values must NOT be what came
         # back -- guards against a fallback regression passing by
