@@ -28,6 +28,8 @@ from pathlib import Path
 
 import pytest
 
+import typsphinx
+
 try:
     import typst
 
@@ -271,3 +273,93 @@ class TestToctreeHeadingDepthRenderGate:
         assert (
             levels_a == levels_b
         ), f"repeated query of the same build disagreed: {levels_a} != {levels_b}"
+
+
+@pytest.mark.slow
+class TestNoHeadingOffsetOutsideVisitToctree:
+    """
+    SC#8 (Phase 44.1, plan 04): nothing outside `visit_toctree` introduces a
+    heading offset -- carried by a permanent two-leg guard rather than by
+    inspection alone.
+
+    Leg 1 (static) reads the packaged `typsphinx/templates/base.typ`
+    directly through the installed package (`Path(typsphinx.__file__)`, not
+    a checkout-relative path) and asserts it contains no
+    `heading(offset` construct at all.
+
+    Leg 2 (live) builds `tests/fixtures/integration_nested_toctree` (a
+    fixture with no custom `typst_template` or `typst_package` configured,
+    so `TypstBuilder._write_template_file` falls through to the packaged
+    default and writes it as `_template.typ` at the build's output root --
+    the same fixture `nested_toctree_heading_outline` above already builds)
+    and asserts the emitted `_template.typ` ALSO contains no
+    `heading(offset` construct. This is the half a static grep of the
+    packaged source cannot cover, because `_write_template_file` composes
+    what it actually writes (parameter substitution, asset copying) rather
+    than copying the source file byte-for-byte.
+
+    Both legs assert absence, which is vacuous on its own (an empty or
+    unbuilt input would also show no `heading(offset` construct) -- so both
+    legs share one non-vacuity control: the SAME build's own master `.typ`
+    MUST contain the offset expression `visit_toctree` emits, proving the
+    searched construct is producible in this exact build and that its
+    absence from the template is therefore informative, not accidental.
+    """
+
+    def test_packaged_base_typ_carries_no_heading_offset(self):
+        """
+        Static leg: read the packaged `typsphinx/templates/base.typ`
+        through the installed package location, not a path relative to
+        this test file's own checkout position -- so the guard follows
+        wherever `typsphinx` is actually installed from (matters for a
+        worktree/editable-install setup where checkout-relative and
+        installed-package paths can diverge).
+        """
+        template_path = Path(typsphinx.__file__).parent / "templates" / "base.typ"
+        assert template_path.exists(), f"expected {template_path} to exist"
+        content = template_path.read_text(encoding="utf-8")
+        assert "heading(offset" not in content, (
+            "typsphinx/templates/base.typ must not introduce its own "
+            "heading offset -- that responsibility belongs solely to "
+            "visit_toctree (SC#8)"
+        )
+
+    def test_emitted_template_file_carries_no_heading_offset(
+        self, nested_toctree_heading_outline
+    ):
+        """
+        Live leg: the `_template.typ` actually WRITTEN by
+        `TypstBuilder._write_template_file` for a real build must also
+        carry no `heading(offset` construct -- this is composed output
+        (parameter substitution applied), not a copy of the packaged
+        source, so it must be checked independently of the static leg.
+        """
+        _levels, _outline, _master_typ, build_dir = nested_toctree_heading_outline
+        emitted_template = build_dir / "_template.typ"
+        assert (
+            emitted_template.exists()
+        ), f"expected {emitted_template} to have been written by the build"
+        content = emitted_template.read_text(encoding="utf-8")
+        assert "heading(offset" not in content, (
+            "the emitted _template.typ must not introduce its own heading "
+            "offset -- that responsibility belongs solely to visit_toctree "
+            "(SC#8)"
+        )
+
+    def test_offset_expression_is_producible_in_the_same_build(
+        self, nested_toctree_heading_outline
+    ):
+        """
+        Non-vacuity control for both legs above: the SAME build's master
+        `.typ` DOES contain the offset expression `visit_toctree` emits --
+        proving the searched construct is producible in this exact build,
+        so its absence from the template (both packaged and emitted) is
+        informative rather than an artifact of an empty/unbuilt input.
+        """
+        _levels, _outline, master_typ, _build_dir = nested_toctree_heading_outline
+        content = master_typ.read_text(encoding="utf-8")
+        assert "set heading(offset: heading.offset + 1)" in content, (
+            "expected the master's own .typ to contain the offset "
+            "expression visit_toctree emits -- if this fails, the "
+            "absence asserted by the two legs above would be vacuous"
+        )
