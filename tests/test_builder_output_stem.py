@@ -4,7 +4,10 @@ Tests for TypstBuilder._resolve_output_stem (Phase 22 Plan 01, Issue #117).
 Covers the typst_documents target-name normalization rule: suffix
 stripping (D-03), period-preserving stems (D-04), the D-02 docname
 fallback, the D-06/D-07 path guard, the degenerate-target guard, and
-verbatim non-ASCII passthrough.
+verbatim non-ASCII passthrough. Also covers the CR-01 collision guard
+(Phase 44 plan 05): a resolved stem colliding with a real docname or the
+reserved "_template" basename falls back to the docname, and a builder
+whose env exposes no found_docs attribute at all still resolves normally.
 """
 
 
@@ -325,3 +328,53 @@ def test_directory_preserving_relpath_identity_stem_is_unchanged(temp_sphinx_app
     assert (
         builder._directory_preserving_relpath("sub/index", "sub/index") == "sub/index"
     )
+
+
+def test_resolve_output_stem_falls_back_on_docname_collision(temp_sphinx_app):
+    """CR-01: a resolved stem equal to another real docname in
+    self.env.found_docs falls back to the docname itself. The env is
+    replaced with a types.SimpleNamespace so the test is independent of
+    whether the Sphinx version in use exposes found_docs as a plain
+    attribute and independent of whether a read phase has run."""
+    import types
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
+    builder.config.typst_documents = [("index", "chapter1.typ", "T", "A")]
+
+    assert builder._resolve_output_stem("index") == "index"
+
+
+def test_resolve_output_stem_falls_back_on_reserved_template_name(temp_sphinx_app):
+    """CR-01: a resolved stem equal to the reserved "_template" basename
+    falls back to the docname itself, even when found_docs does not
+    contain it -- the reservation is independent of found_docs
+    membership."""
+    import types
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
+    builder.config.typst_documents = [("index", "_template.typ", "T", "A")]
+
+    assert builder._resolve_output_stem("index") == "index"
+
+
+def test_resolve_output_stem_tolerates_env_without_found_docs(temp_sphinx_app):
+    """CR-01 regression guard: a builder whose env exposes NO found_docs
+    attribute at all (matching tests/conftest.py's mock_builder-shaped
+    MockEnv) still resolves normally via the getattr fallback, without
+    raising AttributeError."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.env = object()
+    builder.config.typst_documents = [("index", "manual.typ", "T", "A")]
+
+    assert builder._resolve_output_stem("index") == "manual"

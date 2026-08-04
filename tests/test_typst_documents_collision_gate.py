@@ -173,3 +173,130 @@ class TestTypstDocumentsCollisionGate:
             f"Expected a collision WARNING naming the docname clash:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
+
+    def test_derived_default_template_collision_preserves_shared_template(
+        self, tmp_path
+    ):
+        """
+        Zero-configuration RESERVED-TEMPLATE clobber: `project = "_Template"`
+        derives to the target `_template.typ`, identical to the reserved
+        shared-template basename `_write_template_file()` writes at the
+        outdir root. `-b typst` must exit 0, keep `_template.typ` defining
+        `#let project` (every master's import target), write `index.typ`
+        (the degraded fallback), and warn about the collision.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            DERIVED_TEMPLATE_COLLISION_FIXTURE_DIR, build_dir, "typst"
+        )
+
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the template collision:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        template_typ = build_dir / "_template.typ"
+        assert template_typ.exists(), (
+            f"Expected the shared _template.typ on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        template_content = template_typ.read_text(encoding="utf-8")
+        assert "#let project" in template_content, (
+            f"Expected _template.typ to still define #let project -- the "
+            f"exact string CR-01's clobber destroyed:\n{template_content}"
+        )
+
+        index_typ = build_dir / "index.typ"
+        assert index_typ.exists(), (
+            f"Expected index.typ (the degraded master fallback) on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        combined_output = result.stdout + result.stderr
+        assert COLLISION_WARNING_SUBSTRING in combined_output, (
+            f"Expected a collision WARNING naming the template clash:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+    def test_explicit_target_docname_collision_keeps_both_documents(self, tmp_path):
+        """
+        Explicit-path docname collision: `typst_documents = [("index",
+        "chapter1.typ", ...)]` names an existing docname's own output path
+        as the master's target. `-b typst` must exit 0, write BOTH
+        `index.typ` and `chapter1.typ`, keep `chapter1.rst`'s own body
+        intact, and warn about the collision.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            EXPLICIT_DOCNAME_COLLISION_FIXTURE_DIR, build_dir, "typst"
+        )
+
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the explicit docname "
+            f"collision:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        index_typ = build_dir / "index.typ"
+        chapter1_typ = build_dir / "chapter1.typ"
+        assert index_typ.exists(), (
+            f"Expected index.typ (the degraded master fallback) on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert chapter1_typ.exists(), (
+            f"Expected chapter1.typ (the real chapter document) on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        chapter1_content = chapter1_typ.read_text(encoding="utf-8")
+        assert "EXPLICIT-CHAPTER-BODY" in chapter1_content, (
+            f"Expected chapter1.rst's own body marker to survive:\n"
+            f"{chapter1_content}"
+        )
+
+        combined_output = result.stdout + result.stderr
+        assert COLLISION_WARNING_SUBSTRING in combined_output, (
+            f"Expected a collision WARNING naming the explicit docname "
+            f"clash:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+    def test_explicit_target_template_collision_preserves_shared_template(
+        self, tmp_path
+    ):
+        """
+        Explicit-path reserved-template clobber: `typst_documents =
+        [("index", "_template.typ", ...)]` names the reserved shared-
+        template basename as the master's target. `-b typst` must exit 0,
+        keep `_template.typ` defining `#let project`, write `index.typ`
+        (the degraded fallback), and warn about the collision.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            EXPLICIT_TEMPLATE_COLLISION_FIXTURE_DIR, build_dir, "typst"
+        )
+
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the explicit template "
+            f"collision:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        template_typ = build_dir / "_template.typ"
+        assert template_typ.exists(), (
+            f"Expected the shared _template.typ on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        template_content = template_typ.read_text(encoding="utf-8")
+        assert "#let project" in template_content, (
+            f"Expected _template.typ to still define #let project -- the "
+            f"exact string CR-01's clobber destroyed:\n{template_content}"
+        )
+
+        index_typ = build_dir / "index.typ"
+        assert index_typ.exists(), (
+            f"Expected index.typ (the degraded master fallback) on disk:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        combined_output = result.stdout + result.stderr
+        assert COLLISION_WARNING_SUBSTRING in combined_output, (
+            f"Expected a collision WARNING naming the explicit template "
+            f"clash:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
