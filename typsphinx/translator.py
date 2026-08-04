@@ -794,19 +794,23 @@ class TypstTranslator(SphinxTranslator):
         self._title_section_ids = (
             node.parent.get("ids") if isinstance(node.parent, nodes.section) else None
         ) or []
-        # D-06: clamp to a minimum of level 1 -- a top-level titled
-        # non-section (section_level == 0) would otherwise emit
-        # heading(level: 0, ...), which Typst rejects (levels are >= 1).
-        emitted_level = max(1, self.section_level)
+        # TOC-01/D-07: clamp to a minimum of 1 -- a top-level titled
+        # non-section (section_level == 0) would otherwise pass a rejected
+        # depth argument of 0 to the heading call below. Typst's relative
+        # depth argument is constrained the same way its absolute level
+        # argument was (values must be >= 1), so this clamp's mechanism
+        # survives the level->depth switch unchanged; only the argument it
+        # clamps is relative now, not an absolute final level.
+        emitted_depth = max(1, self.section_level)
         # Pitfall-1 fix: wrap the title content in a code block {...} so
         # multi-child title content is one expression, not several
         # juxtaposed statements (mirrors _depart_admonition's existing
         # {...} wrap of the buffered admonition title).
         if self._title_section_ids:
-            self.add_text(f"[#heading(level: {emitted_level}, {{")
+            self.add_text(f"[#heading(depth: {emitted_depth}, {{")
         else:
             # Use heading() function (no # prefix in code mode)
-            self.add_text(f"heading(level: {emitted_level}, {{")
+            self.add_text(f"heading(depth: {emitted_depth}, {{")
 
     def depart_title(self, node: nodes.title) -> None:
         """
