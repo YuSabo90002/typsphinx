@@ -2761,9 +2761,20 @@ class TestCaptionedTablePreFixBasisFailureProof:
         Asserts the positive gate's ``count(...) == 1`` check FAILS
         (count is 0) against this reconstruction -- proof the gate is
         genuinely fail-pre-fix, not vacuously green.
+
+        Note (44.1-03): the heading call's argument name below was migrated
+        by TOC-01/D-07 (from the absolute keyword to the relative one)
+        purely for consistency with what the translator now emits
+        system-wide -- this reconstruction stands in for an *unrelated*
+        table-caption bug and
+        is never fed through the live translator, so neither assertion in
+        this method inspects the heading keyword itself (both inspect only
+        the sentinel tokens declared at the top of this module). The
+        reconstruction still faithfully reproduces the table-caption bug
+        shape it exists to represent.
         """
         reconstructed_pre_fix_shape = (
-            "heading(level: 1, {text(" + repr(TBLCAP_FIRST_SENTINEL) + ")})\n"
+            "heading(depth: 1, {text(" + repr(TBLCAP_FIRST_SENTINEL) + ")})\n"
             "\n"
             "table(\n"
             "  columns: (1fr, 1fr),\n"
