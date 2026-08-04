@@ -429,6 +429,40 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.7.1 (bug-fix round) — Phase 44.1 complete 2026-08-05, 4/4 plans across 3 waves, verification
+`passed` 8/8 SC, code review `clean`. TOC-01 validated.**
+
+A document reached through a `toctree` now renders its headings one level deeper than its parent, so
+the PDF outline nests instead of being flat — and nested toctrees compose. The repair has **two**
+parts, and the second was only found by measuring: `visit_title` now emits Typst's *relative*
+`heading(depth: N)` instead of the absolute `heading(level: N)` (in Typst, `level:` overrides the
+ambient `heading(offset: …)`; only `depth:` resolves to `offset + depth`), and `visit_toctree`'s
+scope opener now emits `context { set heading(offset: heading.offset + 1) }` instead of the absolute
+`set heading(offset: 1)`. Part 2 exists because `set heading(offset: N)` is an **absolute assignment**
+on Typst's style chain, so a nested scope *replaces* its parent's offset rather than adding to it —
+three nesting levels queried as `[1, 2, 2]` with part 1 alone, and `[1, 2, 3]` with both. The whole
+production change is confined to `typsphinx/translator.py`; `typsphinx/templates/base.typ` is
+byte-unchanged.
+
+**The phase's method is the notable part, not its size.** Every claim is anchored to a resolved
+level from `typst.query(…, 'heading', field='level')` against a *compiled* document, never to a grep
+of the `.typ` source — the defect being fixed was precisely one where the source looked right and the
+resolved output was wrong. Master-document invariance (SC#3) is proved two ways over the full
+`docs/source` corpus plus every root under `tests/roots`, because either half alone is insufficient:
+resolved-level equality would miss a non-heading diff, and byte equality after mechanical
+substitution would not show the substituted text still resolves to the same level. One recorded
+exception survives that proof (`docs/source/api/index.typ`), traced word-for-word to Sphinx autodoc
+rendering the phase's own rewritten `visit_toctree` docstring — an artifact of documenting the change,
+not a leak of it.
+
+**The assertion migration surfaced a failure mode worth remembering: tests that go SILENT rather than
+RED.** Four of the seven `tests/test_topics.py` sites were *negative* assertions — "no heading was
+emitted here". Once the emitted literal changed, the string they searched for could no longer be
+produced by any code path, so all four kept passing while detecting nothing. A mechanical
+find-and-replace over positive assertions would have missed every one. Each was re-proved against the
+pre-fix commit with a per-guard positive control, and the site census was re-derived by repo-wide
+grep rather than transcribed — which found sites the planning document's own addendum had undercounted.
+
 **v0.7.1 (bug-fix round) — Phase 44 complete 2026-08-04, 5/5 plans across 4 waves (4 planned + 1
 gap closure), verification `passed` 6/6 must-haves. CONF-08 and BLD-01 both validated.**
 
