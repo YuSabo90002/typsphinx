@@ -113,9 +113,7 @@ class TestNestedFigureRenderGate:
     Pattern 2/Pitfall 4).
     """
 
-    def test_build_exits_zero(
-        self, nested_figure_render_gate_dir, temp_build_dir
-    ):
+    def test_build_exits_zero(self, nested_figure_render_gate_dir, temp_build_dir):
         """The full fixture -- all four legend shapes -- compiles cleanly."""
         result = _run_sphinx_build_typstpdf(
             nested_figure_render_gate_dir, temp_build_dir
