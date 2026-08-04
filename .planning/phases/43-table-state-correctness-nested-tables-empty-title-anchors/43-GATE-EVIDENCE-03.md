@@ -617,5 +617,5 @@ $ uv run python -m pytest -q   # on 29c30d0 (worktree fork point), before any fi
 
 ### Fix commit
 
-Committed after this evidence was appended: see SUMMARY.md for the fix commit SHA (recorded there
-for the same self-reference reason as the RED commit above).
+`50a3ed619a09676d1ebfef592ea7c1691d41c5fb` (recorded via a small follow-up commit that touches
+only this evidence file, for the same self-reference reason as the RED commit above).
