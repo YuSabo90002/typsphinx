@@ -111,7 +111,18 @@ class TestMultiDocumentIntegration:
     def test_include_directives_have_heading_offset(
         self, multi_doc_project_dir, temp_build_dir
     ):
-        """Test that include() directives have heading level offset."""
+        """
+        Test that include() directives have heading level offset.
+
+        Note (44.1-03, D-07): the disjunctive assertion below checks only
+        the partial substring "heading(offset:" (or "set heading"), and
+        both are present in both the pre-TOC-01 absolute assignment form
+        and the current context-relative increment form. Measured
+        directly: this assertion cannot tell the two shapes apart and
+        passes against either -- it documents that a heading offset is
+        present at all, not which form it takes. It is not a guard for
+        TOC-01/D-07.
+        """
         subprocess.run(
             [
                 "uv",
@@ -130,7 +141,8 @@ class TestMultiDocumentIntegration:
         content = index_typ.read_text()
 
         # Should contain heading offset setting
-        # Format: { set heading(offset: 1); include("chapter1.typ") }
+        # Format: context { set heading(offset: heading.offset + 1);
+        #                    include("chapter1.typ") }
         assert "heading(offset:" in content or "set heading" in content
 
     def test_chapter_files_contain_content(self, multi_doc_project_dir, temp_build_dir):

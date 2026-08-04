@@ -85,8 +85,10 @@ def test_toctree_with_heading_offset(simple_document, mock_builder):
     Test that toctree generates include() with heading offset.
 
     Requirement 13.14: WHEN `include()` を生成する際に見出しレベルを調整
-    THEN Typst SHALL `{ set heading(offset: 1); include("doc.typ") }` のように
-    スコープブロック内で `set heading(offset: 1)` を適用する
+    THEN Typst SHALL `context { set heading(offset: heading.offset + 1);
+    include("doc.typ") }` のようにスコープブロック内で
+    `set heading(offset: heading.offset + 1)` を適用する (D-07: 絶対値ではなく
+    コンテキスト相対の増分でなければ、入れ子の toctree スコープが正しく積み上がらない)
     """
     from typsphinx.translator import TypstTranslator
 
@@ -104,8 +106,9 @@ def test_toctree_with_heading_offset(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Should generate heading offset scope block with {...}
-    assert "set heading(offset: 1)" in output
+    # Should generate a context-relative heading offset scope block with {...}
+    assert "context {" in output
+    assert "set heading(offset: heading.offset + 1)" in output
     assert "{\n" in output or "{" in output
     assert "}\n" in output or "}" in output
 
@@ -142,7 +145,9 @@ def test_toctree_with_nested_path(simple_document, mock_builder):
 
 def test_toctree_empty_entries(simple_document, mock_builder):
     """
-    Test that toctree with no entries generates no output.
+    Test that toctree with no entries generates no output at all: no scope
+    opener and no include(), because visit_toctree raises SkipNode before
+    adding any text (edge case for the D-07 scope-opener rewrite).
     """
     from typsphinx.translator import TypstTranslator
 
@@ -151,15 +156,20 @@ def test_toctree_empty_entries(simple_document, mock_builder):
     toctree = addnodes.toctree()
     toctree["entries"] = []
 
-    try:
+    # visit_toctree must raise SkipNode before adding any text for an
+    # empty-entries toctree.
+    with pytest.raises(nodes.SkipNode):
         translator.visit_toctree(toctree)
-    except nodes.SkipNode:
-        pass
 
     output = translator.astext()
 
     # Should generate nothing for empty toctree
     assert output == "" or output.strip() == ""
+
+    # Neither the scope opener nor any include() may have been emitted.
+    assert "context {" not in output
+    assert "set heading(offset:" not in output
+    assert "include(" not in output
 
 
 def test_toctree_skip_node_raised(simple_document, mock_builder):
@@ -230,11 +240,12 @@ def test_toctree_single_content_block_multiple_includes(simple_document, mock_bu
 
 def test_toctree_heading_offset_appears_once(simple_document, mock_builder):
     """
-    Test that set heading(offset: 1) appears exactly once.
+    Test that set heading(offset: heading.offset + 1) appears exactly once.
 
     Issue #7 - Requirement 1.4:
     WHEN toctree with multiple entries is processed
-    THEN set heading(offset: 1) SHALL appear exactly once
+    THEN set heading(offset: heading.offset + 1) SHALL appear exactly once
+    (D-07: the context-relative increment, not the old absolute assignment)
     """
     import re
 
@@ -256,13 +267,14 @@ def test_toctree_heading_offset_appears_once(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Count occurrences of set heading(offset: 1)
-    pattern = r"set heading\(offset: 1\)"
+    # Count occurrences of set heading(offset: heading.offset + 1)
+    pattern = r"set heading\(offset: heading\.offset \+ 1\)"
     matches = re.findall(pattern, output)
 
-    assert (
-        len(matches) == 1
-    ), f"Expected 1 occurrence of set heading(offset: 1), got {len(matches)}"
+    assert len(matches) == 1, (
+        "Expected 1 occurrence of set heading(offset: heading.offset + 1), "
+        f"got {len(matches)}"
+    )
 
 
 def test_toctree_reduced_line_count(simple_document, mock_builder):
@@ -293,8 +305,8 @@ def test_toctree_reduced_line_count(simple_document, mock_builder):
     lines = [line for line in output.split("\n") if line.strip()]
 
     # Expected structure:
-    # 1. {
-    # 2.   set heading(offset: 1)
+    # 1. context {
+    # 2.   set heading(offset: heading.offset + 1)
     # 3.   include("entry1.typ")
     # 4.   include("entry2.typ")
     # 5.   include("entry3.typ")
@@ -333,6 +345,9 @@ def test_toctree_single_entry_with_single_block(simple_document, mock_builder):
     assert output.count("{") == 1
     assert output.count("}") == 1
 
-    # Should contain the include
+    # Should contain exactly one include() -- counted, not merely checked
+    # for membership, since a single-entry toctree must produce a single
+    # include() inside its single scope block.
     assert 'include("single.typ")' in output
-    assert "set heading(offset: 1)" in output
+    assert output.count("include(") == 1
+    assert "set heading(offset: heading.offset + 1)" in output
