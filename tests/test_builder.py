@@ -127,8 +127,12 @@ def test_write_doc_creates_output_file(temp_sphinx_app, sample_doctree):
     # Write a document
     builder.write_doc("index", sample_doctree)
 
-    # Check that output file was created
-    output_file = Path(builder.outdir) / "index.typ"
+    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
+    # config value now resolves through _default_typst_documents, which
+    # names the "index" master's output via
+    # make_filename_from_project("Test Project") -> "testproject.typ"
+    # rather than the old literal "index.typ".
+    output_file = Path(builder.outdir) / "testproject.typ"
     assert output_file.exists()
     assert output_file.is_file()
 
@@ -149,8 +153,12 @@ def test_write_doc_generates_typst_content(temp_sphinx_app, sample_doctree):
     # Write a document
     builder.write_doc("index", sample_doctree)
 
-    # Check that output file contains Typst content
-    output_file = Path(builder.outdir) / "index.typ"
+    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
+    # config value now resolves through _default_typst_documents, which
+    # names the "index" master's output via
+    # make_filename_from_project("Test Project") -> "testproject.typ"
+    # rather than the old literal "index.typ".
+    output_file = Path(builder.outdir) / "testproject.typ"
     content = output_file.read_text()
 
     # Should contain basic Typst markup
