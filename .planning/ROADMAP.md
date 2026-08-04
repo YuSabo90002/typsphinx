@@ -455,7 +455,7 @@ the derivation touches — the change is made once, in one place, with one set o
   5. Every existing test that encoded the old `[]`-default behaviour is updated deliberately (each
      change traceable to this requirement rather than absorbed silently), and the full suite,
      `black`/`ruff`/`mypy`, and the full-corpus `-b typstpdf` gate are green.
-**Plans**: 2/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -468,8 +468,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 44-03-PLAN.md — SC#4: two-build measured before/after pair + Phase 46 CHANGELOG source text
-- [ ] 44-04-PLAN.md — SC#5: repo-wide test-update audit + full-suite / lint / type phase gate
+- [x] 44-03-PLAN.md — SC#4: two-build measured before/after pair + Phase 46 CHANGELOG source text
+- [x] 44-04-PLAN.md — SC#5: repo-wide test-update audit + full-suite / lint / type phase gate
 
 ### Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)
 
@@ -691,7 +691,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 41. v0.7.0 Release Automation + Release Prep | v0.7.0 | 7/7 | Complete    | 2026-08-03 |
 | 42. Captioned Table Drops Preceding Target Label | v0.7.0 | 6/6 | Complete    | 2026-08-04 |
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
-| 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 2/4 | In Progress|  |
+| 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 4/4 | In Progress|  |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 0/TBD | Not started | - |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |

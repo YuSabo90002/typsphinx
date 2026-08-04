@@ -549,3 +549,66 @@ $ git status --porcelain typsphinx/ tests/
 | **SC#3** — a non-`str` docname fails with an actionable typsphinx-level error, not a raw `TypeError` | `44-GATE-EVIDENCE-02.md` §§1-2 (RED: bare `TypeError` from `posixpath.dirname`, exit 2, whole build dies → GREEN: typsphinx-authored `WARNING` naming the offending value `123`, aggregate `ExtensionError`, the valid master still compiles) | **MET** |
 | **SC#4** — the output-filename rename is measured (before/after pair), handed to Phase 46 | `44-GATE-EVIDENCE-03.md` (plan 44-03's output) | **NOT-MET — cannot verify from this worktree.** Plan 44-03 is a concurrent sibling executing in its own worktree in this same wave (per this plan's `<parallel_execution>` instructions); `44-GATE-EVIDENCE-03.md` does not exist in this worktree's tree as of `HEAD` (confirmed: `ls .planning/phases/44-.../44-GATE-EVIDENCE-03.md` → "No such file or directory"). This plan does not assume SC#4 is met by proxy of 44-03's SUMMARY frontmatter reporting success elsewhere; it is recorded NOT-MET here on the honest-verifier principle (abstain rather than assert without direct evidence), for the orchestrator to re-verify once both wave-3 worktrees merge. |
 | **SC#5** — every existing test that encoded the old default is traceably updated; full suite + `black`/`ruff`/`mypy` + full-corpus gate are green | This file, `44-GATE-EVIDENCE-04.md`, §§1-6 (repo-wide census, corrected blast-radius grep, per-file verdict table, phase file inventory, full suite `855 passed, 1 skipped` + corpus gate + preview-sync gate, `black`/`ruff`/`mypy` all exit 0) | **MET** |
+
+---
+
+## 8. Orchestrator addendum — SC#4 re-verified post-merge
+
+This section is written by the **execute-phase orchestrator**, not by plan 44-04's executor.
+Section 7's verdict table records SC#4 as `NOT-MET — cannot verify from this worktree` and
+explicitly defers re-verification to the orchestrator once both wave-3 worktrees merge. That
+merge has now happened; this section discharges that deferral with measured commands.
+
+Plan 44-04's abstention was correct and is left standing above rather than edited: at the time
+it ran, `44-GATE-EVIDENCE-03.md` genuinely did not exist in its tree, and asserting SC#4 on the
+strength of a sibling's self-report would have been exactly the unverified claim the plan
+prohibits. What follows supersedes the status only because the evidence is now directly
+observable, not because the earlier reading was wrong.
+
+**Tree state at the time of this re-verification:**
+
+```
+$ git rev-parse HEAD
+e1d3a3c3516aff1d7a99ebfca2a77322c4b7f7f1
+```
+
+`e1d3a3c` is the merge of `worktree-agent-a7ea89f4fa3d64727` (plan 44-04); its parent
+`bf1f5a1` is the merge of `worktree-agent-a9f98e59c06aeda5d` (plan 44-03). Both wave-3
+worktrees are merged and removed at this commit.
+
+**The file plan 44-04 could not see now exists:**
+
+```
+$ ls -l .planning/phases/44-.../44-GATE-EVIDENCE-03.md
+-rw-r--r-- 1 yuta users 21673  8月  4 15:02 44-GATE-EVIDENCE-03.md
+
+$ git log --oneline --diff-filter=A -- .planning/phases/44-.../44-GATE-EVIDENCE-03.md
+5f2ce54 docs(44-03): measure pre-change side of CONF-08 SC#4 record
+
+$ grep -c quickstartdefaultgate .planning/phases/44-.../44-GATE-EVIDENCE-03.md
+10
+```
+
+**Orchestrator spot-check of the SC#4 substance** (read directly from
+`44-GATE-EVIDENCE-03.md`, not from plan 44-03's SUMMARY):
+
+| SC#4 requirement | Where it is discharged in `44-GATE-EVIDENCE-03.md` |
+|---|---|
+| Two named commits | § 1 — pre `eeb930429c2608c5245f2769fc6b7edbbed206c5`, post `b819c8bfaeb18745db44ee909ed2d12314b673b6` |
+| Genuinely different trees (not the main venv's editable finder) | § 2 and § 4 — per-side resolved `typsphinx.__file__`, shown distinct and neither the main checkout |
+| Four real builds with exit codes, warnings, byte sizes | § 3 and § 5 — `-b typstpdf` and `-b typst` on each side |
+| Both D-05 halves: rename **and** content-structure change | § 3 (pre: `@preview` imports + body, no template import/call) vs § 5 (post: template import + template function call), verbatim heads pasted |
+| Change attributable to this phase alone | § 1 — `git diff --stat eeb9304..b819c8b -- typsphinx/` lists only `typsphinx/__init__.py` and `typsphinx/builder.py` |
+| Phase 46 CHANGELOG source text | § 7 |
+| Throwaway measurement worktrees removed | § 8 — recorded `git worktree list`; independently re-confirmed by the orchestrator after wave-3 cleanup (only the main checkout remains) |
+
+**Revised status: SC#4 — MET.** Section 7's row stands as the honest record of what plan 44-04
+could observe from inside its own worktree; this addendum is the orchestrator's post-merge
+re-verification, and it is the one that reflects the merged tree.
+
+**Root cause, for the record:** parallel worktree isolation means a plan whose success criterion
+is discharged by a *concurrent sibling* cannot verify it in-tree. Assigning 44-03 and 44-04 to
+the same wave was sound on the `files_modified` overlap test (they share no file), but the
+cross-plan *evidence* dependency is invisible to that test. Recorded so a future phase that
+splits "do the work" and "audit the work" across one wave either sequences them or expects this
+addendum step.
