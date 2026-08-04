@@ -222,4 +222,214 @@ arity, consistent with the pre-existing D-06/D-07 warnings' behaviour.
   87dd263 test(44-05): add failing collision gate for the derived-default docname collision
   ```
 
+## 4. RED — reserved-template clobber and the explicit-entry path
+
+Three new fixtures added (`derived_template_collision_gate`,
+`explicit_docname_collision_gate`, `explicit_template_collision_gate`), three
+new subprocess tests added to `test_typst_documents_collision_gate.py`, and
+three new unit tests added to `test_builder_output_stem.py` (test file
+diffs committed separately; production code untouched at this point).
+
+### Revert procedure
+
+```
+$ git cat-file -e 87dd26333dcce32056bf9133e91fb60599e60c4e && echo "SHA reachable: OK"
+SHA reachable: OK
+
+$ git checkout 87dd26333dcce32056bf9133e91fb60599e60c4e -- typsphinx/builder.py
+
+$ grep -c 'collides with an existing document' typsphinx/builder.py
+0
+```
+
+The guard is confirmed absent (grep count `0`).
+
+### `pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q`
+
+```
+$ uv run python -m pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q
+collected 32 items
+
+tests/test_typst_documents_collision_gate.py FFFFF                       [ 15%]
+tests/test_builder_output_stem.py ........................FF.            [100%]
+
+=========================== short test summary info ============================
+FAILED tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_docname_collision_keeps_both_documents
+FAILED tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_docname_collision_produces_pdf
+FAILED tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_template_collision_preserves_shared_template
+FAILED tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_explicit_target_docname_collision_keeps_both_documents
+FAILED tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_explicit_target_template_collision_preserves_shared_template
+FAILED tests/test_builder_output_stem.py::test_resolve_output_stem_falls_back_on_docname_collision
+FAILED tests/test_builder_output_stem.py::test_resolve_output_stem_falls_back_on_reserved_template_name
+7 failed, 25 passed in 1.47s
+```
+
+All seven new tests fail (the two subprocess tests from Task 1 are a free
+re-proof, already established RED in § 2, and are not counted again here
+since they were not re-collected against a fresh checkout state distinct
+from § 2). `test_resolve_output_stem_tolerates_env_without_found_docs`
+passes even against the pre-fix code (the 25 passing count includes it) --
+correctly, since pre-fix `_resolve_output_stem` performs no `found_docs`
+lookup at all, so there is nothing for that regression guard to catch yet.
+This is the expected shape: the guard's ABSENCE is exactly what the other
+two collision unit tests catch (`assert 'chapter1' == 'index'` and
+`assert '_template' == 'index'`, both actual observed failures pasted
+above verbatim).
+
+### Hand measurement — `derived_template_collision_gate`
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/derived_template_collision_gate /tmp/gate05-red-derived-template
+...
+build succeeded.
+
+$ echo "EXIT=$?"
+EXIT=0
+
+$ ls -l /tmp/gate05-red-derived-template/_template.typ
+-rw-r--r-- 1 yuta users 528  8月  4 16:52 /tmp/gate05-red-derived-template/_template.typ
+
+$ grep -c '^#let project' /tmp/gate05-red-derived-template/_template.typ
+0
+```
+
+**Divergence from the planner's table, recorded plainly:** planning
+measurement 8 (44-REVIEW.md's orchestrator re-measurement § D) recorded
+`460 bytes` pre-fix for `_template.typ`, measured against a different
+fixture (`project = "_Template"` with a `CHAPTERBODY`-marker body). This
+plan's own fixture (`DERIVED-TEMPLATE-COLLISION-BODY` marker, different
+body text length) measures `528 bytes` instead. The MEASURED value here
+(528 bytes, `#let project` count 0) is what stands for this fixture; the
+byte-count divergence is expected (different source body text) and does
+not affect the pass/fail semantics -- both measurements agree on the load-
+bearing fact: **the `#let project` definition is destroyed** (count 0 in
+both).
+
+### Hand measurement — `explicit_template_collision_gate`
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/explicit_template_collision_gate /tmp/gate05-red-explicit-template
+...
+build succeeded.
+
+$ echo "EXIT=$?"
+EXIT=0
+
+$ ls -l /tmp/gate05-red-explicit-template/_template.typ
+-rw-r--r-- 1 yuta users 578  8月  4 16:52 /tmp/gate05-red-explicit-template/_template.typ
+
+$ grep -c '^#let project' /tmp/gate05-red-explicit-template/_template.typ
+0
+```
+
+Same result: `#let project` destroyed (count 0) via the explicit-entry path.
+
+### Restore procedure and proof
+
+```
+$ git checkout HEAD -- typsphinx/builder.py
+
+$ git status --porcelain typsphinx/builder.py
+(no output)
+
+$ grep -c 'collides with an existing document' typsphinx/builder.py
+1
+```
+
+The production file is provably restored: no pending diff, and the guard
+is back.
+
+## 5. GREEN — all four scenarios plus the unit-level edge tests
+
+### `pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q`
+
+```
+$ uv run python -m pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q
+collected 32 items
+
+tests/test_typst_documents_collision_gate.py .....                       [ 15%]
+tests/test_builder_output_stem.py ...........................            [100%]
+
+============================== 32 passed in 1.47s ==============================
+```
+
+All 32 tests pass (5 subprocess collision gates + 27 unit stem tests, 24
+pre-existing + 3 new).
+
+### Hand measurement — `derived_template_collision_gate` (GREEN)
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/derived_template_collision_gate /tmp/gate05-green-derived-template
+...
+writing output... [index]WARNING: typst_documents target name '_template.typ' for docname 'index' collides with an existing document or the reserved template file -- falling back to 'index'
+ done
+build succeeded, 1 warning.
+
+$ echo "EXIT=$?"
+EXIT=0
+
+$ ls -l /tmp/gate05-green-derived-template/_template.typ
+-rw-r--r-- 1 yuta users 2438  8月  4 16:52 /tmp/gate05-green-derived-template/_template.typ
+
+$ grep -c '^#let project' /tmp/gate05-green-derived-template/_template.typ
+1
+
+$ ls /tmp/gate05-green-derived-template/index.typ
+/tmp/gate05-green-derived-template/index.typ
+```
+
+`_template.typ` restored to its full 2438-byte content (matching
+44-GATE-EVIDENCE-01.md's GREEN measurement of the same file), `#let
+project` count 1, `index.typ` present as the degraded fallback.
+
+### Hand measurement — `explicit_template_collision_gate` (GREEN)
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/explicit_template_collision_gate /tmp/gate05-green-explicit-template
+...
+writing output... [index]WARNING: typst_documents target name '_template.typ' for docname 'index' collides with an existing document or the reserved template file -- falling back to 'index'
+ done
+build succeeded, 1 warning.
+
+$ echo "EXIT=$?"
+EXIT=0
+
+$ ls -l /tmp/gate05-green-explicit-template/_template.typ
+-rw-r--r-- 1 yuta users 2438  8月  4 16:52 /tmp/gate05-green-explicit-template/_template.typ
+
+$ grep -c '^#let project' /tmp/gate05-green-explicit-template/_template.typ
+1
+
+$ ls /tmp/gate05-green-explicit-template/index.typ
+/tmp/gate05-green-explicit-template/index.typ
+```
+
+Same result via the explicit-entry path: `#let project` restored, `index.typ`
+present.
+
+### Acceptance-criteria commands (all measured this session)
+
+- `uv run python -m pytest tests/test_typst_documents_collision_gate.py tests/test_builder_output_stem.py -q` → `32 passed`
+- `uv run python -m pytest tests/test_typst_documents_collision_gate.py --collect-only -q` → `5 tests collected`
+- `git status --porcelain typsphinx/builder.py` → (no output)
+- `grep -c 'collides with an existing document' typsphinx/builder.py` → `1`
+- `grep -c '_Template' tests/fixtures/derived_template_collision_gate/conf.py` → `3`
+- `grep -c 'chapter1.typ' tests/fixtures/explicit_docname_collision_gate/conf.py` → `2`
+- `grep -c '_template.typ' tests/fixtures/explicit_template_collision_gate/conf.py` → `4`
+- `grep -c 'test_resolve_output_stem_tolerates_env_without_found_docs' tests/test_builder_output_stem.py` → `1`
+
+### Scenario-to-test-node-id mapping
+
+| # | Scenario | Test node id |
+|---|----------|--------------|
+| 1 | Derived-default docname collision | `tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_docname_collision_keeps_both_documents` (and its `-b typstpdf` counterpart `test_derived_default_docname_collision_produces_pdf`) |
+| 2 | Derived-default reserved-template clobber | `tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_derived_default_template_collision_preserves_shared_template` |
+| 3 | Explicit `typst_documents` docname collision | `tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_explicit_target_docname_collision_keeps_both_documents` |
+| 4 | Explicit `typst_documents` reserved-template clobber | `tests/test_typst_documents_collision_gate.py::TestTypstDocumentsCollisionGate::test_explicit_target_template_collision_preserves_shared_template` |
+
+Unit-level edge coverage (all in `tests/test_builder_output_stem.py`):
+`test_resolve_output_stem_falls_back_on_docname_collision`,
+`test_resolve_output_stem_falls_back_on_reserved_template_name`,
+`test_resolve_output_stem_tolerates_env_without_found_docs`.
+
 <!-- gsd:write-continue -->
