@@ -647,7 +647,22 @@ Phase 45.1's SC#2 must check rather than rewrite.
 
   6. The full pytest suite and `black` / `ruff` / `mypy` are green, and GATE-01's real-compile
      acceptance corpus still builds fatal-free.
-**Plans**: TBD
+
+*Note: SC#4's "104 entries / 5 divergent / other 99 identical" figures above are superseded twice
+over — first by `44.2-CONTEXT.md` D-08 (83/5/0), then by `44.2-RESEARCH.md`'s re-measurement, which
+the plan set reproduces: 108 `conf.py` files, 111 entries, 107 four-tuples, 3 five-tuples, 6
+divergent-`entry[2]` entries (one inert), 0 divergent-`entry[3]` entries. The plans name both stale
+figure sets as superseded rather than silently replacing them.*
+
+**Plans**: 3 plans
+- [ ] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
+      `writer.py` + `template_engine.py` production diff (D-01/D-02/D-03/D-05), and the three
+      measured-RED assertion migrations (D-07)
+- [ ] 44.2-02-PLAN.md — the precedence matrix (SC#2), multi-master no-leak for title AND author
+      (SC#3), and D-03's four-route uniformity invariant
+- [ ] 44.2-03-PLAN.md — the corpus partition measured on both sides of the change (SC#4), the
+      `configuration.rst` contract repair (SC#5, D-10/D-11), the `typst_authors` removal filed as
+      Future Requirement `CONF-10` (D-06), and the phase gate (SC#6)
 
 ### Phase 45: Documentation Currency + Carried Hygiene
 
