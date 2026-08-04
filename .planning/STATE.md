@@ -5,16 +5,16 @@ milestone_name: bug-fix round
 current_phase: 44
 current_phase_name: "`typst_documents` Default Derivation + Builder Input Hardening"
 status: planning
-stopped_at: Phase 43 context gathered (FIG-01 added; TBL-05 axis decided from LaTeX measurement)
-last_updated: "2026-08-04T02:23:49.933Z"
+stopped_at: Phase 44 context gathered
+last_updated: "2026-08-04T04:17:19.237Z"
 last_activity: 2026-08-04
 last_activity_desc: Phase 43 complete, transitioned to Phase 44
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 1
   total_plans: 5
   completed_plans: 5
-  percent: 25
+  percent: 20
 ---
 
 # Project State
@@ -25,7 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
 **Current focus:** Phase 43 — table-state-correctness-nested-tables-empty-title-anchors
-12/12 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion).
+13/13 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
+TOC-01 added 2026-08-04 with the Phase 44.1 insertion).
 Next action: `/gsd-execute-phase 43`.
 
 ## Current Position
@@ -33,22 +34,25 @@ Next action: `/gsd-execute-phase 43`.
 Phase: 44 — `typst_documents` Default Derivation + Builder Input Hardening
 Plan: Not started
 Status: Ready to plan
-Progress: [--------------------] 0% (0/4 phases)
+Progress: [####----------------] 20% (1/5 phases)
 Last activity: 2026-08-04 — Phase 43 complete, transitioned to Phase 44
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
-**Roadmap created 2026-08-04: Phases 43-46**, derived from `REQUIREMENTS.md` alone. Research was
-deliberately skipped (owner decision 2026-08-04 — a maintenance round over already-diagnosed defects,
-each carrying a file/line-level todo, with the one new-behaviour item CONF-08 resolved by direct
-measurement of Sphinx 9.1.0's LaTeX builder), so this milestone has **no `research/SUMMARY.md`**.
-Coverage: **12/12** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
-added 2026-08-04 by owner decision at Phase 43 discussion).
+**Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, inserted 2026-08-04), derived from
+`REQUIREMENTS.md` alone. Research was deliberately skipped (owner decision 2026-08-04 — a maintenance
+round over already-diagnosed defects, each carrying a file/line-level todo, with the one
+new-behaviour item CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder), so this
+milestone has **no `research/SUMMARY.md`**.
+Coverage: **13/13** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
+added 2026-08-04 by owner decision at Phase 43 discussion; **TOC-01** added 2026-08-04 with the
+Phase 44.1 insertion).
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; a nested figure stops dropping the outer caption; an empty-titled caption still anchors its ids | TBL-04, TBL-05, FIG-01, QUA-01 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
+| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | A toctree'd document's headings render one level deeper than its parent instead of flat — `visit_title` emits relative `depth:` so `set heading(offset: 1)` applies | TOC-01 |
 | 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
 | 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
 
@@ -461,6 +465,8 @@ evidence.
   removed or re-assigned away from another phase. The ROADMAP Backlog section is now empty; the next
   item filed there is 999.3.
 
+- Phase 44.1 inserted after Phase 44: Relative Heading Depth for Toctree Nesting — TOC-01 added; toctree set heading(offset: 1) is inert because visit_title emits absolute level: (URGENT)
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -507,11 +513,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/43-table-state-correctness-nested-tables-empty-title-anchors/43-CONTEXT.md
+**Resume file:** .planning/phases/44-typst-documents-default-derivation-builder-input-hardening/44-CONTEXT.md
 `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-03T21:55:07.740Z
-Stopped at: Phase 43 context gathered (FIG-01 added; TBL-05 axis decided from LaTeX measurement)
+Last session: 2026-08-04T04:17:19.227Z
+Stopped at: Phase 44 context gathered
 Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
 
 ## Operator Next Steps
