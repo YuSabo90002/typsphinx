@@ -5,8 +5,8 @@ milestone_name: bug-fix round
 current_phase: 44.2
 current_phase_name: "`typst_documents` Title and Author Consumption"
 status: planning
-stopped_at: "Phase 44.1 context revised: SC#2 = option-a (D-07); plans removed for regeneration"
-last_updated: "2026-08-04T19:19:21.503Z"
+stopped_at: Phase 44.2 context gathered
+last_updated: "2026-08-04T20:49:54.511Z"
 last_activity: 2026-08-05
 last_activity_desc: Phase 44.1 complete, transitioned to Phase 44.2
 progress:
@@ -553,11 +553,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/44.1-relative-heading-depth-for-toctree-nesting/44.1-CONTEXT.md
+**Resume file:** .planning/phases/44.2-typst-documents-title-and-author-consumption/44.2-CONTEXT.md
 `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-04T16:55:13.963Z
-Stopped at: Phase 44.1 context revised: SC#2 = option-a (D-07); plans removed for regeneration
+Last session: 2026-08-04T20:49:54.502Z
+Stopped at: Phase 44.2 context gathered
 Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
 
 ## Operator Next Steps
