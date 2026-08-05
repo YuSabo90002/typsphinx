@@ -431,8 +431,7 @@ class TypstBuilder(Builder):
                 imguri = node.get("uri", "")
                 if not imguri:
                     continue
-                if imguri not in self.images:
-                    self.images[imguri] = ""
+                self._track_image(node, imguri)
                 continue
 
             if "?" in candidates:
@@ -468,10 +467,45 @@ class TypstBuilder(Builder):
             if not resolved_uri:
                 continue
 
-            # Track this image
-            # Store empty string as value to be compatible with parent class type
-            if resolved_uri not in self.images:
-                self.images[resolved_uri] = ""
+            self._track_image(node, resolved_uri)
+
+    def _track_image(self, node: nodes.image, resolved_uri: str) -> None:
+        """
+        Track a resolved image URI for later copying by copy_image_files().
+
+        Sphinx's ``ImageConverter``/``ImageDownloader`` post-transforms
+        rewrite ``node["uri"]`` to an ABSOLUTE filesystem path under
+        ``<doctreedir>/images/...`` when an image needs conversion or
+        download -- unlike ordinary images, which stay source-root-relative
+        (Issue #130). ``os.path.join(srcdir_or_outdir, uri)`` silently
+        discards its first argument once ``uri`` is absolute, so an
+        unrehomed absolute URI makes ``copy_image_files()`` collapse ``src``
+        and ``dest`` onto the identical path ("are the same file") and
+        makes the translator's ``_compute_relative_image_path()`` prepend a
+        bogus ``../..`` depth prefix onto an already-absolute path.
+
+        An absolute ``resolved_uri`` is rehomed here to a
+        ``doctreedir``-relative path (e.g. ``"images/foo.png"``), fitting
+        the same source-root-relative convention ordinary images use, with
+        the true absolute location kept as the ``self.images`` value so
+        ``copy_image_files()`` can use it as the real copy source.
+
+        Args:
+            node: The image node whose ``uri`` should reflect the tracked
+                path.
+            resolved_uri: The concrete URI to track (already resolved from
+                ``node["candidates"]`` by the caller).
+        """
+        if path.isabs(resolved_uri):
+            rel_uri = path.relpath(resolved_uri, self.doctreedir)
+            node["uri"] = rel_uri
+            if rel_uri not in self.images:
+                self.images[rel_uri] = resolved_uri
+            return
+
+        # Store empty string as value to be compatible with parent class type
+        if resolved_uri not in self.images:
+            self.images[resolved_uri] = ""
 
     def write_doc(self, docname: str, doctree: nodes.document) -> None:
         """
@@ -603,10 +637,12 @@ class TypstBuilder(Builder):
 
         logger.info(f"Copying {len(self.images)} image file(s)...")
 
-        for imguri in self.images:
-            # Resolve source path
-            # Image URIs are relative to source directory
-            src = path.join(self.srcdir, imguri)
+        for imguri, override_src in self.images.items():
+            # Resolve source path. Image URIs are relative to source
+            # directory, EXCEPT when _track_image() stashed the true
+            # absolute source location here (Issue #130) -- e.g. a
+            # converted/downloaded image, which never lived under srcdir.
+            src = override_src if override_src else path.join(self.srcdir, imguri)
 
             # Resolve destination path
             dest = path.join(self.outdir, imguri)
