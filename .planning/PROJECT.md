@@ -429,6 +429,44 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.7.1 (bug-fix round) — Phase 44.2 complete 2026-08-07, 7/7 plans across 7 waves (3 planned +
+4 gap-closure rounds), verification `passed` 6/6 must-haves, code review 0 critical / 1 warning /
+1 info. CONF-09 validated.**
+
+An explicit `typst_documents` entry's `[2]` title and `[3]` author now reach the compiled document,
+as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` /
+`config.author` win. The published five-element contract in
+`docs/source/user_guide/configuration.rst` is no longer partly inert. The production change is
+small and confined to `typsphinx/writer.py` and `typsphinx/template_engine.py`.
+
+**The notable part is what it took to get the DOCUMENTATION right, not the code.** The runtime fix
+landed in wave 1 and never changed again — every one of the four subsequent verification rounds
+failed on the same defect class in prose: a published sentence making an unscoped universal or
+negative-existential claim about when `params["authors"]` is written, which is false because
+`authors` is written at **more than one pipeline stage**. Round 2 keyed the rule on the mapping
+*source* key instead of the assignment *target*. Round 3 corrected that and introduced
+`configuration.rst:194`'s "and nothing else in typsphinx replaces it" — false, because
+`typst_template_function`'s dict-form `params["authors"]` is applied later, in `render()`.
+
+**Root cause of the recurrence, measured rather than guessed: the enumeration inherited the
+author's frame.** Round 3 built a per-sentence enumeration specifically to break the cycle and it
+failed the same way — its site set was derived from the passages its own plan had edited (only 3 of
+9 graded sites were even in `configuration.rst`), and its row space was scoped to
+`map_parameters()`'s writers, so `render()`'s `all_params.update(self.typst_template_params)` — a
+fourth writer of the same key, at a later stage — had no axis in it at all. The false clause sat
+*inside* a graded site's own cited line range while the row quoted the following sentence.
+
+Round 4 inverted the derivation and split it across two waves so the grader was not the author:
+wave 6 enumerated the **writers first, from the AST, across the whole pipeline**, then derived the
+prose that must be true and published it as an ordered **two-stage rule**; wave 7 ran in a separate
+worktree and session with no memory of what wave 6 intended, re-derived the stage set from the code
+itself, and graded every claim-bearing sentence against per-stage falsification rows with a runnable
+no-silent-drop equality assertion. That independent grading found and fixed a genuine residual
+(two bullets still using unscoped "is then passed" language) — the mechanism worked. The
+falsifying three-knob configuration is now a passing gate at two levels: a real `sphinx-build -b
+typst` with a control, and an API-level cell spanning `map_parameters()` and `render()` in one body
+(`tests/test_authors_pipeline_stage_gate.py`).
+
 **v0.7.1 (bug-fix round) — Phase 44.1 complete 2026-08-05, 4/4 plans across 3 waves, verification
 `passed` 8/8 SC, code review `clean`. TOC-01 validated.**
 
@@ -876,6 +914,12 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
       and a plain-text legend no longer aborts the compile. *(FIG-01 — added to this milestone
       2026-08-04 by owner decision during Phase 43 discussion; validated in Phase 43, including the
       legend-in-legend gap found by the phase's own code review.)*
+- [x] An explicit `typst_documents` entry's `[2]` title and `[3]` author take effect in the rendered
+      document, overriding `config.project` / `config.author` as they do in Sphinx's LaTeX builder,
+      with a defined and tested precedence against `typst_authors` and a defined fallback when the
+      element is absent or empty. *(CONF-09 — added to this milestone 2026-08-04 by owner decision,
+      reversing Phase 44's D-02; validated in Phase 44.2 after four verification rounds, the last
+      three of which failed on the published precedence prose rather than on the code.)*
 - [ ] The published documentation's changelog page carries every release through v0.7.1.
 - [ ] Following the README Quick Start exactly produces a PDF — `typst_documents` defaults to a
       `root_doc`-derived master (target `<project>.typ`) as Sphinx's LaTeX builder does, and the
