@@ -326,6 +326,16 @@ Reproduced: the documented example verbatim fails with
 `TypstError: unexpected argument: toctree_maxdepth`. Unrelated to TOC-01 and deliberately kept out
 of Phase 44.1. Not mapped to a v0.7.1 requirement.
 
+**Count as of 2026-08-07: 12 files in `.planning/todos/pending/`.** The newest is
+`review-pr-131-absolute-image-uri-fix` (builder, tests, **major**), captured 2026-08-07. This one is
+a *review* task, not a defect record: PR #131 from external contributor @christianwehe (opened
+2026-08-05, fixes #130, +440/−10 over 8 files, `MERGEABLE`) has sat with **zero reviews and zero
+comments**. It rehomes the absolute image `uri` that Sphinx's `ImageConverter`/`ImageDownloader`
+writes, which today collapses `copy_image_files()`'s src and dest onto one path and aborts the Typst
+compile. The todo carries the checks to run before merging — including re-measuring the
+contributor's RED claim independently, and testing whether the new image bookkeeping repeats the
+per-build-not-per-master flaw seen in the include-dedup ledger. Not mapped to a v0.7.1 requirement.
+
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
