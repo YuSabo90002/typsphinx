@@ -49,8 +49,10 @@ Each tuple contains:
 4. **Author** -- resolved the same way as the title: a present value wins
    (including ``""``); an absent, ``None``, or non-``str`` value falls back
    to ``author``, with a build warning for the non-``str`` case. This
-   entry value additionally takes precedence over ``typst_authors`` (see
-   `Author Information`_ below), and ``typst_template_function``'s
+   entry value additionally takes precedence over ``typst_authors``
+   whenever the active parameter mapping maps ``"author"``, which is what
+   the default mapping does; `Author Information`_ below names the two
+   configurations where it does not. ``typst_template_function``'s
    dict-form ``params`` take precedence over *both* -- a user who has
    named both the template function and its arguments has already made a
    more specific decision than either.

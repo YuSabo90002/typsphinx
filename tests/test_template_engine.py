@@ -938,14 +938,17 @@ class TestTypstAuthorsConfig:
         not the typst_authors list[dict], measured RED this session:
         `isinstance(('Ada Lovelace',), list)` is False).
 
-        typst_authors remains authoritative ONLY on a route where "author"
-        is NOT an active mapping key -- the package-alone route with a
-        custom mapping that omits "author", matching
-        tests/fixtures/package_only_config_gate/conf.py's own shape. This
-        test now exercises exactly that route so it still pins what it
-        exists to pin: typst_authors reaches render() as a native array of
-        dictionaries and never as a quoted string (the double-formatting
-        regression guard below is unchanged)."""
+        typst_authors remains authoritative on any route whose active
+        `parameter_mapping` has no "author" key -- the condition is the
+        mapping, not the presence of a package. This test exercises one
+        such shape: an explicit mapping that omits "author", here
+        alongside a package, the same shape
+        tests/fixtures/package_only_config_gate/conf.py carries -- so it
+        still pins what it exists to pin: typst_authors reaches render()
+        as a native array of dictionaries and never as a quoted string
+        (the double-formatting regression guard below is unchanged). The
+        full route matrix lives in tests/test_entry_metadata_precedence.py
+        Group 2."""
         engine = TemplateEngine(
             typst_package="@preview/charged-ieee:0.1.4",
             parameter_mapping={"project": "title"},
