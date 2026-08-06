@@ -431,12 +431,26 @@ class TemplateEngine:
         # author value (whether it came from an explicit typst_documents
         # entry[3] or a silent config.author fallback -- by the time
         # map_parameters() runs, the two are the same plain string and
-        # cannot be told apart) now overwrites this seed on every route
-        # where "author" is an active key in self.parameter_mapping, which
-        # is every route except a package-alone build using a custom
-        # typst_template_mapping that specifically OMITS "author" --
-        # exactly the shape tests/fixtures/package_only_config_gate/conf.py
-        # pins. typst_authors survives ONLY there.
+        # cannot be told apart) overwrites this seed exactly when BOTH
+        # hold: "author" is an active key in self.parameter_mapping, AND
+        # "author" is present in the sphinx_metadata dict passed in.
+        #
+        # The condition is the MAPPING, not the template route: there is
+        # no self.typst_package branch anywhere in this method. __init__
+        # resolves self.parameter_mapping in three branches, so the seed
+        # survives on exactly two config shapes -- (a) typst_package set
+        # with parameter_mapping left None, which __init__ resolves to an
+        # EMPTY dict, so nothing is mapped at all; and (b) an explicitly
+        # supplied parameter_mapping that omits "author", on ANY route,
+        # with or without a package, including the bundled default
+        # template. DEFAULT_PARAMETER_MAPPING (the third branch) DOES map
+        # "author", so the ordinary route overwrites the seed.
+        # tests/fixtures/package_only_config_gate/conf.py is an instance
+        # of (b), not of (a) -- it supplies an explicit mapping. Every
+        # shape is pinned by a named test in
+        # tests/test_entry_metadata_precedence.py Group 2. An earlier
+        # version of this comment named a package build as the only
+        # surviving case; that was measured false.
         #
         # A dedicated "explicit entry[3] wins" override cannot be built
         # instead: D-03's substitution point already unifies an explicit

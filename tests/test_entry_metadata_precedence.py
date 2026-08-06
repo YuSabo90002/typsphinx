@@ -12,8 +12,12 @@ decisions its cells name:
   malformed-entry-skip, five-element arity, and duplicate-docname
   first-match.
 - Precedence inside `map_parameters()` (D-05): a mapped author value beats
-  a `typst_authors` seed on the default-mapping route; `typst_authors`
-  survives only on a custom-mapping route that omits `"author"`.
+  the `typst_authors` seed exactly when `"author"` is an active
+  `parameter_mapping` key AND is present in the passed `sphinx_metadata`;
+  otherwise the seed survives. The condition is the mapping, not the
+  template route, so the seed survives both when `typst_package` is set
+  with no `typst_template_mapping` at all and when an explicitly-set
+  mapping omits `"author"` on any route.
 - Precedence inside `render()` (D-04): an explicit
   `typst_template_function["params"]` value wins over the entry-derived
   params dict passed into `render()` -- pinning that D-04 needs no new
@@ -179,6 +183,14 @@ def test_resolve_entry_element_duplicate_docname_first_match_wins():
 
 # ---------------------------------------------------------------------------
 # Group 2: precedence inside TemplateEngine.map_parameters() (D-05).
+#
+# The full condition: a mapped author value overwrites the typst_authors
+# seed exactly when "author" is an active parameter_mapping key AND
+# "author" is present in the passed sphinx_metadata. The trigger is the
+# mapping key, never self.typst_package -- so the seed survives on BOTH
+# (a) typst_package set with parameter_mapping left None (__init__
+# resolves that to an empty dict) and (b) an explicit parameter_mapping
+# that omits "author", package or not. One cell below per shape.
 # ---------------------------------------------------------------------------
 
 
@@ -205,7 +217,8 @@ def test_map_parameters_default_mapping_author_beats_typst_authors():
 
 
 def test_map_parameters_custom_mapping_omitting_author_keeps_typst_authors():
-    """D-05: on a package-alone route whose custom mapping omits "author",
+    """D-05: on a route whose custom mapping omits "author" -- here a
+    package route, though the package is incidental, not the trigger --
     typst_authors survives as the sole source -- params["authors"] IS the
     typst_authors list[dict]."""
     engine = TemplateEngine(
@@ -220,6 +233,115 @@ def test_map_parameters_custom_mapping_omitting_author_keeps_typst_authors():
         "author": "Explicit Entry Author",
         "release": "1.0",
     }
+
+    params = engine.map_parameters(sphinx_metadata)
+
+    assert isinstance(params["authors"], list)
+    assert params["authors"][0]["name"] == "Jane Doe"
+
+
+def test_map_parameters_non_package_mapping_omitting_author_keeps_typst_authors():
+    """D-05: the surviving condition is the MAPPING, not the package. This
+    is the exact cell 44.2-VERIFICATION.md reproduced against shipped code
+    and that had no test -- a NON-package engine (typst_package is None)
+    whose explicitly-set parameter_mapping omits "author" still keeps
+    typst_authors as the sole source. The published rule previously named
+    a package build as the only surviving route; there is no
+    self.typst_package conditional anywhere in map_parameters(), so a
+    template-route build with an author-omitting mapping behaves
+    identically. Without this cell, the published rule could claim a
+    package was required without any assertion going red."""
+    engine = TemplateEngine(
+        parameter_mapping={"project": "title"},
+        typst_authors={
+            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
+        },
+    )
+    sphinx_metadata = {
+        "project": "P",
+        "author": "Explicit Entry Author",
+        "release": "1.0",
+    }
+
+    assert engine.typst_package is None
+    assert "author" not in engine.parameter_mapping
+
+    params = engine.map_parameters(sphinx_metadata)
+
+    assert isinstance(params["authors"], list)
+    assert params["authors"][0]["name"] == "Jane Doe"
+
+
+def test_map_parameters_package_unset_mapping_keeps_typst_authors():
+    """D-05: the route reached by __init__'s package branch resolving the
+    mapping to an EMPTY dict rather than to DEFAULT_PARAMETER_MAPPING --
+    typst_package is set and parameter_mapping is not passed at all.
+    Distinct from the cell above it, which supplies an explicit mapping
+    that happens to omit "author": here there is no custom mapping at
+    all, only __init__'s own empty-dict resolution."""
+    engine = TemplateEngine(
+        typst_package="@preview/charged-ieee:0.1.4",
+        typst_authors={
+            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
+        },
+    )
+    sphinx_metadata = {
+        "project": "P",
+        "author": "Explicit Entry Author",
+        "release": "1.0",
+    }
+
+    assert engine.parameter_mapping == {}
+
+    params = engine.map_parameters(sphinx_metadata)
+
+    assert isinstance(params["authors"], list)
+    assert params["authors"][0]["name"] == "Jane Doe"
+
+
+def test_map_parameters_custom_mapping_with_author_beats_typst_authors():
+    """D-05: the control proving the trigger is the presence of the
+    "author" key, not whether the mapping happens to be
+    DEFAULT_PARAMETER_MAPPING. A CUSTOM mapping that explicitly maps
+    "author" still overwrites the typst_authors seed, with no package
+    involved at all."""
+    engine = TemplateEngine(
+        parameter_mapping={"project": "title", "author": "authors"},
+        typst_authors={
+            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
+        },
+    )
+    sphinx_metadata = {
+        "project": "P",
+        "author": "Explicit Entry Author",
+        "release": "1.0",
+    }
+
+    params = engine.map_parameters(sphinx_metadata)
+
+    assert params["authors"] == ("Explicit Entry Author",)
+
+
+def test_map_parameters_author_absent_from_metadata_keeps_typst_authors():
+    """D-05: pins the SECOND conjunct -- the mapping loop can only
+    overwrite a key it can read. A default-mapping engine (which DOES
+    map "author") still keeps the typst_authors seed when the passed
+    sphinx_metadata carries no "author" key at all. This shape is not
+    reachable from a real sphinx-build -- writer.py always supplies
+    "author" via _resolve_entry_element -- but map_parameters() is a
+    public method and the corrected D-05 comment states this conjunct,
+    so it gets a test pinning the public contract."""
+    engine = TemplateEngine(
+        typst_authors={
+            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
+        },
+    )
+    sphinx_metadata = {
+        "project": "P",
+        "release": "1.0",
+    }
+
+    assert engine.parameter_mapping["author"] == "authors"
 
     params = engine.map_parameters(sphinx_metadata)
 
