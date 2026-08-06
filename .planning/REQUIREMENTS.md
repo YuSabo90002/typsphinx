@@ -90,7 +90,7 @@ continues at **Phase 43**.
       `conf.py`, it resolves to `[('index', 'probeproject.tex', 'Probe Project', 'Probe Author',
       'manual')]`.)
 
-- [ ] **CONF-09**: An explicit `typst_documents` entry's `[2]` title and `[3]` author take effect in
+- [x] **CONF-09**: An explicit `typst_documents` entry's `[2]` title and `[3]` author take effect in
       the rendered document, overriding `config.project` / `config.author` as they do in Sphinx's
       LaTeX builder, with a defined and tested precedence against `typst_authors` and a defined
       fallback when the element is absent or empty. No element of the published five-element
@@ -243,7 +243,7 @@ Filled during roadmap creation.
 | CONF-08 | Phase 44 | Complete |
 | BLD-01 | Phase 44 | Complete |
 | TOC-01 | Phase 44.1 | Complete |
-| CONF-09 | Phase 44.2 | Pending |
+| CONF-09 | Phase 44.2 | Complete |
 | DOC-11 | Phase 45 | Pending |
 | DOC-12 | Phase 45 | Pending |
 | QUA-02 | Phase 45 | Pending |

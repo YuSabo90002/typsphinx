@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 44.2
-current_phase_name: typst-documents-title-and-author-consumption
-status: executing
+current_phase: 45
+current_phase_name: Documentation Currency + Carried Hygiene
+status: planning
 stopped_at: Phase 44.2 context gathered
-last_updated: "2026-08-06T21:10:21.774Z"
+last_updated: "2026-08-06T22:29:56.195Z"
 last_activity: 2026-08-07
-last_activity_desc: Phase 44.2 execution started
+last_activity_desc: Phase 44.2 complete, transitioned to Phase 45
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 21
-  completed_plans: 19
-  percent: 43
+  completed_plans: 21
+  percent: 57
 ---
 
 # Project State
@@ -32,11 +32,11 @@ Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
-Phase: 44.2 (typst-documents-title-and-author-consumption) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 44.2
-Progress: [######--------------] 29% (2/7 phases)
-Last activity: 2026-08-07 — Phase 44.2 execution started
+Phase: 45 — Documentation Currency + Carried Hygiene
+Plan: Not started
+Status: Ready to plan
+Progress: [###########---------] 57% (4/7 phases)
+Last activity: 2026-08-07 — Phase 44.2 complete, transitioned to Phase 45
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
