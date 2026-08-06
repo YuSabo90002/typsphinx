@@ -654,7 +654,7 @@ the plan set reproduces: 108 `conf.py` files, 111 entries, 107 four-tuples, 3 fi
 divergent-`entry[2]` entries (one inert), 0 divergent-`entry[3]` entries. The plans name both stale
 figure sets as superseded rather than silently replacing them.*
 
-**Plans**: 7 plans (5/7 executed)
+**Plans**: 6/7 plans executed
 
 - [x] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
       `writer.py` + `template_engine.py` production diff (D-01/D-02/D-03/D-05), and the three
@@ -680,7 +680,7 @@ figure sets as superseded rather than silently replacing them.*
       `tests/test_params_authors_writers.py` generates its row set from the code's own axes so a
       rule one predicate short fails in CI rather than at a fourth verify round (D-05/D-06/D-11)
 
-- [ ] 44.2-06-PLAN.md — gap closure (round 4, wave 6) for the re-verification's single failed truth
+- [x] 44.2-06-PLAN.md — gap closure (round 4, wave 6) for the re-verification's single failed truth
       (SC#2 plus plan 05's backstop, one root cause: `configuration.rst:194` denies at PIPELINE
       scope what `render()` actually does): the writer frame is widened from `map_parameters()` to
       the whole pipeline by an AST enumeration over `template_engine.py` AND `writer.py` with a
