@@ -654,7 +654,7 @@ the plan set reproduces: 108 `conf.py` files, 111 entries, 107 four-tuples, 3 fi
 divergent-`entry[2]` entries (one inert), 0 divergent-`entry[3]` entries. The plans name both stale
 figure sets as superseded rather than silently replacing them.*
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/5 plans executed
 
 - [x] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
       `writer.py` + `template_engine.py` production diff (D-01/D-02/D-03/D-05), and the three
@@ -671,6 +671,14 @@ figure sets as superseded rather than silently replacing them.*
       `typst_authors` precedence is restated as a mapping-key condition covering BOTH surviving
       routes, the four stale text sites are corrected, and four Group 2 cells give the rule as
       implemented its first direct test coverage (D-05/D-11)
+
+- [ ] 44.2-05-PLAN.md — gap closure for the re-verification's two failed truths (SC#2 and the
+      plan 03/04 backstop, one root cause): the published rule is restated over the ASSIGNMENT
+      TARGET `params["authors"]` at all seven sites including `.planning/REQUIREMENTS.md`'s
+      `CONF-10` entry, four named Group 2 cells cover the rows a source-key framing mispredicts
+      (`"author"` routed away from `authors`; `project`/`release` routed into it), and a new
+      `tests/test_params_authors_writers.py` generates its row set from the code's own axes so a
+      rule one predicate short fails in CI rather than at a fourth verify round (D-05/D-06/D-11)
 
 ### Phase 45: Documentation Currency + Carried Hygiene
 
