@@ -48,14 +48,17 @@ Each tuple contains:
    value emits a build warning and then falls back to ``project`` as well.
 4. **Author** -- resolved the same way as the title: a present value wins
    (including ``""``); an absent, ``None``, or non-``str`` value falls back
-   to ``author``, with a build warning for the non-``str`` case. This
-   entry value additionally takes precedence over ``typst_authors``
-   whenever the active parameter mapping maps ``"author"``, which is what
-   the default mapping does; `Author Information`_ below names the two
-   configurations where it does not. ``typst_template_function``'s
-   dict-form ``params`` take precedence over *both* -- a user who has
-   named both the template function and its arguments has already made a
-   more specific decision than either.
+   to ``author``, with a build warning for the non-``str`` case. Whether
+   this value also beats ``typst_authors`` is decided by one thing only --
+   whether the active parameter mapping sends ``"author"`` to the template
+   parameter named ``authors``, which is what the default mapping does.
+   `Author Information`_ below states the full rule, including the two
+   cases this summary does not cover: a mapping that sends ``"author"``
+   to a different parameter, and a mapping that sends a different key to
+   ``authors``. ``typst_template_function``'s dict-form ``params`` take
+   precedence over *both* -- a user who has named both the template
+   function and its arguments has already made a more specific decision
+   than either.
 5. **Document class** (usually "typst") -- **accepted and ignored**:
    typsphinx reads nothing from this position today, and a five-element
    tuple is valid and behaves identically to a four-element one. Real

@@ -190,14 +190,18 @@ Acknowledged, deliberately not in this milestone.
   release already carrying two user-visible changes (CONF-08's output-filename rename and CONF-09's
   title/author change), both of which REL-06 requires the CHANGELOG to call out — a third would
   contradict that boundary. Phase 44.2 already narrowed the setting's own scope: after its D-05
-  reorder, `typst_authors` remains authoritative only on a package-alone build (`typst_package` set,
-  no `typst_template`) whose active `parameter_mapping` does not map `"author"` — measured in
-  `44.2-01-SUMMARY.md` for the fixture that deliberately sets a custom mapping omitting `"author"`,
-  and independently confirmed in `44.2-GATE-EVIDENCE-03.md` § 4-5 for a real in-repo file
-  (`examples/charged-ieee/approach1/conf.py`) that hits the same narrowing for a different reason —
-  `typst_package` set with `typst_template_mapping` left completely unset, which
-  `TemplateEngine.__init__` resolves to an *empty* mapping rather than the default one, so
-  `"author"` is never an active key there either. The removal must touch: the config registration in
+  reorder, the `typst_authors` seed at `params["authors"]` survives if and only if no entry of the
+  active `parameter_mapping` has the target key `"authors"` with its source key present in the
+  passed `sphinx_metadata` — the mapping's TARGET decides, not its source key and not the template
+  route. Two in-repo configurations reach the surviving case for different reasons: the fixture that
+  deliberately sets a custom mapping targeting only `"title"` (`44.2-01-SUMMARY.md`), and
+  `examples/charged-ieee/approach1/conf.py`, which sets `typst_package` with
+  `typst_template_mapping` left completely unset, so `TemplateEngine.__init__` resolves the mapping
+  to an *empty* dict that can target nothing (`44.2-GATE-EVIDENCE-03.md` § 4-5). Two further shapes
+  the earlier wording mispredicted are now pinned by named tests: a mapping that routes `"author"`
+  to some other template parameter keeps the seed and passes both values, and a mapping that routes
+  a non-author key into `"authors"` destroys the seed with a non-author value
+  (`44.2-GATE-EVIDENCE-05.md`). The removal must touch: the config registration in
   `typsphinx/__init__.py`, the override block in `typsphinx/template_engine.py`, both
   `typst_authors` sections in `docs/source/user_guide/configuration.rst`, the `typst_authors`
   mention in `docs/source/examples/advanced.rst`, and the `typst_authors` tests in

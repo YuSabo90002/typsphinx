@@ -51,7 +51,9 @@ from typsphinx.template_engine import ELEMENTS_ALLOWLIST, TemplateEngine
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TEMPLATE_ENGINE_PATH = REPO_ROOT / "typsphinx" / "template_engine.py"
-CONFIGURATION_RST_PATH = REPO_ROOT / "docs" / "source" / "user_guide" / "configuration.rst"
+CONFIGURATION_RST_PATH = (
+    REPO_ROOT / "docs" / "source" / "user_guide" / "configuration.rst"
+)
 
 TYPST_AUTHORS = {"Jane Doe": {"organization": "MIT"}}
 SEED = [{"name": "Jane Doe", "organization": "MIT"}]
@@ -115,7 +117,9 @@ def _params_assignments() -> tuple[list[str], set[str]]:
             ):
                 continue
             slice_node = target.slice
-            if isinstance(slice_node, ast.Constant) and isinstance(slice_node.value, str):
+            if isinstance(slice_node, ast.Constant) and isinstance(
+                slice_node.value, str
+            ):
                 literal_slices.append(slice_node.value)
             elif isinstance(slice_node, ast.Name):
                 dynamic_slices.add(slice_node.id)
@@ -199,7 +203,9 @@ _MATRIX_CASES = [
         present,
         id=f"{source}-to-{target}-{'present' if present else 'absent'}",
     )
-    for source, target, present in itertools.product(SOURCE_KEYS, TARGET_KEYS, (True, False))
+    for source, target, present in itertools.product(
+        SOURCE_KEYS, TARGET_KEYS, (True, False)
+    )
 ]
 
 
