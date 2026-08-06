@@ -220,14 +220,15 @@ at all:
 * A mapping that sends ``"author"`` somewhere other than ``authors``
   -- for example ``typst_template_mapping = {"author": "doc_authors"}``,
   for a custom template whose function names its author parameter
-  differently -- leaves ``authors`` alone. Both values are then passed:
-  ``typst_authors`` as ``authors``, and the entry's author value as
-  ``doc_authors``.
+  differently -- leaves ``authors`` alone. Stage 1's own output then
+  carries both: ``typst_authors`` as ``authors``, and the entry's author
+  value as ``doc_authors`` -- subject to stage 2's override above if
+  ``typst_template_function`` also sets ``params["authors"]``.
 * A mapping that sends some other key to ``authors`` -- for example
   ``typst_template_mapping = {"project": "authors"}`` -- replaces the
-  seed even though it never mentions ``"author"``. What lands in
-  ``authors`` is then the project name, in the same shape an author
-  value would take.
+  seed even though it never mentions ``"author"``. Stage 1's own output
+  for ``authors`` is then the project name, in the same shape an author
+  value would take -- again subject to stage 2's override.
 
 A ``typst_package`` build with ``typst_template_mapping`` not set at
 all reaches stage 1's surviving case by a side door rather than by a rule
