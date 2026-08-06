@@ -227,6 +227,38 @@ def test_map_parameters_custom_mapping_omitting_author_keeps_typst_authors():
     assert params["authors"][0]["name"] == "Jane Doe"
 
 
+def test_map_parameters_non_package_mapping_omitting_author_keeps_typst_authors():
+    """D-05: the surviving condition is the MAPPING, not the package. This
+    is the exact cell 44.2-VERIFICATION.md reproduced against shipped code
+    and that had no test -- a NON-package engine (typst_package is None)
+    whose explicitly-set parameter_mapping omits "author" still keeps
+    typst_authors as the sole source. The published rule previously named
+    "a package-alone build" as the only surviving route; there is no
+    self.typst_package conditional anywhere in map_parameters(), so a
+    template-route build with an author-omitting mapping behaves
+    identically. Without this cell, the published rule could claim a
+    package was required without any assertion going red."""
+    engine = TemplateEngine(
+        parameter_mapping={"project": "title"},
+        typst_authors={
+            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
+        },
+    )
+    sphinx_metadata = {
+        "project": "P",
+        "author": "Explicit Entry Author",
+        "release": "1.0",
+    }
+
+    assert engine.typst_package is None
+    assert "author" not in engine.parameter_mapping
+
+    params = engine.map_parameters(sphinx_metadata)
+
+    assert isinstance(params["authors"], list)
+    assert params["authors"][0]["name"] == "Jane Doe"
+
+
 # ---------------------------------------------------------------------------
 # Group 3: precedence inside TemplateEngine.render() (D-04).
 # ---------------------------------------------------------------------------

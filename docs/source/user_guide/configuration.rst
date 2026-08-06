@@ -183,11 +183,22 @@ Include detailed author information:
 
 **Precedence.** An entry's own author element (the fourth position in
 `Typst Documents`_ above) takes precedence over this setting whenever the
-active template route maps ``"author"`` at all -- which is every route
-except a package-alone build (``typst_package`` set, no
-``typst_template``) using a custom ``typst_template_mapping`` that
-specifically omits ``"author"``. ``typst_template_function``'s dict-form
-``params`` take precedence over both.
+active parameter mapping maps ``"author"`` at all. The default mapping
+does map it, so on an ordinary build the entry's value -- or the
+``author`` fallback it resolves to -- wins. The condition is the
+*mapping*, not the template route: ``typst_authors`` survives as the sole
+source on exactly the two configurations whose active mapping carries no
+``"author"`` key --
+
+1. ``typst_package`` is set and ``typst_template_mapping`` is not set at
+   all. typsphinx then passes only what was explicitly mapped, and
+   nothing was, so the mapping is empty.
+2. ``typst_template_mapping`` is set and omits ``"author"`` -- on any
+   route, package-based **or** template-based, including the bundled
+   default template.
+
+``typst_template_function``'s dict-form ``params`` take precedence over
+both.
 
 .. note::
 
