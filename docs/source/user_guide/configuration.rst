@@ -183,21 +183,43 @@ Include detailed author information:
        }
    }
 
-**Precedence.** An entry's own author element (the fourth position in
-`Typst Documents`_ above) takes precedence over this setting whenever the
-active parameter mapping maps ``"author"`` at all. The default mapping
-does map it, so on an ordinary build the entry's value -- or the
-``author`` fallback it resolves to -- wins. The condition is the
-*mapping*, not the template route: ``typst_authors`` survives as the sole
-source on exactly the two configurations whose active mapping carries no
-``"author"`` key --
+**Precedence.** One question decides this, and it is not about the
+template route: **does the active parameter mapping send some Sphinx
+metadata key to the template parameter named** ``authors``? typsphinx
+seeds ``authors`` from ``typst_authors`` first and then applies the
+mapping, so whatever the mapping writes into ``authors`` replaces that
+seed -- and nothing else in typsphinx replaces it.
 
-1. ``typst_package`` is set and ``typst_template_mapping`` is not set at
-   all. typsphinx then passes only what was explicitly mapped, and
-   nothing was, so the mapping is empty.
-2. ``typst_template_mapping`` is set and omits ``"author"`` -- on any
-   route, package-based **or** template-based, including the bundled
-   default template.
+The default mapping sends ``author`` to ``authors``, so on an ordinary
+build the entry's own author element (the fourth position in
+`Typst Documents`_ above) -- or the ``author`` fallback it resolves to
+-- wins.
+
+``typst_authors`` therefore survives as the sole source of ``authors``
+if and only if no entry of the active mapping targets ``authors`` with
+a source key the build actually supplies. It is the *target* key that
+decides, not whether ``"author"`` appears in the mapping at all:
+
+* A mapping that sends ``"author"`` somewhere other than ``authors``
+  -- for example ``typst_template_mapping = {"author": "doc_authors"}``,
+  for a custom template whose function names its author parameter
+  differently -- leaves ``authors`` alone. Both values are then passed:
+  ``typst_authors`` as ``authors``, and the entry's author value as
+  ``doc_authors``.
+* A mapping that sends some other key to ``authors`` -- for example
+  ``typst_template_mapping = {"project": "authors"}`` -- replaces the
+  seed even though it never mentions ``"author"``. What lands in
+  ``authors`` is then the project name, in the same shape an author
+  value would take.
+
+A ``typst_package`` build with ``typst_template_mapping`` not set at
+all reaches the surviving case by a side door rather than by a rule of
+its own: typsphinx then passes only what was explicitly mapped, and
+nothing was, so the mapping is empty and can target nothing.
+Package-based and template-based builds -- including the bundled
+default template -- are governed by the one rule above;
+``typst_package`` affects only which mapping is in force, never
+whether the seed is replaced once a mapping is in force.
 
 ``typst_template_function``'s dict-form ``params`` take precedence over
 both.
