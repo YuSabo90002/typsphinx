@@ -426,31 +426,44 @@ class TemplateEngine:
         params: Dict[str, Any] = {}
 
         # CONF-09 (Phase 44.2, D-05): typst_authors now SEEDS "authors"
-        # FIRST, before the mapping loop below -- superseding its previous
-        # position as an unconditional override that ran LAST. A mapped
-        # author value (whether it came from an explicit typst_documents
-        # entry[3] or a silent config.author fallback -- by the time
-        # map_parameters() runs, the two are the same plain string and
-        # cannot be told apart) overwrites this seed exactly when BOTH
-        # hold: "author" is an active key in self.parameter_mapping, AND
-        # "author" is present in the sphinx_metadata dict passed in.
+        # FIRST, before the mapping loop below -- superseding its
+        # previous position as an unconditional override that ran LAST.
         #
-        # The condition is the MAPPING, not the template route: there is
-        # no self.typst_package branch anywhere in this method. __init__
-        # resolves self.parameter_mapping in three branches, so the seed
-        # survives on exactly two config shapes -- (a) typst_package set
-        # with parameter_mapping left None, which __init__ resolves to an
-        # EMPTY dict, so nothing is mapped at all; and (b) an explicitly
-        # supplied parameter_mapping that omits "author", on ANY route,
-        # with or without a package, including the bundled default
-        # template. DEFAULT_PARAMETER_MAPPING (the third branch) DOES map
-        # "author", so the ordinary route overwrites the seed.
-        # tests/fixtures/package_only_config_gate/conf.py is an instance
-        # of (b), not of (a) -- it supplies an explicit mapping. Every
-        # shape is pinned by a named test in
-        # tests/test_entry_metadata_precedence.py Group 2. An earlier
-        # version of this comment named a package build as the only
-        # surviving case; that was measured false.
+        # The rule below is enumerated from the ASSIGNMENT TARGET, not
+        # from any config shape. Exactly three sites in this method can
+        # write params["authors"]:
+        #   W1  this seed, guarded by `if self.typst_authors`;
+        #   W2  the mapping loop's `params[template_key] = value`, which
+        #       reaches "authors" only when some mapping entry's TARGET
+        #       is literally "authors" AND its SOURCE key is present in
+        #       the sphinx_metadata dict passed in;
+        #   W3  the `if not self.typst_package` back-fill, guarded by
+        #       `"authors" not in params`, so it can only fill an absent
+        #       key and can never replace a seed.
+        # The typst_elements loop cannot reach the key at all:
+        # ELEMENTS_ALLOWLIST is papersize/fontsize/lang and an unknown
+        # key raises. W2 is therefore the only overwriter.
+        #
+        # Hence: the seed survives IFF no entry of self.parameter_mapping
+        # has the target key "authors" with its source key present in
+        # sphinx_metadata. The SOURCE key does not have to be "author",
+        # and its presence is neither necessary nor sufficient --
+        # {"author": "doc_authors"} keeps the seed in "authors" AND
+        # passes the mapped value under "doc_authors", while
+        # {"project": "authors"} destroys the seed with the project name
+        # despite never mentioning "author".
+        #
+        # The condition is the MAPPING, not the template route: no
+        # self.typst_package test exists in this method outside W3's
+        # back-fill guard. A package build with parameter_mapping left
+        # None survives only because __init__ resolves it to an EMPTY
+        # dict, which trivially targets nothing.
+        #
+        # Every row is pinned by a named test in
+        # tests/test_entry_metadata_precedence.py Group 2 and by the
+        # generated matrix in tests/test_params_authors_writers.py. Two
+        # earlier versions of this comment stated the rule over the
+        # SOURCE key instead of the target; both were measured false.
         #
         # A dedicated "explicit entry[3] wins" override cannot be built
         # instead: D-03's substitution point already unifies an explicit
