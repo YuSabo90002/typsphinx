@@ -507,3 +507,49 @@ def test_render_explicit_template_function_authors_wins_over_entry_derived():
 
     assert '"Explicit Author"' in result
     assert "Entry Derived Author" not in result
+
+
+def test_render_template_function_authors_replaces_map_parameters_surviving_seed():
+    """The combination ``44.2-VERIFICATION.md`` measured as having no
+    single-assertion coverage anywhere in the suite: the two cells above
+    both hand-build their ``params`` dict and call ``render()`` directly,
+    so neither exercises a ``typst_authors`` seed that SURVIVED
+    ``map_parameters()`` and is then replaced at render time -- only a
+    hand-built dict standing in for whatever ``map_parameters()`` might
+    have produced.
+
+    This cell spans both stages in one body. First it calls
+    ``map_parameters()`` with a mapping targeting only ``title`` (nothing
+    targets ``authors``, so per the published stage-1 rule the
+    ``typst_authors`` seed survives) and asserts the seed SURVIVED --
+    ``params["authors"]`` is still the ``typst_authors`` list of dicts.
+    Only then does it call ``render()`` and assert the emitted string
+    carries the ``typst_template_function`` value and not the seed name.
+    Asserting the survival first is what makes the second half mean
+    "replaced at render time" rather than "never seeded in the first
+    place".
+
+    D-04 requires no new code for this: it is ``render()``'s existing
+    ``all_params.update(params)`` then
+    ``all_params.update(self.typst_template_params)`` merge, in that
+    order -- the seed reaches ``all_params`` first via ``params``, then is
+    overwritten by the explicit ``typst_template_function`` params."""
+    engine = TemplateEngine(
+        parameter_mapping={"project": "title"},
+        typst_authors={"Jane Doe": {"organization": "MIT"}},
+        typst_template_function={
+            "name": "project",
+            "params": {"authors": ("FROM TEMPLATE FUNCTION",)},
+        },
+    )
+
+    params = engine.map_parameters(
+        {"project": "P", "author": "Explicit Entry Author", "release": "1.0"}
+    )
+    assert isinstance(params["authors"], list)
+    assert params["authors"][0]["name"] == "Jane Doe"
+
+    result = engine.render(params, "Content")
+
+    assert '"FROM TEMPLATE FUNCTION"' in result
+    assert "Jane Doe" not in result

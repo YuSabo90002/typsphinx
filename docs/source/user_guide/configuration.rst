@@ -49,9 +49,10 @@ Each tuple contains:
 4. **Author** -- resolved the same way as the title: a present value wins
    (including ``""``); an absent, ``None``, or non-``str`` value falls back
    to ``author``, with a build warning for the non-``str`` case. Whether
-   this value also beats ``typst_authors`` is decided by one thing only --
-   whether the active parameter mapping sends ``"author"`` to the template
-   parameter named ``authors``, which is what the default mapping does.
+   this value also beats ``typst_authors`` is settled at the mapping
+   stage by exactly one thing -- whether the active parameter mapping
+   sends ``"author"`` to the template parameter named ``authors``, which
+   is what the default mapping does.
    `Author Information`_ below states the full rule, including the two
    cases this summary does not cover: a mapping that sends ``"author"``
    to a different parameter, and a mapping that sends a different key to
@@ -186,22 +187,35 @@ Include detailed author information:
        }
    }
 
-**Precedence.** One question decides this, and it is not about the
+**Precedence.** Two stages decide what reaches the template's ``authors``
+parameter, in this order:
+
+1. **The parameter mapping**, applied while Sphinx metadata is turned into
+   template parameters. typsphinx seeds ``authors`` from ``typst_authors``
+   first and then applies the mapping, so whatever the mapping writes into
+   ``authors`` replaces that seed. No other assignment in that mapping step
+   replaces the seed: the defaults typsphinx back-fills for a missing
+   parameter only fill a key that is not already set, and ``typst_elements``
+   accepts no ``authors`` key at all.
+2. **``typst_template_function``'s dict-form** ``params``, applied later,
+   when the document is rendered. A ``params["authors"]`` entry there
+   replaces whatever stage 1 produced -- including a ``typst_authors`` seed
+   that came through stage 1 untouched.
+
+Within stage 1, one question decides the outcome, and it is not about the
 template route: **does the active parameter mapping send some Sphinx
-metadata key to the template parameter named** ``authors``? typsphinx
-seeds ``authors`` from ``typst_authors`` first and then applies the
-mapping, so whatever the mapping writes into ``authors`` replaces that
-seed -- and nothing else in typsphinx replaces it.
+metadata key to the template parameter named** ``authors``?
 
 The default mapping sends ``author`` to ``authors``, so on an ordinary
 build the entry's own author element (the fourth position in
 `Typst Documents`_ above) -- or the ``author`` fallback it resolves to
 -- wins.
 
-``typst_authors`` therefore survives as the sole source of ``authors``
-if and only if no entry of the active mapping targets ``authors`` with
-a source key the build actually supplies. It is the *target* key that
-decides, not whether ``"author"`` appears in the mapping at all:
+``typst_authors`` therefore comes through stage 1 as the sole source of
+``authors`` if and only if no entry of the active mapping targets
+``authors`` with a source key the build actually supplies. It is the
+*target* key that decides, not whether ``"author"`` appears in the mapping
+at all:
 
 * A mapping that sends ``"author"`` somewhere other than ``authors``
   -- for example ``typst_template_mapping = {"author": "doc_authors"}``,
@@ -216,16 +230,19 @@ decides, not whether ``"author"`` appears in the mapping at all:
   value would take.
 
 A ``typst_package`` build with ``typst_template_mapping`` not set at
-all reaches the surviving case by a side door rather than by a rule of
-its own: typsphinx then passes only what was explicitly mapped, and
+all reaches stage 1's surviving case by a side door rather than by a rule
+of its own: typsphinx then passes only what was explicitly mapped, and
 nothing was, so the mapping is empty and can target nothing.
 Package-based and template-based builds -- including the bundled
-default template -- are governed by the one rule above;
-``typst_package`` affects only which mapping is in force, never
-whether the seed is replaced once a mapping is in force.
+default template -- are governed by the one stage-1 rule above;
+``typst_package`` affects only which mapping is in force, never whether
+the mapping replaces the seed.
 
-``typst_template_function``'s dict-form ``params`` take precedence over
-both.
+Coming through stage 1 is not the end of the story. Setting
+``typst_template_function`` to its dict form with a ``params["authors"]``
+entry replaces the ``typst_authors`` seed at stage 2, so a project that
+sets ``typst_authors`` alongside a mapping targeting nothing but ``title``
+still renders the template function's own ``authors`` value.
 
 .. note::
 
