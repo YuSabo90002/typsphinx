@@ -517,3 +517,29 @@ def test_authors_section_names_every_stage_knob_that_can_write_authors():
             "code can reach must be named in the section a user "
             "configures against."
         )
+
+
+def test_configuration_rst_stage1_bullets_name_stage2_override_explicitly():
+    """Drift guard for a round-4 residual fix (44.2-GATE-EVIDENCE-06.md
+    §4, S-14/S-16): the two Precedence-block bullets illustrating a
+    mapping that does NOT target ``authors`` -- ``{"author":
+    "doc_authors"}`` and ``{"project": "authors"}`` -- describe what
+    Stage 1's OWN output contains, not the final rendered document. The
+    ORIGINAL wording ("Both values are then passed" / "What lands in
+    authors is then...") was graded NARROWER-THAN-CODE against a real
+    render()-stage override (``typst_template_function``'s
+    ``params["authors"]``) because it read as an unscoped claim about the
+    final output. The fix names the Stage 1 scope explicitly and
+    cross-references Stage 2's override; this guard fails if that
+    cross-reference is ever silently dropped, reintroducing the same
+    unscoped-claim shape that produced four rounds of failure."""
+    text = CONFIGURATION_RST_PATH.read_text(encoding="utf-8")
+    normalized = re.sub(r"\s+", " ", text)
+
+    for needle in (
+        "Stage 1's own output then carries both",
+        "subject to stage 2's override above",
+        "Stage 1's own output for ``authors`` is then the project name",
+        "again subject to stage 2's override",
+    ):
+        assert needle in normalized, f"MISSING from configuration.rst: {needle}"
