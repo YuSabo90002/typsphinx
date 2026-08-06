@@ -654,7 +654,7 @@ the plan set reproduces: 108 `conf.py` files, 111 entries, 107 four-tuples, 3 fi
 divergent-`entry[2]` entries (one inert), 0 divergent-`entry[3]` entries. The plans name both stale
 figure sets as superseded rather than silently replacing them.*
 
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 - [x] 44.2-01-PLAN.md — tracer: end-to-end entry title/author in the compiled PDF (SC#1), the
       `writer.py` + `template_engine.py` production diff (D-01/D-02/D-03/D-05), and the three
@@ -690,7 +690,7 @@ figure sets as superseded rather than silently replacing them.*
       ordered TWO-STAGE rule in which every universal and negative-existential claim names the stage
       it quantifies over (D-04/D-05/D-11)
 
-- [ ] 44.2-07-PLAN.md — gap closure (round 4, wave 7) for `44.2-VERIFICATION.md`'s `missing:` bullet
+- [x] 44.2-07-PLAN.md — gap closure (round 4, wave 7) for `44.2-VERIFICATION.md`'s `missing:` bullet
       2, deliberately separated from the correction so the grader is not the author:
       `44.2-GATE-EVIDENCE-06.md` re-derives the stage set from the committed code in its own
       session, generates a falsification row space widened along the STAGE axis (`tf`/`notf`),
