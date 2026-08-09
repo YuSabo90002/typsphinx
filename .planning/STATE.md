@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 45
-current_phase_name: documentation-currency-carried-hygiene
-status: executing
+current_phase: 45.1
+current_phase_name: Custom-Template Parameter Contract Correction
+status: planning
 stopped_at: Phase 45 context gathered
-last_updated: "2026-08-09T21:46:58.162Z"
+last_updated: "2026-08-09T23:46:21.551Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 execution started
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 25
-  completed_plans: 21
-  percent: 57
+  completed_plans: 25
+  percent: 71
 ---
 
 # Project State
@@ -32,11 +32,11 @@ Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
-Phase: 45 (documentation-currency-carried-hygiene) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 45
+Phase: 45.1 — Custom-Template Parameter Contract Correction
+Plan: Not started
+Status: Ready to plan
 Progress: [###########---------] 57% (4/7 phases)
-Last activity: 2026-08-10 — Phase 45 execution started
+Last activity: 2026-08-10 — Phase 45 complete, transitioned to Phase 45.1
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
