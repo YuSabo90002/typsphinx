@@ -128,19 +128,16 @@ def derive_typst_lang(sphinx_language: str | None) -> str | None:
         A lowercase 2-3-letter ASCII Typst ``lang`` code, or ``None`` if no
         such code could be derived.
     """
-    if not isinstance(sphinx_language, str) or not sphinx_language:
-        logger.warning(
-            f"typsphinx: could not derive a Typst 'lang' from Sphinx "
-            f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
-            f"back to the template's own default)."
-        )
-        return None
+    if isinstance(sphinx_language, str) and sphinx_language:
+        head = re.split(r"[_\-@]", sphinx_language, maxsplit=1)[0].lower()
+        if re.fullmatch(r"[a-z]{2,3}", head):
+            return head
 
-    head = re.split(r"[_\-@]", sphinx_language, maxsplit=1)[0].lower()
-
-    if re.fullmatch(r"[a-z]{2,3}", head):
-        return head
-
+    # QUA-02: both rejection paths above (non-str/None/empty input, and a
+    # well-formed-length-but-non-ASCII-alpha head) fall through to this
+    # single tail call rather than each carrying its own copy -- the two
+    # reasons are deliberately NOT distinguished in the wording, since
+    # doing so would change build output and fail SC#3's byte-identity bar.
     logger.warning(
         f"typsphinx: could not derive a Typst 'lang' from Sphinx "
         f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
