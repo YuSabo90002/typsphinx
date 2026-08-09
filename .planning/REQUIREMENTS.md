@@ -134,11 +134,11 @@ continues at **Phase 43**.
       `depart_figure` the sole user of `skip_ids`, which has been false since Phase 25 and became
       actively misleading when Phase 42 added `depart_table` as a second caller.
 
-- [ ] **QUA-02**: `derive_typst_lang()`'s rejection-path warning is emitted from one place rather
+- [x] **QUA-02**: `derive_typst_lang()`'s rejection-path warning is emitted from one place rather
       than duplicated verbatim across its two rejection branches, with no change to the warnings a
       build produces. (Phase 27.1 review IN-01.)
 
-- [ ] **QUA-03**: `.planning/PROJECT.md` contains no unterminated HTML comment — both `<!--` openers
+- [x] **QUA-03**: `.planning/PROJECT.md` contains no unterminated HTML comment — both `<!--` openers
       in the archived-footer tail are closed, so no downstream reader silently swallows the rest of
       the file.
 
@@ -246,8 +246,8 @@ Filled during roadmap creation.
 | CONF-09 | Phase 44.2 | Complete |
 | DOC-11 | Phase 45 | Complete |
 | DOC-12 | Phase 45 | Complete |
-| QUA-02 | Phase 45 | Pending |
-| QUA-03 | Phase 45 | Pending |
+| QUA-02 | Phase 45 | Complete |
+| QUA-03 | Phase 45 | Complete |
 | DOC-13 | Phase 45.1 | Pending |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
