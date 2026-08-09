@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for Future Releases
+- BibTeX/bibliography support
+- Glossary generation
+- Index generation
+- Pre-commit hooks
+- Additional Typst Universe template integration
+
 ## [0.7.0] - 2026-08-04
 
 API reference pages become readable in this release: autodoc/API output moves from a flat wall of
@@ -400,6 +407,27 @@ untouched.
   - Added a `typst compile` smoke test that exercises all bundled `@preview` packages via
     real function calls, catching `kai`-class breaks before release
   - Updated `drift.yml` and the Dependabot dependency group to the new major-version ceilings
+
+## [0.4.4] - 2026-07-05
+
+### Changed
+
+- **CI/Release Durability**
+  - Python support floor raised to 3.10-3.13, with the CI and tox test matrices reconciled to match
+  - `softprops/action-gh-release` bumped from `v2` to `v3` in the release workflow
+  - `--locked` appended to every `uv sync` call site across the CI, docs, and release workflows
+  - GitHub Actions artifact actions (`upload-artifact`/`download-artifact`) bumped to their Node 24 majors
+
+### Added
+
+- **Dependency and Release Guardrails**
+  - Added a weekly dependency drift-detection workflow
+  - Added a `sphinx-typst-stack` Dependabot group and a CI status badge to the README
+  - Added Sphinx i18n infrastructure with Japanese translations and multi-language GitHub Pages support
+
+### Fixed
+
+- Fixed the release workflow's version-verify step to fall back from `tomllib` to `tomli` on Python versions where `tomllib` is unavailable
 
 ## [0.4.3] - 2025-11-01
 
@@ -798,19 +826,19 @@ untouched.
 ### Technical Details
 
 #### Requirements Fulfilled
-- ✅ Requirement 1: Sphinx Builder Integration (100%)
-- ✅ Requirement 2: Doctree to Typst Conversion (100%)
-- ✅ Requirement 3: Cross-References and Links (100%)
-- ✅ Requirement 4: Math Support (mitex) (100%)
-- ✅ Requirement 5: Typst Native Math (100%)
-- ✅ Requirement 6: Figures and Tables (100%)
-- ✅ Requirement 7: Code Highlighting (100%)
-- ✅ Requirement 8: Templates and Customization (100%)
-- ✅ Requirement 9: Self-Contained PDF Generation (100%)
-- ✅ Requirement 10: Error Handling and Logging (100%)
+- Requirement 1: Sphinx Builder Integration (100%)
+- Requirement 2: Doctree to Typst Conversion (100%)
+- Requirement 3: Cross-References and Links (100%)
+- Requirement 4: Math Support (mitex) (100%)
+- Requirement 5: Typst Native Math (100%)
+- Requirement 6: Figures and Tables (100%)
+- Requirement 7: Code Highlighting (100%)
+- Requirement 8: Templates and Customization (100%)
+- Requirement 9: Self-Contained PDF Generation (100%)
+- Requirement 10: Error Handling and Logging (100%)
 - ⏳ Requirement 11: Extensibility (Planned for v0.2.0)
-- ✅ Requirement 12: Testing and Documentation (100%)
-- ✅ Requirement 13: Multi-Document Integration (100%)
+- Requirement 12: Testing and Documentation (100%)
+- Requirement 13: Multi-Document Integration (100%)
 
 **Total: 12 out of 13 requirements fully implemented**
 
@@ -886,36 +914,25 @@ untouched.
 ### Requirements Status
 
 **All 13 requirements now fully implemented**:
-- ✅ Requirement 1: Sphinx Builder Integration (100%)
-- ✅ Requirement 2: Doctree to Typst Conversion (100%)
-- ✅ Requirement 3: Cross-References and Links (100%)
-- ✅ Requirement 4: Math Support (mitex) (100%)
-- ✅ Requirement 5: Typst Native Math (100%)
-- ✅ Requirement 6: Figures and Tables (100%)
-- ✅ Requirement 7: Code Highlighting (100%)
-- ✅ Requirement 8: Templates and Customization (100%)
-- ✅ Requirement 9: Self-Contained PDF Generation (100%)
-- ✅ Requirement 10: Error Handling and Logging (100%)
-- ✅ Requirement 11: Extensibility and Plugin Support (100%) - **Now complete**
-- ✅ Requirement 12: Testing and Documentation (100%)
-- ✅ Requirement 13: Multi-Document Integration (100%)
+- Requirement 1: Sphinx Builder Integration (100%)
+- Requirement 2: Doctree to Typst Conversion (100%)
+- Requirement 3: Cross-References and Links (100%)
+- Requirement 4: Math Support (mitex) (100%)
+- Requirement 5: Typst Native Math (100%)
+- Requirement 6: Figures and Tables (100%)
+- Requirement 7: Code Highlighting (100%)
+- Requirement 8: Templates and Customization (100%)
+- Requirement 9: Self-Contained PDF Generation (100%)
+- Requirement 10: Error Handling and Logging (100%)
+- Requirement 11: Extensibility and Plugin Support (100%) - **Now complete**
+- Requirement 12: Testing and Documentation (100%)
+- Requirement 13: Multi-Document Integration (100%)
 
 ### Testing
 
 - **317 tests** with **94% code coverage**
 - All tests passing across Python 3.9, 3.10, 3.11, 3.12
 - CI/CD pipeline validated on Linux, macOS, Windows
-
----
-
-## [Unreleased]
-
-### Planned for Future Releases
-- BibTeX/bibliography support
-- Glossary generation
-- Index generation
-- Pre-commit hooks
-- Additional Typst Universe template integration
 
 ---
 
@@ -927,6 +944,7 @@ untouched.
 [0.6.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.1
 [0.6.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.0
 [0.5.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.5.0
+[0.4.4]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.4
 [0.4.3]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.3
 [0.4.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.2
 [0.4.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.4.1
