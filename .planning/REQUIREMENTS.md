@@ -111,7 +111,7 @@ continues at **Phase 43**.
 
 ### Documentation
 
-- [ ] **DOC-11**: The README Quick Start states what `typst_documents` does and when it must be set —
+- [x] **DOC-11**: The README Quick Start states what `typst_documents` does and when it must be set —
       including the CONF-08 default and the fact that an explicit setting overrides it — so a reader
       following the Quick Start exactly is not surprised by the output filename or by which documents
       become PDFs. (SEED-001.)
@@ -244,7 +244,7 @@ Filled during roadmap creation.
 | BLD-01 | Phase 44 | Complete |
 | TOC-01 | Phase 44.1 | Complete |
 | CONF-09 | Phase 44.2 | Complete |
-| DOC-11 | Phase 45 | Pending |
+| DOC-11 | Phase 45 | Complete |
 | DOC-12 | Phase 45 | Pending |
 | QUA-02 | Phase 45 | Pending |
 | QUA-03 | Phase 45 | Pending |
