@@ -116,7 +116,7 @@ continues at **Phase 43**.
       following the Quick Start exactly is not surprised by the output filename or by which documents
       become PDFs. (SEED-001.)
 
-- [ ] **DOC-12**: The published documentation's changelog page carries every release through v0.7.1.
+- [x] **DOC-12**: The published documentation's changelog page carries every release through v0.7.1.
       (`docs/source/changelog.rst` is frozen at 0.4.0; 12 releases are missing.)
 
 - [ ] **DOC-13**: A custom template that declares exactly the parameters the published documentation
@@ -245,7 +245,7 @@ Filled during roadmap creation.
 | TOC-01 | Phase 44.1 | Complete |
 | CONF-09 | Phase 44.2 | Complete |
 | DOC-11 | Phase 45 | Complete |
-| DOC-12 | Phase 45 | Pending |
+| DOC-12 | Phase 45 | Complete |
 | QUA-02 | Phase 45 | Pending |
 | QUA-03 | Phase 45 | Pending |
 | DOC-13 | Phase 45.1 | Pending |

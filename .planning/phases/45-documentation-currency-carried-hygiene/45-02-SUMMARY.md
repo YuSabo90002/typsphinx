@@ -253,6 +253,13 @@ None -- no external service configuration required.
   `typsphinx-doc-translations`'s gettext catalogs are regenerated -- out of this repository's scope,
   to be flagged again at the milestone close.
 
+## Self-Check: PASSED
+
+All 8 created/modified files confirmed present on disk (`CHANGELOG.md`, `docs/source/changelog.rst`,
+`tests/test_changelog_page_gate.py`, the 3 `tests/fixtures/changelog_include_gate/` files,
+`45-GATE-EVIDENCE-02-docs-build-clean.md`, `45-02-SUMMARY.md`). All 4 commit hashes
+(`0fbfe1d`, `66304e2`, `13d7743`, `ed18e6d`) confirmed present in `git log --oneline --all`.
+
 ---
 *Phase: 45-documentation-currency-carried-hygiene*
 *Completed: 2026-08-10*
