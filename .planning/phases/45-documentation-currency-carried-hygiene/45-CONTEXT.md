@@ -43,8 +43,8 @@ date is stated.
 
 ### DOC-12 — the changelog page mechanism
 
-- **D-01: The page delegates to `CHANGELOG.md` via a myst-parser `include`, rather than duplicating
-  release history in reStructuredText.** `docs/source/changelog.rst` shrinks to its framing sections
+- **D-01: The page delegates to `CHANGELOG.md` via a myst-parser `include`.** Rather than duplicating
+  release history in reStructuredText, `docs/source/changelog.rst` shrinks to its framing sections
   plus an include of the repository's `CHANGELOG.md`, parsed as Markdown
   (`.. include:: ../../CHANGELOG.md` with `:parser:`; MyST's documented `myst_parser.sphinx_` parser
   is the starting candidate — confirm the exact spelling, whether the extension must also be listed
@@ -59,8 +59,8 @@ date is stated.
   alone and the published page follows with **zero** additional edits.
   — **Reversibility:** reversible — one directive in one file plus one dependency line.
 
-- **D-02: `CHANGELOG.md` stays Markdown. Converting it to reStructuredText was proposed by the owner
-  and withdrawn on measurement.** `CHANGELOG.md` is not a docs-only file; it is the supply source for
+- **D-02: `CHANGELOG.md` stays Markdown.** Converting it to reStructuredText was proposed by the owner
+  and withdrawn on measurement. `CHANGELOG.md` is not a docs-only file; it is the supply source for
   the **GitHub Release body (REL-04)**. Measured consumers:
 
   | Consumer | What it does |
@@ -80,8 +80,8 @@ date is stated.
   and two `release.yml` sites, and re-proving REL-04, whose whole remaining obligation is a clean
   end-to-end run of the *existing* mechanism.
 
-- **D-03: The missing `## [0.4.4]` section is reconstructed and added to `CHANGELOG.md`, with its
-  `[0.4.4]:` link-reference line.** Discovered during this discussion: **`v0.4.4` was tagged and
+- **D-03: The missing `## [0.4.4]` section is reconstructed and added to `CHANGELOG.md`.** It lands
+  together with its `[0.4.4]:` link-reference line. Discovered during this discussion: **`v0.4.4` was tagged and
   released, but `CHANGELOG.md` has no section for it** — `grep 0.4.4 CHANGELOG.md docs/source/changelog.rst`
   returns nothing, and the link-reference block jumps `[0.5.0]` → `[0.4.3]`. `git rev-list --count v0.4.3..v0.4.4`
   = **148 commits**. This is why ROADMAP SC#2 counts **12** missing releases (0.4.1 … 0.7.0
@@ -113,8 +113,8 @@ date is stated.
   historical release record and keeps both the PDF and GitHub's rendering clean.
   — **Reversibility:** reversible — text-only.
 
-- **D-06: `Development Status` is deleted from the page; `Migration Guides` and `Release Process` are
-  corrected.** Measured staleness on `docs/source/changelog.rst`: `Development Status` claims
+- **D-06: `Development Status` is deleted from the page.** `Migration Guides` and `Release Process` are
+  corrected. Measured staleness on `docs/source/changelog.rst`: `Development Status` claims
   "**v0.3.x**: Current stable release / **v0.2.x**: Maintenance mode" — contradicting even the 0.4.0
   heading above it; `Migration Guides` stops at "Migrating from 0.2.x to 0.3.x", so the 0.6.x and
   0.7.0 emitted-`.typ` changes have no migration note anywhere in the manual; `Release Process` lists
@@ -142,8 +142,8 @@ date is stated.
   plainly in the record rather than reporting the requirement as deliberately repaired.
   — **Reversibility:** reversible — an evidence-file finding.
 
-- **D-09: A naive `<!--` / `-->` count is NOT a valid check — the scan must exclude prose and code
-  spans.** Measured across all **867** `.md` files under `.planning/`: a raw count flags 16 files, and
+- **D-09: A naive `<!--` / `-->` count is NOT a valid check.** The scan must exclude prose and code
+  spans. Measured across all **867** `.md` files under `.planning/`: a raw count flags 16 files, and
   the notable false positives are the two live planning documents that *describe QUA-03 itself* —
   `.planning/REQUIREMENTS.md:141` and `.planning/ROADMAP.md:731`, each carrying a backticked
   `` `<!--` `` inside prose. `*-RESEARCH.md` files likewise show "`-->` without `<!--`" because of
