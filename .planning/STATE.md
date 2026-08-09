@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 45
-current_phase_name: Documentation Currency + Carried Hygiene
+current_phase_name: documentation-currency-carried-hygiene
 status: executing
 stopped_at: Phase 45 context gathered
-last_updated: "2026-08-09T15:02:42.574Z"
-last_activity: 2026-08-07
-last_activity_desc: Phase 44.2 complete, transitioned to Phase 45
+last_updated: "2026-08-09T21:46:58.162Z"
+last_activity: 2026-08-10
+last_activity_desc: Phase 45 execution started
 progress:
   total_phases: 7
   completed_phases: 4
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 44.2 — typst-documents-title-and-author-consumption
+**Current focus:** Phase 45 — documentation-currency-carried-hygiene
 15/15 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
 insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02).
@@ -32,11 +32,11 @@ Next action: `/gsd-execute-phase 44.1`.
 
 ## Current Position
 
-Phase: 45 — Documentation Currency + Carried Hygiene
-Plan: Not started
-Status: Ready to execute
+Phase: 45 (documentation-currency-carried-hygiene) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 45
 Progress: [###########---------] 57% (4/7 phases)
-Last activity: 2026-08-07 — Phase 44.2 complete, transitioned to Phase 45
+Last activity: 2026-08-10 — Phase 45 execution started
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 

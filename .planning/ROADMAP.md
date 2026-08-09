@@ -734,13 +734,13 @@ verbatim-duplicated rejection warning in `template_engine.py`, and the untermina
 
   5. The full pytest suite and `black`/`ruff`/`mypy` are green, and no `typsphinx/` behaviour changed
      beyond QUA-02's single-site warning refactor.
-**Plans**: 4 plans
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 45-01-PLAN.md — DOC-12 tracer: myst-parser delegation of `docs/source/changelog.rst` to `CHANGELOG.md`, proven end-to-end through both docs builders (wave 1)
-- [ ] 45-03-PLAN.md — DOC-11: README Quick Start, `quickstart.rst` and `configuration.rst` corrected against a real build of the Quick Start's own steps (wave 1)
+- [x] 45-01-PLAN.md — DOC-12 tracer: myst-parser delegation of `docs/source/changelog.rst` to `CHANGELOG.md`, proven end-to-end through both docs builders (wave 1)
+- [x] 45-03-PLAN.md — DOC-11: README Quick Start, `quickstart.rst` and `configuration.rst` corrected against a real build of the Quick Start's own steps (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -941,7 +941,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 5/5 | Complete    | 2026-08-04 |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | Complete    | 2026-08-05 |
-| 45. Documentation Currency + Carried Hygiene | v0.7.1 | 0/TBD | Not started | - |
+| 45. Documentation Currency + Carried Hygiene | v0.7.1 | 2/4 | In Progress|  |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
