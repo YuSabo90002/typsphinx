@@ -734,7 +734,13 @@ verbatim-duplicated rejection warning in `template_engine.py`, and the untermina
 
   5. The full pytest suite and `black`/`ruff`/`mypy` are green, and no `typsphinx/` behaviour changed
      beyond QUA-02's single-site warning refactor.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 45-01-PLAN.md — DOC-12 tracer: myst-parser delegation of `docs/source/changelog.rst` to `CHANGELOG.md`, proven end-to-end through both docs builders (wave 1)
+- [ ] 45-02-PLAN.md — DOC-12: `CHANGELOG.md` 0.4.4 backfill / `[Unreleased]` merge / emoji removal, framing corrections, changelog-page regression gate and clean-build delta (wave 2)
+- [ ] 45-03-PLAN.md — DOC-11: README Quick Start, `quickstart.rst` and `configuration.rst` corrected against a real build of the Quick Start's own steps (wave 1)
+- [ ] 45-04-PLAN.md — QUA-02 single-site warning refactor, QUA-03 verification with the D-08 closing-commit finding, and the SC#5 terminal phase gate (wave 3)
 
 ### Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)
 
