@@ -25,6 +25,15 @@ Typst Documents
 
 Define which documents to build:
 
+Setting ``typst_documents`` is optional. When it is absent, typsphinx
+derives a single entry from ``root_doc``, ``project``, and ``author``, with
+the target stem produced by the same ``make_filename_from_project`` helper
+Sphinx's own LaTeX builder uses. An explicitly-set value always wins,
+including an explicit empty list, because Sphinx resolves a raw user-set
+config value before falling back to a callable default. The derived entry
+makes the root document a master, so its emitted ``.typ`` receives the full
+template wrapper.
+
 .. code-block:: python
 
    typst_documents = [

@@ -42,7 +42,14 @@ Your First PDF
 
 Here's a minimal example to generate your first PDF:
 
-1. Create a simple ``index.rst``:
+1. Set your project name in ``conf.py`` (this determines the output
+   filename):
+
+   .. code-block:: python
+
+      project = "My Project"
+
+2. Create a simple ``index.rst``:
 
    .. code-block:: rst
 
@@ -58,13 +65,16 @@ Here's a minimal example to generate your first PDF:
       - Beautiful PDFs
       - Fast compilation
 
-2. Build the PDF:
+3. Build the PDF:
 
    .. code-block:: bash
 
       sphinx-build -b typstpdf source/ build/pdf
 
-3. Find your PDF in ``build/pdf/index.pdf``!
+4. Find your PDF in ``build/pdf/myproject.pdf``! The filename comes from
+   ``project`` run through Sphinx's own project-filename helper -- the same
+   rule ``-b latex`` uses -- so a ``project`` different from ``"My Project"``
+   produces a different filename; ``myproject`` is not a constant.
 
 Configuration Options
 ---------------------
@@ -88,6 +98,11 @@ You can customize the output by adding options to ``conf.py``:
 
    # Custom template (optional)
    typst_template = "_templates/custom.typ"
+
+Setting ``typst_documents`` explicitly is optional -- omitting it derives a
+single master entry from ``root_doc``, ``project``, and ``author``, as shown
+in `Your First PDF`_ above. See :doc:`user_guide/configuration` for the full
+reference.
 
 What's Next?
 ------------
