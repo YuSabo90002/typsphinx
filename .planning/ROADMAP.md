@@ -734,7 +734,7 @@ verbatim-duplicated rejection warning in `template_engine.py`, and the untermina
 
   5. The full pytest suite and `black`/`ruff`/`mypy` are green, and no `typsphinx/` behaviour changed
      beyond QUA-02's single-site warning refactor.
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -744,7 +744,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 45-02-PLAN.md — DOC-12: `CHANGELOG.md` 0.4.4 backfill / `[Unreleased]` merge / emoji removal, framing corrections, changelog-page regression gate and clean-build delta (wave 2)
+- [x] 45-02-PLAN.md — DOC-12: `CHANGELOG.md` 0.4.4 backfill / `[Unreleased]` merge / emoji removal, framing corrections, changelog-page regression gate and clean-build delta (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -941,7 +941,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 5/5 | Complete    | 2026-08-04 |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | Complete    | 2026-08-05 |
-| 45. Documentation Currency + Carried Hygiene | v0.7.1 | 2/4 | In Progress|  |
+| 45. Documentation Currency + Carried Hygiene | v0.7.1 | 3/4 | In Progress|  |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
