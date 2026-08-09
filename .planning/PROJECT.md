@@ -429,9 +429,32 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
-**v0.7.1 (bug-fix round) — Phase 44.2 complete 2026-08-07, 7/7 plans across 7 waves (3 planned +
+**v0.7.1 (bug-fix round) — Phase 45 complete 2026-08-10, 4/4 plans across 3 waves, verification
+`passed` 5/5 success criteria, code review 0 critical / 3 warning / 0 info. DOC-11, DOC-12,
+QUA-02 and QUA-03 validated.**
+
+Documentation currency closed the two drift channels the milestone carried. `docs/source/changelog.rst`
+now delegates to repo-root `CHANGELOG.md` through `myst-parser` (`docs` extra only), so the page that
+sat 12 releases stale carries every release from 0.4.1 through 0.7.0 and a future release costs one
+`CHANGELOG.md` entry rather than a re-derivation. README / `quickstart.rst` /
+`user_guide/configuration.rst` now describe what Phase 44 actually shipped: `typst_documents` is
+optional, an unset value derives one master entry from `make_filename_from_project(project)`, and an
+explicit setting always wins. Both claims are bound to real `sphinx-build` runs by new gates
+(`tests/test_changelog_page_gate.py`, `tests/test_quickstart_docs_gate.py`) rather than to requirement
+prose. The two carried hygiene todos closed with a single production change:
+`derive_typst_lang()`'s rejection warning now has exactly one call site, and the whole phase's
+`typsphinx/` diff is that one hunk in `typsphinx/template_engine.py`.
+
+Known follow-up, not a gap: delegating the changelog made a pre-existing contradiction visible
+side-by-side on the live page — `changelog.rst`'s "0.2.x → 0.3.x: no breaking changes" against
+`CHANGELOG.md`'s 0.3.0 breaking package rename (code review WR-01). It was out of scope for
+Phase 45's plans.
+
+<!-- Prior: v0.7.1 — Phase 44.2 complete 2026-08-07, 7/7 plans across 7 waves (3 planned +
 4 gap-closure rounds), verification `passed` 6/6 must-haves, code review 0 critical / 1 warning /
-1 info. CONF-09 validated.**
+1 info. CONF-09 validated. -->
+
+**Phase 44.2 detail (superseded as "current" by Phase 45, retained for context):**
 
 An explicit `typst_documents` entry's `[2]` title and `[3]` author now reach the compiled document,
 as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` /
