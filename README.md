@@ -77,6 +77,31 @@ Configure Typst output in your `conf.py`:
 typst_use_mitex = True  # Use mitex for LaTeX math (default: True)
 ```
 
+#### `typst_documents`
+
+`typst_documents` is the list of master documents to build. Each entry is a
+tuple `(source, target, title, author, documentclass)`, and each entry
+produces one emitted `.typ` file and, under the `typstpdf` builder, one
+compiled `.pdf`.
+
+You never need to set it for a single-master project — leaving it unset is
+supported, and that's exactly what this Quick Start does. When unset,
+typsphinx derives a single entry from `root_doc`, `project`, and `author`:
+the target stem is `project` run through the same filename helper Sphinx's
+own LaTeX builder uses, so `project = "My Project"` yields `myproject.typ`
+and, under `typstpdf`, `myproject.pdf`. This is more than a rename — the
+derived entry makes the root document a master, so its emitted `.typ` gains
+the full template wrapper it would not otherwise receive.
+
+An explicit `typst_documents` value — including an explicit empty list `[]`
+— always overrides the derived default: Sphinx resolves your raw config
+value before falling back to the callable default.
+
+Only the documents named in `typst_documents` (or the single derived entry)
+become PDFs. A document reached only through a toctree is not a separate
+PDF — it is emitted as its own `.typ` file and pulled into its master
+through Typst's `#include()`.
+
 ### Build Typst Output
 
 ```bash
@@ -200,7 +225,7 @@ For more details, see the [Sphinx Extension API documentation](https://www.sphin
 
 Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
 
-- `typst_documents`: Master documents to build, as `[(source, target, title, author), ...]` — required for PDF output
+- `typst_documents`: Master documents to build, as `[(source, target, title, author, documentclass), ...]` — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default
 - `typst_use_mitex`: Enable/disable mitex for LaTeX math
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
