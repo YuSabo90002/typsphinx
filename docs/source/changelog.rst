@@ -4,6 +4,40 @@
 Migration Guides
 ----------------
 
+Migrating from 0.6.x to 0.7.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No breaking config changes. Autodoc/API reference output changes visually: monospace
+signatures, hanging-indented description bodies, and depth-indexed member nesting replace the
+flat proportional-bold text used before — every ``.typ`` file and compiled PDF containing API
+documentation looks different on your next build.
+
+- Citations (``.. [Label]`` / ``[Label]_``) now compile. Previously a document containing a
+  citation failed the Typst compile outright; citations now render as hanging-indent reference
+  entries with working links and back-references.
+- Admonition bucket changes are visual only: ``seealso`` now uses the ``hint``/``tip`` styling
+  and ``attention`` uses the red family instead of the orange warning bucket.
+
+Migrating from 0.5.x to 0.6.x
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several breaking config removals landed across this range, alongside a large set of
+rendering-fidelity fixes that need no action.
+
+- **Breaking:** a ``typst_elements`` key outside ``papersize``/``fontsize``/``lang`` now fails the
+  build instead of being silently dropped. Remove the unsupported key, or pass it through a
+  custom template's ``typst_template_function.params`` instead.
+- **Breaking:** the inert ``typst_toctree_defaults`` config value was removed. Delete it from
+  your ``conf.py`` if present — it never affected any build's output.
+- **Breaking:** ``typst_output_dir`` and ``typst_author_params`` config values were removed.
+  Neither ever affected output; delete them if present.
+- ``sphinx-build -b typstpdf`` now names the output PDF after your configured
+  ``typst_documents`` target rather than the source docname — e.g. ``mydoc.pdf`` instead of
+  ``index.pdf``. Update any CI or release step that hardcodes the old filename.
+- No action needed for the rendering-fidelity fixes across this range (pixel-unit figure/image
+  widths, footnotes, glossaries, wide tables, and numerous spacing/separation fixes) — content
+  that previously dropped silently or clipped now simply renders correctly.
+
 Migrating from 0.2.x to 0.3.x
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -78,12 +112,20 @@ typsphinx uses semantic versioning (SemVer):
 Release Process
 ---------------
 
-1. Update version in ``pyproject.toml``
-2. Update ``CHANGELOG.md``
-3. Create git tag: ``v0.x.x``
-4. Push to GitHub
-5. GitHub Actions builds and publishes to PyPI
-6. GitHub Release created with changelog
+The released version lives in ``pyproject.toml``'s ``[project].version``. A release runs through
+``.github/workflows/release.yml``, triggered by pushing a matching ``vX.Y.Z`` tag:
+
+1. Update ``pyproject.toml``'s version and add a curated ``## [X.Y.Z]`` section to
+   ``CHANGELOG.md``, then push the ``vX.Y.Z`` tag (or trigger the workflow manually with the tag
+   as input).
+2. The ``validate`` job checks the tag against ``pyproject.toml``'s version and aborts on a
+   mismatch, aborts if ``CHANGELOG.md`` has no matching non-empty ``## [X.Y.Z]`` section, then
+   runs the test suite and linters.
+3. The ``build`` job produces the wheel and sdist.
+4. The ``publish-pypi`` job runs behind the protected ``pypi`` GitHub environment and requires a
+   manual approval before it uploads the package to PyPI.
+5. The ``create-release`` job extracts that same ``## [X.Y.Z]`` CHANGELOG section and publishes
+   it as the body of a GitHub Release, with the built wheel and sdist attached.
 
 See Also
 --------
