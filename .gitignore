@@ -90,6 +90,11 @@ dist/
 # The install bakes machine-specific absolute paths, so it stays local.
 .claude/
 
+# GSD run-scoped state (e.g. dispatch-isolation-sentinel.json, written per
+# execute-phase run so the isolation guard hooks can read the resolved mode).
+# Ephemeral and machine-local — never meaningful in another checkout.
+/.gsd/
+
 # MCP server config — the GSD install writes machine-specific absolute paths
 # (nix store, /home/... prefixes) into it, so it stays local (must not reach main).
 .mcp.json
