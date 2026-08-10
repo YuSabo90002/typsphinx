@@ -346,7 +346,14 @@ per-build-not-per-master flaw seen in the include-dedup ledger. Not mapped to a 
 `review-pr-131-absolute-image-uri-fix` moved to `todos/completed/` — the review was performed and
 PR #131 merged. Its RED claim was re-measured independently (3 tests fail with `builder.py` alone
 reverted to `main`, with the exact reported symptoms) and the full suite showed no regressions
-(main 45F/776P → PR 45F/779P; the 45 are the known NixOS `uv` exit-127 false positives).
+(main 45F/776P → PR 45F/779P; **corrected 2026-08-11 (QUA-04, D-06):** the 45 are a fixable dependency
+defect, not an unfixable environmental artifact — a generic-linux `uv` wheel binary at
+`.venv/bin/uv` that NixOS cannot exec, shadowing the working nix-store `uv` for subprocess children,
+closed by this milestone's Phase 45.2). This milestone carries **two** unrelated `exit 127` / "command
+not found" causes and they must not be conflated: (a) the local `.venv/bin/uv` ELF mismatch just
+described, closed by QUA-04, and (b) the `create-release` job's missing `astral-sh/setup-uv` step
+(REL-04, lines 425/587 below), which remains open until a real tag push runs `create-release` to
+completion.
 
 The review filed **two new todos** against the code the PR introduced, both in
 `TypstBuilder._track_image()` and best fixed together:

@@ -29,10 +29,12 @@ the milestone owes **five** user-visible CHANGELOG callouts rather than two. See
 
 **Amended again 2026-08-10:** Phase **45.2** inserted from Phase 46's discussion (`46-CONTEXT.md`
 D-18) with new requirement **QUA-04** — v1 coverage **19/19**. `tox` was measured completely
-non-functional locally (every environment exits 127) and the same one file makes 13 test modules
-fail under the outer `uv run` that `CLAUDE.md` mandates for worktree executors. It lands before
-Phase 46 because Phase 46's SC#3 evidence path assumes local `tox` works. QUA-04 gets **no**
-CHANGELOG callout — it is confined to the `dev` extra (D-19), so the milestone still owes five.
+non-functional locally (every environment exits 127) and the same one file makes 5 test modules fail
+under the outer `uv run` that `CLAUDE.md` mandates for worktree executors (13 is a miscount — a bare
+`grep -l "uv" tests/` returns 13, but only 5 modules actually invoke `["uv", "run", ...]` as a
+subprocess; corrected 2026-08-11, D-05). It lands before Phase 46 because Phase 46's SC#3 evidence
+path assumes local `tox` works. QUA-04 gets **no** CHANGELOG callout — it is confined to the `dev`
+extra (D-19), so the milestone still owes five.
 
 ## Phases
 
@@ -356,7 +358,7 @@ is the first to need one (2026-08-10, blocked on the words `page`/`pages` in its
 - [x] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win (completed 2026-08-07)
 - [x] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close (completed 2026-08-10)
 - [x] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument; the contract published in the docs matches what typsphinx actually passes; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` is removed; and the auto-derived `lang` reaches every non-package template route (completed 2026-08-10)
-- [ ] **Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)** - `tox` runs on the maintainer's machine for the first time (every environment exits 127 today) and the 13 test modules that shell out to `uv run` stop failing under the very invocation `CLAUDE.md` mandates — one dependency name, `tox-uv` → `tox-uv-bare`, dropping the generic-linux `uv` wheel binary NixOS cannot exec
+- [ ] **Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)** - `tox` runs on the maintainer's machine for the first time (every environment exits 127 today) and the 5 test modules that shell out to `uv run` stop failing under the very invocation `CLAUDE.md` mandates — one dependency name, `tox-uv` → `tox-uv-bare`, dropping the generic-linux `uv` wheel binary NixOS cannot exec
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out both user-visible changes: the output-filename rename and the rendered title/author change), proven green, and handed off with no irreversible action taken
 
 ## Phase Details
@@ -912,9 +914,12 @@ Plans:
 `tox` is **completely non-functional on the maintainer's machine** — every environment dies with
 `lint: FAIL code 127`, so `tox -e docs-html`, `tox -e docs-pdf` and the `py312`/`py313`/`lint`/
 `type`/`cov` matrix that `CLAUDE.md` and `docs/source/contributing.rst:108-130` present as the
-standard workflow have never executed locally. The same defect makes 13 test modules fail whenever
+standard workflow have never executed locally. The same defect makes 5 test modules fail whenever
 pytest runs under an outer `uv run` — the invocation `CLAUDE.md` **mandates** for every
-worktree-isolated executor.
+worktree-isolated executor. (13 is a miscount: a bare `grep -l "uv" tests/` returns 13 files, but
+only 5 modules actually shell out to `["uv", "run", "sphinx-build", …]`; the other 8 only mention
+`uv` in docstrings explaining why they use `sys.executable -m sphinx` instead — corrected 2026-08-11,
+D-05.)
 
 One file causes both. `pyproject.toml:33`'s `dev` extra depends on `tox-uv`, which is a meta package
 (`tox-uv 1.35.2 requires ['tox-uv-bare==1.35.2', 'uv<1,>=0.9.27']`); the PyPI `uv` wheel installs
@@ -943,21 +948,30 @@ because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox`
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
 
-  1. `tox` runs locally. `tox -e lint`, `tox -e type` and **both** documentation environments
-     (`docs-html`, `docs-pdf`) complete on the maintainer's machine with no `TOX_UV_PATH` and no
-     other environment override — proven by transcribed output, with the pre-fix `exit 127` recorded
-     first. The `docs-pdf` run is the one this phase must not skip: it is the environment Phase 46's
-     SC#3 depends on and the only one not yet exercised end to end under `tox-uv-bare`.
+  1. `tox` runs locally. `tox -e lint` and `tox -e type` reach both provisioning (`uv-sync>`) AND
+     command execution — `tox -e lint` reaches and passes `black --check .`, then stops at
+     `ruff check .` because `.venv/bin/ruff` is a separate, NixOS-local generic-linux-ELF defect
+     (D-03) this phase does not fix and does not reframe as environmental; that stop is named and
+     filed as a todo, not counted as a failure of this phase. **Both** documentation environments
+     (`docs-html`, `docs-pdf`) complete end to end on the maintainer's machine with no `TOX_UV_PATH`
+     and no other environment override — proven by transcribed output, with the pre-fix `exit 127`
+     recorded first. The `docs-pdf` run is the one this phase must not skip: it is the environment
+     Phase 46's SC#3 depends on and the only one not yet exercised end to end under `tox-uv-bare`.
+     **Amended 2026-08-11 (D-01/D-10):** the original wording claimed `tox -e lint` "completes",
+     which is false — `ruff` never runs on this machine, before or after this phase's fix.
 
   2. `.venv/bin/uv` and `.venv/bin/uvx` are absent after a clean `uv sync --extra dev`, and no
      installed distribution named `uv` remains — checked with `importlib.metadata`, not by looking
      at the lockfile.
 
   3. The pytest failures this defect caused are gone **under the invocation `CLAUDE.md` mandates**:
-     the 13 modules that hard-code `["uv", "run", "sphinx-build", …]` pass under an outer
+     the 5 modules that hard-code `["uv", "run", "sphinx-build", …]` pass under an outer
      `uv run pytest`. The measured pre-fix baseline for four of them is **42 failed / 5 passed**,
-     and the same four measured **47 passed** with the binary removed; the full 13-module census is
-     taken in-phase on both sides, since 45-as-a-count has never been verified against this cause.
+     and the same four measured **47 passed** with the binary removed; the census is taken over the
+     **full pytest suite**, not just the five modules, on both sides in-phase, since 45-as-a-count
+     has never been verified against this cause (D-14). **Amended 2026-08-11 (D-05/D-10):** "13
+     modules" corrected to 5 — 13 is what a bare `grep -l "uv" tests/` returns; only 5 actually
+     invoke `uv` as a subprocess.
 
   4. CI stays green, and is shown to reach `uv` by a **different** route than the local build does:
      every job runs `astral-sh/setup-uv@v7` before `uv run tox`, so `shutil.which("uv")` resolves
@@ -967,12 +981,25 @@ because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox`
   5. `tox.ini`'s `requires` moves to `tox-uv-bare~=1.35` and its existing comment is rewritten
      rather than deleted: the comma-splitting hazard it documents (`>=1.35,<2` parses as two bogus
      requirements) applies identically to the new name, so the `~=` form is still load-bearing and
-     must still say why.
+     must still say why. **Amended 2026-08-11 (D-02/D-10):** `tox.ini` also gains `extras = dev` on
+     `[testenv]`, `[testenv:lint]`, `[testenv:type]` and `[testenv:cov]` — `runner =
+     uv-venv-lock-runner` provisions each environment from `uv.lock` via `uv sync` and never consults
+     a `deps` list, so without this addition none of those four environments ever installs its own
+     tools (defect ②).
 
   6. The wrong diagnosis is corrected wherever it is recorded — a repo-wide grep for the
      `command not found` / "not on PATH" framing at discovery time (milestone invariant #4), not
-     against a list of files this criterion happens to name. In scope: the affected test docstrings
-     and `STATE.md`'s "known NixOS `uv` exit-127 false positives" note.
+     against a list of files this criterion happens to name. **Amended 2026-08-11 (D-06/D-07/D-08/
+     D-10): this criterion's own premise was wrong.** The affected test docstrings are NOT
+     misdiagnosed — their text ("a stray non-Nix `uv` binary... makes `["uv", "run", ...]` exit 127")
+     is factually correct; only its tense goes stale after this phase, so they are tense-corrected
+     with an added QUA-04 rationale, not rewritten. The genuinely wrong record is `STATE.md`'s framing
+     of the 45 failures as "known NixOS `uv` exit-127 **false positives**" — a fixable dependency
+     defect presented as an unfixable environmental one. Scope boundary: live records only. Out of
+     scope and left byte-unchanged: the REL-04 family (six sites describing the `create-release`
+     "command not found" defect — a different, real, still-open bug) and every archived record under
+     `.planning/milestones/`, `.planning/RETROSPECTIVE.md`, and `PROJECT.md`'s HTML-commented prior
+     footers (D-07, D-08).
 
   7. No runtime surface moves. `[project] dependencies` is untouched, `typsphinx/` is untouched, the
      `@preview` count stays at four, and the only `pyproject.toml` change is inside the `dev` extra
