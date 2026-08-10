@@ -866,7 +866,7 @@ section's prose and blocks planning on a missing UI-SPEC.
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: 1/6 plans executed in 5 waves
+**Plans**: 3/6 plans executed in 5 waves
 
 Plans:
 **Wave 1**
@@ -875,8 +875,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 45.1-02-PLAN.md — CONF-11 route matrix: exclusivity proved on the `typst_template`, `typst_package` and bundled-default routes, RED-proved against the pre-fix commit (wave 2)
-- [ ] 45.1-03-PLAN.md — CONF-12: auto-derived `lang` on every non-package template route (D-I); `docs/source/conf.py`'s workaround removed (wave 2)
+- [x] 45.1-02-PLAN.md — CONF-11 route matrix: exclusivity proved on the `typst_template`, `typst_package` and bundled-default routes, RED-proved against the pre-fix commit (wave 2)
+- [x] 45.1-03-PLAN.md — CONF-12: auto-derived `lang` on every non-package template route (D-I); `docs/source/conf.py`'s workaround removed (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
