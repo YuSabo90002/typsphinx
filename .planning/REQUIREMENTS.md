@@ -103,7 +103,7 @@ continues at **Phase 43**.
       user whose entry title/author differ from `project`/`author`, the rendered title and author
       change inside a patch release.
 
-- [ ] **CONF-11**: When `typst_template_function` is given in its dict form with a `params` key,
+- [x] **CONF-11**: When `typst_template_function` is given in its dict form with a `params` key,
       those parameters are the **complete** set passed to the template function — the auto-derived
       `title`/`authors`/`date`, the `typst_elements` allowlist merge, and the `toctree_*` merge are
       all withheld. The predicate is the *presence* of the `params` key, so `params: {}` passes
@@ -119,7 +119,7 @@ continues at **Phase 43**.
       has named both the template function and its arguments has already made a more specific
       decision than either" — while the mechanism it documented was per-key override.)
 
-- [ ] **CONF-12**: The Typst `lang` auto-derived from Sphinx's `language` reaches **every non-package
+- [x] **CONF-12**: The Typst `lang` auto-derived from Sphinx's `language` reaches **every non-package
       template route**, not only the bundled default — an explicit `typst_template` and a
       `<srcdir>/base.typ` shadow both receive it. The `typst_package` guard in
       `TemplateEngine.uses_bundled_default_template()` stays, for the same reason CONF-04/D-03 gives:
@@ -134,7 +134,7 @@ continues at **Phase 43**.
       auto-derivation"; the `typsphinx-doc-translations` repository carries the same workaround.
       (Owner decision 2026-08-10, Phase 45.1 D-I.)
 
-- [ ] **CONF-10**: The `typst_authors` config value is removed. **Promoted from Future to v1 on
+- [x] **CONF-10**: The `typst_authors` config value is removed. **Promoted from Future to v1 on
       2026-08-10 by owner decision (Phase 45.1 D-F), reversing this requirement's own deferral
       rationale** — it was filed by Phase 44.2 on the grounds that v0.7.1 is a patch release already
       carrying two user-visible changes and "a third would contradict that boundary". The owner
@@ -166,7 +166,7 @@ continues at **Phase 43**.
 - [x] **DOC-12**: The published documentation's changelog page carries every release through v0.7.1.
       (`docs/source/changelog.rst` is frozen at 0.4.0; 12 releases are missing.)
 
-- [ ] **DOC-13**: A custom template that declares exactly the parameters the published documentation
+- [x] **DOC-13**: A custom template that declares exactly the parameters the published documentation
       lists compiles — the published contract and the parameters typsphinx actually passes agree in
       both directions, and the standing consequence (adding a template parameter breaks a
       correctly-written custom template) is recorded where the contract is documented.
@@ -301,10 +301,10 @@ Filled during roadmap creation.
 | DOC-12 | Phase 45 | Complete |
 | QUA-02 | Phase 45 | Complete |
 | QUA-03 | Phase 45 | Complete |
-| DOC-13 | Phase 45.1 | Gaps Found |
-| CONF-10 | Phase 45.1 | Pending |
-| CONF-11 | Phase 45.1 | Pending |
-| CONF-12 | Phase 45.1 | Pending |
+| DOC-13 | Phase 45.1 | Complete |
+| CONF-10 | Phase 45.1 | Complete |
+| CONF-11 | Phase 45.1 | Complete |
+| CONF-12 | Phase 45.1 | Complete |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
