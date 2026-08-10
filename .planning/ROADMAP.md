@@ -1006,7 +1006,7 @@ because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox`
      — asserted mechanically over this phase's own diff, because Phase 46's SC#3 measures the tree
      this phase hands it.
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1020,7 +1020,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 45.2-04-PLAN.md — Post-fix main-tree proof: SC#2 census + second-sync check, SC#1 tox matrix, SC#3 before/after census
+- [x] 45.2-04-PLAN.md — Post-fix main-tree proof: SC#2 census + second-sync check, SC#1 tox matrix, SC#3 before/after census
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -1168,7 +1168,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 44.2 `typst_documents` Title and Author Consumption (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-07 |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
-| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 3/5 | In Progress|  |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 4/5 | In Progress|  |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
