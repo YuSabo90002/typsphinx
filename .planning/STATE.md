@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 45.1
-current_phase_name: Custom-Template Parameter Contract Correction
+current_phase_name: custom-template-parameter-contract-correction
 status: executing
 stopped_at: Phase 45.1 context gathered
-last_updated: "2026-08-10T02:05:47.256Z"
+last_updated: "2026-08-10T02:08:50.116Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 45.1 — Custom-Template Parameter Contract Correction
+**Current focus:** Phase 45.1 — custom-template-parameter-contract-correction
 **18/18** v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
 insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
@@ -34,11 +34,11 @@ Next action: `/gsd-plan-phase 45.1`.
 
 ## Current Position
 
-Phase: 45.1 — Custom-Template Parameter Contract Correction
-Plan: Not started
-Status: Ready to execute
+Phase: 45.1 (custom-template-parameter-contract-correction) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 45.1
 Progress: [##############------] 71% (5/7 phases)
-Last activity: 2026-08-10 — Phase 45 complete and UAT-verified (13/13 passed, 0 issues), transitioned to Phase 45.1
+Last activity: 2026-08-10 — Phase 45.1 execution started
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 

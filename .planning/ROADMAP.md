@@ -866,12 +866,12 @@ section's prose and blocks planning on a missing UI-SPEC.
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: 6 plans in 5 waves
+**Plans**: 1/6 plans executed in 5 waves
 
 Plans:
 **Wave 1**
 
-- [ ] 45.1-01-PLAN.md — CONF-11 core: a declared `params` becomes the complete parameter set (D-B/D-D), proved end to end on a zero-named-parameter template (wave 1, has a one-way decision checkpoint)
+- [x] 45.1-01-PLAN.md — CONF-11 core: a declared `params` becomes the complete parameter set (D-B/D-D), proved end to end on a zero-named-parameter template (wave 1, has a one-way decision checkpoint)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
