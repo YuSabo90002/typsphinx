@@ -355,43 +355,54 @@ class TemplateEngine:
 
     def uses_bundled_default_template(self) -> bool:
         """
-        CONF-07/D-06: the single judgment point for "is the default
-        (bundled) template actually going to be used for this build?".
+        CONF-12/D-I: the single judgment point for "should this build
+        receive the auto-derived Typst ``lang``?", narrowed from its
+        original CONF-07/D-06 shape.
 
-        Returns True only when this engine carries no ``typst_package`` AND
-        ``resolve_template().source == "default"``.
+        Returns the negation of ``self.typst_package`` -- i.e. ``True`` for
+        every non-package route (the bundled default template, an explicit
+        ``typst_template``, and a ``<srcdir>/base.typ`` search-path shadow
+        alike), ``False`` only when ``typst_package`` is configured.
 
-        Why judged from an actual resolution result rather than a
-        declaration check (``typst_template is None and typst_package is
-        None``): a ``<srcdir>/base.typ`` shadow leaves BOTH
-        ``typst_template`` and ``typst_package`` unset while still routing
-        the build onto a user-authored template (Priority 2's search-path
-        hit). A declaration-based check would miss this shadow entirely,
-        inject a parameter (``lang``) that shadow template never declared,
-        and manufacture the exact undeclared-kwarg Typst compile fatal
-        (``unexpected argument: lang``) this predicate exists to prevent
-        (SC#3).
+        Why the resolution-provenance half of the old judgment (comparing
+        ``resolve_template()``'s ``source`` field against the literal
+        ``"default"``) is gone: that check existed under D-06 to withhold
+        ``lang`` from an explicit ``typst_template`` or a search-path
+        shadow, on the theory that such a template might not declare the
+        parameter. D-A's published nine-parameter contract
+        (``templates.rst``) removes that rationale -- every documented
+        custom template now declares ``lang`` alongside the other eight --
+        and the LaTeX-parity argument cuts the other way: Sphinx's own
+        LaTeX builder derives ``babel``/``polyglossia`` from ``language``
+        regardless of ``latex_elements``, with no equivalent "might not be
+        declared" carve-out. Narrowing this predicate to the
+        ``typst_package`` guard alone is what widens ``lang`` derivation to
+        every non-package route without touching the caller
+        (``writer.py``'s ``auto_lang`` block) at all.
 
-        Why the ``typst_package`` guard is load-bearing and NOT redundant
-        with the priority walk: on the package-alone path, this engine is
-        constructed with ``template_path=None``, so its OWN priority walk
-        legitimately resolves to ``"default"`` even though ``render()``
-        never loads that template at all -- the emitted ``#show`` rule
-        calls the package's own entry function instead. Passing a
-        bundled-template-only parameter (``lang``) into a package function
-        that never declared it would be the exact same undeclared-kwarg
-        fatal, just reached via a different route.
+        Why the ``typst_package`` guard survives and is NOT redundant with
+        anything else: typsphinx never introspects a third-party Typst
+        Universe function's signature (CONF-04 D-03, CONF-09's W1/W2/W3),
+        so forwarding a bundled-template-only parameter into one would
+        reproduce the exact undeclared-kwarg Typst compile fatal
+        (``unexpected argument: lang``) this predicate exists to prevent --
+        on the package-alone path, this engine is constructed with
+        ``template_path=None``, so its own priority walk would legitimately
+        resolve to ``"default"`` even though ``render()`` never loads that
+        template at all; the emitted ``#show`` rule calls the package's own
+        entry function instead. D-C reaches the identical conclusion for
+        ``typst_package`` + a function name with no declared ``params``:
+        typsphinx cannot know the package's signature, so this guard stays
+        load-bearing independent of the resolution-source check dropped
+        above.
 
         Returns:
-            ``True`` only for a package-free engine whose priority walk
-            resolves to the bundled default template; ``False`` for
-            ``"explicit"``, ``False`` for ``"search"`` (including the
-            ``<srcdir>/base.typ`` shadow case), and ``False`` whenever
-            ``typst_package`` is configured.
+            ``True`` for a package-free engine regardless of how its
+            template was resolved (``"explicit"``, ``"search"``, or
+            ``"default"``); ``False`` whenever ``typst_package`` is
+            configured.
         """
-        if self.typst_package:
-            return False
-        return self.resolve_template().source == "default"
+        return not self.typst_package
 
     def map_parameters(
         self,
