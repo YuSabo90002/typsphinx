@@ -979,7 +979,25 @@ because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox`
      — asserted mechanically over this phase's own diff, because Phase 46's SC#3 measures the tree
      this phase hands it.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 45.2-01-PLAN.md — Pre-fix baseline captured once in the main tree (D-13): environment census, `tox` transcript, full-suite pytest census
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 45.2-02-PLAN.md — Tracer: `tox-uv` → `tox-uv-bare` in the `dev` extra, `tox.ini` `requires` rename, `extras = dev` on the four broken environments, `uv.lock` regenerated
+- [ ] 45.2-03-PLAN.md — SC#6 discovery-time sweep, test-docstring tense correction, ROADMAP/REQUIREMENTS/STATE amendments (D-05..D-10)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 45.2-04-PLAN.md — Post-fix main-tree proof: SC#2 census + second-sync check, SC#1 tox matrix, SC#3 before/after census
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 45.2-05-PLAN.md — SC#4 CI run and `uv-sync>` before/after, SC#7 fence assertion, todo filing, memory retirement, closing verdict
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
