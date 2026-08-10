@@ -29,21 +29,28 @@ Use the charged-ieee package for IEEE-style papers:
 
    ieee_keywords = ["Machine Learning", "Computer Vision", "AI"]
 
+   # Detailed author information -- moved directly into
+   # typst_template_function["params"]["authors"] below. Declaring params
+   # makes it the COMPLETE parameter set (see :doc:`/user_guide/configuration`'s
+   # Author Information section), so title is also named here explicitly
+   # rather than relying on the typst_documents entry's own value.
+   ieee_authors = [
+       {
+           "name": "John Doe",
+           "department": "Computer Science",
+           "organization": "MIT",
+           "email": "john@mit.edu",
+       },
+   ]
+
    typst_template_function = {
        "name": "ieee",
        "params": {
+           "title": project,
+           "authors": ieee_authors,
            "abstract": ieee_abstract,
            "index-terms": ieee_keywords,
            "paper-size": "us-letter",
-       }
-   }
-
-   # Detailed author information
-   typst_authors = {
-       "John Doe": {
-           "department": "Computer Science",
-           "organization": "MIT",
-           "email": "john@mit.edu"
        }
    }
 
@@ -62,6 +69,12 @@ Wrap external packages with custom logic:
      title: "",
      authors: (),
      date: none,
+     toctree_maxdepth: 2,
+     toctree_numbered: false,
+     toctree_caption: "Contents",
+     papersize: "a4",
+     fontsize: 11pt,
+     lang: "en",
      body
    ) = {
      // Transform simple author tuples to IEEE format
@@ -186,9 +199,16 @@ Apply custom fonts and colors:
    typst_template_function = {
        "name": "project",
        "params": {
+           "title": "My Styled Document",
            "primary-color": "rgb(0, 102, 204)",  # Custom blue
        }
    }
+
+Declaring ``params`` makes it the **complete** parameter set (see
+:doc:`/user_guide/configuration`'s Author Information section for the full
+exclusivity rule), so ``title`` must be named here explicitly -- without it,
+the template's own ``title: ""`` default would apply and the styled title
+page above would render empty.
 
 Conditional Content
 -------------------
@@ -235,8 +255,19 @@ Include bibliographies with BibTeX:
 
 .. code-block:: typst
 
-   #let project(title: "", body) = {
-     set page(paper: "us-letter")
+   #let project(
+     title: "",
+     authors: (),
+     date: none,
+     toctree_maxdepth: 2,
+     toctree_numbered: false,
+     toctree_caption: "Contents",
+     papersize: "a4",
+     fontsize: 11pt,
+     lang: "en",
+     body
+   ) = {
+     set page(paper: papersize)
 
      text(20pt, weight: "bold")[#title]
      v(2em)
