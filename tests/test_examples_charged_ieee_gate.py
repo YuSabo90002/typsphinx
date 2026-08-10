@@ -152,19 +152,14 @@ class TestChargedIeeeExamplesGate:
         package import present, no shared-template reference, and no
         back-filled ``date`` argument inside the show-rule call region.
 
-        Phase 45.1 (D-B) update: ``approach1/conf.py`` sets BOTH
-        ``typst_authors`` (its README-documented "Recommended" approach)
-        AND a non-empty ``typst_template_function["params"]``. Under D-B's
-        exclusivity rule, declaring ``params`` discards the auto-derived/
-        ``typst_authors``-seeded set WHOLESALE -- so this sample's
-        ``authors`` argument is now entirely absent from the emitted call,
-        not an array of dictionaries. This is a genuine, known interim
-        state of the shipped example (it silently stops emitting an author)
-        that ``examples/charged-ieee/approach1/conf.py`` itself is
-        deliberately left unmodified for in this plan -- its
-        ``typst_authors`` migration is Phase 45.1's D-F/D-G work in a later
-        plan, not this one. This test is re-derived to assert the CURRENT,
-        accurate behaviour rather than the pre-D-B claim.
+        Phase 45.1 (D-B/D-F) update: ``approach1/conf.py`` now declares its
+        author details directly inside ``typst_template_function["params"]
+        ["authors"]`` -- the dedicated author-details config value this
+        sample previously used is removed (CONF-10/D-F). Because ``params``
+        is the complete, exclusive parameter set (D-B), the sample's
+        ``authors`` argument reaches the emitted call as a native Typst
+        array of dictionaries once again, sourced from the params route
+        instead of the removed config value.
         """
         build_dir = tmp_path / "approach1_build"
         result = _run_sphinx_build(APPROACH1_DIR, APPROACH1_DIR / "source", build_dir)
@@ -200,7 +195,12 @@ class TestChargedIeeeExamplesGate:
 
         show_rule_region = _show_rule_call_region(text)
         assert "date:" not in show_rule_region
-        assert "authors:" not in show_rule_region
+        assert "authors:" in show_rule_region
+        assert "John Doe" in show_rule_region
+        assert "department:" in show_rule_region
+        assert "organization:" in show_rule_region
+        assert "location:" in show_rule_region
+        assert "email:" in show_rule_region
 
     def test_approach2_custom_template_sample_actually_uses_package(self, tmp_path):
         """

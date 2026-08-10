@@ -252,7 +252,6 @@ class TypstWriter(writers.Writer):
             typst_package=package_for_engine,
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
-            typst_authors=getattr(config, "typst_authors", None),
         )
 
         # Gather Sphinx metadata. "copyright" is deliberately NOT included --

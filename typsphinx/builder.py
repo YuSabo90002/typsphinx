@@ -628,7 +628,6 @@ class TypstBuilder(Builder):
             typst_package=resolve_package_for_engine(typst_package, raw_template_path),
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
-            typst_authors=getattr(config, "typst_authors", None),
         )
 
         # Get template content
