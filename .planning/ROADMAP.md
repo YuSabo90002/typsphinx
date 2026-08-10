@@ -799,6 +799,9 @@ Full decisions and measurements:
 (Phase 45: `README.md`, `docs/source/changelog.rst`, `derive_typst_lang()`, `.planning/PROJECT.md`),
 but both edit published documentation, and Phase 45's SC#1/#2 evidence is a clean build of pages
 this phase may also touch. Running after 45 keeps each phase's build evidence attributable.
+**UI hint**: no — typsphinx emits Typst markup and PDFs; this phase has no frontend surface. The
+token sniff in `ui-safety-gate.cjs` otherwise false-positives on the words `page`/`pages` in this
+section's prose and blocks planning on a missing UI-SPEC.
 **Requirements**: DOC-13, CONF-10, CONF-11, CONF-12
 **Success Criteria** (what must be TRUE):
 
@@ -858,7 +861,15 @@ this phase may also touch. Running after 45 keeps each phase's build evidence at
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: TBD
+**Plans**: 6 plans in 5 waves
+
+Plans:
+- [ ] 45.1-01-PLAN.md — CONF-11 core: a declared `params` becomes the complete parameter set (D-B/D-D), proved end to end on a zero-named-parameter template (wave 1, has a one-way decision checkpoint)
+- [ ] 45.1-02-PLAN.md — CONF-11 route matrix: exclusivity proved on the `typst_template`, `typst_package` and bundled-default routes, RED-proved against the pre-fix commit (wave 2)
+- [ ] 45.1-03-PLAN.md — CONF-12: auto-derived `lang` on every non-package template route (D-I); `docs/source/conf.py`'s workaround removed (wave 2)
+- [ ] 45.1-04-PLAN.md — CONF-10: `typst_authors` removed in one lockstep landing across production, tests, fixture and the shipped sample (D-F) (wave 3, has a one-way decision checkpoint)
+- [ ] 45.1-05-PLAN.md — DOC-13: publish the nine-parameter contract, rewrite the precedence model onto exclusivity, and build-verify all twelve documented examples (D-A/D-C/D-E/D-G/D-J) (wave 4)
+- [ ] 45.1-06-PLAN.md — Closeout: the SC#3 documented-contract regression lock, the SC#2 two-way emission-site enumeration, live SC#5/SC#6 gates, and the SC#9/SC#10 handoff record (wave 5)
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
