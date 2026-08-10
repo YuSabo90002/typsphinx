@@ -1006,7 +1006,7 @@ because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox`
      — asserted mechanically over this phase's own diff, because Phase 46's SC#3 measures the tree
      this phase hands it.
 
-**Plans**: 1/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1015,8 +1015,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 45.2-02-PLAN.md — Tracer: `tox-uv` → `tox-uv-bare` in the `dev` extra, `tox.ini` `requires` rename, `extras = dev` on the four broken environments, `uv.lock` regenerated
-- [ ] 45.2-03-PLAN.md — SC#6 discovery-time sweep, test-docstring tense correction, ROADMAP/REQUIREMENTS/STATE amendments (D-05..D-10)
+- [x] 45.2-02-PLAN.md — Tracer: `tox-uv` → `tox-uv-bare` in the `dev` extra, `tox.ini` `requires` rename, `extras = dev` on the four broken environments, `uv.lock` regenerated
+- [x] 45.2-03-PLAN.md — SC#6 discovery-time sweep, test-docstring tense correction, ROADMAP/REQUIREMENTS/STATE amendments (D-05..D-10)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -1168,7 +1168,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 44.2 `typst_documents` Title and Author Consumption (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-07 |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
-| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 1/5 | In Progress|  |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 3/5 | In Progress|  |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
