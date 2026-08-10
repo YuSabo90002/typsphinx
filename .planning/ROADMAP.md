@@ -866,7 +866,10 @@ section's prose and blocks planning on a missing UI-SPEC.
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: 6/6 plans executed in 5 waves
+**Plans**: 7 plans in 6 waves — 6/6 executed; **45.1-07 added 2026-08-10** to close the one gap
+`45.1-VERIFICATION.md` found (truth 2b: `configuration.rst`'s Document Language route-scope prose
+still published the pre-CONF-12 rule, contradicting the code and `templates.rst` on the page
+`templates.rst` cross-references)
 
 Plans:
 **Wave 1**
@@ -889,6 +892,10 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 45.1-06-PLAN.md — Closeout: the SC#3 documented-contract regression lock, the SC#2 two-way emission-site enumeration, live SC#5/SC#6 gates, and the SC#9/SC#10 handoff record (wave 5)
+
+**Wave 6** *(gap closure, blocked on Wave 5 completion)*
+
+- [ ] 45.1-07-PLAN.md — Gap closure: correct `configuration.rst`'s Document Language route-scope prose onto the D-I rule, add a permanent cross-page contract-claim guard so a stale claim on an unread page cannot recur silently, and flip the REQUIREMENTS.md traceability lag (wave 6)
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
