@@ -866,7 +866,7 @@ section's prose and blocks planning on a missing UI-SPEC.
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: 5/6 plans executed in 5 waves
+**Plans**: 6/6 plans executed in 5 waves
 
 Plans:
 **Wave 1**
@@ -888,7 +888,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 45.1-06-PLAN.md — Closeout: the SC#3 documented-contract regression lock, the SC#2 two-way emission-site enumeration, live SC#5/SC#6 gates, and the SC#9/SC#10 handoff record (wave 5)
+- [x] 45.1-06-PLAN.md — Closeout: the SC#3 documented-contract regression lock, the SC#2 two-way emission-site enumeration, live SC#5/SC#6 gates, and the SC#9/SC#10 handoff record (wave 5)
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
