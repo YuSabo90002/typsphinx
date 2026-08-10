@@ -287,15 +287,18 @@ class TypstWriter(writers.Writer):
         # guarantee rather than a filter (Pitfall 3).
         typst_elements = getattr(config, "typst_elements", {})
 
-        # CONF-07: auto-derive the Typst typesetting `lang` from Sphinx's
-        # `language` config, but ONLY on the default-template path --
-        # uses_bundled_default_template() is the single D-06 judgment (it is
-        # False for an explicit typst_template, for a <srcdir>/base.typ
-        # shadow, and for the package-alone path, so none of those users are
-        # ever handed a `lang` parameter their template never declared,
-        # SC#3). Read `language` defensively via getattr and let
-        # derive_typst_lang() handle a missing/malformed value -- never
-        # pre-validate or raise here (D-03).
+        # CONF-12/D-I: auto-derive the Typst typesetting `lang` from
+        # Sphinx's `language` config on EVERY non-package route --
+        # uses_bundled_default_template() is the single judgment
+        # (narrowed by D-I to `not self.typst_package`), so it is now True
+        # for the bundled default template, an explicit typst_template, AND
+        # a <srcdir>/base.typ shadow alike; it stays False only for the
+        # package-alone path, where typsphinx cannot introspect a
+        # third-party function's signature (D-C) and so never hands it a
+        # `lang` parameter that function never declared (SC#3). Read
+        # `language` defensively via getattr and let derive_typst_lang()
+        # handle a missing/malformed value -- never pre-validate or raise
+        # here (D-03).
         auto_lang = None
         if template_engine.uses_bundled_default_template():
             sphinx_language = getattr(config, "language", None)

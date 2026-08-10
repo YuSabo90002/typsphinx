@@ -13,6 +13,13 @@
   toctree_caption: "Contents",
   papersize: "a4",
   fontsize: 11pt,
+  // CONF-12/D-I: the extension now auto-derives `lang` from Sphinx's
+  // `language` config on every non-package template route, including this
+  // explicit `typst_template`. Declared (not forwarded into `ieee.with()`,
+  // which has no such parameter) per the published nine-parameter
+  // contract (D-A, templates.rst) -- omitting it would abort the compile
+  // with `unexpected argument: lang`.
+  lang: "en",
   body
 ) = {
 

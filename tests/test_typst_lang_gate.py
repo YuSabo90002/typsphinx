@@ -73,8 +73,8 @@ JA_DEFAULT_FIXTURE_DIR = FIXTURES_DIR / "ja_default"
 DE_DEFAULT_FIXTURE_DIR = FIXTURES_DIR / "de_default"
 PRECEDENCE_FIXTURE_DIR = FIXTURES_DIR / "precedence"
 MALFORMED_LANGUAGE_FIXTURE_DIR = FIXTURES_DIR / "malformed_language"
-CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "custom_template_no_lang"
-SRCDIR_SHADOW_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "srcdir_shadow_no_lang"
+CUSTOM_TEMPLATE_LANG_FIXTURE_DIR = FIXTURES_DIR / "custom_template_lang"
+SRCDIR_SHADOW_LANG_FIXTURE_DIR = FIXTURES_DIR / "srcdir_shadow_lang"
 PACKAGE_NO_LANG_FIXTURE_DIR = FIXTURES_DIR / "package_no_lang"
 NULL_ELEMENTS_FIXTURE_DIR = FIXTURES_DIR / "null_elements"
 
@@ -493,27 +493,30 @@ class TestNullElementsDoesNotAbort:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the GATE-01 typst lang gate",
 )
-class TestCustomTemplateNoLang:
+class TestCustomTemplateLang:
     """
-    SC#3 / D-08 case (1): an EXPLICITLY configured ``typst_template`` that
-    declares NO ``lang`` parameter, combined with Sphinx
-    ``language = "ja"``, real-compiles successfully via ``-b typstpdf`` and
-    its emitted show-rule region carries NO auto-injected ``lang`` entry.
-    ``TemplateEngine.uses_bundled_default_template()`` returns ``False``
-    here because ``resolve_template().source == "explicit"`` (Priority 1),
-    so ``writer.py`` never computes ``auto_lang`` for this path at all --
-    the failure mode this guards against is a hard Typst abort on an
-    undeclared argument, which would show up as a non-zero build exit.
+    SC#9 / CONF-12 / D-I case (1): an EXPLICITLY configured
+    ``typst_template`` that DOES declare a ``lang`` parameter, combined
+    with Sphinx ``language = "ja"``, real-compiles successfully via
+    ``-b typstpdf`` and its emitted show-rule region carries the
+    auto-derived ``lang: "ja"`` entry.
+    ``TemplateEngine.uses_bundled_default_template()`` is narrowed by D-I
+    to ``not self.typst_package``, so it now returns ``True`` for this
+    explicit-template route too (it no longer checks
+    ``resolve_template().source``) -- ``writer.py`` computes ``auto_lang``
+    here, unlike before D-I. Renamed from ``TestCustomTemplateNoLang``;
+    this class's pre-change ABSENT verdict for this fixture is recorded in
+    ``45.1-GATE-EVIDENCE-03.md``.
 
-    Requirements: CONF-07.
+    Requirements: CONF-12.
     """
 
     @staticmethod
     @pytest.fixture(scope="class")
     def build(tmp_path_factory):
-        build_dir = tmp_path_factory.mktemp("custom_template_no_lang_build")
+        build_dir = tmp_path_factory.mktemp("custom_template_lang_build")
         result = _run_sphinx_build(
-            CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR, build_dir, "typstpdf"
+            CUSTOM_TEMPLATE_LANG_FIXTURE_DIR, build_dir, "typstpdf"
         )
         assert result.returncode == 0, (
             f"sphinx-build -b typstpdf failed:\n"
@@ -530,17 +533,20 @@ class TestCustomTemplateNoLang:
             "pdf_path": build_dir / "index.pdf",
         }
 
-    def test_custom_template_no_lang_build_succeeds_with_no_lang_injected(self, build):
+    def test_custom_template_lang_build_succeeds_with_lang_injected(self, build):
         assert build["result"].returncode == 0
         region = _show_rule_call_region(build["text"])
-        assert "lang:" not in region
+        assert (
+            region.count("lang:") == 1
+        ), f"Expected exactly one lang: entry in:\n{region}"
+        assert 'lang: "ja",' in region
 
-    def test_custom_template_no_lang_real_compile_produces_valid_pdf(self, build):
+    def test_custom_template_lang_real_compile_produces_valid_pdf(self, build):
         """
-        A real ``-b typstpdf`` build of the custom_template_no_lang
-        fixture exited 0 and produced a non-empty, well-formed PDF -- the
-        substance of this case: the compile itself is the proof, since an
-        undeclared-kwarg fatal would abort it.
+        A real ``-b typstpdf`` build of the custom_template_lang fixture
+        exited 0 and produced a non-empty, well-formed PDF -- proving the
+        auto-derived ``lang`` argument, now always emitted on this route,
+        compiles cleanly against a template that declares it.
         """
         assert build["result"].returncode == 0
         pdf_path = build["pdf_path"]
@@ -555,32 +561,31 @@ class TestCustomTemplateNoLang:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the GATE-01 typst lang gate",
 )
-class TestSrcdirShadowNoLang:
+class TestSrcdirShadowLang:
     """
-    SC#3 / D-08 case (2): a ``<srcdir>/base.typ`` that silently SHADOWS
-    the bundled default template (both ``typst_template`` and
-    ``typst_package`` left unset), declaring NO ``lang`` parameter,
+    SC#9 / CONF-12 / D-I case (2): a ``<srcdir>/base.typ`` that silently
+    SHADOWS the bundled default template (both ``typst_template`` and
+    ``typst_package`` left unset), now declaring a ``lang`` parameter,
     combined with Sphinx ``language = "ja"``, real-compiles successfully
-    via ``-b typstpdf`` and its emitted show-rule region carries NO
-    auto-injected ``lang`` entry -- the DIRECT proof of the D-06 judgment
-    boundary. A declaration-based check
-    (``typst_template is None and typst_package is None``) would see two
-    unset settings, wrongly conclude "default template", and inject a
-    ``lang`` argument this shadow template never declared.
-    ``TemplateEngine.uses_bundled_default_template()`` correctly returns
-    ``False`` here because it judges from the ACTUAL resolution result
-    (``resolve_template().source == "search"``, Priority 2 -- not
-    ``"default"``).
+    via ``-b typstpdf`` and its emitted show-rule region carries the
+    auto-derived ``lang: "ja"`` entry -- the DIRECT proof that D-I's
+    widened judgment covers the search-path shadow route too.
+    ``TemplateEngine.uses_bundled_default_template()`` is narrowed by D-I
+    to ``not self.typst_package``, so it now returns ``True`` here (it no
+    longer distinguishes ``resolve_template().source == "search"`` from
+    ``"default"``). Renamed from ``TestSrcdirShadowNoLang``; this class's
+    pre-change ABSENT verdict for this fixture is recorded in
+    ``45.1-GATE-EVIDENCE-03.md``.
 
-    Requirements: CONF-07.
+    Requirements: CONF-12.
     """
 
     @staticmethod
     @pytest.fixture(scope="class")
     def build(tmp_path_factory):
-        build_dir = tmp_path_factory.mktemp("srcdir_shadow_no_lang_build")
+        build_dir = tmp_path_factory.mktemp("srcdir_shadow_lang_build")
         result = _run_sphinx_build(
-            SRCDIR_SHADOW_NO_LANG_FIXTURE_DIR, build_dir, "typstpdf"
+            SRCDIR_SHADOW_LANG_FIXTURE_DIR, build_dir, "typstpdf"
         )
         assert result.returncode == 0, (
             f"sphinx-build -b typstpdf failed:\n"
@@ -597,17 +602,20 @@ class TestSrcdirShadowNoLang:
             "pdf_path": build_dir / "index.pdf",
         }
 
-    def test_srcdir_shadow_no_lang_build_succeeds_with_no_lang_injected(self, build):
+    def test_srcdir_shadow_lang_build_succeeds_with_lang_injected(self, build):
         assert build["result"].returncode == 0
         region = _show_rule_call_region(build["text"])
-        assert "lang:" not in region
+        assert (
+            region.count("lang:") == 1
+        ), f"Expected exactly one lang: entry in:\n{region}"
+        assert 'lang: "ja",' in region
 
-    def test_srcdir_shadow_no_lang_real_compile_produces_valid_pdf(self, build):
+    def test_srcdir_shadow_lang_real_compile_produces_valid_pdf(self, build):
         """
-        A real ``-b typstpdf`` build of the srcdir_shadow_no_lang fixture
-        exited 0 and produced a non-empty, well-formed PDF -- the
-        substance of this case: the compile itself is the proof, since an
-        undeclared-kwarg fatal would abort it.
+        A real ``-b typstpdf`` build of the srcdir_shadow_lang fixture
+        exited 0 and produced a non-empty, well-formed PDF -- proving the
+        auto-derived ``lang`` argument reaches the search-path shadow
+        route and compiles cleanly against a template that declares it.
         """
         assert build["result"].returncode == 0
         pdf_path = build["pdf_path"]
@@ -695,32 +703,45 @@ class TestPreFixBasisFailureProof:
        changes the compiled output.
 
     2. **Undeclared-argument basis**
-       (``test_undeclared_argument_basis_raises``): splice a
-       ``lang: "ja"`` argument INTO the custom-template fixture's post-fix
-       emitted master -- whose template declares no ``lang`` parameter --
-       and prove a real compile RAISES. This is the durable red proof of
-       WHY the D-06 judgment boundary (``uses_bundled_default_template()``)
-       exists: without it, exactly this undeclared-kwarg fatal is what an
-       unguarded auto-derivation would reach on this path.
+       (``test_undeclared_argument_basis_raises``): build the
+       ``custom_template_lang`` fixture for real via the faster ``-b
+       typst`` builder -- its emitted master NOW GENUINELY carries the
+       auto-derived ``lang: "ja"`` argument, no splicing required, because
+       D-I means the explicit-template route always receives it -- then
+       mutate the SIBLING TEMPLATE FILE the real build already wrote
+       (``_template.typ``, in the same build directory) to reconstruct the
+       pre-D-I shape: a real, pre-existing user template that declares no
+       ``lang`` parameter. Recompile the untouched, genuinely-emitted
+       master against that reconstructed template and prove a real
+       compile RAISES. This is no longer a hypothetical reconstruction of
+       what an unguarded auto-derivation *would* do (its 27.1-era framing,
+       when the explicit-template route never received ``lang`` at all) --
+       it is the genuine, durable cost D-I accepts: a real pre-existing
+       template that omits ``lang`` now genuinely fails to compile,
+       because the extension always emits the argument on this route.
+       This is precisely T-45.1-05's transferred cost.
 
     Per this repository's established convention, only ``pytest.raises``
     is asserted in the second reconstruction -- never the exception's
     message text.
 
     Manual red->green confirmation (recorded per this repository's durable
-    -gate convention, since these gates are authored AFTER the Plan 01 fix
-    they exercise -- implementation in Wave 1, gate in Wave 2): performed
-    and RECORDED in this plan's SUMMARY.md, not re-asserted here as a
+    -gate convention, since these gates are authored AFTER the D-I fix
+    they exercise -- implementation and gate both in this plan's Task 2):
+    performed and RECORDED in ``45.1-GATE-EVIDENCE-03.md`` (pre-change) and
+    this plan's SUMMARY.md (post-change), not re-asserted here as a
     standing test (a test that verifies its own absence is not
-    expressible). With Plan 01's fix reverted, the German extraction case
+    expressible). With this plan's narrowing reverted (i.e.
+    ``uses_bundled_default_template()`` restored to also check
+    ``resolve_template().source == "default"``), the two positive cases
+    (``TestCustomTemplateLang``, ``TestSrcdirShadowLang``) would fail their
+    ``lang: "ja"``-present assertions, while the German extraction case
     (``TestGermanLinkageProof``), the Japanese source case
-    (``TestJapaneseSourceProof``), and the precedence case
-    (``TestPrecedence``) all fail, while the three non-regression cases
-    (``TestCustomTemplateNoLang``, ``TestSrcdirShadowNoLang``,
-    ``TestPackageNoLang``) still pass, because nothing was being injected
-    before the fix either.
+    (``TestJapaneseSourceProof``), the precedence case (``TestPrecedence``),
+    and the package guard case (``TestPackageNoLang``) are all unaffected by
+    this plan's narrowing and continue to pass either way.
 
-    Requirements: CONF-07, D-06.
+    Requirements: CONF-12, D-I.
     """
 
     @staticmethod
@@ -747,25 +768,27 @@ class TestPreFixBasisFailureProof:
 
     @staticmethod
     @pytest.fixture(scope="class")
-    def custom_template_no_lang_master_text(tmp_path_factory):
+    def custom_template_lang_build_dir(tmp_path_factory):
         """
-        Build the custom_template_no_lang fixture ONCE via the faster
-        ``-b typst`` builder and return the emitted master's text (this
-        reconstruction writes its mutation to a FRESH ``tmp_path``, not
-        this build directory, mirroring the CONF-04 analog's own
-        undeclared-kwarg reconstruction).
+        Build the custom_template_lang fixture ONCE via the faster
+        ``-b typst`` builder and return the BUILD DIRECTORY (not just the
+        text) -- unlike the pre-D-I version of this fixture function, this
+        reconstruction mutates the SIBLING TEMPLATE FILE
+        (``_template.typ``) the real build already wrote into this same
+        directory, not the master text, so the master's genuinely emitted
+        ``lang: "ja",`` argument is left completely untouched.
         """
         build_dir = tmp_path_factory.mktemp("prefix_basis_custom_source_build")
-        result = _run_sphinx_build(
-            CUSTOM_TEMPLATE_NO_LANG_FIXTURE_DIR, build_dir, "typst"
-        )
+        result = _run_sphinx_build(CUSTOM_TEMPLATE_LANG_FIXTURE_DIR, build_dir, "typst")
         assert result.returncode == 0, (
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         typ_path = build_dir / "index.typ"
         assert typ_path.exists()
-        return typ_path.read_text(encoding="utf-8")
+        template_path = build_dir / "_template.typ"
+        assert template_path.exists()
+        return build_dir
 
     @pytest.mark.skipif(
         not PYPDF_AVAILABLE,
@@ -828,33 +851,49 @@ class TestPreFixBasisFailureProof:
             full_text, "Abbildung"
         ), f"German 'Abbildung' must NOT appear once lang is omitted:\n{full_text}"
 
-    def test_undeclared_argument_basis_raises(
-        self, custom_template_no_lang_master_text, tmp_path
-    ):
+    def test_undeclared_argument_basis_raises(self, custom_template_lang_build_dir):
         """
-        Undeclared-argument basis: splice a ``lang: "ja"`` argument INTO
-        the custom-template fixture's post-fix emitted master -- whose
-        template declares no ``lang`` parameter -- and assert a real
-        compile RAISES. Reproduces the exact fatal an unguarded
-        auto-derivation would reach on this path: this is WHY the D-06
-        judgment boundary (``uses_bundled_default_template()`` returning
-        ``False`` for an explicit template) is required. Only
-        ``pytest.raises`` is asserted -- never the exception's message
-        text.
+        Undeclared-argument basis, no longer hypothetical: the real,
+        genuinely-emitted master from the custom_template_lang fixture
+        already carries ``lang: "ja",`` (D-I's whole point -- no splice
+        needed). Mutate the SIBLING TEMPLATE FILE the same real build
+        wrote (``_template.typ``) to strip its ``lang`` parameter back out
+        -- reconstructing the shape of a real, pre-existing user template
+        that predates the published nine-parameter contract -- and assert
+        that recompiling the untouched master against this reconstructed
+        template RAISES. This is precisely the cost D-I accepts
+        (T-45.1-05): an existing custom template that omits ``lang`` now
+        genuinely fails, because the extension always emits the argument
+        on every non-package route. Only ``pytest.raises`` is asserted --
+        never the exception's message text.
         """
-        lines = custom_template_no_lang_master_text.split("\n")
-        opening = [
-            i for i, line in enumerate(lines) if re.match(r"^#show: \w+\.with\($", line)
-        ]
-        assert (
-            len(opening) == 1
-        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
-        lines.insert(opening[0] + 1, '  lang: "ja",')
-        reconstructed = "\n".join(lines)
-        assert 'lang: "ja",' in reconstructed
+        index_path = custom_template_lang_build_dir / "index.typ"
+        master_text = index_path.read_text(encoding="utf-8")
+        assert 'lang: "ja",' in master_text, (
+            f"Expected the real build to already carry an auto-derived "
+            f"lang argument (no splice needed post-D-I):\n{master_text}"
+        )
 
-        target = tmp_path / "undeclared_lang_argument_basis.typ"
-        target.write_text(reconstructed, encoding="utf-8")
+        template_path = custom_template_lang_build_dir / "_template.typ"
+        template_text = template_path.read_text(encoding="utf-8")
+        assert '  lang: "en",\n' in template_text, (
+            f"Expected the real template to declare a lang parameter to "
+            f"strip back out:\n{template_text}"
+        )
+        stripped_template = template_text.replace('  lang: "en",\n', "")
+        stripped_template = stripped_template.replace(
+            "set text(size: fontsize, lang: lang)",
+            'set text(size: fontsize, lang: "en")',
+        )
+        assert '  lang: "en",\n' not in stripped_template, (
+            f"Expected the reconstructed template's project() signature to "
+            f"no longer declare a lang parameter:\n{stripped_template}"
+        )
+        assert "lang: lang" not in stripped_template, (
+            f"Expected the reconstructed template's body to no longer "
+            f"reference the removed lang parameter:\n{stripped_template}"
+        )
+        template_path.write_text(stripped_template, encoding="utf-8")
 
         with pytest.raises(Exception):
-            typst.compile(str(target), root=str(tmp_path))
+            typst.compile(str(index_path), root=str(custom_template_lang_build_dir))

@@ -114,10 +114,13 @@ class TestTemplateLoading:
 
 
 class TestTemplateResolutionProvenance:
-    """CONF-07/D-06: resolve_template()/TemplateResolution record WHICH
-    priority resolved, and uses_bundled_default_template() is the single
-    judgment predicate built on top of that provenance. See
-    27.1-CONTEXT.md D-06."""
+    """CONF-07/D-06 (resolve_template()/TemplateResolution's own provenance
+    tracking) + CONF-12/D-I (uses_bundled_default_template()'s judgment,
+    narrowed to the typst_package guard alone). resolve_template() still
+    records WHICH priority resolved a template regardless of this plan's
+    change; uses_bundled_default_template() no longer consults that
+    provenance at all -- it now returns the negation of typst_package. See
+    27.1-CONTEXT.md D-06 and 45.1-CONTEXT.md D-I."""
 
     def test_resolve_template_explicit_source(self, tmp_path):
         """An engine built with an existing explicit template_path reports
@@ -167,10 +170,13 @@ class TestTemplateResolutionProvenance:
         assert resolution.source == "default"
         assert "#let project" in resolution.content
 
-    def test_srcdir_shadow_reports_search_and_not_bundled_default(self, tmp_path):
-        """The <srcdir>/base.typ shadow case reports 'search' and
-        uses_bundled_default_template() is therefore False (D-06's central
-        judgment boundary)."""
+    def test_srcdir_shadow_reports_search_but_still_receives_lang(self, tmp_path):
+        """The <srcdir>/base.typ shadow case still reports 'search' from
+        resolve_template() (provenance tracking is unaffected by D-I), but
+        uses_bundled_default_template() is now True -- D-I narrows the
+        judgment to `not self.typst_package`, so a package-free engine
+        receives the auto-derived lang regardless of which priority
+        resolved its template."""
         srcdir = tmp_path / "docs"
         srcdir.mkdir()
         (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
@@ -178,12 +184,14 @@ class TestTemplateResolutionProvenance:
         engine = TemplateEngine(search_paths=[str(srcdir)])
 
         assert engine.resolve_template().source == "search"
-        assert engine.uses_bundled_default_template() is False
+        assert engine.uses_bundled_default_template() is True
 
     def test_package_configured_engine_never_uses_bundled_default(self):
         """uses_bundled_default_template() is False for an engine
         constructed with a typst_package even though its own priority walk
-        would resolve to 'default' (template_path=None, no search hit)."""
+        would resolve to 'default' (template_path=None, no search hit) --
+        the one guard D-I keeps, load-bearing independent of the dropped
+        resolution-source check."""
         engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
 
         assert engine.resolve_template().source == "default"
@@ -196,15 +204,21 @@ class TestTemplateResolutionProvenance:
 
         assert engine.uses_bundled_default_template() is True
 
-    def test_explicit_template_engine_does_not_use_bundled_default(self, tmp_path):
-        """uses_bundled_default_template() is False for an engine with an
-        explicit, existing template_path."""
+    def test_explicit_template_engine_now_receives_bundled_default_lang(self, tmp_path):
+        """CONF-12/D-I: uses_bundled_default_template() is now True for an
+        engine with an explicit, existing template_path and no
+        typst_package -- the narrowed judgment no longer distinguishes
+        'explicit' from 'default', so this route receives the
+        auto-derived lang too. Renamed from
+        test_explicit_template_engine_does_not_use_bundled_default, whose
+        name asserted the pre-D-I (now false) behaviour."""
         custom_template_path = tmp_path / "custom.typ"
         custom_template_path.write_text("#let custom(body) = { body }")
 
         engine = TemplateEngine(template_path=str(custom_template_path))
 
-        assert engine.uses_bundled_default_template() is False
+        assert engine.resolve_template().source == "explicit"
+        assert engine.uses_bundled_default_template() is True
 
 
 class TestParameterMapping:
