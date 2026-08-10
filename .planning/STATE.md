@@ -4,15 +4,15 @@ milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 45.1
 current_phase_name: Custom-Template Parameter Contract Correction
-status: ready_to_plan
+status: executing
 stopped_at: Phase 45.1 context gathered
-last_updated: "2026-08-10T01:25:06.332Z"
+last_updated: "2026-08-10T02:05:47.256Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 25
+  total_plans: 31
   completed_plans: 25
   percent: 71
 ---
@@ -36,7 +36,7 @@ Next action: `/gsd-plan-phase 45.1`.
 
 Phase: 45.1 — Custom-Template Parameter Contract Correction
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [##############------] 71% (5/7 phases)
 Last activity: 2026-08-10 — Phase 45 complete and UAT-verified (13/13 passed, 0 issues), transitioned to Phase 45.1
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a

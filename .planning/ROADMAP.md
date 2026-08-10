@@ -337,7 +337,10 @@ not open questions):
 
 **Not a frontend UI milestone** (standing project note): every phase below is translator, builder,
 config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"page"/"render"/
-"table" wording here — no phase carries a UI hint, and `/gsd-ui-phase` is not applicable.
+"table" wording here, and `/gsd-ui-phase` is not applicable to any of them. Where that false
+positive actually blocked planning, the phase carries an explicit `**UI hint**: no` line — the
+authoritative override `ui-safety-gate.cjs` reads — rather than a per-run `--skip-ui`. Phase 45.1
+is the first to need one (2026-08-10, blocked on the words `page`/`pages` in its own prose).
 
 - [x] **Phase 43: Table State Correctness — Nested Tables + Empty-Title Anchors** - A table nested in a `list-table` cell no longer replaces the outer table's body, a figure nested in a figure no longer drops the outer caption (FIG-01, added 2026-08-04), and a captioned table whose title renders empty still anchors its ids (completed 2026-08-04)
 - [x] **Phase 44: `typst_documents` Default Derivation + Builder Input Hardening** - Following the Quick Start exactly produces a PDF instead of zero output, and a malformed docname fails with an actionable typsphinx error (completed 2026-08-04)
@@ -779,8 +782,10 @@ defect first and found it broader than the todo recorded, which changed the answ
   `TypstError: unexpected argument: authors`, because `map_parameters()` back-fills
   `title`/`authors`/`date` unconditionally on the non-package path. Four of the page's five example
   templates are under-declared.
+
 - The same two merges reach the `typst_package` path and produce a real compile fatal —
   `TypstError: unexpected argument: papersize`, measured live against `@preview/charged-ieee:0.1.4`.
+
 - The argument sink is viable in Typst (`#let project(title: "", ..args, body)` compiles, the sink
   may precede the trailing positional `body`) but was **rejected**: it silently swallows typos in
   `typst_template_function["params"]`, reversing the fail-loud stance `ELEMENTS_ALLOWLIST` takes
@@ -864,11 +869,25 @@ section's prose and blocks planning on a missing UI-SPEC.
 **Plans**: 6 plans in 5 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 45.1-01-PLAN.md — CONF-11 core: a declared `params` becomes the complete parameter set (D-B/D-D), proved end to end on a zero-named-parameter template (wave 1, has a one-way decision checkpoint)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 45.1-02-PLAN.md — CONF-11 route matrix: exclusivity proved on the `typst_template`, `typst_package` and bundled-default routes, RED-proved against the pre-fix commit (wave 2)
 - [ ] 45.1-03-PLAN.md — CONF-12: auto-derived `lang` on every non-package template route (D-I); `docs/source/conf.py`'s workaround removed (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 45.1-04-PLAN.md — CONF-10: `typst_authors` removed in one lockstep landing across production, tests, fixture and the shipped sample (D-F) (wave 3, has a one-way decision checkpoint)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 45.1-05-PLAN.md — DOC-13: publish the nine-parameter contract, rewrite the precedence model onto exclusivity, and build-verify all twelve documented examples (D-A/D-C/D-E/D-G/D-J) (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 45.1-06-PLAN.md — Closeout: the SC#3 documented-contract regression lock, the SC#2 two-way emission-site enumeration, live SC#5/SC#6 gates, and the SC#9/SC#10 handoff record (wave 5)
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
