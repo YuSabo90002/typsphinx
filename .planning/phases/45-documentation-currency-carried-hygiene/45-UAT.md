@@ -73,7 +73,7 @@ source: automated
 coverage_id: 45-04/D1
 
 ### 11. PROJECT.md has zero unterminated HTML comment openers (QUA-03)
-expected: .planning/PROJECT.md contains zero unterminated <!-- openers, verified by a fence- and backtick-aware whole-file scan; D-08 closing-commit finding recorded
+expected: .planning/PROJECT.md contains zero unterminated HTML-comment openers (34 openers / 34 closers, 0 residual), verified by a fence- and backtick-aware whole-file scan; D-08 closing-commit finding recorded. (The literal opener sequence is described in words here rather than quoted, so this UAT file itself stays parseable.)
 result: pass
 source: automated
 coverage_id: 45-04/D2
