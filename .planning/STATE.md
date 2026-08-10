@@ -226,11 +226,12 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
-**Nine open in `.planning/todos/pending/` when this close began.** One
+**Ten open in `.planning/todos/pending/`.** Nine when this close began: one
 (`visit-desc-sig-name-docstring-unbalanced-asterisk-warning`) was filed to `todos/completed/` here
 per `41-HANDOFF.md` item 7, and one was filed *by* this close
-(`release-create-job-missing-uv-verify-end-to-end`, the REL-04 gap), leaving **nine**. All are acknowledged and recorded in Deferred Items
-above; none blocks the release.
+(`release-create-job-missing-uv-verify-end-to-end`, the REL-04 gap). A tenth was captured
+post-release on 2026-08-04 (`docs-changelog-page-stale-at-0-4-0`, minor). All are acknowledged and
+recorded in Deferred Items above; none blocks the release.
 
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
