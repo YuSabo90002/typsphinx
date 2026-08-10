@@ -208,7 +208,6 @@ class TemplateEngine:
         typst_package: str | None = None,
         typst_template_function: Any | None = None,
         typst_package_imports: List[str] | None = None,
-        typst_authors: Dict[str, Dict[str, Any]] | None = None,
     ):
         """
         Initialize TemplateEngine.
@@ -223,7 +222,6 @@ class TemplateEngine:
                           (Requirement 8.6: external template packages)
             typst_template_function: Template function name (str) or dict with {"name": str, "params": dict}
             typst_package_imports: Specific items to import from package
-            typst_authors: Author details as dict with author name as key (recommended)
         """
         self.template_path = template_path
         self.template_name = template_name or "base.typ"
@@ -239,7 +237,6 @@ class TemplateEngine:
         else:
             self.parameter_mapping = self.DEFAULT_PARAMETER_MAPPING.copy()
         self.typst_package_imports = typst_package_imports or []
-        self.typst_authors = typst_authors or {}
 
         # Parse typst_template_function: support both string and dict formats.
         #
@@ -436,76 +433,39 @@ class TemplateEngine:
             sphinx.errors.ExtensionError: if ``typst_elements`` contains a
                 key not present in ``ELEMENTS_ALLOWLIST`` (D-06/D-07).
         """
-        # Explicit annotation (not just `params = {}`): the typst_authors
-        # seed below is now the FIRST `params[...] =` assignment in this
-        # method (D-05's reorder), so without this annotation mypy would
-        # narrow params' inferred value type to `list[dict[str, Any]]` from
-        # that single site instead of `Any`, and every other key's
+        # Explicit annotation (not just `params = {}`): without it, mypy
+        # would narrow params' inferred value type from the first
+        # `params[...] =` assignment inside the mapping loop below (whose
+        # value type varies per key -- a plain string, a tuple from
+        # `_convert_to_authors_tuple`, etc.), and every other key's
         # differently-typed assignment later in the method would then be a
         # type error.
         params: Dict[str, Any] = {}
 
-        # CONF-09 (Phase 44.2, D-05): typst_authors now SEEDS "authors"
-        # FIRST, before the mapping loop below -- superseding its
-        # previous position as an unconditional override that ran LAST.
-        #
-        # The rule below is enumerated from the ASSIGNMENT TARGET, not
-        # from any config shape. Exactly three sites in this method can
-        # write params["authors"]:
-        #   W1  this seed, guarded by `if self.typst_authors`;
-        #   W2  the mapping loop's `params[template_key] = value`, which
+        # CONF-10/D-F removed the dict-of-dicts author-details config value
+        # that used to seed params["authors"] unconditionally here, before
+        # the mapping loop ran (CONF-09/D-05's ordering). Rich per-author structure
+        # (department/organization/location/email) no longer flows through
+        # this method at all -- it is expressed exclusively via
+        # render()'s `typst_template_function["params"]` route (D-B), which
+        # replaces this method's ENTIRE output wholesale when the user has
+        # declared `params`, rather than writing into it here. This method
+        # therefore has exactly TWO writers of params["authors"] left:
+        #   W1  the mapping loop's `params[template_key] = value`, which
         #       reaches "authors" only when some mapping entry's TARGET
         #       is literally "authors" AND its SOURCE key is present in
         #       the sphinx_metadata dict passed in;
-        #   W3  the `if not self.typst_package` back-fill, guarded by
+        #   W2  the `if not self.typst_package` back-fill, guarded by
         #       `"authors" not in params`, so it can only fill an absent
-        #       key and can never replace a seed.
+        #       key and never overwrites a value W1 already wrote.
         # The typst_elements loop cannot reach the key at all:
         # ELEMENTS_ALLOWLIST is papersize/fontsize/lang and an unknown
-        # key raises. W2 is therefore the only overwriter.
-        #
-        # Hence: the seed survives IFF no entry of self.parameter_mapping
-        # has the target key "authors" with its source key present in
-        # sphinx_metadata. The SOURCE key does not have to be "author",
-        # and its presence is neither necessary nor sufficient --
-        # {"author": "doc_authors"} keeps the seed in "authors" AND
-        # passes the mapped value under "doc_authors", while
-        # {"project": "authors"} destroys the seed with the project name
-        # despite never mentioning "author".
-        #
-        # The condition is the MAPPING, not the template route: no
-        # self.typst_package test exists in this method outside W3's
-        # back-fill guard. A package build with parameter_mapping left
-        # None survives only because __init__ resolves it to an EMPTY
-        # dict, which trivially targets nothing.
+        # key raises. W1 and W2 above are this method's only writers of
+        # "authors" now.
         #
         # Every row is pinned by a named test in
-        # tests/test_entry_metadata_precedence.py Group 2 and by the
-        # generated matrix in tests/test_params_authors_writers.py. Two
-        # earlier versions of this comment stated the rule over the
-        # SOURCE key instead of the target; both were measured false.
-        #
-        # A dedicated "explicit entry[3] wins" override cannot be built
-        # instead: D-03's substitution point already unifies an explicit
-        # entry[3] and a silent config.author fallback into the same
-        # sphinx_metadata["author"] string before map_parameters() ever
-        # sees it, so there is no signal left here to distinguish "this is
-        # an override" from "this is the default" -- and D-05's own
-        # "unbreaks typst_authors + bundled base.typ" goal requires the
-        # broader behaviour anyway: on that path, config.author (with no
-        # typst_documents override at all) must ALSO beat typst_authors.
-        #
-        # Must stay a native Python list[dict] structure here (never
-        # pre-render it to Typst source), so _format_typst_value()'s
-        # existing list/dict recursion serializes it as a Typst array of
-        # dictionaries -- pre-rendering would re-enter the string branch
-        # and produce a quoted string literal instead (the
-        # double-formatting trap).
-        if self.typst_authors:
-            params["authors"] = [
-                {"name": name, **details}
-                for name, details in self.typst_authors.items()
-            ]
+        # tests/test_entry_metadata_precedence.py and by the generated
+        # matrix in tests/test_params_authors_writers.py.
 
         # Apply mapping
         for sphinx_key, template_key in self.parameter_mapping.items():
@@ -532,9 +492,8 @@ class TemplateEngine:
                 params["date"] = None
 
         # CONF-04: additive elements merge -- runs LAST, without disturbing
-        # the `if not self.typst_package` back-fill guard above or the
-        # typst_authors seed at the top of this method. Validate each key
-        # against ELEMENTS_ALLOWLIST
+        # the `if not self.typst_package` back-fill guard above. Validate
+        # each key against ELEMENTS_ALLOWLIST
         # BEFORE it is ever added to params (D-06/D-07, Pitfall 2): an
         # unrecognized key raises loudly here instead of being silently
         # dropped (today's bug) or passed through as an undeclared kwarg

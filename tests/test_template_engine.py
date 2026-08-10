@@ -940,11 +940,22 @@ class TestTypstTemplateFunctionDictFormat:
         assert call_region.count("title:") == 1
 
 
-class TestTypstAuthorsConfig:
-    """Test typst_authors configuration for detailed author information (Issue #13)"""
+class TestAuthorDictSerializationViaParams:
+    """Author-detail serialization guarantees (originated Issue #13; fully
+    re-derived Phase 45.1, D-F/CONF-10). The dedicated author-details
+    config value this class used to exercise -- a `TemplateEngine.__init__`
+    keyword that seeded `params["authors"]` unconditionally inside
+    `map_parameters()` -- is REMOVED. Rich per-author structure
+    (department/organization/location/email) now flows exclusively through
+    `render()`'s `typst_template_function["params"]` route (D-B), which is
+    what the tests below exercise instead; `map_parameters()` no longer
+    touches author-dict data at all."""
 
-    def test_author_config_backward_compatibility(self):
-        """Test backward compatibility: traditional author string format"""
+    def test_author_string_tuple_backward_compatibility(self):
+        """Traditional Sphinx author string format still serializes as a
+        Typst string tuple via `_format_typst_value()` -- unrelated to the
+        removed author-details config value, this guarantee is unaffected
+        by D-F."""
         engine = TemplateEngine()
 
         # Traditional Sphinx author configuration
@@ -954,41 +965,30 @@ class TestTypstAuthorsConfig:
         # Should produce string tuple format
         assert formatted == '("John Doe", "Jane Smith",)'
 
-    def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
-        """D-07/D-05: typst_authors reaches map_parameters()/render() as a
-        native list[dict], never as a pre-rendered quoted string (BUG-C).
-
-        CONF-09 (Phase 44.2, D-05): the `typst_authors` block was moved to
-        run BEFORE the mapping loop instead of after it, so a mapped author
-        value now overwrites the typst_authors seed on every route where
-        "author" is an active `parameter_mapping` key -- which this test's
-        PREVIOUS shape was (the default mapping maps "author", so
-        `params["authors"]` ended up as the mapping loop's authors-tuple,
-        not the typst_authors list[dict], measured RED this session:
-        `isinstance(('Ada Lovelace',), list)` is False).
-
-        typst_authors remains authoritative exactly when no entry of the
-        active `parameter_mapping` targets the template key "authors"
-        with a source key present in the passed metadata -- the decisive
-        thing is the mapping's TARGET key, not its source key and not the
-        presence of a package. This test exercises one such shape (an
-        explicit mapping that targets nothing but "title", here alongside
-        a package, the same shape
-        tests/fixtures/package_only_config_gate/conf.py carries), so it
-        still pins what it exists to pin: typst_authors reaches render()
-        as a native array of dictionaries and never as a quoted string
-        (the double-formatting regression guard below is unchanged). The
-        full matrix lives in tests/test_entry_metadata_precedence.py
-        Group 2 and tests/test_params_authors_writers.py."""
+    def test_author_dict_list_via_params_serializes_as_native_array_not_quoted_string(
+        self,
+    ):
+        """D-F re-derivation of BUG-C: rich author structure declared
+        directly inside `typst_template_function["params"]["authors"]`
+        reaches `render()`'s emitted call as a native Typst array of
+        dictionaries -- never as a pre-rendered quoted string. This is the
+        same double-formatting regression guard the removed config-value
+        seed used to pin, now proven on its surviving route (D-B's
+        exclusive `params` branch) instead of inside `map_parameters()`."""
         engine = TemplateEngine(
             typst_package="@preview/charged-ieee:0.1.4",
-            parameter_mapping={"project": "title"},
-            typst_authors={
-                "Ada Lovelace": {
-                    "department": "Computing",
-                    "organization": "Analytical Engine Society",
-                    "email": "ada@example.org",
-                }
+            typst_template_function={
+                "name": "ieee",
+                "params": {
+                    "authors": [
+                        {
+                            "name": "Ada Lovelace",
+                            "department": "Computing",
+                            "organization": "Analytical Engine Society",
+                            "email": "ada@example.org",
+                        }
+                    ],
+                },
             },
         )
 
@@ -1000,12 +1000,6 @@ class TestTypstAuthorsConfig:
         }
 
         params = engine.map_parameters(sphinx_metadata)
-
-        assert isinstance(params["authors"], list)
-        assert isinstance(params["authors"][0], dict)
-        assert list(params["authors"][0].keys())[0] == "name"
-        assert params["authors"][0]["name"] == "Ada Lovelace"
-
         body = "Content"
         result = engine.render(params, body)
 
@@ -1015,9 +1009,18 @@ class TestTypstAuthorsConfig:
         # as a quoted Typst string.
         assert 'authors: "(' not in result
 
-    def test_typst_authors_unset_or_empty_yields_no_authors_key_on_package_path(self):
-        """A package-configured engine with no typst_authors produces no
-        authors key; an empty typst_authors dict behaves identically"""
+    def test_authors_absent_from_declared_params_yields_no_authors_key(self):
+        """D-F re-derivation: on the package route, when
+        `typst_template_function["params"]` is declared but does NOT
+        itself carry an "authors" key, the emitted call has no "authors"
+        argument at all -- D-B's exclusivity rule means only DECLARED
+        params keys reach the output; there is no config-value seed left
+        to fall back on."""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            typst_template_function={"name": "ieee", "params": {"title": "T"}},
+        )
+
         sphinx_metadata = {
             "project": "P",
             "author": "A",
@@ -1025,15 +1028,13 @@ class TestTypstAuthorsConfig:
             "copyright": "c",
         }
 
-        engine_unset = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
-        params_unset = engine_unset.map_parameters(sphinx_metadata)
-        assert "authors" not in params_unset
+        params = engine.map_parameters(sphinx_metadata)
+        result = engine.render(params, "Content")
 
-        engine_empty = TemplateEngine(
-            typst_package="@preview/charged-ieee:0.1.4", typst_authors={}
-        )
-        params_empty = engine_empty.map_parameters(sphinx_metadata)
-        assert "authors" not in params_empty
+        call_start = result.index("#show: ieee.with(")
+        call_end = result.index(")", call_start)
+        call_region = result[call_start:call_end]
+        assert "authors:" not in call_region
 
 
 class TestTypstElementsPassThrough:

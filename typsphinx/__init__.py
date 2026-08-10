@@ -52,8 +52,6 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value(
         "typst_template_function", None, "html", [str, dict, type(None)]
     )
-    # Issue #13: Author details configuration
-    app.add_config_value("typst_authors", None, "html", [dict, type(None)])
     # Task 13.4: Debug mode
     app.add_config_value("typst_debug", False, "html", [bool])
     # Issue #75: Template asset support

@@ -169,8 +169,8 @@ def test_route_a4_package_alone_carries_entry_values(make_app, tmp_path):
     NOT achieve this on the package route). Mirrors the package-alone
     config gate fixture's package value; does NOT copy that fixture's
     "author"-omitting custom mapping, which exists to pin a different
-    property (D-05's typst_authors precedence, covered in the entry
-    metadata precedence matrix module instead)."""
+    property (the mapping loop's own authors-target precedence, covered
+    in the entry metadata precedence matrix module instead)."""
     srcdir = tmp_path / "srcdir"
     srcdir.mkdir()
 

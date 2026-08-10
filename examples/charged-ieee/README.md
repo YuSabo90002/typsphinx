@@ -28,22 +28,25 @@ The [charged-ieee](https://typst.app/universe/package/charged-ieee/) template fr
 ### Configuration Example
 
 ```python
-# Author details with dictionary format
-typst_authors = {
-    "John Doe": {
+# Author details, as a list of per-author dicts
+ieee_authors = [
+    {
+        "name": "John Doe",
         "department": "Computer Science",
         "organization": "MIT",
         "email": "john.doe@mit.edu"
     }
-}
+]
 
-# Template function with parameters
+# Template function with parameters -- the complete, exclusive parameter set
+# (including "authors") lives here on the params route
 typst_template_function = {
     "name": "ieee",
     "params": {
         "abstract": ieee_abstract,
         "index-terms": ieee_keywords,
         "paper-size": "a4",
+        "authors": ieee_authors,
     }
 }
 ```
@@ -149,6 +152,7 @@ typst compile paper.typ output.pdf
 - Both approaches produce identical output when configured correctly
 - Approach 1 is recommended for most use cases
 - Approach 2 provides an escape hatch for complex requirements
-- `typst_authors` (the author-details configuration) can be combined with the
-  custom-template route in Approach 2 — but `typst_package` and `typst_template`
-  are mutually exclusive and cannot be set together
+- Rich author details (department/organization/location/email) are declared
+  through `typst_template_function["params"]["authors"]` on both approaches —
+  but `typst_package` and `typst_template` are mutually exclusive and cannot
+  be set together
