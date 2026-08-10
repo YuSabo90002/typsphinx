@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 45.2
-current_phase_name: Local Toolchain Repair
-status: planning
+current_phase_name: local-toolchain-repair-tox-uv-to-tox-uv-bare
+status: executing
 stopped_at: Phase 45.2 context gathered
-last_updated: "2026-08-10T22:36:33.433Z"
-last_activity: 2026-08-10
-last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
+last_updated: "2026-08-10T22:45:26.514Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 45.2 execution started
 progress:
   total_phases: 8
   completed_phases: 6
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 45.1 — custom-template-parameter-contract-correction
+**Current focus:** Phase 45.2 — local-toolchain-repair-tox-uv-to-tox-uv-bare
 **18/18** v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
 insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
@@ -34,11 +34,11 @@ Next action: `/gsd-discuss-phase 45.2`
 
 ## Current Position
 
-Phase: 45.2 — Local Toolchain Repair (tox-uv → tox-uv-bare)
-Plan: Not started
-Status: Ready to discuss
+Phase: 45.2 (local-toolchain-repair-tox-uv-to-tox-uv-bare) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 45.2
 Progress: [###############-----] 75% (6/8 phases)
-Last activity: 2026-08-10 — Phase 46 discussed; Phase 45.2 inserted from that discussion
+Last activity: 2026-08-11 — Phase 45.2 execution started
 
 Phase 46's CONTEXT is already written and committed (`46-CONTEXT.md`, D-01..D-19). Phase 45.2 runs
 first because Phase 46's SC#3 evidence path (D-11) assumes local `tox` works, and it does not.
