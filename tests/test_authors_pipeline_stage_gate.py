@@ -584,27 +584,31 @@ def test_authors_section_names_every_stage_knob_that_can_write_authors():
         )
 
 
-def test_configuration_rst_stage1_bullets_name_stage2_override_explicitly():
+def test_configuration_rst_mapping_bullets_scoped_under_params_absent():
     """Drift guard for a round-4 residual fix (44.2-GATE-EVIDENCE-06.md
-    §4, S-14/S-16): the two Precedence-block bullets illustrating a
-    mapping that does NOT target ``authors`` -- ``{"author":
-    "doc_authors"}`` and ``{"project": "authors"}`` -- describe what
-    Stage 1's OWN output contains, not the final rendered document. The
-    ORIGINAL wording ("Both values are then passed" / "What lands in
-    authors is then...") was graded NARROWER-THAN-CODE against a real
-    render()-stage override (``typst_template_function``'s
-    ``params["authors"]``) because it read as an unscoped claim about the
-    final output. The fix names the Stage 1 scope explicitly and
-    cross-references Stage 2's override; this guard fails if that
-    cross-reference is ever silently dropped, reintroducing the same
-    unscoped-claim shape that produced four rounds of failure."""
+    §4, S-14/S-16), re-derived for Phase 45.1 (D-E): the two-stage model
+    that fix was written against is gone -- CONF-11 replaced it with a
+    single up-front exclusivity branch (is ``params`` present?), so there
+    is no longer a "Stage 2" that can override a "Stage 1" value within
+    the same branch. The historical concern this guard protects against --
+    a mapping-stage bullet read as an unscoped claim about the FINAL
+    rendered document, when a later stage could still override it -- is
+    now structurally impossible in the branch these two bullets live in:
+    once ``params`` is confirmed absent, nothing further overrides the
+    mapping stage's own output. This guard checks that the two
+    illustrating bullets (``{"author": "doc_authors"}`` and
+    ``{"project": "authors"}``) remain correctly scoped under the explicit
+    "if params is not present" heading, and that each bullet still names
+    its own mapping-stage-only effect rather than an unconditional
+    final-output claim."""
     text = CONFIGURATION_RST_PATH.read_text(encoding="utf-8")
     normalized = re.sub(r"\s+", " ", text)
 
     for needle in (
-        "Stage 1's own output then carries both",
-        "subject to stage 2's override above",
-        "Stage 1's own output for ``authors`` is then the project name",
-        "again subject to stage 2's override",
+        "If ``params`` is **not** present, the parameter mapping decides what",
+        '{"author": "doc_authors"}',
+        "leaves ``authors`` unset by the mapping stage",
+        '{"project": "authors"}',
+        "writes ``authors`` from that key instead",
     ):
         assert needle in normalized, f"MISSING from configuration.rst: {needle}"

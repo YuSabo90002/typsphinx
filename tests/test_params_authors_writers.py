@@ -274,12 +274,20 @@ def test_configuration_rst_documents_both_target_key_shapes():
     exactly the two shapes the two earlier published rules mispredicted.
     Whitespace is collapsed before matching, so a re-wrap of the paragraph
     cannot fool this guard; a revert to a source-key framing goes red
-    here."""
+    here.
+
+    Phase 45.1 (D-E) re-derivation: the exact "no entry ... targets
+    authors" phrasing came from the pre-CONF-11 two-stage precedence model
+    and no longer appears verbatim now that the section is written around
+    a single up-front exclusivity branch, but the same target-key rule
+    survives in the rewritten prose ("It is the *target* key that
+    decides, not whether ``"author"`` appears in the mapping at all") --
+    this guard now pins that surviving sentence instead."""
     text = CONFIGURATION_RST_PATH.read_text(encoding="utf-8")
     normalized = re.sub(r"\s+", " ", text)
 
     for needle in (
-        "no entry of the active mapping targets ``authors``",
+        "It is the *target* key that decides, not whether",
         '{"author": "doc_authors"}',
         '{"project": "authors"}',
     ):

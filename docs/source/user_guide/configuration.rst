@@ -58,17 +58,18 @@ Each tuple contains:
 4. **Author** -- resolved the same way as the title: a present value wins
    (including ``""``); an absent, ``None``, or non-``str`` value falls back
    to ``author``, with a build warning for the non-``str`` case. Whether
-   this value also beats ``typst_authors`` is settled at the mapping
-   stage by exactly one thing -- whether the active parameter mapping
-   sends ``"author"`` to the template parameter named ``authors``, which
-   is what the default mapping does.
-   `Author Information`_ below states the full rule, including the two
-   cases this summary does not cover: a mapping that sends ``"author"``
-   to a different parameter, and a mapping that sends a different key to
-   ``authors``. ``typst_template_function``'s dict-form ``params`` take
-   precedence over *both* -- a user who has named both the template
+   this resolved value reaches the template's ``authors`` parameter is
+   settled by whether the active parameter mapping sends ``"author"`` to
+   the template parameter named ``authors``, which is what the default
+   mapping does. `Author Information`_ below states the full mapping rule,
+   including the two cases this summary does not cover: a mapping that
+   sends ``"author"`` to a different parameter, and a mapping that sends a
+   different key to ``authors``. That mapping-stage outcome is itself
+   subordinate to whether ``typst_template_function``'s dict-form
+   ``params`` is declared at all -- a user who has named both the template
    function and its arguments has already made a more specific decision
-   than either.
+   than either, and when ``params`` is present it is the *complete*
+   parameter set, discarding whatever the mapping stage produced.
 5. **Document class** (usually "typst") -- **accepted and ignored**:
    typsphinx reads nothing from this position today, and a five-element
    tuple is valid and behaves identically to a four-element one. Real
@@ -176,93 +177,99 @@ When disabled, math is passed directly as Typst math syntax.
 Author Information
 ------------------
 
-Detailed Format
-~~~~~~~~~~~~~~~
+Detailed Author Structure
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Include detailed author information:
+Rich per-author structure -- department, organization, location, email -- is
+expressed through ``typst_template_function``'s dict-form ``params`` route,
+the same route used for any other custom parameter:
 
 .. code-block:: python
 
-   typst_authors = {
-       "John Doe": {
+   ieee_authors = [
+       {
+           "name": "John Doe",
            "department": "Computer Science",
            "organization": "MIT",
-           "email": "john@mit.edu"
+           "email": "john@mit.edu",
        },
-       "Jane Smith": {
+       {
+           "name": "Jane Smith",
            "department": "Engineering",
            "organization": "Stanford",
-           "email": "jane@stanford.edu"
+           "email": "jane@stanford.edu",
+       },
+   ]
+
+   typst_template_function = {
+       "name": "project",
+       "params": {
+           "authors": ieee_authors,
        }
    }
 
-**Precedence.** Two stages decide what reaches the template's ``authors``
-parameter, in this order:
+**Precedence.** One question decides the parameter set your template
+function receives: **is a** ``params`` **key present in**
+``typst_template_function``'s dictionary form?
 
-1. **The parameter mapping**, applied while Sphinx metadata is turned into
-   template parameters. typsphinx seeds ``authors`` from ``typst_authors``
-   first and then applies the mapping, so whatever the mapping writes into
-   ``authors`` replaces that seed. No other assignment in that mapping step
-   replaces the seed: the defaults typsphinx back-fills for a missing
-   parameter only fill a key that is not already set, and ``typst_elements``
-   accepts no ``authors`` key at all.
-2. **``typst_template_function``'s dict-form** ``params``, applied later,
-   when the document is rendered. A ``params["authors"]`` entry there
-   replaces whatever stage 1 produced -- including a ``typst_authors`` seed
-   that came through stage 1 untouched.
+If it is, ``params`` is the **complete, exclusive** parameter set, on
+every route (``typst_template``, ``typst_package``, and the bundled
+default alike): the auto-derived ``title``/``authors``/``date``, the
+``typst_elements`` allowlist merge, and the three ``toctree_*`` keys are
+all discarded wholesale, not merged key-by-key. An explicitly empty
+``params: {}`` passes **nothing at all** -- the predicate is the presence
+of the ``params`` key, not the truthiness of the dict it holds, so a
+zero-named-parameter custom template (``#let project(body) = {...}``) is a
+legitimate configuration.
 
-Within stage 1, one question decides the outcome, and it is not about the
-template route: **does the active parameter mapping send some Sphinx
-metadata key to the template parameter named** ``authors``?
+A user who has named both the template function and its arguments has
+already made a more specific decision than either -- that sentence
+described the *intent* here before this rule was implemented; it is now
+literally what the code does, with no residual merge behind it.
 
+If ``params`` is **not** present, the parameter mapping decides what
+reaches ``authors`` instead: **does the active parameter mapping send
+some Sphinx metadata key to the template parameter named** ``authors``?
 The default mapping sends ``author`` to ``authors``, so on an ordinary
 build the entry's own author element (the fourth position in
-`Typst Documents`_ above) -- or the ``author`` fallback it resolves to
--- wins.
+`Typst Documents`_ above) -- or the ``author`` fallback it resolves to --
+reaches the template, converted to a Typst array (:doc:`templates`'s
+Standard Parameters section states the array shape and the comma-split
+rule). It is the *target* key that decides, not whether ``"author"``
+appears in the mapping at all:
 
-``typst_authors`` therefore comes through stage 1 as the sole source of
-``authors`` if and only if no entry of the active mapping targets
-``authors`` with a source key the build actually supplies. It is the
-*target* key that decides, not whether ``"author"`` appears in the mapping
-at all:
-
-* A mapping that sends ``"author"`` somewhere other than ``authors``
-  -- for example ``typst_template_mapping = {"author": "doc_authors"}``,
-  for a custom template whose function names its author parameter
-  differently -- leaves ``authors`` alone. Stage 1's own output then
-  carries both: ``typst_authors`` as ``authors``, and the entry's author
-  value as ``doc_authors`` -- subject to stage 2's override above if
-  ``typst_template_function`` also sets ``params["authors"]``.
+* A mapping that sends ``"author"`` somewhere other than ``authors`` --
+  for example ``typst_template_mapping = {"author": "doc_authors"}``, for
+  a custom template whose function names its author parameter
+  differently -- leaves ``authors`` unset by the mapping stage; the
+  non-package back-fill then supplies an empty array instead.
 * A mapping that sends some other key to ``authors`` -- for example
-  ``typst_template_mapping = {"project": "authors"}`` -- replaces the
-  seed even though it never mentions ``"author"``. Stage 1's own output
-  for ``authors`` is then the project name, in the same shape an author
-  value would take -- again subject to stage 2's override.
+  ``typst_template_mapping = {"project": "authors"}`` -- writes
+  ``authors`` from that key instead, in the same array shape an author
+  value would take.
 
-A ``typst_package`` build with ``typst_template_mapping`` not set at
-all reaches stage 1's surviving case by a side door rather than by a rule
-of its own: typsphinx then passes only what was explicitly mapped, and
-nothing was, so the mapping is empty and can target nothing.
-Package-based and template-based builds -- including the bundled
-default template -- are governed by the one stage-1 rule above;
-``typst_package`` affects only which mapping is in force, never whether
-the mapping replaces the seed.
+A ``typst_package`` build with ``typst_template_mapping`` not set at all
+reaches this same case by a side door rather than by a rule of its own:
+typsphinx passes only what was explicitly mapped, and nothing was, so the
+mapping is empty and can target nothing -- and the ``title``/``authors``/
+``date`` back-fill that would otherwise supply a default is itself
+withheld on the package route (see :doc:`templates`'s Configuration-Based
+Templates section).
 
-Coming through stage 1 is not the end of the story. Setting
-``typst_template_function`` to its dict form with a ``params["authors"]``
-entry replaces the ``typst_authors`` seed at stage 2, so a project that
-sets ``typst_authors`` alongside a mapping targeting nothing but ``title``
-still renders the template function's own ``authors`` value.
+.. warning::
 
-.. note::
-
-   ``typst_authors`` is fully replaceable by ``typst_template_function``'s
-   ``params["authors"]`` -- rendering the same author dictionary through
-   both routes was measured to produce a byte-identical ``authors:``
-   value, differing only in the order of named arguments in the emitted
-   call (semantically irrelevant in Typst). ``typst_authors`` is
-   **slated for removal** in a future major release; new configurations
-   should prefer ``typst_template_function``'s ``params`` instead.
+   A **partial** migration to the ``params`` route is a silent trap.
+   Declaring ``params`` with only one key -- for example
+   ``params: {"authors": [...]}`` -- to add rich author structure while
+   expecting ``title`` and ``date`` to keep arriving from the auto-derived
+   set does **not** work: declaring ``params`` at all replaces the entire
+   set. The build does not error -- it renders with the template's own
+   defaults, typically an empty title and no author, because every
+   parameter ``params`` does not name is simply absent and Typst applies
+   the function's own default for an absent named argument. If you want
+   one extra parameter beyond the auto-derived set, declare the **full**
+   set you need inside ``params``; there is no partial-override
+   mechanism.
 
 Paper Size and Format
 ---------------------
@@ -361,24 +368,27 @@ Here's a complete ``conf.py`` example:
        ("index", "mydoc", project, author, "typst"),
    ]
 
-   # Template configuration
+   # Template configuration -- typst_package requires typst_template_function
+   # with a params key (see "Configuration-Based Templates" in :doc:`templates`).
+   # Declaring params makes it the COMPLETE parameter set (see "Author
+   # Information" above), so title/authors are named here explicitly rather
+   # than relying on the typst_documents entry's own values.
    typst_package = "@preview/charged-ieee:0.1.4"
    typst_template_function = {
        "name": "ieee",
        "params": {
+           "title": project,
+           "authors": [
+               {
+                   "name": author,
+                   "department": "Engineering",
+                   "organization": "My Organization",
+                   "email": "me@example.com",
+               },
+           ],
            "abstract": "This document demonstrates...",
            "index-terms": ["Documentation", "Typst"],
            "paper-size": "us-letter",
-       }
-   }
-
-   # Author details (see "Author Information" above for the precedence
-   # rule and the typst_authors forward-removal notice)
-   typst_authors = {
-       "My Name": {
-           "department": "Engineering",
-           "organization": "My Organization",
-           "email": "me@example.com"
        }
    }
 
