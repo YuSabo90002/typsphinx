@@ -196,14 +196,25 @@ continues at **Phase 43**.
       (`tox-uv-bare` + the PyPI `uv` wheel), and that wheel installs a generic-linux ELF at
       `.venv/bin/uv` which NixOS cannot exec. `tox-uv` reaches it via `uv.find_uv_bin()` — which
       searches `.venv/bin` first and reads no environment variable — so **every** `tox` environment
-      exits 127; and `uv run` prepends `.venv/bin` to `PATH`, so the 13 test modules that shell out
+      exits 127; and `uv run` prepends `.venv/bin` to `PATH`, so the 5 test modules that shell out
       to `["uv", "run", "sphinx-build", …]` resolve the broken copy instead of the working
-      nix-store `uv` further down the same `PATH`. Depending on `tox-uv-bare` instead drops the
-      bundled binary and lets `tox-uv` fall through to its documented `shutil.which("uv")` path.
-      Measured 2026-08-10 on both halves: 42 failed / 5 passed → 47 passed across four integration
-      modules with the binary removed, and `tox -e lint --notest` green under `tox-uv-bare` alone
-      with no `TOX_UV_PATH`. Confined to the `dev` extra, `tox.ini`'s `requires`, and `uv.lock` —
-      no runtime surface and no published contract, so it takes **no** CHANGELOG callout (D-19).
+      nix-store `uv` further down the same `PATH` (13 is a miscount — a bare `grep -l "uv" tests/`
+      returns 13 files, but only 5 actually invoke `uv` as a subprocess; corrected 2026-08-11, D-05).
+      Depending on `tox-uv-bare` instead drops the bundled binary and lets `tox-uv` fall through to
+      its documented `shutil.which("uv")` path. A second, related defect shares the same root file:
+      `tox.ini`'s `[testenv]`, `lint`, `type` and `cov` environments declare their tools via a `deps`
+      list, which `runner = uv-venv-lock-runner` never consults — it provisions each environment from
+      `uv.lock` via `uv sync`, which can only install what `pyproject.toml` declares — so none of
+      those four environments has ever installed `black`/`ruff`/`mypy`/`pytest` itself, and CI's own
+      green never validated `tox.ini` (it reached the tools via `uv run`'s `PATH`-prepending, not via
+      the tox environment). The `ruff` generic-linux-ELF exec failure is a separate, NixOS-local
+      defect — `.venv/bin/ruff` cannot run under this machine's stub-ld either — and is routed out of
+      this requirement's scope and tracked as a todo rather than fixed here (D-03). Measured
+      2026-08-10 on both halves:
+      42 failed / 5 passed → 47 passed across four integration modules with the binary removed, and
+      `tox -e lint --notest` green under `tox-uv-bare` alone with no `TOX_UV_PATH`. Confined to the
+      `dev` extra, `tox.ini`'s `requires`/`extras`, and `uv.lock` — no runtime surface and no
+      published contract, so it takes **no** CHANGELOG callout (D-19).
       The rejected alternative, `TOX_UV_PATH` in `flake.nix`, was also measured working and
       declined: it repairs `tox` only, leaves the pytest failures untouched, and is a NixOS-local
       workaround rather than a fix.

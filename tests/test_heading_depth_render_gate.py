@@ -49,15 +49,16 @@ def _run_sphinx_build_typst(
     point's module form) rather than shelling out to the package-manager
     `run sphinx-build` idiom: this guarantees the exact interpreter/venv
     already running this test is reused, with no dependency on external
-    PATH resolution of a package-manager executable. This matters in this
+    PATH resolution of a package-manager executable. This mattered in this
     project's dev sandbox specifically -- a stray non-Nix package-manager
     binary installed into `.venv/bin` (shadowing the correct Nix-provided
-    one earlier on PATH for subprocess children) makes the
+    one earlier on PATH for subprocess children) made the
     `run sphinx-build` subprocess form exit 127 ("Could not start
     dynamically linked executable") when invoked from inside a
-    pytest-launched subprocess, even though the same command succeeds when
-    run directly in a shell. `sys.executable -m sphinx` sidesteps that
-    PATH-shadowing hazard entirely.
+    pytest-launched subprocess, even though the same command succeeded when
+    run directly in a shell. That cause was removed by QUA-04 (2026-08-10);
+    `sys.executable -m sphinx` is kept regardless, because it depends on no
+    PATH resolution at all -- a better reason than the hazard ever was.
 
     `extra_args` is an optional tuple of additional sphinx-build CLI
     arguments (e.g. `("-D", "todo_include_todos=0")`) spliced into the
