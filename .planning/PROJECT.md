@@ -429,9 +429,44 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
-**v0.7.1 (bug-fix round) — Phase 45 complete 2026-08-10, 4/4 plans across 3 waves, verification
+**v0.7.1 (bug-fix round) — Phase 45.1 complete 2026-08-10, 7/7 plans across 6 waves (6 planned +
+1 gap-closure round), verification `passed` 10/10 must-haves, code review 0 critical / 2 warning /
+1 info. DOC-13, CONF-10, CONF-11 and CONF-12 validated.**
+
+A reader who writes a custom template from the published documentation now gets a build that works.
+The contract is exclusivity, not merge: a declared `typst_template_function["params"]` is the
+**complete** parameter set, so the auto-derived `title`/`authors`/`date`, the `typst_elements`
+allowlist merge and the `toctree_*` merge are all withheld — the predicate is the *presence* of the
+key, so `params: {}` passes nothing (CONF-11, D-B). The auto-derived Typst `lang` was widened the
+other way: it now reaches **every** non-package route — the bundled default, an explicit
+`typst_template`, and a `<srcdir>/base.typ` shadow alike — and is withheld only under
+`typst_package`, because typsphinx never introspects a third-party Universe function's signature
+(CONF-12, D-I). `typst_authors` was removed outright (CONF-10, D-F); rich author structure is
+expressed through `typst_template_function`'s `params` route instead.
+
+The phase's own closure round is the part worth remembering. Plan 06 proved the published contract
+and the shipped behaviour agreed in both directions — but its enumeration read `templates.rst` and
+nothing else, so a stale pre-CONF-12 claim survived on `configuration.rst`, the very page
+`templates.rst` cross-references. Plan 07 corrected that prose and replaced the one-shot manual
+sweep with a permanent guard (`tests/test_docs_contract_claims_gate.py`) that derives route truth by
+*calling* `TemplateEngine.uses_bundled_default_template()` over four route configurations, compares
+it to the docs' published claim set by **set equality in both directions** (no containment), closes
+its claim-page list by assertion in both directions so neither a new claim page nor a rotted
+exclusion can pass, and is proved fail-first against the verbatim pre-fix sentence. D-J's declined
+parameter-name lockstep test stays declined: the guard is on the claim-correctness axis and does not
+read `docs/source/_typst/custom_template.typ` at all.
+
+Known follow-up, not a gap: `examples/charged-ieee/approach1` (the README's "Recommended" sample)
+and `templates.rst`'s introductory sample declare `params` without a `title` key on the
+`typst_package` route, so under D-B exclusivity the example's compiled PDF never receives a title —
+a pre-existing example-quality defect the verifier confirmed predates this phase and which no
+DOC-13-scoped page claims otherwise (code review WR-01).
+
+<!-- Prior: v0.7.1 — Phase 45 complete 2026-08-10, 4/4 plans across 3 waves, verification
 `passed` 5/5 success criteria, code review 0 critical / 3 warning / 0 info. DOC-11, DOC-12,
-QUA-02 and QUA-03 validated.**
+QUA-02 and QUA-03 validated. -->
+
+**Phase 45 detail (superseded as "current" by Phase 45.1, retained for context):**
 
 Documentation currency closed the two drift channels the milestone carried. `docs/source/changelog.rst`
 now delegates to repo-root `CHANGELOG.md` through `myst-parser` (`docs` extra only), so the page that
