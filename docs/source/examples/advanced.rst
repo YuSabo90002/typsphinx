@@ -83,7 +83,7 @@ Wrap external packages with custom logic:
        department: "Engineering",
        organization: "My Organization",
        location: "City, State",
-       email: name.split(" ").at(0).lower() + "@example.com"
+       email: lower(name.split(" ").at(0)) + "@example.com"
      ))
 
      // Define abstract and keywords (could be parameters)
@@ -104,7 +104,7 @@ Wrap external packages with custom logic:
        authors: ieee_authors,
        abstract: ieee_abstract,
        index-terms: ieee_keywords,
-       bibliography: "refs.bib",
+       bibliography: bibliography("_templates/refs.bib"),
      )
 
      body
@@ -115,6 +115,20 @@ Wrap external packages with custom logic:
 .. code-block:: python
 
    typst_template = "_templates/custom_ieee.typ"
+
+.. note::
+
+   ``bibliography`` takes the **result of a call to** Typst's own
+   ``bibliography()`` function, not a bare path string -- ``ieee()`` rejects
+   a plain ``"refs.bib"`` string with a type error. Place ``refs.bib`` next
+   to ``custom_ieee.typ`` in your ``_templates/`` directory; typsphinx's
+   automatic asset copying (see :doc:`/user_guide/templates`'s Template
+   Assets section) copies it to the output directory under that same
+   ``_templates/`` path. The template file itself is written to the output
+   root (as ``_template.typ``), so a relative path written inside it
+   resolves from the output root too -- reference the copied asset as
+   ``"_templates/refs.bib"``, matching where the copy lands, not the bare
+   filename.
 
 .. important::
 
@@ -156,7 +170,7 @@ Apply custom fonts and colors:
 
    #let project(
      title: "",
-     primary-color: blue,
+     primary-color: "#1e88e5",
      body
    ) = {
      // Set custom font
@@ -167,20 +181,20 @@ Apply custom fonts and colors:
 
      // Custom heading style
      show heading.where(level: 1): it => {
-       set text(fill: primary-color, size: 20pt, weight: "bold")
+       set text(fill: rgb(primary-color), size: 20pt, weight: "bold")
        it
        v(0.5em)
      }
 
      show heading.where(level: 2): it => {
-       set text(fill: primary-color.lighten(20%), size: 16pt)
+       set text(fill: rgb(primary-color).lighten(20%), size: 16pt)
        it
        v(0.3em)
      }
 
      // Title page
      align(center)[
-       #text(size: 28pt, fill: primary-color, weight: "bold")[
+       #text(size: 28pt, fill: rgb(primary-color), weight: "bold")[
          #title
        ]
      ]
@@ -200,7 +214,7 @@ Apply custom fonts and colors:
        "name": "project",
        "params": {
            "title": "My Styled Document",
-           "primary-color": "rgb(0, 102, 204)",  # Custom blue
+           "primary-color": "#0066cc",  # Custom blue
        }
    }
 
@@ -209,6 +223,18 @@ Declaring ``params`` makes it the **complete** parameter set (see
 exclusivity rule), so ``title`` must be named here explicitly -- without it,
 the template's own ``title: ""`` default would apply and the styled title
 page above would render empty.
+
+.. note::
+
+   ``primary-color`` is declared as a **hex string**, not a raw Typst color
+   literal such as ``blue`` or a ``rgb(...)`` call. Every value that reaches
+   a template through ``typst_template_function["params"]`` is a Python
+   value (``str``/``int``/``float``/``bool``/``list``/``dict``/``None``)
+   formatted as the equivalent Typst literal -- a Python ``str`` always
+   becomes a quoted Typst string, never a bare identifier or function call.
+   The template converts the hex string to a color itself with
+   ``rgb(primary-color)``, which Typst's ``rgb()`` constructor accepts
+   directly.
 
 Conditional Content
 -------------------
