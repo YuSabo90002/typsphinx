@@ -4,11 +4,11 @@ milestone: v0.7.1
 milestone_name: bug-fix round
 current_phase: 45.1
 current_phase_name: Custom-Template Parameter Contract Correction
-status: planning
-stopped_at: Phase 45 context gathered
-last_updated: "2026-08-09T23:46:21.551Z"
+status: ready_to_plan
+stopped_at: Phase 45 complete and UAT-verified, ready to plan Phase 45.1
+last_updated: "2026-08-10T00:15:00.000Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 45 execution started
+last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
   total_phases: 7
   completed_phases: 5
@@ -24,19 +24,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 45 — documentation-currency-carried-hygiene
+**Current focus:** Phase 45.1 — Custom-Template Parameter Contract Correction
 15/15 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
 insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02).
-Next action: `/gsd-execute-phase 44.1`.
+Next action: `/gsd-discuss-phase 45.1`.
 
 ## Current Position
 
 Phase: 45.1 — Custom-Template Parameter Contract Correction
 Plan: Not started
 Status: Ready to plan
-Progress: [###########---------] 57% (4/7 phases)
-Last activity: 2026-08-10 — Phase 45 complete, transitioned to Phase 45.1
+Progress: [##############------] 71% (5/7 phases)
+Last activity: 2026-08-10 — Phase 45 complete and UAT-verified (13/13 passed, 0 issues), transitioned to Phase 45.1
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
@@ -563,12 +563,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/45-documentation-currency-carried-hygiene/45-CONTEXT.md
-`.planning/milestones/v0.7.0-phases/`.
+**Resume file:** None
+Archived milestone phases live under `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-09T14:03:41.169Z
-Stopped at: Phase 45 context gathered
-Resume: `/gsd-plan-phase 43` (Table State Correctness — Nested Tables + Empty-Title Anchors).
+Last session: 2026-08-10T00:15:00.000Z
+Stopped at: Phase 45 complete and UAT-verified (13/13 passed, 0 issues), ready to plan Phase 45.1
+Resume: `/gsd-discuss-phase 45.1` (Custom-Template Parameter Contract Correction).
 
 ## Operator Next Steps
 
