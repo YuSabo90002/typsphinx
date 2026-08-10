@@ -1,6 +1,8 @@
 """
-Writer enumeration and generated survival matrix for CONF-09's `typst_authors`
-precedence rule (Phase 44.2, D-05, gap-closure round 3).
+Writer enumeration and generated survival matrix for `map_parameters()`'s
+``authors`` precedence rule (originated Phase 44.2, D-05, gap-closure round
+3; re-derived Phase 45.1, D-F, when the dedicated author-details config
+value this module originally enumerated over was removed, CONF-10).
 
 **The enumeration axis is the ASSIGNMENT TARGET `params["authors"]`, not any
 config shape and not the mapping's SOURCE key.** Rounds 1 and 2 of this
@@ -15,27 +17,29 @@ axes (source keys x target keys x source-presence) instead of typing rows by
 hand -- typing them by hand is exactly how the falsifying row was omitted
 twice.
 
-**The rule** (measured against `map_parameters()`, stated over the target):
-the `typst_authors` seed at `params["authors"]` survives if and only if no
-entry of the active `parameter_mapping` has the target key `"authors"` with
-its source key present in the passed `sphinx_metadata`. The SOURCE key does
-not have to be `"author"`, and its presence is neither necessary nor
-sufficient: `{"author": "doc_authors"}` keeps the seed in `"authors"` AND
-passes the mapped value under `"doc_authors"`, while `{"project": "authors"}`
-destroys the seed with the project name despite never mentioning `"author"`
-at all.
+**Phase 45.1 (D-F) update.** The dedicated author-details config value this
+module used to enumerate a "seed" writer for is REMOVED (CONF-10). Rich
+author structure now flows exclusively through `render()`'s
+`typst_template_function["params"]` route (D-B), never through a write
+inside `map_parameters()` itself. This method's `params["authors"]` write
+surface is therefore just the TWO surviving writers: the mapping loop
+(reachable whenever some `parameter_mapping` entry's target is literally
+`"authors"` with its source key present in the passed `sphinx_metadata`)
+and the non-package back-fill (`params["authors"] = ()`, reachable
+whenever the mapping loop did not write the key AND `typst_package` is
+unset). The generated matrix below drops its former "does the seed
+survive" framing and asserts this simpler, seed-free rule instead.
 
 **Deliberate deviation from this phase's established test-module convention.**
 `44.2-PATTERNS.md` prescribes discrete, individually-named functions over
 `@pytest.mark.parametrize` for this phase's sibling precedence module,
 `tests/test_entry_metadata_precedence.py` -- and that module keeps the
-discrete convention, gaining its own four named Group 2 cells in plan 05
-task 2. This module deviates from that convention on purpose: a hand-
-enumerated row set is exactly the failure mode this module exists to
-close, so `test_authors_seed_survival_matrix` below is parametrized over a
-MECHANICALLY GENERATED cross product rather than typed out cell by cell,
+discrete convention. This module deviates from that convention on purpose:
+a hand-enumerated row set is exactly the failure mode this module exists
+to close, so `test_authors_mapping_loop_matrix` below is parametrized over
+a MECHANICALLY GENERATED cross product rather than typed out cell by cell,
 so a rule one predicate short of the code cannot be transcribed into
-`_seed_survives()` without turning a row red.
+`_mapping_loop_writes_authors()` without turning a row red.
 """
 
 import ast
@@ -55,8 +59,6 @@ CONFIGURATION_RST_PATH = (
     REPO_ROOT / "docs" / "source" / "user_guide" / "configuration.rst"
 )
 
-TYPST_AUTHORS = {"Jane Doe": {"organization": "MIT"}}
-SEED = [{"name": "Jane Doe", "organization": "MIT"}]
 BASE_METADATA = {"project": "P", "author": "Explicit Entry Author", "release": "1.0"}
 
 # Three source keys and three target keys -- deliberately wider than the
@@ -69,20 +71,23 @@ SOURCE_KEYS = ("author", "project", "release")
 TARGET_KEYS = ("authors", "doc_authors", "writer")
 
 
-def _seed_survives(mapping: dict, metadata: dict) -> bool:
+def _mapping_loop_writes_authors(mapping: dict, metadata: dict) -> bool:
     """Transcribes the PUBLISHED sentence into Python -- this is a
     transcription of the rule stated in `docs/source/user_guide/configuration.rst`
-    and in `typsphinx/template_engine.py`'s D-05 comment, and must stay
-    readable as such. Its body makes no call to `map_parameters()`,
-    `TemplateEngine`, or any other production entry point: deriving the
-    expected value from the code under test would make the matrix below a
-    tautology that passes for ANY rule, including the two already measured
-    false against rows F and G of `44.2-orchestrator-measurement.md`.
+    and in `typsphinx/template_engine.py`'s D-05 comment (re-derived per
+    D-F once the seed this rule used to be framed against was removed), and
+    must stay readable as such. Its body makes no call to
+    `map_parameters()`, `TemplateEngine`, or any other production entry
+    point: deriving the expected value from the code under test would make
+    the matrix below a tautology that passes for ANY rule, including the
+    two already measured false against rows F and G of
+    `44.2-orchestrator-measurement.md`.
 
-    The seed at `params["authors"]` survives iff no mapping entry has the
-    target key "authors" with its source key present in `metadata`.
+    `params["authors"]` is written by the mapping loop iff some mapping
+    entry has the target key "authors" with its source key present in
+    `metadata`.
     """
-    return not any(
+    return any(
         target == "authors" and source in metadata for source, target in mapping.items()
     )
 
@@ -140,8 +145,14 @@ def _map_parameters_region() -> str:
 def test_map_parameters_writes_params_from_exactly_these_sites():
     """AST enumeration of every `params[...]` write site in
     `map_parameters()`. This is the sole authority the published precedence
-    rule, the D-05 comment, and `_seed_survives()` above must all be
-    re-derived from -- not the reverse."""
+    rule, the D-05 comment, and `_mapping_loop_writes_authors()` above must
+    all be re-derived from -- not the reverse.
+
+    Phase 45.1 (D-F): the leading `"authors"` literal-slice write this
+    module used to expect FIRST -- the removed config value's seed -- is
+    gone. `map_parameters()` now has exactly ONE literal `"authors"` write
+    (the non-package back-fill), in the back-fill's own source order:
+    title, authors, date."""
     literal_slices, dynamic_slices = _params_assignments()
 
     consequence = (
@@ -149,11 +160,12 @@ def test_map_parameters_writes_params_from_exactly_these_sites():
         "writer of params[...] appeared in map_parameters(), so the "
         "published precedence rule in "
         "docs/source/user_guide/configuration.rst, the D-05 comment in "
-        "typsphinx/template_engine.py, and this module's _seed_survives() "
-        "must all be re-derived before this expectation is changed."
+        "typsphinx/template_engine.py, and this module's "
+        "_mapping_loop_writes_authors() must all be re-derived before this "
+        "expectation is changed."
     )
 
-    assert literal_slices == ["authors", "title", "authors", "date"], consequence
+    assert literal_slices == ["title", "authors", "date"], consequence
     assert dynamic_slices == {"template_key", "key"}, consequence
 
 
@@ -170,22 +182,25 @@ def test_typst_elements_cannot_write_the_authors_key():
         engine.map_parameters({}, typst_elements={"authors": "x"})
 
 
-def test_non_package_back_fill_cannot_replace_a_typst_authors_seed():
+def test_non_package_back_fill_cannot_replace_a_mapping_loop_write():
     """The non-package back-fill (`if not self.typst_package: ... if
     "authors" not in params: params["authors"] = ()`) is guarded by
     `"authors" not in params`, so it can only fill an ABSENT key and can
-    never replace a seed. A non-package engine with no `typst_authors`
-    yields the empty-tuple back-fill; the same engine WITH `typst_authors`
-    keeps the seed instead."""
-    engine_no_seed = TemplateEngine(parameter_mapping={"project": "title"})
-    params_no_seed = engine_no_seed.map_parameters(dict(BASE_METADATA))
-    assert params_no_seed["authors"] == ()
-
-    engine_with_seed = TemplateEngine(
-        parameter_mapping={"project": "title"}, typst_authors=TYPST_AUTHORS
+    never overwrite a value the mapping loop already wrote. A non-package
+    engine whose mapping does not target "authors" gets the empty-tuple
+    back-fill; the same engine's mapping RETARGETED to write "authors"
+    keeps the mapped value instead -- the back-fill never runs at all."""
+    engine_no_mapping_write = TemplateEngine(parameter_mapping={"project": "title"})
+    params_no_mapping_write = engine_no_mapping_write.map_parameters(
+        dict(BASE_METADATA)
     )
-    params_with_seed = engine_with_seed.map_parameters(dict(BASE_METADATA))
-    assert params_with_seed["authors"] == SEED
+    assert params_no_mapping_write["authors"] == ()
+
+    engine_with_mapping_write = TemplateEngine(parameter_mapping={"author": "authors"})
+    params_with_mapping_write = engine_with_mapping_write.map_parameters(
+        dict(BASE_METADATA)
+    )
+    assert params_with_mapping_write["authors"] == (BASE_METADATA["author"],)
 
 
 def test_default_mapping_targets_the_authors_key():
@@ -210,22 +225,26 @@ _MATRIX_CASES = [
 
 
 @pytest.mark.parametrize("source,target,present", _MATRIX_CASES)
-def test_authors_seed_survival_matrix(source, target, present):
+def test_authors_mapping_loop_matrix(source, target, present):
     """The GENERATED cross product `SOURCE_KEYS x TARGET_KEYS x
     {present, absent}` -- 18 cells, including the two shapes with zero
     prior coverage anywhere in the suite: `project -> authors` (a
-    non-author source destroying the seed) and `author -> writer` (an
-    author source routed away from "authors" keeping the seed and landing
-    under an unrelated key, the control proving survival is not an
-    artifact of the "doc_authors" tuple-conversion special case).
+    non-author source writing "authors" via the mapping loop) and
+    `author -> writer` (an author source routed away from "authors",
+    falling through to the non-package back-fill instead -- the control
+    proving a mapping-loop write is not an artifact of the "doc_authors"
+    tuple-conversion special case).
 
-    Each cell asserts against `_seed_survives()`, never against the code
-    under test: whether the seed survives, and when it does not,
-    that `params["authors"]` is the mapped value rather than the seed; when
-    it survives with a non-"authors" target and the source present, that
-    the target key landed in `params` too (presence only -- the mapped
-    value's shape depends on `_convert_to_authors_tuple`'s own special
-    casing, a separate concern from this precedence rule)."""
+    Each cell asserts against `_mapping_loop_writes_authors()`, never
+    against the code under test: whether the mapping loop wrote "authors",
+    and when it did not, that the non-package back-fill's empty-tuple
+    default is what landed instead (this module's engine never sets
+    `typst_package`, so the back-fill always runs when the mapping loop
+    did not pre-empt it); when the mapping loop DID write "authors" with a
+    non-"authors" target and the source present, that the target key
+    landed in `params` too (presence only -- the mapped value's shape
+    depends on `_convert_to_authors_tuple`'s own special casing, a
+    separate concern from this precedence rule)."""
     mapping = {source: target}
     metadata = (
         dict(BASE_METADATA)
@@ -233,15 +252,17 @@ def test_authors_seed_survival_matrix(source, target, present):
         else {key: value for key, value in BASE_METADATA.items() if key != source}
     )
 
-    engine = TemplateEngine(parameter_mapping=mapping, typst_authors=TYPST_AUTHORS)
+    engine = TemplateEngine(parameter_mapping=mapping)
     params = engine.map_parameters(metadata)
 
-    survives = _seed_survives(mapping, metadata)
-    assert (params["authors"] == SEED) is survives
+    mapping_writes = _mapping_loop_writes_authors(mapping, metadata)
 
-    if not survives:
+    if mapping_writes:
         assert params["authors"] == (metadata[source],)
-    elif target != "authors" and source in metadata:
+    else:
+        assert params["authors"] == ()
+
+    if target != "authors" and source in metadata:
         assert target in params
 
 
@@ -265,16 +286,20 @@ def test_configuration_rst_documents_both_target_key_shapes():
         assert needle in normalized, f"MISSING from configuration.rst: {needle}"
 
 
-def test_d05_comment_states_the_target_key_rule():
+def test_d05_comment_states_the_surviving_writer_rule():
     """Drift guard, region-scoped to `map_parameters()` so an accurate
     "package-alone" sentence elsewhere in the same file (e.g.
     `uses_bundled_default_template()`'s docstring, about template-file
     ROUTING, a different subject) is never mistaken for an instance of this
-    rule: the D-05 comment still states the target-key phrasing and both
-    illustrating mapping literals."""
+    rule.
+
+    Phase 45.1 (D-F) re-derivation: the seed-survival rule this guard used
+    to pin (`target key "authors"` phrasing plus two illustrating mapping
+    literals) is gone along with the seed itself. The surviving comment
+    must still state the mapping loop's own target-key write rule and
+    record that the removal happened per CONF-10/D-F."""
     region = _map_parameters_region()
     normalized = re.sub(r"\s+", " ", region)
 
-    assert 'target key "authors"' in normalized
-    assert '{"author": "doc_authors"}' in normalized
-    assert '{"project": "authors"}' in normalized
+    assert 'is literally "authors"' in normalized
+    assert "CONF-10/D-F" in normalized

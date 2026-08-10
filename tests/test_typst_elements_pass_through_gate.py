@@ -11,7 +11,8 @@ dropped `papersize`/`fontsize` (and, coincidentally, `copyright`) on the
 floor -- so a documented
 ``typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}`` never
 took effect in the compiled PDF. This is the same defect class Phase 22.2
-fixed for `typst_package`/`typst_authors` (CONF-02/03): registration-only
+fixed for `typst_package` and the (since-removed, CONF-10/D-F) dedicated
+author-details config value (CONF-02/03): registration-only
 tests (`tests/test_config.py::test_typst_elements_config`,
 `test_custom_typst_elements_config`) stay green whether or not the
 feature actually works. CONF-04 requires assertions that a config value

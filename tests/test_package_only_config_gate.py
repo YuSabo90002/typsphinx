@@ -5,9 +5,9 @@ package-alone path (Phase 22.2, CONF-02 / CONF-03).
 Plans ``22.2-03`` and ``22.2-04`` fixed five defect classes on this path --
 BUG-A (a package-alone master importing a shared ``_template.typ`` the
 builder never writes), BUG-B (an unrequested ``date`` argument back-filled
-into the package function call), BUG-C (``typst_authors`` rendered as a
-quoted string rather than an array of dictionaries), BUG-E (auto-derived
-Sphinx metadata winning over an explicit, colliding
+into the package function call), BUG-C (author data rendered as a quoted
+string rather than an array of dictionaries), BUG-E (auto-derived Sphinx
+metadata winning over an explicit, colliding
 ``typst_template_function["params"]`` value), and BUG-F (the four essential
 ``@preview`` imports missing on the package-only path). Before this plan,
 the only tests covering these configuration values asserted that they were
@@ -19,21 +19,20 @@ path specifically (this is a distinct compile-root basis from the
 default-template and custom-template paths, which are already exercised
 elsewhere in this suite).
 
-**Phase 45.1 (D-B) update.** This fixture's ``typst_template_function``
+**Phase 45.1 (D-B/D-F) update.** This fixture's ``typst_template_function``
 always carries a non-empty ``params`` dict (``title``/``abstract``/
-``index-terms``/``paper-size``), so under D-B's exclusivity rule --
-``params``, when declared, is the COMPLETE emitted argument set -- the
-``typst_authors`` seed is now discarded WHOLESALE at the ``render()`` stage,
-regardless of whether it survived ``map_parameters()``. BUG-C's original
-guarantee ("``typst_authors`` reaches the output as an array of
-dictionaries, never a quoted string") no longer has a live observation site
-on THIS fixture; it remains covered directly at the ``map_parameters()``
-level by
-``tests/test_template_engine.py::TestTypstAuthorsConfig::test_typst_authors_through_pipeline_produces_native_array_of_dicts``
-(which asserts on ``map_parameters()``'s own output, not a ``params``-
-specified ``render()`` call). The tests below that referenced BUG-C's old
-shape are re-derived onto D-B's discard-wholesale guarantee instead of
-being deleted, per D-B/D-D.
+``index-terms``/``paper-size``/``authors``), so under D-B's exclusivity
+rule -- ``params``, when declared, is the COMPLETE emitted argument set --
+every declared ``params`` key, including ``authors``, reaches the emitted
+call, while everything NOT declared there (``date``, the auto-derived/
+mapped ``title``) is discarded wholesale. The dedicated author-details
+config value this fixture used to source ``authors`` from is REMOVED
+(CONF-10/D-F); the SAME author data now lives directly inside
+``typst_template_function["params"]["authors"]``, so BUG-C's original
+guarantee -- author data reaches the output as a native Typst array of
+dictionaries, never a pre-rendered quoted string -- is restored on THIS
+fixture's own emitted call, sourced from the params route instead of the
+removed config value.
 
 ``-b typstpdf`` (not ``-b typst``) is the builder driving the primary gate
 in this module: it is CONF-02's literal wording, and -- per Phase 22.1 --
@@ -155,7 +154,6 @@ def _load_fixture_conf_values() -> dict:
         "typst_documents": module.typst_documents,
         "typst_package": module.typst_package,
         "typst_template_mapping": module.typst_template_mapping,
-        "typst_authors": module.typst_authors,
         "typst_template_function": module.typst_template_function,
     }
 
@@ -249,34 +247,37 @@ class TestPackageOnlyConfigGate:
     def test_bug_b_no_date_argument_in_show_rule_call(self, build):
         """
         Within the show-rule call region ONLY, no ``date`` argument is
-        back-filled.
-
-        D-B update: this fixture's ``typst_template_function["params"]``
-        is non-empty, so under D-B's exclusivity rule the ``authors`` key
-        is ALSO absent -- it is not a back-filled empty tuple (BUG-B's
-        original claim), it is entirely discarded along with every other
+        back-filled -- this fixture's ``typst_template_function["params"]``
+        is non-empty, so under D-B's exclusivity rule ``date`` (never a
+        declared ``params`` key) is discarded along with every other
         auto-derived key that is not itself a declared ``params`` key.
+        ``authors`` IS present in this region, but only because it is
+        ITSELF a declared ``params`` key (D-F/plan 04's migration onto the
+        params route) -- never because of any back-fill.
         """
         region = _show_rule_call_region(build["text"])
         assert "date:" not in region
-        assert "authors:" not in region
+        assert "authors:" in region
 
-    def test_bug_c_authors_are_discarded_wholesale_when_params_specified(self, build):
+    def test_bug_c_authors_reach_output_as_array_of_dicts_via_params(self, build):
         """
-        D-B re-derivation of BUG-C: this fixture's ``typst_template_function
-        ["params"]`` is a non-empty dict, so ``typst_authors`` -- which was
-        never a declared ``params`` key -- is discarded WHOLESALE at
-        ``render()``, not merged in as an array of dictionaries. Neither the
-        array-of-dicts shape nor a pre-rendered quoted string appears; the
-        ``authors`` key is entirely absent from the emitted call. BUG-C's
-        original array-of-dicts guarantee (never a quoted string) remains
-        covered directly at the ``map_parameters()`` level by
-        ``tests/test_template_engine.py::TestTypstAuthorsConfig::
-        test_typst_authors_through_pipeline_produces_native_array_of_dicts``.
+        BUG-C (re-derived per D-F/plan 04): the dedicated author-details
+        config value this fixture used to source ``authors`` from is
+        removed (CONF-10). The same author data now lives directly inside
+        ``typst_template_function["params"]["authors"]``, and because a
+        declared ``params`` is the complete, exclusive parameter set
+        (D-B), it reaches the show-rule call as a native Typst array of
+        dictionaries carrying the ``name``/``department``/``organization``/
+        ``location``/``email`` keys -- never a pre-rendered quoted string.
         """
         text = build["text"]
         region = _show_rule_call_region(text)
-        assert "authors:" not in region
+        assert "authors: ((" in region
+        assert "name:" in region
+        assert "department:" in region
+        assert "organization:" in region
+        assert "location:" in region
+        assert "email:" in region
         assert 'authors: "(' not in text
 
     def test_bug_e_explicit_title_wins_over_metadata(self, build):
@@ -421,26 +422,29 @@ class TestPreFixBasisFailureProof:
         self, emitted_master_text, tmp_path
     ):
         """
-        BUG-C basis: insert a bare tuple of author-name strings as the
-        ``authors`` argument. Reproduces the pre-fix shape where
-        ``typst_authors`` was rendered as (or replaced by) a plain string
-        rather than a dict the package's own ``ieee`` function maps over
-        reading a ``name`` field -- which fails precisely because a string
-        has no such field.
+        BUG-C basis: replace the real, post-fix ``authors: ((name: ...,
+        ...),)`` array-of-dictionaries argument with a bare tuple of
+        author-name strings. Reproduces the historical BUG-C shape --
+        author data rendered as (or replaced by) plain strings rather than
+        dicts the package's own ``ieee`` function maps over reading a
+        ``name`` field -- which fails precisely because a string has no
+        such field.
 
-        D-B update: post-fix, this fixture's baseline emits NO ``authors``
-        argument at all (D-B discards it wholesale because ``params`` is
-        declared), so there is no longer an existing line to REPLACE.
-        Mirrors ``test_bug_b_basis_unrequested_date_argument_raises``'s
-        INSERT shape instead: the basis is reconstructed by adding the
-        bad-shape argument, not by mutating one that no longer exists.
+        Phase 45.1 (D-F) re-derivation: post-D-F, this fixture's baseline
+        DOES emit a real ``authors: ((...),)`` line again (sourced from
+        ``typst_template_function["params"]["authors"]`` rather than the
+        removed dedicated config value), so this basis is reconstructed by
+        REPLACING that real line, mirroring the original BUG-C shape more
+        directly than the transient D-B-era INSERT reconstruction did.
         """
         lines = emitted_master_text.split("\n")
-        opening = [i for i, line in enumerate(lines) if "#show: ieee.with(" in line]
+        authors_lines = [
+            i for i, line in enumerate(lines) if line.strip().startswith("authors: (")
+        ]
         assert (
-            len(opening) == 1
-        ), f"Expected exactly one show-rule call opening, found {len(opening)}"
-        lines.insert(opening[0] + 1, '  authors: ("Ada Fixture Researcher",),')
+            len(authors_lines) == 1
+        ), f"Expected exactly one authors: (...) line, found {len(authors_lines)}"
+        lines[authors_lines[0]] = '  authors: ("Ada Fixture Researcher",),'
         reconstructed = "\n".join(lines)
         assert 'authors: ("Ada Fixture Researcher",),' in reconstructed
 
@@ -509,28 +513,36 @@ class TestConfigOutputDifferenceMatrix:
         assert "_template.typ" in variant_text
         assert variant_text != baseline_text
 
-    def test_removing_authors_config_leaves_output_unchanged(
-        self, baseline_text, tmp_path
-    ):
+    def test_removing_authors_config_changes_output(self, baseline_text, tmp_path):
         """
-        D-B re-derivation: removing ``typst_authors`` changes NOTHING in
-        the emitted output, because this fixture's ``typst_template_function
-        ["params"]`` is always declared -- D-B discards the ``typst_authors``
-        seed wholesale at ``render()`` regardless of whether it is present
-        at all. The pre-D-B premise of this test ("removing typst_authors
-        changes the emitted authors value") is genuinely gone on this
-        route; the replacement assertion proves the SAME underlying fact
-        BUG-C/BUG-B's original coverage protected against -- that
-        ``typst_authors`` has zero effect once ``params`` is specified --
-        by demonstrating byte-identical output with and without it.
+        Phase 45.1 (D-F) re-derivation: the dedicated author-details
+        config value this test used to remove as its independent variable
+        is gone (CONF-10) -- there is no longer any such config value to
+        remove. The surviving, still-meaningful independent variable is
+        the ``authors`` entry inside ``typst_template_function["params"]``
+        itself: removing IT from the comparison build's params dict
+        changes the emitted output, proving the params-route value (not
+        some other code path) is what put the array-of-dictionaries
+        ``authors`` argument into the baseline's show-rule call.
         """
+        original_values = _load_fixture_conf_values()
+        original_function = original_values["typst_template_function"]
+        params_without_authors = {
+            key: value
+            for key, value in original_function["params"].items()
+            if key != "authors"
+        }
+        variant_function = dict(original_function)
+        variant_function["params"] = params_without_authors
+
         variant_dir = _write_variant_project(
-            tmp_path / "no_authors_variant", removals=["typst_authors"]
+            tmp_path / "no_authors_variant",
+            overrides={"typst_template_function": variant_function},
         )
         build_dir = tmp_path / "no_authors_build"
         result = _run_sphinx_build(variant_dir, build_dir, "typst")
         assert result.returncode == 0, (
-            f"sphinx-build -b typst (no-authors variant) failed:\n"
+            f"sphinx-build -b typst (no-authors-param variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
@@ -538,9 +550,9 @@ class TestConfigOutputDifferenceMatrix:
         baseline_region = _show_rule_call_region(baseline_text)
         variant_region = _show_rule_call_region(variant_text)
 
-        assert "authors:" not in baseline_region
+        assert "authors:" in baseline_region
         assert "authors:" not in variant_region
-        assert variant_text == baseline_text
+        assert variant_text != baseline_text
 
     def test_changing_template_function_param_changes_output(
         self, baseline_text, tmp_path

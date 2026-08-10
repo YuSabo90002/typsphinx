@@ -11,16 +11,19 @@ decisions its cells name:
   (silent fallback, D-02), non-`str` (warn then fallback, D-02), no-match,
   malformed-entry-skip, five-element arity, and duplicate-docname
   first-match.
-- Precedence inside `map_parameters()` (D-05): the `typst_authors` seed
-  at `params["authors"]` survives if and only if no entry of the active
-  `parameter_mapping` has the target key `"authors"` with its source key
-  present in the passed `sphinx_metadata`. The decisive thing is the
-  mapping's TARGET, not its source key and not the template route --
-  `{"author": "doc_authors"}` keeps the seed and passes the mapped value
-  under `doc_authors`, while `{"project": "authors"}` destroys the seed
-  with the project name despite never mentioning `"author"`. One cell
-  below per row; the writer enumeration this rule is derived from lives
-  in `tests/test_params_authors_writers.py`.
+- Precedence inside `map_parameters()` (D-05; re-derived Phase 45.1, D-F,
+  once the dedicated author-details config value this group originally
+  exercised was removed, CONF-10): `params["authors"]` is written by the
+  mapping loop if and only if some entry of the active `parameter_mapping`
+  has the target key `"authors"` with its source key present in the passed
+  `sphinx_metadata`; when no entry does, the non-package back-fill supplies
+  an empty tuple (or, on the package route, the key is absent entirely).
+  The decisive thing is the mapping's TARGET, not its source key and not
+  the template route -- `{"author": "doc_authors"}` routes the mapped
+  value under `doc_authors` instead of `authors`, while `{"project":
+  "authors"}` writes the project name into `authors` despite never
+  mentioning `"author"`. One cell below per row; the writer enumeration
+  this rule is derived from lives in `tests/test_params_authors_writers.py`.
 - Precedence inside `render()` (D-04, re-derived onto D-B/Phase 45.1): an
   explicit `typst_template_function["params"]` value wins over the
   entry-derived params dict passed into `render()` -- not because it wins
@@ -189,30 +192,28 @@ def test_resolve_entry_element_duplicate_docname_first_match_wins():
 
 
 # ---------------------------------------------------------------------------
-# Group 2: precedence inside TemplateEngine.map_parameters() (D-05).
+# Group 2: precedence inside TemplateEngine.map_parameters() (D-05;
+# re-derived Phase 45.1, D-F, once the dedicated author-details config value
+# this group originally exercised as a "seed" was removed, CONF-10).
 #
-# The full condition, stated over the ASSIGNMENT TARGET: the typst_authors
-# seed at params["authors"] survives iff no entry of the active
+# The full condition, stated over the ASSIGNMENT TARGET: params["authors"]
+# is written by the mapping loop iff some entry of the active
 # parameter_mapping has the target key "authors" with its source key
-# present in the passed sphinx_metadata. The mapping loop's
-# params[template_key] assignment is the only site that can overwrite the
-# seed; the non-package back-fill is guarded by "authors" not in params,
-# and self.typst_package is never tested. One cell below per row of that
-# rule, including a source key routed AWAY from "authors" and a non-author
-# source key routed INTO it.
+# present in the passed sphinx_metadata. When no entry does, the
+# non-package back-fill supplies an empty tuple (guarded by
+# "authors" not in params); on the package route with no such mapping
+# entry, "authors" is absent from the output entirely (self.typst_package
+# gates the back-fill). One cell below per row of that rule, including a
+# source key routed AWAY from "authors" and a non-author source key routed
+# INTO it.
 # ---------------------------------------------------------------------------
 
 
-def test_map_parameters_default_mapping_author_beats_typst_authors():
-    """D-05: on the default-mapping route, the mapped author value
-    overwrites the typst_authors seed -- params["authors"] is the
-    mapped/converted author value (a tuple), NOT the typst_authors
-    list[dict]."""
-    engine = TemplateEngine(
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
-    )
+def test_map_parameters_default_mapping_author_reaches_authors():
+    """D-05: on the default-mapping route, DEFAULT_PARAMETER_MAPPING's own
+    "author" -> "authors" entry writes the mapped/converted author value
+    (a tuple) into params["authors"]."""
+    engine = TemplateEngine()
     sphinx_metadata = {
         "project": "P",
         "author": "Explicit Entry Author",
@@ -225,17 +226,15 @@ def test_map_parameters_default_mapping_author_beats_typst_authors():
     assert params["authors"] == ("Explicit Entry Author",)
 
 
-def test_map_parameters_custom_mapping_omitting_author_keeps_typst_authors():
-    """D-05: on a route whose custom mapping omits "author" -- here a
-    package route, though the package is incidental, not the trigger --
-    typst_authors survives as the sole source -- params["authors"] IS the
-    typst_authors list[dict]."""
+def test_map_parameters_package_mapping_omitting_author_yields_no_authors_key():
+    """D-05: on the package route, a custom mapping that omits "author"
+    means the mapping loop never writes "authors" -- and because
+    self.typst_package is set, the non-package back-fill never runs
+    either, so the "authors" key is ABSENT from the output entirely (there
+    is no seed left to fall back on)."""
     engine = TemplateEngine(
         typst_package="@preview/charged-ieee:0.1.4",
         parameter_mapping={"project": "title"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -245,26 +244,19 @@ def test_map_parameters_custom_mapping_omitting_author_keeps_typst_authors():
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert "authors" not in params
 
 
-def test_map_parameters_non_package_mapping_omitting_author_keeps_typst_authors():
-    """D-05: the surviving condition is the MAPPING, not the package. This
-    is the exact cell 44.2-VERIFICATION.md reproduced against shipped code
-    and that had no test -- a NON-package engine (typst_package is None)
-    whose explicitly-set parameter_mapping omits "author" still keeps
-    typst_authors as the sole source. The published rule previously named
-    a package build as the only surviving route; there is no
-    self.typst_package conditional anywhere in map_parameters(), so a
-    template-route build with an author-omitting mapping behaves
-    identically. Without this cell, the published rule could claim a
-    package was required without any assertion going red."""
+def test_map_parameters_non_package_mapping_omitting_author_falls_back_to_empty_tuple():
+    """D-05: the surviving condition is the MAPPING, not the package. A
+    NON-package engine (typst_package is None) whose explicitly-set
+    parameter_mapping omits "author" falls through to the non-package
+    back-fill, which supplies an empty tuple -- there is no
+    self.typst_package conditional anywhere in the mapping loop itself, so
+    a template-route build with an author-omitting mapping differs from
+    the package route above only in whether the back-fill runs at all."""
     engine = TemplateEngine(
         parameter_mapping={"project": "title"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -277,22 +269,19 @@ def test_map_parameters_non_package_mapping_omitting_author_keeps_typst_authors(
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert params["authors"] == ()
 
 
-def test_map_parameters_package_unset_mapping_keeps_typst_authors():
+def test_map_parameters_package_unset_mapping_yields_no_authors_key():
     """D-05: the route reached by __init__'s package branch resolving the
     mapping to an EMPTY dict rather than to DEFAULT_PARAMETER_MAPPING --
     typst_package is set and parameter_mapping is not passed at all.
     Distinct from the cell above it, which supplies an explicit mapping
     that happens to omit "author": here there is no custom mapping at
-    all, only __init__'s own empty-dict resolution."""
+    all, only __init__'s own empty-dict resolution -- and because the
+    package route skips the back-fill too, "authors" is absent."""
     engine = TemplateEngine(
         typst_package="@preview/charged-ieee:0.1.4",
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -304,23 +293,19 @@ def test_map_parameters_package_unset_mapping_keeps_typst_authors():
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert "authors" not in params
 
 
-def test_map_parameters_custom_mapping_with_author_beats_typst_authors():
-    """D-05: the control proving the overwrite fires on the mapping's
-    TARGET key being "authors", not on the mapping being
+def test_map_parameters_custom_mapping_with_author_reaches_authors():
+    """D-05: the control proving the mapping loop's write fires on the
+    mapping's TARGET key being "authors", not on the mapping being
     DEFAULT_PARAMETER_MAPPING. A CUSTOM mapping that routes "author" to
-    "authors" still overwrites the typst_authors seed, with no package
-    involved at all. Read against
-    test_map_parameters_author_mapped_to_non_authors_target_keeps_typst_authors
+    "authors" writes the mapped value with no package involved at all.
+    Read against
+    test_map_parameters_author_mapped_to_non_authors_target_falls_back_to_empty_tuple
     below, which changes only the target key and flips the outcome."""
     engine = TemplateEngine(
         parameter_mapping={"project": "title", "author": "authors"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -333,21 +318,17 @@ def test_map_parameters_custom_mapping_with_author_beats_typst_authors():
     assert params["authors"] == ("Explicit Entry Author",)
 
 
-def test_map_parameters_author_absent_from_metadata_keeps_typst_authors():
+def test_map_parameters_author_absent_from_metadata_falls_back_to_empty_tuple():
     """D-05: pins the source-presence half of the rule -- the mapping loop
-    can only overwrite a key whose source it can read. A default-mapping
-    engine (whose "author" entry does target "authors") still keeps the
-    typst_authors seed when the passed sphinx_metadata carries no
+    can only write a key whose source it can read. A default-mapping
+    engine (whose "author" entry does target "authors") falls through to
+    the non-package back-fill when the passed sphinx_metadata carries no
     "author" key at all. This shape is not reachable from a real
     sphinx-build -- writer.py always supplies "author" via
     _resolve_entry_element -- but map_parameters() is a public method and
     the D-05 comment states this half of the condition, so it gets a test
     pinning the public contract."""
-    engine = TemplateEngine(
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
-    )
+    engine = TemplateEngine()
     sphinx_metadata = {
         "project": "P",
         "release": "1.0",
@@ -357,27 +338,20 @@ def test_map_parameters_author_absent_from_metadata_keeps_typst_authors():
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert params["authors"] == ()
 
 
-def test_map_parameters_author_mapped_to_non_authors_target_keeps_typst_authors():
+def test_map_parameters_author_mapped_to_non_authors_target_falls_back_to_empty_tuple():
     """D-05: the decisive thing is the mapping's TARGET key -- "author"
     being an active source key is neither necessary nor sufficient. A
     mapping that routes "author" to "doc_authors" instead of "authors"
-    keeps the typst_authors seed AND passes the mapped author value under
-    "doc_authors" -- both values land simultaneously.
+    leaves the mapping loop's own "authors" write unfired, so the
+    non-package back-fill supplies an empty tuple, while the mapped
+    author value lands separately under "doc_authors".
     tests/test_config_template_mapping.py already exercises this mapping
-    as a realistic custom-template configuration (Requirement 8.4); only
-    the combination with typst_authors had never been tested, which is
-    why a published rule keyed on the source key could ship twice without
-    any assertion going red. This is the row 44.2-REVIEW.md WR-01
-    reproduced."""
+    as a realistic custom-template configuration (Requirement 8.4)."""
     engine = TemplateEngine(
         parameter_mapping={"project": "title", "author": "doc_authors"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -389,22 +363,19 @@ def test_map_parameters_author_mapped_to_non_authors_target_keeps_typst_authors(
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert params["authors"] == ()
     assert params["doc_authors"] == ("Explicit Entry Author",)
 
 
-def test_map_parameters_author_mapped_to_arbitrary_target_keeps_typst_authors():
+def test_map_parameters_author_mapped_to_arbitrary_target_falls_back_to_empty_tuple():
     """D-05: the companion control for the cell above -- "doc_authors" is
     special-cased by the mapping loop's author-tuple conversion and
-    "writer" is not, so surviving cannot be an artifact of that special
-    case. A mapping that routes "author" to "writer" still keeps the
-    typst_authors seed, with the mapped value landing under "writer"."""
+    "writer" is not, so the outcome cannot be an artifact of that special
+    case. A mapping that routes "author" to "writer" still falls back to
+    the empty-tuple default for "authors", with the mapped value landing
+    under "writer"."""
     engine = TemplateEngine(
         parameter_mapping={"project": "title", "author": "writer"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -414,22 +385,18 @@ def test_map_parameters_author_mapped_to_arbitrary_target_keeps_typst_authors():
 
     params = engine.map_parameters(sphinx_metadata)
 
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert params["authors"] == ()
     assert "writer" in params
 
 
-def test_map_parameters_non_author_source_mapped_to_authors_destroys_typst_authors():
-    """D-05: the row that falsifies both currently-open suggested fixes --
-    the mapping mentions "author" nowhere, yet the seed is destroyed, and
-    what lands in "authors" is the project name rather than any author
-    value. A template declaring an "authors" parameter would therefore
-    render the project name as its author."""
+def test_map_parameters_non_author_source_mapped_to_authors_writes_mapped_value():
+    """D-05: the row that pins the target-key-only rule most sharply -- the
+    mapping mentions "author" nowhere, yet "authors" is written anyway,
+    with the project name as its value rather than any author value. A
+    template declaring an "authors" parameter would therefore render the
+    project name as its author."""
     engine = TemplateEngine(
         parameter_mapping={"project": "authors"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -442,20 +409,14 @@ def test_map_parameters_non_author_source_mapped_to_authors_destroys_typst_autho
     params = engine.map_parameters(sphinx_metadata)
 
     assert params["authors"] == ("P",)
-    assert params["authors"] != [
-        {"name": "Jane Doe", "organization": "MIT", "email": "jane@mit.edu"}
-    ]
 
 
-def test_map_parameters_release_mapped_to_authors_destroys_typst_authors():
+def test_map_parameters_release_mapped_to_authors_writes_mapped_value():
     """D-05: a second non-author source inside a mapping that also maps
     something else, so the previous cell's result cannot be read as an
     artifact of a single-entry mapping."""
     engine = TemplateEngine(
         parameter_mapping={"release": "authors", "project": "title"},
-        typst_authors={
-            "Jane Doe": {"organization": "MIT", "email": "jane@mit.edu"},
-        },
     )
     sphinx_metadata = {
         "project": "P",
@@ -529,36 +490,39 @@ def test_render_explicit_template_function_authors_wins_over_entry_derived():
     assert "title:" not in call_region
 
 
-def test_render_template_function_authors_replaces_map_parameters_surviving_seed():
+def test_render_template_function_authors_replaces_map_parameters_derived_value():
     """The combination ``44.2-VERIFICATION.md`` measured as having no
     single-assertion coverage anywhere in the suite: the two cells above
     both hand-build their ``params`` dict and call ``render()`` directly,
-    so neither exercises a ``typst_authors`` seed that SURVIVED
-    ``map_parameters()`` and is then replaced at render time -- only a
-    hand-built dict standing in for whatever ``map_parameters()`` might
-    have produced.
+    so neither exercises a REAL, non-empty ``map_parameters()`` output
+    that is then replaced at render time -- only a hand-built dict
+    standing in for whatever ``map_parameters()`` might have produced.
 
     This cell spans both stages in one body. First it calls
-    ``map_parameters()`` with a mapping targeting only ``title`` (nothing
-    targets ``authors``, so per the published stage-1 rule the
-    ``typst_authors`` seed survives) and asserts the seed SURVIVED --
-    ``params["authors"]`` is still the ``typst_authors`` list of dicts.
-    Only then does it call ``render()`` and assert the emitted string
-    carries the ``typst_template_function`` value and not the seed name.
-    Asserting the survival first is what makes the second half mean
-    "replaced at render time" rather than "never seeded in the first
-    place".
+    ``map_parameters()`` with a mapping that explicitly targets "authors"
+    with the entry-derived "author" as its source (so the mapping loop
+    legitimately writes a real, non-empty tuple into ``params["authors"]``)
+    and asserts that write landed. Only then does it call ``render()`` and
+    assert the emitted string carries the ``typst_template_function``
+    value and not the mapping-derived one. Asserting the mapping-derived
+    write first is what makes the second half mean "replaced at render
+    time" rather than "never written in the first place".
 
-    D-B (Phase 45.1) re-derivation of D-04: the seed reaches ``params``
-    (via ``map_parameters()``, unchanged) but never reaches ``all_params``
-    at all -- ``render()``'s exclusive branch discards the WHOLE
-    ``map_parameters()`` output, seed included, the moment
+    Phase 45.1 (D-F) re-derivation: this cell used to need a dedicated
+    author-details config value's seed SURVIVING ``map_parameters()`` to
+    supply that real, non-empty value; that config value is removed
+    (CONF-10), so the mapping loop's own write is the surviving way to
+    produce one.
+
+    D-B (Phase 45.1) re-derivation of D-04: the mapping-derived value
+    reaches ``params`` (via ``map_parameters()``, unchanged) but never
+    reaches ``all_params`` at all -- ``render()``'s exclusive branch
+    discards the WHOLE ``map_parameters()`` output the moment
     ``typst_template_function["params"]`` is declared, rather than the
-    seed reaching ``all_params`` first and then losing an ``update()``
-    collision (D-04's original, now-removed mechanism)."""
+    mapping-derived value reaching ``all_params`` first and then losing an
+    ``update()`` collision (D-04's original, now-removed mechanism)."""
     engine = TemplateEngine(
-        parameter_mapping={"project": "title"},
-        typst_authors={"Jane Doe": {"organization": "MIT"}},
+        parameter_mapping={"author": "authors"},
         typst_template_function={
             "name": "project",
             "params": {"authors": ("FROM TEMPLATE FUNCTION",)},
@@ -568,10 +532,9 @@ def test_render_template_function_authors_replaces_map_parameters_surviving_seed
     params = engine.map_parameters(
         {"project": "P", "author": "Explicit Entry Author", "release": "1.0"}
     )
-    assert isinstance(params["authors"], list)
-    assert params["authors"][0]["name"] == "Jane Doe"
+    assert params["authors"] == ("Explicit Entry Author",)
 
     result = engine.render(params, "Content")
 
     assert '"FROM TEMPLATE FUNCTION"' in result
-    assert "Jane Doe" not in result
+    assert "Explicit Entry Author" not in result

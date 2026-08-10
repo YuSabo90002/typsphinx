@@ -28,6 +28,17 @@ is kept unlinked from ``EXPECTED_STAGE_SITES``/``REACHABLE_STAGE_KNOBS``/
 ``UNREACHABLE_STAGE_PROOFS`` below since the site it used to pin no longer
 exists in that enumeration's terms.
 
+**Phase 45.1 (D-F) update.** ``map_parameters()``'s dedicated author-details
+config-value seed -- previously the FIRST writer of ``params["authors"]``,
+unconditionally, before the mapping loop ran -- is REMOVED (CONF-10). Rich
+author structure now flows exclusively through render()'s ``params`` branch
+above, never through a seed inside this method. This module's stage-site
+enumeration therefore drops that seed's id entirely: ``map_parameters()``
+now has exactly ONE literal ``assign::authors`` writer left (the non-package
+back-fill), not two, so the ``#2`` ordinal disambiguator this module's id
+scheme used to need for the seed/back-fill collision no longer applies --
+the back-fill's id collapses to the bare ``assign::authors``.
+
 Rounds 1, 2 and 3 of this correction each derived their search set from the
 prose being corrected rather than from the code: round 1 enumerated config
 shapes, round 2 enumerated the mapping's source key, and round 3 built a
@@ -84,17 +95,15 @@ PARAMS_CARRIERS = ("params", "all_params")
 # can_determine_authors_are_exactly_these` a tautology that passes for any
 # pipeline, including one with an unenumerated tenth site.
 #
-# `map_parameters()` writes `params["authors"]` at TWO distinct source
-# sites: the `typst_authors` seed (first, unqualified id) and the
-# non-package back-fill (second occurrence of the same literal target
-# key). Both produce the identical base id
-# `typsphinx/template_engine.py::map_parameters::assign::authors` under
-# the `<relpath>::<function>::<kind>::<slice>` scheme -- `_stage_sites()`
-# disambiguates same-function repeats with a `#<n>` ordinal suffix on the
-# second and later occurrence (in source order) so the seed and the
-# back-fill remain separately addressable dict keys below. This is a
-# deliberate, documented widening of the bare id scheme, made necessary by
-# a real collision the naive scheme would hit -- not an arbitrary choice.
+# `map_parameters()` writes `params["authors"]` at exactly ONE literal
+# source site now: the non-package back-fill. Phase 45.1 (D-F) removed the
+# dedicated author-details config value that used to seed
+# `params["authors"]` unconditionally BEFORE this site ran -- that removal
+# is why the back-fill's id is the bare
+# `typsphinx/template_engine.py::map_parameters::assign::authors`, with no
+# `#<n>` ordinal suffix: the seed/back-fill collision the suffix scheme
+# existed to disambiguate no longer occurs, because there is only one
+# `assign::authors` site left to find.
 #
 # Phase 45.1 (D-B): `render()` no longer contributes any site here.
 # `typsphinx/template_engine.py::render::update::params` and
@@ -108,7 +117,6 @@ EXPECTED_STAGE_SITES = tuple(
     sorted(
         [
             "typsphinx/template_engine.py::map_parameters::assign::authors",
-            "typsphinx/template_engine.py::map_parameters::assign::authors#2",
             "typsphinx/template_engine.py::map_parameters::assign::template_key",
             "typsphinx/template_engine.py::map_parameters::assign::title",
             "typsphinx/template_engine.py::map_parameters::assign::date",
@@ -123,20 +131,18 @@ EXPECTED_STAGE_SITES = tuple(
 # in which this site's write is the one that survives to the emitted
 # `authors`.
 REACHABLE_STAGE_KNOBS = {
-    # W1 (round 3's frame): the typst_authors seed. Reachable whenever no
-    # later stage replaces it.
-    "typsphinx/template_engine.py::map_parameters::assign::authors": "typst_authors",
-    # W2 (round 3's frame): the mapping loop's params[template_key] =
+    # W1 (round 3's frame): the mapping loop's params[template_key] =
     # value. Reachable whenever an entry of typst_template_mapping targets
-    # "authors".
+    # "authors" (or, by default, whenever DEFAULT_PARAMETER_MAPPING's own
+    # "author" -> "authors" entry finds a value).
     "typsphinx/template_engine.py::map_parameters::assign::template_key": "typst_template_mapping",
-    # W3 (round 3's frame, but its true controlling knob was never named):
+    # W2 (round 3's frame, but its true controlling knob was never named):
     # the non-package back-fill's params["authors"] = () default.
     # Reachable whenever nothing above wrote "authors" AND typst_package
     # is unset -- typst_package is the guard that decides whether this
     # back-fill runs at all (`if not self.typst_package:`), so it is the
-    # knob that controls this specific site, not typst_authors again.
-    "typsphinx/template_engine.py::map_parameters::assign::authors#2": "typst_package",
+    # knob that controls this specific site.
+    "typsphinx/template_engine.py::map_parameters::assign::authors": "typst_package",
     # W7 -- THE WRITER ROUND 3'S FRAME EXCLUDED ENTIRELY -- REMOVED per
     # D-B. Pre-45.1, this was reachable whenever typst_template_function
     # was a dict carrying params["authors"], winning per render()'s merge
@@ -148,6 +154,11 @@ REACHABLE_STAGE_KNOBS = {
     # test_render_applies_template_function_params_after_map_parameters_output
     # below, deliberately OUTSIDE this partition -- it is not expressible
     # as a per-key REACHABLE/UNREACHABLE row in this pipeline-stage frame.
+    #
+    # Phase 45.1 (D-F) removed a THIRD writer that used to exist here: a
+    # dedicated author-details config value that seeded params["authors"]
+    # unconditionally, before W1 ran. That config value is gone -- rich
+    # author structure now flows exclusively through the W7 route above.
 }
 
 # Hand-declared dict, stage-site id -> the name of the test IN THIS MODULE
@@ -181,21 +192,29 @@ UNREACHABLE_STAGE_PROOFS = {
     ),
 }
 
-SEED_NAME = "Jane Doe"
+STAGE1_AUTHOR_NAME = "Jane Doe"
 TEMPLATE_FUNCTION_AUTHOR = "FROM TEMPLATE FUNCTION"
 
 
 def _write_three_knob_project(srcdir: Path, with_template_function: bool) -> None:
-    """Write a tmp-path Sphinx project exercising the exact three-knob
-    configuration ``44.2-VERIFICATION.md`` reproduced with a real
-    ``sphinx-build``: ``typst_authors`` set (the seed), a
-    ``typst_template_mapping`` that deliberately targets ONLY ``title`` --
-    so the seed survives stage 1 (``map_parameters()``) by the published
-    stage-1 rule -- and, when ``with_template_function`` is True, a
-    ``typst_template_function`` dict form carrying ``params["authors"]``.
-    ``with_template_function`` is the ONLY difference between this project
-    and its control: the single conditional branch below is the entire
-    delta."""
+    """Write a tmp-path Sphinx project exercising the stage-1-vs-stage-2
+    ``authors`` precedence pipeline with a real ``sphinx-build``.
+
+    Phase 45.1 (D-F) re-derivation: this fixture used to set the removed
+    dedicated author-details config value directly as a stage-1 seed, with
+    a ``typst_template_mapping`` deliberately narrowed to ``{"project":
+    "title"}`` so the seed would survive stage 1 untouched. That config
+    value is gone (CONF-10). Stage 1's ``authors`` write now comes from
+    ``typst_documents``'s own entry-author field (``entry[3]``, D-03's
+    substitution point) flowing through the mapping loop's DEFAULT_
+    PARAMETER_MAPPING ``"author"`` -> ``"authors"`` entry -- the same
+    mapping-loop write ``REACHABLE_STAGE_KNOBS`` above names as W1. When
+    ``with_template_function`` is True, a ``typst_template_function`` dict
+    form carrying ``params["authors"]`` REPLACES stage 1's output wholesale
+    at stage 2 (``render()``, D-B's exclusive branch), rather than merging
+    with it. ``with_template_function`` is still the ONLY difference
+    between this project and its control: the single conditional branch
+    below is the entire delta."""
     (srcdir / "index.rst").write_text(
         "Test Document\n=============\n\nThis is a test document.\n"
     )
@@ -204,9 +223,7 @@ def _write_three_knob_project(srcdir: Path, with_template_function: bool) -> Non
         "author = 'A'",
         "release = '1.0'",
         "extensions = ['typsphinx']",
-        "typst_documents = [('index', 'index', 'T', 'Entry Author')]",
-        f"typst_authors = {{{SEED_NAME!r}: {{'organization': 'MIT'}}}}",
-        "typst_template_mapping = {'project': 'title'}",
+        f"typst_documents = [('index', 'index', 'T', {STAGE1_AUTHOR_NAME!r})]",
     ]
     if with_template_function:
         conf_lines.append(
@@ -234,13 +251,12 @@ def _run_sphinx_build_typst(srcdir: Path, outdir: Path) -> subprocess.CompletedP
     )
 
 
-def test_three_knob_build_emits_template_function_authors_not_the_seed(tmp_path):
-    """The exact configuration ``44.2-VERIFICATION.md`` reproduced with a
-    real ``sphinx-build``: no published sentence had a falsification
-    attempt against this row for three rounds. ``typst_authors`` is set,
-    the mapping targets only ``title`` (the seed survives stage 1), and
+def test_three_knob_build_emits_template_function_authors_not_stage1(tmp_path):
+    """A real ``sphinx-build`` proving stage 2 wins: stage 1's mapping-loop
+    write (``STAGE1_AUTHOR_NAME``, sourced from the ``typst_documents``
+    entry's own author field) is present, and
     ``typst_template_function``'s dict-form ``params["authors"]`` replaces
-    it at stage 2 (``render()``)."""
+    it wholesale at stage 2 (``render()``, D-B's exclusive branch)."""
     srcdir = tmp_path / "source"
     srcdir.mkdir()
     _write_three_knob_project(srcdir, with_template_function=True)
@@ -254,18 +270,18 @@ def test_three_knob_build_emits_template_function_authors_not_the_seed(tmp_path)
 
     emitted = (outdir / "index.typ").read_text(encoding="utf-8")
     assert TEMPLATE_FUNCTION_AUTHOR in emitted
-    assert SEED_NAME not in emitted
+    assert STAGE1_AUTHOR_NAME not in emitted
 
 
-def test_three_knob_control_build_without_template_function_emits_the_seed(
+def test_three_knob_control_build_without_template_function_emits_stage1(
     tmp_path,
 ):
     """The attribution control: byte-identical to the gate above except
     ``typst_template_function`` is absent. Without this control the first
-    test could pass because the MAPPING ate the seed rather than the
-    render stage replacing it; with it, the difference between the two
-    builds is attributable to the render stage's ``typst_template_params``
-    merge alone, and to nothing in the mapping."""
+    test could pass because something else ate stage 1's write rather than
+    the render stage replacing it; with it, the difference between the two
+    builds is attributable to render()'s exclusive branch alone, and to
+    nothing in the mapping loop."""
     srcdir = tmp_path / "source"
     srcdir.mkdir()
     _write_three_knob_project(srcdir, with_template_function=False)
@@ -278,7 +294,7 @@ def test_three_knob_control_build_without_template_function_emits_the_seed(
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
     emitted = (outdir / "index.typ").read_text(encoding="utf-8")
-    assert SEED_NAME in emitted
+    assert STAGE1_AUTHOR_NAME in emitted
     assert TEMPLATE_FUNCTION_AUTHOR not in emitted
 
 
