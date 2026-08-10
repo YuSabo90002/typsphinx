@@ -338,6 +338,10 @@ compile. The todo carries the checks to run before merging — including re-meas
 contributor's RED claim independently, and testing whether the new image bookkeeping repeats the
 per-build-not-per-master flaw seen in the include-dedup ledger. Not mapped to a v0.7.1 requirement.
 
+**Count as of 2026-08-10: 8 files in `.planning/todos/pending/`.**
+`review-pr-131-absolute-image-uri-fix` moved to `todos/completed/` — selected from
+`/gsd-capture --list` and taken up as active work (review in progress, not a fix landed).
+
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
