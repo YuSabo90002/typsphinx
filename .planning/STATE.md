@@ -338,9 +338,23 @@ compile. The todo carries the checks to run before merging — including re-meas
 contributor's RED claim independently, and testing whether the new image bookkeeping repeats the
 per-build-not-per-master flaw seen in the include-dedup ledger. Not mapped to a v0.7.1 requirement.
 
-**Count as of 2026-08-10: 8 files in `.planning/todos/pending/`.**
-`review-pr-131-absolute-image-uri-fix` moved to `todos/completed/` — selected from
-`/gsd-capture --list` and taken up as active work (review in progress, not a fix landed).
+**Count as of 2026-08-10: 10 files in `.planning/todos/pending/`.**
+`review-pr-131-absolute-image-uri-fix` moved to `todos/completed/` — the review was performed and
+PR #131 merged. Its RED claim was re-measured independently (3 tests fail with `builder.py` alone
+reverted to `main`, with the exact reported symptoms) and the full suite showed no regressions
+(main 45F/776P → PR 45F/779P; the 45 are the known NixOS `uv` exit-127 false positives).
+
+The review filed **two new todos** against the code the PR introduced, both in
+`TypstBuilder._track_image()` and best fixed together:
+`rehomed-converted-image-collides-with-srcdir-images-dir` (builder, **major**) — a converted image
+rehomed to `images/<basename>` collides with an ordinary source image genuinely at
+`<srcdir>/images/<basename>`, so one is silently never copied and the other document renders the
+wrong picture, with no warning; measured with a probe. Note this is also a *failure-mode*
+regression: pre-PR the same project aborted the build loudly. And
+`track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri` (builder, **minor**) —
+`relpath(uri, doctreedir)` returns `../`-prefixed paths for an absolute URI outside `doctreedir`,
+so `copy_image_files()` writes outside `outdir` (or collapses `src == dest`, reproducing #130);
+not reachable via stock Sphinx post-transforms, which all write under `<doctreedir>/images/`.
 
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
