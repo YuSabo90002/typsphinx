@@ -25,10 +25,12 @@ See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
 **Current focus:** Phase 45.1 — Custom-Template Parameter Contract Correction
-15/15 v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
+**18/18** v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
 TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
-insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02).
-Next action: `/gsd-discuss-phase 45.1`.
+insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
+**CONF-11 and CONF-12 added and CONF-10 promoted out of Future on 2026-08-10 at the Phase 45.1
+discussion**, was 15/15).
+Next action: `/gsd-plan-phase 45.1`.
 
 ## Current Position
 
@@ -62,7 +64,7 @@ callouts rather than one).
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | A toctree'd document's headings render one level deeper than its parent instead of flat — `visit_title` emits relative `depth:` so `set heading(offset: 1)` applies | TOC-01 |
 | 44.2 `typst_documents` Title and Author Consumption (INSERTED) | An explicit entry's `[2]` title / `[3]` author actually reach the rendered PDF, overriding `project`/`author` as LaTeX does — reverses Phase 44's D-02 | CONF-09 |
 | 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
-| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways | DOC-13 |
+| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` removed; auto-derived `lang` on every non-package template route | DOC-13, CONF-10, CONF-11, CONF-12 |
 | 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
 
 **Three structural constraints this roadmap encodes:**
