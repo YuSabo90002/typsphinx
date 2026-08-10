@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 45.1
-current_phase_name: custom-template-parameter-contract-correction
-status: executing
+current_phase: 46
+current_phase_name: v0.7.1 Release Prep (prep-only)
+status: planning
 stopped_at: Phase 45.1 context gathered
-last_updated: "2026-08-10T07:57:15.804Z"
+last_updated: "2026-08-10T08:51:12.088Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 32
-  completed_plans: 31
-  percent: 71
+  completed_plans: 32
+  percent: 86
 ---
 
 # Project State
@@ -34,11 +34,11 @@ Next action: `/gsd-plan-phase 45.1`.
 
 ## Current Position
 
-Phase: 45.1 (custom-template-parameter-contract-correction) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 45.1
+Phase: 46 — v0.7.1 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
 Progress: [##############------] 71% (5/7 phases)
-Last activity: 2026-08-10 — Phase 45.1 execution started
+Last activity: 2026-08-10 — Phase 45.1 complete, transitioned to Phase 46
 prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
 blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
 
