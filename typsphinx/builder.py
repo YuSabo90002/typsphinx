@@ -497,7 +497,7 @@ class TypstBuilder(Builder):
                 ``node["candidates"]`` by the caller).
         """
         if path.isabs(resolved_uri):
-            rel_uri = path.relpath(resolved_uri, self.doctreedir)
+            rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(path.sep, "/")
             node["uri"] = rel_uri
             if rel_uri not in self.images:
                 self.images[rel_uri] = resolved_uri
