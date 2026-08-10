@@ -5,8 +5,8 @@ milestone_name: bug-fix round
 current_phase: 45.1
 current_phase_name: Custom-Template Parameter Contract Correction
 status: ready_to_plan
-stopped_at: Phase 45 complete and UAT-verified, ready to plan Phase 45.1
-last_updated: "2026-08-10T00:15:00.000Z"
+stopped_at: Phase 45.1 context gathered
+last_updated: "2026-08-10T01:25:06.332Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
@@ -563,11 +563,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/45.1-custom-template-parameter-contract-correction/45.1-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-10T00:15:00.000Z
-Stopped at: Phase 45 complete and UAT-verified (13/13 passed, 0 issues), ready to plan Phase 45.1
+Last session: 2026-08-10T01:25:06.309Z
+Stopped at: Phase 45.1 context gathered
 Resume: `/gsd-discuss-phase 45.1` (Custom-Template Parameter Contract Correction).
 
 ## Operator Next Steps
