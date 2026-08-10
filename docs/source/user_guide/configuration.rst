@@ -296,11 +296,10 @@ renders "Table 1" and "Figure 1".
 Automatic derivation
 ~~~~~~~~~~~~~~~~~~~~~
 
-When your project uses the bundled default template, ``lang`` is derived
-automatically from Sphinx's own ``language`` setting -- no explicit
-configuration is needed. The derivation rule is simple: take the part of
-the value before the first underscore, hyphen, or at-sign, and lowercase
-it. For example:
+On every non-package template route, ``lang`` is derived automatically
+from Sphinx's own ``language`` setting -- no explicit configuration is
+needed. The derivation rule is simple: take the part of the value before
+the first underscore, hyphen, or at-sign, and lowercase it. For example:
 
 - ``ja`` becomes ``ja``
 - ``zh_CN`` becomes ``zh``
@@ -311,21 +310,26 @@ typsphinx emits a build warning naming the value and leaves the parameter
 unset, so the template's own default applies and the build still
 succeeds.
 
-Scope: default template only
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Scope: every non-package route
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Automatic derivation applies **only** when the bundled default template is
-what actually gets used. It does **not** apply when ``typst_template`` is
-configured, when ``typst_package`` is configured, or when a file named
-``base.typ`` sits next to your ``conf.py`` in the source directory (which
-silently shadows the bundled template). The reason: a template that does
-not declare a ``lang`` parameter would receive an argument it never asked
-for, and Typst aborts the compile on an undeclared argument.
+Automatic derivation applies on every route **except** ``typst_package``:
+the bundled default template, an explicit ``typst_template``, and a
+``<srcdir>/base.typ`` shadow of the bundled template all receive the
+auto-derived ``lang`` argument unconditionally. It is withheld only when
+``typst_package`` is configured, because typsphinx never introspects a
+third-party Typst Universe function's signature and would otherwise hand
+it an argument it never declared.
 
-If you use a custom template or package and want the same behavior, opt in
-explicitly: declare a ``lang`` parameter in your own ``project()`` (or
-equivalent entry function) and then set it through ``typst_elements``, as
-shown below.
+This means declaring a ``lang`` parameter in a custom template is not an
+opt-in -- on every non-package route it is **mandatory**: an existing
+custom template that omits it fails to compile with a Typst
+``unexpected argument: lang`` abort the next time it is built. See
+:doc:`templates`'s nine-parameter contract for the full parameter list.
+
+If you use ``typst_package`` and want the same behavior, opt in
+explicitly: declare a ``lang`` parameter in your own wrapping template
+and then set it through ``typst_elements``, as shown below.
 
 Precedence and known limitation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
