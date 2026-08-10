@@ -166,7 +166,7 @@ continues at **Phase 43**.
 - [x] **DOC-12**: The published documentation's changelog page carries every release through v0.7.1.
       (`docs/source/changelog.rst` is frozen at 0.4.0; 12 releases are missing.)
 
-- [x] **DOC-13**: A custom template that declares exactly the parameters the published documentation
+- [ ] **DOC-13**: A custom template that declares exactly the parameters the published documentation
       lists compiles — the published contract and the parameters typsphinx actually passes agree in
       both directions, and the standing consequence (adding a template parameter breaks a
       correctly-written custom template) is recorded where the contract is documented.
@@ -301,7 +301,7 @@ Filled during roadmap creation.
 | DOC-12 | Phase 45 | Complete |
 | QUA-02 | Phase 45 | Complete |
 | QUA-03 | Phase 45 | Complete |
-| DOC-13 | Phase 45.1 | Complete |
+| DOC-13 | Phase 45.1 | Gaps Found |
 | CONF-10 | Phase 45.1 | Pending |
 | CONF-11 | Phase 45.1 | Pending |
 | CONF-12 | Phase 45.1 | Pending |
