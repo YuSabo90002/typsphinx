@@ -21,11 +21,15 @@ decisions its cells name:
   with the project name despite never mentioning `"author"`. One cell
   below per row; the writer enumeration this rule is derived from lives
   in `tests/test_params_authors_writers.py`.
-- Precedence inside `render()` (D-04): an explicit
-  `typst_template_function["params"]` value wins over the entry-derived
-  params dict passed into `render()` -- pinning that D-04 needs no new
-  code, only the existing `all_params.update(params)` then
-  `all_params.update(self.typst_template_params)` merge order.
+- Precedence inside `render()` (D-04, re-derived onto D-B/Phase 45.1): an
+  explicit `typst_template_function["params"]` value wins over the
+  entry-derived params dict passed into `render()` -- not because it wins
+  a per-key collision (D-04's original, additive-union mechanism, removed
+  by Phase 45.1's D-B), but because declaring `params` discards the
+  entry-derived dict WHOLESALE via `render()`'s exclusive branch
+  (`self.typst_template_params_specified`). The externally observable
+  result Group 3's cells assert (`params["title"]`/`params["authors"]`
+  values win) is unchanged; only the mechanism is.
 
 Mirrors `tests/test_builder_output_stem.py`'s granularity: one short,
 individually-named function per matrix cell -- discrete functions, not a
@@ -468,17 +472,19 @@ def test_map_parameters_release_mapped_to_authors_destroys_typst_authors():
 
 
 # ---------------------------------------------------------------------------
-# Group 3: precedence inside TemplateEngine.render() (D-04).
+# Group 3: precedence inside TemplateEngine.render() (D-04, re-derived onto
+# D-B / Phase 45.1).
 # ---------------------------------------------------------------------------
 
 
 def test_render_explicit_template_function_title_wins_over_entry_derived():
-    """D-04: an explicit typst_template_function["params"]["title"] still
-    wins over the entry-derived title passed into render() -- the entry
-    elements are arguments to the standard call, and a user who named both
-    the function and its arguments is not overridden. Needs no code: this
-    is the existing all_params.update(params) then
-    all_params.update(self.typst_template_params) merge."""
+    """D-B (Phase 45.1) re-derivation of D-04: an explicit
+    typst_template_function["params"]["title"] is the ONLY title in the
+    emitted call -- not because it wins a per-key collision against the
+    entry-derived title (D-04's original additive-union mechanism, removed
+    by D-B), but because declaring "params" discards the entry-derived
+    params dict WHOLESALE via render()'s exclusive branch
+    (self.typst_template_params_specified)."""
     engine = TemplateEngine(
         typst_template_function={
             "name": "project",
@@ -491,10 +497,19 @@ def test_render_explicit_template_function_title_wins_over_entry_derived():
 
     assert '"Explicit Title"' in result
     assert "Entry Derived Title" not in result
+    # D-B: the entry-derived "authors" key -- not itself a declared params
+    # key -- is discarded too, not merely absent because it lost a
+    # collision. Scoped to the show-rule call region: the bundled default
+    # template is inlined by render() and its OWN function signature
+    # declares an "authors: ()," default parameter, which would otherwise
+    # make an unscoped substring check on `result` a false positive.
+    call_region = result[result.index("#show: project.with(") :]
+    assert "authors:" not in call_region
 
 
 def test_render_explicit_template_function_authors_wins_over_entry_derived():
-    """D-04: same as above, for an explicit ["authors"]."""
+    """D-B (Phase 45.1) re-derivation of D-04: same as above, for an
+    explicit ["authors"] -- the entry-derived "title" is discarded too."""
     engine = TemplateEngine(
         typst_template_function={
             "name": "project",
@@ -507,6 +522,11 @@ def test_render_explicit_template_function_authors_wins_over_entry_derived():
 
     assert '"Explicit Author"' in result
     assert "Entry Derived Author" not in result
+    # D-B: scoped to the call region for the same reason as the sibling
+    # test above -- the inlined bundled template's own function signature
+    # declares a "title: """," default parameter.
+    call_region = result[result.index("#show: project.with(") :]
+    assert "title:" not in call_region
 
 
 def test_render_template_function_authors_replaces_map_parameters_surviving_seed():
@@ -529,11 +549,13 @@ def test_render_template_function_authors_replaces_map_parameters_surviving_seed
     "replaced at render time" rather than "never seeded in the first
     place".
 
-    D-04 requires no new code for this: it is ``render()``'s existing
-    ``all_params.update(params)`` then
-    ``all_params.update(self.typst_template_params)`` merge, in that
-    order -- the seed reaches ``all_params`` first via ``params``, then is
-    overwritten by the explicit ``typst_template_function`` params."""
+    D-B (Phase 45.1) re-derivation of D-04: the seed reaches ``params``
+    (via ``map_parameters()``, unchanged) but never reaches ``all_params``
+    at all -- ``render()``'s exclusive branch discards the WHOLE
+    ``map_parameters()`` output, seed included, the moment
+    ``typst_template_function["params"]`` is declared, rather than the
+    seed reaching ``all_params`` first and then losing an ``update()``
+    collision (D-04's original, now-removed mechanism)."""
     engine = TemplateEngine(
         parameter_mapping={"project": "title"},
         typst_authors={"Jane Doe": {"organization": "MIT"}},

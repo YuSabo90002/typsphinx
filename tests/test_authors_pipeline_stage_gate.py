@@ -7,10 +7,26 @@ CONF-09's ``authors`` precedence rule (Phase 44.2, round-4 gap closure).
 ``map_parameters()``-only frame.** ``tests/test_params_authors_writers.py``
 enumerates writers inside ``TemplateEngine.map_parameters()`` alone; this
 module enumerates across the whole pipeline -- ``map_parameters()`` AND
-``TemplateEngine.render()`` AND ``TypstWriter.translate()`` -- because
-``render()``'s ``all_params.update(self.typst_template_params)`` merge is a
-real, later-stage writer of the same key that a ``map_parameters()``-only
-frame cannot see.
+``TypstWriter.translate()`` -- because a ``params``-carrier write inside
+``render()`` used to be a real, later-stage writer of the same key that a
+``map_parameters()``-only frame could not see.
+
+**Phase 45.1 (D-B) update.** ``render()``'s two-call additive union
+(``all_params.update(params)`` then
+``all_params.update(self.typst_template_params)``) is GONE, replaced by a
+single boolean-guarded exclusive branch
+(``if self.typst_template_params_specified: all_params = dict(...)  else:
+all_params = dict(...)``). This is a plain ``Name`` assignment, not a
+``Subscript`` assign or an ``.update()`` call on a ``PARAMS_CARRIERS`` name,
+so ``render()`` no longer appears in this module's AST-walked stage-site
+enumeration at all -- the whole-strategy swap this branch performs cannot be
+expressed as a per-key "writer" in this pipeline-stage frame, by
+construction. ``test_render_applies_template_function_params_after_map_parameters_output``
+below is re-derived from an order assertion (D-04's old mechanism) into a
+structural assertion about the new exclusive branch (D-B's mechanism); it
+is kept unlinked from ``EXPECTED_STAGE_SITES``/``REACHABLE_STAGE_KNOBS``/
+``UNREACHABLE_STAGE_PROOFS`` below since the site it used to pin no longer
+exists in that enumeration's terms.
 
 Rounds 1, 2 and 3 of this correction each derived their search set from the
 prose being corrected rather than from the code: round 1 enumerated config
@@ -62,7 +78,7 @@ PARAMS_CARRIERS = ("params", "all_params")
 
 # Hand-declared, sorted tuple of every `<relpath>::<function>::<assign|
 # update>::<slice>` id `_stage_sites()` is expected to find at GAP_BASE.
-# Frozen by READING typsphinx/template_engine.py:387-535/623-711 and
+# Frozen by READING typsphinx/template_engine.py:387-535 and
 # typsphinx/writer.py:176-335 -- never by calling `_stage_sites()` and
 # pasting its output, which would make `test_pipeline_stage_sites_that_
 # can_determine_authors_are_exactly_these` a tautology that passes for any
@@ -79,6 +95,15 @@ PARAMS_CARRIERS = ("params", "all_params")
 # back-fill remain separately addressable dict keys below. This is a
 # deliberate, documented widening of the bare id scheme, made necessary by
 # a real collision the naive scheme would hit -- not an arbitrary choice.
+#
+# Phase 45.1 (D-B): `render()` no longer contributes any site here.
+# `typsphinx/template_engine.py::render::update::params` and
+# `::render::update::self.typst_template_params` are GONE -- D-B replaced
+# both `.update()` calls with a single `all_params = dict(...)` /
+# `all_params = dict(...)` boolean-guarded plain-`Name` assignment, which
+# `_StageSiteVisitor` (by design) does not track: it only tracks `Subscript`
+# assigns and `.update()` calls on a `PARAMS_CARRIERS` name, and a
+# whole-dict swap is neither.
 EXPECTED_STAGE_SITES = tuple(
     sorted(
         [
@@ -88,8 +113,6 @@ EXPECTED_STAGE_SITES = tuple(
             "typsphinx/template_engine.py::map_parameters::assign::title",
             "typsphinx/template_engine.py::map_parameters::assign::date",
             "typsphinx/template_engine.py::map_parameters::assign::key",
-            "typsphinx/template_engine.py::render::update::params",
-            "typsphinx/template_engine.py::render::update::self.typst_template_params",
             "typsphinx/writer.py::translate::update::toctree_options",
         ]
     )
@@ -114,12 +137,17 @@ REACHABLE_STAGE_KNOBS = {
     # back-fill runs at all (`if not self.typst_package:`), so it is the
     # knob that controls this specific site, not typst_authors again.
     "typsphinx/template_engine.py::map_parameters::assign::authors#2": "typst_package",
-    # W7 -- THE WRITER ROUND 3'S FRAME EXCLUDED ENTIRELY. Reachable
-    # whenever typst_template_function is a dict carrying
-    # params["authors"]; always wins over whatever map_parameters()
-    # produced, per render()'s merge order (see
-    # test_render_applies_template_function_params_after_map_parameters_output).
-    "typsphinx/template_engine.py::render::update::self.typst_template_params": "typst_template_function",
+    # W7 -- THE WRITER ROUND 3'S FRAME EXCLUDED ENTIRELY -- REMOVED per
+    # D-B. Pre-45.1, this was reachable whenever typst_template_function
+    # was a dict carrying params["authors"], winning per render()'s merge
+    # ORDER. Post-D-B there is no per-key "write" left to enumerate here:
+    # when "params" is declared, render()'s exclusive branch discards
+    # EVERY key map_parameters() produced (not just "authors") and
+    # replaces the whole dict with the declared set. That whole-strategy
+    # swap is proven directly by
+    # test_render_applies_template_function_params_after_map_parameters_output
+    # below, deliberately OUTSIDE this partition -- it is not expressible
+    # as a per-key REACHABLE/UNREACHABLE row in this pipeline-stage frame.
 }
 
 # Hand-declared dict, stage-site id -> the name of the test IN THIS MODULE
@@ -145,14 +173,6 @@ UNREACHABLE_STAGE_PROOFS = {
     # "authors" either.
     "typsphinx/template_engine.py::map_parameters::assign::key": (
         "test_pipeline_stage_sites_that_can_determine_authors_are_exactly_these"
-    ),
-    # render()'s FIRST update (`all_params.update(params)`, the
-    # auto-derived fallback) is always applied before the second -- proven
-    # by the fixed call order below, which is exactly why this site can
-    # never be the one whose value survives when typst_template_function
-    # also sets "authors".
-    "typsphinx/template_engine.py::render::update::params": (
-        "test_render_applies_template_function_params_after_map_parameters_output"
     ),
     # writer.py's params.update(toctree_options) -- a REAL params writer
     # in the pipeline, excluded by proof of its returned key set.
@@ -480,26 +500,55 @@ def test_toctree_options_cannot_reach_authors_or_title():
 
 
 def test_render_applies_template_function_params_after_map_parameters_output():
-    """The ORDER of `render()`'s two `all_params.update(...)` calls is the
-    mechanism D-04 rests on ("needs no new code") and the mechanism the
-    published stage-2 sentence describes. If the two calls were ever
-    transposed, the published rule would invert silently -- no other
-    behavioural test in the suite names the order itself, only its
-    externally observable effect."""
+    """Phase 45.1 (D-B) re-derivation: this test used to pin the ORDER of
+    `render()`'s two `all_params.update(...)` calls -- the mechanism D-04
+    rested on ("needs no new code"). D-B replaced that additive-union merge
+    with a single boolean-guarded EXCLUSIVE branch, so there is no longer an
+    order to pin; there is one assignment, not two updates. This test now
+    pins the STRUCTURE of that exclusive branch instead: `render()` must
+    contain exactly one `if self.typst_template_params_specified:` whose
+    `then`-branch assigns `all_params` from `self.typst_template_params`
+    (the declared set) and whose `else`-branch assigns `all_params` from
+    `params` (the auto-derived set) -- the same "whole-strategy switch, not
+    a per-key override" shape D-05 already established for
+    `map_parameters()`'s `if not self.typst_package:` gate. If this branch
+    were ever removed or the two arms transposed, D-B's published rule
+    would invert or vanish silently -- no other behavioural test in the
+    suite names the branch structure itself, only its externally observable
+    effect."""
     func = _function_def(TEMPLATE_ENGINE_PATH, "render")
-    update_args = []
-    for node in ast.walk(func):
-        if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "update"
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "all_params"
-            and node.args
-        ):
-            update_args.append(ast.unparse(node.args[0]))
 
-    assert update_args == ["params", "self.typst_template_params"]
+    def _is_all_params_dict_assign(node: ast.stmt, source_name: str) -> bool:
+        return (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == "all_params"
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id == "dict"
+            and len(node.value.args) == 1
+            and ast.unparse(node.value.args[0]) == source_name
+        )
+
+    matching_ifs = [
+        node
+        for node in ast.walk(func)
+        if isinstance(node, ast.If)
+        and ast.unparse(node.test) == "self.typst_template_params_specified"
+    ]
+    assert len(matching_ifs) == 1, (
+        f"Expected exactly one `if self.typst_template_params_specified:` "
+        f"branch in render(), found {len(matching_ifs)}"
+    )
+    branch = matching_ifs[0]
+
+    assert len(branch.body) == 1 and _is_all_params_dict_assign(
+        branch.body[0], "self.typst_template_params"
+    ), "The `if` branch must assign `all_params = dict(self.typst_template_params)`"
+    assert len(branch.orelse) == 1 and _is_all_params_dict_assign(
+        branch.orelse[0], "params"
+    ), "The `else` branch must assign `all_params = dict(params)`"
 
 
 def test_authors_section_names_every_stage_knob_that_can_write_authors():

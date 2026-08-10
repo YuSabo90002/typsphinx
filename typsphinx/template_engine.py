@@ -241,18 +241,30 @@ class TemplateEngine:
         self.typst_package_imports = typst_package_imports or []
         self.typst_authors = typst_authors or {}
 
-        # Parse typst_template_function: support both string and dict formats
+        # Parse typst_template_function: support both string and dict formats.
+        #
+        # D-D: the predicate for "has the user declared a complete parameter
+        # set?" is the PRESENCE of the "params" key in the dict form, never
+        # the truthiness of the resulting dict -- an absent "params" and an
+        # explicitly empty "params": {} must be distinguishable here, because
+        # they mean different things downstream (D-B): absent means "use the
+        # auto-derived set", empty means "pass nothing at all". Computed
+        # exactly once, at construction; render() only ever reads this
+        # attribute, never re-derives it.
         if isinstance(typst_template_function, dict):
             self.typst_template_function_name = typst_template_function.get(
                 "name", "project"
             )
             self.typst_template_params = typst_template_function.get("params", {})
+            self.typst_template_params_specified = "params" in typst_template_function
         elif isinstance(typst_template_function, str):
             self.typst_template_function_name = typst_template_function
             self.typst_template_params = {}
+            self.typst_template_params_specified = False
         else:
             self.typst_template_function_name = None
             self.typst_template_params = {}
+            self.typst_template_params_specified = False
 
     def get_default_template_path(self) -> str:
         """
@@ -684,14 +696,34 @@ class TemplateEngine:
         template_func = self.typst_template_function_name or "project"
         output_parts.append(f"#show: {template_func}.with(")
 
-        # Merge template-specific params with standard params.
-        # D-08: auto-derived Sphinx metadata is the fallback; explicit
-        # typst_template_function["params"] configuration is authoritative
-        # and wins on a key collision. Applies on both the template path and
-        # the package path.
-        all_params = {}
-        all_params.update(params)  # Auto-derived params first (fallback)
-        all_params.update(self.typst_template_params)  # Explicit config wins
+        # D-B/D-D: exclusive parameter set, not an additive union. When the
+        # user has declared "params" (self.typst_template_params_specified,
+        # set once in __init__ -- true even for an explicitly empty dict),
+        # that declared set is the COMPLETE parameter set: the auto-derived
+        # title/authors/date, the typst_elements merge, and the toctree_*
+        # merge (all already folded into `params` by map_parameters()/
+        # writer.py before this call) are discarded wholesale, not merged
+        # key-by-key. Otherwise the auto-derived `params` is passed through
+        # unchanged -- the default-template and no-params-declared routes
+        # are unaffected by this branch (SC#5).
+        #
+        # Implemented HERE, inside render(), rather than upstream in
+        # writer.py before map_parameters() is called: map_parameters() must
+        # keep running on EVERY route so its ELEMENTS_ALLOWLIST validation
+        # still raises ExtensionError on an unrecognized typst_elements key
+        # (D-06/D-07) even when that key's value will end up discarded here.
+        # Short-circuiting upstream would silently skip that validation,
+        # turning a fail-loud unknown-key error into a silent drop -- the
+        # exact defect CONF-04's D-06/D-07 closed.
+        #
+        # This mirrors the existing `if not self.typst_package:` whole-
+        # strategy-switch shape in map_parameters() (D-05) rather than a
+        # per-key override: there is no residual union code path and no
+        # "merge mode" flag.
+        if self.typst_template_params_specified:
+            all_params = dict(self.typst_template_params)
+        else:
+            all_params = dict(params)
 
         # Format parameters
         for key, value in all_params.items():

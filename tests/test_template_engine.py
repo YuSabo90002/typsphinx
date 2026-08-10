@@ -868,8 +868,14 @@ class TestTypstTemplateFunctionDictFormat:
         assert 'index-terms: ("Keyword1", "Keyword2",)' in result
 
     def test_explicit_template_function_params_win_on_colliding_key(self):
-        """D-08: explicit typst_template_function['params'] values beat
-        auto-derived Sphinx metadata on a colliding key (BUG-E)"""
+        """D-B (Phase 45.1) re-derivation of D-08/BUG-E: an explicit
+        typst_template_function['params']['title'] is the ONLY title
+        emitted -- not because it wins a per-key collision against
+        auto-derived Sphinx metadata (D-08's original additive-union
+        mechanism, removed by D-B), but because declaring "params" at all
+        discards the auto-derived dict WHOLESALE. This fixture's auto-derived
+        "authors" (not itself a declared params key) is absent too, proving
+        the discard is wholesale rather than per-key."""
         engine = TemplateEngine(
             typst_template_function={
                 "name": "ieee",
@@ -884,10 +890,19 @@ class TestTypstTemplateFunctionDictFormat:
 
         assert 'title: "Explicit Title"' in result
         assert 'title: "Auto Derived Title"' not in result
+        # Scoped to the call region: render() inlines the bundled default
+        # template, whose OWN function signature declares an
+        # "authors: ()," default parameter that would otherwise make an
+        # unscoped substring check a false positive.
+        call_region = result[result.index("#show: ieee.with(") :]
+        assert "authors:" not in call_region
 
     def test_colliding_key_emission_is_deterministic_and_single(self):
-        """D-08 (edge/ordering, CONF-02): the colliding key is emitted exactly
-        once, and repeated renders of identical inputs are byte-identical"""
+        """D-B (Phase 45.1) re-derivation of D-08 (edge/ordering, CONF-02):
+        the colliding key is emitted exactly once, and repeated renders of
+        identical inputs are byte-identical -- now because it is the sole
+        entry of the exclusively-selected declared params dict, not because
+        it won an update() collision."""
         engine = TemplateEngine(
             typst_template_function={
                 "name": "ieee",
