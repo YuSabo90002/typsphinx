@@ -50,6 +50,19 @@ Use Typst Universe packages with configuration:
        }
    }
 
+A ``typst_package`` configuration **requires** ``typst_template_function`` in its
+dictionary form with a ``params`` key: the ``params`` dict becomes the complete set of
+named arguments passed to the package function (the same exclusivity rule
+`Custom Parameters`_ below documents). Naming only the function -- the plain string
+form, or a dict with no ``params`` key -- is **deprecated**: typsphinx cannot
+introspect a third-party Typst Universe function's signature, so handing it the
+default parameter set a custom template would receive is misuse, not a defect
+typsphinx works around in code. A reader who ignores this rule reaches a real Typst
+compile failure the first time the build supplies an argument the package function
+never declared -- for example ``unexpected argument: toctree_maxdepth`` once the
+master document has a toctree, or ``unexpected argument: papersize`` once
+``typst_elements`` sets one.
+
 Advantages:
 
 - No custom files needed
@@ -145,6 +158,12 @@ Create a file ``_templates/custom.typ``:
      title: "",
      authors: (),
      date: none,
+     toctree_maxdepth: 2,
+     toctree_numbered: false,
+     toctree_caption: "Contents",
+     papersize: "a4",
+     fontsize: 11pt,
+     lang: "en",
      body
    ) = {
      // Title page
@@ -184,12 +203,51 @@ Template Parameters
 Standard Parameters
 ~~~~~~~~~~~~~~~~~~~
 
-Your template function receives these parameters:
+When ``typst_template_function["params"]`` is **not** declared (see `Custom
+Parameters`_ below for what changes once it is), your template function receives up
+to nine named parameters plus a trailing positional ``body``, each under its own
+emission condition:
 
-- ``title``: Document title (from ``typst_documents``)
-- ``authors``: Author(s) tuple or list
-- ``date``: Document date (auto-generated or custom)
-- ``body``: The main document content
+- ``title`` -- the document title (from ``typst_documents``, or Sphinx's ``project``).
+  Arrives unconditionally on every non-package route -- the bundled default, an
+  explicit ``typst_template``, and a ``<srcdir>/base.typ`` shadow alike.
+- ``authors`` -- always a Typst **array**, never a bare string. A string source
+  (Sphinx's ``author``, or the entry's own author element) is split on commas: a
+  single name becomes a one-element array, and ``"Alice Smith, Bob Jones"`` becomes a
+  two-element array. Arrives unconditionally, on the same routes as ``title``.
+- ``date`` -- the document date (Sphinx's ``release``). Arrives unconditionally, on
+  the same routes as ``title``.
+- ``papersize`` -- only when ``papersize`` is set in ``typst_elements``.
+- ``fontsize`` -- only when ``fontsize`` is set in ``typst_elements``.
+- ``lang`` -- on every non-package route, auto-derived from Sphinx's own ``language``
+  setting; an explicit ``typst_elements["lang"]`` value always wins over the derived
+  one. See :doc:`configuration` for the full derivation rule (Document Language
+  section).
+- ``toctree_maxdepth``, ``toctree_numbered``, ``toctree_caption`` -- only when the
+  master document's own toctree is present. A master with no toctree receives none of
+  these three.
+
+A master document with **no toctree and no** ``typst_elements`` therefore receives
+only the unconditional subset: ``title``, ``authors``, ``date``, and ``lang``, plus
+the trailing positional ``body`` -- four named parameters, not nine. The bundled
+default template (``typsphinx/templates/base.typ``) declares all nine plus ``body``,
+with a default for every parameter that may be absent, which is why it works
+regardless of which conditional parameters a given build supplies. A custom template
+should do the same if it needs to work across every document a project builds, or
+declare only the subset it knows it will always receive.
+
+.. important::
+
+   Adding a template parameter is a **breaking change** for a correctly-written
+   custom template. Typst rejects a named argument a function never declared, so the
+   day typsphinx passes a tenth parameter, every existing custom template that
+   declares exactly today's nine stops compiling. This is what makes the next
+   parameter addition a deliberate decision, not a routine one.
+
+On the ``typst_package`` route with no ``params`` declared, the picture is different
+again: ``title``/``authors``/``date`` are **not** back-filled -- a third-party Typst
+Universe function's own signature decides what it accepts -- and ``lang`` is withheld
+for the same reason. See `Configuration-Based Templates`_ above.
 
 Custom Parameters
 ~~~~~~~~~~~~~~~~~
@@ -225,6 +283,14 @@ Access in template:
      // ...
    }
 
+Once ``params`` is declared -- even naming a single key -- it is the **complete**
+parameter set: none of ``title``/``authors``/``date``, ``papersize``/``fontsize``/
+``lang``, or the ``toctree_*`` keys arrive unless the ``params`` dict names them
+itself. This example's ``params`` dict names only ``subtitle``, ``version`` and
+``confidential``, so exactly those three named parameters reach the template above --
+its ``title`` parameter keeps its own default (``""``) because nothing ever passes it
+a value. See :doc:`configuration`'s precedence section for the full exclusivity rule.
+
 Wrapping External Packages
 ---------------------------
 
@@ -237,6 +303,13 @@ You can wrap Typst Universe packages in custom templates:
    #let project(
      title: "",
      authors: (),
+     date: none,
+     toctree_maxdepth: 2,
+     toctree_numbered: false,
+     toctree_caption: "Contents",
+     papersize: "a4",
+     fontsize: 11pt,
+     lang: "en",
      body
    ) = {
      // Transform parameters
@@ -267,6 +340,22 @@ Examples
 Minimal Template
 ~~~~~~~~~~~~~~~~
 
+This template declares only ``title`` -- one parameter short of the unconditional
+subset -- so it needs a ``params`` dict naming exactly that key; without one, the
+auto-derived ``authors``/``date`` (and ``lang``, and any toctree/``typst_elements``
+keys the build supplies) would arrive as undeclared arguments and abort the compile.
+
+.. code-block:: python
+
+   # conf.py
+   typst_template = "_templates/minimal.typ"
+   typst_template_function = {
+       "name": "project",
+       "params": {
+           "title": "Minimal Report",
+       }
+   }
+
 .. code-block:: typst
 
    #let project(title: "", body) = {
@@ -281,6 +370,24 @@ Minimal Template
 
 Academic Paper Template
 ~~~~~~~~~~~~~~~~~~~~~~~
+
+This template declares four parameters -- ``title``, ``authors``, ``abstract`` and
+``keywords`` -- none of which is the auto-derived default set on its own, so it needs
+a ``params`` dict naming all four.
+
+.. code-block:: python
+
+   # conf.py
+   typst_template = "_templates/academic.typ"
+   typst_template_function = {
+       "name": "project",
+       "params": {
+           "title": "A Study of Typst Templates",
+           "authors": ("Alice Smith", "Bob Jones"),
+           "abstract": "This paper examines custom template parameter contracts.",
+           "keywords": ("Typst", "Sphinx", "Templates"),
+       }
+   }
 
 .. code-block:: typst
 
