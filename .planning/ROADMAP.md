@@ -21,6 +21,11 @@ defect inserted 2026-08-04, the `typst_documents` title/author consumption gap i
 custom-template parameter-contract defect inserted 2026-08-04, then prep-only release. Phase
 numbering continues from v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
 
+**Amended 2026-08-10:** Phase 45.1 grew at its own discussion from one requirement to four — the
+contract correction (DOC-13) plus three behaviour changes (CONF-11 parameter exclusivity, CONF-10
+`typst_authors` removal, CONF-12 `lang` on custom-template routes). v1 coverage is **18/18**, and
+the milestone owes **five** user-visible CHANGELOG callouts rather than two. See Roadmap Evolution.
+
 ## Phases
 
 **Phase Numbering:**
@@ -339,7 +344,7 @@ config, documentation, and CI work. `ui.plan-gate` false-positives on "layout"/"
 - [x] **Phase 44.1: Relative Heading Depth for Toctree Nesting (INSERTED)** - A document reached through a toctree renders its headings one level deeper than its parent, so the PDF outline nests instead of being flat (completed 2026-08-05)
 - [x] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win (completed 2026-08-07)
 - [x] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close (completed 2026-08-10)
-- [ ] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument, and the contract published in the docs matches what typsphinx actually passes
+- [ ] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument; the contract published in the docs matches what typsphinx actually passes; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` is removed; and the auto-derived `lang` reaches every non-package template route
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out both user-visible changes: the output-filename rename and the rendered title/author change), proven green, and handed off with no irreversible action taken
 
 ## Phase Details
@@ -764,17 +769,37 @@ aborts the compile. Reproduced end to end 2026-08-04 (Sphinx 9.1.0, typst-py 0.1
 project's own docs build only survives because the in-repo example
 `docs/source/_typst/custom_template.typ:64-74` happens to declare all six.
 
-**The fix route is deliberately left open** — the source todo records three (correct the published
-contract; withhold the parameters a custom template never declared, as CONF-07 already does for
-`lang` via `uses_bundled_default_template()`; or give `project()` an argument sink). Each has a
-different compatibility consequence and the choice belongs to `/gsd-discuss-phase 45.1`. The
-criteria below are written to be satisfiable by any of them.
+**The fix route was left open at insertion and was chosen at the phase discussion on 2026-08-10.**
+The source todo recorded three candidates (correct the published contract; withhold the parameters
+a custom template never declared; or give `project()` an argument sink). The discussion measured the
+defect first and found it broader than the todo recorded, which changed the answer:
+
+- The four-parameter contract fails **even with no toctree and no `typst_elements`** — the
+  `templates.rst:272-280` "Minimal Template" example aborts with
+  `TypstError: unexpected argument: authors`, because `map_parameters()` back-fills
+  `title`/`authors`/`date` unconditionally on the non-package path. Four of the page's five example
+  templates are under-declared.
+- The same two merges reach the `typst_package` path and produce a real compile fatal —
+  `TypstError: unexpected argument: papersize`, measured live against `@preview/charged-ieee:0.1.4`.
+- The argument sink is viable in Typst (`#let project(title: "", ..args, body)` compiles, the sink
+  may precede the trailing positional `body`) but was **rejected**: it silently swallows typos in
+  `typst_template_function["params"]`, reversing the fail-loud stance `ELEMENTS_ALLOWLIST` takes
+  (CONF-04 D-06/D-07), and it weakens SC#4's constraint instead of recording it. Kept as the
+  deferred option of record.
+
+The chosen shape is: **publish the measured default parameter set** (DOC-13) and **make a declared
+`params` the complete set** (CONF-11), which also closes the package path without a special case;
+`typst_package` with a function name but no `params` is documented as misuse rather than handled in
+code. Two adjacent decisions travel with it: `typst_authors` is removed (CONF-10, promoted out of
+Future) and the auto-derived `lang` is extended to every non-package template route (CONF-12).
+Full decisions and measurements:
+`.planning/phases/45.1-custom-template-parameter-contract-correction/45.1-CONTEXT.md`.
 
 **Depends on**: Phase 45 — sequencing, not a code dependency. The two phases touch disjoint files
 (Phase 45: `README.md`, `docs/source/changelog.rst`, `derive_typst_lang()`, `.planning/PROJECT.md`),
 but both edit published documentation, and Phase 45's SC#1/#2 evidence is a clean build of pages
 this phase may also touch. Running after 45 keeps each phase's build evidence attributable.
-**Requirements**: DOC-13
+**Requirements**: DOC-13, CONF-10, CONF-11, CONF-12
 **Success Criteria** (what must be TRUE):
 
   1. A Sphinx project whose custom template declares **exactly** the parameters the published
@@ -803,8 +828,36 @@ this phase may also touch. Running after 45 keeps each phase's build evidence at
      the bundled `templates/base.typ` path is unaffected: a build using the default template emits
      the same parameter set it does today, or the difference is stated and justified.
 
-  6. The full pytest suite and `black` / `ruff` / `mypy` are green, and no behaviour outside the
-     template-parameter contract changed.
+  6. The full pytest suite and `black` / `ruff` / `mypy` are green. **Amended 2026-08-10 (D-H):**
+     the original clause "and no behaviour outside the template-parameter contract changed" is
+     **removed** — SC#7–SC#9 below deliberately change behaviour outside it, so the clause was
+     falsified by the phase's own scope. What replaces it: every behaviour change in this phase is
+     one of SC#7, SC#8 or SC#9, and any difference outside those three is stated and justified.
+
+  7. **(CONF-11)** A `typst_template_function` given in its dict form with a `params` key passes
+     **exactly** those parameters — the auto-derived `title`/`authors`/`date`, the `typst_elements`
+     allowlist merge and the `toctree_*` merge are all withheld — on the `typst_template`,
+     `typst_package` and bundled-default routes alike. `params: {}` passes nothing, proven by a
+     build whose template declares no named parameters at all (`#let project(body) = {…}`), which
+     is impossible today. Proven by real builds emitting the `#show: …with(…)` call, not by
+     reading the merge code.
+
+  8. **(CONF-10)** `typst_authors` no longer exists: the config registration is gone, no source
+     file references it, and `examples/charged-ieee/approach1/conf.py` — which currently presents
+     it as "Recommended" — has been migrated onto that file's already-present
+     `typst_template_function` dict and still builds. The published documentation no longer tells
+     a reader to prefer a route that, under SC#7, would silently drop the other parameters.
+
+  9. **(CONF-12)** A project with `language` set and an explicit `typst_template` receives the
+     auto-derived Typst `lang` — proven by a build, with the pre-change behaviour (`lang` absent
+     from the emitted call) recorded first. The `typst_package` guard still holds: a package-alone
+     build receives no `lang`. `docs/source/conf.py`'s workaround — importing `derive_typst_lang`
+     and rebuilding `typst_elements["lang"]` by hand — is removed and `tox -e docs-pdf` is still
+     clean. Removing the same workaround from `typsphinx-doc-translations` is a **handoff item**,
+     not in-phase work.
+
+  10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
+      changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
 **Plans**: TBD
 
 ### Phase 46: v0.7.1 Release Prep (prep-only)
@@ -1046,6 +1099,34 @@ precedent this entry follows).
   compatibility consequence, and the choice belongs to `/gsd-discuss-phase 45.1`. The six success
   criteria are written to be satisfiable by any of them. Nothing was removed or re-assigned away
   from another phase; Phase 46 keeps its number, requirements and criteria unchanged.
+
+- **2026-08-10** — **Phase 45.1 amended at its own discussion, before planning** (D-H, following the
+  Phase 44.1 D-01 precedent: `gsd-verifier` reads ROADMAP success-criterion text directly, so an
+  unsatisfiable or absent criterion produces a wrong verdict). The fix route left open at insertion
+  was chosen, and measurement widened the phase. Two findings drove it: the four-parameter contract
+  fails **with no toctree and no `typst_elements` at all** (`templates.rst`'s "Minimal Template"
+  example aborts with `unexpected argument: authors`, because `map_parameters()` back-fills
+  `title`/`authors`/`date` unconditionally), and the same two merges reach the `typst_package` path
+  as a real compile fatal (`unexpected argument: papersize`, measured live against
+  `@preview/charged-ieee:0.1.4`). The argument-sink route was measured viable and **rejected** — it
+  reverses the fail-loud stance of `ELEMENTS_ALLOWLIST` (CONF-04 D-06/D-07) and weakens SC#4 rather
+  than recording it — and is kept as the deferred option of record.
+
+  **Three requirements added to the phase**: **CONF-11** (a declared `typst_template_function`
+  `params` is the complete parameter set, on every route; `params: {}` passes nothing),
+  **CONF-12** (auto-derived `lang` on every non-package template route, amending CONF-07's D-06
+  while keeping its `typst_package` guard), and **CONF-10**, promoted out of Future Requirements by
+  owner decision — **reversing that requirement's own filed deferral rationale** ("v0.7.1 is a patch
+  release already carrying two user-visible changes; a third would contradict that boundary") and
+  the "future **major** release" removal notice Phase 44.2 published in `configuration.rst`. The
+  concern was stated before the decision and reaffirmed. v1 coverage 15/15 → **18/18**, still zero
+  orphans, zero duplicates.
+
+  **Phase 45.1's SC#6 was rewritten** because its clause "no behaviour outside the
+  template-parameter contract changed" is falsified by the phase's own new scope, and **SC#7–SC#10
+  were added**. The milestone now owes **five** user-visible CHANGELOG callouts rather than two, so
+  Phase 46's REL-06 share grows accordingly. Nothing was removed from, or re-assigned away from,
+  another phase; Phase 46 keeps its number, requirements and criteria unchanged.
 
 - **2026-08-04** — **Phase 44.2 inserted, reversing Phase 44's D-02** (`/gsd-phase --insert 44`;
   owner decision, taken explicitly and recorded here because it overturns a prior owner decision).

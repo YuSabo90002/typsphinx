@@ -103,6 +103,53 @@ continues at **Phase 43**.
       user whose entry title/author differ from `project`/`author`, the rendered title and author
       change inside a patch release.
 
+- [ ] **CONF-11**: When `typst_template_function` is given in its dict form with a `params` key,
+      those parameters are the **complete** set passed to the template function — the auto-derived
+      `title`/`authors`/`date`, the `typst_elements` allowlist merge, and the `toctree_*` merge are
+      all withheld. The predicate is the *presence* of the `params` key, so `params: {}` passes
+      nothing and a zero-named-parameter template (`#let project(body) = {…}`) becomes usable.
+      Applies uniformly on the `typst_template`, `typst_package` and bundled-default routes. This
+      replaces today's additive union, where auto-derived values are the fallback and `params` merely
+      wins on key collisions (`template_engine.py:687-694`, D-08, introduced by
+      `dd225a9 feat: add Typst Universe template support (Issue #13)` — **not** by Phase 44.2, which
+      only documented it). **Third accepted CHANGELOG callout:** a project that today sets `params`
+      to add one key and relies on the auto-derived rest will render with its template's own defaults
+      (empty title, no author) rather than erroring. (Owner decision 2026-08-10, Phase 45.1 D-B/D-D.
+      Rationale already published verbatim by Phase 44.2 at `configuration.rst:63-68` — "a user who
+      has named both the template function and its arguments has already made a more specific
+      decision than either" — while the mechanism it documented was per-key override.)
+
+- [ ] **CONF-12**: The Typst `lang` auto-derived from Sphinx's `language` reaches **every non-package
+      template route**, not only the bundled default — an explicit `typst_template` and a
+      `<srcdir>/base.typ` shadow both receive it. The `typst_package` guard in
+      `TemplateEngine.uses_bundled_default_template()` stays, for the same reason CONF-04/D-03 gives:
+      a Typst Universe function's signature cannot be introspected, so nothing may be passed to it
+      that the user did not explicitly declare. This amends CONF-07's D-06, whose reason for
+      withholding — an explicit template might not declare `lang` — is what DOC-13's published
+      nine-parameter contract removes. **Fourth accepted CHANGELOG callout:** an existing custom
+      template that omits `lang` starts failing with `unexpected argument: lang`. Evidence that the
+      asymmetry is a real cost: `docs/source/conf.py:98-113` works around it by importing
+      `derive_typst_lang` from `typsphinx.template_engine` and rebuilding `typst_elements["lang"]` by
+      hand, with a comment stating that setting `typst_template` "silently drops that
+      auto-derivation"; the `typsphinx-doc-translations` repository carries the same workaround.
+      (Owner decision 2026-08-10, Phase 45.1 D-I.)
+
+- [ ] **CONF-10**: The `typst_authors` config value is removed. **Promoted from Future to v1 on
+      2026-08-10 by owner decision (Phase 45.1 D-F), reversing this requirement's own deferral
+      rationale** — it was filed by Phase 44.2 on the grounds that v0.7.1 is a patch release already
+      carrying two user-visible changes and "a third would contradict that boundary". The owner
+      overrode that boundary: typsphinx bills itself as a LaTeX alternative and should follow
+      `latex_documents`, which has no facility for supplying an author as a dictionary; rich author
+      structure belongs on the `typst_template_function` `params` route that CONF-11 makes an
+      explicit, self-contained declaration. The concern was stated before the decision — 44.2
+      published a forward-removal notice promising "a future **major** release", and Phase 46 is
+      release prep — and reaffirmed. The full removal instructions, the measured byte-identity
+      basis, the surviving-seed rule and the `examples/charged-ieee/approach1/conf.py` migration
+      remain as filed under `Future Requirements` § "Filed during this milestone"; read that entry
+      for the detail. Measured blast radius 2026-08-10: 14 implementation sites, **71 test sites**
+      across 7 files, 1 fixture, 13 documentation sites, and one shipped sample that currently
+      presents `typst_authors` as "Recommended".
+
 ### Builder robustness
 
 - [x] **BLD-01**: A non-`str` docname reaching `TypstPDFBuilder.finish()` fails with an actionable
@@ -182,7 +229,13 @@ Acknowledged, deliberately not in this milestone.
 
 ### Filed during this milestone
 
-- **CONF-10**: remove the `typst_authors` config value. `typst_authors` is pure sugar over
+- **CONF-10** — **PROMOTED TO v1 2026-08-10 (Phase 45.1, D-F).** The entry is retained here in full
+  because it carries the removal instructions, the migration and the measured basis; the v1 row is
+  in `## v1 Requirements` § Configuration. The deferral rationale below ("a third would contradict
+  that boundary") was **deliberately overridden** by the owner — see the v1 row. Original text
+  follows.
+
+  remove the `typst_authors` config value. `typst_authors` is pure sugar over
   `typst_template_function["params"]["authors"]` — rendering the same author dictionary through
   both routes was measured (Phase 44.2 D-06) to produce a **byte-identical** `authors:` value, the
   only difference being the order of named arguments in the emitted call, which is semantically
@@ -249,14 +302,23 @@ Filled during roadmap creation.
 | QUA-02 | Phase 45 | Complete |
 | QUA-03 | Phase 45 | Complete |
 | DOC-13 | Phase 45.1 | Pending |
+| CONF-10 | Phase 45.1 | Pending |
+| CONF-11 | Phase 45.1 | Pending |
+| CONF-12 | Phase 45.1 | Pending |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
 
-- v1 requirements: 15 total
-- Mapped to phases: 15
+- v1 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0 ✓
+
+*(Was 15 until 2026-08-10. Phase 45.1's discussion added **CONF-11** and **CONF-12** and promoted
+**CONF-10** out of Future — all three by owner decision, all three assigned to Phase 45.1. The
+milestone now owes **five** user-visible CHANGELOG callouts rather than two: CONF-08's output
+filename rename, CONF-09's rendered title/author change, CONF-11's parameter exclusivity, CONF-10's
+config removal, and CONF-12's `lang` on custom-template routes.)*
 
 **Phase mapping notes:**
 
@@ -295,6 +357,20 @@ Filled during roadmap creation.
   route is deliberately unchosen at insertion, and Phase 45's criteria are all documentation-side.
   It runs **after** Phase 45 on sequencing rather than dependency: the two touch disjoint files, but
   both edit published documentation and each phase's build evidence should be attributable to it.
+
+  **Amended 2026-08-10 at the phase discussion (D-H).** The phase now carries **four** requirements,
+  not one: DOC-13 plus CONF-10, CONF-11 and CONF-12. The route left open at insertion was chosen,
+  and the answer was not documentation alone — measurement during the discussion showed the defect
+  is broader than the source todo recorded (the four-parameter contract fails even with no toctree
+  and no `typst_elements`, `TypstError: unexpected argument: authors`) and reaches the
+  `typst_package` path as a real compile fatal. The three behaviour changes are grouped here rather
+  than split across phases because they are one contract: CONF-11 defines what a declared `params`
+  means, CONF-12 completes the default set CONF-11 is the alternative to, and CONF-10 removes the
+  one config value whose entire purpose was to inject a parameter outside that contract. Splitting
+  them would spread a single documentation rewrite — `templates.rst`, `configuration.rst` and
+  `examples/advanced.rst` all describe all four — across phase boundaries. Full decisions,
+  measurements and the deferred `..args` option:
+  `.planning/phases/45.1-custom-template-parameter-contract-correction/45.1-CONTEXT.md`.
 
 - **Phase 46** is prep-only and takes **zero irreversible action**. REL-04's row stays open through
   the phase by design: its acceptance evidence is a real tag push whose `create-release` job runs to
