@@ -866,7 +866,7 @@ section's prose and blocks planning on a missing UI-SPEC.
 
   10. The CHANGELOG callout debt is recorded for Phase 46: this phase adds **three** user-visible
       changes (SC#7, SC#8, SC#9) to the milestone's existing two, for **five** total.
-**Plans**: 3/6 plans executed in 5 waves
+**Plans**: 4/6 plans executed in 5 waves
 
 Plans:
 **Wave 1**
@@ -880,7 +880,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 45.1-04-PLAN.md — CONF-10: `typst_authors` removed in one lockstep landing across production, tests, fixture and the shipped sample (D-F) (wave 3, has a one-way decision checkpoint)
+- [x] 45.1-04-PLAN.md — CONF-10: `typst_authors` removed in one lockstep landing across production, tests, fixture and the shipped sample (D-F) (wave 3, has a one-way decision checkpoint)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
