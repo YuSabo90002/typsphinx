@@ -189,6 +189,25 @@ continues at **Phase 43**.
       in the archived-footer tail are closed, so no downstream reader silently swallows the rest of
       the file.
 
+- [ ] **QUA-04** *(added 2026-08-10 at the Phase 46 discussion, `46-CONTEXT.md` D-18)*: The task
+      runner this project documents actually runs, and the test suite passes under the invocation
+      `CLAUDE.md` mandates. Today neither is true on the maintainer's machine and one file is
+      responsible for both: `pyproject.toml:33`'s `dev` extra pulls `tox-uv`, a meta package
+      (`tox-uv-bare` + the PyPI `uv` wheel), and that wheel installs a generic-linux ELF at
+      `.venv/bin/uv` which NixOS cannot exec. `tox-uv` reaches it via `uv.find_uv_bin()` — which
+      searches `.venv/bin` first and reads no environment variable — so **every** `tox` environment
+      exits 127; and `uv run` prepends `.venv/bin` to `PATH`, so the 13 test modules that shell out
+      to `["uv", "run", "sphinx-build", …]` resolve the broken copy instead of the working
+      nix-store `uv` further down the same `PATH`. Depending on `tox-uv-bare` instead drops the
+      bundled binary and lets `tox-uv` fall through to its documented `shutil.which("uv")` path.
+      Measured 2026-08-10 on both halves: 42 failed / 5 passed → 47 passed across four integration
+      modules with the binary removed, and `tox -e lint --notest` green under `tox-uv-bare` alone
+      with no `TOX_UV_PATH`. Confined to the `dev` extra, `tox.ini`'s `requires`, and `uv.lock` —
+      no runtime surface and no published contract, so it takes **no** CHANGELOG callout (D-19).
+      The rejected alternative, `TOX_UV_PATH` in `flake.nix`, was also measured working and
+      declined: it repairs `tox` only, leaves the pytest failures untouched, and is a NixOS-local
+      workaround rather than a fix.
+
 ### Release
 
 - [ ] **REL-04** *(carried from v0.7.0 — not met there)*: The GitHub Release body is the curated
@@ -305,20 +324,23 @@ Filled during roadmap creation.
 | CONF-10 | Phase 45.1 | Complete |
 | CONF-11 | Phase 45.1 | Complete |
 | CONF-12 | Phase 45.1 | Complete |
+| QUA-04 | Phase 45.2 | Pending |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
 
-- v1 requirements: 18 total
-- Mapped to phases: 18
+- v1 requirements: 19 total
+- Mapped to phases: 19
 - Unmapped: 0 ✓
 
 *(Was 15 until 2026-08-10. Phase 45.1's discussion added **CONF-11** and **CONF-12** and promoted
 **CONF-10** out of Future — all three by owner decision, all three assigned to Phase 45.1. The
 milestone now owes **five** user-visible CHANGELOG callouts rather than two: CONF-08's output
 filename rename, CONF-09's rendered title/author change, CONF-11's parameter exclusivity, CONF-10's
-config removal, and CONF-12's `lang` on custom-template routes.)*
+config removal, and CONF-12's `lang` on custom-template routes. **QUA-04** was then added the same
+day at the Phase 46 discussion, taking the count to 19 and carried by the inserted Phase 45.2 — it
+adds **no** sixth callout, being confined to the `dev` extra.)*
 
 **Phase mapping notes:**
 
@@ -371,6 +393,13 @@ config removal, and CONF-12's `lang` on custom-template routes.)*
   `examples/advanced.rst` all describe all four — across phase boundaries. Full decisions,
   measurements and the deferred `..args` option:
   `.planning/phases/45.1-custom-template-parameter-contract-correction/45.1-CONTEXT.md`.
+
+- **Phase 45.2** (inserted 2026-08-10) carries QUA-04 alone. It is the only phase this milestone
+  whose motivation is the *evidence* rather than the product — nothing a user of typsphinx can
+  observe changes. It runs immediately before Phase 46 for a forward reason: Phase 46's SC#3 draws
+  part of its green proof from local `tox` runs (`46-CONTEXT.md` D-11), and local `tox` does not run
+  at all until QUA-04 lands. Its own SC#7 asserts the runtime surface did not move, because Phase 46
+  then measures the tree 45.2 hands it.
 
 - **Phase 46** is prep-only and takes **zero irreversible action**. REL-04's row stays open through
   the phase by design: its acceptance evidence is a real tag push whose `create-release` job runs to

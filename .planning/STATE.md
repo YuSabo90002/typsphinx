@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 46
-current_phase_name: v0.7.1 Release Prep (prep-only)
+current_phase: 45.2
+current_phase_name: Local Toolchain Repair
 status: planning
 stopped_at: Phase 46 context gathered
-last_updated: "2026-08-10T11:32:19.793Z"
+last_updated: "2026-08-10T11:38:07.841Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 45 UAT complete — 13/13 passed, 0 issues
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 6
   total_plans: 32
   completed_plans: 32
-  percent: 86
+  percent: 75
 ---
 
 # Project State
@@ -30,32 +30,35 @@ TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 w
 insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
 **CONF-11 and CONF-12 added and CONF-10 promoted out of Future on 2026-08-10 at the Phase 45.1
 discussion**, was 15/15).
-Next action: `/gsd-plan-phase 45.1`.
+Next action: `/gsd-discuss-phase 45.2`
 
 ## Current Position
 
-Phase: 46 — v0.7.1 Release Prep (prep-only)
+Phase: 45.2 — Local Toolchain Repair (tox-uv → tox-uv-bare)
 Plan: Not started
-Status: Ready to plan
-Progress: [##############------] 71% (5/7 phases)
-Last activity: 2026-08-10 — Phase 45.1 complete, transitioned to Phase 46
-prior 4-plan set was deleted at `2c31b89`. SC#2 is locked as option-a, so **no plan carries a
-blocking decision checkpoint** — the superseded note about one in `44.1-03` no longer applies.
+Status: Ready to discuss
+Progress: [###############-----] 75% (6/8 phases)
+Last activity: 2026-08-10 — Phase 46 discussed; Phase 45.2 inserted from that discussion
+
+Phase 46's CONTEXT is already written and committed (`46-CONTEXT.md`, D-01..D-19). Phase 45.2 runs
+first because Phase 46's SC#3 evidence path (D-11) assumes local `tox` works, and it does not.
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
 **Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, **44.2** and **45.1**, all inserted
-2026-08-04), derived from
+2026-08-04, and **45.2**, inserted 2026-08-10), derived from
 `REQUIREMENTS.md` alone. Research was deliberately skipped (owner decision 2026-08-04 — a maintenance
 round over already-diagnosed defects, each carrying a file/line-level todo, with the one
 new-behaviour item CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder), so this
 milestone has **no `research/SUMMARY.md`**.
-Coverage: **15/15** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
+Coverage: **19/19** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
 added 2026-08-04 by owner decision at Phase 43 discussion; **TOC-01** added 2026-08-04 with the
 Phase 44.1 insertion; **DOC-13** added 2026-08-04 with the Phase 45.1 insertion; **CONF-09** added
-2026-08-04 with the Phase 44.2 insertion, which **reverses Phase 44's D-02** — the entry
-title/author wiring is back inside v0.7.1, and the milestone now owes **two** user-visible CHANGELOG
-callouts rather than one).
+2026-08-04 with the Phase 44.2 insertion, which **reverses Phase 44's D-02**; **CONF-11** and
+**CONF-12** added and **CONF-10** promoted out of Future on 2026-08-10 at the Phase 45.1 discussion;
+**QUA-04** added 2026-08-10 with the Phase 45.2 insertion). The milestone owes **five** user-visible
+CHANGELOG callouts — CONF-08, CONF-09, CONF-10, CONF-11, CONF-12. **QUA-04 adds no sixth**: it is
+confined to the `dev` extra (`46-CONTEXT.md` D-19).
 
 | Phase | Goal | Requirements |
 |-------|------|--------------|
@@ -65,6 +68,7 @@ callouts rather than one).
 | 44.2 `typst_documents` Title and Author Consumption (INSERTED) | An explicit entry's `[2]` title / `[3]` author actually reach the rendered PDF, overriding `project`/`author` as LaTeX does — reverses Phase 44's D-02 | CONF-09 |
 | 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` removed; auto-derived `lang` on every non-package template route | DOC-13, CONF-10, CONF-11, CONF-12 |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | `tox` runs locally for the first time (every env exits 127 today) and the 13 test modules that shell out to `uv run` stop failing under the outer `uv run` `CLAUDE.md` mandates — one dependency name drops the generic-linux `uv` wheel binary NixOS cannot exec | QUA-04 |
 | 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
 
 **Three structural constraints this roadmap encodes:**
@@ -536,6 +540,7 @@ evidence.
 - Phase 44.1 inserted after Phase 44: Relative Heading Depth for Toctree Nesting — TOC-01 added; toctree set heading(offset: 1) is inert because visit_title emits absolute level: (URGENT)
 - Phase 45.1 inserted after Phase 45: Custom-Template Parameter Contract Correction (DOC-13) — documented 4-param contract vs. the toctree_*/typst_elements parameters actually passed; fix route left open for discuss-phase (URGENT)
 - Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
+- Phase 45.2 inserted after Phase 45: Local Toolchain Repair — tox-uv to tox-uv-bare (QUA-04); tox is non-functional locally (every env exits 127) and 13 test modules fail under the mandated outer uv run; one dependency name; coverage 18/18 -> 19/19; no CHANGELOG callout (URGENT)
 
 ## Deferred Items
 
@@ -588,14 +593,17 @@ Archived milestone phases live under `.planning/milestones/v0.7.0-phases/`.
 
 Last session: 2026-08-10T11:32:19.767Z
 Stopped at: Phase 46 context gathered
-Resume: `/gsd-discuss-phase 45.1` (Custom-Template Parameter Contract Correction).
+Resume: `/gsd-discuss-phase 45.2` (Local Toolchain Repair — tox-uv to tox-uv-bare).
 
 ## Operator Next Steps
 
 - ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
   Shipped Milestone). Nothing owner-manual is outstanding.
 
-- Plan the first phase with `/gsd-plan-phase 43`.
-- **Phase 43 must push the milestone branch to `origin`** (milestone invariant #5) so CI — including
-  the Windows lanes — runs against every subsequent phase rather than first meeting the branch at
-  the release PR.
+- **Next: `/gsd-discuss-phase 45.2`**, then plan and execute it, then `/gsd-plan-phase 46`.
+  Phase 46's CONTEXT is already written; 45.2 was inserted from that discussion and must land first
+  because Phase 46's SC#3 draws part of its green proof from local `tox`, which does not currently
+  run at all.
+
+- Superseded (Phase 43 shipped 2026-08-04): the milestone branch reached `origin` in Phase 43 per
+  invariant #5, so CI — including the Windows lanes — has been watching every push since.

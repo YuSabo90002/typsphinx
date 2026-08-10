@@ -11,20 +11,28 @@
 - ✅ **v0.6.4 — Read the Docs migration** — Phases 29–33 (+30.1) (shipped 2026-07-28) → [archive](milestones/v0.6.4-ROADMAP.md)
 - ✅ **v0.6.5 — inline-math separator hotfix** — Phases 34–35 (shipped 2026-07-29) → [archive](milestones/v0.6.5-ROADMAP.md)
 - ✅ **v0.7.0 — API rendering design overhaul** — Phases 36–42 (+40.1) (shipped 2026-08-04) → [archive](milestones/v0.7.0-ROADMAP.md)
-- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1, 44.2, 45.1) (active, started 2026-08-04)
+- 🚧 **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1, 44.2, 45.1, 45.2) (active, started 2026-08-04)
 
-**Active milestone: v0.7.1 — bug-fix round.** Seven phases (43–46, plus the inserted 44.1, 44.2 and
-45.1): the two table defects Phase 42's own review filed, the `typst_documents` first-run onboarding
-break plus the builder-input hardening that sits in the same method, the toctree heading-offset
-defect inserted 2026-08-04, the `typst_documents` title/author consumption gap inserted 2026-08-04
-(reversing Phase 44's D-02 deferral), documentation currency and the carried hygiene todos, the
-custom-template parameter-contract defect inserted 2026-08-04, then prep-only release. Phase
-numbering continues from v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
+**Active milestone: v0.7.1 — bug-fix round.** Eight phases (43–46, plus the inserted 44.1, 44.2,
+45.1 and 45.2): the two table defects Phase 42's own review filed, the `typst_documents` first-run
+onboarding break plus the builder-input hardening that sits in the same method, the toctree
+heading-offset defect inserted 2026-08-04, the `typst_documents` title/author consumption gap
+inserted 2026-08-04 (reversing Phase 44's D-02 deferral), documentation currency and the carried
+hygiene todos, the custom-template parameter-contract defect inserted 2026-08-04, the local
+toolchain repair inserted 2026-08-10, then prep-only release. Phase numbering continues from
+v0.7.0's last phase (42), so v0.7.1 starts at **Phase 43**.
 
 **Amended 2026-08-10:** Phase 45.1 grew at its own discussion from one requirement to four — the
 contract correction (DOC-13) plus three behaviour changes (CONF-11 parameter exclusivity, CONF-10
 `typst_authors` removal, CONF-12 `lang` on custom-template routes). v1 coverage is **18/18**, and
 the milestone owes **five** user-visible CHANGELOG callouts rather than two. See Roadmap Evolution.
+
+**Amended again 2026-08-10:** Phase **45.2** inserted from Phase 46's discussion (`46-CONTEXT.md`
+D-18) with new requirement **QUA-04** — v1 coverage **19/19**. `tox` was measured completely
+non-functional locally (every environment exits 127) and the same one file makes 13 test modules
+fail under the outer `uv run` that `CLAUDE.md` mandates for worktree executors. It lands before
+Phase 46 because Phase 46's SC#3 evidence path assumes local `tox` works. QUA-04 gets **no**
+CHANGELOG callout — it is confined to the `dev` extra (D-19), so the milestone still owes five.
 
 ## Phases
 
@@ -348,6 +356,7 @@ is the first to need one (2026-08-10, blocked on the words `page`/`pages` in its
 - [x] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win (completed 2026-08-07)
 - [x] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close (completed 2026-08-10)
 - [x] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument; the contract published in the docs matches what typsphinx actually passes; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` is removed; and the auto-derived `lang` reaches every non-package template route (completed 2026-08-10)
+- [ ] **Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)** - `tox` runs on the maintainer's machine for the first time (every environment exits 127 today) and the 13 test modules that shell out to `uv run` stop failing under the very invocation `CLAUDE.md` mandates — one dependency name, `tox-uv` → `tox-uv-bare`, dropping the generic-linux `uv` wheel binary NixOS cannot exec
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out both user-visible changes: the output-filename rename and the rendered title/author change), proven green, and handed off with no irreversible action taken
 
 ## Phase Details
@@ -897,6 +906,81 @@ Plans:
 
 - [x] 45.1-07-PLAN.md — Gap closure: correct `configuration.rst`'s Document Language route-scope prose onto the D-I rule, add a permanent cross-page contract-claim guard so a stale claim on an unread page cannot recur silently, and flip the REQUIREMENTS.md traceability lag (wave 6)
 
+### Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)
+
+**Goal**: The task runner this project documents as its own actually runs. Measured 2026-08-10:
+`tox` is **completely non-functional on the maintainer's machine** — every environment dies with
+`lint: FAIL code 127`, so `tox -e docs-html`, `tox -e docs-pdf` and the `py312`/`py313`/`lint`/
+`type`/`cov` matrix that `CLAUDE.md` and `docs/source/contributing.rst:108-130` present as the
+standard workflow have never executed locally. The same defect makes 13 test modules fail whenever
+pytest runs under an outer `uv run` — the invocation `CLAUDE.md` **mandates** for every
+worktree-isolated executor.
+
+One file causes both. `pyproject.toml:33`'s `dev` extra depends on `tox-uv`, which is a meta package
+(`tox-uv 1.35.2 requires ['tox-uv-bare==1.35.2', 'uv<1,>=0.9.27']`); the PyPI `uv` wheel installs
+`bin/uv` and `bin/uvx`, and that binary is a **generic-linux ELF** (`interpreter
+/lib64/ld-linux-x86-64.so.2`) which NixOS has no loader for. `tox-uv` reaches it through
+`uv.find_uv_bin()`, whose entire implementation walks `sysconfig` script directories with
+`.venv/bin` first and consults **no environment variable**; and `uv run` prepends `.venv/bin` to
+`PATH`, so any test shelling out to `["uv", "run", "sphinx-build", …]` resolves the broken copy
+rather than the working nix-store `uv` sitting further down the same `PATH`.
+
+**The project's recorded diagnosis of this is wrong and is corrected by this phase.** Multiple test
+docstrings and `STATE.md` describe the failures as `uv` "not on PATH for subprocess children" /
+`uv: command not found`; the measured error is `Could not start dynamically linked executable: uv`
+(NixOS stub-ld). `uv` *is* on `PATH` — it is the wrong build of it. The 45 failures have been
+carried for several milestones as "known NixOS environmental false positives", which forced PR
+#131's review to compare against a `main` baseline instead of reading absolute counts.
+
+The repair is one dependency name: `tox-uv` → `tox-uv-bare`, which drops the bundled binary and lets
+`tox-uv` fall through to its documented `shutil.which("uv")` path. Both halves are measured (see
+`46-CONTEXT.md` `<specifics>` 1–6 and D-18). The rejected alternative — `TOX_UV_PATH` in
+`flake.nix` — was also measured working, and declined because it repairs `tox` only, leaves the
+pytest failures untouched, and is a NixOS-local workaround rather than a fix.
+**Depends on**: Phase 45.1 — ordering only. No code dependency; it runs immediately before Phase 46
+because Phase 46's SC#3 evidence path (`46-CONTEXT.md` D-11) assumes local `tox` works.
+**Requirements**: QUA-04
+**UI hint**: no
+**Success Criteria** (what must be TRUE):
+
+  1. `tox` runs locally. `tox -e lint`, `tox -e type` and **both** documentation environments
+     (`docs-html`, `docs-pdf`) complete on the maintainer's machine with no `TOX_UV_PATH` and no
+     other environment override — proven by transcribed output, with the pre-fix `exit 127` recorded
+     first. The `docs-pdf` run is the one this phase must not skip: it is the environment Phase 46's
+     SC#3 depends on and the only one not yet exercised end to end under `tox-uv-bare`.
+
+  2. `.venv/bin/uv` and `.venv/bin/uvx` are absent after a clean `uv sync --extra dev`, and no
+     installed distribution named `uv` remains — checked with `importlib.metadata`, not by looking
+     at the lockfile.
+
+  3. The pytest failures this defect caused are gone **under the invocation `CLAUDE.md` mandates**:
+     the 13 modules that hard-code `["uv", "run", "sphinx-build", …]` pass under an outer
+     `uv run pytest`. The measured pre-fix baseline for four of them is **42 failed / 5 passed**,
+     and the same four measured **47 passed** with the binary removed; the full 13-module census is
+     taken in-phase on both sides, since 45-as-a-count has never been verified against this cause.
+
+  4. CI stays green, and is shown to reach `uv` by a **different** route than the local build does:
+     every job runs `astral-sh/setup-uv@v7` before `uv run tox`, so `shutil.which("uv")` resolves
+     the runner-installed binary. This must be observed on a real CI run of this phase's commit,
+     not argued from the workflow file — the precise error v0.7.0 made with REL-04.
+
+  5. `tox.ini`'s `requires` moves to `tox-uv-bare~=1.35` and its existing comment is rewritten
+     rather than deleted: the comma-splitting hazard it documents (`>=1.35,<2` parses as two bogus
+     requirements) applies identically to the new name, so the `~=` form is still load-bearing and
+     must still say why.
+
+  6. The wrong diagnosis is corrected wherever it is recorded — a repo-wide grep for the
+     `command not found` / "not on PATH" framing at discovery time (milestone invariant #4), not
+     against a list of files this criterion happens to name. In scope: the affected test docstrings
+     and `STATE.md`'s "known NixOS `uv` exit-127 false positives" note.
+
+  7. No runtime surface moves. `[project] dependencies` is untouched, `typsphinx/` is untouched, the
+     `@preview` count stays at four, and the only `pyproject.toml` change is inside the `dev` extra
+     — asserted mechanically over this phase's own diff, because Phase 46's SC#3 measures the tree
+     this phase hands it.
+
+**Plans**: TBD
+
 ### Phase 46: v0.7.1 Release Prep (prep-only)
 
 **Goal**: The v0.7.1 tree is ready to publish and proven green, with **zero irreversible action
@@ -952,8 +1036,8 @@ Active milestone phases execute in numeric order (decimal insertions between the
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already
 proven by the preceding phases' gates.
 
-**v0.7.1 (active)** runs 43 → 44 → **44.1** → **44.2** → 45 → **45.1** → 46. The chain is genuinely
-sequential,
+**v0.7.1 (active)** runs 43 → 44 → **44.1** → **44.2** → 45 → **45.1** → **45.2** → 46. The chain is
+genuinely sequential,
 not merely numbered: Phase 44 hardens the same `TypstPDFBuilder.finish()` method its own derivation
 rewrites, Phase 45's README work documents behaviour that must already have landed in Phase 44, and
 Phase 46's CHANGELOG describes all of it. Phase 43 goes first because it carries milestone
@@ -967,7 +1051,12 @@ inside 44.1's SC#3 byte-invariance corpus, so it must not run first; and Phases 
 behaviour, so the behaviour must land before they describe it. Phase 45.1 was inserted 2026-08-04
 **after** 45 for the weaker of the two reasons — no code dependency, but both phases edit published
 documentation, and keeping them adjacent-but-ordered keeps each one's build evidence attributable
-to it.
+to it. Phase 45.2 was inserted 2026-08-10 **after** 45.1 and **before** 46 for a forward reason
+rather than a backward one: it has no dependency on any earlier phase, but Phase 46's SC#3 collects
+its evidence partly from local `tox` runs (`46-CONTEXT.md` D-11), and local `tox` does not run at
+all until 45.2 lands. It is also the only phase this milestone whose motivation is the *evidence*
+rather than the product — it changes nothing a user of typsphinx can observe, which is why D-19
+gives it no CHANGELOG callout.
 
 **v0.7.0 (shipped)** ran 36 → 37 → 38 → 39 → 40 → **40.1** → 41 → **42**. Phase 40 (citations) was
 structurally independent of the 37 → 38 → 39 dependency chain. Phase 40.1 was inserted 2026-08-02
@@ -1031,7 +1120,10 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 43. Table State Correctness — Nested Tables + Empty-Title Anchors | v0.7.1 | 6/5 | Complete    | 2026-08-04 |
 | 44. `typst_documents` Default Derivation + Builder Input Hardening | v0.7.1 | 5/5 | Complete    | 2026-08-04 |
 | 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | v0.7.1 | 4/4 | Complete    | 2026-08-05 |
+| 44.2 `typst_documents` Title and Author Consumption (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-07 |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
+| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 0/TBD | Not started | - |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
@@ -1181,6 +1273,26 @@ precedent this entry follows).
   before 45: `tests/roots/test-basic/conf.py` is one of the five affected entries and sits inside
   44.1's SC#3 byte-invariance corpus, and Phases 45/45.1 must document behaviour that has already
   landed. Nothing was removed or re-assigned away from another phase.
+
+- **2026-08-10** — **Phase 45.2 inserted** (`/gsd-phase --insert 45`) from the Phase 46 discussion
+  (`46-CONTEXT.md` D-18), not from a pre-existing todo — the defect was discovered *during* that
+  discussion while establishing where SC#3's green evidence would come from. New requirement
+  **QUA-04** is added to `REQUIREMENTS.md` and mapped to Phase 45.2; v0.7.1 coverage goes
+  18/18 → **19/19**, still zero orphans. What was measured: `tox` is completely non-functional on
+  the maintainer's machine — every environment exits 127 — so `tox -e docs-html` / `tox -e docs-pdf`
+  and the whole documented matrix have never run locally; and the same single file makes 13 test
+  modules fail whenever pytest runs under the outer `uv run` that `CLAUDE.md` **mandates** for
+  worktree-isolated executors. Cause: `pyproject.toml:33`'s `dev` extra pulls `tox-uv`, a meta
+  package whose `uv` half installs a generic-linux ELF at `.venv/bin/uv` that NixOS cannot exec;
+  `uv.find_uv_bin()` searches `.venv/bin` first and reads no environment variable, and `uv run`
+  prepends `.venv/bin` to `PATH`. Depending on `tox-uv-bare` removes the binary and lets `tox-uv`
+  fall through to `shutil.which("uv")`. Placed **after** 45.1 and **before** 46 for a forward
+  reason rather than a backward one: it depends on nothing, but Phase 46's SC#3 evidence path
+  (D-11) assumes local `tox` works. **This amendment also corrects a standing misdiagnosis**: the
+  failures have been recorded across several milestones as `uv` "not on PATH" / `uv: command not
+  found`; the measured error is `Could not start dynamically linked executable: uv`, and `uv` is on
+  `PATH` — it is the wrong build of it. QUA-04 takes **no** CHANGELOG callout (D-19), so the
+  milestone still owes five, not six. Nothing was removed or re-assigned away from another phase.
 
 ## Backlog
 
