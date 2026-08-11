@@ -405,9 +405,11 @@ class TestWr01RealCompile:
             f"ever attaches -- the WR-01 fix is not in effect:\n{combined}"
         )
 
-        pdf_output = degradation_gate_build.build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = degradation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the WR-01 dangling-link() compile fatal:\n"
             f"stderr: {result.stderr}"
         )

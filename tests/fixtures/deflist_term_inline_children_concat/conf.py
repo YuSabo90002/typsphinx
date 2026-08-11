@@ -37,6 +37,12 @@ extensions = [
 # index must be a master document so the writer emits the full template and
 # TypstPDFBuilder.finish() actually compiles it to PDF -- the only build path
 # where the "expected comma" fatal is observable.
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", "Deflist Term Inline-Children Concat Gate", "Test Author"),
+    ("index", "master.typ", "Deflist Term Inline-Children Concat Gate", "Test Author"),
 ]

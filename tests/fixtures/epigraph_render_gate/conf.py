@@ -18,6 +18,12 @@ release = "0.0.0"
 extensions = ["typsphinx"]
 
 # One master document compiled straight to PDF by the typstpdf builder.
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
 ]
