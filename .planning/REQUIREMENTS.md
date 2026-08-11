@@ -221,7 +221,7 @@ continues at **Phase 43**.
 
 ### Release
 
-- [ ] **REL-04** *(carried from v0.7.0 — not met there)*: The GitHub Release body is the curated
+- [x] **REL-04** *(carried from v0.7.0 — not met there)*: The GitHub Release body is the curated
       `## [X.Y.Z]` section of `CHANGELOG.md` rather than a `git log --pretty` commit dump, **proven
       by a real tag push whose `create-release` job runs to completion**. The extractor and the
       `release.yml` fix (the missing `astral-sh/setup-uv` / `Set up Python` steps) are already on
@@ -230,12 +230,33 @@ continues at **Phase 43**.
       `/gsd-complete-milestone`** — it must not be reported complete on the strength of the workflow
       file being correct, which is the precise error v0.7.0 made.
 
-- [ ] **REL-06**: v0.7.1 is released — `pyproject.toml` bumped as the sole version literal with
+      **CLOSED 2026-08-11 at `/gsd-complete-milestone`, on generated evidence, not on the workflow
+      file being correct.** The real `v0.7.1` tag push on merge commit `48bf135` fired
+      `release.yml` run **`31462027486`**, whose `Create GitHub Release` job completed
+      **success** — the first time this workflow file has run `create-release` end to end since
+      the v0.7.0 fix landed (v0.7.0's own run `30848860064` failed at `uv: command not found`).
+      The published Release body was then measured, not assumed: lines 1–77 are **byte-identical**
+      to `scripts/extract_changelog_section.py 0.7.1`'s stdout (`diff` clean), followed by an
+      Installation block and GitHub's auto-generated PR list; a `git log --pretty` commit-dump
+      shape (`grep -cE '^\* [0-9a-f]{7,} '`) matches **0** lines.
+
+- [x] **REL-06**: v0.7.1 is released — `pyproject.toml` bumped as the sole version literal with
       `uv.lock` and `README.md` in lockstep, a curated `## [0.7.1]` CHANGELOG entry (explicitly
       calling out **both** user-visible changes — CONF-08's output-filename rename and CONF-09's
       rendered title/author change), the post-bump tree proven green live, and the
       publish (merge → tag → `release.yml` → PyPI + GitHub Release, plus the standing second tag on
       `typsphinx-doc-translations`) executed at `/gsd-complete-milestone`.
+
+      **CLOSED 2026-08-11.** Prep half discharged by Phase 46 (`46-RELEASE-EVIDENCE.md` SC#1–SC#5).
+      Publish half executed at `/gsd-complete-milestone`: PR **#132** merged to `main` with all 15
+      CI checks green (merge commit `48bf135`); annotated tag `v0.7.1` pushed on that commit;
+      `release.yml` run `31462027486` completed **success** across `validate` → `build` →
+      `publish-pypi` (owner-approved `pypi` environment) → `create-release`; **typsphinx 0.7.1 is
+      live on PyPI** (`typsphinx-0.7.1-py3-none-any.whl` + `typsphinx-0.7.1.tar.gz`, confirmed
+      against the PyPI JSON API) and the GitHub Release carries `typsphinx.pdf` as a third asset.
+      The standing second tag was pushed on `typsphinx-doc-translations`: `update-pin.yml` run
+      `31462409929` advanced its `typsphinx` submodule pin `87f242a` → `48bf135`, and annotated tag
+      `v0.7.1` was created there on `cf7fa30`.
 
 ## Future Requirements
 
@@ -336,8 +357,8 @@ Filled during roadmap creation.
 | CONF-11 | Phase 45.1 | Complete |
 | CONF-12 | Phase 45.1 | Complete |
 | QUA-04 | Phase 45.2 | Complete |
-| REL-06 | Phase 46 | Pending (prep discharged; publish executes at `/gsd-complete-milestone`) |
-| REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
+| REL-06 | Phase 46 | Complete (prep in Phase 46; publish executed 2026-08-11 at `/gsd-complete-milestone` — PR #132, tag `v0.7.1`, release run `31462027486`, PyPI 0.7.1 live) |
+| REL-04 | Phase 46 | Complete (closed 2026-08-11 on generated evidence — `create-release` success in run `31462027486`; Release body byte-identical to the extractor's curated section) |
 
 **Coverage:**
 
