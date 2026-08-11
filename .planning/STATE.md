@@ -6,12 +6,12 @@ current_phase: 47
 current_phase_name: two-layer-output-content-wrapper-split-target-as-path-collis
 status: executing
 stopped_at: Completed 47-10-PLAN.md — Phase 47 fully closed
-last_updated: "2026-08-11T22:38:11.215Z"
-last_activity: 2026-08-11
-last_activity_desc: v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
+last_updated: "2026-08-11T22:40:26.977Z"
+last_activity: 2026-08-12
+last_activity_desc: Phase 47 execution started
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 12
   completed_plans: 10
   percent: 0
@@ -32,10 +32,10 @@ Next action: `/gsd-plan-phase 47`
 
 ## Current Position
 
-Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — GAPS FOUND
-Plan: 10 of 10 (all plans executed; phase NOT complete)
-Status: All 10 plans executed and merged; milestone branch on origin with a completed green CI run (windows-latest + macos-latest); full suite 1031 passed / 0 failed. BUT verification scored 8/10 must-haves — BLD-02 and BLD-03 FAILED, both reproduced against this checkout. `_collision_key()` omits `posixpath.normpath()` so `"./manual.typ"` vs `"manual.typ"` evade duplicate-target detection; `_validate_output_path_collisions()` skips `len(entry) < 2` entries while `_write_typst_files()` writes their wrappers anyway, letting a self-including wrapper destroy a docname's content. Next: `/gsd-plan-phase 47 --gaps`.
-Last activity: 2026-08-11 — Phase 47 verification returned gaps_found (see 47-VERIFICATION.md, 47-REVIEW.md)
+Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — EXECUTING
+Plan: 1 of 12
+Status: Executing Phase 47
+Last activity: 2026-08-12 — Phase 47 execution started
 
 Progress: [█░░░░░] 17% (1/6 phases)
 

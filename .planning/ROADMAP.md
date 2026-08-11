@@ -517,14 +517,15 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 12 plans — 10/10 executed, plus 2 gap-closure plans (wave 6) added 2026-08-12 after
+**Plans**: 12/12 plans executed — 10/10 executed, plus 2 gap-closure plans (wave 6) added 2026-08-12 after
 verification scored 8/10 and returned BLD-02 and BLD-03 BLOCKED:
 
 - [x] 47-01-PLAN.md .. 47-10-PLAN.md — the original ten, all executed and summarized
-- [ ] 47-11-PLAN.md — close the BLD-02/BLD-03 false negatives: path-shape normalization inside
+- [x] 47-11-PLAN.md — close the BLD-02/BLD-03 false negatives: path-shape normalization inside
       `_collision_key()`, one shared entry-usability predicate across all four wrapper-path sites,
       RED recorded on content before either fix
-- [ ] 47-12-PLAN.md — delete the WR-01 dead entry-element resolver and correct the six stale
+
+- [x] 47-12-PLAN.md — delete the WR-01 dead entry-element resolver and correct the six stale
       REQUIREMENTS.md checkboxes
 
 **Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
@@ -848,7 +849,7 @@ sequential, not merely numbered:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 10/10 | In Progress|  |
+| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 12/12 | In Progress|  |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 0/TBD | Not started | - |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
