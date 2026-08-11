@@ -333,3 +333,115 @@ green invariance guards
 (`test_collision_key_still_folds_case_and_ignores_unicode_normalization`,
 `test_collision_key_does_not_collapse_leading_parent_traversal`) already pass on the unfixed tree
 and are asserted to keep passing after Task 2's normalization change.
+
+---
+
+## Post-fix GREEN
+
+Captured after Task 2 (`_collision_key()` gains `posixpath.normpath()`) and Task 3
+(`_is_usable_typst_documents_entry()` single-sourced across all four wrapper-path-resolving
+sites) both landed. Every command below is re-run verbatim against the same three fixtures.
+
+### BLD-02 — path shape, post-fix
+
+**Command:** `uv run python -m sphinx -b typst tests/fixtures/bld02_path_shape_collision_gate /tmp/green-a`
+
+**Raw output (tail):**
+```
+sphinx.errors.ExtensionError: typst: 1 output path collision(s): 'manual.typ': typst_documents
+entry 0 (docname 'index', target './manual.typ') and typst_documents entry 1 (docname 'other',
+target 'manual.typ') both resolve to the same output path 'manual.typ'
+```
+Exit code: 2 (non-zero). `find /tmp/green-a -name '*.typ' | wc -l` → `0`. Both docnames (`index`,
+`other`) and both targets are named in the single `ExtensionError`.
+
+**`-b typstpdf` counterpart** (`/tmp/green-a-pdf`): same `ExtensionError`, same message, exit
+non-zero — one shared validator, both builders.
+
+### BLD-02 — reserved-infrastructure-file clobber, post-fix
+
+**Command:** `uv run python -m sphinx -b typst tests/fixtures/bld02_template_clobber_gate /tmp/green-b`
+
+**Raw output (tail):**
+```
+sphinx.errors.ExtensionError: typst: 1 output path collision(s): './_template.typ': the reserved
+_template.typ infrastructure file and typst_documents entry 0 (docname 'index', target
+'./_template.typ') both resolve to the same output path './_template.typ'
+```
+Exit code: 2 (non-zero). `_template` is named. No `.typ` file is written at all — the reserved
+file is never even created, let alone clobbered.
+
+**`-b typstpdf` counterpart** (`/tmp/green-b-pdf`): same `ExtensionError`, same message, exit
+non-zero.
+
+### BLD-03 — under-length entry, post-fix
+
+**Command:** `uv run python -m sphinx -b typst tests/fixtures/bld03_under_length_entry_gate /tmp/green-c`
+
+**Raw output:**
+```
+Sphinx v9.1.0 を実行中
+[... unchanged read-phase lines ...]
+WARNING: typst_documents entry 0 (('index',)) produces no wrapper file -- entry has no target element or a non-str docname
+preparing documents... Template written to /tmp/green-c/_template.typ
+done
+writing output... [index] done
+writing output... [other] done
+typst: wrote 1 wrapper file(s) -- compile these: manual.typ
+build succeeded, 1 warning.
+```
+Exit code: 0, 1 warning — now the intended `produces no wrapper file` diagnostic, not the generic
+`empty typst_documents target name` fallback message.
+
+**Numeric measurement — the content sentinel now survives intact:**
+```
+$ grep -c UNDERLENGTH-CONTENT-SENTINEL-CCC /tmp/green-c/index.typ
+1
+$ grep -c '#show: project.with(' /tmp/green-c/index.typ
+0
+```
+`index.typ` stays a plain content file (no template-application marker); the D-07 report now
+correctly names exactly one wrapper (`manual.typ`), never `index.typ`.
+
+**`-b typstpdf` counterpart:**
+```
+$ uv run python -m sphinx -b typstpdf tests/fixtures/bld03_under_length_entry_gate /tmp/green-c-pdf
+[...]
+sphinx.errors.ExtensionError: typstpdf: 1 master document(s) failed: index: typst_documents entry
+('index',) has no target element -- expected at least a (docname, target) pair
+```
+Exit code non-zero. `has no target element` and `master document(s) failed` are both present;
+`ls /tmp/green-c-pdf/*.pdf` → `manual.pdf` exists — D-02's attempt-all-then-raise contract holds:
+the well-formed `other` entry still gets its PDF even though the build overall fails.
+
+### Full-suite and lint/type trio
+
+```
+$ uv run pytest -q
+================= 1038 passed, 5 skipped in 219.94s (0:03:39) ==================
+$ uv run black --check .
+All done! (267 files unchanged)
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```
+`uv run ruff check .` could not run in this worktree -- a pre-existing, already-acknowledged
+NixOS environment limitation (`.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`;
+STATE.md Deferred Items: "Does not block SC#3, which takes lint authority from CI"). Unrelated to
+this plan's changes; CI's `lint` job is authoritative.
+
+### Legacy regression modules, unmodified except one stale assertion
+
+`tests/test_missing_and_malformed_master_gate.py` and `tests/test_non_str_docname_gate.py` pass
+unmodified (`git diff --stat` empty for both), proving the two exact legacy messages
+(`"(): malformed typst_documents entry"`, `"typst_documents entry has a non-str docname"`) and the
+exact failure count (`"2 master document(s) failed"`) all survive byte-for-byte.
+
+`tests/test_pdf_generation.py` required one deviation: its
+`test_builder_appends_failure_for_malformed_entry_but_not_short_entry` test asserted the EXACT
+pre-fix behavior BLD-03 reverses -- that a 1-element entry "is NOT malformed" and "must still
+compile" by falling its stem back to the docname. That is precisely the silent-fallback defect
+this plan closes (the write-phase equivalent is what destroys the docname's own content file), so
+the test was renamed to `test_builder_appends_failure_for_malformed_entry_and_short_entry` and its
+assertions updated to the corrected, locked BLD-03 contract: both entries now fail (`"2 master
+document(s) failed"`), the second with `"has no target element"`, and `valid.pdf` is no longer
+produced. See `47-11-SUMMARY.md`'s Deviations section for the full account.

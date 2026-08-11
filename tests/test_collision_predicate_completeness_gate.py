@@ -123,9 +123,7 @@ class TestBld02PathShapeCollisionGate:
 
     def test_bld02_path_shape_duplicate_rejected_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD02_PATH_SHAPE_FIXTURE_DIR, build_dir, "typstpdf"
-        )
+        result = _run_sphinx_build(BLD02_PATH_SHAPE_FIXTURE_DIR, build_dir, "typstpdf")
 
         assert result.returncode != 0, (
             f"Expected the build to FAIL on a path-shape-equivalent "
@@ -172,8 +170,7 @@ class TestBld02TemplateClobberGate:
             COLLISION_ERROR_SUBSTRING in combined_output
         ), f"Expected the collision-error substring:\n{combined_output}"
         assert "_template" in combined_output, (
-            f"Expected '_template' named in the collision error:\n"
-            f"{combined_output}"
+            f"Expected '_template' named in the collision error:\n" f"{combined_output}"
         )
         assert _no_typ_files_written(build_dir), (
             f"D-02: expected NO .typ file written when a collision is "
@@ -217,22 +214,9 @@ class TestBld03UnderLengthEntryGate:
     content file.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan, verbatim in "
-            "47-GAP-RED-EVIDENCE.md's BLD-03 section): -b typst exits 0; "
-            "index.typ becomes a self-referential wrapper "
-            "(#include(\"index.typ\")) and the docname's own translated "
-            "content -- sentinel and all -- is destroyed "
-            "(grep -c UNDERLENGTH-CONTENT-SENTINEL-CCC returns 0)."
-        ),
-    )
     def test_bld03_under_length_entry_preserves_content_typst(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_UNDER_LENGTH_FIXTURE_DIR, build_dir, "typst"
-        )
+        result = _run_sphinx_build(BLD03_UNDER_LENGTH_FIXTURE_DIR, build_dir, "typst")
 
         assert result.returncode == 0, (
             f"Expected -b typst to still succeed for a tolerated "
@@ -258,8 +242,7 @@ class TestBld03UnderLengthEntryGate:
         )
         manual_typ_content = manual_typ.read_text(encoding="utf-8")
         assert '#include("other.typ")' in manual_typ_content, (
-            f"Expected manual.typ to include other.typ:\n"
-            f"{manual_typ_content}"
+            f"Expected manual.typ to include other.typ:\n" f"{manual_typ_content}"
         )
         combined_output = result.stdout + result.stderr
         assert "produces no wrapper file" in combined_output, (
@@ -267,23 +250,9 @@ class TestBld03UnderLengthEntryGate:
             f"no wrapper file:\n{combined_output}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan): the D-07 wrapper report "
-            "claims 'wrote 2 wrapper file(s) -- compile these: "
-            "index.typ, manual.typ' -- naming index.typ, which is really "
-            "the docname's own (destroyed) content file, not a second "
-            "physical wrapper."
-        ),
-    )
-    def test_bld03_under_length_entry_not_named_in_wrapper_report_typst(
-        self, tmp_path
-    ):
+    def test_bld03_under_length_entry_not_named_in_wrapper_report_typst(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_UNDER_LENGTH_FIXTURE_DIR, build_dir, "typst"
-        )
+        result = _run_sphinx_build(BLD03_UNDER_LENGTH_FIXTURE_DIR, build_dir, "typst")
         combined_output = result.stdout + result.stderr
 
         assert "wrote 1 wrapper file(s)" in combined_output, (
@@ -291,24 +260,10 @@ class TestBld03UnderLengthEntryGate:
             f"(the under-length entry produces none):\n{combined_output}"
         )
         assert "compile these: manual.typ" in combined_output, (
-            f"Expected the D-07 report to name only manual.typ:\n"
-            f"{combined_output}"
+            f"Expected the D-07 report to name only manual.typ:\n" f"{combined_output}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan): -b typstpdf exits non-zero, "
-            "but with 'TypstError: cyclic import' against index.typ's "
-            "own self-include -- not the post-fix "
-            "'has no target element' message -- because finish() never "
-            "learns the entry has no target element; it only discovers "
-            "the resulting file is a cyclic self-import at compile time."
-        ),
-    )
-    def test_bld03_under_length_entry_reported_by_finish_typstpdf(
-        self, tmp_path
-    ):
+    def test_bld03_under_length_entry_reported_by_finish_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             BLD03_UNDER_LENGTH_FIXTURE_DIR, build_dir, "typstpdf"
@@ -325,8 +280,7 @@ class TestBld03UnderLengthEntryGate:
             f"{combined_output}"
         )
         assert "master document(s) failed" in combined_output, (
-            f"Expected the aggregate ExtensionError summary:\n"
-            f"{combined_output}"
+            f"Expected the aggregate ExtensionError summary:\n" f"{combined_output}"
         )
         assert (build_dir / "manual.pdf").exists(), (
             f"D-02's attempt-all-then-raise contract: the well-formed "
@@ -412,14 +366,6 @@ class TestIsUsableTypstDocumentsEntryUnit:
     xfail rather than a module-level collection error.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix: typsphinx.builder has no module-level "
-            "_is_usable_typst_documents_entry symbol at all -- "
-            "AttributeError/ImportError, measured this plan."
-        ),
-    )
     def test_is_usable_typst_documents_entry_predicate(self):
         from typsphinx.builder import _is_usable_typst_documents_entry
 
