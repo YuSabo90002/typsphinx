@@ -2,6 +2,7 @@
 created: 2026-08-10T10:41:00+09:00
 title: doctreedir 配下でない絶対 URI で `_track_image()` の rehome が outdir 外へ escape する
 area: builder
+resolves_phase: 50
 severity: minor
 files:
   - typsphinx/builder.py  # TypstBuilder._track_image()

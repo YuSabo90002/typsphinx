@@ -2,6 +2,7 @@
 created: 2026-08-10T10:40:00+09:00
 title: rehome された変換画像が `<srcdir>/images/` の実画像とキー衝突し、別の画像を無言で描画する
 area: builder
+resolves_phase: 50
 severity: major
 files:
   - typsphinx/builder.py  # TypstBuilder._track_image()

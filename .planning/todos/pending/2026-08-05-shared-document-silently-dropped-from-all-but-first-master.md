@@ -2,6 +2,7 @@
 created: 2026-08-05T00:00:00+09:00
 title: "A document toctree'd by two masters is silently dropped from all but the first-written one — the include-dedup ledger is per-build, not per-master"
 area: builder, translator
+resolves_phase: 49
 source: .planning/phases/44.1-relative-heading-depth-for-toctree-nesting/44.1-CONTEXT.md (deferred, defect A)
 severity: high
 files:

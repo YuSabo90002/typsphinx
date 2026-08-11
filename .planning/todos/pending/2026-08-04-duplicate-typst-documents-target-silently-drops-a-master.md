@@ -2,7 +2,7 @@
 created: 2026-08-04T17:30:00+09:00
 title: 同一ターゲット名を持つ typst_documents 2エントリが、片方のマスターを無言で消す
 area: builder, tests
-resolves_phase: TBD
+resolves_phase: 47
 source: .planning/phases/44-typst-documents-default-derivation-builder-input-hardening/44-REVIEW.md (CR-02)
 severity: high
 files:

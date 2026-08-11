@@ -2,6 +2,7 @@
 created: 2026-08-05T00:00:00+09:00
 title: "A master listed in typst_documents that is also another master's toctree child does not compile, and would re-expand its template mid-body if it did"
 area: builder, writer
+resolves_phase: 47
 source: .planning/phases/44.1-relative-heading-depth-for-toctree-nesting/44.1-CONTEXT.md (deferred, defects B-1 / B-2)
 severity: major
 files:
