@@ -43,6 +43,11 @@ extensions = ["sphinx.ext.intersphinx", "typsphinx"]
 # Absolute local path -> intersphinx reads it offline (no network).
 intersphinx_mapping = {"extc": ("https://example.com/", _inv_path)}
 
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", "Desc Signature Concat Render Gate", "typsphinx tests"),
+    ("index", "master.typ", "Desc Signature Concat Render Gate", "typsphinx tests"),
 ]

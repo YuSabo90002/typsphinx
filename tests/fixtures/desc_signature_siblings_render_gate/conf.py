@@ -13,6 +13,11 @@ release = "0.0.0"
 
 extensions = ["typsphinx"]
 
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", "Desc Signature Siblings Render Gate", "typsphinx tests"),
+    ("index", "master.typ", "Desc Signature Siblings Render Gate", "typsphinx tests"),
 ]
