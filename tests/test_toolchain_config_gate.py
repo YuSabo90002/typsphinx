@@ -1,7 +1,8 @@
 """
-Tests guarding tox.ini's runner and package configuration invariants (QUA-04, Phase 45.2).
+Tests guarding tox.ini's runner/package configuration and pyproject.toml dependency
+invariants (QUA-04, Phase 45.2).
 
-This module asserts two critical toolchain configuration constraints exposed during
+This module asserts four critical toolchain configuration constraints exposed during
 Phase 45.2's migration from tox-uv to tox-uv-bare and the conversion of [testenv]
 from non-editable to editable package installs:
 
@@ -31,17 +32,48 @@ because pytest had always resolved against the outer editable `.venv` via the sa
 PATH-shadowing mechanism as G3. The failure is uv-version-dependent and unreproducible
 locally — a static gate is the only defense.
 
-Implementation: stdlib configparser reads tox.ini; vacuous-pass guards assert the file
-exists, parses, and discovered sections are non-empty; all assertions carry consequence-
-focused messages (not just "expected X, got Y") matching test_readthedocs_config.py's
-assertive-guard idiom. No subprocess, no network, no external tools.
+**GAP G5 (45.2-02-D1, SC#2):** [project.optional-dependencies].dev MUST name
+`tox-uv-bare` (by normalized distribution name) and MUST NOT name `tox-uv`. The
+plain `tox-uv` meta package bundles a PyPI `uv` wheel whose generic-linux ELF cannot
+exec on NixOS; uv.find_uv_bin() searches .venv/bin first and reads no environment
+variable. A revert from `tox-uv-bare` to `tox-uv` reinstates the broken .venv/bin/uv,
+re-breaks every local `tox` invocation and the 45 pytest failures that Step 3 of
+45.2-TOOLCHAIN-EVIDENCE.md censused — confined to the 5 modules that invoke `uv` in a
+subprocess argument list. 45.2-CONTEXT.md D-09 deliberately leaves those 5 modules on
+`uv run` rather than normalizing them onto `sys.executable -m sphinx`, precisely because
+they are this defect class's only runtime regression detector; this gate is the static
+counterpart. Critically, CI would stay green — the defect
+is NixOS-specific, so only the maintainer's machine shows it. That asymmetry (no CI
+signal) is precisely why this static gate exists. See CLAUDE.md 'Conventions & gotchas':
+"The -bare package is deliberate (QUA-04, Phase 45.2) ... Do not 'simplify' it back to
+tox-uv."
+
+**GAP G6 (45.2-05-D2, SC#7):** [project].dependencies MUST NOT name any of: uv, tox,
+tox-uv, tox-uv-bare (by normalized distribution name). SC#7 establishes that Phase 45.2's
+fix stayed entirely inside the `dev` extra and that typsphinx/ plus [project].dependencies
+are unchanged. Leaking a toolchain package into [project].dependencies would ship dev
+tooling to every typsphinx end-user. The @preview-count clause of SC#7 is guarded by
+tests/test_preview_version_sync.py; this gate covers the dependency clause, which had
+no automated guard before this audit.
+
+Implementation: stdlib tomllib reads pyproject.toml; stdlib configparser reads tox.ini.
+Vacuous-pass guards assert files exist, parse, and discovered tables/sections are
+non-empty. All assertions carry consequence-focused messages (not "expected X, got Y")
+matching test_readthedocs_config.py's assertive-guard idiom. Distribution name
+comparison uses packaging.utils.canonicalize_name (already available transitively).
+No subprocess, no network, no external tools beyond stdlib+packaging.
 """
 
 import configparser
+import tomllib
 from pathlib import Path
+
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOX_INI_PATH = REPO_ROOT / "tox.ini"
+PYPROJECT_TOML_PATH = REPO_ROOT / "pyproject.toml"
 
 
 def _load_tox_ini() -> configparser.ConfigParser:
@@ -60,6 +92,27 @@ def _load_tox_ini() -> configparser.ConfigParser:
         read_files
     ), f"{TOX_INI_PATH} could not be parsed -- configparser may have encountered a syntax error"
     return parser
+
+
+def _load_pyproject() -> dict:
+    """Parse pyproject.toml via tomllib.
+
+    Guards against a vacuous pass: asserts the file exists (named explicitly
+    so a missing file fails loudly) and that the parser successfully reads it,
+    so a malformed file cannot silently satisfy later assertions.
+    """
+    assert (
+        PYPROJECT_TOML_PATH.exists()
+    ), f"{PYPROJECT_TOML_PATH} does not exist -- all project configuration lives here"
+    with open(PYPROJECT_TOML_PATH, "rb") as f:
+        try:
+            data = tomllib.load(f)
+        except Exception as e:
+            raise AssertionError(
+                f"{PYPROJECT_TOML_PATH} could not be parsed -- tomllib may have "
+                f"encountered a syntax error: {e}"
+            )
+    return data
 
 
 def test_uv_venv_lock_runner_requires_extras_forbids_deps():
@@ -210,4 +263,183 @@ def test_testenv_package_is_editable_not_wheel():
         "with `package = editable`. Its presence indicates a partial revert to wheel-mode "
         "packaging, which is the defect state this gate protects against. Remove the "
         "wheel_build_env key entirely."
+    )
+
+
+def test_dev_extra_pins_tox_uv_bare_not_tox_uv():
+    """[project.optional-dependencies].dev MUST name tox-uv-bare, MUST NOT name tox-uv.
+
+    This gate prevents a critical NixOS-specific regression: the plain `tox-uv` meta
+    package bundles a PyPI `uv` wheel (generic-linux ELF) that cannot execute on NixOS
+    due to the stub-ld defect QUA-04 fixed. Reverting from `tox-uv-bare` to `tox-uv`
+    would reinstate the broken .venv/bin/uv and re-break every local `tox` environment
+    plus the 45 pytest failures censused in 45.2-TOOLCHAIN-EVIDENCE.md Step 3, which are
+    confined to the 5 test modules that invoke `uv` in a subprocess argument list.
+    45.2-CONTEXT.md D-09 keeps those 5 modules on `uv run` on purpose — they are this
+    defect class's only runtime regression detector, and this gate is its static
+    counterpart, catching the revert at the config level before a suite run is needed.
+
+    **Why this defect stays undetected on CI:** CI runs on Linux runner images with
+    glibc, not NixOS; the `tox-uv` wheel's generic-linux ELF executes there. Only the
+    maintainer's machine (NixOS) exhibits the defect. That asymmetry (no CI signal) is
+    exactly why SC#2 mandates a static gate rather than relying on CI to catch it.
+
+    **The naming trap:** "tox-uv-bare" contains the substring "tox-uv". A naive
+    substring-match test would either false-positive on the correct value or false-
+    negative the bad one. This gate parses each requirement's distribution NAME
+    (via packaging.requirements.Requirement) and compares the normalized name, not
+    the raw requirement string.
+
+    **Scope:** All package names are compared on their normalized distribution names
+    (via packaging.utils.canonicalize_name), so future variations in spacing or case
+    are covered automatically.
+
+    See CLAUDE.md 'Conventions & gotchas' for the full explanation: "The -bare package
+    is also deliberate (QUA-04, Phase 45.2): the plain `tox-uv` meta package bundles
+    a PyPI `uv` wheel whose generic-linux ELF cannot exec on NixOS, and `uv.find_uv_bin()`
+    searches `.venv/bin` first and reads no environment variable. Do not 'simplify'
+    it back to `tox-uv`."
+    """
+    pyproject = _load_pyproject()
+
+    # Guard against vacuous pass: ensure [project.optional-dependencies] exists and
+    # is non-empty; the dev extra must be present and non-empty.
+    assert (
+        "project" in pyproject
+    ), "[project] table not found in pyproject.toml -- all package configuration lives here"
+
+    assert (
+        "optional-dependencies" in pyproject["project"]
+    ), "[project.optional-dependencies] table not found in pyproject.toml"
+
+    assert (
+        "dev" in pyproject["project"]["optional-dependencies"]
+    ), "[project.optional-dependencies].dev not found in pyproject.toml"
+
+    dev_extra = pyproject["project"]["optional-dependencies"]["dev"]
+    assert (
+        dev_extra
+    ), "[project.optional-dependencies].dev is empty -- the vacuous-pass guard fired"
+
+    # Parse all requirements in the dev extra and collect normalized distribution names.
+    dev_names = set()
+    for req_string in dev_extra:
+        try:
+            req = Requirement(req_string)
+            dev_names.add(canonicalize_name(req.name))
+        except Exception as e:
+            raise AssertionError(
+                f"Could not parse requirement '{req_string}' in dev extra: {e}"
+            )
+
+    # G5 requirement 1: dev extra MUST contain tox-uv-bare.
+    assert canonicalize_name("tox-uv-bare") in dev_names, (
+        "dev extra does not contain 'tox-uv-bare' (on normalized distribution name) -- "
+        "Phase 45.2's migration from tox-uv to tox-uv-bare switched the dev environment "
+        "to the -bare variant to work around the generic-linux-ELF NixOS defect (QUA-04). "
+        "The plain tox-uv meta package bundles a PyPI uv wheel that cannot execute on NixOS; "
+        "uv.find_uv_bin() searches .venv/bin FIRST and reads no environment variable. "
+        "Without tox-uv-bare, every local `tox` invocation fails, and 45 pytest tests "
+        "confined to the 5 modules that invoke uv in a subprocess argument list will fail. "
+        "Critically, CI would stay GREEN (the defect is NixOS-specific), so only the "
+        "maintainer's machine would show it. See CLAUDE.md 'Conventions & gotchas' and SC#2 "
+        "for full context. Evidence: 45.2-TOOLCHAIN-EVIDENCE.md Step 3 (pre-fix, 45 failed) "
+        "vs. Step 7 (post-fix, 0 failed), and CI run 31445582363 (post-fix green)."
+    )
+
+    # G5 requirement 2: dev extra MUST NOT contain tox-uv.
+    assert canonicalize_name("tox-uv") not in dev_names, (
+        "dev extra contains 'tox-uv' (on normalized distribution name) -- "
+        "this is precisely the defect QUA-04 fixed. The plain tox-uv meta package bundles "
+        "a PyPI uv wheel whose generic-linux ELF cannot execute on NixOS; uv.find_uv_bin() "
+        "searches .venv/bin FIRST and reads no environment variable. A revert from tox-uv-bare "
+        "to tox-uv reinstates the broken .venv/bin/uv and re-breaks every local `tox` command "
+        "plus the 45 pytest tests confined to the 5 uv-invoking modules. The defect is "
+        "NixOS-specific, so CI would stay GREEN — that asymmetry (no CI signal) is why SC#2 "
+        "established this static gate. Switch to tox-uv-bare; do NOT 'simplify' this back to "
+        "tox-uv (per CLAUDE.md). See 45.2-TOOLCHAIN-EVIDENCE.md Step 3 for the pre-fix "
+        "45-failure census and Step 5 for the post-fix census proving .venv/bin/uv absent."
+    )
+
+
+def test_runtime_dependencies_carry_no_toolchain_package():
+    """[project].dependencies MUST NOT name any of: uv, tox, tox-uv, tox-uv-bare.
+
+    This gate establishes that Phase 45.2's fix stayed entirely inside the `dev` extra
+    and that [project].dependencies remain unchanged. Leaking a toolchain package into
+    [project].dependencies would ship dev tooling to every typsphinx end-user,
+    inflating their install size, adding unnecessary transitive dependencies, and
+    blurring the boundary between dev and runtime concerns.
+
+    **SC#7 context:** Phase 45.2 established a fence between build/dev tooling (which
+    moved into the `dev` extra) and runtime dependencies (which must carry only what
+    users need). SC#7 reads: "No runtime surface moves. `[project] dependencies` is
+    untouched, `typsphinx/` is untouched, the `@preview` count stays at four, and the only
+    `pyproject.toml` change is inside the `dev` extra — asserted mechanically over this
+    phase's own diff, because Phase 46's SC#3 measures the tree this phase hands it."
+
+    Its `@preview`-count clause is already guarded by tests/test_preview_version_sync.py.
+    This gate covers the `[project] dependencies` clause, which had no automated guard
+    before this audit. The `typsphinx/`-untouched clause remains a diff-time assertion,
+    not a testable invariant, and is not claimed here.
+
+    **Scope:** All package names are compared on their normalized distribution names
+    (via packaging.utils.canonicalize_name), so future variations in spacing or case
+    are covered automatically. The forbidden list (uv, tox, tox-uv, tox-uv-bare) covers
+    all possible toolchain packages that should never land in runtime dependencies.
+
+    See Phase 45.2 Plan 05 45.2-TOOLCHAIN-EVIDENCE.md Step 9 for the mechanical assertion
+    of SC#7: tomllib comparison (not text-grep) proves [project].dependencies byte-identical
+    as parsed data between the pre-phase base and HEAD.
+    """
+    pyproject = _load_pyproject()
+
+    # Guard against vacuous pass: ensure [project] exists and [project].dependencies
+    # exists and is non-empty.
+    assert (
+        "project" in pyproject
+    ), "[project] table not found in pyproject.toml -- all package configuration lives here"
+
+    assert (
+        "dependencies" in pyproject["project"]
+    ), "[project].dependencies not found in pyproject.toml"
+
+    dependencies = pyproject["project"]["dependencies"]
+    assert (
+        dependencies
+    ), "[project].dependencies is empty -- the vacuous-pass guard fired"
+
+    # Guard vacuity further: at least sphinx should be present (the most critical runtime dep).
+    dep_names = set()
+    for req_string in dependencies:
+        try:
+            req = Requirement(req_string)
+            dep_names.add(canonicalize_name(req.name))
+        except Exception as e:
+            raise AssertionError(
+                f"Could not parse requirement '{req_string}' in dependencies: {e}"
+            )
+
+    assert canonicalize_name("sphinx") in dep_names, (
+        "Sphinx not found in [project].dependencies -- this would be a critical break "
+        "since Sphinx is the core runtime dependency of typsphinx. Either the file was "
+        "corrupted or the test environment has drifted."
+    )
+
+    # G6 requirement: [project].dependencies MUST NOT contain any toolchain packages.
+    forbidden_packages = {"uv", "tox", "tox-uv", "tox-uv-bare"}
+    forbidden_normalized = {canonicalize_name(name) for name in forbidden_packages}
+
+    bad_packages = forbidden_normalized & dep_names
+    assert not bad_packages, (
+        f"[project].dependencies contains one or more toolchain packages: {sorted(bad_packages)} -- "
+        "these belong in the `dev` extra only, not in runtime dependencies. Phase 45.2's fix moved "
+        "all toolchain packages (tox, tox-uv-bare, pytest, black, ruff, mypy) into [project.optional-dependencies].dev, "
+        "establishing a fence between dev tooling and runtime concerns. SC#7 mandates that [project].dependencies "
+        "remain unchanged (compare: Phase 45.2 pre-phase base vs. HEAD via `git diff`) and carry no toolchain "
+        "packages. Leaking a toolchain package here would ship dev tooling to every typsphinx end-user, "
+        "inflating their environment, adding unnecessary transitive dependencies, and breaking the "
+        "dev/runtime boundary. If a genuine runtime need for one of these packages emerges, that's a "
+        "distinct feature request (Phase 46+), not a carry-over from this phase's fix. See Phase 45.2 "
+        "Plan 05 45.2-TOOLCHAIN-EVIDENCE.md Step 9 for the full mechanical assertion of SC#7."
     )
