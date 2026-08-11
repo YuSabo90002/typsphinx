@@ -25,8 +25,30 @@ extensions = [
 # index must be a master document (not merely an included one) so the
 # writer emits the full template plus the gentle-clues @preview import --
 # included documents only get a minimal import set (see typsphinx/writer.py).
+#
+# Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture de-collision
+# rule"): the original target "index" resolved to the SAME physical path
+# as this docname's own content file (index.typ) under the two-layer
+# split -- a self-collision (D-01). A PURPOSE-SPECIFIC name is used here
+# instead of the canonical "master.typ" replacement, for a reason
+# unrelated to the collision itself: `scripts/render_admonition_
+# greyscale.py`'s `_build_typ()` (out of this plan's files_modified
+# scope, so it cannot be edited here) locates "the master document" by
+# globbing `*.typ` (excluding `_template.typ`) and picking the
+# ALPHABETICALLY FIRST result -- a convention that was harmless before
+# the split (exactly one non-template .typ file existed) but now must
+# sort before the docname-derived content file, "index.typ", or the
+# script would rasterise the untemplated CONTENT file instead of the
+# wrapper. "admonition-greyscale-probe.typ" sorts before "index.typ"
+# ("a" < "i") and keeps `tests/test_admonition_greyscale_pipeline.py`'s
+# own duplicate glob-and-sort logic pointed at the same wrapper.
 typst_documents = [
-    ("index", "index", "Admonition Greyscale Probe", "Test Author"),
+    (
+        "index",
+        "admonition-greyscale-probe.typ",
+        "Admonition Greyscale Probe",
+        "Test Author",
+    ),
 ]
 
 # The bundled default template unconditionally emits a title page + a table

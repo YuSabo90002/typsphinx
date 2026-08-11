@@ -18,6 +18,37 @@ release = "1.0.0"
 
 extensions = ["typsphinx"]
 
+# Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture de-collision
+# rule"): the original single-entry target "index" resolved to the SAME
+# physical path as this docname's own content file (index.typ) under
+# the two-layer split -- a self-collision (D-01).
+#
+# The list below is now D-04's repeated-docname case, deliberately
+# LOAD-BEARING: two typst_documents entries name the SAME docname
+# ("index") with different targets and different titles. D-04 permits
+# this -- the validator asks only whether two logical files want ONE
+# physical path, and a repeated docname does not, by itself, collide.
+#
+# KNOWN, 47-02-SUMMARY.md-ACKNOWLEDGED GAP (deferred to plan 47-09's
+# unified validator): `_wrapper_output_relpath()` still resolves a
+# wrapper's WRITE PATH via a docname-based FIRST-MATCH scan
+# (`_resolve_output_stem(entry[0])`), not a per-entry-target
+# computation -- so BOTH entries below physically write to the FIRST
+# entry's resolved target, "second-handbook.typ" (never "master.typ",
+# the second entry's own declared target), and the second entry's write
+# (processed LAST, in list order) overwrites the first. Entry ORDER is
+# therefore load-bearing here for a second reason beyond D-04 itself:
+# it is chosen (second-handbook first, master second) so the SURVIVING
+# wrapper keeps this fixture's ORIGINAL title/author values ("My
+# Handbook" / "Jane Doe") byte-for-byte -- only the on-disk PATH moves
+# (from the pre-Phase-47 "index.pdf" to "second-handbook.pdf"), never
+# the VALUE. D-08 makes the surviving wrapper read ITS OWN entry's
+# title/author positionally (via `_entry_element_value()`), never
+# through the docname first-match `_resolve_entry_element()` helper --
+# see `tests/test_document_metadata_render_gate.py`'s
+# `test_repeated_docname_wrapper_reads_its_own_entry_title_not_first_match`
+# for the end-to-end proof.
 typst_documents = [
-    ("index", "index", "My Handbook", "Jane Doe"),
+    ("index", "second-handbook.typ", "Second Handbook", "Jane Doe"),
+    ("index", "master.typ", "My Handbook", "Jane Doe"),
 ]
