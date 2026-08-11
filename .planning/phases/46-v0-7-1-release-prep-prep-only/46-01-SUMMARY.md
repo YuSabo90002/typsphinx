@@ -188,3 +188,10 @@ None - no external service configuration required.
 ---
 *Phase: 46-v0-7-1-release-prep-prep-only*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All claimed files verified present on disk (`46-01-SUMMARY.md`, `46-CI-EVIDENCE.md`,
+`CHANGELOG.md`, `tests/test_docs_contract_claims_gate.py`, `tests/test_toolchain_config_gate.py`)
+and all four commit hashes (`c72be91`, `07b9afd`, `99f4e36`, `8fe8894`) verified present in
+`git log --oneline --all`.
