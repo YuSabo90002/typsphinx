@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 47
-current_phase_name: Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection
+current_phase_name: two-layer-output-content-wrapper-split-target-as-path-collis
 status: executing
 stopped_at: Phase 47 context gathered
-last_updated: "2026-08-11T09:33:04.525Z"
+last_updated: "2026-08-11T09:35:34.001Z"
 last_activity: 2026-08-11
 last_activity_desc: v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
 progress:
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-11 at the v0.7.1 milestone close — full evolution review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.8.0 multi-master composition — Phase 47, Two-Layer Output (content/wrapper
+**Current focus:** Phase 47 — two-layer-output-content-wrapper-split-target-as-path-collis
 split, target-as-path, collision detection). A `typst_documents` configuration declaring more than one
 master must produce a complete PDF for each of them: no silently dropped content, no compile failure.
 Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
@@ -32,10 +32,10 @@ Next action: `/gsd-plan-phase 47`
 
 ## Current Position
 
-Phase: 47 of 52 (Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection)
-Plan: — (none planned yet)
-Status: Ready to execute
-Last activity: 2026-08-11 — v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
+Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — EXECUTING
+Plan: 1 of 10
+Status: Executing Phase 47
+Last activity: 2026-08-11 — Phase 47 execution started
 
 Progress: [░░░░░░░░░░] 0% (0/6 phases)
 
