@@ -7,28 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Absolute image URIs from Sphinx's image converter/downloader break copy and path resolution
-  (Issue #130)** — building with an image-conversion extension (`sphinxcontrib.rsvgconverter`,
-  `sphinxcontrib.inkscapeconverter`, `sphinx.ext.imgconverter`) or a remote/downloaded image
-  triggers Sphinx's `ImageConverter`/`ImageDownloader` post-transforms, which rewrite the image
-  node's `uri` to an absolute filesystem path under `<doctreedir>/images/...` instead of the usual
-  source-root-relative path. `copy_image_files()` previously joined that absolute URI onto both
-  `srcdir` and `outdir` with `os.path.join()`, which silently discards the first argument once the
-  second is absolute — collapsing source and destination onto the identical path ("are the same
-  file") and copying nothing. The translator's path-adjustment logic then prepended a bogus `../..`
-  depth prefix onto the still-absolute URI, producing a garbled path that made `typst.compile()`
-  abort with "file not found". `TypstBuilder.post_process_images()` now rehomes an absolute resolved
-  URI to a `doctreedir`-relative path and tracks the true absolute source location separately, so
-  `copy_image_files()` copies from the real location to the correct relative destination.
-
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
 - Index generation
 - Pre-commit hooks
 - Additional Typst Universe template integration
+
+## [0.7.1] - 2026-08-11
+
+This release closes the gap between what typsphinx's documentation promises and what a `conf.py`
+actually gets: `typst_documents` now resolves to a working default instead of silently producing
+nothing, an explicit entry's title and author finally reach the rendered document, and the
+published custom-template parameter contract matches what typsphinx actually passes. Several
+rendering-structure defects in tables, figures, and toctree-driven heading nesting are also
+repaired. Because several of these fixes tighten previously-loose configuration handling, **this
+patch release can break a working configuration** — read the `### Changed` and `### Removed`
+sections below, and see the "Migrating from 0.7.0 to 0.7.1" guide in the published documentation
+for the exact rewrite each breaking change needs.
+
+### Added
+
+- **`typst_documents` now has a default, so following the Quick Start produces a PDF (CONF-08,
+  DOC-11)** — with `typst_documents` unset, `sphinx-build -b typstpdf` previously exited 0 with a
+  warning and produced zero output; it now resolves a default derived from `root_doc`, `project`,
+  and `author`, in Sphinx's own LaTeX shape, and produces a real PDF. For a project that never set
+  `typst_documents`, the emitted Typst filename changes from `index.typ` to a project-derived name
+  (e.g. `quickstartdefaultgate.typ` for a project named "Quickstart Default Gate"), and the emitted
+  body changes from an untemplated fragment of `@preview` imports to a fully templated document. If
+  you `#include()` the old file from your own Typst source, update the include path.
+
+### Changed
+
+- **An explicit `typst_documents` entry's title and author now reach the rendered PDF (CONF-09)**
+  — the `[2]` title and `[3]` author elements of an explicit `typst_documents` entry now override
+  `config.project` / `config.author`, matching Sphinx's own LaTeX builder; previously they were
+  silently ignored. A project whose entry's title/author differ from `project`/`author` will see
+  its rendered title and author change.
+- **Breaking:** a declared `typst_template_function` `params` dict is now the complete parameter
+  set (CONF-11) — when `typst_template_function` is given in dict form with a `params` key, only
+  those parameters are passed to the template function; the auto-derived `title`/`authors`/`date`,
+  the `typst_elements` merge, and the `toctree_*` merge are all withheld. A project that declares a
+  partial `params` dict today and relied on the auto-derived rest will now render with the
+  template's own defaults (empty title, no author) instead of the previous merged result.
+- **Breaking:** the auto-derived `lang` now reaches every non-package template route, and the
+  published parameter contract matches what typsphinx actually passes (CONF-12, DOC-13) — an
+  explicit `typst_template` or a `<srcdir>/base.typ` shadow template now receives the
+  Sphinx-derived `lang` argument, same as the bundled default; a custom template that does not
+  declare a `lang` parameter now fails the compile with `unexpected argument: lang`. The documented
+  custom-template parameter contract was corrected to the nine parameters typsphinx actually
+  passes.
+
+### Fixed
+
+- **Nested tables and figures no longer corrupt the enclosing structure, and an empty-titled
+  caption still anchors its ids (TBL-04, TBL-05, FIG-01, TOC-01)** — a table nested inside a
+  `list-table` cell no longer replaces the outer table's own cells, column count, or caption; a
+  figure nested inside another figure no longer drops the outer figure's caption and instead
+  renders correctly inside its legend; a captioned table whose title renders to an empty or
+  whitespace-only string still emits its id anchors, so a `:ref:`/`:numref:` to it resolves instead
+  of dangling; and a document reached through a `toctree` now renders its headings one level deeper
+  than its parent, so the PDF outline nests instead of being flat, and nested toctrees compose.
+- **Absolute image URIs from Sphinx's image converter or downloader no longer abort the Typst
+  compile (Issue #130, PR #131, @christianwehe)** — building with an image-conversion extension
+  (`sphinxcontrib.rsvgconverter`, `sphinxcontrib.inkscapeconverter`, `sphinx.ext.imgconverter`) or
+  a downloaded remote image previously copied no image at all and made the Typst compile abort
+  with "file not found"; both cases now copy and resolve correctly.
+- **A malformed docname fails with an actionable typsphinx error, and the published changelog page
+  is current (BLD-01, DOC-12)** — a non-`str` docname reaching `TypstPDFBuilder.finish()` now
+  raises an actionable typsphinx-level error instead of a raw `TypeError` from deep inside the
+  builder; and the published documentation's changelog page, frozen at 0.4.0 for two years, now
+  carries every release through this one.
+
+### Removed
+
+- **Breaking:** the `typst_authors` config value is removed (CONF-10) — 0.7.0's documentation
+  announced its removal in a future major release; this patch release removes it now.
+  `typst_authors` is an unregistered `conf.py` variable that Sphinx ignores without any warning, so
+  a project that still sets it loses its author information silently. See the migration guide for
+  the `typst_template_function` `params["authors"]` rewrite; there is no deprecation shim.
+
+### Verified
+
+- No new **runtime** dependencies across the full milestone diff.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf` re-run remains fatal-free.
 
 ## [0.7.0] - 2026-08-04
 
@@ -952,6 +1016,7 @@ untouched.
 
 ---
 
+[0.7.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.1
 [0.7.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.0
 [0.6.5]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.5
 [0.6.4]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.4
@@ -970,4 +1035,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.7.1...HEAD
