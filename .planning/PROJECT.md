@@ -429,9 +429,57 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
-**v0.7.1 (bug-fix round) — Phase 45.1 complete 2026-08-10, 7/7 plans across 6 waves (6 planned +
+**v0.7.1 (bug-fix round) — Phase 45.2 complete 2026-08-11, 5/5 plans across 4 waves, verification
+`passed` 7/7 success criteria, code review 0 critical / 1 warning / 2 info. QUA-04 validated.**
+
+The task runner this project documents as its own now actually runs on the maintainer's machine.
+The repair was one dependency name: `pyproject.toml`'s `dev` extra moved from `tox-uv` (a meta
+package bundling a PyPI `uv` wheel) to `tox-uv-bare` (the same upstream author's split without it),
+which removes the generic-linux ELF at `.venv/bin/uv` that NixOS has no loader for. Measured
+before/after on the main tree under the outer `uv run pytest` that `CLAUDE.md` mandates for every
+worktree executor: **45 failed / 939 passed → 984 passed / 0 failed**, byte-identical to the
+`.venv/bin/python -m pytest` control, with the sorted node-id delta confirming every pre-fix failure
+converted and nothing regressed.
+
+A second defect was found in the same file and fixed with it. Every `tox.ini` environment sets
+`runner = uv-venv-lock-runner`, which provisions from `uv.lock` via `uv sync` and therefore installs
+only what `pyproject.toml` declares — so the `deps =` lists on `[testenv]`, `lint`, `type` and `cov`
+had never installed anything, and those environments have never contained `black`, `ruff`, `mypy` or
+`pytest`. They now declare `extras = dev`, the shape `docs-html`/`docs-pdf`/`docs` already used.
+**This is what closed the CI false-green:** CI invokes `uv run tox`, which prepends `.venv/bin` to
+`PATH`, so `black --check .` and `ruff check .` were passing out of the outer venv while
+`lint: freeze>` showed neither tool inside the tox environment — CI's green had never validated
+`tox.ini`. It does now.
+
+Three things are worth carrying forward. **The project's own recorded diagnosis was wrong and was
+corrected rather than worked around**: `uv` was framed as "not on PATH" when it was on PATH and
+simply the wrong build, and the 45 failures were carried for several milestones as unfixable NixOS
+environmental false positives — a framing that forced PR #131's review to compare against a `main`
+baseline instead of reading absolute counts. **The correction was scoped, not swept**: a mechanical
+repo-wide grep for `exit 127` / `command not found` would have deleted six records describing
+REL-04's genuinely different `create-release` failure, which are the recorded justification for an
+open requirement; those six were named in advance and left byte-unchanged, and the eight test
+docstrings had their *tense* corrected without their (factually correct) diagnosis being rewritten.
+**Making tox real surfaced a defect it had been hiding**: with the tools finally running inside the
+tox environments, CI exposed `[testenv]`'s `package = wheel` — present since the repo's first commit
+— silently dropping `typsphinx/templates/base.typ` from non-editable installs, failing 23 tests
+across every OS. Fixed in-phase (`package = editable`, the lock runner's own default).
+
+Two defects were deliberately routed out rather than fixed, both filed as todos: `.venv/bin/ruff` is
+the same class of generic-linux ELF and cannot execute here (every available repair is NixOS-local,
+the category this milestone declined), so `tox -e lint` reaches and passes `black --check .` and
+then stops — named, not reframed as an environmental false positive; and `tox -e py312` cannot run
+locally because no Python 3.12 exists in the devShell. CI remains red on exactly two
+`windows-latest` jobs from a path-separator bug in a guard Phase 45.1 added the day before, isolated
+and filed. Known follow-up, not a gap: `CLAUDE.md:11` and `CLAUDE.md:77` still name the removed
+`tox-uv` package, left unfixed because SC#7 fences this phase to the `dev` extra, `tox.ini` and
+`uv.lock` — a fence Phase 46's SC#3 depends on (code review WR-01).
+
+<!-- Prior: v0.7.1 — Phase 45.1 complete 2026-08-10, 7/7 plans across 6 waves (6 planned +
 1 gap-closure round), verification `passed` 10/10 must-haves, code review 0 critical / 2 warning /
-1 info. DOC-13, CONF-10, CONF-11 and CONF-12 validated.**
+1 info. DOC-13, CONF-10, CONF-11 and CONF-12 validated. -->
+
+**Phase 45.1 detail (superseded as "current" by Phase 45.2, retained for context):**
 
 A reader who writes a custom template from the published documentation now gets a build that works.
 The contract is exclusivity, not merge: a declared `typst_template_function["params"]` is the
