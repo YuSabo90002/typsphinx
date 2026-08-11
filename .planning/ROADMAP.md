@@ -517,7 +517,7 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 8/10 plans executed
+**Plans**: 9/10 plans executed
 
 **Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
 content/wrapper split makes the overwhelmingly common fixture shape `("index", "index", ...)` a
@@ -547,7 +547,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 47-09-PLAN.md — Unified pre-write collision validator (D-01/D-02/D-03/D-05), CR-01 inversion, phase green gate (wave 4, 2 blocking decision checkpoints)
+- [x] 47-09-PLAN.md — Unified pre-write collision validator (D-01/D-02/D-03/D-05), CR-01 inversion, phase green gate (wave 4, 2 blocking decision checkpoints)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -840,7 +840,7 @@ sequential, not merely numbered:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 8/10 | In Progress|  |
+| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 9/10 | In Progress|  |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 0/TBD | Not started | - |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
