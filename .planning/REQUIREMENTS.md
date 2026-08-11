@@ -16,16 +16,16 @@ position".
 
 ### Composition (COMP)
 
-- [ ] **COMP-01**: Every document is written as a docname-named content `.typ` with no template
+- [x] **COMP-01**: Every document is written as a docname-named content `.typ` with no template
       applied, so `writer.py`'s master/included binary no longer selects the output shape
 
-- [ ] **COMP-02**: Each `typst_documents` entry produces a wrapper `.typ` at its resolved target
+- [x] **COMP-02**: Each `typst_documents` entry produces a wrapper `.typ` at its resolved target
       path, carrying the template application and the include of its master's content file
 
-- [ ] **COMP-03**: A document listed in `typst_documents` that is also another master's toctree
+- [x] **COMP-03**: A document listed in `typst_documents` that is also another master's toctree
       child builds without Typst's `file not found` abort (B-1)
 
-- [ ] **COMP-04**: An included master no longer re-expands its template's title page and
+- [x] **COMP-04**: An included master no longer re-expands its template's title page and
       `#outline()` into the middle of the parent's body (B-2)
 
 - [ ] **COMP-05**: The builder computes each master's include graph by document-order depth-first
@@ -54,7 +54,7 @@ position".
 
 ### Output placement (OUT)
 
-- [ ] **OUT-01**: A `typst_documents` target is treated as a path relative to the output directory, so
+- [x] **OUT-01**: A `typst_documents` target is treated as a path relative to the output directory, so
       a bare name writes the wrapper at the output root and an explicit path writes it where the user
       asked — reversing v0.7.1 Phase 44's D-06/D-07 (a path in a target is rejected and truncated to
       its basename) and D-05 (a nested docname's output is forced into that docname's own directory)
@@ -62,7 +62,7 @@ position".
 - [x] **OUT-02**: A target that escapes the output directory — containing `..`, absolute, or
       drive-qualified — is still refused with a warning and a safe fallback
 
-- [ ] **OUT-03**: Content files keep their docname-derived names and locations regardless of where
+- [x] **OUT-03**: Content files keep their docname-derived names and locations regardless of where
       their master's wrapper is written
 
 ### Cross-references (XREF)
@@ -239,10 +239,10 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMP-01 | Phase 47 | Pending |
-| COMP-02 | Phase 47 | Pending |
-| COMP-03 | Phase 47 | Pending |
-| COMP-04 | Phase 47 | Pending |
+| COMP-01 | Phase 47 | Complete |
+| COMP-02 | Phase 47 | Complete |
+| COMP-03 | Phase 47 | Complete |
+| COMP-04 | Phase 47 | Complete |
 | COMP-05 | Phase 49 | Pending |
 | COMP-06 | Phase 49 | Pending |
 | COMP-07 | Phase 49 | Pending |
@@ -251,9 +251,9 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | COMP-10 | Phase 49 | Pending |
 | COMP-11 | Phase 49 | Pending |
 | COMP-12 | Phase 49 | Pending |
-| OUT-01 | Phase 47 | Pending |
+| OUT-01 | Phase 47 | Complete |
 | OUT-02 | Phase 47 | Complete |
-| OUT-03 | Phase 47 | Pending |
+| OUT-03 | Phase 47 | Complete |
 | XREF-03 | Phase 48 | Pending |
 | XREF-04 | Phase 48 | Pending |
 | BLD-02 | Phase 47 | Pending |

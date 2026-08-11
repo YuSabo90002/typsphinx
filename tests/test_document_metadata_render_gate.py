@@ -8,14 +8,15 @@ directly, so a master document's rendered title and author were always the
 project-wide config values, never the entry's own values, even when an
 entry explicitly specified different ones.
 
-Fix: ``_resolve_entry_element()`` (``typsphinx/writer.py``) resolves the
-FIRST ``typst_documents`` entry whose ``entry[0] == docname`` and returns
-``entry[index]`` when it is a ``str`` (including ``""`` -- D-01), falling
-back silently to ``config.project`` / ``config.author`` when the element is
-absent, too-short, or ``None`` (D-02), and warning-then-falling-back when
-the element is present but not a ``str`` (D-02). ``TypstWriter.translate()``
-now calls this helper twice when building ``sphinx_metadata``, so the
-entry's title/author reach every template route (D-03).
+Fix: ``_entry_element_value()`` (``typsphinx/writer.py``) reads
+``entry[index]`` positionally off the SPECIFIC ``typst_documents`` entry a
+wrapper is being generated for, returning it when it is a ``str``
+(including ``""`` -- D-01), falling back silently to ``config.project`` /
+``config.author`` when the element is absent, too-short, or ``None``
+(D-02), and warning-then-falling-back when the element is present but not
+a ``str`` (D-02). ``TypstWriter.render_wrapper()`` calls this helper twice
+when building ``sphinx_metadata``, so the entry's title/author reach every
+template route (D-03).
 
 Verification is end-to-end (SC#1's own requirement): a real
 ``sphinx-build -b typstpdf`` compile, read back through
@@ -194,9 +195,13 @@ class TestEntryTitleAuthorRenderGate:
         ``"Second Handbook"`` (the FIRST entry's own value) and
         ``master.typ`` reads ``"My Handbook"`` (the SECOND entry's own
         value) -- never the other entry's title, which is what a docname
-        first-match lookup (``_resolve_entry_element()``, the pre-D-08
-        helper) would have returned for BOTH wrappers regardless of which
-        entry was actually being rendered.
+        first-match lookup would have returned for BOTH wrappers
+        regardless of which entry was actually being rendered.
+        Historical note: that first-match lookup was
+        ``_resolve_entry_element()``, the pre-D-08 helper this test used
+        to contrast against; 47-12-PLAN.md deleted it from
+        ``typsphinx/writer.py`` because D-08 had already made it a
+        superseded implementation with zero production call sites.
         """
         result = _run_sphinx_build_typstpdf(
             entry_title_author_render_gate_dir, temp_build_dir

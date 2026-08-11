@@ -43,8 +43,10 @@ extensions = ["typsphinx"]
 # carrying its OWN entry's values -- "Second Handbook"/"Jane Doe" and "My
 # Handbook"/"Jane Doe" respectively. D-08 makes each wrapper read ITS OWN
 # entry's title/author positionally (via `_entry_element_value()`), never
-# through the docname first-match `_resolve_entry_element()` helper --
-# see `tests/test_document_metadata_render_gate.py`'s
+# through a docname first-match search (`typsphinx/writer.py`'s
+# `_resolve_entry_element()`, which named that scan; 47-12-PLAN.md deleted
+# it as dead code once D-08 made it a superseded implementation with zero
+# production call sites) -- see `tests/test_document_metadata_render_gate.py`'s
 # `test_repeated_docname_wrapper_reads_its_own_entry_title_not_first_match`
 # for the end-to-end proof.
 typst_documents = [

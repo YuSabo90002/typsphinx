@@ -1,16 +1,51 @@
 """
 Full element-semantics and precedence matrix for CONF-09 (Phase 44.2, SC#2).
 
-Turns plan 01's implemented `_resolve_entry_element()` rules into asserted
-contract instead of happy-path-only coverage. Three groups, each pinning the
-decisions its cells name:
+Originally pinned plan 01's `_resolve_entry_element()` -- a docname
+first-match lookup over `typst_documents` -- as asserted contract instead
+of happy-path-only coverage. `47-12-PLAN.md` DELETED that resolver: D-08
+(Phase 47) had already demoted it to a superseded implementation with
+ZERO production call sites (`render_wrapper()` uses
+`_entry_element_value()`, the positional per-entry resolver, exclusively),
+and `47-VERIFICATION.md`'s WR-01 finding recorded that a green test suite
+exercising a route no build ever reaches reports false confidence. Group 1
+below now exercises `_entry_element_value()` -- the resolver production
+actually calls -- with each retargeted assertion converted from the
+deleted resolver's three-argument `(typst_documents, docname, index,
+default)` docname-search form to the survivor's three-argument `(entry,
+index, default)` positional form.
+
+Four of the original thirteen Group-1 assertions had no surviving
+semantic to retarget onto and were DELETED, not weakened, because each
+pinned a behaviour that exists ONLY in a docname first-match scan --
+precisely what D-08 rejects for a wrapper's own title/author:
+
+- `test_resolve_entry_element_no_matching_docname_falls_back_silently` --
+  pinned "no `typst_documents` entry names this docname" as a distinct
+  fallback path; `_entry_element_value()` is handed a single entry
+  directly and has no docname-search step to fall back from.
+- `test_resolve_entry_element_empty_typst_documents_falls_back_silently`
+  -- pinned "the whole config list is empty" as a fallback path; same
+  reason -- there is no list to search.
+- `test_resolve_entry_element_malformed_entry_skipped_then_matched` --
+  pinned "a malformed entry preceding the real match is skipped by the
+  search loop"; there is no search loop over multiple entries to skip
+  within.
+- `test_resolve_entry_element_duplicate_docname_first_match_wins` --
+  pinned the EXACT behaviour D-08 forbids for a wrapper: two entries
+  sharing a docname resolving to the first one's title/author. Its
+  replacement contract already exists and stays --
+  `test_entry_element_value_two_entries_same_docname_resolve_independently`
+  below, which proves each entry keeps its own metadata regardless of
+  generation order.
+
+Three groups, each pinning the decisions its cells name:
 
 - Element semantics (D-01 / D-02): direct, no-Sphinx-app calls to
-  `_resolve_entry_element()` -- present str (including ``""``, D-01: an
+  `_entry_element_value()` -- present str (including ``""``, D-01: an
   empty string is a value, not a fallback signal), absent/short/`None`
-  (silent fallback, D-02), non-`str` (warn then fallback, D-02), no-match,
-  malformed-entry-skip, five-element arity, and duplicate-docname
-  first-match.
+  (silent fallback, D-02), non-`str` (warn then fallback, D-02), and
+  five-element arity (the fifth element is accepted and ignored).
 - Precedence inside `map_parameters()` (D-05; re-derived Phase 45.1, D-F,
   once the dedicated author-details config value this group originally
   exercised was removed, CONF-10): `params["authors"]` is written by the
@@ -40,92 +75,93 @@ single table-driven pytest marker block.
 """
 
 from typsphinx.template_engine import TemplateEngine
-from typsphinx.writer import _resolve_entry_element
+from typsphinx.writer import _entry_element_value
 
 # ---------------------------------------------------------------------------
-# Group 1: element semantics (D-01 / D-02), direct _resolve_entry_element()
+# Group 1: element semantics (D-01 / D-02), direct _entry_element_value()
 # calls -- pure function, no Sphinx app / no build.
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_entry_element_present_str_title():
+def test_entry_element_value_present_str_title():
     """A present, non-empty str element (index 2, title) is returned
     verbatim."""
-    entries = [("index", "out", "T", "A")]
+    entry = ("index", "out", "T", "A")
 
-    assert _resolve_entry_element(entries, "index", 2, "default") == "T"
+    assert _entry_element_value(entry, 2, "default") == "T"
 
 
-def test_resolve_entry_element_present_str_author():
+def test_entry_element_value_present_str_author():
     """A present, non-empty str element (index 3, author) is returned
     verbatim."""
-    entries = [("index", "out", "T", "A")]
+    entry = ("index", "out", "T", "A")
 
-    assert _resolve_entry_element(entries, "index", 3, "default") == "A"
+    assert _entry_element_value(entry, 3, "default") == "A"
 
 
-def test_resolve_entry_element_empty_string_title_is_a_value():
+def test_entry_element_value_empty_string_title_is_a_value():
     """D-01: an empty-string title element is a VALUE, not a fallback
     signal -- equality against "", not a truthiness check."""
-    entries = [("index", "out", "", "")]
+    entry = ("index", "out", "", "")
 
-    result = _resolve_entry_element(entries, "index", 2, "default")
+    result = _entry_element_value(entry, 2, "default")
 
     assert result == ""
 
 
-def test_resolve_entry_element_empty_string_author_is_a_value():
+def test_entry_element_value_empty_string_author_is_a_value():
     """D-01: an empty-string author element is a VALUE, not a fallback
     signal -- equality against "", not a truthiness check."""
-    entries = [("index", "out", "", "")]
+    entry = ("index", "out", "", "")
 
-    result = _resolve_entry_element(entries, "index", 3, "default")
+    result = _entry_element_value(entry, 3, "default")
 
     assert result == ""
 
 
-def test_resolve_entry_element_short_tuple_falls_back_silently(caplog):
+def test_entry_element_value_short_tuple_falls_back_silently(caplog):
     """D-02: a tuple too short to have index 3 falls back to default,
     silently -- no WARNING record."""
-    entries = [("index", "out", "T")]
+    entry = ("index", "out", "T")
 
     with caplog.at_level("WARNING"):
-        result = _resolve_entry_element(entries, "index", 3, "default")
+        result = _entry_element_value(entry, 3, "default")
 
     assert result == "default"
     assert [r for r in caplog.records if r.levelname == "WARNING"] == []
 
 
-def test_resolve_entry_element_two_element_tuple_falls_back_silently(caplog):
+def test_entry_element_value_two_element_tuple_falls_back_silently(caplog):
     """D-02: a two-element tuple (no title, no author) falls back to
     default, silently."""
-    entries = [("index", "out")]
+    entry = ("index", "out")
 
     with caplog.at_level("WARNING"):
-        result = _resolve_entry_element(entries, "index", 2, "default")
+        result = _entry_element_value(entry, 2, "default")
 
     assert result == "default"
     assert [r for r in caplog.records if r.levelname == "WARNING"] == []
 
 
-def test_resolve_entry_element_none_element_falls_back_silently(caplog):
+def test_entry_element_value_none_element_falls_back_silently(caplog):
     """D-02: an explicit `None` element falls back to default, silently."""
-    entries = [("index", "out", None, None)]
+    entry = ("index", "out", None, None)
 
     with caplog.at_level("WARNING"):
-        result = _resolve_entry_element(entries, "index", 2, "default")
+        result = _entry_element_value(entry, 2, "default")
 
     assert result == "default"
     assert [r for r in caplog.records if r.levelname == "WARNING"] == []
 
 
-def test_resolve_entry_element_non_str_warns_and_falls_back(caplog):
+def test_entry_element_value_non_str_warns_and_falls_back(caplog):
     """D-02: a non-str element falls back to default AND emits exactly one
-    WARNING whose message names the element index and the docname."""
-    entries = [("index", "out", 123, "A")]
+    WARNING whose message names the element index and the entry's
+    docname."""
+    entry = ("index", "out", 123, "A")
 
     with caplog.at_level("WARNING"):
-        result = _resolve_entry_element(entries, "index", 2, "default")
+        result = _entry_element_value(entry, 2, "default")
 
     assert result == "default"
     warnings = [r for r in caplog.records if r.levelname == "WARNING"]
@@ -135,75 +171,25 @@ def test_resolve_entry_element_non_str_warns_and_falls_back(caplog):
     assert "[2]" in message
 
 
-def test_resolve_entry_element_no_matching_docname_falls_back_silently(caplog):
-    """D-02: a typst_documents entry that names a DIFFERENT docname does
-    not match; the lookup falls back to default, silently."""
-    entries = [("other", "out", "T", "A")]
-
-    with caplog.at_level("WARNING"):
-        result = _resolve_entry_element(entries, "index", 2, "default")
-
-    assert result == "default"
-    assert [r for r in caplog.records if r.levelname == "WARNING"] == []
-
-
-def test_resolve_entry_element_empty_typst_documents_falls_back_silently(caplog):
-    """D-02: an empty typst_documents list falls back to default,
-    silently."""
-    with caplog.at_level("WARNING"):
-        result = _resolve_entry_element([], "index", 2, "default")
-
-    assert result == "default"
-    assert [r for r in caplog.records if r.levelname == "WARNING"] == []
-
-
-def test_resolve_entry_element_malformed_entry_skipped_then_matched():
-    """edge: a malformed, empty entry appearing BEFORE the real match is
-    skipped rather than indexed -- the walk continues to the entry that
-    actually matches."""
-    entries = [(), ("index", "out", "T", "A")]
-
-    assert _resolve_entry_element(entries, "index", 2, "default") == "T"
-
-
-def test_resolve_entry_element_five_element_tuple_resolves_unchanged():
+def test_entry_element_value_five_element_tuple_resolves_unchanged():
     """edge (arity): a 5-element entry resolves [2] and [3] identically to
     a 4-element entry -- the fifth element is accepted and ignored by this
     helper."""
-    entries = [("index", "out", "T", "A", "typst")]
+    entry = ("index", "out", "T", "A", "typst")
 
-    assert _resolve_entry_element(entries, "index", 2, "default") == "T"
-    assert _resolve_entry_element(entries, "index", 3, "default") == "A"
-
-
-def test_resolve_entry_element_duplicate_docname_first_match_wins():
-    """Edge (first-match): when two typst_documents entries name the same
-    docname, the FIRST is used, silently -- the same convention
-    `_resolve_output_stem` already follows. This pins the EXISTING
-    first-match convention only; it is NOT coverage of the adjacent,
-    out-of-scope duplicate-TARGET-name defect (a different bug about two
-    entries sharing a *target*, not a *docname*). Note: `render_wrapper()`
-    (Phase 47) deliberately does NOT use this first-match convention for a
-    wrapper's own title/author -- see `_entry_element_value()`, which reads
-    a specific entry positionally instead (D-08)."""
-    entries = [
-        ("index", "a", "First", "A1"),
-        ("index", "b", "Second", "A2"),
-    ]
-
-    assert _resolve_entry_element(entries, "index", 2, "default") == "First"
+    assert _entry_element_value(entry, 2, "default") == "T"
+    assert _entry_element_value(entry, 3, "default") == "A"
 
 
 def test_entry_element_value_two_entries_same_docname_resolve_independently():
     """Phase 47 (D-08): `render_wrapper()`'s positional read
-    (`_entry_element_value()`) is the counterpart to the first-match test
-    above -- two `typst_documents` entries naming the SAME docname each
-    resolve their OWN `[2]` (title) and `[3]` (author) independently,
-    unlike `_resolve_entry_element()`'s first-match scan. Wrapper
-    generation order never decides metadata: passing the SECOND entry
-    resolves the SECOND entry's own values, not the first's."""
-    from typsphinx.writer import _entry_element_value
-
+    (`_entry_element_value()`) proves two `typst_documents` entries naming
+    the SAME docname each resolve their OWN `[2]` (title) and `[3]`
+    (author) independently -- this is the replacement contract for the
+    deleted `test_resolve_entry_element_duplicate_docname_first_match_wins`
+    (see the module docstring). Wrapper generation order never decides
+    metadata: passing the SECOND entry resolves the SECOND entry's own
+    values, not the first's."""
     first_entry = ("index", "a", "First", "A1")
     second_entry = ("index", "b", "Second", "A2")
 
