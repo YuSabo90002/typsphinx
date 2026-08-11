@@ -179,9 +179,14 @@ class TestGlobImageRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF
+        # is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the unresolved glob image:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

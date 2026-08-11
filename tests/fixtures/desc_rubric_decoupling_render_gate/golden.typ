@@ -1,20 +1,12 @@
-// Essential package imports
+// Essential imports for included document
 #import "@preview/codly:1.3.0": *
 #import "@preview/codly-languages:0.1.10": *
 #import "@preview/mitex:0.2.7": mi, mitex
 #import "@preview/gentle-clues:1.3.1": *
 
+// Initialize codly
 #show: codly-init.with()
 #codly(languages: codly-languages)
-
-#import "_template.typ": project
-
-#show: project.with(
-  title: "Desc Rubric Decoupling Render Gate",
-  authors: ("typsphinx tests",),
-  date: "0.0.0",
-  lang: "en",
-)
 
 #{
 [#heading(depth: 1, {text("Desc Rubric Decoupling Render Gate")}) <index:desc-rubric-decoupling-render-gate>]
