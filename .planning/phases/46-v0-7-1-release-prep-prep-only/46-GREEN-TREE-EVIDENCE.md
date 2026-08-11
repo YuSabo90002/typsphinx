@@ -173,4 +173,159 @@ result.
 
 ## Local evidence — ja build (D-12)
 
-_Pending — filled by task 3._
+Command:
+```
+$ SPHINX_LANGUAGE=ja uv run --extra dev --extra docs python -m sphinx -b typstpdf docs/source docs/_build/pdf-ja
+```
+(Run in this worktree as `cd docs && SPHINX_LANGUAGE=ja uv run sphinx-build -b typstpdf source
+_build/pdf-ja` — `sphinx-build` is the same console-script entry point `python -m sphinx` invokes,
+already installed by the `docs` extra synced at plan start; the effective command and environment
+are identical.)
+
+Rationale for invoking Sphinx directly rather than through `tox -e docs-pdf`: the `docs-pdf` tox
+environment declares no `passenv`, so `SPHINX_LANGUAGE` would not reach the child process and the
+build would silently produce the English document while still exiting 0 — a `tox`-driven ja build
+would be indistinguishable from an English one by exit code alone.
+
+Transcript (translated log lines shown in original Japanese locale; the same
+102x `RemovedInSphinx10Warning` upstream noise from the English builds above is elided):
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [ja]... 完了
+出力先ディレクトリを作成しています... 完了
+loading intersphinx inventory 'python' from https://docs.python.org/3/objects.inv ...
+loading intersphinx inventory 'sphinx' from https://www.sphinx-doc.org/en/master/objects.inv ...
+ビルド中 [mo]: 更新された 0 件のpoファイル
+ビルド中 [typstpdf]: 更新された 13 件のソースファイル
+環境データを更新中[新しい設定] 13 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[  8%] api/index
+  ... (all 13 source files, same set as the English builds above)
+preparing documents... Template written to /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a0d74dbd9860a1388/docs/_build/pdf-ja/_template.typ
+done
+writing output... [api/index] done
+writing output... [changelog] done
+writing output... [contributing] done
+writing output... [examples/advanced] done
+writing output... [examples/basic] done
+writing output... [examples/index] done
+writing output... [index] done
+writing output... [installation] done
+writing output... [quickstart] done
+writing output... [user_guide/builders] done
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/templates] done
+Copying template assets...
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a0d74dbd9860a1388/docs/_build/pdf-ja/typsphinx.pdf
+build succeeded, 3 warnings.
+```
+
+Exit code: `0`. `loading translations [ja]` confirms `SPHINX_LANGUAGE=ja` reached the process;
+`build succeeded` present with the generated PDF path named.
+
+### Proof the language actually took effect
+
+Command:
+```
+$ grep 'lang: "ja"' docs/_build/pdf-ja/typsphinx.typ
+```
+Verbatim output:
+```
+  lang: "ja",
+```
+
+`docs/source/conf.py`'s `_resolve_language()` (lines 48-104) reads `SPHINX_LANGUAGE` (after
+`READTHEDOCS_LANGUAGE`, which is unset here) and resolved to `ja`; `language = _resolve_language()`
+carried that value through Sphinx's own `language` config, and CONF-12's auto-derivation reached
+the emitted template call — the `lang: "ja"` argument above, quoted verbatim from
+`docs/_build/pdf-ja/typsphinx.typ`, proves it landed on the actual output rather than being
+silently dropped.
+
+### Produced PDF
+
+Command:
+```
+$ stat -c '%s' docs/_build/pdf-ja/typsphinx.pdf
+```
+Verbatim output:
+```
+2520348
+```
+
+`docs/_build/pdf-ja/typsphinx.pdf` exists, **2,520,348 bytes** (larger than the English build's
+2,452,632 bytes, consistent with the embedded `Noto Serif CJK JP` glyph subset the `ja` route
+pulls in).
+
+### D-13 note — translations repository correction of record
+
+The `typsphinx-doc-translations` repository contains no `conf.py` and no `.typ` template — it is
+a pure `.po`/RTD-translation-project repository, not a place where a `SPHINX_LANGUAGE`/`conf.py`
+mechanism could live. There is therefore **nothing to remove there**; this build exercises this
+repository's (`typsphinx`'s) own `docs/source/conf.py` and
+`docs/source/_typst/custom_template.typ` exclusively. The standing two-repository release-tagging
+cost (parent + `typsphinx-doc-translations`) is unaffected and is carried forward in
+`46-HANDOFF.md`, not discharged by this build.
+
+### Not the Phase 41 four-check glyph bar
+
+This ja build is deliberately **not** Phase 41's four-check glyph bar (D-03 there). Both of that
+bar's triggers were re-measured for this milestone and neither holds:
+
+- `raw(` call sites in `typsphinx/translator.py`: **41 before, 41 after** this milestone's diff.
+- The milestone diff over `typsphinx/` names **no** new `font family` — no new `set text(font:
+  ...)` call that could shadow the `Noto Serif CJK JP` fallback.
+
+Neither trigger fired, so the glyph bar was not re-run and this task did not extend into a glyph
+audit, per the plan's explicit instruction.
+
+Verification (repo cleanliness — the build wrote only into the gitignored `_build` tree):
+```
+$ git diff --name-only -- docs/ typsphinx/ tests/
+```
+(no output)
+
+```
+$ git tag -l v0.7.1
+```
+(no output)
+
+---
+
+## Executed versus skipped
+
+Executed on this post-bump tree, all green:
+- `uv run tox -e docs-html` — English HTML docs build.
+- `uv run tox -e docs-pdf` — English PDF docs build (`typstpdf` dogfooding).
+- `uv run pytest tests/test_corpus_gate.py -v` — full-corpus `-b typstpdf` gate against Sphinx's
+  own `doc/` tree.
+- `SPHINX_LANGUAGE=ja uv run --extra dev --extra docs python -m sphinx -b typstpdf docs/source
+  docs/_build/pdf-ja` — single Japanese `ja` PDF docs build (D-12), `lang: "ja"` confirmed present
+  in the emitted `.typ`.
+
+Not run, and why:
+
+- **`tox -e py312`** — not run. On this machine `uv venv -p cpython3.12` downloads a standalone
+  CPython whose ELF the NixOS stub loader rejects (exit 127), so the environment cannot provision
+  at all. This is the same class of environmental defect named in
+  `.planning/phases/46-v0-7-1-release-prep-prep-only/46-RESEARCH.md` § "Pitfall 1" and does not
+  weaken SC#3 — the D-23 run 2 CI run (`46-CI-EVIDENCE.md`) already proves both `py312` and
+  `py313` lanes green on `ubuntu-latest`, `macos-latest`, and `windows-latest`.
+
+- **A bare `tox`** (no `-e` selector) — not run. `tox.ini`'s `env_list = py312, py313, lint, type,
+  cov, docs` includes `lint`, which dies at exit 127 on this machine: `.venv/bin/ruff` is a
+  generic-linux ELF the NixOS stub loader rejects. This is a filed, out-of-scope environmental
+  defect (`.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`), not
+  a validation gap — D-11 amendment (b) assigns lint authority to CI, and the D-23 run 2 `Lint and
+  Format Check` job (`46-CI-EVIDENCE.md`) reports `success`.
+
+- **`test_empty_url_before_after`** (inside `tests/test_corpus_gate.py`) — skipped, not run to
+  completion. Gated on `TYPSPHINX_CORPUS_REPORT=1`, an opt-in reporting measurement unrelated to
+  the gate's own pass/fail criterion (RESEARCH Open Question 1). This skip is expected, not a gap
+  this plan needed to close.
+
+- **pytest full suite, `black --check .`, `ruff check .`, `mypy typsphinx/`** — not asserted as
+  authoritative from this local run for any of the reasons above (D-11); the D-23 run 2 CI run
+  (`46-CI-EVIDENCE.md`) is the sole authority for all four, and all four report `success` there
+  (`Lint and Format Check`, `Type Check`, and the six `{ubuntu, macos, windows} × {3.12, 3.13}`
+  test lanes).
