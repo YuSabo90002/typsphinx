@@ -358,7 +358,7 @@ is the first to need one (2026-08-10, blocked on the words `page`/`pages` in its
 - [x] **Phase 44.2: `typst_documents` Title and Author Consumption (INSERTED)** - An explicit `typst_documents` entry's title and author actually reach the rendered PDF, as they do in Sphinx's LaTeX builder, instead of being silently ignored while `config.project` / `config.author` win (completed 2026-08-07)
 - [x] **Phase 45: Documentation Currency + Carried Hygiene** - The README explains `typst_documents` and its new default, the published changelog page stops being two years stale, and the two remaining code/planning hygiene todos close (completed 2026-08-10)
 - [x] **Phase 45.1: Custom-Template Parameter Contract Correction (INSERTED)** - A custom template written to exactly what the published documentation declares compiles instead of failing on an undeclared argument; the contract published in the docs matches what typsphinx actually passes; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` is removed; and the auto-derived `lang` reaches every non-package template route (completed 2026-08-10)
-- [ ] **Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)** - `tox` runs on the maintainer's machine for the first time (every environment exits 127 today) and the 5 test modules that shell out to `uv run` stop failing under the very invocation `CLAUDE.md` mandates — one dependency name, `tox-uv` → `tox-uv-bare`, dropping the generic-linux `uv` wheel binary NixOS cannot exec
+- [x] **Phase 45.2: Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED)** - `tox` runs on the maintainer's machine for the first time (every environment exits 127 today) and the 5 test modules that shell out to `uv run` stop failing under the very invocation `CLAUDE.md` mandates — one dependency name, `tox-uv` → `tox-uv-bare`, dropping the generic-linux `uv` wheel binary NixOS cannot exec (completed 2026-08-11)
 - [ ] **Phase 46: v0.7.1 Release Prep (prep-only)** - The v0.7.1 tree is bumped, its CHANGELOG curated (calling out both user-visible changes: the output-filename rename and the rendered title/author change), proven green, and handed off with no irreversible action taken
 
 ## Phase Details
@@ -1168,7 +1168,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 44.2 `typst_documents` Title and Author Consumption (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-07 |
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
-| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 5/5 | In Progress|  |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 5/5 | Complete    | 2026-08-11 |
 | 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

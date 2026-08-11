@@ -189,7 +189,7 @@ continues at **Phase 43**.
       in the archived-footer tail are closed, so no downstream reader silently swallows the rest of
       the file.
 
-- [ ] **QUA-04** *(added 2026-08-10 at the Phase 46 discussion, `46-CONTEXT.md` D-18)*: The task
+- [x] **QUA-04** *(added 2026-08-10 at the Phase 46 discussion, `46-CONTEXT.md` D-18)*: The task
       runner this project documents actually runs, and the test suite passes under the invocation
       `CLAUDE.md` mandates. Today neither is true on the maintainer's machine and one file is
       responsible for both: `pyproject.toml:33`'s `dev` extra pulls `tox-uv`, a meta package
@@ -335,7 +335,7 @@ Filled during roadmap creation.
 | CONF-10 | Phase 45.1 | Complete |
 | CONF-11 | Phase 45.1 | Complete |
 | CONF-12 | Phase 45.1 | Complete |
-| QUA-04 | Phase 45.2 | Pending |
+| QUA-04 | Phase 45.2 | Complete |
 | REL-06 | Phase 46 | Pending |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
