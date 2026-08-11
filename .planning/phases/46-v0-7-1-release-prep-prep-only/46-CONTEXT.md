@@ -90,8 +90,8 @@ rather than silently corrected.
   value's disappearance without its own heading). `docs/source/changelog.rst`'s migration guide
   already uses `**Breaking:**`, so the two surfaces share vocabulary.
 
-- **D-03: The silent failure of a leftover `typst_authors` is accepted and handled in documentation
-  only.** Measured this session: `typst_authors` now returns **zero** hits across `typsphinx/`,
+- **D-03: The silent failure of a leftover `typst_authors` is accepted and handled in documentation only.**
+  Measured this session: `typst_authors` now returns **zero** hits across `typsphinx/`,
   `docs/source/`, `examples/` and `tests/`, and Sphinx ignores an unregistered `conf.py` variable
   without warning — so a user upgrading with `typst_authors` set loses author information silently.
   A fail-loud shim was offered (re-register the name and raise, matching the `ELEMENTS_ALLOWLIST`
@@ -109,14 +109,14 @@ rather than silently corrected.
 
 ### The `## [0.7.1]` CHANGELOG entry
 
-- **D-05: Bullets are cut at user-visible-change granularity — 6 to 8 of them — with requirement IDs
-  in trailing parentheses.** Direct continuation of Phase 33 D-09 / Phase 41 D-01. Rejected: one
+- **D-05: Bullets are cut at user-visible-change granularity — 6 to 8 of them — with requirement IDs in trailing parentheses.**
+  Direct continuation of Phase 33 D-09 / Phase 41 D-01. Rejected: one
   bullet per requirement (18 bullets, which would put QUA-01's docstring fix and QUA-03's planning-
   document hygiene in release notes), and a phase-level roll-up (7 bullets, but phase boundaries are
   an internal partition users cannot see, and it buries CONF-11 inside "Phase 45.1").
 
-- **D-06: The lead paragraph's axis is "the configuration the documentation promises actually takes
-  effect."** It is the project's own core-value sentence and it covers the largest share of the
+- **D-06: The lead paragraph's axis is "the configuration the documentation promises actually takes effect."**
+  It is the project's own core-value sentence and it covers the largest share of the
   milestone's 18 requirements at once — CONF-08 (following the Quick Start now produces a PDF),
   CONF-09 (`typst_documents`' title/author reach the render), DOC-13/CONF-11/CONF-12 (the published
   template contract becomes true). Rejected: "v0.7.0's debts cleared" (the milestone-goal wording —
@@ -130,16 +130,16 @@ rather than silently corrected.
   **and** its emitted structure (untemplated body → fully templated). ROADMAP SC#2's wording names
   only "the output-filename change"; the entry must carry both. Quote § 7 rather than re-deriving.
 
-- **D-08: `### Verified` carries the same three items as 0.6.5 / 0.7.0, with the dependency claim
-  scoped to runtime.** Measured this session: the milestone diff adds `myst-parser` (and transitively
+- **D-08: `### Verified` carries the same three items as 0.6.5 / 0.7.0, with the dependency claim scoped to runtime.**
+  Measured this session: the milestone diff adds `myst-parser` (and transitively
   `mdit-py-plugins`) to the **`docs` extra** in `pyproject.toml:53` — a Phase 45 / DOC-12
   consequence — with no change to `[project] dependencies`. Writing the first item as "No new
   **runtime** dependencies" keeps the claim true and pre-empts a reader who diffs `uv.lock`.
   Rejected: listing `myst-parser` as a fourth item (the section exists to enumerate what did *not*
   change), and dropping the section (the last three releases all carry it).
 
-- **D-09: `docs/source/changelog.rst` gains a "Migrating from 0.7.0 to 0.7.1" section with
-  before/after code fragments.** Measured: that page is `.. include:: ../../CHANGELOG.md` with a
+- **D-09: `docs/source/changelog.rst` gains a "Migrating from 0.7.0 to 0.7.1" section with before/after code fragments.**
+  Measured: that page is `.. include:: ../../CHANGELOG.md` with a
   hand-written "Migration Guides" tail, so the migration section is the *only* hand-written surface
   and ROADMAP SC#2's "gains the matching `0.7.1` entry" resolves to it. Three items need fragments:
   `typst_authors` → the `typst_template_function` `params` route; a project that sets `params` today
@@ -149,15 +149,15 @@ rather than silently corrected.
   Rejected: prose-only (does not convey "write all nine") and omitting the section (incoherent
   immediately after D-02's triple marking).
 
-- **D-10 [derived, not separately asked]: the Keep-a-Changelog section split is `### Added` /
-  `### Changed` / `### Fixed` / `### Removed` / `### Verified`.** `### Removed` is new per D-02.
+- **D-10 [derived, not separately asked]: the Keep-a-Changelog section split is `### Added` / `### Changed` / `### Fixed` / `### Removed` / `### Verified`.**
+  `### Removed` is new per D-02.
   The planner assigns requirements to sections; the only fixed assignment is `typst_authors`
   (CONF-10) → `### Removed`.
 
 ### SC#3 — what "green" means and where the evidence comes from
 
-- **D-11: The branch CI run on the post-bump commit is the authority for pytest / lint / type;
-  local `tox` supplies what CI does not run.** The milestone branch is already on `origin`
+- **D-11: The branch CI run on the post-bump commit is the authority for pytest / lint / type; local `tox` supplies what CI does not run.**
+  The milestone branch is already on `origin`
   (invariant #5), so pushing the post-bump commit and reading its run — including the Windows lanes,
   which caught a real cp1252 defect at the v0.7.0 close — is a **live** result, not an inherited
   one, and therefore satisfies SC#3. The full-corpus `-b typstpdf` gate and both docs builds are run
@@ -179,8 +179,8 @@ rather than silently corrected.
   is therefore `tox -e docs-html`, `tox -e docs-pdf` and the full-corpus `-b typstpdf` gate,
   invoked per-environment.
 
-- **D-12: The `ja` evidence is a single local `SPHINX_LANGUAGE=ja` docs-pdf build, not Phase 41's
-  four-check glyph bar.** The bar was justified in Phase 41 by two measured facts about that
+- **D-12: The `ja` evidence is a single local `SPHINX_LANGUAGE=ja` docs-pdf build, not Phase 41's four-check glyph bar.**
+  The bar was justified in Phase 41 by two measured facts about that
   milestone; both were re-measured here and **neither holds**: `raw(` call sites in
   `typsphinx/translator.py` are **41 before and 41 after** (`git show main:` versus the working
   tree), and the milestone diff over `typsphinx/` names no font family. What does warrant touching
@@ -188,8 +188,8 @@ rather than silently corrected.
   re-running the full four-check bar (pays Phase 41's cost with none of its triggers), and skipping
   `ja` entirely (CONF-12 would reach a published artifact unexercised).
 
-- **D-13 [correction of record]: there is nothing to remove in `typsphinx-doc-translations`, and
-  the `ja` build exercises this repository's own files.** 45.1's `<deferred>` carries "the
+- **D-13 [correction of record]: there is nothing to remove in `typsphinx-doc-translations`, and the `ja` build exercises this repository's own files.**
+  45.1's `<deferred>` carries "the
   translations repo's copy of the `lang` workaround" as a handoff item. Measured this session via
   the GitHub API: that repository contains **no `conf.py` and no `.typ` template** — its tree is
   `.readthedocs.yaml`, `Makefile`, `locale/ja/**`, and the parent mounted as the submodule
@@ -230,8 +230,8 @@ rather than silently corrected.
 
 ### Routed out of this phase
 
-- **D-18: The `tox-uv` → `tox-uv-bare` dependency repair ships in v0.7.1, in a newly inserted
-  Phase 45.2, before Phase 46.** Discovered and fully measured during this discussion; see
+- **D-18: The `tox-uv` → `tox-uv-bare` dependency repair ships in v0.7.1, in a newly inserted Phase 45.2, before Phase 46.**
+  Discovered and fully measured during this discussion; see
   `<specifics>` items 1–6 for the evidence chain. The short form: `pyproject.toml`'s `dev` extra
   depends on `tox-uv`, which is a meta package (`tox-uv-bare==1.35.2` + `uv<1,>=0.9.27`), and the
   PyPI `uv` wheel installs a **generic-linux ELF** at `.venv/bin/uv` that NixOS cannot exec. That one
