@@ -25,6 +25,17 @@
 #   - `index.rst`'s body marker `OUTER-PROSE-MARKER` and `guide/index.rst`'s
 #     body marker `GUIDE-BODY-MARKER` must keep their exact spelling -- the
 #     COMP-04 pypdf structural assertion locates each marker by substring.
+#   - `guide/index.rst`'s OWN heading text MUST NOT be "Nested Master" (it is
+#     deliberately "Guide Section" instead) -- the second entry's
+#     typst_documents TITLE element ("Nested Master") is what COMP-04's
+#     pypdf assertion searches for as the signature of a stray SECOND title
+#     page. If the .rst document's own heading text also read "Nested
+#     Master", that string would legitimately appear in the compiled PDF
+#     post-fix too (as the toctree'd section's own heading), making the
+#     substring-absence assertion meaningless. Keeping the two strings
+#     distinct is what makes "Nested Master" present in the PDF text an
+#     unambiguous signal of the mid-body full-template re-expansion (B-2),
+#     not of the section merely existing.
 
 project = "Outer Master"
 author = "Probe Author"
