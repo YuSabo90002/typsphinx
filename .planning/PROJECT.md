@@ -36,13 +36,19 @@ cutting the single root the three known multi-master defects grow from.
   (the parent includes `guide/index.typ` from the docname while `_resolve_output_stem` names the file
   from the target, so Typst aborts with `file not found`) and **B-2** (an included master re-expands
   its template's title page and `#outline()` into the middle of the parent's body)
-- **the wrapper carries the per-master include graph** — mirror `sphinx/util/nodes.py:485`
-  `inline_all_toctrees` at the file-composition layer (document-order depth-first, `traversed`
-  re-initialised per master) and derive each `set heading(offset: N)` from the DFS depth.
-  `visit_toctree` stops emitting includes and the per-build ledger at `builder.py:99` becomes
-  unnecessary. This closes **defect A** (a document toctree'd by two masters is included only into
-  the one whose parent was written first, decided by docname sort order) and removes the
-  unanswerable question — "which master is this include for?" — from the shared content files
+- **the wrapper publishes the per-master include edge set as Typst `state`; content files keep
+  emitting their includes at the toctree's own position, guarded by that state** — the builder
+  computes each master's include graph by mirroring `sphinx/util/nodes.py:485`
+  `inline_all_toctrees` (document-order depth-first, first encounter wins, `traversed`
+  re-initialised per master), then the wrapper emits
+  `#state("inc", ()).update((<edge keys>))` before including the master's content. `visit_toctree`
+  emits `context { set heading(offset: heading.offset + 1); if "<parent>><child>" in
+  state("inc", ()).get() { include("<child>.typ") } }`, and the per-build ledger at
+  `builder.py:99` becomes unnecessary. **The decision moves from write time to compile time**, which
+  is what lets one shared content file behave correctly for every master. This closes **defect A**
+  (a document toctree'd by two masters is included only into the one whose parent was written
+  first, decided by docname sort order). Heading offsets stay relative — no DFS-depth arithmetic is
+  needed in the wrapper
 - **duplicate-target detection (CR-02)** — carry a registry of already-resolved targets so two
   entries naming the same target are caught, following CR-01's convention (fall back to the docname
   with a `WARNING`, never invent a filename the user did not write). Sphinx's own LaTeX builder has
@@ -79,18 +85,59 @@ cutting the single root the three known multi-master defects grow from.
   `\input`/`\include`). Adopting that model would delete the per-document `.typ` files, which the
   `-b typst` builder exists to produce — so the design decision for this milestone is to **stay at
   the file layer and reach the same result**.
-- **The "prefer the deeper path" rule comes from upstream, not from us.** Sphinx picks the nested
-  `zmid` over the direct `xmaster` as `shared`'s parent and logs
-  `selecting: zmid <- shared`. `env.toctree_includes` still retains every edge
-  (`xmaster -> ['zmid', 'shared']`), so typsphinx has to perform that resolution itself.
-- **The `context` + `query` label-existence guard is measured working** — a compilation that omits
-  the target still succeeds and degrades to plain text, while one that includes it emits a real link
-  annotation. Two further sites carry the same label-reference shape and must be enumerated during
-  planning: `translator.py:3273/3281` (citation back-references) and `:4291`.
-- **Known residual risk:** the diamond `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]` is unsolvable
-  by any design that leaves the include decision inside a shared file. Putting the graph in the
-  wrapper eliminates it structurally — **make preserving that property an explicit success
-  criterion** of the wrapper-generation work rather than an accident of it.
+- **The composition rule is `inline_all_toctrees`'s document-order depth-first traversal, first
+  encounter wins — NOT "prefer the deeper path".** Each master seeds `traversed` with its own
+  docname and recurses into each child immediately, so which position claims a multiply-reachable
+  document depends purely on the order its parent lists its children. Measured both ways on the
+  same structure: with `xmaster` listing `[zmid, shared]`, `shared` lands nested
+  (`\chapter{Mid} / \section{Shared}`); with `[shared, zmid]` it lands at the direct position
+  (`\chapter{Shared} / \chapter{Mid}`) and zmid's include of it is skipped. **A shared document's
+  heading depth is therefore a property of the traversal order, not of the document.** Mirroring
+  `inline_all_toctrees` gets this right by construction; a hand-rolled "prefer deeper" heuristic
+  would silently diverge from Sphinx. **Sphinx's
+  `document is referenced in multiple toctrees: [...], selecting: X <- Y` message governs none of
+  this** — it comes from `_check_toc_parents` (`sphinx/environment/__init__.py:942-959`), which
+  takes a plain lexicographic `max(parents)`, disagrees with the navigation-parent function
+  `_get_toctree_ancestors` (`sphinx/environment/adapters/toctree.py:562-575`, last-read-order-wins),
+  and is never consulted by `assemble_doctree`/`inline_all_toctrees`. **Do not port that tiebreak.**
+  `env.toctree_includes` retains every edge (`xmaster -> ['zmid', 'shared']`), so typsphinx must
+  perform the traversal itself — mirroring `inline_all_toctrees`, not the "selecting" message.
+- **The `context` + `query` label-existence guard is measured working** (2026-08-11, typst-py
+  0.15.0). The exact validated snippet, recorded here so planning does not have to re-derive it:
+
+  ```typst
+  #context {
+    if query(<onlyx:onlyx-label>).len() > 0 { link(<onlyx:onlyx-label>, "Only In X") }
+    else { text("Only In X") }
+  }
+  ```
+
+  Compiled two ways against the same file: without the target document included, the compile
+  **succeeds** and the PDF carries no link annotation (degraded to plain text); with it included,
+  the compile succeeds and the PDF carries a real link annotation. The unguarded form fails the
+  first case outright with `label <onlyx:onlyx-label> does not exist in the document`. Two further
+  sites carry the same label-reference shape and must be enumerated during planning:
+  `translator.py:3273/3281` (citation back-references) and `:4291`.
+- **Two design routes were measured, rejected, and superseded — do not re-derive them.** (1) Keeping
+  the write-time ledger and merely re-scoping it per master cannot serve the diamond
+  `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]`: `q.typ` must omit the `q→c` include for `M`
+  (which already reaches `c` via `p`) and emit it for `M'`, and one file written once cannot do
+  both. (2) Having the wrapper carry the include graph *flattened* solves the diamond but **breaks
+  document-order interleaving**: measured on the current tree, `visit_toctree` emits its
+  `include()` at the toctree's own position, so a master with prose after its toctree — the shape
+  of Sphinx's own default `index.rst`, which puts an "Indices and tables" section there — renders
+  as prose → trailing section → chapters instead of prose → chapters → trailing section. The
+  state-guarded form measured correct on both counts (diamond: `C-BODY` appears exactly once in
+  each master's PDF from the same `q.typ`; interleaving: PROSE-BEFORE → CHAPTER-BODY → Indices →
+  PROSE-AFTER), and additionally puts conditionally-included content into `#outline()` and keeps
+  its labels `query`-able.
+- **Known residual risk: the state-guarded include rests on Typst's `state`/`context` multi-pass
+  layout convergence.** It is measured working on the diamond, interleaving, outline, and label
+  cases, but not yet across the full Sphinx `doc/` corpus. **Make a GATE-02 full-corpus pass an
+  explicit success criterion of the composition phase**, and treat a convergence failure as a
+  design-level finding rather than a fixture bug. A related documented behaviour: a content `.typ`
+  compiled standalone (outside any wrapper) sees an empty state and therefore includes no children
+  — sane, but it must be documented, since `-b typst` users should compile the wrapper.
 - **User-visible output-shape change.** With `typst_documents = [("index","manual.typ",…)]`,
   `manual.typ` stops being the whole document and becomes the wrapper, while the body moves to
   `index.typ`. Explain this together with v0.7.1's own rename (`index.typ` → `typsphinx.typ` under
@@ -1215,9 +1262,11 @@ produces a complete PDF for each:
 - [ ] Every document is written as a docname-named content `.typ` with no template applied, and each
       `typst_documents` entry gains a wrapper `.typ` carrying the template — closing the include-path
       vs. output-filename mismatch (`file not found`) and the mid-body template re-expansion
-- [ ] The wrapper carries the per-master toctree include graph (document-order depth-first, mirroring
-      `sphinx/util/nodes.py` `inline_all_toctrees`), so a document toctree'd by two masters reaches
-      both instead of only the first-written one, and no include decision is left inside a shared file
+- [ ] The wrapper publishes its master's include edge set as Typst `state` and content files emit
+      state-guarded includes at their toctree's own position (graph computed document-order
+      depth-first, mirroring `sphinx/util/nodes.py` `inline_all_toctrees`), so a document toctree'd
+      by two masters reaches both instead of only the first-written one, prose around a toctree keeps
+      its position, and the same content file serves masters with conflicting include sets
 - [ ] Two `typst_documents` entries naming the same target are detected rather than silently dropping
       one master's body, following CR-01's fall-back-to-docname-with-a-`WARNING` convention
 - [ ] A cross-document reference degrades at compile time via a `context` + `query` label-existence
