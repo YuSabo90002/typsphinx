@@ -105,32 +105,45 @@ def test_resolve_output_stem_falls_back_when_config_missing(temp_sphinx_app):
     assert builder._resolve_output_stem("index") == "index"
 
 
-def test_resolve_output_stem_guards_posix_path_separator(temp_sphinx_app):
-    """D-06/D-07: a POSIX-separator-bearing target reduces to its
-    basename and warns exactly once."""
+def test_resolve_output_stem_resolves_posix_path_bearing_target(temp_sphinx_app):
+    """OUT-01 reverses Phase 44's D-06/D-07: a POSIX-separator-bearing
+    target is no longer refused. It resolves exactly where written --
+    'sub/manual.typ' on docname 'index' resolves to 'sub/manual', with NO
+    warning."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
     builder.config.typst_documents = [("index", "sub/manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_output_stem("index") == "sub/manual"
 
 
-def test_resolve_output_stem_guards_backslash_path_separator(temp_sphinx_app):
-    """D-06/D-07: a Windows-authored backslash target is detected even
-    on POSIX, where os.sep is '/' and os.altsep is None."""
+def test_resolve_output_stem_normalizes_backslash_path_bearing_target(
+    temp_sphinx_app,
+):
+    """OUT-01 reverses Phase 44's D-06/D-07: a Windows-authored backslash
+    target is still recognised as a PATH on POSIX (where os.sep is '/' and
+    os.altsep is None) -- it is simply no longer refused, and resolves to
+    the same normalized 'sub/manual' as its forward-slash equivalent, with
+    no warning."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
     builder.config.typst_documents = [("index", "sub\\manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_output_stem("index") == "sub/manual"
 
 
 def test_resolve_output_stem_guards_parent_traversal(temp_sphinx_app):
-    """D-06/D-07: a '..' segment reduces to the basename."""
+    """D-06/D-07: a '..' segment reduces to the basename.
+
+    OUT-02 (kept): this is one of the three escape-shaped terms OUT-01
+    does NOT reverse. Per RESEARCH.md Pitfall 4's own warning sign, this
+    assertion STILL PASSING after OUT-01 landed is confirming evidence
+    that only the separator-membership term was reversed, not this one.
+    """
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
@@ -141,7 +154,13 @@ def test_resolve_output_stem_guards_parent_traversal(temp_sphinx_app):
 
 
 def test_resolve_output_stem_guards_absolute_target(temp_sphinx_app):
-    """D-06/D-07: an absolute target reduces to the basename."""
+    """D-06/D-07: an absolute target reduces to the basename.
+
+    OUT-02 (kept): this is one of the three escape-shaped terms OUT-01
+    does NOT reverse. Per RESEARCH.md Pitfall 4's own warning sign, this
+    assertion STILL PASSING after OUT-01 landed is confirming evidence
+    that only the separator-membership term was reversed, not this one.
+    """
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
@@ -153,7 +172,13 @@ def test_resolve_output_stem_guards_absolute_target(temp_sphinx_app):
 
 def test_resolve_output_stem_guards_drive_qualified_target(temp_sphinx_app):
     """D-06/D-07: a drive-qualified target reduces to the basename,
-    detected on POSIX too."""
+    detected on POSIX too.
+
+    OUT-02 (kept): this is one of the three escape-shaped terms OUT-01
+    does NOT reverse. Per RESEARCH.md Pitfall 4's own warning sign, this
+    assertion STILL PASSING after OUT-01 landed is confirming evidence
+    that only the separator-membership term was reversed, not this one.
+    """
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
@@ -235,9 +260,13 @@ def test_resolve_output_stem_preserves_non_ascii_target(temp_sphinx_app):
     assert builder._resolve_output_stem("index") == "マニュアル"
 
 
-def test_resolve_output_stem_warns_on_path_bearing_target(temp_sphinx_app, caplog):
-    """The path-guard warning names the offending target and the
-    basename that will actually be written."""
+def test_resolve_output_stem_emits_no_warning_for_path_bearing_target(
+    temp_sphinx_app, caplog
+):
+    """OUT-01 reverses Phase 44's D-06/D-07: a path-bearing, non-escaping
+    target no longer triggers the "a path is not supported" warning at
+    all -- it resolves exactly where written, silently, the same as any
+    other non-degenerate, non-escaping target."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
@@ -247,12 +276,10 @@ def test_resolve_output_stem_warns_on_path_bearing_target(temp_sphinx_app, caplo
     with caplog.at_level("WARNING"):
         stem = builder._resolve_output_stem("index")
 
-    assert stem == "manual"
-    assert any(
+    assert stem == "sub/manual"
+    assert not any(
         "a path is not supported in a typst_documents target name"
         in record.getMessage()
-        and "sub/manual.typ" in record.getMessage()
-        and "manual" in record.getMessage()
         for record in caplog.records
     )
 
@@ -301,33 +328,34 @@ def test_resolve_output_stem_warns_once_on_path_bearing_target_with_empty_basena
     assert "using '' instead" not in warnings[0]
 
 
-def test_directory_preserving_relpath_keeps_nested_docname_directory(
+def test_wrapper_path_ignores_docname_directory_but_content_path_does_not(
     temp_sphinx_app,
 ):
-    """WR-02/D-05: a nested docname's renamed target must stay inside
-    that docname's own directory -- ('sub/index', 'manual', ...) must
-    resolve to 'sub/manual', NOT 'manual' at outdir's root."""
+    """OUT-01 reverses Phase 44's D-05: a nested docname's WRAPPER path is
+    no longer force-relocated into that docname's own directory --
+    ('sub/index', 'manual.typ', ...) resolves the WRAPPER at the output
+    ROOT, 'manual', NOT 'sub/manual'. `_directory_preserving_relpath()`'s
+    old forcing behavior is gone from the wrapper-path computation (it
+    survives only inside `_resolve_output_stem`'s own pre-OUT-01-shaped
+    CR-01 collision comparison, 47-09's territory).
+
+    The companion assertion: the same docname's own CONTENT path is
+    unaffected by any of this -- content files are unconditionally
+    docname-derived (COMP-01/OUT-03), so 'sub/index' always writes its
+    content at 'sub/index.typ' regardless of what its wrapper's target
+    says.
+    """
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
+    builder.config.typst_documents = [("sub/index", "manual.typ", "T", "A")]
 
-    assert builder._directory_preserving_relpath("sub/index", "manual") == "sub/manual"
+    entry = builder.config.typst_documents[0]
+    assert builder._wrapper_output_relpath(entry) == "manual"
 
-
-def test_directory_preserving_relpath_identity_stem_is_unchanged(temp_sphinx_app):
-    """D-05: when the resolved stem already equals the docname (no
-    typst_documents entry matched, or a degenerate/guarded target fell
-    back to the docname itself), the directory must not be prepended a
-    second time."""
-    from typsphinx.builder import TypstBuilder
-
-    app = temp_sphinx_app
-    builder = TypstBuilder(app, app.env)
-
-    assert (
-        builder._directory_preserving_relpath("sub/index", "sub/index") == "sub/index"
-    )
+    content_path = builder._content_output_path("sub/index").replace("\\", "/")
+    assert content_path.endswith("sub/index.typ")
 
 
 def test_resolve_output_stem_falls_back_on_docname_collision(temp_sphinx_app):

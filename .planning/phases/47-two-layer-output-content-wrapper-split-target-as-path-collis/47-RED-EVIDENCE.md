@@ -533,3 +533,192 @@ tests/test_collision_validator_gate.py xxxxxxx                           [100%]
 ============================= 13 xfailed in 5.97s ==============================
 ```
 Exit code: 0.
+
+---
+
+## A3: second path-rejection site search
+
+**Plan 47-03, Task 3.** RESEARCH.md's Assumptions-Log A3 records that a repo-wide grep for a
+SECOND, independent path-rejection site (beyond the `is_guarded`/`_escapes_outdir` boolean at
+`builder.py`) was never exhaustively run, and that a missed site would let an escaping
+`typst_documents` target slip past OUT-02 undetected. Closed here by measurement: a real grep
+over `typsphinx/` for each of the seven named patterns, captured against the tree as it stood
+after Task 1 and Task 2 of this plan landed (both already-committed).
+
+**Commands and raw output** (`uv run` inside this plan's own provisioned worktree venv, per
+`CLAUDE.md`'s mandatory worktree-isolated execution protocol; run from the repo root):
+
+```
+$ grep -rn "os\.sep" typsphinx/
+typsphinx/builder.py:75:    ``os.sep``/``os.altsep``) is what makes a Windows-authored
+typsphinx/builder.py:77:    ``os.sep`` is ``"/"`` and ``os.altsep`` is ``None``.
+```
+Both hits are prose inside `_escapes_outdir()`'s own docstring, explaining why it does NOT use
+`os.sep`/`os.altsep` (it splits on the literal characters `/` and `\` instead, which is what makes
+a Windows-authored separator detectable on POSIX). No second site.
+
+```
+$ grep -rn "os\.altsep" typsphinx/
+typsphinx/builder.py:75:    ``os.sep``/``os.altsep``) is what makes a Windows-authored
+typsphinx/builder.py:77:    ``os.sep`` is ``"/"`` and ``os.altsep`` is ``None``.
+```
+Same two docstring lines as above. No second site.
+
+```
+$ grep -rn "isabs" typsphinx/
+typsphinx/builder.py:97:    return ".." in segments or path.isabs(stem) or _is_drive_qualified(stem)
+typsphinx/builder.py:664:        if path.isabs(resolved_uri):
+```
+Line 97 is `_escapes_outdir()`'s own existing OUT-02 rule -- not a second site. Line 664 is inside
+`_track_image()`, and operates on `resolved_uri` -- a Sphinx-resolved IMAGE URI from
+`node["candidates"]`, never a `typst_documents` target string. It decides whether an image path
+needs rehoming relative to `doctreedir` (Issue #130's fix), a disjoint input domain from a
+`typst_documents` target. It cannot accept or reject a target string because a target string is
+never passed to it. Per this task's own scope fence ("image path rehoming is Phase 50's scope,
+IMG-01/IMG-02, and must not be picked up opportunistically"), this hit is recorded and left alone.
+
+```
+$ grep -rn "normpath" typsphinx/
+typsphinx/builder.py:692:        return path.normpath(path.join(self.outdir, docname + ".typ"))
+typsphinx/builder.py:760:            wrapper_destination = path.normpath(
+typsphinx/builder.py:1186:            typ_file = path.normpath(path.join(self.outdir, wrapper_relpath + ".typ"))
+typsphinx/builder.py:1208:                pdf_file = path.normpath(
+typsphinx/translator.py:4658:        target_uri = posixpath.normpath(posixpath.join(base_dir, path_part))
+```
+`builder.py:692`/`760`/`1186`/`1208` all call `normpath` on a path built from a docname or a
+value `_resolve_output_stem()`/`_wrapper_output_relpath()` has ALREADY resolved (and, for a
+path-bearing target, already run through OUT-02's `_escapes_outdir()` gate) -- pure filesystem
+string normalization (collapsing `./`, redundant separators) after the accept/reject decision has
+already been made, not a second decision site. `translator.py:4658` is inside
+`_resolve_xref_docname()`, joining a Sphinx-computed cross-reference `refuri` fragment -- an
+internal, Sphinx-generated relative path between two already-known document URIs, never a
+`typst_documents` target string. No second site.
+
+```
+$ grep -rn "relpath" typsphinx/ | grep -v "^typsphinx/builder.py:[0-9]*: *#"
+typsphinx/writer.py:31:    This is a genuine two-endpoint ``posixpath.relpath`` computation, NOT
+typsphinx/writer.py:61:    return posixpath.relpath(content_relative_path, start=start)
+typsphinx/builder.py:265:            ``_directory_preserving_relpath()``, which force-relocates
+typsphinx/builder.py:368:        effective = self._directory_preserving_relpath(docname, stem)
+typsphinx/builder.py:385:    def _directory_preserving_relpath(self, docname: str, stem: str) -> str:
+typsphinx/builder.py:550:        wrapper_relpaths = sorted(
+typsphinx/builder.py:551:            self._wrapper_output_relpath(entry) + ".typ"
+typsphinx/builder.py:555:        if wrapper_relpaths:
+typsphinx/builder.py:557:                f"typst: wrote {len(wrapper_relpaths)} wrapper file(s) -- "
+typsphinx/builder.py:558:                f"compile these: {', '.join(wrapper_relpaths)}"
+typsphinx/builder.py:665:            rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(path.sep, "/")
+typsphinx/builder.py:682:        ``_directory_preserving_relpath()`` call. Every docname gets a
+typsphinx/builder.py:694:    def _wrapper_output_relpath(self, entry: tuple) -> str:
+typsphinx/builder.py:700:        ``_directory_preserving_relpath()``'s Phase 44 D-05 relocation
+typsphinx/builder.py:759:            wrapper_relpath = self._wrapper_output_relpath(entry)
+typsphinx/builder.py:761:                path.join(self.outdir, wrapper_relpath + ".typ")
+typsphinx/builder.py:764:            wrapper_relative_dir = posixpath.dirname(wrapper_relpath)
+typsphinx/builder.py:979:                rel_path = path.relpath(src_file, src_dir)
+typsphinx/builder.py:1051:        rel_path = path.relpath(src_path, self.srcdir)
+typsphinx/builder.py:1185:            wrapper_relpath = self._wrapper_output_relpath(doc_tuple)
+typsphinx/builder.py:1186:            typ_file = path.normpath(path.join(self.outdir, wrapper_relpath + ".typ"))
+typsphinx/builder.py:1209:                    path.join(self.outdir, wrapper_relpath + ".pdf")
+typsphinx/translator.py:4986:            # Resolved CROSS-document reference (`<relpath><out_suffix>#anchor`).
+```
+`writer.py:61` (`compute_content_include_path()`) computes a wrapper-to-content `#include()`
+path between two ALREADY-RESOLVED locations -- neither endpoint is a raw `typst_documents`
+target, and it does not gate acceptance of anything (Pattern 2, `47-RESEARCH.md`).
+`_directory_preserving_relpath()` (`builder.py:265`/`368`/`385`/`682`/`700`) is called only
+AFTER `_resolve_output_stem()` has already resolved (and, for a path-bearing target, already
+escape-gated) the stem -- it re-prefixes an already-accepted stem with a docname's own directory
+for the CR-01 collision comparison (D-01/47-02's own acknowledged pre-OUT-01-shaped limitation,
+47-09's territory) and, separately, for content-path placement; it never independently
+decides whether a target is accepted or rejected. `builder.py:665` is the same `_track_image()`
+image-rehoming site already covered under `isabs` above. `builder.py:979`/`1051`
+(`_copy_template_directory()`/`_copy_single_asset()`) compute a relative path between two
+ALREADY-TRUSTED, already-existing filesystem locations under `srcdir` for template-asset
+copying -- never a `typst_documents` target string. `translator.py:4986` is a comment inside
+cross-reference emission, describing the SAME Sphinx-computed `refuri` shape already covered
+under `normpath` above. No second site.
+
+```
+$ grep -rn "basename" typsphinx/
+typsphinx/writer.py:233:        basename.
+typsphinx/writer.py:264:            ever collide with or impersonate the reserved basename.
+typsphinx/builder.py:36:    two-character drive prefix before taking the fallback basename) call
+typsphinx/builder.py:72:    escape-shaped terms below still fall back to a basename.
+typsphinx/builder.py:254:            safe fallback is returned instead -- ``path.basename`` of the
+typsphinx/builder.py:259:            ``_template`` basename (CR-01), a ``logger.warning`` is
+typsphinx/builder.py:310:                fallback = path.basename(fallback_source)
+typsphinx/builder.py:312:                    # The path guard's own fallback (a basename) is itself
+typsphinx/builder.py:330:            elif "/" in stem and not path.basename(stem).strip():
+typsphinx/builder.py:333:                # its basename -- is itself empty (a trailing
+typsphinx/builder.py:362:        #     basename is a root-level equality test, not a basename test;
+typsphinx/builder.py:388:        ``_resolve_output_stem`` returns only a basename-safe stem (D-06/
+typsphinx/builder.py:389:        D-07 already reduced any path-bearing target to its basename), so a
+typsphinx/builder.py:417:            return posixpath.join(directory, posixpath.basename(stem))
+```
+Every `path.basename`/`posixpath.basename` call (`builder.py:254`, `310`, `330`, `417`) executes
+INSIDE `_resolve_output_stem()`, downstream of `_escapes_outdir()`'s already-made decision (the
+first two compute the OUT-02 escape fallback; the third, added by this plan's Task 1, computes the
+OUT-01 empty-trailing-segment fallback; the fourth, inside `_directory_preserving_relpath()`,
+composes an already-resolved stem with a docname directory for the CR-01 comparison). None of
+these independently decides whether a target string is accepted or rejected -- they only ever run
+on a stem `_escapes_outdir()` has already classified, or compute a DIFFERENT thing entirely
+(the CR-01 comparison path). `writer.py:233`/`264` are prose, not code. No second site.
+
+```
+$ grep -rn "isalpha()" typsphinx/
+typsphinx/builder.py:38:    stem[0].isalpha() and stem[1] == ":"`` check independently -- see
+typsphinx/builder.py:60:    return len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+typsphinx/template_engine.py:97:    ``len(head) in (2, 3) and head.isalpha()``, because Python's
+typsphinx/template_engine.py:98:    ``str.isalpha()`` is Unicode-aware and answers True for CJK/Cyrillic code
+```
+`builder.py:60` is the ONE place the drive-letter detection idiom is now defined (see "Fix applied"
+below). `template_engine.py:97`/`98` are prose inside `derive_typst_lang()`'s docstring, discussing
+Sphinx `language`-config-code ASCII validation -- a wholly different string domain (a 2-3-letter
+locale code, not a filesystem target), and explicitly NOT using this idiom (the docstring explains
+why `str.isalpha()` alone was rejected there, for an unrelated reason: Unicode-awareness over CJK
+code points). No second site.
+
+**Finding: the drive-letter detection idiom WAS duplicated (not independently divergent) --
+routed through one helper.** Before this task, `is_drive_qualified = len(stem) >= 2 and
+stem[0].isalpha() and stem[1] == ":"` was written twice in `typsphinx/builder.py`: once inside
+`_escapes_outdir()` (the actual accept/reject decision) and once again, verbatim, inline inside
+`_resolve_output_stem()` (used only downstream, to decide whether to strip a two-character drive
+prefix before taking the escape fallback's basename -- never itself gating acceptance, since it
+only ran inside the branch `_escapes_outdir(stem)` had already returned `True` for). This was
+literal code duplication, not two independently-diverging DECISION sites -- the two copies could
+never disagree, because the second copy's result was never used to accept or reject anything, only
+to slice a string after the first copy (inside `_escapes_outdir`) had already rejected it. Still,
+per this task's own `<done>` criterion ("OUT-02 has exactly one rule in exactly one place"),
+having the SAME string-shape test written twice in one module was worth closing outright rather
+than leaving as a latent duplication risk for a future edit to accidentally diverge.
+
+**Fix applied:** extracted the shared predicate into a new module-level `_is_drive_qualified(stem)`
+function (`typsphinx/builder.py`, with its own doctest examples), and both `_escapes_outdir()` and
+`_resolve_output_stem()` now call it instead of each computing the check inline. This is a pure
+refactor -- no behavior change; every existing `_resolve_output_stem`/`_escapes_outdir` test
+(`tests/test_builder_output_stem.py`, `tests/test_out02_escape_target_gate.py`) still passes
+unchanged after the extraction, proving the two call sites already agreed on all three escape
+shapes before the refactor and continue to agree after it. No new unit test was added purely for
+"the two sites agree" (per the task's own conditional instruction, that test is only required when
+a second INDEPENDENT rejection site is found and routed through `_escapes_outdir` -- this was a
+downstream duplicate of the SAME site's own computation, not a second site), but the full existing
+regression suite (`tests/test_builder_output_stem.py tests/test_out02_escape_target_gate.py
+tests/test_two_layer_output_gate.py`, 41 tests) re-passing after the extraction is direct evidence
+the refactor preserved behavior.
+
+**Conclusion: no second, independent path-rejection site exists for a `typst_documents` target
+string.** Every `os.sep`/`os.altsep`/`isabs`/`normpath`/`relpath`/`basename`/drive-letter-idiom hit
+in `typsphinx/` either (a) lives inside `_escapes_outdir()`/`_resolve_output_stem()` themselves,
+downstream of the one accept/reject decision `_escapes_outdir()` makes, or (b) operates in a
+disjoint input domain that never receives a raw `typst_documents` target string -- image URIs
+(`_track_image()`, Issue #130's rehoming), Sphinx-computed cross-reference `refuri` fragments
+(`_resolve_xref_docname()`), or already-trusted filesystem paths under `srcdir`/`doctreedir`
+(template-asset copying). RESEARCH.md's Assumptions-Log A3 is closed by this measurement: the
+`is_guarded`/`_escapes_outdir` boolean at `builder.py` was, and remains after this task, the
+complete and only place a `typst_documents` target string is accepted or rejected -- and after
+this task's extraction, its one remaining internal duplication (the drive-letter idiom) is also
+gone.
+
+Per this task's own scope fence, image path rehoming (`_track_image()`/`copy_image_files()`) was
+identified above and explicitly left untouched -- it is Phase 50's scope (IMG-01/IMG-02), not
+picked up opportunistically here. `git diff --stat` for this task's own change touches only
+`typsphinx/builder.py` (the `_is_drive_qualified()` extraction) and confirms no hunk touches a
+`_track_image` or `copy_image_files` body.

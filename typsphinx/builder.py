@@ -25,6 +25,41 @@ from typsphinx.writer import TypstWriter
 logger = logging.getLogger(__name__)
 
 
+def _is_drive_qualified(stem: str) -> bool:
+    """Whether ``stem`` is a drive-qualified path (e.g. ``"C:manual"``) --
+    a two-character-or-longer prefix whose first character is an ASCII
+    letter and whose second character is a colon.
+
+    A47-03/A3: this is the ONE place the drive-letter detection idiom is
+    written; both ``_escapes_outdir()`` (the accept/reject decision) and
+    ``_resolve_output_stem()`` (which needs to know whether to strip a
+    two-character drive prefix before taking the fallback basename) call
+    this rather than each re-deriving the ``len(stem) >= 2 and
+    stem[0].isalpha() and stem[1] == ":"`` check independently -- see
+    ``47-RED-EVIDENCE.md``'s "A3: second path-rejection site search" for
+    why this single-source-of-truth extraction closed the last hit that
+    search found.
+
+    Detected as a pure string shape, on every platform, per D-05's
+    platform-independence principle -- a Windows-authored ``conf.py`` is
+    refused identically on POSIX CI, not just on Windows.
+
+    Args:
+        stem: The already-suffix-stripped ``typst_documents`` target
+            stem (or any string being tested for this shape).
+
+    Returns:
+        True if ``stem`` is drive-qualified, False otherwise.
+
+    Examples:
+        >>> _is_drive_qualified("C:manual")
+        True
+        >>> _is_drive_qualified("manual")
+        False
+    """
+    return len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+
+
 def _escapes_outdir(stem: str) -> bool:
     """Whether a (suffix-stripped) ``typst_documents`` target stem
     attempts to escape the output directory (OUT-02): a parent-traversal
@@ -59,8 +94,7 @@ def _escapes_outdir(stem: str) -> bool:
         True
     """
     segments = stem.replace("\\", "/").split("/")
-    is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
-    return ".." in segments or path.isabs(stem) or is_drive_qualified
+    return ".." in segments or path.isabs(stem) or _is_drive_qualified(stem)
 
 
 def _default_typst_documents(config: Config) -> list:
@@ -255,15 +289,25 @@ class TypstBuilder(Builder):
             # is forbidden.
             stem = target[:-4] if target.endswith(".typ") else target
 
+            # OUT-01: normalize a Windows-authored separator to POSIX
+            # style up front, unconditionally -- a path-bearing target is
+            # now a legitimate output path (relative to outdir), and every
+            # other path this module deals with (docnames, wrapper
+            # relpaths) is already '/'-separated. Doing this once, before
+            # the escape check and the final return, is what makes
+            # "sub\\manual.typ" resolve to the SAME "sub/manual" a
+            # forward-slash-authored target resolves to.
+            stem = stem.replace("\\", "/")
+
             # OUT-02 escape guard: detect a traversal-bearing, absolute,
             # or drive-qualified target BEFORE it reaches
             # path.join(self.outdir, ...). OUT-01 reverses the prior
             # separator-membership term -- a bare path component is no
             # longer, by itself, a guard trigger; see _escapes_outdir().
-            is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+            is_drive_qualified = _is_drive_qualified(stem)
             if _escapes_outdir(stem):
                 fallback_source = stem[2:] if is_drive_qualified else stem
-                fallback = path.basename(fallback_source.replace("\\", "/"))
+                fallback = path.basename(fallback_source)
                 if not fallback.strip():
                     # The path guard's own fallback (a basename) is itself
                     # empty -- e.g. a trailing separator ("sub/manual.typ/"),
@@ -283,6 +327,21 @@ class TypstBuilder(Builder):
                     f"name: {target!r} -- using {fallback!r} instead"
                 )
                 stem = fallback
+            elif "/" in stem and not path.basename(stem).strip():
+                # OUT-01: a path-bearing, non-escaping stem (does not
+                # trip _escapes_outdir) whose final path segment --
+                # its basename -- is itself empty (a trailing
+                # separator, e.g. "sub/manual.typ/") names no file at
+                # all. This is not an OUT-02 escape shape, but writing
+                # a file with an empty name is nonsensical regardless
+                # of OUT-01/OUT-02 -- fall back to the docname the same
+                # way any other degenerate target does (edge: empty),
+                # with exactly the same single warning.
+                logger.warning(
+                    "empty typst_documents target name for docname "
+                    f"{docname!r} -- falling back to {docname!r}"
+                )
+                return docname
         else:
             stem = ""
 
