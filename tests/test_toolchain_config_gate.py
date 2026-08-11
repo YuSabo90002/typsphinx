@@ -111,7 +111,7 @@ def _load_pyproject() -> dict:
             raise AssertionError(
                 f"{PYPROJECT_TOML_PATH} could not be parsed -- tomllib may have "
                 f"encountered a syntax error: {e}"
-            )
+            ) from e
     return data
 
 
@@ -330,7 +330,7 @@ def test_dev_extra_pins_tox_uv_bare_not_tox_uv():
         except Exception as e:
             raise AssertionError(
                 f"Could not parse requirement '{req_string}' in dev extra: {e}"
-            )
+            ) from e
 
     # G5 requirement 1: dev extra MUST contain tox-uv-bare.
     assert canonicalize_name("tox-uv-bare") in dev_names, (
@@ -418,7 +418,7 @@ def test_runtime_dependencies_carry_no_toolchain_package():
         except Exception as e:
             raise AssertionError(
                 f"Could not parse requirement '{req_string}' in dependencies: {e}"
-            )
+            ) from e
 
     assert canonicalize_name("sphinx") in dep_names, (
         "Sphinx not found in [project].dependencies -- this would be a critical break "

@@ -2,6 +2,7 @@
 Tests for TypstBuilder class.
 """
 
+import os
 from pathlib import Path
 
 from docutils import nodes
@@ -375,6 +376,76 @@ def test_copy_image_files_handles_missing_source(temp_sphinx_app):
     # Image should not be copied
     img_dest_file = Path(builder.outdir) / "images" / "nonexistent.png"
     assert not img_dest_file.exists()
+
+
+def test_post_process_images_rehomes_absolute_uri(temp_sphinx_app):
+    """
+    Test that post_process_images() rehomes an absolute image URI.
+
+    Sphinx's ImageConverter/ImageDownloader post-transforms rewrite
+    node["uri"] to an absolute path under <doctreedir>/images/... when an
+    image needs conversion or download (Issue #130). post_process_images()
+    must rewrite node["uri"] to a doctreedir-relative path and track the
+    true absolute location as the self.images value (not "").
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri = os.path.join(builder.doctreedir, "images", "converted.png")
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    builder.post_process_images(doc)
+
+    assert img["uri"] == "images/converted.png"
+    assert builder.images.get("images/converted.png") == abs_uri
+
+
+def test_copy_image_files_uses_override_source_for_absolute_uri(temp_sphinx_app):
+    """
+    Test that copy_image_files() uses the tracked absolute override source.
+
+    Before the fix, ``src = path.join(self.srcdir, imguri)`` and
+    ``dest = path.join(self.outdir, imguri)`` both collapsed to the same
+    absolute path whenever imguri was itself absolute (os.path.join
+    discards the first argument once the second is absolute), producing
+    the "are the same file" warning from Issue #130 and copying nothing.
+    """
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    # The true source lives outside srcdir entirely (e.g. under
+    # <doctreedir>/images/), proving the copy does NOT depend on
+    # path.join(self.srcdir, imguri) resolving correctly.
+    real_src_dir = Path(builder.doctreedir) / "images"
+    real_src_dir.mkdir(parents=True, exist_ok=True)
+    real_src_file = real_src_dir / "converted.png"
+    real_src_file.write_bytes(b"converted image content")
+
+    builder.images["images/converted.png"] = str(real_src_file)
+
+    builder.copy_image_files()
+
+    img_dest_file = Path(builder.outdir) / "images" / "converted.png"
+    assert img_dest_file.exists()
+    assert img_dest_file.read_bytes() == b"converted image content"
 
 
 def test_finish_calls_copy_image_files(temp_sphinx_app):

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Absolute image URIs from Sphinx's image converter/downloader break copy and path resolution
+  (Issue #130)** — building with an image-conversion extension (`sphinxcontrib.rsvgconverter`,
+  `sphinxcontrib.inkscapeconverter`, `sphinx.ext.imgconverter`) or a remote/downloaded image
+  triggers Sphinx's `ImageConverter`/`ImageDownloader` post-transforms, which rewrite the image
+  node's `uri` to an absolute filesystem path under `<doctreedir>/images/...` instead of the usual
+  source-root-relative path. `copy_image_files()` previously joined that absolute URI onto both
+  `srcdir` and `outdir` with `os.path.join()`, which silently discards the first argument once the
+  second is absolute — collapsing source and destination onto the identical path ("are the same
+  file") and copying nothing. The translator's path-adjustment logic then prepended a bogus `../..`
+  depth prefix onto the still-absolute URI, producing a garbled path that made `typst.compile()`
+  abort with "file not found". `TypstBuilder.post_process_images()` now rehomes an absolute resolved
+  URI to a `doctreedir`-relative path and tracks the true absolute source location separately, so
+  `copy_image_files()` copies from the real location to the correct relative destination.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
