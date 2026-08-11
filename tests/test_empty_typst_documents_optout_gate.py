@@ -106,9 +106,9 @@ class TestEmptyTypstDocumentsOptoutGate:
             f"skipped):\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
         content_text = content_typ.read_text(encoding="utf-8")
-        assert "OPTOUTBODY" in content_text, (
-            "Expected the fixture's sentinel body text in index.typ"
-        )
+        assert (
+            "OPTOUTBODY" in content_text
+        ), "Expected the fixture's sentinel body text in index.typ"
         assert "#show: project.with(" not in content_text, (
             f"Expected NO template application in the content file (an "
             f"empty typst_documents produces zero wrapper entries, so "

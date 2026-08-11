@@ -244,8 +244,7 @@ class TestNestedMasterRenderGate:
         )
         content_text = content_output.read_text(encoding="utf-8")
         assert "#show: project.with(" not in content_text, (
-            f"Expected NO template application in the content file:\n"
-            f"{content_text}"
+            f"Expected NO template application in the content file:\n" f"{content_text}"
         )
         assert 'include("usage.typ")' in content_text, (
             f"Expected the content file to carry the sibling include:\n"
@@ -403,9 +402,7 @@ class TestNestedMasterRenderGate:
         # Step 4: GREEN, same build. The UNMODIFIED content file, compiled
         # at its REAL location (outdir/api/index.typ), resolves both
         # references correctly.
-        pdf_bytes = typst.compile(
-            str(content_source), root=str(temp_build_dir_typst)
-        )
+        pdf_bytes = typst.compile(str(content_source), root=str(temp_build_dir_typst))
         assert pdf_bytes.startswith(b"%PDF"), (
             "Expected the UNMODIFIED content file at its REAL location "
             "(outdir/api/index.typ) to compile to a valid PDF -- proving "
@@ -516,9 +513,7 @@ class TestNestedMasterRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_bytes = typst.compile(
-            str(wrapper_output), root=str(temp_build_dir_typst)
-        )
+        pdf_bytes = typst.compile(str(wrapper_output), root=str(temp_build_dir_typst))
         assert pdf_bytes.startswith(b"%PDF"), (
             "Manually compiling the -b typst wrapper output did not "
             f"produce a valid PDF -- got {pdf_bytes[:20]!r}"

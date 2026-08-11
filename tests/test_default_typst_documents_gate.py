@@ -124,8 +124,7 @@ class TestDefaultTypstDocumentsDerivationGate:
 
         content_text = content_typ.read_text(encoding="utf-8")
         assert "#show: project.with(" not in content_text, (
-            f"Expected NO template application in the content file:\n"
-            f"{content_text}"
+            f"Expected NO template application in the content file:\n" f"{content_text}"
         )
         assert "QSDEFAULTBODY" in content_text, (
             f"Expected the fixture's sentinel body text in the "

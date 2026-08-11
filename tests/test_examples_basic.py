@@ -145,19 +145,25 @@ class TestBasicExampleBuild:
             capture_output=True,
         )
 
-        # Check that basic-example.typ was generated
+        # Check that basic-example.typ (the WRAPPER) was generated
         output_file = temp_build_dir / "typst" / "basic-example.typ"
         assert output_file.exists(), "basic-example.typ should be generated"
         assert output_file.is_file(), "basic-example.typ should be a file"
 
-        # The source-docname-derived artifact must NOT be present -- D-08
-        # clean break, no compatibility shim.
+        # Phase 47 (COMP-01): index.typ is now the docname-derived CONTENT
+        # file -- unconditional, alongside the wrapper, carrying no
+        # template application. Pre-Phase-47 this asserted the reverse
+        # (D-08's now-obsolete "clean break" rule -- see
+        # 47-EXPECTED-STRUCTURE.md's OUT-01 reversal notice).
         docname_file = output_file.parent / "index.typ"
-        assert not docname_file.exists(), (
-            "index.typ should not exist -- the emitted artifact must follow "
-            "the typst_documents target name ('basic-example.typ'), not the "
-            "source docname (D-08 clean break)."
+        assert docname_file.exists(), (
+            "index.typ should exist -- the docname-derived content file is "
+            "now unconditional (COMP-01), alongside the target-derived "
+            "wrapper basic-example.typ."
         )
+        assert "#show: project.with(" not in docname_file.read_text(
+            encoding="utf-8"
+        ), "Expected NO template application in the content file."
 
     def test_generated_typ_is_valid(self, basic_example_dir, temp_build_dir):
         """Test that the generated .typ file contains valid Typst markup."""

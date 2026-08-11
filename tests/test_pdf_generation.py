@@ -145,9 +145,7 @@ class TestTypstPDFBuilder:
 
         manuals_dir = tmp_path / "manuals"
         manuals_dir.mkdir()
-        (manuals_dir / "nested.typ").write_text(
-            "= Test Document\n\nNested master.\n"
-        )
+        (manuals_dir / "nested.typ").write_text("= Test Document\n\nNested master.\n")
 
         with patch.object(TypstPDFBuilder.__bases__[0], "finish"):
             with patch("typsphinx.builder.compile_typst_file_to_pdf") as mock_compile:

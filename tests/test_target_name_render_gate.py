@@ -169,9 +169,7 @@ class TestTargetNameRenderGate:
             "unconditionally alongside the target-derived wrapper "
             "output.typ (COMP-01)."
         )
-        assert "#show: project.with(" not in content_typ.read_text(
-            encoding="utf-8"
-        ), (
+        assert "#show: project.with(" not in content_typ.read_text(encoding="utf-8"), (
             "Expected NO template application in the content file -- that "
             "belongs exclusively to the wrapper (output.typ)."
         )
@@ -257,9 +255,9 @@ class TestOut01DirectoryBearingTarget:
             f"Expected the compiled PDF at manuals/guide.pdf:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert wrapper_pdf.read_bytes()[:4] == b"%PDF", (
-            "Expected manuals/guide.pdf to start with the %PDF magic bytes"
-        )
+        assert (
+            wrapper_pdf.read_bytes()[:4] == b"%PDF"
+        ), "Expected manuals/guide.pdf to start with the %PDF magic bytes"
 
         # Content: still at the docname-derived path, unaffected by the
         # target's own directory (COMP-01/OUT-03).
