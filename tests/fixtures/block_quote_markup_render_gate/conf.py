@@ -16,6 +16,10 @@ release = "0.0.0"
 extensions = ["typsphinx"]
 
 # One master document compiled straight to PDF by the typstpdf builder.
+# De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule: a
+# bare "index" target now resolves to the SAME physical path as the
+# unconditional docname-derived content file (index.typ), which would
+# collide -- "master.typ" carries no special meaning here.
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
 ]

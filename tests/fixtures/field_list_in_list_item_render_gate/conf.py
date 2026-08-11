@@ -31,9 +31,12 @@ extensions = [
     "typsphinx",
 ]
 
-# index must be a master document so the writer emits the full template and
-# TypstPDFBuilder.finish() actually compiles it to PDF -- the only build path
+# index's wrapper carries the full template application (D-08) and is what
+# TypstPDFBuilder.finish() actually compiles to PDF -- the only build path
 # where the "expected semicolon or line break" fatal is observable.
+# De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule (a
+# bare "index" target would collide with the unconditional docname-derived
+# content file, index.typ) -- "master.typ" carries no special meaning here.
 typst_documents = [
-    ("index", "index", "Field List In List Item Render Gate", "Test Author"),
+    ("index", "master.typ", "Field List In List Item Render Gate", "Test Author"),
 ]

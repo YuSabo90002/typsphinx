@@ -178,6 +178,13 @@ def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) 
     the real `#show: project.with(...)` call's closing paren and the blank
     line that follows it in `template_engine.py`'s `render()` output.
 
+    R2 (post-Phase-47): the `#import "_template.typ"` line and the
+    `#show: project.with(...)` call this function searches for now live on
+    the WRAPPER file (this fixture's `typst_documents` target,
+    `master.typ`), not the docname-derived content file (`index.typ`,
+    which carries only the D-06 preamble and the translated body) --
+    `base_source` must be the wrapper's own text.
+
     Verified by a real `typst.compile()` probe this session (Task 2's
     required probe): a `#set page(...)` placed at the very TOP of the file
     -- BEFORE `project()`'s own `set page(paper: papersize, ...)` call --
@@ -207,15 +214,24 @@ def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) 
     return base_source[:insertion_idx] + override + base_source[insertion_idx:]
 
 
-def _compile_and_extract_pages(index_typ_path: Path, build_dir: Path) -> list:
+def _compile_and_extract_pages(wrapper_typ_path: Path, build_dir: Path) -> list:
     """
     Insert the short-page-geometry override, compile the probe through the
     real `typst.compile()`, and return a list of per-page extracted text
     (index 0 = first page) -- a real per-page loop over `reader.pages`,
     never the all-pages-joined pattern, so per-page containment can be
     asserted.
+
+    `wrapper_typ_path` is the WRAPPER file (R2/R3: template application and
+    the compile target) -- its own `#include("index.typ")` pulls in the
+    docname-derived content file's body (R1, where the sentinels this
+    module asserts on actually live), unaffected by this override. The
+    probe file is written alongside the wrapper (`build_dir`), so the
+    `#include("index.typ")` and `#import "_template.typ"` paths inside the
+    copied source keep resolving exactly as they did for the real
+    `master.typ`.
     """
-    base_source = index_typ_path.read_text(encoding="utf-8")
+    base_source = wrapper_typ_path.read_text(encoding="utf-8")
     probe_source = _insert_page_override(base_source, PAGE_HEIGHT_PT, PAGE_MARGIN_PT)
     probe_path = build_dir / "sig09_probe.typ"
     probe_path.write_text(probe_source, encoding="utf-8")
@@ -261,9 +277,13 @@ def signature_page_boundary_pages(tmp_path_factory):
     assert (
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-    index_typ = build_dir / "index.typ"
-    assert index_typ.exists(), "index.typ was not generated"
-    return _compile_and_extract_pages(index_typ, build_dir)
+    # R2/R3: the template application (#import "_template.typ" + #show:
+    # project.with(...)) the page-override probe mutates lives on the
+    # wrapper (this fixture's target, "master.typ"), not the
+    # docname-derived content file.
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    return _compile_and_extract_pages(wrapper_typ, build_dir)
 
 
 @pytest.mark.skipif(
