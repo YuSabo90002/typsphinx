@@ -13,9 +13,13 @@
 # bad entries below must stay in this relative order for the gate's
 # ordering assertions to hold:
 #
-#   1. ("index", "index", project, author) -- the ONE VALID master. Its
-#      .typ is generated and it must still produce index.pdf even though
-#      the build overall fails -- D-02's attempt-all-then-raise contract.
+#   1. ("index", "master.typ", project, author) -- the ONE VALID master.
+#      Its target is de-collided per 47-EXPECTED-STRUCTURE.md's fixture
+#      de-collision rule (a bare "index" target would collide with the
+#      unconditional docname-derived content file, index.typ); its
+#      wrapper is still generated and must still produce master.pdf even
+#      though the build overall fails -- D-02's attempt-all-then-raise
+#      contract.
 #   2. ("ghost", "ghost", project, author) -- a docname that is
 #      deliberately NOT a real Sphinx document in this project. There is
 #      no ghost.rst file anywhere in this fixture and "ghost" is never
@@ -50,7 +54,7 @@ copyright = "2026, Test Author"
 extensions = ["typsphinx"]
 
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
     ("ghost", "ghost", project, author),
     (),
 ]

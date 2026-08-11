@@ -219,9 +219,15 @@ class TestPackageOnlyConfigGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        # R2/R3/R4: every assertion in this module is about template
+        # application (the package import, the #show: ieee.with(...) call,
+        # BUG-A..F) or a real compile of a complete document -- all of
+        # which live on the WRAPPER file (this fixture's conf.py target,
+        # "master.typ"), never the docname-derived content file
+        # (index.typ, which carries only the translated body).
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -229,7 +235,7 @@ class TestPackageOnlyConfigGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_bug_a_no_shared_template_reference(self, build):
@@ -375,7 +381,10 @@ class TestPreFixBasisFailureProof:
             f"sphinx-build -b typst failed:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        # The wrapper (this fixture's target, "master.typ") carries the
+        # show-rule call and template/package imports these reconstructions
+        # mutate -- R2/R3.
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return typ_path.read_text(encoding="utf-8")
 
@@ -485,7 +494,9 @@ class TestConfigOutputDifferenceMatrix:
             f"sphinx-build -b typst (baseline) failed:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        # The wrapper (this fixture's target, "master.typ") carries the
+        # template/package routing these comparisons vary -- R2.
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return typ_path.read_text(encoding="utf-8")
 
@@ -504,7 +515,11 @@ class TestConfigOutputDifferenceMatrix:
             f"sphinx-build -b typst (no-package variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        # The variant's typst_documents (copied from the real fixture's
+        # own config, per _load_fixture_conf_values()) still targets
+        # "master.typ" -- the wrapper carries the template/package
+        # routing under comparison here (R2).
+        variant_text = (build_dir / "master.typ").read_text(encoding="utf-8")
 
         assert '#import "@preview/charged-ieee:0.1.4"' in baseline_text
         assert '#import "@preview/charged-ieee:0.1.4"' not in variant_text
@@ -545,7 +560,11 @@ class TestConfigOutputDifferenceMatrix:
             f"sphinx-build -b typst (no-authors-param variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        # The variant's typst_documents (copied from the real fixture's
+        # own config, per _load_fixture_conf_values()) still targets
+        # "master.typ" -- the wrapper carries the template/package
+        # routing under comparison here (R2).
+        variant_text = (build_dir / "master.typ").read_text(encoding="utf-8")
 
         baseline_region = _show_rule_call_region(baseline_text)
         variant_region = _show_rule_call_region(variant_text)
@@ -588,7 +607,11 @@ class TestConfigOutputDifferenceMatrix:
             f"sphinx-build -b typst (changed-param variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        # The variant's typst_documents (copied from the real fixture's
+        # own config, per _load_fixture_conf_values()) still targets
+        # "master.typ" -- the wrapper carries the template/package
+        # routing under comparison here (R2).
+        variant_text = (build_dir / "master.typ").read_text(encoding="utf-8")
 
         assert new_abstract in variant_text
         assert new_abstract not in baseline_text

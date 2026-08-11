@@ -251,8 +251,10 @@ def admonition_render_gate_pdf_text(tmp_path_factory):
     # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except: any
     # fatal aborts the entire compile here and fails every dependent test
     # method loudly, rather than merely failing a string-agreement check.
-    pdf_output = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_output))
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    pdf_output = build_dir / "master.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_output))
 
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -436,8 +438,10 @@ class TestFigureLengthRenderGate:
         # TypstCompilationError must propagate and fail this test loudly --
         # a real compile is the only way to prove the warn+drop unknown-unit
         # (1ex) case didn't also leak a raw unit that would abort the build.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -495,8 +499,10 @@ class TestFigureCaptionRenderGate:
         # Any TypstCompilationError must propagate and fail this test
         # loudly -- this is the only way to prove the internal refid
         # :target: branch actually resolves to a real Typst label anchor.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -576,8 +582,10 @@ class TestGraphvizDegradeRenderGate:
         # loudly -- proving the placeholder rect()/text() emission (and the
         # SkipNode that prevents descending into raw DOT/diagram-spec
         # source) never aborts the compile.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -660,8 +668,10 @@ class TestVersionModifiedRenderGate:
         # Any TypstCompilationError must propagate and fail this test
         # loudly -- this is the only way to prove the classed-inline
         # dispatch never emits invalid Typst source.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -776,8 +786,10 @@ class TestXrefRefidRenderGate:
         # undefined label and Typst aborted the ENTIRE compile here with
         # "label <term-Widget> does not exist" -- so this call is the
         # must-fail-until-fixed guard for the anchor bug.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -887,8 +899,10 @@ class TestDescSignatureRenderGate:
         # this is the crux of the test -- a mismatched desc_optional bracket
         # nesting would abort the ENTIRE compile here (Pitfall 1), not just
         # fail a string-agreement check (Pitfall 9).
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1042,8 +1056,10 @@ class TestTrivialBlocksRenderGate:
         # the transition/glossary/tabular_col_spec/abbreviation handlers
         # that emitted invalid Typst source would abort the ENTIRE compile
         # here (Pitfall 1), not just fail a string-agreement check.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1147,8 +1163,10 @@ def topic_line_block_render_gate_pdf_text(tmp_path_factory):
     # multi-child-title concatenation, leaked markup) aborts the ENTIRE
     # compile here and fails every dependent test method loudly, rather
     # than merely failing a string-agreement check.
-    pdf_output = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_output))
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    pdf_output = build_dir / "master.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_output))
 
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1355,8 +1373,10 @@ def footnote_render_gate_pdf_text(tmp_path_factory):
     # merely failing a string-agreement check. This is the verification that
     # the Plan 14-01 D-08 dangling-refid guard and D-03 emitted-ids set()
     # gate hold under a real compile.
-    pdf_output = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_output))
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    pdf_output = build_dir / "master.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_output))
 
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1583,8 +1603,10 @@ class TestCodlyOffsetRenderGate:
         # 2. Compile the emitted .typ to PDF with typst-py, WITHOUT
         # try/except: a leaked codly(start:...) call must abort the compile
         # here and fail the test loudly (this is the crux of the fatal).
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1738,8 +1760,10 @@ class TestBlockQuoteMarkupModeRenderGate:
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
         # a leaked markup-mode quote[...] body with the ``_t`` literal aborts
         # the compile here with `unclosed delimiter` -- the crux of the fatal.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -1917,8 +1941,10 @@ class TestCodlyConfigLeakRenderGate:
         # before the fix the top-level codly-range(highlight: ...) call aborted
         # the ENTIRE compile here with 'missing argument: start' -- this is the
         # must-fail-until-fixed guard for the invalid-API fatal.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2021,8 +2047,10 @@ class TestTodoRenderGate:
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
         # this is the crux of the test -- any invalid Typst source emitted
         # by visit_todo_node would abort the compile here.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2162,8 +2190,10 @@ class TestManpageRenderGate:
         # this is the crux of the test -- any invalid Typst source emitted
         # by visit_manpage (e.g. a mishandled mode toggle inside the figure
         # caption's markup-mode context) would abort the compile here.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2286,8 +2316,10 @@ class TestFigureFigwidthRenderGate:
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
         # a mismatched block(width: ...)[...] wrapper would abort the
         # compile here (Pitfall 3).
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2347,8 +2379,10 @@ class TestFigureFigwidthRenderGate:
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
         # a missing separator here reproduces the verified CR-01
         # "expected semicolon or line break" parse-abort.
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2449,8 +2483,10 @@ class TestTableWidthRenderGate:
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
         # a mismatched block(width: ...)[...] wrapper would abort the
         # compile here (Pitfall 3).
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(index_typ), output=str(pdf_output))
+        wrapper_typ = temp_build_dir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_typ), output=str(pdf_output))
 
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -2557,8 +2593,10 @@ def captioned_table_render_gate_artifacts(tmp_path_factory):
     # fatal (a captioned table's ids[0] defined twice) would abort the
     # ENTIRE compile here, failing every dependent test method loudly,
     # rather than merely failing a string-agreement check.
-    pdf_output = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_output))
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    pdf_output = build_dir / "master.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_output))
 
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"

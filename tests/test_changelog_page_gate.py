@@ -223,14 +223,17 @@ class TestChangelogIncludeCompilesToPdf:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_path = build_dir / "index.pdf"
+        # R4: the wrapper (target "master.typ", de-collided per
+        # 47-EXPECTED-STRUCTURE.md) is what TypstPDFBuilder.finish()
+        # compiles.
+        pdf_path = build_dir / "master.pdf"
         assert pdf_path.exists(), (
-            f"expected index.pdf to be produced:\n"
+            f"expected master.pdf to be produced:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         pdf_bytes = pdf_path.read_bytes()
         assert pdf_bytes[:4] == b"%PDF", (
-            f"index.pdf does not start with the %PDF magic bytes:\n"
+            f"master.pdf does not start with the %PDF magic bytes:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 

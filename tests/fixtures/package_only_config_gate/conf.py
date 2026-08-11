@@ -43,11 +43,16 @@ copyright = "2026, Fixture Author"
 
 extensions = ["typsphinx"]
 
-# index must be a master document (not merely an included one) so the writer
-# applies the full package-alone template routing rather than the minimal
-# included-document import set.
+# index's wrapper carries the full package-alone template routing (D-08);
+# the unconditional docname-derived content file carries the minimal
+# always-on preamble import set (D-06). De-collided per
+# 47-EXPECTED-STRUCTURE.md's fixture de-collision rule (a bare "index"
+# target would collide with the content file, index.typ) -- "master.typ"
+# carries no special meaning here. NOTE (task 1 <action>): the package-alone
+# route emits no `_template.typ` import at all, so this wrapper's R2
+# assertions are about the `typst_package` import, not a template file.
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
 ]
 
 # The package this fixture pins ALONE -- no typst_template is ever set.

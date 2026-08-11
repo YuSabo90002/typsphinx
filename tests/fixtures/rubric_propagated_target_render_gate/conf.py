@@ -35,11 +35,15 @@ release = "0.0.0"
 
 extensions = ["typsphinx"]
 
-# index must be a master document so the writer emits the full template.
+# index's wrapper carries the full template application (D-08); the
+# unconditional docname-derived content file always carries the body.
+# De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule (a
+# bare "index" target would collide with the content file, index.typ) --
+# "master.typ" carries no special meaning here.
 typst_documents = [
     (
         "index",
-        "index",
+        "master.typ",
         "Rubric Propagated Target Render Gate",
         "typsphinx tests",
     ),

@@ -17,5 +17,11 @@ extensions = [
 # emits the full template plus the gentle-clues @preview import -- included
 # documents only get a minimal import set (see typsphinx/writer.py).
 typst_documents = [
-    ("index", "index", "Admonition Render Gate", "Test Author"),
+    # OUT-01 self-collision (D-01): "index" as the target used to be safe
+    # because pre-Phase-47 output was one file per docname; now every
+    # docname unconditionally gets a content file at its own docname path
+    # (index.typ), so a target that resolves to the SAME path would collide
+    # with it. De-collided per 47-EXPECTED-STRUCTURE.md's fixture
+    # de-collision rule -- "master.typ" carries no special meaning here.
+    ("index", "master.typ", "Admonition Render Gate", "Test Author"),
 ]
