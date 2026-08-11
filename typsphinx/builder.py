@@ -103,6 +103,56 @@ def _escapes_outdir(stem: str) -> bool:
     return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)
 
 
+def _is_usable_typst_documents_entry(entry: tuple) -> bool:
+    """Whether ``entry`` is a well-formed enough ``typst_documents`` tuple
+    to produce a wrapper file (BLD-03).
+
+    This is the SINGLE source of truth for "can this entry produce a
+    wrapper file", consulted by all FOUR sites that resolve a wrapper path
+    for a ``typst_documents`` entry: the collision validator
+    (``_validate_output_path_collisions()``), ``write()``'s D-07 wrapper
+    report, ``_write_typst_files()``'s wrapper loop, and
+    ``TypstPDFBuilder.finish()``. Before this function existed, each of
+    those four sites spelled its own ad-hoc notion of "an entry I can use"
+    -- ``not entry or len(entry) < 2 or not isinstance(entry[0], str)``
+    here, ``entry and entry[0] in docnames`` there, ``entry[0] != docname``
+    elsewhere, ``not doc_tuple`` in ``finish()`` -- and the four spellings
+    drifted apart: the write-phase wrapper loop tolerated a 1-element
+    entry that the collision validator already skipped, so a self-
+    including wrapper silently overwrote the docname's own content file
+    with no warning and no error. This is the BLD-03 gap
+    ``47-11-PLAN.md`` closes -- the drift itself was the defect, not any
+    one site's individual check.
+
+    An entry that fails this predicate is TOLERATED AND SKIPPED at every
+    write-phase site -- it never raises there. Reporting an unusable entry
+    stays split between the validator (a ``logger.warning`` naming the
+    skipped entry, once per build) and ``TypstPDFBuilder.finish()`` (an
+    aggregate ``ExtensionError`` entry, ``-b typstpdf`` only).
+
+    Args:
+        entry: A single element of the ``typst_documents`` config list,
+            of any type -- config values are user-authored and not
+            type-checked by Sphinx itself.
+
+    Returns:
+        False when ``entry`` is falsy (e.g. ``()``), has fewer than two
+        elements (no target), or its first element (the docname) is not a
+        ``str``. True otherwise.
+
+    Examples:
+        >>> _is_usable_typst_documents_entry(())
+        False
+        >>> _is_usable_typst_documents_entry(("index",))
+        False
+        >>> _is_usable_typst_documents_entry((123, "manual.typ"))
+        False
+        >>> _is_usable_typst_documents_entry(("index", "manual.typ"))
+        True
+    """
+    return bool(entry) and len(entry) >= 2 and isinstance(entry[0], str)
+
+
 def _default_typst_documents(config: Config) -> list:
     """Sphinx-native default for ``typst_documents``, mirroring
     ``sphinx.builders.latex.default_latex_documents`` (CONF-08).
@@ -406,16 +456,50 @@ class TypstBuilder(Builder):
         path (D-05).
 
         Folds ``\\`` to ``/`` (so a Windows-authored separator compares
-        identically to a POSIX one) and then ``casefold()``s the result --
-        ``_collision_key("Manual.typ") == _collision_key("manual.typ")``
-        and ``_collision_key("MANUAL") == _collision_key("manual")`` on
-        EVERY platform, with no ``sys.platform`` branch. This is the ONLY
-        place this normalization happens; every collision-map insertion
-        and lookup in ``_validate_output_path_collisions()`` goes through
-        it, so a bare ``==`` on two raw path strings can never creep back
-        in and silently miss a case-only collision on a case-SENSITIVE
-        filesystem (BLD-04's whole point: Linux CI must catch what only a
-        case-INSENSITIVE filesystem would otherwise silently overwrite).
+        identically to a POSIX one), then applies ``posixpath.normpath()``
+        (so a redundant ``./`` prefix, a doubled ``//`` separator, or an
+        embedded ``/./`` segment collapse to the same key as their plain
+        form), and finally ``casefold()``s the result --
+        ``_collision_key("./Manual.typ") == _collision_key("manual.typ")``,
+        ``_collision_key("a//b.typ") == _collision_key("a/b.typ")`` and
+        ``_collision_key("MANUAL") == _collision_key("manual")`` on EVERY
+        platform, with no ``sys.platform`` branch. This is the ONLY place
+        this normalization happens; every collision-map insertion and
+        lookup in ``_validate_output_path_collisions()`` goes through it,
+        so a bare ``==`` on two raw path strings can never creep back in
+        and silently miss a shape-only, separator-only or case-only
+        collision on a filesystem that would treat the two paths as
+        physically identical (BLD-02/BLD-04's whole point: Linux CI must
+        catch what only a case-insensitive filesystem or a naive path
+        comparison would otherwise let through).
+
+        Order matters: normalizing SHAPE before folding CASE keeps this
+        function's existing separator contract intact (``posixpath``
+        functions are ASCII-case-sensitive internally, but every character
+        this function's inputs use is already lowercase-or-uppercase ASCII
+        in the shape-relevant positions -- the separator and ``.``/``..``
+        segments -- so ordering only matters for readability here, not
+        correctness).
+
+        COMPARISON-ONLY, on three measured grounds (T-47-11-01):
+        (a) *Separation* -- this function's return value is used only as a
+        ``dict`` key inside ``_validate_output_path_collisions()``; no
+        write site ever consumes it, and the WRITTEN filename always keeps
+        the user's exact bytes, including case, path shape and Unicode
+        form. Outdir containment remains owned entirely by
+        ``_escapes_outdir()`` on the RESOLVE path, never by this function.
+        (b) *Monotonicity* -- ``posixpath.normpath()`` is a deterministic
+        many-to-one folding, so equal inputs stay equal and the set of
+        detected collisions can only GROW; adding it can never mask a
+        collision the previous (shape-naive) key already detected.
+        (c) *Non-collapse* -- normalization preserves a leading
+        parent-traversal segment (``posixpath.normpath("../x.typ") ==
+        "../x.typ"``) and absolute form
+        (``posixpath.normpath("/abs.typ") == "/abs.typ"``), so it cannot
+        pull an escaping path inside the output directory; a ``..``-
+        bearing, absolute or drive-qualified target is refused earlier, by
+        ``_escapes_outdir()`` inside ``_resolve_target_stem()``, before its
+        relpath ever reaches this function at all.
 
         Deliberately does NOT apply Unicode normalization (NFC/NFD): two
         canonically-equivalent but differently-encoded strings (e.g. the
@@ -427,7 +511,7 @@ class TypstBuilder(Builder):
 
         Args:
             relative_path: An outdir-relative output path (e.g.
-                ``"manual.typ"``, ``"sub/guide.typ"``).
+                ``"manual.typ"``, ``"sub/guide.typ"``, ``"./manual.typ"``).
 
         Returns:
             The comparison-only key for ``relative_path``.
@@ -437,8 +521,14 @@ class TypstBuilder(Builder):
             True
             >>> TypstBuilder._collision_key("MANUAL") == TypstBuilder._collision_key("manual")
             True
+            >>> TypstBuilder._collision_key("./manual.typ") == TypstBuilder._collision_key("manual.typ")
+            True
+            >>> TypstBuilder._collision_key("a//b.typ") == TypstBuilder._collision_key("a/b.typ")
+            True
         """
-        return relative_path.replace("\\", "/").casefold()
+        folded_separators = relative_path.replace("\\", "/")
+        normalized_shape = posixpath.normpath(folded_separators)
+        return normalized_shape.casefold()
 
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's
@@ -464,11 +554,17 @@ class TypstBuilder(Builder):
         failure rather than raising immediately, so every offending entry
         is named in a SINGLE ``ExtensionError`` (D-02).
 
-        A malformed entry (empty tuple, fewer than two elements, or a
-        non-``str`` docname) is skipped without raising and without being
-        added to the map -- reporting a malformed entry stays
-        ``TypstPDFBuilder.finish()``'s job alone, matching the tolerance
-        the existing guard loops already have.
+        An unusable entry (per ``_is_usable_typst_documents_entry()`` --
+        an empty tuple, fewer than two elements, or a non-``str``
+        docname) is skipped without raising and without being added to
+        the map, but DOES get a ``logger.warning`` naming its index and
+        ``repr()`` and stating it produces no wrapper file -- this is the
+        ONE place that warning is emitted, since this method runs exactly
+        once per build (unlike ``_write_typst_files()``'s per-docname
+        wrapper loop, which would otherwise repeat it N times).
+        Aggregating the skipped entry into a failing ``ExtensionError``
+        still stays ``TypstPDFBuilder.finish()``'s job alone, matching the
+        tolerance the existing write-phase guards already have.
 
         Two entries naming the SAME docname with DIFFERENT targets are
         explicitly allowed (D-04): each resolves an independent wrapper
@@ -518,10 +614,17 @@ class TypstBuilder(Builder):
         #    to two independent keys instead of colliding with itself.
         typst_documents = getattr(self.config, "typst_documents", []) or []
         for index, entry in enumerate(typst_documents):
-            if not entry or len(entry) < 2 or not isinstance(entry[0], str):
-                # Malformed -- skip without raising or reporting. That
-                # tolerance matches the existing guard loops; reporting a
-                # malformed entry stays TypstPDFBuilder.finish()'s job.
+            if not _is_usable_typst_documents_entry(entry):
+                # Unusable -- skip without raising. Reporting it as a
+                # build FAILURE stays TypstPDFBuilder.finish()'s job, but
+                # this is the one place (once per build, not once per
+                # docname) that warns about it at all -- BLD-03's own
+                # "silence about a skipped entry" prohibition.
+                logger.warning(
+                    f"typst_documents entry {index} ({entry!r}) produces "
+                    "no wrapper file -- entry has no target element or "
+                    "a non-str docname"
+                )
                 continue
             docname = entry[0]
             target = entry[1]
@@ -679,12 +782,16 @@ class TypstBuilder(Builder):
         # content file from a wrapper -- `-b typstpdf` already emits its
         # own "Compiling N master document(s)"/"Generated PDF" lines;
         # this is the missing symmetric message on the markup-only
-        # builder.
+        # builder. The _is_usable_typst_documents_entry() filter (BLD-03)
+        # is what keeps this report from ever naming a path for an entry
+        # the write-phase wrapper loop actually skipped -- a fourth
+        # drift site 47-VERIFICATION.md did not enumerate: without it
+        # this report would claim a wrapper file that was never written.
         typst_documents = getattr(self.config, "typst_documents", []) or []
         wrapper_relpaths = sorted(
             self._wrapper_output_relpath(entry) + ".typ"
             for entry in typst_documents
-            if entry and entry[0] in docnames
+            if _is_usable_typst_documents_entry(entry) and entry[0] in docnames
         )
         if wrapper_relpaths:
             logger.info(
@@ -893,9 +1000,15 @@ class TypstBuilder(Builder):
         # Write a WRAPPER file for every typst_documents entry naming
         # this docname (D-04: two entries may name the same docname,
         # each producing its own wrapper -- see D-08 for title/author).
+        # This is the ACTUAL data-destruction site BLD-03 closes: before
+        # _is_usable_typst_documents_entry() existed, this loop's guard
+        # tolerated a 1-element entry (`entry[0] != docname` alone) that
+        # the collision validator already skipped, so a self-including
+        # wrapper was written directly OVER the docname's own content
+        # file this method just wrote above.
         typst_documents = getattr(self.config, "typst_documents", []) or []
         for entry in typst_documents:
-            if not entry or entry[0] != docname:
+            if not _is_usable_typst_documents_entry(entry) or entry[0] != docname:
                 continue
             wrapper_relpath = self._wrapper_output_relpath(entry)
             wrapper_destination = path.normpath(
@@ -1317,6 +1430,22 @@ class TypstPDFBuilder(TypstBuilder):
                 )
                 logger.warning(message)
                 failures.append((repr(docname), message))
+                continue
+            # BLD-03: the one remaining way _is_usable_typst_documents_entry()
+            # can return False here -- doc_tuple is truthy and its docname
+            # is a str (both already checked above), so this can only be
+            # the "fewer than two elements" case, i.e. no target element
+            # at all. Checked via the SAME predicate the collision
+            # validator, the D-07 report and the write-phase wrapper loop
+            # all consult, so this branch and those three sites can never
+            # again independently drift on what counts as usable.
+            if not _is_usable_typst_documents_entry(doc_tuple):
+                message = (
+                    f"typst_documents entry {doc_tuple!r} has no target "
+                    "element -- expected at least a (docname, target) pair"
+                )
+                logger.warning(message)
+                failures.append((docname, message))
                 continue
             # Resolve the WRAPPER's outdir-relative path ONCE, through the
             # same _wrapper_output_relpath() the write phase used, so the

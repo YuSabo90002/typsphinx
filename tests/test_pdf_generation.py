@@ -405,13 +405,21 @@ class TestPDFErrorHandling:
             "Master document not found" not in message
         ), "the two D-04 branches must never emit colliding message text"
 
-    def test_builder_appends_failure_for_malformed_entry_but_not_short_entry(
+    def test_builder_appends_failure_for_malformed_entry_and_short_entry(
         self, temp_sphinx_app, tmp_path
     ):
-        """D-05, D-07 (empty and single-element edges): a falsy entry such as
-        `()` is malformed and fails the build, but a 1-element entry such as
-        `("valid",)` is NOT malformed and resolves its stem from the
-        docname."""
+        """BLD-03 (Phase 47 gap-closure plan 11, REVERSES this test's own
+        pre-fix name/assertions): a falsy entry such as `()` is malformed
+        and fails the build, and a 1-element entry such as `("valid",)` is
+        now ALSO a failure -- `_is_usable_typst_documents_entry()` (the
+        single predicate all four wrapper-path-resolving sites now share)
+        rejects any entry with fewer than two elements, so `finish()`
+        reports "has no target element" instead of silently falling the
+        stem back to the docname and compiling whatever `.typ` happens to
+        already sit there. The pre-fix version of this test asserted the
+        exact silent-fallback behavior that let a 1-element entry's
+        write-phase wrapper self-collide with and destroy its own
+        docname's content file -- the BLD-03 defect this plan closes."""
         from typsphinx.builder import TypstPDFBuilder
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
@@ -426,16 +434,21 @@ class TestPDFErrorHandling:
             builder.finish()
 
         message = str(exc_info.value)
-        assert "1 master document(s) failed" in message, (
-            "only the empty-tuple entry is malformed; the 1-element entry "
-            "must not also be counted as a failure"
+        assert "2 master document(s) failed" in message, (
+            "both the empty-tuple entry and the now-unusable 1-element "
+            "entry must be counted as failures"
         )
         assert (
             "(): malformed typst_documents entry" in message
         ), "the malformed entry's identifier must be the entry's own repr"
-        assert (tmp_path / "valid.pdf").exists(), (
-            "a 1-element entry is not malformed and must still compile, "
-            "with its stem falling back to the docname"
+        assert "has no target element" in message, (
+            "the 1-element entry's failure message must state it has no "
+            "target element"
+        )
+        assert not (tmp_path / "valid.pdf").exists(), (
+            "a 1-element entry produces no wrapper file (BLD-03) -- it "
+            "must not be compiled even though a same-named .typ happens "
+            "to pre-exist on disk"
         )
 
     def test_aggregate_message_lists_failures_in_typst_documents_order(
