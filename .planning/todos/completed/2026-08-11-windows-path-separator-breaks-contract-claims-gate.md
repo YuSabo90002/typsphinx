@@ -61,3 +61,18 @@ versions, lint, type, coverage, build, both integration jobs) passed; only the t
 - `tests/test_docs_contract_claims_gate.py::TestContractClaimPageEnumerationIsClosed` passes on a
   real Windows CI run (both `py312` and `py313`).
 - No other test in this module regresses on any platform.
+
+## Resolution (2026-08-11)
+
+Resolved by Phase 46 plan 46-01 (D-22): `_discovered_claim_pages()` at
+`tests/test_docs_contract_claims_gate.py:170` now calls `.as_posix()` on the
+`relative_to()` result, so the comparison against `REVIEWED_CLAIM_PAGES`/
+`EXCLUDED_CLAIM_PAGES` is platform-independent, exactly as this record's "Acceptance"
+section specified. Proven on a real Windows CI run, not merely locally (backslash path
+rendering is Windows `pathlib` behaviour and cannot be reproduced on a Linux executor):
+D-23 run 1, `RUN_ID=31456868265` (`46-CI-EVIDENCE.md` § "D-23 run 1 — the Windows check
+run", commit `07b9afd`), both `Test Python 3.12 on windows-latest` and
+`Test Python 3.13 on windows-latest` report `success`, against a baseline (run
+`31445582363`) where those were the only two failing jobs. No other test in the module
+regressed — all twelve CI jobs on that run report `success`. Filed to
+`todos/completed/` by Phase 46 plan 46-06, Task 3.

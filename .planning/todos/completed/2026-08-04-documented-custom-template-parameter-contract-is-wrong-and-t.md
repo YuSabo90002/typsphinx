@@ -90,3 +90,17 @@ minimal case). That constraint should be recorded wherever the template contract
 
 A regression test is worth adding either way — build a project whose custom template declares only
 the documented parameters and assert the documented contract holds.
+
+## Resolution (2026-08-11)
+
+Delivered by Phase 45.1 plan 06 (DOC-13), re-measured and confirmed by Phase 46 plan 46-06
+(Task 3) rather than carried forward on trust. `45.1-06-SUMMARY.md`'s own frontmatter records
+`requirements-completed: [DOC-13, CONF-10, CONF-11, CONF-12]`, and its SC#1/SC#3 accomplishment
+line states: "`tests/fixtures/documented_params_contract_gate/` builds `templates.rst`'s 'Basic
+Structure' example verbatim ... over a master with a real `:maxdepth: 3 :numbered: :caption:`
+toctree AND a real `typst_elements` setting", locked by the permanent regression gate
+`tests/test_documented_params_contract_gate.py`, RED-proved against the pre-45.1-01 commit
+(`e6d19cfe4c078bf691877090cf6f1b0bd09ee5c0`) in a detached worktree and GREEN today. This is
+solution route 1 named above (fix the documentation to declare the toctree parameters,
+implemented alongside the D-B exclusivity mechanism from plan 45.1-01) plus a permanent gate —
+not a documentation-only patch. Filed to `todos/completed/` by Phase 46 plan 46-06, Task 3.
