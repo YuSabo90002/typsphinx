@@ -176,8 +176,8 @@ class TestCollisionValidatorGate:
             COLLISION_ERROR_SUBSTRING in combined_output
         ), f"Expected the collision-error substring:\n{combined_output}"
         assert not (build_dir / "index.typ").exists(), (
-            f"D-01 + D-02: expected NO index.typ written when the wrapper "
-            f"self-collides with its own content file"
+            "D-01 + D-02: expected NO index.typ written when the wrapper "
+            "self-collides with its own content file"
         )
 
     def test_bld03_self_collision_rejected_typstpdf(self, tmp_path):

@@ -5,7 +5,6 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
-import os
 import posixpath
 import shutil
 from collections.abc import Iterator
@@ -94,7 +93,14 @@ def _escapes_outdir(stem: str) -> bool:
         True
     """
     segments = stem.replace("\\", "/").split("/")
-    return ".." in segments or path.isabs(stem) or _is_drive_qualified(stem)
+    # posixpath.isabs(), not path.isabs(): this function's own contract is
+    # platform-independent (D-05) -- the OS-native `path` (== ntpath on a
+    # Windows CI runner) disagrees with posixpath on which of these shapes
+    # count as absolute (e.g. ntpath.isabs("/abs/manual") is False, since
+    # ntpath requires a drive letter or a UNC-style leading "//"), which
+    # would let a POSIX-shaped escape target through unrefused on Windows.
+    # Measured on the windows-latest CI lane, 47-10/T2.
+    return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)
 
 
 def _default_typst_documents(config: Config) -> list:
@@ -304,7 +310,7 @@ class TypstBuilder(Builder):
             absolute path, or a drive-qualified path -- OUT-02) or is
             empty/whitespace/non-str after suffix stripping, a
             ``logger.warning`` is emitted and a safe fallback is returned
-            instead -- ``path.basename`` of the offending stem for an
+            instead -- ``posixpath.basename`` of the offending stem for an
             escaping target, or the docname itself for a degenerate
             target (edge: empty).
         """
@@ -332,7 +338,15 @@ class TypstBuilder(Builder):
             is_drive_qualified = _is_drive_qualified(stem)
             if _escapes_outdir(stem):
                 fallback_source = stem[2:] if is_drive_qualified else stem
-                fallback = path.basename(fallback_source)
+                # posixpath.basename(), not path.basename(): `stem` was
+                # already forward-slash-normalized above, and ntpath's
+                # basename disagrees with posixpath's for a UNC-shaped
+                # "//escape" stem (ntpath.basename returns '', posixpath
+                # returns 'escape') -- on Windows that empty fallback used
+                # to mis-route into the docname fallback below, colliding
+                # with the docname's own content file. Measured on the
+                # windows-latest CI lane, 47-10/T2.
+                fallback = posixpath.basename(fallback_source)
                 if not fallback.strip():
                     # The path guard's own fallback (a basename) is itself
                     # empty -- e.g. a trailing separator ("sub/manual.typ/"),
@@ -352,7 +366,7 @@ class TypstBuilder(Builder):
                     f"name: {target!r} -- using {fallback!r} instead"
                 )
                 stem = fallback
-            elif "/" in stem and not path.basename(stem).strip():
+            elif "/" in stem and not posixpath.basename(stem).strip():
                 # OUT-01: a path-bearing, non-escaping stem (does not
                 # trip _escapes_outdir) whose final path segment --
                 # its basename -- is itself empty (a trailing
