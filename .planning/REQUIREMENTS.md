@@ -158,40 +158,50 @@ Not requirements — decisions each owning phase must close with measurement.
 
 ## Traceability
 
-Filled during roadmap creation.
+Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
-| COMP-05 | — | Pending |
-| COMP-06 | — | Pending |
-| COMP-07 | — | Pending |
-| COMP-08 | — | Pending |
-| COMP-09 | — | Pending |
-| COMP-10 | — | Pending |
-| COMP-11 | — | Pending |
-| COMP-12 | — | Pending |
-| OUT-01 | — | Pending |
-| OUT-02 | — | Pending |
-| OUT-03 | — | Pending |
-| XREF-03 | — | Pending |
-| XREF-04 | — | Pending |
-| BLD-02 | — | Pending |
-| BLD-03 | — | Pending |
-| BLD-04 | — | Pending |
-| IMG-01 | — | Pending |
-| IMG-02 | — | Pending |
-| DOC-14 | — | Pending |
-| REL-07 | — | Pending |
+| COMP-01 | Phase 47 | Pending |
+| COMP-02 | Phase 47 | Pending |
+| COMP-03 | Phase 47 | Pending |
+| COMP-04 | Phase 47 | Pending |
+| COMP-05 | Phase 49 | Pending |
+| COMP-06 | Phase 49 | Pending |
+| COMP-07 | Phase 49 | Pending |
+| COMP-08 | Phase 49 | Pending |
+| COMP-09 | Phase 49 | Pending |
+| COMP-10 | Phase 49 | Pending |
+| COMP-11 | Phase 49 | Pending |
+| COMP-12 | Phase 49 | Pending |
+| OUT-01 | Phase 47 | Pending |
+| OUT-02 | Phase 47 | Pending |
+| OUT-03 | Phase 47 | Pending |
+| XREF-03 | Phase 48 | Pending |
+| XREF-04 | Phase 48 | Pending |
+| BLD-02 | Phase 47 | Pending |
+| BLD-03 | Phase 47 | Pending |
+| BLD-04 | Phase 47 | Pending |
+| IMG-01 | Phase 50 | Pending |
+| IMG-02 | Phase 50 | Pending |
+| DOC-14 | Phase 51 | Pending |
+| REL-07 | Phase 52 | Pending |
 
 **Coverage:**
 - v1 requirements: 24 total
-- Mapped to phases: 0
-- Unmapped: 24 ⚠️
+- Mapped to phases: 24 ✓
+- Unmapped: 0
+
+Every v1 requirement maps to exactly one phase; no requirement appears in two phases. Phase
+distribution: Phase 47 — 10 (COMP-01..04, OUT-01..03, BLD-02..04); Phase 48 — 2 (XREF-03, XREF-04);
+Phase 49 — 8 (COMP-05..12); Phase 50 — 2 (IMG-01, IMG-02); Phase 51 — 1 (DOC-14); Phase 52 — 1
+(REL-07).
+
+The five "Open Questions for Planning" above are **not** requirements, carry no REQ-IDs, and are not
+counted here. Each is assigned to the phase that must close it by measurement: #3 (B-2's RED state),
+#4 (CR-01 self-collision policy) and #5 (case-normalization scope) → Phase 47; #1
+(`translator.py:4291`'s nature) → Phase 48; #2 (`:numref:` divergence) → Phase 49.
 
 ---
 *Requirements defined: 2026-08-11*
-*Last updated: 2026-08-11 after initial definition*
+*Last updated: 2026-08-11 - traceability filled at roadmap creation (Phases 47-52)*

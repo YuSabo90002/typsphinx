@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
 status: planning
-last_updated: "2026-08-11T07:10:46.039Z"
+last_updated: "2026-08-11T12:00:00.000Z"
 last_activity: 2026-08-11
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,18 +20,58 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-11 at the v0.7.1 milestone close — full evolution review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.7.1 shipped 2026-08-11. Scope the next milestone with `/gsd-new-milestone`.
-**19/19** v1 requirements complete with zero orphans and zero known gaps. `.planning/REQUIREMENTS.md`
-has been removed; the milestone's final state is archived at
-`.planning/milestones/v0.7.1-REQUIREMENTS.md`. Phase numbering continues at **47**.
-Next action: `/gsd-new-milestone`
+**Current focus:** v0.8.0 multi-master composition — Phase 47, Two-Layer Output (content/wrapper
+split, target-as-path, collision detection). A `typst_documents` configuration declaring more than one
+master must produce a complete PDF for each of them: no silently dropped content, no compile failure.
+Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
+Next action: `/gsd-plan-phase 47`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-11 — Milestone v0.8.0 started
+Phase: 47 of 52 (Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection)
+Plan: — (none planned yet)
+Status: Ready to plan
+Last activity: 2026-08-11 — v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0% (0/6 phases)
+
+## Active Milestone (v0.8.0 — multi-master composition)
+
+**Goal:** move the unit of composition from "one `.typ` shared by every master, with the include
+decision baked in at write time" to "per-master wrapper files that publish their include edge set as
+Typst `state`, plus template-less docname-named content files that emit state-guarded includes at the
+toctree's own position" — cutting the single root B-1, B-2 and defect A all grow from.
+
+**Six phases, executing 47 → 48 → 49 → 50 → 51 → 52:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 47 | Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | COMP-01..04, OUT-01..03, BLD-02..04 (10) |
+| 48 | Compile-Time Cross-Reference Guard | XREF-03, XREF-04 (2) |
+| 49 | Per-Master Include Graph with State-Guarded Includes | COMP-05..12 (8) |
+| 50 | PR #131 Image Path Defects | IMG-01, IMG-02 (2) |
+| 51 | Two-Layer Output Documentation | DOC-14 (1) |
+| 52 | v0.8.0 Release Prep (prep-only) | REL-07 (1) |
+
+**The one hard ordering constraint: 48 must land no later than 49.** Fixing the include graph turns a
+currently-silent content omission into a hard `label ... does not exist in the document` compile
+abort for any shared document referencing a target present in one master but not another. Shipping the
+graph first produces builds that fail outright. These two phases are **not** independently
+parallelizable, in either direction.
+
+**Milestone invariant #5 is Phase 47's SC#5.** `gsd/v0.8.0-multi-master-composition` exists locally
+with planning commits and has **not** been pushed. It reaches `origin` in Phase 47, not at the release
+PR — the discipline that paid immediately in v0.7.1, and whose absence cost v0.7.0 two defects. This
+milestone raises the stakes: the case-insensitive-filesystem collision gap (research Pitfall 5) is
+structurally invisible on Linux-only local runs.
+
+**Phase 52 is prep-only** — version bump, curated CHANGELOG, evidence, handoff checklist, zero
+irreversible action. REL-07 closes at `/gsd-complete-milestone`, not in the phase.
+
+**Five open questions are assigned, not mapped.** They carry no REQ-IDs and are not counted in
+coverage: B-2's RED state, the CR-01 self-collision policy and the case-normalization scope close in
+Phase 47; `translator.py:4291`'s nature closes in Phase 48; the `:numref:` project-wide-vs-per-wrapper
+divergence closes in Phase 49, on a live two-master fixture — no compile error catches that one.
 
 ## Shipped Milestone (v0.7.1 — archived)
 
@@ -534,6 +574,29 @@ evidence.
 - Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
 - Phase 45.2 inserted after Phase 45: Local Toolchain Repair — tox-uv to tox-uv-bare (QUA-04); tox is non-functional locally (every env exits 127) and 13 test modules fail under the mandated outer uv run; one dependency name; coverage 18/18 -> 19/19; no CHANGELOG callout (URGENT)
 
+- **2026-08-11** — v0.8.0 roadmap created: **Phases 47-52**, 24/24 v1 requirements mapped, zero
+  orphans, zero duplicates. Derived from this milestone's own `REQUIREMENTS.md`;
+  `research/SUMMARY.md`'s build order was adopted for its **sequence** but not its labels (it proposes
+  "Phase 47.1 … 47.6", and in this project decimals are reserved for phases *inserted* mid-milestone).
+  Three deliberate divergences from the suggested structure: **(a)** the BLD-02/03/04 collision work
+  is folded **into** Phase 47 rather than run later, because the split is what creates the
+  self-collision hazard — with target-as-path in the same phase, the common `("index", "index.typ")`
+  config collides immediately, and deferring the guard would ship a phase whose most common
+  configuration is silently wrong; **(b)** OUT-01..03 ride with Phase 47, because B-1's fix *is*
+  "compute include paths from the wrapper's resolved location", the same computation OUT-01 changes;
+  **(c)** COMP-12's full-corpus GATE-02 pass stays inside the composition phase, per PROJECT.md's
+  explicit instruction to treat a convergence failure there as a design-level finding. Also recorded:
+  `research/ARCHITECTURE.md` predates PROJECT.md's design decision and proposes a **flattened**
+  wrapper-side include graph — measured, rejected (it breaks document-order interleaving) and
+  superseded by the state-guarded form. Its file:line integration inventory remains authoritative;
+  its build-order flattening proposal does not.
+
+- **2026-08-11** — OUT-01 is recorded in the roadmap as a deliberate **reversal** of v0.7.1 Phase 44's
+  D-05/D-06/D-07 (a path in a target rejected and truncated to its basename; a nested docname's output
+  forced into its own directory). OUT-02 keeps the security half of the same guards. The precedent is
+  Phase 44.2 reversing Phase 44's D-02 within v0.7.1 — the phase that owns OUT-01 must state the
+  reversal so the executor does not treat the existing guard code as sacred.
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -596,13 +659,16 @@ Items acknowledged and carried forward from milestone closes:
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-11 — `/gsd-complete-milestone` for v0.7.1.
-Stopped at: milestone shipped, published to PyPI, and archived.
-Resume: `/gsd-new-milestone` (defines a fresh `REQUIREMENTS.md`; phase numbering continues at 47).
+Last session: 2026-08-11 — v0.8.0 roadmap created (Phases 47-52).
+Stopped at: roadmap written, `REQUIREMENTS.md` traceability filled (24/24 mapped, zero orphans).
+Resume: `/gsd-plan-phase 47`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
 including item 5 (Read the Docs `stable`), confirmed by the owner and re-measured live 2026-08-11.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan the first phase with /gsd-plan-phase 47
+- Phase 47 pushes `gsd/v0.8.0-multi-master-composition` to `origin` (milestone invariant #5) — the
+  branch is local-only today, and this milestone's platform-dependent collision hazards do not show up
+  on Linux.
