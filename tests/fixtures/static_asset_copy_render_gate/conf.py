@@ -29,6 +29,12 @@ html_static_path = ["_static"]
 # index must be a master document (not merely an included one) so the writer
 # emits the full template and TypstPDFBuilder.finish() actually compiles it to
 # PDF -- the only build path where the missing-asset fatal is observable.
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", "Static Asset Copy Render Gate", "Test Author"),
+    ("index", "master.typ", "Static Asset Copy Render Gate", "Test Author"),
 ]

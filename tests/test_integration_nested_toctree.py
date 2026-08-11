@@ -151,7 +151,10 @@ class TestNestedToctreeIntegration:
             capture_output=True,
         )
 
-        # Read generated index.typ
+        # Read generated index.typ -- the CONTENT file (docname-derived,
+        # unchanged by the content/wrapper split, R1/R5): a toctree
+        # #include() is emitted where its own doctree is translated,
+        # regardless of what this docname's own wrapper target is.
         index_typ = temp_build_dir / "index.typ"
         assert index_typ.exists(), "index.typ was not generated"
 
@@ -161,6 +164,41 @@ class TestNestedToctreeIntegration:
         assert (
             'include("chapter1/index.typ")' in content
         ), 'Expected include("chapter1/index.typ") not found in root index'
+
+    def test_root_wrapper_has_exactly_one_include_of_its_content(
+        self, nested_toctree_dir, temp_build_dir
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ") -- the toctree's
+        OWN includes stay on the content file per R5 and must not also
+        appear on the wrapper.
+        """
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "sphinx-build",
+                "-b",
+                "typst",
+                str(nested_toctree_dir),
+                str(temp_build_dir),
+            ],
+            capture_output=True,
+        )
+
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
+
+        content = master_typ.read_text()
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'
 
 
 class TestMultiLevelNestedToctree:
@@ -229,6 +267,39 @@ class TestMultiLevelNestedToctree:
             'include("section2.typ")' in content
         ), 'Expected relative path include("section2.typ") not found'
 
+    def test_root_wrapper_has_exactly_one_include_of_its_content(
+        self, multi_level_dir, temp_build_dir
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ").
+        """
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "sphinx-build",
+                "-b",
+                "typst",
+                str(multi_level_dir),
+                str(temp_build_dir),
+            ],
+            capture_output=True,
+        )
+
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
+
+        content = master_typ.read_text()
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'
+
 
 class TestSiblingDirectoryReferences:
     """Test cross-directory toctree references (Task 4.3)."""
@@ -293,6 +364,39 @@ class TestSiblingDirectoryReferences:
             'include("../chapter2/doc2.typ")' in content
         ), 'Expected relative path include("../chapter2/doc2.typ") not found'
 
+    def test_root_wrapper_has_exactly_one_include_of_its_content(
+        self, sibling_dir, temp_build_dir
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ").
+        """
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "sphinx-build",
+                "-b",
+                "typst",
+                str(sibling_dir),
+                str(temp_build_dir),
+            ],
+            capture_output=True,
+        )
+
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
+
+        content = master_typ.read_text()
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'
+
 
 @pytest.mark.skipif(not TYPST_AVAILABLE, reason="typst-py not installed")
 class TestE2ETypstCompilation:
@@ -324,14 +428,18 @@ class TestE2ETypstCompilation:
         )
         assert result.returncode == 0, f"Sphinx build failed: {result.stderr}"
 
-        # Compile root index.typ to PDF
-        index_typ = temp_build_dir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
+        # Compile the root WRAPPER (this fixture's typst_documents target,
+        # "master.typ") to PDF -- Phase 47 (R3/R4): only a wrapper is a
+        # complete, self-contained document (template application +
+        # #include() of its own content file); the content file
+        # ("index.typ") carries no template and is not a compile target.
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
 
         # Compile using typst-py
-        typst.compile(str(index_typ), output=str(pdf_output))
+        typst.compile(str(master_typ), output=str(pdf_output))
 
         # Verify PDF was created
         assert pdf_output.exists(), "PDF file was not created"
@@ -364,14 +472,16 @@ class TestE2ETypstCompilation:
         )
         assert result.returncode == 0, f"Sphinx build failed: {result.stderr}"
 
-        # Compile root index.typ to PDF
-        index_typ = temp_build_dir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
+        # Compile the root WRAPPER (this fixture's typst_documents target,
+        # "master.typ") to PDF -- Phase 47 (R3/R4): only a wrapper is a
+        # complete, self-contained document.
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
 
         # Compile using typst-py
-        typst.compile(str(index_typ), output=str(pdf_output))
+        typst.compile(str(master_typ), output=str(pdf_output))
 
         # Verify PDF was created
         assert pdf_output.exists(), "PDF file was not created"
@@ -399,14 +509,16 @@ class TestE2ETypstCompilation:
         )
         assert result.returncode == 0, f"Sphinx build failed: {result.stderr}"
 
-        # Compile root index.typ to PDF
-        index_typ = temp_build_dir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
+        # Compile the root WRAPPER (this fixture's typst_documents target,
+        # "master.typ") to PDF -- Phase 47 (R3/R4): only a wrapper is a
+        # complete, self-contained document.
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
 
         # Compile using typst-py
-        typst.compile(str(index_typ), output=str(pdf_output))
+        typst.compile(str(master_typ), output=str(pdf_output))
 
         # Verify PDF was created
         assert pdf_output.exists(), "PDF file was not created"

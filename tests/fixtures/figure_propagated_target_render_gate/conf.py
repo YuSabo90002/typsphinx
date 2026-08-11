@@ -33,8 +33,14 @@ extensions = ["typsphinx"]
 # index must be a master document so the writer emits the full template and
 # TypstPDFBuilder.finish() calls typst.compile() -- without this the gate
 # proves nothing (it would only emit .typ, never compile it).
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed.
 typst_documents = [
-    ("index", "index", "Figure Propagated Target Render Gate", "typsphinx tests"),
+    ("index", "master.typ", "Figure Propagated Target Render Gate", "typsphinx tests"),
 ]
 
 numfig = True
