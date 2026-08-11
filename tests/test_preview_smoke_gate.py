@@ -102,11 +102,47 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
 
     index_typ = temp_build_dir / "index.typ"
     assert index_typ.exists(), "index.typ was not generated"
+    index_text = index_typ.read_text(encoding="utf-8")
 
-    # 2. Compile the emitted .typ to PDF with typst-py. No try/except
-    # wrapper: an uncaught typst.TypstError (e.g. "unknown variable: kai")
-    # is the intended, loudest failure signal -- it fails the test with
-    # the real Typst error message in the traceback.
+    # R1 (post-Phase-47, per 47-EXPECTED-STRUCTURE.md's read_first note for
+    # this module): D-06 makes the four @preview imports plus the codly
+    # init/config calls unconditional on the docname-derived CONTENT file,
+    # regardless of whether that docname is ALSO named by a typst_documents
+    # entry (this fixture's own "index" docname is -- its wrapper target is
+    # "master.typ"). Before the content/wrapper split, this same docname
+    # would have reached these calls through the TEMPLATE route instead of
+    # the minimal-import "included document" route; this is a NEW
+    # assertion, derived from D-06 itself rather than from observed output,
+    # proving that route no longer matters -- the content file always
+    # carries them.
+    for expected_import in (
+        '#import "@preview/codly:1.3.0": *',
+        '#import "@preview/codly-languages:0.1.10": *',
+        '#import "@preview/mitex:0.2.7": mi, mitex',
+        '#import "@preview/gentle-clues:1.3.1": *',
+    ):
+        assert expected_import in index_text, (
+            f"Expected {expected_import!r} in the content file (index.typ) "
+            "even though its docname is also a typst_documents entry -- "
+            f"D-06 unconditional-preamble regression:\n{index_text}"
+        )
+    assert "#show: codly-init.with()" in index_text, (
+        "Expected the codly initialisation show-rule in the content file "
+        f"(D-06):\n{index_text}"
+    )
+    assert "#codly(languages: codly-languages)" in index_text, (
+        "Expected the codly-languages configuration call in the content "
+        f"file (D-06):\n{index_text}"
+    )
+
+    # 2. Compile the CONTENT file to PDF with typst-py -- R1: the four
+    # packages' real invocations (mitex(), codly(), gentle-clues' info())
+    # all live in the translated body, which the content file carries
+    # unconditionally (D-06's own preamble makes it a complete,
+    # self-contained document on its own). No try/except wrapper: an
+    # uncaught typst.TypstError (e.g. "unknown variable: kai") is the
+    # intended, loudest failure signal -- it fails the test with the real
+    # Typst error message in the traceback.
     pdf_output = temp_build_dir / "index.pdf"
     typst.compile(str(index_typ), output=str(pdf_output))
 

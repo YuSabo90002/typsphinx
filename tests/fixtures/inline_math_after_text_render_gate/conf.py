@@ -32,5 +32,9 @@ extensions = [
 ]
 
 typst_documents = [
-    ("index", "index", "Inline Math After Text Render Gate", "Test Author"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    ("index", "master.typ", "Inline Math After Text Render Gate", "Test Author"),
 ]

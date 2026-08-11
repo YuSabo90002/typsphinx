@@ -226,10 +226,12 @@ class TestInlineMathAfterTextRenderGate:
             "( + " not in typ_text
         ), f"A concat context emitted a stray leading '+' operator:\n{typ_text}"
 
-        # 11. index.pdf must exist and be a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # 11. master.pdf (the wrapper's compiled output -- R4:
+        # TypstPDFBuilder.finish() compiles only wrapper files) must exist
+        # and be a real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted:\n"
+            "master.pdf was not produced -- typst.compile() aborted:\n"
             f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -403,10 +405,11 @@ class TestInlineMathAfterTextRenderGate:
             f"native $...$ span with no separator:\n{typ_text}"
         )
 
-        # 6. index.pdf must exist and be a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # 6. master.pdf (the wrapper's compiled output) must exist and be a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             f"(native math path):\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -528,9 +531,10 @@ class TestInlineMathAfterTextRenderGate:
                 f"sphinx-build -b typstpdf ({label} path) failed:\n"
                 f"stdout: {result.stdout}\nstderr: {result.stderr}"
             )
-            pdf_output = build_dir / "index.pdf"
+            # R4: the wrapper's compiled output is master.pdf.
+            pdf_output = build_dir / "master.pdf"
             assert pdf_output.exists(), (
-                f"index.pdf was not produced ({label} path):\n"
+                f"master.pdf was not produced ({label} path):\n"
                 f"stderr: {result.stderr}"
             )
 

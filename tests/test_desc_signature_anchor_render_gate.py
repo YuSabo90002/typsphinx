@@ -120,8 +120,10 @@ class TestDescSignatureAnchorRenderGate:
           ``[#metadata(none) <name>]`` anchor -- anchor-name == reference-name
           for the same id (the ``@alias`` ids exercise ``_sanitize_label`` on
           both sides: ``c._u40_alias.data`` / ``c._u40_alias.f``);
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
-          bytes -- the only proof the document compiled to valid Typst and the
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with the ``%PDF`` magic bytes -- the
+          only proof the document compiled to valid Typst and the
           dangling-label fatal is gone.
         """
         result = _run_sphinx_build_typstpdf(
@@ -183,11 +185,13 @@ class TestDescSignatureAnchorRenderGate:
             f"to _u40_ on the anchor side, byte-matching the reference):\n{typ_text}"
         )
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
-            f"on a dangling label:\nstderr: {result.stderr}"
+            "master.pdf was not produced -- typst.compile() aborted, most "
+            f"likely on a dangling label:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:

@@ -120,8 +120,10 @@ class TestTableInListItemRenderGate:
           spurious leading newline);
         - no ``TypstCompilationError`` / "expected semicolon or line break"
           signature is logged;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
-          magic bytes -- the only proof the table compiled to valid Typst and
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with the ``%PDF`` magic bytes -- the
+          only proof the table compiled to valid Typst and
           ``typst.compile()`` did NOT abort with the fatal that GATE-02
           surfaced against the corpus.
         """
@@ -183,10 +185,12 @@ class TestTableInListItemRenderGate:
             f"separator fix must not touch it:\n{typ_text}"
         )
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the juxtaposed table:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
