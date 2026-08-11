@@ -393,6 +393,60 @@
 
 ---
 
+## Milestone: v0.7.1 — bug-fix round
+
+**Shipped:** 2026-08-11
+**Phases:** 8 (43, 44, 44.1, 44.2, 45, 45.1, 45.2, 46) | **Plans:** 43 | **Tasks:** 122 | **Sessions:** ~8 days (2026-08-04 → 2026-08-11)
+
+### What Was Built
+
+- `typst_documents` gained a default derived from `root_doc`/`project`/`author`, mirroring `sphinx.builders.latex.default_latex_documents`, so following the Quick Start produces a real PDF instead of exiting 0 with a warning and zero output. A target name that slugifies onto an existing docname now falls back with a WARNING instead of silently destroying content (CONF-08, DOC-11).
+- An explicit `typst_documents` entry's `[2]` title and `[3]` author reach the compiled PDF's metadata, overriding `project`/`author` as LaTeX does, backed by a 27-test precedence matrix including the multi-master no-leak property (CONF-09).
+- `translator.py`'s table and figure state moved from flat scalars to snapshot save/restore stacks, plus a new `legend` handler: a table nested in a `list-table` cell no longer replaces the outer table's body, and a figure nested in a figure's legend no longer aborts the compile or drops the outer caption. `depart_table`'s captioned check split into independently-gated RENDERING and ANCHORING decisions so an empty-titled caption still anchors its ids. `visit_title` emits relative depth so toctree'd headings nest (TBL-04, TBL-05, FIG-01, TOC-01).
+- The published custom-template parameter contract was rewritten onto the nine parameters typsphinx actually passes and locked with a RED-proved gate; a declared `typst_template_function` `params` dict became the complete parameter set; the auto-derived `lang` reached every non-package template route; `typst_authors` was removed outright (DOC-13, CONF-10, CONF-11, CONF-12).
+- `docs/source/changelog.rst` now renders live from repo-root `CHANGELOG.md` via myst-parser, closing at its source the drift channel that had left the page frozen at 0.4.0 for two years (DOC-12).
+- `tox` ran on the maintainer's machine for the first time: renaming `tox-uv` to `tox-uv-bare` dropped the bundled generic-linux `uv` wheel NixOS cannot exec (QUA-04).
+- Issue #130 / PR #131 (@christianwehe) merged — the project's first external contribution — fixing absolute image URIs from Sphinx's image converter and downloader.
+
+### What Worked
+
+- **Milestone invariant #5 paid on its first outing.** v0.7.0's post-mortem identified one shared cause for both of its release-day defects: the branch was never pushed until the release PR. v0.7.1 made "push from Phase 43" a success criterion, and Phase 46 caught a Windows-only path-separator defect on a dispatched CI run instead of at the release PR.
+- **Fixing the root cause dissolved five carried items instead of deferring them again.** The Phase 45.1 deferred items were five test modules failing under the `uv run` invocation `CLAUDE.md` mandates. QUA-04 renamed one dependency and the full suite went from 45 failures to zero — so the close re-measured them and found nothing to defer.
+- **Prep-only Release phases keep proving their worth, and the guard around them keeps firing.** Phase 46 held REL-04/REL-06 at `[ ]` through every plan; `phase.complete` auto-flipped REL-06 and auto-closed the REL-04 todo at close-out anyway, and the diff-before-trusting guard caught both. Three-for-three on release-prep phases now.
+- **A requirement that could only be proved by the publish was, in fact, only proved by the publish.** REL-04's close is release run `31462027486`'s `create-release` job, plus a `diff` showing the published body byte-identical to the extractor's output. Nothing about the workflow file's correctness was accepted as evidence.
+- **Small inserted phases beat widening an existing one.** Four of eight phases were insertions (44.1, 44.2, 45.1, 45.2), each carrying exactly one coherent defect family, and each closed on its own gates rather than diluting a neighbour's.
+
+### What Was Inefficient
+
+- **CONF-09 needed four verification rounds, and the last three failed on published prose rather than on code.** The implementation was right early; what kept failing was `configuration.rst`'s description of the precedence rule — first stated as a package-route condition, then as a `map_parameters()`-scoped rule, before the frame widened to the whole pipeline. A documentation claim about behaviour is as verifiable as the behaviour and should have been derived from the code the first time.
+- **Phase 45.1 grew from one requirement to four at its own discussion.** The contract correction (DOC-13) turned out to be unfixable without three behaviour changes (CONF-10/11/12). Better discovery at roadmap time would have scoped it that way from the start rather than amending mid-milestone.
+- **Two plans independently wrote an unsatisfiable acceptance command.** `git diff origin/main..HEAD -- typsphinx/` cannot be empty under `branching_strategy: milestone` — the merge-base predates the milestone. Both plans hit it, and both had to correct the anchor at execution time.
+- **CONTEXT.md's "13 test modules" and "unfixable NixOS false positives" were both wrong**, and a whole phase's framing rested on them until plan 45.2-03 ran an actual grep (5 modules) and measured the actual cause (fixable).
+
+### Patterns Established
+
+- **A defect that ships unfixed gets its counter-case argued in writing before it is declined.** D-27's two `_track_image` defects were declined only after the full case for fixing them — regression in failure mode, reachability, the `CHANGELOG.md:817` `### Known Limitations` precedent, an empty public issue tracker — was written out and answered.
+- **Every pending todo is dispositioned in the release-prep phase, in writing.** `46-HANDOFF.md` § "Deferred by decision, not oversight" names all nine with a reason each, and re-measures the ones whose status might have changed — one was reproduced live as still-reachable, two were found already delivered and filed to `completed/`.
+- **When CI dispatch surfaces an unrelated pre-existing failure that blocks the task's own zero-failure bar, fix it in a separate clearly-scoped commit and re-dispatch** — never absorb it into the task's primary commit.
+- **Documentation claims get their own cross-page gate.** `tests/test_docs_contract_claims_gate.py` closed the single-page-enumeration hole that let a stale claim survive a correction pass, and its `.as_posix()` normalization made the comparison platform-independent.
+
+### Key Lessons
+
+1. When a milestone's own post-mortem names a structural cause, encode it as a success criterion in the next roadmap rather than as a note — v0.7.1 turned "the branch was never pushed" into Phase 43's SC#5, and it caught a real defect.
+2. Prefer the root-cause fix that dissolves a class of deferred items over the local workaround that repairs one symptom — `tox-uv-bare` versus `TOX_UV_PATH` was one dependency name against a NixOS-local patch, and it retired five carried items.
+3. A requirement whose evidence is generated by an irreversible action must not be flipped before that action succeeds — and the tooling will try to flip it for you, so diff before committing the close.
+4. Published prose describing behaviour is a claim about code and needs to be derived from the code, not written alongside it — CONF-09 passed its implementation gates on round 1 and its documentation gates on round 4.
+5. Re-measure carried "deferred items" at close rather than transcribing them forward; five of this milestone's twelve open artifacts had already been resolved by a later phase.
+
+### Cost Observations
+
+- Model mix: adaptive profile (`model_profile: adaptive`) — opus for discussion/planning/verification, sonnet for execution.
+- Sessions: ~8 calendar days (2026-08-04 → 2026-08-11), 421 branch commits; worktree-isolated executor mode throughout.
+- Notable: 125 files and +10,760/−935 lines outside `.planning/`, but the balance is inverted from v0.7.0 — five of the eight largest changed files are new gate modules (`test_params_exclusivity_gate.py` 751 lines, `test_authors_pipeline_stage_gate.py` 614, `test_nested_table_render_gate.py` 577, `test_entry_metadata_precedence.py` 540, `test_docs_contract_claims_gate.py` 477) against 611 lines of `translator.py` change. A bug-fix milestone over already-diagnosed defects spends most of its budget proving the fixes stay fixed.
+- Release-day cost: **zero defects surfaced at the publish**, against v0.7.0's two — the first close in this project's history where the release ran clean end to end on the first attempt.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -408,6 +462,7 @@
 | v0.6.4 | ~4 days | 6 (incl. 1 inserted) | Read the Docs migration: first hosting/infra milestone with a zero-`typsphinx/`-change invariant (held); irreversibility-ordered roadmap with the no-undo action isolated behind a freshly-re-taken gate; content-level criteria for present-as-success failure modes; milestone audit returned → first verified_closeout since v0.4.4 |
 | v0.6.5 | ~2 days | 2 | First single-defect hotfix milestone: the requirement text itself mandated measuring the root cause before fixing it, and the backlog's stated cause was overturned; smallest milestone to date (8 plans, 45 runtime lines) with zero scope drift; `override_closeout` with no audit, the second in three milestones |
 | v0.7.0 | ~7 days | 8 (incl. 1 inserted + 1 promoted from backlog after the release phase closed) | First typography/design milestone: GATE-01's RED redefined per-milestone (structural/`pypdf` assertions before any code, since the defects compile fine) and proved un-launderable by restore-and-re-observe; a locked decision reversed on a live render, re-opening an already-verified phase; a recurring tooling hazard converted into a checksummed baseline; largest milestone to date (57 plans) with a ~2:1 plan-to-requirement ratio driven by gap-closure rounds; third `override_closeout` in four milestones; **first milestone to ship with a known gap** (REL-04) — the release automation it built failed on its own first real tag push |
+| v0.7.1 | ~8 days | 8 (incl. 4 inserted) | First maintenance milestone scoped entirely from already-diagnosed defects, each carrying a file/line-level todo or a measured basis: half the phases were insertions, each one coherent defect family. The prior milestone's post-mortem cause became a success criterion (invariant #5, push from Phase 43) and caught a Windows-only defect in-milestone. A root-cause toolchain fix dissolved five carried deferred items instead of deferring them again. Fourth consecutive `override_closeout`; **first milestone to close with zero known gaps and zero release-day defects** — REL-04, carried unmet from v0.7.0, closed on evidence the publish itself generated |
 
 ### Cumulative Quality
 
@@ -422,6 +477,7 @@
 | v0.6.4 | 647 passed / 1 skipped (net down: 20 collateral tests deleted with their orphan subjects); + `.readthedocs.yaml` structural tests, `_resolve_language()` seam tests, stale-URL regression guard (`test_no_stale_github_io_links.py`), two docs.yml guard tests with recorded red negative controls, advisory lychee `links.yml` | full suite green; live RTD verified serving en+ja HTML and both `typstpdf` PDFs | 0 new runtime deps |
 | v0.6.5 | 649 passed / 1 skipped; + `inline_math_after_text_render_gate` (5 constructs × both emission paths, recorded RED pre-fix and re-reproduced RED at verification) and four exact-string assertions derived from real `sphinx-build -b typstpdf` output | full suite green; full-corpus PDF fatal-free; 93-page docs dogfooding PDF; both `tox -e docs-html` / `docs-pdf` green on the post-bump tree | 0 new runtime deps |
 | v0.7.0 | 821 passed / 1 skipped (up from 649); + per-sub-part signature gates (14 SIG-01..05 structural REDs + a determinism control), two Typst-probe geometric render gates (SIG-07 overflow, SIG-09 page boundary), a 13-assertion `pypdf` layout-mode desc-content indent gate, a 20-test field-body typography gate, region-scoped `.typ`+compiled-PDF admonition gates, an ADM-04 greyscale render pipeline (pillow, dev-only), a 9-selector citation render gate re-proved 9/9 RED against the pre-fix translator, the frozen `examples/charged-ieee` sample gate, a 9-test TBL-03 captioned-table gate plus a 7-method figure-side non-regression gate, and pytest coverage for the CHANGELOG-section extractor | full suite green; full-corpus `-b typstpdf` gate executed and PASSED (not skipped) at every phase close; both docs dogfooding builds green incl. the `ja` CJK glyph bar | 0 new runtime deps (pillow is dev-only) |
+| v0.7.1 | 976 passed / 0 failed (up from 821); + `test_nested_table_render_gate.py` (7 nesting shapes, classic-`TypstError` RED), a figure-legend gate incl. the legend-in-legend leak its own code review found, `test_entry_metadata_precedence.py` (27 tests — full title/author precedence matrix + multi-master no-leak), `test_params_exclusivity_gate.py` and `test_authors_pipeline_stage_gate.py` (CONF-11's exclusivity rule proved by real build on all three template routes, RED recorded from a detached worktree at the true pre-fix commit), `test_documented_params_contract_gate.py` (the nine-parameter contract locked, RED-proved), `test_docs_contract_claims_gate.py` (cross-page claim guard, platform-independent via `.as_posix()`), `test_toolchain_config_gate.py`, a changelog-page gate proving all 12 previously-missing releases render clean on both builders, and a quickstart-default no-skip gate binding CONF-08 to a real `-b typstpdf` build | full suite green; full-corpus `-b typstpdf` gate executed and PASSED; both docs dogfooding builds green incl. a `SPHINX_LANGUAGE=ja` build proving `lang: "ja"` reaches the emitted template; 12/12 CI jobs green on the post-bump commit, 15/15 checks green on the release PR | 0 new runtime deps (the only dependency change is `dev`-only: `tox-uv` → `tox-uv-bare`) |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -439,3 +495,7 @@
 12. A written root cause — in a backlog note, a research doc, or an issue — is an unverified claim about code that is sitting right there. Reproduce and measure before fixing; make the first plan of a bugfix phase capture the emitted artifact and the verbatim error. *(v0.6.5 — two independent prior texts each made a specific, checkable, wrong claim)*
 13. When the defect *compiles*, "does it compile" stops being a correctness signal — redefine RED for the milestone, write the assertion before the code, derive GREEN by hand from the recorded RED, and re-prove any gate you had to edit by restoring it over the pre-fix code. A test that went green after you edited the test is not evidence. *(v0.7.0 — four of nine citation gate selectors were gate defects, not translator defects)*
 14. Reverse a locked decision when a live artifact overturns it, even if the phase already verified. Aesthetic and visual criteria need the owner's eyes on real output, and a sign-off is recorded verbatim with its caveats — not summarized. *(v0.7.0 — D-03-R re-opened a 5/5-verified Phase 39; ADM-04's "title-band luminance carries no signal" caveat is a recorded property, not latent work)*
+15. When a milestone's post-mortem names a structural cause, encode it in the next roadmap as a success criterion rather than as a note. *(v0.7.1 — "the branch was never pushed until the release PR" became Phase 43's SC#5 and caught a Windows-only defect five phases before the release PR would have)*
+16. Prefer the root-cause fix that dissolves a class of deferred items over the local workaround that repairs one symptom, and re-measure carried "deferred items" at close rather than transcribing them forward. *(v0.7.1 — one dependency rename took the suite from 45 failures to 0 and retired five Phase 45.1 deferrals; five of twelve open artifacts at close had already been resolved)*
+17. A requirement whose acceptance evidence is generated by an irreversible action must not be flipped before that action succeeds — and the tooling will try to flip it for you, so diff the requirements file before committing the close. *(v0.7.1 — REL-04 closed on release run `31462027486` plus a `diff` of the published body against the extractor's output; `phase.complete`'s auto-flip is now three-for-three on release-prep phases and was caught each time)*
+18. Published prose describing behaviour is a claim about code, and needs to be derived from the code with its own gate — not written alongside it. *(v0.7.1 — CONF-09 passed its implementation gates on round 1 and its documentation gates on round 4, the last three failures all in `configuration.rst`'s precedence description; `test_docs_contract_claims_gate.py` closed the single-page-enumeration hole afterwards)*

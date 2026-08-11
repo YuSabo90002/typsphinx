@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
 status: Awaiting next milestone
-stopped_at: "Phase 46 context updated (second pass: D-20..D-28)"
+stopped_at: "Milestone v0.7.1 shipped, published, and archived"
 last_updated: "2026-08-11T05:55:07.075Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 45.2 execution started
+last_activity_desc: Milestone v0.7.1 completed, published to PyPI, and archived
 progress:
   total_phases: 8
   completed_phases: 8
@@ -21,16 +21,14 @@ current_phase_name: v0-7-1-release-prep-prep-only
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
+See: .planning/PROJECT.md (updated 2026-08-11 at the v0.7.1 milestone close — full evolution review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 46 — v0-7-1-release-prep-prep-only
-**18/18** v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
-TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
-insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
-**CONF-11 and CONF-12 added and CONF-10 promoted out of Future on 2026-08-10 at the Phase 45.1
-discussion**, was 15/15).
-Next action: `/gsd-discuss-phase 45.2`
+**Current focus:** none — v0.7.1 shipped 2026-08-11. Scope the next milestone with `/gsd-new-milestone`.
+**19/19** v1 requirements complete with zero orphans and zero known gaps. `.planning/REQUIREMENTS.md`
+has been removed; the milestone's final state is archived at
+`.planning/milestones/v0.7.1-REQUIREMENTS.md`. Phase numbering continues at **47**.
+Next action: `/gsd-new-milestone`
 
 ## Current Position
 
@@ -39,63 +37,51 @@ Plan: —
 Status: Awaiting next milestone
 Last activity: 2026-08-11 — Milestone v0.7.1 completed and archived
 
-## Active Milestone (v0.7.1 — bug-fix round)
+## Shipped Milestone (v0.7.1 — archived)
 
-**Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, **44.2** and **45.1**, all inserted
-2026-08-04, and **45.2**, inserted 2026-08-10), derived from
-`REQUIREMENTS.md` alone. Research was deliberately skipped (owner decision 2026-08-04 — a maintenance
-round over already-diagnosed defects, each carrying a file/line-level todo, with the one
-new-behaviour item CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder), so this
-milestone has **no `research/SUMMARY.md`**.
-Coverage: **19/19** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
-added 2026-08-04 by owner decision at Phase 43 discussion; **TOC-01** added 2026-08-04 with the
-Phase 44.1 insertion; **DOC-13** added 2026-08-04 with the Phase 45.1 insertion; **CONF-09** added
-2026-08-04 with the Phase 44.2 insertion, which **reverses Phase 44's D-02**; **CONF-11** and
-**CONF-12** added and **CONF-10** promoted out of Future on 2026-08-10 at the Phase 45.1 discussion;
-**QUA-04** added 2026-08-10 with the Phase 45.2 insertion). The milestone owes **five** user-visible
-CHANGELOG callouts — CONF-08, CONF-09, CONF-10, CONF-11, CONF-12. **QUA-04 adds no sixth**: it is
-confined to the `dev` extra (`46-CONTEXT.md` D-19).
+Full phase detail, success criteria, and decisions: [`milestones/v0.7.1-ROADMAP.md`](milestones/v0.7.1-ROADMAP.md)
+and [`milestones/v0.7.1-REQUIREMENTS.md`](milestones/v0.7.1-REQUIREMENTS.md). Phase artifacts are
+under `milestones/v0.7.1-phases/`. The MILESTONES.md entry carries the stats, the curated
+accomplishments, and the release record.
 
-| Phase | Goal | Requirements |
-|-------|------|--------------|
-| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; a nested figure stops dropping the outer caption; an empty-titled caption still anchors its ids | TBL-04, TBL-05, FIG-01, QUA-01 |
-| 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
-| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | A toctree'd document's headings render one level deeper than its parent instead of flat — `visit_title` emits relative `depth:` so `set heading(offset: 1)` applies | TOC-01 |
-| 44.2 `typst_documents` Title and Author Consumption (INSERTED) | An explicit entry's `[2]` title / `[3]` author actually reach the rendered PDF, overriding `project`/`author` as LaTeX does — reverses Phase 44's D-02 | CONF-09 |
-| 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
-| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` removed; auto-derived `lang` on every non-package template route | DOC-13, CONF-10, CONF-11, CONF-12 |
-| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | `tox` runs locally for the first time (every env exits 127 today) and the 13 test modules that shell out to `uv run` stop failing under the outer `uv run` `CLAUDE.md` mandates — one dependency name drops the generic-linux `uv` wheel binary NixOS cannot exec | QUA-04 |
-| 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
+**Shipped 2026-08-11.** 8 phases (43-46, incl. inserted 44.1, 44.2, 45.1, 45.2) - 43 plans -
+122 tasks - **19/19** v1 requirements complete, **zero known gaps** - `override_closeout` (no
+milestone audit; 12 open artifacts acknowledged, 5 of which were re-measured and found already
+resolved - see Deferred Items). Timeline 2026-08-04 -> 2026-08-11 (8 days, 421 commits). Code delta
+excluding `.planning/`: 125 files, +10,760 / -935 lines.
 
-**Three structural constraints this roadmap encodes:**
+Research was deliberately skipped (owner decision 2026-08-04) - a maintenance round over
+already-diagnosed defects, each carrying a file/line-level todo, with the one new-behaviour item
+CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder - so this milestone has **no
+`research/SUMMARY.md`**. Coverage grew from 11/11 at roadmap creation to 19/19 through four phase
+insertions; the five owed user-visible CHANGELOG callouts (CONF-08, CONF-09, CONF-10, CONF-11,
+CONF-12) were all delivered in Phase 46's curated `## [0.7.1]` entry, and QUA-04 correctly took none
+(confined to the `dev` extra, D-19).
 
-1. **Milestone invariant #5 (new).** The milestone branch is pushed to `origin` in **Phase 43**, not
-   at the release PR — it is Phase 43's SC#5. Both defects that surfaced at the v0.7.0 close share
-   the cause that the branch was never pushed until the release PR, so neither Windows CI nor a real
-   tag push ran against it during eight phases.
+**Published 2026-08-11.** PR #132 merged to `main` (15/15 CI checks green) and `v0.7.1` tagged on
+merge commit `48bf135`. Release run `31462027486`: `validate` OK -> `build` OK -> `publish-pypi` OK
+(after owner approval of the `pypi` environment) -> `create-release` **OK**. PyPI `typsphinx 0.7.1`
+is live (wheel 135,318 B + sdist 580,288 B). The GitHub Release `Release v0.7.1` carries all three
+assets (`.whl`, `.tar.gz`, and the tag-time `typsphinx.pdf`, 2,436,561 B). Second-repository tag
+done: `typsphinx-doc-translations` pin advanced `87f242a` -> `48bf135` by `update-pin.yml` run
+`31462409929` (commit `cf7fa30`) and tagged `v0.7.1` there.
 
-2. **REL-04 does not close in Phase 46.** Phase 46 owns only its in-phase share — verifying the
-   already-on-`main` `create-release` fix (the `astral-sh/setup-uv` + `Set up Python` steps) and
-   exercising the extractor against the new `## [0.7.1]` section — plus an explicit handoff item.
-   The requirement closes when a real tag push runs `create-release` to completion at
-   `/gsd-complete-milestone`, or it carries again. Reporting it done on the strength of a correct
-   workflow file is the precise error v0.7.0 made; `phase.complete` has a recorded habit of
-   auto-flipping REL rows against a CONTEXT decision, so the Phase 46 close must diff before commit.
+**REL-04 closed here, for the first time, on generated evidence.** It carried unmet from v0.7.0,
+where run `30848860064`'s `create-release` failed at `uv: command not found` and the fix landed on
+`main` but was never exercised. This close exercised it: `create-release` completed success, and the
+published body was then *measured* - lines 1-77 byte-identical to
+`scripts/extract_changelog_section.py 0.7.1`'s stdout (`diff` clean), zero `git log --pretty`
+commit-dump lines. Milestone invariant #5 (push the branch from Phase 43, not at the release PR) also
+paid: a Windows-only path-separator defect surfaced on a dispatched CI run during Phase 46 instead of
+at the release PR, which is the exact failure mode that cost v0.7.0 two defects.
 
-3. **Phase 46 is prep-only.** No tag, no PyPI, no GitHub Release — the standing v0.5.0 Phase 10
-   pattern under `branching_strategy: milestone`. The publish executes at `/gsd-complete-milestone`,
-   including the standing second tag on `typsphinx-doc-translations`.
+**Read the Docs `stable` — NOT yet confirmed for v0.7.1.** `46-HANDOFF.md` item 5 is owner-manual and
+was deliberately left for after the publish. Confirm both projects (`en` and `ja`) report `0.7.1` and
+serve their PDFs. Both Default Versions have been `stable` since the v0.6.4 close and needed no flip
+at v0.6.5 or v0.7.0, so none is expected this time either.
 
-**Sequencing note:** the chain 43 → 44 → 44.1 → 44.2 → 45 → 45.1 → 46 is genuinely dependent, not
-merely numbered. Phase 44 hardens the same `TypstPDFBuilder.finish()` its own derivation rewrites
-(so CONF-08 and BLD-01 are one change, not two); Phase 44.2 runs after 44.1 because
-`tests/roots/test-basic/conf.py` is inside 44.1's SC#3 byte-invariance corpus and is one of the five
-entries 44.2 changes; Phases 45 and 45.1 document behaviour, so everything they describe must have
-landed first; the `0.7.1` entry for DOC-12's changelog page lands in Phase 46's lockstep edit
-alongside `CHANGELOG.md`.
-
-**Not a frontend UI milestone** — no phase carries a UI hint. `ui.plan-gate` false-positives on
-"table"/"render"/"page" wording here; use `--skip-ui`.
+**Not a frontend UI milestone** — no phase carried a UI hint. `ui.plan-gate` false-positives on
+"table"/"render"/"page" wording here.
 
 ## Shipped Milestone (v0.7.0 — archived)
 
@@ -587,16 +573,32 @@ Items acknowledged and carried forward from milestone closes:
 | Todo (translator) | emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user | Acknowledged, filed during Phase 42 (review WR-01) — deliberately not fixed in-phase because touching `translator.py` after the SC#4/SC#6 artifacts were recorded would move the change outside the SHA range they measured | v0.7.0 close |
 | Todo (translator) | nested-table-clobbers-outer-table-state | Acknowledged, filed during Phase 42 (review IN-02) — a real, severe, **pre-existing** bug verified byte-identical pre- and post-fix: a table nested in a `list-table` cell silently drops the outer table structure because `in_table`/`table_cell_content` are scalars, not a stack. Did not block v0.7.0; a strong candidate for the next milestone | v0.7.0 close |
 | Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf — README Quick Start does not say that `.typ` files are not compiled to PDF unless `typst_documents` is configured | Dormant; never scoped into v0.7.0 | v0.7.0 close |
-| Todo (ci, release) | release-create-job-missing-uv-verify-end-to-end — REL-04's `create-release` job failed on the v0.7.0 tag push (`uv: command not found`); workflow fixed on `main`, release repaired by hand, but the automation is still unproven | **Carried to v0.7.1 as an open requirement**, not merely a todo | v0.7.0 close |
+| Todo (ci, release) | release-create-job-missing-uv-verify-end-to-end — REL-04's `create-release` job failed on the v0.7.0 tag push (`uv: command not found`); workflow fixed on `main`, release repaired by hand, but the automation is still unproven | **RESOLVED at the v0.7.1 close** — release run `31462027486`'s `create-release` completed success and the published body was measured byte-identical to the extractor's output. The record can be filed to `todos/completed/` | v0.7.0 close → closed v0.7.1 close |
+| Verification | No `v0.7.1-MILESTONE-AUDIT.md` produced (owner accepted 2026-08-11: `init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, 17/19 requirements were already Complete, and the 2 remaining were the publish-gated REL rows the close itself discharges). Fourth consecutive `override_closeout` | Accepted at close | v0.7.1 close |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Acknowledged, deferred again — tracked as Future requirement LNK-01; `links.yml`'s repo-wide lychee check already covers the links this release adds (`46-HANDOFF.md` deferral #1) | v0.7.1 close |
+| Todo (source) | modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred again, **doubly deliberate** — `CLAUDE.md` independently instructs "don't modernize typing imports until that todo lands", and the milestone's own binding constraint #6 forbade it (`46-HANDOFF.md` deferral #2) | v0.7.1 close |
+| Todo (builder, tests) | duplicate-typst-documents-target-silently-drops-a-master | Acknowledged, deferred — **re-measured live in Phase 46 and still reachable**: two entries both targeting `manual.typ` make `-b typst` exit 0 with no collision warning and silently drop the first master's body, because Phase 44's guard compares only against `env.found_docs` and the reserved `_template`, never against already-resolved targets. A `typst_documents`-modelling defect, unrelated to release prep (`46-HANDOFF.md` deferral #4). **Named first among next-milestone candidates** | v0.7.1 close |
+| Todo (builder, writer) | a-master-that-is-also-a-toctree-child-is-unrepresentable | Acknowledged, deferred — same `typst_documents`-modelling cluster (`46-HANDOFF.md` deferral #5) | v0.7.1 close |
+| Todo (builder, writer) | shared-document-silently-dropped-from-all-but-first-master | Acknowledged, deferred — the include-dedup ledger is per-build, not per-master; same cluster (`46-HANDOFF.md` deferral #6) | v0.7.1 close |
+| Todo (builder) | rehomed-converted-image-collides-with-srcdir-images-dir | Acknowledged, **ships in v0.7.1 unfixed by owner decision D-27** (major): a converted image rehomed to `images/<basename>` collides with a real source image at `<srcdir>/images/<basename>` — one is never copied, the other document renders the wrong picture, no warning. A **regression in failure mode**: the same project used to abort loudly. Entered the diff via the PR #131 merge; the prep-only fence forbade fixing it in Phase 46. No `### Known Limitations` CHANGELOG section and no GitHub issue, argued in full and declined | v0.7.1 close |
+| Todo (builder) | track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri | Acknowledged, ships in v0.7.1 unfixed by owner decision D-27 (minor): `relpath(uri, doctreedir)` returns `../`-prefixed paths for an absolute URI outside `doctreedir`, so `copy_image_files()` writes outside `outdir` | v0.7.1 close |
+| Todo (toolchain) | ruff-generic-linux-elf-unrunnable-on-nixos | Acknowledged, deferred — a `flake.nix`-side repair in the same family as QUA-04; `ruff` ships as a compiled Rust ELF that needs `nix-ld`, unlike pure-Python `black`/`mypy`. Does not block SC#3, which takes lint authority from CI (`46-HANDOFF.md` deferral #8) | v0.7.1 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf | Dormant, but **substantially discharged** by CONF-08 (the default derivation) + DOC-11 (the Quick Start now documents `typst_documents`). Worth re-reading before promoting | v0.7.1 close |
+| Seed (toolchain) | SEED-003-tox-dependency-groups-per-env — split the `dev` extra into PEP 735 `[dependency-groups]` so each tox environment installs only what it needs | Dormant; never scoped into v0.7.1 | v0.7.1 close |
+| Deferred items (Phase 45.1) | Five test modules failing under `uv run sphinx-build` on NixOS (`test_examples_basic.py`, `test_integration_advanced.py`, `test_integration_basic.py`, `test_integration_multi_doc.py`, `test_integration_nested_toctree.py`, 45 failures total) | **RESOLVED, not deferred** — Phase 45.2 (QUA-04) fixed the root cause by renaming `tox-uv` → `tox-uv-bare`. Re-measured at the v0.7.1 close: `test_examples_basic.py` + `test_integration_basic.py` → 27 passed in 8.11s | Phase 45.1 → closed by Phase 45.2 |
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/46-v0-7-1-release-prep-prep-only/46-CONTEXT.md
-Archived milestone phases live under `.planning/milestones/v0.7.0-phases/`.
+**Resume file:** none — no phase is in flight.
+Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
+directory for each earlier milestone).
 
-Last session: 2026-08-11T02:42:36.953Z
-Stopped at: Phase 46 context updated (second pass: D-20..D-28)
-Resume: `/gsd-discuss-phase 45.2` (Local Toolchain Repair — tox-uv to tox-uv-bare).
+Last session: 2026-08-11 — `/gsd-complete-milestone` for v0.7.1.
+Stopped at: milestone shipped, published to PyPI, and archived.
+Resume: `/gsd-new-milestone` (defines a fresh `REQUIREMENTS.md`; phase numbering continues at 47).
+
+**One item is still owed and is owner-manual:** confirm Read the Docs `stable` reports `0.7.1` and
+serves its PDF on both the `en` and `ja` projects (`46-HANDOFF.md` item 5).
 
 ## Operator Next Steps
 
