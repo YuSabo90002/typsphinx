@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7.1
-milestone_name: bug-fix round
-status: Awaiting next milestone
-stopped_at: "Milestone v0.7.1 shipped, published, and archived"
-last_updated: "2026-08-11T05:55:07.075Z"
+milestone: v0.8.0
+milestone_name: multi-master composition
+status: planning
+last_updated: "2026-08-11T07:10:46.039Z"
 last_activity: 2026-08-11
-last_activity_desc: Milestone v0.7.1 completed, published to PyPI, and archived
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 43
-  completed_plans: 43
-  percent: 100
-current_phase: 46
-current_phase_name: v0-7-1-release-prep-prep-only
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -32,10 +28,10 @@ Next action: `/gsd-new-milestone`
 
 ## Current Position
 
-Phase: Milestone v0.7.1 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-11 — Milestone v0.7.1 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-11 — Milestone v0.8.0 started
 
 ## Shipped Milestone (v0.7.1 — archived)
 

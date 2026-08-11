@@ -20,12 +20,103 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
-## Current Milestone: none — v0.7.1 shipped 2026-08-11
+## Current Milestone: v0.8.0 multi-master composition
+
+**Goal:** A `typst_documents` configuration declaring more than one master produces a complete PDF
+for each of them — no silently dropped content, no compile failure. Re-shape the unit of composition
+from "one `.typ` shared by every master" to "a per-master wrapper plus template-less content files",
+cutting the single root the three known multi-master defects grow from.
+
+**Target features:**
+
+- **wrapper / content split** — every document is written as a docname-named content `.typ` carrying
+  no template at all, and each `typst_documents` entry gains a new wrapper `.typ` holding the
+  template application and the includes. The master/included binary in `writer.py:96`
+  (`_is_master_document()`), which today selects the output shape, disappears. This closes **B-1**
+  (the parent includes `guide/index.typ` from the docname while `_resolve_output_stem` names the file
+  from the target, so Typst aborts with `file not found`) and **B-2** (an included master re-expands
+  its template's title page and `#outline()` into the middle of the parent's body)
+- **the wrapper carries the per-master include graph** — mirror `sphinx/util/nodes.py:485`
+  `inline_all_toctrees` at the file-composition layer (document-order depth-first, `traversed`
+  re-initialised per master) and derive each `set heading(offset: N)` from the DFS depth.
+  `visit_toctree` stops emitting includes and the per-build ledger at `builder.py:99` becomes
+  unnecessary. This closes **defect A** (a document toctree'd by two masters is included only into
+  the one whose parent was written first, decided by docname sort order) and removes the
+  unanswerable question — "which master is this include for?" — from the shared content files
+- **duplicate-target detection (CR-02)** — carry a registry of already-resolved targets so two
+  entries naming the same target are caught, following CR-01's convention (fall back to the docname
+  with a `WARNING`, never invent a filename the user did not write). Sphinx's own LaTeX builder has
+  the identical bug (measured: exit 0, no collision warning, the first master's body gone), so this
+  is a place typsphinx exceeds upstream rather than matches it
+- **compile-time cross-reference degradation** — replace the build-time boolean at
+  `translator.py:3073` with a `context` + `query` guard that decides at compile time whether the
+  target label exists in this compilation unit. The dependency on `master_included_docnames` (a
+  union across all masters) disappears, and `:orphan:` targets and per-master differences become
+  correct through one mechanism. **Fixing defect A turns this configuration from a silent omission
+  into a hard compile failure, so it must close in the same milestone**
+- **the two PR #131 image defects** — `rehomed-converted-image-collides-with-srcdir-images-dir`
+  (major: a converted image rehomed to `images/<basename>` collides with a real source image at
+  `<srcdir>/images/<basename>`, so one is never copied and the other document renders the wrong
+  picture with no warning — a regression in failure mode, since the same project used to abort
+  loudly) and `track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri` (minor). Both live in
+  `TypstBuilder._track_image()`
+- **v0.8.0 release prep** — version bump + curated CHANGELOG entry in the final phase (the standing
+  v0.5.0 Phase 10 pattern); publish executes at `/gsd-complete-milestone`
+
+**Key context:**
+
+- **Every premise below was measured live on the current tree, 2026-08-11.** defect A: with two
+  masters both toctree'ing `shared`, `index.pdf` reports `SHARED-CHAPTER-MARKER` **0** times while
+  `bmaster.pdf` reports 1 — exit 0, no collision warning, and which master loses is decided by
+  docname sort order. CR-02: two entries targeting `manual.typ` drop one master's body (already
+  re-measured as still reachable in Phase 46). B-1/B-2 stand on the todos' 2026-08-05 measurements.
+- **Masters are not concatenated — each produces its own independent PDF** (measured: `index.pdf`
+  and `bmaster.pdf`). A shared chapter appearing in *both* PDFs is therefore the correct outcome,
+  and the `label ... occurs multiple times` hazard holds only *within* a single PDF. This is what
+  licenses a wrapper to expand the same content file into more than one master.
+- **Sphinx's LaTeX builder composes at the doctree layer, so B-1/B-2/defect A cannot arise there**
+  (measured: the shared chapter fully inlined into both `mastera.tex` and `masterb.tex`, with zero
+  `\input`/`\include`). Adopting that model would delete the per-document `.typ` files, which the
+  `-b typst` builder exists to produce — so the design decision for this milestone is to **stay at
+  the file layer and reach the same result**.
+- **The "prefer the deeper path" rule comes from upstream, not from us.** Sphinx picks the nested
+  `zmid` over the direct `xmaster` as `shared`'s parent and logs
+  `selecting: zmid <- shared`. `env.toctree_includes` still retains every edge
+  (`xmaster -> ['zmid', 'shared']`), so typsphinx has to perform that resolution itself.
+- **The `context` + `query` label-existence guard is measured working** — a compilation that omits
+  the target still succeeds and degrades to plain text, while one that includes it emits a real link
+  annotation. Two further sites carry the same label-reference shape and must be enumerated during
+  planning: `translator.py:3273/3281` (citation back-references) and `:4291`.
+- **Known residual risk:** the diamond `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]` is unsolvable
+  by any design that leaves the include decision inside a shared file. Putting the graph in the
+  wrapper eliminates it structurally — **make preserving that property an explicit success
+  criterion** of the wrapper-generation work rather than an accident of it.
+- **User-visible output-shape change.** With `typst_documents = [("index","manual.typ",…)]`,
+  `manual.typ` stops being the whole document and becomes the wrapper, while the body moves to
+  `index.typ`. Explain this together with v0.7.1's own rename (`index.typ` → `typsphinx.typ` under
+  the default derivation) in the CHANGELOG.
+- **Large test blast radius** — every assertion against a master `.typ`'s contents moves. v0.7.0's
+  comparable change measured 10 test files / 61 render-gate classes.
+- **Standing invariants carried forward:** zero new runtime dependencies; the `@preview` package
+  count stays at **four** with no new version-lockstep site; every node-handler change ships a real
+  `sphinx-build → typst.compile()` GATE-01 regression fixture recorded **red against the unfixed
+  code** before being accepted as green. All three defects genuinely fail today, so the classic RED
+  (a `TypstError`, or a measurably wrong emitted structure) is available.
+
+**Carried-forward deferred items (still out of this milestone):** CFG-01, XOS-01, DEG-03, XREF-02,
+CONF-06, RTD-05, RTD-06, LNK-01, CIT-07, STY-01/STY-02/STY-03, TOP-01, SEED-003 (the PEP 735
+`[dependency-groups]` split), `ruff-generic-linux-elf-unrunnable-on-nixos`, and
+`modernize-typing-imports-drop-up006-up035-ignore` (which `CLAUDE.md` independently forbids acting
+on).
+
+<details>
+<summary>v0.7.1 close note — retained for reference</summary>
 
 **v0.7.1 (bug-fix round) shipped 2026-08-11** with 19/19 v1 requirements complete and **zero known
 gaps** — the first close in this project's recent history to owe nothing forward. REL-04, carried
-unmet from v0.7.0, closed here on generated evidence. Start the next milestone with
-`/gsd-new-milestone`, which defines a fresh `REQUIREMENTS.md`; phase numbering continues at **47**.
+unmet from v0.7.0, closed here on generated evidence. Phase numbering continues at **47**.
+
+</details>
 
 <details>
 <summary>v0.7.1 milestone brief (as scoped 2026-08-04) — retained for reference</summary>
@@ -1115,34 +1206,33 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 ### Active
 
-<!-- v0.7.1 shipped 2026-08-11 with 19/19 requirements complete and zero known gaps, so this section
-     is empty until `/gsd-new-milestone` scopes the next one and writes a fresh
-     `.planning/REQUIREMENTS.md` (the authoritative, REQ-ID'd list — this section only ever carries
-     the active milestone's headline commitments). Candidates below are unscoped, not commitments. -->
+<!-- Scoped 2026-08-11 for v0.8.0. `.planning/REQUIREMENTS.md` is the authoritative, REQ-ID'd list;
+     this section only ever carries the active milestone's headline commitments. -->
 
-**Nothing active — v0.7.1 shipped 2026-08-11 owing nothing forward.**
+**v0.8.0 multi-master composition** — a `typst_documents` configuration with more than one master
+produces a complete PDF for each:
 
-**Strongest candidates for the next milestone**, in the order the v0.7.1 close judged them:
+- [ ] Every document is written as a docname-named content `.typ` with no template applied, and each
+      `typst_documents` entry gains a wrapper `.typ` carrying the template — closing the include-path
+      vs. output-filename mismatch (`file not found`) and the mid-body template re-expansion
+- [ ] The wrapper carries the per-master toctree include graph (document-order depth-first, mirroring
+      `sphinx/util/nodes.py` `inline_all_toctrees`), so a document toctree'd by two masters reaches
+      both instead of only the first-written one, and no include decision is left inside a shared file
+- [ ] Two `typst_documents` entries naming the same target are detected rather than silently dropping
+      one master's body, following CR-01's fall-back-to-docname-with-a-`WARNING` convention
+- [ ] A cross-document reference degrades at compile time via a `context` + `query` label-existence
+      guard, so a shared document referencing a target absent from this master no longer aborts the
+      compile once the include graph is fixed
+- [ ] A converted image rehomed to `images/<basename>` no longer collides with a real source image at
+      `<srcdir>/images/<basename>`, and an absolute URI outside `doctreedir` no longer escapes `outdir`
+- [ ] v0.8.0 released to PyPI with a curated CHANGELOG entry calling out the output-shape change
 
-- **The `typst_documents` modelling cluster (3 defects, promote together).** Duplicate targets
-  silently drop a master — re-measured live in Phase 46 and *still reachable*, because Phase 44's
-  collision guard compares only against real docnames and the reserved `_template`, never against a
-  registry of already-resolved targets. A master that is also a toctree child is unrepresentable. A
-  shared document is silently dropped from all but the first master (the include-dedup ledger is
-  per-build, not per-master). All three are the same class of defect v0.7.1 spent itself closing:
-  the configuration surface not modelling what users actually write.
-- **The two `TypstBuilder._track_image()` defects that ship in v0.7.1 unfixed** (owner decision
-  D-27, argued in full and declined rather than overlooked). The major one is a namespace collision:
-  a converted image rehomed to `images/<basename>` collides with a real source image at
-  `<srcdir>/images/<basename>`, so one is never copied and the other document renders the wrong
-  picture with no warning — a *regression in failure mode*, since the same project used to abort
-  loudly. The minor one lets `relpath(uri, doctreedir)` escape `outdir` for an absolute URI outside
-  `doctreedir`.
+**Not scoped into v0.8.0**, carried as candidates:
+
 - **`typst_authors`'s missing fail-loud shim** (D-03, declined for v0.7.1 on prep-only-fence
   consistency grounds). The config value is gone as of v0.7.1, but a `conf.py` still setting it gets
   no error — Sphinx ignores unregistered variables silently — so the author information vanishes
-  without a trace. The removal is the kind of change that most needs a shim, and v0.7.1 shipped
-  without one.
+  without a trace.
 - **`ruff` cannot run locally on NixOS** — the same generic-linux-ELF family as QUA-04, but on the
   `flake.nix` side. CI holds lint authority so nothing is blocked, but the maintainer's own machine
   cannot run one of the three gates CI enforces.
@@ -1265,6 +1355,10 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-08-11 at the **start of milestone v0.8.0** (`/gsd-new-milestone`) — **v0.8.0 multi-master composition** scoped. A `typst_documents` configuration declaring more than one master is broken in three ways, all growing from one root: a single `.typ` per docname shared by every master. The milestone re-shapes composition into per-master wrapper files carrying the template and the toctree include graph, plus template-less docname-named content files — closing the include-path/filename mismatch (`file not found`), the mid-body template re-expansion, and the silent loss of a document toctree'd by two masters. Duplicate-target detection, a `context` + `query` compile-time cross-reference guard (needed because fixing the include graph turns a silent omission into a hard compile failure), and the two `TypstBuilder._track_image()` defects shipped unfixed in v0.7.1 by decision D-27 ride along. **Every premise was measured live on the current tree during scoping** rather than taken from the todo records — including the reproduction of all three defects, the confirmation that masters compile to independent PDFs (which is what licenses expanding one content file into several wrappers), and a comparison against Sphinx's own LaTeX builder, which composes at the doctree layer and is therefore immune to two of the three but carries the duplicate-target bug identically. The LaTeX model was considered and **rejected**: adopting it would delete the per-document `.typ` files the `-b typst` builder exists to produce, so this milestone stays at the file layer and reaches the same result. Version is **v0.8.0, not a patch** — `manual.typ` stops being the whole document and becomes a wrapper, a user-visible output-shape change. Phase numbering starts at **47**. Prior footer retained below.*
+
+---
+
 *Last updated: 2026-08-11 at the **v0.7.1 milestone close** (`/gsd-complete-milestone`) — full evolution review complete. **v0.7.1 (bug-fix round) shipped: 8 phases (43–46, incl. inserted 44.1, 44.2, 45.1, 45.2) / 43 plans / 122 tasks, 19/19 v1 requirements validated, zero known gaps, `override_closeout`.** PyPI `typsphinx 0.7.1` is live (wheel 135,318 B + sdist 580,288 B) via release run `31462027486`; PR #132 merged with 15/15 CI checks green (`48bf135`), tagged `v0.7.1`, and `typsphinx-doc-translations` took its standing second tag after `update-pin.yml` run `31462409929` advanced the pin `87f242a` → `48bf135`. **This milestone closed the gap between what the documentation promises and what a `conf.py` gets**: `typst_documents` gained a LaTeX-shaped default so the Quick Start produces a PDF, an explicit entry's title and author reach the rendered document, the custom-template parameter contract was rewritten onto the nine parameters actually passed and locked with a RED-proved gate, `typst_authors` was removed, nested tables and figures stopped corrupting the enclosing structure, and the published changelog page stopped being two years stale by rendering live from `CHANGELOG.md`. Four things are worth carrying forward. **REL-04 finally closed, and closed correctly**: carried unmet from v0.7.0 where it was reported done on the strength of the workflow file, it was here proved by a real tag push whose `create-release` completed success, with the published body then *measured* byte-identical to the extractor's output rather than assumed. **Milestone invariant #5 paid immediately**: pushing the branch from Phase 43 surfaced a Windows-only defect on a dispatched CI run in Phase 46, not at the release PR — the exact failure mode that cost v0.7.0 two defects. **The `phase.complete` auto-flip hazard is now three-for-three on release-prep phases**: it flipped REL-06 and auto-closed the REL-04 todo at Phase 46 close-out, and the diff-before-trusting guard caught both again (`73d6a86`). **A root-cause fix retired five deferred items**: renaming `tox-uv` to `tox-uv-bare` (QUA-04) took the full suite from 45 failures to 0 and made `tox` work locally for the first time, dissolving the Phase 45.1 deferrals rather than carrying them. Archived to `milestones/v0.7.1-ROADMAP.md` + `v0.7.1-REQUIREMENTS.md` with phase artifacts under `milestones/v0.7.1-phases/`; `REQUIREMENTS.md` removed for the next milestone. **Nine todos and two dormant seeds stay open, every one argued in `46-HANDOFF.md` before the close** — the `typst_documents`-modelling cluster of three, the two `_track_image` defects shipped unfixed by decision D-27, and the declined `typst_authors` fail-loud shim are this file's named Active candidates. Next milestone starts at **Phase 47**. Prior footer retained below.*
 
 ---
