@@ -101,69 +101,18 @@ def compute_template_import_path_for_dir(wrapper_relative_dir: str) -> str:
     return "".join(["../"] * depth) + "_template.typ"
 
 
-def _resolve_entry_element(
-    typst_documents: list, docname: str, index: int, default: str
-) -> str:
-    """First-match ``typst_documents`` entry[index] lookup with fallback.
-
-    CONF-09 (Phase 44.2, D-01/D-02): reads element ``index`` (2 for title,
-    3 for author) off the FIRST entry whose ``entry[0] == docname`` --
-    mirroring ``builder.py``'s ``_resolve_output_stem()`` guard
-    conventions. Two entries naming the same docname resolve silently to
-    the first; no warning or list-wide second-match scan is added (that
-    shape belongs to the out-of-scope duplicate-*target* defect, not this
-    helper). Note: this docname first-match shape is deliberately NOT
-    used for a wrapper's own title/author (D-08) -- see
-    ``_entry_element_value()`` below, which reads a SPECIFIC entry
-    positionally instead.
-
-    - No matching entry, or entry too short to have ``index``, or the
-      element is ``None`` -> ``default`` (silent, D-02).
-    - Element present and a ``str`` (including ``""``) -> returned verbatim
-      (D-01: an empty string is a value, not a fallback signal).
-    - Element present but not a ``str`` -> a logged warning naming
-      the element index, the docname and the value it is falling back to,
-      then ``default`` (D-02). This is the one case that cannot be passed
-      through: the template engine's numeric-formatting branch would emit
-      an unquoted value, and Typst's ``document(title:)`` argument requires
-      a string or content, so the compile would abort.
-
-    Args:
-        typst_documents: The raw ``typst_documents`` config list.
-        docname: The current master document's docname.
-        index: The tuple element to resolve (2 for title, 3 for author).
-        default: The value to fall back to (``config.project`` or
-            ``config.author``).
-
-    Returns:
-        The resolved ``str`` value.
-    """
-    for entry in typst_documents:
-        if entry and entry[0] == docname:
-            if len(entry) <= index:
-                return default
-            value = entry[index]
-            if value is None:
-                return default
-            if not isinstance(value, str):
-                logger.warning(
-                    f"typst_documents element [{index}] for docname "
-                    f"{docname!r} is not a str: {value!r} -- "
-                    f"falling back to {default!r}"
-                )
-                return default
-            return value
-    return default
-
-
 def _entry_element_value(entry: tuple, index: int, default: str) -> str:
     """Read ``entry[index]`` positionally, off the SPECIFIC entry a
     wrapper is being generated for (D-08).
 
-    Unlike ``_resolve_entry_element()``'s docname first-match scan, this
-    never looks up other entries sharing the same docname -- two entries
-    naming the same docname must each keep their OWN title/author, so
-    wrapper generation order can never decide metadata.
+    A wrapper reads its title/author metadata off the specific entry it
+    is being generated for, never by searching ``typst_documents`` for
+    other entries that happen to share the same docname -- two entries
+    naming one docname each keep their OWN title and author, so wrapper
+    generation order can never decide metadata. (The docname first-match
+    search that used to exist alongside this positional read was removed
+    in 47-12-PLAN.md; see that plan and D-08 for the superseded shape and
+    why it had no production consumer.)
 
     - Entry too short to have ``index``, or the element is ``None`` ->
       ``default`` (silent, D-02).
@@ -390,9 +339,9 @@ class TypstWriter(writers.Writer):
         #
         # D-08: "project"/"author" are read POSITIONALLY off THIS
         # wrapper's own entry tuple, via `_entry_element_value()` --
-        # never through `_resolve_entry_element()`'s docname first-match
-        # scan. Two entries naming the same docname must each keep their
-        # own title/author, so wrapper generation order never decides
+        # never via a docname first-match search over `typst_documents`.
+        # Two entries naming the same docname must each keep their own
+        # title/author, so wrapper generation order never decides
         # metadata.
         sphinx_metadata = {
             "project": _entry_element_value(entry, 2, config.project),
