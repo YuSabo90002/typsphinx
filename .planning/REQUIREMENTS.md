@@ -91,10 +91,64 @@ Deferred to a later release. Tracked but not in this roadmap.
 
 ### Configuration
 
-- **CONF-13**: Per-master templates — `typst_template_mapping` is global today, while rinohtype's
-  `rinoh_documents` already supports a per-document `template=`. Cheap once the wrapper exists.
-  Open shape question: a 5th positional tuple element (mirroring `latex_documents`' `theme`) versus
-  a dict-shaped config.
+- **CONF-13**: Per-master templates via a **named template key in the 5th tuple element**. The
+  shape question this entry used to carry ("a 5th positional tuple element mirroring
+  `latex_documents`' `theme`, versus a dict-shaped config") was **closed by measurement on
+  2026-08-11**, during the v0.8.0 Phase 47 discussion. Deferred to a milestone of its own —
+  v0.8.0 stays composition-only and does **not** touch the 5th element, which this requirement
+  reserves.
+
+  **The precedent is exact, and was read on the installed Sphinx 9.1.0**
+  (`sphinx/builders/latex/__init__.py`): `docname, targetname, title, author, themename =
+  entry[:5]` followed by `theme = self.themes.get(themename)`. LaTeX's 5th element is a **name
+  looked up in a theme registry**, not an inline value — so the same position in
+  `typst_documents` should be a key into a registry of named template definitions.
+
+  **The design.** A template definition unifies what is scattered across four global config
+  values today — where the template comes from (`typst_template` file *or* `typst_package` +
+  `typst_package_imports`) and how it is called (`typst_template_function`'s name + `params`) —
+  into one object:
+
+  ```python
+  typst_templates = {
+      "ieee":   {"package": "@preview/charged-ieee:0.1.4",
+                 "function": {"name": "ieee", "params": {...}}},
+      "manual": {"template": "_templates/manual.typ",
+                 "function": {"name": "project"}},
+  }
+  typst_documents = [
+      ("index",   "manual.typ",   "User Manual", "Alice", "manual"),
+      ("bmaster", "handbook.typ", "Field Guide", "Bob",   "ieee"),
+  ]
+  ```
+
+  **Backward compatibility is by meaning, not by tolerance.** `docs/source/user_guide/
+  configuration.rst:73-79` documents the 5th element as "Document class (usually `"typst"`) --
+  accepted and ignored", and three real five-element tuples already exist in this repository
+  (`docs/source/conf.py:73`, `examples/charged-ieee/approach1/conf.py:17`,
+  `examples/charged-ieee/approach2/conf.py:16`), all passing the literal `"typst"`. Making
+  `"typst"` the **name of the built-in default definition** — whose contents are the existing
+  global `typst_template` / `typst_package` / `typst_package_imports` /
+  `typst_template_function` values — leaves all three working unchanged and producing identical
+  output, while the two `charged-ieee` examples become the showcase for the new form once
+  rewritten to `"ieee"`.
+
+  **Why it is worth a milestone.** It is the only route that closes the defect this design was
+  found through: `typst_template_function`'s `params` is global *and* documented as the
+  "complete, exclusive" parameter set (`docs/source/user_guide/configuration.rst:215-223`), so
+  under a multi-master configuration every `typst_documents` entry's own title (element `[2]`)
+  and author (element `[3]`) are **discarded with no warning** and every master renders the same
+  title page. v0.8.0 ships with that as a documented limitation (owner decision, 2026-08-11).
+  This is the same failure family as QUA-05.
+
+  **Still open at this level:** whether `typst_elements`, `typst_template_mapping`, and
+  `typst_template_assets` belong inside a template definition (assets and mapping look like they
+  do; `typst_elements`' papersize/fontsize/lang may be a property of the document rather than of
+  the template); and whether the net config surface is framed as adding one value or as the
+  consolidation it actually is — four values folding into one, with the old four retained as the
+  implicit `"typst"` definition and deprecable later. Note this would **reverse v0.8.0's binding
+  constraint #7** ("no new `typst_*` config value"), which is scoped to that milestone's wrapper
+  placement and is revisitable here.
 - **CONF-06**: `typst_elements` keys beyond papersize / fontsize / lang
 - **CFG-01**: User-configurable `@preview` package versions
 
