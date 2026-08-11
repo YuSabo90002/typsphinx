@@ -239,4 +239,137 @@ stale.
 
 ## D-23 run 2 — the authority run
 
-_Pending — filled by plan 46-04._
+This is the authority run for SC#3: the post-bump commit carrying both the `0.7.1` version
+literal (`pyproject.toml`) and the `## [0.7.1]` CHANGELOG heading, pushed to
+`gsd/v0.7.1-bug-fix-round` and proved green by a live, freshly-dispatched CI run — not inherited
+from D-23 run 1 (which proved only the Windows repair, before either the bump or the CHANGELOG
+entry existed on the branch).
+
+### Pre-push confirmation
+
+Command:
+```
+$ grep '^version = ' pyproject.toml
+```
+Verbatim output:
+```
+version = "0.7.1"
+```
+
+Command:
+```
+$ grep -n '^## \[0.7.1\]' CHANGELOG.md
+```
+Verbatim output:
+```
+17:## [0.7.1] - 2026-08-11
+```
+
+Both present — waves 1 and 2 (plans 46-02 and 46-03) had merged back before this task ran.
+
+### Pushed SHA
+
+Command:
+```
+$ git rev-parse HEAD
+```
+Verbatim output:
+```
+26b2e6c6fff77520f36e4ff90c165922ef7026fc
+```
+
+### Push
+
+Command:
+```
+$ git push origin HEAD:refs/heads/gsd/v0.7.1-bug-fix-round
+```
+Verbatim output:
+```
+To https://github.com/YuSabo90002/typsphinx.git
+   07b9afd..26b2e6c  HEAD -> gsd/v0.7.1-bug-fix-round
+```
+A plain fast-forward from run 1's `07b9afd` tip; not rejected, so no force-push was needed or
+used.
+
+Confirmation:
+```
+$ git rev-parse HEAD
+26b2e6c6fff77520f36e4ff90c165922ef7026fc
+$ git rev-parse origin/gsd/v0.7.1-bug-fix-round
+26b2e6c6fff77520f36e4ff90c165922ef7026fc
+```
+Equal — the pushed SHA is confirmed on `origin`.
+
+### Dispatch
+
+Command:
+```
+$ gh workflow run ci.yml --ref gsd/v0.7.1-bug-fix-round
+```
+Verbatim output:
+```
+https://github.com/YuSabo90002/typsphinx/actions/runs/31458368833
+```
+
+Matched by `headSha` via:
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.7.1-bug-fix-round --limit 5 --json databaseId,headSha,event,status
+```
+The first row: `{"databaseId":31458368833,"headSha":"26b2e6c6fff77520f36e4ff90c165922ef7026fc","event":"workflow_dispatch","status":"queued"}` — `headSha` equals the pushed SHA.
+
+Run id: `31458368833`
+Run URL: `https://github.com/YuSabo90002/typsphinx/actions/runs/31458368833`
+
+### Job conclusions
+
+Command:
+```
+$ gh run view 31458368833 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'
+```
+
+| Job | Conclusion |
+|---|---|
+| Integration Test - advanced | success |
+| Type Check | success |
+| Code Coverage | success |
+| Integration Test - basic | success |
+| Build Package | success |
+| Test Python 3.13 on windows-latest | success |
+| Lint and Format Check | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.12 on windows-latest | success |
+
+Overall run conclusion (`gh run view 31458368833 --json conclusion,status`):
+```
+{"conclusion":"success","status":"completed"}
+```
+
+**All twelve jobs report `success`. No job reports `failure`.** This includes all six
+`{ubuntu, macos, windows} × {3.12, 3.13}` test lanes, `Lint and Format Check`, `Type Check`,
+`Code Coverage`, `Build Package`, and both `Integration Test - basic` / `Integration Test -
+advanced` jobs. `RUN_ID=31458368833` is this task's accepted D-23 run 2 evidence — no retry or
+fix was needed; the run was clean on the first dispatch.
+
+### Why this run is the authority
+
+Per D-11's split: local CI-equivalent tooling cannot serve as SC#3's authority for pytest,
+`black`, `ruff`, or `mypy` on this machine — local never exercises Windows or macOS, and
+`.venv/bin/ruff` is a generic-linux ELF the NixOS stub loader rejects, so `tox -e lint` cannot
+even run here (a filed, out-of-scope environmental defect, not a validation gap). This dispatched
+run, matched by `headSha` to the exact post-bump commit pushed to `origin`, is therefore the sole
+authority for the full `{ubuntu, macos, windows} × {3.12, 3.13}` test matrix, the lint/format
+trio, and the type check — everything CI structurally covers. What CI does not cover — the two
+docs builds, the full-corpus `-b typstpdf` gate, and the single `ja` build — is recorded locally
+in `46-GREEN-TREE-EVIDENCE.md`.
+
+### No irreversible action
+
+```
+$ git tag -l v0.7.1
+$ git ls-remote --tags origin v0.7.1
+```
+Both produced no output — no tag, no tag push, no PyPI upload, no GitHub Release, no PR.
