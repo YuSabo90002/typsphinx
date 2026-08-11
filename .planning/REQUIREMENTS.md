@@ -18,27 +18,37 @@ position".
 
 - [ ] **COMP-01**: Every document is written as a docname-named content `.typ` with no template
       applied, so `writer.py`'s master/included binary no longer selects the output shape
+
 - [ ] **COMP-02**: Each `typst_documents` entry produces a wrapper `.typ` at its resolved target
       path, carrying the template application and the include of its master's content file
+
 - [ ] **COMP-03**: A document listed in `typst_documents` that is also another master's toctree
       child builds without Typst's `file not found` abort (B-1)
+
 - [ ] **COMP-04**: An included master no longer re-expands its template's title page and
       `#outline()` into the middle of the parent's body (B-2)
+
 - [ ] **COMP-05**: The builder computes each master's include graph by document-order depth-first
       traversal with first-encounter-wins, matching `sphinx.util.nodes.inline_all_toctrees`
+
 - [ ] **COMP-06**: The wrapper publishes its master's include edge set as Typst `state`, and content
       files emit state-guarded includes at their toctree's own position
+
 - [ ] **COMP-07**: A document toctree'd by two masters appears in both masters' PDFs (defect A)
 - [ ] **COMP-08**: Prose written before and after a `.. toctree::` keeps its position relative to the
       included content — the shape of Sphinx's own default `index.rst`
+
 - [ ] **COMP-09**: Two masters requiring conflicting include sets from the same content file (the
       diamond `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]`) both compile correctly, with the shared
       document appearing exactly once in each
+
 - [ ] **COMP-10**: Heading levels match Sphinx's own composition — relative offsets nest according to
       traversal order, so a multiply-reachable document's depth follows the order its parent lists
       its children
+
 - [ ] **COMP-11**: `visit_toctree` no longer emits an unconditional `include()`, and the build-scoped
       `_included_docnames` ledger is removed
+
 - [ ] **COMP-12**: The full Sphinx `doc/` corpus compiles fatal-free under the new composition,
       demonstrating that the `state`/`context` multi-pass layout convergence holds at real scale
 
@@ -48,8 +58,10 @@ position".
       a bare name writes the wrapper at the output root and an explicit path writes it where the user
       asked — reversing v0.7.1 Phase 44's D-06/D-07 (a path in a target is rejected and truncated to
       its basename) and D-05 (a nested docname's output is forced into that docname's own directory)
-- [ ] **OUT-02**: A target that escapes the output directory — containing `..`, absolute, or
+
+- [x] **OUT-02**: A target that escapes the output directory — containing `..`, absolute, or
       drive-qualified — is still refused with a warning and a safe fallback
+
 - [ ] **OUT-03**: Content files keep their docname-derived names and locations regardless of where
       their master's wrapper is written
 
@@ -57,6 +69,7 @@ position".
 
 - [ ] **XREF-03**: A cross-document reference whose target label is absent from the compiling master
       degrades to plain text at compile time instead of aborting the compile
+
 - [ ] **XREF-04**: Every label-reference emission site routes through one shared guard, and
       `master_included_docnames` is removed
 
@@ -64,13 +77,15 @@ position".
 
 - [ ] **BLD-02**: Two `typst_documents` entries resolving to the same target path are detected and
       reported instead of silently dropping one master's body
+
 - [ ] **BLD-03**: A wrapper target that collides with a content file's own path is detected
-- [ ] **BLD-04**: Collision detection behaves identically on case-insensitive filesystems
+- [x] **BLD-04**: Collision detection behaves identically on case-insensitive filesystems
 
 ### Images (IMG)
 
 - [ ] **IMG-01**: A converted image rehomed to `images/<basename>` no longer collides with a real
       source image at `<srcdir>/images/<basename>`
+
 - [ ] **IMG-02**: An absolute image URI outside `doctreedir` no longer causes `copy_image_files()` to
       write outside the output directory
 
@@ -149,6 +164,7 @@ Deferred to a later release. Tracked but not in this roadmap.
   implicit `"typst"` definition and deprecable later. Note this would **reverse v0.8.0's binding
   constraint #7** ("no new `typst_*` config value"), which is scoped to that milestone's wrapper
   placement and is revisitable here.
+
 - **CONF-06**: `typst_elements` keys beyond papersize / fontsize / lang
 - **CFG-01**: User-configurable `@preview` package versions
 
@@ -156,8 +172,10 @@ Deferred to a later release. Tracked but not in this roadmap.
 
 - **QUA-05**: `typst_authors`' missing fail-loud shim — the value was removed in v0.7.1 and Sphinx
   ignores unregistered `conf.py` variables silently, so author information vanishes without a trace
+
 - **QUA-06**: `ruff` cannot run on the maintainer's NixOS machine (generic-linux ELF; a `flake.nix`
   repair in the same family as QUA-04)
+
 - **QUA-07**: SEED-003 — split the `dev` extra into PEP 735 `[dependency-groups]`
 - **LNK-01**: `sphinx-build -b linkcheck` CI job
 - **XOS-01**: cross-OS docs-PDF CI on macOS and Windows
@@ -169,6 +187,7 @@ Deferred to a later release. Tracked but not in this roadmap.
 - **CIT-07**: `sphinxcontrib-bibtex` support
 - **STY-01 / STY-02 / STY-03**: user-overridable per-directive styling, a bundled Typst style module,
   and its Typst Universe publication
+
 - **TOP-01**: box `.. contents::` as the LaTeX reference does
 
 ### Hosting
@@ -197,16 +216,20 @@ Not requirements — decisions each owning phase must close with measurement.
 
 1. **`translator.py:4291`** — is this a fourth independent degradation site, or does it already route
    through `_reference_anchor_decision`? Unread during research; XREF-04 depends on the answer.
+
 2. **`:numref:` divergence** — Sphinx bakes `:numref:` text from the project-wide `env.toc_fignumbers`
    at build time, while Typst's figure/table counters are per-compiled-wrapper. These can diverge once
    masters carry different subsets, **with no compile error to catch it**. Needs a live two-master
    fixture before being treated as settled or dismissed.
+
 3. **B-2's RED state** — is the mid-body template re-expansion a compile fatal or a
    compiles-fine-but-wrong-output defect? Determines whether COMP-04's GATE-01 fixture uses the
    classic `TypstError` RED or a structural assertion.
+
 4. **CR-01 self-collision policy** — now that every docname unconditionally gets a content file, a
    target resolving onto its own master's docname is a real wrapper-vs-content collision. Allow, or
    refuse? BLD-03 needs the policy fixed.
+
 5. **Case-normalization scope** — normalize collision comparisons, or refuse case-differing targets
    outright? BLD-04 needs the policy fixed.
 
@@ -229,19 +252,20 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | COMP-11 | Phase 49 | Pending |
 | COMP-12 | Phase 49 | Pending |
 | OUT-01 | Phase 47 | Pending |
-| OUT-02 | Phase 47 | Pending |
+| OUT-02 | Phase 47 | Complete |
 | OUT-03 | Phase 47 | Pending |
 | XREF-03 | Phase 48 | Pending |
 | XREF-04 | Phase 48 | Pending |
 | BLD-02 | Phase 47 | Pending |
 | BLD-03 | Phase 47 | Pending |
-| BLD-04 | Phase 47 | Pending |
+| BLD-04 | Phase 47 | Complete |
 | IMG-01 | Phase 50 | Pending |
 | IMG-02 | Phase 50 | Pending |
 | DOC-14 | Phase 51 | Pending |
 | REL-07 | Phase 52 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 24 total
 - Mapped to phases: 24 ✓
 - Unmapped: 0

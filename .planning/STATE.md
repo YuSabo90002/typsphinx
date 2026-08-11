@@ -5,16 +5,16 @@ milestone_name: multi-master composition
 current_phase: 47
 current_phase_name: two-layer-output-content-wrapper-split-target-as-path-collis
 status: executing
-stopped_at: Phase 47 context gathered
-last_updated: "2026-08-11T09:35:34.001Z"
+stopped_at: Completed 47-10-PLAN.md — Phase 47 fully closed
+last_updated: "2026-08-11T12:57:33.403Z"
 last_activity: 2026-08-11
 last_activity_desc: v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 10
-  completed_plans: 0
-  percent: 0
+  completed_plans: 10
+  percent: 17
 ---
 
 # Project State
@@ -32,12 +32,12 @@ Next action: `/gsd-plan-phase 47`
 
 ## Current Position
 
-Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — EXECUTING
-Plan: 1 of 10
-Status: Executing Phase 47
-Last activity: 2026-08-11 — Phase 47 execution started
+Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — COMPLETE
+Plan: 10 of 10 (all plans complete)
+Status: Phase 47 complete — all 5 ROADMAP success criteria discharged, milestone branch on origin with a completed green CI run (windows-latest + macos-latest). Next: Phase 48 (Compile-Time Cross-Reference Guard).
+Last activity: 2026-08-11 — Phase 47 plan 10 (push milestone branch to origin, prove with CI) completed
 
-Progress: [░░░░░░░░░░] 0% (0/6 phases)
+Progress: [█░░░░░] 17% (1/6 phases)
 
 ## Active Milestone (v0.8.0 — multi-master composition)
 
@@ -267,6 +267,11 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
   census and found it matched both the discussion-time and planning-time counts exactly.
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 47 P10 | 35min | 3 tasks | 4 files |
 
 ## Shipped Milestone (v0.6.3 — archived)
 
@@ -320,6 +325,8 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
   section: every design defect in this milestone compiles fine today, so RED is a structural /
   regex / `pypdf`-text assertion defined before any code is written, except for CIT-01 (Phase 40),
   which keeps the classic `TypstError`.
+
+- [Phase 47]: Milestone branch gsd/v0.8.0-multi-master-composition pushed to origin (no PR); CI run 31492380799 completed success including windows-latest/macos-latest lanes, discharging Phase 47 SC#5
 
 ### Pending Todos
 
@@ -659,12 +666,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/47-two-layer-output-content-wrapper-split-target-as-path-collis/47-CONTEXT.md
+**Resume file:** None
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-11T08:34:24.532Z
-Stopped at: Phase 47 context gathered
+Last session: 2026-08-11T12:57:33.384Z
+Stopped at: Completed 47-10-PLAN.md — Phase 47 fully closed
 Resume: `/gsd-plan-phase 47`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
