@@ -217,9 +217,16 @@ def _measure_widths(index_typ_path: Path, build_dir: Path, segments: list) -> tu
 def signature_overflow_built(tmp_path_factory):
     """
     Build the signature_overflow_render_gate fixture through `-b typst`
-    ONCE per class and return `(index_typ_path, build_dir)` -- every test
-    method below reads a disjoint slice of the same real emission, rather
-    than re-running sphinx-build once per test.
+    ONCE per class and return `(content_typ_path, wrapper_typ_path,
+    build_dir)` -- every test method below reads a disjoint slice of the
+    same real emission, rather than re-running sphinx-build once per test.
+
+    Two paths, deliberately: the CONTENT file (index.typ, R1) carries the
+    translator body markup `_extract_addname_and_name` scans, while the
+    WRAPPER file (master.typ, R2/R3) carries the full template application
+    -- `_measure_widths` needs the wrapper as its probe base so the
+    appended context probe measures the REAL production page geometry
+    (A4/margins/font), not Typst's untemplated default.
 
     Depends only on `tmp_path_factory` (session-scoped-compatible) -- not
     on a function-scoped fixtures-dir fixture, to avoid a pytest
@@ -234,9 +241,11 @@ def signature_overflow_built(tmp_path_factory):
     assert (
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-    index_typ = build_dir / "index.typ"
-    assert index_typ.exists(), "index.typ was not generated"
-    return index_typ, build_dir
+    content_typ = build_dir / "index.typ"
+    assert content_typ.exists(), "index.typ (content) was not generated"
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
+    return content_typ, wrapper_typ, build_dir
 
 
 @pytest.mark.skipif(
@@ -278,12 +287,12 @@ class TestSignatureOverflowRenderGate:
         period (D-07) and wrapping the signature in
         par(hanging-indent: ...) (D-06).
         """
-        index_typ, build_dir = signature_overflow_built
-        typ_source = index_typ.read_text(encoding="utf-8")
+        content_typ, wrapper_typ, build_dir = signature_overflow_built
+        typ_source = content_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, SYNTHETIC_NAME)
         combined = addname + name
         segments = combined.split(ZWSP_ESCAPE)
-        column_width, seg_widths = _measure_widths(index_typ, build_dir, segments)
+        column_width, seg_widths = _measure_widths(wrapper_typ, build_dir, segments)
         widest = max(seg_widths)
         assert widest < column_width, (
             f"widest unbreakable segment ({widest}pt) does not fit inside "
@@ -307,8 +316,8 @@ class TestSignatureOverflowRenderGate:
         at all, so this assertion FAILS (RED) against the untouched
         translator.
         """
-        index_typ, _ = signature_overflow_built
-        typ_source = index_typ.read_text(encoding="utf-8")
+        content_typ, _, _ = signature_overflow_built
+        typ_source = content_typ.read_text(encoding="utf-8")
         assert "par(hanging-indent: 2.5em" in typ_source, (
             "expected the desc_signature wrapper to carry "
             "par(hanging-indent: 2.5em, ...) -- D-06's chosen, "
@@ -328,8 +337,8 @@ class TestSignatureOverflowRenderGate:
         Pre-phase: zero periods carry the escape (0 != 12), so this
         assertion FAILS (RED) against the untouched translator.
         """
-        index_typ, _ = signature_overflow_built
-        typ_source = index_typ.read_text(encoding="utf-8")
+        content_typ, _, _ = signature_overflow_built
+        typ_source = content_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, SYNTHETIC_NAME)
         combined = addname + name
         expected_periods = SYNTHETIC_IDENTIFIER.count(".")
@@ -353,12 +362,12 @@ class TestSignatureOverflowRenderGate:
         passing post-phase) -- it is a non-regression control, never to be
         converted into the RED case.
         """
-        index_typ, build_dir = signature_overflow_built
-        typ_source = index_typ.read_text(encoding="utf-8")
+        content_typ, wrapper_typ, build_dir = signature_overflow_built
+        typ_source = content_typ.read_text(encoding="utf-8")
         addname, name = _extract_addname_and_name(typ_source, CONTROL_NAME_ANCHOR)
         combined = addname + name
         segments = combined.split(ZWSP_ESCAPE)
-        column_width, seg_widths = _measure_widths(index_typ, build_dir, segments)
+        column_width, seg_widths = _measure_widths(wrapper_typ, build_dir, segments)
         widest = max(seg_widths)
         assert widest < column_width, (
             "Real-corpus non-regression control "
@@ -377,8 +386,8 @@ class TestSignatureOverflowRenderGate:
         rather than silently absorbed by the primary/control comparisons
         above (which always read the column width fresh, never hardcoded).
         """
-        index_typ, build_dir = signature_overflow_built
-        column_width, _ = _measure_widths(index_typ, build_dir, ["x"])
+        _, wrapper_typ, build_dir = signature_overflow_built
+        column_width, _ = _measure_widths(wrapper_typ, build_dir, ["x"])
         assert column_width > 0
         assert column_width == pytest.approx(EXPECTED_COLUMN_WIDTH_PT, abs=0.01), (
             f"expected the production A4/default-margin/11pt column width "

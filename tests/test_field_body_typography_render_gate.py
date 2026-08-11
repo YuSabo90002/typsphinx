@@ -178,7 +178,9 @@ def _field_body_typography_build(
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
     assert (build_dir / "index.typ").exists(), "index.typ was not emitted"
-    assert (build_dir / "index.pdf").exists(), "index.pdf was not produced"
+    # The WRAPPER's PDF (R4) -- master.pdf per the fixture's de-collided
+    # target.
+    assert (build_dir / "master.pdf").exists(), "master.pdf was not produced"
     return build_dir
 
 
@@ -191,9 +193,10 @@ def typ_text(_field_body_typography_build: Path) -> str:
 
 @pytest.fixture(scope="session")
 def pdf_text(_field_body_typography_build: Path) -> str:
-    """The pypdf-extracted text of the compiled ``index.pdf``, shared
-    read-only across every PDF-adjacency test in this module."""
-    reader = pypdf.PdfReader(str(_field_body_typography_build / "index.pdf"))
+    """The pypdf-extracted text of the compiled ``master.pdf`` (the
+    wrapper's PDF, R4), shared read-only across every PDF-adjacency test in
+    this module."""
+    reader = pypdf.PdfReader(str(_field_body_typography_build / "master.pdf"))
     return "\n".join(page.extract_text() for page in reader.pages)
 
 

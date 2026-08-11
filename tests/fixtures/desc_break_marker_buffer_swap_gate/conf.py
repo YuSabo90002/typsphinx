@@ -26,6 +26,10 @@ extensions = [
 # index must be a master document so the writer emits the full template and
 # TypstPDFBuilder.finish() / a manual typst.compile() call actually
 # compiles it to PDF.
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Desc Break Marker Buffer Swap Gate", "Test Author"),
+    ("index", "master.typ", "Desc Break Marker Buffer Swap Gate", "Test Author"),
 ]

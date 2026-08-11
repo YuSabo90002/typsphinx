@@ -19,6 +19,10 @@ extensions = [
 # emits the full template -- the SIG-07 gate measures against the real
 # production page geometry (A4, default margins, 11pt), which only a master
 # document's full-template render carries.
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Signature Overflow Render Gate", "Test Author"),
+    ("index", "master.typ", "Signature Overflow Render Gate", "Test Author"),
 ]
