@@ -15,6 +15,18 @@
 # and produced a malformed, stem-less reference (e.g. "#import "..typ""
 # at depth 1, "#import "../.typ"" at depth 2). The depth-based fix has no
 # such string dependence.
+#
+# Phase 47 (OUT-01/BLD-02, 47-EXPECTED-STRUCTURE.md's fixture de-collision
+# rule): both entries used to target the identity basename "index" (equal
+# to their own docname's basename), which the pre-Phase-47
+# `_directory_preserving_relpath()` force-relocated into each docname's own
+# directory so the two outputs never collided. OUT-01 reverses that
+# forcing -- a bare target (no path separator) now resolves at the OUTDIR
+# ROOT, unconditionally -- so both entries' "index" targets would resolve
+# to the SAME physical path (`outdir/index.typ`), a BLD-02 duplicate-target
+# collision. The two distinct targets below (`template-dir-master.typ`,
+# `template-dir-sub.typ`) are therefore load-bearing, not merely a rename:
+# two entries resolving to one path is a build error under D-02/D-03.
 
 project = "Template Named Dir Master"
 author = "Test Author"
@@ -29,22 +41,29 @@ extensions = [
 # tests/fixtures/nested_master_render_gate/conf.py's reasoning).
 root_doc = "_template/index"
 
-# Both masters share a target basename equal to their own docname basename
-# (D-07 reasoning, mirrored from the sibling PDF-02 fixture): the Phase 22
-# target-name rename must NOT be exercised here. The two entries live in
-# different directories, so their outputs do not collide.
-#
 # CONF-09 (Phase 44.2, SC#3): the second entry's author deliberately
 # diverges from the first ("Test Author (nested)" vs "Test Author") so a
 # per-master author leak is detectable -- both entries' titles already
 # diverge (the title half of the leak was already detectable before this
 # phase), but until now both entries shared the SAME author, so an author
 # leak between the two masters was undetectable.
+#
+# Both targets are bare (no path separator), so both WRAPPERS resolve at
+# the outdir root under OUT-01 -- this fixture's own purpose (docnames
+# living inside a directory literally named `_template`) is carried
+# entirely by the unconditional, docname-derived CONTENT files (COMP-01),
+# which still land inside `_template/` regardless of where either entry's
+# wrapper resolves.
 typst_documents = [
-    ("_template/index", "index", "Template Named Dir Master", "Test Author"),
+    (
+        "_template/index",
+        "template-dir-master.typ",
+        "Template Named Dir Master",
+        "Test Author",
+    ),
     (
         "_template/sub/index",
-        "index",
+        "template-dir-sub.typ",
         "Template Named Dir Master (nested)",
         "Test Author (nested)",
     ),

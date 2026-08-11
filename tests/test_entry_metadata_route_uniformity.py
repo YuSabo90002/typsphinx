@@ -29,6 +29,18 @@ mapping). A4's config below therefore sets an EXPLICIT mapping equal to
 setting unset -- this is what makes "author" an active mapping key on this
 route, matching this module's own docstring claim, and is what the D-03
 uniformity property actually requires on this route.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the entry title/author this module asserts) lives exclusively on the
+WRAPPER file since the content/wrapper split, so every route reads its
+resolved wrapper (``master.typ``) instead of the docname content file
+(``index.typ``). Every config's ``typst_documents`` target was also
+renamed from the identity ``'index'`` to ``'master'`` -- an identity target
+is a BLD-03 self-collision: the wrapper write would silently overwrite the
+docname's own content file at the same path, which happened to leave this
+module's OLD ``index.typ``-reading assertions passing by accident (they
+were reading the overwritten wrapper without knowing it), not because the
+route was genuinely uniform through the correct file.
 """
 
 FIXTURE_TEMPLATE_MARKER = "// A2-ROUTE-UNIFORMITY-SRCDIR-SHADOW-MARKER"
@@ -67,7 +79,7 @@ author = 'Config Author Must Not Win A1'
 release = '1.0.0'
 
 typst_documents = [
-    ('index', 'index', 'Entry Title A1', 'Entry Author A1'),
+    ('index', 'master', 'Entry Title A1', 'Entry Author A1'),
 ]
 """
     (srcdir / "conf.py").write_text(conf_content)
@@ -76,7 +88,7 @@ typst_documents = [
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    content = (app.outdir / "index.typ").read_text(encoding="utf-8")
+    content = (app.outdir / "master.typ").read_text(encoding="utf-8")
 
     assert 'title: "Entry Title A1"' in content
     assert 'authors: ("Entry Author A1",)' in content
@@ -100,7 +112,7 @@ author = 'Config Author Must Not Win A2'
 release = '1.0.0'
 
 typst_documents = [
-    ('index', 'index', 'Entry Title A2', 'Entry Author A2'),
+    ('index', 'master', 'Entry Title A2', 'Entry Author A2'),
 ]
 """
     (srcdir / "conf.py").write_text(conf_content)
@@ -110,7 +122,7 @@ typst_documents = [
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    content = (app.outdir / "index.typ").read_text(encoding="utf-8")
+    content = (app.outdir / "master.typ").read_text(encoding="utf-8")
 
     assert 'title: "Entry Title A2"' in content
     assert 'authors: ("Entry Author A2",)' in content
@@ -140,7 +152,7 @@ author = 'Config Author Must Not Win A3'
 release = '1.0.0'
 
 typst_documents = [
-    ('index', 'index', 'Entry Title A3', 'Entry Author A3'),
+    ('index', 'master', 'Entry Title A3', 'Entry Author A3'),
 ]
 
 typst_template = 'custom_template.typ'
@@ -154,7 +166,7 @@ typst_template = 'custom_template.typ'
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    content = (app.outdir / "index.typ").read_text(encoding="utf-8")
+    content = (app.outdir / "master.typ").read_text(encoding="utf-8")
 
     assert 'title: "Entry Title A3"' in content
     assert 'authors: ("Entry Author A3",)' in content
@@ -182,7 +194,7 @@ author = 'Config Author Must Not Win A4'
 release = '1.0.0'
 
 typst_documents = [
-    ('index', 'index', 'Entry Title A4', 'Entry Author A4'),
+    ('index', 'master', 'Entry Title A4', 'Entry Author A4'),
 ]
 
 typst_package = "@preview/charged-ieee:0.1.4"
@@ -199,7 +211,7 @@ typst_template_mapping = {
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    content = (app.outdir / "index.typ").read_text(encoding="utf-8")
+    content = (app.outdir / "master.typ").read_text(encoding="utf-8")
 
     assert 'title: "Entry Title A4"' in content
     assert 'authors: ("Entry Author A4",)' in content
@@ -227,7 +239,7 @@ author = 'Config Author Must Not Win Collapse'
 release = '1.0.0'
 
 typst_documents = [
-    ('index', 'index', 'Entry Title Collapse', 'Entry Author Collapse'),
+    ('index', 'master', 'Entry Title Collapse', 'Entry Author Collapse'),
 ]
 
 typst_package = "@preview/charged-ieee:0.1.4"
@@ -240,7 +252,7 @@ typst_template = 'custom_template.typ'
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    content = (app.outdir / "index.typ").read_text(encoding="utf-8")
+    content = (app.outdir / "master.typ").read_text(encoding="utf-8")
 
     assert 'title: "Entry Title Collapse"' in content
     assert 'authors: ("Entry Author Collapse",)' in content

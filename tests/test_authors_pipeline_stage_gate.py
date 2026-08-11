@@ -62,6 +62,18 @@ no silent drop of an enumerated site from either class.
 individually-named functions over ``@pytest.mark.parametrize`` for this
 phase's precedence modules; this module keeps that convention throughout,
 including its two real-``sphinx-build`` gates below.
+
+**Phase 47 update (R2, ``47-EXPECTED-STRUCTURE.md``).** The
+``params.update(toctree_options)`` call this module's AST walk pins moved
+from ``TypstWriter.translate()`` to the new ``render_wrapper()`` -- template
+application (including the toctree-options merge) now belongs exclusively
+to the wrapper, not the docname content file, so
+``EXPECTED_STAGE_SITES``/``UNREACHABLE_STAGE_PROOFS`` name
+``render_wrapper`` instead of ``translate``. The two real-``sphinx-build``
+gates' inline ``typst_documents`` target also changed from the identity
+``'index'`` to ``'master'`` -- an identity target is now a BLD-03
+self-collision -- and their emitted-source assertions read the resolved
+wrapper (``master.typ``) instead of the docname content file, per R2.
 """
 
 import ast
@@ -121,7 +133,7 @@ EXPECTED_STAGE_SITES = tuple(
             "typsphinx/template_engine.py::map_parameters::assign::title",
             "typsphinx/template_engine.py::map_parameters::assign::date",
             "typsphinx/template_engine.py::map_parameters::assign::key",
-            "typsphinx/writer.py::translate::update::toctree_options",
+            "typsphinx/writer.py::render_wrapper::update::toctree_options",
         ]
     )
 )
@@ -186,8 +198,14 @@ UNREACHABLE_STAGE_PROOFS = {
         "test_pipeline_stage_sites_that_can_determine_authors_are_exactly_these"
     ),
     # writer.py's params.update(toctree_options) -- a REAL params writer
-    # in the pipeline, excluded by proof of its returned key set.
-    "typsphinx/writer.py::translate::update::toctree_options": (
+    # in the pipeline, excluded by proof of its returned key set. Phase 47
+    # moved this call from translate() to render_wrapper() (template
+    # application, including the toctree_options merge, now belongs
+    # exclusively to the wrapper -- R2, 47-EXPECTED-STRUCTURE.md), so the
+    # site id's enclosing function name changed; the returned-key-set
+    # proof itself (extract_toctree_options() below) is unaffected by
+    # which function calls it.
+    "typsphinx/writer.py::render_wrapper::update::toctree_options": (
         "test_toctree_options_cannot_reach_authors_or_title"
     ),
 }
@@ -223,7 +241,10 @@ def _write_three_knob_project(srcdir: Path, with_template_function: bool) -> Non
         "author = 'A'",
         "release = '1.0'",
         "extensions = ['typsphinx']",
-        f"typst_documents = [('index', 'index', 'T', {STAGE1_AUTHOR_NAME!r})]",
+        # Phase 47 (OUT-01/BLD-03): target 'master', not the identity
+        # 'index' -- an identity target is now a self-collision (the
+        # wrapper would resolve onto this docname's own content file).
+        f"typst_documents = [('index', 'master', 'T', {STAGE1_AUTHOR_NAME!r})]",
     ]
     if with_template_function:
         conf_lines.append(
@@ -268,7 +289,7 @@ def test_three_knob_build_emits_template_function_authors_not_stage1(tmp_path):
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
-    emitted = (outdir / "index.typ").read_text(encoding="utf-8")
+    emitted = (outdir / "master.typ").read_text(encoding="utf-8")
     assert TEMPLATE_FUNCTION_AUTHOR in emitted
     assert STAGE1_AUTHOR_NAME not in emitted
 
@@ -293,7 +314,7 @@ def test_three_knob_control_build_without_template_function_emits_stage1(
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
-    emitted = (outdir / "index.typ").read_text(encoding="utf-8")
+    emitted = (outdir / "master.typ").read_text(encoding="utf-8")
     assert STAGE1_AUTHOR_NAME in emitted
     assert TEMPLATE_FUNCTION_AUTHOR not in emitted
 

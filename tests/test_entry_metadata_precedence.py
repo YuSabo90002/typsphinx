@@ -194,6 +194,25 @@ def test_resolve_entry_element_duplicate_docname_first_match_wins():
     assert _resolve_entry_element(entries, "index", 2, "default") == "First"
 
 
+def test_entry_element_value_two_entries_same_docname_resolve_independently():
+    """Phase 47 (D-08): `render_wrapper()`'s positional read
+    (`_entry_element_value()`) is the counterpart to the first-match test
+    above -- two `typst_documents` entries naming the SAME docname each
+    resolve their OWN `[2]` (title) and `[3]` (author) independently,
+    unlike `_resolve_entry_element()`'s first-match scan. Wrapper
+    generation order never decides metadata: passing the SECOND entry
+    resolves the SECOND entry's own values, not the first's."""
+    from typsphinx.writer import _entry_element_value
+
+    first_entry = ("index", "a", "First", "A1")
+    second_entry = ("index", "b", "Second", "A2")
+
+    assert _entry_element_value(first_entry, 2, "default") == "First"
+    assert _entry_element_value(first_entry, 3, "default") == "A1"
+    assert _entry_element_value(second_entry, 2, "default") == "Second"
+    assert _entry_element_value(second_entry, 3, "default") == "A2"
+
+
 # ---------------------------------------------------------------------------
 # Group 2: precedence inside TemplateEngine.map_parameters() (D-05;
 # re-derived Phase 45.1, D-F, once the dedicated author-details config value

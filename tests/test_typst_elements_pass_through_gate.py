@@ -49,6 +49,18 @@ already established by ``tests/test_package_only_config_gate.py`` and
 Per D-06, no assertion anywhere in this module matches on the TEXT of a
 Typst/Sphinx compiler error message -- only that a real compile /
 ``sphinx-build`` invocation raises or exits non-zero.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the ``#show: project.with(...)`` region every assertion here parses) lives
+exclusively on the WRAPPER file since the content/wrapper split, so every
+``.typ``/``.pdf``-reading assertion reads the entry's resolved wrapper
+(``master.typ``/``master.pdf``) instead of the docname content file. All
+three fixture ``conf.py``s had their ``typst_documents`` target renamed
+from the identity ``'index'`` to ``'master'`` -- an identity target is now
+a BLD-03 self-collision. As with ``tests/test_params_exclusivity_gate.py``,
+these fixture directories are not listed in any Phase 47 plan's
+``files_modified``; plan 47-08 de-collides them directly under deviation
+Rule 3 (blocking) -- see its SUMMARY.
 """
 
 import re
@@ -158,15 +170,15 @@ class TestPapersizePositiveGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_papersize_emitted_as_quoted_string(self, build):
@@ -230,15 +242,15 @@ class TestFontsizePositiveGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_fontsize_emitted_as_unquoted_length(self, build):
@@ -363,7 +375,7 @@ class TestPreFixBasisFailureProof:
             f"sphinx-build -b typst failed:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return typ_path.read_text(encoding="utf-8")
 

@@ -54,6 +54,22 @@ named-argument set), not a compile fatal, per the amended definition of
 RED this project adopted in v0.7.0. ``partial_params_template`` DOES
 produce a real pre-fix compile fatal (``TypstError: unexpected argument:
 title``), so it keeps the classic RED.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the ``#show: <func>.with(...)`` call this module's assertions parse) lives
+exclusively on the WRAPPER file since the content/wrapper split, so every
+``.typ``/``.pdf``-reading assertion here reads the entry's resolved wrapper
+(``master.typ``/``master.pdf``) instead of the docname content file. All
+four fixture ``conf.py``s (and the two inline variant configs built at
+test time) had their ``typst_documents`` target renamed from the identity
+``'index'`` to ``'master'`` -- an identity target is now a BLD-03
+self-collision (the wrapper would resolve onto the docname's own content
+file and overwrite it with a self-referential ``#include()``, producing
+``TypstError: cyclic import``), not merely a stylistic choice. These four
+fixture directories are not listed in any Phase 47 plan's ``files_modified``
+(a genuine gap in the plan corpus, not an overlap with another plan's
+scope), so plan 47-08 de-collides them directly under deviation Rule 3
+(blocking) -- see its SUMMARY.
 """
 
 import re
@@ -173,9 +189,9 @@ class TestParamsExclusivityGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -183,7 +199,7 @@ class TestParamsExclusivityGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_show_rule_call_carries_zero_named_arguments(self, build):
@@ -258,8 +274,8 @@ class TestParamsExclusivityOrderingAndAdjacency:
             f"stdout: {result_2.stdout}\nstderr: {result_2.stderr}"
         )
 
-        text_1 = (build_dir_1 / "index.typ").read_text(encoding="utf-8")
-        text_2 = (build_dir_2 / "index.typ").read_text(encoding="utf-8")
+        text_1 = (build_dir_1 / "master.typ").read_text(encoding="utf-8")
+        text_2 = (build_dir_2 / "master.typ").read_text(encoding="utf-8")
         assert text_1 == text_2
 
     def test_params_key_colliding_with_auto_derived_name_emits_once(self, tmp_path):
@@ -288,7 +304,7 @@ class TestParamsExclusivityOrderingAndAdjacency:
             "author = 'Adjacency Author'",
             "release = '1.0'",
             "extensions = ['typsphinx']",
-            "typst_documents = [('index', 'index', project, author)]",
+            "typst_documents = [('index', 'master', project, author)]",
             "typst_template = '_templates/zero_param.typ'",
             "typst_template_function = {"
             "'name': 'project', "
@@ -305,7 +321,7 @@ class TestParamsExclusivityOrderingAndAdjacency:
             f"sphinx-build -b typst (adjacency variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        text = (build_dir / "master.typ").read_text(encoding="utf-8")
         region = _show_rule_call_region(text)
 
         assert region.count("title:") == 1
@@ -381,9 +397,9 @@ class TestPartialParamsTemplateGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -391,7 +407,7 @@ class TestPartialParamsTemplateGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_show_rule_call_carries_exactly_subtitle(self, build):
@@ -452,7 +468,7 @@ class TestPartialParamsTemplateGate:
         """
         CONF-11 ordering edge: two consecutive ``-b typst`` builds of the
         same fixture, into different output directories, emit
-        byte-identical ``index.typ`` files -- the emitted named-argument
+        byte-identical ``master.typ`` (wrapper) files -- the emitted named-argument
         sequence is deterministic (the ``params`` dict's own conf.py
         insertion order), not incidentally order-dependent.
         """
@@ -469,8 +485,8 @@ class TestPartialParamsTemplateGate:
             f"stdout: {result_2.stdout}\nstderr: {result_2.stderr}"
         )
 
-        text_1 = (build_dir_1 / "index.typ").read_text(encoding="utf-8")
-        text_2 = (build_dir_2 / "index.typ").read_text(encoding="utf-8")
+        text_1 = (build_dir_1 / "master.typ").read_text(encoding="utf-8")
+        text_2 = (build_dir_2 / "master.typ").read_text(encoding="utf-8")
         assert text_1 == text_2
 
 
@@ -506,9 +522,9 @@ class TestZeroParamsDefaultGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -516,7 +532,7 @@ class TestZeroParamsDefaultGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_show_rule_call_carries_zero_named_arguments(self, build):
@@ -574,7 +590,7 @@ class TestZeroParamsDefaultGate:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        text = (build_dir / "master.typ").read_text(encoding="utf-8")
         region = _show_rule_call_region(text)
         lines = region.splitlines()
         assert lines[0] == "#show: project.with("
@@ -613,9 +629,9 @@ class TestPackageParamsGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -623,7 +639,7 @@ class TestPackageParamsGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_show_rule_call_carries_exactly_declared_keys(self, build):
@@ -672,7 +688,7 @@ class TestPackageParamsGate:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        text = (build_dir / "master.typ").read_text(encoding="utf-8")
         region = _show_rule_call_region(text)
         assert region.splitlines()[0] == "#show: ieee.with("
         assert "title:" not in region
@@ -724,7 +740,7 @@ class TestParamsSubsetOfAutoDerivedKeysInvariant:
             "author = 'Subset Invariant Author'",
             "release = '1.0'",
             "extensions = ['typsphinx']",
-            "typst_documents = [('index', 'index', project, author)]",
+            "typst_documents = [('index', 'master', project, author)]",
             "typst_template_function = {"
             "'name': 'project', "
             f"'params': {declared_params!r}"
@@ -740,7 +756,7 @@ class TestParamsSubsetOfAutoDerivedKeysInvariant:
             f"sphinx-build -b typst (subset invariant variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        text = (build_dir / "index.typ").read_text(encoding="utf-8")
+        text = (build_dir / "master.typ").read_text(encoding="utf-8")
         region = _show_rule_call_region(text)
 
         emitted_keys = set(re.findall(r"^\s*([\w-]+):", region, re.MULTILINE))

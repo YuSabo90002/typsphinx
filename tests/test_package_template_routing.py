@@ -27,6 +27,17 @@ subprocess even though the same command succeeds in a plain shell). None of
 these tests compile the emitted ``.typ`` with Typst -- that is plan
 ``22.2-05``'s job. Here the assertion is on the emitted SOURCE only, so a
 failure attributes to routing, not to compilation.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): every assertion in
+this module used to read the single per-docname file at ``index.typ``. Since
+the content/wrapper split, template application (the package/template import,
+the ``#show:`` call) lives exclusively on the WRAPPER file, so each test now
+reads its entry's resolved wrapper (``master.typ``) instead. The
+``typst_documents`` target was also changed from the identity ``'index'`` to
+``'master'`` -- an identity target is now a BLD-03 self-collision (the
+wrapper would resolve onto the docname's own content file, per the fixture
+de-collision rule in ``47-EXPECTED-STRUCTURE.md``), not merely a stylistic
+choice.
 """
 
 import subprocess
@@ -61,7 +72,7 @@ class TestPackageAloneRouting:
             "project = 'Test'\n"
             "author = 'Author'\n"
             "extensions = ['typsphinx']\n"
-            "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+            "typst_documents = [('index', 'master', 'Test', 'Author')]\n"
             "typst_package = '@preview/charged-ieee:0.1.4'\n"
             "typst_template_function = 'ieee'\n"
         )
@@ -73,9 +84,9 @@ class TestPackageAloneRouting:
             result.returncode == 0
         ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
-        index_typ = outdir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
-        emitted_text = index_typ.read_text()
+        wrapper_typ = outdir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
+        emitted_text = wrapper_typ.read_text()
 
         # The package is imported and its show-rule is still emitted...
         assert '#import "@preview/charged-ieee:0.1.4": ieee' in emitted_text
@@ -109,7 +120,7 @@ class TestBothConfiguredRouting:
             "project = 'Test'\n"
             "author = 'Author'\n"
             "extensions = ['typsphinx']\n"
-            "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+            "typst_documents = [('index', 'master', 'Test', 'Author')]\n"
             "typst_package = '@preview/charged-ieee:0.1.4'\n"
             "typst_template = '_templates/template.typ'\n"
         )
@@ -138,9 +149,9 @@ class TestBothConfiguredRouting:
         template_out = outdir / "_template.typ"
         assert template_out.exists()
 
-        index_typ = outdir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
-        emitted_text = index_typ.read_text()
+        wrapper_typ = outdir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
+        emitted_text = wrapper_typ.read_text()
         assert '#import "_template.typ": project' in emitted_text
 
         # ...and the package import is genuinely suppressed, not merely
@@ -169,7 +180,7 @@ class TestTemplateAloneNonRegression:
             "project = 'Test'\n"
             "author = 'Author'\n"
             "extensions = ['typsphinx']\n"
-            "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+            "typst_documents = [('index', 'master', 'Test', 'Author')]\n"
             "typst_template = '_templates/template.typ'\n"
             "typst_template_function = 'ieee'\n"
         )
@@ -193,7 +204,7 @@ class TestTemplateAloneNonRegression:
             warning_lines == []
         ), f"expected no both-set warning, got:\n{combined_output}"
 
-        index_typ = outdir / "index.typ"
-        assert index_typ.exists(), "index.typ was not generated"
-        emitted_text = index_typ.read_text()
+        wrapper_typ = outdir / "master.typ"
+        assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
+        emitted_text = wrapper_typ.read_text()
         assert '#import "_template.typ": ieee' in emitted_text
