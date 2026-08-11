@@ -136,7 +136,7 @@ class TestDeflistNestedDefinitionRenderGate:
           ``[#metadata(none) <WidgetGamma>]`` anchor survives, and EVERY
           same-document ``link(<name>, ...)`` reference has a matching anchor
           (anchor-name == reference-name), so nothing dangles;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
+        - ``master.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
           bytes -- the only proof the document compiled to valid Typst.
         """
         result = _run_sphinx_build_typstpdf(
@@ -218,9 +218,9 @@ class TestDeflistNestedDefinitionRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
+            "master.pdf was not produced -- typst.compile() aborted, most likely "
             f"on the dangling <WidgetGamma> label:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

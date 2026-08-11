@@ -126,7 +126,7 @@ class TestTableEmptyCaptionAnchorRenderGate:
           naming the propagated ``tbl-target`` label -- proving the id
           anchoring fix is in effect, independent of the rendered-caption
           truthiness that made the pre-fix translator skip it;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and starts with the ``%PDF``
           magic bytes -- the document compiled to a real PDF instead of
           aborting at Typst's semantic label-resolution pass;
         - no NEW warning about the empty caption is emitted (D-06) -- the
@@ -168,9 +168,9 @@ class TestTableEmptyCaptionAnchorRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the dangling tbl-target label:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -206,8 +206,8 @@ class TestTableEmptyCaptionAnchorRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
-        assert pdf_output.exists(), "index.pdf was not produced"
+        pdf_output = temp_build_dir / "master.pdf"
+        assert pdf_output.exists(), "master.pdf was not produced"
 
         reader = pypdf.PdfReader(str(pdf_output))
         raw_text = "\n".join(page.extract_text() for page in reader.pages)

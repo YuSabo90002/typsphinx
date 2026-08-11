@@ -199,9 +199,12 @@ class TestDocumentedParamsContractGate:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        # The WRAPPER file (R2/R3): after the content/wrapper split the
+        # template application -- the #show: ...with(...) call this module
+        # asserts against -- is the wrapper's, not the content file's.
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
@@ -209,7 +212,7 @@ class TestDocumentedParamsContractGate:
             "result": result,
             "typ_path": typ_path,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_build_succeeds_and_produces_valid_pdf(self, build):
@@ -310,8 +313,10 @@ class TestDocumentedParamsContractGateOrdering:
             f"stdout: {result_2.stdout}\nstderr: {result_2.stderr}"
         )
 
-        text_1 = (build_dir_1 / "index.typ").read_text(encoding="utf-8")
-        text_2 = (build_dir_2 / "index.typ").read_text(encoding="utf-8")
+        # The wrapper (R2), not the content file -- the show-rule call
+        # whose argument ordering this test guards lives there.
+        text_1 = (build_dir_1 / "master.typ").read_text(encoding="utf-8")
+        text_2 = (build_dir_2 / "master.typ").read_text(encoding="utf-8")
         assert text_1 == text_2
 
 
@@ -370,7 +375,9 @@ class TestDocumentedParamsContractGateNoToctree:
             f"sphinx-build -b typst (no-toctree variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        # The WRAPPER file (R2): the variant conf.py (copied from the
+        # fixture's own de-collided conf.py) targets "master.typ".
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return {
             "build_dir": build_dir,

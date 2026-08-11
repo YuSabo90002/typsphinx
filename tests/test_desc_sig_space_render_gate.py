@@ -124,7 +124,7 @@ class TestDescSigSpaceRenderGate:
         - the parameter list's ``desc_parameter`` concat form keeps its
           ``+``-joined content spaces between the parameter's type and its
           name (FID-08);
-        - ``index.pdf`` exists, is non-empty, and begins with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and begins with the ``%PDF``
           magic bytes.
         """
         result = _run_sphinx_build_typstpdf(
@@ -206,9 +206,9 @@ class TestDescSigSpaceRenderGate:
             f'raw(" ") values (FID-08 regression):\n{typ_text}'
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -252,9 +252,9 @@ class TestDescSigSpaceRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = pypdf.PdfReader(str(pdf_output))

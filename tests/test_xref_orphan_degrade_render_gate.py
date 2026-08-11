@@ -154,15 +154,15 @@ class TestXrefOrphanDegradeRenderGate:
             "TypstCompilationError" not in combined
         ), f"typst.compile() failed:\n{combined}"
 
-        # The master compiled to a real PDF.
-        pdf_path = temp_build_dir / "index.pdf"
+        # The wrapper compiled to a real PDF (R4).
+        pdf_path = temp_build_dir / "master.pdf"
         assert pdf_path.exists(), (
-            f"index.pdf was not produced:\nstdout: {result.stdout}\n"
+            f"master.pdf was not produced:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         assert pdf_path.read_bytes().startswith(
             b"%PDF"
-        ), "index.pdf does not start with the %PDF magic marker"
+        ), "master.pdf does not start with the %PDF magic marker"
 
         # Inspect the emitted body of the INCLUDED document.
         included_typ = (temp_build_dir / "included.typ").read_text(encoding="utf-8")
