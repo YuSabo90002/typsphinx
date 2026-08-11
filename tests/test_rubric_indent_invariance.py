@@ -136,6 +136,14 @@ def rubric_indent_invariance_pdf_bytes(
     ``PYPDF_AVAILABLE``-skipif-gated class below, so this fixture never
     runs (and never requires the optional dependencies) when that class
     is skipped.
+
+    Phase 47 (R3): a ``typst.compile()`` call targeting a complete,
+    self-contained document must target the WRAPPER file, not the
+    docname-derived content file -- only the wrapper carries the
+    template application (title/page setup). This fixture's own
+    ``typst_documents`` entry targets ``master.typ`` (de-collided from
+    the pre-Phase-47 ``"index"``, which self-collided with the
+    docname-derived content file, ``index.typ``).
     """
     build_dir = tmp_path_factory.mktemp("rubric_indent_invariance_pdf") / "_build"
     result = _run_sphinx_build_typst(rubric_indent_invariance_gate_dir, build_dir)
@@ -144,10 +152,10 @@ def rubric_indent_invariance_pdf_bytes(
         f"stdout: {result.stdout}\n"
         f"stderr: {result.stderr}"
     )
-    index_typ = build_dir / "index.typ"
-    assert index_typ.exists(), "index.typ was not generated"
-    pdf_path = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_path))
+    wrapper_typ = build_dir / "master.typ"
+    assert wrapper_typ.exists(), "master.typ was not generated"
+    pdf_path = build_dir / "master.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_path))
     assert pdf_path.exists(), "PDF file was not created"
     assert pdf_path.stat().st_size, "PDF file is empty"
     return pdf_path.read_bytes()

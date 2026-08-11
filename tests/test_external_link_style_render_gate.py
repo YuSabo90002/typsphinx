@@ -164,9 +164,14 @@ class TestExternalLinkStyleRenderGate:
             f"unchanged by the styling fix:\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF
+        # is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -229,9 +234,14 @@ class TestExternalLinkBoundaryRenderGate:
             f"')' with no separator:\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF
+        # is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -277,9 +287,14 @@ class TestExternalLinkBoundaryRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF
+        # is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = pypdf.PdfReader(str(pdf_output))

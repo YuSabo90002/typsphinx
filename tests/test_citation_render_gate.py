@@ -851,9 +851,9 @@ class TestCitationRenderGateRealCompile:
             f"TypstPDFBuilder.finish() logged a compilation failure:\n" f"{combined}"
         )
 
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the classic citation compile fatal:\n"
             f"stderr: {result.stderr}"
         )
@@ -884,9 +884,9 @@ class TestCitationRenderGateCompiledPdf:
         self, citation_gate_build
     ):
         """CIT-02 + D-05 + D-06."""
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )
@@ -1040,9 +1040,9 @@ class TestCitationRenderGateCompiledPdf:
         # LEFT of CITORDERALPHA's own x position -- i.e. a real, clickable
         # back-reference marker living in the grid's LEFT column (D-02's
         # placement claim), not merely a string in the .typ source.
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )
@@ -1082,9 +1082,9 @@ class TestCitationRenderGateCompiledPdf:
         a citation key's label text ALSO appears at its own citing site(s)
         earlier in the document.
         """
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )

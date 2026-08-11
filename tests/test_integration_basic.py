@@ -265,6 +265,57 @@ class TestBasicSphinxProjectBuild:
         # Check that build succeeded
         assert result.returncode == 0
 
+    def test_two_layer_output_file_set(self, basic_project_dir, temp_build_dir):
+        """
+        Phase 47 (COMP-01/COMP-02/OUT-03): after the content/wrapper split
+        the output directory holds MORE files than the single
+        per-docname file the pre-split model wrote. The expected set
+        below is derived from first principles -- read from
+        `tests/fixtures/integration_basic/conf.py` and `index.rst`
+        literally -- not observed by listing a build output directory:
+
+        - `conf.py` declares exactly one docname (there is only one
+          `.rst` file, `index.rst`, and it carries no `toctree`
+          directive, so no other docname is ever discovered). Every
+          docname unconditionally gets a CONTENT file, docname-derived
+          (COMP-01/OUT-03): `index.typ`.
+        - `conf.py`'s `typst_documents` has exactly one entry:
+          `("index", "master.typ", "Integration Test", "Test Author")`
+          -- retargeted from the self-colliding pre-Phase-47
+          `"index.typ"` (see the fixture's own conf.py comment: that
+          target resolved to the SAME physical path as the docname's own
+          content file). Every entry gets a WRAPPER file at its resolved
+          target: `master.typ`.
+        - `conf.py` sets neither `typst_template` nor `typst_package`,
+          so `TypstBuilder._write_template_file()` falls through to the
+          bundled default template and writes `_template.typ` at the
+          outdir root unconditionally (one call per build, not per
+          docname).
+
+        Expected `.typ` file set: `{index.typ, master.typ,
+        _template.typ}` -- exactly three files, no more, no fewer.
+        """
+        subprocess.run(
+            [
+                "uv",
+                "run",
+                "sphinx-build",
+                "-b",
+                "typst",
+                str(basic_project_dir),
+                str(temp_build_dir),
+            ],
+            check=True,
+            capture_output=True,
+        )
+
+        typ_files = {p.name for p in temp_build_dir.glob("*.typ")}
+        assert typ_files == {
+            "index.typ",
+            "master.typ",
+            "_template.typ",
+        }, f"Unexpected .typ file set in output directory: {typ_files}"
+
     def test_clean_build(self, basic_project_dir, temp_build_dir):
         """Test that clean build (-a flag) works correctly."""
         result = subprocess.run(

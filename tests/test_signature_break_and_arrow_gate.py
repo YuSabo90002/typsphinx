@@ -121,8 +121,13 @@ def _extract_pdf_text(typ_path: Path, temp_build_dir: Path) -> str:
     Compile ``typ_path`` to PDF via a real ``typst.compile()`` call (no
     try/except -- a compilation failure must propagate and fail the test
     loudly) and return the U+200B-stripped extracted text.
+
+    Phase 47 (R3): ``typ_path`` must be the WRAPPER file (``master.typ``),
+    not the docname-derived content file (``index.typ``) -- only the
+    wrapper carries the template application a complete, self-contained
+    document needs to compile meaningfully.
     """
-    pdf_output = temp_build_dir / "index.pdf"
+    pdf_output = temp_build_dir / "master.pdf"
     typst.compile(str(typ_path), output=str(pdf_output))
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -503,7 +508,7 @@ class TestSigArrowPdfGate:
         so this assertion is EXPECTED TO FAIL pre-phase.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
-        typ_path = temp_build_dir / "index.typ"
+        typ_path = temp_build_dir / "master.typ"
         full_text = _extract_pdf_text(typ_path, temp_build_dir)
 
         assert "→" in full_text, (
@@ -624,7 +629,7 @@ class TestD11SeparatorPdfGate:
         this session), so this assertion is EXPECTED TO FAIL pre-phase.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
-        typ_path = temp_build_dir / "index.typ"
+        typ_path = temp_build_dir / "master.typ"
         full_text = _extract_pdf_text(typ_path, temp_build_dir)
 
         assert "connect(host, port=8080, [timeout, ]**kwargs)" in full_text, (
@@ -655,7 +660,7 @@ class TestD11SeparatorPdfGate:
         this into the defect case.
         """
         typ_text = _build_typ(signature_break_and_arrow_gate_dir, temp_build_dir)
-        typ_path = temp_build_dir / "index.typ"
+        typ_path = temp_build_dir / "master.typ"
         full_text = _extract_pdf_text(typ_path, temp_build_dir)
 
         assert "printf(fmt, [args, [more]])" in full_text, (
