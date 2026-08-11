@@ -1,5 +1,88 @@
 # Milestones: typsphinx
 
+## v0.7.1 bug-fix round (Shipped: 2026-08-11)
+
+**Closeout:** override_closeout — no `v0.7.1-MILESTONE-AUDIT.md` was run (owner decision at close:
+`init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, and every
+v1 requirement except the two publish-gated REL rows was already `Complete` before the close began).
+12 open artifacts acknowledged as deferred (see STATE.md Deferred Items) — all 9 pending todos were
+already enumerated in `46-HANDOFF.md` § "Deferred by decision, not oversight", 2 dormant seeds were
+never scoped into this milestone, and the 5 "deferred items" carried from Phase 45.1 were
+**re-measured at close and found already resolved by Phase 45.2 (QUA-04)**, not deferred.
+**Phases:** 8 (43–46, incl. inserted 44.1, 44.2, 45.1, 45.2) · **Plans:** 43 · **Tasks:** 122
+**Requirements:** 19/19 v1 requirements complete · **Known gaps:** none
+**Timeline:** 2026-08-04 → 2026-08-11 (8 days)
+**Git:** milestone branch `gsd/v0.7.1-bug-fix-round` (421 commits) merged to `main` via PR #132 with
+all 15 CI checks green; tagged `v0.7.1` on the merge commit `48bf135`
+**Code delta (milestone scope, excl. `.planning/`):** 125 files, +10,760 / −935 lines. The runtime
+change is concentrated in `typsphinx/translator.py` (the nested-table/figure state stacks, the
+`legend` handler, the split caption RENDERING/ANCHORING decision, and relative heading depth),
+`typsphinx/builder.py` (the `typst_documents` default derivation and docname hardening), and
+`typsphinx/template_engine.py` (the `params` exclusivity rule and the `lang` route widening); the
+remainder is the RED-recorded regression gates each change carries — `test_params_exclusivity_gate.py`
+(751 lines), `test_authors_pipeline_stage_gate.py` (614), `test_nested_table_render_gate.py` (577),
+`test_entry_metadata_precedence.py` (540), `test_docs_contract_claims_gate.py` (477) — plus the
+documentation rewrite, the toolchain rename, the version bump, and the CHANGELOG entry.
+**Released 2026-08-11:** PyPI `typsphinx 0.7.1` (wheel 135,318 B + sdist 580,288 B) published by
+release run `31462027486` after owner approval of the `pypi` environment. GitHub Release
+`Release v0.7.1` carries all three assets (`.whl`, `.tar.gz`, and the tag-time `typsphinx.pdf`,
+2,436,561 B). The standing second tag was pushed on `typsphinx-doc-translations`: `update-pin.yml`
+run `31462409929` advanced its `typsphinx` submodule pin `87f242a` → `48bf135`, then annotated tag
+`v0.7.1` was created there on `cf7fa30`.
+
+**REL-04 — closed for the first time, on generated evidence.** The requirement carried from v0.7.0,
+where run `30848860064`'s `create-release` job failed at `uv: command not found` (exit 127, the
+`astral-sh/setup-uv` step was missing) and the fix landed on `main` afterwards but was never
+exercised end to end. This close exercised it: the real `v0.7.1` tag push fired release run
+`31462027486`, whose `Create GitHub Release` job completed **success**. The published body was then
+measured rather than assumed — its first 77 lines are **byte-identical** to
+`scripts/extract_changelog_section.py 0.7.1`'s stdout (`diff` clean), and a `git log --pretty`
+commit-dump shape matches **0** lines. Deliberately **not** reported complete on the strength of the
+workflow file being correct, which is the precise error v0.7.0 made.
+
+**Delivered:** the documented configuration finally takes effect. This was a maintenance round over
+already-diagnosed defects — every requirement closed something already known to be broken, each
+carrying a file/line-level todo or a measured basis.
+
+**Key accomplishments:**
+
+- **`typst_documents` gained a LaTeX-shaped default, so following the Quick Start produces a PDF**
+  (CONF-08, DOC-11) — previously `sphinx-build -b typstpdf` with `typst_documents` unset exited 0
+  with a warning and produced zero output. The default derives from `root_doc`/`project`/`author`
+  mirroring `sphinx.builders.latex.default_latex_documents`, measured on real before/after builds
+  from throwaway worktrees at named commits. A target name that slugifies onto an existing docname
+  now falls back with a WARNING instead of silently destroying content.
+- **An explicit entry's title and author now reach the rendered PDF** (CONF-09) — previously
+  silently ignored while `config.project`/`config.author` won. Proven end-to-end via a real
+  `-b typstpdf` compile read back through `pypdf`, backed by a 27-test precedence matrix including
+  the multi-master no-leak property.
+- **Nested tables and figures stopped corrupting the enclosing structure** (TBL-04, TBL-05, FIG-01,
+  TOC-01) — snapshot save/restore stacks (`_push_table_state`/`_pop_table_state`,
+  `_push_figure_state`/`_pop_figure_state`) plus a new `legend` handler; an empty-titled caption
+  still anchors its ids via a split RENDERING/ANCHORING decision; and a toctree'd document's
+  headings nest one level deeper instead of rendering flat. Each shipped a RED-recorded
+  real-`typst.compile()` regression gate.
+- **The published custom-template parameter contract and the code agree both ways** (DOC-13,
+  CONF-10, CONF-11, CONF-12) — the contract was rewritten onto the nine parameters typsphinx
+  actually passes and locked with a RED-proved gate; a declared `typst_template_function` `params`
+  dict became the complete parameter set; the auto-derived `lang` now reaches every non-package
+  template route; and `typst_authors` was removed outright with no deprecation shim.
+- **The published changelog page stopped being two years stale** (DOC-12) —
+  `docs/source/changelog.rst` now renders live from repo-root `CHANGELOG.md` via myst-parser's
+  `include::` `:parser:` mechanism, closing the drift channel at its source; `CHANGELOG.md` was
+  backfilled with the missing v0.4.4 release and deduplicated to one `[Unreleased]` heading.
+- **`tox` ran on the maintainer's machine for the first time** (QUA-04) — renaming `tox-uv` to
+  `tox-uv-bare` drops the bundled generic-linux `uv` wheel whose ELF NixOS cannot exec. All four tox
+  environments now provision with no `TOX_UV_PATH` override, and the full pytest suite under an
+  outer `uv run pytest` went from 45 failures to zero. This also retired the five Phase 45.1
+  deferred items at their root cause.
+- **Absolute image URIs from Sphinx's image converter or downloader no longer abort the compile**
+  (Issue #130, PR #131, @christianwehe) — the project's first external contribution, merged into
+  the milestone branch during Phase 46.
+
+
+---
+
 ## v0.7.0 — API rendering design overhaul (Shipped: 2026-08-04)
 
 **Closeout:** override_closeout — no `v0.7.0-MILESTONE-AUDIT.md` was run (owner decision at close:
@@ -73,18 +156,21 @@ every node-handler change carries its own recorded-RED GATE-01 fixture.
   and a resolved cross-reference keeps its hyperlink. Long signatures wrap without overflowing the
   margin and never split from the first line of their body across a page break — both proven by
   Typst-probe geometric render gates recorded RED against the untouched translator.
+
 - **Structural indentation + info fields (IND-01..IND-05, FLD-01..FLD-03, Phase 38)** —
   `visit_desc_content` gained a real `pad(left: 2.5em, …)` body (no depth counter), `field_list`
   nests its own `SHARED_INDENT_STEP` pad inside it, and a single-value field body renders inline
   with its label. Field-body parameter names and types carry monospace treatment distinct from the
   plain-bold field label. The translator's last dummy-node delegation sites were replaced by one
   shared leaf-emission helper.
+
 - **Admonition taxonomy + rubric nesting (ADM-01..ADM-06, Phases 36 & 39)** — all ten real
   admonition titles centralized on a single `sphinx.locale.admonitionlabels` lookup, five
   gentle-clues call sites re-routed, and the red family split into three pairwise-distinct functions
   after the owner reversed locked decision D-03 on a post-render greyscale probe. Phase 36 first
   decoupled the shared-emission seam so `desc_signature` and `rubric` could be restyled
   independently — with a recorded empty diff proving byte-identical `.typ` across the change.
+
 - **Citations — full round trip (CIT-01..CIT-06, Phases 40 & 40.1)** — greenfield
   `visit_citation`/`depart_citation`/`visit_label` (run-scoped hanging-indent grid with
   back-reference markers) plus a guarded own-anchor addition to `visit_reference`. Phase 40.1 then
@@ -92,6 +178,7 @@ every node-handler change carries its own recorded-RED GATE-01 fixture.
   dangling `link()` target, ids-less `nodes.target` siblings no longer split one citation run into
   two independently-aligned grids, and the duplicated anchor-eligibility judgement collapsed into
   one shared predicate.
+
 - **Two compile-fatal defects closed (MATH-02, TBL-03)** — `visit_math_block` now clears rather than
   arms the shared list-item separator flag (one blank line, not two, with a PDF-text invariance
   guard proving zero visible change), and `depart_table`'s `_emit_id_anchors` call moved past the
@@ -99,6 +186,7 @@ every node-handler change carries its own recorded-RED GATE-01 fixture.
   aborting the compile on a dangling one. TBL-03 was promoted out of backlog item 999.2 on
   2026-08-03 *after* Phase 41 had already closed — the first requirement this project has added to
   an already-complete milestone.
+
 - **Release notes sourced from the CHANGELOG (REL-04, Phase 41)** — a stdlib-only, positional
   `## [X.Y.Z]` extractor, pytest-covered and wired into both `release.yml` jobs, replacing the
   ~296-line `git log --pretty` dump. The same phase also converted every shell-context `${{ }}`

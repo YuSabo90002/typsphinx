@@ -2,10 +2,9 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: bug-fix round
-current_phase: 46
-status: completed
+status: Awaiting next milestone
 stopped_at: "Phase 46 context updated (second pass: D-20..D-28)"
-last_updated: "2026-08-11T05:11:49.613Z"
+last_updated: "2026-08-11T05:55:07.075Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 45.2 execution started
 progress:
@@ -14,6 +13,7 @@ progress:
   total_plans: 43
   completed_plans: 43
   percent: 100
+current_phase: 46
 current_phase_name: v0-7-1-release-prep-prep-only
 ---
 
@@ -34,14 +34,10 @@ Next action: `/gsd-discuss-phase 45.2`
 
 ## Current Position
 
-Phase: 46
-Plan: Not started
-Status: All phases complete
-Progress: [###############-----] 75% (6/8 phases)
-Last activity: 2026-08-11 — Phase 46 complete
-
-Phase 46's CONTEXT is already written and committed (`46-CONTEXT.md`, D-01..D-19). Phase 45.2 runs
-first because Phase 46's SC#3 evidence path (D-11) assumes local `tox` works, and it does not.
+Phase: Milestone v0.7.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-11 — Milestone v0.7.1 completed and archived
 
 ## Active Milestone (v0.7.1 — bug-fix round)
 
@@ -604,13 +600,4 @@ Resume: `/gsd-discuss-phase 45.2` (Local Toolchain Repair — tox-uv to tox-uv-b
 
 ## Operator Next Steps
 
-- ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
-  Shipped Milestone). Nothing owner-manual is outstanding.
-
-- **Next: `/gsd-discuss-phase 45.2`**, then plan and execute it, then `/gsd-plan-phase 46`.
-  Phase 46's CONTEXT is already written; 45.2 was inserted from that discussion and must land first
-  because Phase 46's SC#3 draws part of its green proof from local `tox`, which does not currently
-  run at all.
-
-- Superseded (Phase 43 shipped 2026-08-04): the milestone branch reached `origin` in Phase 43 per
-  invariant #5, so CI — including the Windows lanes — has been watching every push since.
+- Start the next milestone with /gsd-new-milestone
