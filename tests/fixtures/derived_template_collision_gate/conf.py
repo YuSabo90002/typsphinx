@@ -1,8 +1,11 @@
-# CR-01: real-sphinx-build reproduction of the zero-configuration RESERVED-
-# TEMPLATE clobber. `project = "_Template"` slugifies (make_filename_from_
-# project preserves underscores) to the stem "_template", IDENTICAL to the
-# reserved `_template.typ` basename `_write_template_file()` writes at the
-# outdir root before any document is written.
+# D-01 (Phase 47 plan 09, replacing CR-01): real-sphinx-build reproduction
+# of the zero-configuration RESERVED-TEMPLATE clobber. `project =
+# "_Template"` slugifies (make_filename_from_project preserves underscores)
+# to the stem "_template", IDENTICAL to the reserved `_template.typ`
+# basename `_write_template_file()` writes at the outdir root before any
+# document is written. Since the content/wrapper split, this now FAILS the
+# build with a single pre-write ExtensionError (D-01/D-02/D-03), and NO
+# `.typ` file -- including `_template.typ` itself -- is ever written.
 #
 # Load-bearing properties -- do NOT touch any of these, or this fixture
 # silently stops exercising CR-01's template-clobber half:

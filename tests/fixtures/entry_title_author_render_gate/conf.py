@@ -29,21 +29,20 @@ extensions = ["typsphinx"]
 # this -- the validator asks only whether two logical files want ONE
 # physical path, and a repeated docname does not, by itself, collide.
 #
-# KNOWN, 47-02-SUMMARY.md-ACKNOWLEDGED GAP (deferred to plan 47-09's
-# unified validator): `_wrapper_output_relpath()` still resolves a
-# wrapper's WRITE PATH via a docname-based FIRST-MATCH scan
-# (`_resolve_output_stem(entry[0])`), not a per-entry-target
-# computation -- so BOTH entries below physically write to the FIRST
-# entry's resolved target, "second-handbook.typ" (never "master.typ",
-# the second entry's own declared target), and the second entry's write
-# (processed LAST, in list order) overwrites the first. Entry ORDER is
-# therefore load-bearing here for a second reason beyond D-04 itself:
-# it is chosen (second-handbook first, master second) so the SURVIVING
-# wrapper keeps this fixture's ORIGINAL title/author values ("My
-# Handbook" / "Jane Doe") byte-for-byte -- only the on-disk PATH moves
-# (from the pre-Phase-47 "index.pdf" to "second-handbook.pdf"), never
-# the VALUE. D-08 makes the surviving wrapper read ITS OWN entry's
-# title/author positionally (via `_entry_element_value()`), never
+# RESOLVED by plan 47-09's unified validator: `_wrapper_output_relpath()`
+# used to resolve a wrapper's WRITE PATH via a docname-based FIRST-MATCH
+# scan (`_resolve_output_stem(entry[0])`), not a per-entry-target
+# computation -- so BOTH entries below used to physically write to the
+# FIRST entry's resolved target, "second-handbook.typ" (never
+# "master.typ", the second entry's own declared target), and the second
+# entry's write (processed LAST, in list order) overwrote the first. Plan
+# 47-09 fixed this: `_wrapper_output_relpath()` now resolves EACH entry's
+# wrapper path directly from THAT entry's own target
+# (`_resolve_target_stem(entry[0], entry[1])`), so both
+# "second-handbook.typ" and "master.typ" now exist independently, each
+# carrying its OWN entry's values -- "Second Handbook"/"Jane Doe" and "My
+# Handbook"/"Jane Doe" respectively. D-08 makes each wrapper read ITS OWN
+# entry's title/author positionally (via `_entry_element_value()`), never
 # through the docname first-match `_resolve_entry_element()` helper --
 # see `tests/test_document_metadata_render_gate.py`'s
 # `test_repeated_docname_wrapper_reads_its_own_entry_title_not_first_match`

@@ -1,18 +1,24 @@
 """
-CR-01: real-``sphinx-build`` subprocess gate proving that a ``typst_documents``
-target name (derived or explicit) that collides with a real docname's own
-output path, or with the reserved ``_template.typ`` infrastructure file, no
-longer silently destroys a document or hard-fails the PDF compile.
+D-01/D-02/D-03 (Phase 47 plan 09): real-``sphinx-build`` subprocess gate
+proving that a ``typst_documents`` target name (derived or explicit) that
+collides with a real docname's own output path, or with the reserved
+``_template.typ`` infrastructure file, now FAILS the build with a single
+pre-write ``ExtensionError`` -- this REPLACES CR-01's warn-and-fall-back
+behaviour, which used to keep both documents and merely warn.
 
-44-VERIFICATION.md scored this gap FAILED: the CONF-08 derivation makes a
-pre-existing collision mechanism reachable with ZERO configuration -- an
-ordinary project named after its first chapter (``project = "Chapter 1"``
-alongside ``chapter1.rst``) silently corrupts the ``-b typst`` output (exit 0,
-no warning) and hard-fails ``-b typstpdf`` with ``TypstError: cyclic import``.
+The content/wrapper split (COMP-01/COMP-02) makes CR-01's old fallback
+unusable: falling back to the docname lands the wrapper exactly on that
+docname's own content file, which is the very collision it was trying to
+avoid. D-01 accepts that a configuration such as
+``typst_documents = [("index", "index.typ", ...)]`` -- which built
+successfully, with a warning, before this phase -- now fails the build
+outright; the user must rename the colliding target.
 
-Every test in this module is a must-SUCCEED gate, matching the
-``test_default_typst_documents_gate.py`` pattern: ``returncode == 0`` is
-asserted, never a failure.
+Every test in this module is a must-FAIL gate (the OPPOSITE polarity of
+every other module in this suite named ``..._render_gate.py`` /
+``..._gate.py`` that asserts a compile succeeds): ``returncode != 0`` is
+asserted, never a success, and NO output ``.typ``/``.pdf`` file is ever
+written (D-02's no-partial-write rule).
 """
 
 import subprocess
@@ -40,7 +46,9 @@ EXPLICIT_TEMPLATE_COLLISION_FIXTURE_DIR = (
     FIXTURES_DIR / "explicit_template_collision_gate"
 )
 
-COLLISION_WARNING_SUBSTRING = "collides with an existing document"
+# D-03's unified validator's message substring -- matches
+# tests/test_collision_validator_gate.py's own constant of the same value.
+COLLISION_ERROR_SUBSTRING = "output path collision"
 
 
 def _run_sphinx_build(
@@ -71,234 +79,200 @@ def _run_sphinx_build(
     )
 
 
+def _no_typ_files_written(build_dir: Path) -> bool:
+    """D-02: no output file at all when any collision is found."""
+    if not build_dir.exists():
+        return True
+    return not any(build_dir.rglob("*.typ"))
+
+
 @pytest.mark.skipif(
     not TYPST_AVAILABLE,
     reason="typst-py is required for the collision-gate tests",
 )
 class TestTypstDocumentsCollisionGate:
-    """CR-01: a typst_documents target name colliding with a real docname or
-    the reserved _template.typ falls back to the docname with a WARNING,
-    on both the derived-default and explicit typst_documents paths."""
+    """D-01/D-02/D-03: a typst_documents target name colliding with a real
+    docname's own content path, or the reserved _template.typ, now FAILS
+    the build with a single ExtensionError and writes NO output file, on
+    both the derived-default and explicit typst_documents paths."""
 
-    def test_derived_default_docname_collision_keeps_both_documents(self, tmp_path):
+    def test_derived_default_docname_collision_fails_build(self, tmp_path):
         """
         Zero-configuration collision: `project = "Chapter 1"` derives to the
         target `chapter1.typ`, identical to the real `chapter1.rst`
-        document's own output path. `-b typst` must exit 0, write BOTH
-        `index.typ` and `chapter1.typ`, keep `chapter1.rst`'s own body
-        intact, and warn about the collision.
+        document's own content path. `-b typst` must exit non-zero, raise
+        an ExtensionError naming the collision, and write NO `.typ` file
+        at all (D-02) -- REPLACES the old "exit 0, both documents kept,
+        warning only" contract (D-03).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             DERIVED_DOCNAME_COLLISION_FIXTURE_DIR, build_dir, "typst"
         )
 
-        assert result.returncode == 0, (
-            f"Expected a successful build despite the docname collision:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert result.returncode != 0, (
+            f"Expected the build to FAIL on the derived-default docname "
+            f"collision (D-01):\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-
-        index_typ = build_dir / "index.typ"
-        chapter1_typ = build_dir / "chapter1.typ"
-        assert index_typ.exists(), (
-            f"Expected index.typ (the degraded master fallback) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        assert chapter1_typ.exists(), (
-            f"Expected chapter1.typ (the real chapter document) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
-        chapter1_content = chapter1_typ.read_text(encoding="utf-8")
-        assert chapter1_content.count("UNIQUE-CHAPTER-MARKER-XYZ") == 1, (
-            f"Expected chapter1.rst's own body marker exactly once in "
-            f"chapter1.typ, but the document was overwritten:\n"
-            f"{chapter1_content}"
-        )
-
-        index_content = index_typ.read_text(encoding="utf-8")
-        assert "_template.typ" in index_content, (
-            f"Expected the shared-template import in the degraded master "
-            f"index.typ:\n{index_content}"
-        )
-
         combined_output = result.stdout + result.stderr
-        assert COLLISION_WARNING_SUBSTRING in combined_output, (
-            f"Expected a collision WARNING naming the docname clash:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert (
+            "ExtensionError" in combined_output
+        ), f"Expected an ExtensionError:\n{combined_output}"
+        assert (
+            COLLISION_ERROR_SUBSTRING in combined_output
+        ), f"Expected the collision-error substring:\n{combined_output}"
+        assert "chapter1" in combined_output, (
+            f"Expected the colliding docname 'chapter1' named in the "
+            f"error:\n{combined_output}"
+        )
+        assert _no_typ_files_written(build_dir), (
+            f"D-02: expected NO .typ file written when a collision is "
+            f"found, found: "
+            f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    def test_derived_default_docname_collision_produces_pdf(self, tmp_path):
+    def test_derived_default_docname_collision_fails_pdf_build(self, tmp_path):
         """
         The `-b typstpdf` counterpart: the same zero-configuration collision
-        must exit 0 and produce a real `index.pdf`, not hard-fail with
-        `TypstError: cyclic import`.
+        must ALSO exit non-zero, with no PDF produced at all -- both
+        builders share the one validator (D-03).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             DERIVED_DOCNAME_COLLISION_FIXTURE_DIR, build_dir, "typstpdf"
         )
 
-        assert result.returncode == 0, (
-            f"Expected a successful PDF build despite the docname collision:\n"
+        assert result.returncode != 0, (
+            f"Expected the build to FAIL on the derived-default docname "
+            f"collision (D-01), both builders sharing one validator:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-
         combined_output = result.stdout + result.stderr
+        assert (
+            "ExtensionError" in combined_output
+        ), f"Expected an ExtensionError:\n{combined_output}"
+        assert (
+            COLLISION_ERROR_SUBSTRING in combined_output
+        ), f"Expected the collision-error substring:\n{combined_output}"
         assert "cyclic import" not in combined_output, (
-            f"Expected no cyclic-import compile fatal:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+            f"Expected the NEW pre-write ExtensionError, not the OLD "
+            f"cyclic-import compile fatal:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
 
         pdf_file = build_dir / "index.pdf"
-        assert pdf_file.exists(), (
-            f"Expected index.pdf (the degraded master's compiled output):\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert not pdf_file.exists(), (
+            f"D-02: expected NO index.pdf written when a collision is "
+            f"found:\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert pdf_file.read_bytes()[:4] == b"%PDF", (
-            f"Expected index.pdf to start with the %PDF magic bytes:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
-        chapter1_typ = build_dir / "chapter1.typ"
-        assert chapter1_typ.exists(), (
-            f"Expected chapter1.typ (the real chapter document) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        chapter1_content = chapter1_typ.read_text(encoding="utf-8")
-        assert "UNIQUE-CHAPTER-MARKER-XYZ" in chapter1_content, (
-            f"Expected chapter1.rst's own body marker to survive:\n"
-            f"{chapter1_content}"
+        assert _no_typ_files_written(build_dir), (
+            f"D-02: expected NO .typ file written when a collision is "
+            f"found, found: "
+            f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-        assert COLLISION_WARNING_SUBSTRING in combined_output, (
-            f"Expected a collision WARNING naming the docname clash:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
-    def test_derived_default_template_collision_preserves_shared_template(
-        self, tmp_path
-    ):
+    def test_derived_default_template_collision_fails_build(self, tmp_path):
         """
         Zero-configuration RESERVED-TEMPLATE clobber: `project = "_Template"`
         derives to the target `_template.typ`, identical to the reserved
         shared-template basename `_write_template_file()` writes at the
-        outdir root. `-b typst` must exit 0, keep `_template.typ` defining
-        `#let project` (every master's import target), write `index.typ`
-        (the degraded fallback), and warn about the collision.
+        outdir root. `-b typst` must exit non-zero, raise an
+        ExtensionError naming the collision, and write NO `.typ` file at
+        all -- including `_template.typ` itself (D-02).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             DERIVED_TEMPLATE_COLLISION_FIXTURE_DIR, build_dir, "typst"
         )
 
-        assert result.returncode == 0, (
-            f"Expected a successful build despite the template collision:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert result.returncode != 0, (
+            f"Expected the build to FAIL on the derived-default template "
+            f"collision (D-01):\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-
-        template_typ = build_dir / "_template.typ"
-        assert template_typ.exists(), (
-            f"Expected the shared _template.typ on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        template_content = template_typ.read_text(encoding="utf-8")
-        assert "#let project" in template_content, (
-            f"Expected _template.typ to still define #let project -- the "
-            f"exact string CR-01's clobber destroyed:\n{template_content}"
-        )
-
-        index_typ = build_dir / "index.typ"
-        assert index_typ.exists(), (
-            f"Expected index.typ (the degraded master fallback) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
         combined_output = result.stdout + result.stderr
-        assert COLLISION_WARNING_SUBSTRING in combined_output, (
-            f"Expected a collision WARNING naming the template clash:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert (
+            "ExtensionError" in combined_output
+        ), f"Expected an ExtensionError:\n{combined_output}"
+        assert (
+            COLLISION_ERROR_SUBSTRING in combined_output
+        ), f"Expected the collision-error substring:\n{combined_output}"
+        assert "_template.typ" in combined_output, (
+            f"Expected the reserved _template.typ named in the error:\n"
+            f"{combined_output}"
+        )
+        assert _no_typ_files_written(build_dir), (
+            f"D-02: expected NO .typ file written when a collision is "
+            f"found (including _template.typ itself), found: "
+            f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    def test_explicit_target_docname_collision_keeps_both_documents(self, tmp_path):
+    def test_explicit_target_docname_collision_fails_build(self, tmp_path):
         """
         Explicit-path docname collision: `typst_documents = [("index",
-        "chapter1.typ", ...)]` names an existing docname's own output path
-        as the master's target. `-b typst` must exit 0, write BOTH
-        `index.typ` and `chapter1.typ`, keep `chapter1.rst`'s own body
-        intact, and warn about the collision.
+        "chapter1.typ", ...)]` names an existing docname's own content path
+        as the master's target. `-b typst` must exit non-zero, raise an
+        ExtensionError naming the collision, and write NO `.typ` file.
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             EXPLICIT_DOCNAME_COLLISION_FIXTURE_DIR, build_dir, "typst"
         )
 
-        assert result.returncode == 0, (
-            f"Expected a successful build despite the explicit docname "
-            f"collision:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert result.returncode != 0, (
+            f"Expected the build to FAIL on the explicit docname "
+            f"collision (D-01):\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-
-        index_typ = build_dir / "index.typ"
-        chapter1_typ = build_dir / "chapter1.typ"
-        assert index_typ.exists(), (
-            f"Expected index.typ (the degraded master fallback) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        assert chapter1_typ.exists(), (
-            f"Expected chapter1.typ (the real chapter document) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        chapter1_content = chapter1_typ.read_text(encoding="utf-8")
-        assert "EXPLICIT-CHAPTER-BODY" in chapter1_content, (
-            f"Expected chapter1.rst's own body marker to survive:\n"
-            f"{chapter1_content}"
-        )
-
         combined_output = result.stdout + result.stderr
-        assert COLLISION_WARNING_SUBSTRING in combined_output, (
-            f"Expected a collision WARNING naming the explicit docname "
-            f"clash:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert (
+            "ExtensionError" in combined_output
+        ), f"Expected an ExtensionError:\n{combined_output}"
+        assert (
+            COLLISION_ERROR_SUBSTRING in combined_output
+        ), f"Expected the collision-error substring:\n{combined_output}"
+        assert "chapter1" in combined_output, (
+            f"Expected the colliding docname 'chapter1' named in the "
+            f"error:\n{combined_output}"
+        )
+        assert _no_typ_files_written(build_dir), (
+            f"D-02: expected NO .typ file written when a collision is "
+            f"found, found: "
+            f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    def test_explicit_target_template_collision_preserves_shared_template(
-        self, tmp_path
-    ):
+    def test_explicit_target_template_collision_fails_build(self, tmp_path):
         """
         Explicit-path reserved-template clobber: `typst_documents =
         [("index", "_template.typ", ...)]` names the reserved shared-
-        template basename as the master's target. `-b typst` must exit 0,
-        keep `_template.typ` defining `#let project`, write `index.typ`
-        (the degraded fallback), and warn about the collision.
+        template basename as the master's target. `-b typst` must exit
+        non-zero, raise an ExtensionError naming the collision, and write
+        NO `.typ` file at all -- including `_template.typ` itself.
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
             EXPLICIT_TEMPLATE_COLLISION_FIXTURE_DIR, build_dir, "typst"
         )
 
-        assert result.returncode == 0, (
-            f"Expected a successful build despite the explicit template "
-            f"collision:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert result.returncode != 0, (
+            f"Expected the build to FAIL on the explicit template "
+            f"collision (D-01):\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-
-        template_typ = build_dir / "_template.typ"
-        assert template_typ.exists(), (
-            f"Expected the shared _template.typ on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        template_content = template_typ.read_text(encoding="utf-8")
-        assert "#let project" in template_content, (
-            f"Expected _template.typ to still define #let project -- the "
-            f"exact string CR-01's clobber destroyed:\n{template_content}"
-        )
-
-        index_typ = build_dir / "index.typ"
-        assert index_typ.exists(), (
-            f"Expected index.typ (the degraded master fallback) on disk:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
         combined_output = result.stdout + result.stderr
-        assert COLLISION_WARNING_SUBSTRING in combined_output, (
-            f"Expected a collision WARNING naming the explicit template "
-            f"clash:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert (
+            "ExtensionError" in combined_output
+        ), f"Expected an ExtensionError:\n{combined_output}"
+        assert (
+            COLLISION_ERROR_SUBSTRING in combined_output
+        ), f"Expected the collision-error substring:\n{combined_output}"
+        assert "_template.typ" in combined_output, (
+            f"Expected the reserved _template.typ named in the error:\n"
+            f"{combined_output}"
+        )
+        assert _no_typ_files_written(build_dir), (
+            f"D-02: expected NO .typ file written when a collision is "
+            f"found (including _template.typ itself), found: "
+            f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
