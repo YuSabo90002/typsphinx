@@ -56,7 +56,12 @@ def temp_app_with_template(tmp_path):
         "project = 'Test'\n"
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -120,7 +125,12 @@ def test_copy_template_assets_explicit_list(tmp_path):
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
         "typst_template_assets = ['_templates/logo.png']\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -167,7 +177,12 @@ def test_copy_template_assets_glob_pattern(tmp_path):
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
         "typst_template_assets = ['_templates/*.png']\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -213,7 +228,12 @@ def test_copy_template_assets_empty_list_disables(tmp_path):
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
         "typst_template_assets = []\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -252,7 +272,12 @@ def test_copy_template_assets_no_template(tmp_path):
     (srcdir / "conf.py").write_text(
         "project = 'Test'\n"
         "extensions = ['typsphinx']\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -294,7 +319,12 @@ def test_copy_template_assets_with_typst_package(tmp_path):
         "extensions = ['typsphinx']\n"
         "typst_package = '@preview/charged-ieee:0.1.0'\n"
         "typst_template = '_templates/template.typ'\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -338,7 +368,12 @@ def test_copy_template_assets_missing_source(tmp_path, caplog):
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
         "typst_template_assets = ['_templates/logo.png']\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"
@@ -379,7 +414,12 @@ def test_copy_template_assets_typstpdf_builder(tmp_path):
         "project = 'Test'\n"
         "extensions = ['typsphinx']\n"
         "typst_template = '_templates/template.typ'\n"
-        "typst_documents = [('index', 'index', 'Test', 'Author')]\n"
+        # Phase 47 de-collision (47-EXPECTED-STRUCTURE.md "Fixture
+        # de-collision rule"): the original identity target "index"
+        # resolved to the SAME physical path as this docname's own
+        # content file (index.typ) under the two-layer split -- a
+        # self-collision (D-01). Retargeted to the canonical "master.typ".
+        "typst_documents = [('index', 'master.typ', 'Test', 'Author')]\n"
     )
 
     outdir = tmp_path / "build"

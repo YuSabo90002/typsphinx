@@ -4,9 +4,10 @@ slug: two-layer-output-content-wrapper-split-target-as-path-collis
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-11
+updated: 2026-08-11
 ---
 
 # Phase 47 — Validation Strategy
@@ -25,7 +26,7 @@ created: 2026-08-11
 | **Config file** | `pyproject.toml` — no new config needed |
 | **Quick run command** | `pytest tests/test_builder_output_stem.py tests/test_two_layer_output_gate.py tests/test_collision_validator_gate.py -x` |
 | **Full suite command** | `pytest` (or `tox -e py313`) |
-| **Estimated runtime** | TBD — measure at Wave 0 and record here; do not assume |
+| **Estimated runtime** | **Measured (plan 47-09, wave 4):** `uv run pytest -q` = ~200s (0:03:18–0:03:21 across two runs), 1027 passed / 5 skipped / 0 failed, worktree-provisioned venv, Linux x86_64 |
 
 ---
 
@@ -35,17 +36,58 @@ created: 2026-08-11
 - **After every plan wave:** Run `pytest` in full, plus `black --check .`, `ruff check .`, `mypy typsphinx/`
 - **Phase gate (before `/gsd-verify-work`):** Full suite green, plus a real `-b typst` and `-b typstpdf`
   build of the B-1/B-2 fixture and the collision fixtures
-- **Max feedback latency:** TBD — set from the Wave 0 runtime measurement
+- **Max feedback latency:** ~200s (the full-suite `uv run pytest -q` runtime measured above) — every task in every plan of this phase has an `<automated>` command that runs in well under this ceiling (the slowest per-task commands are themselves `uv run pytest -q`, i.e. the full suite, run at wave-close in plans 47-04 through 47-08's Task 3 and 47-09's Task 4)
 
 ---
 
 ## Per-Task Verification Map
 
+*Filled by plan 47-09 (this phase's full-suite-green gate) once every plan's PLAN.md exists.
+Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky. Every row below has an automated command; the
+`<automated>` command quoted is copied verbatim from each task's own `<verify>` block.*
+
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| _pending_ | — | — | — | — | — | — | — | — | ⬜ pending |
+| 47-01/T1 | 47-01 | 1 | COMP-01/02/03/04, OUT-03, BLD-02/03/04 | T-47-02/03/04/14 (planned) | Five fixture projects + `47-EXPECTED-STRUCTURE.md` exist, derived from first principles, no builder run | fixture/artifact | `uv run python -c "...missing fixtures check..."` | yes | ✅ green |
+| 47-01/T2 | 47-01 | 1 | COMP-01/02/03/04, OUT-03 | n/a (RED-evidence capture, no production code) | `tests/test_two_layer_output_gate.py` records real pre-fix RED (xfail strict) | integration | `uv run pytest tests/test_two_layer_output_gate.py -q` | yes | ✅ green |
+| 47-01/T3 | 47-01 | 1 | BLD-02/03/04 | T-47-02/03/04 (planned) | `tests/test_collision_validator_gate.py` records the three non-fatal collision REDs (xfail strict) | integration | `uv run pytest tests/test_collision_validator_gate.py -q` | yes | ✅ green |
+| 47-02/T1 | 47-02 | 2 | COMP-01/02/03/04 | T-47-02 (mitigated by 47-09) | End-to-end content/wrapper split for one root-level master | integration | `uv run pytest tests/test_two_layer_output_gate.py -q` | yes | ✅ green |
+| 47-02/T2 | 47-02 | 2 | OUT-01/02 | T-47-08 (drive-qualified escape) | OUT-01 disentangled from OUT-02; wrappers land at resolved target path | integration+unit | `uv run pytest tests/test_two_layer_output_gate.py tests/test_builder_output_stem.py -q` | yes | ✅ green |
+| 47-02/T3 | 47-02 | 2 | COMP-01/02 | n/a | Builder parity (`-b typst`/`-b typstpdf` byte-identical), D-07 wrapper log, `_is_master_document` gone repo-wide | integration | `uv run pytest tests/test_two_layer_output_gate.py tests/test_preview_version_sync.py -q` | yes | ✅ green |
+| 47-03/T1 | 47-03 | 3 | OUT-01 | n/a | OUT-01 expectations moved in `test_builder_output_stem.py`; OUT-02 guard tests kept verbatim | unit | `uv run pytest tests/test_builder_output_stem.py -q` | yes | ✅ green |
+| 47-03/T2 | 47-03 | 3 | OUT-02 | T-47-08 (drive-qualified) | Real-`sphinx-build` gate, one fixture per escape shape, outdir-containment assertion | integration | `uv run pytest tests/test_out02_escape_target_gate.py -q` | yes | ✅ green |
+| 47-03/T3 | 47-03 | 3 | OUT-02 | T-47-08 (A3 closure) | RESEARCH.md Assumptions-Log A3 closed by measurement (repo-wide grep for a second path-rejection site) | unit+integration | `uv run pytest tests/test_builder_output_stem.py tests/test_out02_escape_target_gate.py tests/test_two_layer_output_gate.py -q` | yes | ✅ green |
+| 47-04/T1 | 47-04 | 3 | COMP-01/02, BLD-03 | n/a (corpus migration, no production code touched) | 6 modules / 21 fixtures migrated to content/wrapper shape, de-collided | integration | `uv run pytest tests/test_pdf_render_gate.py tests/test_admonition_bucket_render_gate.py tests/test_desc_container_propagated_target_render_gate.py tests/test_field_list_in_list_item_render_gate.py tests/test_package_only_config_gate.py tests/test_signature_page_boundary_render_gate.py -q` | yes | ✅ green |
+| 47-04/T2 | 47-04 | 3 | COMP-01/02, BLD-03 | n/a | 6 single-fixture render gates migrated | integration | `uv run pytest tests/test_abbr_pep_separator_render_gate.py tests/test_confval_field_body_render_gate.py tests/test_desc_signature_anchor_render_gate.py tests/test_inline_math_after_text_render_gate.py tests/test_preview_smoke_gate.py tests/test_table_in_list_item_render_gate.py -q` | yes | ✅ green |
+| 47-04/T3 | 47-04 | 3 | COMP-01/02, BLD-03 | n/a | Toctree and malformed-entry gates migrated (5 modules, 7 fixtures) | integration | `uv run pytest tests/test_changelog_page_gate.py tests/test_deflist_term_concat_render_gate.py tests/test_duplicate_include_label_render_gate.py tests/test_missing_and_malformed_master_gate.py tests/test_rubric_propagated_target_render_gate.py -q` | yes | ✅ green |
+| 47-05/T1 | 47-05 | 3 | COMP-01/02, BLD-03 | n/a | Nested-toctree and layout cluster migrated (6 modules, 7 fixtures) | integration | `uv run pytest tests/test_integration_nested_toctree.py tests/test_desc_content_indent_render_gate.py tests/test_figure_propagated_target_render_gate.py tests/test_heading_depth_render_gate.py tests/test_paragraph_concat_render_gate.py tests/test_static_asset_copy_gate.py -q` | yes | ✅ green |
+| 47-05/T2 | 47-05 | 3 | COMP-01/02, BLD-03 | n/a | Multi-document and reference cluster migrated (6 modules, 7 fixtures) | integration | `uv run pytest tests/test_integration_multi_doc.py tests/test_absolute_image_render_gate.py tests/test_confval_field_spacing_render_gate.py tests/test_desc_signature_concat_render_gate.py tests/test_ref_target_nested_list_render_gate.py tests/test_target_label_render_gate.py -q` | yes | ✅ green |
+| 47-05/T3 | 47-05 | 3 | COMP-01/02, BLD-03 | n/a | Remaining group-B render gates migrated (5 modules, 5 fixtures) | integration | `uv run pytest tests/test_citation_degradation_gate.py tests/test_deflist_term_inline_children_gate.py tests/test_epigraph_render_gate.py tests/test_nested_figure_render_gate.py tests/test_rubric_strong_nesting_render_gate.py -q` | yes | ✅ green |
+| 47-06/T1 | 47-06 | 3 | COMP-01/02, BLD-03 | n/a | End-to-end integration and image cluster migrated (6 modules, 6 fixtures) | integration | `uv run pytest tests/test_integration_basic.py tests/test_integration_advanced.py tests/test_glob_image_render_gate.py tests/test_desc_rubric_decoupling_render_gate.py tests/test_paragraph_propagated_target_render_gate.py tests/test_substitution_definition_render_gate.py -q` | yes | ✅ green |
+| 47-06/T2 | 47-06 | 3 | COMP-01/02, BLD-03 | n/a | Entry-metadata and typography cluster migrated (6 modules, 7 fixtures); D-04 repeated-docname fixture added | integration | `uv run pytest tests/test_document_metadata_render_gate.py tests/test_admonition_greyscale_pipeline.py tests/test_deflist_definition_multiblock_render_gate.py tests/test_label_at_char_render_gate.py tests/test_rubric_indent_invariance.py tests/test_wide_table_render_gate.py -q` | yes | ✅ green |
+| 47-06/T3 | 47-06 | 3 | COMP-01/02, BLD-03 | n/a | Remaining group-C render gates migrated (5 modules, 5 fixtures) | integration | `uv run pytest tests/test_citation_render_gate.py tests/test_desc_bodyless_concat_render_gate.py tests/test_external_link_style_render_gate.py tests/test_nested_table_render_gate.py tests/test_signature_break_and_arrow_gate.py -q` | yes | ✅ green |
+| 47-07/T1 | 47-07 | 3 | COMP-01/02, BLD-03 | n/a | Page-count and typography cluster migrated (6 modules, 5 fixtures) | integration | `uv run pytest tests/test_signature_typography_multi_signature_page_count_gate.py tests/test_signature_typography_gate.py tests/test_desc_sig_space_render_gate.py tests/test_inline_literal_overflow_render_gate.py tests/test_paragraph_soft_newline_render_gate.py tests/test_table_empty_caption_anchor_render_gate.py -q` | yes | ✅ green |
+| 47-07/T2 | 47-07 | 3 | COMP-01/02, BLD-03 | n/a | Template-contract and propagated-target cluster migrated (6 modules, 6 fixtures) | integration | `uv run pytest tests/test_documented_params_contract_gate.py tests/test_xref_orphan_degrade_render_gate.py tests/test_captioned_table_propagated_target_render_gate.py tests/test_deflist_nested_definition_render_gate.py tests/test_list_item_nested_block_render_gate.py tests/test_rubric_option_concat_render_gate.py -q` | yes | ✅ green |
+| 47-07/T3 | 47-07 | 3 | COMP-01/02, BLD-03 | n/a | Remaining group-D gates + malformed-docname gate migrated (5 modules, 5 fixtures) | integration | `uv run pytest tests/test_non_str_docname_gate.py tests/test_codly_caption_listitem_leak_render_gate.py tests/test_desc_break_marker_buffer_swap_gate.py tests/test_field_body_typography_render_gate.py tests/test_signature_overflow_render_gate.py -q` | yes | ✅ green |
+| 47-08/T1 | 47-08 | 3 | COMP-01/02, OUT-03, BLD-02/03 | n/a | Template-routing, config-mapping, metadata-route suites migrated (9 modules) | integration | `uv run pytest tests/test_template_import_path.py tests/test_package_template_routing.py tests/test_config_template_mapping.py tests/test_params_exclusivity_gate.py tests/test_typst_elements_pass_through_gate.py tests/test_typst_lang_gate.py tests/test_authors_pipeline_stage_gate.py tests/test_entry_metadata_route_uniformity.py tests/test_entry_metadata_precedence.py -q` | yes | ✅ green |
+| 47-08/T2 | 47-08 | 3 | COMP-01/02, OUT-03, BLD-02/03 | n/a | `typst_documents`-shape gates and nested-master fixture migrated (8 modules) | integration | `uv run pytest tests/test_default_typst_documents_gate.py tests/test_empty_typst_documents_optout_gate.py tests/test_nested_master_render_gate.py tests/test_target_name_render_gate.py tests/test_cross_doc_label_namespace_render_gate.py tests/test_multi_master_metadata_no_leak.py tests/test_admonition_locale_title_precedence_gate.py tests/test_pdf_generation.py -q` | yes | ✅ green |
+| 47-08/T3 | 47-08 | 3 | COMP-01/02, OUT-03, BLD-02/03 | n/a | Dogfooding builds + corpus gate + shared test root re-proven; 15 additional fixtures de-collided opportunistically | full suite | `uv run pytest -q` | yes | ✅ green |
+| 47-09/CP1 | 47-09 | 4 | BLD-02/03/04 | T-47-02/03/04 | D-01 decision checkpoint (locked, pre-resolved by project owner: option-a, hard ExtensionError, no fallback) — realized and proven by 47-09/T3's automated command below | decision, realization tested by the next row | `uv run pytest tests/test_collision_validator_gate.py tests/test_two_layer_output_gate.py -q` | yes (via 47-09/T3) | ✅ green |
+| 47-09/CP2 | 47-09 | 4 | BLD-02/03/04 | T-47-02/03/04/14/15 | D-03 decision checkpoint (locked, pre-resolved by project owner: option-a, one validator, error-only, pre-write, aggregate) — realized and proven by 47-09/T3's automated command below | decision, realization tested by the next row | `uv run pytest tests/test_collision_validator_gate.py tests/test_two_layer_output_gate.py -q` | yes (via 47-09/T3) | ✅ green |
+| 47-09/T3 | 47-09 | 4 | BLD-02/03/04, COMP-01/02 | T-47-02/03/04/14/15 | `TypstBuilder._validate_output_path_collisions()` + `_collision_key()` implemented; all four collision kinds route through one pre-write validator; D-04 repeated-docname write-path bug fixed | unit+integration | `uv run pytest tests/test_collision_validator_gate.py tests/test_two_layer_output_gate.py -q` | yes | ✅ green |
+| 47-09/T4 | 47-09 | 4 | BLD-02/03/04, COMP-01/02 | T-47-02/03/04/14/15 | CR-01 gate inverted (`test_typst_documents_collision_gate.py`), `_resolve_output_stem`/`_wrapper_output_relpath` split moved responsibility to the validator, phase closed green on full suite + lint/type trio + both dogfooding builds | full suite + lint/type + integration | `uv run pytest -q` (plus `uv run black --check .`, `uv run mypy typsphinx/`, `uv run tox -e docs-html`, `uv run tox -e docs-pdf`) | yes | ✅ green |
+| 47-10/T1 | 47-10 | 5 | (milestone invariant #5, binding constraint #2) | T-47-16 | Milestone branch pushed to `origin` with upstream tracking, no PR opened | remote/network | `git ls-remote --heads origin gsd/v0.8.0-multi-master-composition \| grep -q refs/heads/gsd/v0.8.0-multi-master-composition` | pending (wave 5, not yet executed) | ⬜ pending |
+| 47-10/T2 | 47-10 | 5 | BLD-04, OUT-02 | T-47-04, T-47-08 | CI run completed with Windows/macOS lanes green; BLD-04 and drive-qualified OUT-02 cases proven to have executed on non-Linux lanes | CI/remote | `gh run list --branch gsd/v0.8.0-multi-master-composition --json conclusion,status --limit 1 \| grep -q '"conclusion":"success"'` | pending (wave 5, not yet executed) | ⬜ pending |
+| 47-10/T3 | 47-10 | 5 | (SC#1-SC#5 evidence mapping) | T-47-16 | `47-CI-EVIDENCE.md` records run id, SHAs, per-lane conclusions, SC#1-SC#5 evidence mapping; Manual-Only Verifications and Validation Sign-Off ticked | artifact + full suite | `uv run python -c "...47-CI-EVIDENCE.md marker check..."` (plus `uv run pytest -q`) | pending (wave 5, not yet executed) | ⬜ pending |
 
-*Filled after PLAN.md files are written. Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+Rows for plan 47-10 (wave 5) are recorded here on schedule per this task's own instruction ("one row
+per task across all ten plans") even though wave 5 has not executed yet at the time this table was
+filled (plan 47-09 is wave 4) — their Automated Command and expected Secure Behavior are transcribed
+verbatim from `47-10-PLAN.md`'s own `<verify>` blocks, and their Status is honestly marked `⬜ pending`
+rather than backfilled. `nyquist_compliant: true` above reflects that every row in this table --
+including the two wave-5 rows -- already carries a real `<automated>` command; it does not assert that
+wave 5 has run. 47-10's own Task 3 independently ticks this phase's Manual-Only Verifications table
+and Validation Sign-Off checklist once the CI evidence exists.
 
 ### Requirement → evidence contract (from RESEARCH.md, binding constraint #4)
 
@@ -66,17 +108,22 @@ created: 2026-08-11
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_two_layer_output_gate.py` — new module; COMP-01, COMP-02, COMP-03, COMP-04, OUT-03
-- [ ] `tests/test_collision_validator_gate.py` — new module; BLD-02, BLD-03, BLD-04, each with its own
-      pre-fix RED per binding constraint #4
-- [ ] `tests/test_builder_output_stem.py` — existing; OUT-01 expectations move (path targets no longer
-      truncated), the three OUT-02 escape cases stay as regression tests, and lines 334/352 move from
-      asserting a fallback to expecting `ExtensionError` per D-03 replacing CR-01
-- [ ] `tests/test_typst_documents_collision_gate.py` — existing; every test asserts `returncode == 0`
-      plus a warning substring for what D-01/D-03 now make an `ExtensionError`. The module's
-      assertions invert
-- [ ] `tests/test_preview_version_sync.py` — not expected to change, but must be re-run once content
-      files carry the D-06 preamble unconditionally
+- [x] `tests/test_two_layer_output_gate.py` — new module; COMP-01, COMP-02, COMP-03, COMP-04, OUT-03
+      (written by 47-01, made to pass by 47-02, still green after 47-09)
+- [x] `tests/test_collision_validator_gate.py` — new module; BLD-02, BLD-03, BLD-04, each with its own
+      pre-fix RED per binding constraint #4 (written by 47-01, made to pass by 47-09/T3, `xfail`
+      markers removed)
+- [x] `tests/test_builder_output_stem.py` — existing; OUT-01 expectations moved (47-03), the three
+      OUT-02 escape cases stay as regression tests, and the two CR-01 fallback assertions moved to
+      `test_resolve_output_stem_no_longer_falls_back_on_*` (resolver, unchanged-stem) plus
+      `test_validate_output_path_collisions_raises_on_*` (validator, `ExtensionError`) per D-03
+      replacing CR-01 (47-09/T4)
+- [x] `tests/test_typst_documents_collision_gate.py` — existing; every one of its five methods now
+      asserts `returncode != 0` plus an `ExtensionError`/`output path collision` substring, replacing
+      the old `returncode == 0` + warning-substring contract (47-09/T4). The module's assertions
+      inverted
+- [x] `tests/test_preview_version_sync.py` — re-run and green throughout (unaffected — content files
+      carry the D-06 preamble unconditionally as designed)
 
 ---
 
@@ -91,11 +138,19 @@ created: 2026-08-11
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency measured at Wave 0 and recorded above
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies — every row in the Per-Task
+      Verification Map above carries a real automated command
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify — every task has one
+- [x] Wave 0 covers all MISSING references — the five Wave 0 Requirements above are all `[x]`
+- [x] No watch-mode flags — no automated command in this phase uses `--watch`/`-f`/equivalent
+- [x] Feedback latency measured at Wave 0 and recorded above (~200s, see Sampling Rate)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+The two Manual-Only Verifications rows above (branch-on-`origin` + completed CI run with
+Windows/macOS lanes) remain undischarged as of this update (plan 47-09, wave 4) — they are wave 5's
+(`47-10-PLAN.md`) job, requiring a real network push and a real GitHub Actions run neither
+reproducible nor appropriate to fabricate from a worktree-isolated executor. `47-10`'s own Task 3
+ticks those two rows once the CI evidence exists in `47-CI-EVIDENCE.md`.
+
+**Approval:** pending (full phase-level approval, including the two Manual-Only Verifications rows,
+awaits plan 47-10's CI evidence — everything within this plan's own scope is green)

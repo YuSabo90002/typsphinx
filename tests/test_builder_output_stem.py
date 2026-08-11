@@ -4,10 +4,18 @@ Tests for TypstBuilder._resolve_output_stem (Phase 22 Plan 01, Issue #117).
 Covers the typst_documents target-name normalization rule: suffix
 stripping (D-03), period-preserving stems (D-04), the D-02 docname
 fallback, the D-06/D-07 path guard, the degenerate-target guard, and
-verbatim non-ASCII passthrough. Also covers the CR-01 collision guard
-(Phase 44 plan 05): a resolved stem colliding with a real docname or the
-reserved "_template" basename falls back to the docname, and a builder
-whose env exposes no found_docs attribute at all still resolves normally.
+verbatim non-ASCII passthrough.
+
+CR-01's collision guard (Phase 44 plan 05) was deleted from
+``_resolve_output_stem`` in Phase 47 plan 09 (its own D-03 -- distinct
+from this module's pre-existing D-03 above): collision detection moved
+wholesale to ``TypstBuilder._validate_output_path_collisions()``, run once
+before any write. ``_resolve_output_stem`` now returns a colliding stem
+UNCHANGED rather than falling back to the docname; the tests below prove
+the responsibility moved rather than disappeared -- one pair proving the
+resolver no longer performs the check, one pair proving the validator now
+does. A builder whose env exposes no found_docs attribute at all still
+resolves normally.
 """
 
 
@@ -358,13 +366,39 @@ def test_wrapper_path_ignores_docname_directory_but_content_path_does_not(
     assert content_path.endswith("sub/index.typ")
 
 
-def test_resolve_output_stem_falls_back_on_docname_collision(temp_sphinx_app):
-    """CR-01: a resolved stem equal to another real docname in
-    self.env.found_docs falls back to the docname itself. The env is
-    replaced with a types.SimpleNamespace so the test is independent of
-    whether the Sphinx version in use exposes found_docs as a plain
-    attribute and independent of whether a read phase has run."""
+def test_resolve_output_stem_no_longer_falls_back_on_docname_collision(
+    temp_sphinx_app,
+):
+    """Phase 47 plan 09's D-03: collision detection moved from
+    _resolve_output_stem() to _validate_output_path_collisions() -- the
+    responsibility moved, it did not disappear. A resolved stem equal to
+    another real docname's own content path is now returned UNCHANGED (no
+    in-function fallback); the collision itself is now reported by
+    test_validate_output_path_collisions_raises_on_docname_collision
+    below."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.config.typst_documents = [("index", "chapter1.typ", "T", "A")]
+
+    assert builder._resolve_output_stem("index") == "chapter1"
+
+
+def test_validate_output_path_collisions_raises_on_docname_collision(
+    temp_sphinx_app,
+):
+    """Phase 47 plan 09's D-03: the collision _resolve_output_stem() no
+    longer catches is caught by _validate_output_path_collisions()
+    instead -- a resolved wrapper stem equal to another real docname's own
+    content path raises ExtensionError. The env is replaced with a
+    types.SimpleNamespace so the test is independent of whether the Sphinx
+    version in use exposes found_docs as a plain attribute and independent
+    of whether a read phase has run."""
     import types
+
+    import pytest
+    from sphinx.errors import ExtensionError
 
     from typsphinx.builder import TypstBuilder
 
@@ -373,15 +407,36 @@ def test_resolve_output_stem_falls_back_on_docname_collision(temp_sphinx_app):
     builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
     builder.config.typst_documents = [("index", "chapter1.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
+    with pytest.raises(ExtensionError):
+        builder._validate_output_path_collisions()
 
 
-def test_resolve_output_stem_falls_back_on_reserved_template_name(temp_sphinx_app):
-    """CR-01: a resolved stem equal to the reserved "_template" basename
-    falls back to the docname itself, even when found_docs does not
-    contain it -- the reservation is independent of found_docs
-    membership."""
+def test_resolve_output_stem_no_longer_falls_back_on_reserved_template_name(
+    temp_sphinx_app,
+):
+    """Phase 47 plan 09's D-03: same responsibility move as above, for the
+    reserved "_template" basename -- _resolve_output_stem() now returns
+    the resolved stem UNCHANGED rather than falling back to the docname."""
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.config.typst_documents = [("index", "_template.typ", "T", "A")]
+
+    assert builder._resolve_output_stem("index") == "_template"
+
+
+def test_validate_output_path_collisions_raises_on_reserved_template_name(
+    temp_sphinx_app,
+):
+    """Phase 47 plan 09's D-03: the reserved "_template" collision is
+    caught by _validate_output_path_collisions(), independent of
+    found_docs membership -- the reservation is inserted into the
+    collision map first, unconditionally."""
     import types
+
+    import pytest
+    from sphinx.errors import ExtensionError
 
     from typsphinx.builder import TypstBuilder
 
@@ -390,7 +445,8 @@ def test_resolve_output_stem_falls_back_on_reserved_template_name(temp_sphinx_ap
     builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
     builder.config.typst_documents = [("index", "_template.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
+    with pytest.raises(ExtensionError):
+        builder._validate_output_path_collisions()
 
 
 def test_resolve_output_stem_tolerates_env_without_found_docs(temp_sphinx_app):

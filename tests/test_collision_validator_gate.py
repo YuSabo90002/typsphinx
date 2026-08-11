@@ -1,20 +1,17 @@
 """
-Phase 47 plan 01, task 3: real-``sphinx-build`` subprocess gate for the
-unified pre-write collision validator -- BLD-02 (duplicate targets),
-BLD-03 (wrapper-vs-content self-collision) and BLD-04 (case-insensitive
-target/docname collision).
+Phase 47 plan 01, task 3 (validator landed in plan 09): real-``sphinx-build``
+subprocess gate for the unified pre-write collision validator -- BLD-02
+(duplicate targets), BLD-03 (wrapper-vs-content self-collision) and BLD-04
+(case-insensitive target/docname collision).
 
 Structured like ``tests/test_typst_documents_collision_gate.py`` (one
 fixture-directory constant per scenario, one ``_run_sphinx_build`` helper
 duplicated per this repo's own convention) but with the OPPOSITE outcome
 asserted: D-01/D-02/D-03 replace the old CR-01 warn-and-fall-back contract
-with a pre-write ``ExtensionError`` and NO output file written. Every test
-in this module is marked ``xfail(strict=True)`` -- none of these three
-defects fails the compile today (all three are structural, non-fatal
-defects per binding constraint #4's amendment), so every assertion here is
-RED until 47-09 lands the unified validator. The verbatim pre-fix evidence
-each test's docstring paraphrases is recorded in full in
-``47-RED-EVIDENCE.md``.
+with a pre-write ``ExtensionError`` and NO output file written.
+``TypstBuilder._validate_output_path_collisions()`` (plan 09) is what makes
+every assertion here pass -- the pre-fix RED evidence each test's docstring
+paraphrases is recorded in full in ``47-RED-EVIDENCE.md``.
 """
 
 import subprocess
@@ -41,8 +38,6 @@ BLD04_CASE_COLLISION_FIXTURE_DIR = FIXTURES_DIR / "bld04_case_collision_gate"
 # validator's message must contain, per 47-CONTEXT.md's "New error/warning
 # message identifiers" ("typst: N output path collision(s)").
 COLLISION_ERROR_SUBSTRING = "output path collision"
-
-XFAIL_REASON = "RED until 47-09 lands the unified collision validator"
 
 
 def _run_sphinx_build(
@@ -94,7 +89,6 @@ class TestCollisionValidatorGate:
 
     # -- BLD-02: two entries resolving to the same target -----------------
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld02_duplicate_target_rejected_typst(self, tmp_path):
         """
         Pre-fix (measured this task, verbatim in 47-RED-EVIDENCE.md's
@@ -133,7 +127,6 @@ class TestCollisionValidatorGate:
             f"found, found: {list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld02_duplicate_target_rejected_typstpdf(self, tmp_path):
         """
         Pre-fix (measured this task): `-b typstpdf` of this fixture ALSO
@@ -161,7 +154,6 @@ class TestCollisionValidatorGate:
 
     # -- BLD-03: wrapper target colliding with its own content path -------
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld03_self_collision_rejected_typst(self, tmp_path):
         """
         Pre-fix (measured this task, verbatim in 47-RED-EVIDENCE.md's
@@ -188,7 +180,6 @@ class TestCollisionValidatorGate:
             f"self-collides with its own content file"
         )
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld03_self_collision_rejected_typstpdf(self, tmp_path):
         """
         Pre-fix (measured this task): `-b typstpdf` of this fixture ALSO
@@ -215,7 +206,6 @@ class TestCollisionValidatorGate:
 
     # -- BLD-04: a target differing from a docname only by case -----------
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld04_case_collision_rejected_typst(self, tmp_path):
         """
         Pre-fix (measured this task, verbatim in 47-RED-EVIDENCE.md's
@@ -242,7 +232,6 @@ class TestCollisionValidatorGate:
             COLLISION_ERROR_SUBSTRING in combined_output
         ), f"Expected the collision-error substring:\n{combined_output}"
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_bld04_case_collision_rejected_typstpdf(self, tmp_path):
         """
         Pre-fix (measured this task): `-b typstpdf` of this fixture ALSO
@@ -277,18 +266,11 @@ class TestCollisionKeyUnit:
     47-RESEARCH.md's Validation Architecture table.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AttributeError,
-        reason=XFAIL_REASON,
-    )
     def test_collision_key_folds_case_but_not_unicode_normalization(self):
         """
         D-05 (locked): comparison is `casefold()`-normalized on both sides,
         on every platform -- but Unicode normalization (NFC/NFD) is
-        deliberately NOT applied, only case folding. `TypstBuilder`
-        doesn't carry a `_collision_key` method yet on the unfixed tree,
-        so this fails with `AttributeError` before any assertion runs.
+        deliberately NOT applied, only case folding.
         """
         from typsphinx.builder import TypstBuilder
 
