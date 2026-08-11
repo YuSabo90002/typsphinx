@@ -24,6 +24,13 @@ extensions = [
     "typsphinx",
 ]
 
+# Phase 47 (OUT-01/BLD-03): the target is "master", not the identity
+# "index" -- since a typst_documents target is now a literal output path,
+# an identity target would make the wrapper resolve onto this docname's
+# own content file (index.typ) and silently overwrite it with a
+# self-referential #include(), producing "TypstError: cyclic import" (or,
+# for a text-only -b typst build, silently discarding the translated
+# admonition body this gate's assertions read).
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master", project, author),
 ]

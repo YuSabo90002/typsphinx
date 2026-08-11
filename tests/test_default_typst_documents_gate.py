@@ -8,6 +8,19 @@ Unlike ``test_missing_and_malformed_master_gate.py`` (this suite's must-FAIL
 gate), both test methods here are must-SUCCEED gates -- matching the
 majority-pattern ``*_render_gate.py`` modules -- asserting
 ``returncode == 0``.
+
+Phase 47 migration (R1/R2, ``47-EXPECTED-STRUCTURE.md``): the content/
+wrapper split makes ``index.typ`` (the docname-derived CONTENT file)
+unconditional (COMP-01) -- it now exists alongside the WRAPPER regardless
+of what any ``typst_documents`` entry's target names, carrying the
+translated body but no template application. The pre-split "``index.typ``
+must NOT exist -- the root document's output is renamed" assertion is
+therefore obsolete: it pinned a world where exactly one file existed per
+docname, under its resolved stem. This module's assertions were re-derived
+against the new shape -- ``index.typ`` (content) exists and carries the
+sentinel body marker; the derived/explicit WRAPPER carries the template
+application and an ``#include("index.typ")`` of that content file, not the
+marker itself.
 """
 
 import subprocess
@@ -93,28 +106,43 @@ class TestDefaultTypstDocumentsDerivationGate:
             f"magic bytes:\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        assert not (build_dir / "index.typ").exists(), (
-            f"index.typ should not exist -- the root document's output is "
-            f"renamed by the derived target name:\nstdout: {result.stdout}\n"
+        # R1/COMP-01 (Phase 47): index.typ is now the docname-derived
+        # CONTENT file -- unconditional, regardless of the derived
+        # wrapper's target name. index.pdf, however, is never written for
+        # a content file (COMP-02/R4: only wrappers compile to PDF).
+        content_typ = build_dir / "index.typ"
+        assert content_typ.exists(), (
+            f"Expected the docname-derived content file index.typ to "
+            f"exist unconditionally:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         assert not (build_dir / "index.pdf").exists(), (
-            f"index.pdf should not exist -- the root document's output is "
-            f"renamed by the derived target name:\nstdout: {result.stdout}\n"
-            f"stderr: {result.stderr}"
+            f"index.pdf should not exist -- only the wrapper "
+            f"(quickstartdefaultgate.pdf) is ever compiled:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        content_text = content_typ.read_text(encoding="utf-8")
+        assert "#show: project.with(" not in content_text, (
+            f"Expected NO template application in the content file:\n"
+            f"{content_text}"
+        )
+        assert "QSDEFAULTBODY" in content_text, (
+            f"Expected the fixture's sentinel body text in the "
+            f"docname-derived content file:\n{content_text}"
         )
 
         typ_content = (build_dir / "quickstartdefaultgate.typ").read_text(
             encoding="utf-8"
         )
         assert "_template.typ" in typ_content, (
-            f"Expected the shared-template import a master document gets -- "
+            f"Expected the shared-template import a wrapper carries -- "
             f"root_doc must be treated as a master now that the derived "
             f"entry makes it one:\n{typ_content}"
         )
-        assert "QSDEFAULTBODY" in typ_content, (
-            f"Expected the fixture's sentinel body text in the emitted "
-            f".typ:\n{typ_content}"
+        assert '#include("index.typ")' in typ_content, (
+            f"Expected the wrapper to #include() its own entry's content "
+            f"file:\n{typ_content}"
         )
 
         assert "Nothing to compile" not in result.stderr, (
@@ -145,9 +173,25 @@ class TestDefaultTypstDocumentsDerivationGate:
             f"Expected the explicit target manual.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert "EXPLICITWINSBODY" in manual_typ.read_text(encoding="utf-8"), (
-            f"Expected the fixture's sentinel body text in manual.typ:\n"
-            f"{manual_typ.read_text(encoding='utf-8')}"
+        # R1/R2 (Phase 47): the sentinel body marker lives on the
+        # docname-derived CONTENT file (index.typ); the wrapper
+        # (manual.typ) carries the template application and an
+        # #include("index.typ") of that content file, not the marker
+        # itself.
+        assert '#include("index.typ")' in manual_typ.read_text(encoding="utf-8"), (
+            f"Expected the wrapper to #include() its own entry's content "
+            f"file:\n{manual_typ.read_text(encoding='utf-8')}"
+        )
+        content_typ = build_dir / "index.typ"
+        assert content_typ.exists(), (
+            f"Expected the docname-derived content file index.typ to "
+            f"exist unconditionally:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "EXPLICITWINSBODY" in content_typ.read_text(encoding="utf-8"), (
+            f"Expected the fixture's sentinel body text in the "
+            f"docname-derived content file index.typ:\n"
+            f"{content_typ.read_text(encoding='utf-8')}"
         )
         manual_pdf = build_dir / "manual.pdf"
         assert manual_pdf.exists(), (
@@ -159,20 +203,23 @@ class TestDefaultTypstDocumentsDerivationGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        # SC#2: nothing else. The derived default (which would have named
-        # this project's target explicitwinsgate.typ/.pdf) must not also
-        # appear alongside the explicit target, and the un-renamed
-        # index.typ/.pdf must not appear either.
+        # SC#2: nothing else WRAPPER-shaped. The derived default (which
+        # would have named this project's target explicitwinsgate.typ/
+        # .pdf) must not also appear alongside the explicit target -- the
+        # explicit setting must be the ONLY typst_documents entry. R4/
+        # COMP-02 (Phase 47): index.pdf must never appear either, since
+        # only wrappers ever compile to PDF (index.typ, the content file,
+        # is asserted present ABOVE -- it is no longer part of this "must
+        # not exist" set, since content files are now unconditional).
         unexpected = [
             build_dir / "explicitwinsgate.typ",
             build_dir / "explicitwinsgate.pdf",
-            build_dir / "index.typ",
             build_dir / "index.pdf",
         ]
         still_present = [str(p) for p in unexpected if p.exists()]
         assert not still_present, (
             f"SC#2 violation: the explicit typst_documents setting must "
-            f"produce exactly the target it names and nothing else, but "
+            f"produce exactly the wrapper it names and nothing else, but "
             f"found unexpected output(s): {still_present}\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )

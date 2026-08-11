@@ -9,6 +9,15 @@ a deliberate, supported opt-out, not an error condition. Since CONF-08
 (plan 44-01) landed a derived default for an unset ``typst_documents``,
 this fixture's ``typst_documents = []`` is the ONLY way left to reach
 ``TypstPDFBuilder.finish()``'s early-return branch.
+
+Phase 47 migration (COMP-01/R4, ``47-EXPECTED-STRUCTURE.md``): the
+content/wrapper split makes the post-split meaning of an explicit empty
+list "a content file for every docname, zero wrapper files, no ``.pdf``
+under ``-b typstpdf``" -- ``index.typ`` was already asserted present with
+no PDF anywhere (unaffected by the split, since an empty ``typst_documents``
+never had a wrapper to begin with), but this module now asserts that
+EXPLICITLY: the full ``.typ`` file set is exactly the docname-derived
+content file, and it carries no template application.
 """
 
 import subprocess
@@ -89,14 +98,22 @@ class TestEmptyTypstDocumentsOptoutGate:
             f"default:\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        assert (build_dir / "index.typ").exists(), (
-            f"Expected index.typ (an explicit opt-out still writes .typ "
-            f"for -b typstpdf's write phase, only the PDF compile is "
+        content_typ = build_dir / "index.typ"
+        assert content_typ.exists(), (
+            f"Expected index.typ (COMP-01: the docname-derived content "
+            f"file is unconditional -- an explicit opt-out still writes "
+            f"it, only wrapper generation and the PDF compile are "
             f"skipped):\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert "OPTOUTBODY" in (build_dir / "index.typ").read_text(
-            encoding="utf-8"
-        ), "Expected the fixture's sentinel body text in index.typ"
+        content_text = content_typ.read_text(encoding="utf-8")
+        assert "OPTOUTBODY" in content_text, (
+            "Expected the fixture's sentinel body text in index.typ"
+        )
+        assert "#show: project.with(" not in content_text, (
+            f"Expected NO template application in the content file (an "
+            f"empty typst_documents produces zero wrapper entries, so "
+            f"nothing ever applies the template):\n{content_text}"
+        )
 
         pdf_files = list(build_dir.rglob("*.pdf"))
         assert pdf_files == [], (
@@ -109,6 +126,20 @@ class TestEmptyTypstDocumentsOptoutGate:
             f"The derived default (which would have produced "
             f"emptyoptoutgate.typ) must NOT be consulted when the user "
             f"explicitly opted out:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        # COMP-01/R4 explicitly: the full .typ file set is exactly ONE
+        # content file per docname, plus the unconditional shared
+        # _template.typ (_write_template_file() always runs in
+        # prepare_writing(), regardless of typst_documents) -- zero
+        # wrapper files, since an empty typst_documents produces zero
+        # entries to generate a wrapper for.
+        typ_files = sorted(p.relative_to(build_dir) for p in build_dir.rglob("*.typ"))
+        assert typ_files == [Path("_template.typ"), Path("index.typ")], (
+            f"Expected exactly the shared template file and one content "
+            f"file (index.typ), and zero wrapper files, in the build "
+            f"directory, found: {typ_files}\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
 

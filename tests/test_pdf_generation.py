@@ -113,23 +113,41 @@ class TestTypstPDFBuilder:
     def test_finish_compiles_master_at_its_own_directory(
         self, temp_sphinx_app, tmp_path
     ):
-        """D-08(b): the path handed to the compile function is the master's
-        own .typ (inside its docname directory), never a file at the outdir
-        root -- this is the structural invariant the PDF-02 fix depends on,
-        and it is checkable even where typst-py is not installed because the
-        compile function is mocked."""
+        """D-08(b), re-derived Phase 47 onto OUT-01: the path handed to the
+        compile function is the WRAPPER's own real, resolved on-disk
+        location -- never a file synthesized at the outdir root -- this is
+        the structural invariant the PDF-02 fix depends on, and it is
+        checkable even where typst-py is not installed because the compile
+        function is mocked.
+
+        Phase 47 (OUT-01) reverses Phase 44's D-05/D-06/D-07
+        directory-preserving relocation: a target is now a literal
+        outdir-relative path, taken as-is, never force-relocated into the
+        docname's OWN directory. This test used to configure a BARE target
+        ("index") for a nested docname ("api/index") specifically to prove
+        the pre-Phase-47 relocation forced the compiled path into
+        "api/index.typ" -- that premise is now the reversed behavior (a
+        bare target resolves at the outdir ROOT under OUT-01, not the
+        docname's directory). Re-derived with a PATH-BEARING target
+        ("manuals/nested.typ") instead, which preserves this test's real
+        structural subject -- the compile function receives the wrapper's
+        own real resolved directory, wherever OUT-01 says that is, never a
+        copy relocated elsewhere -- while accurately reflecting OUT-01's
+        literal-path-as-written rule."""
         from typsphinx.builder import TypstPDFBuilder
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
         builder.outdir = str(tmp_path)
 
         builder.config.typst_documents = [
-            ("api/index", "index", "Test Document", "Test Author"),
+            ("api/index", "manuals/nested.typ", "Test Document", "Test Author"),
         ]
 
-        api_dir = tmp_path / "api"
-        api_dir.mkdir()
-        (api_dir / "index.typ").write_text("= Test Document\n\nNested master.\n")
+        manuals_dir = tmp_path / "manuals"
+        manuals_dir.mkdir()
+        (manuals_dir / "nested.typ").write_text(
+            "= Test Document\n\nNested master.\n"
+        )
 
         with patch.object(TypstPDFBuilder.__bases__[0], "finish"):
             with patch("typsphinx.builder.compile_typst_file_to_pdf") as mock_compile:
@@ -138,8 +156,8 @@ class TestTypstPDFBuilder:
 
         called_args, called_kwargs = mock_compile.call_args
         called_path = called_args[0]
-        assert called_path == str(api_dir / "index.typ")
-        assert path.dirname(called_path) == str(api_dir)
+        assert called_path == str(manuals_dir / "nested.typ")
+        assert path.dirname(called_path) == str(manuals_dir)
         assert path.dirname(called_path) != str(tmp_path)
         # builder.outdir may be a Sphinx _StrPath (path-like, not a plain
         # str); stringify explicitly to avoid its deprecated str-equality
