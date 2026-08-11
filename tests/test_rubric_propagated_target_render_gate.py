@@ -154,7 +154,9 @@ class TestRubricPropagatedTargetRenderGate:
         - EVERY same-document ``link(<name>, ...)`` reference has a matching
           label definition -- anchor-name == reference-name -- so nothing
           dangles;
-        - ``index.pdf`` exists, is non-empty, and starts with ``%PDF``.
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with ``%PDF``.
         """
         result = _run_sphinx_build_typstpdf(
             rubric_propagated_target_render_gate_dir, temp_build_dir
@@ -233,10 +235,12 @@ class TestRubricPropagatedTargetRenderGate:
         # The control rubric still renders (its heading text is present).
         assert "Plain Rubric" in typ_text, "Control rubric was not rendered"
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on a dangling/non-joining label:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

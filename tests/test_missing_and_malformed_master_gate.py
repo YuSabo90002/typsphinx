@@ -150,11 +150,22 @@ class TestMissingAndMalformedMasterGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
+        # R1: the valid master's docname-derived content file, unconditional
+        # and unchanged by this fixture's target de-collision.
         assert (build_dir / "index.typ").exists(), (
-            f"The valid master's .typ was not written before the aggregate "
-            f"failure:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+            f"The valid master's content file (.typ) was not written before "
+            f"the aggregate failure:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-        assert (build_dir / "index.pdf").exists(), (
+        # R4: the wrapper (target "master.typ", de-collided per
+        # 47-EXPECTED-STRUCTURE.md) is the file TypstPDFBuilder.finish()
+        # actually compiles.
+        assert (build_dir / "master.typ").exists(), (
+            f"The valid master's wrapper (.typ) was not written before the "
+            f"aggregate failure:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert (build_dir / "master.pdf").exists(), (
             f"D-02's attempt-all-then-raise contract failed end to end: "
             f"the valid master should still get its PDF even though the "
             f"build as a whole fails:\nstdout: {result.stdout}\n"

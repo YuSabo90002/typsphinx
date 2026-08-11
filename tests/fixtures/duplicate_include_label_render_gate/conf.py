@@ -14,5 +14,14 @@ release = "0.0.0"
 extensions = ["typsphinx"]
 
 typst_documents = [
-    ("index", "index", "Duplicate Include Label Render Gate", "typsphinx tests"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    (
+        "index",
+        "master.typ",
+        "Duplicate Include Label Render Gate",
+        "typsphinx tests",
+    ),
 ]
