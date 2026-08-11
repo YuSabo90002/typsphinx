@@ -1,309 +1,185 @@
 # Project Research Summary
 
-**Project:** typsphinx
-**Domain:** Typographic redesign of a Sphinx→Typst translator's API-description, admonition, and citation rendering
-**Milestone:** v0.7.0 — API rendering design overhaul
-**Synthesized from:** STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md
-**Researched:** 2026-07-29
-**Confidence:** HIGH overall (MEDIUM for the citation-design section only — the design authority contains no live citation example)
-
-> **Provenance note (orchestrator, 2026-07-29):** the synthesizer agent hit the known issue-#222
-> false refusal — it returned this document inline while fabricating a "system restrictions on
-> report-file creation" write block. No such restriction exists. The orchestrator persisted the
-> returned document here, unescaping HTML entities and correcting one gap item the agent re-raised
-> after it had already been measured and closed (see "Gaps to Address Before Planning" #2).
+**Project:** typsphinx v0.8.0 "multi-master composition"  
+**Domain:** Sphinx extension — Typst output builder, restructuring document composition  
+**Researched:** 2026-08-11  
+**Confidence:** HIGH (every claim verified against installed source or live codebase)
 
 ## Executive Summary
 
-The v0.7.0 redesign reshapes how typsphinx renders API documentation (signatures, field lists,
-admonitions, citations) to match Sphinx's own LaTeX-rendered PDF, adopted as this milestone's design
-authority. **No new Typst `@preview` packages are needed** — every required primitive exists in the
-Typst 0.15 standard library, so the milestone's "the count stays at four" invariant holds with zero
-tension. The critical path is to bundle one style module (`_typsphinx.typ`, typography-only,
-~100–150 lines) inside the wheel and inject its import at two code-generation points
-(`writer.py` for included documents, `template_engine.py` for master documents).
+The v0.8.0 milestone is a *structural refactoring*, not a feature addition. It splits the current "one templated master file per docname" model into "one wrapper file per master + docname-named content files," enabling independent assembly of each master's toctree graph without build-wide shared state. This fixes three real, measured defects (B-1, B-2, defect A) while unlocking future per-master template selection without adding dependencies or new complexity to the stack.
 
-The **highest-risk seam** is not in the new code but in the old: `desc_signature` and `rubric` both
-delegate to `visit_strong()`/`depart_strong()` through a dummy-node trick, so any change to
-`strong()`'s shape silently affects two unrelated node families. That decoupling must land before
-either family is restyled. The **most expensive single component** is `desc_content`'s cumulative
-indent, which requires a nesting-depth counter and feeds six or more downstream features.
-**Citations are greenfield but structurally cheap** — they need no document-order pre-pass, because
-Typst's `link(<label>, ...)` resolves against the whole compiled document regardless of source
-order, unlike `footnote()`'s call-site-body API that forced the existing footnote pre-pass.
+**Key recommendation:** Phase the work in the exact order ARCHITECTURE.md specifies: content/wrapper split first, compile-time cross-reference guard second, include-graph DFS third. The hard constraint is that the guard must land no later than the graph fix — violating this sequencing will produce silently wrong PDFs (a wrapper lacking a referenced label compiles fine in Typst, not a compile fatal). All necessary technologies are present in the existing stack; the effort is pure orchestration and algorithm porting.
 
-The single most important finding is a **process change, not a technical one**. Every prior GATE-01
-fixture in this project proved a compile fatal — RED was a `TypstError`, GREEN was a valid `%PDF`.
-Every defect in *this* milestone compiles successfully today; the output is ugly, not broken. "Does
-not compile" is therefore no longer available as the RED state, and each phase must define a
-measurable structural / regex / pypdf-text assertion against the authority **before** any code is
-written. Without that discipline, the standing invariant degrades into regenerating expected strings
-from whatever the new (possibly wrong) code happens to emit.
+**Top risk:** The new wrapper-generation DFS must replicate Sphinx's own `inline_all_toctrees` ordering exactly — specifically, document-order depth-first traversal with a per-master `traversed` set. A LIFO-stack-based reuse of the existing `_compute_master_included_docnames` method will silently reverse child order with no compile error, placing a shared child under the wrong parent and giving it the wrong heading offset.
 
 ## Key Findings
 
-### From STACK.md
+### Recommended Stack
 
-- Every typesetting primitive exists in stdlib: `raw()` for monospace, `par(hanging-indent:)` for
-  wraps, `block(inset:)` for whole-block indent, `grid()`/`terms()` for two-column layout,
-  `block(stroke: (left: ...))` for coloured rules, `block(breakable: false)` for page-break
-  avoidance
-- Bundle the new module as a `.typ` file under `typsphinx/templates/` — the existing
-  `pyproject.toml` glob already covers it (zero config edits needed)
-- Design the module API as **named functions only** (`#let api-signature(body, ...) = {...}`), not
-  bare `#show`/`#set` rules — such rules do not propagate through an import. To apply styling
-  automatically, expose a named wrapper (`with-api-styles(body)`) that each generated file applies
-  explicitly via `#show:`
-- **Module scoping is not automatic:** if the module calls `gentle-clues`/`codly`/`mitex`
-  internally, it must import them itself — the outer file's imports are invisible inside imported
-  modules (design decision: keep typography-only, or accept a new version-sync site)
+**No new dependencies.** Every technology needed is already in use:
 
-### From FEATURES.md
+- **Typst 0.15 stdlib primitives** (codly, mitex, gentle-clues already pinned): `#include()` with per-file path resolution, `set heading(offset: N)` (additive), `context { query(<label>) }` for compile-time label-existence checks, `link()` guard-wrapped. All verified against official docs and the installed compiler.
 
-- **Recurring indent quantum ≈22–25pt (≈2.2–2.5em @ 10pt)** — measured by `pdftotext -bbox` on the
-  authority PDF, independently in `desc_content` and field-list contexts, agreeing within 3pt. One
-  constant should drive all three consumers (desc nesting, field-list block + body, other
-  block-indent contexts)
-- Signature styling is font-specific, not uniform bold: `desc_name` → **bold monospace**,
-  `desc_addname` → regular monospace, `desc_annotation` → **bold monospace**,
-  `desc_parameter` → **italic proportional** (NOT monospace — a deliberate distinction from how the
-  same parameter is styled inside a field body, where it is bold monospace name + italic monospace
-  type)
-- **No box or frame on signatures** (anti-feature guard) — resist the urge to "make it pop"
-- The field list is a run-in description list, not a table: multi-value = bulleted list,
-  single-value = inline. Field name = bold label
-- **Admonition colour buckets (4 groups):** three concrete mismatches against the authority's
-  taxonomy — `seealso` (currently info/blue → should be tip/green), `attention` (currently
-  warning/orange → should be danger/red), generic `.. admonition::` (currently unstyled base `clue`
-  → should be `info` with a dynamic title). All are one-line fixes
-- `rubric` = no visual style beyond bold text at the context's indent level (no box, background, or
-  resizing)
-- `.. topic::` and `.. contents::` (local TOC) are boxed identically in the authority (same
-  `sphinxShadowBox` family, plus a drop shadow neither gets elsewhere). Current typsphinx: topic
-  boxed ✓, contents box-less ✗ per the deliberate D-05 choice — a genuine open design decision
-- Citation bibliography: vanilla LaTeX `thebibliography` — plain `[Label]` entries, a
-  dynamically-sized hanging indent derived from the widest label capped at 8 characters, document
-  order never sorted, working cross-doc anchor/link
+- **Sphinx 9.1 APIs** (all present, undeprecated, actively used by Sphinx's own LaTeX/Texinfo builders): `env.toctree_includes` (dict[str, list[str]]), `env.get_doctree()`, `sphinx.util.nodes.inline_all_toctrees` (the reference algorithm for per-master DFS), `Builder.write_doc()`, `Builder.prepare_writing()`, `Builder.finish()`.
 
-### From ARCHITECTURE.md
+- **Test tooling** (`pypdf`, `pillow` already present): sufficient for per-master PDF assertions. Optional: the installed `typst` Python binding exposes `typst.query()` for label/selector queries without PDF extraction, but `pypdf` already covers all stated needs.
 
-- **The style module must be written and importable unconditionally in every routing branch** —
-  unlike `_template.typ` (deliberately never written on the `typst_package`-alone route), the new
-  module must exist even there, because translator node handlers call its functions from
-  `self.body`, which is generated identically in all routes. Implement a new
-  `_write_style_module_file()` in `builder.py`, called unconditionally, separate from
-  `_write_template_file()` and its conditional-skip pattern
-- **Two separate import-injection sites:** (1) the included-doc preamble at `writer.py:149–166`,
-  (2) the master-doc render in `template_engine.TemplateEngine.render()`. Both must emit the
-  import-path line identically (reuse the existing per-depth relative-path helper; do not
-  re-implement it). The master path's hoisted-imports gate
-  (`template_engine.py:609–619`, `will_inline_default_template`) must **not** apply to the style
-  module — unlike the four `@preview` imports, it is not duplicated inside `base.typ`
-- The three in-repo custom templates are safe **by construction** — their content is loaded as
-  opaque bytes and never parsed or rewritten — verified by tracing the load/render path and reading
-  all three files in full
-- **Highest-blast-radius seam:** `desc_signature` and `rubric` both delegate to
-  `visit_strong()`/`depart_strong()` via a dummy node. **Decouple immediately** — give each its own
-  open/close pair before changing either
-- **Citations need no document-order pre-pass** — verified by executing docutils directly:
-  `citation_reference.refid` resolves straight to `citation.ids[0]`, and Typst's `link(<label>, ...)`
-  (already used for same-document xrefs) resolves whole-document regardless of source order
-- **Five shared protocols demand explicit per-handler discipline:** paragraph separation, code-mode
-  inline-concat (5 distinct contexts), list-item separation, buffer-swap state (save/restore beyond
-  `self.body`), and forced sibling-boundary breaks. MATH-01 and the v0.6.x clusters were all
-  single-protocol misses
+**Stack implications for design:**
+- The wrapper is pure Typst, no templating-engine additions needed — extend `template_engine.py`'s caller path, not the engine itself.
+- No `Builder.write()` override required; wrapper generation runs after the per-docname `write_doc()` loop inside the existing single-process `write()` method.
+- Image path computation stays unchanged (content files are docname-named, so existing `_compute_relative_image_path` logic is unaffected).
 
-### From PITFALLS.md
+### Expected Features
 
-- **Separator protocol = the recurring fatal class:** code-mode juxtaposition (two expressions with
-  nothing between them inside `#{...}`) is a parse error, and a source `"\n"` is parser-OK but
-  produces zero visual separation. A 7-step checklist was derived line-by-line from the actual
-  helpers (`_add_paragraph_separator`, `_emit_inline_concat_separator`,
-  `_mark_inline_concat_content`, `_emit_forced_break`, `_emit_id_anchors`). Those helpers must be
-  *called*, not pattern-matched from a neighbouring handler
-- **Buffer-swap state clobbering breaks downstream silently:** swapping `self.body` alone is
-  insufficient; `in_paragraph`/`paragraph_has_content` and, where applicable,
-  `in_list_item`/`list_item_needs_separator` must be saved and restored, using a stack for nestable
-  swaps. This shipped as a real bug in v0.6.0 Phase 14. Only about 5 of ~20 buffer-swap sites have
-  real-compile coverage today
-- **Label attachment rules are strict:** Typst's `<label>` postfix is markup-mode only —
-  `block(...) <label>` inside `#{...}` is a parse fatal (the v0.6.0 "labels attached to code-mode
-  statements" class). The existing `_emit_id_anchors()` pattern — a separate, self-contained markup
-  statement `[#metadata(none) <label>]` on a following line — is safe to reuse even when signatures
-  are wrapped in `block()`/`grid()`. Every label routes through
-  `_namespace_label()`/`_sanitize_label()`
-- **Layout traps that are genuinely new ground:** page-break mid-signature (`block(breakable:)` is
-  unused anywhere in the codebase today), nesting-depth leaking across siblings (reset at the
-  outermost `desc`, following the documented `_line_block_depth` idiom), long fully-qualified
-  signatures overflowing the margin (re-derive the strategy — do not assume the FID-01a ZWSP
-  approach transfers from tables to full-width signatures), colour-only cues failing in greyscale,
-  CJK font-fallback shadowing (a new `set text(font: ...)` must extend the existing Noto Serif CJK JP
-  fallback, not replace it)
-- **GATE-01 methodology change (CRITICAL)** — see the dedicated section below
-- **Test-suite blast radius measured:** 10 files, 61 render-gate classes
-- **Module import-path lockstep:** the new module's import-path line (not a version — it is bundled)
-  must stay in sync between `writer.py` and `template_engine.py`, reproducing the two-site shape the
-  `@preview` imports already have. `builder.py`'s `_write_template_file()` early return for
-  `typst_package`-alone builds (BUG-A's class) must not be inherited by the new copy step
-- **Citation greenfield risks:** the docutils citation node structure (definition + reference +
-  label child) differs from footnotes in ways that break a naive copy. The exact failure mode is
-  already recorded first-hand in `examples/charged-ieee/`'s removal-commit message
+**Table Stakes (v0.8.0 must ship with these):**
+1. Each master's include graph is assembled independently from a fresh per-master DFS (mirrors `inline_all_toctrees`, not a shared whole-build ledger).
+2. A document reachable from two masters renders fully and independently in each (no cross-master deduplication).
+3. A document reachable twice within one master is included once, at its first-DFS depth (silent pruning, matching Sphinx's own behavior).
+4. Duplicate `typst_documents` target names are detected and warned; never silently drop a master's body (CR-02, already scoped).
+5. Cross-reference degradation resolves per compilation unit (per master), not via build-wide union — the `context { query(<label>) }` compile-time guard.
+6. Per-master toctree options (maxdepth, numbered, caption) keep working after the wrapper refactor.
+7. A docname that is simultaneously a `typst_documents` master AND a toctree child of another master compiles correctly in both roles (regression fixture required).
+8. The two PR #131 image defects fixed (rehomed-image collision, absolute-URI escape — already scoped).
 
-## Critical Decisions for Requirements Definition
+**Explicitly Out (differentiators, v2+):**
+- Per-master template selection (dict-shaped entries for metadata)
+- `toctree_only`-equivalent (suppress master's own prose, include only toctree children)
+- Shared-appendix shortcut (config convenience, users can manually add entries to each master's toctree)
+- Any "prefer deeper path" tiebreak or single-winner logic (not needed by independent-masters model)
 
-These were each flagged by one or more research agents specifically so they would be decided
-explicitly rather than fall out of implementation by default.
+**Anti-features (harmful, explicitly exclude):**
+- Doctree-layer composition (would delete the per-document `.typ` files the `-b typst` builder exists to produce)
+- Single shared root `.typ` (the direct cause of B-1/B-2; reintroduces both if reconsidered later)
+- Cross-master content deduplication (violates the "independent PDFs" invariant)
+- Free-form per-master output subdirectories (existing path-traversal guard is deliberate)
 
-1. **Style-module internal `@preview` dependencies** — typography-only, or wrap
-   `gentle-clues`/`codly`/`mitex` internally (which creates a new version-lockstep site, in tension
-   with the milestone invariant)? **Recommendation:** typography-only; keep the admonition
-   gentle-clues calls in `translator.py:_visit_admonition`
+### Architecture Approach
 
-2. **Field-list two-column layout** — `grid(columns: (auto, 1fr))` for fine control, or `terms()`
-   as the semantically native element? **Recommendation:** `grid` for column-width control — decide
-   consciously, not by default
+The redesign moves composition from a per-docname, alphabetical-order, whole-build-shared loop into a per-master, document-order, isolated graph walk. Two files per master instead of one: content (pure body, minimal imports) + wrapper (template + include graph).
 
-3. **`.. contents::` (local TOC): boxed or box-less?** The deliberate D-05 box-less choice versus
-   authority evidence to box it identically to `topic`. **No recommendation** — a design choice with
-   UX implications; decide at requirements
+**Current state:** `TypstBuilder.write()` loops `sorted(docnames)` alphabetically, calls `write_doc()` on each; `write_doc()` determines whether the current docname is a master (via `_is_master_document()`), writes either template-wrapped (master) or bare (included), and emits toctree includes inline via `visit_toctree()`. Composition decisions (who includes what, at what depth) are scattered across `builder.py`'s ledger, `writer.py`'s master/included branch, and `translator.py`'s `visit_toctree()`, using a **whole-build** `_included_docnames` set for deduplication.
 
-4. **Citation-label namespacing** — per-document (allowing a duplicate `[GoF95]` across chapters) or
-   merged project-wide? **Recommendation:** per-document (mirrors the existing `_namespace_label`
-   default); document the choice explicitly
+**Proposed state:** `write_doc()` always writes a template-less content file at docname's own path (no master/included branching). After the per-docname loop, a new `_write_master_wrappers()` step computes each `typst_documents` entry's per-master DFS graph, renders a flat `context { set heading(offset: N) include(...) }` block per graph entry, wraps that in the template, and writes one wrapper file per master at the resolved target path.
 
-5. **Signature hanging-continuation indent accuracy** — a fixed approximation, or computed alignment
-   to the first parameter? Typst has no direct `\parbox`-at-computed-width primitive.
-   **Recommendation:** a fixed approximation validated against the corpus's longest realistic
-   signatures. **Complexity:** medium-high if exactness is required; low if approximate is acceptable
+**New module `composition.py`:** Houses `compute_master_include_graph()` (DFS with per-master fresh `traversed` set), `render_include_graph()` (flattened offset/include block), moved helpers (`_compute_relative_include_path`, `_resolve_entry_element`, `_compute_template_import_path`). Keeps this graph-and-template work decoupled from `builder.py`'s loop-driving concerns.
 
-6. **Citation bibliography pre-pass?** Architecture finds none needed (use `link()` whole-document
-   resolution, as `:ref:` already does). **Recommendation:** no pre-pass; let dangling references
-   surface as Typst compile fatals
+### Critical Pitfalls
 
-7. **Style-module filename and structure** — one file or several, and what output filename?
-   **Recommendation:** one file (keeps the two-site import-sync pitfall simple). If it exceeds
-   ~200 lines, refactor then
+1. **Pitfall 1 — DFS order must replicate Sphinx's document-order depth-first traversal, not a LIFO stack.** The new wrapper-generation DFS must thread ONE ordered `traversed` list through recursion, processing each document's toctree children in source order. A LIFO-stack reuse will silently reverse order with no compile error. **Prevention:** Write the DFS fresh, test with reordered-entries mirror fixture.
 
-## Single Shared Indent Constant
+2. **Pitfall 2 — `:numref:` uses Sphinx's project-wide numbering, not Typst's per-wrapper counter.** A figure can be "Figure 12" (Sphinx) but "Figure 3" (Typst per master). **Prevention:** Two-master fixture with shared figure, measure actual Typst-rendered number via `pypdf` against `:numref:` text. Document as limitation or fix explicitly.
 
-**One constant must drive all indent consumers:** ≈22–25pt (≈2.2–2.5em @ 10pt), measured
-independently in `desc_content` and field-list contexts and agreeing within 3pt.
+3. **Pitfall 3 — Diamond dedup IS solved, but edge cases (cycles, self-refs, orphans) need explicit fixtures** with decided outcomes.
 
-| Consumer | Current | Target |
-|----------|---------|--------|
-| `desc_content` indent | `pass` (zero — the defect) | +2.2–2.5em |
-| `field_list` block indent | `pass` (zero — the defect) | +2.2–2.5em |
-| Field-body indent | Likely correct | Verify it uses the same constant |
-| Nested `py:method::` under `py:class::` | `pass` (cumulative; needs a depth counter) | +2.2–2.5em per level |
+4. **Pitfall 4 — CR-01's `effective != docname` exemption is a landmine when every docname gets a content file.** When target equals docname, wrapper and content collide; whichever writes last wins silently. **Prevention:** Decide upfront: allow self-targets or forbid? Implement collision logic accordingly.
 
-Define **one named constant in the style module** (e.g. `#let indent-unit = 2.4em`) and use it for
-all consumers. Document which consumer drives each use.
+5. **Pitfall 5 — Case-insensitive filesystems can hide collisions that Linux CI never sees.** Collision checks must be case-normalized (.lower() both sides).
 
-## GATE-01 Methodology Change — Process, Not Tool
+6. **Pitfall 6 — Deleting `master_included_docnames` must be complete** — three consumers (primary site, `:3273/3281`, `:4291`) must all route through ONE shared guard helper. Partial migration leaves competing degrade decisions.
 
-**Standing invariant since v0.6.0:** "every node-handler change ships a real
-`sphinx-build → typst.compile()` fixture, recorded **red** against the unfixed code."
+7. **Pitfall 7 — Regenerating GATE-01 expected strings from the new emitter launders the gate.** Derive expected structure from config + `.rst` by hand first. Use structural assertions over exact strings. PR review must trace each changed expected value to a written-first rationale.
 
-**This milestone inverts the assumption.** Every prior fixture proved a compile fatal (RED =
-`TypstError`, GREEN = `%PDF`). This milestone's defects — proportional instead of monospace, missing
-indent, invisible nesting — **all compile successfully today**. RED cannot be "does not compile."
+8. **Pitfall 8 — Non-fatal defects need a defined RED assertion, not just "compiles."** CR-02 and image defects "compile fine, produce wrong output" — write the pre-fix RED assertion (pypdf text/page comparison) explicitly before implementation.
 
-**Each phase must define a measurable RED assertion *before* coding:**
+9. **Pitfall 9 — Wrapper files must be written in a shared, serial path both builders reach.** Place wrapper generation in `TypstBuilder.write()` (after docname loop), not in `finish()`, to avoid ordering bugs from dual `write_doc()` overrides.
 
-- Structural/regex — e.g. "the signature uses `raw(...)`, not a bare `text(...)`"
-- pypdf-text — extract bounding boxes, assert indent/alignment against the authority, run red
-  against the unfixed code
-- Manual visual — side-by-side authority PDF vs typsphinx output with recorded evidence
+10. **Pitfall 10 — Parallel builds and future incremental rebuilds must not degrade.** Wrapper generation in serial `write()` is safe; add a comment about wrapper staleness for future incremental-build work.
 
-**Consequence for test maintenance:** exact-string assertions *will* break — expected and
-intentional. Do **not** mass-regenerate them from a fresh pytest run. Derive the new expected `.typ`
-shape from the authority (or a hand-reasoned equivalent) *before* running the new code. Update per
-sub-area within the owning phase, never as a single blanket closing phase.
-
-## Highest-Blast-Radius Seam
-
-`desc_signature` and `rubric` both delegate to `visit_strong()`/`depart_strong()` via a dummy-node
-trick. Any change to `strong()`'s open/close shape silently affects both unrelated families.
-**Decouple first** — give each its own pair before changing either.
-
-## Reconciled Build Order
-
-All three of ARCHITECTURE, PITFALLS, and FEATURES proposed a sequence independently. They agree on:
-module scaffolding first; `desc_*`/`field_list` as the broad-blast-radius centre; citations as
-independently landable; math/release housekeeping as unrelated. They differ on where the
-`visit_strong` decoupling sits (ARCHITECTURE folds it into the desc phase; PITFALLS wants it
-isolated) and on whether admonitions precede or parallel the desc work. The reconciliation isolates
-the decoupling as its own gate, because it is the one change whose correctness criterion is
-"rendering is byte-identical before and after."
-
-| Phase | Deliverable | Rationale | Deps |
-|-------|-------------|-----------|------|
-| **1** | Style-module scaffolding (`_typsphinx.typ`, `_write_style_module_file()`, import injection at both sites) | Additive, low blast radius. Everything later depends on it. Fixture: the module appears in `outdir` and imports cleanly from all routes, **including `typst_package`-alone** | None |
-| **2a** | Decouple `desc_signature`/`rubric` from the shared `visit_strong` | Prerequisite for independent restyling. Gate: rendering identical pre/post | 1 |
-| **2b** | Redesign `desc_*` and `field_list` (fonts, indent, nesting) | Broad blast, high complexity. Sequence: indent → nesting depth → signature wrapping → field-list layout. GATE-01 per sub-area with structural RED assertions | 1, 2a |
-| **3** | Admonition / rubric / topic redesign, incl. the three colour-bucket fixes | Additive-shaped, moderate blast. Can run parallel to 2b once 1 + 2a land | 1, 2a |
-| **4** | Citation support (greenfield handlers) | Structurally independent. Apply the full separator-protocol checklist from day one. Fixture: forward reference, 2+ citations, 2+ documents | 1 |
-| **5** | `visit_math_block` blank-line fix + `release.yml` CHANGELOG extraction | Self-contained, unrelated to the design work | None |
-| **6** | Release prep (version bump, CHANGELOG) | Standard final phase | 1–5 |
-
-## Confidence Assessment
-
-| Area | Confidence | Basis | Gaps |
-|------|-----------|-------|------|
-| **Stack** | **HIGH** | Live Typst 0.15 docs fetched directly; `typst/typst#595` cross-check on include/import scoping; every typsphinx claim cited `file:line` | None |
-| **Features** | **HIGH** (design), **MEDIUM** (citations) | `pdftotext -bbox` measurement of the authority PDF + line citations into Sphinx's own installed sources (the LaTeX writer module and the `.sty` files, both read from the venv — external references, not repository files); citations have no live example in the authority corpus (verified by exhaustive grep) | Citation polish unverified; `grid` vs `terms` open; `.. contents::` deferred to requirements |
-| **Architecture** | **HIGH** | Full-file reads of `builder.py`/`writer.py`/`template_engine.py`; all three custom templates read; docutils executed directly to verify citation node structure | Module `@preview` deps is a design choice, not a finding; the fourth-site risk reasoned from documented scoping, not a live `typst compile` |
-| **Pitfalls** | **HIGH** | Every pitfall is either a previously-shipped artifact-cited defect or derived from a direct read of the translator | Overflow strategy must be re-derived against real corpus signatures; breakability and colour are new ground for this codebase |
-| **Overall** | **HIGH** | Three angles converge on the same build order; decisions named rather than defaulted; seams identified; the process change is explicit | Requirements must decide the seven questions above |
-
-## Gaps to Address Before Planning
-
-1. **Signature overflow (medium).** U+200B injection was the FID-01a fix for wide *tables*;
-   signatures occupy full page width — a different context. Measure realistic long signatures from
-   the Sphinx corpus, then decide between ZWSP injection, explicit wrap points, or a font-size
-   reduction. Do not assume the existing approach transfers.
-
-2. **Citation flavour — CLOSED, not a gap.** *(Orchestrator correction, 2026-07-29: the synthesizer
-   re-raised this after it had been measured and closed.)* The syntax stripped from
-   `examples/charged-ieee/` was **bare docutils citations** — a `.. [Krizhevsky2012] …` definition
-   plus a `[Krizhevsky2012]_` inline reference — verified via `git show 8bed1a3`. Zero `.bib` files
-   exist anywhere under `examples/`, and no `conf.py` declares a bibtex extension.
-   `sphinxcontrib-bibtex` and its `:cite:` role are **not** involved and are out of scope. No
-   doctree dump is required before the citation phase.
-
-3. **CJK font-fallback baseline (low-medium).** New font declarations risk shadowing the existing
-   Noto Serif CJK JP fallback in the `ja` RTD build. Confirm the existing fallback chain and
-   establish a re-run protocol for the D-03 four-check bar (page count, byte-identical text, glyph
-   present, visual) as part of release prep.
+11. **Pitfall 11 — Wrapper relative-include paths must use RESOLVED wrapper location, not raw docname.** This IS B-1's fix detail. Fixture: nested master with custom target; assert `#include()` paths resolve correctly.
 
 ## Implications for Roadmap
 
-**Six sequenced phases** (table above) with explicit dependencies. **Blast-radius call-outs:**
-Phase 1 is additive and prerequisite; Phase 2a exists solely to eliminate the highest seam before
-any reshape; Phases 2b–3 carry broad impact and concentrate the GATE-01 fixture invalidation.
-**Research flags:** Phases 2b, 3, and 4 likely warrant phase-level research during planning
-(specific RED assertions, overflow strategy, citation node structure). **Standard patterns:**
-Phase 1 scaffolding and Phase 5 math/release follow proven patterns and can skip research; Phase 6
-uses the existing release-prep flow.
+**Hard Constraint:** The compile-time cross-reference guard (Phase 2) must land **no later than** the per-master include-graph DFS (Phase 3). Violating this produces silently wrong PDFs.
 
-**Ready for Requirements Definition.**
+### Suggested Phase Structure
+
+**Phase 47.1: Content/Wrapper Split (No Include Graph Yet)**
+- **Rationale:** Isolate file-shape change from graph-algorithm change. Proves split works without touching composition semantics. Closes B-1 and B-2.
+- **Delivers:** Every docname at `outdir/<docname>.typ` (content), every master at resolved target (wrapper).
+- **Success Criteria:** Existing fixtures still compile; `-b typst` vs `-b typstpdf` produce identical wrappers; B-1/B-2 fixture RED → GREEN.
+
+**Phase 47.2: Compile-Time Cross-Reference Guard**
+- **Rationale:** Lands guard BEFORE include-graph work. When Phase 3 arrives, guard handles "label missing in this compilation" gracefully.
+- **Delivers:** Three guarded-link sites emitting `context { query(<label>).len() > 0 ? link(...) : plain_text }` via one shared helper.
+- **Removes:** `master_included_docnames` ledger completely.
+- **Success Criteria:** `grep -rn master_included_docnames` returns empty. `:4291` site verified to use shared helper. Xref-degradation fixture degrades gracefully in Typst output.
+
+**Phase 47.3: Per-Master Include-Graph DFS**
+- **Rationale:** Phase 2's guard in place. Graph algorithm lands, shared children move from silently dropped to correct inclusion.
+- **Delivers:** `compute_master_include_graph()` with document-order depth-first, per-master `traversed` set.
+- **Success Criteria:** Diamond fixture (M → [p, q], p → [c], q → [c]) proves c included once at first-DFS depth. Mirror fixture proves nesting tracks source order. Defect A fixture RED → GREEN.
+
+**Phase 47.4: CR-02 Duplicate-Target Detection**
+- **Rationale:** Independent of include-graph. Fits into per-master wrapper loop.
+- **Delivers:** Build-time warning on target collision; case-normalized comparison for platform consistency.
+- **Success Criteria:** Two masters → same target: warning emitted. Self-collision (target == docname): covered. Case variation: same behavior on Linux/macOS/Windows.
+
+**Phase 47.5: PR #131 Image Defects**
+- **Rationale:** Independent; touches `_track_image()` during split, natural to pair.
+- **Delivers:** Rehomed images don't collide with real `srcdir` files. Absolute URIs don't escape `outdir`.
+- **Success Criteria:** Pre-fix RED (wrong/missing image) → GREEN post-fix.
+
+**Phase 47.6: Release Prep**
+- **Rationale:** Final phase per standing pattern.
+- **Delivers:** v0.8.0 tagged, published, docs built.
+- **Success Criteria:** Full multi-master `sphinx-build -b typstpdf`, each PDF has title page + outline + content subset, verified via `pypdf` text extraction.
+
+### Build Order Reconciliation
+
+ARCHITECTURE.md and PITFALLS.md both propose phased approaches; they align on the critical constraint (guard before graph). This summary adopts ARCHITECTURE.md's order as primary, with PITFALLS.md's edge-case fixtures folded into each phase's success criteria.
+
+### Research Flags
+
+**Need deeper research during planning:**
+- **Phase 47.1:** Template-copy behavior in wrapper step; confirm `_template.typ` import paths from content files.
+- **Phase 47.2:** The `:4291` site (explicitly unread in research) — is it structurally identical to `:5007` and `:3273/3281`, or does it have special shapes?
+- **Phase 47.3:** `:numref:` fixture divergence (Pitfall 2) — do numbers actually diverge per compile unit, or do they align for typical structures?
+
+**Standard patterns (skip research-phase):**
+- **Phase 47.4 (CR-02):** Straightforward registry check, established pattern from CR-01.
+- **Phase 47.5 (image defects):** Narrow, localized fixes, well-understood.
+- **Phase 47.6 (release prep):** Standing pattern, established by v0.7.0+.
+
+## Confidence Assessment
+
+| Area | Confidence | Notes |
+|------|------------|-------|
+| **Stack** | **HIGH** | Verified against installed Sphinx 9.1.0, typst-py 0.15.0, official Typst docs, existing codebase. No new packages needed. |
+| **Features** | **HIGH** | Table stakes from live Sphinx source (LaTeX/Texinfo builders). Differentiators/anti-features established against ecosystem precedent (rinohtype, Quarto, mdBook). |
+| **Architecture** | **HIGH** | Every file/line/method traced against current codebase. Component ownership reconciled. Data flow and ordering constraints verified. |
+| **Pitfalls** | **HIGH** for identified (11 enumerated with phase placement), **MEDIUM** for edge cases (`:numref:` divergence, `:4291` site, case-insensitive-FS) needing live fixture confirmation. |
+
+**Overall: HIGH** — grounded in primary sources (installed packages, codebase, official docs). Edge cases explicitly flagged for planning confirmation.
+
+### Gaps to Address
+
+1. **Open: The `:4291` site.** `translator.py:4291` in `visit_pending_xref` was "unread" in research. Does it route through `_reference_anchor_decision`, or is it a fourth independent degrade site? Planning must verify.
+
+2. **Open: `:numref:` Divergence Measure.** Is divergence between Sphinx's project-wide numbering and Typst's per-compile counter observable in practice, or do they align for typical docs? PITFALLS.md flags as "inferred — verify with fixture."
+
+3. **Open: B-2 Severity.** Is B-2 (template re-expanding mid-body) a compile fatal or "compiles fine, produces wrong output"? Determines GATE-01 RED methodology.
+
+4. **Open: CR-01 Self-Collision Decision.** Is a target allowed to equal its own master's docname? Design decision for planning; this research flags the hazard.
+
+5. **Open: Case-Normalization vs. Forbidding.** Normalize collision checks for platform consistency, or forbid path-like targets as a security measure? Planning scope question.
+
+These are scoped for requirements/planning closure.
 
 ## Sources
 
-- `.planning/research/STACK.md` — Typst module/import mechanics, verified stdlib primitive
-  signatures, the no-new-package verdict, Typst Universe packaging notes, and the Python-packaging
-  change needed to ship a second bundled `.typ`
-- `.planning/research/FEATURES.md` — per-area table-stakes / differentiator / anti-feature tables
-  for signatures, description bodies, info fields, admonitions, rubric/topic, and citations, with
-  `pdftotext -bbox` measurements and LaTeX-source line citations
-- `.planning/research/ARCHITECTURE.md` — integration points with `file:line` citations, the
-  new-vs-modified component split, the custom-template non-breakage trace, and the citation
-  doctree-structure verification
-- `.planning/research/PITFALLS.md` — the separator-protocol checklist, buffer-swap rules,
-  label-attachment rules, layout traps, test-suite blast radius, module-lockstep hazard, and the
-  GATE-01 methodology change
-- Design authority: `https://app.readthedocs.org/projects/sphinx/downloads/pdf/master/`
-  (703 pages, pdfTeX-1.40.22, built 2026-07-22)
-- Sphinx LaTeX style sources in the local venv: `sphinxlatexobjects.sty` (386 lines),
-  `sphinxlatexadmonitions.sty` (408), `sphinxpackageboxes.sty` (827),
-  `sphinxlatexindbibtoc.sty` (69)
+**Research Files (Primary — HIGH):**
+- `.planning/research/STACK.md` — Technology verification against installed packages, Typst 0.15 docs, Typst community sources.
+- `.planning/research/FEATURES.md` — Feature landscape from installed Sphinx source, ecosystem tools (rinohtype, Quarto, mdBook).
+- `.planning/research/ARCHITECTURE.md` — Redesign traced against every file/line/method in current typsphinx.
+- `.planning/research/PITFALLS.md` — 11 critical pitfalls grounded in Sphinx/Typst source, CLAUDE.md lessons, MILESTONES.md precedent.
+
+**Codebase (Primary — HIGH):**
+- Installed `sphinx==9.1.0`, `typst-py 0.15.0`
+- `typsphinx/builder.py`, `writer.py`, `translator.py`, `template_engine.py` (full, this session)
+- `.planning/PROJECT.md`, `.planning/MILESTONES.md`, `CLAUDE.md`
+
+---
+
+**Research completed:** 2026-08-11  
+**Ready for roadmap:** Yes — phase structure suggested, open questions flagged, all pitfalls mapped to phases with success criteria.
