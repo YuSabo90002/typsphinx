@@ -85,10 +85,10 @@ class _BuildArtifacts:
     """
     Small container exposing one class-scoped real build's results: the
     completed subprocess, the emitted ``index.typ`` text (``None`` if the
-    build never emitted it), and the path where ``index.pdf`` would land.
+    build never emitted it), and the path where ``master.pdf`` would land.
 
     Deliberately asserts nothing itself -- pre-fix, the build fails and
-    ``index.pdf`` never appears, and the RED must surface as named
+    ``master.pdf`` never appears, and the RED must surface as named
     per-shape test failures rather than as one shared fixture error.
     """
 
@@ -119,7 +119,7 @@ def captioned_table_propagated_target_artifacts(tmp_path_factory):
     result = _run_sphinx_build_typstpdf(source_dir, build_dir)
     typ_path = build_dir / "index.typ"
     typ_text = typ_path.read_text(encoding="utf-8") if typ_path.exists() else None
-    pdf_path = build_dir / "index.pdf"
+    pdf_path = build_dir / "master.pdf"
     return _BuildArtifacts(result, typ_text, pdf_path)
 
 
@@ -331,14 +331,14 @@ class TestCaptionedTablePropagatedTargetRenderGate:
 
     def test_pdf_magic_bytes(self, captioned_table_propagated_target_artifacts):
         """
-        ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
+        ``master.pdf`` exists, is non-empty, and starts with the ``%PDF``
         magic bytes -- the only proof the document compiled to a valid PDF
         and the dangling-label fatal is gone.
         """
         pdf_path = captioned_table_propagated_target_artifacts.pdf_path
         result = captioned_table_propagated_target_artifacts.result
         assert pdf_path.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on a dangling label:\nstderr: {result.stderr}"
         )
         assert pdf_path.stat().st_size > 0, "PDF file is empty"

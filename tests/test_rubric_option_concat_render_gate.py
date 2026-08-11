@@ -105,7 +105,7 @@ class TestRubricOptionConcatRenderGate:
           the "Structure Options" rubric's ``strong({...})`` and the
           following ``--sep`` option's ``strong({...})`` (D-05: pre-fix the
           translator emits NO ``linebreak()`` at this site at all);
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and starts with the ``%PDF``
           magic bytes (real ``typst.compile()`` succeeded, including the
           trailing end-of-document rubric).
         """
@@ -167,9 +167,9 @@ class TestRubricOptionConcatRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() likely aborted "
+            "master.pdf was not produced -- typst.compile() likely aborted "
             f"on a stranded statement boundary:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

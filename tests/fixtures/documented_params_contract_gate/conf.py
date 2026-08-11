@@ -25,8 +25,12 @@ extensions = ["typsphinx"]
 
 # index must be a master document so the writer applies the full
 # custom-template routing (not the minimal included-document import set).
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
 ]
 
 typst_template = "_templates/documented.typ"

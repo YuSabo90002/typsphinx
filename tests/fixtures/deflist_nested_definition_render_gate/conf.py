@@ -35,6 +35,10 @@ release = "0.0.0"
 extensions = ["typsphinx"]
 
 # index must be a master document so the writer emits the full template.
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Nested Definition Body Clobber Render Gate", "typsphinx tests"),
+    ("index", "master.typ", "Nested Definition Body Clobber Render Gate", "typsphinx tests"),
 ]

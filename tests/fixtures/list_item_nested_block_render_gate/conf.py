@@ -38,6 +38,10 @@ extensions = [
 # index must be a master document so the writer emits the full template and
 # TypstPDFBuilder.finish() actually compiles it to PDF -- the only build path
 # where the "expected semicolon or line break" fatal is observable.
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "List Item Nested Block Render Gate", "Test Author"),
+    ("index", "master.typ", "List Item Nested Block Render Gate", "Test Author"),
 ]
