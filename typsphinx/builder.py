@@ -255,6 +255,16 @@ class TypstBuilder(Builder):
             # is forbidden.
             stem = target[:-4] if target.endswith(".typ") else target
 
+            # OUT-01: normalize a Windows-authored separator to POSIX
+            # style up front, unconditionally -- a path-bearing target is
+            # now a legitimate output path (relative to outdir), and every
+            # other path this module deals with (docnames, wrapper
+            # relpaths) is already '/'-separated. Doing this once, before
+            # the escape check and the final return, is what makes
+            # "sub\\manual.typ" resolve to the SAME "sub/manual" a
+            # forward-slash-authored target resolves to.
+            stem = stem.replace("\\", "/")
+
             # OUT-02 escape guard: detect a traversal-bearing, absolute,
             # or drive-qualified target BEFORE it reaches
             # path.join(self.outdir, ...). OUT-01 reverses the prior
@@ -263,7 +273,7 @@ class TypstBuilder(Builder):
             is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
             if _escapes_outdir(stem):
                 fallback_source = stem[2:] if is_drive_qualified else stem
-                fallback = path.basename(fallback_source.replace("\\", "/"))
+                fallback = path.basename(fallback_source)
                 if not fallback.strip():
                     # The path guard's own fallback (a basename) is itself
                     # empty -- e.g. a trailing separator ("sub/manual.typ/"),
@@ -283,6 +293,21 @@ class TypstBuilder(Builder):
                     f"name: {target!r} -- using {fallback!r} instead"
                 )
                 stem = fallback
+            elif "/" in stem and not path.basename(stem).strip():
+                # OUT-01: a path-bearing, non-escaping stem (does not
+                # trip _escapes_outdir) whose final path segment --
+                # its basename -- is itself empty (a trailing
+                # separator, e.g. "sub/manual.typ/") names no file at
+                # all. This is not an OUT-02 escape shape, but writing
+                # a file with an empty name is nonsensical regardless
+                # of OUT-01/OUT-02 -- fall back to the docname the same
+                # way any other degenerate target does (edge: empty),
+                # with exactly the same single warning.
+                logger.warning(
+                    "empty typst_documents target name for docname "
+                    f"{docname!r} -- falling back to {docname!r}"
+                )
+                return docname
         else:
             stem = ""
 
