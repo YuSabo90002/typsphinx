@@ -528,16 +528,31 @@ through 47-08 carry that migration; it is the single largest cost in the phase a
 has ten plans rather than three.
 
 Plans:
+**Wave 1**
+
 - [ ] 47-01-PLAN.md — Derive the expected two-layer structure from first principles and capture the pre-fix RED for all five defects (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 47-02-PLAN.md — Two-layer emitter, tracer-led: content/wrapper split, OUT-01/OUT-02 disentangle, one shared write path (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 47-03-PLAN.md — Move the OUT-01 unit expectations; pin all three OUT-02 escape shapes with an outdir-containment proof (wave 3)
 - [ ] 47-04-PLAN.md — Corpus migration group A: 17 modules / 34 fixtures (wave 3)
 - [ ] 47-05-PLAN.md — Corpus migration group B: 17 modules / 19 fixtures, toctree and multi-document suites (wave 3)
 - [ ] 47-06-PLAN.md — Corpus migration group C: 17 modules / 18 fixtures, entry-metadata and integration suites (wave 3)
 - [ ] 47-07-PLAN.md — Corpus migration group D: 17 modules / 16 fixtures, page-count and template-contract gates (wave 3)
 - [ ] 47-08-PLAN.md — Residual surface: template-routing suites, `typst_documents`-shape gates, dogfooding builds (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 47-09-PLAN.md — Unified pre-write collision validator (D-01/D-02/D-03/D-05), CR-01 inversion, phase green gate (wave 4, 2 blocking decision checkpoints)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 47-10-PLAN.md — Push the milestone branch to `origin` and evidence a completed CI run over the Windows and macOS lanes (wave 5)
+
 **UI hint**: no
 
 ### Phase 48: Compile-Time Cross-Reference Guard
@@ -601,7 +616,9 @@ master's include graph by mirroring `sphinx/util/nodes.py:485` `inline_all_toctr
 depth-first, first encounter wins, `traversed` re-initialised **per master** — and the wrapper emits
 `#state("inc", ()).update((<edge keys>))` before including its master's content. `visit_toctree` stops
 emitting an unconditional `include()` and instead emits `context { set heading(offset: heading.offset
+
 + 1); if "<parent>><child>" in state("inc", ()).get() { include("<child>.typ") } }` at the toctree's
+
 own position, and `builder.py:99`'s build-scoped `_included_docnames` ledger becomes unnecessary. This
 closes **defect A** and the diamond `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]` that no
 write-time ledger can serve, while keeping heading offsets relative (no DFS-depth arithmetic in the
@@ -805,16 +822,20 @@ sequential, not merely numbered:
 
 - **47 before 48/49** because both later phases operate on the new two-file shape — the guard is
   landed against it, and the include graph is computed for wrappers that only exist after 47.
+
 - **48 before 49 is the milestone's one hard ordering constraint** (binding constraint #1). Fixing the
   include graph turns a currently-silent content omission into a hard `label ... does not exist`
   compile abort for any shared document referencing a target present in one master but not another.
   Shipping the graph first produces builds that fail outright. These two are **not** independently
   parallelizable, in either direction.
+
 - **50 (images) is genuinely independent** — it touches `TypstBuilder._track_image()` only and could
   move anywhere in the sequence. It sits after the composition work so the composition phases' RED/
   GREEN evidence is not taken across a concurrent image-path change.
+
 - **51 (docs) after 50** because documentation describes behaviour that must already have landed —
   the same ordering v0.7.1 used placing Phase 45 after Phase 44.
+
 - **52 last and prep-only**, per binding constraint #3.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -882,12 +903,15 @@ shipped in v0.7.1 unfixed by owner decision D-27:
 
 - `shared-document-silently-dropped-from-all-but-first-master` → Phase 49 (defect A: COMP-07, and the
   whole COMP-05..COMP-12 include-graph set that closes it)
+
 - `a-master-that-is-also-a-toctree-child-is-unrepresentable` → Phase 47 (B-1: COMP-03)
 - `duplicate-typst-documents-target-silently-drops-a-master` → Phase 47 (BLD-02) — re-measured live in
   Phase 46 and still reachable, because Phase 44's guard compares only against `env.found_docs` and
   the reserved `_template`, never against already-resolved targets
+
 - `rehomed-converted-image-collides-with-srcdir-images-dir` → Phase 50 (IMG-01, major — a regression
   in failure mode: the same project used to abort loudly)
+
 - `track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri` → Phase 50 (IMG-02, minor)
 
 Each todo record stays **pending** until its phase executes; the todo is the detail record, the phase
@@ -898,10 +922,13 @@ entry above is the sequencing record.
 - `modernize-typing-imports-drop-up006-up035-ignore` — deferred *doubly deliberately*, since
   `CLAUDE.md` independently instructs "don't modernize typing imports until that todo lands", and
   binding constraint #9 forbids it this milestone.
+
 - `add-sphinx-linkcheck-ci-job` — tracked as Future requirement LNK-01; `links.yml`'s repo-wide
   lychee check already covers the links each release adds.
+
 - `ruff-generic-linux-elf-unrunnable-on-nixos` — a `flake.nix`-side toolchain repair in the same
   family as QUA-04 (Future requirement QUA-06); CI holds lint authority, so it blocks nothing.
+
 - Dormant seeds: `SEED-001-readme-quickstart-typst-documents-pdf` (substantially discharged by v0.7.1's
   CONF-08 + DOC-11) and `SEED-003-tox-dependency-groups-per-env` (Future requirement QUA-07).
 
