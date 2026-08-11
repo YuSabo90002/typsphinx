@@ -114,10 +114,13 @@ class TestTemplateLoading:
 
 
 class TestTemplateResolutionProvenance:
-    """CONF-07/D-06: resolve_template()/TemplateResolution record WHICH
-    priority resolved, and uses_bundled_default_template() is the single
-    judgment predicate built on top of that provenance. See
-    27.1-CONTEXT.md D-06."""
+    """CONF-07/D-06 (resolve_template()/TemplateResolution's own provenance
+    tracking) + CONF-12/D-I (uses_bundled_default_template()'s judgment,
+    narrowed to the typst_package guard alone). resolve_template() still
+    records WHICH priority resolved a template regardless of this plan's
+    change; uses_bundled_default_template() no longer consults that
+    provenance at all -- it now returns the negation of typst_package. See
+    27.1-CONTEXT.md D-06 and 45.1-CONTEXT.md D-I."""
 
     def test_resolve_template_explicit_source(self, tmp_path):
         """An engine built with an existing explicit template_path reports
@@ -167,10 +170,13 @@ class TestTemplateResolutionProvenance:
         assert resolution.source == "default"
         assert "#let project" in resolution.content
 
-    def test_srcdir_shadow_reports_search_and_not_bundled_default(self, tmp_path):
-        """The <srcdir>/base.typ shadow case reports 'search' and
-        uses_bundled_default_template() is therefore False (D-06's central
-        judgment boundary)."""
+    def test_srcdir_shadow_reports_search_but_still_receives_lang(self, tmp_path):
+        """The <srcdir>/base.typ shadow case still reports 'search' from
+        resolve_template() (provenance tracking is unaffected by D-I), but
+        uses_bundled_default_template() is now True -- D-I narrows the
+        judgment to `not self.typst_package`, so a package-free engine
+        receives the auto-derived lang regardless of which priority
+        resolved its template."""
         srcdir = tmp_path / "docs"
         srcdir.mkdir()
         (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
@@ -178,12 +184,14 @@ class TestTemplateResolutionProvenance:
         engine = TemplateEngine(search_paths=[str(srcdir)])
 
         assert engine.resolve_template().source == "search"
-        assert engine.uses_bundled_default_template() is False
+        assert engine.uses_bundled_default_template() is True
 
     def test_package_configured_engine_never_uses_bundled_default(self):
         """uses_bundled_default_template() is False for an engine
         constructed with a typst_package even though its own priority walk
-        would resolve to 'default' (template_path=None, no search hit)."""
+        would resolve to 'default' (template_path=None, no search hit) --
+        the one guard D-I keeps, load-bearing independent of the dropped
+        resolution-source check."""
         engine = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
 
         assert engine.resolve_template().source == "default"
@@ -196,15 +204,21 @@ class TestTemplateResolutionProvenance:
 
         assert engine.uses_bundled_default_template() is True
 
-    def test_explicit_template_engine_does_not_use_bundled_default(self, tmp_path):
-        """uses_bundled_default_template() is False for an engine with an
-        explicit, existing template_path."""
+    def test_explicit_template_engine_now_receives_bundled_default_lang(self, tmp_path):
+        """CONF-12/D-I: uses_bundled_default_template() is now True for an
+        engine with an explicit, existing template_path and no
+        typst_package -- the narrowed judgment no longer distinguishes
+        'explicit' from 'default', so this route receives the
+        auto-derived lang too. Renamed from
+        test_explicit_template_engine_does_not_use_bundled_default, whose
+        name asserted the pre-D-I (now false) behaviour."""
         custom_template_path = tmp_path / "custom.typ"
         custom_template_path.write_text("#let custom(body) = { body }")
 
         engine = TemplateEngine(template_path=str(custom_template_path))
 
-        assert engine.uses_bundled_default_template() is False
+        assert engine.resolve_template().source == "explicit"
+        assert engine.uses_bundled_default_template() is True
 
 
 class TestParameterMapping:
@@ -868,8 +882,14 @@ class TestTypstTemplateFunctionDictFormat:
         assert 'index-terms: ("Keyword1", "Keyword2",)' in result
 
     def test_explicit_template_function_params_win_on_colliding_key(self):
-        """D-08: explicit typst_template_function['params'] values beat
-        auto-derived Sphinx metadata on a colliding key (BUG-E)"""
+        """D-B (Phase 45.1) re-derivation of D-08/BUG-E: an explicit
+        typst_template_function['params']['title'] is the ONLY title
+        emitted -- not because it wins a per-key collision against
+        auto-derived Sphinx metadata (D-08's original additive-union
+        mechanism, removed by D-B), but because declaring "params" at all
+        discards the auto-derived dict WHOLESALE. This fixture's auto-derived
+        "authors" (not itself a declared params key) is absent too, proving
+        the discard is wholesale rather than per-key."""
         engine = TemplateEngine(
             typst_template_function={
                 "name": "ieee",
@@ -884,10 +904,19 @@ class TestTypstTemplateFunctionDictFormat:
 
         assert 'title: "Explicit Title"' in result
         assert 'title: "Auto Derived Title"' not in result
+        # Scoped to the call region: render() inlines the bundled default
+        # template, whose OWN function signature declares an
+        # "authors: ()," default parameter that would otherwise make an
+        # unscoped substring check a false positive.
+        call_region = result[result.index("#show: ieee.with(") :]
+        assert "authors:" not in call_region
 
     def test_colliding_key_emission_is_deterministic_and_single(self):
-        """D-08 (edge/ordering, CONF-02): the colliding key is emitted exactly
-        once, and repeated renders of identical inputs are byte-identical"""
+        """D-B (Phase 45.1) re-derivation of D-08 (edge/ordering, CONF-02):
+        the colliding key is emitted exactly once, and repeated renders of
+        identical inputs are byte-identical -- now because it is the sole
+        entry of the exclusively-selected declared params dict, not because
+        it won an update() collision."""
         engine = TemplateEngine(
             typst_template_function={
                 "name": "ieee",
@@ -911,11 +940,22 @@ class TestTypstTemplateFunctionDictFormat:
         assert call_region.count("title:") == 1
 
 
-class TestTypstAuthorsConfig:
-    """Test typst_authors configuration for detailed author information (Issue #13)"""
+class TestAuthorDictSerializationViaParams:
+    """Author-detail serialization guarantees (originated Issue #13; fully
+    re-derived Phase 45.1, D-F/CONF-10). The dedicated author-details
+    config value this class used to exercise -- a `TemplateEngine.__init__`
+    keyword that seeded `params["authors"]` unconditionally inside
+    `map_parameters()` -- is REMOVED. Rich per-author structure
+    (department/organization/location/email) now flows exclusively through
+    `render()`'s `typst_template_function["params"]` route (D-B), which is
+    what the tests below exercise instead; `map_parameters()` no longer
+    touches author-dict data at all."""
 
-    def test_author_config_backward_compatibility(self):
-        """Test backward compatibility: traditional author string format"""
+    def test_author_string_tuple_backward_compatibility(self):
+        """Traditional Sphinx author string format still serializes as a
+        Typst string tuple via `_format_typst_value()` -- unrelated to the
+        removed author-details config value, this guarantee is unaffected
+        by D-F."""
         engine = TemplateEngine()
 
         # Traditional Sphinx author configuration
@@ -925,17 +965,31 @@ class TestTypstAuthorsConfig:
         # Should produce string tuple format
         assert formatted == '("John Doe", "Jane Smith",)'
 
-    def test_typst_authors_through_pipeline_produces_native_array_of_dicts(self):
-        """D-07: typst_authors reaches map_parameters()/render() as a native
-        list[dict], never as a pre-rendered quoted string (BUG-C)"""
+    def test_author_dict_list_via_params_serializes_as_native_array_not_quoted_string(
+        self,
+    ):
+        """D-F re-derivation of BUG-C: rich author structure declared
+        directly inside `typst_template_function["params"]["authors"]`
+        reaches `render()`'s emitted call as a native Typst array of
+        dictionaries -- never as a pre-rendered quoted string. This is the
+        same double-formatting regression guard the removed config-value
+        seed used to pin, now proven on its surviving route (D-B's
+        exclusive `params` branch) instead of inside `map_parameters()`."""
         engine = TemplateEngine(
-            typst_authors={
-                "Ada Lovelace": {
-                    "department": "Computing",
-                    "organization": "Analytical Engine Society",
-                    "email": "ada@example.org",
-                }
-            }
+            typst_package="@preview/charged-ieee:0.1.4",
+            typst_template_function={
+                "name": "ieee",
+                "params": {
+                    "authors": [
+                        {
+                            "name": "Ada Lovelace",
+                            "department": "Computing",
+                            "organization": "Analytical Engine Society",
+                            "email": "ada@example.org",
+                        }
+                    ],
+                },
+            },
         )
 
         sphinx_metadata = {
@@ -946,12 +1000,6 @@ class TestTypstAuthorsConfig:
         }
 
         params = engine.map_parameters(sphinx_metadata)
-
-        assert isinstance(params["authors"], list)
-        assert isinstance(params["authors"][0], dict)
-        assert list(params["authors"][0].keys())[0] == "name"
-        assert params["authors"][0]["name"] == "Ada Lovelace"
-
         body = "Content"
         result = engine.render(params, body)
 
@@ -961,9 +1009,18 @@ class TestTypstAuthorsConfig:
         # as a quoted Typst string.
         assert 'authors: "(' not in result
 
-    def test_typst_authors_unset_or_empty_yields_no_authors_key_on_package_path(self):
-        """A package-configured engine with no typst_authors produces no
-        authors key; an empty typst_authors dict behaves identically"""
+    def test_authors_absent_from_declared_params_yields_no_authors_key(self):
+        """D-F re-derivation: on the package route, when
+        `typst_template_function["params"]` is declared but does NOT
+        itself carry an "authors" key, the emitted call has no "authors"
+        argument at all -- D-B's exclusivity rule means only DECLARED
+        params keys reach the output; there is no config-value seed left
+        to fall back on."""
+        engine = TemplateEngine(
+            typst_package="@preview/charged-ieee:0.1.4",
+            typst_template_function={"name": "ieee", "params": {"title": "T"}},
+        )
+
         sphinx_metadata = {
             "project": "P",
             "author": "A",
@@ -971,15 +1028,13 @@ class TestTypstAuthorsConfig:
             "copyright": "c",
         }
 
-        engine_unset = TemplateEngine(typst_package="@preview/charged-ieee:0.1.4")
-        params_unset = engine_unset.map_parameters(sphinx_metadata)
-        assert "authors" not in params_unset
+        params = engine.map_parameters(sphinx_metadata)
+        result = engine.render(params, "Content")
 
-        engine_empty = TemplateEngine(
-            typst_package="@preview/charged-ieee:0.1.4", typst_authors={}
-        )
-        params_empty = engine_empty.map_parameters(sphinx_metadata)
-        assert "authors" not in params_empty
+        call_start = result.index("#show: ieee.with(")
+        call_end = result.index(")", call_start)
+        call_region = result[call_start:call_end]
+        assert "authors:" not in call_region
 
 
 class TestTypstElementsPassThrough:

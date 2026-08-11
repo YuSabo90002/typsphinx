@@ -321,18 +321,30 @@ def test_language_seam_precedence(monkeypatch):
     Covers all four combinations of the two env vars, asserting on both the
     freshly-loaded module's `language` attribute and a direct call to
     `_resolve_language()`. A final wiring assertion checks that the resolved
-    language reaches its one remaining downstream consumer in `conf.py` --
-    the Typst `lang` element derived through `derive_typst_lang` -- now that
-    I18N-02 deleted the language-switcher's context dict, the wiring
-    assertion's previous subject.
+    language would reach the compiled PDF's Typst `lang` element -- via
+    `derive_typst_lang()`, the SAME conversion helper `typsphinx/writer.py`'s
+    `auto_lang` block calls internally.
+
+    CONF-12/D-I (45.1 Plan 03) removed `conf.py`'s own hand-rolled
+    `typst_elements["lang"]` reconstruction: the extension itself now
+    auto-derives `lang` on this file's explicit `typst_template` route
+    (`TemplateEngine.uses_bundled_default_template()` was narrowed to its
+    `typst_package` guard alone), so `conf.py` no longer carries a `lang`
+    attribute to assert against directly. This wiring assertion is
+    re-derived to call `derive_typst_lang()` itself against the resolved
+    `module.language` -- proving the seam still holds end-to-end even
+    though the conversion now happens inside the extension rather than in
+    `conf.py`.
     """
+    from typsphinx.template_engine import derive_typst_lang
+
     # (a) both unset -> "en"
     monkeypatch.delenv("READTHEDOCS_LANGUAGE", raising=False)
     monkeypatch.delenv("SPHINX_LANGUAGE", raising=False)
     module = _load_conf_module()
     assert module.language == "en"
     assert module._resolve_language() == "en"
-    assert module.typst_elements["lang"] == module.language
+    assert derive_typst_lang(module.language) == module.language
 
     # (b) only SPHINX_LANGUAGE set -> that value (existing override keeps working)
     monkeypatch.setenv("SPHINX_LANGUAGE", "ja")
@@ -340,7 +352,7 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.typst_elements["lang"] == module.language
+    assert derive_typst_lang(module.language) == module.language
 
     # (c) only READTHEDOCS_LANGUAGE set -> that value (RTD's setting is honored)
     monkeypatch.delenv("SPHINX_LANGUAGE", raising=False)
@@ -348,7 +360,7 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.typst_elements["lang"] == module.language
+    assert derive_typst_lang(module.language) == module.language
 
     # (d) both set -> READTHEDOCS_LANGUAGE wins
     monkeypatch.setenv("READTHEDOCS_LANGUAGE", "ja")
@@ -356,4 +368,4 @@ def test_language_seam_precedence(monkeypatch):
     module = _load_conf_module()
     assert module.language == "ja"
     assert module._resolve_language() == "ja"
-    assert module.typst_elements["lang"] == module.language
+    assert derive_typst_lang(module.language) == module.language

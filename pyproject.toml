@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typsphinx"
-version = "0.7.0"
+version = "0.7.1"
 description = "Sphinx extension for Typst output"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -35,7 +35,7 @@ dev = [
     "pytest>=8.4,<10",
     "pytest-cov>=4.0",
     "tox>=4.56,<5",
-    "tox-uv>=1.35,<2",
+    "tox-uv-bare>=1.35,<2",
     "black>=26,<27",
     "ruff>=0.15,<0.16",
     "mypy>=1.13,<3.0",
@@ -50,6 +50,7 @@ docs = [
     "furo>=2024.0",
     "sphinx-autodoc-typehints>=1.0",
     "sphinx-intl>=2.0",
+    "myst-parser>=5.0",
 ]
 
 [project.urls]

@@ -180,10 +180,12 @@ def _run_sphinx_build_typst(
     Invoked as ``sys.executable -m sphinx`` (NEVER ``uv run sphinx-build``)
     -- the NixOS PATH-shadowing hazard every render-gate module in this
     project restates: a stray non-Nix ``uv`` binary shadowing the correct
-    Nix-provided ``uv`` earlier on PATH for subprocess children makes
+    Nix-provided ``uv`` earlier on PATH for subprocess children used to make
     ``["uv", "run", ...]`` exit 127 when invoked from inside a
-    pytest-launched subprocess, even though the same command succeeds when
-    run directly in a shell.
+    pytest-launched subprocess, even though the same command succeeded when
+    run directly in a shell. That cause was removed by QUA-04 (2026-08-10);
+    ``sys.executable -m sphinx`` is kept regardless, because it depends on
+    no PATH resolution at all.
     """
     return subprocess.run(
         [

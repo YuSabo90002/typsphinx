@@ -90,12 +90,14 @@ def _run_sphinx_build_typst(
     in this project (``tests/test_pdf_render_gate.py``'s own
     ``_run_sphinx_build_typst`` is the canonical form this clones): a stray
     non-Nix ``uv`` binary shadowing the correct Nix-provided ``uv`` earlier
-    on PATH for subprocess children makes ``["uv", "run", ...]`` exit 127
+    on PATH for subprocess children made ``["uv", "run", ...]`` exit 127
     ("Could not start dynamically linked executable") when invoked from
     inside a pytest-launched subprocess, even though the same command
-    succeeds when run directly in a shell. ``sys.executable -m sphinx``
-    sidesteps that PATH-shadowing hazard entirely by reusing the exact
-    interpreter/venv already running this test.
+    succeeded when run directly in a shell. That cause was removed by
+    QUA-04 (2026-08-10); ``sys.executable -m sphinx`` is kept regardless,
+    because it depends on no PATH resolution at all -- a better reason
+    than the hazard ever was, and it reuses the exact interpreter/venv
+    already running this test.
     """
     return subprocess.run(
         [

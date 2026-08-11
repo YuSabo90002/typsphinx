@@ -74,8 +74,12 @@ def test_builder_generates_independent_typ_files(multifile_srcdir, tmp_path):
 
     typst_outdir = builddir / "typst"
 
+    # CONF-08: multifile_srcdir's conf.py omits typst_documents, so the
+    # "index" master's output is now named via
+    # make_filename_from_project("Multi-File Test") -> "multi-filetest.typ"
+    # rather than the old literal "index.typ".
     # Check that independent .typ files are created
-    assert (typst_outdir / "index.typ").exists()
+    assert (typst_outdir / "multi-filetest.typ").exists()
     assert (typst_outdir / "intro.typ").exists()
     assert (typst_outdir / "chapter1" / "section.typ").exists()
 
@@ -127,7 +131,11 @@ def test_toctree_with_nested_paths_generates_correct_includes(
     app.build()
 
     typst_outdir = builddir / "typst"
-    index_typ = typst_outdir / "index.typ"
+    # CONF-08: multifile_srcdir's conf.py omits typst_documents, so the
+    # "index" master's output is now named via
+    # make_filename_from_project("Multi-File Test") -> "multi-filetest.typ"
+    # rather than the old literal "index.typ".
+    index_typ = typst_outdir / "multi-filetest.typ"
 
     # Verify files were created with correct structure
     assert index_typ.exists()
@@ -175,7 +183,11 @@ def test_toctree_with_missing_document_warning(multifile_srcdir, tmp_path, caplo
     app.build()
 
     typst_outdir = builddir / "typst"
-    index_typ = typst_outdir / "index.typ"
+    # CONF-08: multifile_srcdir's conf.py omits typst_documents, so the
+    # "index" master's output is now named via
+    # make_filename_from_project("Multi-File Test") -> "multi-filetest.typ"
+    # rather than the old literal "index.typ".
+    index_typ = typst_outdir / "multi-filetest.typ"
 
     # Build should succeed and create the index file
     assert index_typ.exists()

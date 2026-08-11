@@ -2,7 +2,7 @@
 created: 2026-08-04
 title: "REL-04 is unproven end to end: `release.yml`'s `create-release` job failed on the v0.7.0 tag push with `uv: command not found`"
 area: ci, release
-resolves_phase: null
+resolves_phase: 46
 severity: warning
 source: v0.7.0 milestone close (/gsd-complete-milestone) — release run 30848860064
 files:

@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
@@ -188,6 +188,31 @@ class TypstTranslator(SphinxTranslator):
             # save/restore idiom
         )
 
+        # TBL-05 (Phase 43): the STRUCTURAL captioned decision computed in
+        # visit_table (`is_captioned`) -- whether this table's first child
+        # is a nodes.title at all, independent of whether that title's
+        # RENDERED content happens to be empty. Stashed here so depart_table
+        # can gate its id-anchoring call on this value instead of on
+        # self.table_caption's truthiness (D-05/D-07): a title whose only
+        # child is a raw node with a non-typst format renders to the empty
+        # string (visit_raw raises SkipNode), so the two checks can
+        # genuinely disagree, and when they do the table's ids must still
+        # anchor on at least one path or a same-document reference dangles.
+        # Joins _push_table_state/_pop_table_state's snapshot set below, so
+        # a nested captioned table's own decision does not clobber the
+        # enclosing table's.
+        self._table_is_captioned: bool = False
+
+        # TBL-04 (Phase 43): a table nested inside another table's cell
+        # would otherwise clobber the enclosing table's in-progress scalar
+        # state, since every table_* scalar above is a flat instance
+        # attribute with no notion of "which table is currently being
+        # filled". _push_table_state()/_pop_table_state() save/restore a
+        # full snapshot of that scalar set around a NESTED visit_table/
+        # depart_table pair only (never for a top-level table, which stays
+        # byte-identical) -- see the docstrings on those two methods.
+        self._table_state_stack: List[Dict[str, Any]] = []
+
         # Figure-specific state
         self.figure_content = []
         self.figure_caption = ""
@@ -200,6 +225,28 @@ class TypstTranslator(SphinxTranslator):
             # direct width: kwarg, so a non-None value means the whole
             # figure() call is wrapped in block(width: ...)[...] (D-03/Pitfall 3).
         )
+
+        # FIG-01 (Phase 43): a figure nested inside another figure's legend
+        # would otherwise clobber the enclosing figure's in-progress scalar
+        # state, since every figure_* scalar above is a flat instance
+        # attribute with no notion of "which figure is currently being
+        # filled" -- mirrors _table_state_stack's TBL-04 fix (plan 43-01).
+        # _push_figure_state()/_pop_figure_state() save/restore a full
+        # snapshot of that scalar set around a NESTED visit_figure/
+        # depart_figure pair only (never for a top-level figure, which stays
+        # byte-identical) -- see the docstrings on those two methods.
+        self._figure_state_stack: List[Dict[str, Any]] = []
+
+        # Whether THIS figure (the one currently open) has a legend child --
+        # set in visit_figure from a scan of node.children (the doctree is
+        # fully built before any visiting begins, so this check is reliable
+        # at visit time, same reasoning visit_table's captioned pre-check
+        # documents). Gates the {...} body-wrap that lets the legend's
+        # content join the image() call as ONE positional body argument
+        # (43-RESEARCH.md Pattern 2). Never True for a figure with no
+        # legend child, so an image-only figure's emitted bytes are
+        # unaffected (SC#4).
+        self._figure_has_legend: bool = False
 
         # Code block container state (Issue #20)
         self.in_captioned_code_block = False
@@ -217,6 +264,23 @@ class TypstTranslator(SphinxTranslator):
         # following a nested list as top-level and emits an unseparated
         # `par(...)` right after the nested `list(...)` -> `})par(` syntax error.
         self._list_item_stack: List[bool] = []
+
+        # Stack of (in_list_item, list_item_needs_separator) pairs pushed by
+        # visit_legend and popped by depart_legend (43-REVIEW.md CR-01,
+        # Phase 43 gap closure). A figure's legend borrows the in-list-item
+        # separator machinery purely to newline-separate its first child
+        # from the preceding image(...) expression (see visit_legend's
+        # docstring) -- but a legend can itself contain a NESTED figure
+        # whose own legend also visits. Two flat scalars cannot represent
+        # more than one level: the inner legend's visit_legend would
+        # overwrite the outer legend's saved values with its own
+        # already-mutated True/True before the outer depart_legend ever
+        # restores them, leaking in_list_item=True into every sibling for
+        # the rest of the document. A real stack (mirroring
+        # _list_item_stack immediately above) makes each nesting level
+        # independent, exactly like _push_figure_state/_pop_figure_state
+        # does for the figure scalars proper.
+        self._legend_list_item_stack: List[Tuple[bool, bool]] = []
         self.in_literal_block = False  # Track if currently in a code block
 
         # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
@@ -513,14 +577,26 @@ class TypstTranslator(SphinxTranslator):
         ``]list(`` juxtaposition, never a stranded ``+``).
 
         ``skip_ids`` lets a caller that ALREADY anchors one of the node's ids
-        by another mechanism suppress a duplicate definition here. The sole
-        user is ``depart_figure``: a captioned figure self-anchors ``ids[0]``
-        inside its own ``[#figure(...) <label>]`` markup block, but a
-        PROPAGATED explicit target lands a DIFFERENT id in ``ids[1:]`` that
-        would otherwise dangle -- so the figure passes ``skip_ids={ids[0]}`` to
-        anchor only the propagated remainder. When every id is skipped the
-        method is a no-op (list-item bookkeeping is untouched), keeping output
-        byte-for-byte identical.
+        by another mechanism suppress a duplicate definition here. There are
+        two such callers, ``depart_figure`` and ``depart_table`` (Phase 25),
+        and they share one rationale: both wrap their content in a Typst
+        ``figure(...)`` that self-anchors ``ids[0]`` as that figure's own
+        ``<label>`` postfix, so re-anchoring ``ids[0]`` here too would define
+        the same label TWICE -- a Typst "label ... occurs multiple times"
+        compile fatal. Both still need ``ids[1:]`` anchored here, because
+        docutils' ``PropagateTargets`` transform lands an immediately
+        preceding ``.. _target:``'s id there, and a same-document ``:ref:``
+        to it would otherwise dangle. ``depart_table`` additionally passes an
+        EMPTY ``skip_ids`` (anchoring every id, including ``ids[0]``) for a
+        table that is structurally captioned but did NOT actually take the
+        figure-wrapped branch (TBL-05, Phase 43: a title node whose rendered
+        content is the empty string) -- nothing else self-anchors ``ids[0]``
+        for that table, so skipping it here would leave it unanchored. The
+        table caller also has a firing-order constraint the figure caller
+        does not (Phase 42 / TBL-03): see the inline comments at its own
+        call site for why it must run after ``self.in_table`` is cleared.
+        When every id is skipped the method is a no-op (list-item bookkeeping
+        is untouched), keeping output byte-for-byte identical.
 
         Args:
             node: The body-element node whose ``ids`` should be anchored.
@@ -718,19 +794,23 @@ class TypstTranslator(SphinxTranslator):
         self._title_section_ids = (
             node.parent.get("ids") if isinstance(node.parent, nodes.section) else None
         ) or []
-        # D-06: clamp to a minimum of level 1 -- a top-level titled
-        # non-section (section_level == 0) would otherwise emit
-        # heading(level: 0, ...), which Typst rejects (levels are >= 1).
-        emitted_level = max(1, self.section_level)
+        # TOC-01/D-07: clamp to a minimum of 1 -- a top-level titled
+        # non-section (section_level == 0) would otherwise pass a rejected
+        # depth argument of 0 to the heading call below. Typst's relative
+        # depth argument is constrained the same way its absolute level
+        # argument was (values must be >= 1), so this clamp's mechanism
+        # survives the level->depth switch unchanged; only the argument it
+        # clamps is relative now, not an absolute final level.
+        emitted_depth = max(1, self.section_level)
         # Pitfall-1 fix: wrap the title content in a code block {...} so
         # multi-child title content is one expression, not several
         # juxtaposed statements (mirrors _depart_admonition's existing
         # {...} wrap of the buffered admonition title).
         if self._title_section_ids:
-            self.add_text(f"[#heading(level: {emitted_level}, {{")
+            self.add_text(f"[#heading(depth: {emitted_depth}, {{")
         else:
             # Use heading() function (no # prefix in code mode)
-            self.add_text(f"heading(level: {emitted_level}, {{")
+            self.add_text(f"heading(depth: {emitted_depth}, {{")
 
     def depart_title(self, node: nodes.title) -> None:
         """
@@ -2436,6 +2516,20 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The figure node
         """
+        # FIG-01 (Phase 43): self.in_figure already True means an ENCLOSING
+        # figure is still open -- this figure node is NESTED inside its
+        # legend (docutils' second-and-later-body-block classification).
+        # Push a snapshot of the outer figure's in-progress scalar state
+        # (see _push_figure_state's docstring for the full set) BEFORE
+        # resetting below for the inner figure's own use, or the inner
+        # figure's own depart_figure clobbers the outer's caption/width/
+        # legend-flag (the FIG-01 defect). Read self.in_figure BEFORE
+        # overwriting it, so the push only fires on genuine nesting; the
+        # top-level (non-nested) path below is byte-identical to
+        # pre-FIG-01 behavior.
+        if self.in_figure:
+            self._push_figure_state()
+
         self.in_figure = True
         self.figure_content = []  # Store figure content (image)
         self.figure_caption = ""  # Store caption text
@@ -2469,6 +2563,19 @@ class TypstTranslator(SphinxTranslator):
             self._convert_length_to_typst(figwidth) if figwidth else None
         )
 
+        # FIG-01: a legend child means this figure's body is MORE than just
+        # the image -- the legend's content must join the image() call as
+        # ONE positional body argument, or Typst raises a parse error at the
+        # argument boundary (43-RESEARCH.md Pattern 2, Pitfall 4). Checked
+        # here (doctree already fully built at visit time, same reliability
+        # as visit_table's own captioned pre-check documents), so the `{`
+        # opened below is unconditionally closed by depart_legend before
+        # this figure's own depart_figure ever runs (docutils' balanced
+        # walkabout() guarantees the matching legend child is visited).
+        self._figure_has_legend = any(
+            isinstance(child, nodes.legend) for child in node.children
+        )
+
         if self._figure_block_width is not None:
             self.add_text(f"block(width: {self._figure_block_width})[#figure(\n")
         elif node.get("ids"):
@@ -2476,6 +2583,13 @@ class TypstTranslator(SphinxTranslator):
         else:
             # Start figure with potential label (no # prefix in code mode)
             self.add_text("figure(\n")
+
+        # Gated on legend presence ONLY -- an unconditional wrap would
+        # change the emitted bytes for every existing image-only figure in
+        # the corpus, breaking SC#4 byte-invariance (43-RESEARCH.md
+        # Pitfall 5/Anti-Patterns). depart_legend emits the matching `}`.
+        if self._figure_has_legend:
+            self.add_text("{\n")
 
     def depart_figure(self, node: nodes.figure) -> None:
         """
@@ -2517,11 +2631,24 @@ class TypstTranslator(SphinxTranslator):
         # so it is not defined twice. Empty/single-id figures -> no-op.
         self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
 
-        self._figure_block_width = None
-
-        self.in_figure = False
-        self.figure_content = []
-        self.figure_caption = ""
+        # FIG-01 (Phase 43): restore the enclosing figure's scalar state
+        # when THIS figure was nested inside another figure's legend;
+        # otherwise fall through to the pre-FIG-01 unconditional teardown
+        # (mirrors depart_table's was_nested branch, plan 43-01). was_nested
+        # is read BEFORE popping -- _pop_figure_state() mutates the stack,
+        # so "was there an enclosing frame for THIS figure" must be
+        # captured first. Unlike depart_table, depart_figure already routes
+        # every emission above through self.add_text (which only branches
+        # on self.in_table, never self.in_figure -- see add_text), so no
+        # routing-destination change is needed here: everything already
+        # streamed into self.body in document order regardless of nesting.
+        was_nested = bool(self._figure_state_stack)
+        self._pop_figure_state()
+        if not was_nested:
+            self._figure_block_width = None
+            self.in_figure = False
+            self.figure_content = []
+            self.figure_caption = ""
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4; mirrors depart_table's
@@ -2587,6 +2714,83 @@ class TypstTranslator(SphinxTranslator):
             self.in_paragraph = self._caption_was_in_paragraph
             self.paragraph_has_content = self._caption_was_paragraph_has_content
         self.in_caption = False
+
+    def visit_legend(self, node: nodes.legend) -> None:
+        """
+        Visit a figure's legend node (FIG-01, Phase 43).
+
+        A ``legend`` is docutils' name for a figure's body content beyond
+        its first caption paragraph (or, when the figure has no caption at
+        all, everything after an empty first-comment placeholder --
+        43-GATE-EVIDENCE-03.md). Before this handler existed,
+        ``unknown_visit`` fired (warn and continue -- it does NOT skip
+        children), so the legend's children streamed unwrapped directly
+        after the enclosing figure's ``image(...)`` call, which Typst
+        parses as an unwanted second argument -- a hard compile fatal
+        (``TypstError: expected comma``/``unexpected argument``,
+        43-RESEARCH.md Pitfall 4), not merely a dropped caption.
+
+        ``visit_figure`` has already opened a ``{`` code block (gated on
+        ``self._figure_has_legend``) so the legend's content joins the
+        image as ONE positional body argument. This handler's only job is
+        to establish the SEPARATOR context so the legend's first child
+        newline-separates from the preceding ``image(...)`` expression
+        instead of juxtaposing against it -- reusing the existing
+        in-list-item separator machinery (the same mechanism
+        ``visit_paragraph``/``_emit_forced_break`` already use for a
+        paragraph inside a real bullet-list item), rather than inventing a
+        new one.
+
+        Pushes onto ``self._legend_list_item_stack`` (43-REVIEW.md CR-01)
+        rather than saving into flat scalars -- a legend can itself contain
+        a NESTED figure whose own legend also visits (a legend-in-legend
+        shape), and two flat scalars cannot represent more than one
+        nesting level: the inner legend's own save would overwrite the
+        outer legend's saved values before the outer ``depart_legend``
+        ever restores them. Mirrors ``_list_item_stack``
+        (``visit_list_item``/``depart_list_item``, immediately above in
+        ``__init__``) and ``_push_figure_state``/``_pop_figure_state``.
+
+        No styling is emitted -- a bare structural pass-through, matching
+        Sphinx's own LaTeX writer (43-RESEARCH.md/CONTEXT Deferred Ideas
+        fences legend styling out of this phase).
+
+        Args:
+            node: The legend node
+        """
+        self._legend_list_item_stack.append(
+            (self.in_list_item, self.list_item_needs_separator)
+        )
+        self.in_list_item = True
+        self.list_item_needs_separator = True
+
+    def depart_legend(self, node: nodes.legend) -> None:
+        """
+        Depart a figure's legend node (FIG-01, Phase 43; stacked in the
+        CR-01 gap closure).
+
+        Emits the closing ``}`` for the body block ``visit_figure`` opened
+        (gated on ``self._figure_has_legend``), then pops the
+        separator-context values ``visit_legend`` pushed.
+
+        A no-op-safe pop (ASVS V5, mirroring ``depart_list_item``'s and
+        ``_pop_figure_state``'s guard): an unbalanced ``depart_legend`` from
+        a malformed doctree -- one with no matching prior ``visit_legend``
+        -- falls back to ``False``/``False`` instead of raising
+        ``IndexError`` out of the translator. Never call
+        ``self._legend_list_item_stack.pop()`` or index ``[-1]`` directly.
+
+        Args:
+            node: The legend node
+        """
+        self.add_text("\n}")
+        if self._legend_list_item_stack:
+            self.in_list_item, self.list_item_needs_separator = (
+                self._legend_list_item_stack.pop()
+            )
+        else:
+            self.in_list_item = False
+            self.list_item_needs_separator = False
 
     def visit_footnote(self, node: nodes.footnote) -> None:
         """
@@ -3146,6 +3350,131 @@ class TypstTranslator(SphinxTranslator):
         """
         raise nodes.SkipNode
 
+    def _push_table_state(self) -> None:
+        """
+        Save the enclosing table's in-progress scalar state onto a private
+        stack before resetting those scalars for a NESTED table's own use
+        (TBL-04, Phase 43).
+
+        Covers the full clobber-prone scalar set -- not just the 5 the
+        original bug report named, but the larger set RESEARCH.md Pitfall 1
+        measured to share the identical unconditional-write/
+        unconditional-read shape: ``table_cells``, ``table_colcount``,
+        ``table_colwidths``, ``table_caption``, ``table_cell_content``
+        (existence + value), ``in_thead``, ``current_morecols``/
+        ``current_morerows``, and ``_table_is_captioned`` (TBL-05, plan
+        43-04: the STRUCTURAL captioned decision, which has the identical
+        per-table clobber shape -- a nested captioned table's own decision
+        must not overwrite the enclosing table's when the inner table's
+        depart_table finishes). The morecols/morerows pair is read via
+        ``getattr`` with a ``0`` default (ASVS V5): they are set lazily by
+        the FIRST ``visit_entry`` ever called on this translator instance,
+        so a malformed doctree that somehow reaches a nested table before
+        any entry at all must not raise ``AttributeError`` here.
+
+        Called only from ``visit_table`` when ``self.in_table`` is already
+        True (i.e. this table node is nested inside another table's cell) --
+        never for a top-level table, so the top-level path pushes nothing.
+        """
+        self._table_state_stack.append(
+            {
+                "table_cells": self.table_cells,
+                "table_colcount": self.table_colcount,
+                "table_colwidths": self.table_colwidths,
+                "table_caption": self.table_caption,
+                "table_cell_content": getattr(self, "table_cell_content", None),
+                "in_thead": self.in_thead,
+                "current_morecols": getattr(self, "current_morecols", 0),
+                "current_morerows": getattr(self, "current_morerows", 0),
+                "_table_is_captioned": self._table_is_captioned,
+            }
+        )
+
+    def _pop_table_state(self) -> None:
+        """
+        Restore the enclosing table's scalar state after a NESTED table's
+        ``depart_table`` has finished building its own rendered markup
+        (TBL-04, Phase 43).
+
+        A no-op on an empty stack (ASVS V5 / threat T-43-01): an unbalanced
+        ``depart_table`` from a malformed doctree -- one with no matching
+        prior nested ``visit_table`` -- must take the top-level path in the
+        caller instead of raising ``IndexError`` out of the translator and
+        killing a CI build. Never call ``self._table_state_stack.pop()`` or
+        index ``[-1]`` directly; always guard through this method.
+        """
+        if not self._table_state_stack:
+            return
+        frame = self._table_state_stack.pop()
+        self.table_cells = frame["table_cells"]
+        self.table_colcount = frame["table_colcount"]
+        self.table_colwidths = frame["table_colwidths"]
+        self.table_caption = frame["table_caption"]
+        if frame["table_cell_content"] is None:
+            if hasattr(self, "table_cell_content"):
+                del self.table_cell_content
+        else:
+            self.table_cell_content = frame["table_cell_content"]
+        self.in_thead = frame["in_thead"]
+        self.current_morecols = frame["current_morecols"]
+        self.current_morerows = frame["current_morerows"]
+        self._table_is_captioned = frame["_table_is_captioned"]
+
+    def _push_figure_state(self) -> None:
+        """
+        Save the enclosing figure's in-progress scalar state onto a private
+        stack before resetting those scalars for a NESTED figure's own use
+        (FIG-01, Phase 43).
+
+        Mirrors ``_push_table_state`` (TBL-04, plan 43-01): a nested figure
+        arises when a ``figure`` node's ``legend`` child itself contains
+        another ``figure`` node (docutils' second-and-later-body-block
+        classification, 43-RESEARCH.md Pitfall 4). Covers ``in_figure``,
+        ``figure_content``, ``figure_caption``, ``_figure_block_width``,
+        ``_figure_has_legend`` and ``_saved_body_for_figure_caption`` -- the
+        full clobber-prone scalar set touched anywhere in
+        ``visit_figure``/``depart_figure``/``visit_caption``/``depart_caption``.
+
+        Called only from ``visit_figure`` when ``self.in_figure`` is already
+        True (i.e. this figure node is nested inside another figure's
+        legend) -- never for a top-level figure, so the top-level path
+        pushes nothing.
+        """
+        self._figure_state_stack.append(
+            {
+                "in_figure": self.in_figure,
+                "figure_content": self.figure_content,
+                "figure_caption": self.figure_caption,
+                "_figure_block_width": self._figure_block_width,
+                "_figure_has_legend": self._figure_has_legend,
+                "_saved_body_for_figure_caption": self._saved_body_for_figure_caption,
+            }
+        )
+
+    def _pop_figure_state(self) -> None:
+        """
+        Restore the enclosing figure's scalar state after a NESTED figure's
+        ``depart_figure`` has finished emitting its own rendered markup
+        (FIG-01, Phase 43).
+
+        A no-op on an empty stack (ASVS V5, threat T-43-02): an unbalanced
+        ``depart_figure`` from a malformed doctree -- one with no matching
+        prior nested ``visit_figure`` -- must take the top-level teardown
+        path in the caller instead of raising ``IndexError`` out of the
+        translator and killing a CI build. Never call
+        ``self._figure_state_stack.pop()`` or index ``[-1]`` directly;
+        always guard through this method.
+        """
+        if not self._figure_state_stack:
+            return
+        frame = self._figure_state_stack.pop()
+        self.in_figure = frame["in_figure"]
+        self.figure_content = frame["figure_content"]
+        self.figure_caption = frame["figure_caption"]
+        self._figure_block_width = frame["_figure_block_width"]
+        self._figure_has_legend = frame["_figure_has_legend"]
+        self._saved_body_for_figure_caption = frame["_saved_body_for_figure_caption"]
+
     def visit_table(self, node: nodes.table) -> None:
         """
         Visit a table node.
@@ -3170,6 +3499,16 @@ class TypstTranslator(SphinxTranslator):
         # call entirely for a captioned table; depart_table calls it with
         # skip_ids={ids[0]} AFTER emitting the figure's own <label>.
         # Non-captioned tables keep this unconditional call, unchanged.
+        #
+        # TBL-05 (Phase 43, D-07): this STRUCTURAL result is stashed on
+        # self._table_is_captioned (below, AFTER the nested-table push) for
+        # depart_table's anchoring decision. It is NOT made value-aware here
+        # -- the doctree is fully built at visit_table time, but the
+        # title's RENDERED content is only known after visit_title/
+        # depart_title run, and a title whose only child is a raw node with
+        # a non-typst format renders to the empty string (visit_raw raises
+        # SkipNode) while its astext() is non-empty. Any astext()-based
+        # pre-check would misclassify that case.
         is_captioned = bool(node.children) and isinstance(node.children[0], nodes.title)
         if not is_captioned:
             self._emit_id_anchors(node)
@@ -3191,10 +3530,35 @@ class TypstTranslator(SphinxTranslator):
             self.body.append("\n")
             self.list_item_needs_separator = False
 
+        # TBL-04 (Phase 43): self.in_table already True means an ENCLOSING
+        # table is still open -- this table node is NESTED inside one of
+        # its cells. Push a snapshot of the outer table's in-progress
+        # scalar state (see _push_table_state's docstring for the full
+        # set) before resetting for the inner table's own use below, or
+        # the inner table's own depart_table clobbers the outer's
+        # accumulated state (the TBL-04 defect). table_cell_content,
+        # table_caption and in_thead are ALSO reset here, inside this
+        # nested branch only, so the inner table starts genuinely fresh
+        # instead of inheriting a caption/header-row flag left over from
+        # the outer table's own in-progress title/thead -- both the push
+        # and these extra resets live inside this branch, so the
+        # top-level (non-nested) path below is byte-identical to
+        # pre-TBL-04 behavior.
+        if self.in_table:
+            self._push_table_state()
+            self.table_cell_content = []
+            self.table_caption = None
+            self.in_thead = False
+
         self.in_table = True
         self.table_cells = []  # Store cells for table generation
         self.table_colcount = 0  # Track number of columns
         self.table_colwidths = []  # Per-column colwidth accumulator (D-01)
+        # TBL-05: assigned AFTER the push above (never before) -- the push
+        # must capture the ENCLOSING table's own _table_is_captioned value
+        # before this table's decision overwrites it, mirroring how
+        # table_cells/table_colcount/table_colwidths are reset here too.
+        self._table_is_captioned = is_captioned
 
     def _build_columns_fr_arg(self) -> str:
         """
@@ -3262,10 +3626,28 @@ class TypstTranslator(SphinxTranslator):
         A caption-less table takes the byte-for-byte UNCHANGED plain-table
         path (SC#2).
 
+        TBL-05 (Phase 43, D-05): RENDERING and ANCHORING are two separate
+        decisions that are allowed to disagree, deliberately, matching
+        Sphinx's own LaTeX builder measured against identical input.
+        RENDERING keeps gating on ``self.table_caption``'s truthiness
+        (unchanged from the paragraph above). ANCHORING instead gates on
+        ``self._table_is_captioned``, the STRUCTURAL decision stashed by
+        ``visit_table`` -- so a table whose title node exists but renders to
+        the empty string still anchors its ids, even though it is NOT
+        figure-wrapped and consumes NO table number. See the inline
+        comments around ``structural_is_captioned``/``was_captioned`` below
+        for the exact split.
+
         Args:
             node: The table node
         """
-        # Generate Typst table() syntax (no # prefix in unified code mode)
+        # Generate Typst table() syntax (no # prefix in unified code mode).
+        # Built as a local string (emission_str), never appended directly
+        # here -- TBL-04 (Phase 43) needs to decide AFTER this block
+        # whether the string's destination is the enclosing cell's buffer
+        # (nested table) or self.body (top-level table); see the
+        # destination-decision block below.
+        emission_str: str | None = None
         if self.table_colcount > 0:
             # LEN-01: :width: is assigned to node["width"] by docutils'
             # Table.set_table_width(), shared by RSTTable/CSVTable/ListTable
@@ -3274,9 +3656,6 @@ class TypstTranslator(SphinxTranslator):
             # width: kwarg (verified real-compile failure, same as figure),
             # so a converted value wraps the WHOLE table() call in
             # block(width: ...)[...] instead (16-RESEARCH.md Pitfall 3).
-            # Use self.body.append directly (NEVER self.add_text) at this
-            # site -- see the comment below about the stale
-            # table_cell_content buffer misrouting hazard.
             width = node.get("width")
             converted_width = self._convert_length_to_typst(width) if width else None
 
@@ -3320,26 +3699,24 @@ class TypstTranslator(SphinxTranslator):
                         self._current_docname(), node["ids"][0]
                     )
                     if converted_width is not None:
-                        self.body.append(
+                        emission_str = (
                             f"block(width: {converted_width})[#{figure_code} "
                             f"<{label}>]\n\n"
                         )
                     else:
-                        self.body.append(f"[#{figure_code} <{label}>]\n\n")
+                        emission_str = f"[#{figure_code} <{label}>]\n\n"
                 elif converted_width is not None:
-                    self.body.append(
+                    emission_str = (
                         f"block(width: {converted_width})[#{figure_code}]\n\n"
                     )
                 else:
-                    self.body.append(f"{figure_code}\n\n")
+                    emission_str = f"{figure_code}\n\n"
             else:
                 # Caption-less path: byte-for-byte unchanged (SC#2).
                 if converted_width is not None:
-                    self.body.append(
-                        f"block(width: {converted_width})[#{table_code}]\n\n"
-                    )
+                    emission_str = f"block(width: {converted_width})[#{table_code}]\n\n"
                 else:
-                    self.body.append(f"{table_code}\n\n")
+                    emission_str = f"{table_code}\n\n"
 
         # TBL-03 (Phase 42): captured BEFORE self.table_caption is reset
         # below, because the original `if self.table_caption:` condition
@@ -3350,9 +3727,60 @@ class TypstTranslator(SphinxTranslator):
         # `self.table_colcount > 0` conjunct mirrors the enclosing guard
         # this call site sat inside before the move, so a degenerate
         # zero-column captioned table keeps its current (no-op) emission.
+        # Computed BEFORE the nested/top-level destination decision below,
+        # since that decision may pop-and-restore self.table_caption to an
+        # ENCLOSING table's value -- was_captioned must reflect THIS
+        # table's own captioned status, not the outer one's.
+        #
+        # TBL-05 (Phase 43, D-05): was_captioned now ALSO answers "did this
+        # table take the figure-wrapped branch above" -- it is exactly the
+        # same condition the `if self.table_caption:` branch above tested,
+        # captured here before any reset. This is reused below to decide
+        # whether ids[0] is already self-anchored by that figure's own
+        # <label> postfix (skip it) or not (anchor it too).
         was_captioned = self.table_colcount > 0 and bool(self.table_caption)
 
-        self.in_table = False
+        # TBL-05 (Phase 43, D-05/D-07): the STRUCTURAL captioned decision
+        # from visit_table, read here -- BEFORE the nested/top-level
+        # destination decision below, for the identical reason was_captioned
+        # is captured here rather than after: _table_is_captioned now joins
+        # _push_table_state/_pop_table_state's snapshot set (TBL-04), so a
+        # NESTED table's own depart_table would otherwise read the
+        # ENCLOSING table's restored value instead of its own. This is the
+        # ANCHORING gate (independent of whether the caption rendered to
+        # anything); was_captioned above stays the RENDERING gate. The two
+        # are allowed to disagree -- see the class docstring note below.
+        structural_is_captioned = self._table_is_captioned
+
+        # TBL-04 (Phase 43): decide the emission string's destination as an
+        # EXPLICIT branch, never a blanket switch to self.add_text (Pitfall
+        # 2 -- with self.in_table still True at this point, add_text would
+        # misroute a TOP-LEVEL table's own render into whatever buffer
+        # in_table's dispatch happens to point at, losing it entirely).
+        # was_nested is captured BEFORE popping: _pop_table_state() mutates
+        # the stack, so "was there an enclosing frame for THIS table" must
+        # be read first.
+        was_nested = bool(self._table_state_stack)
+
+        if was_nested:
+            # NESTED: restore the enclosing table's frame FIRST, then
+            # append this table's own rendered markup into the RESTORED
+            # enclosing cell's buffer -- never self.body. self.in_table
+            # stays True (an enclosing table is still open) and
+            # table_cell_content is NOT deleted; only the OUTERMOST
+            # table's close (the else branch below, on a future depart)
+            # does that, per the Phase 25 lifetime invariant extended
+            # below.
+            self._pop_table_state()
+            if emission_str is not None:
+                self.table_cell_content.append(emission_str)
+        else:
+            # TOP-LEVEL: byte-for-byte identical to pre-TBL-04 behavior --
+            # self.body.append directly (never self.add_text; see Pitfall
+            # 2 above), then clear self.in_table.
+            if emission_str is not None:
+                self.body.append(emission_str)
+            self.in_table = False
 
         # TBL-02/Critical Pitfall 3: ids[0] is already self-anchored above
         # as the figure's own <label> -- anchoring it again here would
@@ -3360,32 +3788,73 @@ class TypstTranslator(SphinxTranslator):
         # fatal). Anchor only a PROPAGATED remainder id (ids[1:]); no-op
         # when there is none.
         #
-        # TBL-03 (Phase 42): this call must run AFTER self.in_table is
-        # cleared above. add_text() (see that method) diverts every append
-        # into self.table_cell_content while self.in_table is set, and that
-        # buffer is `del`eted a few statements below -- so an anchor emitted
-        # from the old pre-reset call site never reached self.body at all;
-        # it was silently discarded along with the buffer.
-        if was_captioned:
-            self._emit_id_anchors(node, skip_ids=set(node.get("ids", [])[:1]))
+        # TBL-03 (Phase 42): for a TOP-LEVEL table this call must run AFTER
+        # self.in_table is cleared above -- add_text() (see that method)
+        # diverts every append into self.table_cell_content while
+        # self.in_table is set, and that buffer is `del`eted a few
+        # statements below, so an anchor emitted from the old pre-reset
+        # call site never reached self.body at all. For a NESTED table,
+        # self.in_table is still True and table_cell_content has already
+        # been restored to the ENCLOSING cell's buffer above, so add_text()
+        # correctly routes this call's markup into that same buffer,
+        # immediately after this table's own emission_str.
+        #
+        # TBL-05 (Phase 43, D-05): the GATE is now structural_is_captioned
+        # (matches visit_table's unconditional-anchor skip above -- this
+        # call fires exactly when that one did NOT, so a non-captioned
+        # table is never anchored twice), not was_captioned. This closes
+        # the TBL-05 dangling-anchor defect: a table whose title node
+        # exists but renders to the empty string is structurally captioned
+        # (visit_table skipped its own anchor call) yet was NOT
+        # figure-wrapped above (was_captioned is False, since
+        # self.table_caption stripped to ""), so without this change its
+        # ids were anchored on NEITHER path. Whether ids[0] is skipped
+        # still depends on was_captioned specifically -- it answers "did
+        # this table actually take the figure-wrapped branch that
+        # self-anchors ids[0]", which is a strictly narrower question than
+        # "is this table structurally captioned". A table that is
+        # structurally captioned but did NOT figure-wrap (was_captioned
+        # False) anchors EVERY id here, since nothing else anchored ids[0]
+        # for it (D-05's "not figure-wrapped, consumes no table number"
+        # rendering side, matched by "anchors every id" on the anchoring
+        # side).
+        if structural_is_captioned:
+            skip_ids = set(node.get("ids", [])[:1]) if was_captioned else set()
+            self._emit_id_anchors(node, skip_ids=skip_ids)
 
-        self.table_cells = []
-        self.table_colcount = 0
-        self.table_colwidths = []
-        self.table_caption = None
-        # Stale-buffer root-cause fix (25-RESEARCH.md Verified Mechanism 2):
-        # table_cell_content is created by the FIRST table's visit_entry and
-        # reset to [] (not deleted) at every depart_entry, so it persists as
-        # an EXISTING attribute for the rest of the translator's lifetime.
-        # A subsequent table's caption title is visited before any of that
-        # table's OWN visit_entry calls -- if table_cell_content still
-        # exists (stale from a prior table), add_text() silently routes the
-        # caption's content into it instead of falling through to
-        # self.body, and the caption is lost entirely. Only `del` (not a
-        # reset to []) makes hasattr() False again, so the NEXT table's
-        # pre-entry add_text() calls correctly fall through.
-        if hasattr(self, "table_cell_content"):
-            del self.table_cell_content
+        if not was_nested:
+            # OUTERMOST close only: reset the scalar set for the next
+            # top-level table / sibling, and delete table_cell_content so
+            # hasattr() goes False for the NEXT table (Phase 25 invariant,
+            # extended by TBL-04: a NESTED table's own close never reaches
+            # this branch -- was_nested is True there -- so an inner
+            # table's departure no longer tears down the outer table's
+            # still-in-progress state).
+            self.table_cells = []
+            self.table_colcount = 0
+            self.table_colwidths = []
+            self.table_caption = None
+            # Stale-buffer root-cause fix (25-RESEARCH.md Verified Mechanism
+            # 2): table_cell_content is created by the FIRST table's
+            # visit_entry and reset to [] (not deleted) at every
+            # depart_entry, so it persists as an EXISTING attribute for the
+            # rest of the translator's lifetime. A subsequent table's
+            # caption title is visited before any of that table's OWN
+            # visit_entry calls -- if table_cell_content still exists
+            # (stale from a prior table), add_text() silently routes the
+            # caption's content into it instead of falling through to
+            # self.body, and the caption is lost entirely. Only `del` (not
+            # a reset to []) makes hasattr() False again, so the NEXT
+            # table's pre-entry add_text() calls correctly fall through.
+            # TBL-04 (Phase 43): the `del` now fires ONLY when this table
+            # was NOT nested, i.e. when the closing table is the OUTERMOST
+            # one (the stack was already empty before this depart's own
+            # pop attempt) -- an inner table's own close takes the
+            # was_nested branch above instead and never reaches here, so
+            # table_cell_content survives for the enclosing table to keep
+            # appending into.
+            if hasattr(self, "table_cell_content"):
+                del self.table_cell_content
 
         # Mark that a following sibling in the same list item must be
         # separated (block-visitor pattern, bug #4).
@@ -4256,12 +4725,23 @@ class TypstTranslator(SphinxTranslator):
 
         Requirement 13: Multi-document integration and toctree processing
         - Generate #include() for each entry
-        - Apply #set heading(offset: 1) to lower heading levels
+        - D-07: apply `set heading(offset: heading.offset + 1)` -- a
+          context-relative increment, not an absolute assignment -- to
+          lower heading levels. `set` is an absolute assignment on Typst's
+          style chain, so a nested toctree scope would otherwise *replace*
+          its parent's offset instead of adding to it, and nested toctrees
+          would not compose. An included document's `.typ` is also a
+          single shared file that different masters may include at
+          different depths, so no single absolute value could be correct
+          at every include site; a relative expression evaluated at
+          layout time removes the need for one to exist.
         - Issue #5: Fix relative paths for nested toctrees
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
           - Generate single #[...] block containing all includes
-          - Apply #set heading(offset: 1) once per toctree
+          - D-07: apply `heading.offset + 1` once per toctree, inside a
+            `context { ... }` block (required because `heading.offset` is
+            a context-dependent style query)
 
         Args:
             node: The toctree node
@@ -4292,9 +4772,14 @@ class TypstTranslator(SphinxTranslator):
 
         # Generate scope block for all includes (unified code mode)
         # Use {...} scope block to isolate set rules while maintaining code mode
+        # D-07: `context` is required because `heading.offset` is a
+        # context-dependent style query -- `set` alone cannot read the
+        # ambient offset it is about to modify. This is a relative
+        # increment, not an absolute assignment, so nested toctree scopes
+        # accumulate instead of replacing their parent's offset.
         # Start scope block (no # prefix in code mode)
-        self.add_text("{\n")
-        self.add_text("  set heading(offset: 1)\n")
+        self.add_text("context {\n")
+        self.add_text("  set heading(offset: heading.offset + 1)\n")
 
         # Generate include() for each entry within the scope block
         # Each included file has its own imports, so block scope is safe.

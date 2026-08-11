@@ -22,7 +22,7 @@ except importlib.metadata.PackageNotFoundError:
     __version__ = "unknown"
 __author__ = "YuSabo"
 
-from typsphinx.builder import TypstBuilder, TypstPDFBuilder
+from typsphinx.builder import TypstBuilder, TypstPDFBuilder, _default_typst_documents
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
@@ -41,7 +41,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_builder(TypstPDFBuilder)
 
     # Register configuration values
-    app.add_config_value("typst_documents", [], "html", [list])
+    app.add_config_value("typst_documents", _default_typst_documents, "html", [list])
     app.add_config_value("typst_template", None, "html", [str, type(None)])
     app.add_config_value("typst_template_mapping", None, "html", [dict, type(None)])
     app.add_config_value("typst_use_mitex", True, "html", [bool])
@@ -52,8 +52,6 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value(
         "typst_template_function", None, "html", [str, dict, type(None)]
     )
-    # Issue #13: Author details configuration
-    app.add_config_value("typst_authors", None, "html", [dict, type(None)])
     # Task 13.4: Debug mode
     app.add_config_value("typst_debug", False, "html", [bool])
     # Issue #75: Template asset support

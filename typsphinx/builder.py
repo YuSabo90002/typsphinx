@@ -14,14 +14,37 @@ from typing import List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
+from sphinx.config import Config
 from sphinx.errors import ExtensionError
 from sphinx.util import logging
-from sphinx.util.osutil import ensuredir
+from sphinx.util.osutil import ensuredir, make_filename_from_project
 
 from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
+
+
+def _default_typst_documents(config: Config) -> list:
+    """Sphinx-native default for ``typst_documents``, mirroring
+    ``sphinx.builders.latex.default_latex_documents`` (CONF-08).
+
+    Derives a single master entry from ``root_doc``/``project``/``author``,
+    with the target name in LaTeX's own shape (``make_filename_from_project``).
+    Only invoked when the user has NOT set ``typst_documents`` in conf.py --
+    an explicit setting (including an explicit ``[]``) always wins, because
+    Sphinx's ``Config.__getattr__`` checks ``_raw_config`` before falling
+    back to this callable default.
+    """
+    return [
+        (
+            config.root_doc,
+            make_filename_from_project(config.project) + ".typ",
+            config.project,
+            config.author,
+            "typst",
+        )
+    ]
 
 
 class TypstBuilder(Builder):
@@ -155,7 +178,13 @@ class TypstBuilder(Builder):
             ``logger.warning`` is emitted and a safe fallback is returned
             instead -- ``path.basename`` of the offending stem for a
             path-bearing target (D-06/D-07), or the docname itself for a
-            degenerate target (edge: empty).
+            degenerate target (edge: empty). When the resolved stem's
+            directory-qualified effective path equals another real docname
+            in ``self.env.found_docs`` or the reserved ``_template``
+            basename (CR-01), a ``logger.warning`` is emitted and the
+            docname itself is returned, so a derived or explicit target
+            name can never silently overwrite another document's output or
+            the shared ``_template.typ`` infrastructure file.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
 
@@ -229,6 +258,27 @@ class TypstBuilder(Builder):
             logger.warning(
                 "empty typst_documents target name for docname "
                 f"{docname!r} -- falling back to {docname!r}"
+            )
+            return docname
+
+        # CR-01 collision guard. Two facts make this comparison correct:
+        # (1) _write_template_file() writes "_template.typ" at the outdir
+        #     ROOT only (never nested), so reserving the "_template"
+        #     basename is a root-level equality test, not a basename test;
+        # (2) the value that actually determines the written path is NOT
+        #     the bare stem -- _directory_preserving_relpath() re-prefixes
+        #     a nested docname's stem with that docname's own directory
+        #     before it is joined with self.outdir -- so the comparison
+        #     must be made on that directory-qualified effective path.
+        effective = self._directory_preserving_relpath(docname, stem)
+        found_docs = getattr(self.env, "found_docs", None) or set()
+        if effective != docname and (
+            effective in found_docs or effective == "_template"
+        ):
+            logger.warning(
+                f"typst_documents target name {target!r} for docname "
+                f"{docname!r} collides with an existing document or the "
+                f"reserved template file -- falling back to {docname!r}"
             )
             return docname
 
@@ -612,7 +662,6 @@ class TypstBuilder(Builder):
             typst_package=resolve_package_for_engine(typst_package, raw_template_path),
             typst_template_function=getattr(config, "typst_template_function", None),
             typst_package_imports=getattr(config, "typst_package_imports", None),
-            typst_authors=getattr(config, "typst_authors", None),
         )
 
         # Get template content
@@ -940,8 +989,16 @@ class TypstPDFBuilder(TypstBuilder):
         typst_documents = getattr(self.config, "typst_documents", [])
 
         if not typst_documents:
+            # D-03: since typst_documents gained a derived default
+            # (CONF-08), this branch is reachable ONLY via an explicit
+            # `typst_documents = []` -- unset now resolves through
+            # _default_typst_documents instead of ever being empty. The
+            # wording says so, rather than reading as if the setting were
+            # absent.
             logger.warning(
-                "No documents defined in typst_documents. Nothing to compile."
+                "typst_documents is explicitly set to an empty list -- "
+                "nothing will be compiled. Remove the setting entirely to "
+                "use the derived default (root_doc/project/author)."
             )
             return
 
@@ -962,6 +1019,20 @@ class TypstPDFBuilder(TypstBuilder):
                 failures.append((repr(doc_tuple), "malformed typst_documents entry"))
                 continue
             docname = doc_tuple[0]
+            # BLD-01: _resolve_output_stem tolerates a docname of any type
+            # (it only does `==` comparisons), but _directory_preserving_
+            # relpath does not -- it calls posixpath.dirname(docname), which
+            # raises a raw TypeError for anything that is not a str. Catch
+            # it here, before either helper runs, so the failure joins the
+            # existing failures list instead of killing the whole build.
+            if not isinstance(docname, str):
+                message = (
+                    f"typst_documents entry has a non-str docname: "
+                    f"{docname!r} -- expected a str"
+                )
+                logger.warning(message)
+                failures.append((repr(docname), message))
+                continue
             stem = self._resolve_output_stem(docname)
             relative_path = self._directory_preserving_relpath(docname, stem)
             typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))

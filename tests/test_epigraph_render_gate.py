@@ -99,8 +99,10 @@ class TestEpigraphAttributionRenderGate:
         Invoked as ``sys.executable -m sphinx`` (never ``uv run sphinx-build``)
         so the exact interpreter/venv already running this test is reused, with
         no dependency on external PATH resolution of a ``uv`` executable -- a
-        stray non-Nix ``uv`` on the sandbox PATH makes ``["uv", "run", ...]``
-        exit 127 from inside a pytest-launched subprocess.
+        stray non-Nix ``uv`` on the sandbox PATH used to make ``["uv", "run",
+        ...]`` exit 127 from inside a pytest-launched subprocess. That cause
+        was removed by QUA-04 (2026-08-10); ``sys.executable -m sphinx`` is
+        kept regardless, because it depends on no PATH resolution at all.
         """
         result = subprocess.run(
             [

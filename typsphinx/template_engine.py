@@ -128,19 +128,16 @@ def derive_typst_lang(sphinx_language: str | None) -> str | None:
         A lowercase 2-3-letter ASCII Typst ``lang`` code, or ``None`` if no
         such code could be derived.
     """
-    if not isinstance(sphinx_language, str) or not sphinx_language:
-        logger.warning(
-            f"typsphinx: could not derive a Typst 'lang' from Sphinx "
-            f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
-            f"back to the template's own default)."
-        )
-        return None
+    if isinstance(sphinx_language, str) and sphinx_language:
+        head = re.split(r"[_\-@]", sphinx_language, maxsplit=1)[0].lower()
+        if re.fullmatch(r"[a-z]{2,3}", head):
+            return head
 
-    head = re.split(r"[_\-@]", sphinx_language, maxsplit=1)[0].lower()
-
-    if re.fullmatch(r"[a-z]{2,3}", head):
-        return head
-
+    # QUA-02: both rejection paths above (non-str/None/empty input, and a
+    # well-formed-length-but-non-ASCII-alpha head) fall through to this
+    # single tail call rather than each carrying its own copy -- the two
+    # reasons are deliberately NOT distinguished in the wording, since
+    # doing so would change build output and fail SC#3's byte-identity bar.
     logger.warning(
         f"typsphinx: could not derive a Typst 'lang' from Sphinx "
         f"'language' = {sphinx_language!r} -- omitting 'lang' (falling "
@@ -211,7 +208,6 @@ class TemplateEngine:
         typst_package: str | None = None,
         typst_template_function: Any | None = None,
         typst_package_imports: List[str] | None = None,
-        typst_authors: Dict[str, Dict[str, Any]] | None = None,
     ):
         """
         Initialize TemplateEngine.
@@ -226,7 +222,6 @@ class TemplateEngine:
                           (Requirement 8.6: external template packages)
             typst_template_function: Template function name (str) or dict with {"name": str, "params": dict}
             typst_package_imports: Specific items to import from package
-            typst_authors: Author details as dict with author name as key (recommended)
         """
         self.template_path = template_path
         self.template_name = template_name or "base.typ"
@@ -242,20 +237,31 @@ class TemplateEngine:
         else:
             self.parameter_mapping = self.DEFAULT_PARAMETER_MAPPING.copy()
         self.typst_package_imports = typst_package_imports or []
-        self.typst_authors = typst_authors or {}
 
-        # Parse typst_template_function: support both string and dict formats
+        # Parse typst_template_function: support both string and dict formats.
+        #
+        # D-D: the predicate for "has the user declared a complete parameter
+        # set?" is the PRESENCE of the "params" key in the dict form, never
+        # the truthiness of the resulting dict -- an absent "params" and an
+        # explicitly empty "params": {} must be distinguishable here, because
+        # they mean different things downstream (D-B): absent means "use the
+        # auto-derived set", empty means "pass nothing at all". Computed
+        # exactly once, at construction; render() only ever reads this
+        # attribute, never re-derives it.
         if isinstance(typst_template_function, dict):
             self.typst_template_function_name = typst_template_function.get(
                 "name", "project"
             )
             self.typst_template_params = typst_template_function.get("params", {})
+            self.typst_template_params_specified = "params" in typst_template_function
         elif isinstance(typst_template_function, str):
             self.typst_template_function_name = typst_template_function
             self.typst_template_params = {}
+            self.typst_template_params_specified = False
         else:
             self.typst_template_function_name = None
             self.typst_template_params = {}
+            self.typst_template_params_specified = False
 
     def get_default_template_path(self) -> str:
         """
@@ -346,43 +352,54 @@ class TemplateEngine:
 
     def uses_bundled_default_template(self) -> bool:
         """
-        CONF-07/D-06: the single judgment point for "is the default
-        (bundled) template actually going to be used for this build?".
+        CONF-12/D-I: the single judgment point for "should this build
+        receive the auto-derived Typst ``lang``?", narrowed from its
+        original CONF-07/D-06 shape.
 
-        Returns True only when this engine carries no ``typst_package`` AND
-        ``resolve_template().source == "default"``.
+        Returns the negation of ``self.typst_package`` -- i.e. ``True`` for
+        every non-package route (the bundled default template, an explicit
+        ``typst_template``, and a ``<srcdir>/base.typ`` search-path shadow
+        alike), ``False`` only when ``typst_package`` is configured.
 
-        Why judged from an actual resolution result rather than a
-        declaration check (``typst_template is None and typst_package is
-        None``): a ``<srcdir>/base.typ`` shadow leaves BOTH
-        ``typst_template`` and ``typst_package`` unset while still routing
-        the build onto a user-authored template (Priority 2's search-path
-        hit). A declaration-based check would miss this shadow entirely,
-        inject a parameter (``lang``) that shadow template never declared,
-        and manufacture the exact undeclared-kwarg Typst compile fatal
-        (``unexpected argument: lang``) this predicate exists to prevent
-        (SC#3).
+        Why the resolution-provenance half of the old judgment (comparing
+        ``resolve_template()``'s ``source`` field against the literal
+        ``"default"``) is gone: that check existed under D-06 to withhold
+        ``lang`` from an explicit ``typst_template`` or a search-path
+        shadow, on the theory that such a template might not declare the
+        parameter. D-A's published nine-parameter contract
+        (``templates.rst``) removes that rationale -- every documented
+        custom template now declares ``lang`` alongside the other eight --
+        and the LaTeX-parity argument cuts the other way: Sphinx's own
+        LaTeX builder derives ``babel``/``polyglossia`` from ``language``
+        regardless of ``latex_elements``, with no equivalent "might not be
+        declared" carve-out. Narrowing this predicate to the
+        ``typst_package`` guard alone is what widens ``lang`` derivation to
+        every non-package route without touching the caller
+        (``writer.py``'s ``auto_lang`` block) at all.
 
-        Why the ``typst_package`` guard is load-bearing and NOT redundant
-        with the priority walk: on the package-alone path, this engine is
-        constructed with ``template_path=None``, so its OWN priority walk
-        legitimately resolves to ``"default"`` even though ``render()``
-        never loads that template at all -- the emitted ``#show`` rule
-        calls the package's own entry function instead. Passing a
-        bundled-template-only parameter (``lang``) into a package function
-        that never declared it would be the exact same undeclared-kwarg
-        fatal, just reached via a different route.
+        Why the ``typst_package`` guard survives and is NOT redundant with
+        anything else: typsphinx never introspects a third-party Typst
+        Universe function's signature (CONF-04 D-03, CONF-09's W1/W2/W3),
+        so forwarding a bundled-template-only parameter into one would
+        reproduce the exact undeclared-kwarg Typst compile fatal
+        (``unexpected argument: lang``) this predicate exists to prevent --
+        on the package-alone path, this engine is constructed with
+        ``template_path=None``, so its own priority walk would legitimately
+        resolve to ``"default"`` even though ``render()`` never loads that
+        template at all; the emitted ``#show`` rule calls the package's own
+        entry function instead. D-C reaches the identical conclusion for
+        ``typst_package`` + a function name with no declared ``params``:
+        typsphinx cannot know the package's signature, so this guard stays
+        load-bearing independent of the resolution-source check dropped
+        above.
 
         Returns:
-            ``True`` only for a package-free engine whose priority walk
-            resolves to the bundled default template; ``False`` for
-            ``"explicit"``, ``False`` for ``"search"`` (including the
-            ``<srcdir>/base.typ`` shadow case), and ``False`` whenever
-            ``typst_package`` is configured.
+            ``True`` for a package-free engine regardless of how its
+            template was resolved (``"explicit"``, ``"search"``, or
+            ``"default"``); ``False`` whenever ``typst_package`` is
+            configured.
         """
-        if self.typst_package:
-            return False
-        return self.resolve_template().source == "default"
+        return not self.typst_package
 
     def map_parameters(
         self,
@@ -416,7 +433,39 @@ class TemplateEngine:
             sphinx.errors.ExtensionError: if ``typst_elements`` contains a
                 key not present in ``ELEMENTS_ALLOWLIST`` (D-06/D-07).
         """
-        params = {}
+        # Explicit annotation (not just `params = {}`): without it, mypy
+        # would narrow params' inferred value type from the first
+        # `params[...] =` assignment inside the mapping loop below (whose
+        # value type varies per key -- a plain string, a tuple from
+        # `_convert_to_authors_tuple`, etc.), and every other key's
+        # differently-typed assignment later in the method would then be a
+        # type error.
+        params: Dict[str, Any] = {}
+
+        # CONF-10/D-F removed the dict-of-dicts author-details config value
+        # that used to seed params["authors"] unconditionally here, before
+        # the mapping loop ran (CONF-09/D-05's ordering). Rich per-author structure
+        # (department/organization/location/email) no longer flows through
+        # this method at all -- it is expressed exclusively via
+        # render()'s `typst_template_function["params"]` route (D-B), which
+        # replaces this method's ENTIRE output wholesale when the user has
+        # declared `params`, rather than writing into it here. This method
+        # therefore has exactly TWO writers of params["authors"] left:
+        #   W1  the mapping loop's `params[template_key] = value`, which
+        #       reaches "authors" only when some mapping entry's TARGET
+        #       is literally "authors" AND its SOURCE key is present in
+        #       the sphinx_metadata dict passed in;
+        #   W2  the `if not self.typst_package` back-fill, guarded by
+        #       `"authors" not in params`, so it can only fill an absent
+        #       key and never overwrites a value W1 already wrote.
+        # The typst_elements loop cannot reach the key at all:
+        # ELEMENTS_ALLOWLIST is papersize/fontsize/lang and an unknown
+        # key raises. W1 and W2 above are this method's only writers of
+        # "authors" now.
+        #
+        # Every row is pinned by a named test in
+        # tests/test_entry_metadata_precedence.py and by the generated
+        # matrix in tests/test_params_authors_writers.py.
 
         # Apply mapping
         for sphinx_key, template_key in self.parameter_mapping.items():
@@ -442,27 +491,9 @@ class TemplateEngine:
             if "date" not in params:
                 params["date"] = None
 
-        # D-07: typst_authors (explicit config) overrides whatever "authors"
-        # already resolved to -- a native Python list[dict] that
-        # _format_typst_value()'s existing list/dict recursion serializes as
-        # a Typst array of dictionaries. Must stay a native Python structure;
-        # never pre-render it to Typst source here, or it re-enters
-        # _format_typst_value()'s string branch and comes out as a quoted
-        # string literal instead of an array (the double-formatting trap).
-        # Applies on both the package path and the template path -- runs
-        # after the package-aware back-fill guard above, so on the package
-        # path "authors" is present only when the user actually configured
-        # typst_authors.
-        if self.typst_authors:
-            params["authors"] = [
-                {"name": name, **details}
-                for name, details in self.typst_authors.items()
-            ]
-
-        # CONF-04: additive elements merge -- runs LAST, after the
-        # typst_authors override above, without disturbing the
-        # `if not self.typst_package` back-fill guard or the typst_authors
-        # override itself. Validate each key against ELEMENTS_ALLOWLIST
+        # CONF-04: additive elements merge -- runs LAST, without disturbing
+        # the `if not self.typst_package` back-fill guard above. Validate
+        # each key against ELEMENTS_ALLOWLIST
         # BEFORE it is ever added to params (D-06/D-07, Pitfall 2): an
         # unrecognized key raises loudly here instead of being silently
         # dropped (today's bug) or passed through as an undeclared kwarg
@@ -635,14 +666,34 @@ class TemplateEngine:
         template_func = self.typst_template_function_name or "project"
         output_parts.append(f"#show: {template_func}.with(")
 
-        # Merge template-specific params with standard params.
-        # D-08: auto-derived Sphinx metadata is the fallback; explicit
-        # typst_template_function["params"] configuration is authoritative
-        # and wins on a key collision. Applies on both the template path and
-        # the package path.
-        all_params = {}
-        all_params.update(params)  # Auto-derived params first (fallback)
-        all_params.update(self.typst_template_params)  # Explicit config wins
+        # D-B/D-D: exclusive parameter set, not an additive union. When the
+        # user has declared "params" (self.typst_template_params_specified,
+        # set once in __init__ -- true even for an explicitly empty dict),
+        # that declared set is the COMPLETE parameter set: the auto-derived
+        # title/authors/date, the typst_elements merge, and the toctree_*
+        # merge (all already folded into `params` by map_parameters()/
+        # writer.py before this call) are discarded wholesale, not merged
+        # key-by-key. Otherwise the auto-derived `params` is passed through
+        # unchanged -- the default-template and no-params-declared routes
+        # are unaffected by this branch (SC#5).
+        #
+        # Implemented HERE, inside render(), rather than upstream in
+        # writer.py before map_parameters() is called: map_parameters() must
+        # keep running on EVERY route so its ELEMENTS_ALLOWLIST validation
+        # still raises ExtensionError on an unrecognized typst_elements key
+        # (D-06/D-07) even when that key's value will end up discarded here.
+        # Short-circuiting upstream would silently skip that validation,
+        # turning a fail-loud unknown-key error into a silent drop -- the
+        # exact defect CONF-04's D-06/D-07 closed.
+        #
+        # This mirrors the existing `if not self.typst_package:` whole-
+        # strategy-switch shape in map_parameters() (D-05) rather than a
+        # per-key override: there is no residual union code path and no
+        # "merge mode" flag.
+        if self.typst_template_params_specified:
+            all_params = dict(self.typst_template_params)
+        else:
+            all_params = dict(params)
 
         # Format parameters
         for key, value in all_params.items():

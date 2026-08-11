@@ -5,9 +5,9 @@ package-alone path (Phase 22.2, CONF-02 / CONF-03).
 Plans ``22.2-03`` and ``22.2-04`` fixed five defect classes on this path --
 BUG-A (a package-alone master importing a shared ``_template.typ`` the
 builder never writes), BUG-B (an unrequested ``date`` argument back-filled
-into the package function call), BUG-C (``typst_authors`` rendered as a
-quoted string rather than an array of dictionaries), BUG-E (auto-derived
-Sphinx metadata winning over an explicit, colliding
+into the package function call), BUG-C (author data rendered as a quoted
+string rather than an array of dictionaries), BUG-E (auto-derived Sphinx
+metadata winning over an explicit, colliding
 ``typst_template_function["params"]`` value), and BUG-F (the four essential
 ``@preview`` imports missing on the package-only path). Before this plan,
 the only tests covering these configuration values asserted that they were
@@ -18,6 +18,21 @@ OUTPUT, and D-09 requires a real ``typst.compile()`` on the package-alone
 path specifically (this is a distinct compile-root basis from the
 default-template and custom-template paths, which are already exercised
 elsewhere in this suite).
+
+**Phase 45.1 (D-B/D-F) update.** This fixture's ``typst_template_function``
+always carries a non-empty ``params`` dict (``title``/``abstract``/
+``index-terms``/``paper-size``/``authors``), so under D-B's exclusivity
+rule -- ``params``, when declared, is the COMPLETE emitted argument set --
+every declared ``params`` key, including ``authors``, reaches the emitted
+call, while everything NOT declared there (``date``, the auto-derived/
+mapped ``title``) is discarded wholesale. The dedicated author-details
+config value this fixture used to source ``authors`` from is REMOVED
+(CONF-10/D-F); the SAME author data now lives directly inside
+``typst_template_function["params"]["authors"]``, so BUG-C's original
+guarantee -- author data reaches the output as a native Typst array of
+dictionaries, never a pre-rendered quoted string -- is restored on THIS
+fixture's own emitted call, sourced from the params route instead of the
+removed config value.
 
 ``-b typstpdf`` (not ``-b typst``) is the builder driving the primary gate
 in this module: it is CONF-02's literal wording, and -- per Phase 22.1 --
@@ -139,7 +154,6 @@ def _load_fixture_conf_values() -> dict:
         "typst_documents": module.typst_documents,
         "typst_package": module.typst_package,
         "typst_template_mapping": module.typst_template_mapping,
-        "typst_authors": module.typst_authors,
         "typst_template_function": module.typst_template_function,
     }
 
@@ -233,30 +247,51 @@ class TestPackageOnlyConfigGate:
     def test_bug_b_no_date_argument_in_show_rule_call(self, build):
         """
         Within the show-rule call region ONLY, no ``date`` argument is
-        back-filled, and the ``authors`` argument present is the
-        explicitly-configured one, not a back-filled empty tuple.
+        back-filled -- this fixture's ``typst_template_function["params"]``
+        is non-empty, so under D-B's exclusivity rule ``date`` (never a
+        declared ``params`` key) is discarded along with every other
+        auto-derived key that is not itself a declared ``params`` key.
+        ``authors`` IS present in this region, but only because it is
+        ITSELF a declared ``params`` key (D-F/plan 04's migration onto the
+        params route) -- never because of any back-fill.
         """
         region = _show_rule_call_region(build["text"])
         assert "date:" not in region
-        assert "authors: (" in region
-        assert "authors: (),\n" not in region
+        assert "authors:" in region
 
-    def test_bug_c_authors_are_array_of_dicts_not_a_string(self, build):
+    def test_bug_c_authors_reach_output_as_array_of_dicts_via_params(self, build):
         """
-        ``typst_authors`` reaches the emitted output as a Typst array whose
-        single element is a dictionary keyed by ``name`` (plus the other
-        configured detail fields) -- never as a pre-rendered, quoted string.
+        BUG-C (re-derived per D-F/plan 04): the dedicated author-details
+        config value this fixture used to source ``authors`` from is
+        removed (CONF-10). The same author data now lives directly inside
+        ``typst_template_function["params"]["authors"]``, and because a
+        declared ``params`` is the complete, exclusive parameter set
+        (D-B), it reaches the show-rule call as a native Typst array of
+        dictionaries carrying the ``name``/``department``/``organization``/
+        ``location``/``email`` keys -- never a pre-rendered quoted string.
         """
         text = build["text"]
-        assert "authors: (" in text
-        assert 'name: "' in text
+        region = _show_rule_call_region(text)
+        assert "authors: ((" in region
+        assert "name:" in region
+        assert "department:" in region
+        assert "organization:" in region
+        assert "location:" in region
+        assert "email:" in region
         assert 'authors: "(' not in text
 
     def test_bug_e_explicit_title_wins_over_metadata(self, build):
         """
-        The EXPLICIT ``typst_template_function["params"]["title"]`` value
-        wins over the auto-derived ``project`` -> ``title`` mapping on their
-        deliberately-colliding key.
+        D-B update: the mechanism changed, the assertion did not. Pre-D-B,
+        the EXPLICIT ``typst_template_function["params"]["title"]`` value
+        won over the auto-derived ``project`` -> ``title`` mapping because it
+        was applied LAST in an additive union and won the key collision.
+        Post-D-B, this fixture's ``typst_template_mapping = {"project":
+        "title"}`` output never reaches the emitted call AT ALL -- ``params``
+        is declared, so the entire auto-derived/mapped set (including the
+        mapped ``title``) is discarded wholesale, and ``EXPLICIT_TITLE`` is
+        present only because it is itself a ``params`` key, not because it
+        won a collision.
         """
         text = build["text"]
         assert EXPLICIT_TITLE in text
@@ -387,21 +422,28 @@ class TestPreFixBasisFailureProof:
         self, emitted_master_text, tmp_path
     ):
         """
-        BUG-C basis: replace the authors array-of-dictionaries with a bare
-        tuple of author-name strings. Reproduces the pre-fix shape where
-        ``typst_authors`` was rendered as (or replaced by) a plain string
-        rather than a dict the package's own ``ieee`` function maps over
-        reading a ``name`` field -- which fails precisely because a string
-        has no such field.
+        BUG-C basis: replace the real, post-fix ``authors: ((name: ...,
+        ...),)`` array-of-dictionaries argument with a bare tuple of
+        author-name strings. Reproduces the historical BUG-C shape --
+        author data rendered as (or replaced by) plain strings rather than
+        dicts the package's own ``ieee`` function maps over reading a
+        ``name`` field -- which fails precisely because a string has no
+        such field.
+
+        Phase 45.1 (D-F) re-derivation: post-D-F, this fixture's baseline
+        DOES emit a real ``authors: ((...),)`` line again (sourced from
+        ``typst_template_function["params"]["authors"]`` rather than the
+        removed dedicated config value), so this basis is reconstructed by
+        REPLACING that real line, mirroring the original BUG-C shape more
+        directly than the transient D-B-era INSERT reconstruction did.
         """
         lines = emitted_master_text.split("\n")
         authors_lines = [
             i for i, line in enumerate(lines) if line.strip().startswith("authors: (")
         ]
-        assert len(authors_lines) == 1, (
-            f"Expected exactly one authors assignment line, found "
-            f"{len(authors_lines)}"
-        )
+        assert (
+            len(authors_lines) == 1
+        ), f"Expected exactly one authors: (...) line, found {len(authors_lines)}"
         lines[authors_lines[0]] = '  authors: ("Ada Fixture Researcher",),'
         reconstructed = "\n".join(lines)
         assert 'authors: ("Ada Fixture Researcher",),' in reconstructed
@@ -473,18 +515,34 @@ class TestConfigOutputDifferenceMatrix:
 
     def test_removing_authors_config_changes_output(self, baseline_text, tmp_path):
         """
-        Removing ``typst_authors`` changes the emitted authors value: the
-        array-of-dictionaries no longer appears, and (because the package
-        path never back-fills a default) no ``authors`` argument is emitted
-        at all.
+        Phase 45.1 (D-F) re-derivation: the dedicated author-details
+        config value this test used to remove as its independent variable
+        is gone (CONF-10) -- there is no longer any such config value to
+        remove. The surviving, still-meaningful independent variable is
+        the ``authors`` entry inside ``typst_template_function["params"]``
+        itself: removing IT from the comparison build's params dict
+        changes the emitted output, proving the params-route value (not
+        some other code path) is what put the array-of-dictionaries
+        ``authors`` argument into the baseline's show-rule call.
         """
+        original_values = _load_fixture_conf_values()
+        original_function = original_values["typst_template_function"]
+        params_without_authors = {
+            key: value
+            for key, value in original_function["params"].items()
+            if key != "authors"
+        }
+        variant_function = dict(original_function)
+        variant_function["params"] = params_without_authors
+
         variant_dir = _write_variant_project(
-            tmp_path / "no_authors_variant", removals=["typst_authors"]
+            tmp_path / "no_authors_variant",
+            overrides={"typst_template_function": variant_function},
         )
         build_dir = tmp_path / "no_authors_build"
         result = _run_sphinx_build(variant_dir, build_dir, "typst")
         assert result.returncode == 0, (
-            f"sphinx-build -b typst (no-authors variant) failed:\n"
+            f"sphinx-build -b typst (no-authors-param variant) failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         variant_text = (build_dir / "index.typ").read_text(encoding="utf-8")
@@ -492,7 +550,7 @@ class TestConfigOutputDifferenceMatrix:
         baseline_region = _show_rule_call_region(baseline_text)
         variant_region = _show_rule_call_region(variant_text)
 
-        assert "authors: (" in baseline_region
+        assert "authors:" in baseline_region
         assert "authors:" not in variant_region
         assert variant_text != baseline_text
 

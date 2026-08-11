@@ -1,39 +1,105 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7.0
-milestone_name: API rendering design overhaul
-status: Awaiting next milestone
-stopped_at: Milestone v0.7.0 shipped and archived; REL-04 carried to v0.7.1
-last_updated: "2026-08-03T15:38:44.326Z"
-last_activity: 2026-08-04
-last_activity_desc: Milestone v0.7.0 completed and archived
+milestone: v0.7.1
+milestone_name: bug-fix round
+current_phase: 46
+status: completed
+stopped_at: "Phase 46 context updated (second pass: D-20..D-28)"
+last_updated: "2026-08-11T05:11:49.613Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 45.2 execution started
 progress:
   total_phases: 8
   completed_phases: 8
-  total_plans: 57
-  completed_plans: 57
+  total_plans: 43
+  completed_plans: 43
   percent: 100
-current_phase: 42
-current_phase_name: captioned-table-drops-preceding-target-label
+current_phase_name: v0-7-1-release-prep-prep-only
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-04 at the v0.7.0 milestone close)
+See: .planning/PROJECT.md (updated 2026-08-04 at the start of milestone v0.7.1)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Planning the next milestone (starts at **Phase 43**) — run `/gsd-new-milestone`.
+**Current focus:** Phase 46 — v0-7-1-release-prep-prep-only
+**18/18** v1 requirements mapped with zero orphans (FIG-01 added 2026-08-04 at Phase 43 discussion;
+TOC-01 added 2026-08-04 with the Phase 44.1 insertion; DOC-13 added 2026-08-04 with the Phase 45.1
+insertion; CONF-09 added 2026-08-04 with the Phase 44.2 insertion, reversing Phase 44's D-02;
+**CONF-11 and CONF-12 added and CONF-10 promoted out of Future on 2026-08-10 at the Phase 45.1
+discussion**, was 15/15).
+Next action: `/gsd-discuss-phase 45.2`
 
 ## Current Position
 
-Phase: — (no active milestone)
-Plan: —
-Status: v0.7.0 shipped 2026-08-04; awaiting next milestone
-Last activity: 2026-08-04 — Milestone v0.7.0 completed, archived, and published
+Phase: 46
+Plan: Not started
+Status: All phases complete
+Progress: [###############-----] 75% (6/8 phases)
+Last activity: 2026-08-11 — Phase 46 complete
 
-Progress: [████████████████████] v0.7.0 100% (8/8 phases, 57/57 plans)
+Phase 46's CONTEXT is already written and committed (`46-CONTEXT.md`, D-01..D-19). Phase 45.2 runs
+first because Phase 46's SC#3 evidence path (D-11) assumes local `tox` works, and it does not.
+
+## Active Milestone (v0.7.1 — bug-fix round)
+
+**Roadmap created 2026-08-04: Phases 43-46** (plus **44.1**, **44.2** and **45.1**, all inserted
+2026-08-04, and **45.2**, inserted 2026-08-10), derived from
+`REQUIREMENTS.md` alone. Research was deliberately skipped (owner decision 2026-08-04 — a maintenance
+round over already-diagnosed defects, each carrying a file/line-level todo, with the one
+new-behaviour item CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder), so this
+milestone has **no `research/SUMMARY.md`**.
+Coverage: **19/19** v1 requirements mapped, zero orphans, zero duplicates (was 11/11; **FIG-01**
+added 2026-08-04 by owner decision at Phase 43 discussion; **TOC-01** added 2026-08-04 with the
+Phase 44.1 insertion; **DOC-13** added 2026-08-04 with the Phase 45.1 insertion; **CONF-09** added
+2026-08-04 with the Phase 44.2 insertion, which **reverses Phase 44's D-02**; **CONF-11** and
+**CONF-12** added and **CONF-10** promoted out of Future on 2026-08-10 at the Phase 45.1 discussion;
+**QUA-04** added 2026-08-10 with the Phase 45.2 insertion). The milestone owes **five** user-visible
+CHANGELOG callouts — CONF-08, CONF-09, CONF-10, CONF-11, CONF-12. **QUA-04 adds no sixth**: it is
+confined to the `dev` extra (`46-CONTEXT.md` D-19).
+
+| Phase | Goal | Requirements |
+|-------|------|--------------|
+| 43. Table State Correctness — Nested Tables + Empty-Title Anchors | A nested table stops replacing the outer table's body; a nested figure stops dropping the outer caption; an empty-titled caption still anchors its ids | TBL-04, TBL-05, FIG-01, QUA-01 |
+| 44. `typst_documents` Default Derivation + Builder Input Hardening | The Quick Start produces a PDF; a malformed docname fails with an actionable typsphinx error | CONF-08, BLD-01 |
+| 44.1 Relative Heading Depth for Toctree Nesting (INSERTED) | A toctree'd document's headings render one level deeper than its parent instead of flat — `visit_title` emits relative `depth:` so `set heading(offset: 1)` applies | TOC-01 |
+| 44.2 `typst_documents` Title and Author Consumption (INSERTED) | An explicit entry's `[2]` title / `[3]` author actually reach the rendered PDF, overriding `project`/`author` as LaTeX does — reverses Phase 44's D-02 | CONF-09 |
+| 45. Documentation Currency + Carried Hygiene | README explains `typst_documents` + its new default; the published changelog page stops being two years stale; two hygiene todos close | DOC-11, DOC-12, QUA-02, QUA-03 |
+| 45.1 Custom-Template Parameter Contract Correction (INSERTED) | A custom template declaring exactly the documented parameters compiles; the published contract and the parameters typsphinx actually passes agree both ways; a declared `typst_template_function` `params` is the complete parameter set; `typst_authors` removed; auto-derived `lang` on every non-package template route | DOC-13, CONF-10, CONF-11, CONF-12 |
+| 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | `tox` runs locally for the first time (every env exits 127 today) and the 13 test modules that shell out to `uv run` stop failing under the outer `uv run` `CLAUDE.md` mandates — one dependency name drops the generic-linux `uv` wheel binary NixOS cannot exec | QUA-04 |
+| 46. v0.7.1 Release Prep (prep-only) | The tree is bumped, curated, proven green, and handed off with zero irreversible action | REL-06, REL-04 |
+
+**Three structural constraints this roadmap encodes:**
+
+1. **Milestone invariant #5 (new).** The milestone branch is pushed to `origin` in **Phase 43**, not
+   at the release PR — it is Phase 43's SC#5. Both defects that surfaced at the v0.7.0 close share
+   the cause that the branch was never pushed until the release PR, so neither Windows CI nor a real
+   tag push ran against it during eight phases.
+
+2. **REL-04 does not close in Phase 46.** Phase 46 owns only its in-phase share — verifying the
+   already-on-`main` `create-release` fix (the `astral-sh/setup-uv` + `Set up Python` steps) and
+   exercising the extractor against the new `## [0.7.1]` section — plus an explicit handoff item.
+   The requirement closes when a real tag push runs `create-release` to completion at
+   `/gsd-complete-milestone`, or it carries again. Reporting it done on the strength of a correct
+   workflow file is the precise error v0.7.0 made; `phase.complete` has a recorded habit of
+   auto-flipping REL rows against a CONTEXT decision, so the Phase 46 close must diff before commit.
+
+3. **Phase 46 is prep-only.** No tag, no PyPI, no GitHub Release — the standing v0.5.0 Phase 10
+   pattern under `branching_strategy: milestone`. The publish executes at `/gsd-complete-milestone`,
+   including the standing second tag on `typsphinx-doc-translations`.
+
+**Sequencing note:** the chain 43 → 44 → 44.1 → 44.2 → 45 → 45.1 → 46 is genuinely dependent, not
+merely numbered. Phase 44 hardens the same `TypstPDFBuilder.finish()` its own derivation rewrites
+(so CONF-08 and BLD-01 are one change, not two); Phase 44.2 runs after 44.1 because
+`tests/roots/test-basic/conf.py` is inside 44.1's SC#3 byte-invariance corpus and is one of the five
+entries 44.2 changes; Phases 45 and 45.1 document behaviour, so everything they describe must have
+landed first; the `0.7.1` entry for DOC-12's changelog page lands in Phase 46's lockstep edit
+alongside `CHANGELOG.md`.
+
+**Not a frontend UI milestone** — no phase carries a UI hint. `ui.plan-gate` false-positives on
+"table"/"render"/"page" wording here; use `--skip-ui`.
 
 ## Shipped Milestone (v0.7.0 — archived)
 
@@ -85,9 +151,11 @@ the two classic-`TypstError` exceptions.
    selectors stayed RED after the handlers landed; all four were defects in the gate module itself,
    and the corrected module was re-proved 9/9 RED against the pre-fix translator three independent
    times before being trusted.
+
 2. **A locked decision was reversed on evidence.** Shown a live render at UAT the owner overturned
    D-03 and re-opened an already-closed Phase 39 (5/5 verified) rather than filing the difference
    as debt.
+
 3. **A recurring tooling hazard was made falsifiable.** `phase.complete` auto-flipping REL-04/REL-05
    against a CONTEXT decision was caught and reverted in Phase 41, then pre-empted in Phase 42 by
    `42-CLOSEOUT-GUARD.md`, which recorded the four at-risk lines verbatim with a file checksum. It
@@ -226,6 +294,18 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**Eight of the ten open records are now v0.7.1 requirements** (promoted at roadmap creation
+2026-08-04): `nested-table-clobbers-outer-table-state` → TBL-04,
+`table-whitespace-only-title-anchor-divergence` → TBL-05,
+`emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user` → QUA-01,
+`non-str-docname-typeerror-in-typstpdf-finish` → BLD-01,
+`derive-typst-lang-duplicated-warning-block` → QUA-02, `project-md-unterminated-html-comments` →
+QUA-03, `docs-changelog-page-stale-at-0-4-0` → DOC-12, and
+`release-create-job-missing-uv-verify-end-to-end` → REL-04 (an open requirement, not merely a todo).
+The dormant seed SEED-001 became CONF-08 + DOC-11. Each record stays **pending** until its phase
+executes. Still deferred and NOT in scope: `add-sphinx-linkcheck-ci-job` (Future LNK-01) and
+`modernize-typing-imports-drop-up006-up035-ignore` (forbidden by `CLAUDE.md`).
+
 **Ten open in `.planning/todos/pending/`.** Nine when this close began: one
 (`visit-desc-sig-name-docstring-unbalanced-asterisk-warning`) was filed to `todos/completed/` here
 per `41-HANDOFF.md` item 7, and one was filed *by* this close
@@ -233,10 +313,65 @@ per `41-HANDOFF.md` item 7, and one was filed *by* this close
 post-release on 2026-08-04 (`docs-changelog-page-stale-at-0-4-0`, minor). All are acknowledged and
 recorded in Deferred Items above; none blocks the release.
 
+**Count as of 2026-08-04: 8 files in `.planning/todos/pending/`** (the "ten" above counts records
+that have since been promoted to requirements or filed to `completed/`). The newest is
+`toctree-heading-offset-ignored-because-visit-title-emits-abs` (translator, **major**), captured
+2026-08-04: `visit_title` emits Typst's absolute `heading(level: N)`, which overrides the
+`set heading(offset: 1)` that `visit_toctree` wraps its `include()`s in — so toctree'd documents
+never nest and the PDF outline is flat. Fix is `depth:` instead of `level:`
+(`level = offset + depth`), verified against typst-py 0.15.0. **Now mapped**: promoted to TOC-01 and
+carried by the inserted Phase 44.1.
+
+**Count as of 2026-08-04 (updated): 10 files in `.planning/todos/pending/`.** The newest is
+`documented-custom-template-parameter-contract-is-wrong-and-t` (docs, writer, **major**), captured
+2026-08-04 during the Phase 44.1 discussion. `docs/source/user_guide/templates.rst:187-192`
+publishes the custom-template contract as `title` / `authors` / `date` / `body`, but
+`writer.py:259-261` unconditionally also passes `toctree_maxdepth` / `toctree_numbered` /
+`toctree_caption` whenever the master has a toctree — and Typst rejects undeclared named arguments.
+Reproduced: the documented example verbatim fails with
+`TypstError: unexpected argument: toctree_maxdepth`. Unrelated to TOC-01 and deliberately kept out
+of Phase 44.1. Not mapped to a v0.7.1 requirement.
+
+**Count as of 2026-08-07: 12 files in `.planning/todos/pending/`.** The newest is
+`review-pr-131-absolute-image-uri-fix` (builder, tests, **major**), captured 2026-08-07. This one is
+a *review* task, not a defect record: PR #131 from external contributor @christianwehe (opened
+2026-08-05, fixes #130, +440/−10 over 8 files, `MERGEABLE`) has sat with **zero reviews and zero
+comments**. It rehomes the absolute image `uri` that Sphinx's `ImageConverter`/`ImageDownloader`
+writes, which today collapses `copy_image_files()`'s src and dest onto one path and aborts the Typst
+compile. The todo carries the checks to run before merging — including re-measuring the
+contributor's RED claim independently, and testing whether the new image bookkeeping repeats the
+per-build-not-per-master flaw seen in the include-dedup ledger. Not mapped to a v0.7.1 requirement.
+
+**Count as of 2026-08-10: 10 files in `.planning/todos/pending/`.**
+`review-pr-131-absolute-image-uri-fix` moved to `todos/completed/` — the review was performed and
+PR #131 merged. Its RED claim was re-measured independently (3 tests fail with `builder.py` alone
+reverted to `main`, with the exact reported symptoms) and the full suite showed no regressions
+(main 45F/776P → PR 45F/779P; **corrected 2026-08-11 (QUA-04, D-06):** the 45 are a fixable dependency
+defect, not an unfixable environmental artifact — a generic-linux `uv` wheel binary at
+`.venv/bin/uv` that NixOS cannot exec, shadowing the working nix-store `uv` for subprocess children,
+closed by this milestone's Phase 45.2). This milestone carries **two** unrelated `exit 127` / "command
+not found" causes and they must not be conflated: (a) the local `.venv/bin/uv` ELF mismatch just
+described, closed by QUA-04, and (b) the `create-release` job's missing `astral-sh/setup-uv` step
+(REL-04, lines 425/587 below), which remains open until a real tag push runs `create-release` to
+completion.
+
+The review filed **two new todos** against the code the PR introduced, both in
+`TypstBuilder._track_image()` and best fixed together:
+`rehomed-converted-image-collides-with-srcdir-images-dir` (builder, **major**) — a converted image
+rehomed to `images/<basename>` collides with an ordinary source image genuinely at
+`<srcdir>/images/<basename>`, so one is silently never copied and the other document renders the
+wrong picture, with no warning; measured with a probe. Note this is also a *failure-mode*
+regression: pre-PR the same project aborted the build loudly. And
+`track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri` (builder, **minor**) —
+`relpath(uri, doctreedir)` returns `../`-prefixed paths for an absolute URI outside `doctreedir`,
+so `copy_image_files()` writes outside `outdir` (or collapses `src == dest`, reproducing #130);
+not reachable via stock Sphinx post-transforms, which all write under `<doctreedir>/images/`.
+
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
   lychee check already covers the one new link this release adds.
+
 - **non-str-docname-typeerror-in-typstpdf-finish** (builder, tests) — input-validation hardening.
 - **derive-typst-lang-duplicated-warning-block** (template_engine) — refactor, no release bearing.
 - **modernize-typing-imports-drop-up006-up035-ignore** (source) — **do not act on this until the
@@ -257,6 +392,7 @@ Filed during v0.7.0 and still open (3):
 - **emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user** (translator, Phase 42
   review WR-01) — a stale docstring, deliberately not fixed in-phase so the change would not fall
   outside the SHA range Phase 42's SC#4/SC#6 evidence measured.
+
 - **nested-table-clobbers-outer-table-state** (translator, Phase 42 review IN-02) — a real, severe,
   **pre-existing** bug: a table nested inside a `list-table` cell silently drops the outer table
   structure, because `in_table`/`table_cell_content` are scalars rather than a stack. Verified
@@ -271,6 +407,23 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 (→ TBL-03, backlog 999.2).
 
 ### Blockers/Concerns
+
+**Phase 44.1 SC#2 rests on a falsified premise — a blocking decision waits in wave 2.** Measured
+2026-08-04 during planning and re-measured independently by the orchestrator against the pinned
+typst-py 0.15.0, through real `include()` calls on `tests/fixtures/integration_nested_toctree`:
+Typst's `set heading(offset: N)` is an **absolute assignment** on the style chain, not an increment,
+so a nested scope *replaces* its parent's offset instead of adding to it. `44.1-CONTEXT.md`
+(`<code_context>` "Integration Points") and the source todo both assert that nested toctree scopes
+"accumulate"; neither was verified and both are wrong. Consequence: the locked repair (emit `depth:`
+in `visit_title`, leave `visit_toctree` untouched) satisfies **SC#1** — child resolves at 2 — but
+leaves **SC#2 unmet**, the grandchild resolving at 2 rather than 3. Only
+`context { set heading(offset: heading.offset + 1) }` yields 1 / 2 / 3 / 4. Meeting SC#2 therefore
+requires widening a locked scope, which no planner or executor may do, so `44.1-03` stops as a
+`checkpoint:decision` offering **option-a** (change `visit_toctree`; SC#2 met, scope widened, the two
+`tests/test_toctree_requirement13.py` assertions change) or **option-b** (leave it; re-scope SC#2 as
+unsatisfiable per the SC#3 precedent, file a todo, mark the SC#2 tests `xfail`). Both branches are
+executable; the plan's acceptance criteria are split `Both options` / `Option-a only` /
+`Option-b only`, and D-03's `templates/base.typ` fence holds either way.
 
 **Owed from v0.7.0: REL-04.** The requirement — the GitHub Release body sourced from the curated
 `## [X.Y.Z]` CHANGELOG section — is **not met**. The extractor Phase 41 wrote is correct and
@@ -368,6 +521,15 @@ evidence.
   sweep must cover 40.1's node-handler changes, so 40.1 executes first. No requirement IDs were
   added, removed, or reworded — 40.1 hardens code CIT-01/CIT-03/CIT-04 already delivered.
 
+- **2026-08-04** — v0.7.1 roadmap created: **Phases 43–46**, 11/11 v1 requirements mapped, zero
+  orphans. Derived from `REQUIREMENTS.md` alone — no `research/SUMMARY.md` exists for this milestone
+  (research deliberately skipped, owner decision 2026-08-04). Eight pending todos plus the dormant
+  SEED-001 were promoted into requirements; `release-create-job-missing-uv-verify-end-to-end` is
+  carried as the open requirement REL-04 rather than as a todo. Milestone invariant #5 is new and is
+  encoded as Phase 43's SC#5 (push the milestone branch to `origin` from the first phase). The final
+  phase (46) is prep-only, pairing REL-06 with REL-04's verification-and-handoff share only —
+  REL-04 itself closes at the publish.
+
 - **2026-08-03** — Backlog item **999.2 promoted into v0.7.0 as Phase 42** at `/gsd-review-backlog`,
   by owner decision, *after* Phase 41 had already completed. Unlike every prior amendment in this
   log, this one **adds a requirement to an already-complete milestone**: new requirement **TBL-03**
@@ -381,6 +543,11 @@ evidence.
   classic-`TypstError`-RED exception, and invariant #4's wording was amended accordingly. Nothing was
   removed or re-assigned away from another phase. The ROADMAP Backlog section is now empty; the next
   item filed there is 999.3.
+
+- Phase 44.1 inserted after Phase 44: Relative Heading Depth for Toctree Nesting — TOC-01 added; toctree set heading(offset: 1) is inert because visit_title emits absolute level: (URGENT)
+- Phase 45.1 inserted after Phase 45: Custom-Template Parameter Contract Correction (DOC-13) — documented 4-param contract vs. the toctree_*/typst_elements parameters actually passed; fix route left open for discuss-phase (URGENT)
+- Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
+- Phase 45.2 inserted after Phase 45: Local Toolchain Repair — tox-uv to tox-uv-bare (QUA-04); tox is non-functional locally (every env exits 127) and 13 test modules fail under the mandated outer uv run; one dependency name; coverage 18/18 -> 19/19; no CHANGELOG callout (URGENT)
 
 ## Deferred Items
 
@@ -428,15 +595,22 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in progress. The milestone's phase artifacts are archived under
-`.planning/milestones/v0.7.0-phases/`.
+**Resume file:** .planning/phases/46-v0-7-1-release-prep-prep-only/46-CONTEXT.md
+Archived milestone phases live under `.planning/milestones/v0.7.0-phases/`.
 
-Last session: 2026-08-04
-Stopped at: v0.7.0 milestone archived; publish executing at `/gsd-complete-milestone`
-Resume: `/gsd-new-milestone` (next milestone starts at **Phase 43**).
+Last session: 2026-08-11T02:42:36.953Z
+Stopped at: Phase 46 context updated (second pass: D-20..D-28)
+Resume: `/gsd-discuss-phase 45.2` (Local Toolchain Repair — tox-uv to tox-uv-bare).
 
 ## Operator Next Steps
 
 - ✅ Done at the close: Read the Docs `stable` measured green at `v0.7.0` on both projects (see
   Shipped Milestone). Nothing owner-manual is outstanding.
-- Start the next milestone with `/gsd-new-milestone` — phase numbering continues at **Phase 43**.
+
+- **Next: `/gsd-discuss-phase 45.2`**, then plan and execute it, then `/gsd-plan-phase 46`.
+  Phase 46's CONTEXT is already written; 45.2 was inserted from that discussion and must land first
+  because Phase 46's SC#3 draws part of its green proof from local `tox`, which does not currently
+  run at all.
+
+- Superseded (Phase 43 shipped 2026-08-04): the milestone branch reached `origin` in Phase 43 per
+  invariant #5, so CI — including the Windows lanes — has been watching every push since.

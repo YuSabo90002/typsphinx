@@ -1,5 +1,6 @@
 # Configuration file for charged-ieee example (Approach 1)
-# Approach 1: Use typst_template_function dict format and typst_authors (Recommended)
+# Approach 1: Use the typst_template_function dict's "params" route for the
+# complete, exclusive parameter set (D-B) -- including rich author structure.
 
 
 # -- Project information -----------------------------------------------------
@@ -20,7 +21,7 @@ typst_documents = [
 # Use charged-ieee template from Typst Universe
 typst_package = "@preview/charged-ieee:0.1.4"
 
-# -- Author details configuration (Approach 1 - Recommended) -----------------
+# -- Author details configuration (params route) -----------------------------
 # IEEE専用の設定変数
 ieee_abstract = """This paper presents novel approaches to machine learning
 applications in computer vision. We demonstrate state-of-the-art results on
@@ -33,15 +34,21 @@ ieee_keywords = [
     "Neural Networks",
 ]
 
-# 著者の詳細情報（辞書形式）
-typst_authors = {
-    "John Doe": {
+# 著者の詳細情報（辞書形式） -- now declared directly inside
+# typst_template_function["params"]["authors"] below, since CONF-10/D-F
+# removed the dedicated author-details config value this example used to set
+# here. A user who has named both the template function and its arguments
+# has already made a more specific decision than either (D-B), so rich
+# author structure lives on this route now.
+ieee_authors = [
+    {
+        "name": "John Doe",
         "department": "Computer Science",
         "organization": "Massachusetts Institute of Technology",
         "location": "Cambridge, MA",
         "email": "john.doe@mit.edu",
-    }
-}
+    },
+]
 
 # テンプレート関数とパラメータの統合設定（辞書形式）
 # 通常のPython変数参照で他の設定値を再利用
@@ -59,5 +66,6 @@ typst_template_function = {
         "abstract": ieee_abstract,
         "index-terms": ieee_keywords,
         "paper-size": "a4",
+        "authors": ieee_authors,
     },
 }

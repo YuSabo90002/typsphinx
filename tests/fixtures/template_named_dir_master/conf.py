@@ -33,12 +33,19 @@ root_doc = "_template/index"
 # (D-07 reasoning, mirrored from the sibling PDF-02 fixture): the Phase 22
 # target-name rename must NOT be exercised here. The two entries live in
 # different directories, so their outputs do not collide.
+#
+# CONF-09 (Phase 44.2, SC#3): the second entry's author deliberately
+# diverges from the first ("Test Author (nested)" vs "Test Author") so a
+# per-master author leak is detectable -- both entries' titles already
+# diverge (the title half of the leak was already detectable before this
+# phase), but until now both entries shared the SAME author, so an author
+# leak between the two masters was undetectable.
 typst_documents = [
     ("_template/index", "index", "Template Named Dir Master", "Test Author"),
     (
         "_template/sub/index",
         "index",
         "Template Named Dir Master (nested)",
-        "Test Author",
+        "Test Author (nested)",
     ),
 ]

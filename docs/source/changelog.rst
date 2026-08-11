@@ -1,93 +1,165 @@
-Changelog
-=========
-
-All notable changes to typsphinx are documented here.
-
-The format is based on `Keep a Changelog <https://keepachangelog.com/>`_,
-and this project adheres to `Semantic Versioning <https://semver.org/>`_.
-
-For the complete changelog, see `CHANGELOG.md <https://github.com/YuSabo90002/typsphinx/blob/main/CHANGELOG.md>`_ in the repository.
-
-Version 0.4.0 (Current)
------------------------
-
-**Fixed**
-
-- Document wrapper (``#{...}``) preservation in nested structures (#61)
-- Nested lists generating invalid Typst syntax (#62)
-- Unified code mode syntax compliance
-
-**Changed**
-
-- Implemented stream-based rendering architecture
-- Changed ``strong()`` and ``emph()`` to use content blocks: ``strong({...})``, ``emph({...})``
-- Updated ``link()`` format from ``link(url)[content]`` to ``link(url, content)``
-- List items now use content blocks with newline separators
-- API signatures properly formatted with ``+`` operator concatenation
-
-Version 0.3.0
--------------
-
-**Added**
-
-- Documentation site with GitHub Pages deployment
-- Comprehensive user guide and examples
-- API reference documentation
-
-Version 0.2.2
--------------
-
-**Added**
-
-- Typst Universe template support (#13)
-- Dictionary format for ``typst_template_function``
-- Detailed author information with ``typst_authors``
-- charged-ieee template examples
-
-**Changed**
-
-- Template parameter merging system
-- Improved template documentation
-
-Version 0.2.1
--------------
-
-**Fixed**
-
-- Image file copying in builds
-- Path handling for multi-document projects
-
-Version 0.2.0
--------------
-
-**Added**
-
-- ``typstpdf`` builder for direct PDF generation
-- Self-contained PDF generation with typst-py
-- Code highlighting with codly package
-- Math rendering with mitex
-- Template system with customization support
-
-**Changed**
-
-- Improved Sphinx integration
-- Better error messages
-- Enhanced type hints
-
-Version 0.1.0
--------------
-
-**Added**
-
-- Initial release
-- ``typst`` builder for Typst markup generation
-- Basic Sphinx to Typst conversion
-- reStructuredText support
-- Table of contents generation
-- Cross-reference support
+.. include:: ../../CHANGELOG.md
+   :parser: myst_parser.sphinx_
 
 Migration Guides
 ----------------
+
+Migrating from 0.7.0 to 0.7.1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This patch release carries three breaking configuration changes. Each item below shows the
+rewrite: the ``conf.py``/template fragment you have today, and the corrected fragment to replace
+it with.
+
+- **Breaking:** the ``typst_authors`` config value is removed. It was pure sugar over the
+  ``typst_template_function`` ``params`` route -- Phase 44.2 measured the two routes producing a
+  byte-identical ``authors:`` value, differing only in the order of named arguments in the emitted
+  call, which is semantically irrelevant in Typst -- and removing it brings the config surface to
+  LaTeX parity, matching ``latex_documents``, which has no facility for supplying an author as a
+  dictionary. A leftover ``typst_authors`` is now an unregistered ``conf.py`` variable, which
+  Sphinx ignores without warning, so author information is lost silently rather than loudly.
+
+  .. code-block:: python
+
+     # Old way -- typst_authors is gone in 0.7.1
+     typst_authors = {
+         "John Doe": {
+             "department": "Computer Science",
+             "organization": "MIT",
+             "email": "john@mit.edu",
+         },
+     }
+
+  .. code-block:: python
+
+     # New way -- the same dictionary through typst_template_function's params route
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "authors": (
+                 {
+                     "name": "John Doe",
+                     "department": "Computer Science",
+                     "organization": "MIT",
+                     "email": "john@mit.edu",
+                 },
+             ),
+             # every other parameter your template needs must also be named here --
+             # see the next item.
+         }
+     }
+
+- **Breaking:** a declared ``typst_template_function`` ``params`` dict is now the **complete**
+  parameter set. Previously, auto-derived values (``title``/``authors``/``date``, the
+  ``typst_elements`` allowlist merge, and the ``toctree_*`` merge) filled in whatever ``params``
+  did not name. A project that declares ``params`` to add one key and relies on the auto-derived
+  rest now renders with the template's own defaults (empty title, no author) instead of the
+  previous merged result -- write all nine.
+
+  .. code-block:: python
+
+     # Old way -- the auto-derived title/authors/date/toctree_* filled in the rest
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "subtitle": "A Technical Report",
+         }
+     }
+
+  .. code-block:: python
+
+     # New way -- name every parameter the template needs, including the ones that
+     # used to be auto-derived
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "title": "My Document",
+             "authors": ({"name": "John Doe"},),
+             "date": "2026-08-11",
+             "papersize": "a4",
+             "fontsize": 11,
+             "lang": "en",
+             "toctree_maxdepth": 2,
+             "toctree_numbered": False,
+             "toctree_caption": "Contents",
+             "subtitle": "A Technical Report",
+         }
+     }
+
+- **Breaking:** a custom template must now declare ``lang``. The auto-derived ``lang`` reaches
+  every non-``typst_package`` template route -- an explicit ``typst_template`` and a
+  ``<srcdir>/base.typ`` shadow now both receive it, same as the bundled default. A custom template
+  that does not declare a ``lang`` parameter now fails the compile with
+  ``unexpected argument: lang``.
+
+  .. code-block:: typst
+
+     // Old way -- no lang parameter, now fails with "unexpected argument: lang"
+     #let project(
+       title: "",
+       authors: (),
+       date: none,
+       toctree_maxdepth: 2,
+       toctree_numbered: false,
+       toctree_caption: "Contents",
+       papersize: "a4",
+       fontsize: 11pt,
+       body
+     ) = {
+       // ...
+     }
+
+  .. code-block:: typst
+
+     // New way -- declare lang with a default, matching the shipped custom_template.typ
+     #let project(
+       title: "",
+       authors: (),
+       date: none,
+       toctree_maxdepth: 2,
+       toctree_numbered: false,
+       toctree_caption: "Contents",
+       papersize: "a4",
+       fontsize: 11pt,
+       lang: "en",
+       body
+     ) = {
+       // ...
+     }
+
+Migrating from 0.6.x to 0.7.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No breaking config changes. Autodoc/API reference output changes visually: monospace
+signatures, hanging-indented description bodies, and depth-indexed member nesting replace the
+flat proportional-bold text used before — every ``.typ`` file and compiled PDF containing API
+documentation looks different on your next build.
+
+- Citations (``.. [Label]`` / ``[Label]_``) now compile. Previously a document containing a
+  citation failed the Typst compile outright; citations now render as hanging-indent reference
+  entries with working links and back-references.
+- Admonition bucket changes are visual only: ``seealso`` now uses the ``hint``/``tip`` styling
+  and ``attention`` uses the red family instead of the orange warning bucket.
+
+Migrating from 0.5.x to 0.6.x
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several breaking config removals landed across this range, alongside a large set of
+rendering-fidelity fixes that need no action.
+
+- **Breaking:** a ``typst_elements`` key outside ``papersize``/``fontsize``/``lang`` now fails the
+  build instead of being silently dropped. Remove the unsupported key, or pass it through a
+  custom template's ``typst_template_function.params`` instead.
+- **Breaking:** the inert ``typst_toctree_defaults`` config value was removed. Delete it from
+  your ``conf.py`` if present — it never affected any build's output.
+- **Breaking:** ``typst_output_dir`` and ``typst_author_params`` config values were removed.
+  Neither ever affected output; delete them if present.
+- ``sphinx-build -b typstpdf`` now names the output PDF after your configured
+  ``typst_documents`` target rather than the source docname — e.g. ``mydoc.pdf`` instead of
+  ``index.pdf``. Update any CI or release step that hardcodes the old filename.
+- No action needed for the rendering-fidelity fixes across this range (pixel-unit figure/image
+  widths, footnotes, glossaries, wide tables, and numerous spacing/separation fixes) — content
+  that previously dropped silently or clipped now simply renders correctly.
 
 Migrating from 0.2.x to 0.3.x
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -130,13 +202,6 @@ None. Version 0.2.0 is backward compatible with 0.1.x.
          }
      }
 
-Development Status
-------------------
-
-- **v0.3.x**: Current stable release
-- **v0.2.x**: Maintenance mode
-- **v0.1.x**: No longer supported
-
 Deprecation Policy
 ------------------
 
@@ -170,12 +235,20 @@ typsphinx uses semantic versioning (SemVer):
 Release Process
 ---------------
 
-1. Update version in ``pyproject.toml``
-2. Update ``CHANGELOG.md``
-3. Create git tag: ``v0.x.x``
-4. Push to GitHub
-5. GitHub Actions builds and publishes to PyPI
-6. GitHub Release created with changelog
+The released version lives in ``pyproject.toml``'s ``[project].version``. A release runs through
+``.github/workflows/release.yml``, triggered by pushing a matching ``vX.Y.Z`` tag:
+
+1. Update ``pyproject.toml``'s version and add a curated ``## [X.Y.Z]`` section to
+   ``CHANGELOG.md``, then push the ``vX.Y.Z`` tag (or trigger the workflow manually with the tag
+   as input).
+2. The ``validate`` job checks the tag against ``pyproject.toml``'s version and aborts on a
+   mismatch, aborts if ``CHANGELOG.md`` has no matching non-empty ``## [X.Y.Z]`` section, then
+   runs the test suite and linters.
+3. The ``build`` job produces the wheel and sdist.
+4. The ``publish-pypi`` job runs behind the protected ``pypi`` GitHub environment and requires a
+   manual approval before it uploads the package to PyPI.
+5. The ``create-release`` job extracts that same ``## [X.Y.Z]`` CHANGELOG section and publishes
+   it as the body of a GitHub Release, with the built wheel and sdist attached.
 
 See Also
 --------

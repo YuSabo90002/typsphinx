@@ -71,14 +71,16 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
     # entry point's module form) rather than shelling out to `uv run
     # sphinx-build`: this guarantees the exact interpreter/venv already
     # running this test is reused, with no dependency on external PATH
-    # resolution of a `uv` executable. This matters in this project's
+    # resolution of a `uv` executable. This mattered in this project's
     # dev sandbox specifically -- a stray non-Nix `uv` binary installed
     # into `.venv/bin` (shadowing the correct Nix-provided `uv` earlier
-    # on PATH for subprocess children) makes `["uv", "run", ...]` exit
+    # on PATH for subprocess children) made `["uv", "run", ...]` exit
     # 127 ("Could not start dynamically linked executable") when invoked
     # from inside a pytest-launched subprocess, even though the same
-    # command succeeds when run directly in a shell. `sys.executable -m
-    # sphinx` sidesteps that PATH-shadowing hazard entirely.
+    # command succeeded when run directly in a shell. That cause was
+    # removed by QUA-04 (2026-08-10); `sys.executable -m sphinx` is kept
+    # regardless, because it depends on no PATH resolution at all -- a
+    # better reason than the hazard ever was.
     result = subprocess.run(
         [
             sys.executable,

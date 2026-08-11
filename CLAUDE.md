@@ -8,7 +8,7 @@ typsphinx is a Sphinx extension that adds Typst output builders. It converts doc
 
 ## Commands
 
-Development uses `uv` for env/dependency management and `tox` (with `tox-uv`) as the task runner.
+Development uses `uv` for env/dependency management and `tox` (with `tox-uv-bare`) as the task runner.
 
 ```bash
 uv sync --extra dev          # install with dev dependencies
@@ -64,7 +64,7 @@ The four Typst Universe `@preview` package versions (`codly`, `codly-languages`,
 
 ## Configuration surface
 
-User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_authors`, `typst_template_assets`, and `typst_debug`.
+User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_template_assets`, and `typst_debug`. Rich author structure (department/organization/location/email) is expressed via `typst_template_function`'s `params` route, not a dedicated config value — the dedicated author-details value that once existed here was removed in Phase 45.1 (CONF-10).
 
 ## Tests
 
@@ -74,7 +74,7 @@ User-facing config values (all registered in `__init__.py`, prefix `typst_`) inc
 
 - **Python 3.12+ is required.** ruff intentionally ignores `UP006`/`UP035` (the `Dict`/`List` → `dict`/`list` upgrades) — this is a deliberate deferral, not a compatibility constraint; the modernization pass is filed at `.planning/todos/pending/2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md`. Don't "modernize" typing imports until that todo lands.
 - Line length 88 (black); `E501` is ignored in ruff since black owns wrapping.
-- `tox.ini` pins `tox-uv~=1.35` (not `>=1.35,<2`) deliberately — see the comment in that file; tox's ini parser splits a single-line `requires` on commas and breaks otherwise.
+- `tox.ini` pins `tox-uv-bare~=1.35` (not `>=1.35,<2`) deliberately — see the comment in that file; tox's ini parser splits a single-line `requires` on commas and breaks otherwise. The `-bare` package is also deliberate (QUA-04, Phase 45.2): the plain `tox-uv` meta package bundles a PyPI `uv` wheel whose generic-linux ELF cannot exec on NixOS, and `uv.find_uv_bin()` searches `.venv/bin` first and reads no environment variable. Do not "simplify" it back to `tox-uv`.
 - CI (`.github/workflows/ci.yml`) runs the py312–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
 
 ### Worktree-isolated execution

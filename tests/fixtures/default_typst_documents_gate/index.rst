@@ -1,0 +1,4 @@
+Quickstart Default Gate
+========================
+
+QSDEFAULTBODY

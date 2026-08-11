@@ -149,9 +149,17 @@ class TestChargedIeeeExamplesGate:
         ``approach1`` (package-alone, Approach 1 in the README): builds
         with zero warnings, produces a real, non-empty PDF, and its
         emitted master carries the post-fix package-alone shape --
-        package import present, no shared-template reference, an authors
-        array of dictionaries, and no back-filled ``date`` argument inside
-        the show-rule call region.
+        package import present, no shared-template reference, and no
+        back-filled ``date`` argument inside the show-rule call region.
+
+        Phase 45.1 (D-B/D-F) update: ``approach1/conf.py`` now declares its
+        author details directly inside ``typst_template_function["params"]
+        ["authors"]`` -- the dedicated author-details config value this
+        sample previously used is removed (CONF-10/D-F). Because ``params``
+        is the complete, exclusive parameter set (D-B), the sample's
+        ``authors`` argument reaches the emitted call as a native Typst
+        array of dictionaries once again, sourced from the params route
+        instead of the removed config value.
         """
         build_dir = tmp_path / "approach1_build"
         result = _run_sphinx_build(APPROACH1_DIR, APPROACH1_DIR / "source", build_dir)
@@ -184,11 +192,15 @@ class TestChargedIeeeExamplesGate:
         text = typ_path.read_text(encoding="utf-8")
         assert '#import "@preview/charged-ieee:0.1.4": ieee' in text
         assert "_template.typ" not in text
-        assert "authors: (" in text
-        assert 'name: "' in text
 
         show_rule_region = _show_rule_call_region(text)
         assert "date:" not in show_rule_region
+        assert "authors:" in show_rule_region
+        assert "John Doe" in show_rule_region
+        assert "department:" in show_rule_region
+        assert "organization:" in show_rule_region
+        assert "location:" in show_rule_region
+        assert "email:" in show_rule_region
 
     def test_approach2_custom_template_sample_actually_uses_package(self, tmp_path):
         """

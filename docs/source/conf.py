@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
+    "myst_parser",
     "typsphinx",
 ]
 
@@ -94,22 +95,12 @@ typst_use_mitex = True
 # measurement basis.
 typst_template = "_typst/custom_template.typ"
 
-# The bundled default template (typsphinx/templates/base.typ) has its `lang`
-# template parameter auto-derived from Sphinx's `language` config -- but only
-# on the default-template path (TemplateEngine.uses_bundled_default_template()
-# is False for any explicit `typst_template`, per typsphinx/writer.py).
-# Setting `typst_template` above silently drops that auto-derivation unless
-# it is replicated here explicitly. This reuses the exact same public helper
-# the bundled path calls internally, so the custom template still receives
-# the correct Typst `lang` code ("ja" for the translations project, "en" for
-# the parent) instead of silently falling back to the template's own
-# `lang="en"` default for every build regardless of `language`.
-from typsphinx.template_engine import derive_typst_lang  # noqa: E402
-
-_typst_lang = derive_typst_lang(language)
-typst_elements = {}
-if _typst_lang:
-    typst_elements["lang"] = _typst_lang
+# CONF-12/D-I: as of typsphinx 0.7.1, the extension itself auto-derives the
+# `lang` template parameter from Sphinx's `language` config on every
+# non-package template route, including the explicit `typst_template` set
+# above -- `TemplateEngine.uses_bundled_default_template()` was narrowed to
+# its `typst_package` guard alone. This file no longer needs to reconstruct
+# `typst_elements["lang"]` by hand; do not re-add that workaround.
 
 # -- Intersphinx configuration -----------------------------------------------
 
