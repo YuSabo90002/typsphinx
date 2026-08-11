@@ -13,6 +13,18 @@
 #   - The first entry's target `index-wrapper.typ` deliberately does NOT
 #     collide with anything, so `-b typst`'s failure (once BLD-04 closes)
 #     is attributable to the SECOND entry alone.
+#   - `index.rst` deliberately does NOT toctree-include `manual` (fixed
+#     during task 3, after measuring the confound this caused): if `manual`
+#     were also a toctree CHILD of `index`, the toctree's docname-derived
+#     `include("manual.typ")` would collide with B-1 (the docname/target
+#     mismatch defect this fixture is NOT testing), since `manual`'s own
+#     master target is `Manual.typ`, not `manual.typ` -- `-b typstpdf`
+#     would then ALREADY fail pre-fix for the wrong reason (a bare
+#     `file not found` TypstError, not a collision-detection message).
+#     Leaving `manual` out of any toctree (accepting the harmless "document
+#     isn't included in any toctree" warning, non-fatal) isolates BLD-04's
+#     case-collision defect cleanly, on both `-b typst` and `-b typstpdf`,
+#     with no B-1 confound.
 
 project = "Case Collision Gate"
 author = "Probe Author"

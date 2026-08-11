@@ -315,4 +315,221 @@ tests/test_two_layer_output_gate.py::TestComputeContentIncludePath::test_compute
 ```
 Exit code: 0. Every test `XFAIL` — no `xpassed`, no `failed`, no `error`.
 
-<!-- gsd:write-continue -->
+---
+
+## BLD-02 — Duplicate targets detected, not silently dropped
+
+**RED shape:** structural — exit 0, no collision warning anywhere, the first entry's body silently
+overwritten.
+
+**Command:** `uv run python -m sphinx -b typst tests/fixtures/bld02_duplicate_target_gate <build_dir>`
+
+**Raw output:**
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [en]... 完了
+ビルド中 [mo]: 更新された 0 件のpoファイル
+出力中...
+ビルド中 [typst]: 更新された 2 件のソースファイル
+環境データを更新中[新しい設定] 2 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[ 50%] index
+ソースを読み込み中...[100%] other
+
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... 完了
+preparing documents... Template written to <build_dir>/_template.typ
+done
+writing output... [index] done
+writing output... [other] done
+build succeeded.
+```
+Exit code: 0, no warning at all.
+
+**Emitted files:** `_template.typ`, `manual.typ` — no `index.typ` or `other.typ` (single-file
+per-docname model, both resolve to the SAME stem `manual`).
+
+**Marker survival counts against the surviving `manual.typ`:**
+```
+$ grep -c INDEX-MASTER-MARKER-AAA <build_dir>/manual.typ
+0
+$ grep -c OTHER-MASTER-MARKER-BBB <build_dir>/manual.typ
+1
+```
+The first entry's (`index`) body is completely gone — silently dropped by the sorted-order write
+loop (`"index"` written first, `"other"` written second, overwriting).
+
+**Verbatim surviving `manual.typ` content:**
+```typst
+// Essential package imports
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.10": *
+#import "@preview/mitex:0.2.7": mi, mitex
+#import "@preview/gentle-clues:1.3.1": *
+
+#show: codly-init.with()
+#codly(languages: codly-languages)
+
+#import "_template.typ": project
+
+#show: project.with(
+  title: "Other Master",
+  authors: ("Probe Author",),
+  date: "1.0.0",
+  lang: "en",
+)
+
+#{
+[#heading(depth: 1, {text("Other Master")}) <other:other-master>]
+
+par({text("This is the other master's own body. OTHER-MASTER-MARKER-BBB")})
+
+
+}
+```
+
+**RED confirmed:** `test_bld02_duplicate_target_rejected_typst` asserts `result.returncode != 0`
+against the exit-0 output above — `AssertionError`, caught by `xfail(strict=True)`, reported
+`XFAIL`. The `-b typstpdf` counterpart (`test_bld02_duplicate_target_rejected_typstpdf`) was also
+measured this task: exit 0, `Generated PDF: <build_dir>/manual.pdf` (produced from whichever
+entry survived the silent overwrite) — same RED shape, same assertion failure.
+
+---
+
+## BLD-03 — Wrapper target colliding with a content file's own path detected
+
+**RED shape:** structural — exit 0, no warning, the exact D-01 self-collision configuration
+building successfully.
+
+**Command:** `uv run python -m sphinx -b typst tests/fixtures/bld03_self_collision_gate <build_dir>`
+
+**Raw output:**
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [en]... 完了
+ビルド中 [mo]: 更新された 0 件のpoファイル
+出力中...
+ビルド中 [typst]: 更新された 1 件のソースファイル
+環境データを更新中[新しい設定] 1 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[100%] index
+
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... 完了
+preparing documents... Template written to <build_dir>/_template.typ
+done
+writing output... [index] done
+build succeeded.
+```
+Exit code: 0, no warning at all.
+
+**Emitted files:** `_template.typ`, `index.typ` — a single, fully-templated file, containing
+`SELF-COLLISION-BODY-MARKER`.
+
+**RED confirmed:** `test_bld03_self_collision_rejected_typst` asserts `result.returncode != 0`
+against the exit-0 output above — `AssertionError`, caught by `xfail(strict=True)`, reported
+`XFAIL`. The `-b typstpdf` counterpart (`test_bld03_self_collision_rejected_typstpdf`) was also
+measured this task: exit 0, `Generated PDF: <build_dir>/index.pdf` — same RED shape.
+
+---
+
+## BLD-04 — Collision detection behaves identically on case-insensitive filesystems
+
+**RED shape:** structural at the unit level (the comparison function does not exist yet, let alone
+fold case) — the physical-collision consequence is unobservable on Linux CI, confirmed directly
+this task.
+
+**Fixture design note (Rule 1 fix applied this task):** the fixture's `index.rst` originally
+toctree-included `manual`, which reproduced an UNRELATED confound — since `manual`'s own
+`typst_documents` target (`Manual.typ`) differs from the toctree's docname-derived include
+(`manual.typ`), this accidentally triggered B-1's `file not found` failure on `-b typstpdf`,
+masking the case-collision defect behind a different one. The toctree link was removed (accepting
+the harmless "document isn't included in any toctree" warning) so BLD-04's own defect is isolated
+cleanly on both builders. See the fixture's own `conf.py` comment for the full account.
+
+**Command 1 (`-b typst`, corrected fixture):**
+```
+Sphinx v9.1.0 を実行中
+翻訳カタログをロードしています [en]... 完了
+ビルド中 [mo]: 更新された 0 件のpoファイル
+出力中...
+ビルド中 [typst]: 更新された 2 件のソースファイル
+環境データを更新中[新しい設定] 2 件追加, 0 件更新, 0 件削除
+ソースを読み込み中...[ 50%] index
+ソースを読み込み中...[100%] manual
+
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... <fixture>/manual.rst: WARNING: ドキュメントはどの toctree にも含まれていません [toc.not_included]
+完了
+preparing documents... Template written to <build_dir>/_template.typ
+done
+writing output... [index] done
+writing output... [manual] done
+build succeeded, 1 warning.
+```
+Exit code: 0. The one warning is the harmless orphan-document notice, unrelated to BLD-04.
+
+**Emitted files:** `_template.typ`, `index-wrapper.typ`, `Manual.typ` — **two DISTINCT files**
+(`index-wrapper.typ` and `Manual.typ`) coexist on this Linux, case-sensitive filesystem. States in
+prose: on a case-insensitive filesystem (Windows, default macOS APFS), `Manual.typ` (the second
+entry's target) and `manual.typ` (docname `manual`'s own content path, once COMP-01 makes content
+files unconditional) would be the SAME physical path — the physical collision consequence is
+therefore observable ONLY on the Windows/macOS CI lanes, never on Linux, confirming the gap this
+requirement closes is real and structurally invisible to a Linux-only local run.
+
+**Command 2 (`-b typstpdf`, corrected fixture):** exit 0, `build succeeded, 1 warning`,
+`Generated PDF: <build_dir>/index-wrapper.pdf` and `Generated PDF: <build_dir>/Manual.pdf` — both
+builders share the same undetected gap.
+
+**RED confirmed (subprocess half):** `test_bld04_case_collision_rejected_typst` and
+`test_bld04_case_collision_rejected_typstpdf` both assert `result.returncode != 0` against the
+exit-0 outputs above — `AssertionError`, caught by `xfail(strict=True)`, reported `XFAIL`.
+
+**RED confirmed (unit half, the load-bearing one since Linux cannot observe the physical
+overwrite):** `test_collision_key_folds_case_but_not_unicode_normalization` accesses
+`TypstBuilder._collision_key` — verified this task that the attribute does not exist on the
+unfixed tree:
+```
+$ uv run python3 -c "from typsphinx.builder import TypstBuilder; TypstBuilder._collision_key"
+AttributeError: type object 'TypstBuilder' has no attribute '_collision_key'
+```
+`AttributeError`, caught by `xfail(strict=True, raises=AttributeError)`, reported `XFAIL`.
+
+---
+
+## Full-module raw pytest transcript (BLD-02, BLD-03, BLD-04, both builders + the unit edge test)
+
+**Command:** `uv run pytest tests/test_collision_validator_gate.py -v`
+
+**Raw output:**
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- <venv>/bin/python
+cachedir: .pytest_cache
+rootdir: <worktree>
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 7 items
+
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld02_duplicate_target_rejected_typst XFAIL [ 14%]
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld02_duplicate_target_rejected_typstpdf XFAIL [ 28%]
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld03_self_collision_rejected_typst XFAIL [ 42%]
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld03_self_collision_rejected_typstpdf XFAIL [ 57%]
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld04_case_collision_rejected_typst XFAIL [ 71%]
+tests/test_collision_validator_gate.py::TestCollisionValidatorGate::test_bld04_case_collision_rejected_typstpdf XFAIL [ 85%]
+tests/test_collision_validator_gate.py::TestCollisionKeyUnit::test_collision_key_folds_case_but_not_unicode_normalization XFAIL [100%]
+
+============================== 7 xfailed in 3.65s ==============================
+```
+Exit code: 0. Every test `XFAIL` — no `xpassed`, no `failed`, no `error`.
+
+**Combined run (both new gate modules together):**
+```
+$ uv run pytest tests/test_two_layer_output_gate.py tests/test_collision_validator_gate.py -q
+tests/test_two_layer_output_gate.py xxxxxx                               [ 46%]
+tests/test_collision_validator_gate.py xxxxxxx                           [100%]
+
+============================= 13 xfailed in 5.97s ==============================
+```
+Exit code: 0.

@@ -110,29 +110,28 @@ class TestTwoLayerOutputGate:
         )
 
         content = content_typ.read_text(encoding="utf-8")
-        assert "#show: project.with(" not in content, (
-            f"Expected NO template application in the content file:\n{content}"
-        )
-        assert "_template.typ" not in content, (
-            f"Expected NO _template.typ import in the content file:\n{content}"
-        )
-        assert '#import "@preview/codly:1.3.0": *' in content, (
-            f"Expected the D-06 codly import in the content file:\n{content}"
-        )
+        assert (
+            "#show: project.with(" not in content
+        ), f"Expected NO template application in the content file:\n{content}"
+        assert (
+            "_template.typ" not in content
+        ), f"Expected NO _template.typ import in the content file:\n{content}"
+        assert (
+            '#import "@preview/codly:1.3.0": *' in content
+        ), f"Expected the D-06 codly import in the content file:\n{content}"
         assert '#import "@preview/codly-languages:0.1.10": *' in content, (
             f"Expected the D-06 codly-languages import in the content file:\n"
             f"{content}"
         )
-        assert '#import "@preview/mitex:0.2.7": mi, mitex' in content, (
-            f"Expected the D-06 mitex import in the content file:\n{content}"
-        )
+        assert (
+            '#import "@preview/mitex:0.2.7": mi, mitex' in content
+        ), f"Expected the D-06 mitex import in the content file:\n{content}"
         assert '#import "@preview/gentle-clues:1.3.1": *' in content, (
-            f"Expected the D-06 gentle-clues import in the content file:\n"
-            f"{content}"
+            f"Expected the D-06 gentle-clues import in the content file:\n" f"{content}"
         )
-        assert "ROOT-BODY-MARKER-AAA" in content, (
-            f"Expected the content file's own body marker:\n{content}"
-        )
+        assert (
+            "ROOT-BODY-MARKER-AAA" in content
+        ), f"Expected the content file's own body marker:\n{content}"
 
     @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_comp02_wrapper_file_has_template_and_include(self, tmp_path):
@@ -165,16 +164,15 @@ class TestTwoLayerOutputGate:
         )
 
         content = wrapper_typ.read_text(encoding="utf-8")
-        assert "_template.typ" in content, (
-            f"Expected the shared-template import in the wrapper:\n{content}"
-        )
+        assert (
+            "_template.typ" in content
+        ), f"Expected the shared-template import in the wrapper:\n{content}"
         assert "#include(" in content, (
-            f"Expected an #include() of the content file in the wrapper:\n"
-            f"{content}"
+            f"Expected an #include() of the content file in the wrapper:\n" f"{content}"
         )
-        assert "index.typ" in content, (
-            f"Expected the wrapper's #include() to name index.typ:\n{content}"
-        )
+        assert (
+            "index.typ" in content
+        ), f"Expected the wrapper's #include() to name index.typ:\n{content}"
 
     @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_out03_content_files_stay_docname_derived(self, tmp_path):
@@ -288,7 +286,15 @@ class TestTwoLayerOutputGatePdf:
         source_dir = NESTED_MASTER_FIXTURE_DIR
         build_dir = tmp_path_factory.mktemp("two_layer_nested_master_gate") / "_build"
         result = subprocess.run(
-            [sys.executable, "-m", "sphinx", "-b", "typst", str(source_dir), str(build_dir)],
+            [
+                sys.executable,
+                "-m",
+                "sphinx",
+                "-b",
+                "typst",
+                str(source_dir),
+                str(build_dir),
+            ],
             capture_output=True,
             text=True,
         )
@@ -337,12 +343,12 @@ class TestTwoLayerOutputGatePdf:
         "2.1 Contents" section heading and its "Contents" title line).
         """
         text = nested_master_outer_pdf_text
-        assert "OUTER-PROSE-MARKER" in text, (
-            f"Expected the outer document's own prose marker:\n{text}"
-        )
-        assert "GUIDE-BODY-MARKER" in text, (
-            f"Expected the nested document's own body marker:\n{text}"
-        )
+        assert (
+            "OUTER-PROSE-MARKER" in text
+        ), f"Expected the outer document's own prose marker:\n{text}"
+        assert (
+            "GUIDE-BODY-MARKER" in text
+        ), f"Expected the nested document's own body marker:\n{text}"
         assert "Nested Master" not in text, (
             f"Expected NO second title page (the nested entry's own "
             f"typst_documents title, which never appears in a "
@@ -377,10 +383,5 @@ class TestComputeContentIncludePath:
             compute_content_include_path("manuals", "guide/index.typ")
             == "../guide/index.typ"
         )
-        assert (
-            compute_content_include_path("", "guide/index.typ")
-            == "guide/index.typ"
-        )
-        assert (
-            compute_content_include_path("guide", "guide/index.typ") == "index.typ"
-        )
+        assert compute_content_include_path("", "guide/index.typ") == "guide/index.typ"
+        assert compute_content_include_path("guide", "guide/index.typ") == "index.typ"

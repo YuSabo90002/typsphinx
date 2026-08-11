@@ -176,7 +176,9 @@ stem is identical to the docname itself. `index.rst` body carries `SELF-COLLISIO
 
 ## Fixture 5: `bld04_case_collision_gate`
 
-**Source read literally:** `conf.py` — docnames `index` (toctree lists `manual`) and `manual`;
+**Source read literally:** `conf.py` — docnames `index` and `manual` (deliberately NOT linked by
+any toctree — see the fixture's own `conf.py` comment for why: a toctree edge here would
+confound BLD-04's case-collision defect with the unrelated B-1 docname/target-mismatch defect);
 `typst_documents = [("index", "index-wrapper.typ", "Index Wrapper Master", "Probe Author"),
 ("manual", "Manual.typ", "Manual Master", "Probe Author")]` — the second entry's target differs
 from the docname `manual` only by the capital `M`. `index.rst` body carries
@@ -192,7 +194,7 @@ from the docname `manual` only by the capital `M`. `index.rst` body carries
 
 | Logical role | Outdir-relative path | Notes |
 |---|---|---|
-| Single file (docname `index`, is-master) | `index-wrapper.typ` | Target has no separator, not guarded; resolves cleanly. Full template applied; body contains `INDEX-WRAPPER-BODY-MARKER` plus the toctree's `#include("manual.typ")`. |
+| Single file (docname `index`, is-master) | `index-wrapper.typ` | Target has no separator, not guarded; resolves cleanly. Full template applied; body contains `INDEX-WRAPPER-BODY-MARKER` only — no toctree include (the fixture deliberately does not link `manual` from `index`'s toctree). |
 | Single file (docname `manual`, is-master) | `Manual.typ` | Target `"Manual.typ"` has no separator, not guarded. CR-01's `effective != docname` check compares the RAW strings `"Manual" != "manual"` — TRUE (they differ as plain strings on this case-sensitive comparison), so no collision is flagged even though `_resolve_output_stem` performs no `casefold()` anywhere. Build succeeds, exit 0, no warning. Full template applied; body contains `MANUAL-BODY-MARKER`. Two DISTINCT files coexist on Linux's case-sensitive filesystem (`index-wrapper.typ` and `Manual.typ`) — this is precisely `47-RESEARCH.md` Pitfall 5's measured gap: the same configuration would silently overwrite one file with the other on Windows/macOS's default case-insensitive filesystem, invisibly to Linux CI. |
 
 ---
