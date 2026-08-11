@@ -96,3 +96,14 @@ LaTeX に揃え**（5 要素 `(root_doc, "<project>.typ", project, author, "typs
 - 5 要素目（docs 上「Document class (usually 'typst')」）に意味を与えるか、無意味なまま残すか。
 - `docs/source/user_guide/configuration.rst` の 5 要素契約の記述更新（配線後は実際に効くので、
   「効かない」旨の但し書きが不要になる）。
+
+## Resolution (2026-08-11)
+
+Phase 44.2 plan 01 (CONF-09) が実装、Phase 46 plan 46-06 (Task 3) で再測定し確認した(信用で
+持ち越さない)。`44.2-01-SUMMARY.md` 自身の one-liner: 「A `typst_documents` entry's own title
+and author now reach the compiled PDF's metadata (proven end-to-end via a real `-b typstpdf`
+compile read back through `pypdf`), and `typst_authors` no longer silently wins over the mapped
+author value on any route where `"author"` is an active mapping key.」
+`.planning/phases/46-v0-7-1-release-prep-prep-only/46-CONTEXT.md` の D-28 も参照 — この項目の
+「2026-08-04 更新」節が記録した通り、v0.7.1 復帰の判断は撤回されておらず、実装は
+Phase 44.2 で完了している。Phase 46 plan 46-06, Task 3 により `todos/completed/` へ移動。

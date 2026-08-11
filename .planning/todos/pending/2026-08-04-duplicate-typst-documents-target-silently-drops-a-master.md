@@ -66,3 +66,21 @@ CR-01 の fallback 規約（合成名を作らず docname にフォールバッ�
 修正にもそのまま効く。
 
 関連: [[.planning/phases/44-typst-documents-default-derivation-builder-input-hardening/44-REVIEW.md]] CR-02, WR-02
+
+## Re-measurement (2026-08-11, Phase 46 plan 46-06 Task 3)
+
+**Still reachable — Phase 44 plan 44-05's collision guard does not close this.** Re-derived from
+`44-05-SUMMARY.md`'s own scope statement: "Added a collision guard to
+`TypstBuilder._resolve_output_stem` ... a resolved target whose directory-qualified effective path
+equals a real docname in `self.env.found_docs`, or the reserved `_template` basename, now emits a
+`logger.warning` and falls back to the docname itself." Confirmed by reading the current
+`typsphinx/builder.py:189-196`: the comparison set is exactly `self.env.found_docs ∪ {"_template"}`
+— never a registry of already-resolved `typst_documents` targets from *other* entries in the same
+build, which is what this record's own two-entry `manual.typ`/`manual.typ` collision needs.
+
+Reproduced live in this plan's own worktree (`uv run python -m sphinx -b typst`, a two-master
+fixture identical in shape to this record's own repro): exit 0, no collision warning (the only
+warning emitted is the unrelated `toc.not_included`), `_build/manual.typ` written once, and
+`grep -c INDEX-MASTER-MARKER-AAA` on it returns `0` while `grep -c OTHER-MASTER-MARKER-BBB` returns
+`1` — the first master's body is silently dropped, exactly as this record describes. Left pending;
+named in `46-HANDOFF.md` § "Deferred by decision, not oversight".

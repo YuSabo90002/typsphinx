@@ -211,8 +211,47 @@ claim is stale. This observation carries `docs/source/changelog.rst`'s now-narro
 
 ## Deferred by decision, not oversight
 
-See this plan's own Task 3 todo ledger, which disposes of every record in
-`.planning/todos/pending/` in writing rather than duplicating that ledger here.
+Every record remaining in `.planning/todos/pending/` after this phase's Task 3 disposition (the
+D-22 record is the one exception — filed to `todos/completed/` this phase), named here so a
+close-side sweep does not mistake any of them for an oversight of this handoff:
+
+1. **`2026-07-22-add-sphinx-linkcheck-ci-job.md`** — Future requirement LNK-01;
+   `.github/workflows/links.yml`'s existing advisory repository-wide lychee check already covers
+   the links this release adds.
+2. **`2026-07-22-modernize-typing-imports-drop-up006-up035-ignore.md`** — forbidden by this
+   project's own `CLAUDE.md` ("don't 'modernize' typing imports until that todo lands") and by the
+   milestone's own binding constraint, until the todo itself lands.
+3. **`2026-08-04-release-create-job-missing-uv-verify-end-to-end.md`** — this **is** REL-04; stays
+   pending until a real tag push runs `create-release` to completion (item 3 above).
+4. **`2026-08-04-duplicate-typst-documents-target-silently-drops-a-master.md`** — re-measured this
+   phase (Task 3): still reachable. A live reproduction (two `typst_documents` entries both
+   targeting `manual.typ`) confirmed `-b typst` exits 0 with no collision warning and silently
+   drops the first master's body — Phase 44 plan 44-05's collision guard compares only against
+   `self.env.found_docs` (real docnames) and the reserved `_template` basename, never against a
+   registry of already-resolved `typst_documents` targets, so it structurally cannot catch a
+   master-vs-master collision. A `typst_documents`-modelling defect, unrelated to release prep.
+5. **`2026-08-05-a-master-that-is-also-a-toctree-child-is-unrepresentable.md`** — a `typst_documents`
+   modelling defect, unrelated to release prep.
+6. **`2026-08-05-shared-document-silently-dropped-from-all-but-first-master.md`** — the
+   per-build-not-per-master include-dedup ledger defect.
+7. **`2026-08-10-rehomed-converted-image-collides-with-srcdir-images-dir.md`** and
+   **`2026-08-10-track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri.md`** — deferred by
+   owner decision (D-27), not by impossibility; the code is on `main` and ships in v0.7.1 (see
+   "Not done in this phase, by design" above).
+8. **`2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`** — a `flake.nix`-side toolchain
+   repair in the same family as QUA-04; does not block SC#3, which takes lint authority from CI.
+
+**Two more records were re-measured this phase (Task 3) and found already delivered, filed to
+`todos/completed/` rather than carried forward again:**
+
+- `2026-08-04-documented-custom-template-parameter-contract-is-wrong-and-t.md` (DOC-13) — delivered
+  by Phase 45.1 plan 06, confirmed by that plan's own `requirements-completed: [DOC-13, ...]` and
+  its SC#1/SC#3 regression gate (`tests/test_documented_params_contract_gate.py`), RED-proved
+  against the pre-fix commit and GREEN today.
+- `2026-08-04-typst-documents-title-author-elements-ignored.md` (CONF-09) — delivered by Phase 44.2
+  plan 01, confirmed by that plan's own one-liner: "A `typst_documents` entry's own title and
+  author now reach the compiled PDF's metadata (proven end-to-end via a real `-b typstpdf` compile
+  read back through `pypdf`)".
 
 ## Proof the fence held
 
