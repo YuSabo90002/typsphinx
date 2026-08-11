@@ -10,7 +10,7 @@ import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
@@ -233,9 +233,11 @@ class TypstBuilder(Builder):
         the filename a master document is written and compiled under --
         ``typst_documents = [('index', 'manual.typ', ...)]`` must emit
         ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``
-        (Issue #117). This is the single place that normalization rule is
-        implemented; every write/read-back site calls this method rather
-        than re-deriving the rule.
+        (Issue #117). This is the docname-based entry lookup; the actual
+        normalization rule lives in ``_resolve_target_stem()``, which this
+        delegates to once a matching entry is found -- every write/read-back
+        site reaches that same normalization through one of these two
+        methods, never re-deriving the rule.
 
         Args:
             docname: The Sphinx document name being written.
@@ -245,44 +247,67 @@ class TypstBuilder(Builder):
             When ``docname`` has no matching ``typst_documents`` entry, the
             docname itself is returned unchanged (D-02) -- this is the
             common case for every document that is not a compiled master.
-            OUT-01: a path-bearing target (e.g. ``"manuals/guide.typ"``) is
-            now returned AS-IS (relative to outdir) -- a path component is
-            no longer rejected. When the matched target name still escapes
-            outdir (a parent-traversal segment, an absolute path, or a
-            drive-qualified path -- OUT-02) or is empty/whitespace/non-str
-            after suffix stripping, a ``logger.warning`` is emitted and a
-            safe fallback is returned instead -- ``path.basename`` of the
-            offending stem for an escaping target, or the docname itself
-            for a degenerate target (edge: empty). When the resolved
-            stem's directory-qualified effective path equals another real
-            docname in ``self.env.found_docs`` or the reserved
-            ``_template`` basename (CR-01), a ``logger.warning`` is
-            emitted and the docname itself is returned, so a derived or
-            explicit target name can never silently overwrite another
-            document's output or the shared ``_template.typ``
-            infrastructure file. NOTE: this CR-01 check is left in its
-            pre-OUT-01 shape (it still computes its comparison through
-            ``_directory_preserving_relpath()``, which force-relocates
-            into the docname's own directory) -- 47-09's unified
-            collision validator replaces it; deleting it here would leave
-            a window with no collision handling at all.
+            Performs NO collision detection -- that moved wholesale to
+            ``_validate_output_path_collisions()`` (D-03), run once before
+            any write; this method (and ``_resolve_target_stem()``) never
+            reads ``self.env.found_docs`` or the reserved ``_template``
+            name, so a caller can never observe a silently-degraded stem
+            here. The former CR-01 in-function fallback (warn, then return
+            ``docname``) is gone -- a colliding stem is now returned
+            AS-IS and caught by the validator before it is ever written.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
 
-        entry_found = False
-        target: object = None
         for entry in typst_documents:
             if entry and len(entry) >= 2 and entry[0] == docname:
-                target = entry[1]
-                entry_found = True
-                break
+                return self._resolve_target_stem(docname, entry[1])
 
-        if not entry_found:
-            # D-02: toctree-included children (and any docname with no
-            # typst_documents entry) keep docname + suffix. Silent -- this
-            # is the overwhelmingly common case (every non-master document).
-            return docname
+        # D-02: toctree-included children (and any docname with no
+        # typst_documents entry) keep docname + suffix. Silent -- this
+        # is the overwhelmingly common case (every non-master document).
+        return docname
 
+    def _resolve_target_stem(self, docname: str, target: object) -> str:
+        """Normalize one ``typst_documents`` entry's target into an output
+        stem, given the target value directly rather than searching
+        ``typst_documents`` for it.
+
+        This is the normalization core ``_resolve_output_stem()`` delegates
+        to after its own docname-based first-match lookup, and that
+        ``_wrapper_output_relpath()`` calls DIRECTLY on a specific entry's
+        own target -- bypassing the first-match lookup entirely. That is
+        what lets two ``typst_documents`` entries naming the SAME docname
+        with DIFFERENT targets (D-04) each resolve their OWN wrapper path
+        independently, rather than both resolving via whichever entry a
+        docname-based search happens to find first (the gap
+        ``47-02-SUMMARY.md`` and ``47-06-SUMMARY.md`` both named as
+        deferred to this plan).
+
+        Performs NO collision detection -- that is
+        ``_validate_output_path_collisions()``'s job alone (D-03), run once
+        before any write, over the outdir-relative path this method
+        returns.
+
+        Args:
+            docname: The Sphinx document name the entry names (used only
+                for warning messages and the degenerate-target fallback).
+            target: The entry's raw target value (tuple element ``[1]``),
+                of any type -- a non-``str`` value is a degenerate target
+                (edge: empty).
+
+        Returns:
+            The filename stem (no suffix) to use for this entry's wrapper
+            output. OUT-01: a path-bearing target (e.g.
+            ``"manuals/guide.typ"``) is returned AS-IS (relative to
+            outdir) -- a path component is no longer rejected. When the
+            target still escapes outdir (a parent-traversal segment, an
+            absolute path, or a drive-qualified path -- OUT-02) or is
+            empty/whitespace/non-str after suffix stripping, a
+            ``logger.warning`` is emitted and a safe fallback is returned
+            instead -- ``path.basename`` of the offending stem for an
+            escaping target, or the docname itself for a degenerate
+            target (edge: empty).
+        """
         if isinstance(target, str):
             # D-04: strip only a literal trailing ".typ" -- an extension-
             # splitting helper would truncate "v1.2-manual" to "v1", which
@@ -356,66 +381,150 @@ class TypstBuilder(Builder):
             )
             return docname
 
-        # CR-01 collision guard. Two facts make this comparison correct:
-        # (1) _write_template_file() writes "_template.typ" at the outdir
-        #     ROOT only (never nested), so reserving the "_template"
-        #     basename is a root-level equality test, not a basename test;
-        # (2) the value that actually determines the written path is NOT
-        #     the bare stem -- _directory_preserving_relpath() re-prefixes
-        #     a nested docname's stem with that docname's own directory
-        #     before it is joined with self.outdir -- so the comparison
-        #     must be made on that directory-qualified effective path.
-        effective = self._directory_preserving_relpath(docname, stem)
-        found_docs = getattr(self.env, "found_docs", None) or set()
-        if effective != docname and (
-            effective in found_docs or effective == "_template"
-        ):
-            logger.warning(
-                f"typst_documents target name {target!r} for docname "
-                f"{docname!r} collides with an existing document or the "
-                f"reserved template file -- falling back to {docname!r}"
-            )
-            return docname
-
         # No Unicode normalization, case folding, or transliteration -- a
         # non-ASCII stem such as "マニュアル" survives byte-for-byte
         # (edge: encoding).
         return stem
 
-    def _directory_preserving_relpath(self, docname: str, stem: str) -> str:
-        """Combine a resolved output stem with the docname's own directory.
+    @staticmethod
+    def _collision_key(relative_path: str) -> str:
+        """Return the COMPARISON-ONLY key for an outdir-relative output
+        path (D-05).
 
-        ``_resolve_output_stem`` returns only a basename-safe stem (D-06/
-        D-07 already reduced any path-bearing target to its basename), so a
-        nested docname's typst_documents target must stay inside that
-        docname's own directory rather than being written at outdir's root
-        -- ``('sub/index', 'manual.typ', ...)`` must emit
-        ``outdir/sub/manual.typ``, not ``outdir/manual.typ`` (D-05). When no
-        typst_documents entry matched, or a degenerate/guarded target fell
-        back to the docname itself, ``stem`` already equals ``docname`` and
-        already carries its own directory -- prepending
-        ``path.dirname(docname)`` again would double it, so that case
-        returns ``stem`` untouched.
+        Folds ``\\`` to ``/`` (so a Windows-authored separator compares
+        identically to a POSIX one) and then ``casefold()``s the result --
+        ``_collision_key("Manual.typ") == _collision_key("manual.typ")``
+        and ``_collision_key("MANUAL") == _collision_key("manual")`` on
+        EVERY platform, with no ``sys.platform`` branch. This is the ONLY
+        place this normalization happens; every collision-map insertion
+        and lookup in ``_validate_output_path_collisions()`` goes through
+        it, so a bare ``==`` on two raw path strings can never creep back
+        in and silently miss a case-only collision on a case-SENSITIVE
+        filesystem (BLD-04's whole point: Linux CI must catch what only a
+        case-INSENSITIVE filesystem would otherwise silently overwrite).
+
+        Deliberately does NOT apply Unicode normalization (NFC/NFD): two
+        canonically-equivalent but differently-encoded strings (e.g. the
+        NFC and NFD spellings of "Å") are DIFFERENT keys here. Folding is
+        COMPARISON-ONLY -- the WRITTEN filename always keeps the user's
+        exact bytes; this function only ever governs whether two logical
+        files CLAIM the same physical path, never what gets written to
+        disk.
 
         Args:
-            docname: The Sphinx document name being written.
-            stem: The value returned by ``_resolve_output_stem(docname)``.
+            relative_path: An outdir-relative output path (e.g.
+                ``"manual.typ"``, ``"sub/guide.typ"``).
 
         Returns:
-            An outdir-relative path (no suffix) preserving the docname's
-            directory structure.
+            The comparison-only key for ``relative_path``.
+
+        Examples:
+            >>> TypstBuilder._collision_key("Manual.typ") == TypstBuilder._collision_key("manual.typ")
+            True
+            >>> TypstBuilder._collision_key("MANUAL") == TypstBuilder._collision_key("manual")
+            True
         """
-        if stem == docname:
-            return stem
-        # docnames are always '/'-separated, so use posixpath throughout:
-        # os.path on Windows (ntpath) would emit a backslash from join,
-        # breaking the docname-style relative path. The downstream
-        # path.join(self.outdir, ...) accepts forward slashes on all
-        # platforms.
-        directory = posixpath.dirname(docname)
-        if directory:
-            return posixpath.join(directory, posixpath.basename(stem))
-        return stem
+        return relative_path.replace("\\", "/").casefold()
+
+    def _validate_output_path_collisions(self) -> None:
+        """Validate that no two logical output files -- a docname's
+        content file, a ``typst_documents`` entry's wrapper file, or the
+        reserved ``_template.typ`` infrastructure file -- resolve to the
+        same physical output path (D-01/D-02/D-03/D-04/D-05).
+
+        Runs ONCE, called from ``write()`` at the very top -- before
+        ``prepare_writing()`` (which writes the shared ``_template.typ``
+        immediately) and before the per-docname write loop -- so "no
+        output file is written when any collision is found" (D-02) is
+        structural rather than a promise, and covers ``_template.typ``
+        itself, not only content/wrapper files. Defined on
+        ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it unchanged
+        (D-03) -- both builders reject the same configurations identically.
+
+        Builds ONE map from ``_collision_key()`` to a human-readable
+        description of the logical file that claimed it, populated in
+        this order: the reserved ``_template.typ`` infrastructure file;
+        every docname in ``self.env.found_docs`` mapped to its content
+        path; every ``typst_documents`` entry mapped to its resolved
+        wrapper path. On a repeat key, BOTH claimants are recorded as one
+        failure rather than raising immediately, so every offending entry
+        is named in a SINGLE ``ExtensionError`` (D-02).
+
+        A malformed entry (empty tuple, fewer than two elements, or a
+        non-``str`` docname) is skipped without raising and without being
+        added to the map -- reporting a malformed entry stays
+        ``TypstPDFBuilder.finish()``'s job alone, matching the tolerance
+        the existing guard loops already have.
+
+        Two entries naming the SAME docname with DIFFERENT targets are
+        explicitly allowed (D-04): each resolves an independent wrapper
+        key (via ``_wrapper_output_relpath()``'s own per-entry
+        resolution), so this never asks "is this docname repeated" --
+        only "do two logical files want one physical path".
+
+        Raises:
+            ExtensionError: When one or more physical output paths are
+                claimed by more than one logical file. The message begins
+                with ``"typst: N output path collision(s)"`` (D-02's
+                summary prefix) followed by every offending pair.
+        """
+        claims: Dict[str, str] = {}
+        failures: List[Tuple[str, str]] = []
+
+        def _claim(relpath: str, description: str) -> None:
+            key = self._collision_key(relpath)
+            existing = claims.get(key)
+            if existing is not None:
+                failures.append(
+                    (
+                        relpath,
+                        f"{existing} and {description} both resolve to "
+                        f"the same output path {relpath!r}",
+                    )
+                )
+                return
+            claims[key] = description
+
+        # 1. The reserved _template.typ infrastructure file
+        #    (_write_template_file() writes it once, at the outdir root)
+        #    -- inserted first so any later claimant is reported against
+        #    it by name (D-01's reserved-file kind).
+        _claim("_template.typ", "the reserved _template.typ infrastructure file")
+
+        # 2. Every docname's own content file -- unconditional, regardless
+        #    of whether any typst_documents entry names it (COMP-01/OUT-03).
+        found_docs = getattr(self.env, "found_docs", None) or set()
+        for docname in found_docs:
+            _claim(docname + ".typ", f"the content file for docname {docname!r}")
+
+        # 3. Every typst_documents entry's wrapper file (BLD-02/BLD-03/
+        #    BLD-04), resolved per-entry via _wrapper_output_relpath() --
+        #    never via a docname-based first-match search, which is what
+        #    makes D-04's repeated-docname/different-target case resolve
+        #    to two independent keys instead of colliding with itself.
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        for index, entry in enumerate(typst_documents):
+            if not entry or len(entry) < 2 or not isinstance(entry[0], str):
+                # Malformed -- skip without raising or reporting. That
+                # tolerance matches the existing guard loops; reporting a
+                # malformed entry stays TypstPDFBuilder.finish()'s job.
+                continue
+            docname = entry[0]
+            target = entry[1]
+            wrapper_relpath = self._wrapper_output_relpath(entry) + ".typ"
+            _claim(
+                wrapper_relpath,
+                f"typst_documents entry {index} (docname {docname!r}, "
+                f"target {target!r})",
+            )
+
+        if failures:
+            summary = "; ".join(
+                f"{relpath!r}: {message}" for relpath, message in failures
+            )
+            raise ExtensionError(
+                f"typst: {len(failures)} output path collision(s): {summary}"
+            )
 
     def get_outdated_docs(self) -> Iterator[str]:
         """
@@ -505,6 +614,17 @@ class TypstBuilder(Builder):
         else:
             # build all
             docnames = set(build_docnames)
+
+        # D-02/D-03: validate BEFORE anything is written -- including
+        # prepare_writing()'s own _write_template_file() call just below,
+        # which writes "_template.typ" to outdir immediately. Placed here,
+        # at the very top of write(), rather than after
+        # master_included_docnames is computed, so a collision leaves
+        # ZERO ".typ" files on disk, not just zero content/wrapper files
+        # (BLD-02's own gate asserts no ".typ" file anywhere in the build
+        # directory, which "_template.typ" would violate if this ran any
+        # later). TypstPDFBuilder inherits this unchanged (D-03).
+        self._validate_output_path_collisions()
 
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
@@ -678,10 +798,9 @@ class TypstBuilder(Builder):
 
         Unconditional, and a pure function of the docname alone -- a
         docname already carries its own ``/``-separated directory, so
-        this needs no ``_resolve_output_stem()`` call and no
-        ``_directory_preserving_relpath()`` call. Every docname gets a
-        content file, regardless of whether any ``typst_documents`` entry
-        names it.
+        this needs no ``_resolve_output_stem()`` call. Every docname gets
+        a content file, regardless of whether any ``typst_documents``
+        entry names it.
 
         Args:
             docname: The Sphinx document name being written.
@@ -697,10 +816,16 @@ class TypstBuilder(Builder):
 
         OUT-01: the resolved stem is returned AS-IS, interpreted directly
         as a path relative to outdir -- no directory forcing.
-        ``_directory_preserving_relpath()``'s Phase 44 D-05 relocation
-        behavior is reversed for wrapper placement (it stays in the file,
-        used only for content placement's own still-valid job and for
-        ``_resolve_output_stem()``'s own CR-01 collision check).
+
+        Resolves the entry's OWN target directly, via
+        ``_resolve_target_stem(entry[0], entry[1])`` -- never through
+        ``_resolve_output_stem()``'s docname-based first-match search.
+        This is what makes D-04's repeated-docname case correct: two
+        entries naming the same docname with different targets each get
+        THEIR OWN wrapper path, rather than both resolving via whichever
+        entry a docname search happens to find first (the gap
+        ``47-02-SUMMARY.md`` and ``47-06-SUMMARY.md`` both named as
+        deferred to this plan).
 
         Args:
             entry: The specific ``typst_documents`` tuple to resolve a
@@ -709,7 +834,9 @@ class TypstBuilder(Builder):
         Returns:
             The outdir-relative wrapper path (no suffix).
         """
-        return self._resolve_output_stem(entry[0])
+        docname = entry[0]
+        target = entry[1] if len(entry) >= 2 else None
+        return self._resolve_target_stem(docname, target)
 
     def _write_typst_files(self, docname: str, doctree: nodes.document) -> None:
         """Write this docname's content file, then every wrapper file for
