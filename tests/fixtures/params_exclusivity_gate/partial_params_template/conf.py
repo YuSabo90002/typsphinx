@@ -22,8 +22,12 @@ extensions = ["typsphinx"]
 
 # index must be a master document so the writer applies the full
 # custom-template routing (not the minimal included-document import set).
+#
+# Phase 47 (OUT-01/BLD-03): the target is "master", not the identity
+# "index" -- see zero_params_template/conf.py's identical comment for why
+# an identity target is now a self-collision under a literal-path target.
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master", project, author),
 ]
 
 typst_template = "_templates/partial.typ"

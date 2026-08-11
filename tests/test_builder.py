@@ -154,18 +154,29 @@ def test_write_doc_generates_typst_content(temp_sphinx_app, sample_doctree):
     # Write a document
     builder.write_doc("index", sample_doctree)
 
-    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
-    # config value now resolves through _default_typst_documents, which
-    # names the "index" master's output via
-    # make_filename_from_project("Test Project") -> "testproject.typ"
-    # rather than the old literal "index.typ".
-    output_file = Path(builder.outdir) / "testproject.typ"
-    content = output_file.read_text()
+    # Phase 47 (R1/COMP-01): the translated BODY (the title from
+    # sample_doctree) lives on the docname-derived CONTENT file, always at
+    # "index.typ" -- unconditional, regardless of what any typst_documents
+    # entry's target names.
+    content_file = Path(builder.outdir) / "index.typ"
+    content = content_file.read_text()
 
     # Should contain basic Typst markup
     assert len(content) > 0
     # Should contain the title from sample_doctree
     assert "Test Section" in content
+
+    # CONF-08 (R2): temp_sphinx_app's conf.py omits typst_documents, so the
+    # config value now resolves through _default_typst_documents, which
+    # names the "index" master's WRAPPER via
+    # make_filename_from_project("Test Project") -> "testproject.typ"
+    # rather than the old literal "index.typ". The wrapper carries the
+    # template application and an #include() of the content file above,
+    # never the translated body itself.
+    wrapper_file = Path(builder.outdir) / "testproject.typ"
+    wrapper_content = wrapper_file.read_text()
+    assert len(wrapper_content) > 0
+    assert '#include("index.typ")' in wrapper_content
 
 
 def test_finish_completes_build(temp_sphinx_app, sample_doctree):

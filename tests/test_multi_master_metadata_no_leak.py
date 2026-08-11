@@ -22,7 +22,22 @@ identical across both masters and so could not detect an author leak.
 ``map_parameters()`` writes into each per-document ``.typ``, not about
 whether it typesets, so this module needs no PDF compiler or PDF-reading
 library and carries no availability skip-gate for either.
-"""
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the ``title:``/``authors:`` parameters this module asserts) lives
+exclusively on the WRAPPER file since the content/wrapper split, so both
+fixtures read below are each entry's resolved WRAPPER
+(``template-dir-master.typ``/``template-dir-sub.typ``, per plan 47-08 Task
+1's de-collision of this shared fixture -- both entries used to target the
+identity basename ``"index"``, a BLD-02 duplicate-target collision once
+OUT-01 makes a bare target resolve at the outdir root) rather than the
+docname content files (``_template/index.typ``/``_template/sub/index.typ``,
+which now carry no template application at all). D-08's per-entry
+isolation this module pins is unaffected by the split -- each wrapper
+still reads its own entry's title/author positionally
+(``_entry_element_value()``), independent of write order; this module adds
+one assertion (per plan 47-08 Task 2) that the two wrappers carry two
+different titles, making that isolation structural rather than incidental."""
 
 import subprocess
 import sys
@@ -80,28 +95,30 @@ def build_dir(tmp_path_factory):
 
 @pytest.fixture(scope="class")
 def depth1_text(build_dir):
-    """The depth-1 master, ``_template/index`` -- entry[2]/[3] both equal
-    the file's own ``project``/``author`` (this entry does not diverge; it
-    is not the fallback-control case)."""
-    depth1_master = build_dir / "_template" / "index.typ"
-    assert depth1_master.exists(), (
-        f"_template/index.typ was not emitted. Build dir contents: "
+    """The depth-1 entry's WRAPPER, ``template-dir-master.typ`` (docname
+    ``_template/index``) -- entry[2]/[3] both equal the file's own
+    ``project``/``author`` (this entry does not diverge; it is not the
+    fallback-control case)."""
+    depth1_wrapper = build_dir / "template-dir-master.typ"
+    assert depth1_wrapper.exists(), (
+        f"template-dir-master.typ was not emitted. Build dir contents: "
         f"{sorted(p.name for p in build_dir.iterdir())}"
     )
-    return depth1_master.read_text(encoding="utf-8")
+    return depth1_wrapper.read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="class")
 def depth2_text(build_dir):
-    """The depth-2 master, ``_template/sub/index`` -- entry[2] AND entry[3]
-    both diverge from the file's own ``project``/``author``, which is what
-    makes a fallback regression on THIS master detectable."""
-    depth2_master = build_dir / "_template" / "sub" / "index.typ"
-    assert depth2_master.exists(), (
-        f"_template/sub/index.typ was not emitted. Build dir contents: "
-        f"{sorted(p.name for p in (build_dir / '_template').iterdir())}"
+    """The depth-2 entry's WRAPPER, ``template-dir-sub.typ`` (docname
+    ``_template/sub/index``) -- entry[2] AND entry[3] both diverge from
+    the file's own ``project``/``author``, which is what makes a fallback
+    regression on THIS wrapper detectable."""
+    depth2_wrapper = build_dir / "template-dir-sub.typ"
+    assert depth2_wrapper.exists(), (
+        f"template-dir-sub.typ was not emitted. Build dir contents: "
+        f"{sorted(p.name for p in build_dir.iterdir())}"
     )
-    return depth2_master.read_text(encoding="utf-8")
+    return depth2_wrapper.read_text(encoding="utf-8")
 
 
 class TestMultiMasterMetadataNoLeak:
@@ -141,3 +158,15 @@ class TestMultiMasterMetadataNoLeak:
         fallback regression by itself)."""
         assert f'title: "{CONF_PROJECT}",' not in depth2_text
         assert f'authors: ("{CONF_AUTHOR}",),' not in depth2_text
+
+    def test_two_wrappers_built_from_two_entries_carry_two_different_titles(
+        self, depth1_text, depth2_text
+    ):
+        """Phase 47 Task 2 addition: makes the per-entry isolation the
+        content/wrapper split establishes STRUCTURAL, not merely
+        incidental -- two wrappers built from two distinct
+        ``typst_documents`` entries carry two DIFFERENT titles, each
+        exactly matching its own entry, never the other's."""
+        assert 'title: "Template Named Dir Master",' in depth1_text
+        assert 'title: "Template Named Dir Master (nested)",' in depth2_text
+        assert depth1_text != depth2_text

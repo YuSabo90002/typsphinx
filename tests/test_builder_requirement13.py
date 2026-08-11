@@ -131,21 +131,32 @@ def test_toctree_with_nested_paths_generates_correct_includes(
     app.build()
 
     typst_outdir = builddir / "typst"
-    # CONF-08: multifile_srcdir's conf.py omits typst_documents, so the
-    # "index" master's output is now named via
+    # Phase 47 (R1/R5/COMP-01): the toctree's #include() emissions are
+    # translator body markup -- they stay on the docname-derived CONTENT
+    # file, always at "index.typ", unconditionally.
+    index_typ = typst_outdir / "index.typ"
+    # CONF-08 (R2): multifile_srcdir's conf.py omits typst_documents, so
+    # the "index" master's WRAPPER is now named via
     # make_filename_from_project("Multi-File Test") -> "multi-filetest.typ"
     # rather than the old literal "index.typ".
-    index_typ = typst_outdir / "multi-filetest.typ"
+    wrapper_typ = typst_outdir / "multi-filetest.typ"
 
     # Verify files were created with correct structure
     assert index_typ.exists()
+    assert wrapper_typ.exists()
     assert (typst_outdir / "intro.typ").exists()
     assert (typst_outdir / "chapter1" / "section.typ").exists()
 
-    # Verify content has references to nested documents
+    # Verify the CONTENT file has references to nested documents.
     content = index_typ.read_text()
     assert "intro.typ" in content
     assert "chapter1/section.typ" in content
+
+    # Verify the WRAPPER carries the template application and an
+    # #include() of the content file above, never the nested-document
+    # references themselves.
+    wrapper_content = wrapper_typ.read_text()
+    assert '#include("index.typ")' in wrapper_content
 
 
 def test_toctree_with_missing_document_warning(multifile_srcdir, tmp_path, caplog):
@@ -183,13 +194,11 @@ def test_toctree_with_missing_document_warning(multifile_srcdir, tmp_path, caplo
     app.build()
 
     typst_outdir = builddir / "typst"
-    # CONF-08: multifile_srcdir's conf.py omits typst_documents, so the
-    # "index" master's output is now named via
-    # make_filename_from_project("Multi-File Test") -> "multi-filetest.typ"
-    # rather than the old literal "index.typ".
-    index_typ = typst_outdir / "multi-filetest.typ"
+    # Phase 47 (R1/R5/COMP-01): the toctree's #include() emissions stay on
+    # the docname-derived CONTENT file, always at "index.typ".
+    index_typ = typst_outdir / "index.typ"
 
-    # Build should succeed and create the index file
+    # Build should succeed and create the content file
     assert index_typ.exists()
 
     content = index_typ.read_text()

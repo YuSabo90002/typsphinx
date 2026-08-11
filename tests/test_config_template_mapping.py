@@ -3,6 +3,15 @@ Tests for template mapping configuration (Task 13.2).
 
 This test suite verifies that typst_template_mapping configuration is properly
 registered and applied per Requirement 8.4 and 8.5.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the mapped parameter names/values) lives exclusively on the WRAPPER file
+since the content/wrapper split, so every ``.typ``-reading assertion here
+reads the entry's resolved wrapper (target ``'master'``) instead of the
+docname content file. Every fixture's ``typst_documents`` target was also
+renamed from the identity ``'index'`` to ``'master'`` -- an identity target
+is now a BLD-03 self-collision (the wrapper would resolve onto the docname's
+own content file), not merely a stylistic choice.
 """
 
 
@@ -25,7 +34,7 @@ typst_template_mapping = {
 }
 
 typst_documents = [
-    ('index', 'index', 'Test Doc', 'Test Author'),
+    ('index', 'master', 'Test Doc', 'Test Author'),
 ]
 """
     (srcdir / "conf.py").write_text(conf_content)
@@ -84,7 +93,7 @@ typst_template_mapping = {
 }
 
 typst_documents = [
-    ('index', 'index', 'Test', 'Author'),
+    ('index', 'master', 'Test', 'Author'),
 ]
 """
     (srcdir / "conf.py").write_text(conf_content)
@@ -93,11 +102,13 @@ typst_documents = [
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    # Read generated .typ file
-    typ_file = outdir / "index.typ"
+    # Read generated wrapper .typ file (R2, Phase 47: template application
+    # -- including the custom-mapped parameter names -- lives exclusively
+    # on the wrapper file, resolved from the entry's target 'master'.)
+    typ_file = outdir / "master.typ"
     if not typ_file.exists():
         # Try in app outdir
-        typ_file = app.outdir / "index.typ"
+        typ_file = app.outdir / "master.typ"
 
     assert typ_file.exists(), f"Expected {typ_file} to exist"
 
@@ -109,7 +120,7 @@ typst_documents = [
     assert "version_number:" in content
 
     # CONF-09 (Phase 44.2, D-03): the entry's own title/author
-    # (typst_documents = [('index', 'index', 'Test', 'Author')]) now win
+    # (typst_documents = [('index', 'master', 'Test', 'Author')]) now win
     # over config.project ('My Custom Project') / config.author
     # ('Custom Author') -- measured from a build run in this session.
     assert '"Test"' in content
@@ -137,7 +148,7 @@ typst_template_mapping = {
 }
 
 typst_documents = [
-    ('index', 'index', 'Test', 'Author'),
+    ('index', 'master', 'Test', 'Author'),
 ]
 """
     (srcdir / "conf.py").write_text(conf_content)
@@ -146,7 +157,9 @@ typst_documents = [
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    typ_file = app.outdir / "index.typ"
+    # R2 (Phase 47): the wrapper file, not the docname content file, carries
+    # template application.
+    typ_file = app.outdir / "master.typ"
     assert typ_file.exists()
 
     content = typ_file.read_text()
@@ -155,7 +168,7 @@ typst_documents = [
     assert "document_title:" in content
 
     # CONF-09 (Phase 44.2, D-03): the entry's own title
-    # (typst_documents = [('index', 'index', 'Test', 'Author')]) now wins
+    # (typst_documents = [('index', 'master', 'Test', 'Author')]) now wins
     # over config.project ('Test Project') -- measured from a build run in
     # this session. The custom-mapped parameter NAME assertion above is
     # unaffected by this change.
@@ -175,7 +188,7 @@ project = 'Test'
 # Invalid: should be dict, not list
 typst_template_mapping = ['invalid', 'list']
 
-typst_documents = [('index', 'index', 'Test', 'Author')]
+typst_documents = [('index', 'master', 'Test', 'Author')]
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n")
@@ -198,7 +211,7 @@ project = 'Test'
 
 typst_template_mapping = {}
 
-typst_documents = [('index', 'index', 'Test', 'Author')]
+typst_documents = [('index', 'master', 'Test', 'Author')]
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n")
@@ -229,7 +242,7 @@ typst_elements = {
     'fontsize': '12pt',
 }
 
-typst_documents = [('index', 'index', 'Test', 'Author')]
+typst_documents = [('index', 'master', 'Test', 'Author')]
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n")
@@ -237,7 +250,9 @@ typst_documents = [('index', 'index', 'Test', 'Author')]
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
 
-    typ_file = app.outdir / "index.typ"
+    # R2 (Phase 47): the wrapper file, not the docname content file, carries
+    # template application.
+    typ_file = app.outdir / "master.typ"
     content = typ_file.read_text()
 
     # Custom mapping should appear

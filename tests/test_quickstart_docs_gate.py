@@ -118,9 +118,12 @@ class TestQuickstartFirstPdfGate:
 
     def test_quickstart_steps_do_not_produce_index_pdf(self, tmp_path):
         """
-        Neither ``index.typ`` nor ``index.pdf`` exists in the build
-        directory -- the derived target renames the root document's output
-        rather than leaving it at the pre-CONF-08 name.
+        Phase 47 (COMP-01/COMP-02, R4): ``index.typ`` (the docname-derived
+        CONTENT file) now exists unconditionally, carrying no template
+        application -- the pre-Phase-47 "must not exist" assertion pinned
+        the old one-file-per-docname model. ``index.pdf`` remains absent:
+        only the WRAPPER (the derived target's own filename) is ever
+        compiled to PDF (COMP-02/R4).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(QUICKSTART_GATE_FIXTURE_DIR, build_dir, "typstpdf")
@@ -130,15 +133,19 @@ class TestQuickstartFirstPdfGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        assert not (build_dir / "index.typ").exists(), (
-            f"index.typ should not exist -- the root document's output is "
-            f"renamed by the derived target name:\nstdout: {result.stdout}\n"
+        content_typ = build_dir / "index.typ"
+        assert content_typ.exists(), (
+            f"Expected the docname-derived content file index.typ to "
+            f"exist unconditionally:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
+        assert "#show: project.with(" not in content_typ.read_text(
+            encoding="utf-8"
+        ), "Expected NO template application in the content file."
         assert not (build_dir / "index.pdf").exists(), (
-            f"index.pdf should not exist -- the root document's output is "
-            f"renamed by the derived target name:\nstdout: {result.stdout}\n"
-            f"stderr: {result.stderr}"
+            f"index.pdf should not exist -- only the WRAPPER (the derived "
+            f"target's own filename) is ever compiled to PDF:\nstdout: "
+            f"{result.stdout}\nstderr: {result.stderr}"
         )
 
 

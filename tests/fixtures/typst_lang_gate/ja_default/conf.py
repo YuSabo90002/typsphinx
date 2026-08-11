@@ -28,8 +28,14 @@ extensions = ["typsphinx"]
 # index must be a master document (not merely an included one) so the
 # writer applies the full template routing and TypstPDFBuilder.finish()
 # actually compiles it to PDF.
+# Phase 47 (OUT-01/BLD-03): the target is "master", not the identity
+# "index" -- since a typst_documents target is now a literal output
+# path, an identity target would make the wrapper resolve onto this
+# docname's own content file (index.typ) and silently overwrite it with
+# a self-referential #include(), producing "TypstError: cyclic import"
+# (47-EXPECTED-STRUCTURE.md's fixture de-collision rule).
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master", project, author),
 ]
 
 # The Sphinx language whose Typst-lang conversion this fixture proves

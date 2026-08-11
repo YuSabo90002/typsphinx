@@ -18,8 +18,11 @@ release = "1.0.0"
 
 extensions = ["typsphinx"]
 
+# Phase 47 (OUT-01/BLD-03): the target is "master", not the identity
+# "index" -- see papersize_positive/conf.py's identical comment for why an
+# identity target is now a self-collision under a literal-path target.
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master", project, author),
 ]
 
 typst_elements = {

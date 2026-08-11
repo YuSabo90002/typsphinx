@@ -73,6 +73,22 @@ against a named commit, and for the measured ``lang.toml``
 ``[lang.ja]`` ``memo`` value (which CONFIRMS -- does not contradict --
 39-UAT.md's ``measured_context`` on this specific point; see that evidence
 document for the full correction record).
+
+Phase 47 migration (R1/BLD-03, ``47-EXPECTED-STRUCTURE.md``): every
+assertion here reads admonition BODY markup (a translator emission, R1),
+which stays on the docname-derived content file -- ``index.typ`` continues
+to be the correct read target with NO changes to this module's own code.
+The two fixture ``conf.py``s (``fixtures/admonition_locale_title_gate/{en,
+ja}/conf.py``) DID need a fix: both configured an identity typst_documents
+target (``"index"`` == their own docname), a BLD-03 self-collision under
+OUT-01 that silently overwrote the docname's content file with the
+wrapper's own self-referential ``#include()`` on a text-only ``-b typst``
+build, discarding the translated admonition body this module's assertions
+depend on. Retargeted to ``"master"``. Like the other BLD-03 fixture fixes
+plan 47-08 makes (``tests/test_params_exclusivity_gate.py``,
+``tests/test_typst_elements_pass_through_gate.py``,
+``tests/test_typst_lang_gate.py``), this fixture directory is not listed
+in any Phase 47 plan's ``files_modified``.
 """
 
 import subprocess
