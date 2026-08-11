@@ -186,9 +186,12 @@ class TestAbsoluteImageRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision) --
+        # only wrappers compile to PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the absolute/garbled image path:\nstderr: "
             f"{result.stderr}"
         )

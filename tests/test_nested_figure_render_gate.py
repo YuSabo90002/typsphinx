@@ -164,9 +164,11 @@ class TestNestedFigureRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the nested-figure-in-legend shape:\n"
             f"stderr: {result.stderr}"
         )
@@ -206,9 +208,11 @@ class TestNestedFigureRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted on the "
+            "master.pdf was not produced -- typst.compile() aborted on the "
             f"plain-text legend shape:\nstderr: {result.stderr}"
         )
 
@@ -277,9 +281,11 @@ class TestNestedFigureRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted on the "
+            "master.pdf was not produced -- typst.compile() aborted on the "
             f"no-caption legend shape:\nstderr: {result.stderr}"
         )
 
@@ -341,9 +347,11 @@ class TestNestedFigureRenderGate:
             f"(parbreak() + bare text(...)) instead of par({{...}}):\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted on the "
+            "master.pdf was not produced -- typst.compile() aborted on the "
             f"legend-in-legend shape:\nstderr: {result.stderr}"
         )
         reader = pypdf.PdfReader(str(pdf_output))

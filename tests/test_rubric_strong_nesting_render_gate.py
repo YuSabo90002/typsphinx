@@ -254,8 +254,12 @@ class TestRubricStrongNestingRenderGate:
         defects this fixture proves compile perfectly; this confirms the
         RED above is structural, never a build or compile error.
         """
+        # Phase 47 (R3): only the WRAPPER file (this fixture's
+        # typst_documents target, "master.typ") is a complete,
+        # self-contained document -- the content file ("index.typ")
+        # carries no template application.
         build_dir, _ = rubric_strong_nesting_build
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         try:
             typst.compile(str(typ_path))
         except Exception as exc:

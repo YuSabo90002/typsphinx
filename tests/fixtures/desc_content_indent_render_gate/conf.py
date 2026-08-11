@@ -55,8 +55,15 @@ extensions = [
 
 # index must be a master document so the writer emits the full template and
 # a manual typst.compile() call actually compiles it to PDF.
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split (the content file
+# is unconditionally "index.typ"; a same-named wrapper would overwrite
+# it). Renamed to "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture
+# de-collision rule; no other element changed.
 typst_documents = [
-    ("index", "index", "Desc Content Indent Render Gate", "Test Author"),
+    ("index", "master.typ", "Desc Content Indent Render Gate", "Test Author"),
 ]
 
 # D-11/SIG-09: an enlarged fontsize (via the CONF-04 typst_elements

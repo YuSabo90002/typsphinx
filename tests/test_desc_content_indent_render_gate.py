@@ -196,6 +196,11 @@ def desc_content_indent_pdf_bytes(desc_content_indent_gate_dir, tmp_path_factory
     ``PYPDF_AVAILABLE``-skipif-gated class below, so this fixture never
     runs (and never requires the optional dependencies) when that class
     is skipped.
+
+    Phase 47 (R3): only the WRAPPER file (``master.typ``, the fixture's
+    ``typst_documents`` target) is a complete, self-contained document --
+    the content file (``index.typ``) carries no template application, so
+    it is the wrapper that must be handed to ``typst.compile()``.
     """
     build_dir = tmp_path_factory.mktemp("desc_content_indent_pdf") / "_build"
     result = _run_sphinx_build_typst(desc_content_indent_gate_dir, build_dir)
@@ -204,10 +209,10 @@ def desc_content_indent_pdf_bytes(desc_content_indent_gate_dir, tmp_path_factory
         f"stdout: {result.stdout}\n"
         f"stderr: {result.stderr}"
     )
-    index_typ = build_dir / "index.typ"
-    assert index_typ.exists(), "index.typ was not generated"
-    pdf_path = build_dir / "index.pdf"
-    typst.compile(str(index_typ), output=str(pdf_path))
+    master_typ = build_dir / "master.typ"
+    assert master_typ.exists(), "master.typ was not generated"
+    pdf_path = build_dir / "master.pdf"
+    typst.compile(str(master_typ), output=str(pdf_path))
     assert pdf_path.exists(), "PDF file was not created"
     assert pdf_path.stat().st_size > 0, "PDF file is empty"
     return pdf_path.read_bytes()
@@ -498,6 +503,34 @@ class TestDescContentIndentStructuralGate:
             "DIFFERENT .typ output -- non-deterministic build."
         )
 
+    def test_wrapper_has_exactly_one_include_of_its_content(
+        self, desc_content_indent_gate_dir, tmp_path_factory
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ").
+        """
+        build_dir = (
+            tmp_path_factory.mktemp("desc_content_indent_wrapper_include") / "_build"
+        )
+        result = _run_sphinx_build_typst(desc_content_indent_gate_dir, build_dir)
+        assert result.returncode == 0, (
+            f"sphinx-build -b typst failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        master_typ = build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not generated"
+        content = master_typ.read_text(encoding="utf-8")
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'
+
     @pytest.mark.skipif(
         not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
         reason="typst-py and pypdf are both required for the WR-01 table-cell compile gate",
@@ -537,9 +570,9 @@ class TestDescContentIndentStructuralGate:
                 f"in stderr -- the table-cell add_text conversion did not "
                 f"actually fix this construct:\nstderr: {result.stderr}"
             )
-        pdf_path = build_dir / "index.pdf"
-        assert pdf_path.exists(), "WR-01: index.pdf was not produced"
-        assert pdf_path.stat().st_size > 0, "WR-01: index.pdf is empty"
+        pdf_path = build_dir / "master.pdf"
+        assert pdf_path.exists(), "WR-01: master.pdf was not produced"
+        assert pdf_path.stat().st_size > 0, "WR-01: master.pdf is empty"
         reader = pypdf.PdfReader(str(pdf_path))
         pdf_text = "\n".join(page.extract_text() for page in reader.pages)
         for sentinel in (
