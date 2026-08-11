@@ -517,7 +517,15 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 10/10 plans executed
+**Plans**: 12 plans — 10/10 executed, plus 2 gap-closure plans (wave 6) added 2026-08-12 after
+verification scored 8/10 and returned BLD-02 and BLD-03 BLOCKED:
+
+- [x] 47-01-PLAN.md .. 47-10-PLAN.md — the original ten, all executed and summarized
+- [ ] 47-11-PLAN.md — close the BLD-02/BLD-03 false negatives: path-shape normalization inside
+      `_collision_key()`, one shared entry-usability predicate across all four wrapper-path sites,
+      RED recorded on content before either fix
+- [ ] 47-12-PLAN.md — delete the WR-01 dead entry-element resolver and correct the six stale
+      REQUIREMENTS.md checkboxes
 
 **Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
 content/wrapper split makes the overwhelmingly common fixture shape `("index", "index", ...)` a
