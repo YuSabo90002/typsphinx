@@ -517,7 +517,27 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: TBD
+**Plans**: 10 plans
+
+**Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
+content/wrapper split makes the overwhelmingly common fixture shape `("index", "index", ...)` a
+wrapper-vs-content collision. **87 of the 100 fixture projects under `tests/fixtures/` carry exactly
+that shape**, and **68 test modules with 591 code-level `index.typ` / `index.pdf` references** read
+the pre-split file shape. Binding constraint #8 requires the phase to close green, so plans 47-04
+through 47-08 carry that migration; it is the single largest cost in the phase and is why the phase
+has ten plans rather than three.
+
+Plans:
+- [ ] 47-01-PLAN.md — Derive the expected two-layer structure from first principles and capture the pre-fix RED for all five defects (wave 1)
+- [ ] 47-02-PLAN.md — Two-layer emitter, tracer-led: content/wrapper split, OUT-01/OUT-02 disentangle, one shared write path (wave 2)
+- [ ] 47-03-PLAN.md — Move the OUT-01 unit expectations; pin all three OUT-02 escape shapes with an outdir-containment proof (wave 3)
+- [ ] 47-04-PLAN.md — Corpus migration group A: 17 modules / 34 fixtures (wave 3)
+- [ ] 47-05-PLAN.md — Corpus migration group B: 17 modules / 19 fixtures, toctree and multi-document suites (wave 3)
+- [ ] 47-06-PLAN.md — Corpus migration group C: 17 modules / 18 fixtures, entry-metadata and integration suites (wave 3)
+- [ ] 47-07-PLAN.md — Corpus migration group D: 17 modules / 16 fixtures, page-count and template-contract gates (wave 3)
+- [ ] 47-08-PLAN.md — Residual surface: template-routing suites, `typst_documents`-shape gates, dogfooding builds (wave 3)
+- [ ] 47-09-PLAN.md — Unified pre-write collision validator (D-01/D-02/D-03/D-05), CR-01 inversion, phase green gate (wave 4, 2 blocking decision checkpoints)
+- [ ] 47-10-PLAN.md — Push the milestone branch to `origin` and evidence a completed CI run over the Windows and macOS lanes (wave 5)
 **UI hint**: no
 
 ### Phase 48: Compile-Time Cross-Reference Guard
