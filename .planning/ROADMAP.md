@@ -1072,7 +1072,7 @@ and the release then failed — this phase must not repeat that. REL-04 closes a
      `/gsd-complete-milestone` covering merge → tag → `release.yml` (with an explicit item to observe
      `create-release` succeed, closing REL-04) → PyPI + GitHub Release → the second tag on
      `typsphinx-doc-translations` → the RTD `stable` measurement on both projects.
-**Plans**: 5/6 plans executed in 4 waves
+**Plans**: 6/6 plans executed in 4 waves
 
 Plans:
 
@@ -1085,7 +1085,7 @@ Plans:
       `ja` evidence
 
 - [x] 46-05-PLAN.md — SC#4 invariant sweep (D-21) and REL-04's in-phase preconditions
-- [ ] 46-06-PLAN.md — SC#5 handoff, release-evidence roll-up, fence proof, and todo close-out
+- [x] 46-06-PLAN.md — SC#5 handoff, release-evidence roll-up, fence proof, and todo close-out
 
 ## Progress
 
@@ -1182,7 +1182,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
 | 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 5/5 | Complete    | 2026-08-11 |
-| 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 5/6 | In Progress|  |
+| 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 6/6 | In Progress|  |
 
 ## Roadmap Evolution
 
