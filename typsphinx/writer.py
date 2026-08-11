@@ -5,6 +5,7 @@ This module implements the TypstWriter class, which converts docutils
 document trees to Typst markup.
 """
 
+import posixpath
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -21,6 +22,85 @@ from typsphinx.translator import TypstTranslator
 logger = logging.getLogger(__name__)
 
 
+def compute_content_include_path(
+    wrapper_relative_dir: str, content_relative_path: str
+) -> str:
+    """Compute a wrapper's ``#include()`` argument for its own entry's
+    content file (B-1/COMP-03 fix).
+
+    This is a genuine two-endpoint ``posixpath.relpath`` computation, NOT
+    a depth-only ``"../"`` counter like ``_compute_template_import_path``
+    -- Typst's ``#include()`` resolves relative to the INCLUDING file's
+    own directory (measured empirically; see 47-RESEARCH.md "Common
+    Pitfalls" #3), so both the wrapper's resolved directory and the
+    content file's own resolved path must be independently known. Reusing
+    the depth-only shape for this job -- assuming the content file is
+    always at the outdir root, and that the wrapper's directory equals
+    its docname's directory -- is the literal root cause of B-1 and must
+    not be reintroduced here.
+
+    Args:
+        wrapper_relative_dir: The wrapper's own resolved output
+            directory, relative to the outdir root (``""`` for the
+            outdir root itself).
+        content_relative_path: The content file's own path, relative to
+            the outdir root (e.g. ``"guide/index.typ"``).
+
+    Returns:
+        The relative path to hand to Typst's ``#include()``.
+
+    Examples:
+        >>> compute_content_include_path("", "index.typ")
+        'index.typ'
+        >>> compute_content_include_path("manuals", "guide/index.typ")
+        '../guide/index.typ'
+        >>> compute_content_include_path("guide", "guide/index.typ")
+        'index.typ'
+    """
+    start = wrapper_relative_dir or "."
+    return posixpath.relpath(content_relative_path, start=start)
+
+
+def compute_template_import_path_for_dir(wrapper_relative_dir: str) -> str:
+    """Compute a wrapper's import path for the shared ``_template.typ``
+    file, from the WRAPPER's own resolved output directory.
+
+    ``_write_template_file()`` (``typsphinx/builder.py``) always writes
+    ``_template.typ`` at the outdir root, unconditionally, regardless of
+    where any given wrapper is written -- so this is a pure function of
+    the wrapper's own nesting depth. Unlike
+    ``compute_content_include_path``, a depth-only ``"../"`` counter IS
+    correct here, because the imported file's location (the outdir root)
+    is a fixed, known constant rather than another entry's independently
+    resolved path -- but the depth must come from the WRAPPER's resolved
+    directory, not from the master's docname, or a wrapper written
+    outside its docname's own directory would import a file that was
+    never written at the depth the docname implied.
+
+    Args:
+        wrapper_relative_dir: The wrapper's own resolved output
+            directory, relative to the outdir root (``""`` for the
+            outdir root itself).
+
+    Returns:
+        The complete relative import path, including the ``.typ``
+        suffix, e.g. ``"_template.typ"`` or ``"../_template.typ"``.
+
+    Examples:
+        >>> compute_template_import_path_for_dir("")
+        '_template.typ'
+        >>> compute_template_import_path_for_dir("manuals")
+        '../_template.typ'
+        >>> compute_template_import_path_for_dir("a/b")
+        '../../_template.typ'
+    """
+    if not wrapper_relative_dir:
+        depth = 0
+    else:
+        depth = len(PurePosixPath(wrapper_relative_dir).parts)
+    return "".join(["../"] * depth) + "_template.typ"
+
+
 def _resolve_entry_element(
     typst_documents: list, docname: str, index: int, default: str
 ) -> str:
@@ -28,11 +108,14 @@ def _resolve_entry_element(
 
     CONF-09 (Phase 44.2, D-01/D-02): reads element ``index`` (2 for title,
     3 for author) off the FIRST entry whose ``entry[0] == docname`` --
-    mirroring ``TypstWriter._is_master_document()``'s own first-match walk
-    and ``builder.py``'s ``_resolve_output_stem()`` guard conventions. Two
-    entries naming the same docname resolve silently to the first; no
-    warning or list-wide second-match scan is added (that shape belongs to
-    the out-of-scope duplicate-*target* defect, not this helper).
+    mirroring ``builder.py``'s ``_resolve_output_stem()`` guard
+    conventions. Two entries naming the same docname resolve silently to
+    the first; no warning or list-wide second-match scan is added (that
+    shape belongs to the out-of-scope duplicate-*target* defect, not this
+    helper). Note: this docname first-match shape is deliberately NOT
+    used for a wrapper's own title/author (D-08) -- see
+    ``_entry_element_value()`` below, which reads a SPECIFIC entry
+    positionally instead.
 
     - No matching entry, or entry too short to have ``index``, or the
       element is ``None`` -> ``default`` (silent, D-02).
@@ -73,6 +156,48 @@ def _resolve_entry_element(
     return default
 
 
+def _entry_element_value(entry: tuple, index: int, default: str) -> str:
+    """Read ``entry[index]`` positionally, off the SPECIFIC entry a
+    wrapper is being generated for (D-08).
+
+    Unlike ``_resolve_entry_element()``'s docname first-match scan, this
+    never looks up other entries sharing the same docname -- two entries
+    naming the same docname must each keep their OWN title/author, so
+    wrapper generation order can never decide metadata.
+
+    - Entry too short to have ``index``, or the element is ``None`` ->
+      ``default`` (silent, D-02).
+    - Element present and a ``str`` (including ``""``) -> returned
+      verbatim (D-01: an empty string is a value, not a fallback signal).
+    - Element present but not a ``str`` -> a logged warning naming the
+      element index, the entry's docname and the value it is falling
+      back to, then ``default`` (D-02).
+
+    Args:
+        entry: The specific ``typst_documents`` tuple this wrapper is
+            being generated for.
+        index: The tuple element to resolve (2 for title, 3 for author).
+        default: The value to fall back to (``config.project`` or
+            ``config.author``).
+
+    Returns:
+        The resolved ``str`` value.
+    """
+    if len(entry) <= index:
+        return default
+    value = entry[index]
+    if value is None:
+        return default
+    if not isinstance(value, str):
+        logger.warning(
+            f"typst_documents element [{index}] for docname "
+            f"{entry[0]!r} is not a str: {value!r} -- "
+            f"falling back to {default!r}"
+        )
+        return default
+    return value
+
+
 class TypstWriter(writers.Writer):
     """
     Writer class for Typst output format.
@@ -92,38 +217,6 @@ class TypstWriter(writers.Writer):
         """
         super().__init__()
         self.builder = builder
-
-    def _is_master_document(self, docname: str) -> bool:
-        """
-        Check if the current document is a master document (defined in typst_documents).
-
-        Master documents should have templates applied, while included documents
-        (via #include()) should only contain body content.
-
-        Args:
-            docname: Document name (e.g., 'index', 'chapter1')
-
-        Returns:
-            True if this is a master document, False otherwise
-        """
-        config = self.builder.config
-        typst_documents = getattr(config, "typst_documents", [])
-
-        # Check if docname is in typst_documents
-        # typst_documents format: [(sourcename, targetname, title, author), ...]
-        # A malformed (empty) entry is skipped rather than indexed: this runs
-        # during write_doc() for EVERY document, so an unguarded doc_tuple[0]
-        # would raise IndexError and abort the build in the write phase --
-        # before TypstPDFBuilder.finish() can report the malformed entry
-        # through its aggregate ExtensionError. Reporting malformed entries is
-        # finish()'s job alone; here they simply never match. Matches the
-        # guards already used by _compute_master_included_docnames() and
-        # _resolve_output_stem() in builder.py.
-        for doc_tuple in typst_documents:
-            if doc_tuple and doc_tuple[0] == docname:
-                return True
-
-        return False
 
     @staticmethod
     def _compute_template_import_path(docname: str) -> str:
@@ -175,13 +268,17 @@ class TypstWriter(writers.Writer):
 
     def translate(self) -> None:
         """
-        Translate the document tree to Typst markup.
+        Translate the document tree to the CONTENT file's Typst markup.
 
-        This method creates a TypstTranslator and visits the document tree,
-        then wraps the output with a template using TemplateEngine.
-
-        For master documents (defined in typst_documents), the full template
-        is applied. For included documents, only the body content is output.
+        Every docname's content file is written unconditionally (COMP-01/
+        OUT-03), carrying no template application -- template application
+        now belongs exclusively to ``render_wrapper()``, which the
+        builder calls separately, once per ``typst_documents`` entry
+        naming this docname. D-06 makes the four ``@preview`` imports
+        plus codly init unconditional here: this is exact status-quo
+        preservation for what used to be an "included document", and it
+        is only a NEW preamble for a docname that used to be a master's
+        single undivided file.
         """
         # Generate body content
         self.visitor = TypstTranslator(self.document, self.builder)
@@ -195,32 +292,64 @@ class TypstWriter(writers.Writer):
         if not body.endswith("}\n"):
             body = body + "}\n"
 
-        # Get current document name
-        docname = self.builder.current_docname
+        # D-06: unconditional for EVERY content file. Typst's #include()
+        # does not inherit imports from the parent file, so each content
+        # file needs its own imports regardless of whether it is also
+        # #include()d by a wrapper.
+        imports = []
+        imports.append("// Essential imports for included document")
+        imports.append('#import "@preview/codly:1.3.0": *')
+        imports.append('#import "@preview/codly-languages:0.1.10": *')
+        imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+        imports.append('#import "@preview/gentle-clues:1.3.1": *')
+        imports.append("")
+        imports.append("// Initialize codly")
+        imports.append("#show: codly-init.with()")
+        imports.append("#codly(languages: codly-languages)")
+        imports.append("")
 
-        # Check if this is a master document
-        is_master = self._is_master_document(docname)
+        self.output = "\n".join(imports) + "\n" + body
 
-        if not is_master:
-            # For included documents, add essential imports but no template
-            # Typst's #include() does not inherit imports from parent file,
-            # so each file needs its own imports
-            imports = []
-            imports.append("// Essential imports for included document")
-            imports.append('#import "@preview/codly:1.3.0": *')
-            imports.append('#import "@preview/codly-languages:0.1.10": *')
-            imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
-            imports.append('#import "@preview/gentle-clues:1.3.1": *')
-            imports.append("")
-            imports.append("// Initialize codly")
-            imports.append("#show: codly-init.with()")
-            imports.append("#codly(languages: codly-languages)")
-            imports.append("")
+    def render_wrapper(
+        self,
+        entry: tuple,
+        doctree: Any,
+        wrapper_relative_dir: str,
+        content_relative_path: str,
+    ) -> str:
+        """
+        Render a wrapper ``.typ`` document for one ``typst_documents``
+        entry: the full template application plus a single
+        ``#include()`` of that entry's own content file.
 
-            self.output = "\n".join(imports) + "\n" + body
-            return
+        This is the surviving half of what ``translate()`` used to do
+        for a "master document" -- template application never changes
+        shape, only its trigger (per-entry, not per-docname) and its
+        body (an ``#include()``, not the translated doctree).
 
-        # For master documents, apply template
+        Args:
+            entry: The specific ``typst_documents`` tuple this wrapper
+                is being generated for
+                (docname, target, title, author[, format]).
+            doctree: The master document's OWN doctree -- consulted only
+                for ``extract_toctree_options()`` (toctree display
+                options such as maxdepth/numbered/caption reach the
+                template).
+            wrapper_relative_dir: The wrapper's own resolved output
+                directory, relative to the outdir root (``""`` for the
+                outdir root itself).
+            content_relative_path: The entry's content file's own path,
+                relative to the outdir root (e.g. ``"guide/index.typ"``).
+
+        Returns:
+            The complete wrapper ``.typ`` document text.
+        """
+        docname = entry[0]
+        include_path = compute_content_include_path(
+            wrapper_relative_dir, content_relative_path
+        )
+        body = f'#include("{include_path}")\n'
+
         config = self.builder.config
 
         # Get template configuration from Sphinx config
@@ -259,22 +388,15 @@ class TypstWriter(writers.Writer):
         # longer rides along in this dict (D-08), so it can never reach
         # project() (structural non-leak, CONF-04/SC#4).
         #
-        # CONF-09 (D-01/D-02/D-03): "project"/"author" are no longer read
-        # straight off `config` -- they are resolved through the CURRENT
-        # master's own `typst_documents` entry first, via
-        # `_resolve_entry_element()`, with `config.project`/`config.author`
-        # as the silent fallback for an absent/short/None element. The
-        # dict's KEYS stay unchanged (only their values are now
-        # entry-resolved), which is what reaches every template route
-        # (A1-A4) without introducing a new template parameter.
-        typst_documents_cfg = getattr(config, "typst_documents", []) or []
+        # D-08: "project"/"author" are read POSITIONALLY off THIS
+        # wrapper's own entry tuple, via `_entry_element_value()` --
+        # never through `_resolve_entry_element()`'s docname first-match
+        # scan. Two entries naming the same docname must each keep their
+        # own title/author, so wrapper generation order never decides
+        # metadata.
         sphinx_metadata = {
-            "project": _resolve_entry_element(
-                typst_documents_cfg, docname, 2, config.project
-            ),
-            "author": _resolve_entry_element(
-                typst_documents_cfg, docname, 3, config.author
-            ),
+            "project": _entry_element_value(entry, 2, config.project),
+            "author": _entry_element_value(entry, 3, config.author),
             "release": config.release,
         }
 
@@ -312,7 +434,7 @@ class TypstWriter(writers.Writer):
         # for the merged result (a copy-paste that keeps the old name
         # silently drops auto-derivation), and never mutate `typst_elements`
         # itself (it is the user's own live config value; `update()`/
-        # `setdefault()` here would leak state across master documents in a
+        # `setdefault()` here would leak state across wrapper documents in a
         # multi-master build). The right operand is normalized with `or {}`
         # because Sphinx only WARNS on a wrong-typed config value -- a
         # conf.py setting `typst_elements = None` reaches us as None, and
@@ -327,37 +449,35 @@ class TypstWriter(writers.Writer):
             sphinx_metadata, typst_elements=effective_elements
         )
 
-        # Extract toctree options and add to parameters
-        toctree_options = template_engine.extract_toctree_options(self.document)
+        # Extract toctree options and add to parameters. Still reads the
+        # MASTER's own doctree -- toctree display options belong to the
+        # document that declares the toctree, unaffected by the
+        # content/wrapper split.
+        toctree_options = template_engine.extract_toctree_options(doctree)
         params.update(toctree_options)
 
         # Render with template (using separate template file).
         #
         # `_write_template_file()` (builder.py) always writes `_template.typ`
-        # at the OUTDIR ROOT, regardless of where the master document itself
-        # lives. For a root-level master this is a same-directory reference
-        # and a bare "_template.typ" resolves correctly, but for a master at
-        # a nested docname (e.g. "api/index") a bare "_template.typ" would
-        # resolve relative to the master's own directory ("api/_template.typ")
-        # -- a file that was never written -- exactly the same docname-
-        # relative-vs-outdir-root basis mismatch PDF-02 fixes for #include()/
-        # image(). Reusing the translator's docname-to-docname relativizer
-        # with a synthetic "_template" sentinel target was the CR-01 defect
-        # (gap G-22.1-4): the sentinel can collide with a real directory
-        # component of the master's own path (a master whose directory is
-        # itself literally named "_template"), producing a malformed
-        # reference. The depth-based computation below has no such string
-        # dependence -- it is a pure function of the master's own nesting
-        # depth to the outdir root.
+        # at the OUTDIR ROOT, regardless of where any given wrapper lives.
+        # `compute_template_import_path_for_dir()` computes the import path
+        # from the WRAPPER's own resolved directory (OUT-01) -- not from the
+        # master's docname -- so a wrapper written outside its docname's own
+        # directory still imports the file that was actually written.
         #
         # D-01: a package configured ALONE (no custom template) must not
         # reference that shared template file -- `_write_template_file()`
-        # (builder.py) deliberately never writes it for that case, and the
-        # previous unconditional computation below (BUG-A) produced a
-        # master that imported a file the builder refused to create,
-        # making the entire package-alone path unbuildable.
+        # (builder.py) deliberately never writes it for that case, and an
+        # unconditional computation here would produce a wrapper that
+        # imports a file the builder refused to create, making the entire
+        # package-alone path unbuildable.
         if typst_package and not raw_template_path:
             template_file = None
         else:
-            template_file = TypstWriter._compute_template_import_path(docname)
-        self.output = template_engine.render(params, body, template_file=template_file)
+            template_file = compute_template_import_path_for_dir(wrapper_relative_dir)
+        logger.debug(
+            f"Rendering wrapper for docname {docname!r} at "
+            f"wrapper_relative_dir={wrapper_relative_dir!r}, "
+            f"include_path={include_path!r}, template_file={template_file!r}"
+        )
+        return template_engine.render(params, body, template_file=template_file)
