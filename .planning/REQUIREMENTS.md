@@ -230,7 +230,7 @@ continues at **Phase 43**.
       `/gsd-complete-milestone`** — it must not be reported complete on the strength of the workflow
       file being correct, which is the precise error v0.7.0 made.
 
-- [ ] **REL-06**: v0.7.1 is released — `pyproject.toml` bumped as the sole version literal with
+- [x] **REL-06**: v0.7.1 is released — `pyproject.toml` bumped as the sole version literal with
       `uv.lock` and `README.md` in lockstep, a curated `## [0.7.1]` CHANGELOG entry (explicitly
       calling out **both** user-visible changes — CONF-08's output-filename rename and CONF-09's
       rendered title/author change), the post-bump tree proven green live, and the
@@ -336,7 +336,7 @@ Filled during roadmap creation.
 | CONF-11 | Phase 45.1 | Complete |
 | CONF-12 | Phase 45.1 | Complete |
 | QUA-04 | Phase 45.2 | Complete |
-| REL-06 | Phase 46 | Pending |
+| REL-06 | Phase 46 | Complete |
 | REL-04 | Phase 46 | Pending (closes at `/gsd-complete-milestone`) |
 
 **Coverage:**
