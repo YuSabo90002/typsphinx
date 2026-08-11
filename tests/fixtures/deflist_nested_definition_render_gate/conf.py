@@ -40,5 +40,10 @@ extensions = ["typsphinx"]
 # content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
 # renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "master.typ", "Nested Definition Body Clobber Render Gate", "typsphinx tests"),
+    (
+        "index",
+        "master.typ",
+        "Nested Definition Body Clobber Render Gate",
+        "typsphinx tests",
+    ),
 ]
