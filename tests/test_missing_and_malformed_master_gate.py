@@ -130,11 +130,13 @@ class TestMissingAndMalformedMasterGate:
 
         # CR-01 regression: a malformed entry must not abort the WRITE phase.
         # The fixture's chapter1.rst is not in typst_documents, so writing it
-        # scans the whole list and reaches the malformed () entry. An unguarded
-        # doc_tuple[0] in TypstWriter._is_master_document() raised IndexError
-        # here, killing sphinx-build before finish() ran. "IndexError" is a
-        # Python builtin name, not an upstream diagnostic string, so asserting
-        # its absence does not reintroduce the WR-02 coupling this phase removed.
+        # scans the whole list (TypstBuilder._write_typst_files()'s per-
+        # docname wrapper-entry matching loop, typsphinx/builder.py) and
+        # reaches the malformed () entry. An unguarded doc_tuple[0] there
+        # raised IndexError here, killing sphinx-build before finish() ran.
+        # "IndexError" is a Python builtin name, not an upstream diagnostic
+        # string, so asserting its absence does not reintroduce the WR-02
+        # coupling this phase removed.
         assert "IndexError" not in result.stderr, (
             f"A malformed typst_documents entry aborted the write phase with a "
             f"raw IndexError instead of being reported by finish()'s aggregate "

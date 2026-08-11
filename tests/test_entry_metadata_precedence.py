@@ -179,10 +179,13 @@ def test_resolve_entry_element_five_element_tuple_resolves_unchanged():
 def test_resolve_entry_element_duplicate_docname_first_match_wins():
     """Edge (first-match): when two typst_documents entries name the same
     docname, the FIRST is used, silently -- the same convention
-    `_is_master_document` and `_resolve_output_stem` already follow. This
-    pins the EXISTING first-match convention only; it is NOT coverage of
-    the adjacent, out-of-scope duplicate-TARGET-name defect (a different
-    bug about two entries sharing a *target*, not a *docname*)."""
+    `_resolve_output_stem` already follows. This pins the EXISTING
+    first-match convention only; it is NOT coverage of the adjacent,
+    out-of-scope duplicate-TARGET-name defect (a different bug about two
+    entries sharing a *target*, not a *docname*). Note: `render_wrapper()`
+    (Phase 47) deliberately does NOT use this first-match convention for a
+    wrapper's own title/author -- see `_entry_element_value()`, which reads
+    a specific entry positionally instead (D-08)."""
     entries = [
         ("index", "a", "First", "A1"),
         ("index", "b", "Second", "A2"),

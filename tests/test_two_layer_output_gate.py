@@ -1,17 +1,15 @@
 """
-Phase 47 plan 01, task 2: real-``sphinx-build`` subprocess gate for the
-two-layer content/wrapper split -- COMP-01, COMP-02, COMP-03 (B-1), COMP-04
-(B-2), and OUT-03.
+Phase 47 plan 01, task 2 (fixtures/RED) and plan 02 (the fix): real-
+``sphinx-build`` subprocess gate for the two-layer content/wrapper split --
+COMP-01, COMP-02, COMP-03 (B-1), COMP-04 (B-2), and OUT-03.
 
 Every assertion below is copied from
 ``.planning/phases/47-.../47-EXPECTED-STRUCTURE.md``'s per-fixture
 expected-structure tables (binding constraint #6: the expected structure is
 an INPUT to these tests, derived from each fixture's conf.py/rst read
-literally, never from running the new emitter). Every test in this module
-is marked ``xfail(strict=True)`` except the one unit test that already fails
-in a way pytest reports as expected -- the content/wrapper split does not
-exist yet on the unfixed tree, so every gate here is RED until 47-02 lands
-it (binding constraint #4). The verbatim pre-fix evidence each test's
+literally, never from running the new emitter). Plan 47-02 lands the
+content/wrapper split and removes every ``xfail`` marker this module was
+seeded with in plan 47-01 -- the verbatim pre-fix evidence each test's
 docstring paraphrases is recorded in full in ``47-RED-EVIDENCE.md``.
 """
 
@@ -38,8 +36,6 @@ except ImportError:
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 ROOT_MASTER_FIXTURE_DIR = FIXTURES_DIR / "two_layer_root_master_gate"
 NESTED_MASTER_FIXTURE_DIR = FIXTURES_DIR / "two_layer_nested_master_gate"
-
-XFAIL_REASON = "RED until 47-02 lands the two-layer emitter"
 
 
 def _run_sphinx_build(
@@ -81,7 +77,6 @@ class TestTwoLayerOutputGate:
     ``two_layer_nested_master_gate``.
     """
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_comp01_content_file_has_no_template(self, tmp_path):
         """
         47-EXPECTED-STRUCTURE.md Fixture 1, expected table row "Content
@@ -133,7 +128,6 @@ class TestTwoLayerOutputGate:
             "ROOT-BODY-MARKER-AAA" in content
         ), f"Expected the content file's own body marker:\n{content}"
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_comp02_wrapper_file_has_template_and_include(self, tmp_path):
         """
         47-EXPECTED-STRUCTURE.md Fixture 1, expected table row "Wrapper
@@ -174,7 +168,6 @@ class TestTwoLayerOutputGate:
             "index.typ" in content
         ), f"Expected the wrapper's #include() to name index.typ:\n{content}"
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_out03_content_files_stay_docname_derived(self, tmp_path):
         """
         47-EXPECTED-STRUCTURE.md Fixture 2, expected table: content files
@@ -214,7 +207,6 @@ class TestTwoLayerOutputGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_comp03_b1_nested_master_compiles(self, tmp_path):
         """
         COMP-03 (B-1): the outer wrapper's ``#include()`` of its master's
@@ -254,6 +246,182 @@ class TestTwoLayerOutputGate:
             )
             pytest.fail(f"Expected the compile to succeed post-fix: {exc}")
 
+    def test_typst_and_typstpdf_emit_byte_identical_typ_files(self, tmp_path):
+        """
+        ``-b typst`` and ``-b typstpdf`` share ONE write path
+        (``TypstBuilder._write_typst_files()``, which ``TypstPDFBuilder``
+        inherits) -- every ``.typ`` file either builder emits must be
+        byte-identical, and the PDF builder's compile step must produce a
+        ``.pdf`` for every WRAPPER only, never for a content file.
+        """
+        typst_dir = tmp_path / "typst_build"
+        typstpdf_dir = tmp_path / "typstpdf_build"
+
+        typst_result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, typst_dir, "typst")
+        assert typst_result.returncode == 0, (
+            f"Expected a successful -b typst build:\n"
+            f"stdout: {typst_result.stdout}\nstderr: {typst_result.stderr}"
+        )
+        typstpdf_result = _run_sphinx_build(
+            NESTED_MASTER_FIXTURE_DIR, typstpdf_dir, "typstpdf"
+        )
+        assert typstpdf_result.returncode == 0, (
+            f"Expected a successful -b typstpdf build:\n"
+            f"stdout: {typstpdf_result.stdout}\nstderr: {typstpdf_result.stderr}"
+        )
+
+        typst_typ_files = {p.relative_to(typst_dir) for p in typst_dir.rglob("*.typ")}
+        typstpdf_typ_files = {
+            p.relative_to(typstpdf_dir) for p in typstpdf_dir.rglob("*.typ")
+        }
+        assert typst_typ_files == typstpdf_typ_files, (
+            f"Expected identical .typ file sets:\n"
+            f"typst-only: {typst_typ_files - typstpdf_typ_files}\n"
+            f"typstpdf-only: {typstpdf_typ_files - typst_typ_files}"
+        )
+
+        for relpath in sorted(typst_typ_files):
+            typst_bytes = (typst_dir / relpath).read_bytes()
+            typstpdf_bytes = (typstpdf_dir / relpath).read_bytes()
+            assert typst_bytes == typstpdf_bytes, (
+                f"Expected {relpath} to be byte-identical between builders, "
+                f"but its content differed"
+            )
+
+        # R4/COMP-04: only WRAPPER files compile to PDF -- a content file
+        # is never independently compiled.
+        assert (typstpdf_dir / "outer.pdf").exists(), "Expected outer.pdf"
+        assert (
+            typstpdf_dir / "manuals" / "guide.pdf"
+        ).exists(), "Expected manuals/guide.pdf"
+        assert not (
+            typstpdf_dir / "index.pdf"
+        ).exists(), "Expected NO index.pdf -- content files are never compiled"
+        assert not (
+            typstpdf_dir / "guide" / "index.pdf"
+        ).exists(), "Expected NO guide/index.pdf -- content files are never compiled"
+
+    def test_typst_build_is_deterministic_across_runs(self, tmp_path):
+        """
+        Two consecutive ``-b typst`` builds of the same project produce
+        byte-identical wrapper AND content files -- emission order is
+        deterministic (COMP-01, edge/ordering must_have).
+        """
+        first_dir = tmp_path / "first_build"
+        second_dir = tmp_path / "second_build"
+
+        first_result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, first_dir, "typst")
+        assert first_result.returncode == 0, (
+            f"Expected a successful first build:\n"
+            f"stdout: {first_result.stdout}\nstderr: {first_result.stderr}"
+        )
+        second_result = _run_sphinx_build(
+            NESTED_MASTER_FIXTURE_DIR, second_dir, "typst"
+        )
+        assert second_result.returncode == 0, (
+            f"Expected a successful second build:\n"
+            f"stdout: {second_result.stdout}\nstderr: {second_result.stderr}"
+        )
+
+        first_typ_files = {p.relative_to(first_dir) for p in first_dir.rglob("*.typ")}
+        second_typ_files = {
+            p.relative_to(second_dir) for p in second_dir.rglob("*.typ")
+        }
+        assert first_typ_files == second_typ_files, (
+            f"Expected identical .typ file sets across two builds:\n"
+            f"first-only: {first_typ_files - second_typ_files}\n"
+            f"second-only: {second_typ_files - first_typ_files}"
+        )
+        for relpath in sorted(first_typ_files):
+            first_bytes = (first_dir / relpath).read_bytes()
+            second_bytes = (second_dir / relpath).read_bytes()
+            assert first_bytes == second_bytes, (
+                f"Expected {relpath} to be byte-identical across two builds, "
+                f"but its content differed"
+            )
+
+    def test_typst_build_log_names_the_wrapper_files_to_compile(self, tmp_path):
+        """
+        D-07: ``-b typst`` (markup-only, no PDF compile step of its own)
+        names the wrapper files it wrote and states that those are the
+        files to compile -- the missing symmetric message to
+        ``-b typstpdf``'s existing "Compiling N master document(s)"/
+        "Generated PDF" lines, needed because the outdir now holds
+        roughly twice as many files with nothing in a filename alone
+        distinguishing a content file from a wrapper.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"Expected a successful build:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        combined_output = result.stdout + result.stderr
+        assert "outer.typ" in combined_output, (
+            f"Expected the build log to name outer.typ as a wrapper to "
+            f"compile:\n{combined_output}"
+        )
+        assert "manuals/guide.typ" in combined_output, (
+            f"Expected the build log to name manuals/guide.typ as a "
+            f"wrapper to compile:\n{combined_output}"
+        )
+
+
+@pytest.fixture(scope="class")
+def nested_master_outer_pdf_text(tmp_path_factory):
+    """
+    Build + real-compile ``two_layer_nested_master_gate``'s outer
+    wrapper ONCE per class and return the pypdf-extracted PDF text.
+
+    Defined at MODULE level (not as a class-scoped instance method) per
+    this repo's established convention -- see
+    ``test_pdf_render_gate.py``'s ``admonition_render_gate_pdf_text``.
+    A class-scoped fixture defined as an instance method is deprecated as
+    of pytest 9.1 (``PytestRemovedIn10Warning``, escalated to a hard
+    error by this repo's ``filterwarnings = ["error::DeprecationWarning"]``
+    -- Rule 3 auto-fix, pre-existing since plan 47-01: the instance-method
+    shape silently made every dependent test report ``xfailed`` for the
+    WRONG reason, a fixture-setup error, rather than either a genuine
+    RED assertion or, post-fix, a genuine pass).
+
+    Depends only on ``tmp_path_factory`` (session-scoped-compatible),
+    not on a function-scoped fixture, to avoid a pytest ScopeMismatch --
+    the same pattern ``test_pdf_render_gate.py``'s class-scoped
+    compile-once fixtures use.
+    """
+    source_dir = NESTED_MASTER_FIXTURE_DIR
+    build_dir = tmp_path_factory.mktemp("two_layer_nested_master_gate") / "_build"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "typst",
+            str(source_dir),
+            str(build_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert (
+        result.returncode == 0
+    ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+
+    wrapper_typ = build_dir / "outer.typ"
+    assert wrapper_typ.exists(), "outer.typ was not generated"
+
+    pdf_output = build_dir / "outer.pdf"
+    typst.compile(str(wrapper_typ), output=str(pdf_output), root=str(build_dir))
+
+    assert pdf_output.exists(), "PDF file was not created"
+    assert pdf_output.stat().st_size > 0, "PDF file is empty"
+    with open(pdf_output, "rb") as f:
+        assert f.read(4) == b"%PDF", "Generated file is not a valid PDF"
+
+    reader = pypdf.PdfReader(str(pdf_output))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
 
 @pytest.mark.skipif(
     not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
@@ -262,61 +430,6 @@ class TestTwoLayerOutputGate:
 class TestTwoLayerOutputGatePdf:
     """COMP-04 (B-2) -- real-compile, real-pypdf structural assertion."""
 
-    @pytest.fixture(scope="class")
-    def nested_master_outer_pdf_text(self, tmp_path_factory):
-        """
-        Build + real-compile ``two_layer_nested_master_gate``'s outer
-        wrapper ONCE per class and return the pypdf-extracted PDF text.
-
-        Depends only on ``tmp_path_factory`` (session-scoped-compatible),
-        not on a function-scoped fixture, to avoid a pytest ScopeMismatch --
-        the same pattern ``test_pdf_render_gate.py``'s class-scoped
-        compile-once fixtures use.
-
-        Pre-fix, the real ``typst.compile()`` call below raises B-1's
-        TypstError before B-2 can be independently observed on THIS
-        fixture as configured (see 47-RED-EVIDENCE.md's COMP-04 section for
-        the isolated B-2-only measurement, captured by temporarily working
-        around B-1). That TypstError propagates out of this fixture, and
-        pytest reports the dependent xfail(strict=True) test as ``xfailed``
-        (verified empirically this task: a class-scoped fixture raising
-        inside an xfail-marked test's dependency chain is still caught by
-        xfail, not reported as a bare ``error``).
-        """
-        source_dir = NESTED_MASTER_FIXTURE_DIR
-        build_dir = tmp_path_factory.mktemp("two_layer_nested_master_gate") / "_build"
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "sphinx",
-                "-b",
-                "typst",
-                str(source_dir),
-                str(build_dir),
-            ],
-            capture_output=True,
-            text=True,
-        )
-        assert (
-            result.returncode == 0
-        ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-
-        wrapper_typ = build_dir / "outer.typ"
-        assert wrapper_typ.exists(), "outer.typ was not generated"
-
-        pdf_output = build_dir / "outer.pdf"
-        typst.compile(str(wrapper_typ), output=str(pdf_output), root=str(build_dir))
-
-        assert pdf_output.exists(), "PDF file was not created"
-        assert pdf_output.stat().st_size > 0, "PDF file is empty"
-        with open(pdf_output, "rb") as f:
-            assert f.read(4) == b"%PDF", "Generated file is not a valid PDF"
-
-        reader = pypdf.PdfReader(str(pdf_output))
-        return "\n".join(page.extract_text() for page in reader.pages)
-
-    @pytest.mark.xfail(strict=True, reason=XFAIL_REASON)
     def test_comp04_b2_no_mid_body_template_reexpansion(
         self, nested_master_outer_pdf_text
     ):
@@ -365,17 +478,8 @@ class TestComputeContentIncludePath:
     Unit test for the include-path purity edge (COMP-03, edge/concurrency):
     the wrapper-to-content include path is a pure function of (wrapper
     resolved directory, content path), independent of write order.
-
-    Marked xfail(strict=True, raises=ImportError) until 47-02 lands
-    ``compute_content_include_path`` in ``typsphinx.writer`` -- the
-    function does not exist yet on the unfixed tree.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=ImportError,
-        reason="RED until 47-02 lands compute_content_include_path",
-    )
     def test_compute_content_include_path_is_a_pure_two_endpoint_relpath(self):
         from typsphinx.writer import compute_content_include_path
 
@@ -385,3 +489,28 @@ class TestComputeContentIncludePath:
         )
         assert compute_content_include_path("", "guide/index.typ") == "guide/index.typ"
         assert compute_content_include_path("guide", "guide/index.typ") == "index.typ"
+        assert compute_content_include_path("", "index.typ") == "index.typ"
+
+
+class TestComputeTemplateImportPathForDir:
+    """
+    Unit tests for ``compute_template_import_path_for_dir`` (task 1's
+    behavior block): the wrapper's own resolved directory alone
+    determines the shared ``_template.typ`` import path, since
+    ``_write_template_file()`` always writes it at the outdir root.
+    """
+
+    def test_root_wrapper_imports_bare_template(self):
+        from typsphinx.writer import compute_template_import_path_for_dir
+
+        assert compute_template_import_path_for_dir("") == "_template.typ"
+
+    def test_one_level_nested_wrapper_imports_one_up(self):
+        from typsphinx.writer import compute_template_import_path_for_dir
+
+        assert compute_template_import_path_for_dir("manuals") == "../_template.typ"
+
+    def test_two_level_nested_wrapper_imports_two_up(self):
+        from typsphinx.writer import compute_template_import_path_for_dir
+
+        assert compute_template_import_path_for_dir("a/b") == "../../_template.typ"

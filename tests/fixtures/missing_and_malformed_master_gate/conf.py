@@ -28,11 +28,13 @@
 #
 # The fixture also contains a SECOND, non-master document (chapter1.rst,
 # reached from index.rst's toctree and deliberately absent from the list
-# below). Writing it forces TypstWriter._is_master_document("chapter1") to
-# scan this whole list without matching, so the scan reaches the malformed
-# () entry -- the condition behind code-review finding CR-01. Keep
-# chapter1.rst out of typst_documents; adding it would make the scan match
-# early and silently stop exercising that path.
+# below). Writing it forces TypstBuilder._write_typst_files("chapter1", ...)
+# (Phase 47's per-docname wrapper-entry matching loop, `typsphinx/
+# builder.py`) to scan this whole typst_documents list without matching any
+# entry -- chapter1 gets only a content file, no wrapper -- so the scan
+# reaches the malformed () entry, the condition behind code-review finding
+# CR-01. Keep chapter1.rst out of typst_documents; adding it would make the
+# scan match early and silently stop exercising that path.
 #
 # No other typst_* config value is set here -- in particular, no
 # typst_template, no typst_package, and no typst_template_function. The

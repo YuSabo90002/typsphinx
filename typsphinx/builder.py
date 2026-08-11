@@ -25,6 +25,44 @@ from typsphinx.writer import TypstWriter
 logger = logging.getLogger(__name__)
 
 
+def _escapes_outdir(stem: str) -> bool:
+    """Whether a (suffix-stripped) ``typst_documents`` target stem
+    attempts to escape the output directory (OUT-02): a parent-traversal
+    segment, an absolute path, or a drive-qualified path.
+
+    Deliberately does NOT test for a path separator alone -- OUT-01
+    reverses Phase 44's "any path component is rejected" rule. A
+    separator-bearing, non-escaping stem (e.g. ``"manuals/guide"``) is
+    now a legitimate output path, not a guard trigger; only the three
+    escape-shaped terms below still fall back to a basename.
+
+    The unconditional ``"/"``/``"\\\\"`` split (not just
+    ``os.sep``/``os.altsep``) is what makes a Windows-authored
+    ``"../sub\\\\manual"`` traversal detectable on POSIX, where
+    ``os.sep`` is ``"/"`` and ``os.altsep`` is ``None``.
+
+    Args:
+        stem: The already-suffix-stripped ``typst_documents`` target
+            stem.
+
+    Returns:
+        True if the stem attempts to escape outdir, False otherwise.
+
+    Examples:
+        >>> _escapes_outdir("manuals/guide")
+        False
+        >>> _escapes_outdir("../escape")
+        True
+        >>> _escapes_outdir("/abs/manual")
+        True
+        >>> _escapes_outdir("C:manual")
+        True
+    """
+    segments = stem.replace("\\", "/").split("/")
+    is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+    return ".." in segments or path.isabs(stem) or is_drive_qualified
+
+
 def _default_typst_documents(config: Config) -> list:
     """Sphinx-native default for ``typst_documents``, mirroring
     ``sphinx.builders.latex.default_latex_documents`` (CONF-08).
@@ -173,18 +211,27 @@ class TypstBuilder(Builder):
             When ``docname`` has no matching ``typst_documents`` entry, the
             docname itself is returned unchanged (D-02) -- this is the
             common case for every document that is not a compiled master.
-            When the matched target name is unusable (a path, an absolute
-            path, or empty/whitespace/non-str after suffix stripping), a
-            ``logger.warning`` is emitted and a safe fallback is returned
-            instead -- ``path.basename`` of the offending stem for a
-            path-bearing target (D-06/D-07), or the docname itself for a
-            degenerate target (edge: empty). When the resolved stem's
-            directory-qualified effective path equals another real docname
-            in ``self.env.found_docs`` or the reserved ``_template``
-            basename (CR-01), a ``logger.warning`` is emitted and the
-            docname itself is returned, so a derived or explicit target
-            name can never silently overwrite another document's output or
-            the shared ``_template.typ`` infrastructure file.
+            OUT-01: a path-bearing target (e.g. ``"manuals/guide.typ"``) is
+            now returned AS-IS (relative to outdir) -- a path component is
+            no longer rejected. When the matched target name still escapes
+            outdir (a parent-traversal segment, an absolute path, or a
+            drive-qualified path -- OUT-02) or is empty/whitespace/non-str
+            after suffix stripping, a ``logger.warning`` is emitted and a
+            safe fallback is returned instead -- ``path.basename`` of the
+            offending stem for an escaping target, or the docname itself
+            for a degenerate target (edge: empty). When the resolved
+            stem's directory-qualified effective path equals another real
+            docname in ``self.env.found_docs`` or the reserved
+            ``_template`` basename (CR-01), a ``logger.warning`` is
+            emitted and the docname itself is returned, so a derived or
+            explicit target name can never silently overwrite another
+            document's output or the shared ``_template.typ``
+            infrastructure file. NOTE: this CR-01 check is left in its
+            pre-OUT-01 shape (it still computes its comparison through
+            ``_directory_preserving_relpath()``, which force-relocates
+            into the docname's own directory) -- 47-09's unified
+            collision validator replaces it; deleting it here would leave
+            a window with no collision handling at all.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
 
@@ -208,24 +255,13 @@ class TypstBuilder(Builder):
             # is forbidden.
             stem = target[:-4] if target.endswith(".typ") else target
 
-            # D-06/D-07 path guard: detect a path-bearing, traversal-bearing,
-            # absolute, or drive-qualified target BEFORE it reaches
-            # path.join(self.outdir, ...). The unconditional "/" and "\\"
-            # (not just os.sep/os.altsep) is what makes a Windows-authored
-            # "sub\\manual.typ" detectable on POSIX, where os.sep is "/" and
-            # os.altsep is None.
-            separators = {"/", "\\", os.sep}
-            if os.altsep:
-                separators.add(os.altsep)
-            segments = stem.replace("\\", "/").split("/")
+            # OUT-02 escape guard: detect a traversal-bearing, absolute,
+            # or drive-qualified target BEFORE it reaches
+            # path.join(self.outdir, ...). OUT-01 reverses the prior
+            # separator-membership term -- a bare path component is no
+            # longer, by itself, a guard trigger; see _escapes_outdir().
             is_drive_qualified = len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
-            is_guarded = (
-                any(sep in stem for sep in separators)
-                or ".." in segments
-                or path.isabs(stem)
-                or is_drive_qualified
-            )
-            if is_guarded:
+            if _escapes_outdir(stem):
                 fallback_source = stem[2:] if is_drive_qualified else stem
                 fallback = path.basename(fallback_source.replace("\\", "/"))
                 if not fallback.strip():
@@ -443,6 +479,26 @@ class TypstBuilder(Builder):
 
             logger.info(" done")
 
+        # D-07: name the wrapper files this build wrote and state that
+        # those are the files to compile. After the content/wrapper
+        # split the outdir holds roughly twice as many .typ files as
+        # before, with nothing in a filename alone distinguishing a
+        # content file from a wrapper -- `-b typstpdf` already emits its
+        # own "Compiling N master document(s)"/"Generated PDF" lines;
+        # this is the missing symmetric message on the markup-only
+        # builder.
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        wrapper_relpaths = sorted(
+            self._wrapper_output_relpath(entry) + ".typ"
+            for entry in typst_documents
+            if entry and entry[0] in docnames
+        )
+        if wrapper_relpaths:
+            logger.info(
+                f"typst: wrote {len(wrapper_relpaths)} wrapper file(s) -- "
+                f"compile these: {', '.join(wrapper_relpaths)}"
+            )
+
     def post_process_images(self, doctree: nodes.document) -> None:
         """
         Post-process images in the document tree.
@@ -557,11 +613,54 @@ class TypstBuilder(Builder):
         if resolved_uri not in self.images:
             self.images[resolved_uri] = ""
 
-    def write_doc(self, docname: str, doctree: nodes.document) -> None:
-        """
-        Write a document.
+    def _content_output_path(self, docname: str) -> str:
+        """Return this docname's content file's absolute on-disk path
+        (COMP-01/OUT-03).
 
-        This method is called for each document that needs to be written.
+        Unconditional, and a pure function of the docname alone -- a
+        docname already carries its own ``/``-separated directory, so
+        this needs no ``_resolve_output_stem()`` call and no
+        ``_directory_preserving_relpath()`` call. Every docname gets a
+        content file, regardless of whether any ``typst_documents`` entry
+        names it.
+
+        Args:
+            docname: The Sphinx document name being written.
+
+        Returns:
+            The content file's absolute on-disk path.
+        """
+        return path.normpath(path.join(self.outdir, docname + ".typ"))
+
+    def _wrapper_output_relpath(self, entry: tuple) -> str:
+        """Return the outdir-relative wrapper path (no suffix) for one
+        ``typst_documents`` entry.
+
+        OUT-01: the resolved stem is returned AS-IS, interpreted directly
+        as a path relative to outdir -- no directory forcing.
+        ``_directory_preserving_relpath()``'s Phase 44 D-05 relocation
+        behavior is reversed for wrapper placement (it stays in the file,
+        used only for content placement's own still-valid job and for
+        ``_resolve_output_stem()``'s own CR-01 collision check).
+
+        Args:
+            entry: The specific ``typst_documents`` tuple to resolve a
+                wrapper path for.
+
+        Returns:
+            The outdir-relative wrapper path (no suffix).
+        """
+        return self._resolve_output_stem(entry[0])
+
+    def _write_typst_files(self, docname: str, doctree: nodes.document) -> None:
+        """Write this docname's content file, then every wrapper file for
+        a ``typst_documents`` entry naming it.
+
+        This is the ONE shared write path both ``TypstBuilder.write_doc``
+        and ``TypstPDFBuilder.write_doc`` use -- byte-identical ``.typ``
+        output across both builders is therefore structural (a single
+        code path both builders run), not a maintained coincidence
+        between two near-duplicate bodies.
 
         Requirement 13.1: 各 reStructuredText ファイルに対応する独立した
         .typ ファイルを生成する
@@ -572,20 +671,6 @@ class TypstBuilder(Builder):
             docname: Name of the document
             doctree: Document tree to be written
         """
-        # Resolve the typst_documents target-name stem (Issue #117) and
-        # preserve the docname's own directory (D-05) before deriving the
-        # output file path.
-        stem = self._resolve_output_stem(docname)
-        relative_path = self._directory_preserving_relpath(docname, stem)
-        destination = path.normpath(
-            path.join(self.outdir, relative_path + self.out_suffix)
-        )
-
-        # Ensure the directory for this specific file exists
-        # This handles nested paths like "chapter1/section"
-        dest_dir = path.dirname(destination)
-        ensuredir(dest_dir)
-
         # Set current docname for template application logic
         self.current_docname = docname
 
@@ -595,12 +680,49 @@ class TypstBuilder(Builder):
         # Set the document on the writer
         self.writer.document = doctree
 
-        # Translate the document to Typst markup
+        # Write the CONTENT file -- unconditional, docname-derived
+        # (COMP-01/OUT-03), regardless of any typst_documents entry.
+        content_destination = self._content_output_path(docname)
+        ensuredir(path.dirname(content_destination))
         self.writer.translate()
-
-        # Save the output to the file
-        with open(destination, "w", encoding="utf-8") as f:
+        with open(content_destination, "w", encoding="utf-8") as f:
             f.write(self.writer.output)
+
+        content_relative_path = docname + ".typ"
+
+        # Write a WRAPPER file for every typst_documents entry naming
+        # this docname (D-04: two entries may name the same docname,
+        # each producing its own wrapper -- see D-08 for title/author).
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        for entry in typst_documents:
+            if not entry or entry[0] != docname:
+                continue
+            wrapper_relpath = self._wrapper_output_relpath(entry)
+            wrapper_destination = path.normpath(
+                path.join(self.outdir, wrapper_relpath + ".typ")
+            )
+            ensuredir(path.dirname(wrapper_destination))
+            wrapper_relative_dir = posixpath.dirname(wrapper_relpath)
+            wrapper_output = self.writer.render_wrapper(
+                entry, doctree, wrapper_relative_dir, content_relative_path
+            )
+            with open(wrapper_destination, "w", encoding="utf-8") as f:
+                f.write(wrapper_output)
+
+    def write_doc(self, docname: str, doctree: nodes.document) -> None:
+        """
+        Write a document.
+
+        This method is called for each document that needs to be written.
+        Delegates to ``_write_typst_files()``, the single write path
+        shared with ``TypstPDFBuilder`` (which inherits this method
+        unchanged).
+
+        Args:
+            docname: Name of the document
+            doctree: Document tree to be written
+        """
+        self._write_typst_files(docname, doctree)
 
     def _write_template_file(self) -> None:
         """
@@ -912,50 +1034,13 @@ class TypstPDFBuilder(TypstBuilder):
     format = "pdf"
     out_suffix = ".pdf"
 
-    def write_doc(self, docname: str, doctree: nodes.document) -> None:
-        """
-        Write a document as both .typ and .pdf.
-
-        Override to generate .typ file (not .pdf) during the write phase.
-        The .pdf will be generated in finish() by compiling the .typ file.
-
-        Args:
-            docname: Name of the document
-            doctree: Document tree to be written
-        """
-        # Generate .typ file (not .pdf). Resolve the typst_documents
-        # target-name stem (Issue #117) -- self.out_suffix is ".pdf" on this
-        # builder, so the literal ".typ" suffix is used here regardless.
-        stem = self._resolve_output_stem(docname)
-        relative_path = self._directory_preserving_relpath(docname, stem)
-        typ_destination = path.normpath(path.join(self.outdir, relative_path + ".typ"))
-
-        # Ensure the directory exists
-        dest_dir = path.dirname(typ_destination)
-        ensuredir(dest_dir)
-
-        # Set current docname for template application logic
-        self.current_docname = docname
-
-        # Post-process images to track them for copying.
-        # This mirrors TypstBuilder.write_doc(): finish() (via super().finish())
-        # calls copy_image_files(), which copies every uri tracked in
-        # self.images from srcdir to outdir. Without this call self.images stays
-        # empty, copy_image_files() early-returns, and any referenced asset
-        # (e.g. a `.. figure:: _static/foo.png`) is never copied into the Typst
-        # output tree -- so the emitted image("_static/foo.png") path fails to
-        # resolve and typst.compile() aborts with "file not found".
-        self.post_process_images(doctree)
-
-        # Set the document on the writer
-        self.writer.document = doctree
-
-        # Translate the document to Typst markup
-        self.writer.translate()
-
-        # Save the .typ file
-        with open(typ_destination, "w", encoding="utf-8") as f:
-            f.write(self.writer.output)
+    # write_doc() is inherited unchanged from TypstBuilder (which
+    # delegates to _write_typst_files()) -- both builders write .typ
+    # content and wrapper files identically during the write phase; only
+    # finish() differs, compiling the wrapper files to PDF afterward.
+    # This is what makes `-b typst` and `-b typstpdf` emit byte-identical
+    # .typ output structural (one shared code path) rather than a
+    # maintained coincidence between two near-duplicate bodies.
 
     def finish(self) -> None:
         """
@@ -1033,9 +1118,13 @@ class TypstPDFBuilder(TypstBuilder):
                 logger.warning(message)
                 failures.append((repr(docname), message))
                 continue
-            stem = self._resolve_output_stem(docname)
-            relative_path = self._directory_preserving_relpath(docname, stem)
-            typ_file = path.normpath(path.join(self.outdir, relative_path + ".typ"))
+            # Resolve the WRAPPER's outdir-relative path ONCE, through the
+            # same _wrapper_output_relpath() the write phase used, so the
+            # read-back path and the write path can never drift (Issue
+            # #117) and so only WRAPPER files are ever compiled here --
+            # content files are never independently compiled (COMP-02).
+            wrapper_relpath = self._wrapper_output_relpath(doc_tuple)
+            typ_file = path.normpath(path.join(self.outdir, wrapper_relpath + ".typ"))
 
             if not path.exists(typ_file):
                 if docname not in self.env.found_docs:
@@ -1051,13 +1140,15 @@ class TypstPDFBuilder(TypstBuilder):
                 continue
 
             try:
-                # typ_file is already the master's real on-disk location, so
-                # the docname-relative #include()/image() paths the
+                # typ_file is already the wrapper's real on-disk location,
+                # so the docname-relative #include()/image() paths the
                 # translator emitted resolve by construction (D-01).
                 pdf_bytes = compile_typst_file_to_pdf(typ_file, root_dir=self.outdir)
 
                 # Write PDF file
-                pdf_file = path.normpath(path.join(self.outdir, relative_path + ".pdf"))
+                pdf_file = path.normpath(
+                    path.join(self.outdir, wrapper_relpath + ".pdf")
+                )
                 with open(pdf_file, "wb") as f:
                     f.write(pdf_bytes)
 
