@@ -215,3 +215,156 @@ merged. Corroborated by `_track_image` being absent from both `main` and the mil
 - All 10 records in `.planning/todos/pending/`, enumerated with reasons in CONTEXT.md `<deferred>`.
   Two of them (DOC-13's and CONF-09's source records) look already-delivered and are flagged for the
   planner to confirm and file to `todos/completed/`.
+
+---
+---
+
+# Second discussion pass
+
+**Date:** 2026-08-11
+**Trigger:** existing CONTEXT.md offered for update; four premises had changed since 2026-08-10 —
+Phase 45.2 completed, `origin/main` advanced to `9b2b76b` (PR #131 merged), the branch CI went RED
+on the Windows lanes, and the pending-todo ledger grew from 10 to 12 records.
+**Areas discussed:** origin/main merge, Windows CI RED, PR #131 CHANGELOG integration,
+`_track_image()` defects
+
+---
+
+## Context handling
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Update it | Keep D-01..D-19 locked, re-discuss only the changed premises | ✓ |
+| Use as-is (skip) | Go straight to `/gsd-plan-phase 46`; planner absorbs the drift | |
+| View it | Walk each section before deciding | |
+
+**Notes:** Presented with the five measured drift points first, including the fact that D-17's
+"correction of record" was itself wrong.
+
+---
+
+## origin/main merge
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Merge at head of Phase 46 | Before bump and CHANGELOG; SC#3's tree == the tagged tree | ✓ |
+| Merge with the CHANGELOG plan | One pass, but crosses `uv.lock` regeneration with the merge | |
+| Rebase onto origin/main | Linear history, but rewrites 371 commits and force-pushes | |
+| Defer to `/gsd-complete-milestone` | Resolves the CHANGELOG conflict inside the irreversible half | |
+
+**Notes:** `git merge-tree --write-tree HEAD origin/main` was run read-only first — one conflict
+(`CHANGELOG.md`), `typsphinx/builder.py` and `tests/test_builder.py` auto-merge clean. → **D-20**
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Anchor SC#4 at the `v0.7.0` tag (`75fd8ed`) | Swept diff == what a v0.7.0 user receives | ✓ |
+| Keep `87f242a` | D-14 as written; one commit off the tag | |
+| Record both | 1 file / 14 lines apart — redundant | |
+
+**Notes:** → **D-21**, superseding D-14.
+
+---
+
+## Windows CI RED
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Fix inside Phase 46 | One line in a test module; no `typsphinx/` change, fence holds | ✓ |
+| Insert Phase 46.1 | The Phase 45.2 procedure applied to a one-line change | |
+| Exclude as known RED | Contradicts D-11's own justification for CI being the authority | |
+
+**Notes:** Run `31445582363` breakdown shown — only the two `windows-latest` jobs fail. The gate was
+traced to Phase 45.1's commit `a6fa38b` and confirmed absent from `v0.7.0`, i.e. a regression this
+milestone introduced. → **D-22**
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Two CI runs: check then authority | Run 1 proves Windows green (unverifiable on NixOS); run 2 is SC#3 | ✓ |
+| One combined run | Single wait, but a missed repair surfaces after the bump | |
+| Three separated runs | Full causal separation; a third wait buys nothing | |
+
+**Notes:** Local `ruff` is unrunnable on NixOS, so a bare `tox` still cannot go green locally; D-11
+already assigns lint/type/pytest to CI, so this narrows the local evidence rather than weakening
+SC#3. → **D-23**, D-11 amendment (b)
+
+---
+
+## PR #131 CHANGELOG integration
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Compress to house granularity | ~14 lines → 3–5, matching `[0.7.0]`'s `### Fixed` bullets | ✓ |
+| Move verbatim | Respects the contributor's text; ~3× everything around it | |
+| Rewrite from scratch | Most consistent; discards the contributor's own account | |
+
+**Notes:** → **D-24**. Makes PR #131 the sixth user-visible change, filling one of D-05's 6–8 slots.
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Credit `@christianwehe` in the trailing parentheses | First external contribution; sets the precedent | ✓ |
+| Issue/PR number only | Matches existing form exactly; renders the contributor anonymous | |
+| New `### Contributors` section | A second brand-new section alongside D-02's `### Removed` | |
+
+**Notes:** Measured that the CHANGELOG has no attribution precedent at all (zero `Thanks` / `@` /
+`contributed`) but does have a `(PR #14)`-style trailing slot from the 0.4.x era. → **D-25**
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| `Issue #130` only; leave REQUIREMENTS.md alone | Coverage stays 19/19, zero orphans | ✓ |
+| Mint a new requirement mapped to Phase 46 | Full traceability; attributes work Phase 46 didn't do | |
+| Footnote on the coverage line | Bookkeeping for a fact the CHANGELOG already states | |
+
+**Notes:** → **D-26**
+
+---
+
+## `_track_image()` defects
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Insert Phase 46.1 and fix both | The Phase 45.2 precedent; keeps Phase 46 prep-only | |
+| Ship in v0.7.1, defer | Faster release; converter users get silent wrong images | ✓ |
+| Fix inside Phase 46 | Fastest; contradicts D-03's reason for declining the `typst_authors` shim | |
+| Drop PR #131 from v0.7.1 | Reverts a merged external contribution; Issue #130 stays unfixed | |
+
+**Notes:** The full counter-case was put before the choice — the review probe transcript showing
+`Copying 1 image file(s)` / identical `image()` paths / `build succeeded` with no warning, the fact
+that pre-PR `main` failed *loudly* on the same shape, and that `images/` is Sphinx's most common
+asset layout. Owner chose to ship. → **D-27**
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| GitHub issue + CHANGELOG `### Known Limitations` | Converter users learn before upgrading | |
+| CHANGELOG only | Visible in release notes, nowhere to track | |
+| Internal only (todo + `46-HANDOFF.md`) | Nothing external; release notes show #131 as fixed | ✓ |
+
+**Notes:** `### Known Limitations` precedent at `CHANGELOG.md:817` and the near-empty public issue
+tracker (only #91 open) were both presented. Owner chose internal-only. → **D-27**
+
+---
+
+## Claude's Discretion (added this pass)
+
+- The exact form of the `tests/test_docs_contract_claims_gate.py:170` repair, and whether
+  `EXCLUDED_CLAIM_PAGES` moves to the same normalisation.
+- The compressed wording of the PR #131 bullet and where the credit sits in its parentheses.
+- Whether `## [0.7.1]` is created before or during the merge-conflict resolution.
+- Which plan owns the merge, and whether the Windows repair rides along or gets its own.
+- Resolving the D-09 ↔ contract-claims-gate ordering interaction on `docs/source/changelog.rst`.
+
+## Deferred Ideas (added this pass)
+
+- Both `TypstBuilder._track_image()` defects — now actionable (the code is on `main`), deferred by
+  owner decision rather than by impossibility.
+- A public `### Known Limitations` entry and a GitHub issue for them — argued and declined.
+- `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` — a `flake.nix`-side repair in the QUA-04
+  family; does not block SC#3.
+
+## Corrections of record (this pass)
+
+- **D-17 retracted.** PR #131 is MERGED (`9b2b76b`, `2026-08-10T13:54:05Z`) and Issue #130 is
+  CLOSED. `STATE.md` was right; the 2026-08-10 measurement predated the merge, and its
+  corroborating check queried a local `main` ref stale at `87f242a`. Phase 46 makes no `STATE.md`
+  correction on this point. → **D-28**
+- **D-11's Phase 45.2 dependency discharged** — 45.2 completed 2026-08-11.
+- **D-16's ledger corrected** — 12 pending records, not 10, one of which this phase resolves.

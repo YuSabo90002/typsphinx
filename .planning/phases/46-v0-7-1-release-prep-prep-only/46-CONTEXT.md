@@ -1,6 +1,10 @@
 # Phase 46: v0.7.1 Release Prep (prep-only) - Context
 
 **Gathered:** 2026-08-10
+**Updated:** 2026-08-11 — second discussion pass. Phase 45.2 landed, `origin/main` moved to
+`9b2b76b` (PR #131 merged), and the branch CI went RED on the Windows lanes. D-01..D-10, D-12,
+D-13, D-15, D-18, D-19 are unchanged and remain locked. D-11, D-14 and D-16 are amended in place;
+**D-17 is retracted — it was wrong**. D-20..D-28 are new.
 **Status:** Ready for planning
 
 <domain>
@@ -13,6 +17,10 @@ checklist — with **zero irreversible action taken**. Requirements: **REL-06** 
 
 **In scope:**
 
+- **Merging `origin/main` (`9b2b76b`) into the milestone branch at the head of the phase** (D-20).
+  The branch does not contain it: `git merge-base --is-ancestor origin/main HEAD` → false.
+- **One-line repair of `tests/test_docs_contract_claims_gate.py:170`** so the two Windows CI lanes
+  go green (D-22). Test file only — no `typsphinx/` change, so the prep-only fence holds.
 - `pyproject.toml:7` — `version = "0.7.0"` → `"0.7.1"` (measured this session: still the sole
   version literal), with `uv.lock` and `README.md:342` (`**Status**: Stable (v0.7.0) - Production
   ready`) moved in lockstep and the editable-install metadata regenerated so
@@ -23,7 +31,8 @@ checklist — with **zero irreversible action taken**. Requirements: **REL-06** 
   0.7.1" section**, not a release entry (D-09; the page `.. include::`s `CHANGELOG.md`, so the
   release history is already automatic).
 - SC#3 live-run evidence on the post-bump tree per D-11..D-13.
-- SC#4's invariant proof over the SHA-anchored full milestone diff (merge-base `87f242a`..HEAD).
+- SC#4's invariant proof over the SHA-anchored full milestone diff, anchored at the **`v0.7.0` tag
+  (commit `75fd8ed`)** and re-measured on the post-merge HEAD (D-21, superseding D-14's `87f242a`).
 - REL-04's in-phase share: verify `release.yml`'s `create-release` job carries the
   `astral-sh/setup-uv` + `Set up Python` steps (**already confirmed this session** at
   `release.yml:162-168`), and run `scripts/extract_changelog_section.py` against the new
@@ -38,11 +47,14 @@ checklist — with **zero irreversible action taken**. Requirements: **REL-06** 
   `git ls-remote --tags origin v0.7.1` must both be empty at phase close. The prep/publish fence is
   absolute (Phase 33/35/41 precedent).
 - **Any `typsphinx/` code change**, including a deprecation shim for the removed `typst_authors`
-  (D-03) — the prep-only fence is held even though the silent-failure mode is real.
+  (D-03) **and the two measured `TypstBuilder._track_image()` defects that arrive with PR #131**
+  (D-27) — the prep-only fence is held even though both silent-failure modes are real. The
+  Windows repair (D-22) is not an exception to this: it touches a test module, not `typsphinx/`.
 - **The `tox-uv` → `tox-uv-bare` dependency repair** — routed to a newly inserted **Phase 45.2**
   (D-18). Inserting that phase into `ROADMAP.md` / `REQUIREMENTS.md` is a separate `/gsd-phase`
   action and is **NOT** Phase 46 work (the Phase 41 D-11 precedent for Phase 40.1).
-- **PR #131 / Issue #130** — the absolute-image-URI fix stays out of v0.7.1 (D-17).
+- ~~**PR #131 / Issue #130** — the absolute-image-URI fix stays out of v0.7.1 (D-17).~~
+  **Retracted 2026-08-11 — D-17 was wrong. PR #131 is MERGED and ships in v0.7.1** (D-28).
 - The 10 pending todos (D-16).
 - Revisiting the version number — `0.7.1` is locked by D-01.
 - Editing historical CHANGELOG entries.
@@ -149,10 +161,23 @@ rather than silently corrected.
   (invariant #5), so pushing the post-bump commit and reading its run — including the Windows lanes,
   which caught a real cp1252 defect at the v0.7.0 close — is a **live** result, not an inherited
   one, and therefore satisfies SC#3. The full-corpus `-b typstpdf` gate and both docs builds are run
-  locally. **This decision depends on Phase 45.2 landing first (D-18): local `tox` does not
-  currently run at all.** Rejected: promoting the local run to the authority (never sees Windows or
+  locally. Rejected: promoting the local run to the authority (never sees Windows or
   macOS), and requiring both full green runs (largest pre-release wait for the least new
   information).
+
+  **Amended 2026-08-11 (a) — the Phase 45.2 dependency is discharged.** 45.2 completed 2026-08-11
+  (`ROADMAP.md:361`, 5/5 plans; `pyproject.toml:38` now `tox-uv-bare>=1.35,<2`, `tox.ini:11`
+  `requires = tox-uv-bare~=1.35`). The original wording "local `tox` does not currently run at all"
+  no longer holds and is struck.
+
+  **Amended 2026-08-11 (b) — the local half is per-environment, not the whole `env_list`.**
+  Measured and recorded as todo `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos`:
+  `.venv/bin/ruff` is a generic-linux ELF that NixOS's stub loader rejects (exit 127) and no other
+  `ruff` resolves on PATH, so a bare `tox` still cannot go green locally — its `lint` env dies.
+  This does **not** weaken SC#3, because this decision already assigns lint/type/pytest authority to
+  CI (green on that job: run `31445582363`, `Lint and Format Check` → success). The local evidence
+  is therefore `tox -e docs-html`, `tox -e docs-pdf` and the full-corpus `-b typstpdf` gate,
+  invoked per-environment.
 
 - **D-12: The `ja` evidence is a single local `SPHINX_LANGUAGE=ja` docs-pdf build, not Phase 41's
   four-check glyph bar.** The bar was justified in Phase 41 by two measured facts about that
@@ -174,27 +199,34 @@ rather than silently corrected.
   safe on both languages. The handoff item is retired; the standing **two-repository tagging** cost
   is unaffected.
 
-- **D-14: SC#4's invariant sweep runs over merge-base `87f242a`..HEAD.** Measured: 323 commits, and
-  excluding `.planning/` the code delta is 119 files / +10,052 / −847. The `@preview` count and its
-  four sync surfaces are asserted mechanically; the dependency assertion is worded per D-08.
+- **D-14 [SUPERSEDED by D-21 on 2026-08-11] — SC#4's invariant sweep runs over merge-base 87f242a..HEAD.**
+  Measured 2026-08-10: 323 commits, and excluding `.planning/` the code delta is
+  119 files / +10,052 / −847. Re-measured 2026-08-11 before the merge: 371 commits, 125 files,
+  +10,568 / −932. Kept as a record of what the figure was; **use D-21's anchor, not this one**. The
+  `@preview` count and its four sync surfaces are asserted mechanically; the dependency assertion is
+  worded per D-08 — both of those clauses carry forward into D-21 unchanged.
 
 - **D-15 [derived]: evidence is NOT written to `46-VERIFICATION.md`.** That name is reserved by the
   verifier and will be clobbered — the Phase 41 D-15/`41-RELEASE-EVIDENCE.md` precedent.
 
 ### Close-out disposition
 
-- **D-16: All 10 pending todos are explicitly deferred, each with its reason recorded** — the
+- **D-16: Every pending todo is explicitly deferred, each with its reason recorded** — the
   Phase 41 D-14 shape. None relates to REL-04 / REL-06 and none blocks the release. See
-  `<deferred>` for the enumerated list.
+  `<deferred>` for the enumerated list. **Amended 2026-08-11: the ledger is 12 records, not 10.**
+  Phase 45.2 filed two (`2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos`,
+  `2026-08-11-windows-path-separator-breaks-contract-claims-gate`). The second one is **not**
+  deferred — D-22 resolves it in this phase, so it is filed to `todos/completed/` at phase close.
+  The two `_track_image` records change category rather than count: they described PR-only code on
+  2026-08-10 and now describe code that is on `main` and ships in v0.7.1 (D-27, D-28).
 
-- **D-17 [correction of record]: PR #131 is NOT in v0.7.1, and `STATE.md` is wrong about it.**
-  `STATE.md` states (2026-08-10 entry) that "the review was performed and PR #131 merged". Measured
-  via `gh pr view 131`: `state: OPEN`, `mergedAt: null`, one review with state **`CHANGES_REQUESTED`**.
-  Independently corroborated — `_track_image` appears in neither `main` nor the milestone branch, and
-  the two todos the review filed (`rehomed-converted-image-collides-with-srcdir-images-dir`,
-  `track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri`) describe code that exists only in
-  the PR. Issue #130 therefore remains open in v0.7.1. Phase 46 corrects the `STATE.md` sentence as
-  closing-record hygiene; it does not review, merge, or reopen the PR.
+- **D-17 [RETRACTED 2026-08-11, the claim was false, see D-28] — PR #131 is NOT in v0.7.1.**
+  The 2026-08-10 measurement it rests on (`gh pr view 131` →
+  `state: OPEN`, `mergedAt: null`) was taken before the merge landed at
+  `2026-08-10T13:54:05Z`. `STATE.md` was right and this decision was wrong. Retained rather than
+  deleted so a later reader can see that the "correction of record" was itself corrected, and so
+  the instruction it issued — "Phase 46 corrects the `STATE.md` sentence" — is visibly cancelled:
+  **`STATE.md` needs no correction on this point.**
 
 ### Routed out of this phase
 
@@ -222,6 +254,122 @@ rather than silently corrected.
   repository. Under `tox-uv-bare` that person gets tox-uv's own three-option error message rather
   than a silent failure.
 
+### Taking `origin/main` into the release branch (added 2026-08-11)
+
+- **D-20: `origin/main` (`9b2b76b`) is merged into the milestone branch at the head of Phase 46.**
+  Measured 2026-08-11: `git merge-base --is-ancestor origin/main HEAD` → false; `origin/main` is
+  four commits ahead (`fa1ab88`, `b248ddd`, `fe284a7`, `9b2b76b` — the PR #131 merge). A read-only
+  `git merge-tree --write-tree HEAD origin/main` reports **exactly one conflict, `CHANGELOG.md`**;
+  `typsphinx/builder.py` and `tests/test_builder.py` auto-merge clean. The conflict sits in the
+  `## [Unreleased]` block — the very text D-05..D-10 rewrite — so conflict resolution *is* the
+  CHANGELOG curation work rather than an extra cost. Merging first means the tree SC#3 proves green
+  and the tree that eventually gets tagged are the same tree. Rejected: merging inside the CHANGELOG
+  plan (crosses `uv.lock` regeneration with the merge); rebasing onto `origin/main` (rewrites 371
+  commits and force-pushes a branch already on `origin`, against milestone invariant #5); and
+  deferring to `/gsd-complete-milestone` (resolves a CHANGELOG conflict inside the irreversible
+  half, and tags a tree no CI run ever saw). A merge into a local milestone branch takes no
+  irreversible action, so the prep/publish fence is untouched. — **Reversibility:** reversible — the
+  merge commit can be dropped before anything is tagged or published.
+
+- **D-21: SC#4's invariant sweep is anchored at the `v0.7.0` tag (commit `75fd8ed`), re-measured on the post-merge HEAD.**
+  Supersedes D-14. Measured 2026-08-11: `v0.7.0..HEAD` excluding `.planning/` is 126 files /
+  +10,582 / −932, against `87f242a..HEAD`'s 125 files / +10,568 / −932 — `87f242a` is one commit
+  after the tag and is merely where this branch happened to fork. Anchoring at the tag makes the
+  swept diff identical to "what a v0.7.0 user receives", which is the same diff the CHANGELOG's
+  completeness is judged against. Both figures above are **pre-merge** and must be re-taken after
+  D-20's merge. Rejected: keeping `87f242a` (measures branch contribution, not the release), and
+  recording both anchors (the two differ by one file and 14 lines — redundant).
+
+### The Windows CI lanes (added 2026-08-11)
+
+- **D-22: The Windows CI failure is repaired inside Phase 46, in the test module only.**
+  Measured: CI run `31445582363` on this branch is `failure`, and the **only** failing jobs are
+  `Test Python 3.12 on windows-latest` and `Test Python 3.13 on windows-latest` — lint, type,
+  coverage, build, both integration jobs, and every ubuntu/macos lane are green.
+  `tests/test_docs_contract_claims_gate.py::TestContractClaimPageEnumerationIsClosed` fails because
+  `_discovered_claim_pages()` at `:170` builds `str(page.relative_to(REPO_ROOT))`, which yields
+  backslash paths on Windows and cannot match the forward-slash literals in the reviewed set or in
+  `EXCLUDED_CLAIM_PAGES`. The file was added by **Phase 45.1** (commit `a6fa38b`, "test(45.1-07):
+  add permanent cross-page contract-claim guard") and does not exist in `v0.7.0` — this is a
+  regression the milestone itself introduced and would ship. The repair touches a test module, not
+  `typsphinx/`, so D-03's prep-only fence is intact; Phase 41 D-12 is the precedent for a
+  non-`typsphinx/` edit inside a prep phase. Rejected: inserting a Phase 46.1 (the Phase 45.2
+  procedure for a one-line change), and excluding the Windows lanes from SC#3 — that last one is
+  self-defeating, because D-11 makes CI the authority *precisely because* the Windows lanes caught
+  a real cp1252 defect at the v0.7.0 close.
+
+- **D-23: Two CI runs back SC#3 — a check run and an authority run.**
+  Run 1 carries D-20's merge plus D-22's Windows repair, and exists to confirm the Windows lanes
+  actually go green; that cannot be verified locally, because there is no Windows on this machine.
+  Run 2 carries the bump and the `## [0.7.1]` entry and **is** SC#3's authority per D-11. Rejected:
+  one combined push (a missed Windows repair would only surface at the end of the phase, with the
+  retry commits landing after the bump), and three separated runs (a third CI wait buys no new
+  information — the merge and the test repair touch disjoint files).
+
+### PR #131 in the release notes (added 2026-08-11)
+
+- **D-24: PR #131's `[Unreleased]` entry is compressed to house granularity, not moved verbatim.**
+  The entry `origin/main` carries is one bullet with ~14 lines of prose; `## [0.7.0]`'s `### Fixed`
+  bullets run 3–5 lines, so it would be roughly triple the length of everything around it. Its
+  title form already matches the house style (`**… (Issue #130)**`). The compression keeps the
+  user-visible fact — building with an image-conversion extension or a downloaded image copied no
+  image and aborted the Typst compile — and drops the internal mechanism (`os.path.join()`
+  swallowing its first argument once the second is absolute; the bogus `../..` depth prefix), which
+  belongs in the PR, not the release notes. This makes PR #131 the **sixth** user-visible change in
+  the milestone, so D-05's "6 to 8 bullets" now has a named sixth. Rejected: moving the 16 lines
+  verbatim, and rewriting from scratch (discards a contributor's own account for no gain).
+
+- **D-25: The bullet credits `@christianwehe` in its trailing parentheses.**
+  Measured: this CHANGELOG has **no** contributor-attribution precedent — zero hits for `Thanks`,
+  `@handle`, or `contributed` — because every prior change was the maintainer's. It does have a
+  settled identifier convention (`(DOC-09, DOC-10, Issue #119)`, `(PDF-01, Issue #117)`) and a
+  `(PR #14)`-style trailing form from the 0.4.x era, so the credit fits an existing slot rather than
+  inventing one. The credit reaches the GitHub Release body by the same route D-04 uses for the
+  early-removal fact. This sets the precedent for future external contributions. Rejected: Issue
+  number only (renders the first external contribution anonymous on the release notes), and a new
+  `### Contributors` section (a second brand-new section in a release that already introduces
+  `### Removed` per D-02).
+
+- **D-26: PR #131 gets no requirement ID, and `REQUIREMENTS.md` is not touched.**
+  The fix belongs to none of the milestone's 19 v1 requirements and no phase delivered it — it
+  arrived on `main` by an independent route. `Issue #130` plus `PR #131` identify it, which the
+  CHANGELOG already has precedent for (`- **Issue #114 — fatal figure/image bugs**`, and the 0.4.x
+  `- **Issue #5**: … (PR #14)` form). Coverage stays **19/19 mapped, zero orphans**, and the
+  requirements table keeps meaning "what this milestone planned and delivered". Rejected: minting a
+  new requirement and mapping it to Phase 46 (would attribute to Phase 46 something Phase 46 did not
+  implement), and adding a coverage-line footnote (bookkeeping for a fact the CHANGELOG already
+  states).
+
+### The `_track_image()` defects that arrive with PR #131 (added 2026-08-11)
+
+- **D-27: Both `_track_image()` defects ship in v0.7.1 unfixed, disclosed internally only.**
+  The two records stay in `todos/pending/` and are named in `46-HANDOFF.md`; **no `### Known
+  Limitations` section is added to the CHANGELOG and no GitHub issue is filed.** The counter-case
+  was put fully and declined, and is recorded here so a later reader does not mistake this for an
+  oversight: (a) the major defect is a *regression in failure mode* — the review's probe measured
+  `Copying 1 image file(s)...` where two exist, both documents emitting the identical
+  `image("images/diagram.png")`, `build succeeded` with no warning, where pre-PR `main` reported
+  `Copying 2 image file(s)` and failed loudly as Issue #130; (b) reachability is not exotic —
+  it needs only an image-conversion extension plus a `<srcdir>/images/` directory whose basename
+  collides, and `images/` is the most common asset layout in Sphinx; (c) silent wrong output is the
+  failure class this project's core value names directly; (d) `### Known Limitations` has precedent
+  at `CHANGELOG.md:817`; and (e) the only open GitHub issue today is #91, so nothing external
+  records these at all. Owner decision after all five points were on the table. Fixing them in
+  Phase 46 was also rejected on consistency grounds — D-03 declined the `typst_authors` shim
+  specifically to hold the prep-only fence, and a `typsphinx/builder.py` change here would
+  contradict that. The minor defect (`relpath` returning `../` for a non-`doctreedir` absolute URI,
+  measured to write outside `outdir`) travels with the major one.
+
+- **D-28 [correction of record]: PR #131 is merged and ships in v0.7.1; `STATE.md` was right and D-17 was wrong.**
+  Measured 2026-08-11: `gh pr view 131` → `state: MERGED`, `mergedAt: 2026-08-10T13:54:05Z`,
+  `mergeCommit: 9b2b76b`, `baseRefName: main`; `gh issue view 130` → `state: CLOSED`;
+  `git rev-parse origin/main` → `9b2b76b`, while the local `main` ref is stale at `87f242a`. The
+  stale local ref is what made D-17's corroborating check ("`_track_image` appears in neither `main`
+  nor the milestone branch") come out false-negative. `reviewDecision` is still
+  `CHANGES_REQUESTED` — the PR was merged over an unresolved review, which is why D-27's two
+  defects exist. Consequences: Phase 46 makes **no** correction to `STATE.md` on this point, and
+  Issue #130 is closed rather than carried.
+
 ### Claude's Discretion
 
 - The exact wording of the `[0.7.1]` entry, the lead paragraph's phrasing, which 6–8 bullets D-05
@@ -238,6 +386,22 @@ rather than silently corrected.
 - Whether the `RELEASE_VERSIONS` tuple in `tests/test_changelog_page_gate.py:49-63` gains `"0.7.1"`
   in this phase — the gate asserts each listed release appears in the built page, so adding it is
   mechanical but must not be done before the CHANGELOG entry exists.
+- The exact form of D-22's repair at `tests/test_docs_contract_claims_gate.py:170` (`.as_posix()`
+  on the `relative_to()` result is the obvious shape, but the planner owns it) and whether the
+  `EXCLUDED_CLAIM_PAGES` literals move to the same normalisation.
+- The compressed wording of D-24's PR #131 bullet, and exactly where `@christianwehe` sits in the
+  trailing parentheses (D-25 fixes only that the credit is there and that it is in that slot).
+- Whether the `## [0.7.1]` heading is created before or as part of resolving D-20's CHANGELOG
+  conflict — either order reaches the same file.
+- Which plan owns the merge, and whether D-22's repair rides in that plan or its own.
+
+**Ordering interaction the planner must resolve:** D-09 adds migration fragments to
+`docs/source/changelog.rst`, which is listed in `EXCLUDED_CLAIM_PAGES`. That page currently makes
+*no* contract claim under the gate's scan — which is why the Windows failure includes a second
+assertion calling the exclusion stale. Once D-09's fragments name published parameter names and
+route tokens, the page will claim again and the exclusion becomes live. D-22's repair and D-09's
+edit therefore interact; whichever lands second must be checked against the gate rather than
+assumed green.
 
 ### Folded Todos
 
@@ -292,6 +456,31 @@ None. `todo.match-phase 46` returned keyword-noise matches only; see `<deferred>
 - `scripts/extract_changelog_section.py` — the extractor to exercise against `## [0.7.1]`.
 - `.planning/todos/pending/2026-08-04-release-create-job-missing-uv-verify-end-to-end.md` — REL-04's
   own record; stays pending until the publish.
+
+### PR #131 and the `_track_image()` defects (added 2026-08-11)
+
+- `origin/main` `9b2b76b` — the merge commit D-20 takes in. Its `CHANGELOG.md` `## [Unreleased]`
+  block holds the 16-line `### Fixed` entry D-24 compresses.
+- `typsphinx/builder.py` on `origin/main` — `TypstBuilder._track_image()` and
+  `post_process_images()`, the code both deferred defects describe. **Not present in the local
+  `main` ref, which is stale at `87f242a`** — read it via `git show origin/main:…`.
+- `tests/test_absolute_image_render_gate.py` and `tests/fixtures/absolute_image_render_gate/`
+  (both on `origin/main`) — PR #131's own gate, and the fixture a future collision regression test
+  would extend.
+- `.planning/todos/pending/2026-08-10-rehomed-converted-image-collides-with-srcdir-images-dir.md`
+  — the major defect, with the measured probe transcript and two candidate fixes (D-27).
+- `.planning/todos/pending/2026-08-10-track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri.md`
+  — the minor defect, with the three measured rehome outcomes (D-27).
+
+### The Windows CI lane (added 2026-08-11)
+
+- `tests/test_docs_contract_claims_gate.py:168-173` — `_discovered_claim_pages()`, D-22's repair
+  site. Added by Phase 45.1 commit `a6fa38b`; absent from `v0.7.0`.
+- `.planning/todos/pending/2026-08-11-windows-path-separator-breaks-contract-claims-gate.md` —
+  the verbatim CI failure text from run `31445582363`, job `93638966551`. **Filed to
+  `todos/completed/` at phase close, since D-22 resolves it.**
+- `.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md` — why a bare
+  local `tox` still cannot go green, and why D-11's local evidence is per-environment.
 
 ### Version-literal and gate surfaces
 
@@ -348,8 +537,14 @@ None. `todo.match-phase 46` returned keyword-noise matches only; see `<deferred>
 - `CHANGELOG.md` ↔ `release.yml` — the REL-04 link, live since Phase 41. The `## [0.7.1]` heading
   must exist and be non-empty before a tag is ever pushed, because the `validate` job checks it
   (Phase 41 D-09).
-- Phase 46 ↔ Phase 45.2 — a cross-phase dependency introduced by D-18. D-11's local-tox half cannot
-  run until 45.2 lands.
+- Phase 46 ↔ Phase 45.2 — a cross-phase dependency introduced by D-18. **Discharged 2026-08-11:
+  45.2 completed, so D-11's local-tox half is unblocked** (subject to D-11's amendment (b) — the
+  `lint` env still cannot run locally).
+- `origin/main` ↔ the milestone branch — D-20's merge. One conflicting file (`CHANGELOG.md`), and
+  the conflict region is the same region D-05..D-10 rewrite.
+- `tests/test_docs_contract_claims_gate.py` ↔ `docs/source/changelog.rst` — the gate scans that
+  page and excludes it; D-09's migration fragments flip it from "makes no claim" back to "makes a
+  claim", which is the ordering interaction recorded under Claude's Discretion.
 
 </code_context>
 
@@ -429,6 +624,72 @@ GitHub API, not inferred.
    prep-only fence; and Phase 45.2 was pulled *into* the release rather than deferred, because a
    noisy local suite degrades the evidence SC#3 rests on.
 
+---
+
+### Measured 2026-08-11 (second discussion pass)
+
+10. **The branch does not contain `origin/main`, and the merge is nearly trivial.**
+    `git merge-base --is-ancestor origin/main HEAD` → false. `origin/main` is four commits ahead:
+    `fa1ab88` (the fix), `b248ddd` (main merged into the PR branch), `fe284a7`, `9b2b76b` (the PR
+    merge). Read-only dry run:
+
+    ```
+    $ git merge-tree --write-tree HEAD origin/main
+    Auto-merging typsphinx/builder.py
+    Auto-merging tests/test_builder.py
+    CONFLICT (content): Merge conflict in CHANGELOG.md
+    ```
+
+    One conflicting file, and it is the file Phase 46 rewrites anyway.
+
+11. **PR #131 is merged; the local `main` ref is stale.** `gh pr view 131` → `state: MERGED`,
+    `mergedAt: 2026-08-10T13:54:05Z`, `mergeCommit: 9b2b76b`, `reviewDecision: CHANGES_REQUESTED`.
+    `gh issue view 130` → `CLOSED`. `git rev-parse origin/main` → `9b2b76b` versus local
+    `main` → `87f242a`. **The stale local ref is the mechanical cause of D-17's error**: the check
+    "`_track_image` appears in neither `main` nor the milestone branch" queried a ref two commits
+    behind the truth. `git show origin/main:typsphinx/builder.py | grep -c _track_image` → 4.
+
+12. **The release anchor and the branch anchor differ by one commit.** `v0.7.0` resolves to commit
+    `75fd8ed` (`git ls-remote` shows `7327d01`, the annotated-tag object, pointing to the same
+    commit). Excluding `.planning/`: `v0.7.0..HEAD` → 126 files, +10,582 / −932;
+    `87f242a..HEAD` → 125 files, +10,568 / −932. Both are **pre-merge** figures.
+
+13. **SC#5's precondition holds right now.** `git tag -l v0.7.1` and
+    `git ls-remote --tags origin v0.7.1` are both empty (measured 2026-08-11).
+
+14. **The branch CI is red on Windows and nowhere else.** Run `31445582363`
+    (`conclusion: failure`) job breakdown: `success` for `Lint and Format Check`, `Type Check`,
+    `Code Coverage`, `Build Package`, `Integration Test - basic`, `Integration Test - advanced`,
+    and all four ubuntu/macos test jobs; `failure` for `Test Python 3.12 on windows-latest` and
+    `Test Python 3.13 on windows-latest` only.
+
+15. **The Windows failure is this milestone's own.**
+    `git log --diff-filter=A -- tests/test_docs_contract_claims_gate.py` → `a6fa38b`
+    ("test(45.1-07): add permanent cross-page contract-claim guard");
+    `git cat-file -e v0.7.0:tests/test_docs_contract_claims_gate.py` → absent. The offending
+    expression is `str(page.relative_to(REPO_ROOT))` at `:170`.
+
+16. **The CHANGELOG has an identifier convention but no attribution convention.** Zero hits for
+    `Thanks` / `@handle` / `contributed`. Identifier precedent:
+    `- **Seven dead documentation links … (DOC-09, DOC-10, Issue #119)**`,
+    `- **… (PDF-01, Issue #117)**`, `- **Issue #114 — fatal figure/image bugs**`, and the 0.4.x
+    `- **Issue #5**: … (PR #14)` form. `### Known Limitations` exists at `CHANGELOG.md:817`. The
+    only open GitHub issue is **#91**.
+
+17. **The major `_track_image()` defect made a loud failure silent.** From the 2026-08-10 review
+    probe (73-byte real source image, 68-byte converted image, same basename):
+
+    ```
+    Copying 1 image file(s)...            ← two exist, one is tracked
+    outdir/images/diagram.png = 68 byte   ← the converted image won
+    index.typ:29  image("images/diagram.png")
+    index.typ:37  image("images/diagram.png")
+    build succeeded.                       ← no warning
+    ```
+
+    The same probe on pre-PR `main` reports `Copying 2 image file(s)` and fails loudly as Issue
+    #130. Which image wins depends on `write_doc` order (roughly alphabetical docname).
+
 </specifics>
 
 <deferred>
@@ -448,14 +709,34 @@ GitHub API, not inferred.
 - **Raising `v0.8.0` instead of `0.7.1`** — argued in full and declined by D-01. Recorded here so a
   later reader does not mistake the patch number for an oversight.
 
-- **PR #131 / Issue #130 (absolute image URIs from `ImageConverter`/`ImageDownloader`)** — OPEN with
-  `CHANGES_REQUESTED` (D-17). Out of v0.7.1. The two todos its review filed describe code that
-  exists only in the PR branch, so they cannot be actioned independently of it.
+- ~~**PR #131 / Issue #130 (absolute image URIs from `ImageConverter`/`ImageDownloader`)** — OPEN
+  with `CHANGES_REQUESTED` (D-17). Out of v0.7.1.~~ **Retracted 2026-08-11 (D-28): merged, closed,
+  and shipping in v0.7.1.** What is deferred instead is the pair below.
+
+- **The two `TypstBuilder._track_image()` defects** (D-27) — deferred to a post-v0.7.1 phase, and
+  now genuinely actionable, because the code is on `main` rather than in an unmerged PR:
+  - *major* — a rehomed converted image keys to `images/<basename>` and collides with a real
+    `<srcdir>/images/` image; the loser is never copied and both documents emit the same
+    `image()` path, silently rendering the wrong picture with no warning. The record proposes two
+    fixes (a reserved `_typst_converted/` namespace, or collision detection with suffix
+    uniquification) and requires a regression test either way.
+  - *minor* — `path.relpath(resolved_uri, self.doctreedir)` returns `../`-prefixed paths for any
+    absolute URI outside `doctreedir`, and `copy_image_files()` joins it onto `outdir`, writing
+    outside the build directory.
+
+  The records themselves note these are naturally fixed together. **Not disclosed externally in
+  v0.7.1** — no CHANGELOG `### Known Limitations` entry and no GitHub issue (D-27).
+
+- **A `### Known Limitations` entry and a public GitHub issue for the above** — argued in full and
+  declined by D-27. Recorded so a later reader does not mistake the silence for an oversight; the
+  precedent (`CHANGELOG.md:817`) and the empty public issue tracker (only #91 open) were both on
+  the table.
 
 ### Reviewed Todos (not folded)
 
-`todo.match-phase 46` returned 7+ candidates, all keyword noise against a release-prep phase. All 10
-records in `.planning/todos/pending/` are explicitly deferred per D-16:
+`todo.match-phase 46` returned 7+ candidates, all keyword noise against a release-prep phase. The
+ledger is **12** records as of 2026-08-11 (was 10). All are deferred per D-16 **except**
+`2026-08-11-windows-path-separator-breaks-contract-claims-gate`, which D-22 resolves in this phase:
 
 - `2026-07-22-add-sphinx-linkcheck-ci-job` — Future requirement LNK-01; `links.yml`'s repo-wide
   lychee check already covers the links this release adds.
@@ -477,11 +758,17 @@ records in `.planning/todos/pending/` are explicitly deferred per D-16:
   per-master include-dedup ledger defect.
 - `2026-08-10-rehomed-converted-image-collides-with-srcdir-images-dir` and
   `2026-08-10-track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri` — both describe
-  `TypstBuilder._track_image()`, which exists only in PR #131 (D-17). Not actionable in v0.7.1.
+  `TypstBuilder._track_image()`. **Amended 2026-08-11:** that code is on `origin/main` and ships in
+  v0.7.1, so these are actionable — deferred by owner decision (D-27), not by impossibility.
+- `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` *(new)* — a `flake.nix`-side toolchain
+  repair in the same family as QUA-04. Does not block SC#3, which takes lint from CI (D-11
+  amendment (b)).
+- `2026-08-11-windows-path-separator-breaks-contract-claims-gate` *(new)* — **not deferred**;
+  D-22 fixes it in this phase and it is filed to `todos/completed/` at phase close.
 
 </deferred>
 
 ---
 
 *Phase: 46-v0-7-1-release-prep-prep-only*
-*Context gathered: 2026-08-10*
+*Context gathered: 2026-08-10; updated 2026-08-11 (second discussion pass, D-20..D-28)*
