@@ -12,6 +12,9 @@ release = "0.0.0"
 
 extensions = ["typsphinx"]
 
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Signature Typography Gate", "typsphinx tests"),
+    ("index", "master.typ", "Signature Typography Gate", "typsphinx tests"),
 ]

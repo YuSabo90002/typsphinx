@@ -113,7 +113,7 @@ class TestParagraphSoftNewlineRenderGate:
           ``raw("MethodDocumenter")`` and ``raw("AttributeDocumenter")``)
           also collapses to a single-space ``text(" or ")`` statement with
           no embedded newline escape;
-        - ``index.pdf`` exists, is non-empty, and begins with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and begins with the ``%PDF``
           magic bytes (real ``typst.compile()`` succeeded).
         """
         result = _run_sphinx_build_typstpdf(
@@ -188,9 +188,9 @@ class TestParagraphSoftNewlineRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:

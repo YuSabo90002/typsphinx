@@ -19,6 +19,10 @@ extensions = [
 # index must be a master document (not merely an included one) so the writer
 # emits the full template -- included documents only get a minimal import
 # set (see typsphinx/writer.py).
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Inline Literal Overflow Render Gate", "Test Author"),
+    ("index", "master.typ", "Inline Literal Overflow Render Gate", "Test Author"),
 ]
