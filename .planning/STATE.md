@@ -32,10 +32,10 @@ Next action: `/gsd-plan-phase 47`
 
 ## Current Position
 
-Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — COMPLETE
-Plan: 10 of 10 (all plans complete)
-Status: Phase 47 complete — all 5 ROADMAP success criteria discharged, milestone branch on origin with a completed green CI run (windows-latest + macos-latest). Next: Phase 48 (Compile-Time Cross-Reference Guard).
-Last activity: 2026-08-11 — Phase 47 plan 10 (push milestone branch to origin, prove with CI) completed
+Phase: 47 (two-layer-output-content-wrapper-split-target-as-path-collis) — GAPS FOUND
+Plan: 10 of 10 (all plans executed; phase NOT complete)
+Status: All 10 plans executed and merged; milestone branch on origin with a completed green CI run (windows-latest + macos-latest); full suite 1031 passed / 0 failed. BUT verification scored 8/10 must-haves — BLD-02 and BLD-03 FAILED, both reproduced against this checkout. `_collision_key()` omits `posixpath.normpath()` so `"./manual.typ"` vs `"manual.typ"` evade duplicate-target detection; `_validate_output_path_collisions()` skips `len(entry) < 2` entries while `_write_typst_files()` writes their wrappers anyway, letting a self-including wrapper destroy a docname's content. Next: `/gsd-plan-phase 47 --gaps`.
+Last activity: 2026-08-11 — Phase 47 verification returned gaps_found (see 47-VERIFICATION.md, 47-REVIEW.md)
 
 Progress: [█░░░░░] 17% (1/6 phases)
 
