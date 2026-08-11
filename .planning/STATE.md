@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
+current_phase: 47
+current_phase_name: Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection
 status: planning
-last_updated: "2026-08-11T12:00:00.000Z"
+stopped_at: Phase 47 context gathered
+last_updated: "2026-08-11T08:34:24.549Z"
 last_activity: 2026-08-11
+last_activity_desc: v0.8.0 roadmap created (Phases 47-52, 24/24 requirements mapped)
 progress:
   total_phases: 6
   completed_phases: 0
@@ -655,12 +659,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in flight.
+**Resume file:** .planning/phases/47-two-layer-output-content-wrapper-split-target-as-path-collis/47-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-11 — v0.8.0 roadmap created (Phases 47-52).
-Stopped at: roadmap written, `REQUIREMENTS.md` traceability filled (24/24 mapped, zero orphans).
+Last session: 2026-08-11T08:34:24.532Z
+Stopped at: Phase 47 context gathered
 Resume: `/gsd-plan-phase 47`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
