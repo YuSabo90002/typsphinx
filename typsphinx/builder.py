@@ -479,6 +479,26 @@ class TypstBuilder(Builder):
 
             logger.info(" done")
 
+        # D-07: name the wrapper files this build wrote and state that
+        # those are the files to compile. After the content/wrapper
+        # split the outdir holds roughly twice as many .typ files as
+        # before, with nothing in a filename alone distinguishing a
+        # content file from a wrapper -- `-b typstpdf` already emits its
+        # own "Compiling N master document(s)"/"Generated PDF" lines;
+        # this is the missing symmetric message on the markup-only
+        # builder.
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        wrapper_relpaths = sorted(
+            self._wrapper_output_relpath(entry) + ".typ"
+            for entry in typst_documents
+            if entry and entry[0] in docnames
+        )
+        if wrapper_relpaths:
+            logger.info(
+                f"typst: wrote {len(wrapper_relpaths)} wrapper file(s) -- "
+                f"compile these: {', '.join(wrapper_relpaths)}"
+            )
+
     def post_process_images(self, doctree: nodes.document) -> None:
         """
         Post-process images in the document tree.

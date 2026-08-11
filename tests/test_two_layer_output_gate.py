@@ -246,6 +246,126 @@ class TestTwoLayerOutputGate:
             )
             pytest.fail(f"Expected the compile to succeed post-fix: {exc}")
 
+    def test_typst_and_typstpdf_emit_byte_identical_typ_files(self, tmp_path):
+        """
+        ``-b typst`` and ``-b typstpdf`` share ONE write path
+        (``TypstBuilder._write_typst_files()``, which ``TypstPDFBuilder``
+        inherits) -- every ``.typ`` file either builder emits must be
+        byte-identical, and the PDF builder's compile step must produce a
+        ``.pdf`` for every WRAPPER only, never for a content file.
+        """
+        typst_dir = tmp_path / "typst_build"
+        typstpdf_dir = tmp_path / "typstpdf_build"
+
+        typst_result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, typst_dir, "typst")
+        assert typst_result.returncode == 0, (
+            f"Expected a successful -b typst build:\n"
+            f"stdout: {typst_result.stdout}\nstderr: {typst_result.stderr}"
+        )
+        typstpdf_result = _run_sphinx_build(
+            NESTED_MASTER_FIXTURE_DIR, typstpdf_dir, "typstpdf"
+        )
+        assert typstpdf_result.returncode == 0, (
+            f"Expected a successful -b typstpdf build:\n"
+            f"stdout: {typstpdf_result.stdout}\nstderr: {typstpdf_result.stderr}"
+        )
+
+        typst_typ_files = {p.relative_to(typst_dir) for p in typst_dir.rglob("*.typ")}
+        typstpdf_typ_files = {
+            p.relative_to(typstpdf_dir) for p in typstpdf_dir.rglob("*.typ")
+        }
+        assert typst_typ_files == typstpdf_typ_files, (
+            f"Expected identical .typ file sets:\n"
+            f"typst-only: {typst_typ_files - typstpdf_typ_files}\n"
+            f"typstpdf-only: {typstpdf_typ_files - typst_typ_files}"
+        )
+
+        for relpath in sorted(typst_typ_files):
+            typst_bytes = (typst_dir / relpath).read_bytes()
+            typstpdf_bytes = (typstpdf_dir / relpath).read_bytes()
+            assert typst_bytes == typstpdf_bytes, (
+                f"Expected {relpath} to be byte-identical between builders, "
+                f"but its content differed"
+            )
+
+        # R4/COMP-04: only WRAPPER files compile to PDF -- a content file
+        # is never independently compiled.
+        assert (typstpdf_dir / "outer.pdf").exists(), "Expected outer.pdf"
+        assert (
+            typstpdf_dir / "manuals" / "guide.pdf"
+        ).exists(), "Expected manuals/guide.pdf"
+        assert not (
+            typstpdf_dir / "index.pdf"
+        ).exists(), "Expected NO index.pdf -- content files are never compiled"
+        assert not (
+            typstpdf_dir / "guide" / "index.pdf"
+        ).exists(), "Expected NO guide/index.pdf -- content files are never compiled"
+
+    def test_typst_build_is_deterministic_across_runs(self, tmp_path):
+        """
+        Two consecutive ``-b typst`` builds of the same project produce
+        byte-identical wrapper AND content files -- emission order is
+        deterministic (COMP-01, edge/ordering must_have).
+        """
+        first_dir = tmp_path / "first_build"
+        second_dir = tmp_path / "second_build"
+
+        first_result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, first_dir, "typst")
+        assert first_result.returncode == 0, (
+            f"Expected a successful first build:\n"
+            f"stdout: {first_result.stdout}\nstderr: {first_result.stderr}"
+        )
+        second_result = _run_sphinx_build(
+            NESTED_MASTER_FIXTURE_DIR, second_dir, "typst"
+        )
+        assert second_result.returncode == 0, (
+            f"Expected a successful second build:\n"
+            f"stdout: {second_result.stdout}\nstderr: {second_result.stderr}"
+        )
+
+        first_typ_files = {p.relative_to(first_dir) for p in first_dir.rglob("*.typ")}
+        second_typ_files = {
+            p.relative_to(second_dir) for p in second_dir.rglob("*.typ")
+        }
+        assert first_typ_files == second_typ_files, (
+            f"Expected identical .typ file sets across two builds:\n"
+            f"first-only: {first_typ_files - second_typ_files}\n"
+            f"second-only: {second_typ_files - first_typ_files}"
+        )
+        for relpath in sorted(first_typ_files):
+            first_bytes = (first_dir / relpath).read_bytes()
+            second_bytes = (second_dir / relpath).read_bytes()
+            assert first_bytes == second_bytes, (
+                f"Expected {relpath} to be byte-identical across two builds, "
+                f"but its content differed"
+            )
+
+    def test_typst_build_log_names_the_wrapper_files_to_compile(self, tmp_path):
+        """
+        D-07: ``-b typst`` (markup-only, no PDF compile step of its own)
+        names the wrapper files it wrote and states that those are the
+        files to compile -- the missing symmetric message to
+        ``-b typstpdf``'s existing "Compiling N master document(s)"/
+        "Generated PDF" lines, needed because the outdir now holds
+        roughly twice as many files with nothing in a filename alone
+        distinguishing a content file from a wrapper.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(NESTED_MASTER_FIXTURE_DIR, build_dir, "typst")
+        assert result.returncode == 0, (
+            f"Expected a successful build:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        combined_output = result.stdout + result.stderr
+        assert "outer.typ" in combined_output, (
+            f"Expected the build log to name outer.typ as a wrapper to "
+            f"compile:\n{combined_output}"
+        )
+        assert "manuals/guide.typ" in combined_output, (
+            f"Expected the build log to name manuals/guide.typ as a "
+            f"wrapper to compile:\n{combined_output}"
+        )
+
 
 @pytest.fixture(scope="class")
 def nested_master_outer_pdf_text(tmp_path_factory):
