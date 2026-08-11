@@ -4,6 +4,129 @@
 Migration Guides
 ----------------
 
+Migrating from 0.7.0 to 0.7.1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This patch release carries three breaking configuration changes. Each item below shows the
+rewrite: the ``conf.py``/template fragment you have today, and the corrected fragment to replace
+it with.
+
+- **Breaking:** the ``typst_authors`` config value is removed. It was pure sugar over the
+  ``typst_template_function`` ``params`` route -- Phase 44.2 measured the two routes producing a
+  byte-identical ``authors:`` value, differing only in the order of named arguments in the emitted
+  call, which is semantically irrelevant in Typst -- and removing it brings the config surface to
+  LaTeX parity, matching ``latex_documents``, which has no facility for supplying an author as a
+  dictionary. A leftover ``typst_authors`` is now an unregistered ``conf.py`` variable, which
+  Sphinx ignores without warning, so author information is lost silently rather than loudly.
+
+  .. code-block:: python
+
+     # Old way -- typst_authors is gone in 0.7.1
+     typst_authors = {
+         "John Doe": {
+             "department": "Computer Science",
+             "organization": "MIT",
+             "email": "john@mit.edu",
+         },
+     }
+
+  .. code-block:: python
+
+     # New way -- the same dictionary through typst_template_function's params route
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "authors": (
+                 {
+                     "name": "John Doe",
+                     "department": "Computer Science",
+                     "organization": "MIT",
+                     "email": "john@mit.edu",
+                 },
+             ),
+             # every other parameter your template needs must also be named here --
+             # see the next item.
+         }
+     }
+
+- **Breaking:** a declared ``typst_template_function`` ``params`` dict is now the **complete**
+  parameter set. Previously, auto-derived values (``title``/``authors``/``date``, the
+  ``typst_elements`` allowlist merge, and the ``toctree_*`` merge) filled in whatever ``params``
+  did not name. A project that declares ``params`` to add one key and relies on the auto-derived
+  rest now renders with the template's own defaults (empty title, no author) instead of the
+  previous merged result -- write all nine.
+
+  .. code-block:: python
+
+     # Old way -- the auto-derived title/authors/date/toctree_* filled in the rest
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "subtitle": "A Technical Report",
+         }
+     }
+
+  .. code-block:: python
+
+     # New way -- name every parameter the template needs, including the ones that
+     # used to be auto-derived
+     typst_template_function = {
+         "name": "project",
+         "params": {
+             "title": "My Document",
+             "authors": ({"name": "John Doe"},),
+             "date": "2026-08-11",
+             "papersize": "a4",
+             "fontsize": 11,
+             "lang": "en",
+             "toctree_maxdepth": 2,
+             "toctree_numbered": False,
+             "toctree_caption": "Contents",
+             "subtitle": "A Technical Report",
+         }
+     }
+
+- **Breaking:** a custom template must now declare ``lang``. The auto-derived ``lang`` reaches
+  every non-``typst_package`` template route -- an explicit ``typst_template`` and a
+  ``<srcdir>/base.typ`` shadow now both receive it, same as the bundled default. A custom template
+  that does not declare a ``lang`` parameter now fails the compile with
+  ``unexpected argument: lang``.
+
+  .. code-block:: typst
+
+     // Old way -- no lang parameter, now fails with "unexpected argument: lang"
+     #let project(
+       title: "",
+       authors: (),
+       date: none,
+       toctree_maxdepth: 2,
+       toctree_numbered: false,
+       toctree_caption: "Contents",
+       papersize: "a4",
+       fontsize: 11pt,
+       body
+     ) = {
+       // ...
+     }
+
+  .. code-block:: typst
+
+     // New way -- declare lang with a default, matching the shipped custom_template.typ
+     #let project(
+       title: "",
+       authors: (),
+       date: none,
+       toctree_maxdepth: 2,
+       toctree_numbered: false,
+       toctree_caption: "Contents",
+       papersize: "a4",
+       fontsize: 11pt,
+       lang: "en",
+       body
+     ) = {
+       // ...
+     }
+
 Migrating from 0.6.x to 0.7.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
