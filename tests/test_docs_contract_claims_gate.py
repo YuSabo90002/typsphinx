@@ -167,7 +167,7 @@ def _page_makes_contract_claim(text: str) -> bool:
 
 def _discovered_claim_pages() -> set:
     return {
-        str(page.relative_to(REPO_ROOT))
+        page.relative_to(REPO_ROOT).as_posix()
         for page in _iter_rst_pages()
         if _page_makes_contract_claim(page.read_text(encoding="utf-8"))
     }
