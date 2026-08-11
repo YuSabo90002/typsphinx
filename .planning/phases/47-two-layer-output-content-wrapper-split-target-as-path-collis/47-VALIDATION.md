@@ -76,18 +76,20 @@ Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky. Every row below has
 | 47-09/CP2 | 47-09 | 4 | BLD-02/03/04 | T-47-02/03/04/14/15 | D-03 decision checkpoint (locked, pre-resolved by project owner: option-a, one validator, error-only, pre-write, aggregate) — realized and proven by 47-09/T3's automated command below | decision, realization tested by the next row | `uv run pytest tests/test_collision_validator_gate.py tests/test_two_layer_output_gate.py -q` | yes (via 47-09/T3) | ✅ green |
 | 47-09/T3 | 47-09 | 4 | BLD-02/03/04, COMP-01/02 | T-47-02/03/04/14/15 | `TypstBuilder._validate_output_path_collisions()` + `_collision_key()` implemented; all four collision kinds route through one pre-write validator; D-04 repeated-docname write-path bug fixed | unit+integration | `uv run pytest tests/test_collision_validator_gate.py tests/test_two_layer_output_gate.py -q` | yes | ✅ green |
 | 47-09/T4 | 47-09 | 4 | BLD-02/03/04, COMP-01/02 | T-47-02/03/04/14/15 | CR-01 gate inverted (`test_typst_documents_collision_gate.py`), `_resolve_output_stem`/`_wrapper_output_relpath` split moved responsibility to the validator, phase closed green on full suite + lint/type trio + both dogfooding builds | full suite + lint/type + integration | `uv run pytest -q` (plus `uv run black --check .`, `uv run mypy typsphinx/`, `uv run tox -e docs-html`, `uv run tox -e docs-pdf`) | yes | ✅ green |
-| 47-10/T1 | 47-10 | 5 | (milestone invariant #5, binding constraint #2) | T-47-16 | Milestone branch pushed to `origin` with upstream tracking, no PR opened | remote/network | `git ls-remote --heads origin gsd/v0.8.0-multi-master-composition \| grep -q refs/heads/gsd/v0.8.0-multi-master-composition` | pending (wave 5, not yet executed) | ⬜ pending |
-| 47-10/T2 | 47-10 | 5 | BLD-04, OUT-02 | T-47-04, T-47-08 | CI run completed with Windows/macOS lanes green; BLD-04 and drive-qualified OUT-02 cases proven to have executed on non-Linux lanes | CI/remote | `gh run list --branch gsd/v0.8.0-multi-master-composition --json conclusion,status --limit 1 \| grep -q '"conclusion":"success"'` | pending (wave 5, not yet executed) | ⬜ pending |
-| 47-10/T3 | 47-10 | 5 | (SC#1-SC#5 evidence mapping) | T-47-16 | `47-CI-EVIDENCE.md` records run id, SHAs, per-lane conclusions, SC#1-SC#5 evidence mapping; Manual-Only Verifications and Validation Sign-Off ticked | artifact + full suite | `uv run python -c "...47-CI-EVIDENCE.md marker check..."` (plus `uv run pytest -q`) | pending (wave 5, not yet executed) | ⬜ pending |
+| 47-10/T1 | 47-10 | 5 | (milestone invariant #5, binding constraint #2) | T-47-16 | Milestone branch pushed to `origin` with upstream tracking, no PR opened | remote/network | `git ls-remote --heads origin gsd/v0.8.0-multi-master-composition \| grep -q refs/heads/gsd/v0.8.0-multi-master-composition` | yes | ✅ green |
+| 47-10/T2 | 47-10 | 5 | BLD-04, OUT-02 | T-47-04, T-47-08 | CI run completed with Windows/macOS lanes green; BLD-04 and drive-qualified OUT-02 cases proven to have executed on non-Linux lanes | CI/remote | `gh run list --branch gsd/v0.8.0-multi-master-composition --json conclusion,status --limit 1 \| grep -q '"conclusion":"success"'` | yes | ✅ green (run 31492380799, over `be4c4d5`, after triage-fixing a real Windows-only OUT-02 defect found by run 31491228938) |
+| 47-10/T3 | 47-10 | 5 | (SC#1-SC#5 evidence mapping) | T-47-16 | `47-CI-EVIDENCE.md` records run id, SHAs, per-lane conclusions, SC#1-SC#5 evidence mapping; Manual-Only Verifications and Validation Sign-Off ticked | artifact + full suite | `uv run python -c "...47-CI-EVIDENCE.md marker check..."` (plus `uv run pytest -q`) | yes | ✅ green |
 
-Rows for plan 47-10 (wave 5) are recorded here on schedule per this task's own instruction ("one row
-per task across all ten plans") even though wave 5 has not executed yet at the time this table was
-filled (plan 47-09 is wave 4) — their Automated Command and expected Secure Behavior are transcribed
-verbatim from `47-10-PLAN.md`'s own `<verify>` blocks, and their Status is honestly marked `⬜ pending`
-rather than backfilled. `nyquist_compliant: true` above reflects that every row in this table --
-including the two wave-5 rows -- already carries a real `<automated>` command; it does not assert that
-wave 5 has run. 47-10's own Task 3 independently ticks this phase's Manual-Only Verifications table
-and Validation Sign-Off checklist once the CI evidence exists.
+Rows for plan 47-10 (wave 5) were recorded on schedule at 47-09 close, before wave 5 executed,
+per that task's own instruction ("one row per task across all ten plans") — their Automated
+Command and expected Secure Behavior were transcribed verbatim from `47-10-PLAN.md`'s own
+`<verify>` blocks, with Status honestly marked `⬜ pending` at that time rather than backfilled.
+**Updated here by 47-10/T3 itself, now that wave 5 has executed**: all three rows measured green.
+Run 31491228938 (over `6f8a23c`) surfaced two real defects — the Windows-only OUT-02
+platform-dependent-`os.path` guard and four pre-existing ruff findings — triaged, fixed, and
+pushed as `be4c4d5`; the re-dispatched run 31492380799 (over `be4c4d5`) completed with all 12
+jobs green, including both `windows-latest` and `macos-latest` lanes. Full detail, quoted log
+lines, and the SC#1–SC#5 evidence mapping live in `47-CI-EVIDENCE.md`.
 
 ### Requirement → evidence contract (from RESEARCH.md, binding constraint #4)
 
@@ -129,10 +131,10 @@ and Validation Sign-Off checklist once the CI evidence exists.
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Branch is on `origin` with a completed CI run over the Windows and macOS lanes | Milestone invariant #5 / binding constraint #2 | Requires a real push and a real GitHub Actions run — not reproducible in-process | `git push -u origin gsd/v0.8.0-multi-master-composition`, then `git ls-remote --heads origin` must hit, and `gh run list --branch gsd/v0.8.0-multi-master-composition` must show a completed run including the Windows and macOS lanes |
-| BLD-04's physical collision consequence on a case-insensitive filesystem | BLD-04 | Linux CI cannot observe a case-insensitive overwrite; only the Windows/macOS lanes can | Confirm the Windows and macOS CI lanes run the `test_collision_validator_gate.py` BLD-04 case |
+| Behavior | Requirement | Why Manual | Test Instructions | Status |
+|----------|-------------|------------|-------------------|--------|
+| Branch is on `origin` with a completed CI run over the Windows and macOS lanes | Milestone invariant #5 / binding constraint #2 | Requires a real push and a real GitHub Actions run — not reproducible in-process | `git push -u origin gsd/v0.8.0-multi-master-composition`, then `git ls-remote --heads origin` must hit, and `gh run list --branch gsd/v0.8.0-multi-master-composition` must show a completed run including the Windows and macOS lanes | **DISCHARGED** — 47-10/T1 pushed the branch (`git ls-remote` hit, verbatim output in `47-CI-EVIDENCE.md` "Branch on origin"); 47-10/T2 drove CI run `31492380799` to completion, `conclusion: success`, both `windows-latest` and `macos-latest` jobs green (both Python versions) |
+| BLD-04's physical collision consequence on a case-insensitive filesystem | BLD-04 | Linux CI cannot observe a case-insensitive overwrite; only the Windows/macOS lanes can | Confirm the Windows and macOS CI lanes run the `test_collision_validator_gate.py` BLD-04 case | **DISCHARGED** — `test_bld04_case_collision_rejected_typst`/`_typstpdf` and `test_collision_key_folds_case_but_not_unicode_normalization` all logged `PASSED` (not skipped) on both `windows-latest` and `macos-latest` in run `31492380799`; quoted log lines in `47-CI-EVIDENCE.md` "Completed CI run" |
 
 ---
 
@@ -146,11 +148,16 @@ and Validation Sign-Off checklist once the CI evidence exists.
 - [x] Feedback latency measured at Wave 0 and recorded above (~200s, see Sampling Rate)
 - [x] `nyquist_compliant: true` set in frontmatter
 
-The two Manual-Only Verifications rows above (branch-on-`origin` + completed CI run with
-Windows/macOS lanes) remain undischarged as of this update (plan 47-09, wave 4) — they are wave 5's
-(`47-10-PLAN.md`) job, requiring a real network push and a real GitHub Actions run neither
-reproducible nor appropriate to fabricate from a worktree-isolated executor. `47-10`'s own Task 3
-ticks those two rows once the CI evidence exists in `47-CI-EVIDENCE.md`.
+**Both Manual-Only Verifications rows above are now DISCHARGED**, ticked by 47-10/T3 against the
+measured CI evidence recorded in `47-CI-EVIDENCE.md`: the branch is on `origin`
+(`git ls-remote --heads origin gsd/v0.8.0-multi-master-composition` hit, verbatim output recorded)
+and a completed CI run (`31492380799`, `conclusion: success`) covers both the `windows-latest` and
+`macos-latest` lanes, with the BLD-04 case-collision comparison and all three OUT-02 escape shapes
+— including the drive-qualified case — proven via quoted PASSED log lines to have EXECUTED (not
+skipped) on both.
 
-**Approval:** pending (full phase-level approval, including the two Manual-Only Verifications rows,
-awaits plan 47-10's CI evidence — everything within this plan's own scope is green)
+**Approval:** granted — full phase-level Nyquist validation is now complete. Every row in the
+Per-Task Verification Map is `✅ green`, both Manual-Only Verifications rows are discharged, and
+every ROADMAP Phase 47 success criterion (SC#1 through SC#5) is mapped to a named artifact or a
+command run live, per `47-CI-EVIDENCE.md`'s "ROADMAP Phase 47 success criteria — evidence mapping"
+section.

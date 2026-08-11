@@ -205,4 +205,119 @@ Check` job, not by a non-Linux lane — they are a separate, pre-existing/enviro
 class (ruff cannot execute on the NixOS dev host), not part of "what the non-Linux lanes caught,"
 but are recorded here because they blocked the same green run.
 
-<!-- gsd:write-continue -->
+---
+
+## ROADMAP Phase 47 success criteria — evidence mapping
+
+Walking ROADMAP.md's five Phase 47 success criteria (`.planning/ROADMAP.md` lines 473–519) one by
+one, naming the artifact or command that discharges each. None is restated as met without one.
+
+### SC#1 — The two-layer file set exists and is placed where the user wrote it
+
+*A real `sphinx-build` writes the wrapper where the user wrote it and the content at the docname
+path; `-b typst`/`-b typstpdf` byte-identical; `_is_master_document` gone repo-wide.*
+
+- **Artifact:** `tests/test_two_layer_output_gate.py` (written 47-01, made to pass 47-02) —
+  `uv run pytest tests/test_two_layer_output_gate.py -q` (12 tests, all pass; part of the full
+  suite reported green throughout this document).
+- **Re-measured live by this plan** (2026-08-11, `sphinx-build -b typst` against a throwaway
+  fixture with `typst_documents = [("index", "manual.typ", "Test", "Author")]`): output directory
+  contains `index.typ` (content, docname-derived) and `manual.typ` (wrapper, target-derived) as
+  two independent files, plus `_template.typ`. `typst: wrote 1 wrapper file(s) -- compile these:
+  manual.typ` in the build log.
+- **`_is_master_document` gone, repo-wide grep** (run live by this plan):
+  `grep -rn "_is_master_document" typsphinx/ tests/` — zero hits in any tracked source file. The
+  only hits anywhere on disk are in `docs/_build/html/_modules/...` — a `git check-ignore`-confirmed
+  gitignored, stale generated-HTML artifact, not source.
+- **Byte-identity across builders:** 47-02-SUMMARY.md Task 3 ("Builder parity ... byte-identical").
+
+### SC#2 — B-1 closed, on the classic RED and on the nested-master shape
+
+*A docname that is also another master's toctree child builds and compiles in both roles; RED
+recorded first as a classic `TypstError: file not found` against the unfixed tree; the fixture
+uses a nested master whose target basename differs from its docname.*
+
+- **Pre-fix RED:** `.planning/phases/47-.../47-RED-EVIDENCE.md` (written 47-01) — verbatim
+  `TypstError: file not found` transcript against the unfixed tree, fixture
+  `tests/fixtures/two_layer_nested_master_gate/` (target basename `guide.typ` differs from
+  docname `guide/index`).
+- **Fix + green:** 47-02-SUMMARY.md coverage row D1 (`test_two_layer_output_gate.py::...B-1
+  (COMP-03)`, `status: pass`) — `uv run pytest tests/test_two_layer_output_gate.py -q`.
+- **Command:** `uv run pytest tests/test_two_layer_output_gate.py -q` (green throughout this
+  document's full-suite runs, including this run's own CI evidence above).
+
+### SC#3 — B-2 closed, RED shape chosen by measurement
+
+*Measured (not assumed) whether the mid-body template re-expansion is a compile fatal or a
+compiles-fine-but-wrong-output defect; that measurement selects the RED shape; post-fix, no second
+title page / `#outline()` / template application anywhere in the parent's body.*
+
+- **Measurement:** `.planning/phases/47-.../47-RED-EVIDENCE.md` (47-01) records COMP-04's RED as
+  **compiles-fine-but-wrong-output** — a structural `pypdf`-text assertion (a second title-page
+  block and a second `"Contents"` heading appear before the nested content's body marker), NOT a
+  `TypstError` — matching `47-VALIDATION.md`'s own "Requirement → evidence contract" table
+  (`COMP-04 | ... | Structural pypdf assertion, NOT TypstError`).
+- **Fix + green:** 47-02-SUMMARY.md coverage row D2 (`B-2 (COMP-04): ... verified by real pypdf
+  structural extraction (no second title page, exactly one outline)`, `status: pass`).
+- **Command:** `uv run pytest tests/test_two_layer_output_gate.py -q`.
+
+### SC#4 — Every "two logical files want one physical path" case is loud, both policies decided before code
+
+*Duplicate-target collisions (BLD-02), wrapper-vs-content self-collision under a pre-decided
+policy (BLD-03), and case-insensitive-filesystem collision comparisons (BLD-04) are all detected
+and reported, never silently dropping a master's body; each ships its own pre-fix structural RED
+per binding constraint #4.*
+
+- **Pre-fix RED (all three, structural, non-fatal-today):** `.planning/phases/47-.../47-RED-EVIDENCE.md`
+  (47-01) + `tests/test_collision_validator_gate.py`'s original `xfail(strict=True)` markers.
+- **Policy decided before code:** D-01 (self-collision: refuse, no fallback) and D-03 (one unified
+  validator, error-only, pre-write, aggregate) were `checkpoint:decision` tasks in `47-09-PLAN.md`,
+  pre-resolved by the project owner before that executor ran (47-09-SUMMARY.md "Decisions Made") —
+  decided, and recorded, before `_validate_output_path_collisions()` was implemented.
+- **Fix + green:** `TypstBuilder._validate_output_path_collisions()` + `_collision_key()`
+  (`typsphinx/builder.py`, 47-09) — one pre-write `ExtensionError` covering all four collision
+  kinds. `uv run pytest tests/test_collision_validator_gate.py -q` (7 tests, all pass, xfail
+  markers removed).
+- **BLD-04 specifically, proven on a real case-insensitive filesystem (this plan, not just the
+  case-folding unit assertion):** the Windows/macOS CI lane log lines quoted above —
+  `test_bld04_case_collision_rejected_typst` / `_typstpdf` PASSED on both `windows-latest` and
+  `macos-latest`.
+
+### SC#5 — The security half of the reversed guards survives, and the branch is on `origin`
+
+*A `..`/absolute/drive-qualified target is still refused with a warning and safe fallback, one
+fixture per escape shape (OUT-02); `gsd/v0.8.0-multi-master-composition` pushed to `origin` in
+this phase, evidenced by `git ls-remote` plus a completed CI run over it including the Windows and
+macOS lanes.*
+
+- **OUT-02 security half, per-shape fixtures:** `tests/test_out02_escape_target_gate.py` (47-03) —
+  `uv run pytest tests/test_out02_escape_target_gate.py -q` (3 tests, one per escape shape:
+  traversal, absolute, drive — all pass, containment-proof assertion included).
+- **Branch on `origin`:** "Branch on origin" section above — verbatim `git ls-remote --heads
+  origin gsd/v0.8.0-multi-master-composition` output, local/remote SHA match, no PR opened.
+- **Completed CI run over Windows and macOS lanes:** "Completed CI run" section above — run
+  `31492380799`, `status: completed`, `conclusion: success`, both `windows-latest` and
+  `macos-latest` jobs (both Python versions) `success`, BLD-04 and drive-qualified OUT-02 log
+  lines quoted proving execution (not skip).
+- **Reversal of Phase 44's D-05/D-06/D-07 recorded explicitly:** `.planning/STATE.md` "Roadmap
+  Evolution" 2026-08-11 entry ("OUT-01 is recorded in the roadmap as a deliberate reversal...");
+  `ROADMAP.md` Phase 47 goal text itself states the reversal.
+
+**All five ROADMAP Phase 47 success criteria are discharged**, each against a named artifact or a
+command run live by this plan.
+
+---
+
+## Final state
+
+This document's own commit (the last commit of this plan, together with the `47-VALIDATION.md`
+sign-off closure below) is pushed to `origin` immediately after being made, with
+`git push origin gsd/v0.8.0-multi-master-composition` (no `-f`, no rewrite) — the same procedure
+used for every commit in this plan. `git ls-remote --heads origin
+gsd/v0.8.0-multi-master-composition` is re-run after that push and must equal `git rev-parse
+gsd/v0.8.0-multi-master-composition`; `gh pr list --head gsd/v0.8.0-multi-master-composition`
+stays empty throughout (no PR opened at any point in this plan). `uv run pytest -q` is re-run at
+the branch tip as this plan's own closing measurement (self-check requirement) and must exit 0.
+These three closing measurements are recorded in `47-10-SUMMARY.md`'s Self-Check section rather
+than duplicated here, to avoid this file needing to describe its own not-yet-created commit hash.
+
