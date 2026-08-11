@@ -166,6 +166,16 @@ None - no external service configuration required.
 - `.planning/REQUIREMENTS.md` now tells the truth about Phase 47: 8/10 requirements `[x]`, with `BLD-02` and `BLD-03` still visibly open — these are the two IDs that require `47-11`'s collision-key/self-collision code (already landed per `47-VERIFICATION.md`/`47-REVIEW.md` context) to be re-verified by `/gsd-verify-phase 47` before they can be checked.
 - No blockers for the next phase. This plan touched no runtime behavior — Task 1 removed unreachable code and retargeted its tests; Task 2 edited a planning document — so nothing here changes Phase 48's starting state.
 
+## Self-Check: PASSED
+
+All modified files confirmed present on disk (`typsphinx/writer.py`,
+`tests/test_entry_metadata_precedence.py`,
+`tests/test_document_metadata_render_gate.py`,
+`tests/fixtures/entry_title_author_render_gate/conf.py`,
+`.planning/REQUIREMENTS.md`, and this SUMMARY.md). All three task/summary
+commit hashes (`71fed7a`, `bb82f66`, `5712315`) confirmed present in
+`git log --oneline --all`.
+
 ---
 *Phase: 47-two-layer-output-content-wrapper-split-target-as-path-collis*
 *Completed: 2026-08-11*
