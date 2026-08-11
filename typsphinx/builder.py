@@ -406,16 +406,50 @@ class TypstBuilder(Builder):
         path (D-05).
 
         Folds ``\\`` to ``/`` (so a Windows-authored separator compares
-        identically to a POSIX one) and then ``casefold()``s the result --
-        ``_collision_key("Manual.typ") == _collision_key("manual.typ")``
-        and ``_collision_key("MANUAL") == _collision_key("manual")`` on
-        EVERY platform, with no ``sys.platform`` branch. This is the ONLY
-        place this normalization happens; every collision-map insertion
-        and lookup in ``_validate_output_path_collisions()`` goes through
-        it, so a bare ``==`` on two raw path strings can never creep back
-        in and silently miss a case-only collision on a case-SENSITIVE
-        filesystem (BLD-04's whole point: Linux CI must catch what only a
-        case-INSENSITIVE filesystem would otherwise silently overwrite).
+        identically to a POSIX one), then applies ``posixpath.normpath()``
+        (so a redundant ``./`` prefix, a doubled ``//`` separator, or an
+        embedded ``/./`` segment collapse to the same key as their plain
+        form), and finally ``casefold()``s the result --
+        ``_collision_key("./Manual.typ") == _collision_key("manual.typ")``,
+        ``_collision_key("a//b.typ") == _collision_key("a/b.typ")`` and
+        ``_collision_key("MANUAL") == _collision_key("manual")`` on EVERY
+        platform, with no ``sys.platform`` branch. This is the ONLY place
+        this normalization happens; every collision-map insertion and
+        lookup in ``_validate_output_path_collisions()`` goes through it,
+        so a bare ``==`` on two raw path strings can never creep back in
+        and silently miss a shape-only, separator-only or case-only
+        collision on a filesystem that would treat the two paths as
+        physically identical (BLD-02/BLD-04's whole point: Linux CI must
+        catch what only a case-insensitive filesystem or a naive path
+        comparison would otherwise let through).
+
+        Order matters: normalizing SHAPE before folding CASE keeps this
+        function's existing separator contract intact (``posixpath``
+        functions are ASCII-case-sensitive internally, but every character
+        this function's inputs use is already lowercase-or-uppercase ASCII
+        in the shape-relevant positions -- the separator and ``.``/``..``
+        segments -- so ordering only matters for readability here, not
+        correctness).
+
+        COMPARISON-ONLY, on three measured grounds (T-47-11-01):
+        (a) *Separation* -- this function's return value is used only as a
+        ``dict`` key inside ``_validate_output_path_collisions()``; no
+        write site ever consumes it, and the WRITTEN filename always keeps
+        the user's exact bytes, including case, path shape and Unicode
+        form. Outdir containment remains owned entirely by
+        ``_escapes_outdir()`` on the RESOLVE path, never by this function.
+        (b) *Monotonicity* -- ``posixpath.normpath()`` is a deterministic
+        many-to-one folding, so equal inputs stay equal and the set of
+        detected collisions can only GROW; adding it can never mask a
+        collision the previous (shape-naive) key already detected.
+        (c) *Non-collapse* -- normalization preserves a leading
+        parent-traversal segment (``posixpath.normpath("../x.typ") ==
+        "../x.typ"``) and absolute form
+        (``posixpath.normpath("/abs.typ") == "/abs.typ"``), so it cannot
+        pull an escaping path inside the output directory; a ``..``-
+        bearing, absolute or drive-qualified target is refused earlier, by
+        ``_escapes_outdir()`` inside ``_resolve_target_stem()``, before its
+        relpath ever reaches this function at all.
 
         Deliberately does NOT apply Unicode normalization (NFC/NFD): two
         canonically-equivalent but differently-encoded strings (e.g. the
@@ -427,7 +461,7 @@ class TypstBuilder(Builder):
 
         Args:
             relative_path: An outdir-relative output path (e.g.
-                ``"manual.typ"``, ``"sub/guide.typ"``).
+                ``"manual.typ"``, ``"sub/guide.typ"``, ``"./manual.typ"``).
 
         Returns:
             The comparison-only key for ``relative_path``.
@@ -437,8 +471,14 @@ class TypstBuilder(Builder):
             True
             >>> TypstBuilder._collision_key("MANUAL") == TypstBuilder._collision_key("manual")
             True
+            >>> TypstBuilder._collision_key("./manual.typ") == TypstBuilder._collision_key("manual.typ")
+            True
+            >>> TypstBuilder._collision_key("a//b.typ") == TypstBuilder._collision_key("a/b.typ")
+            True
         """
-        return relative_path.replace("\\", "/").casefold()
+        folded_separators = relative_path.replace("\\", "/")
+        normalized_shape = posixpath.normpath(folded_separators)
+        return normalized_shape.casefold()
 
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's

@@ -91,18 +91,6 @@ class TestBld02PathShapeCollisionGate:
     entirely.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan, verbatim in "
-            "47-GAP-RED-EVIDENCE.md's BLD-02 path-shape section): exit 0, "
-            "no collision warning anywhere; exactly ONE physical "
-            "manual.typ exists, carrying title: \"Other Master\" and "
-            "#include(\"other.typ\") -- the index entry's own wrapper is "
-            "silently gone because _collision_key() does not normalize "
-            "the './' prefix."
-        ),
-    )
     def test_bld02_path_shape_duplicate_rejected_typst(self, tmp_path):
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(BLD02_PATH_SHAPE_FIXTURE_DIR, build_dir, "typst")
@@ -133,15 +121,6 @@ class TestBld02PathShapeCollisionGate:
             f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan): -b typstpdf of this fixture "
-            "ALSO exits 0 and compiles whichever wrapper survived the "
-            "silent overwrite to a real PDF -- the same defect, "
-            "undetected by either builder today."
-        ),
-    )
     def test_bld02_path_shape_duplicate_rejected_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
@@ -174,19 +153,6 @@ class TestBld02TemplateClobberGate:
     file imports.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan, verbatim in "
-            "47-GAP-RED-EVIDENCE.md's BLD-02 template-clobber section): "
-            "exit 0, no collision warning; the written _template.typ no "
-            "longer defines '#let project' at all (grep -c returns 0) -- "
-            "the wrapper physically overwrote it because "
-            "_collision_key() does not normalize the './' prefix on "
-            "'./_template.typ' before comparing it to the reserved "
-            "'_template.typ' claim."
-        ),
-    )
     def test_bld02_dot_slash_template_clobber_rejected_typst(self, tmp_path):
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
@@ -215,14 +181,6 @@ class TestBld02TemplateClobberGate:
             f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix (measured this plan): -b typstpdf of this fixture "
-            "ALSO exits 0 and destroys _template.typ before compiling -- "
-            "the same defect, undetected by either builder today."
-        ),
-    )
     def test_bld02_dot_slash_template_clobber_rejected_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
@@ -385,17 +343,6 @@ class TestCollisionKeyPathShapeUnit:
     xfail rather than a module-level collection error.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-fix: _collision_key() folds separator style ('\\\\' -> "
-            "'/') and case, but does not run posixpath.normpath() -- so "
-            "'./manual.typ' != 'manual.typ', 'a//b.typ' != 'a/b.typ', "
-            "'a/./b.typ' != 'a/b.typ', and './_template.typ' != "
-            "'_template.typ' under _collision_key(), all measured this "
-            "plan."
-        ),
-    )
     def test_collision_key_normalizes_path_shape(self):
         from typsphinx.builder import TypstBuilder
 
