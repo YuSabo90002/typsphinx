@@ -75,10 +75,17 @@ commit-dump lines. Milestone invariant #5 (push the branch from Phase 43, not at
 paid: a Windows-only path-separator defect surfaced on a dispatched CI run during Phase 46 instead of
 at the release PR, which is the exact failure mode that cost v0.7.0 two defects.
 
-**Read the Docs `stable` — NOT yet confirmed for v0.7.1.** `46-HANDOFF.md` item 5 is owner-manual and
-was deliberately left for after the publish. Confirm both projects (`en` and `ja`) report `0.7.1` and
-serve their PDFs. Both Default Versions have been `stable` since the v0.6.4 close and needed no flip
-at v0.6.5 or v0.7.0, so none is expected this time either.
+**Read the Docs `stable` measured live 2026-08-11 (`46-HANDOFF.md` item 5, both projects — owner
+confirmed, then re-measured against RTD's unauthenticated public API and real fetches):** root
+`https://typsphinx.readthedocs.io/` → `/en/stable/` (200); `en` `stable` identifier
+**`48bf135428bb093a77a432d93d16088ce6930342`** — the v0.7.1 merge commit itself — and `ja`
+(project slug `typsphinx-ja`) `stable` identifier **`cf7fa3085078c0c5cc7f6614e89ae042ec95efef`**,
+the translations repo's own v0.7.1-tagged commit. Both versions `active: true` / `built: true`;
+both pages report `0.7.1`; both PDFs served (`en` 2,449,231 B / `ja` 2,642,276 B, `application/pdf`).
+No owner setting flips were needed — both Default Versions have been `stable` since the v0.6.4 close,
+the fourth consecutive close at which none was required.
+
+**`46-HANDOFF.md`'s seven-item publish checklist is now fully discharged; nothing is owed forward.**
 
 **Not a frontend UI milestone** — no phase carried a UI hint. `ui.plan-gate` false-positives on
 "table"/"render"/"page" wording here.
@@ -597,8 +604,8 @@ Last session: 2026-08-11 — `/gsd-complete-milestone` for v0.7.1.
 Stopped at: milestone shipped, published to PyPI, and archived.
 Resume: `/gsd-new-milestone` (defines a fresh `REQUIREMENTS.md`; phase numbering continues at 47).
 
-**One item is still owed and is owner-manual:** confirm Read the Docs `stable` reports `0.7.1` and
-serves its PDF on both the `en` and `ja` projects (`46-HANDOFF.md` item 5).
+**Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
+including item 5 (Read the Docs `stable`), confirmed by the owner and re-measured live 2026-08-11.
 
 ## Operator Next Steps
 

@@ -29,6 +29,11 @@ release run `31462027486` after owner approval of the `pypi` environment. GitHub
 2,436,561 B). The standing second tag was pushed on `typsphinx-doc-translations`: `update-pin.yml`
 run `31462409929` advanced its `typsphinx` submodule pin `87f242a` → `48bf135`, then annotated tag
 `v0.7.1` was created there on `cf7fa30`.
+**Read the Docs `stable` measured live 2026-08-11 (both projects):** `en` `stable` identifier
+`48bf1354` (the v0.7.1 merge commit), `ja` (slug `typsphinx-ja`) `stable` identifier `cf7fa308` (the
+translations repo's own v0.7.1 tag); both `active`/`built`, both pages report `0.7.1`, both PDFs
+served (`en` 2,449,231 B / `ja` 2,642,276 B, `application/pdf`). No owner setting flips needed —
+the fourth consecutive close at which none was required.
 
 **REL-04 — closed for the first time, on generated evidence.** The requirement carried from v0.7.0,
 where run `30848860064`'s `create-release` job failed at `uv: command not found` (exit 127, the
