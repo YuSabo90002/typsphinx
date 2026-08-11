@@ -1072,15 +1072,18 @@ and the release then failed — this phase must not repeat that. REL-04 closes a
      `/gsd-complete-milestone` covering merge → tag → `release.yml` (with an explicit item to observe
      `create-release` succeed, closing REL-04) → PyPI + GitHub Release → the second tag on
      `typsphinx-doc-translations` → the RTD `stable` measurement on both projects.
-**Plans**: 6 plans in 4 waves
+**Plans**: 1/6 plans executed in 4 waves
 
 Plans:
-- [ ] 46-01-PLAN.md — Tracer: merge `origin/main`, repair the Windows contract-claims gate, and prove
+
+- [x] 46-01-PLAN.md — Tracer: merge `origin/main`, repair the Windows contract-claims gate, and prove
       the CI loop live (D-20, D-22, D-23 run 1)
+
 - [ ] 46-02-PLAN.md — Version-literal lockstep bump and editable-install regeneration (SC#1)
 - [ ] 46-03-PLAN.md — Curated `## [0.7.1]` CHANGELOG entry, migration guide, and page-gate tuple (SC#2)
 - [ ] 46-04-PLAN.md — SC#3 green tree: the CI authority run (D-23 run 2) plus local docs, corpus and
       `ja` evidence
+
 - [ ] 46-05-PLAN.md — SC#4 invariant sweep (D-21) and REL-04's in-phase preconditions
 - [ ] 46-06-PLAN.md — SC#5 handoff, release-evidence roll-up, fence proof, and todo close-out
 
@@ -1179,7 +1182,7 @@ the release-prep phase — the one place this ordering rule is broken — and ca
 | 45. Documentation Currency + Carried Hygiene | v0.7.1 | 4/4 | Complete    | 2026-08-10 |
 | 45.1 Custom-Template Parameter Contract Correction (INSERTED) | v0.7.1 | 7/7 | Complete    | 2026-08-10 |
 | 45.2 Local Toolchain Repair — tox-uv to tox-uv-bare (INSERTED) | v0.7.1 | 5/5 | Complete    | 2026-08-11 |
-| 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 0/TBD | Not started | - |
+| 46. v0.7.1 Release Prep (prep-only) | v0.7.1 | 1/6 | In Progress|  |
 
 ## Roadmap Evolution
 
