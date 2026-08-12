@@ -5,10 +5,10 @@ milestone_name: multi-master composition
 current_phase: 48
 current_phase_name: Compile-Time Cross-Reference Guard
 status: planning
-stopped_at: Completed 47-10-PLAN.md — Phase 47 fully closed
-last_updated: "2026-08-12T01:24:15.478Z"
+stopped_at: Phase 47 complete — UAT passed (72/72), ready to plan Phase 48
+last_updated: "2026-08-12T02:20:00.000Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 47 execution started
+last_activity_desc: Phase 47 UAT complete — 72/72 auto-covered deliverables confirmed, transitioned to Phase 48
 progress:
   total_phases: 6
   completed_phases: 1
@@ -21,14 +21,16 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 at the v0.7.1 milestone close — full evolution review)
+See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 47 — two-layer-output-content-wrapper-split-target-as-path-collis
-split, target-as-path, collision detection). A `typst_documents` configuration declaring more than one
-master must produce a complete PDF for each of them: no silently dropped content, no compile failure.
+**Current focus:** Phase 48 — Compile-Time Cross-Reference Guard. Whether a reference's target label
+exists is decided by Typst per compiled wrapper instead of by a build-time union across all masters,
+so a missing label degrades to plain text rather than aborting — landed before Phase 49's graph work
+that would otherwise make it fatal.
 Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
-Next action: `/gsd-plan-phase 47`
+Phase 47 complete 2026-08-12 (14/14 plans, UAT 72/72).
+Next action: `/gsd-discuss-phase 48`
 
 ## Current Position
 
@@ -444,6 +446,18 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 
 ### Blockers/Concerns
 
+**[Phase 47] One open review Warning carried forward, doc-only: WR-02.**
+`47-REVIEW.md` closes at `status: issues_found` with CR-01 and WR-01 both verified-closed and one
+Warning left open. `tests/test_master_include_set_predicate_gate.py`'s module docstring (lines ~25-31)
+still says the pre-fix RED is "recording ... as `xfail(strict=True)`", but commit `e422bfb` removed all
+six `@pytest.mark.xfail` decorators when the 47-13 fix landed. **Re-measured 2026-08-12 at UAT close and
+still live** — `grep -c '@pytest.mark.xfail'` returns `0` while the docstring claim stands. Two class
+docstrings (`TestGhostEntryIncludeSetUnit`, `TestUnhashableDocnameIncludeSetUnit`) carry the milder
+"lands as an xfail" variant of the same staleness. **Not a functional defect** — all 8 tests pass and
+the verbatim RED transcripts remain correctly cited to `47-GAP2-RED-EVIDENCE.md`; the cost is a
+maintainer searching for markers that no longer exist. Fix is a past-tense rewrite, suggested verbatim
+in `47-REVIEW.md`.
+
 **Phase 44.1 SC#2 rests on a falsified premise — a blocking decision waits in wave 2.** Measured
 2026-08-04 during planning and re-measured independently by the orchestrator against the pinned
 typst-py 0.15.0, through real `include()` calls on `tests/fixtures/integration_nested_toctree`:
@@ -670,16 +684,18 @@ Items acknowledged and carried forward from milestone closes:
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-11T12:57:33.384Z
-Stopped at: Completed 47-10-PLAN.md — Phase 47 fully closed
-Resume: `/gsd-plan-phase 47`.
+Last session: 2026-08-12T02:20:00.000Z
+Stopped at: Phase 47 complete, ready to plan Phase 48
+Resume: `/gsd-discuss-phase 48`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
 including item 5 (Read the Docs `stable`), confirmed by the owner and re-measured live 2026-08-11.
 
 ## Operator Next Steps
 
-- Plan the first phase with /gsd-plan-phase 47
-- Phase 47 pushes `gsd/v0.8.0-multi-master-composition` to `origin` (milestone invariant #5) — the
-  branch is local-only today, and this milestone's platform-dependent collision hazards do not show up
-  on Linux.
+- Discuss the next phase with /gsd-discuss-phase 48
+- Milestone invariant #5 is **discharged**: Phase 47 pushed `gsd/v0.8.0-multi-master-composition` to
+  `origin` (no PR) and drove CI run `31492380799` green, including the `windows-latest` and
+  `macos-latest` lanes — which is where it caught a real Windows-only OUT-02 defect
+  (`os.path` vs `posixpath` disagreement), fixed in-phase.
+- **Phase 48 must land no later than Phase 49** (the milestone's one hard ordering constraint).
