@@ -635,12 +635,12 @@ differences also become correct through this one mechanism rather than three.
      The full-corpus `-b typstpdf` compile time is recorded before and after, so a material regression
      from per-reference `query()`-driven introspection passes is a stated finding handed forward rather
      than a surprise discovered at corpus scale.
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 48-01-PLAN.md — Settle the body-mode question by real compile, write the flipped assertions'
+- [x] 48-01-PLAN.md — Settle the body-mode question by real compile, write the flipped assertions'
       expected values first, capture both reachable pre-fix REDs, and record D-04's enumerated
       impossibility argument (wave 1)
 
@@ -897,7 +897,7 @@ sequential, not merely numbered:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
-| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 0/TBD | Not started | - |
+| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 1/4 | In Progress|  |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
