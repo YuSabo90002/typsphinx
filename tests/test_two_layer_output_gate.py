@@ -88,8 +88,11 @@ class TestTwoLayerOutputGate:
 
         Pre-fix: no ``index.typ`` file exists at all -- the unfixed tree
         writes exactly one file per docname, at its RESOLVED STEM
-        (``manual.typ`` here, per ``_resolve_output_stem``), never at the
-        docname's own path. See 47-RED-EVIDENCE.md's COMP-01 section.
+        (``manual.typ`` here, resolved at the time by the docname-based
+        first-match lookup ``_resolve_output_stem`` -- deleted as dead
+        code in Phase 47 Plan 14, WR-01, once every write/read-back site
+        had moved to per-entry resolution), never at the docname's own
+        path. See 47-RED-EVIDENCE.md's COMP-01 section.
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(ROOT_MASTER_FIXTURE_DIR, build_dir, "typst")

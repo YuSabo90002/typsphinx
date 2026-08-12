@@ -325,8 +325,9 @@ class TestCorpusRenderGate:
 
         # SC#1 crux: the emitted PDF must actually exist, named from the
         # `typst_documents` target ("sphinx-corpus") via
-        # `TypstBuilder._resolve_output_stem` -- never the source docname,
-        # never returncode == 0 alone. Since Phase 22.1 (PDF-02, D-04/D-05),
+        # `TypstBuilder._resolve_target_stem` (called through
+        # `_wrapper_output_relpath`) -- never the source docname, never
+        # returncode == 0 alone. Since Phase 22.1 (PDF-02, D-04/D-05),
         # `TypstPDFBuilder.finish()` attempts every configured master and
         # raises a single `ExtensionError` after the loop if any failed, so
         # a fatal `TypstCompilationError` inside the subprocess build now
