@@ -517,8 +517,9 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 12/12 plans executed — 10/10 executed, plus 2 gap-closure plans (wave 6) added 2026-08-12 after
-verification scored 8/10 and returned BLD-02 and BLD-03 BLOCKED:
+**Plans**: 14 plans — 12/12 executed, plus 2 further gap-closure plans (waves 7-8) added 2026-08-12
+after re-verification scored 10/11 and returned BLD-03 BLOCKED on a newly-found BLOCKER
+(`47-REVIEW.md` CR-01):
 
 - [x] 47-01-PLAN.md .. 47-10-PLAN.md — the original ten, all executed and summarized
 - [x] 47-11-PLAN.md — close the BLD-02/BLD-03 false negatives: path-shape normalization inside
@@ -527,6 +528,13 @@ verification scored 8/10 and returned BLD-02 and BLD-03 BLOCKED:
 
 - [x] 47-12-PLAN.md — delete the WR-01 dead entry-element resolver and correct the six stale
       REQUIREMENTS.md checkboxes
+
+- [ ] 47-13-PLAN.md — BLOCKER: route `_compute_master_included_docnames()` (the fifth site consuming
+      `typst_documents`) through the shared entry-usability predicate, closing a silent dangling-label
+      defect and an uncaught `TypeError`, with RED recorded on content and traceback first
+
+- [ ] 47-14-PLAN.md — delete the WR-01 dead `_resolve_output_stem()` output-stem resolver, retarget
+      its 22 surviving assertions onto the live resolvers, and flip BLD-02's checkbox
 
 **Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
 content/wrapper split makes the overwhelmingly common fixture shape `("index", "index", ...)` a
@@ -561,6 +569,19 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 47-10-PLAN.md — Push the milestone branch to `origin` and evidence a completed CI run over the Windows and macOS lanes (wave 5)
+
+**Wave 6** *(gap closure, blocked on Wave 5 completion)*
+
+- [x] 47-11-PLAN.md — Path-shape normalization in `_collision_key()` + one entry-usability predicate across the four wrapper-path sites (wave 6)
+- [x] 47-12-PLAN.md — Delete the dead `writer.py::_resolve_entry_element()`, retarget its coverage, correct six REQUIREMENTS.md checkboxes (wave 6)
+
+**Wave 7** *(gap closure, blocked on Wave 6 completion)*
+
+- [ ] 47-13-PLAN.md — BLOCKER/CR-01: wire the fifth `typst_documents` consumer (`_compute_master_included_docnames()`) onto the shared predicate; two new fixtures, an eight-test gate, RED-then-GREEN evidence (wave 7)
+
+**Wave 8** *(blocked on Wave 7 completion — same file, `typsphinx/builder.py`)*
+
+- [ ] 47-14-PLAN.md — WR-01: delete the dead `builder.py::_resolve_output_stem()`, retarget 22 assertions onto `_resolve_target_stem()`, sweep the tracked tree, flip BLD-02 (wave 8)
 
 **UI hint**: no
 
