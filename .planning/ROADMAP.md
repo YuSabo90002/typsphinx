@@ -635,7 +635,31 @@ differences also become correct through this one mechanism rather than three.
      The full-corpus `-b typstpdf` compile time is recorded before and after, so a material regression
      from per-reference `query()`-driven introspection passes is a stated finding handed forward rather
      than a surprise discovered at corpus scale.
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 48-01-PLAN.md — Write the flipped assertions' expected values first, capture both reachable
+      pre-fix REDs, and record D-04's enumerated impossibility argument (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 48-02-PLAN.md — TRACER: one cross-document reference guarded end to end through
+      `sphinx-build -b typstpdf` → `typst.compile()` → `pypdf`, with the build-time union, its
+      degrade field and its warning all deleted in the same change (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion — same file, `typsphinx/translator.py`)*
+
+- [ ] 48-03-PLAN.md — Expand to the remaining two emission sites (citation back-references, D-05;
+      `pending_xref`, D-04) and pin the helper contract, the D-06 exemption and the
+      single-derivation-point property with direct unit tests (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 48-04-PLAN.md — D-11 cost measurement against pre-fixed tiers, SC#2/SC#3 repo-wide grep
+      discharge, D-01 published-contract re-check, phase green gate (wave 4)
+
 **UI hint**: no
 
 ### Phase 49: Per-Master Include Graph with State-Guarded Includes
