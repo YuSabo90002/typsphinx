@@ -188,3 +188,11 @@ None — no external service configuration required.
 ---
 *Phase: 48-compile-time-cross-reference-guard*
 *Completed: 2026-08-12*
+
+## Self-Check: PASSED
+
+All 4 claimed files confirmed present on disk (`.planning/phases/48-compile-time-cross-reference-guard/48-EVIDENCE.md`,
+`.planning/REQUIREMENTS.md`,
+`.planning/todos/pending/2026-08-12-label-collision-false-negative-in-compile-time-xref-guard.md`,
+this SUMMARY.md). All 4 commit hashes (`57dcd4c`, `b6f4f6e`, `549fa6b`, `d7c2419`) confirmed present
+in `git log --oneline --all`.
