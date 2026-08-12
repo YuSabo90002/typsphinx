@@ -108,12 +108,23 @@ def _is_usable_typst_documents_entry(entry: tuple) -> bool:
     to produce a wrapper file (BLD-03).
 
     This is the SINGLE source of truth for "can this entry produce a
-    wrapper file", consulted by all FOUR sites that resolve a wrapper path
-    for a ``typst_documents`` entry: the collision validator
+    wrapper file", consulted by all FIVE sites that need this answer for a
+    ``typst_documents`` entry: the collision validator
     (``_validate_output_path_collisions()``), ``write()``'s D-07 wrapper
-    report, ``_write_typst_files()``'s wrapper loop, and
-    ``TypstPDFBuilder.finish()``. Before this function existed, each of
-    those four sites spelled its own ad-hoc notion of "an entry I can use"
+    report, ``_write_typst_files()``'s wrapper loop,
+    ``TypstPDFBuilder.finish()``, and
+    ``_compute_master_included_docnames()`` -- this fifth consumer resolves
+    a CROSS-REFERENCE-SAFETY decision fed by the same config rather than a
+    wrapper output path, but the predicate is nonetheless its correct
+    authority: "can this entry produce a wrapper file" and "does this entry
+    contribute a physically included subtree" are the same question,
+    because a wrapper is exactly the thing that ``#include()``s the
+    subtree. A future site needing a genuinely DIFFERENT usability question
+    must introduce a second named predicate rather than a sixth inline
+    check.
+
+    Before this function existed, each of those four sites spelled its own
+    ad-hoc notion of "an entry I can use"
     -- ``not entry or len(entry) < 2 or not isinstance(entry[0], str)``
     here, ``entry and entry[0] in docnames`` there, ``entry[0] != docname``
     elsewhere, ``not doc_tuple`` in ``finish()`` -- and the four spellings
@@ -260,13 +271,42 @@ class TypstBuilder(Builder):
         Glob toctrees are already expanded to concrete docnames in this map, so
         the resulting set matches what ``visit_toctree`` actually emits.
 
+        BLD-03, the fifth predicate consumer: this method asks a
+        CROSS-REFERENCE SAFETY question -- "is it safe for the translator to
+        emit a real Typst label link into this docname" -- not literally a
+        wrapper-output-PATH question, so it is not obviously one of
+        ``_is_usable_typst_documents_entry()``'s consumers at a glance. The
+        predicate is nonetheless the correct authority for it: an entry the
+        predicate rejects produces no wrapper file anywhere (the other four
+        already-wired sites guarantee that), and a docname with no wrapper
+        is never physically ``#include()``d into any compiled document --
+        so it contributes no included subtree, and admitting it here would
+        tell the translator it is safe to emit a ``link(<label>)`` into a
+        document no compiled master contains. A SECOND, independent
+        consequence follows from the same predicate term:
+        ``_is_usable_typst_documents_entry()``'s
+        ``isinstance(entry[0], str)`` check is what makes this method's own
+        ``set`` membership (``docname in included``) and ``add`` operations
+        total -- without it, a non-hashable ``entry[0]`` from a user's
+        ``conf.py`` (a plausible typo, since Sphinx does not type-check
+        config values) reaches those ``set`` operations unguarded and
+        aborts the whole build with an uncaught ``TypeError``.
+
         Returns:
-            The set of docnames included in some compiled master, or an empty
-            set when no masters are configured (which the translator treats as
-            "unknown" and does not degrade against).
+            The set of docnames included in some compiled master. Two
+            configurations both degrade to an empty set, which the
+            translator treats as "unknown" and does not degrade against:
+            no masters configured at all, and a ``typst_documents`` list
+            consisting ENTIRELY of entries
+            ``_is_usable_typst_documents_entry()`` rejects -- an entry that
+            produces no wrapper contributes nothing to this set either.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
-        masters = [entry[0] for entry in typst_documents if entry]
+        masters = [
+            entry[0]
+            for entry in typst_documents
+            if _is_usable_typst_documents_entry(entry)
+        ]
         toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
 
         included: set[str] = set()
