@@ -640,8 +640,9 @@ differences also become correct through this one mechanism rather than three.
 Plans:
 **Wave 1**
 
-- [ ] 48-01-PLAN.md — Write the flipped assertions' expected values first, capture both reachable
-      pre-fix REDs, and record D-04's enumerated impossibility argument (wave 1)
+- [ ] 48-01-PLAN.md — Settle the body-mode question by real compile, write the flipped assertions'
+      expected values first, capture both reachable pre-fix REDs, and record D-04's enumerated
+      impossibility argument (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -657,8 +658,9 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 48-04-PLAN.md — D-11 cost measurement against pre-fixed tiers, SC#2/SC#3 repo-wide grep
-      discharge, D-01 published-contract re-check, phase green gate (wave 4)
+- [ ] 48-04-PLAN.md — D-11 cost measurement against pre-fixed tiers, D-09 citation-marker corpus
+      delta, the accepted label-collision limit, SC#2/SC#3 repo-wide grep discharge, D-01
+      published-contract re-check, phase green gate (wave 4)
 
 **UI hint**: no
 
