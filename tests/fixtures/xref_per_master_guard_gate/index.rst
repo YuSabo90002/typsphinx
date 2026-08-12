@@ -7,4 +7,4 @@ Alpha Master
 
 ALPHA-BODY-MARKER-AAA
 
-See :ref:`xref-guard-target` for the guarded section.
+See :ref:`guarded target section` for the guarded section.

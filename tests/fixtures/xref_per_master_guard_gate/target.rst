@@ -1,6 +1,4 @@
-.. _xref-guard-target:
-
-Guarded Section Reachable Only By Alpha
-========================================
+Guarded Target Section
+========================
 
 TARGET-BODY-MARKER-CCC

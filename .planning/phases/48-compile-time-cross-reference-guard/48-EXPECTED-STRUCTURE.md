@@ -51,16 +51,16 @@ def _label_existence_guard(
   proving the anchor attaches independently of whether the guard's own cross-document query
   succeeds).
 
-**Fully substituted example** for label `target:xref-guard-target` (`code_mode_body=True`,
+**Fully substituted example** for label `target:guarded-target-section` (`code_mode_body=True`,
 `prefix=""`):
 
 ```
 open_str:  context { let __tsx_body = [#{
-close_str: }]; if query(<target:xref-guard-target>).len() > 0 { link(<target:xref-guard-target>, __tsx_body) } else { __tsx_body } }
+close_str: }]; if query(<target:guarded-target-section>).len() > 0 { link(<target:guarded-target-section>, __tsx_body) } else { __tsx_body } }
 ```
 
 Both strings on effectively one line each; the whole `close_str` above is byte-for-byte on ONE
-line, with `if query(<target:xref-guard-target>).len() > 0 {` unbroken.
+line, with `if query(<target:guarded-target-section>).len() > 0 {` unbroken.
 
 ---
 
@@ -68,16 +68,26 @@ line, with `if query(<target:xref-guard-target>).len() > 0 {` unbroken.
 
 **Source read literally:** `conf.py` — two well-formed 4-tuple entries,
 `("index", "alpha.typ", "Alpha Master", "Probe Author")` and
-`("bravo", "bravo_master.typ", "Bravo Master", "Probe Author")`. `index.rst` (master alpha)
-toctrees `target` and ends its body with `See :ref:\`xref-guard-target\` for the guarded section.`
-`bravo.rst` (master bravo, `:orphan:`, no toctree) carries the byte-identical `:ref:` sentence.
-`target.rst` carries `.. _xref-guard-target:` immediately above a section titled "Guarded Section
-Reachable Only By Alpha".
+`("bravo", "bravo_master.typ", "Bravo Master", "Probe Author")`, plus
+`extensions = ["typsphinx", "sphinx.ext.autosectionlabel"]` and
+`autosectionlabel_prefix_document = False`. `index.rst` (master alpha) toctrees `target` and ends
+its body with `See :ref:\`guarded target section\` for the guarded section.` `bravo.rst` (master
+bravo, `:orphan:`, no toctree) carries the byte-identical `:ref:` sentence. `target.rst` carries a
+SINGLE section titled "Guarded Target Section" — deliberately no explicit `.. _label:` directive
+(the conf.py comment block records why, measured this session: an explicit target directly above a
+section makes typsphinx emit a SEPARATE `#metadata(none) <label>` anchor, and Typst's PDF export
+registers a Named Destination only for a HEADING anchor via `#outline()`, never for a bare metadata
+one — so a `:ref:` resolving to a metadata-only label compiles a real link whose PDF `/Dest` is an
+unnamed positional array, making a destination-based PDF assertion unwritable).
+`sphinx.ext.autosectionlabel` resolves `:ref:`guarded target section`` DIRECTLY to the section's own
+auto id with no separate node, so the referenced label IS the heading anchor and DOES get a real
+Named Destination — verified this session against a real compiled PDF's `/Names/Dests` name tree.
 
-**Derivation of the label:** `_namespace_label("target", "xref-guard-target")` =
-`"target:xref-guard-target"` (no Typst-invalid characters, `_sanitize_label` is a no-op). The
+**Derivation of the label:** `_namespace_label("target", "guarded-target-section")` =
+`"target:guarded-target-section"` (no Typst-invalid characters, `_sanitize_label` is a no-op; the
+docutils auto id for the title "Guarded Target Section" slugifies to `guarded-target-section`). The
 reference's link text is the target section's title, per Sphinx's standard `:ref:` auto-text rule:
-`text("Guarded Section Reachable Only By Alpha")`.
+`text("Guarded Target Section")`.
 
 ### Expected `index.typ` AND `bravo.typ` — IDENTICAL guarded expression in both
 
@@ -87,12 +97,12 @@ point of moving the decision to compile time), both content files emit the exact
 reference line:
 
 ```
-context { let __tsx_body = [#{text("Guarded Section Reachable Only By Alpha")}]; if query(<target:xref-guard-target>).len() > 0 { link(<target:xref-guard-target>, __tsx_body) } else { __tsx_body } }
+context { let __tsx_body = [#{text("Guarded Target Section")}]; if query(<target:guarded-target-section>).len() > 0 { link(<target:guarded-target-section>, __tsx_body) } else { __tsx_body } }
 ```
 
 No `#` prefix — `_in_markup_mode` is `False` at this call site (a plain `:ref:` with empty `ids`
 never enters the D-14 own-anchor branch, matching the CURRENT unguarded form's own prefix, recorded
-in `48-RED-EVIDENCE.md`: `link(<target:xref-guard-target>, `).
+in `48-RED-EVIDENCE.md`: `link(<target:guarded-target-section>, `).
 
 ### Expected compiled-PDF behaviour (destination-based, never count-based)
 
@@ -103,10 +113,10 @@ ANY heading in either master's own content produces link annotations unrelated t
 with what this fixture proves. Every link assertion below reads link **destinations**, never
 counts:
 
-| Compiled PDF | `target:xref-guard-target` among link destinations? | Why |
+| Compiled PDF | `target:guarded-target-section` among link destinations? | Why |
 |---|---|---|
-| `alpha.pdf` | **YES** | `alpha.typ` (the wrapper for `index`) `#include()`s `target.typ` via the toctree — Typst's `query(<target:xref-guard-target>)` inside THIS wrapper's compile finds a real label, so the guard's `if` branch fires and emits a real `link(...)`. |
-| `bravo_master.pdf` | **NO** | `bravo_master.typ` `#include()`s only `bravo.typ` — `target.typ` is never included in this wrapper's compile, so `query(<target:xref-guard-target>)` finds nothing here, the guard's `else` branch fires, and `bravo.typ`'s reference renders as plain inline content with no link annotation. |
+| `alpha.pdf` | **YES** | `alpha.typ` (the wrapper for `index`) `#include()`s `target.typ` via the toctree — Typst's `query(<target:guarded-target-section>)` inside THIS wrapper's compile finds a real label, so the guard's `if` branch fires and emits a real `link(...)`. |
+| `bravo_master.pdf` | **NO** | `bravo_master.typ` `#include()`s only `bravo.typ` — `target.typ` is never included in this wrapper's compile, so `query(<target:guarded-target-section>)` finds nothing here, the guard's `else` branch fires, and `bravo.typ`'s reference renders as plain inline content with no link annotation. |
 
 Both compiles succeed with exit 0 overall for `-b typstpdf`; no `does not exist in the document`
 text appears anywhere in the combined build output (CURRENT pre-fix behaviour: `bravo_master.typ`
@@ -117,11 +127,11 @@ that flips from a strict xfail to a real invariance guard once 48-02 lands).
 
 Per D-02 ("a degraded reference renders as exactly the same visible text as the linked form, with
 no visual marking"), the `pypdf`-extracted text of BOTH `alpha.pdf` and `bravo_master.pdf` contains
-the substring `"Guarded Section Reachable Only By Alpha"` — the reader sees the identical prose
+the substring `"Guarded Target Section"` — the reader sees the identical prose
 whether or not the reference happens to be clickable in that particular compiled wrapper.
 
 **CURRENT (pre-fix) values, stated honestly:** both content files ALREADY emit the identical PLAIN
-`link(<target:xref-guard-target>, ...)` today (no guard, no `context`/`query`) — this half is NOT
+`link(<target:guarded-target-section>, ...)` today (no guard, no `context`/`query`) — this half is NOT
 new; `48-RED-EVIDENCE.md` records the byte-identical pre-fix lines side by side. What flips is the
 expression's SHAPE (plain `link(` → guarded `context { ... }`) and `bravo_master.typ`'s compile
 outcome (FATAL → clean degrade). The two content files agreeing at write time was never broken;

@@ -27,9 +27,11 @@ against the committed fixture — no `typst.compile()` probe, no hand-assembled 
 
 **Fixture:** `tests/fixtures/xref_per_master_guard_gate/` —
 `typst_documents = [("index", "alpha.typ", "Alpha Master", "Probe Author"), ("bravo",
-"bravo_master.typ", "Bravo Master", "Probe Author")]`. `index.rst` (master alpha) toctrees
-`target` and carries a `:ref:` to `target.rst`'s labelled section. `bravo.rst` (master bravo) is
-marked `:orphan:`, carries NO toctree of its own, and carries the byte-identical `:ref:` sentence.
+"bravo_master.typ", "Bravo Master", "Probe Author")]`, `extensions = ["typsphinx",
+"sphinx.ext.autosectionlabel"]`. `index.rst` (master alpha) toctrees `target` and carries a
+`:ref:` (via `autosectionlabel`) to `target.rst`'s single section, "Guarded Target Section".
+`bravo.rst` (master bravo) is marked `:orphan:`, carries NO toctree of its own, and carries the
+byte-identical `:ref:` sentence.
 
 ### Mechanism, stated before the transcript because the transcript alone does not show it
 
@@ -38,7 +40,7 @@ master docname (`index` AND `bravo`) and returns the union of docnames reachable
 compiled master. `target` is reachable only from `index`'s toctree, but because the set is a
 UNION across masters, `target` still lands in the shared set that BOTH `index`'s and `bravo`'s
 references are judged against. Both content files therefore take the non-degrade path and emit
-the IDENTICAL real `link(<target:xref-guard-target>, ...)` — confirmed below, byte-identical.
+the IDENTICAL real `link(<target:guarded-target-section>, ...)` — confirmed below, byte-identical.
 Bravo's wrapper (`bravo_master.typ`), which physically `#include()`s only `bravo.typ` (never
 `target.typ`), then fails to resolve that label at Typst compile time. The build-time union
 cannot express a per-master answer — exactly the decision this phase moves to compile time.
@@ -48,8 +50,8 @@ tests/fixtures/xref_per_master_guard_gate /tmp/permaster-typst`, exit 0, no warn
 
 ```
 par({text("See ")
-link(<target:xref-guard-target>, 
-text("Guarded Section Reachable Only By Alpha"))
+link(<target:guarded-target-section>, 
+text("Guarded Target Section"))
 text(" for the guarded section.")})
 ```
 
@@ -57,8 +59,8 @@ text(" for the guarded section.")})
 
 ```
 par({text("See ")
-link(<target:xref-guard-target>, 
-text("Guarded Section Reachable Only By Alpha"))
+link(<target:guarded-target-section>, 
+text("Guarded Target Section"))
 text(" for the guarded section.")})
 ```
 
@@ -69,7 +71,7 @@ link, byte-for-byte. `bravo_master.typ`'s own `#include()` statement pulls in on
 #include("bravo.typ")
 ```
 
-— `target.typ` is never mentioned in `bravo_master.typ`, so the label `<target:xref-guard-target>`
+— `target.typ` is never mentioned in `bravo_master.typ`, so the label `<target:guarded-target-section>`
 `bravo.typ` links to does not exist in `bravo_master.typ`'s compiled document.
 
 ### `-b typstpdf` — the direct build fatal
@@ -102,10 +104,10 @@ writing output... [target] done
 typst: wrote 2 wrapper file(s) -- compile these: alpha.typ, bravo_master.typ
 Compiling 2 master document(s) to PDF...
 Generated PDF: /tmp/permaster-pdf/alpha.pdf
-Typst compilation failed at /tmp/permaster-pdf/bravo_master.typ: TypstError: label `<target:xref-guard-target>` does not exist in the document
-ERROR: Failed to compile /tmp/permaster-pdf/bravo_master.typ: Typst compilation failed: TypstError: label `<target:xref-guard-target>` does not exist in the document
+Typst compilation failed at /tmp/permaster-pdf/bravo_master.typ: TypstError: label `<target:guarded-target-section>` does not exist in the document
+ERROR: Failed to compile /tmp/permaster-pdf/bravo_master.typ: Typst compilation failed: TypstError: label `<target:guarded-target-section>` does not exist in the document
 Location: /tmp/permaster-pdf/bravo_master.typ
-Details: label `<target:xref-guard-target>` does not exist in the document
+Details: label `<target:guarded-target-section>` does not exist in the document
 
 ...
 
@@ -117,9 +119,9 @@ Traceback
             f"typstpdf: {len(failures)} master document(s) failed: {summary}"
         )
     sphinx.errors.ExtensionError: typstpdf: 1 master document(s) failed: bravo: Typst compilation
-    failed: TypstError: label `<target:xref-guard-target>` does not exist in the document
+    failed: TypstError: label `<target:guarded-target-section>` does not exist in the document
     Location: /tmp/permaster-pdf/bravo_master.typ
-    Details: label `<target:xref-guard-target>` does not exist in the document
+    Details: label `<target:guarded-target-section>` does not exist in the document
 ```
 
 Exit code: 2 (non-zero). Every byte shown came from the unmodified, committed fixture build — no

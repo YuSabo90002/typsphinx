@@ -24,12 +24,29 @@
 #       `bravo.typ`, because a target whose resolved path casefold-equals
 #       the docname's own content path is a BLD-03 self-collision that
 #       Phase 47's validator refuses.
+#   (e) `target.rst`'s section MUST stay referenced via
+#       `sphinx.ext.autosectionlabel` (a bare `:ref:` naming the
+#       normalized title, NOT an explicit `.. _label:` target line
+#       immediately above the section). Measured this session: an
+#       explicit target directly above a section makes typsphinx emit a
+#       SEPARATE `#metadata(none) <label>` anchor distinct from the
+#       heading's own `#heading(...) <label>` anchor -- and Typst's PDF
+#       export only registers a NAMED destination (via `#outline()`) for
+#       the HEADING anchor, never for a bare metadata-only one. A `:ref:`
+#       resolving to a metadata-only label therefore compiles a real,
+#       working `link()`, but its PDF `/Dest` is an unnamed positional
+#       array pypdf cannot map back to the label string -- making this
+#       fixture's own destination-based PDF assertions unwritable.
+#       `autosectionlabel` resolves `:ref:` directly to the SECTION's own
+#       auto id with no separate node, so the referenced label IS the
+#       heading anchor and gets a real Named Destination.
 
 project = "Xref Per Master Guard Gate"
 author = "Probe Author"
 release = "1.0"
 
-extensions = ["typsphinx"]
+extensions = ["typsphinx", "sphinx.ext.autosectionlabel"]
+autosectionlabel_prefix_document = False
 
 typst_documents = [
     ("index", "alpha.typ", "Alpha Master", "Probe Author"),
