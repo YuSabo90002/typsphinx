@@ -1,69 +1,20 @@
 ---
 phase: 47-two-layer-output-content-wrapper-split-target-as-path-collis
-verified: 2026-08-11T23:33:12Z
-status: gaps_found
-score: 10/11 must-haves verified
+verified: 2026-08-12T00:00:00Z
+status: passed
+score: 11/11 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
-  previous_score: 8/10
+  previous_score: 10/11
   gaps_closed:
-    - "BLD-02: two typst_documents entries resolving to the same target path (via unnormalized path SHAPE, e.g. `./manual.typ` vs `manual.typ`) are detected and reported instead of silently dropping one master's body"
-    - "BLD-03: a wrapper target that collides with a content file's own path (an under-length typst_documents entry) is detected instead of silently destroying the docname's own content"
+    - "BLD-03 (plan 47-11 must-have, superset of the roadmap wording): _is_usable_typst_documents_entry() is the single source of truth for entry usability, consulted everywhere a typst_documents entry's usability matters — the fifth site, TypstBuilder._compute_master_included_docnames(), is now routed through the predicate instead of a bare `if entry` truthiness test."
   gaps_remaining: []
   regressions: []
-gaps:
-  - truth: "BLD-03 (plan 47-11 must-have, superset of the roadmap wording): _is_usable_typst_documents_entry() is the single source of truth for entry usability, consulted everywhere a typst_documents entry's usability matters -- not just at the four wrapper-path-resolving sites the plan enumerated"
-    status: failed
-    reason: >
-      TypstBuilder._compute_master_included_docnames() (typsphinx/builder.py line 269) is a FIFTH
-      site that reads typst_documents to decide which docnames are "part of a compiled master" --
-      the set translator.py's cross-reference degrade-to-text decision consults at
-      translator.py:3073-3075 to decide whether a :doc:/:ref: target gets a real Typst link(<label>)
-      or degrades to plain text. It filters entries with a bare `if entry` truthiness check, never
-      _is_usable_typst_documents_entry(). This is exactly the drift class BLD-03 exists to eliminate,
-      at a site 47-11's own docstring claim ("the SINGLE source of truth ... consulted by all FOUR
-      sites") did not reach. Independently reproduced against this checkout with two real
-      `sphinx-build` subprocess runs (not taken on 47-REVIEW.md's word):
-
-      (a) Silent correctness bug, escalating to a hard compile fatal. Fixture:
-      `typst_documents = [("index", "manual.typ", "T", "A"), ("ghost",)]`, `ghost.rst` (orphan) has a
-      toctree pulling in `ghost_child`, and `index.rst` (the real master) references
-      `:ref:\`ghost-child-label\`` (a label defined in `ghost_child.rst`). Under `-b typst`: exit 0,
-      only an unrelated "produces no wrapper file" warning for the `ghost` entry, and `index.typ` on
-      disk silently contains `link(<ghost_child:ghost-child-label>, ...)` -- a label that will never
-      exist in any compiled document, because the `ghost` entry produces no wrapper (per the correct,
-      already-fixed BLD-03 behavior) so `ghost_child.typ` is never `#include()`d anywhere. Under
-      `-b typstpdf`, the identical input crashes `typst.compile()`:
-      `TypstError: label \`<ghost_child:ghost-child-label>\` does not exist in the document` -- a hard
-      fatal, not the graceful degrade-to-plain-text this mechanism exists to provide (which DOES fire
-      correctly for a genuinely orphaned/excluded docname -- this failure is specific to the
-      under-length-entry class BLD-03 governs).
-
-      (b) Uncaught crash. Fixture: `typst_documents = [(["weird"], "manual.typ", "T", "A")]` (a
-      non-hashable `entry[0]`, e.g. from a `conf.py` typo -- config values are user-authored and not
-      type-checked by Sphinx). Under `-b typst`: the build crashes with an uncaught
-      `TypeError: unhashable type: 'list'` at `builder.py:276` (`if docname in included`), instead of
-      the graceful `logger.warning`-and-skip every other `_is_usable_typst_documents_entry()`-guarded
-      site in this file now guarantees for exactly this malformed-entry shape.
-    artifacts:
-      - path: typsphinx/builder.py
-        issue: >
-          `_compute_master_included_docnames()` (~line 246-282) filters `typst_documents` entries with
-          `if entry` alone (line 269) instead of `_is_usable_typst_documents_entry()`, so an
-          under-length or non-str-docname entry is silently treated as contributing a real docname (and
-          its whole toctree closure) to `master_included_docnames`, and a non-hashable `entry[0]`
-          reaches an unguarded `docname in included` / `included.add(docname)` set operation with no
-          type check ahead of it.
-    missing:
-      - "Filter typst_documents through _is_usable_typst_documents_entry() inside _compute_master_included_docnames(), per 47-REVIEW.md CR-01's suggested fix."
-      - "A regression fixture/gate exercising a valid master plus an under-length entry whose toctree pulls in a document a real master's content cross-references via :ref:, asserting the build either degrades the reference to plain text or excludes the under-length entry's subtree from master_included_docnames -- never both silently link it AND never include it."
-      - "A regression fixture/gate exercising a non-hashable entry[0] (e.g. a list), asserting a graceful logger.warning-and-skip rather than an uncaught TypeError."
-human_verification: []
 ---
 
-# Phase 47: Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection Verification Report (Re-verification after gap closure)
+# Phase 47: Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection Verification Report (Re-verification after gap-closure plans 47-13/47-14)
 
 **Phase Goal:** The unit of output stops being "one `.typ` per docname whose shape depends on
 whether that docname is a master." Every document gets a docname-named, template-less **content**
@@ -71,27 +22,28 @@ file; every `typst_documents` entry gets a **wrapper** file carrying the templat
 of its master's content. B-1 and B-2 close, and any two logical files wanting one physical path
 are reported instead of silently overwritten.
 
-**Verified:** 2026-08-11T23:33:12Z
-**Status:** gaps_found
-**Re-verification:** Yes — after gap-closure plans 47-11 and 47-12
+**Verified:** 2026-08-12T00:00:00Z
+**Status:** passed
+**Re-verification:** Yes — after gap-closure plans 47-13 (BLD-03 gap 9b / CR-01) and 47-14 (WR-01
+deletion + BLD-02 bookkeeping)
 
 ## Summary
 
-Plans 47-11 and 47-12 closed both gaps the prior `47-VERIFICATION.md` (score 8/10) found: BLD-02's
-unnormalized-path-shape false negative and BLD-03's under-length-entry write-time destruction. Both
-closures were independently reproduced against this checkout with real `sphinx-build` subprocess
-runs, not taken on the SUMMARYs' word — see "Gaps Closed" evidence below. `47-12` additionally
-deleted the WR-01 dead-code finding (`_resolve_entry_element()`) and corrected six stale
-`REQUIREMENTS.md` checkboxes, both independently confirmed.
+The single BLOCKER that kept the prior verification pass at `gaps_found` (score 10/11) —
+`TypstBuilder._compute_master_included_docnames()` bypassing the shared entry-usability predicate
+— is genuinely closed. This pass independently reproduced the fix with real `sphinx-build`
+subprocess runs against both new fixtures (`bld03_ghost_entry_xref_gate`,
+`bld03_unhashable_docname_gate`) on both builders, not taken on the SUMMARYs', the REVIEW's, or
+the prior VERIFICATION's word. Every previously-verified truth was re-measured (not merely
+assumed to survive) because `_resolve_output_stem()` — a function three of the ten requirement
+IDs' evidence trail touched — no longer exists after plan 47-14's deletion; its 22 surviving
+semantics were confirmed retargeted onto the live resolver with expected values verbatim, and the
+three deleted assertions carry recorded rationale. No regression was found anywhere in the full
+suite (1039 passed, 5 skipped, matching both plans' own closing measurements exactly).
 
-However, a code review that ran after both closure plans landed (`47-REVIEW.md`, CR-01) found a
-**new BLOCKER**: `TypstBuilder._compute_master_included_docnames()` is a fifth site consuming
-`typst_documents` that 47-11's single-source-of-truth predicate did not reach. This verification
-independently reproduced both of CR-01's claimed failure modes end-to-end with real `sphinx-build`
-subprocess runs (not inferred from the review's narrative) — see the Gaps section. The finding is
-confirmed real and does bear directly on the BLD-03 must-have as 47-11's own plan frontmatter
-stated it ("exactly ONE predicate ... and all FOUR sites ... consult it" — there are actually five
-relevant sites, and the fifth was missed). Overall status is **gaps_found**, not `passed`.
+Two informational items are recorded below (a stale test-module docstring, and REQUIREMENTS.md's
+BLD-03 checkbox lagging this report by construction) — neither is a truth failure, an artifact
+defect, or a broken link, so neither blocks `passed`.
 
 ## Goal Achievement
 
@@ -99,61 +51,63 @@ relevant sites, and the fifth was missed). Overall status is **gaps_found**, not
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | COMP-01: every document written as a docname-named content `.typ` with no template applied | ✓ VERIFIED | Regression: full suite (1034 passed, 5 skipped, incl. `test_two_layer_output_gate.py`) unaffected by 47-11/47-12's changes (neither plan touched `translator.py`/content-writing code); unchanged since prior verification's independent reproduction. |
-| 2 | COMP-02: each `typst_documents` entry produces a wrapper `.typ` at its resolved target path, carrying template + include | ✓ VERIFIED | Regression, as above; independently reproduced live in this pass via the BLD-02/BLD-03 fixture builds below (`manual.typ` carries `#show: project.with(...)` + `#include(...)`). |
-| 3 | COMP-03: a document that is also another master's toctree child builds/compiles without `file not found` (B-1) | ✓ VERIFIED | Regression: `test_two_layer_output_gate.py` (12 passed) and `test_pdf_generation.py` unaffected; not touched by 47-11/47-12. |
-| 4 | COMP-04: an included master no longer re-expands its title page/`#outline()` into the parent's body (B-2) | ✓ VERIFIED | Regression: same as #3; `render_wrapper()` (the mechanism) untouched by both gap-closure plans. |
-| 5 | OUT-01: a target is a path relative to the output directory (bare name → outdir root, explicit path → written where asked) | ✓ VERIFIED | Regression: `_resolve_target_stem()` byte-identical per 47-11 Task 2's own acceptance criteria (`git diff` scoped to `_collision_key` only); `test_builder_output_stem.py` passes unmodified. |
-| 6 | OUT-02: an escaping target (`..`, absolute, drive-qualified) is still refused with a warning + safe fallback | ✓ VERIFIED | Regression: `tests/test_out02_escape_target_gate.py` passes with the module byte-identical (`git diff --stat` empty, confirmed by 47-11's own acceptance criteria and re-run here); `_escapes_outdir()`/`_is_drive_qualified()` untouched. |
-| 7 | OUT-03: content files stay docname-derived regardless of where their master's wrapper is written | ✓ VERIFIED | Regression: `test_out03_content_files_stay_docname_derived` (part of the still-green suite) and `_content_output_path()` untouched by both plans. |
-| 8 | BLD-02: two `typst_documents` entries resolving to the same target path are detected and reported instead of silently dropping one master's body | ✓ VERIFIED (gap closed) | Independently reproduced live: `typst_documents = [("index", "./manual.typ", "T1", "A1"), ("other", "manual.typ", "T2", "A2")]` with `-b typst` now exits non-zero with `ExtensionError: typst: 1 output path collision(s): 'manual.typ': typst_documents entry 0 (docname 'index', target './manual.typ') and typst_documents entry 1 (docname 'other', target 'manual.typ') both resolve to the same output path 'manual.typ'`, and zero `.typ` files are written. Also reproduced the `./_template.typ` reserved-file-clobber shape: `ExtensionError: typst: 1 output path collision(s): './_template.typ': the reserved _template.typ infrastructure file and typst_documents entry 0 ... both resolve to the same output path './_template.typ'`. `posixpath.normpath()` confirmed present inside `_collision_key()`. |
-| 9 | BLD-03 (roadmap wording): a wrapper target that collides with a content file's own path is detected | ✓ VERIFIED (gap closed) | Independently reproduced live against `tests/fixtures/bld03_under_length_entry_gate/` (`typst_documents = [("index",), ("other", "manual.typ", ...)]`) with `-b typst`: exit 0, `grep -c 'UNDERLENGTH-CONTENT-SENTINEL-CCC' index.typ` returns `1` (content survives) and `grep -c '#show: project.with(' index.typ` returns `0` (no template applied — no self-including wrapper overwrote it), plus a `produces no wrapper file` warning naming the skipped entry. |
-| 9b | BLD-03 (plan 47-11 must-have, superset): `_is_usable_typst_documents_entry()` is the single predicate for entry usability, consulted everywhere the question matters | ✗ FAILED (new gap) | Independently reproduced (see Gaps): `_compute_master_included_docnames()` is a fifth, unguarded site — reproduced both a silent dangling-label defect (fatal under `-b typstpdf`, silent under `-b typst`) and an uncaught `TypeError` crash. |
-| 10 | BLD-04: collision detection behaves identically on case-insensitive filesystems | ✓ VERIFIED | Regression: `_collision_key()`'s case-folding line untouched by 47-11 (only `posixpath.normpath()` was added, confirmed by reading the function and by `test_collision_key_still_folds_case_and_ignores_unicode_normalization` passing, unmarked/non-xfail from the start). |
-| 11 | WR-01 (plan 47-12 must-have): the superseded docname-first-match entry resolver is deleted, not merely annotated | ✓ VERIFIED | Independently reproduced: `grep -rn '_resolve_entry_element' typsphinx/` returns zero hits; `python -c "import typsphinx.writer as w; hasattr(w, '_resolve_entry_element')"` prints `False`. Only historical/comment references remain in test docstrings, correctly framed as history naming 47-12-PLAN.md as the removal point. |
+| 1 | COMP-01: every document written as a docname-named content `.typ` with no template applied | ✓ VERIFIED | Regression: full suite (1039 passed, 5 skipped) re-run in this pass; neither 47-13 nor 47-14 touched `translator.py` or content-writing code (confirmed by `git diff --stat 80043b3^..HEAD`, which shows only `typsphinx/builder.py` under `typsphinx/`). |
+| 2 | COMP-02: each `typst_documents` entry produces a wrapper `.typ` at its resolved target path, carrying template + include | ✓ VERIFIED | Regression, as above; independently re-confirmed live in this pass via the two new fixture builds below (`manual.typ` / `real.typ` wrappers written correctly alongside content). |
+| 3 | COMP-03: a document that is also another master's toctree child builds/compiles without `file not found` (B-1) | ✓ VERIFIED | Regression: `test_two_layer_output_gate.py` (12 passed) re-run in this pass; not touched by 47-13/47-14. |
+| 4 | COMP-04: an included master no longer re-expands its title page/`#outline()` into the parent's body (B-2) | ✓ VERIFIED | Regression: same as #3; `render_wrapper()` untouched by both gap-closure plans (confirmed by the diff-stat above showing no `writer.py` change). |
+| 5 | OUT-01: a target is a path relative to the output directory (bare name → outdir root, explicit path → written where asked) | ✓ VERIFIED | Re-anchored, not merely regressed: `_resolve_target_stem()`'s AST body is byte-identical (`git diff -U0 -- typsphinx/builder.py` shows only prose/docstring changes in this function); `tests/test_builder_output_stem.py` (25 tests, retargeted from 28 by 47-14) passes; independently spot-checked `test_resolve_target_stem_preserves_period_in_stem`/`_with_suffix`/`_preserves_non_ascii_target` exist by name and `test_two_layer_output_gate.py`'s build-level placement assertions pass. |
+| 6 | OUT-02: an escaping target (`..`, absolute, drive-qualified) is still refused with a warning + safe fallback | ✓ VERIFIED | Re-anchored: the three escape-shape unit tests (`test_resolve_target_stem_guards_parent_traversal`/`_absolute_target`/`_drive_qualified_target`) confirmed present by name and passing; `tests/test_out02_escape_target_gate.py` passes with `git diff --stat` empty against this diff range; `_escapes_outdir()`/`_is_drive_qualified()` bodies untouched. |
+| 7 | OUT-03: content files stay docname-derived regardless of where their master's wrapper is written | ✓ VERIFIED | Regression: `test_wrapper_path_ignores_docname_directory_but_content_path_does_not` (unchanged body, per plan) and `tests/test_two_layer_output_gate.py`'s OUT-03 assertions pass; `_content_output_path()` untouched. |
+| 8 | BLD-02: two `typst_documents` entries resolving to the same target path are detected and reported instead of silently dropping one master's body | ✓ VERIFIED | Regression: `tests/test_collision_predicate_completeness_gate.py` (11 passed) and `tests/test_collision_validator_gate.py` (7 passed) re-run in this pass; `_collision_key()`/`_validate_output_path_collisions()` untouched by 47-13/47-14. |
+| 9 | BLD-03 (roadmap wording): a wrapper target that collides with a content file's own path is detected | ✓ VERIFIED | Regression: `tests/test_collision_predicate_completeness_gate.py::TestBld03UnderLengthEntryGate` unaffected. |
+| 9b | BLD-03 (plan 47-11 must-have, superset): `_is_usable_typst_documents_entry()` is the single predicate for entry usability, consulted everywhere the question matters — including the previously-missed fifth site | ✓ VERIFIED (gap closed) | Independently reproduced by this verification pass (not taken on 47-13-SUMMARY.md's, 47-14's, or 47-REVIEW.md's word) — see "Behavioral Spot-Checks" below for the full transcripts. `typsphinx/builder.py:308` now reads `if _is_usable_typst_documents_entry(entry)` (confirmed by direct read); the predicate's own docstring now enumerates all FIVE consumers by name (confirmed by direct read, lines 106–164); `grep -n "_is_usable_typst_documents_entry(" typsphinx/builder.py` shows exactly 5 call sites (308, 614, 792, 1008, 1440), up from the prior pass's 4. |
+| 10 | BLD-04: collision detection behaves identically on case-insensitive filesystems | ✓ VERIFIED | Regression: `_collision_key()`'s case-folding line untouched (confirmed via the scoped diff); `test_collision_key_folds_case_but_not_unicode_normalization` passes. |
+| 11 | WR-01 (plan 47-12 must-have): the superseded docname-first-match entry resolver is deleted, not merely annotated | ✓ VERIFIED | Unchanged from prior pass: `grep -rn '_resolve_entry_element' typsphinx/` returns zero hits. |
+| 12 | WR-01 (new, from 47-REVIEW.md): the builder-side sibling dead resolver (`_resolve_output_stem()`) is deleted, not merely annotated | ✓ VERIFIED (new closure) | Independently reproduced: `git grep -c '_resolve_output_stem' -- 'typsphinx/'` returns zero matches; `python -c "from typsphinx.builder import TypstBuilder; print(hasattr(TypstBuilder, '_resolve_output_stem'))"` prints `False`. Nine remaining hits project-wide are all in `tests/`/`tests/fixtures/`, each explicitly framed as history naming plan 47-14 as the removal point (confirmed by direct read of every hit). |
 
-**Score:** 10/11 truths verified (0 present-but-behavior-unverified)
+**Score:** 12/12 truths verified (11 must-haves per the phase's own frontmatter accounting, plus the
+new WR-01(builder-side) closure truth surfaced by 47-REVIEW.md; 0 present-but-behavior-unverified)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `typsphinx/builder.py::_collision_key` | Comparison-only normalization folding case, separator style, AND path shape | ✓ VERIFIED | `posixpath.normpath()` confirmed present between separator-folding and `casefold()`; the BLD-02 gap fixtures (path-shape duplicate, template clobber) both now correctly collide, independently reproduced live. |
-| `typsphinx/builder.py::_is_usable_typst_documents_entry` | Single predicate for "can this entry produce a wrapper file", consulted at every site that needs the answer | ⚠️ PARTIAL (new gap) | Exists, substantive, and wired at exactly 4 of the sites its own docstring claims to cover (`grep -n _is_usable_typst_documents_entry typsphinx/builder.py` shows the definition plus call sites at lines 617, 794, 1011, 1442). `_compute_master_included_docnames()` at line 269 is a fifth site that needs the same answer (entry usability) and does not consult it — confirmed by direct reading and by two independent live `sphinx-build` reproductions. |
-| `typsphinx/builder.py::_write_typst_files` | Single shared write path for content + wrapper files, guarded by the shared predicate | ✓ VERIFIED | Wrapper-matching loop's guard now includes `_is_usable_typst_documents_entry()` (line 1011); independently reproduced live — the under-length entry produces no wrapper and the docname's own content survives. |
-| `typsphinx/writer.py::_entry_element_value` | Sole entry-element resolution route (post-WR-01 deletion) | ✓ VERIFIED | `render_wrapper()`'s only call is to `_entry_element_value()`; `_resolve_entry_element()` confirmed absent from the module. |
-| `.planning/REQUIREMENTS.md` | Checkbox state matches genuinely-satisfied requirement IDs; BLD-02/BLD-03 open pending this re-verification | ⚠️ STALE (as of the moment this report is written) | Currently shows COMP-01..04, OUT-01..03 as `[x]` (correct, matches plan 47-12's edit) and BLD-02/BLD-03 as `[ ]` (was correct pending this re-verification; BLD-02 is now genuinely satisfied per this report but BLD-03 is NOT — see gap 9b — so BLD-02 alone should flip to `[x]` and BLD-03 should stay `[ ]` once this report is acted on). This is bookkeeping, not a phase-goal defect; not counted as a truth failure. |
-| `tests/test_collision_predicate_completeness_gate.py` | 11-test regression gate pinning both closed gaps | ✓ VERIFIED | `uv run pytest tests/test_collision_predicate_completeness_gate.py -q` → `11 passed`, re-run directly in this verification pass, zero xfail/xpass remaining. |
+| `typsphinx/builder.py::_compute_master_included_docnames` | Fifth predicate consumer, filters via `_is_usable_typst_documents_entry(entry)` | ✓ VERIFIED | Confirmed by direct read (lines 304–309): `masters = [entry[0] for entry in typst_documents if _is_usable_typst_documents_entry(entry)]`. |
+| `typsphinx/builder.py::_is_usable_typst_documents_entry` | Single predicate, docstring names all five consumers | ✓ VERIFIED | Confirmed by direct read (lines 106–164): opening sentence says "all FIVE sites," enumerates the collision validator, `write()`'s D-07 report, `_write_typst_files()`'s wrapper loop, `TypstPDFBuilder.finish()`, and `_compute_master_included_docnames()`, with the cross-reference-safety reasoning stated as a contract. |
+| `tests/test_master_include_set_predicate_gate.py` | 8-test regression gate pinning the fifth-site fix (6 real-build/unit tests + 2 invariance guards) | ✓ VERIFIED | `uv run pytest tests/test_master_include_set_predicate_gate.py -v` → 8/8 passed, zero xfail/xpass remaining (re-run directly in this verification pass). |
+| `typsphinx/builder.py` (no `_resolve_output_stem`) | Dead resolver deleted | ✓ VERIFIED | Zero hits anywhere under `typsphinx/`; `hasattr()` check confirms absence at import time. |
+| `tests/test_builder_output_stem.py` | 22 surviving semantics retargeted onto `_resolve_target_stem()`/`_wrapper_output_relpath()`, 3 deleted with recorded rationale | ✓ VERIFIED | `--collect-only` reports exactly 25 tests (28 − 3); `grep -c 'def test_resolve_target_stem'` = 21 named functions plus 1 `_wrapper_output_relpath` test = 22 retargeted; all 25 pass. |
+| `.planning/REQUIREMENTS.md` | Checkbox state matches genuinely-satisfied requirement IDs | ⚠️ STALE (bookkeeping, not a truth failure) | COMP-01..04, OUT-01..03, BLD-02, BLD-04 all `[x]`/`Complete` (9/10). BLD-03 is still `[ ]`/`Pending` as of this report's writing — correctly so per plan 47-14's own explicit instruction not to flip it ahead of this re-verification's measurement. This report is that measurement: BLD-03 is now genuinely satisfied (see truth #9b) and its checkbox/table row should flip to `[x]`/`Complete` as this report's direct consequence. Not counted as a phase-goal defect. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `_collision_key()` | `_validate_output_path_collisions()` | Single normalization function, now folding shape too | ✓ WIRED | Confirmed; path-shape and reserved-file-clobber collisions both now correctly raise `ExtensionError` with zero `.typ` written. |
-| `_is_usable_typst_documents_entry()` | the four wrapper-path-resolving sites | Single predicate, four consumers | ✓ WIRED (as scoped) / ⚠️ INCOMPLETE (as claimed) | The four sites the plan named are correctly wired. The plan's own must-have text claims broader coverage ("consulted everywhere") that a fifth site (`_compute_master_included_docnames()`) does not receive — see gap 9b. |
-| `TypstPDFBuilder.finish()` | `_is_usable_typst_documents_entry()` | New "has no target element" failure branch | ✓ WIRED | Independently reproduced: `-b typstpdf` on the under-length-entry fixture reports `has no target element` in the aggregate `ExtensionError`, while the well-formed sibling master's PDF is still produced. |
-| `typst_documents` (config) | `_compute_master_included_docnames()` | Bare `if entry` filter (NOT the shared predicate) | ✗ NOT_WIRED (new gap) | Confirmed by direct reading (`typsphinx/builder.py:269`) and by two independent live reproductions — see gap 9b. |
+| `typst_documents` (config) | `_compute_master_included_docnames()` | `_is_usable_typst_documents_entry()` predicate (was: bare `if entry`) | ✓ WIRED (gap closed) | Confirmed by direct read and by two independent live `sphinx-build` reproductions (see below) — the prior pass's `✗ NOT_WIRED` finding is resolved. |
+| `_is_usable_typst_documents_entry()` | all five consumer sites | Single predicate, five consumers, docstring enumeration matches wired reality | ✓ WIRED | `grep -n "_is_usable_typst_documents_entry(" typsphinx/builder.py` → exactly 5 call sites (308, 614, 792, 1008, 1440), matching the corrected docstring's own enumeration. |
+| `_compute_master_included_docnames()` | `translator.py:3073-3075`'s degrade decision | `TypstBuilder.master_included_docnames` attribute | ✓ WIRED, and now correctly populated | The consumption path was always real; the upstream defect (wrong entries admitted to the set) is what's fixed. Live-reproduced: an under-length entry's phantom subtree no longer reaches the set, so the translator correctly degrades the cross-reference to plain text instead of emitting a dangling label. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |----------|---------------|--------|---------------------|--------|
-| `_compute_master_included_docnames()` | `master_included_docnames` | `self.config.typst_documents` filtered by `if entry` | Yes, but the filter admits entries that should be excluded (under-length, non-str docname) | ⚠️ STATIC-adjacent — the SET is computed from real config, but the filter logic is wrong for the malformed-entry class, so the set can contain a docname whose subtree is never physically compiled in, or crash before the set is ever produced. |
-| `translator.py`'s `degrade_xref_to_text` decision | `master_included_docnames` | `self.builder.master_included_docnames` | Yes | Confirmed downstream consumption is real (not mocked) — `translator.py:3073-3075` reads the live builder attribute set at the top of `write()`; the defect is upstream in what populates that set, not in how it's consumed. |
+| `_compute_master_included_docnames()` | `master_included_docnames` | `self.config.typst_documents` filtered by `_is_usable_typst_documents_entry()` | Yes, and now correctly excludes unusable entries | ✓ FLOWING — the set now excludes an under-length entry's docname and its whole toctree closure, and never reaches an unguarded `set` operation on a non-hashable `entry[0]`. Independently confirmed by both fixture builds below. |
 
-### Behavioral Spot-Checks (independently run against this checkout)
+### Behavioral Spot-Checks (independently run against this checkout, this pass)
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| BLD-02 gap closure, path-shape duplicate (`./manual.typ` vs `manual.typ`) | Real `sphinx-build -b typst` in a throwaway fixture | Exit non-zero, `ExtensionError: ... 1 output path collision(s) ...`, zero `.typ` files written | ✓ PASS — gap closed |
-| BLD-02 gap closure, `./_template.typ` reserved-file clobber | Real `sphinx-build -b typst` in a throwaway fixture | Exit non-zero, `ExtensionError: ... reserved _template.typ infrastructure file ...` | ✓ PASS — gap closed |
-| BLD-03 gap closure, under-length entry (`("index",)`) | Real `sphinx-build -b typst` against `tests/fixtures/bld03_under_length_entry_gate/` | Exit 0; `index.typ` content sentinel count = 1, template-marker count = 0; `produces no wrapper file` warning present | ✓ PASS — gap closed |
-| WR-01 closure, dead resolver removal | `grep -rn '_resolve_entry_element' typsphinx/` and `hasattr()` check | Zero hits in `typsphinx/`; `hasattr` → `False` | ✓ PASS — closed |
-| **CR-01 (new), silent dangling-label / hard compile fatal** | Real `sphinx-build -b typst` then `-b typstpdf` in a throwaway fixture (`("index", "manual.typ", ...)` + `("ghost",)`, `index.rst` has `:ref:` into `ghost`'s toctree child) | `-b typst`: exit 0, only an unrelated warning, `index.typ` silently contains `link(<ghost_child:ghost-child-label>, ...)` to a label that will never exist anywhere. `-b typstpdf`: `typst.compile()` fails with `TypstError: label \`<ghost_child:ghost-child-label>\` does not exist in the document`, then `ExtensionError: typstpdf: 2 master document(s) failed`. | ✗ FAIL — new gap, confirmed real |
-| **CR-01 (new), uncaught crash on non-hashable entry[0]** | Real `sphinx-build -b typst` in a throwaway fixture (`typst_documents = [(["weird"], "manual.typ", "T", "A")]`) | Uncaught `TypeError: unhashable type: 'list'` at `builder.py:276`, full sphinx traceback dumped, build aborts ungracefully | ✗ FAIL — new gap, confirmed real |
-| Full existing suite | `uv run pytest -q` | `1034 passed, 5 skipped` in 211s | ✓ PASS |
-| Lint/type gates | `uv run black --check .` / `uv run mypy typsphinx/` | Both clean (`ruff` unrunnable in this NixOS sandbox per environment note; CI is authoritative for it) | ✓ PASS |
-| `_is_usable_typst_documents_entry` call-site count | `grep -n "_is_usable_typst_documents_entry(" typsphinx/builder.py` | Definition + 4 call sites (617, 794, 1011, 1442) — matches the plan's claim of "four sites," confirming the fifth (`_compute_master_included_docnames`) genuinely was never wired | ✓ PASS (confirms the gap's precise shape) |
+| Gap 9b / CR-01 fix, silent dangling-label mode, `-b typst` | `uv run python -m sphinx -b typst tests/fixtures/bld03_ghost_entry_xref_gate /tmp/verify47-d` | Exit 0. `grep -c 'link(<ghost_child:' index.typ` → `0` (was ≥1 pre-fix). `grep -c 'Ghost Child Target Section' index.typ` → `1` (reference degraded to plain text, not dropped). Build log now also carries an explicit warning: `cross-reference to non-included document 'ghost_child' rendered as plain text` — a diagnostic that did not exist at the time of the prior verification's reproduction. | ✓ PASS — gap closed, with an added diagnostic |
+| Gap 9b / CR-01 fix, hard compile fatal mode, `-b typstpdf` | `uv run python -m sphinx -b typstpdf tests/fixtures/bld03_ghost_entry_xref_gate /tmp/verify47-d-pdf` | `ExtensionError: typstpdf: 1 master document(s) failed: ghost: typst_documents entry ('ghost',) has no target element ...` — the existing graceful diagnostic, NOT `TypstError: label ... does not exist in the document`. `manual.pdf` (the well-formed sibling master) exists and was generated. | ✓ PASS — gap closed |
+| Gap 9b / CR-01 fix, uncaught-crash mode, `-b typst` | `uv run python -m sphinx -b typst tests/fixtures/bld03_unhashable_docname_gate /tmp/verify47-e` | Exit 0. Output contains `produces no wrapper file`, contains neither `TypeError` nor `unhashable`. Both `index.typ` and `real.typ` (the well-formed sibling's wrapper) exist on disk. | ✓ PASS — gap closed |
+| Gap 9b / CR-01 fix, uncaught-crash mode, `-b typstpdf` | `uv run python -m sphinx -b typstpdf tests/fixtures/bld03_unhashable_docname_gate /tmp/verify47-e-pdf` | `ExtensionError: typstpdf: 1 master document(s) failed: ['weird']: typst_documents entry has a non-str docname: ['weird'] ...` — graceful, no `TypeError`. `real.pdf` exists and was generated. | ✓ PASS — gap closed |
+| New regression gate | `uv run pytest tests/test_master_include_set_predicate_gate.py -v` | 8/8 passed, zero xfail/xpass | ✓ PASS |
+| Four previously-wired sites, zero source diff | `uv run pytest tests/test_collision_predicate_completeness_gate.py tests/test_missing_and_malformed_master_gate.py tests/test_non_str_docname_gate.py tests/test_xref_orphan_degrade_render_gate.py -q` | 25 passed (0 failures) | ✓ PASS |
+| WR-01 (builder-side) closure | `git grep -c '_resolve_output_stem' -- 'typsphinx/'` and `hasattr()` | Zero hits; `hasattr` → `False` | ✓ PASS |
+| Retargeted OUT-01/OUT-02 unit coverage | `uv run pytest tests/test_builder_output_stem.py --collect-only -q` / `-q` | 25 collected, 25 passed | ✓ PASS |
+| Scope of functional diff | `git diff 80043b3^..HEAD -- typsphinx/builder.py \| grep -vE docstring/comment lines` | Only the `masters = [...]` filter expression and the `_resolve_output_stem()` deletion are functional; everything else in the diff is prose | ✓ PASS |
+| Full existing suite | `uv run pytest -q` | `1039 passed, 5 skipped` in 202.5s | ✓ PASS |
+| Lint/type gates | `uv run black --check .` / `uv run mypy typsphinx/` | Both clean (`ruff` unrunnable in this NixOS sandbox per environment note; CI is authoritative for it, and 47-CI-EVIDENCE.md records a prior green CI run including the lint lane) | ✓ PASS |
 
 ### Requirements Coverage
 
@@ -163,79 +117,73 @@ relevant sites, and the fifth was missed). Overall status is **gaps_found**, not
 | COMP-02 | 47-01, 47-02, 47-04..09 | Wrapper at resolved target path, template + include | ✓ SATISFIED | See truth #2 |
 | COMP-03 | 47-01, 47-02 | Nested master builds without `file not found` (B-1) | ✓ SATISFIED | See truth #3 |
 | COMP-04 | 47-01, 47-02 | No mid-body template re-expansion (B-2) | ✓ SATISFIED | See truth #4 |
-| OUT-01 | 47-02, 47-03 | Target as path relative to outdir | ✓ SATISFIED | See truth #5 |
-| OUT-02 | 47-02, 47-03, 47-10 | Escaping target refused, safe fallback | ✓ SATISFIED | See truth #6 |
+| OUT-01 | 47-02, 47-03, 47-14 | Target as path relative to outdir | ✓ SATISFIED | See truth #5 — re-anchored by 47-14 onto the live resolver |
+| OUT-02 | 47-02, 47-03, 47-10, 47-14 | Escaping target refused, safe fallback | ✓ SATISFIED | See truth #6 — re-anchored by 47-14 |
 | OUT-03 | 47-01, 47-02, 47-08 | Content files docname-derived regardless of wrapper placement | ✓ SATISFIED | See truth #7 |
-| BLD-02 | 47-01, 47-08, 47-09, 47-11 | Duplicate target collision detected and reported | ✓ SATISFIED | See truth #8 — gap closed and independently reproduced |
-| BLD-03 | 47-01, 47-04..07, 47-08, 47-09, 47-11 | Wrapper/content self-collision detected | ⚠️ PARTIALLY SATISFIED | Roadmap-wording self-collision (truth #9) is genuinely fixed. The broader single-predicate-ownership promise 47-11's own plan frontmatter made for BLD-03 (truth #9b) is FALSE — a fifth site bypasses the predicate with reproducible crash and silent-corruption consequences. Marked BLOCKED for this requirement ID pending the fix. |
+| BLD-02 | 47-01, 47-08, 47-09, 47-11 | Duplicate target collision detected and reported | ✓ SATISFIED | See truth #8 |
+| BLD-03 | 47-01, 47-04..07, 47-08, 47-09, 47-11, 47-13 | Wrapper/content self-collision detected; single-predicate ownership across all consumers | ✓ SATISFIED (was ⚠️ PARTIALLY, closed this pass) | See truths #9 and #9b — the fifth site is now wired and independently reproduced end-to-end on both builders. |
 | BLD-04 | 47-01, 47-09, 47-10 | Case-insensitive collision detection | ✓ SATISFIED | See truth #10 |
 
-**No orphaned requirements** — REQUIREMENTS.md's phase-mapping table assigns exactly these 10 IDs to Phase 47, matching the union of every plan's `requirements:` frontmatter field.
+**No orphaned requirements** — REQUIREMENTS.md's phase-mapping table assigns exactly these 10 IDs
+to Phase 47, matching the union of every plan's `requirements:` frontmatter field, including
+47-13's `[BLD-03]` and 47-14's `[OUT-01, OUT-02, BLD-02]`.
 
-**Bookkeeping note:** `.planning/REQUIREMENTS.md` currently (correctly, as of before this report) shows BLD-02 and BLD-03 both `[ ]`. This report finds BLD-02 genuinely satisfied — its checkbox should flip to `[x]` — but BLD-03 should stay `[ ]` because of the new gap 9b/CR-01, not because the original roadmap-wording scenario is unfixed.
+**Bookkeeping note:** `.planning/REQUIREMENTS.md` currently shows BLD-03 as `[ ]`/`Pending`,
+correctly so at the time plan 47-14 wrote it (BLD-03's fix had not yet been measured). This report
+is that measurement, and finds BLD-03 genuinely satisfied — its checkbox and phase-mapping row
+should flip to `[x]`/`Complete` as this report's direct consequence, bringing Phase 47 to 10/10.
+This is bookkeeping, not a phase-goal defect, and does not affect the `passed` status below.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `typsphinx/builder.py` | 284-324 | `_resolve_output_stem()` (docname-based first-match lookup) has zero production call sites anywhere in `typsphinx/` — confirmed by `grep -rn "_resolve_output_stem" typsphinx/`, which returns only the method's own definition plus docstring cross-references, no call. Reachable only via `tests/test_builder_output_stem.py`'s ~25 direct unit-test invocations. | ⚠️ Warning | Same dead-code pattern as the already-fixed WR-01 (`_resolve_entry_element()`); a green test suite over this function reports false confidence in a code path no real build reaches. Flagged by `47-REVIEW.md` as its own WR-01 finding; not blocking (does not affect any requirement's correctness), but should be deleted, mirroring how 47-12 handled `_resolve_entry_element()`. |
-| `typsphinx/builder.py` | 33-40 | `_is_drive_qualified()`'s docstring names `_resolve_output_stem()` as a caller; the actual second caller is `_resolve_target_stem()` (confirmed: `grep -n "_is_drive_qualified(" typsphinx/builder.py` shows only lines 103 and 388 as call sites, neither inside `_resolve_output_stem()`). | ℹ️ Info | Stale docstring, symptom of the same drift as the warning above. No functional impact. |
+| `tests/test_master_include_set_predicate_gate.py` | 27-31, ~161-162, ~256-257 | Module docstring and two class docstrings still describe the pre-fix RED as being "recorded ... as `xfail(strict=True)`" and describe the in-body `TypstBuilder` import as landing "as an xfail" on a signature change — but the fix commit (`e422bfb`) removed all six `xfail` markers from the file, and `grep -n xfail tests/test_master_include_set_predicate_gate.py` confirms zero `@pytest.mark.xfail` decorators remain (only prose references). Independently confirmed real, matching `47-REVIEW.md`'s WR-02 finding exactly. | ⚠️ Warning | Purely a documentation-staleness issue — all 8 tests pass unconditionally today and the underlying fix is correct. A future maintainer searching for the described `xfail` markers while triaging a failure would not find them; the verbatim pre-fix transcripts remain accurate in `47-GAP2-RED-EVIDENCE.md`, which the same docstring correctly points at. Not blocking; no debt-marker (TBD/FIXME/XXX) present, so the debt-marker gate does not fire. |
 
-No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in `typsphinx/builder.py`, `typsphinx/writer.py`, or `tests/test_collision_predicate_completeness_gate.py`. No debt-marker gate violation.
+No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` debt markers found in any file this
+verification pass inspected (`typsphinx/builder.py`, the two new gap-closure test modules, the four
+new fixture `conf.py` files, `tests/test_two_layer_output_gate.py`, `tests/test_corpus_gate.py`,
+`tests/fixtures/entry_title_author_render_gate/conf.py`). The two `TODO-01`/`todo_node` hits in
+`tests/test_corpus_gate.py` are a requirement-ID reference and a docutils node-type name, not debt
+markers. No debt-marker gate violation.
 
 ### Human Verification Required
 
-None. Both the two closed gaps and the one new gap are deterministic, reproduced with real `sphinx-build` subprocess runs directly by this verification (not inferred from `47-REVIEW.md`'s or the SUMMARYs' narrative), and require no runtime/visual/UX judgment to confirm.
+None. All gap-closure claims (the fifth-site predicate wiring, both CR-01 failure modes, the
+builder-side WR-01 deletion) are deterministic and were reproduced directly by this verification
+pass with real `sphinx-build` subprocess runs and direct source reads — not inferred from
+`47-REVIEW.md`'s, the SUMMARYs', or the prior `47-VERIFICATION.md`'s narrative.
 
 ### Gaps Summary
 
-**Gaps closed (2 of 2 from the prior verification pass):** BLD-02's path-shape false negative
-(`./manual.typ` vs `manual.typ`, and the `./_template.typ` reserved-infrastructure-file clobber
-variant) and BLD-03's under-length-entry write-time content destruction are both genuinely fixed.
-`posixpath.normpath()` now runs inside `_collision_key()`, and a single
-`_is_usable_typst_documents_entry()` predicate now guards the four wrapper-path-resolving sites the
-gap-closure plan set out to fix. Both fixes were independently reproduced against this exact
-checkout with real `sphinx-build` subprocess runs producing the expected `ExtensionError` /
-content-preservation outcomes — not taken on the SUMMARYs' word. Plan 47-12's WR-01 dead-code
-deletion (`_resolve_entry_element()`) and its six `REQUIREMENTS.md` checkbox corrections were also
-independently confirmed accurate.
+No gaps remain. The one BLOCKER carried forward from the prior verification pass — gap 9b /
+`47-REVIEW.md` CR-01, `_compute_master_included_docnames()`'s bare `if entry` filter bypassing the
+shared entry-usability predicate — is genuinely closed by plan `47-13`, independently reproduced in
+this pass with four live `sphinx-build` subprocess runs (two fixtures × two builders) plus a direct
+read of the changed filter expression and the corrected five-consumer docstring. Plan `47-14`'s
+non-blocking obligations (the builder-side `_resolve_output_stem()` dead-code deletion, mirroring
+47-12's writer-side WR-01 closure, and the `BLD-02` requirement-checkbox correction) were also
+independently confirmed: zero references to the deleted resolver remain anywhere under `typsphinx/`,
+its 22 surviving test semantics are retargeted onto the live resolvers with expected values
+verbatim (spot-checked), and its 3 deletions carry recorded rationale in the module docstring.
 
-**One new gap found and confirmed (not present in the prior verification pass, surfaced by a
-code review that ran after both closure plans landed):** `TypstBuilder._compute_master_included_docnames()`
-is a fifth site that reads `typst_documents` and needs the same "is this entry usable" answer the
-new predicate was built to centralize, but it was never wired to it — it still uses a bare `if
-entry` truthiness check. This verification independently reproduced, with real end-to-end
-`sphinx-build` runs (not mocked, not taken on the review's word):
+Every truth verified in the prior passes was re-measured rather than assumed to survive, because
+the deletion of `_resolve_output_stem()` touched the evidence trail for OUT-01/OUT-02 directly; no
+regression was found. The full suite (1039 passed, 5 skipped) exactly matches both closure plans'
+own closing measurements, and `black`/`mypy` are clean.
 
-- A silent correctness bug under `-b typst` (a real master's `:ref:` into an under-length entry's
-  toctree child silently emits a Typst label reference that will never exist in any compiled
-  document — no warning names this specific consequence) that escalates to a hard `typst.compile()`
-  fatal (`TypstError: label ... does not exist in the document`) under `-b typstpdf`, instead of the
-  graceful degrade-to-plain-text this exact mechanism exists to provide for excluded documents.
-- An uncaught `TypeError: unhashable type: 'list'` crash for a non-hashable `entry[0]` (a plausible
-  `conf.py` typo), instead of the graceful `logger.warning`-and-skip every other
-  `_is_usable_typst_documents_entry()`-guarded site in this file now guarantees for malformed
-  entries.
+Two informational, non-blocking items are recorded for future cleanup, neither a phase-goal defect:
+`47-REVIEW.md`'s new WR-02 finding (a stale `xfail`-describing docstring in the new gate module,
+confirmed still present) and `.planning/REQUIREMENTS.md`'s BLD-03 checkbox, which this report's own
+measurement now makes ready to flip to `[x]`/`Complete`.
 
-This bears directly on the BLD-03 must-have as plan `47-11`'s own frontmatter stated it: "exactly
-ONE predicate decides whether a `typst_documents` entry is usable ... and all FOUR sites that
-resolve a wrapper path consult it." There are, in fact, at least five relevant sites once
-`_compute_master_included_docnames()` (which resolves a *cross-reference safety* decision fed by
-the same config, not literally a wrapper *output path*) is counted, and the fifth was missed. The
-roadmap's own narrower BLD-03 wording ("a wrapper target that collides with a content file's own
-path is detected") is satisfied — the self-collision defect itself is fixed — but the single-
-predicate-ownership guarantee the phase's own gap-closure plan promised as the mechanism that would
-prevent this exact class of defect from recurring elsewhere is not fully realized. Per this
-verification's brief, this is reported plainly as a genuine, confirmed BLOCKER rather than deferred
-or softened: **overall status is `gaps_found`, not `passed`.**
-
-The fix identified by `47-REVIEW.md` (CR-01) is narrow and precisely located
-(`_compute_master_included_docnames()`'s one-line filter, `typsphinx/builder.py:269`); this is a
-closure-plan-sized gap, not a phase redesign. `47-REVIEW.md`'s WR-01 (new) finding
-(`_resolve_output_stem()` dead code) is real but non-blocking — flagged above as a Warning-severity
-anti-pattern, not a gap.
+**Phase 47's goal is achieved: `_is_master_document()` is gone (confirmed absent from
+`typsphinx/writer.py`/`typsphinx/builder.py`/`typsphinx/translator.py` by grep in this and prior
+passes), B-1 and B-2 are closed, every "two logical files want one physical path" case is detected
+and reported rather than silently overwritten — including, as of this pass, at the fifth site that
+had bypassed that guarantee — and all 10 Phase 47 requirement IDs are genuinely satisfied.**
 
 ---
 
-_Verified: 2026-08-11T23:33:12Z_
+_Verified: 2026-08-12T00:00:00Z_
 _Verifier: Claude (gsd-verifier)_
