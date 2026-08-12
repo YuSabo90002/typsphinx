@@ -31,7 +31,7 @@ def _is_drive_qualified(stem: str) -> bool:
 
     A47-03/A3: this is the ONE place the drive-letter detection idiom is
     written; both ``_escapes_outdir()`` (the accept/reject decision) and
-    ``_resolve_output_stem()`` (which needs to know whether to strip a
+    ``_resolve_target_stem()`` (which needs to know whether to strip a
     two-character drive prefix before taking the fallback basename) call
     this rather than each re-deriving the ``len(stem) >= 2 and
     stem[0].isalpha() and stem[1] == ":"`` check independently -- see
@@ -321,57 +321,14 @@ class TypstBuilder(Builder):
                     stack.append(child)
         return included
 
-    def _resolve_output_stem(self, docname: str) -> str:
-        """Resolve the output filename stem for a document.
-
-        ``typst_documents``' target name (tuple element ``[1]``, published as
-        the "Target name" contract at ``docs/configuration.rst:43``) governs
-        the filename a master document is written and compiled under --
-        ``typst_documents = [('index', 'manual.typ', ...)]`` must emit
-        ``manual.typ`` / ``manual.pdf``, not ``index.typ`` / ``index.pdf``
-        (Issue #117). This is the docname-based entry lookup; the actual
-        normalization rule lives in ``_resolve_target_stem()``, which this
-        delegates to once a matching entry is found -- every write/read-back
-        site reaches that same normalization through one of these two
-        methods, never re-deriving the rule.
-
-        Args:
-            docname: The Sphinx document name being written.
-
-        Returns:
-            The filename stem (no suffix) to use for this document's output.
-            When ``docname`` has no matching ``typst_documents`` entry, the
-            docname itself is returned unchanged (D-02) -- this is the
-            common case for every document that is not a compiled master.
-            Performs NO collision detection -- that moved wholesale to
-            ``_validate_output_path_collisions()`` (D-03), run once before
-            any write; this method (and ``_resolve_target_stem()``) never
-            reads ``self.env.found_docs`` or the reserved ``_template``
-            name, so a caller can never observe a silently-degraded stem
-            here. The former CR-01 in-function fallback (warn, then return
-            ``docname``) is gone -- a colliding stem is now returned
-            AS-IS and caught by the validator before it is ever written.
-        """
-        typst_documents = getattr(self.config, "typst_documents", []) or []
-
-        for entry in typst_documents:
-            if entry and len(entry) >= 2 and entry[0] == docname:
-                return self._resolve_target_stem(docname, entry[1])
-
-        # D-02: toctree-included children (and any docname with no
-        # typst_documents entry) keep docname + suffix. Silent -- this
-        # is the overwhelmingly common case (every non-master document).
-        return docname
-
     def _resolve_target_stem(self, docname: str, target: object) -> str:
         """Normalize one ``typst_documents`` entry's target into an output
         stem, given the target value directly rather than searching
         ``typst_documents`` for it.
 
-        This is the normalization core ``_resolve_output_stem()`` delegates
-        to after its own docname-based first-match lookup, and that
-        ``_wrapper_output_relpath()`` calls DIRECTLY on a specific entry's
-        own target -- bypassing the first-match lookup entirely. That is
+        ``_wrapper_output_relpath()`` calls this DIRECTLY on the entry's
+        own ``entry[1]``, normalizing exactly the one entry it was given
+        rather than searching ``typst_documents`` for a match. That is
         what lets two ``typst_documents`` entries naming the SAME docname
         with DIFFERENT targets (D-04) each resolve their OWN wrapper path
         independently, rather than both resolving via whichever entry a
@@ -700,8 +657,9 @@ class TypstBuilder(Builder):
         Return the target URI for a document.
 
         Deliberately stays docname-based and does NOT follow the
-        typst_documents target-name rename that ``_resolve_output_stem``
-        applies to the on-disk filename (Phase 22 / Issue #117). Its only
+        typst_documents target-name rename that ``_resolve_target_stem``
+        applies to the on-disk filename via ``_wrapper_output_relpath``
+        (Phase 22 / Issue #117). Its only
         consumer is ``translator.py:_resolve_xref_docname``, which uses this
         method as a round-trip identity to recover a cross-referenced
         document's DOCNAME from a refuri that Sphinx itself computed via
@@ -958,9 +916,9 @@ class TypstBuilder(Builder):
         (COMP-01/OUT-03).
 
         Unconditional, and a pure function of the docname alone -- a
-        docname already carries its own ``/``-separated directory, so
-        this needs no ``_resolve_output_stem()`` call. Every docname gets
-        a content file, regardless of whether any ``typst_documents``
+        docname already carries its own ``/``-separated directory, so this
+        needs no target resolution at all (COMP-01/OUT-03). Every docname
+        gets a content file, regardless of whether any ``typst_documents``
         entry names it.
 
         Args:
@@ -979,14 +937,13 @@ class TypstBuilder(Builder):
         as a path relative to outdir -- no directory forcing.
 
         Resolves the entry's OWN target directly, via
-        ``_resolve_target_stem(entry[0], entry[1])`` -- never through
-        ``_resolve_output_stem()``'s docname-based first-match search.
-        This is what makes D-04's repeated-docname case correct: two
-        entries naming the same docname with different targets each get
-        THEIR OWN wrapper path, rather than both resolving via whichever
-        entry a docname search happens to find first (the gap
-        ``47-02-SUMMARY.md`` and ``47-06-SUMMARY.md`` both named as
-        deferred to this plan).
+        ``_resolve_target_stem(entry[0], entry[1])`` -- the only
+        target-resolution route in the package. This is what makes D-04's
+        repeated-docname case correct: two entries naming the same docname
+        with different targets each get THEIR OWN wrapper path, rather
+        than both resolving via whichever entry a docname search happens
+        to find first (the gap ``47-02-SUMMARY.md`` and
+        ``47-06-SUMMARY.md`` both named as deferred to this plan).
 
         Args:
             entry: The specific ``typst_documents`` tuple to resolve a
@@ -1448,21 +1405,22 @@ class TypstPDFBuilder(TypstBuilder):
             # doc_tuple format: (sourcename, targetname, title, author).
             # Resolve the stem ONCE so the .typ read-back path and the .pdf
             # write path can never drift from each other (Issue #117).
-            # Mirror _resolve_output_stem's own length guard here: a
-            # malformed entry (e.g. an empty tuple from a misconfigured
-            # typst_documents) must not raise an uncaught IndexError on
-            # doc_tuple[0] before that helper's defenses ever run.
+            # Mirror _is_usable_typst_documents_entry()'s own falsy-entry
+            # guard here: a malformed entry (e.g. an empty tuple from a
+            # misconfigured typst_documents) must not raise an uncaught
+            # IndexError on doc_tuple[0] before that predicate's defenses
+            # ever run.
             if not doc_tuple:
                 logger.warning(f"Malformed typst_documents entry: {doc_tuple!r}")
                 failures.append((repr(doc_tuple), "malformed typst_documents entry"))
                 continue
             docname = doc_tuple[0]
-            # BLD-01: _resolve_output_stem tolerates a docname of any type
-            # (it only does `==` comparisons), but _directory_preserving_
-            # relpath does not -- it calls posixpath.dirname(docname), which
-            # raises a raw TypeError for anything that is not a str. Catch
-            # it here, before either helper runs, so the failure joins the
-            # existing failures list instead of killing the whole build.
+            # BLD-01: _is_usable_typst_documents_entry() would also reject
+            # a non-str docname (it checks isinstance(entry[0], str)), but
+            # only with the generic "has no target element" message below.
+            # Checking it here first gives a more specific diagnostic
+            # ("has a non-str docname") before falling through to that
+            # shared predicate's own, less specific failure branch.
             if not isinstance(docname, str):
                 message = (
                     f"typst_documents entry has a non-str docname: "

@@ -1,119 +1,142 @@
 """
-Tests for TypstBuilder._resolve_output_stem (Phase 22 Plan 01, Issue #117).
+Tests for TypstBuilder._resolve_target_stem() and
+TypstBuilder._wrapper_output_relpath() (originally written for
+TypstBuilder._resolve_output_stem(), Phase 22 Plan 01, Issue #117 -- the
+FILE name is historical and no longer names the resolver these tests
+exercise).
 
-Covers the typst_documents target-name normalization rule: suffix
-stripping (D-03), period-preserving stems (D-04), the D-02 docname
-fallback, the D-06/D-07 path guard, the degenerate-target guard, and
-verbatim non-ASCII passthrough.
+``_resolve_output_stem()`` -- the docname-based first-match lookup over
+``typst_documents`` this module used to call directly -- was deleted in
+Phase 47 Plan 14 (WR-01, mirroring Phase 47 Plan 12's deletion of the
+writer-side sibling ``_resolve_entry_element()``): it had zero production
+call sites, so a green test suite exercising it reported confidence in a
+route no real build ever reached. Every assertion below that survived the
+deletion is retargeted onto the two resolvers production actually calls --
+``_resolve_target_stem(docname, target)``, given the target value directly
+rather than searching ``typst_documents`` for it, and
+``_wrapper_output_relpath(entry)``, which resolves one entry's own target.
+OUT-01's and OUT-02's unit-level evidence now lives entirely in this
+module's ``_resolve_target_stem`` retargets; the build-level evidence for
+both is ``tests/test_two_layer_output_gate.py``, and OUT-02 additionally
+has ``tests/test_out02_escape_target_gate.py``.
+
+Covers the ``typst_documents`` target-name normalization rule: suffix
+stripping (D-03), period-preserving stems (D-04), the D-06/D-07 path
+guard, the degenerate-target guard, and verbatim non-ASCII passthrough.
 
 CR-01's collision guard (Phase 44 plan 05) was deleted from
 ``_resolve_output_stem`` in Phase 47 plan 09 (its own D-03 -- distinct
 from this module's pre-existing D-03 above): collision detection moved
 wholesale to ``TypstBuilder._validate_output_path_collisions()``, run once
-before any write. ``_resolve_output_stem`` now returns a colliding stem
-UNCHANGED rather than falling back to the docname; the tests below prove
-the responsibility moved rather than disappeared -- one pair proving the
+before any write. The resolver returns a colliding stem UNCHANGED rather
+than falling back to the docname; the tests below prove the
+responsibility moved rather than disappeared -- one pair proving the
 resolver no longer performs the check, one pair proving the validator now
-does. A builder whose env exposes no found_docs attribute at all still
-resolves normally.
+does. A builder whose env exposes no state relevant to resolution at all
+still resolves normally.
+
+**Three assertions from the pre-deletion module did NOT survive the
+retarget and are deleted below**, each for a reason specific to the
+deleted function rather than "it would be work to port":
+
+1. The unlisted-docname fallback (a docname with no matching entry, e.g.
+   ``"chapter1/section"``, resolving to itself unchanged). This existed
+   ONLY because ``_resolve_output_stem()``'s docname SEARCH could fail to
+   find a match. ``_resolve_target_stem()`` never reads ``typst_documents``
+   at all -- a docname with no entry never reaches a target resolver, its
+   path is ``_content_output_path(docname)``, unconditional and
+   docname-derived. Surviving coverage:
+   ``test_wrapper_path_ignores_docname_directory_but_content_path_does_not``
+   below, and ``tests/test_two_layer_output_gate.py``'s OUT-03 content-path
+   assertions.
+
+2. The missing-config fallback (empty and ``None`` ``typst_documents``
+   both falling back to the docname). Same reason -- a property of the
+   SEARCH over the config list, which no longer exists. Surviving
+   coverage: identical to (1).
+
+3. The short-tuple fallback (``typst_documents = [("index",)]`` falling
+   back to ``"index"``). This one is not merely search-shaped: it asserted
+   a contract BLD-03 deliberately reversed -- an under-length entry now
+   produces NO wrapper file at all, so porting this assertion would
+   re-assert the exact silent-fallback defect Phase 47 Plan 11 closed.
+   Surviving coverage:
+   ``tests/test_collision_predicate_completeness_gate.py::TestBld03UnderLengthEntryGate``
+   (three real-build tests) and that same module's
+   ``test_is_usable_typst_documents_entry_predicate``.
 """
 
 
-def test_resolve_output_stem_strips_trailing_typ_suffix(temp_sphinx_app):
+def test_resolve_target_stem_strips_trailing_typ_suffix(temp_sphinx_app):
     """D-03: a literal trailing '.typ' is stripped from the target."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "output.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "output"
+    assert builder._resolve_target_stem("index", "output.typ") == "output"
 
 
-def test_resolve_output_stem_accepts_extensionless_target(temp_sphinx_app):
+def test_resolve_target_stem_accepts_extensionless_target(temp_sphinx_app):
     """D-03/D-04: an extension-less target is valid input, no warning."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "typsphinx", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "typsphinx"
+    assert builder._resolve_target_stem("index", "typsphinx") == "typsphinx"
 
 
-def test_resolve_output_stem_preserves_period_in_stem(temp_sphinx_app):
+def test_resolve_target_stem_preserves_period_in_stem(temp_sphinx_app):
     """D-04: a period-bearing stem is never truncated by splitext."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "v1.2-manual", "T", "A")]
+    target = "v1.2-manual"
 
-    assert builder._resolve_output_stem("index") == "v1.2-manual"
+    assert builder._resolve_target_stem("index", target) == "v1.2-manual"
 
 
-def test_resolve_output_stem_preserves_period_in_stem_with_suffix(temp_sphinx_app):
+def test_resolve_target_stem_preserves_period_in_stem_with_suffix(temp_sphinx_app):
     """D-04: same as above, target additionally carries a '.typ' suffix."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "v1.2-manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "v1.2-manual"
+    assert builder._resolve_target_stem("index", "v1.2-manual.typ") == "v1.2-manual"
 
 
-def test_resolve_output_stem_identity_target_is_unchanged(temp_sphinx_app):
+def test_resolve_target_stem_identity_target_is_unchanged(temp_sphinx_app):
     """Identity mapping ('index' -> 'index') is byte-identical -- the
     ~60-fixture non-regression baseline."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "index", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
-
-
-def test_resolve_output_stem_accepts_five_element_tuple(temp_sphinx_app):
-    """The 5-element form used by docs/source/conf.py resolves the same
-    as the 4-element form."""
-    from typsphinx.builder import TypstBuilder
-
-    app = temp_sphinx_app
-    builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "output", "T", "A", "typst")]
-
-    assert builder._resolve_output_stem("index") == "output"
+    assert builder._resolve_target_stem("index", "index") == "index"
 
 
-def test_resolve_output_stem_falls_back_to_docname_when_unlisted(temp_sphinx_app):
-    """D-02: a docname with no typst_documents entry is returned
-    unchanged, no warning (toctree-included children keep docname)."""
-    from typsphinx.builder import TypstBuilder
-
-    app = temp_sphinx_app
-    builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "output.typ", "T", "A")]
-
-    assert builder._resolve_output_stem("chapter1/section") == "chapter1/section"
-
-
-def test_resolve_output_stem_falls_back_when_config_missing(temp_sphinx_app):
-    """D-02: empty and None typst_documents both fall back to docname."""
+def test_wrapper_output_relpath_accepts_five_element_tuple(temp_sphinx_app):
+    """D-09: the fifth tuple element is accepted and ignored -- the
+    5-element form used by ``docs/source/conf.py`` resolves the same as
+    the 4-element form. This is an ENTRY-shape property (it depends on the
+    tuple's own length, not on any target value), so it is asserted on
+    ``_wrapper_output_relpath()``, the method that takes an entry, rather
+    than on ``_resolve_target_stem()``, which takes a target value
+    directly."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
 
-    builder.config.typst_documents = []
-    assert builder._resolve_output_stem("index") == "index"
-
-    builder.config.typst_documents = None
-    assert builder._resolve_output_stem("index") == "index"
+    entry = ("index", "output", "T", "A", "typst")
+    assert builder._wrapper_output_relpath(entry) == "output"
 
 
-def test_resolve_output_stem_resolves_posix_path_bearing_target(temp_sphinx_app):
+def test_resolve_target_stem_resolves_posix_path_bearing_target(temp_sphinx_app):
     """OUT-01 reverses Phase 44's D-06/D-07: a POSIX-separator-bearing
     target is no longer refused. It resolves exactly where written --
     'sub/manual.typ' on docname 'index' resolves to 'sub/manual', with NO
@@ -122,12 +145,11 @@ def test_resolve_output_stem_resolves_posix_path_bearing_target(temp_sphinx_app)
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "sub/manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "sub/manual"
+    assert builder._resolve_target_stem("index", "sub/manual.typ") == "sub/manual"
 
 
-def test_resolve_output_stem_normalizes_backslash_path_bearing_target(
+def test_resolve_target_stem_normalizes_backslash_path_bearing_target(
     temp_sphinx_app,
 ):
     """OUT-01 reverses Phase 44's D-06/D-07: a Windows-authored backslash
@@ -139,12 +161,11 @@ def test_resolve_output_stem_normalizes_backslash_path_bearing_target(
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "sub\\manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "sub/manual"
+    assert builder._resolve_target_stem("index", "sub\\manual.typ") == "sub/manual"
 
 
-def test_resolve_output_stem_guards_parent_traversal(temp_sphinx_app):
+def test_resolve_target_stem_guards_parent_traversal(temp_sphinx_app):
     """D-06/D-07: a '..' segment reduces to the basename.
 
     OUT-02 (kept): this is one of the three escape-shaped terms OUT-01
@@ -156,12 +177,11 @@ def test_resolve_output_stem_guards_parent_traversal(temp_sphinx_app):
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "../manual", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_target_stem("index", "../manual") == "manual"
 
 
-def test_resolve_output_stem_guards_absolute_target(temp_sphinx_app):
+def test_resolve_target_stem_guards_absolute_target(temp_sphinx_app):
     """D-06/D-07: an absolute target reduces to the basename.
 
     OUT-02 (kept): this is one of the three escape-shaped terms OUT-01
@@ -173,12 +193,11 @@ def test_resolve_output_stem_guards_absolute_target(temp_sphinx_app):
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "/abs/manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_target_stem("index", "/abs/manual.typ") == "manual"
 
 
-def test_resolve_output_stem_guards_drive_qualified_target(temp_sphinx_app):
+def test_resolve_target_stem_guards_drive_qualified_target(temp_sphinx_app):
     """D-06/D-07: a drive-qualified target reduces to the basename,
     detected on POSIX too.
 
@@ -191,84 +210,67 @@ def test_resolve_output_stem_guards_drive_qualified_target(temp_sphinx_app):
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "C:manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_target_stem("index", "C:manual.typ") == "manual"
 
 
-def test_resolve_output_stem_falls_back_on_empty_target(temp_sphinx_app):
+def test_resolve_target_stem_falls_back_on_empty_target(temp_sphinx_app):
     """edge: empty -- an empty-string target falls back to the docname
     and warns."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
+    assert builder._resolve_target_stem("index", "") == "index"
 
 
-def test_resolve_output_stem_falls_back_on_bare_typ_target(temp_sphinx_app):
+def test_resolve_target_stem_falls_back_on_bare_typ_target(temp_sphinx_app):
     """edge: empty -- a bare '.typ' target has an empty stem after
     stripping and must never produce a file literally named '.typ'."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", ".typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
+    assert builder._resolve_target_stem("index", ".typ") == "index"
 
 
-def test_resolve_output_stem_falls_back_on_whitespace_target(temp_sphinx_app):
+def test_resolve_target_stem_falls_back_on_whitespace_target(temp_sphinx_app):
     """edge: empty -- a whitespace-only target falls back to the
     docname."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "   ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
-
-
-def test_resolve_output_stem_falls_back_on_short_tuple(temp_sphinx_app):
-    """edge: empty -- a typst_documents tuple shorter than 2 elements
-    falls back to the docname without raising IndexError."""
-    from typsphinx.builder import TypstBuilder
-
-    app = temp_sphinx_app
-    builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index",)]
-
-    assert builder._resolve_output_stem("index") == "index"
+    assert builder._resolve_target_stem("index", "   ") == "index"
 
 
-def test_resolve_output_stem_falls_back_on_non_str_target(temp_sphinx_app):
+def test_resolve_target_stem_falls_back_on_non_str_target(temp_sphinx_app):
     """edge: empty -- a non-str target value falls back to the docname
     without raising AttributeError."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", None, "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "index"
+    assert builder._resolve_target_stem("index", None) == "index"
 
 
-def test_resolve_output_stem_preserves_non_ascii_target(temp_sphinx_app):
+def test_resolve_target_stem_preserves_non_ascii_target(temp_sphinx_app):
     """edge: encoding -- a non-ASCII target survives verbatim; no
     Unicode normalization, case folding, or transliteration."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "マニュアル.typ", "T", "A")]
+    target = "マニュアル.typ"
 
-    assert builder._resolve_output_stem("index") == "マニュアル"
+    assert builder._resolve_target_stem("index", target) == "マニュアル"
 
 
-def test_resolve_output_stem_emits_no_warning_for_path_bearing_target(
+def test_resolve_target_stem_emits_no_warning_for_path_bearing_target(
     temp_sphinx_app, caplog
 ):
     """OUT-01 reverses Phase 44's D-06/D-07: a path-bearing, non-escaping
@@ -279,10 +281,9 @@ def test_resolve_output_stem_emits_no_warning_for_path_bearing_target(
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "sub/manual.typ", "T", "A")]
 
     with caplog.at_level("WARNING"):
-        stem = builder._resolve_output_stem("index")
+        stem = builder._resolve_target_stem("index", "sub/manual.typ")
 
     assert stem == "sub/manual"
     assert not any(
@@ -292,17 +293,16 @@ def test_resolve_output_stem_emits_no_warning_for_path_bearing_target(
     )
 
 
-def test_resolve_output_stem_warns_on_degenerate_target(temp_sphinx_app, caplog):
+def test_resolve_target_stem_warns_on_degenerate_target(temp_sphinx_app, caplog):
     """The degenerate-target warning names the docname it falls back
     to."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "", "T", "A")]
 
     with caplog.at_level("WARNING"):
-        stem = builder._resolve_output_stem("index")
+        stem = builder._resolve_target_stem("index", "")
 
     assert stem == "index"
     assert any(
@@ -312,7 +312,7 @@ def test_resolve_output_stem_warns_on_degenerate_target(temp_sphinx_app, caplog)
     )
 
 
-def test_resolve_output_stem_warns_once_on_path_bearing_target_with_empty_basename(
+def test_resolve_target_stem_warns_once_on_path_bearing_target_with_empty_basename(
     temp_sphinx_app, caplog
 ):
     """WR-03: a path-bearing target whose basename is itself empty (a
@@ -323,10 +323,9 @@ def test_resolve_output_stem_warns_once_on_path_bearing_target_with_empty_basena
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "sub/manual.typ/", "T", "A")]
 
     with caplog.at_level("WARNING"):
-        stem = builder._resolve_output_stem("index")
+        stem = builder._resolve_target_stem("index", "sub/manual.typ/")
 
     assert stem == "index"
     warnings = [record.getMessage() for record in caplog.records]
@@ -343,9 +342,12 @@ def test_wrapper_path_ignores_docname_directory_but_content_path_does_not(
     no longer force-relocated into that docname's own directory --
     ('sub/index', 'manual.typ', ...) resolves the WRAPPER at the output
     ROOT, 'manual', NOT 'sub/manual'. `_directory_preserving_relpath()`'s
-    old forcing behavior is gone from the wrapper-path computation (it
-    survives only inside `_resolve_output_stem`'s own pre-OUT-01-shaped
-    CR-01 collision comparison, 47-09's territory).
+    old forcing behavior is gone entirely from output-path resolution --
+    its last home, the CR-01 collision comparison, moved to
+    `_validate_output_path_collisions()` under Phase 47 Plan 09's D-03, and
+    the now-dead docname-first-match resolver that comparison used to live
+    inside (`_resolve_output_stem()`) was itself deleted in Phase 47 Plan
+    14 (WR-01).
 
     The companion assertion: the same docname's own CONTENT path is
     unaffected by any of this -- content files are unconditionally
@@ -366,30 +368,33 @@ def test_wrapper_path_ignores_docname_directory_but_content_path_does_not(
     assert content_path.endswith("sub/index.typ")
 
 
-def test_resolve_output_stem_no_longer_falls_back_on_docname_collision(
+def test_resolve_target_stem_no_longer_falls_back_on_docname_collision(
     temp_sphinx_app,
 ):
-    """Phase 47 plan 09's D-03: collision detection moved from
-    _resolve_output_stem() to _validate_output_path_collisions() -- the
-    responsibility moved, it did not disappear. A resolved stem equal to
-    another real docname's own content path is now returned UNCHANGED (no
-    in-function fallback); the collision itself is now reported by
+    """Phase 47 plan 09's D-03: collision detection moved from the
+    resolver (then `_resolve_output_stem()`, deleted in Phase 47 Plan 14 --
+    WR-01; this assertion is retargeted onto its survivor
+    `_resolve_target_stem()`) to `_validate_output_path_collisions()` --
+    the responsibility moved, it did not disappear. A resolved stem equal
+    to another real docname's own content path is now returned UNCHANGED
+    (no in-function fallback); the collision itself is now reported by
     test_validate_output_path_collisions_raises_on_docname_collision
     below."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "chapter1.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "chapter1"
+    assert builder._resolve_target_stem("index", "chapter1.typ") == "chapter1"
 
 
 def test_validate_output_path_collisions_raises_on_docname_collision(
     temp_sphinx_app,
 ):
-    """Phase 47 plan 09's D-03: the collision _resolve_output_stem() no
-    longer catches is caught by _validate_output_path_collisions()
+    """Phase 47 plan 09's D-03: the collision the resolver no longer
+    catches (today `_resolve_target_stem()`; the pre-split
+    `_resolve_output_stem()` this sentence used to name was deleted in
+    Phase 47 Plan 14, WR-01) is caught by `_validate_output_path_collisions()`
     instead -- a resolved wrapper stem equal to another real docname's own
     content path raises ExtensionError. The env is replaced with a
     types.SimpleNamespace so the test is independent of whether the Sphinx
@@ -411,19 +416,20 @@ def test_validate_output_path_collisions_raises_on_docname_collision(
         builder._validate_output_path_collisions()
 
 
-def test_resolve_output_stem_no_longer_falls_back_on_reserved_template_name(
+def test_resolve_target_stem_no_longer_falls_back_on_reserved_template_name(
     temp_sphinx_app,
 ):
-    """Phase 47 plan 09's D-03: same responsibility move as above, for the
-    reserved "_template" basename -- _resolve_output_stem() now returns
-    the resolved stem UNCHANGED rather than falling back to the docname."""
+    """Phase 47 plan 09's D-03: same responsibility move as
+    test_resolve_target_stem_no_longer_falls_back_on_docname_collision
+    above, for the reserved "_template" basename -- the resolver now
+    returns the resolved stem UNCHANGED rather than falling back to the
+    docname."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
-    builder.config.typst_documents = [("index", "_template.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "_template"
+    assert builder._resolve_target_stem("index", "_template.typ") == "_template"
 
 
 def test_validate_output_path_collisions_raises_on_reserved_template_name(
@@ -449,16 +455,16 @@ def test_validate_output_path_collisions_raises_on_reserved_template_name(
         builder._validate_output_path_collisions()
 
 
-def test_resolve_output_stem_tolerates_env_without_found_docs(temp_sphinx_app):
-    """CR-01 regression guard: a builder whose env exposes NO found_docs
-    attribute at all (matching tests/conftest.py's mock_builder-shaped
-    MockEnv) still resolves normally via the getattr fallback, without
+def test_resolve_target_stem_reads_no_env_state(temp_sphinx_app):
+    """The resolver reads no env state -- proven by assigning a
+    builder.env that exposes nothing at all (matching
+    tests/conftest.py's mock_builder-shaped MockEnv, which also exposes no
+    found_docs attribute) and confirming resolution still succeeds without
     raising AttributeError."""
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
     builder.env = object()
-    builder.config.typst_documents = [("index", "manual.typ", "T", "A")]
 
-    assert builder._resolve_output_stem("index") == "manual"
+    assert builder._resolve_target_stem("index", "manual.typ") == "manual"

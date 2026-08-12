@@ -31,7 +31,10 @@ extensions = ["typsphinx"]
 #
 # RESOLVED by plan 47-09's unified validator: `_wrapper_output_relpath()`
 # used to resolve a wrapper's WRITE PATH via a docname-based FIRST-MATCH
-# scan (`_resolve_output_stem(entry[0])`), not a per-entry-target
+# scan (the builder-side `_resolve_output_stem(entry[0])` -- 47-14-PLAN.md
+# deleted it as dead code once every write/read-back site had moved to
+# per-entry resolution, the same disposition 47-12-PLAN.md gave its
+# writer-side sibling below), not a per-entry-target
 # computation -- so BOTH entries below used to physically write to the
 # FIRST entry's resolved target, "second-handbook.typ" (never
 # "master.typ", the second entry's own declared target), and the second
