@@ -3,11 +3,11 @@ phase: 47
 slug: two-layer-output-content-wrapper-split-target-as-path-collis
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
-status: draft
+status: validated
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-12
 ---
 
 # Phase 47 — Validation Strategy
