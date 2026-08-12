@@ -1,9 +1,8 @@
 """
-Phase 48 plan 01, Task 3: real-``sphinx-build``-plus-``typst.compile()`` gate
-recording the pre-fix RED for the compile-time cross-reference guard
-(XREF-03, SC#1) as strict ``xfail`` -- the per-master divergence
-``builder.master_included_docnames`` (a union across ALL masters) cannot
-express, because it cannot know which master is currently asking.
+Phase 48 plan 02, Task 1: real-``sphinx-build``-plus-``typst.compile()`` gate
+for the compile-time cross-reference guard (XREF-03, SC#1) -- the per-master
+divergence a build-time union across ALL masters could not express, because
+it could not know which master was currently asking.
 
 ``tests/fixtures/xref_per_master_guard_gate/`` reproduces the divergence with
 TWO masters (``alpha.typ`` for docname ``index``, ``bravo_master.typ`` for
@@ -16,29 +15,12 @@ ONE of them today -- unrelated to what this fixture proves. Two content
 files carrying the identical reference line, asserted byte-identical, proves
 the SAME thing without depending on defect A's eventual fix.
 
-Because the fixture's own build FATALS on the unfixed tree (``bravo``'s
-wrapper dangles on the label its content file shares with ``alpha``'s), the
-class-scoped build fixture below deliberately does NOT assert
-``result.returncode == 0`` -- a fixture-level assertion would error every
-test in the class instead of letting each xfail record its own RED.
-
 Every asserted value in this module is taken from
-``48-EXPECTED-STRUCTURE.md`` -- never read off a fresh build. Every RED this
-module records is traced to ``48-RED-EVIDENCE.md``'s Failure mode 1 and
-Baseline 3 sections.
-
-Deviation from ``48-01-PLAN.md``'s literal Task 3 text (documented in
-``48-01-SUMMARY.md``): the plan's own action text lists all six tests here as
-strict xfails, but ``alpha``'s own destination-based PDF assertion (test 2,
-below) is TRUE on the unfixed tree today -- ``alpha.typ``'s wrapper legitimately
-``#include()``s ``target.typ`` via its own toctree both before and after this
-phase, so its compiled PDF's link destinations already carry
-``target:guarded-target-section`` pre-fix. Marking it strict ``xfail`` would
-XPASS on this plan's own tree, which is exactly the failure mode a strict
-``xfail`` exists to catch -- the same principle the plan's own text applies
-to test 4 in the opposite direction ("test 4 must NOT be written as a plain
-non-xfail invariance guard"). Test 2 is therefore the mirror case: a plain,
-non-xfail invariance guard, not a strict xfail.
+``48-EXPECTED-STRUCTURE.md`` -- never read off a fresh build. Every test here
+was originally recorded RED (as a strict ``xfail``) in plan 48-01, against
+``48-RED-EVIDENCE.md``'s Failure mode 1 and Baseline 3 sections; plan 48-02
+lands the compile-time guard and flips every one of these tests to a plain,
+non-xfail assertion (SC#1).
 """
 
 import io
@@ -72,26 +54,27 @@ COLLISION_FIXTURE_DIR = FIXTURES_DIR / "xref_label_collision_guard_gate"
 # content bytes (`.*?`) since only the GUARD SHAPE -- not the body -- is
 # under test here. Anchored so it can NEVER match a plain, unguarded
 # `link(<target:guarded-target-section>, ` form (48-01-PLAN.md Task 3's own
-# instruction for test 1).
+# instruction for test 1). re.DOTALL: the emitted body streams across a
+# real newline between the guard's open string and its first child (the
+# SAME newline 48-RED-EVIDENCE.md's own pre-fix transcript already showed
+# between `link(<label>, ` and `text(...)` -- an existing translator
+# emission characteristic this phase does not touch), so `.` must match
+# `\n` here or the pattern spuriously fails to match a correctly-guarded
+# body.
 _PER_MASTER_GUARD_PATTERN = re.compile(
     r"context \{ let __tsx_body = \[#\{.*?\}\]; "
     r"if query\(<target:guarded-target-section>\)\.len\(\) > 0 \{ "
-    r"link\(<target:guarded-target-section>, __tsx_body\) \} else \{ __tsx_body \} \}"
+    r"link\(<target:guarded-target-section>, __tsx_body\) \} else \{ __tsx_body \} \}",
+    re.DOTALL,
 )
 
 # Same guard shape for the collision fixture's colliding label.
 _COLLISION_GUARD_PATTERN = re.compile(
     r"context \{ let __tsx_body = \[#\{.*?\}\]; "
     r"if query\(<a_u2f_b:nested-target>\)\.len\(\) > 0 \{ "
-    r"link\(<a_u2f_b:nested-target>, __tsx_body\) \} else \{ __tsx_body \} \}"
+    r"link\(<a_u2f_b:nested-target>, __tsx_body\) \} else \{ __tsx_body \} \}",
+    re.DOTALL,
 )
-
-# Every strict-xfail `reason=` below is a short, INLINE string literal (not
-# a named constant) so the reason text -- including the plan id that flips
-# the test -- sits textually adjacent to the decorator call itself, and the
-# whole decorator fits on one physical line under `black`'s 88-column
-# limit. The FULL explanation for each is a comment directly above its
-# decorator.
 
 
 def _run_sphinx_build_typstpdf(
@@ -176,11 +159,12 @@ def per_master_guard_build(tmp_path_factory):
     """
     Build ``xref_per_master_guard_gate`` ONCE per class via
     ``-b typstpdf`` and return both compiled PDFs' bytes plus both emitted
-    content files' text -- tolerating a non-zero overall build result
-    (``bravo``'s wrapper FATALS on the unfixed tree, so ``bravo_master.pdf``
-    never gets written) rather than asserting success here, so each test's
-    own ``xfail`` records the RED instead of every test in the class erroring
-    at fixture setup.
+    content files' text. Deliberately does NOT assert
+    ``result.returncode == 0`` here -- pre-fix, ``bravo``'s wrapper FATALS
+    (so ``bravo_master.pdf`` never gets written); a fixture-level assertion
+    would error every test in the class instead of letting each test record
+    its own outcome. Post-fix (this plan), the build exits 0 and every test
+    below is a plain assertion, but the fixture itself stays tolerant.
     """
     build_dir = tmp_path_factory.mktemp("xref_per_master_guard")
     result = _run_sphinx_build_typstpdf(PER_MASTER_FIXTURE_DIR, build_dir)
@@ -242,12 +226,6 @@ class TestXrefCompileTimeGuardRenderGate:
     documented cost.
     """
 
-    # Pre-fix, both content files already emit the IDENTICAL plain
-    # link(<target:guarded-target-section>, ...) form (the identity half
-    # already holds), but neither carries the guarded
-    # context { ... if query(...).len() > 0 { ... } ... } shape yet
-    # (48-RED-EVIDENCE.md Failure mode 1) -- fails on the guard-shape half.
-    @pytest.mark.xfail(strict=True, reason="48-02 lands the guard (RED-EVIDENCE #1)")
     def test_guard_expression_identical_in_both_masters(self, per_master_guard_build):
         """
         48-EXPECTED-STRUCTURE.md "Fixture: xref_per_master_guard_gate" §1:
@@ -294,11 +272,6 @@ class TestXrefCompileTimeGuardRenderGate:
             f"target:guarded-target-section: {sorted(dests)}"
         )
 
-    # Pre-fix (48-RED-EVIDENCE.md Failure mode 1), bravo_master.typ's
-    # compile FATALS outright (TypstError: label does not exist in the
-    # document), so bravo_master.pdf is never written and this destination
-    # check cannot even run against real PDF bytes.
-    @pytest.mark.xfail(strict=True, reason="48-02 lands the guard (RED-EVIDENCE #1)")
     def test_bravo_pdf_does_not_link_to_target(self, per_master_guard_build):
         """
         48-EXPECTED-STRUCTURE.md §1: bravo's compiled PDF does NOT have the
@@ -312,12 +285,6 @@ class TestXrefCompileTimeGuardRenderGate:
             f"target:guarded-target-section: {sorted(dests)}"
         )
 
-    # Pre-fix (48-RED-EVIDENCE.md Failure mode 1), -b typstpdf over this
-    # fixture exits non-zero and the combined output contains 'does not
-    # exist in the document' -- the build-time union cannot express a
-    # per-master answer, so bravo's reference is NOT degraded and its
-    # wrapper compile fatals directly.
-    @pytest.mark.xfail(strict=True, reason="48-02 lands the guard (RED-EVIDENCE #1)")
     def test_no_dangling_label_fatal_either_master(self, per_master_guard_build):
         """
         48-EXPECTED-STRUCTURE.md §1: neither compile raises a Typst error --
@@ -337,9 +304,6 @@ class TestXrefCompileTimeGuardRenderGate:
             "does not exist in the document" not in combined
         ), f"Typst reported a dangling label:\n{combined}"
 
-    # Pre-fix, bravo_master.pdf is never written (Failure mode 1's direct
-    # compile fatal), so its pypdf text extraction cannot even run.
-    @pytest.mark.xfail(strict=True, reason="48-02 lands the guard (RED-EVIDENCE #1)")
     def test_reference_text_identical_in_both_pdfs(self, per_master_guard_build):
         """
         D-02 invariance: a degraded reference renders exactly the same
@@ -361,11 +325,6 @@ class TestXrefCompileTimeGuardRenderGate:
             f"or degraded):\n{bravo_text}"
         )
 
-    # Pre-fix (48-RED-EVIDENCE.md Baseline 3), the reference degrades to
-    # plain text via the build-time union (a/b is outside
-    # master_included_docnames) -- no link at all is emitted, so neither
-    # the guarded-expression half nor the PDF-destination half holds yet.
-    @pytest.mark.xfail(strict=True, reason="48-02/03 land the guard (RED-EVIDENCE)")
     def test_label_collision_guard_links_to_decoy(self, collision_guard_build):
         """
         48-EXPECTED-STRUCTURE.md "Fixture: xref_label_collision_guard_gate":

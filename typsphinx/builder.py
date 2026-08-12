@@ -108,20 +108,13 @@ def _is_usable_typst_documents_entry(entry: tuple) -> bool:
     to produce a wrapper file (BLD-03).
 
     This is the SINGLE source of truth for "can this entry produce a
-    wrapper file", consulted by all FIVE sites that need this answer for a
+    wrapper file", consulted by all FOUR sites that need this answer for a
     ``typst_documents`` entry: the collision validator
     (``_validate_output_path_collisions()``), ``write()``'s D-07 wrapper
-    report, ``_write_typst_files()``'s wrapper loop,
-    ``TypstPDFBuilder.finish()``, and
-    ``_compute_master_included_docnames()`` -- this fifth consumer resolves
-    a CROSS-REFERENCE-SAFETY decision fed by the same config rather than a
-    wrapper output path, but the predicate is nonetheless its correct
-    authority: "can this entry produce a wrapper file" and "does this entry
-    contribute a physically included subtree" are the same question,
-    because a wrapper is exactly the thing that ``#include()``s the
-    subtree. A future site needing a genuinely DIFFERENT usability question
-    must introduce a second named predicate rather than a sixth inline
-    check.
+    report, ``_write_typst_files()``'s wrapper loop, and
+    ``TypstPDFBuilder.finish()``. A future site needing a genuinely
+    DIFFERENT usability question must introduce a second named predicate
+    rather than yet another inline check.
 
     Before this function existed, each of those four sites spelled its own
     ad-hoc notion of "an entry I can use"
@@ -236,90 +229,6 @@ class TypstBuilder(Builder):
         # is a whole document, not a single translator-emitted anchor) keeps
         # each label defined exactly once so every reference still resolves.
         self._included_docnames: set[str] = set()
-
-        # The SET of docnames whose .typ is physically part of the compiled
-        # master (each master in typst_documents plus the transitive toctree
-        # closure reachable from it). Any doc NOT in this set -- e.g. an
-        # ``:orphan:`` doc, which Sphinx excludes from EVERY toctree -- is
-        # written as a .typ but never #include()d into the master, so the
-        # anchors it emits do not exist in the compiled document. The
-        # translator consults this set (via builder.master_included_docnames)
-        # to DEGRADE a cross-document reference whose target lies outside it
-        # to plain text, rather than emitting a link(<targetdoc:anchor>) label
-        # link that would dangle and hard-fail typst.compile() with
-        # "label ... does not exist". Populated up-front in write() (from the
-        # fully-read env's toctree graph) so it is reliably available before
-        # any reference is emitted; empty until then (an empty set means "no
-        # masters / unknown" and suppresses degradation, preserving behavior
-        # for hand-built test doctrees and mock builders).
-        self.master_included_docnames: set[str] = set()
-
-    def _compute_master_included_docnames(self) -> set[str]:
-        """Compute the transitive toctree closure of the master document(s).
-
-        The compiled master ``.typ`` (one per ``typst_documents`` entry)
-        physically ``#include()``s the transitive closure of toctree entries
-        reachable from its source doc -- exactly the set of documents whose
-        anchors end up in the compiled document. This walks Sphinx's canonical
-        ``env.toctree_includes`` (``dict[str, list[str]]`` mapping each doc to
-        the docs it directly pulls in via ``toctree``) breadth-first from every
-        master source docname, and includes the masters themselves.
-
-        ``env.toctree_includes`` is the read-phase-resolved include graph, so
-        ``:orphan:`` documents (excluded from every toctree) never appear in
-        it -- which is precisely why a cross-reference to one must degrade.
-        Glob toctrees are already expanded to concrete docnames in this map, so
-        the resulting set matches what ``visit_toctree`` actually emits.
-
-        BLD-03, the fifth predicate consumer: this method asks a
-        CROSS-REFERENCE SAFETY question -- "is it safe for the translator to
-        emit a real Typst label link into this docname" -- not literally a
-        wrapper-output-PATH question, so it is not obviously one of
-        ``_is_usable_typst_documents_entry()``'s consumers at a glance. The
-        predicate is nonetheless the correct authority for it: an entry the
-        predicate rejects produces no wrapper file anywhere (the other four
-        already-wired sites guarantee that), and a docname with no wrapper
-        is never physically ``#include()``d into any compiled document --
-        so it contributes no included subtree, and admitting it here would
-        tell the translator it is safe to emit a ``link(<label>)`` into a
-        document no compiled master contains. A SECOND, independent
-        consequence follows from the same predicate term:
-        ``_is_usable_typst_documents_entry()``'s
-        ``isinstance(entry[0], str)`` check is what makes this method's own
-        ``set`` membership (``docname in included``) and ``add`` operations
-        total -- without it, a non-hashable ``entry[0]`` from a user's
-        ``conf.py`` (a plausible typo, since Sphinx does not type-check
-        config values) reaches those ``set`` operations unguarded and
-        aborts the whole build with an uncaught ``TypeError``.
-
-        Returns:
-            The set of docnames included in some compiled master. Two
-            configurations both degrade to an empty set, which the
-            translator treats as "unknown" and does not degrade against:
-            no masters configured at all, and a ``typst_documents`` list
-            consisting ENTIRELY of entries
-            ``_is_usable_typst_documents_entry()`` rejects -- an entry that
-            produces no wrapper contributes nothing to this set either.
-        """
-        typst_documents = getattr(self.config, "typst_documents", []) or []
-        masters = [
-            entry[0]
-            for entry in typst_documents
-            if _is_usable_typst_documents_entry(entry)
-        ]
-        toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
-
-        included: set[str] = set()
-        stack = list(masters)
-        while stack:
-            docname = stack.pop()
-            if docname in included:
-                continue
-            included.add(docname)
-            for child in toctree_includes.get(docname, []):
-                if child not in included:
-                    stack.append(child)
-        return included
 
     def _resolve_target_stem(self, docname: str, target: object) -> str:
         """Normalize one ``typst_documents`` entry's target into an output
@@ -733,12 +642,11 @@ class TypstBuilder(Builder):
         # D-02/D-03: validate BEFORE anything is written -- including
         # prepare_writing()'s own _write_template_file() call just below,
         # which writes "_template.typ" to outdir immediately. Placed here,
-        # at the very top of write(), rather than after
-        # master_included_docnames is computed, so a collision leaves
-        # ZERO ".typ" files on disk, not just zero content/wrapper files
-        # (BLD-02's own gate asserts no ".typ" file anywhere in the build
-        # directory, which "_template.typ" would violate if this ran any
-        # later). TypstPDFBuilder inherits this unchanged (D-03).
+        # at the very top of write(), so a collision leaves ZERO ".typ"
+        # files on disk, not just zero content/wrapper files (BLD-02's own
+        # gate asserts no ".typ" file anywhere in the build directory,
+        # which "_template.typ" would violate if this ran any later).
+        # TypstPDFBuilder inherits this unchanged (D-03).
         self._validate_output_path_collisions()
 
         logger.info("preparing documents... ", nonl=True)
@@ -748,14 +656,6 @@ class TypstBuilder(Builder):
         # Start each build with a clean include-dedup ledger so re-builds and
         # multiple write() invocations do not carry stale state across masters.
         self._included_docnames = set()
-
-        # Compute the master include-set NOW (the read phase is complete, so
-        # env.toctree_includes is fully populated) rather than lazily during
-        # visit_toctree: a cross-document reference in one document may be
-        # emitted BEFORE the toctree that includes its target is processed, so
-        # the set must be fully known up-front for the degrade decision to be
-        # reliable regardless of document write order.
-        self.master_included_docnames = self._compute_master_included_docnames()
 
         # Write individual documents
         warnings_count = 0

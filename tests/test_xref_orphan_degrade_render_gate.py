@@ -19,27 +19,41 @@ hard-fails at the semantic pass with ``label ... does not exist``. (Sphinx's own
 LaTeX builder degrades the same construct to an "undefined reference" WARNING
 with the ref text shown -- never a hard error.)
 
-Fix: compute the master's transitive toctree closure up-front
-(``builder.master_included_docnames``, from ``env.toctree_includes`` over each
-``typst_documents`` master) and expose it to the translator. In
-``visit_reference``'s resolved-cross-document branch, DEGRADE to plain text --
-emit no ``link(<...>)`` label link, render the reference's text, and
-``logger.warning`` Sphinx-style -- when the target docname lies OUTSIDE that
-set. A cross-reference to an INCLUDED document is unaffected and still emits a
-working label link.
+Fix (Phase 48, XREF-03/XREF-04, ``48-EXPECTED-STRUCTURE.md``): the label's
+existence is decided at Typst COMPILE TIME, per compiled wrapper, via
+``TypstTranslator._label_existence_guard()`` -- the cross-document reference's
+body is wrapped in a ``context { let __tsx_body = [ ... ]; if
+query(<label>).len() > 0 { link(<label>, __tsx_body) } else { __tsx_body } }``
+block. Whichever wrapper is currently compiling evaluates ``query()`` fresh, so
+a target genuinely absent from THIS compile's include graph degrades to plain
+text and a target genuinely present links -- with no BUILD-time Python
+decision involved at all (the earlier fix's transitive-toctree-closure
+computation, ``TypstBuilder.master_included_docnames``, is deleted; Phase 47's
+content/wrapper split made a single per-docname build-time answer
+structurally insufficient, since the same content ``.typ`` can now be compiled
+into more than one wrapper). A cross-reference to an INCLUDED document is
+unaffected and still emits a working label link.
 
 This gate proves CORRECTNESS, not merely compilation:
 
-1. NON-INCLUDED TARGET DEGRADES: ``included`` :ref:s a section in the ``:orphan:``
-   ``orphan`` document; the emitted ``.typ`` carries NO ``link(<orphan:...>)``
-   label link, yet the reference's text (``Orphan Target Section``) is still
-   present as plain inline content.
-2. INCLUDED TARGET STILL LINKS: ``included`` also :ref:s a section in ITSELF;
-   that reference MUST still emit the exact working
-   ``link(<included:included-target>)`` label link the target defines as its
-   anchor (regression guard -- only the non-included target degrades).
+1. NON-INCLUDED TARGET DEGRADES AT COMPILE TIME: ``included`` :ref:s a
+   section in the ``:orphan:`` ``orphan`` document; the emitted ``.typ``
+   carries the label INSIDE the D-07 guard's conditional (never a bare,
+   unconditional ``link(<orphan:...>)``), and the reference's text
+   (``Orphan Target Section``) is still present as plain inline content.
+2. INCLUDED TARGET STILL LINKS, UNGUARDED (SC#4/D-06): ``included`` also
+   :ref:s a section in ITSELF; that same-document reference is NOT routed
+   through the D-07 guard (content files are included wholesale, so a
+   same-document target's presence is guaranteed) and MUST still emit the
+   exact working ``link(<included:included-target>)`` label link the
+   target defines as its anchor (regression guard -- only the
+   cross-document, non-included target is guarded).
 3. NO FATAL: the whole project compiles to a real ``%PDF`` through
    ``-b typstpdf`` with no ``does not exist`` label error.
+
+This third outcome's TRUTH VALUE is unchanged from the earlier build-time
+fix -- only the MECHANISM producing it changed (from a build-time Python
+decision to the D-07 compile-time guard above).
 
 Drives the full ``-b typstpdf`` path -- NOT ``-b typst`` -- on purpose: the
 dangling-label fatal only fires inside ``TypstPDFBuilder.finish()``'s
@@ -168,20 +182,32 @@ class TestXrefOrphanDegradeRenderGate:
         included_typ = (temp_build_dir / "included.typ").read_text(encoding="utf-8")
         scannable = _strip_raw_literals(included_typ)
 
-        # 1. NON-INCLUDED TARGET DEGRADES: no label link to the orphan doc, but
-        #    the reference text is still rendered as plain inline content.
-        assert "link(<orphan:" not in scannable, (
-            "A link(<orphan:...>) label link to the NON-INCLUDED orphan document "
-            "was emitted; the cross-reference must degrade to plain text:\n"
-            f"{included_typ}"
+        # 1. NON-INCLUDED TARGET DEGRADES AT COMPILE TIME (Phase 48, XREF-03,
+        #    48-EXPECTED-STRUCTURE.md): INVERTED from the earlier build-time
+        #    fix -- the orphan document's namespaced label now appears
+        #    INSIDE the D-07 guard's conditional (a real `link(<orphan:...>`
+        #    call, guarded by `query(<orphan:...>).len() > 0`), never
+        #    unconditionally. The compiled master never includes `orphan`,
+        #    so Typst's own query finds nothing and the `else` branch fires
+        #    at compile time -- the reference's text is still rendered as
+        #    plain inline content.
+        assert "link(<orphan:orphan-target>," in scannable, (
+            "The guarded expression for the NON-INCLUDED orphan document's "
+            "label was not found -- expected it inside the D-07 guard's "
+            f"conditional:\n{included_typ}"
         )
         assert 'text("Orphan Target Section")' in scannable, (
             "The degraded orphan cross-reference did not render its text as "
             f"plain inline content:\n{included_typ}"
         )
 
-        # 2. INCLUDED TARGET STILL LINKS: the same-project cross-reference must
-        #    still emit the exact working label link to the target's anchor.
+        # 2. INCLUDED TARGET STILL LINKS, UNGUARDED (SC#4/D-06 invariance
+        #    guard, unchanged truth value): the same-project cross-reference
+        #    is a SAME-document target, so it is never routed through the
+        #    D-07 guard -- content files are included wholesale, so a
+        #    same-document target's presence is guaranteed -- and must
+        #    still emit the exact working label link to the target's
+        #    anchor.
         assert "link(<included:included-target>," in scannable, (
             "The cross-reference to the INCLUDED document lost its working "
             f"link(<included:included-target>) label link (regression):\n"
