@@ -345,6 +345,15 @@ def _citation_row_region(typ_text: str, def_anchor_token: str) -> str:
     later) citation row is a DIFFERENT citation's opener, silently
     capturing bytes across a cell boundary that do not belong to this
     row.
+
+    48-03 (D-05): a back-reference marker's own guard open string
+    (``_label_existence_guard``'s ``context { let __tsx_body = [#{``) ALSO
+    contains the literal substring ``[#{`` -- so a naive ``rfind`` now
+    finds the LAST marker's own nested opener instead of the row's outer
+    one when 2+ backrefs are present. Every guard-nested ``[#{`` is always
+    immediately preceded by ``= `` (the ``let __tsx_body = `` assignment);
+    the row's own outer opener never is -- so this scans candidates from
+    the end and skips any preceded by ``= ``.
     """
     anchor_marker = f"<{def_anchor_token}>]"
     anchor_idx = typ_text.find(anchor_marker)
@@ -353,8 +362,12 @@ def _citation_row_region(typ_text: str, def_anchor_token: str) -> str:
             f"No citation label cell found for def anchor "
             f"{def_anchor_token!r} in:\n{typ_text}"
         )
-    row_start = typ_text.rfind("[#{", 0, anchor_idx)
-    if row_start == -1:
+    row_start = None
+    for match in re.finditer(re.escape("[#{"), typ_text[:anchor_idx]):
+        preceding = typ_text[max(0, match.start() - 2) : match.start()]
+        if preceding != "= ":
+            row_start = match.start()
+    if row_start is None:
         raise AssertionError(
             f"Found def anchor marker {anchor_marker!r} but no preceding "
             f"'[#{{' label-cell opener in:\n{typ_text}"
@@ -467,9 +480,19 @@ class TestWr01MarkerShapes:
                     f"live backrefs but its row carries no parenthesised "
                     f"marker group:\n{row}"
                 )
-                markers = re.findall(r"link\(<([^>]+)>, \[(\d+)\]\)", row)
-                marker_targets = [m[0] for m in markers]
-                marker_ordinals = [m[1] for m in markers]
+                # 48-03 (D-05): each marker is now an independently-guarded
+                # `context { let __tsx_body = [#{[N]}]; if query(<L>).len()
+                # > 0 { link(<L>, __tsx_body) } else { __tsx_body } }`
+                # expression rather than a bare `link(<L>, [N])` call -- the
+                # ordinal lives in the guard's body, the target in its
+                # query()/link() calls (D-07's single derivation point).
+                markers = re.findall(
+                    r"let __tsx_body = \[#\{\[(\d+)\]\}\]; "
+                    r"if query\(<([^>]+)>\)\.len\(\) > 0",
+                    row,
+                )
+                marker_ordinals = [m[0] for m in markers]
+                marker_targets = [m[1] for m in markers]
                 assert marker_targets == expected_targets, (
                     f"citation {cit_ids[0]!r}: marker targets "
                     f"{marker_targets} != expected {expected_targets} "

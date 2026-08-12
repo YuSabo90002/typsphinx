@@ -375,6 +375,17 @@ class TypstTranslator(SphinxTranslator):
         # lifecycle exactly -- a reference node cannot nest inside another
         # reference node.
         self._reference_guard_close: str | None = None
+        # D-04 (Phase 48): a DEDICATED close-string slot for
+        # visit_pending_xref/depart_pending_xref's own D-07 guard --
+        # deliberately NOT shared with `_reference_guard_close`. This site
+        # is unreachable through Sphinx's normal pipeline
+        # (`ReferencesResolver` replaces every `pending_xref` node
+        # unconditionally before the writer runs, `48-RED-EVIDENCE.md`'s
+        # D-04 section), so a stale value here can never leak into a real
+        # `visit_reference` call in practice -- but a dedicated slot means
+        # this defence-in-depth site cannot corrupt the reachable one's
+        # state even in principle, regardless of that argument.
+        self._pending_xref_guard_close: str | None = None
         self.in_desc_parameter = (
             False  # Track if inside desc_parameter to avoid newlines between text nodes
         )
@@ -3377,18 +3388,38 @@ class TypstTranslator(SphinxTranslator):
                 continue
             backref_targets.append(decision.anchor_label)
 
+        # D-05 (48-RED-EVIDENCE.md failure mode 2): every back-reference
+        # target below is routed through the shared _label_existence_guard
+        # rather than a bare link(<label>, ...) call. SC#4 exempts an
+        # ordinary same-document anchor from guarding because content files
+        # are included wholesale -- but a citation back-reference target is
+        # NOT guaranteed to exist even though it is same-document: its
+        # presence depends on visit_reference having actually RUN on the
+        # citing node, and visit_caption's SkipNode (translator.py, the
+        # captioned-code-block route) can prune the walker from ever
+        # reaching it while _find_citing_reference's document.findall scan
+        # still structurally finds the node and judges it eligible. Unlike
+        # an ordinary same-document target, this one can be judged eligible
+        # with no anchor ever attached -- so it is guarded here even though
+        # it is same-document.
         if len(backref_targets) == 1:
-            label_body = f"link(<{backref_targets[0]}>, {label_content})"
+            guard = self._label_existence_guard(
+                backref_targets[0], prefix="", code_mode_body=True
+            )
+            label_body = f"{guard.open_str}{label_content}{guard.close_str}"
         else:
             label_body = label_content
 
         label_expr = f'text("[") + {label_body} + text("]")'
 
         if len(backref_targets) >= 2:
-            markers = ",".join(
-                f"link(<{target}>, [{i}])"
-                for i, target in enumerate(backref_targets, start=1)
-            )
+            marker_parts = []
+            for i, target in enumerate(backref_targets, start=1):
+                guard = self._label_existence_guard(
+                    target, prefix="", code_mode_body=True
+                )
+                marker_parts.append(f"{guard.open_str}[{i}]{guard.close_str}")
+            markers = ",".join(marker_parts)
             label_expr += f' + text(" (") + ({markers}).join(",") + text(")")'
 
         # Attach the citation's OWN definition anchor via the bracket-wrap
@@ -4371,6 +4402,17 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a pending_xref node (Sphinx cross-reference).
 
+        D-04 (Phase 48, ``48-RED-EVIDENCE.md``): Sphinx's
+        ``ReferencesResolver`` post-transform (``default_priority=10``,
+        supported for every builder) replaces every ``pending_xref`` node
+        in the document unconditionally before the writer runs -- so no
+        such node survives to this handler through the normal pipeline,
+        for any resolution outcome (resolved, unresolved, or unknown role
+        all fall back to ``node.replace_self(...)``). This handler is
+        applied anyway, as defence in depth: a future Sphinx version or an
+        unusual extension interaction is not ruled out by the four source
+        shapes measured this session.
+
         Args:
             node: The pending_xref node
         """
@@ -4396,7 +4438,25 @@ class TypstTranslator(SphinxTranslator):
                 self._current_docname(),
                 reftarget.replace(".", "-").replace("_", "-"),
             )
-            self.add_text(f"#link(<{label}>)[")
+            # D-07: routed through the shared guard as defence in depth
+            # (this site is otherwise unreachable, see the docstring
+            # above). The `#` prefix below is preserved UNCHANGED from
+            # this site's prior unconditional emission -- unlike
+            # visit_reference, this handler does not compute a mode-aware
+            # prefix (`"#" if self._in_markup_mode else ""`). That was
+            # noticed and deliberately left unchanged: D-04's scope is
+            # "bring this site under the guard", not "audit it for
+            # unrelated mode bugs". The argument rests on research
+            # assumption A2 (`48-RESEARCH.md`), which states no
+            # third-party extension was observed emitting a fresh
+            # `pending_xref` after `ReferencesResolver` runs -- and was
+            # NOT independently tested. If A2 is wrong, this fixed `#`
+            # prefix may not match the surrounding mode.
+            # Children stream into a markup bracket below exactly as
+            # before, so the non-code-mode body spelling is used.
+            guard = self._label_existence_guard(label, prefix="#")
+            self.add_text(guard.open_str)
+            self._pending_xref_guard_close = guard.close_str
         # Continue processing children to get the link text
 
     def depart_pending_xref(self, node: nodes.Node) -> None:
@@ -4407,8 +4467,9 @@ class TypstTranslator(SphinxTranslator):
             node: The pending_xref node
         """
         reftarget = node.get("reftarget", "")
-        if reftarget:
-            self.add_text("]")
+        if reftarget and self._pending_xref_guard_close:
+            self.add_text(self._pending_xref_guard_close)
+            self._pending_xref_guard_close = None
 
     def _compute_relative_include_path(
         self, target_docname: str, current_docname: str | None
