@@ -635,7 +635,7 @@ differences also become correct through this one mechanism rather than three.
      The full-corpus `-b typstpdf` compile time is recorded before and after, so a material regression
      from per-reference `query()`-driven introspection passes is a stated finding handed forward rather
      than a surprise discovered at corpus scale.
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -646,7 +646,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 48-02-PLAN.md — TRACER: one cross-document reference guarded end to end through
+- [x] 48-02-PLAN.md — TRACER: one cross-document reference guarded end to end through
       `sphinx-build -b typstpdf` → `typst.compile()` → `pypdf`, with the build-time union, its
       degrade field and its warning all deleted in the same change (wave 2)
 
@@ -897,7 +897,7 @@ sequential, not merely numbered:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
-| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 1/4 | In Progress|  |
+| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 2/4 | In Progress|  |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
