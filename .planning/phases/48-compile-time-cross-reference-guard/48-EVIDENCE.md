@@ -215,3 +215,116 @@ bracketed construct regardless of the guard's own query outcome.
 open_str:  context { let __tsx_body = [#{
 close_str: }]; if query(<target:xref-guard-target>).len() > 0 { link(<target:xref-guard-target>, __tsx_body) } else { __tsx_body } }
 ```
+
+## D-11 compile-time cost
+
+**Purpose:** measure what the compile-time guard actually costs at full-corpus scale, against
+thresholds fixed **before** this measurement was taken, so a measured regression cannot be
+rationalised after the fact.
+
+### D-11's three tiers, quoted verbatim from `48-CONTEXT.md` (fixed at discussion time, 2026-08-12,
+before any measurement in this section)
+
+> under `+20%` the number is recorded and nothing else happens; between `+20%` and `+100%` it is
+> recorded as an explicit finding in the phase evidence and an improvement todo is filed; above
+> `+100%` it is escalated to a blocker attached to Phase 49's scope.
+
+And the realistic remediation path if the top tier were hit, also quoted verbatim: "replace
+`query(<L>).len() > 0` with a lookup against Phase 49's `state("inc", ())` include set once that
+exists — abandoning the design is not available, since binding constraint #1 makes Phase 49
+depend on the guard."
+
+These were fixed at discussion time, before any measurement — the reading order above (tiers
+first, number below) is itself the evidence that they were not renegotiated after the fact.
+
+### Pre-fix baseline, quoted verbatim from `48-VALIDATION.md`'s "Test Infrastructure" table
+
+> `tests/test_corpus_gate.py` full-corpus `-b typstpdf` → **28.93s / 28.56s** (D-11 "before"
+> baseline)
+
+Per `48-RESEARCH.md` assumption A3, these absolute numbers are specific to the measuring machine
+— the after-number below was taken on the **same machine** (this worktree, provisioned per
+`CLAUDE.md`'s `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` +
+`uv run` protocol) so the ratio between before and after means something; the tiering logic
+itself is relative (a percentage), not tied to any absolute wall-clock figure.
+
+### After-measurement — two raw transcripts, `time uv run pytest tests/test_corpus_gate.py -m slow`
+(the exact invocation `48-VALIDATION.md`'s "D-11 'after' measurement" row names)
+
+**Run 1:**
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae7d93eaa5ed0d932/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae7d93eaa5ed0d932
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 5 items / 3 deselected / 2 selected
+
+tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error PASSED [ 50%]
+tests/test_corpus_gate.py::test_empty_url_before_after SKIPPED (SC#3...) [100%]
+
+================= 1 passed, 1 skipped, 3 deselected in 28.92s ==================
+
+real	0m29.483s
+user	0m27.747s
+sys	0m1.582s
+```
+
+**Run 2:**
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae7d93eaa5ed0d932/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae7d93eaa5ed0d932
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 5 items / 3 deselected / 2 selected
+
+tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error PASSED [ 50%]
+tests/test_corpus_gate.py::test_empty_url_before_after SKIPPED (SC#3...) [100%]
+
+================= 1 passed, 1 skipped, 3 deselected in 27.21s ==================
+
+real	0m27.567s
+user	0m26.401s
+sys	0m1.485s
+```
+
+`test_empty_url_before_after` SKIPs (env-gated behind `TYPSPHINX_CORPUS_REPORT=1`, unrelated to
+D-11) in both runs — the pytest-reported duration line (`28.92s` / `27.21s`) is the corpus
+render gate's own wall-clock time, matching the invocation the baseline was itself taken with.
+
+### Arithmetic
+
+- Pre-fix baseline mean: `(28.93 + 28.56) / 2 = 28.745s`
+- After-guard mean: `(28.92 + 27.21) / 2 = 28.065s`
+- Delta: `28.065 - 28.745 = -0.680s`
+- Percentage change: `-0.680 / 28.745 * 100 = -2.37%`
+
+The measured change is **-2.37%** — the corpus build is very slightly FASTER after the guard
+landed than the pre-fix baseline, well within measurement noise for a ~28s wall-clock subprocess
+build (network/disk/scheduler jitter dwarfs a single-digit-percent difference here). This falls in
+the **bottom tier** (under `+20%`).
+
+### Tier applied
+
+**Bottom tier: record only.** The guard's corpus-scale cost is not a material regression — it is,
+if anything, indistinguishable from noise around zero. No todo is filed and no `STATE.md` blocker
+is added, exactly as the bottom tier's own instruction says: "record only." No sentence naming a
+Phase 49 coupling is required here — that obligation is scoped to the middle and top tiers only,
+neither of which was reached.
+
+### Verification that no timing instrumentation was added
+
+```
+$ git diff --stat tests/test_corpus_gate.py
+(no output)
+$ grep -Ec 'assert.*(elapsed|duration|time\.)' tests/test_corpus_gate.py
+0
+```
+
+`tests/test_corpus_gate.py` still carries no timing instrumentation and no wall-clock assertion —
+this measurement is the one-off manual record D-11 specifies, not a permanent, CI-flaky assertion.
