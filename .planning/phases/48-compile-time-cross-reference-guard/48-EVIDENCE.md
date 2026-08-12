@@ -328,3 +328,243 @@ $ grep -Ec 'assert.*(elapsed|duration|time\.)' tests/test_corpus_gate.py
 
 `tests/test_corpus_gate.py` still carries no timing instrumentation and no wall-clock assertion —
 this measurement is the one-off manual record D-11 specifies, not a permanent, CI-flaky assertion.
+
+## D-09 citation-marker delta
+
+**Purpose:** D-09 is asserted backward-compatible-by-design (removing `degrade_xref_to_text` makes
+`opens_wrapper` unconditional, so a citation back-reference marker that previously did not appear
+now does), but no automated gate in this phase would catch "an extra back-reference marker now
+appears" — `tests/test_corpus_gate.py` only asserts no fatal. This section measures the delta
+against the real Sphinx `doc/` corpus rather than resting on the same-document-anchor argument
+alone, reusing the established two-build BEFORE/AFTER methodology `test_empty_url_before_after`
+already sets (a git worktree at an older tree + a `PYTHONPATH` override for the BEFORE subprocess
+only, both builds `-b typst`, cleanup regardless of outcome).
+
+### Step 1 — `BEFORE_SHA` resolution
+
+`git log --reverse --format='%H %s' -- typsphinx/translator.py`, filtered for the earliest Phase 48
+commit touching `typsphinx/translator.py` whose subject names `48-02`:
+
+```
+8184f4d56b39555498d17b80379782fc4c619be0 feat(48-02): move cross-reference label existence to Typst compile time
+```
+
+`BEFORE_SHA` is this commit's **parent**:
+
+```
+$ git rev-parse 8184f4d56b39555498d17b80379782fc4c619be0^
+09f5d7f087b754edd81d3e1e0e38ab859f21d25b
+$ git log -1 --format='%H %s' 8184f4d56b39555498d17b80379782fc4c619be0^
+09f5d7f087b754edd81d3e1e0e38ab859f21d25b docs(phase-48): update tracking after wave 1
+```
+
+`BEFORE_SHA = 09f5d7f087b754edd81d3e1e0e38ab859f21d25b`, the commit immediately preceding
+`8184f4d` ("feat(48-02): move cross-reference label existence to Typst compile time" — plan 48-02's
+TRACER commit, the first commit to touch `typsphinx/translator.py` and introduce the guard).
+
+### Step 2 — isolated worktree + PYTHONPATH shadowing, and a real shadowing hazard found and worked around
+
+```
+$ git worktree add --detach <tmp>/48-04-pre-guard 09f5d7f087b754edd81d3e1e0e38ab859f21d25b
+Preparing worktree (detached HEAD 09f5d7f)
+HEAD is now at 09f5d7f docs(phase-48): update tracking after wave 1
+$ grep -c "_label_existence_guard" <tmp>/48-04-pre-guard/typsphinx/translator.py
+0
+```
+
+Confirmed the pre-guard worktree's `translator.py` carries no guard helper at all.
+
+**A real, measured shadowing hazard, worked around rather than assumed away:** naively invoking the
+BEFORE subprocess with `PYTHONPATH=<tmp>/48-04-pre-guard` from the repository root does **not**
+shadow the installed `typsphinx` package —
+
+```
+$ cd <repo-root> && PYTHONPATH=<tmp>/48-04-pre-guard .venv/bin/python -c \
+    "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())"
+<repo-root>/typsphinx/__init__.py    # WRONG -- this is the as-shipped copy, not the pre-guard one
+```
+
+The cause is not the venv's PEP-660 editable-install finder (`__editable___typsphinx_..._finder.py`,
+a `MetaPathFinder` mapping `typsphinx` to this worktree's absolute path) — that finder sits AFTER
+`PathFinder` in `sys.meta_path`, so it is never even reached here. The actual cause: `python -c`/
+`python -m` prepends `''` (the current working directory) to `sys.path` **before** any `PYTHONPATH`
+entry, per Python's own `-m`/`-c` `sys.path` construction rules. Since the subprocess's cwd was the
+repository root — which itself contains a `typsphinx/` package directory — `PathFinder` resolves
+`typsphinx` via cwd (`''`) before ever reaching the `PYTHONPATH` entry, silently defeating the
+override. Running the SAME command from a cwd with no local `typsphinx/` directory confirms the
+override works correctly once that collision is removed:
+
+```
+$ cd <tmp>/scratchpad && PYTHONPATH=<tmp>/48-04-pre-guard .venv/bin/python -c \
+    "import typsphinx; print(typsphinx.__file__)"
+<tmp>/48-04-pre-guard/typsphinx/__init__.py   # correct -- pre-guard worktree copy
+$ cd <tmp>/scratchpad && .venv/bin/python -c "import typsphinx; print(typsphinx.__file__)"
+<repo-root>/typsphinx/__init__.py             # correct -- as-shipped copy, no PYTHONPATH set
+```
+
+Both BEFORE and AFTER builds below are therefore run with the subprocess's **cwd set to a
+scratchpad directory outside the repository** (never the repository root), which is what makes the
+`PYTHONPATH` override in `test_empty_url_before_after`'s own established methodology actually take
+effect for a `sphinx-build` subprocess invoked via `python -m sphinx`. No new methodology was
+invented — this only corrects the invocation's working directory so the existing PYTHONPATH-based
+mechanism does what its own docstring says it does.
+
+### Step 3 — both builds, `-b typst` only (never `-b typstpdf`)
+
+Corpus: the same cached, already-wired `~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc` tree
+`test_corpus_gate.py`'s own `corpus_doc_dir`/`wire_typsphinx_into_corpus_conf` fixtures use.
+
+**BEFORE** (`PYTHONPATH=<tmp>/48-04-pre-guard`, cwd = scratchpad):
+
+```
+$ cd <tmp>/scratchpad && PYTHONPATH=<tmp>/48-04-pre-guard .venv/bin/python -m sphinx -b typst \
+    ~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc <tmp>/48-04-before-build
+...
+writing output... [usage/extensions/napoleon]WARNING: cross-reference to non-included document 'usage/extensions/example_google' rendered as plain text (typstpdf includes only toctree-reachable documents): Example Google Style Python Docstrings
+WARNING: cross-reference to non-included document 'usage/extensions/example_numpy' rendered as plain text (typstpdf includes only toctree-reachable documents): Example NumPy Style Python Docstrings
+ done
+...
+typst: wrote 1 wrapper file(s) -- compile these: sphinx-corpus.typ
+Copying 19 image file(s)...
+build succeeded, 46 warnings.
+```
+
+The D-01 "cross-reference to non-included document ... rendered as plain text" warning appears —
+this is direct, independent confirmation the BEFORE build really did run the pre-guard, pre-D-01
+translator (that warning was deleted in plan 48-02).
+
+**AFTER** (no `PYTHONPATH` override, cwd = scratchpad, as-installed HEAD):
+
+```
+$ cd <tmp>/scratchpad && .venv/bin/python -m sphinx -b typst \
+    ~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0/doc <tmp>/48-04-after-build
+...
+writing output... [usage/extensions/napoleon] done
+...
+typst: wrote 1 wrapper file(s) -- compile these: sphinx-corpus.typ
+Copying 19 image file(s)...
+build succeeded, 42 warnings.
+```
+
+No D-01 warning this time (42 warnings vs. 46 — a 4-warning reduction, consistent with the D-01
+warning's deletion), confirming this build really did run as-shipped HEAD.
+
+### Step 4 — the three counts, both builds
+
+**Important, stated explicitly before the numbers, per this section's own requirement:** the
+LINKED-cell signature is NOT the same string in both builds. Pre-guard, a linked citation cell
+emits the bare `text("[") + link(<label>, ...`; post-guard, the SAME logical cell emits
+`text("[") + context { let __tsx_body = ... }` — the guard wraps the link in a `context { ... }`
+block, so `text("[") + link(<` never appears post-guard even where a link IS present. A naive
+single-signature grep across both builds would therefore report a spurious collapse to zero on the
+AFTER side even if every citation kept its link. Both signatures are counted, one per build, below.
+
+```
+$ grep -ro 'text("\[") + ' <tmp>/48-04-before-build --include="*.typ" | wc -l
+0
+$ grep -ro 'text("\[") + ' <tmp>/48-04-after-build --include="*.typ" | wc -l
+0
+$ grep -rl 'columns: (auto, 1fr)' <tmp>/48-04-before-build --include="*.typ" | wc -l
+0
+$ grep -rl 'columns: (auto, 1fr)' <tmp>/48-04-after-build --include="*.typ" | wc -l
+0
+```
+
+- Total citation label cells (`text("[") + `): **0 before, 0 after**.
+- Citation grid open marker (`columns: (auto, 1fr)`, `visit_citation`'s own distinctive grid-open
+  string, an independent corroborating signature): **0 before, 0 after**.
+- LINKED citation label cells (`text("[") + link(<` before / `text("[") + context` after): **not
+  computed** — moot, since the total is already zero in both builds.
+- Multi-target marker groups (`+ text(" (") + (`): **not computed** — moot, same reason.
+
+### Step 5 — the corpus exercises no citations; the zero delta is not reported as verification
+
+**Sphinx's own `doc/` corpus contains zero docutils citations** (no `.. [Label]` definitions, no
+`[Label]_` citing references anywhere in the tree) — `visit_citation`'s own distinctive grid-open
+marker (`columns: (auto, 1fr)`) appears **zero times** in either the BEFORE or the AFTER build's
+emitted `.typ` files. This is stated plainly rather than presenting the 0-vs-0 delta as
+verification: **the corpus does not exercise D-09.** Per D-09's own INTENDED direction, an increase
+in linked citation cells would be the expected fix taking effect; a decrease would be the finding
+to investigate. Neither can be observed here because the starting count is already zero.
+
+### Step 6 fallback — the project's own citation gates, the only D-09 coverage available
+
+Per this section's own contingency instruction, the project's committed citation gates are run and
+recorded as the only D-09 coverage that exists, since the external corpus supplies none:
+
+```
+$ uv run pytest tests/test_citation_render_gate.py tests/test_citation_degradation_gate.py -q
+tests/test_citation_render_gate.py .........                             [ 34%]
+tests/test_citation_degradation_gate.py .................                [100%]
+============================== 26 passed in 2.61s ==============================
+```
+
+26/26 pass. `tests/test_citation_degradation_gate.py`'s own case (iii)
+(`_wr03_case_refuri_excluded_document`) is the committed, direct assertion that D-09's
+`opens_wrapper`-unconditional behaviour landed correctly (flipped under D-03 in plan 48-02) — this
+is the actual D-09 regression coverage this project carries, external-corpus silence
+notwithstanding.
+
+### Cleanup
+
+```
+$ git worktree remove --force <tmp>/48-04-pre-guard
+$ git worktree list
+<repo-root>                          <hash> [gsd/v0.8.0-multi-master-composition]
+<this-worktree>                      <hash> [worktree-agent-ae7d93eaa5ed0d932] locked
+```
+
+No leftover `48-04-pre-guard` (nor any `pre-48-guard`-named) worktree remains registered.
+
+## Accepted limit — label-collision false negative
+
+**Transcript — the collision characterization test, green since plan 48-02:**
+
+```
+$ uv run pytest tests/test_xref_compile_time_guard_render_gate.py -q -k collision
+tests/test_xref_compile_time_guard_render_gate.py .                      [100%]
+======================= 1 passed, 5 deselected in 0.73s ========================
+```
+
+**Emitted `index.typ` reference line from `tests/fixtures/xref_label_collision_guard_gate/`**
+(rebuilt via `sphinx-build -b typst`, verbatim):
+
+```
+par({text("See ")
+context { let __tsx_body = [#{
+text("Alpha Nested Section")}]; if query(<a_u2f_b:nested-target>).len() > 0 { link(<a_u2f_b:nested-target>, __tsx_body) } else { __tsx_body } }
+text(" for the nested section.")})
+```
+
+**What the guard actually asks:** the guard's `query(<a_u2f_b:nested-target>)` call checks whether
+a label with that EXACT spelling exists anywhere in the compiling wrapper's document — "does a
+label with this spelling exist in this compile," not "does the document I meant exist."
+
+**The measured consequence:** the reference's real target is `a/b`'s explicit
+`.. _nested-target:` label, which is absent from `index`'s compiled wrapper (`a/b` is
+`:orphan:`, in no toctree). But `a_u2f_b`'s own auto-generated section id, also spelled
+`nested-target`, IS present (`a_u2f_b` is toctree'd by `index`). Both docnames sanitize to the
+identical label string `a_u2f_b:nested-target` — `a_u2f_b` literally, and `a/b` via
+`_sanitize_label`'s `/` → `_u2f_` transform — so the guard's query finds the DECOY's label and the
+reference renders as a working link to the wrong section, instead of degrading to plain text as its
+real (absent) target would require.
+
+**The narrowing:** labels are namespaced `docname:id` via `_namespace_label`, and
+`_sanitize_label` maps every character invalid in a Typst label to a distinct `_u{codepoint:x}_`
+token. This class needs the DOCNAME segment specifically to collide — realistically only reachable
+via the `/` → `_u2f_` transform (a nested docname's sanitized path colliding with an unrelated
+top-level docname that happens to spell out that exact sanitized form), not via any two arbitrary
+unrelated docnames.
+
+**The comparison to what was there before:** the deleted build-time mechanism
+(`_compute_master_included_docnames`) checked DOCNAME MEMBERSHIP in a build-time union — two
+distinct docnames are never equal as raw strings unless Sphinx itself already rejected the
+collision earlier, so this false-negative class did not exist under the old mechanism. It is
+genuinely new to this phase, introduced by moving the existence check from docname membership to
+label-string existence.
+
+**Recorded as ACCEPTED for Phase 48.** A todo is filed at
+`.planning/todos/pending/2026-08-12-label-collision-false-negative-in-compile-time-xref-guard.md`
+naming the class, the characterizing fixture (`tests/fixtures/xref_label_collision_guard_gate/`),
+and the one obvious remediation direction (carrying the target docname into the guard's decision
+rather than relying on label spelling alone), so the limit survives past this phase's closeout.
