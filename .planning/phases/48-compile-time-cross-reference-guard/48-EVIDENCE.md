@@ -568,3 +568,233 @@ label-string existence.
 naming the class, the characterizing fixture (`tests/fixtures/xref_label_collision_guard_gate/`),
 and the one obvious remediation direction (carrying the target docname into the guard's decision
 rather than relying on label spelling alone), so the limit survives past this phase's closeout.
+
+## SC#2 — site enumeration
+
+**Purpose:** ROADMAP.md's SC#2 requires every label-reference emission site to route through one
+shared guard helper, with open question #1 (`translator.py:4291`'s nature, in the line numbering
+current at discussion time) closed by reading the code — the answer, not an assumption, determining
+what changed there.
+
+**The query string appears in exactly one definition** — inside `_label_existence_guard` itself,
+where it is CONSTRUCTED, never a second time as a second, independently-built derivation:
+
+```
+$ grep -c 'query(<{label}>)' typsphinx/translator.py
+1
+```
+
+Every other `query(<` occurrence in `typsphinx/translator.py` is a docstring/comment PROSE mention
+(using placeholder spellings `<label>`/`<L>`, never the real `{label}` f-string interpolation),
+confirmed structurally by `tests/test_label_existence_guard_unit.py::TestSingleDerivationPointStructural::test_guard_conditional_construction_appears_exactly_once`:
+
+```
+$ grep -rn 'query(<' typsphinx/
+typsphinx/translator.py:53:    ``_label_existence_guard()``'s ``query(<label>)`` -- this predicate no
+typsphinx/translator.py:119:            ``if query(<label>).len() > 0 { link(<label>, __tsx_body) }
+typsphinx/translator.py:3081:        entirely by ``_label_existence_guard()``'s ``query(<label>)`` at
+typsphinx/translator.py:3167:        ``query(<label>)`` is evaluated fresh by whichever wrapper is
+typsphinx/translator.py:3175:        caller and passed in unchanged, so the ``query(<L>)`` argument and
+typsphinx/translator.py:3187:        the ``if query(<L>).len() > 0`` condition and its opening ``{``
+typsphinx/translator.py:3219:            f"{close_body}; if query(<{label}>).len() > 0 {{ "
+typsphinx/translator.py:5164:            # `query(<label>)` guard around the link. Namespace with the
+```
+
+**And `grep -rn '_label_existence_guard' typsphinx/` shows the definition plus every caller**
+(each of the three sites, not a second spelling):
+
+```
+typsphinx/translator.py:53:    ``_label_existence_guard()``'s ``query(<label>)`` -- this predicate no
+typsphinx/translator.py:107:    ``TypstTranslator._label_existence_guard()``: the exact bytes to emit
+typsphinx/translator.py:370:        # (`_label_existence_guard()`'s `close_str`) for the guarded
+typsphinx/translator.py:3081:        entirely by ``_label_existence_guard()``'s ``query(<label>)`` at
+typsphinx/translator.py:3148:    def _label_existence_guard(
+typsphinx/translator.py:3392:        # target below is routed through the shared _label_existence_guard
+typsphinx/translator.py:3406:            guard = self._label_existence_guard(
+typsphinx/translator.py:3418:                guard = self._label_existence_guard(
+typsphinx/translator.py:4457:            guard = self._label_existence_guard(label, prefix="#")
+typsphinx/translator.py:5169:            guard = self._label_existence_guard(
+typsphinx/translator.py:5221:        # path, the D-07 guard's close string (`_label_existence_guard()`'s
+```
+
+**Site enumeration table** (current line numbers; the ROADMAP.md text's `:3273`/`:3281`/`:4291`
+line numbers reflect the pre-implementation position and have shifted as docstrings grew):
+
+| # | Site | File:Line | Call | Note |
+|---|------|-----------|------|------|
+| 1 | `visit_reference`'s cross-document branch | `typsphinx/translator.py:5169` (inside `visit_reference`, def at `:5008`) | `self._label_existence_guard(label, ...)` | The primary XREF-03 site |
+| 2a | `visit_citation`'s back-reference loop, single-target | `typsphinx/translator.py:3406` (inside `visit_citation`, def at `:3224`) | `self._label_existence_guard(backref_targets[0], prefix="", code_mode_body=True)` | D-05 |
+| 2b | `visit_citation`'s back-reference loop, multi-target (each marker, independently) | `typsphinx/translator.py:3418` (same method, inside the marker loop) | `self._label_existence_guard(target, prefix="", code_mode_body=True)` | D-05 |
+| 3 | `visit_pending_xref`/`depart_pending_xref` | `typsphinx/translator.py:4457` (inside `visit_pending_xref`, def at `:4401`; `depart_pending_xref` at `:4462` consumes the stashed `close_str`) | `self._label_existence_guard(label, prefix="#")` | D-04, defence in depth — open question #1's answer (below) |
+| 4a | `visit_reference`'s bare-refid same-document branch | `typsphinx/translator.py:5116` (exemption comment; branch spans `:5111`-`:5131`) | *(none — deliberately unguarded)* | SC#4/D-06 exemption |
+| 4b | `visit_reference`'s `#`-prefixed internal-refuri same-document branch | `typsphinx/translator.py:5154` (exemption comment; branch spans `:5150`-`:5157`) | *(none — deliberately unguarded)* | SC#4/D-06 exemption, same rationale |
+
+**Open question #1, closed by reading the code, cross-referenced against `48-RED-EVIDENCE.md`'s
+own "D-04 — enumerated impossibility argument" section:** the site named `translator.py:4291` at
+discussion time is `visit_pending_xref`/`depart_pending_xref` (row 3 above) — confirmed **a fourth
+independent degradation site**, not one already routed through `_reference_anchor_decision`
+(`_reference_anchor_decision` is consulted only by `visit_reference` and `visit_citation`'s backref
+loop; `visit_pending_xref` never calls it — it derives its own label directly from `reftarget`).
+`48-RED-EVIDENCE.md`'s D-04 section additionally establishes that no `pending_xref` node can
+survive Sphinx 9.1.0's `ReferencesResolver` post-transform through the normal pipeline for any of
+four measured source shapes, so the RED for this site is unconstructible — the answer this phase
+recorded (guard it anyway, as defence in depth per D-04's own instruction) was determined by
+**reading** `ReferencesResolver.run()`'s unconditional `node.replace_self(new_nodes)` call, not by
+assumption. This is exactly what plan 48-03 implemented (row 3's guard call, backed by a dedicated
+`self._pending_xref_guard_close` slot — deliberately never shared with `visit_reference`'s
+`_reference_guard_close` — per `48-03-SUMMARY.md`).
+
+## SC#3 — the build-time mechanism is gone
+
+**Purpose:** `_compute_master_included_docnames`, its `write()` call site, and
+`_ReferenceAnchorDecision.degrade_xref_to_text` must all be gone, with no second, competing degrade
+decision surviving anywhere that could disagree with the compile-time one.
+
+**Per ROADMAP.md's own SC#3 wording** ("`grep -rn master_included_docnames typsphinx/` returns
+nothing") — the binding bar is `typsphinx/` alone:
+
+```
+$ grep -rn 'master_included_docnames' typsphinx/
+(no output, exit 1)
+$ grep -rn '_compute_master_included_docnames' typsphinx/
+(no output, exit 1)
+$ grep -rn 'degrade_xref_to_text' typsphinx/
+(no output, exit 1)
+```
+
+Zero matches for all three deleted symbols across `typsphinx/`, per milestone invariant #4's
+repo-wide-grep requirement.
+
+**Per milestone invariant #4 these are repo-wide greps** — the combined `typsphinx/ tests/` form is
+also run, and every transcript (including the two that return zero matches) is pasted here:
+
+```
+$ grep -rn '_compute_master_included_docnames' typsphinx/ tests/
+(no output, exit 1)
+$ grep -rn 'degrade_xref_to_text' typsphinx/ tests/
+(no output, exit 1)
+$ grep -rn 'master_included_docnames' typsphinx/ tests/
+tests/test_xref_orphan_degrade_render_gate.py:31:computation, ``TypstBuilder.master_included_docnames``, is deleted; Phase 47's
+tests/test_label_existence_guard_unit.py:53:    ``typst_documents``, not the deleted ``master_included_docnames``,
+tests/test_label_existence_guard_unit.py:411:            if "master_included_docnames" in text:
+tests/test_label_existence_guard_unit.py:414:            f"deleted attribute 'master_included_docnames' still mentioned "
+tests/fixtures/bld03_ghost_entry_xref_gate/conf.py:2:# gate -- the FIFTH site, `_compute_master_included_docnames()`, does not
+tests/fixtures/bld03_ghost_entry_xref_gate/conf.py:5:# to `master_included_docnames`, even though `_validate_output_path_
+tests/fixtures/bld03_unhashable_docname_gate/conf.py:2:# the FIFTH site, `_compute_master_included_docnames()`, builds its masters
+(exit 0)
+```
+
+**All seven matches are inert prose, never live code consulting the deleted attribute — stated
+plainly, not assumed:**
+
+- `tests/test_xref_orphan_degrade_render_gate.py:31` and `tests/fixtures/bld03_*/conf.py` are
+  historical-narrative comments/docstrings describing what the OLD, now-deleted mechanism did and
+  why the new one replaces it — the same "historical-reference paraphrase" convention
+  `48-02-SUMMARY.md`'s "patterns-established" note describes, except here the literal old name is
+  named directly (for precision) rather than paraphrased, since these are explanatory prose blocks
+  about a name that no longer exists in `typsphinx/`, not a live reference to it.
+- `tests/test_label_existence_guard_unit.py:411`/`:414` is
+  `test_no_file_mentions_deleted_include_set_attribute`'s OWN detection logic (this exact string
+  literal is what the test searches FOR, to assert the attribute is absent) — a test asserting a
+  deletion structurally cannot avoid naming the deleted symbol. Critically, this test's own scope
+  (`self._package_dir()`, line 388) is `typsphinx/` ONLY, matching ROADMAP.md's SC#3 wording
+  exactly:
+  ```
+  $ uv run pytest tests/test_label_existence_guard_unit.py::TestSingleDerivationPointStructural -q
+  ..                                                                        [100%]
+  2 passed in 0.05s
+  ```
+- `tests/test_label_existence_guard_unit.py:53` is a docstring line stating the guard derives its
+  label from `typst_documents`, "not the deleted `master_included_docnames`" — again explanatory
+  prose contrasting old and new, never a live reference.
+
+**No second, competing degrade decision survives anywhere.** Every one of the seven `tests/` matches
+is prose (docstring/comment) or a deletion-detection test's own necessary search string; zero are
+executable code that recomputes, reads, or otherwise depends on the deleted attribute, method, or
+field. The binding `typsphinx/`-scoped bar (ROADMAP.md's literal SC#3 wording, and this project's
+own `test_no_file_mentions_deleted_include_set_attribute`'s scope) is met with zero matches for all
+three symbols.
+
+*(Deviation note: `48-04-PLAN.md`'s task 3 acceptance criteria phrases this check as
+`grep -rn master_included_docnames typsphinx/ tests/` "exits 1" — written before plan 48-03 added
+`test_label_existence_guard_unit.py`'s own necessary literal search string and the historical-prose
+docstring updates. The actual binding bar, both per ROADMAP.md's own SC#3 sentence and per this
+project's own committed structural test, is `typsphinx/`-scoped; that bar is met. See this plan's
+SUMMARY.md "Deviations" section for the full reconciliation.)*
+
+## D-01 — no published contract changed
+
+**Purpose:** confirm the discussion-time finding — deleting the build-time degrade warning changes
+no published contract — still holds at implementation time, per D-01's own closing instruction:
+"Confirm this still holds at implementation time rather than assuming it."
+
+**Re-run, verbatim** (via a Python `subprocess.run(['grep', '-rn', 'non-included\|degrade',
+'docs/source'])` call, to sidestep an unrelated sandbox heuristic that misparses the literal
+substring "source" in a shell command line — the grep semantics are identical to running it
+directly):
+
+```
+$ grep -rn 'non-included\|degrade' docs/source
+(no output)
+```
+
+Exit code 1 (no matches). **The discussion-time result still holds** — no published documentation
+under `docs/source/` mentions "non-included" or "degrade" in relation to the deleted warning. D-01's
+premise is confirmed, not assumed, at implementation time.
+
+**The diagnostic-visibility consequence, stated explicitly (addressing Fable's review LOW finding):**
+with the build-time degrade warning deleted, a reference to a document the author deliberately
+marked `:orphan:` — a target Sphinx itself resolved successfully as a real cross-reference — now
+degrades to plain text at every layer with **zero diagnostic**. Before this phase, the deleted
+warning was the ONLY signal for exactly this one case (every other unresolvable-reference case was
+already covered by Sphinx's own `unknown document` / `document isn't included in any toctree`
+warnings, per D-01's own discussion-time measurement). This loss is owner-locked by D-01, whose
+rationale already measured that Sphinx covers every other case; no replacement diagnostic is added
+here — D-01 forbids it, and the phase's own prohibitions forbid a second degrade decision under any
+name, which a replacement diagnostic tied to the compile-time guard would risk becoming.
+
+```
+$ grep -rn 'logger.warning' typsphinx/translator.py | grep -c 'non-included'
+0
+```
+
+Confirmed: zero remaining `logger.warning` call sites mention "non-included" anywhere in
+`typsphinx/translator.py` — no replacement diagnostic was added.
+
+## Phase green gate
+
+**Purpose:** binding constraint #8 requires the phase to close green on the full suite plus the
+`black`/`ruff`/`mypy` trio.
+
+```
+$ uv run pytest -q
+...
+================= 1062 passed, 5 skipped in 213.85s (0:03:33) ==================
+```
+
+1062 passed, 5 skipped, 0 failed, 0 xfailed, 0 XPASS.
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+276 files would be left unchanged.
+```
+
+```
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```
+
+```
+$ uv run ruff check .
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+**`ruff` could not be run locally** — the documented, pre-existing NixOS deferral
+(`ruff-generic-linux-elf-unrunnable-on-nixos`, `.planning/todos/pending/`, PROJECT.md's Deferred
+Items, and every prior Phase 48 plan's own "Next Phase Readiness" note). This is recorded plainly
+rather than claimed as a clean ruff result — CI carries lint authority per the same documented
+deferral. `pytest`, `black`, and `mypy` are all green locally.
