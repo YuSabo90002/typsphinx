@@ -261,4 +261,145 @@ asserted to keep passing after Task 2's filter change.
 immediately after this transcript. `tests/test_collision_predicate_completeness_gate.py` (the
 sibling gap-closure plan 47-11's gate) still reports `11 passed`, unmodified.
 
-<!-- gsd:write-continue -->
+## Post-fix GREEN
+
+Captured after Task 2 landed: `_compute_master_included_docnames()`'s masters-comprehension now
+filters via `_is_usable_typst_documents_entry(entry)` instead of the bare `if entry` truthiness
+test, and both docstrings were corrected. Every command below is re-run verbatim against the same
+two fixtures.
+
+### Failure mode 1 — ghost entry, post-fix
+
+**`-b typst`:** `uv run python -m sphinx -b typst tests/fixtures/bld03_ghost_entry_xref_gate /tmp/green2-d`
+
+**Raw output (tail):**
+```
+WARNING: typst_documents entry 1 (('ghost',)) produces no wrapper file -- entry has no target element or a non-str docname
+preparing documents... Template written to /tmp/green2-d/_template.typ
+done
+writing output... [ghost] done
+writing output... [ghost_child] done
+writing output... [index]WARNING: cross-reference to non-included document 'ghost_child' rendered as plain text (typstpdf includes only toctree-reachable documents): Ghost Child Target Section
+ done
+typst: wrote 1 wrapper file(s) -- compile these: manual.typ
+build succeeded, 2 warnings.
+```
+Exit code: 0, now 2 warnings — the existing under-length-entry warning PLUS the existing
+cross-document-degrade warning, both correctly naming the ghost-child consequence.
+
+**Numeric measurement:**
+```
+$ grep -c 'link(<ghost_child:' /tmp/green2-d/index.typ
+0
+$ grep -c 'Ghost Child Target Section' /tmp/green2-d/index.typ
+1
+```
+The dangling label link is gone; the reference's text still renders as plain inline content.
+
+**`-b typstpdf`:** `uv run python -m sphinx -b typstpdf tests/fixtures/bld03_ghost_entry_xref_gate /tmp/green2-d-pdf`
+
+**Raw output (tail):**
+```
+writing output... [index]WARNING: cross-reference to non-included document 'ghost_child' rendered as plain text (typstpdf includes only toctree-reachable documents): Ghost Child Target Section
+ done
+typst: wrote 1 wrapper file(s) -- compile these: manual.typ
+Compiling 2 master document(s) to PDF...
+Generated PDF: /tmp/green2-d-pdf/manual.pdf
+WARNING: typst_documents entry ('ghost',) has no target element -- expected at least a (docname, target) pair
+
+...
+
+sphinx.errors.ExtensionError: typstpdf: 1 master document(s) failed: ghost: typst_documents entry
+('ghost',) has no target element -- expected at least a (docname, target) pair
+```
+Exit code: 2 (non-zero) — but now for the CORRECT reason (D-02's attempt-all-then-raise contract):
+only the malformed `ghost` entry fails, with the intended `has no target element` diagnostic, and
+NO `does not exist in the document` fatal appears anywhere. `manual.pdf` — the well-formed
+`index`/`manual.typ` master — IS produced:
+```
+$ ls /tmp/green2-d-pdf/manual.pdf
+/tmp/green2-d-pdf/manual.pdf
+$ head -c4 /tmp/green2-d-pdf/manual.pdf
+%PDF
+```
+
+### Failure mode 2 — unhashable docname, post-fix
+
+**`-b typst`:** `uv run python -m sphinx -b typst tests/fixtures/bld03_unhashable_docname_gate /tmp/green2-e`
+
+**Raw output (tail):**
+```
+WARNING: typst_documents entry 0 ((['weird'], 'manual.typ', 'Weird Master', 'Probe Author')) produces no wrapper file -- entry has no target element or a non-str docname
+preparing documents... Template written to /tmp/green2-e/_template.typ
+done
+writing output... [index] done
+typst: wrote 1 wrapper file(s) -- compile these: real.typ
+build succeeded, 1 warning.
+```
+Exit code: 0. No traceback, no `TypeError`, no `unhashable type` anywhere — the graceful
+warn-and-skip every other predicate-guarded site already guarantees now covers this fifth site
+too. Both `index.typ` and `real.typ` exist.
+
+**`-b typstpdf`:** already-covered by `finish()`'s existing non-str-docname branch, now reachable
+for the first time because `_compute_master_included_docnames()` no longer crashes before
+`finish()` runs -- `"non-str docname"` appears in the combined output, `TypeError` does not, and
+`real.pdf` exists.
+
+### Full-module raw pytest transcript (eight passed, zero xfail, zero xpass)
+
+**Command:** `uv run pytest tests/test_master_include_set_predicate_gate.py -q -rxX`
+
+**Raw output:**
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: <worktree>
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 8 items
+
+tests/test_master_include_set_predicate_gate.py ........                 [100%]
+
+============================== 8 passed in 2.49s ===============================
+```
+
+### Behavioural proof of the fix, independent of source text
+
+```
+$ uv run python -c "import types, typsphinx.builder as b; f=b.TypstBuilder._compute_master_included_docnames; o=type('X',(),{'config':types.SimpleNamespace(typst_documents=[('index','manual.typ','T','A'),('ghost',)]),'env':types.SimpleNamespace(toctree_includes={'ghost':['ghost_child']})})(); print(sorted(f(o)))"
+['index']
+$ uv run python -c "import types, typsphinx.builder as b; f=b.TypstBuilder._compute_master_included_docnames; o=type('X',(),{'config':types.SimpleNamespace(typst_documents=[(['weird'],'manual.typ','T','A'),('index','real.typ','T','A')]),'env':types.SimpleNamespace(toctree_includes={})})(); print(sorted(f(o)))"
+['index']
+$ uv run python -c "import inspect, typsphinx.builder as b; s=inspect.getsource(b.TypstBuilder._compute_master_included_docnames); print('_is_usable_typst_documents_entry' in s)"
+True
+$ uv run python -c "import typsphinx.builder as b; d=b._is_usable_typst_documents_entry.__doc__; print('FIVE' in d, '_compute_master_included_docnames' in d)"
+True True
+$ uv run python -c "import typsphinx.builder as b; print(b._is_usable_typst_documents_entry(()), b._is_usable_typst_documents_entry(('index',)), b._is_usable_typst_documents_entry((123,'t.typ')), b._is_usable_typst_documents_entry(('index','t.typ')))"
+False False False True
+```
+The predicate's own input/output pairs are unchanged by its docstring correction.
+
+### Full-suite and lint/type trio
+
+```
+$ uv run pytest -q
+================= 1042 passed, 5 skipped in 210.12s (0:03:30) ==================
+$ uv run black --check .
+All done! (270 files unchanged)
+$ uv run mypy typsphinx/
+Success: no issues found in 6 source files
+```
+`uv run ruff check .` could not run in this worktree -- a pre-existing, already-acknowledged
+NixOS environment limitation (`.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`;
+STATE.md Deferred Items: "Does not block SC#3, which takes lint authority from CI"). Unrelated to
+this plan's changes; CI's `lint` job is authoritative.
+
+### Legacy regression modules, unmodified
+
+```
+$ uv run pytest tests/test_collision_predicate_completeness_gate.py tests/test_missing_and_malformed_master_gate.py tests/test_non_str_docname_gate.py tests/test_xref_orphan_degrade_render_gate.py tests/test_citation_degradation_gate.py -q
+================= 31 passed in 7.23s =================
+```
+`git diff --stat` is empty for all five modules — the four already-wired sites' behaviour and the
+existing degrade/citation gates all stay byte-for-byte, proving this plan's fifth-site fix did not
+disturb any of BLD-02's, BLD-03's four already-wired sites', or GATE-02's existing contracts.

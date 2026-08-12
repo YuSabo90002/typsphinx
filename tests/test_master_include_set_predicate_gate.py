@@ -100,22 +100,9 @@ class TestGhostEntryXrefRenderGate:
     into that phantom-included subtree is wrongly judged safe to link.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: -b typst exits 0 and emits "
-            "'link(<ghost_child:ghost-child-label>,' into index.typ -- the "
-            "bare `if entry` filter in _compute_master_included_docnames() "
-            "admits the under-length ('ghost',) entry and its whole "
-            "toctree closure, so the cross-reference is judged safe to "
-            "link into a subtree that produces no wrapper file"
-        ),
-    )
     def test_ghost_entry_subtree_xref_degrades_typst(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_GHOST_ENTRY_FIXTURE_DIR, build_dir, "typst"
-        )
+        result = _run_sphinx_build(BLD03_GHOST_ENTRY_FIXTURE_DIR, build_dir, "typst")
 
         assert result.returncode == 0, (
             f"Expected -b typst to still succeed (the under-length entry "
@@ -139,21 +126,9 @@ class TestGhostEntryXrefRenderGate:
             f"the 'ghost' entry:\n{combined_output}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: -b typstpdf raises 'TypstError: label "
-            "<ghost_child:ghost-child-label> does not exist in the "
-            "document' and manual.pdf (the well-formed sibling master) is "
-            "never produced, because the same phantom-included subtree "
-            "yields a real dangling link"
-        ),
-    )
     def test_ghost_entry_no_dangling_label_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_GHOST_ENTRY_FIXTURE_DIR, build_dir, "typstpdf"
-        )
+        result = _run_sphinx_build(BLD03_GHOST_ENTRY_FIXTURE_DIR, build_dir, "typstpdf")
         combined_output = result.stdout + result.stderr
 
         assert result.returncode != 0, (
@@ -187,22 +162,12 @@ class TestGhostEntryIncludeSetUnit:
     xfail rather than a module-level collection error.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: returns {'ghost', 'ghost_child', 'index'} because "
-            "the bare `if entry` filter admits the under-length "
-            "('ghost',) 1-tuple, whose toctree then pulls in 'ghost_child'"
-        ),
-    )
     def test_ghost_entry_excluded_from_master_include_set(self, temp_sphinx_app):
         from typsphinx.builder import TypstBuilder
 
         app = temp_sphinx_app
         builder = TypstBuilder(app, app.env)
-        builder.env = types.SimpleNamespace(
-            toctree_includes={"ghost": ["ghost_child"]}
-        )
+        builder.env = types.SimpleNamespace(toctree_includes={"ghost": ["ghost_child"]})
         builder.config.typst_documents = [
             ("index", "manual.typ", "T", "A"),
             ("ghost",),
@@ -228,20 +193,9 @@ class TestUnhashableDocnameRenderGate:
     uncaught ``TypeError``.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: -b typst aborts with an uncaught 'TypeError: "
-            "unhashable type: list' raised inside "
-            "_compute_master_included_docnames()'s BFS set operations at "
-            "builder.py:276, instead of exiting 0"
-        ),
-    )
     def test_unhashable_docname_skipped_gracefully_typst(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_UNHASHABLE_FIXTURE_DIR, build_dir, "typst"
-        )
+        result = _run_sphinx_build(BLD03_UNHASHABLE_FIXTURE_DIR, build_dir, "typst")
         combined_output = result.stdout + result.stderr
 
         assert result.returncode == 0, (
@@ -270,21 +224,9 @@ class TestUnhashableDocnameRenderGate:
             f"exist:\n{combined_output}"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: -b typstpdf also aborts with the same uncaught "
-            "'TypeError: unhashable type: list' inside "
-            "_compute_master_included_docnames(), which runs at the top "
-            "of write() before finish() is ever reached, so finish()'s "
-            "existing non-str-docname diagnostic never fires"
-        ),
-    )
     def test_unhashable_docname_reported_by_finish_typstpdf(self, tmp_path):
         build_dir = tmp_path / "build"
-        result = _run_sphinx_build(
-            BLD03_UNHASHABLE_FIXTURE_DIR, build_dir, "typstpdf"
-        )
+        result = _run_sphinx_build(BLD03_UNHASHABLE_FIXTURE_DIR, build_dir, "typstpdf")
         combined_output = result.stdout + result.stderr
 
         assert result.returncode != 0, (
@@ -315,14 +257,6 @@ class TestUnhashableDocnameIncludeSetUnit:
     xfail rather than a module-level collection error.
     """
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "pre-fix: raises TypeError: unhashable type: 'list' from the "
-            "BFS's `docname in included` set membership test before the "
-            "method can return anything"
-        ),
-    )
     def test_compute_master_included_docnames_tolerates_unhashable_docname(
         self, temp_sphinx_app
     ):
@@ -382,9 +316,7 @@ class TestMasterIncludeSetInvarianceGuards:
             f"{sorted(result)}"
         )
 
-    def test_empty_typst_documents_still_yields_empty_set(
-        self, temp_sphinx_app
-    ):
+    def test_empty_typst_documents_still_yields_empty_set(self, temp_sphinx_app):
         from typsphinx.builder import TypstBuilder
 
         app = temp_sphinx_app
@@ -401,6 +333,5 @@ class TestMasterIncludeSetInvarianceGuards:
 
         builder.config.typst_documents = None
         assert builder._compute_master_included_docnames() == set(), (
-            "Expected typst_documents=None to also yield an empty "
-            "include set"
+            "Expected typst_documents=None to also yield an empty " "include set"
         )
