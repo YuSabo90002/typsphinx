@@ -75,7 +75,7 @@ position".
 
 ### Builder input hardening (BLD)
 
-- [ ] **BLD-02**: Two `typst_documents` entries resolving to the same target path are detected and
+- [x] **BLD-02**: Two `typst_documents` entries resolving to the same target path are detected and
       reported instead of silently dropping one master's body
 
 - [ ] **BLD-03**: A wrapper target that collides with a content file's own path is detected
@@ -256,7 +256,7 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | OUT-03 | Phase 47 | Complete |
 | XREF-03 | Phase 48 | Pending |
 | XREF-04 | Phase 48 | Pending |
-| BLD-02 | Phase 47 | Pending |
+| BLD-02 | Phase 47 | Complete |
 | BLD-03 | Phase 47 | Pending |
 | BLD-04 | Phase 47 | Complete |
 | IMG-01 | Phase 50 | Pending |
