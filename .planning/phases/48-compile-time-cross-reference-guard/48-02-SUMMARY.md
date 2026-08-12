@@ -169,3 +169,7 @@ None — no external service configuration required.
 ---
 *Phase: 48-compile-time-cross-reference-guard*
 *Completed: 2026-08-12*
+
+## Self-Check: PASSED
+
+All 8 claimed files confirmed present on disk (`typsphinx/translator.py`, `typsphinx/builder.py`, `tests/test_xref_compile_time_guard_render_gate.py`, `tests/test_citation_degradation_gate.py`, `tests/test_xref_orphan_degrade_render_gate.py`, `tests/test_master_include_set_predicate_gate.py`, `.planning/REQUIREMENTS.md`, this SUMMARY.md). All 4 commit hashes (`8184f4d`, `5e1ca0e`, `8d21a13`, `3686089`) confirmed present in `git log`.
