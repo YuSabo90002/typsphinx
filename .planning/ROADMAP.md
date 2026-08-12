@@ -517,7 +517,7 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 14 plans — 12/12 executed, plus 2 further gap-closure plans (waves 7-8) added 2026-08-12
+**Plans**: 13/14 plans executed — 12/12 executed, plus 2 further gap-closure plans (waves 7-8) added 2026-08-12
 after re-verification scored 10/11 and returned BLD-03 BLOCKED on a newly-found BLOCKER
 (`47-REVIEW.md` CR-01):
 
@@ -529,7 +529,7 @@ after re-verification scored 10/11 and returned BLD-03 BLOCKED on a newly-found 
 - [x] 47-12-PLAN.md — delete the WR-01 dead entry-element resolver and correct the six stale
       REQUIREMENTS.md checkboxes
 
-- [ ] 47-13-PLAN.md — BLOCKER: route `_compute_master_included_docnames()` (the fifth site consuming
+- [x] 47-13-PLAN.md — BLOCKER: route `_compute_master_included_docnames()` (the fifth site consuming
       `typst_documents`) through the shared entry-usability predicate, closing a silent dangling-label
       defect and an uncaught `TypeError`, with RED recorded on content and traceback first
 
@@ -870,7 +870,7 @@ sequential, not merely numbered:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 12/12 | In Progress|  |
+| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 13/14 | In Progress|  |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 0/TBD | Not started | - |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
