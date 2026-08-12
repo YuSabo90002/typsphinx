@@ -517,7 +517,7 @@ that one phase would mean shipping a phase whose most common configuration is si
      `gsd/v0.8.0-multi-master-composition` is pushed to `origin` **in this phase**, evidenced by a
      `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
      Windows and macOS lanes (milestone invariant #5, binding constraint #2).
-**Plans**: 13/14 plans executed — 12/12 executed, plus 2 further gap-closure plans (waves 7-8) added 2026-08-12
+**Plans**: 14/14 plans executed — 12/12 executed, plus 2 further gap-closure plans (waves 7-8) added 2026-08-12
 after re-verification scored 10/11 and returned BLD-03 BLOCKED on a newly-found BLOCKER
 (`47-REVIEW.md` CR-01):
 
@@ -533,7 +533,7 @@ after re-verification scored 10/11 and returned BLD-03 BLOCKED on a newly-found 
       `typst_documents`) through the shared entry-usability predicate, closing a silent dangling-label
       defect and an uncaught `TypeError`, with RED recorded on content and traceback first
 
-- [ ] 47-14-PLAN.md — delete the WR-01 dead `_resolve_output_stem()` output-stem resolver, retarget
+- [x] 47-14-PLAN.md — delete the WR-01 dead `_resolve_output_stem()` output-stem resolver, retarget
       its 22 surviving assertions onto the live resolvers, and flip BLD-02's checkbox
 
 **Corpus migration cost measured at planning time (2026-08-11), not present in RESEARCH.md:** the
@@ -577,7 +577,7 @@ Plans:
 
 **Wave 7** *(gap closure, blocked on Wave 6 completion)*
 
-- [ ] 47-13-PLAN.md — BLOCKER/CR-01: wire the fifth `typst_documents` consumer (`_compute_master_included_docnames()`) onto the shared predicate; two new fixtures, an eight-test gate, RED-then-GREEN evidence (wave 7)
+- [x] 47-13-PLAN.md — BLOCKER/CR-01: wire the fifth `typst_documents` consumer (`_compute_master_included_docnames()`) onto the shared predicate; two new fixtures, an eight-test gate, RED-then-GREEN evidence (wave 7)
 
 **Wave 8** *(blocked on Wave 7 completion — same file, `typsphinx/builder.py`)*
 
@@ -870,7 +870,7 @@ sequential, not merely numbered:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 13/14 | In Progress|  |
+| 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | In Progress|  |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 0/TBD | Not started | - |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
