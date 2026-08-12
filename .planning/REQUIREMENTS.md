@@ -69,9 +69,12 @@ position".
 
 - [x] **XREF-03**: A cross-document reference whose target label is absent from the compiling master
       degrades to plain text at compile time instead of aborting the compile
+      (`48-EVIDENCE.md` §"Guard contract, fixed by this measurement", §"SC#2 — site enumeration"
+      row 1, §"D-11 compile-time cost")
 
 - [x] **XREF-04**: Every label-reference emission site routes through one shared guard, and
       `master_included_docnames` is removed
+      (`48-EVIDENCE.md` §"SC#2 — site enumeration" / §"SC#3 — the build-time mechanism is gone")
 
 ### Builder input hardening (BLD)
 
