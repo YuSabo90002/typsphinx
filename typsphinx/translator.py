@@ -3377,18 +3377,38 @@ class TypstTranslator(SphinxTranslator):
                 continue
             backref_targets.append(decision.anchor_label)
 
+        # D-05 (48-RED-EVIDENCE.md failure mode 2): every back-reference
+        # target below is routed through the shared _label_existence_guard
+        # rather than a bare link(<label>, ...) call. SC#4 exempts an
+        # ordinary same-document anchor from guarding because content files
+        # are included wholesale -- but a citation back-reference target is
+        # NOT guaranteed to exist even though it is same-document: its
+        # presence depends on visit_reference having actually RUN on the
+        # citing node, and visit_caption's SkipNode (translator.py, the
+        # captioned-code-block route) can prune the walker from ever
+        # reaching it while _find_citing_reference's document.findall scan
+        # still structurally finds the node and judges it eligible. Unlike
+        # an ordinary same-document target, this one can be judged eligible
+        # with no anchor ever attached -- so it is guarded here even though
+        # it is same-document.
         if len(backref_targets) == 1:
-            label_body = f"link(<{backref_targets[0]}>, {label_content})"
+            guard = self._label_existence_guard(
+                backref_targets[0], prefix="", code_mode_body=True
+            )
+            label_body = f"{guard.open_str}{label_content}{guard.close_str}"
         else:
             label_body = label_content
 
         label_expr = f'text("[") + {label_body} + text("]")'
 
         if len(backref_targets) >= 2:
-            markers = ",".join(
-                f"link(<{target}>, [{i}])"
-                for i, target in enumerate(backref_targets, start=1)
-            )
+            marker_parts = []
+            for i, target in enumerate(backref_targets, start=1):
+                guard = self._label_existence_guard(
+                    target, prefix="", code_mode_body=True
+                )
+                marker_parts.append(f"{guard.open_str}[{i}]{guard.close_str}")
+            markers = ",".join(marker_parts)
             label_expr += f' + text(" (") + ({markers}).join(",") + text(")")'
 
         # Attach the citation's OWN definition anchor via the bracket-wrap

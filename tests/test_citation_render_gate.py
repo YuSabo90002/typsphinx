@@ -969,10 +969,20 @@ class TestCitationRenderGateCompiledPdf:
         # (2+ backrefs -> plain label + numbered markers, D-03), targeting
         # -- IN ORDER -- the citing sites' own D-14 anchors, extracted from
         # Sphinx's resolved doctree, never written as literals.
+        # 48-03 (D-05): each marker is now an independently-guarded
+        # `context { let __tsx_body = [#{[N]}]; if query(<L>).len() > 0 {
+        # link(<L>, __tsx_body) } else { __tsx_body } }` expression, not a
+        # bare `link(<L>, [N])` call -- match the WHOLE guarded marker so
+        # the separator check below (between two full markers, not two
+        # bare `link()` calls) still finds a bare comma with nothing else
+        # between them.
         krizhevsky_label_cell = refs_grid[:alpha_idx]
-        backref_matches = list(
-            re.finditer(r"link\(<([^>]+)>[^)]*\)", krizhevsky_label_cell)
+        marker_pattern = re.compile(
+            r"context \{ let __tsx_body = \[#\{\[\d+\]\}\]; "
+            r"if query\(<([^>]+)>\)\.len\(\) > 0 \{ "
+            r"link\(<[^>]+>, __tsx_body\) \} else \{ __tsx_body \} \}"
         )
+        backref_matches = list(marker_pattern.finditer(krizhevsky_label_cell))
         backref_targets = [m.group(1) for m in backref_matches]
         assert len(backref_targets) == 2, (
             "D-03: Krizhevsky2012's label cell must carry exactly TWO "

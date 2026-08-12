@@ -128,12 +128,6 @@ class TestCitationCaptionDanglingLabelGate:
             f"{combined}"
         )
 
-    # Pre-fix (48-RED-EVIDENCE.md Failure mode 2), -b typstpdf exits
-    # non-zero with 'TypstError: label `<index:id1>` does not exist in the
-    # document' -- the citation definition's backref loop still emits a
-    # bare link(<index:id1>, ...) to an anchor visit_caption's SkipNode
-    # prevented visit_reference from ever attaching.
-    @pytest.mark.xfail(strict=True, reason="48-03 lands the guard (RED-EVIDENCE #2)")
     def test_typstpdf_build_succeeds_no_dangling_label(self, tmp_path):
         """
         48-EXPECTED-STRUCTURE.md "Fixture: citation_caption_dangling_label_gate":
@@ -162,11 +156,6 @@ class TestCitationCaptionDanglingLabelGate:
             b"%PDF"
         ), "manual.pdf does not start with the %PDF magic marker"
 
-    # Pre-fix (48-RED-EVIDENCE.md Failure mode 2), the emitted index.typ
-    # carries a bare link(<index:id1>, text("Smith2020")) around the
-    # citation back-reference, not the guarded
-    # context { ... if query(...).len() > 0 { ... } ... } form.
-    @pytest.mark.xfail(strict=True, reason="48-03 lands the guard (RED-EVIDENCE #2)")
     def test_typ_carries_guarded_backref_form(self, tmp_path):
         """
         48-EXPECTED-STRUCTURE.md "Fixture: citation_caption_dangling_label_gate":
