@@ -73,8 +73,10 @@ blocked: 0
     Page 7 by contrast carries a correct internal destination, confirming the anchored
     (`#anchor`) path works and the defect is specific to the whole-document path:
       /Dest user_guide_u2f_configuration:author-information
-    4 of the 40 (`genindex`, `py-modindex`, `search`, and their `../` forms) have no PDF
-    equivalent at all and need a separate decision (drop the link vs. leave it).
+    5 of the 40 have no PDF equivalent at all and need a separate decision (drop the link
+    vs. leave it): `genindex`, `py-modindex`, `search`, `../genindex`, `../py-modindex`.
+    (Corrected during gap planning — this entry first said 4, miscounting the `../` forms
+    against the enumeration above, which lists all five at 1 occurrence each.)
   artifacts:
     - path: "typsphinx/translator.py:4812"
       issue: "`if \"#\" not in refuri: return None` sends whole-document refs to the external-link branch"
@@ -83,5 +85,5 @@ blocked: 0
   missing:
     - "A stable per-document anchor each content .typ emits for itself (e.g. `<docname:__doc>`), so a whole-document ref has a label to target"
     - "Route the `xref is None` whole-document case through `_label_existence_guard` against that anchor instead of the string-url branch"
-    - "A decision for genindex/py-modindex/search, which have no PDF counterpart"
+    - "A decision for the 5 Sphinx-generated virtual pages (genindex/py-modindex/search and two `../` forms), which have no PDF counterpart"
   debug_session: ""
