@@ -635,7 +635,8 @@ differences also become correct through this one mechanism rather than three.
      The full-corpus `-b typstpdf` compile time is recorded before and after, so a material regression
      from per-reference `query()`-driven introspection passes is a stated finding handed forward rather
      than a surprise discovered at corpus scale.
-**Plans**: 4/4 plans executed
+**Plans**: 7 plans (4/4 original plans executed; 3 gap-closure plans added 2026-08-13 for UAT gap
+G-48-4 — a whole-document `:doc:` reference emitted as a dead file link)
 
 Plans:
 **Wave 1**
@@ -661,6 +662,24 @@ Plans:
 - [x] 48-04-PLAN.md — D-11 cost measurement against pre-fixed tiers, D-09 citation-marker corpus
       delta, the accepted label-collision limit, SC#2/SC#3 repo-wide grep discharge, D-01
       published-contract re-check, phase green gate (wave 4)
+
+**Wave 5** *(gap closure for UAT G-48-4 — blocked on Wave 4 completion)*
+
+- [ ] 48-05-PLAN.md — Enumerate the pre-fix dead-link population in the built documentation PDF,
+      get the owner's decision on the Sphinx-generated pages that have no Typst counterpart, and
+      write every post-fix expected value down before the emitter changes (wave 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 48-06-PLAN.md — Whole-document acceptance fixture plus two gates recorded RED against the
+      unfixed emitter: a fast resolver/self-anchor unit gate and a real
+      `sphinx-build → typst.compile() → pypdf` render gate (wave 6)
+
+**Wave 7** *(blocked on Wave 6 completion — same file, `typsphinx/translator.py`)*
+
+- [ ] 48-07-PLAN.md — TRACER: every content file emits a stable self-anchor and the whole-document
+      reference case routes through the existing shared guard against it, then the documentation
+      PDF's dead-link count is re-measured against the pinned baseline (wave 7)
 
 **UI hint**: no
 
