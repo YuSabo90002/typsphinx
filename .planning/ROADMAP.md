@@ -810,7 +810,12 @@ abort loudly, and now renders the wrong picture silently.
      colliding-basename nor absolute-outside-`doctreedir` are copied to byte-identical destinations
      across the change, measured by a two-build comparison over `docs/source` and every root under
      `tests/roots`, and PR #131's own Issue #130 regression tests still pass unchanged.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 50-01-PLAN.md — Wave 1: D-10 sibling fixture + the D-08 render gate, with both collision assertions recorded RED against the unfixed builder
+- [ ] 50-02-PLAN.md — Wave 2: tracer — widen `_track_image()` end-to-end for IMG-01 and IMG-02 as one change, bracketed by the D-11 two-build measurement
+- [ ] 50-03-PLAN.md — Wave 3: unit coverage for the three relocation branches, plus the cross-wave audit of the phase's evidence chain
 **UI hint**: no
 
 ### Phase 51: Two-Layer Output Documentation
