@@ -41,6 +41,10 @@ EXPLICIT_PATH_FIXTURE_DIR = FIXTURES_DIR / "output_layout_explicit_path_gate"
 REFUSED_PARENT_FIXTURE_DIR = FIXTURES_DIR / "output_layout_refused_parent_gate"
 REFUSED_ABSOLUTE_FIXTURE_DIR = FIXTURES_DIR / "output_layout_refused_absolute_gate"
 REFUSED_DRIVE_FIXTURE_DIR = FIXTURES_DIR / "output_layout_refused_drive_gate"
+# EXISTING Phase 47 fixture, reused (not duplicated) for the collision-abort
+# gate below -- do not create a fourth copy of the same configuration and
+# do not modify tests/fixtures/bld03_self_collision_gate/ itself.
+SELF_COLLISION_FIXTURE_DIR = FIXTURES_DIR / "bld03_self_collision_gate"
 OUTPUT_LAYOUT_RST_PATH = (
     REPO_ROOT / "docs" / "source" / "user_guide" / "output_layout.rst"
 )
@@ -50,6 +54,11 @@ OUTPUT_LAYOUT_RST_PATH = (
 # SAME fragment the published page must quote inside a literal block
 # (51-RESEARCH.md Part B), not paraphrase.
 REFUSAL_WARNING_FRAGMENT = "a path is not supported in a typst_documents target name"
+
+# The fragment of the aggregated ExtensionError the collision validator
+# raises before anything is written (builder.py:611-613) -- the SAME
+# fragment the published page must quote (D-05).
+COLLISION_ERROR_FRAGMENT = "output path collision(s)"
 
 
 def _run_sphinx_build(
@@ -284,6 +293,37 @@ class TestOutputLayoutBuildFileSets:
             f"stderr:\nstderr: {result.stderr}"
         )
 
+    def test_self_collision_target_aborts_the_build_with_no_typ_files(self, tmp_path):
+        """
+        A real ``-b typst`` build of the EXISTING Phase 47
+        ``bld03_self_collision_gate`` fixture (``typst_documents =
+        [("index", "index.typ", ...)]``) exits non-zero: the ``index``
+        entry's target resolves onto the ``index`` docname's own content
+        file, and the collision validator raises before anything is
+        written. The combined stdout+stderr names the collision, and a
+        recursive glob for ``*.typ`` under the build directory yields ZERO
+        files -- the observable proof that the check runs before any
+        write, not merely a claim about the code.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(SELF_COLLISION_FIXTURE_DIR, build_dir, "typst")
+
+        assert result.returncode != 0, (
+            f"Expected the self-collision build to FAIL:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        combined_output = result.stdout + result.stderr
+        assert COLLISION_ERROR_FRAGMENT in combined_output, (
+            f"Expected the literal {COLLISION_ERROR_FRAGMENT!r} fragment in "
+            f"the build output:\n{combined_output}"
+        )
+
+        typ_files = list(build_dir.rglob("*.typ")) if build_dir.exists() else []
+        assert typ_files == [], (
+            "D-02: expected NO .typ files written when the self-collision "
+            f"is found (the check runs before any write), found: {typ_files}"
+        )
+
 
 class TestPublishedOutputLayoutTextMatchesBuild:
     """
@@ -334,3 +374,13 @@ class TestPublishedOutputLayoutTextMatchesBuild:
                 "docs/source/user_guide/output_layout.rst does not name the "
                 f"refused target value {target_value!r}."
             )
+
+    def test_page_states_the_collision_abort(self):
+        """docs/source/user_guide/output_layout.rst quotes the collision
+        validator's aggregated error fragment verbatim (D-05)."""
+        text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
+        assert COLLISION_ERROR_FRAGMENT in text, (
+            "docs/source/user_guide/output_layout.rst does not contain the "
+            f"literal {COLLISION_ERROR_FRAGMENT!r} -- the collision abort "
+            "must be quoted, not paraphrased."
+        )
