@@ -432,7 +432,7 @@ override `ui-safety-gate.cjs` reads, rather than relying on a per-run `--skip-ui
 - [x] **Phase 48: Compile-Time Cross-Reference Guard** - Whether a reference's target label exists is decided by Typst per compiled wrapper instead of by a build-time union across all masters, so a missing label degrades to plain text rather than aborting — landed before the graph work that would otherwise make it fatal (completed 2026-08-14)
 - [x] **Phase 49: Per-Master Include Graph with State-Guarded Includes** - Each wrapper computes its own include edge set by mirroring `inline_all_toctrees` and publishes it as Typst `state`; content files emit state-guarded includes at their toctree's own position, closing defect A and the diamond, and holding at full-corpus scale (completed 2026-08-14)
 - [x] **Phase 50: PR #131 Image Path Defects** - A converted image rehomed to `images/<basename>` no longer collides with a real source image of the same name, and an absolute image URI outside `doctreedir` no longer writes outside the output directory (completed 2026-08-14)
-- [ ] **Phase 51: Two-Layer Output Documentation** - The published documentation says which file to compile, what a content file compiled standalone does, what target-as-path means, and exactly what changed from v0.7.x
+- [x] **Phase 51: Two-Layer Output Documentation** - The published documentation says which file to compile, what a content file compiled standalone does, what target-as-path means, and exactly what changed from v0.7.x (completed 2026-08-15)
 - [ ] **Phase 52: v0.8.0 Release Prep (prep-only)** - The v0.8.0 tree is bumped, its CHANGELOG curated around the output-shape change and the target-as-path reversal, proven green on real multi-master evidence, and handed off with no irreversible action taken
 
 ## Phase Details
@@ -982,7 +982,7 @@ sequential, not merely numbered:
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
-| 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | In Progress|  |
+| 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion

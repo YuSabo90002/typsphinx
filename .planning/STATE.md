@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
-current_phase: 51
-current_phase_name: two-layer-output-documentation
-status: executing
-stopped_at: Phase 51 planned
-last_updated: "2026-08-14T14:41:24.821Z"
-last_activity: 2026-08-14
-last_activity_desc: Phase 51 execution started
+current_phase: 52
+current_phase_name: v0.8.0 Release Prep (prep-only)
+status: planning
+stopped_at: Phase 51 complete
+last_updated: "2026-08-14T21:59:24.679Z"
+last_activity: 2026-08-15
+last_activity_desc: Phase 51 complete, transitioned to Phase 52
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 36
-  completed_plans: 30
-  percent: 67
+  completed_plans: 36
+  percent: 83
 ---
 
 # Project State
@@ -35,17 +35,20 @@ Phase 49 complete 2026-08-14 (6/6 plans, verification 5/5 SC, UAT 2/2 dispositio
 0 blockers / 2 warnings, both tracked as pending todos; GATE-02 corpus gate green unmodified).
 Phase 50 complete 2026-08-14 (3/3 plans; SC#2's IMG-02 RED-recording gap closed by a recorded owner
 override, scoped to that gap only — see `50-VERIFICATION.md`).
-Phase 51 planned 2026-08-14 (6 plans / 3 waves; DOC-14 covered, 12/12 CONTEXT decisions covered).
-Next action: `/gsd-execute-phase 51`
+Phase 51 complete 2026-08-15 (6/6 plans; verification 3/3 SC, DOC-14 discharged; documentation-only,
+zero lines under `typsphinx/`). Code review found one Critical — four published emitted-file claims
+omitted `_template.typ`, which every wrapper imports — plus a vacuous gate assertion; both fixed
+post-execution, along with the two sweep residuals `51-SWEEP-AUDIT.md` reported as outstanding.
+Next action: `/gsd-plan-phase 52`
 
 ## Current Position
 
-Phase: 51 (two-layer-output-documentation) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 51
-Last activity: 2026-08-14 — Phase 51 execution started
+Phase: 52 — v0.8.0 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-15 — Phase 51 complete, transitioned to Phase 52
 
-Progress: [██████████░░] 67% (4/6 phases) · 30/36 plans
+Progress: [██████████░░] 83% (5/6 phases) · 36/36 plans
 
 ## Active Milestone (v0.8.0 — multi-master composition)
 
