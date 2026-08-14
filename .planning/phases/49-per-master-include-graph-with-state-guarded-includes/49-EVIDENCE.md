@@ -867,3 +867,155 @@ Success: no issues found in 6 source files
 
 `git status --porcelain typsphinx/ tests/` prints nothing at the close of this plan -- no file
 under either directory carries an uncommitted change.
+
+---
+
+## Corpus convergence measurement
+
+**Written by 49-06, Task 1.** COMP-12/SC#5's corpus half: `tests/test_corpus_gate.py` is the
+existing GATE-02 gate (introduced Phase 15, cost-measured at Phase 48 D-11), run here
+**unmodified**, with the slow marker selected, against the composition this phase's state-guarded
+`visit_toctree()` now produces. This section does not touch the gate's own file — confirmed below.
+
+### Worktree isolation, confirmed before the run
+
+```
+$ uv run python -c "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())"
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7a7bacfe8f502177/typsphinx/__init__.py
+```
+The worktree's own copy, not the main checkout — a corpus run against the wrong tree would measure
+nothing this phase changed.
+
+### Exact command line, verbatim output, exit status, wall-clock runtime — two runs
+
+**Run 1:**
+```
+$ time uv run pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -q -s
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7a7bacfe8f502177
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_corpus_gate.py Corpus tag: v9.1.0
+Corpus commit SHA: cc7c6f435ad37bb12264f8118c8461b230e6830c
+Unknown Visit Catalogue: []
+.
+
+============================== 1 passed in 14.53s ==============================
+
+real	0m14.899s
+user	0m13.586s
+sys	0m0.623s
+```
+Exit status: `0` (pytest reports `1 passed`, and the command's own trailing exit code — verified
+separately via `echo $?` immediately after — was `0`).
+
+**Run 2:**
+```
+$ time uv run pytest tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error -m slow -q -s
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7a7bacfe8f502177
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_corpus_gate.py Corpus tag: v9.1.0
+Corpus commit SHA: cc7c6f435ad37bb12264f8118c8461b230e6830c
+Unknown Visit Catalogue: []
+.
+
+============================== 1 passed in 13.63s ==============================
+
+real	0m13.847s
+user	0m13.295s
+sys	0m0.613s
+```
+Exit status: `0`.
+
+Corpus tag `v9.1.0`, commit SHA `cc7c6f435ad37bb12264f8118c8461b230e6830c` — same clone both runs
+(cached at `~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0`, matching the tag the installed
+`sphinx==9.1.0` resolves to), matching Phase 48's own D-11 corpus.
+
+### Compiled artifact's own properties, as the gate asserts them
+
+The gate's own assertions (`pdf_path.exists()`, `.stat().st_size > 0`, `magic == b"%PDF"`) passed
+in both runs above (no `AssertionError` in either transcript). The gate's own `tmp_path` is
+ephemeral per-test, so its exact byte size is not printed by the gate itself; a **separate,
+independent reproduction** of the identical build (same `get_or_clone_corpus` /
+`wire_typsphinx_into_corpus_conf` / `_run_corpus_sphinx_build("typstpdf", ...)` helpers imported
+directly from `tests/test_corpus_gate.py`, invoked from a throwaway scratch script outside the
+repository, never modifying the gate's own file) captured the artifact's own properties directly:
+
+```
+$ uv run python /tmp/.../49-06-corpus/probe.py
+EXIT: 0
+PDF exists: True
+PDF size: 15412931
+Magic: b'%PDF'
+Catalogue: []
+```
+
+**PDF byte size: 15,412,931 bytes (~14.7 MiB)**, begins with the PDF magic bytes (`%PDF`), exit
+status `0` — the same build the gate itself runs, reproduced once more independently to record the
+byte count the gate's own ephemeral `tmp_path` does not print.
+
+### Unsupported-node catalogue
+
+Both gate runs printed `Unknown Visit Catalogue: []` to stdout (`print(f"Unknown Visit Catalogue:
+{catalogue.most_common()}")`, `tests/test_corpus_gate.py`'s own SC#2 byproduct), and the
+independent reproduction's own `catalogue_unknown_visit(result.stderr)` call agrees:
+`Catalogue: []`. **The unsupported-node catalogue is empty** in every one of the three builds run
+for this section — no `WARNING: unknown node type: <...>` line appears anywhere in the captured
+stderr of any of them.
+
+### Runtime beside Phase 48's baseline
+
+Phase 48's D-11 recorded (`48-EVIDENCE.md` lines 240-249, `48-VALIDATION.md`'s own baseline row):
+pre-fix baseline mean `28.745s` (`(28.93 + 28.56) / 2`), after-guard mean `28.065s` (bottom tier,
+`-2.37%`), both measured with `time uv run pytest tests/test_corpus_gate.py -m slow` on the same
+worktree-isolated machine class this plan also runs on.
+
+This plan's own two runs: `14.53s` / `13.63s` (pytest-reported), mean `14.08s`
+(`(14.53 + 13.63) / 2`).
+
+- **Delta against Phase 48's after-guard mean (`28.065s`):** `14.08 - 28.065 = -13.985s`,
+  `-13.985 / 28.065 * 100 = -49.83%`.
+- **Delta against Phase 48's pre-fix baseline mean (`28.745s`):** `14.08 - 28.745 = -14.665s`,
+  `-14.665 / 28.745 * 100 = -51.02%`.
+
+Both deltas are large and NEGATIVE (faster), not a regression in either direction — this phase's
+own compile-time state-guard mechanism did not make the corpus build slower. The magnitude (corpus
+build roughly halved in wall-clock time versus Phase 48's own measurement) is larger than a single
+run's normal noise band, and is recorded here as an observation rather than investigated further:
+Phase 48's D-11 measured `test_corpus_gate.py -m slow` (both `test_corpus_compiles_with_no_fatal_error`
+AND `test_empty_url_before_after`, the latter SKIPped in both of Phase 48's own runs per its own
+transcript), while this section explicitly selected only the single
+`test_corpus_compiles_with_no_fatal_error` node ID — the same node Phase 48 also measured, since
+its own companion test was SKIPped identically in both phases' transcripts, so the node selection
+does not explain the gap. A plausible contributor is environment variance between worktree
+provisioning sessions (disk cache warmth for the corpus clone, machine load at measurement time) —
+this plan's own corpus cache was already warm (`~/.cache/typsphinx-corpus-gate/sphinx-v9.1.0`
+pre-existed before this task ran), and Phase 48's own baseline notes the absolute numbers are
+"specific to the measuring machine" (`48-RESEARCH.md` assumption A3, quoted in `48-EVIDENCE.md`).
+**This phase has no cost-tier decision of its own** (Phase 48's D-11 tiers governed Phase 48's own
+change and measured its own bottom tier) — a cost change here is **recorded, not acted on**. Since
+the change is a large improvement rather than a regression, D-02's escalation path is not
+triggered regardless of the tier framing.
+
+### Scope of what this green run shows
+
+Both runs of the existing GATE-02 gate exited `0` against the full, unmodified, un-narrowed Sphinx
+`doc/` corpus (154 documents, no reduced subset), through `typsphinx`'s new per-master
+state-guarded composition — no `TypstCompilationError`, an empty unsupported-node catalogue, and a
+valid non-empty compiled PDF. This demonstrates **convergence for THIS corpus, at THIS Typst
+version pin (`typst==0.15.0`) and THIS Sphinx version pin (`sphinx==9.1.0`, corpus tag `v9.1.0`)**
+— it is not, and cannot be from a single green run, a proof of convergence in general. PROJECT.md's
+own named residual risk ("Known residual risk: the state-guarded include rests on Typst's
+`state`/`context` multi-pass layout convergence") therefore **stays named rather than being marked
+closed** by this section. The version pin (`typst>=0.15.0,<0.16` in `pyproject.toml`, unchanged
+this phase — see the "Removal and invariant sweep" section above, `pyproject.toml` diff empty) is
+the thing to re-verify on any future dependency bump that touches Typst's own multi-pass layout
+engine.
