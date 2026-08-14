@@ -177,7 +177,6 @@ class TestConvertedImageCollisionRenderGate:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
 
-    @pytest.mark.xfail(strict=True, reason=_RED_REASON_STRUCTURAL)
     def test_content_documents_emit_distinct_image_paths(
         self, converted_image_collision_render_gate_dir, temp_build_dir
     ):
@@ -226,7 +225,6 @@ class TestConvertedImageCollisionRenderGate:
         not PYPDF_AVAILABLE,
         reason="pypdf is required for the embedded-image extraction assert",
     )
-    @pytest.mark.xfail(strict=True, reason=_RED_REASON_EMBEDDED)
     def test_pdf_embeds_both_distinctly_sized_images(
         self, converted_image_collision_render_gate_dir, temp_build_dir
     ):
