@@ -1037,6 +1037,214 @@ treat a change to any of them as in-scope:
 
 ---
 
-*This document is APPENDED to by Task 3 (`## Assertion census`) — never overwritten. Both
-sections above were written before Task 3 began, and before any file under `typsphinx/` or
-`tests/` was touched by this plan.*
+## Assertion census
+
+Appended by Task 3. This section is the DEFINITIVE list of what 49-04's migration task may touch:
+after the emitter lands, a failing test module NOT on this list is an unplanned regression to
+investigate, not a migration item. Built by repo-wide grep, never by reading the emitter — no file
+under `typsphinx/` or `tests/` was touched to produce this section either
+(`git status --porcelain typsphinx/ tests/` prints nothing throughout Task 3).
+
+**Methodology, per ROADMAP.md binding constraint #6 (read verbatim this task, lines 385-394):**
+"No laundered gates... Expected wrapper/content structure must be derived from first principles
+— from the `typst_documents` config plus the toctree source read literally from the `.rst`
+fixtures — and written down before running the new emitter. Prefer structural/regex assertions
+over full exact-string diffs; reserve exact strings for what is deterministic by construction...
+Copy-pasting the new emitter's output into the 'expected' block proves only that the code does
+what the code does." Every FLIPS row below substitutes into the `## Emission contract` above; none
+is presented as read from a build.
+
+**Searches run, per milestone invariant #4 (repo-wide, not scoped to `<read_first>`'s named
+files):**
+
+1. `grep -rl 'include("' --include=*.py tests/` — literal Typst include call in every Python file
+   under `tests/`.
+2. `grep -rl 'include("' docs/ examples/` — the same search extended to documentation and example
+   projects.
+3. `grep -rn '\b_included_docnames\b' typsphinx/ tests/ docs/` — the deleted ledger's EXACT name
+   (word-boundary matched, to exclude the unrelated, already-deleted-in-Phase-48
+   `master_included_docnames` / `_compute_master_included_docnames` symbols, which a naive
+   substring grep for `_included_docnames` also catches as false positives).
+4. `grep -rn '\.write_doc(\|\._write_typst_files(' tests/*.py` — direct calls to the per-document
+   write path, bypassing the builder's own `write()`.
+5. `grep -rn '\.count(.*include\|include.*\.count(' tests/*.py` — assertions that count include
+   occurrences rather than test membership.
+6. `grep -rln 'addnodes.toctree\|nodes.toctree\|toctree()' tests/` — tests that construct a
+   synthetic toctree node by hand.
+
+### 1. `tests/test_toctree_requirement13.py` — FLIPS (whole module; largest single concentration)
+
+Every test function in this module constructs a synthetic `addnodes.toctree()` node and sets ONLY
+`toctree["entries"]`, never `toctree["includefiles"]` — SYNTHETIC-NODE, per D-03: post-fix
+`visit_toctree` reads `includefiles`, which defaults to empty on a hand-built node with no
+`includefiles` key ever set, so every one of these tests would see an EMPTY toctree (immediate
+`SkipNode`, zero output) unless fixed.
+
+| Line(s) | Test | Assertion as written | Verdict | New expected value |
+|---|---|---|---|---|
+| 47-80 | `test_toctree_generates_include_directives` | `'include("intro.typ")' in output` etc. | SYNTHETIC-NODE | Set `toctree["includefiles"] = ["intro", "getting_started", "api"]` alongside `entries`; assertions then SURVIVE (guard lines still contain the substring) |
+| 83-113 | `test_toctree_with_heading_offset` | `"context {" in output`; `"{" in output` (loose OR) | SYNTHETIC-NODE (needs `includefiles = ["chapter1"]`); the loose `"{" in output` presence check SURVIVES once fixed (does not count) |
+| 116-143 | `test_toctree_with_nested_path` | `'include("chapter1/section.typ")' in output` etc. | SYNTHETIC-NODE — needs `includefiles = ["chapter1/section", "chapter2/sub/content"]` |
+| 146-172 | `test_toctree_empty_entries` | `output == ""`; `"include(" not in output` | SURVIVES as written — `entries=[]` with `includefiles` unset both default to empty, so the empty-toctree early-exit fires either way. (Recommend also setting `toctree["includefiles"] = []` explicitly for clarity, not required for correctness.) |
+| 175-192 | `test_toctree_skip_node_raised` | `pytest.raises(nodes.SkipNode)` | SURVIVES — `visit_toctree` raises `SkipNode` unconditionally at the end of every code path (empty-entries early exit AND the populated-entries main path both end in `raise nodes.SkipNode`), regardless of this phase's changes |
+| 196-238 | `test_toctree_single_content_block_multiple_includes` | `output.count("{") == 1`; `output.count("}") == 1`; then `block_start = output.find("{"); block_end = output.find("}", block_start)`; substring checks within `block_content` | **FLIPS, with a genuine new-shape hazard, not merely a SYNTHETIC-NODE fix.** Post-fix EACH guard emits its OWN `if "<key>" in state(...).get() { include(...) }` — a NESTED `{`/`}` pair per entry — so for 3 entries the brace counts become `output.count("{") == 4` (1 `context {` + 3 guard `{`) and `output.count("}") == 4`, not 1. Additionally the `find("{")`/`find("}", block_start)` pair now captures only up through the FIRST guard's own closing brace — `block_content` would NOT contain `chapter2.typ`/`chapter3.typ` at all, a silent false-negative, not merely a count mismatch. **New expected value:** set `includefiles = ["chapter1", "chapter2", "chapter3"]`; replace the brace-count assertions with `output.count("{") == 4` / `output.count("}") == 4` (1 scope + N guards); replace the `find`-based block extraction with `block_content = output` (the whole output IS the single `context { ... }` scope, guards nested inside it) and keep the three `include("chapterN.typ")` substring-membership checks against the FULL output instead of a truncated slice. |
+| 241-277 | `test_toctree_heading_offset_appears_once` | `re.findall(r"set heading\(offset: heading\.offset \+ 1\)", output)` count == 1 | SYNTHETIC-NODE (needs `includefiles` set to `["doc1","doc2","doc3"]`); the offset-line-count assertion itself SURVIVES (D-08: exactly one `set heading(offset:...)` line regardless of entry count, guards do not add a second one) |
+| 280-317 | `test_toctree_reduced_line_count` | `5 <= len(lines) <= 6` for 3 entries | SYNTHETIC-NODE (needs `includefiles` set); the LINE COUNT itself SURVIVES — each entry still emits exactly ONE text line (`context {` / `set heading(...)` / 3× guard line / `}` = 6 lines total, same shape as today's `context {` / `set heading(...)` / 3× `include()` / `}`) |
+| 320-353 | `test_toctree_single_entry_with_single_block` | `output.count("{") == 1`; `output.count("}") == 1`; `output.count("include(") == 1` | SYNTHETIC-NODE (needs `includefiles = ["single"]`) AND brace-count FLIPS: `output.count("{") == 2` (1 context + 1 guard), `output.count("}") == 2`. `output.count("include(") == 1` SURVIVES (one guard emits exactly one `include(` call). |
+
+### 2. `tests/test_translator.py` — one FLIPS function, rest SURVIVES/out-of-scope
+
+| Line(s) | Test | Assertion as written | Verdict | New expected value |
+|---|---|---|---|---|
+| 2088-2119 | `test_toctree_generates_outline` | Same synthetic-node shape as class 1 above: `toctree["entries"] = [...]`, `toctree.walkabout(translator)`, then `'include("intro.typ")' in output` etc. | SYNTHETIC-NODE | Set `toctree["includefiles"] = ["intro", "getting_started", "api"]` before `walkabout`; assertions then SURVIVE (no brace-count assertion in this one, only substring membership) |
+| (4 total `include("` hits; the other 3 are inside this same function's assertion block) | — | — | — | — |
+
+`test_template_engine.py`'s six `addnodes.toctree()` constructions (lines 523-673) are a SEPARATE,
+UNRELATED synthetic-node use — they set `toctree["maxdepth"]`/`["numbered"]`/`["caption"]` and
+call `TemplateEngine.extract_toctree_options()`, never `includefiles`/`entries`/`visit_toctree` —
+**out of scope**, SURVIVES untouched.
+
+### 3. `tests/test_duplicate_include_label_render_gate.py` — FLIPS (whole module premise migrates)
+
+| Line(s) | Assertion as written | Verdict | New expected value |
+|---|---|---|---|
+| 166-175 | `include_count = 0; for typ_path in temp_build_dir.rglob("*.typ"): include_count += typ_path.read_text(...).count('include("shared.typ")'); assert include_count == 1` | **FLIPS — MIGRATE, do not delete.** The whole module's premise is the deleted ledger's write-time dedup (docstring line 25 explicitly names `TypstBuilder._included_docnames`, now STALE — see STALE-PROSE below). Post-fix, `shared.typ` gets a STATIC guard line at EVERY emission site regardless of whether it fires — for this fixture's diamond (`shared` reachable directly from the master AND nested under `sub`), that is TWO static occurrences of the literal substring `include("shared.typ")` in the emitted tree (one dark, one live), not one. A raw grep-based count across all `.typ` files no longer proves dedup once the guard model makes text presence and RUNTIME inclusion two different things. | **Migrate to a real-compile invariant**, mirroring COMP-07/COMP-09's own gate pattern: keep the `.typ`-file grep as a STRUCTURAL sanity check but change its expected value to `== 2` (documented as "two static guard sites, only one ever live"), and ADD the load-bearing assertion in its place — `pypdf`-extract `master.pdf`'s text and assert `shared`'s own body marker (already asserted via the `<shared:shared-anchor>` label count at lines 186-193, which itself SURVIVES unchanged) appears exactly ONCE in the COMPILED PDF. This asserts the SAME invariant (no duplicate label, no duplicate visible body) through the state-guard mechanism instead of through the deleted ledger. |
+| 186-193 | `shared_text.count("[#metadata(none) <shared:shared-anchor>]") == 1`; `"link(<shared:shared-anchor>" in shared_text` | SURVIVES — `shared.typ`'s own body (the label definition and the same-document `link()`) is completely unaffected by the toctree-emission change; this content lives OUTSIDE any `visit_toctree` guard | — |
+| 149-161, 198-206 | `"occurs multiple times" not in result.stderr`; PDF exists/non-empty/`%PDF` magic | SURVIVES — real-compile outcome assertions, unaffected by which mechanism (ledger vs. state) prevents the duplicate | — |
+
+**STALE-PROSE, this module:** line 25, `` `TypstBuilder._included_docnames` `` — the attribute this
+phase deletes (COMP-11). Replacement wording: describe the state-guard mechanism (each emission
+site's STATIC guard, published per-master as Typst `state`) as the fix instead of the ledger.
+
+### 4. `tests/test_builder.py` — NEEDS-SEEDING (4 sites), one SURVIVES assertion
+
+| Line | Call | Verdict | Remedy |
+|---|---|---|---|
+| 129 (`test_write_doc_creates_output_file`) | `builder.write_doc("index", sample_doctree)` after `init()` + `prepare_writing()`, WITHOUT `write()` | NEEDS-SEEDING | No seeding action required for correctness: per the "Integration Points" pattern (`init()` declares `self._included_docnames` today; the new per-master edge map follows the same shape, declared with an empty default in `init()` and populated for real in `write()`), `render_wrapper(..., edge_keys=self._master_include_edges.get(docname, ()))` gracefully publishes `()` when `write()` was never called — matching today's `getattr(self.builder, "_included_docnames", None)` graceful-fallback precedent. `sample_doctree` (`tests/conftest.py:22-42`) carries no toctree at all, so no guard is ever emitted for this test regardless. Recorded here as CHECKED, not silently skipped. |
+| 155 (`test_write_doc_generates_typst_content`) | Same call | NEEDS-SEEDING | Same remedy. This test's own `'#include("index.typ")' in wrapper_content` assertion (line 179) SURVIVES independently (wrapper's own single include, unaffected by the empty published edge set) |
+| 192 (`test_finish_completes_build`) | Same call, then `builder.finish()` | NEEDS-SEEDING | Same remedy — no content assertion at all, only "does not raise" |
+| 518 (`test_post_process_images_collects_image_nodes`-adjacent write test) | `builder.write_doc("index", doc)` on a hand-built doctree containing only an `image` node | NEEDS-SEEDING | Same remedy — asserts only `"images/test.png" in builder.images`, unrelated to toctree/include content |
+
+### 5. `tests/test_missing_and_malformed_master_gate.py`, `tests/test_two_layer_output_gate.py` —
+mentions of `_write_typst_files()` in comments only (lines 133 and 255 respectively), not direct
+calls bypassing `write()` — **SURVIVES**, not NEEDS-SEEDING (no actual write-path bypass).
+
+### 6. Wrapper-only `include("` assertions — SURVIVES across every remaining hit
+
+The following modules' `include("` hits are ALL assertions against a WRAPPER file's own single
+`#include("<content>.typ")` line (unaffected — this phase adds only a PRECEDING `#state(...)`
+line) or a CONTENT file's substring-membership check (unaffected — the guard line still CONTAINS
+the `include("...")` call as a substring). Verified by direct inspection of every hit this task,
+not assumed from the file list alone:
+
+| Module | Line(s) | Shape | Verdict |
+|---|---|---|---|
+| `tests/test_builder_requirement13.py` | 159 | Wrapper `#include("index.typ")` | SURVIVES |
+| `tests/test_citation_render_gate.py` | 590-596 | `next(line for line in index_typ.splitlines() if 'include("second.typ")' in line)`, then `assert "<" not in include_line` | SURVIVES — the substituted guard line (`if "index#0>second" in state("typsphinx:include-edges", ()).get() { include("second.typ") }`) contains no `<` character anywhere (the edge-key format uses `#`/`>` only); `next(...)` still finds exactly one matching line for a single toctree entry |
+| `tests/test_collision_predicate_completeness_gate.py` | 244 | Wrapper `#include("other.typ")` | SURVIVES |
+| `tests/test_default_typst_documents_gate.py` | 142, 180 | Wrapper `#include("index.typ")` (two fixtures) | SURVIVES |
+| `tests/test_desc_content_indent_render_gate.py` | 526, 531 | Wrapper `#include(` count == 1 + `#include("index.typ")` | SURVIVES |
+| `tests/test_figure_propagated_target_render_gate.py` | 289, 294 | Wrapper `#include(` count == 1 + `#include("index.typ")` | SURVIVES |
+| `tests/test_integration_multi_doc.py` | 107-109 | Content-file substring checks (`"chapter1.typ" in content`, `"include(" in content`) | SURVIVES |
+| `tests/test_integration_nested_toctree.py` | 119-132, 164-166, 195-201, 263-268, 295-301, 364-365, 392-398 | Content-file relative/absolute path substring checks (present/absent) + wrapper `#include(` count == 1, ×3 fixtures | SURVIVES — every check is either substring membership (present in a guard line) or substring absence (an absolute-path variant never emitted, unaffected) or a wrapper's own single-include count |
+| `tests/test_nested_master_render_gate.py` | 249, 285, 355-369, 407-410, 442 | Content-file substring checks + wrapper `#include("api/index.typ")` + `original_text.index('include("usage.typ")') < original_text.index('image("../logo.png")')` source-order check | SURVIVES — the guard wraps the include call as a prefix on the same line, preserving its relative text position ahead of the (unrelated, untouched) image reference |
+| `tests/test_paragraph_concat_render_gate.py` | 182, 187 | Wrapper `#include(` count == 1 + `#include("index.typ")` | SURVIVES |
+| `tests/test_signature_page_boundary_render_gate.py` | 226, 230 (docstring prose, not an assertion) | — | SURVIVES / not an assertion |
+| `tests/test_static_asset_copy_gate.py` | 180, 185-186 | Wrapper `#include(` count == 1 + `#include("index.typ")` | SURVIVES |
+| `tests/test_target_name_render_gate.py` | 245 | Wrapper `#include("../index.typ")` | SURVIVES |
+| `tests/test_template_import_path.py` | 354, 369 | Wrapper `#include("_template/index.typ")` / `#include("_template/sub/index.typ")` (two entries) | SURVIVES |
+| `tests/test_two_layer_output_gate.py` | 167 | Wrapper `"#include(" in content` (membership, not count) | SURVIVES |
+
+### 7. STALE-PROSE
+
+| File | Line(s) | Stale claim | Replacement wording |
+|---|---|---|---|
+| `tests/test_duplicate_include_label_render_gate.py` | 25 | `` a builder-scoped ledger (``TypstBuilder._included_docnames``, shared across every document composing one master) records each absolute docname the first time it is emitted `` | Replace with: "a per-master Typst `state` array (published by each wrapper, guarded per emission site in the shared content file) resolves which occurrence of a repeated toctree entry is live at COMPILE time, not write time" |
+| `tests/test_citation_render_gate.py` | 583-585 | `` visit_toctree reads node['entries'] directly and raises nodes.SkipNode `` | Replace with: "visit_toctree reads node['includefiles'] directly (D-03) and raises nodes.SkipNode" |
+| `examples/advanced/README.md` | 113-123 | Shows a PRE-Issue-#7, PRE-D-07 illustrative snippet (`{ #set heading(offset: 1) #include("chapter1.typ") }`, a separate block per entry with an ABSOLUTE offset) — already stale relative to the CURRENT codebase (single consolidated `context { set heading(offset: heading.offset + 1) }` block), and will be EVEN MORE stale once this phase adds the state-guard line. **Out of this phase's own scope** — `49-CONTEXT.md`'s `<domain>` explicitly assigns "documenting the two-layer output shape" to Phase 51, not Phase 49. Recorded here so it is not silently missed, not treated as a Phase 49 migration item. | Deferred to Phase 51: regenerate this example against the current `context {}`/guard shape |
+
+**Excluded as false positives (checked, not genuine stale prose for THIS phase):**
+`tests/fixtures/bld03_ghost_entry_xref_gate/conf.py`, `tests/fixtures/bld03_unhashable_docname_gate/conf.py`,
+`tests/test_xref_orphan_degrade_render_gate.py` (line 31), `tests/test_label_existence_guard_unit.py`
+(lines 53, 411, 414) — all reference `master_included_docnames` /
+`_compute_master_included_docnames`, a DIFFERENT symbol already deleted in Phase 48 itself (not
+`_included_docnames`, this phase's own ledger). Confirmed via word-boundary grep
+(`\b_included_docnames\b`) against `typsphinx/builder.py`/`translator.py`: only
+`test_duplicate_include_label_render_gate.py` references the REAL symbol this phase deletes.
+Neither `test_xref_orphan_degrade_render_gate.py` nor `test_label_existence_guard_unit.py`
+constructs a toctree node or reads `includefiles`/`entries` anywhere — **out of scope**, SURVIVES
+untouched, despite being named in this task's own `<read_first>` as "the two Phase 48 modules that
+mention the deleted ledger by name" (that framing conflated the two distinct symbols; corrected
+here after direct source reading).
+
+### 8. NO-HIT categories, checked and empty
+
+- `grep -rln 'addnodes.toctree\|nodes.toctree\|toctree()' tests/` returned exactly THREE files —
+  `test_template_engine.py` (out of scope, class 2 above), `test_toctree_requirement13.py` (class
+  1), `test_translator.py` (class 2) — no other synthetic-toctree-node construction exists
+  anywhere in the suite.
+- `grep -rln '\.write_doc(\|\._write_typst_files(' tests/*.py` returned `test_builder.py` (class
+  4, genuine bypass) and `test_missing_and_malformed_master_gate.py` /
+  `test_two_layer_output_gate.py` (class 5, comment mentions only, not genuine bypasses) — no
+  other test reaches the per-document write path directly.
+- `docs/` carries zero `include("` hits.
+
+## How to find any assertion I missed
+
+Re-run these exact commands from the repository root; every hit above traces to one of them:
+
+```bash
+grep -rl 'include("' --include=*.py tests/
+grep -rl 'include("' docs/ examples/
+grep -rn '\b_included_docnames\b' typsphinx/ tests/ docs/
+grep -rn '\.write_doc(\|\._write_typst_files(' tests/*.py
+grep -rn '\.count(.*include\|include.*\.count(' tests/*.py
+grep -rln 'addnodes.toctree\|nodes.toctree\|toctree()' tests/
+```
+
+**Numeric summary — the prediction 49-04 is measured against:**
+
+- **Total file-level hits across all six searches:** 21 files carrying a literal `include("`
+  substring under `tests/` (19 `.py` test modules + 2 fixture `conf.py` comment blocks), plus 1
+  `examples/` doc file, plus 6 files carrying `_included_docnames`-family mentions (2 real, 4
+  false-positive), plus 4 write-path mentions (1 genuine bypass module with 4 call sites, 2
+  comment-only), plus 3 synthetic-toctree-node modules.
+- **SURVIVES:** 16 of the 19 test modules survive their `include("` assertions completely
+  unchanged (`test_builder_requirement13.py`, `test_citation_render_gate.py`,
+  `test_collision_predicate_completeness_gate.py`, `test_default_typst_documents_gate.py`,
+  `test_desc_content_indent_render_gate.py`, `test_figure_propagated_target_render_gate.py`,
+  `test_integration_multi_doc.py`, `test_integration_nested_toctree.py`,
+  `test_nested_master_render_gate.py`, `test_paragraph_concat_render_gate.py`,
+  `test_signature_page_boundary_render_gate.py`, `test_static_asset_copy_gate.py`,
+  `test_target_name_render_gate.py`, `test_template_import_path.py`, `test_translator.py`'s
+  non-toctree assertions, `test_two_layer_output_gate.py`), plus `test_xref_orphan_degrade_render_gate.py`
+  and `test_label_existence_guard_unit.py` (out of scope, false-positive `_included_docnames`
+  match) and `test_missing_and_malformed_master_gate.py` (comment-only write-path mention).
+- **FLIPS:** 2 modules — `test_toctree_requirement13.py` (9 test functions, all SYNTHETIC-NODE;
+  3 of the 9 ALSO carry a brace-count FLIPS; 1 of the 9 carries a genuine block-extraction
+  reshape) and `test_duplicate_include_label_render_gate.py` (1 test function, MIGRATE its
+  ledger-dedup premise to a real-compile invariant) — plus `test_translator.py`'s single
+  `test_toctree_generates_outline` function (SYNTHETIC-NODE).
+- **NEEDS-SEEDING:** 1 module, 4 call sites (`test_builder.py` lines 129, 155, 192, 518) — all
+  resolved with NO code-side seeding action required (graceful empty-edge-set default, no
+  assertion depends on toctree content).
+- **SYNTHETIC-NODE:** 10 test functions total across 2 modules (9 in
+  `test_toctree_requirement13.py`, 1 in `test_translator.py`), all requiring `toctree["includefiles"]`
+  to be set alongside `toctree["entries"]`.
+- **STALE-PROSE:** 3 genuine items (`test_duplicate_include_label_render_gate.py:25`,
+  `test_citation_render_gate.py:583-585`, `examples/advanced/README.md:113-123`, the last one
+  deferred to Phase 51) plus 5 false-positive exclusions recorded and explained (not silently
+  dropped).
+
+**Prediction 49-04 is measured against:** after the emitter lands, running
+`uv run pytest -m "not slow" -q`, the ONLY new failures should be inside
+`test_toctree_requirement13.py` (9 functions) and `test_translator.py::test_toctree_generates_outline`
+(SYNTHETIC-NODE, brace-count, and block-extraction FLIPS) and
+`test_duplicate_include_label_render_gate.py::TestDuplicateIncludeLabelRenderGate::test_typstpdf_diamond_include_deduplicated`
+(the MIGRATE FLIPS). Any OTHER test module failing after 49-04 lands is an unplanned regression,
+not a predicted migration item.
+
+---
+
+*This document was written entirely before any file under `typsphinx/` or `tests/` was touched by
+this plan — every row above is a prediction, not a report.*
