@@ -810,7 +810,7 @@ abort loudly, and now renders the wrong picture silently.
      colliding-basename nor absolute-outside-`doctreedir` are copied to byte-identical destinations
      across the change, measured by a two-build comparison over `docs/source` and every root under
      `tests/roots`, and PR #131's own Issue #130 regression tests still pass unchanged.
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -823,7 +823,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 50-03-PLAN.md — Wave 3: unit coverage for the three relocation branches, plus the cross-wave audit of the phase's evidence chain
+- [x] 50-03-PLAN.md — Wave 3: unit coverage for the three relocation branches, plus the cross-wave audit of the phase's evidence chain
 
 **UI hint**: no
 
@@ -954,7 +954,7 @@ sequential, not merely numbered:
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
-| 50. PR #131 Image Path Defects | v0.8.0 | 2/3 | In Progress|  |
+| 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | In Progress|  |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
 
