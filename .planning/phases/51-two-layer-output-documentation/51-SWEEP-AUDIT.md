@@ -215,3 +215,27 @@ documentation-only, and zero lines under `typsphinx/` were touched (confirmed ab
 - `typsphinx/`: zero lines changed across the whole phase.
 - 2 residual findings outside this plan's fix scope, recorded above as outstanding — not silently
   dropped, not fixed out of scope.
+
+---
+
+## Addendum 2026-08-15 — both residuals closed
+
+The two findings recorded above as OUTSTANDING were fixed after this audit was written, by the
+orchestrator in `be794ed0`, on the project owner's explicit instruction. The sections above are
+left unedited: they record what was true when the audit ran, and the fact that the sweep's own
+re-derivation caught two files no plan had declared is the finding worth preserving.
+
+| Finding | Disposition |
+|---|---|
+| `docs/source/examples/advanced.rst:160` — "Each document is built separately with its own output file" | FIXED in `be794ed0`. The three-entry config was built for real: 7 `.typ` files (wrappers `main.typ`, `api-reference.typ`, `tutorial.typ`; content files `index.typ`, `api/index.typ`, `tutorial/index.typ`; plus `_template.typ`). Replaced with the wrapper names, the every-document-gets-a-content-file rule, and a `:doc:` link to the contract page. |
+| `examples/advanced/index.rst:37-40` — unconditional `#include()` framing | FIXED in `be794ed0`. Measured the real emitted files: the wrapper publishes the edge set (`state("typsphinx:include-edges").update`) and the master's content file carries the guarded includes at the toctree's position. Rewritten to match, consistent with the phrasing 51-05 applied to the sibling `README.md`. |
+
+Verified afterwards: full suite 1173 passed / 1 skipped, `-b html` docs build exit 0 with no
+undefined-label or unknown-document warnings.
+
+**Not closed, deliberately.** `examples/advanced/README.md` tells the reader to *uncomment*
+`typst_template = '_templates/custom.typ'` in `conf.py`, but `examples/advanced/conf.py:70` already
+has it uncommented (its own comment says to *remove* the line to fall back to the default). This is
+config drift, not a two-layer-falsified claim, so it is outside this sweep's subject. Surfaced to the
+owner on 2026-08-15, who chose to leave it. Recorded here so it is not mistaken for something the
+sweep missed.
