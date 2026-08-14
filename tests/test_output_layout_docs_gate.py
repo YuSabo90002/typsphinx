@@ -451,9 +451,14 @@ class TestPublishedOutputLayoutTextMatchesBuild:
             "docs/source/user_guide/output_layout.rst does not contain the "
             "'Documents Shared by Several Masters' section heading."
         )
-        assert "ten" in text, (
+        # Assert the whole claim clause, not the bare word "ten": "ten" is a
+        # substring of "written" and "content", both of which occur many times
+        # on this page, so `"ten" in text` was satisfied even when the claim
+        # was absent, deleted, or restated with a wrong number.
+        assert "writes ten ``.typ`` files" in text, (
             "docs/source/user_guide/output_layout.rst does not publish the "
-            "literal 'ten' file-count claim for the three-master example."
+            "'writes ten ``.typ`` files' count claim for the three-master "
+            "example."
         )
 
     def test_helper_derived_wrapper_stem_matches_the_published_walkthroughs(self):
