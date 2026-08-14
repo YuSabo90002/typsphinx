@@ -732,3 +732,138 @@ byte-identical message text, after 49-04's emitter migration.
 truth is closed for all nine Phase 49 fixtures. Combined with the `## Removal and invariant sweep`
 section above, this closes SC#4 and binding constraint #7's four standing invariants in full for
 this plan; COMP-12's full-corpus-scale convergence pass remains 49-06's own deliverable.
+
+---
+
+## Degenerate-shape closure
+
+**Written by 49-05, Task 3.** One row per shape, in the SAME order as
+`49-EXPECTED-STRUCTURE.md`'s own `## Degenerate-shape outcome table`. The OBSERVED column is a
+concrete value taken from `tests/test_state_guard_shapes_gate.py`'s own now-passing assertions
+(re-confirmed this task: `uv run pytest tests/test_state_guard_shapes_gate.py -q` → **17 passed**)
+-- a marker count, a published key list, or a resolved heading level, never a restatement of an
+assertion's name.
+
+| Shape | Decided outcome (plan time) | Observed outcome (post-fix, this task) | Verdict |
+|---|---|---|---|
+| 2-node toctree cycle (`state_guard_cycle_gate`) | Skip the back edge; compile succeeds; each body appears exactly once; no unbounded recursion | `TestCycleGate::test_two_node_cycle_terminates_with_forward_edge_only`: PDF build exits 0; `BETA-BODY-MARKER` count in `manual.pdf` = **1**; published wrapper array contains `"alpha#0>beta"` and does NOT contain `"beta#0>alpha"` | **MATCH** |
+| Self-referencing toctree (`state_guard_selfref_gate`) | Skip, silently, via Sphinx's own pre-loop `all_docnames.remove(current_docname)` -- no guard line is ever emitted for it at all | `TestSelfRefGate::test_self_referencing_entry_has_no_guard`: exits 0; published array does NOT contain `"index#0>index"`; DOES contain `"index#0>other"`; `OTHER-BODY-MARKER` count = **1** | **MATCH** |
+| `self` magic keyword and external-URL entries (`state_guard_self_and_url_gate`) | Skip, silently, with no NEW diagnostic (typsphinx adds no warning Sphinx does not have) | `TestSelfAndUrlGate::test_self_and_external_url_produce_no_guard`: PDF exits 0; `index.typ` contains neither `include("self.typ")` nor `include("https://example.com.typ")`; `CHILD-BODY-MARKER` count = **1**; Sphinx's own pre-existing duplicated-entry warning is still present in captured output | **MATCH** |
+| `:glob:` toctree (`state_guard_glob_gate`) | No special handling needed -- guards emitted in the expanded SORTED order | `TestGlobGate::test_glob_toctree_expands_in_sorted_order`: exits 0; marker offsets in the compiled PDF strictly increase `alpha < mike < zulu`; published array's key positions ALSO strictly increase `"index#0>guide/alpha"` < `"index#0>guide/mike"` < `"index#0>guide/zulu"` | **MATCH** |
+| `:orphan:` document referenced but not toctree'd (`state_guard_orphan_ref_gate`) | Not included (present in no master's edge set); a cross-reference to it degrades to plain text via Phase 48's guard | `TestOrphanRefGate::test_orphan_reference_degrades_not_included`: exits 0; `ORPHAN-BODY-MARKER` **absent** from the compiled PDF; published array does NOT contain `"index#0>orphan_doc"`; the `:ref:` cross-reference renders as the plain text `"Orphan Section"` | **MATCH** |
+| Three or more masters sharing two or more overlapping children (`state_guard_three_master_gate`) | Included in every master's own PDF, each exactly once, at each master's own traversal-derived position -- no cross-master coordination | `TestThreeMasterGate::test_three_masters_each_render_shared_children_once`: exits 0; `COMMON-A-MARKER` count = **1** in `manual1.pdf` AND `manual2.pdf`; `COMMON-B-MARKER` count = **1** in ALL of `manual1.pdf`/`manual2.pdf`/`manual3.pdf`; resolved heading levels for `common_b` = **`[3]`** (m1, nested under `mid`), **`[2]`** (m2, direct), **`[2]`** (m3, direct); the three wrappers' own bodies are pairwise DIFFERENT (`w1 != w2 != w3 != w1`) | **MATCH** |
+| Duplicate entry inside one toctree directive (`state_guard_self_and_url_gate`'s doubled `child` entry) | Included exactly once -- only the occurrence-0 edge key is ever published | `TestSelfAndUrlGate::test_duplicate_entry_occurrence_rule`: `index.typ` carries BOTH `if "index#0>child" in ... { include("child.typ") }` AND `if "index#1>child" in ... { include("child.typ") }` guard lines (two static sites); the published wrapper array contains `"index#0>child"` and does NOT contain `"index#1>child"`; `CHILD-BODY-MARKER` count = **1**; the child's own Typst label (`<child:child>`) is `query()`-reachable exactly **1** time | **MATCH** |
+
+**Every row MATCHES.** No divergence was found -- every observed outcome, measured directly
+against the compiled/emitted artifact this task, agrees exactly with the outcome
+`49-EXPECTED-STRUCTURE.md` DECIDED at plan time, before any file under `typsphinx/` existed for
+this phase. SC#2's "decided during planning rather than discovered as a test failure" requirement
+is therefore discharged ON THE RECORD by this table, not merely by assertion -- and per this
+plan's own prohibition, no decided outcome in `49-EXPECTED-STRUCTURE.md` was amended to match a
+measurement (confirmed: `git diff --name-only HEAD -- .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EXPECTED-STRUCTURE.md`
+prints nothing for this plan).
+
+---
+
+## Handoff to Phase 51 and Phase 52
+
+**Written by 49-05, Task 3.** The two user-visible behaviours this phase creates, each measured
+directly (not merely asserted), plus the one item explicitly still owed to 49-06.
+
+**1. The standalone-content-file behaviour (Phase 51's documentation obligation).**
+
+Measured directly: `shared.typ` from `state_guard_two_master_gate`'s own real `-b typst` build,
+compiled DIRECTLY with `typst.compile()` -- no wrapper, no `#state(...).update(...)` call ever
+runs against it.
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_two_master_gate <build-dir>
+sphinx-build exit code: 0
+
+$ typst.compile("<build-dir>/shared.typ", output="shared_standalone.pdf", root="<build-dir>")
+standalone compile of shared.typ (no wrapper) succeeded
+
+$ pypdf-extracted text of the standalone compile:
+'Shared\nSHARED-CHAPTER-MARKER'
+
+SHARED-CHAPTER-MARKER in text: True
+NESTED-DOCNAME-BODY-MARKER in text: False
+```
+
+The compile SUCCEEDS and produces only that document's OWN body (`shared.typ`'s own heading and
+`SHARED-CHAPTER-MARKER`) -- its state-guarded child (`sub/nested`, whose marker is
+`NESTED-DOCNAME-BODY-MARKER`) is ABSENT, because with no wrapper ever calling `.update(...)`,
+`state("typsphinx:include-edges", ()).get()` returns its declared default `()`, so every guard in
+`shared.typ` is false.
+
+**User-facing consequence, in one sentence:** a `typst`/`typstpdf`-builder user should compile the
+WRAPPER (e.g. `manual.typ`), not a bare content file directly -- a content file compiled alone is
+a valid, successfully-compiling document that simply contains no children, with no error and no
+warning at any layer.
+
+**Obligation:** Phase 51 documents this behaviour (per `PROJECT.md`'s own "Known residual risk"
+note: "a content `.typ` compiled standalone... sees an empty state and therefore includes no
+children -- sane, but it must be documented, since `-b typst` users should compile the wrapper").
+
+**2. The two-layer output-shape change, in its now-complete form (Phase 51's documentation
+obligation, Phase 52's CHANGELOG obligation).**
+
+What a reader of the emitted output now sees, with `typst_documents = [("index", "manual.typ",
+...)]`: the WRAPPER target (`manual.typ`) is no longer the whole document -- it is a template
+application (`#show: project.with(...)`) PLUS a state publication (this phase's own addition,
+`#state("typsphinx:include-edges", ()).update((...))`) PLUS one `#include(...)` of the content
+file. The BODY lives in the docname-named content file (`index.typ`), which now carries
+STATE-GUARDED includes (`if "<edge-key>" in state(...).get() { include(...) }`) at each toctree's
+own position, instead of the unconditional `include()` calls it carried before this phase.
+
+Phase 47 introduced the wrapper/content SPLIT (the "two-layer output shape" naming); this phase
+COMPLETES it by moving the include DECISION itself into the wrapper's own published `state`,
+rather than leaving it resolved unconditionally inside the content file at write time.
+
+**Obligation:** Phase 51 documents this (together with `PROJECT.md`'s own note: "With
+`typst_documents = [("index","manual.typ",…)]`, `manual.typ` stops being the whole document and
+becomes the wrapper, while the body moves to `index.typ`. Explain this together with v0.7.1's own
+rename (`index.typ` → `typsphinx.typ` under the default derivation) in the CHANGELOG"), and Phase
+52 announces it in the CHANGELOG.
+
+**3. The `:numref:` measurement -- explicitly NOT discharged here.**
+
+The `:numref:` two-case measurement (Case (a): the two masters' compiled figure numbers
+disagreeing with each other and with Sphinx's own single `root_doc`-rooted baked number; Case
+(b): a figure reachable ONLY from a non-`root_doc` master falling back to plain reference text
+with zero warning, per `49-EXPECTED-STRUCTURE.md`'s own fixture 10,
+`state_guard_numref_two_case_gate`) and its own fix-or-document decision are **owed by 49-06**
+under D-01, and are **NOT discharged by this plan**. A reader of this handoff must not mistake the
+two numbered obligations above for a complete list -- this third item remains outstanding until
+49-06 lands.
+
+---
+
+## Standing green bar, confirmed at the close of this plan
+
+```
+$ uv run pytest -q
+================= 1143 passed, 5 skipped in 104.15s (0:01:44) ==================
+```
+(The 5 skips are the pre-existing, environmental skips this phase inherited unchanged: 4 ×
+myst-parser docs-extra skips in `test_changelog_page_gate.py`, 1 ×
+`test_corpus_gate.py` SC#3 env-gated on `TYPSPHINX_CORPUS_REPORT=1`.)
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+292 files would be left unchanged.
+```
+
+```
+$ uv run python -m ruff check .
+All checks passed!
+```
+
+```
+$ uv run python -m mypy typsphinx/
+Success: no issues found in 6 source files
+```
+
+`git status --porcelain typsphinx/ tests/` prints nothing at the close of this plan -- no file
+under either directory carries an uncommitted change.
