@@ -37,6 +37,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 BARE_TARGET_FIXTURE_DIR = FIXTURES_DIR / "output_layout_bare_target_gate"
+EXPLICIT_PATH_FIXTURE_DIR = FIXTURES_DIR / "output_layout_explicit_path_gate"
 OUTPUT_LAYOUT_RST_PATH = (
     REPO_ROOT / "docs" / "source" / "user_guide" / "output_layout.rst"
 )
@@ -116,6 +117,36 @@ class TestOutputLayoutBuildFileSets:
             encoding="utf-8"
         ), "Expected NO template application in the content file index.typ."
 
+    def test_explicit_path_target_writes_the_wrapper_under_its_path(self, tmp_path):
+        """
+        A real ``-b typst`` build of the explicit-path fixture
+        (``typst_documents = [("index", "manuals/guide.typ", ...)]``) exits
+        0 and writes the wrapper at ``manuals/guide.typ`` -- the path
+        component is accepted and honoured relative to the outdir. The
+        content file still writes to ``index.typ`` at the outdir ROOT,
+        unaffected by where the wrapper landed: its location is derived
+        from the docname alone (51-RESEARCH.md Part C build 2).
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(EXPLICIT_PATH_FIXTURE_DIR, build_dir, "typst")
+
+        assert result.returncode == 0, (
+            f"Expected a successful build of the explicit-path fixture:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        wrapper_typ = build_dir / "manuals" / "guide.typ"
+        content_typ = build_dir / "index.typ"
+
+        assert wrapper_typ.exists(), (
+            f"Expected the wrapper file manuals/guide.typ:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert content_typ.exists(), (
+            f"Expected the content file index.typ at the outdir root:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
 
 class TestPublishedOutputLayoutTextMatchesBuild:
     """
@@ -139,4 +170,14 @@ class TestPublishedOutputLayoutTextMatchesBuild:
             "docs/source/user_guide/output_layout.rst does not contain the "
             "literal 'index.typ' -- the content file a real build of the "
             "bare-target worked example produces."
+        )
+
+    def test_page_names_the_explicit_path_file_set(self):
+        """docs/source/user_guide/output_layout.rst names the wrapper path
+        the explicit-path fixture build actually produces."""
+        text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
+        assert "manuals/guide.typ" in text, (
+            "docs/source/user_guide/output_layout.rst does not contain the "
+            "literal 'manuals/guide.typ' -- the wrapper path a real build "
+            "of the explicit-path worked example produces."
         )

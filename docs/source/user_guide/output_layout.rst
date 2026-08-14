@@ -49,3 +49,36 @@ layer, because nothing published the wrapper's include set for a guarded
 ``#include()`` to read. This is normal, well-defined behaviour, not a
 limitation -- a content file compiled on its own is simply a document with
 no children rendered.
+
+Where the Wrapper Is Written
+------------------------------
+
+A ``typst_documents`` entry's target controls exactly where its wrapper is
+written. Two shapes are worth naming separately.
+
+A bare target
+~~~~~~~~~~~~~
+
+A target with no path component -- like ``"manual"`` above -- writes the
+wrapper at the output directory's own root, under that stem. This is the
+example already shown in `Wrapper and Content Files`_: the wrapper lands at
+``manual.typ``, directly under the output directory.
+
+A path in the target
+~~~~~~~~~~~~~~~~~~~~~
+
+A target may also carry a path component, and that path is accepted and
+honoured relative to the output directory.
+
+.. code-block:: python
+
+   typst_documents = [
+       ("index", "manuals/guide.typ", "Title", "Author", "typst"),
+   ]
+
+This configuration writes the wrapper at ``manuals/guide.typ``, relative to
+the output directory -- the path component is accepted and used exactly as
+given. The content file is unaffected by where the wrapper landed: it still
+writes to ``index.typ``, at the output directory's root, because a content
+file's location is derived from its docname alone, never from any
+``typst_documents`` target.
