@@ -945,7 +945,16 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+- [ ] 52-01-PLAN.md — Tracer: re-measure the fence and anchors, bump the version across `pyproject.toml`/`README.md`/`uv.lock`, regenerate the editable install, prove the release-machinery extractor live (SC#1)
+- [ ] 52-02-PLAN.md — Curate the `## [0.8.0]` CHANGELOG entry and roll the tail link block over; confirm `docs/source/changelog.rst`; extend `RELEASE_VERSIONS` to 14 (SC#2)
+- [ ] 52-03-PLAN.md — Extend `TestThreeMasterGate` with a page-level, full-include-set PDF gate proving the milestone goal on generated evidence (SC#3, goal-claim half)
+- [ ] 52-04-PLAN.md — Push the merged tip and dispatch the `ci.yml` authority run; record every job conclusion (SC#3, toolchain half)
+- [ ] 52-05-PLAN.md — Local green tree: both docs builds and the full-corpus GATE-02 gate, PASSED-versus-SKIPPED kept distinct (SC#3, local half)
+- [ ] 52-06-PLAN.md — SC#4 invariant sweep over `v0.7.1..HEAD` with three real positive controls proving each detector fires (SC#4)
+- [ ] 52-07-PLAN.md — Roll-up evidence, standalone publish handoff, deferred-defect register, and the REL-07-stays-open closeout guard (SC#5)
 **UI hint**: no
 
 ## Progress
