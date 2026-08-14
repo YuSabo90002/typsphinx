@@ -856,9 +856,14 @@ ordering v0.7.1 used for Phase 45 after Phase 44)
 
   3. **Every documented claim is verified against the built code, not written from the design.** Each
      example configuration on the page is actually built through `sphinx-build` and the emitted file
-     set compared against what the page claims; any limitation Phase 49 measured and chose to document
-     rather than fix (open question #2's `:numref:` divergence, and any accepted ordering consequence)
-     appears here in the user's language. No claim survives that a build does not reproduce.
+     set compared against what the page claims; any accepted composition consequence Phase 49
+     measured — a shared child rendering once per master at that master's own traversal position and
+     heading level — appears here in the user's language. No claim survives that a build does not
+     reproduce. **Amended 2026-08-14 (owner decision, 51-CONTEXT.md D-06):** open question #2's
+     `:numref:` divergence is explicitly **excluded** from this criterion and from the v0.8.0
+     documentation entirely — the owner classifies it as a bug to be fixed in a later milestone
+     rather than a limitation to publish. It stays tracked in
+     `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
 **Plans**: TBD
 **UI hint**: no
 
