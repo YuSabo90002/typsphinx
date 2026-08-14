@@ -957,3 +957,55 @@ Re-run against this rebuild: **zero** URI actions anywhere in the document now c
 **G-48-4** was a whole-document `:doc:`-role cross-reference (e.g. the Quickstart page's four "What's Next?" links) rendering, pre-fix, as a plain string-url `link("<target-docname>.pdf", ...)` call — a URI action pointing at a local file the Typst `typstpdf` builder never produces (each content file only ever gets a `.typ` companion, never its own standalone `.pdf`), which every reader's PDF viewer reports as `ERR_FILE_NOT_FOUND` on click. Post-fix, every whole-document reference whose target resolves onto a real, `found_docs`-member document is routed through the SAME D-07 compile-time guard every other cross-document reference already uses, against that target's own whole-document self-anchor — it either becomes a real internal link (when the target is `#include()`d in the compiling wrapper) or degrades silently to identical plain text (when it is not), exactly like every other guarded site.
 
 **What this fix did NOT change:** the accepted label-collision false-negative limit (`.planning/todos/pending/2026-08-12-label-collision-false-negative-in-compile-time-xref-guard.md`) is untouched and not worsened — the whole-document path queries the fixed token `_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN` (`__tsx-doc__`), a raw id neither `make_id` output nor a Sphinx domain object id can ever produce (the two collision-safety claims measured in `48-EXPECTED-STRUCTURE.md` "Phase 48 Plan 05" section 1), so this new label class cannot participate in that pre-existing collision. And, under option-a (the owner's recorded checkpoint choice), the 5 Sphinx-generated pages remain string-url links, named individually with their counts: `genindex.pdf` (cited from `index`, x1), `py-modindex.pdf` (cited from `index`, x1), `search.pdf` (cited from `index`, x1), `../genindex.pdf` (cited from `api/index`, x1), `../py-modindex.pdf` (cited from `api/index`, x1) — clicking any of these five still produces the owner's original `ERR_FILE_NOT_FOUND`, by policy, not by omission.
+
+---
+
+## Addendum — CR-01 correction to the option-a policy predicate (post-review, 2026-08-14)
+
+The measurement recorded above was taken against plan 48-07's original
+`_whole_document_reference_eligible` body, which tested `found_docs` membership alone.
+The phase-48 code review (`48-REVIEW.md`, CR-01) found that predicate hijacks a
+hand-written relative link to a genuine file asset whenever a real document shares the
+asset's path stem. The orchestrator reproduced it on a purpose-built minimal project
+before acting, confirmed it, and restored the missing `node.get("internal")` conjunct in
+commit `d3f29605`.
+
+**Why this is a correction and not a second policy decision.** The plan 48-05 blocking
+checkpoint recorded `internal` as a discriminator "available to both" options and stated
+that both "preserve such asset links untouched"; option-a's own stated pro was "zero risk
+to any relative link to a genuine file asset". Plan 48-06's unit gate, written before any
+emitter existed, specified the policy as `internal` AND `found_docs`. The owner's option-a
+choice is therefore unchanged by this fix — what changed is that the implementation now
+matches the choice as it was presented.
+
+**Re-measurement after the correction.** `rm -rf docs/_build && uv run tox -e docs-pdf`
+(clean rebuild, exit 0, 5 warnings), then the same enumeration snippet used for the
+measurement above:
+
+```
+internal /Dest: 72   URI actions: 430   other: 0   (502 total)
+
+URI actions ending in '.pdf': 5 across 5 distinct targets
+
+target                                        count
+../genindex.pdf                               1
+../py-modindex.pdf                            1
+genindex.pdf                                  1
+py-modindex.pdf                               1
+search.pdf                                    1
+
+Sub-population A (resolves onto a real docname): 0 distinct targets, 0 annotations
+Sub-population B (does not resolve onto a real docname): 5 distinct targets, 5 annotations
+```
+
+**Every figure above is unchanged by the correction**, against the pre-declared expected
+value of `5` in `48-EXPECTED-STRUCTURE.md` "Phase 48 Plan 05" section 6. This is the
+measured confirmation — not an inference — that the `internal` conjunct excludes none of
+sub-population A's 35 closed annotations: all 35 were Sphinx-internal `:doc:` references,
+which carry `internal=True` from `sphinx.util.nodes.make_refnode`. The docs corpus contains
+no hand-written hyperlink whose target ends in the builder's `out_suffix` (every `.pdf`
+occurrence under `docs/source/` is inside a literal or code block), so no citing site in
+this corpus exercises the CR-01 path — which is precisely why the corpus measurement could
+not have caught it, and why the unit-level discriminating gate added alongside the fix
+(`test_non_internal_reference_onto_known_document_not_guarded`, verified RED-without /
+GREEN-with) is the durable guard against its return.
