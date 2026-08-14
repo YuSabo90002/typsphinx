@@ -3205,8 +3205,10 @@ class TypstTranslator(SphinxTranslator):
         # (see its own docstring for the two options the plan 48-05
         # checkpoint recorded and which one this predicate implements). An
         # anchored cross-document `xref` (non-empty anchor) is untouched.
-        if xref is not None and xref[1] == "" and not (
-            self._whole_document_reference_eligible(node, xref[0])
+        if (
+            xref is not None
+            and xref[1] == ""
+            and not (self._whole_document_reference_eligible(node, xref[0]))
         ):
             xref = None
 
