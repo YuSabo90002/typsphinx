@@ -34,6 +34,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sphinx.util.osutil import make_filename_from_project
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 BARE_TARGET_FIXTURE_DIR = FIXTURES_DIR / "output_layout_bare_target_gate"
@@ -45,9 +47,25 @@ REFUSED_DRIVE_FIXTURE_DIR = FIXTURES_DIR / "output_layout_refused_drive_gate"
 # gate below -- do not create a fourth copy of the same configuration and
 # do not modify tests/fixtures/bld03_self_collision_gate/ itself.
 SELF_COLLISION_FIXTURE_DIR = FIXTURES_DIR / "bld03_self_collision_gate"
+# EXISTING Phase 49 fixture, reused (not duplicated) for the shared-child
+# composition gate below -- do not modify
+# tests/fixtures/state_guard_three_master_gate/ itself; its own header
+# comment enumerates the load-bearing properties that make it the
+# three-master coverage proof.
+THREE_MASTER_FIXTURE_DIR = FIXTURES_DIR / "state_guard_three_master_gate"
 OUTPUT_LAYOUT_RST_PATH = (
     REPO_ROOT / "docs" / "source" / "user_guide" / "output_layout.rst"
 )
+BUILDERS_RST_PATH = REPO_ROOT / "docs" / "source" / "user_guide" / "builders.rst"
+TEMPLATES_RST_PATH = REPO_ROOT / "docs" / "source" / "user_guide" / "templates.rst"
+
+# The one place in this phase a published filename is DERIVED from a
+# helper rather than typed by the reader (D-11): builders.rst's and
+# templates.rst's walkthroughs assume typst_documents is unset and
+# project = "My Project", so their wrapper stem comes from the SAME
+# helper typsphinx/builder.py's own default-derivation path calls.
+_WALKTHROUGH_PROJECT_NAME = "My Project"
+_WALKTHROUGH_WRAPPER_STEM = make_filename_from_project(_WALKTHROUGH_PROJECT_NAME)
 
 # The invariant fragment of the two verbatim warning templates the builder
 # emits when a target's path shape is refused (builder.py:383-386) -- the
@@ -324,6 +342,45 @@ class TestOutputLayoutBuildFileSets:
             f"is found (the check runs before any write), found: {typ_files}"
         )
 
+    def test_three_master_project_emits_ten_typ_files(self, tmp_path):
+        """
+        A real ``-b typst`` build of the EXISTING Phase 49
+        ``state_guard_three_master_gate`` fixture (three ``typst_documents``
+        masters over six documents, two of them shared) exits 0 and writes
+        EXACTLY ten ``.typ`` files: three wrappers (``manual1.typ``,
+        ``manual2.typ``, ``manual3.typ``), six content files (one per
+        docname -- ``common_a``, ``common_b``, ``m1``, ``m2``, ``m3``,
+        ``mid``), and the reserved ``_template.typ``
+        (51-RESEARCH.md Part C build 4). Asserts the exact SET, not merely
+        that each file exists, so an extra or missing file fails.
+        """
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(THREE_MASTER_FIXTURE_DIR, build_dir, "typst")
+
+        assert result.returncode == 0, (
+            f"Expected a successful build of the three-master fixture:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        actual_typ_names = {p.name for p in build_dir.glob("*.typ")}
+        expected_typ_names = {
+            "_template.typ",
+            "manual1.typ",
+            "manual2.typ",
+            "manual3.typ",
+            "common_a.typ",
+            "common_b.typ",
+            "m1.typ",
+            "m2.typ",
+            "m3.typ",
+            "mid.typ",
+        }
+        assert actual_typ_names == expected_typ_names, (
+            f"Expected exactly the ten-file set {sorted(expected_typ_names)}, "
+            f"got {sorted(actual_typ_names)}:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
 
 class TestPublishedOutputLayoutTextMatchesBuild:
     """
@@ -383,4 +440,48 @@ class TestPublishedOutputLayoutTextMatchesBuild:
             "docs/source/user_guide/output_layout.rst does not contain the "
             f"literal {COLLISION_ERROR_FRAGMENT!r} -- the collision abort "
             "must be quoted, not paraphrased."
+        )
+
+    def test_page_states_the_shared_child_composition(self):
+        """docs/source/user_guide/output_layout.rst's shared-child section
+        heading is present and the section publishes the literal 'ten'
+        file-count claim (D-09, SC#3)."""
+        text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
+        assert "Documents Shared by Several Masters" in text, (
+            "docs/source/user_guide/output_layout.rst does not contain the "
+            "'Documents Shared by Several Masters' section heading."
+        )
+        assert "ten" in text, (
+            "docs/source/user_guide/output_layout.rst does not publish the "
+            "literal 'ten' file-count claim for the three-master example."
+        )
+
+    def test_helper_derived_wrapper_stem_matches_the_published_walkthroughs(self):
+        """
+        builders.rst's and templates.rst's walkthroughs both assume
+        typst_documents is unset and project = "My Project", so their
+        published wrapper filename must match the SAME helper
+        (make_filename_from_project) typsphinx/builder.py's own
+        default-derivation path calls -- never a hard-coded literal (D-11).
+        """
+        builders_text = BUILDERS_RST_PATH.read_text(encoding="utf-8")
+        templates_text = TEMPLATES_RST_PATH.read_text(encoding="utf-8")
+
+        expected_typ_path = f"build/typst/{_WALKTHROUGH_WRAPPER_STEM}.typ"
+        expected_pdf_path = f"build/pdf/{_WALKTHROUGH_WRAPPER_STEM}.pdf"
+
+        assert expected_typ_path in builders_text, (
+            f"docs/source/user_guide/builders.rst does not contain "
+            f"{expected_typ_path!r}, computed from "
+            f"make_filename_from_project({_WALKTHROUGH_PROJECT_NAME!r})."
+        )
+        assert expected_pdf_path in builders_text, (
+            f"docs/source/user_guide/builders.rst does not contain "
+            f"{expected_pdf_path!r}, computed from "
+            f"make_filename_from_project({_WALKTHROUGH_PROJECT_NAME!r})."
+        )
+        assert expected_typ_path in templates_text, (
+            f"docs/source/user_guide/templates.rst does not contain "
+            f"{expected_typ_path!r}, computed from "
+            f"make_filename_from_project({_WALKTHROUGH_PROJECT_NAME!r})."
         )

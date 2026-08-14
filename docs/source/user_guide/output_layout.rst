@@ -138,3 +138,27 @@ now claim.
 This check runs before any file is written, so a build that fails this way
 leaves no ``.typ`` files behind at all -- not even ``_template.typ``. The
 fix is to choose a target that is not any document's own name.
+
+Documents Shared by Several Masters
+------------------------------------
+
+A document reached from more than one master appears in EVERY one of those
+masters' outputs. It appears exactly once in each. It appears at that
+master's own position in its own table of contents -- and because that
+position differs per master, the document's heading level differs per
+master too: the same shared chapter can be a second-level heading in one
+master's output and a third-level heading in another's. This is the
+intended behaviour, and no configuration is needed to get it.
+
+This implies a file-count rule worth stating plainly, since it is what you
+will actually observe when you build: a build writes one wrapper per
+``typst_documents`` entry, one content file for every document in the
+project, and the reserved ``_template.typ``. A three-master project over
+six documents therefore writes ten ``.typ`` files.
+
+See Also
+--------
+
+- :doc:`configuration` - Configuration options
+- :doc:`builders` - Understanding the typst and typstpdf builders
+- :doc:`/changelog` - What changed from v0.7.x to v0.8.0
