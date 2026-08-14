@@ -864,7 +864,7 @@ ordering v0.7.1 used for Phase 45 after Phase 44)
      documentation entirely — the owner classifies it as a bug to be fixed in a later milestone
      rather than a limitation to publish. It stays tracked in
      `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
-**Plans**: 5/6 plans executed
+**Plans**: 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -880,7 +880,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 51-06-PLAN.md — Shared-child composition in the user's language with the three-master file-set proof, the page's See Also, and the phase-closing audit: full suite, real `-b html` build, the D-07 exclusion measurement, and `51-SWEEP-AUDIT.md` disposing all 13 Part A rows
+- [x] 51-06-PLAN.md — Shared-child composition in the user's language with the three-master file-set proof, the page's See Also, and the phase-closing audit: full suite, real `-b html` build, the D-07 exclusion measurement, and `51-SWEEP-AUDIT.md` disposing all 13 Part A rows
 
 **UI hint**: no
 
@@ -982,7 +982,7 @@ sequential, not merely numbered:
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
-| 51. Two-Layer Output Documentation | v0.8.0 | 5/6 | In Progress|  |
+| 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | In Progress|  |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
