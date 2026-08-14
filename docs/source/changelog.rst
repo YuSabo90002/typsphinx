@@ -4,6 +4,89 @@
 Migration Guides
 ----------------
 
+Migrating from 0.7.x to 0.8.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This release carries three breaking changes to what typsphinx writes to disk. Each item below
+shows the ``conf.py`` fragment you have today -- unchanged -- and what it now produces: the
+``# v0.7.x`` block is what that fragment used to write, the ``# v0.8.0`` block is what it writes
+now.
+
+- **Breaking:** the output shape. One ``typst_documents`` entry now writes TWO files instead of
+  one. With ``typst_documents = [("index", "manual.typ", "Title", "Author", "typst")]``, v0.7.x
+  wrote ``manual.typ`` containing the whole document; v0.8.0 writes ``manual.typ`` as a thin
+  wrapper (template application plus one include) and ``index.typ`` as the document body. Any
+  tooling that expects the target filename to hold the full document now finds a wrapper instead
+  -- the wrapper is still the file to compile. Every docname gets a content file, not only the
+  ones named in ``typst_documents``.
+
+  .. code-block:: text
+
+     # v0.7.x -- manual.typ is the whole document
+     $ sphinx-build -b typst source build
+     build/manual.typ   <- the complete document body
+
+  .. code-block:: text
+
+     # v0.8.0 -- the same conf.py now writes a wrapper plus a content file
+     $ sphinx-build -b typst source build
+     build/manual.typ   <- thin wrapper: template application plus one #include("index.typ")
+     build/index.typ    <- the document body -- manual.typ is still the file to compile
+
+- **Breaking:** the target-as-path reversal. A target containing a path separator was rejected in
+  v0.7.x -- a build warning, and the file written under its basename -- and is honoured as-is
+  relative to the output directory in v0.8.0. With
+  ``typst_documents = [("index", "manuals/guide.typ", "Title", "Author", "typst")]``, v0.7.x wrote
+  ``guide.typ`` at the output root; v0.8.0 writes ``manuals/guide.typ``. ``..`` segments, absolute
+  targets, and drive-qualified targets are still refused with the same warning-and-basename-fallback
+  behavior -- see the current refusal rules on the new output layout page, linked at the end of
+  this section.
+
+  .. code-block:: text
+
+     # v0.7.x -- a path in the target is rejected and truncated to its basename
+     $ sphinx-build -b typst source build
+     build/guide.typ   <- WARNING: path rejected, written under its basename at the output root
+
+  .. code-block:: text
+
+     # v0.8.0 -- the same target is honoured as-is, relative to the output directory
+     $ sphinx-build -b typst source build
+     build/manuals/guide.typ   <- written exactly where the target says
+
+- **Breaking:** the collision hard error. A configuration whose target resolves onto a path
+  another claimant already owns now aborts the build. With
+  ``typst_documents = [("index", "index.typ", "Title", "Author", "typst")]``, the wrapper target
+  collides with ``index``'s own content file: this built successfully in v0.7.x and now raises an
+  ``ExtensionError``. The check runs before anything is written, so no ``.typ`` file is left on
+  disk. Fix it by giving the entry a target that is not any docname's own name. The claimants are
+  the reserved ``_template.typ``, every docname's content file, and every entry's wrapper.
+
+  .. code-block:: text
+
+     # v0.7.x -- this configuration builds without error
+     $ sphinx-build -b typst source build
+     build succeeded
+
+  .. code-block:: text
+
+     # v0.8.0 -- the wrapper target collides with index's own content file
+     $ sphinx-build -b typst source build
+     ExtensionError: typst: 1 output path collision(s): 'index.typ': the content file
+     for docname 'index' and typst_documents entry 0 (docname 'index', target
+     'index.typ') both resolve to the same output path 'index.typ'
+
+- A document reached from more than one master now renders in each of those masters' PDFs, at
+  that master's own position and heading level, where v0.7.x placed it in only one of them. No
+  action is needed -- it is the defect this release fixes.
+
+Two different renames touch ``typst_documents`` targets across these releases, and they are easy
+to confuse. v0.7.1 already renamed the DEFAULT-DERIVED target from the root docname to
+``<project>.typ`` when ``typst_documents`` is unset -- a change to what the target is *called*.
+v0.8.0 changes what the target file *contains* -- a change to the output shape, described above.
+If your project saw its output renamed at the 0.7.1 upgrade, it is seeing a different change now.
+See :doc:`/user_guide/output_layout` for the full current output-layout contract.
+
 Migrating from 0.7.0 to 0.7.1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
