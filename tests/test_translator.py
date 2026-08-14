@@ -2090,6 +2090,11 @@ def test_toctree_generates_outline(simple_document, mock_builder):
     Test that toctree node generates #include() directives.
 
     Updated for Requirement 13: toctree now generates #include() instead of #outline()
+
+    Phase 49 (COMP-05/D-03, SYNTHETIC-NODE): the emission side now reads
+    the toctree's INCLUDE-FILE list, not its entry list -- a hand-built
+    node must set ``includefiles`` alongside ``entries`` or it is treated
+    as having no children at all.
     """
     from sphinx import addnodes
 
@@ -2104,6 +2109,7 @@ def test_toctree_generates_outline(simple_document, mock_builder):
         ("Getting Started", "getting_started"),
         ("API Reference", "api"),
     ]
+    toctree["includefiles"] = ["intro", "getting_started", "api"]
 
     # Visit using walkabout
     toctree.walkabout(translator)

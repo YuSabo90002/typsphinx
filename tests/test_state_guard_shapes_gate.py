@@ -11,11 +11,13 @@ Every asserted value in this module comes from ``49-EXPECTED-STRUCTURE.md``'s
 ``## Degenerate-shape outcome table`` and ``## Fixture specification``
 entries 3-9 -- each shape's outcome was DECIDED at plan time, never
 discovered as a test failure here (SC#2, ROADMAP binding constraint #6).
-Every test whose assertions cannot pass until 49-04's emitter lands is
-marked as a strict xfail (``pytest.mark.xfail``, ``strict=True``), with a
-reason paraphrasing the matching transcript recorded verbatim in
-``49-SHAPES-RED-EVIDENCE.md``, so an accidental early pass surfaces as
-``XPASS`` rather than silently staying green.
+Every assertion that could not pass until 49-04's emitter landed was recorded,
+on this plan's own pre-fix tree, as a strict xfail (``pytest.mark.xfail``,
+``strict=True``), with a reason paraphrasing the matching transcript recorded
+verbatim in ``49-SHAPES-RED-EVIDENCE.md``. 49-04 has now landed those flips,
+and every one of those strict xfail markers has been removed from this
+module -- ``49-SHAPES-RED-EVIDENCE.md`` remains the verbatim record of each
+flipped assertion's own pre-fix RED transcript.
 
 Scope caveat (COMP-06): the substring-key test below covers the
 ARRAY-VERSUS-STRING SEMANTICS half of the trailing-comma hazard only -- it
@@ -154,85 +156,6 @@ def _marker_count(text: str, marker: str) -> int:
     return text.count(marker)
 
 
-# xfail reasons, factored out to named constants so each decorator's own
-# reason=_REASON_X line stays short enough for black to keep the strict
-# xfail marker's own arguments on one physical line -- each reason's full
-# text still names 49-04 and paraphrases its matching transcript in
-# 49-SHAPES-RED-EVIDENCE.md.
-
-_REASON_SELF_AND_URL = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 1): the PDF build "
-    "currently aborts with TypstError: file not found (self.typ), and "
-    "index.typ unconditionally includes self.typ and "
-    "https://example.com.typ. Flips once 49-04's emitter iterates "
-    "includefiles instead of entries (D-03)."
-)
-
-_REASON_DUPLICATE_OCCURRENCE = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 1): index.typ "
-    "currently emits ONE deduped include('child.typ') via the write-time "
-    "_included_docnames ledger, not two occurrence-indexed state guards. "
-    "Flips once 49-04's emitter emits a per-emission-site guard for every "
-    "toctree entry (D-04)."
-)
-
-_REASON_CYCLE = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 2): the current "
-    "write-time emitter has no cycle guard at all -- alpha.typ and "
-    "beta.typ currently mutually #include() each other, and the PDF "
-    "build aborts with TypstError: maximum show rule depth exceeded. "
-    "Flips once 49-04's DFS seeds traversed with the master's own "
-    "docname and skips already-traversed children (D-06)."
-)
-
-_REASON_SELFREF = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 3): no "
-    "#state(...) array is published by any wrapper today, so the "
-    "ordinary child's key cannot yet be present in it. The PDF-level "
-    "outcome (child included once, self entry absent) is already "
-    "correct today via Sphinx's own upstream filtering -- only the "
-    "array-membership assertion is new, flipping once 49-04's wrapper "
-    "publishes edge keys."
-)
-
-_REASON_GLOB = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 4): no "
-    "#state(...) array is published today, so the sorted-order key list "
-    "cannot yet be asserted. The PDF-level sorted-order outcome is "
-    "already correct today (Sphinx's own parse-time glob expansion), "
-    "flipping once 49-04's wrapper publishes edge keys in that same "
-    "sorted order."
-)
-
-_REASON_THREE_MASTER = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 6): the "
-    "build-scoped write-time ledger currently lets only ONE master's "
-    "own toctree entry for a shared child survive -- COMMON-A-MARKER is "
-    "entirely absent from manual2.pdf today, and COMMON-B-MARKER is "
-    "absent from both manual1.pdf's Mid section and all of manual3.pdf. "
-    "Flips once 49-04's per-master DFS derives an independent edge set "
-    "for each master (COMP-05/COMP-09)."
-)
-
-_REASON_EMPTY_SINGLE_ARITY = (
-    "49-04 flips this: neither fixture's wrapper publishes any "
-    "#state(...) array today. Flips once 49-04's wrapper publishes the "
-    "empty-array literal for a master with no toctree, and the "
-    "one-or-more form (with its mandatory trailing comma) for a master "
-    "with exactly one edge (COMP-05 empty, D-09/Pitfall 1)."
-)
-
-_REASON_SUBSTRING = (
-    "49-04 flips this (49-SHAPES-RED-EVIDENCE.md Section 7): no "
-    "#state(...) array is published today, so the published array "
-    "cannot yet be asserted to contain exactly the two live keys. The "
-    "PDF-level marker/nesting outcome is already correct today (a "
-    "write-time-ledger coincidence specific to this single-master "
-    "fixture), flipping once 49-04's wrapper publishes edge keys as a "
-    "real Typst array (COMP-06)."
-)
-
-
 @pytest.fixture(scope="module")
 def all_builds(tmp_path_factory) -> dict:
     """
@@ -284,14 +207,18 @@ class TestSelfAndUrlGate:
     transcript is ``49-SHAPES-RED-EVIDENCE.md`` Section 1.
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_SELF_AND_URL)
     def test_self_and_external_url_produce_no_guard(self, all_builds):
         """
-        (49-04) COMP-05/D-03/D-10: the PDF build exits 0, no emitted include
+        COMP-05/D-03/D-10: the PDF build exits 0, no emitted include
         derives from the ``self`` entry or the external URL, the child's
         marker appears exactly once in the compiled PDF, and Sphinx's own
         duplicated-entry warning is still present (this phase silences no
-        diagnostic Sphinx already emits).
+        diagnostic Sphinx already emits). The pre-fix RED was recorded as
+        a strict xfail against ``49-SHAPES-RED-EVIDENCE.md`` Section 1
+        (the PDF build aborted with ``TypstError: file not found
+        (self.typ)``, and ``index.typ`` unconditionally included
+        ``self.typ`` and ``https://example.com.typ``); 49-04's emitter now
+        iterates ``includefiles`` instead of ``entries`` (D-03).
         """
         build = all_builds["state_guard_self_and_url_gate"]
         assert build.pdf_result.returncode == 0, (
@@ -306,15 +233,19 @@ class TestSelfAndUrlGate:
         warnings = build.pdf_result.stdout + build.pdf_result.stderr
         assert "duplicate" in warnings.lower() or "重複" in warnings
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_DUPLICATE_OCCURRENCE)
     def test_duplicate_entry_occurrence_rule(self, all_builds):
         """
-        (49-04) COMP-05 adjacency / D-04: the emitted content file carries TWO
+        COMP-05 adjacency / D-04: the emitted content file carries TWO
         guard lines for the duplicated child, with distinct occurrence
         values (occurrence 0 and occurrence 1), and the wrapper's
         published array contains only the occurrence-0 key. The child's
         marker and its Typst label each appear exactly once in the
-        compiled document.
+        compiled document. The pre-fix RED was recorded as a strict xfail
+        against ``49-SHAPES-RED-EVIDENCE.md`` Section 1 (``index.typ``
+        emitted ONE deduped ``include('child.typ')`` via the pre-Phase-49
+        write-time ledger, not two occurrence-indexed state guards);
+        49-04's emitter now emits a per-emission-site guard for every
+        toctree entry (D-04).
         """
         build = all_builds["state_guard_self_and_url_gate"]
         index_text = build.content_text("index")
@@ -356,13 +287,18 @@ class TestCycleGate:
     own named one) is ``49-SHAPES-RED-EVIDENCE.md`` Section 2.
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_CYCLE)
     def test_two_node_cycle_terminates_with_forward_edge_only(self, all_builds):
         """
-        (49-04) D-06: the build terminates and exits 0. Each document's marker
+        D-06: the build terminates and exits 0. Each document's marker
         appears exactly once in the compiled PDF. The published array
         contains the forward edge (``alpha#0>beta``) and not the back
-        edge (``beta#0>alpha``).
+        edge (``beta#0>alpha``). The pre-fix RED was recorded as a strict
+        xfail against ``49-SHAPES-RED-EVIDENCE.md`` Section 2 (the
+        pre-Phase-49 write-time emitter had no cycle guard at all --
+        ``alpha.typ`` and ``beta.typ`` mutually ``#include()``d each
+        other, and the PDF build aborted with ``TypstError: maximum show
+        rule depth exceeded``); 49-04's DFS now seeds ``traversed`` with
+        the master's own docname and skips already-traversed children.
         """
         build = all_builds["state_guard_cycle_gate"]
         assert build.pdf_result.returncode == 0, (
@@ -393,13 +329,17 @@ class TestSelfRefGate:
     ``49-SHAPES-RED-EVIDENCE.md`` Section 3.
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_SELFREF)
     def test_self_referencing_entry_has_no_guard(self, all_builds):
         """
-        (49-04) D-06: exits 0. The self-listing entry's key (``index#0>index``)
+        D-06: exits 0. The self-listing entry's key (``index#0>index``)
         is absent from the published array while the ordinary child's key
         (``index#0>other``) is present, and the child's marker appears
-        exactly once.
+        exactly once. The pre-fix RED was recorded as a strict xfail
+        against ``49-SHAPES-RED-EVIDENCE.md`` Section 3 (no ``#state(...)``
+        array was published by any wrapper yet, so the ordinary child's
+        key could not yet be asserted present -- the PDF-level outcome
+        itself was already correct pre-fix, via Sphinx's own upstream
+        filtering); only the array-membership assertion was new.
         """
         build = all_builds["state_guard_selfref_gate"]
         assert build.pdf_result.returncode == 0
@@ -426,13 +366,17 @@ class TestGlobGate:
     ``49-SHAPES-RED-EVIDENCE.md`` Section 4.
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_GLOB)
     def test_glob_toctree_expands_in_sorted_order(self, all_builds):
         """
-        (49-04) D-06: exits 0. The three matched documents' markers appear in the
+        D-06: exits 0. The three matched documents' markers appear in the
         compiled PDF's extracted text in the sorted-docname order (alpha,
         mike, zulu) at strictly increasing offsets, and the published
-        array lists their keys in that same sorted order.
+        array lists their keys in that same sorted order. The pre-fix RED
+        was recorded as a strict xfail against
+        ``49-SHAPES-RED-EVIDENCE.md`` Section 4 (no ``#state(...)`` array
+        was published yet, so the sorted-order key list could not yet be
+        asserted -- the PDF-level sorted-order outcome itself was already
+        correct pre-fix, via Sphinx's own parse-time glob expansion).
         """
         build = all_builds["state_guard_glob_gate"]
         assert build.pdf_result.returncode == 0
@@ -506,15 +450,21 @@ class TestThreeMasterGate:
     ``49-SHAPES-RED-EVIDENCE.md`` Section 6.
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_THREE_MASTER)
     def test_three_masters_each_render_shared_children_once(self, all_builds):
         """
-        (49-04) SC#2/COMP-09: for each of the three masters, each shared child's
+        SC#2/COMP-09: for each of the three masters, each shared child's
         marker appears exactly once in that master's own PDF, at the
         heading level the specification derived for that master, and all
         three published wrapper bodies (and therefore their arrays)
         differ from one another (proving the mapping is genuinely
-        per-master, not a single global answer).
+        per-master, not a single global answer). The pre-fix RED was
+        recorded as a strict xfail against ``49-SHAPES-RED-EVIDENCE.md``
+        Section 6 (the pre-Phase-49 build-scoped write-time ledger let
+        only ONE master's own toctree entry for a shared child survive --
+        COMMON-A-MARKER was entirely absent from manual2.pdf, and
+        COMMON-B-MARKER was absent from both manual1.pdf's Mid section
+        and all of manual3.pdf); 49-04's per-master DFS now derives an
+        independent edge set for each master.
         """
         build = all_builds["state_guard_three_master_gate"]
         assert build.pdf_result.returncode == 0
@@ -563,17 +513,21 @@ class TestEmptyAndSingleEntryArities:
     Probe 2/4/5).
     """
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_EMPTY_SINGLE_ARITY)
     def test_empty_and_single_entry_array_literals(self, all_builds):
         """
-        (49-04) COMP-05 empty: for ``state_guard_orphan_ref_gate``'s master
+        COMP-05 empty: for ``state_guard_orphan_ref_gate``'s master
         (empty include-file list), the emitted wrapper publishes the
         empty-array literal ``()`` and the emitted content file contains
         no toctree scope block. For ``state_guard_self_and_url_gate``'s
         master (exactly one live edge), the published literal matches the
         contract's one-or-more form including the mandatory trailing
         comma, asserted as a structural regex over the emitted line
-        rather than a full-file exact-string diff.
+        rather than a full-file exact-string diff. The pre-fix RED was
+        recorded as a strict xfail: neither fixture's wrapper published
+        any ``#state(...)`` array yet; 49-04's wrapper now publishes the
+        empty-array literal for a master with no toctree, and the
+        one-or-more form (with its mandatory trailing comma) for a
+        master with exactly one edge (COMP-05 empty, D-09/Pitfall 1).
         """
         orphan_build = all_builds["state_guard_orphan_ref_gate"]
         orphan_wrapper = orphan_build.wrapper_text("manual.typ")
@@ -582,7 +536,16 @@ class TestEmptyAndSingleEntryArities:
         )
         assert empty_array.search(orphan_wrapper), orphan_wrapper
         orphan_index = orphan_build.content_text("index")
-        assert "context {" not in orphan_index
+        # 49-04: a bare "context {" substring check is too broad -- this
+        # fixture's own `:ref:` cross-reference triggers Phase 48's
+        # UNRELATED compile-time xref guard (`context { let __tsx_body =
+        # [...`), which is not a toctree-emission scope block and was
+        # already present pre-fix (49-SHAPES-RED-EVIDENCE.md Section 5
+        # recorded this exact same match, attributing it to Phase 48).
+        # The toctree-specific scope block this phase's own mechanism
+        # governs opens with "context {\n  set heading(offset:" --
+        # assert THAT signature is absent, not the bare substring.
+        assert "context {\n  set heading(offset:" not in orphan_index
 
         single_build = all_builds["state_guard_self_and_url_gate"]
         single_wrapper = single_build.wrapper_text("manual.typ")
@@ -629,15 +592,21 @@ class TestSubstringKeyGate:
         assert dark_key in published_key
         assert dark_key != published_key
 
-    @pytest.mark.xfail(strict=True, reason=_REASON_SUBSTRING)
     def test_substring_key_semantics(self, all_builds):
         """
-        (49-04) COMP-06 adjacency: the published array contains exactly the two
+        COMP-06 adjacency: the published array contains exactly the two
         keys the specification derived (``index#0>guideext``,
         ``guideext#0>guide``). The dark key (``index#0>guide``) is NOT in
         the published array, and the shorter-named document's marker
         appears EXACTLY ONCE in the compiled PDF at the nested resolved
-        heading level.
+        heading level. The pre-fix RED was recorded as a strict xfail
+        against ``49-SHAPES-RED-EVIDENCE.md`` Section 7 (no
+        ``#state(...)`` array was published yet, so the published array
+        could not yet be asserted to contain exactly the two live keys --
+        the PDF-level marker/nesting outcome itself was already correct
+        pre-fix, a write-time-ledger coincidence specific to this
+        single-master fixture); 49-04's wrapper now publishes edge keys
+        as a real Typst array (COMP-06).
         """
         build = all_builds["state_guard_substring_key_gate"]
         wrapper_text = build.wrapper_text("manual.typ")

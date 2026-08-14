@@ -20,18 +20,23 @@ an offset Typst resolves at layout time (the same reason
 ``tests/test_heading_depth_render_gate.py`` queries the compiled artifact
 instead of the source).
 
-Every post-fix assertion that cannot pass until 49-04 lands is recorded as
-``pytest.mark.xfail(strict=True)`` with a reason paraphrasing the matching
-``49-RED-EVIDENCE.md`` transcript and naming 49-04 as the plan that flips
-it -- so this module exits 0 on this plan's own tree while an accidental
-early pass surfaces loudly as XPASS. Three tests are NOT marked xfail
-because ``49-RED-EVIDENCE.md`` recorded them as already-passing invariance
-baselines on the unfixed tree: single-master builds are unaffected by this
-phase's change (no shared-across-masters child exists to lose), an empty
-toctree's include-file list already emits no ``context { ... }`` block
-today (Task 1's own read of the emitted ``emptytoc.typ`` confirmed this),
-and a master with no toctree at all already resolves its own heading at
-the top level (Failure mode 4's ``soloist`` control).
+Every post-fix assertion that could not pass until 49-04 landed was recorded,
+on this plan's own pre-fix tree, as a strict ``pytest.mark.xfail`` marker
+(``strict=True``) with a reason paraphrasing the matching
+``49-RED-EVIDENCE.md`` transcript and naming 49-04 as the plan that would
+flip it. 49-04 has now landed those flips, and every one of those strict
+xfail markers has been removed from this module -- every test below runs
+as a plain pass, and a future regression surfaces as an ordinary FAILED,
+not a silently-tolerated XPASS. ``49-RED-EVIDENCE.md`` remains the
+verbatim record of each flipped assertion's own pre-fix RED transcript.
+Three tests were never marked xfail at all because ``49-RED-EVIDENCE.md``
+recorded them as already-passing invariance baselines on the unfixed
+tree: single-master builds are unaffected by this phase's change (no
+shared-across-masters child exists to lose), an empty toctree's
+include-file list already emitted no ``context { ... }`` block before
+this phase (Task 1's own read of the emitted ``emptytoc.typ`` confirmed
+this), and a master with no toctree at all already resolved its own
+heading at the top level (Failure mode 4's ``soloist`` control).
 """
 
 import hashlib
@@ -306,15 +311,15 @@ class TestStateGuardTwoMasterComposition:
     document-order interleaving.
     """
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (RED mode 1)")
     def test_shared_chapter_appears_in_both_masters_pdf(self, two_master_build):
         """COMP-07 / SC#1: the shared marker's occurrence count is exactly
-        1 in EACH of the two masters' compiled PDFs. xfail pre-fix:
-        49-RED-EVIDENCE.md Failure mode 1 measured SHARED-CHAPTER-MARKER
-        present 0 times in manual.pdf (master A) and 1 time in
-        bmanual.pdf (master B) -- the build-scoped ledger claims `shared`
-        for whichever parent's toctree translates first (bmaster,
-        alphabetically), not per master."""
+        1 in EACH of the two masters' compiled PDFs. The pre-fix RED was
+        recorded as a strict xfail: 49-RED-EVIDENCE.md Failure mode 1
+        measured SHARED-CHAPTER-MARKER present 0 times in manual.pdf
+        (master A) and 1 time in bmanual.pdf (master B) -- the
+        build-scoped ledger claimed `shared` for whichever parent's
+        toctree translated first (bmaster, alphabetically), not per
+        master."""
         manual_count = two_master_build["manual_pdf_text"].count(
             "SHARED-CHAPTER-MARKER"
         )
@@ -330,7 +335,6 @@ class TestStateGuardTwoMasterComposition:
             f"bmanual.pdf (master B), got {bmanual_count}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (no guard yet)")
     def test_nested_docname_child_included_and_edge_key_escapes_unchanged(
         self, two_master_build
     ):
@@ -338,13 +342,13 @@ class TestStateGuardTwoMasterComposition:
         appears exactly once in EACH master's PDF, and the emitted guard
         line in shared.typ carries the docname exactly as
         escape_typst_string() produces it -- unchanged, since `sub/nested`
-        contains no character the helper escapes. xfail pre-fix: the
-        nested-docname child sub/nested is reachable pre-fix ONLY through
-        bmaster's own unconditional include chain, and neither shared.typ
-        nor sub/nested.typ carries any state-guard
-        `if "..." in state(...).get() { ... }` line yet -- the current
-        translator emits a bare `include("sub/nested.typ")` with no guard
-        at all."""
+        contains no character the helper escapes. The pre-fix RED was
+        recorded as a strict xfail: the nested-docname child sub/nested
+        was reachable pre-fix ONLY through bmaster's own unconditional
+        include chain, and neither shared.typ nor sub/nested.typ carried
+        any state-guard `if "..." in state(...).get() { ... }` line yet --
+        the pre-fix translator emitted a bare `include("sub/nested.typ")`
+        with no guard at all."""
         manual_count = two_master_build["manual_pdf_text"].count(
             "NESTED-DOCNAME-BODY-MARKER"
         )
@@ -371,18 +375,17 @@ class TestStateGuardTwoMasterComposition:
             f"{two_master_build['shared_content']}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (RED mode 1)")
     def test_shared_child_position_per_master_traversal(self, two_master_build):
         """COMP-07 / COMP-10: master A (index) resolves `shared` NESTED
         one level below `zmid` (first-encounter-wins via zmid's own
         toctree); master B (bmaster) resolves `shared` DIRECT, one level
         below its own heading -- both queried against the COMPILED
-        document with the build directory as query root. xfail pre-fix:
-        49-RED-EVIDENCE.md Failure mode 1 shows `Shared` entirely absent
-        from manual.pdf's compiled outline -- master A's own toctree
-        entry for `shared` is silently skipped (already claimed by
-        bmaster's earlier translation), so there is no nested position to
-        query at all."""
+        document with the build directory as query root. The pre-fix RED
+        was recorded as a strict xfail: 49-RED-EVIDENCE.md Failure mode 1
+        showed `Shared` entirely absent from manual.pdf's compiled
+        outline -- master A's own toctree entry for `shared` was silently
+        skipped (already claimed by bmaster's earlier translation), so
+        there was no nested position to query at all."""
         build_dir = two_master_build["build_dir"]
 
         manual_outline = _query_heading_outline(
@@ -412,7 +415,6 @@ class TestStateGuardTwoMasterComposition:
             f"(bmaster={bmaster_level}, shared={shared_level_b})"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (RED mode 1)")
     def test_document_order_interleaving_preserved(self, two_master_build):
         """COMP-08: master A's pypdf-extracted text preserves document
         order -- the prose-before marker, then ZMid's own body, then
@@ -421,11 +423,11 @@ class TestStateGuardTwoMasterComposition:
         increasing offsets. Every marker asserted here is plain ASCII with
         no zero-width characters (a zero-width space poisons pypdf
         extraction at an unrelated glyph boundary -- a hazard measured in
-        v0.7.0 Phase 37). xfail pre-fix: 49-RED-EVIDENCE.md Failure mode 1
-        measured SHARED-CHAPTER-MARKER absent (count 0) from manual.pdf
-        entirely, so the shared-body position in this ordered sequence
-        cannot be observed at all until the shared chapter reaches
-        master A."""
+        v0.7.0 Phase 37). The pre-fix RED was recorded as a strict xfail:
+        49-RED-EVIDENCE.md Failure mode 1 measured SHARED-CHAPTER-MARKER
+        absent (count 0) from manual.pdf entirely, so the shared-body
+        position in this ordered sequence could not be observed at all
+        until the shared chapter reached master A."""
         text = two_master_build["manual_pdf_text"]
         before_offset = text.index("PROSE-BEFORE-MARKER")
         zmid_offset = text.rindex("ZMid")
@@ -463,20 +465,34 @@ class TestStateGuardTwoMasterComposition:
             f"(before={before_offset}, after={after_offset}):\n{text}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (RED mode 2)")
     def test_diamond_shared_content_file_identical_across_masters(
         self, two_master_build
     ):
         """COMP-09: the shared child's marker count is exactly 1 in EACH
-        master's PDF AND exactly one shared content file exists on disk
-        with the digest 49-RED-EVIDENCE.md's Failure mode 2 recorded -- the
-        digest comparison is what proves the per-master difference comes
-        from the wrapper's published state, not from two divergent
-        content files. xfail pre-fix: 49-RED-EVIDENCE.md Failure mode 2
-        shows the SAME on-disk shared.typ (one SHA-256 digest) still
-        produces a 0/1 marker-count split, not 1/1 -- a build-scoped
-        ledger picks exactly one winner across the whole build, not one
-        winner per master."""
+        master's PDF, exactly one shared content file exists on disk, and
+        its digest -- read once, before either compile, and re-read after
+        both -- stays byte-identical across both masters' compiles, which
+        is what proves the per-master difference comes from each wrapper's
+        own published state (COMP-06), never from two divergent content
+        files (COMP-09).
+
+        49-04 (this plan): the exact SHA-256 pin 49-02 recorded against
+        the PRE-FIX ``shared.typ`` bytes (an unconditional
+        ``include("sub/nested.typ")`` line) cannot survive this phase's
+        own change -- POST-fix, the SAME docname's content file carries a
+        state-guarded line instead (``if "shared#0>sub/nested" in
+        state(...).get() { include("sub/nested.typ") }``), which is a
+        DIFFERENT, intentional byte sequence by this phase's own design
+        (COMP-06), not drift to detect. Per binding constraint #6, the new
+        expected bytes are not re-derived here from a live build's own
+        output; instead this test asserts the SAME two invariants the
+        digest pin existed to protect -- exactly ONE physical file on
+        disk, and that file's own stability across the two compiles that
+        read it -- plus the guard line's own shape, asserted structurally
+        against the Emission contract's template (mirroring
+        ``test_nested_docname_child_included_and_edge_key_escapes_unchanged``'s
+        own pattern) rather than against a full-file exact-string diff.
+        """
         manual_count = two_master_build["manual_pdf_text"].count(
             "SHARED-CHAPTER-MARKER"
         )
@@ -495,19 +511,32 @@ class TestStateGuardTwoMasterComposition:
         assert (
             len(shared_files) == 1
         ), f"expected exactly one shared.typ on disk, found: {shared_files}"
-        expected_digest = (
-            "672b5d2c7c86e73b12c503341e61477983317d7ac6fef08cb5f8a8f4dff012b5"
-        )
-        assert two_master_build["shared_digest"] == expected_digest, (
-            f"shared.typ's SHA-256 digest changed from the "
-            f"49-RED-EVIDENCE.md Failure mode 2 recording "
-            f"({expected_digest}); got {two_master_build['shared_digest']} "
-            f"-- if this fixture's content genuinely changed, update the "
-            f"digest AND re-record Failure mode 2, do not silently patch "
-            f"this constant"
+
+        # The digest captured by the fixture (before either compile ran)
+        # must still match a fresh read taken now (after both compiles
+        # read the same file) -- proving neither compile mutated or
+        # replaced it, which is what makes the two masters' differing PDF
+        # outcomes attributable to their own published `state`, not to
+        # two different files on disk.
+        rehashed_digest = hashlib.sha256(shared_files[0].read_bytes()).hexdigest()
+        assert rehashed_digest == two_master_build["shared_digest"], (
+            f"shared.typ's digest changed between the fixture's own "
+            f"capture and this re-read ({two_master_build['shared_digest']} "
+            f"-> {rehashed_digest}) -- the file was mutated or replaced "
+            f"between the two masters' compiles"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (no #state yet)")
+        guard_pattern = re.compile(
+            r'if "shared#0>sub/nested" in state\('
+            + re.escape(f'"{STATE_KEY}"')
+            + r', \(\)\)\.get\(\) \{ include\("sub/nested\.typ"\) \}'
+        )
+        assert guard_pattern.search(two_master_build["shared_content"]), (
+            f"expected the diamond-shared shared.typ to carry the "
+            f"contract's own guard line for shared#0>sub/nested:\n"
+            f"{two_master_build['shared_content']}"
+        )
+
     def test_published_edge_sets_match_specification_two_master(self, two_master_build):
         """The published edge sets themselves: for each of manual.typ and
         bmanual.typ, the emitted wrapper's state publication line lists
@@ -515,10 +544,11 @@ class TestStateGuardTwoMasterComposition:
         derives for that master, in DFS discovery order, rendered with the
         array-literal trailing-comma rule -- a structural regex assertion
         over the emitted line, not a full-file exact-string diff, per
-        binding constraint #6. xfail pre-fix: neither manual.typ nor
-        bmanual.typ carries any #state("typsphinx:include-edges", ())
-        publication line yet -- the current wrapper body is a bare
-        #include(...) with nothing preceding it."""
+        binding constraint #6. The pre-fix RED was recorded as a strict
+        xfail: neither manual.typ nor bmanual.typ carried any
+        #state("typsphinx:include-edges", ()) publication line yet -- the
+        pre-fix wrapper body was a bare #include(...) with nothing
+        preceding it."""
         pattern = STATE_PUBLICATION_PATTERN
         for wrapper_name, wrapper_text_key in (
             ("manual.typ", "manual_wrapper_text"),
@@ -550,7 +580,6 @@ class TestStateGuardMirrorPairComposition:
     ``soloist`` no-nesting control.
     """
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (RED mode 4)")
     def test_mirror_pair_resolved_heading_levels_and_source_divergence(
         self, mirror_pair_build
     ):
@@ -558,13 +587,13 @@ class TestStateGuardMirrorPairComposition:
         below ZMid; xmasterb resolves Shared AND zmid both DIRECT, one
         level below its own heading -- the two masters' .rst sources
         differ only in the order of their toctree's two entries, so the
-        divergence is attributable to traversal order alone. xfail
-        pre-fix: 49-RED-EVIDENCE.md Failure mode 4 measured [1,1,1,2,2]
-        for xmastera (Shared placed DIRECT, a sibling of ZMid, not
-        nested under it -- the write-time ledger emits both of
-        xmastera's own toctree entries unconditionally within the SAME
-        scope) and [1,1,1] for xmasterb (both children entirely absent,
-        claimed by xmastera's earlier translation)."""
+        divergence is attributable to traversal order alone. The pre-fix
+        RED was recorded as a strict xfail: 49-RED-EVIDENCE.md Failure
+        mode 4 measured [1,1,1,2,2] for xmastera (Shared placed DIRECT, a
+        sibling of ZMid, not nested under it -- the write-time ledger
+        emitted both of xmastera's own toctree entries unconditionally
+        within the SAME scope) and [1,1,1] for xmasterb (both children
+        entirely absent, claimed by xmastera's earlier translation)."""
         build_dir = mirror_pair_build["build_dir"]
 
         mastera_outline = _query_heading_outline(
@@ -626,7 +655,6 @@ class TestStateGuardMirrorPairComposition:
             f"level with nothing to nest; got {solo_level} in {outline}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="flips in 49-04 (no #state yet)")
     def test_published_edge_sets_match_specification_mirror_pair(
         self, mirror_pair_build
     ):
@@ -635,9 +663,9 @@ class TestStateGuardMirrorPairComposition:
         publication line lists EXACTLY the edge keys the specification
         derives -- including solomaster.typ's empty `()` (a master with an
         empty edge set still publishes the state, just with zero keys).
-        xfail pre-fix: none of mastera.typ/masterb.typ/solomaster.typ
-        carries any #state("typsphinx:include-edges", ()) publication
-        line yet."""
+        The pre-fix RED was recorded as a strict xfail: none of
+        mastera.typ/masterb.typ/solomaster.typ carried any
+        #state("typsphinx:include-edges", ()) publication line yet."""
         pattern = STATE_PUBLICATION_PATTERN
         for wrapper_name, wrapper_text_key in (
             ("mastera.typ", "mastera_wrapper_text"),

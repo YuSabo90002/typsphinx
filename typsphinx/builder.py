@@ -19,6 +19,7 @@ from sphinx.util import logging
 from sphinx.util.osutil import ensuredir, make_filename_from_project
 
 from typsphinx.pdf import compile_typst_file_to_pdf
+from typsphinx.translator import derive_master_edge_keys
 from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
@@ -216,19 +217,73 @@ class TypstBuilder(Builder):
         # Value: destination path (empty string for now, compatible with parent class)
         self.images: dict[str, str] = {}
 
-        # Track absolute docnames already emitted as an #include() across the
-        # WHOLE master include graph, so a document reachable via more than one
-        # toctree path (a "diamond") is physically #included at most ONCE per
-        # build. Sphinx's own doc/index.rst, for example, lists
-        # usage/extensions/index both directly (its "Reference" toctree) and
-        # nested under usage/index (its "User guide" toctree). Since Typst's
-        # #include() flattens each file's content inline, including the same
-        # .typ twice re-emits EVERY Typst <label> that file defines, and Typst
-        # rejects the compiled master with "label ... occurs multiple times".
-        # Deduplicating at include() granularity (the unit that is duplicated
-        # is a whole document, not a single translator-emitted anchor) keeps
-        # each label defined exactly once so every reference still resolves.
-        self._included_docnames: set[str] = set()
+        # Phase 49 (COMP-05/COMP-06): the per-MASTER include-edge mapping,
+        # keyed by master docname, each value the tuple of edge keys THAT
+        # master's own DFS derives (`derive_master_edge_keys()`). This
+        # replaces the deleted build-scoped include-dedup ledger attribute
+        # (COMP-11), which could express only ONE global winner across the
+        # whole build for a document reachable via more than one toctree
+        # path (a "diamond") -- because the include DECISION now resolves
+        # at Typst COMPILE time (a per-master published `state` array read
+        # by a per-emission-site guard), not at write time, a single build
+        # can correctly express a DIFFERENT answer for each master that
+        # reaches the same shared document. Populated for real in
+        # `write()` (replacing the deleted ledger's per-`write()` reset);
+        # a unit test driving the per-document write path directly (some
+        # existing tests bypass `write()` this way) sees this start empty
+        # and `_write_typst_files()` lazily derives it on demand -- see
+        # that method's own comment for why that is the SAME derivation
+        # function, not a second include-decision mechanism.
+        self._master_include_edges: Dict[str, Tuple[str, ...]] = {}
+
+    def _build_include_edge_map(self) -> Dict[str, Tuple[str, ...]]:
+        """Derive the per-master include-edge mapping (COMP-05/COMP-06).
+
+        For every USABLE ``typst_documents`` entry
+        (``_is_usable_typst_documents_entry()``), derives that entry's own
+        master docname's edge keys via ``derive_master_edge_keys()``,
+        walking ``self.env.toctree_includes`` -- the SAME include-file
+        adjacency Sphinx's own toctree-inlining builders read
+        (``sphinx/environment/adapters/toctree.py``'s ``note_toctree()``
+        populates it from the identical ``includefiles`` lists
+        ``parse_content()`` builds, so a future Sphinx change to how that
+        list is populated is inherited here rather than re-derived).
+
+        Two ``typst_documents`` entries naming the SAME docname share ONE
+        tuple in the returned mapping -- correct, since the traversal
+        depends only on the docname, never on the entry's own target/
+        title/author. A docname absent from ``self.env.toctree_includes``
+        (no toctree of its own) is handled by ``derive_master_edge_keys()``
+        itself, which treats an absent mapping key as "no children" --
+        matching how the mirrored Sphinx walk behaves for a document with
+        no toctree of its own.
+
+        This is the ONE derivation function for this mapping -- called
+        from ``write()`` (unconditionally, replacing the deleted ledger's
+        per-``write()`` reset) and, lazily, from ``_write_typst_files()``'s
+        own wrapper loop for the direct per-document write path some unit
+        tests use. The mapping is never mutated after being derived
+        (unlike the deleted ledger, which was mutated INSIDE the toctree
+        visitor while writing) -- an interrupted or reordered write
+        therefore cannot produce a different edge set.
+
+        Returns:
+            A mapping from master docname to that master's own edge keys,
+            in discovery order.
+        """
+        toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        edge_map: Dict[str, Tuple[str, ...]] = {}
+        for entry in typst_documents:
+            if not _is_usable_typst_documents_entry(entry):
+                continue
+            master_docname = entry[0]
+            if master_docname in edge_map:
+                continue
+            edge_map[master_docname] = derive_master_edge_keys(
+                toctree_includes, master_docname
+            )
+        return edge_map
 
     def _resolve_target_stem(self, docname: str, target: object) -> str:
         """Normalize one ``typst_documents`` entry's target into an output
@@ -653,9 +708,18 @@ class TypstBuilder(Builder):
         self.prepare_writing(docnames)
         logger.info("done")
 
-        # Start each build with a clean include-dedup ledger so re-builds and
-        # multiple write() invocations do not carry stale state across masters.
-        self._included_docnames = set()
+        # Phase 49 (COMP-05/COMP-06): derive the per-master include-edge
+        # mapping UNCONDITIONALLY at the same position the deleted
+        # write-time ledger's reset used to occupy -- after
+        # prepare_writing() (so self.env.toctree_includes is fully
+        # populated), before the per-docname write loop below (so every
+        # wrapper this write() writes sees a freshly-derived, non-stale
+        # mapping). Re-derived on every write() call so re-builds and
+        # multiple write() invocations never carry stale edges across
+        # masters -- mirrors the deleted ledger's own "clean start per
+        # write()" contract, but the mapping itself is DERIVED, never
+        # accumulated by mutation during writing.
+        self._master_include_edges = self._build_include_edge_map()
 
         # Write individual documents
         warnings_count = 0
@@ -904,6 +968,20 @@ class TypstBuilder(Builder):
         # wrapper was written directly OVER the docname's own content
         # file this method just wrote above.
         typst_documents = getattr(self.config, "typst_documents", []) or []
+
+        # Phase 49 (COMP-05/COMP-06): lazily derive the per-master
+        # include-edge mapping if it is still empty. `write()` already
+        # derives it unconditionally BEFORE the per-docname write loop
+        # for a normal build; this is a fallback for the direct-call
+        # per-document write path several existing unit tests use, which
+        # invoke `write_doc()`/`_write_typst_files()` directly without
+        # ever calling `write()`. This calls the SAME derivation function
+        # (`_build_include_edge_map()`) `write()` itself calls -- it is a
+        # lazy initialisation of one derivation point, NOT a second
+        # include-decision mechanism.
+        if not self._master_include_edges:
+            self._master_include_edges = self._build_include_edge_map()
+
         for entry in typst_documents:
             if not _is_usable_typst_documents_entry(entry) or entry[0] != docname:
                 continue
@@ -913,8 +991,13 @@ class TypstBuilder(Builder):
             )
             ensuredir(path.dirname(wrapper_destination))
             wrapper_relative_dir = posixpath.dirname(wrapper_relpath)
+            edge_keys = self._master_include_edges.get(docname, ())
             wrapper_output = self.writer.render_wrapper(
-                entry, doctree, wrapper_relative_dir, content_relative_path
+                entry,
+                doctree,
+                wrapper_relative_dir,
+                content_relative_path,
+                edge_keys=edge_keys,
             )
             with open(wrapper_destination, "w", encoding="utf-8") as f:
                 f.write(wrapper_output)

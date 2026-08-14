@@ -7,7 +7,7 @@ document trees to Typst markup.
 
 import posixpath
 from pathlib import PurePosixPath
-from typing import Any
+from typing import Any, Tuple
 
 from docutils import writers
 from sphinx.util import logging
@@ -17,7 +17,7 @@ from typsphinx.template_engine import (
     derive_typst_lang,
     resolve_package_for_engine,
 )
-from typsphinx.translator import TypstTranslator
+from typsphinx.translator import TypstTranslator, render_include_edge_state
 
 logger = logging.getLogger(__name__)
 
@@ -265,16 +265,19 @@ class TypstWriter(writers.Writer):
         doctree: Any,
         wrapper_relative_dir: str,
         content_relative_path: str,
+        edge_keys: Tuple[str, ...] = (),
     ) -> str:
         """
         Render a wrapper ``.typ`` document for one ``typst_documents``
-        entry: the full template application plus a single
-        ``#include()`` of that entry's own content file.
+        entry: the full template application plus this master's own
+        include-edge state publication (Phase 49, COMP-05/COMP-06) and a
+        single ``#include()`` of that entry's own content file.
 
         This is the surviving half of what ``translate()`` used to do
         for a "master document" -- template application never changes
         shape, only its trigger (per-entry, not per-docname) and its
-        body (an ``#include()``, not the translated doctree).
+        body (a state publication plus an ``#include()``, not the
+        translated doctree).
 
         Args:
             entry: The specific ``typst_documents`` tuple this wrapper
@@ -289,6 +292,16 @@ class TypstWriter(writers.Writer):
                 outdir root itself).
             content_relative_path: The entry's content file's own path,
                 relative to the outdir root (e.g. ``"guide/index.typ"``).
+            edge_keys: This master's own derived edge keys, in discovery
+                order (``TypstBuilder._build_include_edge_map()``'s
+                return value for this master's docname). Defaults to an
+                empty tuple so every EXISTING direct caller (several unit
+                tests construct a ``TypstWriter`` and call this method
+                without deriving a mapping first) keeps working
+                unchanged -- an empty published array makes every
+                compile-time guard in every content file false, which is
+                the correct, safe default when no edge mapping was ever
+                derived.
 
         Returns:
             The complete wrapper ``.typ`` document text.
@@ -297,7 +310,13 @@ class TypstWriter(writers.Writer):
         include_path = compute_content_include_path(
             wrapper_relative_dir, content_relative_path
         )
-        body = f'#include("{include_path}")\n'
+        # Phase 49 (COMP-06): the publication line comes FIRST, with
+        # nothing between it and the existing content-include line (the
+        # Emission contract's wrapper body shape) -- this master's own
+        # edge keys must already be published by the time the included
+        # content file's own compile-time guards are evaluated.
+        state_line = render_include_edge_state(edge_keys)
+        body = f'{state_line}\n#include("{include_path}")\n'
 
         config = self.builder.config
 
