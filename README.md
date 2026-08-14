@@ -81,8 +81,12 @@ typst_use_mitex = True  # Use mitex for LaTeX math (default: True)
 
 `typst_documents` is the list of master documents to build. Each entry is a
 tuple `(source, target, title, author, documentclass)`, and each entry
-produces one emitted `.typ` file and, under the `typstpdf` builder, one
-compiled `.pdf`.
+produces a wrapper `.typ` file at the entry's target and, under the
+`typstpdf` builder, one compiled `.pdf` from that wrapper; the entry's
+source document is additionally emitted as its own `.typ` file holding the
+document body, as is every other document in the project. See
+[docs/source/user_guide/output_layout.rst](docs/source/user_guide/output_layout.rst)
+for the full contract and which file to compile.
 
 You never need to set it for a single-master project — leaving it unset is
 supported, and that's exactly what this Quick Start does. When unset,
@@ -225,7 +229,7 @@ For more details, see the [Sphinx Extension API documentation](https://www.sphin
 
 Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
 
-- `typst_documents`: Master documents to build, as `[(source, target, title, author, documentclass), ...]` — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default
+- `typst_documents`: Master documents to build, as `[(source, target, title, author, documentclass), ...]` — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default. The target names the entry's wrapper file.
 - `typst_use_mitex`: Enable/disable mitex for LaTeX math
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)
@@ -299,6 +303,7 @@ Quick links:
 - [Quick Start](https://typsphinx.readthedocs.io/en/latest/quickstart.html)
 - [User Guide](https://typsphinx.readthedocs.io/en/latest/user_guide/)
 - [Configuration Reference](https://typsphinx.readthedocs.io/en/latest/user_guide/configuration.html)
+- [Output Layout](https://typsphinx.readthedocs.io/en/latest/user_guide/output_layout.html)
 - [Examples](https://typsphinx.readthedocs.io/en/latest/examples/)
 - [API Reference](https://typsphinx.readthedocs.io/en/latest/api/)
 - [Contributing Guide](https://typsphinx.readthedocs.io/en/latest/contributing.html)
