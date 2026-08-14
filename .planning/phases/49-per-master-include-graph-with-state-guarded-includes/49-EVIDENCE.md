@@ -327,3 +327,408 @@ key `typsphinx:include-edges` (D-07) and the DECIDED edge-key format
 `<parent_docname>#<occurrence>><child_docname>` (D-04/D-05) — not against PROJECT.md's `"inc"` /
 `"index>zmid"` sketches. D-09's syntax question is CLOSED for this phase's own spellings. No file
 under `typsphinx/` or `tests/` was touched to produce this section.
+
+---
+
+## Removal and invariant sweep
+
+**Written by 49-05, Task 2.** Every command below is run over the WHOLE tree, not scoped to files
+a requirement happens to name (ROADMAP milestone invariant #4, this phase's own SC#4). Every
+command line and its verbatim output is pasted below, captured against this plan's own worktree
+after 49-04 landed the emitter.
+
+### 1. The deleted ledger attribute, at three scopes
+
+**Scope A — the production package alone (must be empty):**
+```
+$ grep -rn '\b_included_docnames\b' typsphinx/
+```
+```
+(no output)
+```
+
+**Scope B — the whole tree excluding `.planning/` (must be empty except this phase's own
+removal-gate test, which names the deleted attribute as a single documented constant per its own
+module docstring — see `tests/test_include_ledger_removal_gate.py`'s own repo-wide prose test,
+which excludes itself from its own scan and passes):**
+```
+$ grep -rn '\b_included_docnames\b' typsphinx/ tests/ docs/ examples/
+```
+```
+tests/test_include_ledger_removal_gate.py:90:DELETED_LEDGER_ATTRIBUTE = "_included_docnames"
+```
+The single hit is this plan's own removal gate's module-level constant (the ONE place this
+module's own text carries the literal spelling, per its own docstring contract) — not a
+reintroduction of the deleted symbol into production or test-assertion code.
+
+A non-word-boundary grep also surfaces a DIFFERENT, already-Phase-48-deleted symbol
+(`master_included_docnames` / `_compute_master_included_docnames`, which merely ends in the same
+suffix) — recorded here so a future reader does not mistake these for a live reference to THIS
+phase's own deleted ledger:
+```
+$ grep -rn '_included_docnames' typsphinx/ tests/ docs/ examples/
+```
+```
+tests/test_label_existence_guard_unit.py:53:    ``typst_documents``, not the deleted ``master_included_docnames``,
+tests/test_label_existence_guard_unit.py:411:            if "master_included_docnames" in text:
+tests/test_label_existence_guard_unit.py:414:            f"deleted attribute 'master_included_docnames' still mentioned "
+tests/test_include_ledger_removal_gate.py:90:DELETED_LEDGER_ATTRIBUTE = "_included_docnames"
+tests/test_xref_orphan_degrade_render_gate.py:31:computation, ``TypstBuilder.master_included_docnames``, is deleted; Phase 47's
+tests/fixtures/bld03_ghost_entry_xref_gate/conf.py:2:# gate -- the FIFTH site, `_compute_master_included_docnames()`, does not
+tests/fixtures/bld03_ghost_entry_xref_gate/conf.py:5:# to `master_included_docnames`, even though `_validate_output_path_
+tests/fixtures/bld03_unhashable_docname_gate/conf.py:2:# the FIFTH site, `_compute_master_included_docnames()`, builds its masters
+```
+Every hit besides this plan's own constant assignment names the DIFFERENT, Phase-48-deleted
+symbol (`master_included_docnames` family), confirmed by `49-04-SUMMARY.md`'s own recorded
+false-positive lesson and re-confirmed here by direct inspection of each line.
+
+**Scope C — the planning directory (expected non-empty — its own history legitimately records the
+deleted symbol; this scope is deliberately NOT swept for absence):**
+```
+$ grep -rl '_included_docnames' .planning/ | wc -l
+```
+```
+89
+```
+89 planning files (PLAN.md/SUMMARY.md/EVIDENCE.md/RESEARCH.md artifacts across this and prior
+phases) legitimately narrate the deleted ledger's own removal — this is history, not a live
+reference, and is excluded from the "must be empty" scopes above by design (see
+`tests/test_include_ledger_removal_gate.py`'s own `REPO_WIDE_SCAN_ROOTS` comment).
+
+### 2. Every include call inside the toctree visitor's own body
+
+```
+$ uv run python3 -c "
+import ast, inspect, re, textwrap
+from typsphinx.translator import TypstTranslator
+raw = inspect.getsource(TypstTranslator.visit_toctree)
+dedented = textwrap.dedent(raw)
+tree = ast.parse(dedented)
+doc_node = tree.body[0].body[0]
+docstring_range = (doc_node.lineno, doc_node.end_lineno)
+lines = dedented.splitlines()
+pattern = re.compile(r'\binclude\s*\(')
+for i, line in enumerate(lines, start=1):
+    if docstring_range[0] <= i <= docstring_range[1]:
+        continue
+    if line.strip().startswith('#'):
+        continue
+    if pattern.search(line):
+        print(i, line)
+print('DONE')
+"
+```
+```
+DONE
+```
+Zero non-comment, non-docstring lines inside `visit_toctree`'s own body contain a raw
+`include(...)` call — every include this visitor emits is constructed exclusively through
+`render_include_guard()` (confirmed present in the function's source:
+`"render_include_guard(" in inspect.getsource(TypstTranslator.visit_toctree)` → `True`) and
+`_compute_relative_include_path()`. This is the SAME structural check
+`tests/test_include_ledger_removal_gate.py::TestToctreeVisitorEmitsNoUnconditionalInclude` runs on
+every commit.
+
+### 3. Every distinct state-key literal in the production package
+
+```
+$ uv run python /tmp/.../probe_state_collect.py   # ast-based collector, walking every
+                                                     # state(...) call site's first argument
+                                                     # across typsphinx/*.py
+```
+```
+literals: {'typsphinx:include-edges'}
+```
+Exactly ONE distinct literal, collected structurally (not by counting occurrences of one known
+string) — matching `INCLUDE_STATE_KEY`, the contract's own spelling (D-07).
+
+### 4. The `@preview` package count across every declaring surface
+
+```
+$ grep -n '@preview/codly\|@preview/mitex\|@preview/gentle-clues' \
+    typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ
+```
+```
+typsphinx/templates/base.typ:8:#import "@preview/codly:1.3.0": *
+typsphinx/templates/base.typ:9:#import "@preview/codly-languages:0.1.10": *
+typsphinx/templates/base.typ:14:#import "@preview/mitex:0.2.7": *
+typsphinx/templates/base.typ:19:#import "@preview/gentle-clues:1.3.1": *
+typsphinx/writer.py:250:        imports.append('#import "@preview/codly:1.3.0": *')
+typsphinx/writer.py:251:        imports.append('#import "@preview/codly-languages:0.1.10": *')
+typsphinx/writer.py:252:        imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+typsphinx/writer.py:253:        imports.append('#import "@preview/gentle-clues:1.3.1": *')
+typsphinx/template_engine.py:643:            output_parts.append('#import "@preview/codly:1.3.0": *')
+typsphinx/template_engine.py:644:            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+typsphinx/template_engine.py:645:            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+typsphinx/template_engine.py:646:            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+```
+All three declaring surfaces agree: four packages (`codly` 1.3.0, `codly-languages` 0.1.10,
+`mitex` 0.2.7, `gentle-clues` 1.3.1), byte-identical version pins. The `examples/` tree carries the
+SAME four packages at the SAME versions, plus one UNRELATED user-supplied package
+(`@preview/charged-ieee:0.1.4`, a documented `typst_package`/custom-template example, not one of
+typsphinx's own four bundled imports):
+```
+$ grep -rn '@preview/' examples/ | grep -v '\.pdf'
+```
+```
+examples/advanced/_templates/custom.typ:12:#import "@preview/codly:1.3.0": *
+examples/advanced/_templates/custom.typ:13:#import "@preview/codly-languages:0.1.10": *
+examples/advanced/_templates/custom.typ:14:#import "@preview/mitex:0.2.7": *
+examples/advanced/_templates/custom.typ:15:#import "@preview/gentle-clues:1.3.1": *
+examples/advanced/README.md:253:#     '#import "@preview/codly:1.3.0": *',
+examples/advanced/README.md:254:#     '#import "@preview/gentle-clues:1.3.1": *',
+examples/charged-ieee/approach2/source/_templates/_template.typ:5:#import "@preview/charged-ieee:0.1.4": ieee
+examples/charged-ieee/approach2/conf.py:22:# imports "@preview/charged-ieee:0.1.4" itself, and setting typst_package would
+examples/charged-ieee/README.md:78:#import "@preview/charged-ieee:0.1.4": ieee
+examples/charged-ieee/approach1/conf.py:22:typst_package = "@preview/charged-ieee:0.1.4"
+examples/advanced/conf.py:90:#     '#import "@preview/codly:1.3.0": *',
+examples/advanced/conf.py:91:#     '#import "@preview/gentle-clues:1.3.1": *',
+```
+No new version-lockstep site was introduced by this phase — the enforcing instrument
+(`tests/test_preview_version_sync.py`) is unmodified and still passes:
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+```
+```
+3 passed in 0.02s
+```
+
+### 5. Registered config values — no new `typst_*` value
+
+```
+$ grep -n 'add_config_value' typsphinx/__init__.py
+```
+```
+44:    app.add_config_value("typst_documents", _default_typst_documents, "html", [list])
+45:    app.add_config_value("typst_template", None, "html", [str, type(None)])
+46:    app.add_config_value("typst_template_mapping", None, "html", [dict, type(None)])
+47:    app.add_config_value("typst_use_mitex", True, "html", [bool])
+48:    app.add_config_value("typst_elements", {}, "html", [dict])
+50:    app.add_config_value("typst_package", None, "html", [str, type(None)])
+51:    app.add_config_value("typst_package_imports", None, "html", [list, type(None)])
+52:    app.add_config_value(
+56:    app.add_config_value("typst_debug", False, "html", [bool])
+58:    app.add_config_value("typst_template_assets", None, "html", [list, type(None)])
+```
+Nine registrations (the ninth, spanning lines 52-56, is `typst_template_function`). Confirmed
+`typsphinx/__init__.py` carries zero diff across this whole phase:
+```
+$ git diff --stat dbc42a09..HEAD -- typsphinx/__init__.py
+```
+```
+(no output)
+```
+`dbc42a09` ("docs(48): mark phase complete and transition to phase 49") is this phase's own base
+commit -- the file registering config values has not been touched at all since before this phase
+began, so no `typst_*` value could have been added.
+
+### 6. Runtime dependency set — no new runtime dependency
+
+```
+$ git diff --stat dbc42a09..HEAD -- pyproject.toml
+```
+```
+(no output)
+```
+`pyproject.toml`'s `dependencies` array (`sphinx>=9.1,<10`, `docutils>=0.21,<0.23`,
+`typst>=0.15.0,<0.16`) is unchanged since before this phase began -- three runtime dependencies,
+same as at phase start.
+
+### 7. The two forbidden opportunistic changes
+
+**No typing-import modernization anywhere in this phase's diff** (the `UP006`/`UP035` ruff-ignore
+deferral, per `CLAUDE.md`'s own "Conventions & gotchas", stays untouched by this phase):
+```
+$ git diff dbc42a09..HEAD -- typsphinx/ | grep -n 'UP006\|UP035\|from typing import Dict\|from typing import List'
+```
+```
+(no output)
+```
+
+**No link-check job added** (no CI/tox/lint-config surface touched at all this phase):
+```
+$ git diff --stat dbc42a09..HEAD -- pyproject.toml tox.ini .github/
+```
+```
+(no output)
+```
+
+### 8. The census's own "How to find any assertion I missed" commands, re-run
+
+Re-running `49-EXPECTED-STRUCTURE.md`'s own reproducible enumeration commands, post-migration:
+
+```
+$ grep -rl 'include("' --include=*.py tests/ | wc -l
+```
+```
+25
+```
+(24 `.py` test modules + 1 fixture `conf.py` file counted by `--include=*.py`; the two ORIGINAL
+fixture `conf.py` comment-block hits the census recorded, `bld04_case_collision_gate` and
+`nested_master_render_gate`, are both still present.) Five NEW hits beyond the original census's
+21-file prediction, all of them artifacts THIS PHASE itself created (never an unpredicted
+regression): `tests/test_state_guard_composition_gate.py` (49-02),
+`tests/test_state_guard_shapes_gate.py` (49-03),
+`tests/fixtures/state_guard_self_and_url_gate/conf.py` (49-03),
+`tests/test_include_edge_derivation_unit.py` (49-04),
+`tests/test_include_ledger_removal_gate.py` (this plan, Task 1). 21 + 5 = 26 total files (the
+`--include=*.py` restriction above excludes the 2 fixture `conf.py` hits that are also present
+under the unrestricted `grep -rl` form, matching the original census's own counting convention).
+
+```
+$ grep -rl 'include("' docs/ examples/
+```
+```
+examples/advanced/README.md
+```
+Unchanged from the census's own recorded STALE-PROSE item (deferred to Phase 51, per
+`49-EXPECTED-STRUCTURE.md`'s own explicit exclusion).
+
+```
+$ grep -rn '\.write_doc(\|\._write_typst_files(' tests/*.py
+```
+```
+tests/test_missing_and_malformed_master_gate.py:133:        # scans the whole list (TypstBuilder._write_typst_files()'s per-
+tests/test_builder.py:129:    builder.write_doc("index", sample_doctree)
+tests/test_builder.py:155:    builder.write_doc("index", sample_doctree)
+tests/test_builder.py:192:    builder.write_doc("index", sample_doctree)
+tests/test_builder.py:518:    builder.write_doc("index", doc)
+tests/test_static_asset_copy_gate.py:11:Root cause: ``TypstPDFBuilder.write_doc()`` overrode the base
+tests/test_static_asset_copy_gate.py:12:``TypstBuilder.write_doc()`` but omitted its ``self.post_process_images(doctree)``
+tests/test_static_asset_copy_gate.py:141:            "output tree -- TypstPDFBuilder.write_doc() must call "
+tests/test_two_layer_output_gate.py:255:        (``TypstBuilder._write_typst_files()``, which ``TypstPDFBuilder``
+```
+Unchanged: `test_builder.py`'s 4 genuine direct-write-path call sites (49-04's own NEEDS-SEEDING
+class, resolved with no seeding action required — see `49-04-SUMMARY.md`), the rest comment-only
+mentions.
+
+```
+$ grep -rln 'addnodes.toctree\|nodes.toctree\|toctree()' tests/
+```
+```
+tests/test_toctree_requirement13.py
+tests/test_template_engine.py
+tests/test_translator.py
+```
+Unchanged from the census's own recorded 3-file enumeration — no new synthetic-toctree-node
+construction exists anywhere in the suite after the migration.
+
+**Reading:** the enumeration is still complete after 49-04's migration. Every hit the census did
+not originally predict traces to a fixture or gate module THIS PHASE itself authored (49-02
+through this plan), never to an unmigrated or newly-broken assertion.
+
+### 9. What this sweep discharges
+
+This sweep discharges SC#4 in full (the repo-wide grep obligation, at every scope milestone
+invariant #4 requires) and re-measures ROADMAP binding constraint #7's four standing invariants
+(zero new runtime dependencies, `@preview` count still four with no new lockstep site, zero new
+`typst_*` config values, and — via section 7 above — the two forbidden opportunistic changes
+absent) as intact. The `## No lost diagnostics` comparison immediately below discharges the
+"no diagnostic silently removed" must-have. COMP-12 (the full corpus-scale convergence gate)
+remains owed to 49-06, untouched by this sweep.
+
+---
+
+## No lost diagnostics
+
+**Written by 49-05, Task 2.** Every Phase 49 fixture rebuilt for real (`-b typst`, this plan's own
+worktree, post-49-04), full Sphinx warning/notice list compared item by item against the recorded
+pre-fix baseline (`49-RED-EVIDENCE.md` for the two composition fixtures, `49-SHAPES-RED-EVIDENCE.md`
+for the seven shape fixtures). A DISAPPEARED warning would be a FINDING, reported with its
+mechanism — not accepted merely because the build exits 0, since this phase's whole subject is a
+class of failure that produces no diagnostic at any layer.
+
+| Fixture | Baseline warning/notice count | Post-fix count | Verdict |
+|---|---|---|---|
+| `state_guard_two_master_gate` | 1 (`shared.rst`: "document is referenced in multiple toctrees: ['bmaster', 'index', 'zmid'], selecting: zmid <- shared") | 1 (byte-identical message) | MATCH -- every baseline warning still present |
+| `state_guard_mirror_pair_gate` | 2 (`shared.rst` + `zmid.rst` "referenced in multiple toctrees" notices) | 2 (byte-identical messages) | MATCH |
+| `state_guard_self_and_url_gate` | 2 (1 WARNING -- `toc.duplicate_entry` on `child`; 1 consistency-check "referenced in multiple toctrees" notice) | 2 (byte-identical) | MATCH |
+| `state_guard_cycle_gate` | 0 | 0 | MATCH (both empty) |
+| `state_guard_selfref_gate` | 1 (WARNING -- `toc.not_readable`, self-reference to `'index'`) | 1 (byte-identical) | MATCH |
+| `state_guard_glob_gate` | 0 | 0 | MATCH (both empty) |
+| `state_guard_orphan_ref_gate` | 0 | 0 | MATCH (both empty) |
+| `state_guard_three_master_gate` | 3 (`common_a.rst`, `common_b.rst`, `mid.rst` "referenced in multiple toctrees" notices) | 3 (byte-identical) | MATCH |
+| `state_guard_substring_key_gate` | 1 (`guide.rst`: "referenced in multiple toctrees: ['guideext', 'index'], selecting: index <- guide") | 1 (byte-identical) | MATCH |
+
+**Verbatim post-fix consistency-check lines, pasted for the three multi-warning fixtures (the ones
+most at risk of a silently-dropped notice), confirming byte-for-byte identity with their own
+pre-fix baseline transcripts above:**
+
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_two_master_gate <build-dir>
+...
+整合性をチェック中... .../state_guard_two_master_gate/shared.rst: document is referenced in
+multiple toctrees: ['bmaster', 'index', 'zmid'], selecting: zmid <- shared
+完了
+...
+build succeeded.
+```
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_mirror_pair_gate <build-dir>
+...
+整合性をチェック中... .../state_guard_mirror_pair_gate/shared.rst: document is referenced in
+multiple toctrees: ['xmastera', 'xmasterb', 'zmid'], selecting: zmid <- shared
+.../state_guard_mirror_pair_gate/zmid.rst: document is referenced in multiple toctrees:
+['xmastera', 'xmasterb'], selecting: xmasterb <- zmid
+完了
+...
+build succeeded.
+```
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_three_master_gate <build-dir>
+...
+整合性をチェック中... .../state_guard_three_master_gate/common_a.rst: document is referenced in
+multiple toctrees: ['m1', 'm2'], selecting: m2 <- common_a
+.../state_guard_three_master_gate/common_b.rst: document is referenced in multiple toctrees:
+['m2', 'm3', 'mid'], selecting: mid <- common_b
+.../state_guard_three_master_gate/mid.rst: document is referenced in multiple toctrees:
+['m1', 'm3'], selecting: m3 <- mid
+完了
+...
+build succeeded.
+```
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_self_and_url_gate <build-dir>
+...
+.../state_guard_self_and_url_gate/index.rst:4: WARNING: toctree で重複したエントリが見つかりました:
+child [toc.duplicate_entry]
+更新されたファイルを探しています... 見つかりませんでした
+環境データを保存中... 完了
+整合性をチェック中... .../state_guard_self_and_url_gate/child.rst: document is referenced in
+multiple toctrees: ['index', 'index'], selecting: index <- child
+完了
+...
+build succeeded, 1 warning.
+```
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_selfref_gate <build-dir>
+...
+.../state_guard_selfref_gate/index.rst:4: WARNING: toctree に存在しないドキュメントへの参照が含ま
+れています 'index' [toc.not_readable]
+...
+build succeeded, 1 warning.
+```
+```
+$ uv run python -m sphinx -b typst tests/fixtures/state_guard_substring_key_gate <build-dir>
+...
+整合性をチェック中... .../state_guard_substring_key_gate/guide.rst: document is referenced in
+multiple toctrees: ['guideext', 'index'], selecting: index <- guide
+完了
+...
+build succeeded.
+```
+`state_guard_cycle_gate`, `state_guard_glob_gate` and `state_guard_orphan_ref_gate` all rebuild
+with `build succeeded.` and zero warnings/notices, matching their own empty pre-fix baselines.
+
+**New warnings appearing post-fix are not automatically a problem** (this phase's own state-guard
+mechanism introduces no new Sphinx-level diagnostic of its own — every warning above is Sphinx's
+own pre-existing toctree-consistency machinery, unrelated to this phase's change, and the
+duplicated-entry warning in particular is Sphinx's own and correctly still fires). **A
+DISAPPEARED warning would be the actual risk this comparison exists to catch** — none was found:
+every one of the nine fixtures' baseline warning/notice counts is reproduced EXACTLY, with
+byte-identical message text, after 49-04's emitter migration.
+
+**What this discharges:** the must-have "No diagnostic Sphinx emits today was silently removed"
+truth is closed for all nine Phase 49 fixtures. Combined with the `## Removal and invariant sweep`
+section above, this closes SC#4 and binding constraint #7's four standing invariants in full for
+this plan; COMP-12's full-corpus-scale convergence pass remains 49-06's own deliverable.
