@@ -430,7 +430,7 @@ override `ui-safety-gate.cjs` reads, rather than relying on a per-run `--skip-ui
 
 - [x] **Phase 47: Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection** - Every docname gets a template-less content `.typ`, every `typst_documents` entry gets a wrapper at the path the user actually wrote, B-1 and B-2 close, and any two logical files wanting one physical path are reported instead of silently overwriting (completed 2026-08-12)
 - [x] **Phase 48: Compile-Time Cross-Reference Guard** - Whether a reference's target label exists is decided by Typst per compiled wrapper instead of by a build-time union across all masters, so a missing label degrades to plain text rather than aborting — landed before the graph work that would otherwise make it fatal (completed 2026-08-14)
-- [ ] **Phase 49: Per-Master Include Graph with State-Guarded Includes** - Each wrapper computes its own include edge set by mirroring `inline_all_toctrees` and publishes it as Typst `state`; content files emit state-guarded includes at their toctree's own position, closing defect A and the diamond, and holding at full-corpus scale
+- [x] **Phase 49: Per-Master Include Graph with State-Guarded Includes** - Each wrapper computes its own include edge set by mirroring `inline_all_toctrees` and publishes it as Typst `state`; content files emit state-guarded includes at their toctree's own position, closing defect A and the diamond, and holding at full-corpus scale (completed 2026-08-14)
 - [ ] **Phase 50: PR #131 Image Path Defects** - A converted image rehomed to `images/<basename>` no longer collides with a real source image of the same name, and an absolute image URI outside `doctreedir` no longer writes outside the output directory
 - [ ] **Phase 51: Two-Layer Output Documentation** - The published documentation says which file to compile, what a content file compiled standalone does, what target-as-path means, and exactly what changed from v0.7.x
 - [ ] **Phase 52: v0.8.0 Release Prep (prep-only)** - The v0.8.0 tree is bumped, its CHANGELOG curated around the output-shape change and the target-as-path reversal, proven green on real multi-master evidence, and handed off with no irreversible action taken
@@ -939,7 +939,7 @@ sequential, not merely numbered:
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
-| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | In Progress|  |
+| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
