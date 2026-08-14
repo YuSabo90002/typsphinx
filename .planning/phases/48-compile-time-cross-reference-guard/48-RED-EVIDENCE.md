@@ -741,3 +741,533 @@ sentence — outside the scope of the reported symptom, not a discrepancy.)
 URI-action targets, split 35/5 between sub-population A (real documents, unconditionally closed by
 this gap's fix) and sub-population B (the 5 Sphinx-generated-page references with no Typst
 counterpart, whose policy is decided at this plan's checkpoint task).
+
+---
+
+## Phase 48 Plan 06 -- Whole-Document Unit + Render Gate RED (G-48-4 / XREF-03)
+
+**Captured:** 2026-08-14, against this plan's own provisioned worktree
+(`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`), per `CLAUDE.md`'s mandatory
+worktree-isolated execution protocol.
+
+**Provenance header** (per this section's own load-bearing requirement -- names the exact tree and
+toolchain every transcript below was recorded against):
+
+```
+Interpreter:  Python 3.13.13 (main, Apr  7 2026, 18:19:01) [GCC 15.2.0]
+              /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/python3
+typst-py:     0.15.0
+pypdf:        6.14.2
+HEAD SHA:     67f28df0af2ae4dfa35b17051a9d5d2cf46b912a
+```
+
+Isolation independently confirmed (same convention every prior plan in this phase used):
+
+```
+$ uv run python -c "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())"
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/typsphinx/__init__.py
+```
+
+`git status --porcelain typsphinx/` printed nothing before, during, and after this plan's three
+tasks -- no emitter change exists anywhere in this section, per binding constraint #6.
+
+### Fixture topology (three lines)
+
+`tests/fixtures/xref_whole_document_guard_gate/`: `index` (the single `typst_documents` master,
+target `manual.typ`) toctrees `included` only, and carries one whole-document `:doc:` reference to
+each of `included` and `orphan`. `included.rst` is toctree-reachable (so the compiled master DOES
+`#include()` it); `orphan.rst` is marked `:orphan:` and appears in no toctree (so the compiled
+master NEVER `#include()`s it). Every design choice traces to `48-EXPECTED-STRUCTURE.md` §4.
+
+### Task 1 -- probe transcript (`uv run python -m sphinx -b typstpdf`)
+
+**Command:**
+`uv run python -m sphinx -b typstpdf tests/fixtures/xref_whole_document_guard_gate /tmp/wd-gate-probe`
+
+**Exit code:** 0 (`build succeeded.`) -- the defect is a dead link, not a compile failure; a
+non-zero exit here would mean the fixture is wrong, not that the defect is worse than diagnosed.
+
+**Verbatim emitted `index.typ`:**
+
+```
+// Essential imports for included document
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.10": *
+#import "@preview/mitex:0.2.7": mi, mitex
+#import "@preview/gentle-clues:1.3.1": *
+
+// Initialize codly
+#show: codly-init.with()
+#codly(languages: codly-languages)
+
+#{
+[#heading(depth: 1, {text("Whole Document Reference Master")}) <index:whole-document-reference-master>]
+
+context {
+  set heading(offset: heading.offset + 1)
+  include("included.typ")
+}
+
+par({text("This document carries one whole-document reference to a real, toctree-reachable document: see ")
+link("included.pdf", 
+text("Included Whole-Document Target"))
+text(".")})
+
+par({text("This document carries one whole-document reference to an excluded, orphaned document: see ")
+link("orphan.pdf", 
+text("Orphan Whole-Document Target"))
+text(".")})
+
+
+}
+```
+
+Both whole-document references currently render as the plain string-url form -- a `link(...)` call
+whose first argument is a quoted relative path ending in the builder's `out_suffix` (`.pdf`, since
+this is a `-b typstpdf` build) -- exactly the defect this plan's gates assert against. Confirmed:
+
+```
+$ grep -c 'metadata(none) <included:' /tmp/wd-gate-probe/included.typ
+0
+$ grep -c 'metadata(none) <orphan:' /tmp/wd-gate-probe/orphan.typ
+0
+$ grep -c 'link("' /tmp/wd-gate-probe/index.typ
+2
+```
+
+Neither content file carries any per-document self-anchor, and `index.typ` carries exactly the two
+string-url `link("...")` calls the defect predicts.
+
+**Measured PDF page count** (loads directly into Task 3's honesty caveat below):
+`/tmp/wd-gate-probe/manual.pdf` compiles to **3 pages** -- a title page, a table-of-contents page,
+and ONE content page carrying every body element (the master's own heading, both reference
+paragraphs, and the included document's heading/marker all collapse onto that single content page).
+
+### Task 2 -- `tests/test_whole_document_xref_unit.py`, strict xfail markers temporarily removed
+
+**Command:** `uv run pytest tests/test_whole_document_xref_unit.py -q -rA --no-header` (run against
+a scratch copy inside `tests/` with the four `@pytest.mark.xfail(strict=True, ...)` decorators
+stripped, so each flipping assertion runs unguarded and its real pre-fix failure is captured
+verbatim; the scratch copy was deleted immediately after capture -- it is not part of this plan's
+committed diff).
+
+**Verbatim output:**
+
+```
+============================= test session starts ==============================
+collected 9 items
+
+tests/_scratch_wd_unit_no_xfail.py F.F...F.F                             [100%]
+
+=================================== FAILURES ===================================
+_ TestResolveWholeDocumentXref.test_resolve_xref_docname_returns_empty_anchor_for_whole_document_refuri _
+
+self = <_scratch_wd_unit_no_xfail.TestResolveWholeDocumentXref object at 0x7b2745e802d0>
+
+    def test_resolve_xref_docname_returns_empty_anchor_for_whole_document_refuri(
+        self,
+    ):
+        """48-06-PLAN.md Task 2 behaviour item 1: a local whole-document
+        refuri ending in the builder's ``out_suffix`` (no fragment)
+        resolves to ``(target_docname, "")`` -- today: ``None``."""
+        builder = _StubBuilder(current_docname="index")
+        translator = TypstTranslator(_make_document(), builder)
+    
+        result = translator._resolve_xref_docname("included.typ")
+    
+>       assert result == ("included", ""), f"expected ('included', ''), got {result!r}"
+E       AssertionError: expected ('included', ''), got None
+E       assert None == ('included', '')
+
+tests/_scratch_wd_unit_no_xfail.py:157: AssertionError
+_ TestReferenceAnchorDecisionWholeDocumentPolicy.test_internal_reference_onto_known_document_yields_pair _
+
+self = <_scratch_wd_unit_no_xfail.TestReferenceAnchorDecisionWholeDocumentPolicy object at 0x7b2745e81bd0>
+
+    def test_internal_reference_onto_known_document_yields_pair(self):
+        """48-06-PLAN.md Task 2 behaviour item 2: a Sphinx-internal
+        whole-document reference whose target IS a known document
+        (``env.found_docs``) yields ``(target_docname, "")`` through
+        ``.xref`` -- today: ``None``."""
+        builder = _StubBuilder(current_docname="index", found_docs={"included"})
+        translator = TypstTranslator(_make_document(), builder)
+        ref = _make_internal_reference("included.typ", internal=True)
+    
+        decision = translator._reference_anchor_decision(ref)
+    
+>       assert decision.xref == (
+            "included",
+            "",
+        ), f"expected decision.xref == ('included', ''), got {decision.xref!r}"
+E       AssertionError: expected decision.xref == ('included', ''), got None
+E       assert None == ('included', '')
+E        +  where None = _ReferenceAnchorDecision(refuri='included.typ', refid='', xref=None, opens_wrapper=True, next_is_target=False, eligible=False, anchor_label=None).xref
+
+tests/_scratch_wd_unit_no_xfail.py:219: AssertionError
+_ TestSelfAnchorEmission.test_document_with_builder_docname_emits_self_anchor_once _
+
+self = <_scratch_wd_unit_no_xfail.TestSelfAnchorEmission object at 0x7b2745e81d10>
+
+    def test_document_with_builder_docname_emits_self_anchor_once(self):
+        """48-06-PLAN.md Task 2 behaviour item 3 /
+        ``48-EXPECTED-STRUCTURE.md`` §2's fully-substituted example: a
+        document translated with a builder-supplied current docname emits
+        its own self-anchor exactly once, in the established zero-width
+        ``metadata`` anchor form, immediately after the document's opening
+        code-block brace -- ``#{\\n[#metadata(none) <included:__tsx-doc__>]\\n``."""
+        builder = _StubBuilder(current_docname="included")
+        doc = _make_document()
+        section = docutils_nodes.section()
+        para = docutils_nodes.paragraph()
+        para += docutils_nodes.Text("Included Body")
+        section += para
+        doc += section
+    
+        body = _render_body(doc, builder)
+    
+>       assert body.startswith("#{\n[#metadata(none) <included:__tsx-doc__>]\n"), (
+            f"expected the self-anchor immediately after the opening "
+            f"code-block brace, got:\n{body!r}"
+        )
+E       AssertionError: expected the self-anchor immediately after the opening code-block brace, got:
+E         '#{\npar({text("Included Body")})\n\n\n}\n'
+E       assert False
+E        +  where False = <built-in method startswith of str object at 0x7b2745ecbaa0>('#{\n[#metadata(none) <included:__tsx-doc__>]\n')
+E        +    where <built-in method startswith of str object at 0x7b2745ecbaa0> = '#{\npar({text("Included Body")})\n\n\n}\n'.startswith
+
+tests/_scratch_wd_unit_no_xfail.py:309: AssertionError
+_ TestSelfAnchorTokenSingleDerivationPointStructural.test_self_anchor_token_is_single_module_level_constant _
+
+self = <_scratch_wd_unit_no_xfail.TestSelfAnchorTokenSingleDerivationPointStructural object at 0x7b2745e81f90>
+
+    def test_self_anchor_token_is_single_module_level_constant(self):
+        """48-06-PLAN.md Task 2 behaviour item 4 /
+        ``48-EXPECTED-STRUCTURE.md`` §1: the fixed token ``__tsx-doc__`` as
+        ONE module-level constant, referenced by name at its own definition
+        plus both the definition-site (``visit_document``) and
+        reference-site (``visit_reference``) ``_namespace_label(...)``
+        calls -- never re-spelled at either."""
+        token = getattr(translator_module, "_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN", None)
+>       assert token is not None, (
+            "expected typsphinx.translator to carry a module-level "
+            "_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN constant"
+        )
+E       AssertionError: expected typsphinx.translator to carry a module-level _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN constant
+E       assert None is not None
+
+tests/_scratch_wd_unit_no_xfail.py:371: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/_scratch_wd_unit_no_xfail.py::TestResolveAnchoredXrefUnchanged::test_resolve_xref_docname_anchored_reference_unchanged
+PASSED tests/_scratch_wd_unit_no_xfail.py::TestReferenceAnchorDecisionWholeDocumentPolicy::test_non_internal_reference_onto_unknown_target_not_guarded
+PASSED tests/_scratch_wd_unit_no_xfail.py::TestReferenceAnchorDecisionWholeDocumentPolicy::test_anchored_cross_document_reference_decision_unchanged
+PASSED tests/_scratch_wd_unit_no_xfail.py::TestReferenceAnchorDecisionWholeDocumentPolicy::test_option_a_internal_reference_onto_unknown_target_keeps_string_url
+PASSED tests/_scratch_wd_unit_no_xfail.py::TestNoSelfAnchorWithoutBuilderDocname::test_no_builder_docname_emits_no_self_anchor
+FAILED tests/_scratch_wd_unit_no_xfail.py::TestResolveWholeDocumentXref::test_resolve_xref_docname_returns_empty_anchor_for_whole_document_refuri
+FAILED tests/_scratch_wd_unit_no_xfail.py::TestReferenceAnchorDecisionWholeDocumentPolicy::test_internal_reference_onto_known_document_yields_pair
+FAILED tests/_scratch_wd_unit_no_xfail.py::TestSelfAnchorEmission::test_document_with_builder_docname_emits_self_anchor_once
+FAILED tests/_scratch_wd_unit_no_xfail.py::TestSelfAnchorTokenSingleDerivationPointStructural::test_self_anchor_token_is_single_module_level_constant
+========================= 4 failed, 5 passed in 0.05s ==========================
+```
+
+All 4 flipping tests fail for exactly the diagnosed reason (the resolver returns `None`, the policy
+decision's `.xref` stays `None`, the self-anchor line is absent, the module-level constant does not
+exist); all 5 invariance/option-specific tests already pass, confirming they are genuinely TRUE
+pre-fix rather than accidentally-passing flips.
+
+### Task 3 -- `tests/test_xref_whole_document_guard_render_gate.py`, strict xfail markers temporarily removed
+
+**Command:** `uv run pytest tests/test_xref_whole_document_guard_render_gate.py -q -rA --no-header`
+(same scratch-copy-inside-`tests/`-then-delete protocol as Task 2 above, with the five
+`@pytest.mark.xfail(strict=True, ...)` decorators stripped).
+
+**Verbatim output:**
+
+```
+============================= test session starts ==============================
+collected 8 items
+
+tests/_scratch_wd_render_gate_no_xfail.py ...FFFFF                       [100%]
+
+=================================== FAILURES ===================================
+_ TestXrefWholeDocumentGuardRenderGate.test_index_typ_carries_both_guard_expressions _
+
+self = <_scratch_wd_render_gate_no_xfail.TestXrefWholeDocumentGuardRenderGate object at 0x7ec91d1e6190>
+whole_document_guard_build = {'result': CompletedProcess(args=['/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/... on it, so a whole-document reference to it must degrade to plain text rather than dangle post-fix.")})\n\n\n}\n', ...}
+
+    def test_index_typ_carries_both_guard_expressions(self, whole_document_guard_build):
+        """
+        48-EXPECTED-STRUCTURE.md §3: the emitted ``index.typ`` carries the
+        fully-substituted D-07 guard expression for BOTH the included
+        document's self-anchor label and the orphan document's -- today,
+        neither whole-document reference is guarded at all (both are plain
+        string-url ``link()`` calls).
+        """
+        index_typ = _strip_raw_literals(whole_document_guard_build["index_typ"])
+    
+        included_match = _INCLUDED_GUARD_PATTERN.search(index_typ)
+        orphan_match = _ORPHAN_GUARD_PATTERN.search(index_typ)
+    
+>       assert included_match is not None, (
+            "index.typ does not carry the guarded expression for "
+            f"included:__tsx-doc__:\n{index_typ}"
+        )
+E       AssertionError: index.typ does not carry the guarded expression for included:__tsx-doc__:
+E         // Essential imports for included document
+E         #import "@preview/codly:1.3.0": *
+E         #import "@preview/codly-languages:0.1.10": *
+E         #import "@preview/mitex:0.2.7": mi, mitex
+E         #import "@preview/gentle-clues:1.3.1": *
+E         
+E         // Initialize codly
+E         #show: codly-init.with()
+E         #codly(languages: codly-languages)
+E         
+E         #{
+E         [#heading(depth: 1, {text("Whole Document Reference Master")}) <index:whole-document-reference-master>]
+E         
+E         context {
+E           set heading(offset: heading.offset + 1)
+E           include("included.typ")
+E         }
+E         
+E         par({text("This document carries one whole-document reference to a real, toctree-reachable document: see ")
+E         link("included.pdf", 
+E         text("Included Whole-Document Target"))
+E         text(".")})
+E         
+E         par({text("This document carries one whole-document reference to an excluded, orphaned document: see ")
+E         link("orphan.pdf", 
+E         text("Orphan Whole-Document Target"))
+E         text(".")})
+E         
+E         
+E         }
+E         
+E       assert None is not None
+
+tests/_scratch_wd_render_gate_no_xfail.py:306: AssertionError
+_ TestXrefWholeDocumentGuardRenderGate.test_index_typ_carries_no_string_url_link_to_targets _
+
+self = <_scratch_wd_render_gate_no_xfail.TestXrefWholeDocumentGuardRenderGate object at 0x7ec91ca9a7b0>
+whole_document_guard_build = {'result': CompletedProcess(args=['/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/... on it, so a whole-document reference to it must degrade to plain text rather than dangle post-fix.")})\n\n\n}\n', ...}
+
+    def test_index_typ_carries_no_string_url_link_to_targets(
+        self, whole_document_guard_build
+    ):
+        """
+        48-EXPECTED-STRUCTURE.md §4: the emitted ``index.typ`` carries NO
+        string-url form naming either target's output file -- i.e. no
+        ``link("included.pdf", ...)`` / ``link("orphan.pdf", ...)`` anywhere
+        -- the whole point of routing the whole-document case through the
+        guard instead of the external-link ``else`` branch. Today: BOTH
+        string-url forms are present (this is the defect itself).
+        """
+        index_typ = _strip_raw_literals(whole_document_guard_build["index_typ"])
+    
+>       assert 'link("included' + OUT_SUFFIX not in index_typ, (
+            f"index.typ still carries a string-url link to included{OUT_SUFFIX}:\n"
+            f"{index_typ}"
+        )
+E       AssertionError: index.typ still carries a string-url link to included.pdf:
+E         // Essential imports for included document
+E         #import "@preview/codly:1.3.0": *
+E         #import "@preview/codly-languages:0.1.10": *
+E         #import "@preview/mitex:0.2.7": mi, mitex
+E         #import "@preview/gentle-clues:1.3.1": *
+E         
+E         // Initialize codly
+E         #show: codly-init.with()
+E         #codly(languages: codly-languages)
+E         
+E         #{
+E         [#heading(depth: 1, {text("Whole Document Reference Master")}) <index:whole-document-reference-master>]
+E         
+E         context {
+E           set heading(offset: heading.offset + 1)
+E           include("included.typ")
+E         }
+E         
+E         par({text("This document carries one whole-document reference to a real, toctree-reachable document: see ")
+E         link("included.pdf", 
+E         text("Included Whole-Document Target"))
+E         text(".")})
+E         
+E         par({text("This document carries one whole-document reference to an excluded, orphaned document: see ")
+E         link("orphan.pdf", 
+E         text("Orphan Whole-Document Target"))
+E         text(".")})
+E         
+E         
+E         }
+E         
+E       assert 'link("included.pdf' not in '// Essentia...)})\n\n\n}\n'
+E         
+E         'link("included.pdf' is contained here:
+E           t: see ")
+E           link("included.pdf", 
+E           text("Included Whole-Document Target"))
+E           text(".")})
+E           ...
+E         
+E         ...Full output truncated (7 lines hidden), use '-vv' to show
+
+tests/_scratch_wd_render_gate_no_xfail.py:329: AssertionError
+_ TestXrefWholeDocumentGuardRenderGate.test_included_and_orphan_typ_each_carry_self_anchor_once _
+
+self = <_scratch_wd_render_gate_no_xfail.TestXrefWholeDocumentGuardRenderGate object at 0x7ec9225a3ac0>
+whole_document_guard_build = {'result': CompletedProcess(args=['/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/... on it, so a whole-document reference to it must degrade to plain text rather than dangle post-fix.")})\n\n\n}\n', ...}
+
+    def test_included_and_orphan_typ_each_carry_self_anchor_once(
+        self, whole_document_guard_build
+    ):
+        """
+        48-EXPECTED-STRUCTURE.md §4: ``included.typ`` and ``orphan.typ``
+        each carry their OWN self-anchor exactly once -- today, neither
+        emits any self-anchor at all.
+        """
+        included_typ = whole_document_guard_build["included_typ"]
+        orphan_typ = whole_document_guard_build["orphan_typ"]
+    
+>       assert included_typ.count("<included:__tsx-doc__>") == 1, (
+            f"expected included.typ's self-anchor exactly once, found "
+            f"{included_typ.count('<included:__tsx-doc__>')}:\n{included_typ}"
+        )
+E       AssertionError: expected included.typ's self-anchor exactly once, found 0:
+E         // Essential imports for included document
+E         #import "@preview/codly:1.3.0": *
+E         #import "@preview/codly-languages:0.1.10": *
+E         #import "@preview/mitex:0.2.7": mi, mitex
+E         #import "@preview/gentle-clues:1.3.1": *
+E         
+E         // Initialize codly
+E         #show: codly-init.with()
+E         #codly(languages: codly-languages)
+E         
+E         #{
+E         [#heading(depth: 1, {text("Included Whole-Document Target")}) <included:included-whole-document-target>]
+E         
+E         par({text("INCLUDED_BODY_MARKER_TEXT")})
+E         
+E         par({text("This document IS reachable from the master toctree (via ")
+E         raw("index")
+E         text("’s own toctree), so the compiled master runs ")
+E         raw("#include()")
+E         text(" on it, and a whole-document reference to it can resolve to a real, working link post-fix.")})
+E         
+E         
+E         }
+E         
+E       assert 0 == 1
+E        +  where 0 = <built-in method count of str object at 0x63b9c1ed1970>('<included:__tsx-doc__>')
+E        +    where <built-in method count of str object at 0x63b9c1ed1970> = '// Essential imports for included document\n#import "@preview/codly:1.3.0": *\n#import "@preview/codly-languages:0.1....ude()")\ntext(" on it, and a whole-document reference to it can resolve to a real, working link post-fix.")})\n\n\n}\n'.count
+
+tests/_scratch_wd_render_gate_no_xfail.py:350: AssertionError
+_ TestXrefWholeDocumentGuardRenderGate.test_master_pdf_zero_uri_actions_ending_in_out_suffix _
+
+self = <_scratch_wd_render_gate_no_xfail.TestXrefWholeDocumentGuardRenderGate object at 0x7ec91cac8270>
+whole_document_guard_build = {'result': CompletedProcess(args=['/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/... on it, so a whole-document reference to it must degrade to plain text rather than dangle post-fix.")})\n\n\n}\n', ...}
+
+    def test_master_pdf_zero_uri_actions_ending_in_out_suffix(
+        self, whole_document_guard_build
+    ):
+        """
+        48-EXPECTED-STRUCTURE.md §5: the compiled master PDF carries ZERO
+        URI actions whose target ends in the builder's ``out_suffix`` --
+        both whole-document references route through the guard now, never
+        the string-url branch. Today: TWO (``included.pdf``,
+        ``orphan.pdf``).
+        """
+        _, _, uri_actions = _classify_link_annotations(
+            whole_document_guard_build["manual_pdf"]
+        )
+        suffix_uri_actions = [u for u in uri_actions if u.endswith(OUT_SUFFIX)]
+    
+>       assert suffix_uri_actions == [], (
+            f"expected zero URI actions ending in '{OUT_SUFFIX}', found "
+            f"{sorted(suffix_uri_actions)}"
+        )
+E       AssertionError: expected zero URI actions ending in '.pdf', found ['included.pdf', 'orphan.pdf']
+E       assert ['included.pdf', 'orphan.pdf'] == []
+E         
+E         Left contains 2 more items, first extra item: 'included.pdf'
+E         Use -v to get more diff
+
+tests/_scratch_wd_render_gate_no_xfail.py:375: AssertionError
+_ TestXrefWholeDocumentGuardRenderGate.test_pdf_positional_destination_resolves_to_included_page _
+
+self = <_scratch_wd_render_gate_no_xfail.TestXrefWholeDocumentGuardRenderGate object at 0x7ec91ca91950>
+whole_document_guard_build = {'result': CompletedProcess(args=['/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae6ae754a84db6239/.venv/bin/... on it, so a whole-document reference to it must degrade to plain text rather than dangle post-fix.")})\n\n\n}\n', ...}
+
+    def test_pdf_positional_destination_resolves_to_included_page(
+        self, whole_document_guard_build
+    ):
+        """
+        48-EXPECTED-STRUCTURE.md §5: the compiled master PDF carries
+        EXACTLY ONE link annotation with a POSITIONAL (non-string)
+        destination -- the whole-document reference to ``included``, whose
+        target is a ``metadata`` anchor (§2's zero-width form), not a
+        heading anchor, so Typst never registers a NAMED destination for it
+        (see ``_classify_link_annotations``'s docstring). That destination
+        resolves to a page carrying ``included``'s body marker. See this
+        class's own docstring for the honesty caveat on this assertion's
+        strength (measured 3-page fixture, single content page). Today:
+        zero positional destinations exist for this reference at all (it is
+        a plain string-url link, no ``/Dest`` whatsoever).
+        """
+        _, positional_dest_pages, _ = _classify_link_annotations(
+            whole_document_guard_build["manual_pdf"]
+        )
+    
+>       assert len(positional_dest_pages) == 1, (
+            f"expected exactly one positional-destination link annotation, "
+            f"found {len(positional_dest_pages)}"
+        )
+E       AssertionError: expected exactly one positional-destination link annotation, found 0
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+tests/_scratch_wd_render_gate_no_xfail.py:401: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_build_exits_0_no_dangling_label
+PASSED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_reference_visible_text_present_in_pdf
+PASSED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_orphan_body_marker_never_appears_in_master_pdf
+FAILED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_index_typ_carries_both_guard_expressions
+FAILED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_index_typ_carries_no_string_url_link_to_targets
+FAILED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_included_and_orphan_typ_each_carry_self_anchor_once
+FAILED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_master_pdf_zero_uri_actions_ending_in_out_suffix
+FAILED tests/_scratch_wd_render_gate_no_xfail.py::TestXrefWholeDocumentGuardRenderGate::test_pdf_positional_destination_resolves_to_included_page
+========================= 5 failed, 3 passed in 0.44s ==========================
+```
+
+All 5 flipping tests fail for exactly the diagnosed reason (no guard expression, both string-url
+links still present, no self-anchors, two URI actions ending in `.pdf`, zero positional
+destinations); all 3 invariance tests already pass.
+
+### Destination-page assertion strength, stated honestly
+
+Per Task 1's measured PDF page count above (3 pages: title, table of contents, one content page):
+the destination-page assertion
+(`test_pdf_positional_destination_resolves_to_included_page`) is **TRUE but WEAK** in the sense
+`48-EXPECTED-STRUCTURE.md` §5 flags. It correctly rules out the destination landing on the title
+page or the table-of-contents page (those pages carry neither `INCLUDED_BODY_MARKER_TEXT` nor
+`ORPHAN_BODY_MARKER_TEXT`), but every body element -- the master's heading, both reference
+paragraphs, and the included document's heading/marker -- collapses onto the SAME single content
+page, so there is only one content page for the assertion to distinguish against. This weakness is
+recorded here rather than hidden, per this module's own docstring (which states the same caveat).
+
+### Post-verification: strict xfail markers restored, suite green
+
+With the strict xfail markers back in place, both new modules run green together:
+
+```
+$ uv run pytest tests/test_xref_whole_document_guard_render_gate.py tests/test_whole_document_xref_unit.py -q
+tests/test_xref_whole_document_guard_render_gate.py ...xxxxx             [ 47%]
+tests/test_whole_document_xref_unit.py x.x...x.x                         [100%]
+8 passed, 9 xfailed in 0.41s
+```
+
+Nine flipping assertions total (4 in the unit module, 5 in the render-gate module) recorded as
+`xfail(strict=True)`; every one fails for the right reason pre-fix (verbatim above) and none is an
+accidental `XPASS`. The suite closes green (binding constraint #8).
