@@ -172,6 +172,211 @@ def escape_typst_string(text: str) -> str:
     return text
 
 
+# Phase 49 (COMP-05/COMP-06/D-04..D-09): the per-master include graph moves
+# the include DECISION from write time (a build-scoped ledger claiming a
+# docname the first time any document's toctree names it, which can only
+# ever pick ONE winner across the WHOLE build) to Typst COMPILE time (a
+# per-master published `state` array, read by a per-emission-site guard).
+# These five module-level symbols are the complete derivation surface;
+# placed here, immediately after `escape_typst_string`, because every one
+# of them depends on it and no import is needed for a same-module call.
+
+# D-07: the namespaced Typst `state` key every wrapper publishes to and
+# every guard reads from. A user-supplied `typst_template` is arbitrary
+# Typst and may legitimately call `state("inc")` (or any other short,
+# unnamespaced key) for its own purposes -- a project-prefixed key with a
+# separator no bare identifier would use makes a silent collision with
+# user template code implausible. Measured against a real `typst.compile()`
+# in `49-EVIDENCE.md`'s State-syntax measurement; this literal spelling is
+# fixed by that measurement, not a placeholder.
+INCLUDE_STATE_KEY = "typsphinx:include-edges"
+
+
+def make_include_edge_key(
+    parent_docname: str, child_docname: str, occurrence: int = 0
+) -> str:
+    """Derive the ONE edge-key spelling for a toctree parent/child pair
+    (D-04/D-05).
+
+    This is the SINGLE derivation point for this phase's edge-key format,
+    called by BOTH the builder's graph computation
+    (``TypstBuilder._build_include_edge_map()``, via
+    ``derive_master_edge_keys()``) and the translator's own guard emission
+    (``visit_toctree``). A second, independently-spelled edge-key
+    expression anywhere in the codebase is exactly the drift class this
+    single-function rule exists to reject -- and a mismatch between the
+    two call sites would NOT fail the build: the guard would simply never
+    fire, silently dropping the child's content with no diagnostic at any
+    layer (T-49-02).
+
+    Args:
+        parent_docname: The docname whose toctree names ``child_docname``.
+        child_docname: The docname being claimed.
+        occurrence: The 0-based index of THIS emission site among the
+            emission sites in ``parent_docname`` naming ``child_docname``
+            (D-04's occurrence rule). Defaults to 0, the only value the
+            graph side (``derive_master_edge_keys()``) can ever emit -- a
+            child is claimed at its FIRST non-traversed appearance in its
+            parent's ordered list, which is always occurrence 0.
+
+    Returns:
+        The edge key, e.g. ``"index#0>child"``. Both docnames route
+        through ``escape_typst_string()`` (T-49-01), so a docname
+        containing a double quote or a backslash still produces a key
+        that is byte-identical whether derived on the graph side or the
+        emission side.
+    """
+    escaped_parent = escape_typst_string(parent_docname)
+    escaped_child = escape_typst_string(child_docname)
+    return f"{escaped_parent}#{occurrence}>{escaped_child}"
+
+
+def derive_master_edge_keys(
+    toctree_includes: Dict[str, List[str]], master_docname: str
+) -> Tuple[str, ...]:
+    """Walk one master's own include graph and return its published edge
+    keys, in document-order discovery order (COMP-05).
+
+    A fresh RECURSIVE walk with an ordered ``traversed`` list threaded
+    through the recursion -- seeded with ``[master_docname]`` before the
+    walk begins, and appended to BEFORE recursing into each newly-claimed
+    child -- mirroring Sphinx's own ``inline_all_toctrees()``
+    (``sphinx/util/nodes.py:499-517``) and its two callers, both of which
+    seed ``traversed`` with the compiling document's own docname. The
+    composition rule this produces is document-order FIRST-ENCOUNTER-WINS:
+    whichever parent's own ordered list reaches a shared child FIRST (in
+    THIS master's own traversal) claims it; a later parent's own entry for
+    the same child is dark (no edge emitted). This is NOT
+    prefer-the-deeper-path, and it does NOT consult or port Sphinx's own
+    ``document is referenced in multiple toctrees: [...], selecting: X <-
+    Y`` message -- that message comes from a DIFFERENT function
+    (``_check_toc_parents()``, ``sphinx/environment/__init__.py:942-959``),
+    takes a plain lexicographic ``max(parents)`` tiebreak, and governs NONE
+    of this DFS.
+
+    The FORBIDDEN shape, by name and by defect: an explicit work-stack
+    seeded with the master, fed by iterating each parent's children with
+    forward ``append`` calls, and drained LAST-IN-FIRST-OUT (removing and
+    processing the most-recently-appended element each iteration, the
+    way a call stack unwinds) processes the LAST-listed child of any
+    given parent FIRST, silently REVERSING sibling order with NO compile
+    error -- this is a DIFFERENT, already Phase-48-deleted helper's own
+    traversal shape (that helper solved a DIFFERENT problem, a flat
+    cross-master docname union for XREF-safety), and COMP-05/SC#3 forbids
+    reusing it here. This function's genuine recursion preserves document
+    order; a naive forward-push LIFO stack does not.
+
+    Occurrence is always 0 on this side: a child is claimed by its parent
+    at that child's FIRST non-traversed appearance in the parent's ordered
+    list, which -- because ``traversed`` membership can only GROW, never
+    shrink, during one master's walk -- is ALWAYS the occurrence-0
+    appearance. A duplicate toctree entry for the same child (occurrence
+    >= 1) is therefore structurally dark: no second, independent emission
+    site exists on this side to ever claim it.
+
+    Args:
+        toctree_includes: A mapping from docname to its ordered
+            include-file list (``env.toctree_includes``, or an equivalent
+            mapping in a unit test). A docname absent from this mapping is
+            treated as having no children, matching how the mirrored
+            Sphinx walk behaves for a document with no toctree.
+        master_docname: The master document's own docname -- the DFS seed.
+
+    Returns:
+        The master's edge keys, in discovery order, as an ordered tuple.
+    """
+    traversed: List[str] = [master_docname]
+    edge_keys: List[str] = []
+
+    def walk(parent: str) -> None:
+        for child in toctree_includes.get(parent, []):
+            if child not in traversed:
+                edge_keys.append(make_include_edge_key(parent, child, occurrence=0))
+                traversed.append(child)
+                walk(child)
+            # else: already traversed -- dark, no edge emitted (first-encounter-wins)
+
+    walk(master_docname)
+    return tuple(edge_keys)
+
+
+def render_include_edge_state(edge_keys: Tuple[str, ...]) -> str:
+    """Render a wrapper's ``state`` publication line for ``edge_keys``.
+
+    The array-literal rendering rule (measured against a real
+    ``typst.compile()`` in ``49-EVIDENCE.md`` Probes 1-4): ``()`` for zero
+    keys, and for one or more keys a parenthesized comma-separated list of
+    double-quoted keys with an UNCONDITIONAL trailing comma after the LAST
+    element. This uniform rule removes the ``len(keys) == 1`` special case
+    RESEARCH Pitfall 1 warns is otherwise required: omitting the trailing
+    comma on a SINGLE-element literal is not a syntax error at all -- Typst
+    silently reparses ``("key")`` as a parenthesized STRING expression
+    instead of a one-element array (``49-EVIDENCE.md`` Probe 5), and the
+    published state's Typst type degrades from ``array`` to ``str`` with
+    ZERO compile-time diagnostic at any layer. Every guard's ``in``
+    membership test then silently degrades to substring containment
+    against that one string. The uniform trailing-comma rule this function
+    implements has no single-element special case, so this hazard cannot
+    arise by construction.
+
+    Args:
+        edge_keys: The master's own edge keys, in discovery order (the
+            return value of ``derive_master_edge_keys()``).
+
+    Returns:
+        The complete publication line, e.g.
+        ``'#state("typsphinx:include-edges", ()).update(("index#0>child",))'``.
+    """
+    if not edge_keys:
+        array_literal = "()"
+    else:
+        quoted_keys = ", ".join(f'"{key}"' for key in edge_keys)
+        array_literal = f"({quoted_keys},)"
+    return f'#state("{INCLUDE_STATE_KEY}", ()).update({array_literal})'
+
+
+def render_include_guard(edge_key: str, include_relpath: str) -> str:
+    """Render one content file's per-emission-site compile-time guard line.
+
+    The condition and its opening ``{`` MUST stay on ONE unbroken physical
+    line -- ``49-EVIDENCE.md`` Probe 7 measured a newline inserted between
+    them against a real ``typst.compile()`` and got the verbatim parser
+    error ``expected block``; Probe 7's passing variant keeps them on one
+    line, which is what this function's returned template does
+    unconditionally.
+
+    This site is always reached from CODE mode: content-file bodies are
+    unconditionally wrapped in a top-level ``#{ ... }`` code block
+    (``writer.py``'s ``translate()``), so no markup-mode ``#`` prefix
+    computation is needed here, unlike the reference and citation sites
+    Phase 48 touched. A future change that violates that invariant (moving
+    this guard's emission site into markup-mode body text) should fail
+    loudly rather than silently emit a bare ``if``/``state`` scope keyword
+    with no leading ``#``.
+
+    Args:
+        edge_key: The edge key this guard tests membership of (already
+            escaped -- ``make_include_edge_key()`` routes both docnames
+            through ``escape_typst_string()`` before this function ever
+            sees the key).
+        include_relpath: The relative path to the child's own content
+            file, WITHOUT the ``.typ`` suffix (``_compute_relative_include_
+            path()``'s own return shape). Routed through
+            ``escape_typst_string()`` here (T-49-01's guard-side half of
+            the escaping rule) so a docname-derived path containing a
+            quote or backslash still produces a valid literal.
+
+    Returns:
+        The complete guard line, e.g.
+        ``'if "index#0>child" in state("typsphinx:include-edges", ()).get() { include("child.typ") }'``.
+    """
+    escaped_relpath = escape_typst_string(include_relpath)
+    return (
+        f'if "{edge_key}" in state("{INCLUDE_STATE_KEY}", ()).get() '
+        f'{{ include("{escaped_relpath}.typ") }}'
+    )
+
+
 class TypstTranslator(SphinxTranslator):
     """
     Translator class that converts docutils nodes to Typst markup.
@@ -530,6 +735,15 @@ class TypstTranslator(SphinxTranslator):
         self._line_block_depth: int = 0
         self._line_block_was_in_paragraph: bool = False
         self._line_block_was_paragraph_has_content: bool = False
+
+        # Phase 49 (D-04's occurrence rule): per-document counter, keyed by
+        # child docname, of how many of THIS document's own toctree entries
+        # (flattened across every `.. toctree::` directive the document
+        # has, in document order) have already named that child. A fresh
+        # translator instance is constructed by `TypstWriter.translate()`
+        # for EVERY document it translates (see that method), so this
+        # counter is per-document without any explicit reset here.
+        self._toctree_entry_occurrences: Dict[str, int] = {}
 
     def astext(self) -> str:
         """
@@ -5018,7 +5232,8 @@ class TypstTranslator(SphinxTranslator):
         Visit a toctree node (Sphinx table of contents tree).
 
         Requirement 13: Multi-document integration and toctree processing
-        - Generate #include() for each entry
+        - Generate a compile-time state guard for each include-file entry
+          (Phase 49, COMP-05/COMP-06 -- see below)
         - D-07: apply `set heading(offset: heading.offset + 1)` -- a
           context-relative increment, not an absolute assignment -- to
           lower heading levels. `set` is an absolute assignment on Typst's
@@ -5032,10 +5247,20 @@ class TypstTranslator(SphinxTranslator):
         - Issue #5: Fix relative paths for nested toctrees
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
-          - Generate single #[...] block containing all includes
+          - Generate single #[...] block containing all guards
           - D-07: apply `heading.offset + 1` once per toctree, inside a
             `context { ... }` block (required because `heading.offset` is
             a context-dependent style query)
+
+        Phase 49 (COMP-05/D-03): reads the toctree's INCLUDE-FILE list
+        (`node["includefiles"]`), never its entry list
+        (`node["entries"]`). Sphinx's own `parse_content` appends a
+        `self`/external-URL entry only to `entries`, never to
+        `includefiles` (`sphinx/directives/other.py:146-149`), so those
+        entries produce no guard here at all -- closing the
+        `TypstError: file not found (searched at .../self.typ)` compile
+        fatal as a structural consequence of reading the right list, not a
+        separate patch.
 
         Args:
             node: The toctree node
@@ -5045,15 +5270,24 @@ class TypstTranslator(SphinxTranslator):
             within a single content block #[...] to apply heading offset without
             displaying the block delimiters in the output. This simplifies the
             generated Typst code and improves readability.
+
+            Phase 49: each `#include()` directive is now wrapped in its own
+            one-line compile-time guard (`render_include_guard()`), still
+            emitted within that same single content block, rather than as
+            an unconditional call.
         """
-        # Get entries from the toctree node
-        entries = node.get("entries", [])
+        # Phase 49 (D-03): read the include-file list, not the entry list.
+        includefiles = node.get("includefiles", [])
 
-        logger.debug(f"Processing toctree with {len(entries)} entries")
+        logger.debug(f"Processing toctree with {len(includefiles)} include files")
 
-        # If no entries, don't generate anything
-        if not entries:
-            logger.debug("Toctree has no entries, skipping")
+        # If no include files, don't generate anything. A toctree whose
+        # entries are all navigation constructs (self/external-URL) has a
+        # non-empty `entries` list but an EMPTY `includefiles` list here --
+        # this is the D-03 shift that makes such a toctree emit no
+        # `context { ... }` block at all, rather than an empty one.
+        if not includefiles:
+            logger.debug("Toctree has no include files, skipping")
             raise nodes.SkipNode
 
         # Get current document name for relative path calculation
@@ -5061,10 +5295,10 @@ class TypstTranslator(SphinxTranslator):
 
         logger.debug(
             f"Current document for toctree: {current_docname}, "
-            f"entries: {[docname for _, docname in entries]}"
+            f"include files: {includefiles}"
         )
 
-        # Generate scope block for all includes (unified code mode)
+        # Generate scope block for all guards (unified code mode)
         # Use {...} scope block to isolate set rules while maintaining code mode
         # D-07: `context` is required because `heading.offset` is a
         # context-dependent style query -- `set` alone cannot read the
@@ -5075,44 +5309,49 @@ class TypstTranslator(SphinxTranslator):
         self.add_text("context {\n")
         self.add_text("  set heading(offset: heading.offset + 1)\n")
 
-        # Generate include() for each entry within the scope block
-        # Each included file has its own imports, so block scope is safe.
-        #
-        # Deduplicate by ABSOLUTE docname across the whole master include graph
-        # (the ledger lives on the builder, so it spans every document composing
-        # one master -- not just this one toctree). Sphinx documentation
-        # commonly lists the same document in more than one toctree (e.g.
-        # doc/index.rst lists usage/extensions/index both directly and nested
-        # under usage/index). In HTML each page is its own file, so a repeated
-        # toctree entry is harmless navigation; but Typst's #include() flattens
-        # each file inline, so #including one .typ twice re-emits every Typst
-        # <label> it defines and the compile aborts with "label ... occurs
-        # multiple times". Keeping only the FIRST include() of each docname
-        # leaves every label defined exactly once, so all references (which are
-        # never dropped) still resolve. Mock builders in unit tests have no
-        # ledger; getattr(..., None) falls back to the original no-dedup path.
-        included_docnames = getattr(self.builder, "_included_docnames", None)
-        for _title, docname in entries:
-            if included_docnames is not None:
-                if docname in included_docnames:
-                    logger.debug(
-                        f"Skipping duplicate toctree include() for already-"
-                        f"included document: {docname}"
-                    )
-                    continue
-                included_docnames.add(docname)
+        # Phase 49 (COMP-05/COMP-06): the include DECISION moves from
+        # write time to Typst COMPILE time. A single content file, written
+        # ONCE per docname, cannot both omit and emit the same include for
+        # two different masters that each legitimately reach it via their
+        # own, independent traversal -- the deleted build-scoped
+        # include-dedup ledger attribute (COMP-11), which claimed a
+        # docname globally, the first time ANY document's toctree named
+        # it, could therefore express only ONE global winner across the
+        # whole build, never a per-master answer. Every emission site below instead
+        # emits a STATIC compile-time guard, unconditionally: each
+        # wrapper (`writer.py`'s `render_wrapper()`) publishes ITS OWN
+        # master's derived edge set as a Typst `state` array BEFORE
+        # `#include()`-ing this content file, and the guard reads that
+        # published state at compile time to decide whether THIS
+        # PARTICULAR master's own traversal claimed this child.
+        for docname in includefiles:
+            # D-04: the occurrence is a per-DOCUMENT counter, keyed by
+            # child docname, across ALL of this document's own toctree
+            # entries (flattened in document order, mirroring
+            # `env.toctree_includes[docname]`) -- not reset per
+            # `.. toctree::` directive.
+            occurrence = self._toctree_entry_occurrences.get(docname, 0)
+            self._toctree_entry_occurrences[docname] = occurrence + 1
 
-            # Compute relative path for include() (Issue #5 fix)
+            edge_key = make_include_edge_key(
+                current_docname or "", docname, occurrence=occurrence
+            )
+
+            # Compute relative path for include() (Issue #5 fix) -- this
+            # helper survives Phase 49 completely unchanged.
             relative_path = self._compute_relative_include_path(
                 docname, current_docname
             )
 
             logger.debug(
-                f"Generated include() for toctree: {docname} -> {relative_path}.typ"
+                f"Generated guard for toctree: {docname} -> {relative_path}.typ "
+                f"(edge_key={edge_key!r})"
             )
 
-            # Generate include() within the block (no # prefix in code mode)
-            self.add_text(f'  include("{relative_path}.typ")\n')
+            # Generate the guard line within the block (no # prefix in
+            # code mode -- this site is always reached from code mode,
+            # see render_include_guard()'s own docstring).
+            self.add_text("  " + render_include_guard(edge_key, relative_path) + "\n")
 
         # End scope block
         self.add_text("}\n\n")
