@@ -1,0 +1,10 @@
+:orphan:
+
+M2
+==
+
+.. toctree::
+   :maxdepth: 2
+
+   common_a
+   common_b
