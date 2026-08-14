@@ -65,8 +65,7 @@ recall.
 
 ### Disclosure of the defects this milestone filed against itself
 
-- **D-01: The four minor defects this milestone's own reviews filed ship in v0.8.0 unfixed and
-  disclosed internally only.** The records stay in `todos/pending/` and are named in
+- **D-01: The four minor defects this milestone's own reviews filed ship in v0.8.0 unfixed and disclosed internally only.** The records stay in `todos/pending/` and are named in
   `52-HANDOFF.md`; **no `### Known Limitations` section is added to the CHANGELOG and no GitHub
   issue is filed.** This is the v0.7.1 D-27 shape applied a second time, and it is *a fortiori*
   consistent: D-27 kept silent about two **major** defects whose reachability was the most common
@@ -78,8 +77,7 @@ recall.
   the table. — **Reversibility:** reversible — adding a `### Known Limitations` section or filing
   issues later costs nothing structural.
 
-- **D-02: The two behaviours Phase 49 measured and Phase 51 documented are written into the
-  descriptive bullets, not into a limitations section.** These are the two items ROADMAP SC#2's
+- **D-02: The two behaviours Phase 49 measured and Phase 51 documented are written into the descriptive bullets, not into a limitations section.** These are the two items ROADMAP SC#2's
   "any limitation Phase 49 measured and documented appears here too" resolves to (measured: Phase 51
   documented exactly two, `:numref:` excluded by D-07):
   (a) a content file compiled standalone yields only its own body, its state-guarded children
@@ -92,8 +90,7 @@ recall.
   CHANGELOG would give it the warning tone that decision rejected; and a docs-link-only treatment,
   which would not reach a reader of the GitHub Release body. — **Reversibility:** reversible.
 
-- **D-03: The four defects plus the `:numref:` record are carried forward as todos, not promoted
-  to the ROADMAP backlog.** They stay in `.planning/todos/pending/` and are enumerated with
+- **D-03 — The four defects plus the `:numref:` record are carried forward as todos, not promoted to the ROADMAP backlog.** They stay in `.planning/todos/pending/` and are enumerated with
   reasons in `52-HANDOFF.md` and this file's `<deferred>` — the 46-CONTEXT D-16 shape. Measured
   context: the ROADMAP `## Backlog` has been empty since 2026-08-04 and would next number `999.3`,
   but v0.8.0's own scope was assembled from the todo ledger directly at `/gsd-new-milestone`, so
@@ -104,8 +101,7 @@ recall.
 
 ### The `## [0.8.0]` CHANGELOG entry
 
-- **D-04: Breaking changes are marked two ways — a lead-paragraph declaration plus a
-  `**Breaking:**` prefix on each affected bullet.** This is v0.7.1's D-02 triple marking with its
+- **D-04: Breaking changes are marked two ways — a lead-paragraph declaration plus a `**Breaking:**` prefix on each affected bullet.** This is v0.7.1's D-02 triple marking with its
   third channel dropped, because that channel has no candidate here: measured this session, the
   milestone diff of `typsphinx/__init__.py` contains **zero** `add_config_value` additions or
   removals, so nothing public was removed and `### Removed` would be an empty section. The three
@@ -118,8 +114,7 @@ recall.
   vocabulary is reused verbatim so the two releases read consistently. — **Reversibility:**
   reversible.
 
-- **D-05: The lead paragraph's axis is the milestone goal itself — a `typst_documents`
-  configuration declaring more than one master now produces a complete PDF for each of them.**
+- **D-05: The lead paragraph's axis is the milestone goal itself — a `typst_documents` configuration declaring more than one master now produces a complete PDF for each of them.**
   The breaking-change declaration lives in the **second half of the same paragraph**, per D-04.
   Weighed explicitly and rejected: leading with the output-shape change (it lands on every user,
   including single-master ones, but leading with it buries the fact that this release is the one
@@ -138,8 +133,7 @@ recall.
   standing character is "here is what did *not* change", and the round-trip result is a positive
   capability claim that D-05's lead paragraph already makes. — **Reversibility:** reversible.
 
-- **D-07 [derived, carried from 46-CONTEXT D-05]: bullets are cut at user-visible-change
-  granularity with requirement IDs in trailing parentheses.** Not re-asked — it is the settled
+- **D-07 [derived, carried from 46-CONTEXT D-05]: bullets are cut at user-visible-change granularity with requirement IDs in trailing parentheses.** Not re-asked — it is the settled
   house style since Phase 33 D-09. Applied to this milestone's 24 v1 requirements it falls out at
   roughly 8–9 bullets: two-layer output; target-as-path reversal; collision hard error; a shared
   child now reaching every master's PDF (defect A); a master that is also a toctree child (B-1); an
@@ -149,8 +143,7 @@ recall.
 
 ### SC#3 — where "green" comes from (derived; not selected for discussion, defaults recorded)
 
-- **D-08 [derived, following 46-CONTEXT D-11]: the dispatched CI run on the post-bump commit is the
-  authority for pytest / lint / type; the full-corpus gate and both docs builds are run locally.**
+- **D-08 [derived, following 46-CONTEXT D-11]: the dispatched CI run on the post-bump commit is the authority for pytest / lint / type; the full-corpus gate and both docs builds are run locally.**
   Two measurements shape this. (a) `.github/workflows/ci.yml`'s push trigger is
   `branches: [main, develop]` only, so this milestone branch's CI runs **exclusively** via
   `workflow_dispatch` — the last full CI run on it is `31492380799` (2026-08-11, dispatched);
@@ -177,8 +170,7 @@ recall.
   `examples/**/*.typ`, and no new `typst_*` config value. The positive control SC#4 asks for must
   be a real one — an assertion that *would* fail if the sweep were vacuous, not a restatement.
 
-- **D-10 [derived, following 51-CONTEXT D-10]: the goal-claim evidence is a new permanent gate test
-  under `tests/`, reusing the existing multi-master fixture family.** Phase 51 discharged its own
+- **D-10 [derived, following 51-CONTEXT D-10]: the goal-claim evidence is a new permanent gate test under `tests/`, reusing the existing multi-master fixture family.** Phase 51 discharged its own
   verification SC with one permanent gate test rather than a one-off transcript, and that is the
   shape to repeat: a phase artifact recording a transcript proves the claim once, whereas a gate
   test keeps proving it. `tests/fixtures/state_guard_three_master_gate/` already satisfies SC#3's

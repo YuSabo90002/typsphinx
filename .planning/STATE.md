@@ -4,15 +4,15 @@ milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 52
 current_phase_name: v0.8.0 Release Prep (prep-only)
-status: planning
-stopped_at: Phase 52 context gathered
-last_updated: "2026-08-14T22:20:19.080Z"
+status: executing
+stopped_at: Phase 52 planned — 7 plans in 4 waves
+last_updated: "2026-08-14T23:07:02.233Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 51 complete, transitioned to Phase 52
+last_activity_desc: Phase 52 planned — 7 plans in 4 waves, plan-checker VERIFICATION PASSED
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 36
+  total_plans: 43
   completed_plans: 36
   percent: 83
 ---
@@ -24,10 +24,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 51 — two-layer-output-documentation
-The published documentation must catch up with the output shape Phases 47 and 49 built: which of the
-two `.typ` files to compile, what a standalone content-file compile does, target-as-path semantics,
-and what changed from v0.7.x in old→new file names. Zero lines change under `typsphinx/`.
+**Current focus:** Phase 52 — v0.8.0 Release Prep (prep-only)
+The v0.8.0 tree is made ready to publish and proven green with **zero irreversible action taken** —
+no tag, nothing pushed to PyPI, no GitHub Release. Bump, curate the `## [0.8.0]` CHANGELOG entry,
+prove the post-bump tree green live (including the milestone goal claim on generated multi-master PDF
+evidence), assert the milestone invariants over the SHA-anchored diff with a real positive control,
+and hand off a standalone publish checklist. Zero lines change under `typsphinx/`. **REL-07 stays
+open** — it closes at `/gsd-complete-milestone`, at the publish.
 Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
 Phase 47 complete 2026-08-12 (14/14 plans, UAT 72/72).
 Phase 48 complete 2026-08-14 (7/7 plans, UAT 16/16, verification 19/19, security threats_open 0).
@@ -39,16 +42,16 @@ Phase 51 complete 2026-08-15 (6/6 plans; verification 3/3 SC, DOC-14 discharged;
 zero lines under `typsphinx/`). Code review found one Critical — four published emitted-file claims
 omitted `_template.typ`, which every wrapper imports — plus a vacuous gate assertion; both fixed
 post-execution, along with the two sweep residuals `51-SWEEP-AUDIT.md` reported as outstanding.
-Next action: `/gsd-plan-phase 52`
+Next action: `/gsd-execute-phase 52`
 
 ## Current Position
 
 Phase: 52 — v0.8.0 Release Prep (prep-only)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-15 — Phase 51 complete, transitioned to Phase 52
+Plan: 0/7 complete
+Status: Ready to execute
+Last activity: 2026-08-15 — Phase 52 planned (7 plans, 4 waves)
 
-Progress: [██████████░░] 83% (5/6 phases) · 36/36 plans
+Progress: [██████████░░] 83% (5/6 phases) · 36/43 plans
 
 ## Active Milestone (v0.8.0 — multi-master composition)
 
