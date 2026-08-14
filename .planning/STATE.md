@@ -5,8 +5,8 @@ milestone_name: multi-master composition
 current_phase: 50
 current_phase_name: "PR #131 Image Path Defects"
 status: planning
-stopped_at: Phase 49 complete (6/6 plans, verification 5/5, UAT 2/2)
-last_updated: "2026-08-14T10:57:22.335Z"
+stopped_at: Phase 50 context gathered
+last_updated: "2026-08-14T11:16:41.336Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 49 complete, transitioned to Phase 50
 progress:
@@ -698,12 +698,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-CONTEXT.md
+**Resume file:** .planning/phases/50-pr-131-image-path-defects/50-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-14T05:56:02.875Z
-Stopped at: Phase 49 context gathered
+Last session: 2026-08-14T11:16:41.324Z
+Stopped at: Phase 50 context gathered
 Resume: `/gsd-discuss-phase 49`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
