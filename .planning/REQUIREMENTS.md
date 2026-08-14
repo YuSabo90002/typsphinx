@@ -49,7 +49,7 @@ position".
 - [x] **COMP-11**: `visit_toctree` no longer emits an unconditional `include()`, and the build-scoped
       `_included_docnames` ledger is removed
 
-- [ ] **COMP-12**: The full Sphinx `doc/` corpus compiles fatal-free under the new composition,
+- [x] **COMP-12**: The full Sphinx `doc/` corpus compiles fatal-free under the new composition,
       demonstrating that the `state`/`context` multi-pass layout convergence holds at real scale
 
 ### Output placement (OUT)
@@ -253,7 +253,7 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | COMP-09 | Phase 49 | Complete |
 | COMP-10 | Phase 49 | Complete |
 | COMP-11 | Phase 49 | Complete |
-| COMP-12 | Phase 49 | Pending |
+| COMP-12 | Phase 49 | Complete |
 | OUT-01 | Phase 47 | Complete |
 | OUT-02 | Phase 47 | Complete |
 | OUT-03 | Phase 47 | Complete |
