@@ -433,3 +433,311 @@ exist in this compile," not "does the document I meant exist."
 | 2 — citation-in-caption (D-05) | `-b typst` clean, `-b typstpdf` FATALS (`does not exist in the document`) | Both builders succeed; the caption citing site degrades gracefully |
 | D-04 — `pending_xref` | Unconstructible RED (site unreachable via normal pipeline) | Guarded defensively regardless (defence in depth) |
 | Baseline 3 — label collision | Correctly degrades today (target outside union) | Post-fix: an ACCEPTED false-negative — links to the decoy instead of degrading |
+
+---
+
+## Baseline 4 — G-48-4, the pre-fix dead-link population in the built documentation PDF (plan 48-05)
+
+**Captured:** 2026-08-14, against this plan's own provisioned worktree (`uv sync --extra dev
+--extra docs` with `VIRTUAL_ENV`/`UV_PROJECT_ENVIRONMENT` unset — neither was set in this shell to
+begin with, confirmed by `printenv VIRTUAL_ENV`/`printenv UV_PROJECT_ENVIRONMENT` both exiting 1
+before `uv sync` ran). Isolation independently confirmed the same way prior plans in this phase
+recorded it:
+
+```
+$ uv run python -c "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())"
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a09e1d2e4cf4b01c4/typsphinx/__init__.py
+```
+
+`git status --porcelain typsphinx/ tests/` printed nothing before, during, and after this task —
+no emitter change exists anywhere in this section, per binding constraint #6.
+
+### Build invocation — load-bearing, plan 48-07 re-runs the SAME one
+
+**`uv run tox -e docs-pdf` was used** (the primary invocation named by the plan; `tox` ran
+successfully in this worktree so the `sphinx-build` fallback was never needed). This is
+`sphinx-build -b typstpdf source _build/pdf` run from `docs/`, per `tox.ini`
+`[testenv:docs-pdf]`.
+
+**Exit code:** 0 (`tox` reported `docs-pdf: OK (4.27=setup[0.14]+cmd[4.12] seconds)` /
+`congratulations :)`). **Build tail (verbatim):**
+
+```
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Copying template assets...
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a09e1d2e4cf4b01c4/docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (4.27=setup[0.14]+cmd[4.12] seconds)
+  congratulations :) (4.31 seconds)
+```
+
+Same "build succeeded, 5 warnings" outcome the UAT's own gap entry recorded (`48-UAT.md`
+`measured_scope`), confirming this re-measurement started from the same baseline.
+
+**Built PDF byte size:** 2,467,467 bytes (`stat -c '%s' docs/_build/pdf/typsphinx.pdf`).
+
+### Enumeration snippet (verbatim, run via `uv run python <script>`)
+
+```python
+"""Task 1 enumeration snippet -- pasted verbatim into 48-RED-EVIDENCE.md.
+
+Walks every /Link annotation in the built docs/_build/pdf/typsphinx.pdf,
+buckets into three counters, filters the URI-action bucket to targets ending
+in the typstpdf builder's out_suffix (".pdf"), and resolves each distinct
+target the way `_resolve_xref_docname` does: join the citing document's
+output-URI directory onto the target path, posixpath.normpath it, strip the
+suffix -- then check membership in the documentation project's found_docs.
+"""
+
+import io
+import posixpath
+import re
+from collections import Counter
+from pathlib import Path
+
+import pypdf
+
+PDF_PATH = Path("docs/_build/pdf/typsphinx.pdf")
+BUILD_DIR = Path("docs/_build/pdf")
+OUT_SUFFIX = ".pdf"  # TypstPDFBuilder.out_suffix (typsphinx/builder.py:1245)
+
+pdf_bytes = PDF_PATH.read_bytes()
+reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+
+dest_count = 0
+uri_count = 0
+other_count = 0
+uri_targets: Counter[str] = Counter()
+
+for page in reader.pages:
+    annots = page.get("/Annots") or []
+    for annot in annots:
+        obj = annot.get_object()
+        if obj.get("/Subtype") != "/Link":
+            continue
+        if obj.get("/Dest") is not None:
+            dest_count += 1
+            continue
+        action = obj.get("/A")
+        if action is not None:
+            action_obj = action.get_object()
+            if action_obj.get("/S") == "/URI":
+                uri_count += 1
+                uri_targets[str(action_obj.get("/URI"))] += 1
+                continue
+        other_count += 1
+
+total = dest_count + uri_count + other_count
+print(f"internal /Dest: {dest_count}   URI actions: {uri_count}   "
+      f"other: {other_count}   ({total} total)")
+
+# Filter to URI targets ending in the builder's out_suffix.
+suffix_targets = {u: c for u, c in uri_targets.items() if u.endswith(OUT_SUFFIX)}
+suffix_total = sum(suffix_targets.values())
+print(f"\nURI actions ending in '{OUT_SUFFIX}': {suffix_total} across "
+      f"{len(suffix_targets)} distinct targets\n")
+print(f"{'target':<45} count")
+for target, count in sorted(suffix_targets.items()):
+    print(f"{target:<45} {count}")
+
+# -- Resolve each distinct target the way `_resolve_xref_docname` does. --
+# found_docs: every content .typ file this build wrote, minus the shared
+# wrapper (typsphinx.typ) and the shared template (_template.typ).
+found_docs = set()
+for typ_file in BUILD_DIR.rglob("*.typ"):
+    rel = typ_file.relative_to(BUILD_DIR).as_posix()
+    if rel in ("typsphinx.typ", "_template.typ"):
+        continue
+    found_docs.add(rel[: -len(".typ")])
+
+print(f"\nfound_docs ({len(found_docs)}): {sorted(found_docs)}")
+
+
+def get_target_uri(docname: str) -> str:
+    """Mirror TypstPDFBuilder.get_target_uri: docname + out_suffix."""
+    return docname + OUT_SUFFIX
+
+
+def resolve(citing_docname: str, path_part: str) -> str:
+    """Mirror `_resolve_xref_docname`'s inversion exactly."""
+    current_uri = get_target_uri(citing_docname)
+    base_dir = posixpath.dirname(current_uri)
+    target_uri = posixpath.normpath(posixpath.join(base_dir, path_part))
+    return target_uri[: -len(OUT_SUFFIX)]
+
+
+# For each distinct target string, find which content .typ file(s) actually
+# emit a `link("<target>", ` call citing it, so the resolution join uses the
+# REAL citing docname's directory -- not an assumed one.
+resolved_by_target: dict[str, set[str]] = {}
+citations: dict[str, set[str]] = {}
+
+for target in suffix_targets:
+    pattern = re.compile(r'link\("' + re.escape(target) + r'",')
+    resolved_docnames: set[str] = set()
+    citing_docnames: set[str] = set()
+    for typ_file in BUILD_DIR.rglob("*.typ"):
+        rel = typ_file.relative_to(BUILD_DIR).as_posix()
+        if rel in ("typsphinx.typ", "_template.typ"):
+            continue
+        text = typ_file.read_text(encoding="utf-8")
+        if pattern.search(text):
+            citing_docname = rel[: -len(".typ")]
+            citing_docnames.add(citing_docname)
+            resolved_docnames.add(resolve(citing_docname, target))
+    resolved_by_target[target] = resolved_docnames
+    citations[target] = citing_docnames
+
+print("\ntarget -> citing docname(s) -> resolved docname(s) -> in found_docs?")
+sub_a = []  # resolves onto a real document
+sub_b = []  # does not
+for target in sorted(suffix_targets):
+    resolved = resolved_by_target[target]
+    citing = citations[target]
+    in_found = {r: (r in found_docs) for r in resolved}
+    print(f"  {target!r}: citing={sorted(citing)!r} resolved={sorted(resolved)!r} "
+          f"in_found_docs={in_found}")
+    if resolved and all(in_found.values()):
+        sub_a.append(target)
+    else:
+        sub_b.append(target)
+
+print(f"\nSub-population A (resolves onto a real docname): {len(sub_a)} distinct "
+      f"targets, {sum(suffix_targets[t] for t in sub_a)} annotations")
+for t in sorted(sub_a):
+    print(f"  {t}  x{suffix_targets[t]}")
+
+print(f"\nSub-population B (does not resolve onto a real docname): {len(sub_b)} "
+      f"distinct targets, {sum(suffix_targets[t] for t in sub_b)} annotations")
+for t in sorted(sub_b):
+    print(f"  {t}  x{suffix_targets[t]}")
+```
+
+### Enumeration output (verbatim)
+
+```
+internal /Dest: 37   URI actions: 465   other: 0   (502 total)
+
+URI actions ending in '.pdf': 40 across 20 distinct targets
+
+target                                        count
+../examples/advanced.pdf                      3
+../examples/basic.pdf                         1
+../genindex.pdf                               1
+../py-modindex.pdf                            1
+../user_guide/configuration.pdf               4
+../user_guide/templates.pdf                   3
+advanced.pdf                                  2
+basic.pdf                                     1
+builders.pdf                                  2
+configuration.pdf                             5
+contributing.pdf                              1
+examples/index.pdf                            1
+genindex.pdf                                  1
+py-modindex.pdf                               1
+quickstart.pdf                                1
+search.pdf                                    1
+templates.pdf                                 7
+user_guide/builders.pdf                       1
+user_guide/configuration.pdf                  2
+user_guide/templates.pdf                      1
+
+found_docs (13): ['api/index', 'changelog', 'contributing', 'examples/advanced', 'examples/basic', 'examples/index', 'index', 'installation', 'quickstart', 'user_guide/builders', 'user_guide/configuration', 'user_guide/index', 'user_guide/templates']
+
+target -> citing docname(s) -> resolved docname(s) -> in found_docs?
+  '../examples/advanced.pdf': citing=['user_guide/configuration', 'user_guide/templates'] resolved=['examples/advanced'] in_found_docs={'examples/advanced': True}
+  '../examples/basic.pdf': citing=['user_guide/builders'] resolved=['examples/basic'] in_found_docs={'examples/basic': True}
+  '../genindex.pdf': citing=['api/index'] resolved=['genindex'] in_found_docs={'genindex': False}
+  '../py-modindex.pdf': citing=['api/index'] resolved=['py-modindex'] in_found_docs={'py-modindex': False}
+  '../user_guide/configuration.pdf': citing=['api/index', 'examples/advanced', 'examples/basic'] resolved=['user_guide/configuration'] in_found_docs={'user_guide/configuration': True}
+  '../user_guide/templates.pdf': citing=['examples/advanced', 'examples/basic'] resolved=['user_guide/templates'] in_found_docs={'user_guide/templates': True}
+  'advanced.pdf': citing=['examples/basic', 'examples/index'] resolved=['examples/advanced'] in_found_docs={'examples/advanced': True}
+  'basic.pdf': citing=['examples/index'] resolved=['examples/basic'] in_found_docs={'examples/basic': True}
+  'builders.pdf': citing=['user_guide/configuration', 'user_guide/index'] resolved=['user_guide/builders'] in_found_docs={'user_guide/builders': True}
+  'configuration.pdf': citing=['user_guide/builders', 'user_guide/index', 'user_guide/templates'] resolved=['user_guide/configuration'] in_found_docs={'user_guide/configuration': True}
+  'contributing.pdf': citing=['changelog'] resolved=['contributing'] in_found_docs={'contributing': True}
+  'examples/index.pdf': citing=['quickstart'] resolved=['examples/index'] in_found_docs={'examples/index': True}
+  'genindex.pdf': citing=['index'] resolved=['genindex'] in_found_docs={'genindex': False}
+  'py-modindex.pdf': citing=['index'] resolved=['py-modindex'] in_found_docs={'py-modindex': False}
+  'quickstart.pdf': citing=['installation'] resolved=['quickstart'] in_found_docs={'quickstart': True}
+  'search.pdf': citing=['index'] resolved=['search'] in_found_docs={'search': False}
+  'templates.pdf': citing=['user_guide/builders', 'user_guide/configuration', 'user_guide/index'] resolved=['user_guide/templates'] in_found_docs={'user_guide/templates': True}
+  'user_guide/builders.pdf': citing=['quickstart'] resolved=['user_guide/builders'] in_found_docs={'user_guide/builders': True}
+  'user_guide/configuration.pdf': citing=['quickstart'] resolved=['user_guide/configuration'] in_found_docs={'user_guide/configuration': True}
+  'user_guide/templates.pdf': citing=['quickstart'] resolved=['user_guide/templates'] in_found_docs={'user_guide/templates': True}
+
+Sub-population A (resolves onto a real docname): 15 distinct targets, 35 annotations
+  ../examples/advanced.pdf  x3
+  ../examples/basic.pdf  x1
+  ../user_guide/configuration.pdf  x4
+  ../user_guide/templates.pdf  x3
+  advanced.pdf  x2
+  basic.pdf  x1
+  builders.pdf  x2
+  configuration.pdf  x5
+  contributing.pdf  x1
+  examples/index.pdf  x1
+  quickstart.pdf  x1
+  templates.pdf  x7
+  user_guide/builders.pdf  x1
+  user_guide/configuration.pdf  x2
+  user_guide/templates.pdf  x1
+
+Sub-population B (does not resolve onto a real docname): 5 distinct targets, 5 annotations
+  ../genindex.pdf  x1
+  ../py-modindex.pdf  x1
+  genindex.pdf  x1
+  py-modindex.pdf  x1
+  search.pdf  x1
+```
+
+### Sub-population split, stated explicitly
+
+**Resolution rule** (mirrors `_resolve_xref_docname`, `typsphinx/translator.py:4786-4829`): for
+each distinct URI-action target ending in the builder's `out_suffix` (`.pdf`), find the content
+`.typ` file(s) that actually emit `link("<target>", ` for it (the REAL citing docname, not an
+assumed one), compute `current_uri = citing_docname + ".pdf"`, `base_dir =
+posixpath.dirname(current_uri)`, `target_uri = posixpath.normpath(posixpath.join(base_dir,
+path_part))`, then strip the suffix to get the resolved docname. A target counts as
+**sub-population A** when every citing occurrence resolves onto a docname present in
+`found_docs`; **sub-population B** otherwise.
+
+- **Sub-population A** (resolves onto a real document): **15 distinct targets, 35 annotations**.
+- **Sub-population B** (does not resolve — Sphinx's generated `genindex` / `py-modindex` /
+  `search` pages, which the Typst output never produces): **5 distinct targets, 5 annotations** —
+  `genindex.pdf` (cited from `index`), `py-modindex.pdf` (cited from `index`), `search.pdf` (cited
+  from `index`), `../genindex.pdf` (cited from `api/index`), `../py-modindex.pdf` (cited from
+  `api/index`).
+
+**Re-derivation against the UAT's own figure:** `48-UAT.md`'s gap entry `G-48-4` states sub-population
+B as **"4 of the 40" in its `truth`/`reason` prose, but its own `measured_scope` field already
+corrected this to 5** ("5 of the 40 have no PDF equivalent at all... (Corrected during gap
+planning — this entry first said 4, miscounting the `../` forms against the enumeration above,
+which lists all five at 1 occurrence each)"). This re-measurement's own independent count —
+**5** — agrees with the UAT's own corrected `measured_scope` figure, not its stale outer
+`truth`/`reason` wording. No new divergence is introduced here; the UAT document already carries
+its own correction, and this baseline confirms that corrected number (5) by direct re-enumeration
+on this worktree rather than by copying it forward.
+
+### Quickstart "What's Next?" page — anchored to the originally reported symptom
+
+`48-UAT.md`'s `measured_scope` quotes four `/A` URI actions on PDF page 6 (the Quickstart "What's
+Next?" section the owner reported clicking): `user_guide/configuration.pdf`,
+`user_guide/builders.pdf`, `user_guide/templates.pdf`, `examples/index.pdf`. Re-run against this
+worktree's rebuilt PDF (verbatim page-scan output, restricted to those four target strings):
+
+```
+Page 5: ['user_guide/configuration.pdf']
+Page 6: ['examples/index.pdf', 'user_guide/builders.pdf', 'user_guide/configuration.pdf', 'user_guide/templates.pdf']
+```
+
+Page 6 carries all four target strings the owner's report and the UAT's transcript name,
+confirming this baseline is anchored to the reported symptom and not only to the aggregate count
+above. (Page 5 also carries one `user_guide/configuration.pdf` annotation from a different citing
+sentence — outside the scope of the reported symptom, not a discrepancy.)
+
+**Conclusion:** the pre-fix dead-link population is 40 annotations across 20 distinct `.pdf`-suffixed
+URI-action targets, split 35/5 between sub-population A (real documents, unconditionally closed by
+this gap's fix) and sub-population B (the 5 Sphinx-generated-page references with no Typst
+counterpart, whose policy is decided at this plan's checkpoint task).
