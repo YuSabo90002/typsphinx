@@ -28,17 +28,17 @@ position".
 - [x] **COMP-04**: An included master no longer re-expands its template's title page and
       `#outline()` into the middle of the parent's body (B-2)
 
-- [ ] **COMP-05**: The builder computes each master's include graph by document-order depth-first
+- [x] **COMP-05**: The builder computes each master's include graph by document-order depth-first
       traversal with first-encounter-wins, matching `sphinx.util.nodes.inline_all_toctrees`
 
-- [ ] **COMP-06**: The wrapper publishes its master's include edge set as Typst `state`, and content
+- [x] **COMP-06**: The wrapper publishes its master's include edge set as Typst `state`, and content
       files emit state-guarded includes at their toctree's own position
 
 - [ ] **COMP-07**: A document toctree'd by two masters appears in both masters' PDFs (defect A)
 - [ ] **COMP-08**: Prose written before and after a `.. toctree::` keeps its position relative to the
       included content — the shape of Sphinx's own default `index.rst`
 
-- [ ] **COMP-09**: Two masters requiring conflicting include sets from the same content file (the
+- [x] **COMP-09**: Two masters requiring conflicting include sets from the same content file (the
       diamond `M → [p, q]`, `p → [c]`, `q → [c]`, `M' → [q]`) both compile correctly, with the shared
       document appearing exactly once in each
 
@@ -246,11 +246,11 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | COMP-02 | Phase 47 | Complete |
 | COMP-03 | Phase 47 | Complete |
 | COMP-04 | Phase 47 | Complete |
-| COMP-05 | Phase 49 | Pending |
-| COMP-06 | Phase 49 | Pending |
+| COMP-05 | Phase 49 | Complete |
+| COMP-06 | Phase 49 | Complete |
 | COMP-07 | Phase 49 | Pending |
 | COMP-08 | Phase 49 | Pending |
-| COMP-09 | Phase 49 | Pending |
+| COMP-09 | Phase 49 | Complete |
 | COMP-10 | Phase 49 | Pending |
 | COMP-11 | Phase 49 | Pending |
 | COMP-12 | Phase 49 | Pending |
