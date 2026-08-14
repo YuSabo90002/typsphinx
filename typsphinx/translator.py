@@ -3107,11 +3107,29 @@ class TypstTranslator(SphinxTranslator):
         plan 48-05 blocking checkpoint (``48-EXPECTED-STRUCTURE.md``
         "Phase 48 Plan 05" section 6): "leave [Sphinx-generated pages] as
         they are -- guard only references that resolve onto a real
-        document." A plain ``found_docs`` membership test on the resolved
-        target docname -- NOT the rejected option-b (branching on the
-        reference node's own Sphinx-internal flag instead), which would
-        additionally guard an internal reference onto a target that is not
-        itself a real document.
+        document."
+
+        Two conjuncts, both required -- exactly as plan 48-06's own unit
+        gate specified this policy BEFORE any emitter existed (see that
+        module's "Design split" docstring): the node must be
+        Sphinx-internal AND the resolved target must be a real document.
+
+        - ``node.get("internal")`` is the discriminator the checkpoint
+          recorded as available to BOTH options: ``sphinx.util.nodes.
+          make_refnode`` sets ``internal=True`` on every reference Sphinx
+          itself builds, while a hand-written relative rST link carries no
+          ``internal`` flag at all. Both options were chosen on the stated
+          guarantee that they "preserve such asset links untouched", so
+          dropping this conjunct is not option-a -- it is a defect against
+          the decision as presented. Without it, a hand-written link to a
+          genuine asset (``report.pdf``) is hijacked into a guarded jump to
+          an unrelated document's self-anchor whenever a real document
+          happens to share the asset's path stem (CR-01).
+        - ``found_docs`` membership is what separates option-a from
+          option-b: it withholds the guard from a Sphinx-internal
+          reference whose target is NOT a real document, which is exactly
+          the ``genindex`` / ``py-modindex`` / ``search`` population the
+          owner chose to leave as-is.
 
         Read defensively (nested ``getattr`` with an empty-tuple default):
         a hand-built test doctree's stub builder may carry no ``env`` at
@@ -3120,10 +3138,8 @@ class TypstTranslator(SphinxTranslator):
         doctree test byte-unchanged rather than raising.
 
         Args:
-            node: The reference node under judgement. Unused by option-a's
-                own one-expression body -- kept in the signature so a
-                future option-b implementation (reading
-                ``node.get("internal")``) needs no call-site change.
+            node: The reference node under judgement; its ``internal``
+                flag is the first conjunct.
             target_docname: The docname ``_resolve_xref_docname`` resolved
                 the whole-document refuri to.
 
@@ -3131,6 +3147,8 @@ class TypstTranslator(SphinxTranslator):
             Whether the whole-document reference is eligible to be
             routed through the D-07 guard.
         """
+        if not node.get("internal"):
+            return False
         return target_docname in getattr(
             getattr(self.builder, "env", None), "found_docs", ()
         )

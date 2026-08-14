@@ -236,6 +236,44 @@ class TestReferenceAnchorDecisionWholeDocumentPolicy:
             decision.xref is None
         ), f"expected decision.xref is None, got {decision.xref!r}"
 
+    def test_non_internal_reference_onto_known_document_not_guarded(self):
+        """CR-01 regression (code review of plan 48-07): the ONE case that
+        isolates the policy's ``internal`` conjunct.
+
+        The other three policy tests in this class cannot discriminate it.
+        ``test_non_internal_reference_onto_unknown_target_not_guarded``
+        fails BOTH conjuncts at once, so it passes even when ``internal``
+        is not consulted at all; ``test_option_a_internal_reference_onto_
+        unknown_target_keeps_string_url`` isolates only the ``found_docs``
+        conjunct. That blind spot let plan 48-07 ship a predicate whose
+        body was ``target_docname in env.found_docs`` alone, which
+        reproduces as a real defect: a hand-written relative rST link to a
+        genuine asset (``report.pdf``) is hijacked into a guarded jump to
+        an unrelated document's self-anchor whenever a real document
+        happens to share the asset's path stem.
+
+        The reference here carries NO ``internal`` flag (a hand-written
+        rST link) while its resolved target IS a real document, so only a
+        predicate that actually reads ``node.get("internal")`` keeps the
+        string-url form. The checkpoint recorded at
+        ``48-EXPECTED-STRUCTURE.md`` §6 states both options "preserve such
+        asset links untouched", and this module's own "Design split"
+        docstring specified ``internal`` AND ``found_docs`` before any
+        emitter existed -- so this is the pre-declared behaviour, not a new
+        policy.
+        """
+        builder = _StubBuilder(current_docname="index", found_docs={"report"})
+        translator = TypstTranslator(_make_document(), builder)
+        ref = _make_internal_reference("report.typ", internal=False)
+
+        decision = translator._reference_anchor_decision(ref)
+
+        assert decision.xref is None, (
+            "a non-internal (hand-written) link must keep its string-url form "
+            "even when a real document shares the target's path stem; got "
+            f"{decision.xref!r}"
+        )
+
     def test_anchored_cross_document_reference_decision_unchanged(self):
         """Invariance (D-06): the already-shipped anchored-xref path's
         ``.xref`` field is unaffected by this gap's fix -- TRUE both before
