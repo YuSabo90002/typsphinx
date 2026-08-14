@@ -753,7 +753,7 @@ not independently parallelizable)
      diverge — expected, since Sphinx numbers project-wide while Typst counts per compiled wrapper,
      with **no compile error to catch it** — the divergence is either fixed or recorded as a
      documented limitation and handed forward to Phase 51 (docs) and Phase 52 (CHANGELOG).
-**Plans**: 1/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -762,8 +762,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 49-02-PLAN.md — Two-master and mirror-pair fixtures, defect A's non-fatal pre-fix RED, and the composition gate recorded as strict xfails (wave 2)
-- [ ] 49-03-PLAN.md — Seven degenerate-shape and hazard fixtures, the `self`/external-URL classic RED, and the shapes gate recorded as strict xfails (wave 2)
+- [x] 49-02-PLAN.md — Two-master and mirror-pair fixtures, defect A's non-fatal pre-fix RED, and the composition gate recorded as strict xfails (wave 2)
+- [x] 49-03-PLAN.md — Seven degenerate-shape and hazard fixtures, the `self`/external-URL classic RED, and the shapes gate recorded as strict xfails (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -939,7 +939,7 @@ sequential, not merely numbered:
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
-| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 1/6 | In Progress|  |
+| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 3/6 | In Progress|  |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
