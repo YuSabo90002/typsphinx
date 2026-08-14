@@ -266,3 +266,13 @@ None - no external service configuration required.
 ---
 *Phase: 49-per-master-include-graph-with-state-guarded-includes*
 *Completed: 2026-08-14*
+
+## Self-Check: PASSED
+
+- FOUND: `tests/test_include_ledger_removal_gate.py`
+- FOUND: `.planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EVIDENCE.md`
+- FOUND: `.planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-05-SUMMARY.md`
+- FOUND commit: `bd67a6dd`
+- FOUND commit: `91c0ee1a`
+- FOUND commit: `7c4aedb5`
+- FOUND commit: `0997bb4c`
