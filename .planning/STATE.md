@@ -4,15 +4,15 @@ milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 51
 current_phase_name: Two-Layer Output Documentation
-status: planning
-stopped_at: Phase 51 context gathered
-last_updated: "2026-08-14T13:38:01.454Z"
+status: executing
+stopped_at: Phase 51 planned
+last_updated: "2026-08-14T14:37:27.467Z"
 last_activity: 2026-08-14
-last_activity_desc: Phase 50 complete, transitioned to Phase 51
+last_activity_desc: Phase 51 planned — 6 plans across 3 waves
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 30
+  total_plans: 36
   completed_plans: 30
   percent: 67
 ---
@@ -24,24 +24,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 50 — pr-131-image-path-defects
-`images/<basename>` must stop colliding with a real source image of the same name, and an absolute
-image URI outside `doctreedir` must stop writing outside the output directory.
+**Current focus:** Phase 51 — two-layer-output-documentation
+The published documentation must catch up with the output shape Phases 47 and 49 built: which of the
+two `.typ` files to compile, what a standalone content-file compile does, target-as-path semantics,
+and what changed from v0.7.x in old→new file names. Zero lines change under `typsphinx/`.
 Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
 Phase 47 complete 2026-08-12 (14/14 plans, UAT 72/72).
 Phase 48 complete 2026-08-14 (7/7 plans, UAT 16/16, verification 19/19, security threats_open 0).
 Phase 49 complete 2026-08-14 (6/6 plans, verification 5/5 SC, UAT 2/2 dispositioned; code review
 0 blockers / 2 warnings, both tracked as pending todos; GATE-02 corpus gate green unmodified).
-Next action: `/gsd-execute-phase 50`
+Phase 50 complete 2026-08-14 (3/3 plans; SC#2's IMG-02 RED-recording gap closed by a recorded owner
+override, scoped to that gap only — see `50-VERIFICATION.md`).
+Phase 51 planned 2026-08-14 (6 plans / 3 waves; DOC-14 covered, 12/12 CONTEXT decisions covered).
+Next action: `/gsd-execute-phase 51`
 
 ## Current Position
 
 Phase: 51 — Two-Layer Output Documentation
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-14 — Phase 50 complete, transitioned to Phase 51
+Plan: 0/6 complete (3 waves — W1: 51-01 tracer · W2: 51-02..51-05 · W3: 51-06)
+Status: Ready to execute
+Last activity: 2026-08-14 — Phase 51 planned (6 plans, plan-checker PASSED)
 
-Progress: [██████████░░] 50% (3/6 phases) · 27/27 plans
+Progress: [██████████░░] 67% (4/6 phases) · 30/36 plans
 
 ## Active Milestone (v0.8.0 — multi-master composition)
 
