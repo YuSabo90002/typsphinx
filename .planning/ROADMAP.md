@@ -635,7 +635,7 @@ differences also become correct through this one mechanism rather than three.
      The full-corpus `-b typstpdf` compile time is recorded before and after, so a material regression
      from per-reference `query()`-driven introspection passes is a stated finding handed forward rather
      than a surprise discovered at corpus scale.
-**Plans**: 6/7 plans executed (4 original plans + 3 gap-closure plans added 2026-08-13 for UAT gap G-48-4 — a whole-document `:doc:` reference emitted as a dead file link)
+**Plans**: 7/7 plans executed (4 original plans + 3 gap-closure plans added 2026-08-13 for UAT gap G-48-4 — a whole-document `:doc:` reference emitted as a dead file link)
 
 Plans:
 **Wave 1**
@@ -676,7 +676,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion — same file, `typsphinx/translator.py`)*
 
-- [ ] 48-07-PLAN.md — TRACER: every content file emits a stable self-anchor and the whole-document
+- [x] 48-07-PLAN.md — TRACER: every content file emits a stable self-anchor and the whole-document
       reference case routes through the existing shared guard against it, then the documentation
       PDF's dead-link count is re-measured against the pinned baseline (wave 7)
 
@@ -915,7 +915,7 @@ sequential, not merely numbered:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
-| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 6/7 | In Progress|  |
+| 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | In Progress|  |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 0/TBD | Not started | - |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
