@@ -47,7 +47,6 @@ strict xfail) instead of an ImportError failing every test in this file.
 import inspect
 from pathlib import Path
 
-import pytest
 from docutils import nodes as docutils_nodes
 from docutils.parsers.rst import states
 from docutils.utils import Reporter
