@@ -5,8 +5,8 @@ milestone_name: multi-master composition
 current_phase: 49
 current_phase_name: Per-Master Include Graph with State-Guarded Includes
 status: planning
-stopped_at: Phase 48 complete, ready to plan Phase 49
-last_updated: "2026-08-14T05:38:14.115Z"
+stopped_at: Phase 49 context gathered
+last_updated: "2026-08-14T05:56:02.887Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 48 complete, transitioned to Phase 49
 progress:
@@ -697,12 +697,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-14
-Stopped at: Phase 48 complete, ready to plan Phase 49
+Last session: 2026-08-14T05:56:02.875Z
+Stopped at: Phase 49 context gathered
 Resume: `/gsd-discuss-phase 49`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
