@@ -1,0 +1,10 @@
+:orphan:
+
+M3
+==
+
+.. toctree::
+   :maxdepth: 2
+
+   common_b
+   mid
