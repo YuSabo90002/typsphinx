@@ -9,6 +9,7 @@ This section provides comprehensive documentation on using typsphinx.
    configuration
    builders
    templates
+   output_layout
 
 Overview
 --------
@@ -32,3 +33,6 @@ Main Topics
 
 :doc:`templates`
    Customize output using Typst templates
+
+:doc:`output_layout`
+   Understand which emitted ``.typ`` file to compile and where it is written
