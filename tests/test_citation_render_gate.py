@@ -579,14 +579,15 @@ class TestCitationRenderGateStructural:
         )
 
         # (4) D-14 negative control: the master's toctree inclusion of
-        # second.typ carries no citation-style attached anchor. Measured
-        # this session: visit_toctree reads node['entries'] directly and
+        # second.typ carries no citation-style attached anchor. Phase 49
+        # (D-03): visit_toctree reads node['includefiles'] directly and
         # raises nodes.SkipNode, so it NEVER walks into (or emits via)
         # visit_reference for a toctree entry -- there is no
         # toctree-generated `reference` node in this translator's real
         # write path to attach an anchor to in the first place. This
         # checks that structural fact directly on the actual include()
-        # emission rather than asserting something unobservable.
+        # emission (now inside a Phase 49 compile-time guard line) rather
+        # than asserting something unobservable.
         include_line = next(
             line for line in index_typ.splitlines() if 'include("second.typ")' in line
         )
