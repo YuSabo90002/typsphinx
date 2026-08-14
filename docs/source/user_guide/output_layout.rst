@@ -82,3 +82,27 @@ given. The content file is unaffected by where the wrapper landed: it still
 writes to ``index.typ``, at the output directory's root, because a content
 file's location is derived from its docname alone, never from any
 ``typst_documents`` target.
+
+Targets that are refused
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Not every path-bearing target is accepted. Three target shapes are refused:
+a target with a ``..`` path segment (parent-directory traversal), an
+absolute target, and a drive-qualified target such as a Windows drive
+prefix (for example ``C:manual``). The drive-qualified check is a pure
+string-shape test, so a Windows-shaped target is refused identically on
+Linux and macOS -- it does not depend on which platform the build runs on.
+
+A refused target does not stop the build. The build emits a warning, falls
+back to the target's own basename, and writes the wrapper at the output
+directory's root exactly as a bare target would; the build still succeeds.
+For example, a target of ``"../escape"`` falls back to ``escape``, and a
+target of ``"/abs/manual"`` or ``"C:manual"`` both fall back to ``manual``.
+
+.. code-block:: text
+
+   WARNING: a path is not supported in a typst_documents target name: '../escape' -- using 'escape' instead
+
+The other two refused shapes emit the same warning, naming their own
+target and fallback: ``/abs/manual`` falls back to ``manual``, and
+``C:manual`` falls back to ``manual`` as well.
