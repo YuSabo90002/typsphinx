@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
-current_phase: 48
-current_phase_name: compile-time-cross-reference-guard
-status: executing
-stopped_at: Phase 48 context gathered
-last_updated: "2026-08-14T03:34:11.640Z"
+current_phase: 49
+current_phase_name: Per-Master Include Graph with State-Guarded Includes
+status: planning
+stopped_at: Phase 48 complete, ready to plan Phase 49
+last_updated: "2026-08-14T05:38:14.115Z"
 last_activity: 2026-08-14
-last_activity_desc: Phase 48 execution resumed (wave continue)
+last_activity_desc: Phase 48 complete, transitioned to Phase 49
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 21
-  completed_plans: 18
-  percent: 17
+  completed_plans: 21
+  percent: 33
 ---
 
 # Project State
@@ -24,22 +24,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 48 — compile-time-cross-reference-guard
-exists is decided by Typst per compiled wrapper instead of by a build-time union across all masters,
-so a missing label degrades to plain text rather than aborting — landed before Phase 49's graph work
-that would otherwise make it fatal.
+**Current focus:** Phase 49 — Per-Master Include Graph with State-Guarded Includes. Each wrapper
+computes its own include edge set by mirroring `inline_all_toctrees` and publishes it as Typst
+`state`; content files emit state-guarded includes at their toctree's own position, closing defect A
+and the diamond, and holding at full-corpus scale.
 Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
 Phase 47 complete 2026-08-12 (14/14 plans, UAT 72/72).
-Next action: `/gsd-discuss-phase 48`
+Phase 48 complete 2026-08-14 (7/7 plans, UAT 16/16, verification 19/19, security threats_open 0).
+Next action: `/gsd-discuss-phase 49`
 
 ## Current Position
 
-Phase: 48 (compile-time-cross-reference-guard) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 48
-Last activity: 2026-08-14 — Phase 48 execution resumed (wave continue)
+Phase: 49 — Per-Master Include Graph with State-Guarded Includes
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-14 — Phase 48 complete, transitioned to Phase 49
 
-Progress: [█░░░░░] 17% (1/6 phases)
+Progress: [██████░░░░░░] 33% (2/6 phases) · 21/21 plans
 
 ## Active Milestone (v0.8.0 — multi-master composition)
 
@@ -329,6 +330,22 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
   which keeps the classic `TypstError`.
 
 - [Phase 47]: Milestone branch gsd/v0.8.0-multi-master-composition pushed to origin (no PR); CI run 31492380799 completed success including windows-latest/macos-latest lanes, discharging Phase 47 SC#5
+
+- [Phase 48] D-07: ONE shared guard-string derivation point. `_label_existence_guard()` is the sole
+  site that builds a `context`/`query` string; it never derives a label itself, taking only
+  `_namespace_label()`'s output, so demand and supply sides cannot diverge. Four call sites; a fifth
+  spelling is the drift class the decision exists to reject.
+
+- [Phase 48] D-11 accepted at UAT: the per-reference compile-time `query()` costs **-2.37%** on a
+  full corpus, against tiers fixed before the measurement — bottom tier, record only.
+
+- [Phase 48] Owner accepted two named limits rather than hiding them: a coincidental
+  docname/label-namespace collision can still link to the wrong document (todo filed,
+  `48-REVIEW.md` WR-02), and an `:orphan:` target now degrades with zero diagnostic at any layer.
+
+- [Phase 48] G-48-4 **option-a**: whole-document references are guarded only when they resolve onto
+  a real `found_docs` member. The five Sphinx-generated virtual pages (`genindex`, `py-modindex`,
+  `search`, and two `../` forms) have no PDF counterpart and stay dead links by explicit choice.
 
 ### Pending Todos
 
@@ -680,23 +697,25 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/48-compile-time-cross-reference-guard/48-CONTEXT.md
+**Resume file:** None
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-12T02:46:46.155Z
-Stopped at: Phase 48 context gathered
-Resume: `/gsd-discuss-phase 48`.
+Last session: 2026-08-14
+Stopped at: Phase 48 complete, ready to plan Phase 49
+Resume: `/gsd-discuss-phase 49`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
 including item 5 (Read the Docs `stable`), confirmed by the owner and re-measured live 2026-08-11.
 
 ## Operator Next Steps
 
-- Discuss the next phase with /gsd-discuss-phase 48
+- Discuss the next phase with /gsd-discuss-phase 49
 - Milestone invariant #5 is **discharged**: Phase 47 pushed `gsd/v0.8.0-multi-master-composition` to
   `origin` (no PR) and drove CI run `31492380799` green, including the `windows-latest` and
   `macos-latest` lanes — which is where it caught a real Windows-only OUT-02 defect
   (`os.path` vs `posixpath` disagreement), fixed in-phase.
 
-- **Phase 48 must land no later than Phase 49** (the milestone's one hard ordering constraint).
+- **The milestone's one hard ordering constraint is discharged: Phase 48 landed before Phase 49.**
+  The compile-time guard is in place, so Phase 49's include-graph fix can no longer turn a silent
+  content omission into a hard `label ... does not exist in the document` compile abort.
