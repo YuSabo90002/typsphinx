@@ -29,6 +29,20 @@ _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
 # three renderings; see 37-CONTEXT.md).
 SHARED_INDENT_STEP = "2.5em"
 
+# Phase 48 plan 07 (G-48-4 / XREF-03 gap closure): the whole-document
+# self-anchor's raw id, fixed at `__tsx-doc__`
+# (48-EXPECTED-STRUCTURE.md "Phase 48 Plan 05" section 1). Deliberately
+# carries BOTH an underscore and a hyphen -- unreachable from either raw-id
+# source this codebase namespaces through `_namespace_label`: docutils'
+# `make_id` never emits an underscore, even when its input already
+# contains one (nine adversarial probes, section 1 Claim 1), and a Sphinx
+# domain object id is built from Python identifiers, which structurally
+# exclude a hyphen (section 1 Claim 2). ONE module-level constant, consumed
+# by BOTH the definition site (`visit_document`, below) and the reference
+# site (`visit_reference`'s cross-document branch) through the SAME
+# `_namespace_label` call (D-13) -- never re-spelled at either.
+_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN = "__tsx-doc__"
+
 
 class _ReferenceAnchorDecision(NamedTuple):
     """
@@ -703,6 +717,23 @@ class TypstTranslator(SphinxTranslator):
 
         # Start code block for unified code mode (all content uses function syntax without # prefix)
         self.add_text("#{\n")
+
+        # G-48-4 / XREF-03 (Phase 48 plan 07): every content file emits its
+        # own whole-document self-anchor exactly once, immediately after
+        # the opening code-block brace, in the established zero-width
+        # `metadata` anchor form `_emit_id_anchors` already uses -- so a
+        # whole-document reference (`visit_reference`'s cross-document
+        # branch, below) has a real per-document label to guard against
+        # instead of falling into the external-link string-url branch.
+        # Emitted ONLY when the builder supplies a current docname:
+        # hand-built test doctrees (no builder docname) keep byte-identical
+        # output, matching every other `_current_docname()`-gated site.
+        docname = self._current_docname()
+        if docname:
+            self_anchor_label = self._namespace_label(
+                docname, _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN
+            )
+            self.add_text(f"[#metadata(none) <{self_anchor_label}>]\n")
 
     def depart_document(self, node: nodes.document) -> None:
         """
@@ -3050,6 +3081,60 @@ class TypstTranslator(SphinxTranslator):
                 return candidate
         return None
 
+    def _whole_document_reference_eligible(
+        self, node: nodes.reference, target_docname: str
+    ) -> bool:
+        """
+        G-48-4 / XREF-03 (Phase 48 plan 07) ROUTING predicate, consulted
+        exactly once, immediately after ``_reference_anchor_decision``'s
+        own ``_resolve_xref_docname`` call: does a WHOLE-DOCUMENT reference
+        (the resolver found no single anchor to target, an EMPTY-anchor
+        resolution) get exposed through ``.xref`` -- and thus routed
+        through the D-07 compile-time guard against its target's own
+        whole-document self-anchor -- or does it keep the plain string-url
+        form?
+
+        This is a ROUTING decision, never a second degrade decision (the
+        phase's own standing prohibition on a second degrade mechanism
+        under any name): it only decides which of the D-07 guard's two
+        existing outcomes -- the guarded ``xref is not None`` branch, or
+        the string-url ``else`` branch -- a whole-document reference
+        enters. The actual degrade-to-plain-text decision, for every
+        guarded reference alike, is made once, by the guard's own
+        ``query(<label>).len() > 0`` else-branch, at Typst compile time.
+
+        Implements OPTION-A, the owner's choice recorded verbatim at the
+        plan 48-05 blocking checkpoint (``48-EXPECTED-STRUCTURE.md``
+        "Phase 48 Plan 05" section 6): "leave [Sphinx-generated pages] as
+        they are -- guard only references that resolve onto a real
+        document." A plain ``found_docs`` membership test on the resolved
+        target docname -- NOT the rejected option-b (branching on the
+        reference node's own Sphinx-internal flag instead), which would
+        additionally guard an internal reference onto a target that is not
+        itself a real document.
+
+        Read defensively (nested ``getattr`` with an empty-tuple default):
+        a hand-built test doctree's stub builder may carry no ``env`` at
+        all, or an ``env`` with no ``found_docs`` attribute; either case
+        yields ``False`` (not eligible), keeping every existing hand-built-
+        doctree test byte-unchanged rather than raising.
+
+        Args:
+            node: The reference node under judgement. Unused by option-a's
+                own one-expression body -- kept in the signature so a
+                future option-b implementation (reading
+                ``node.get("internal")``) needs no call-site change.
+            target_docname: The docname ``_resolve_xref_docname`` resolved
+                the whole-document refuri to.
+
+        Returns:
+            Whether the whole-document reference is eligible to be
+            routed through the D-07 guard.
+        """
+        return target_docname in getattr(
+            getattr(self.builder, "env", None), "found_docs", ()
+        )
+
     def _reference_anchor_decision(
         self, node: nodes.reference
     ) -> _ReferenceAnchorDecision:
@@ -3111,6 +3196,19 @@ class TypstTranslator(SphinxTranslator):
         refid = node.get("refid", "")
 
         xref = self._resolve_xref_docname(refuri) if refuri else None
+        # G-48-4 / XREF-03 (Phase 48 plan 07): `_resolve_xref_docname` now
+        # also resolves a whole-document refuri (no single anchor) to an
+        # EMPTY-anchor pair. Whether that empty-anchor resolution is
+        # actually exposed through `.xref` -- and thus routed through the
+        # D-07 guard -- is a POLICY question, decided here, immediately
+        # after the resolver call, by `_whole_document_reference_eligible`
+        # (see its own docstring for the two options the plan 48-05
+        # checkpoint recorded and which one this predicate implements). An
+        # anchored cross-document `xref` (non-empty anchor) is untouched.
+        if xref is not None and xref[1] == "" and not (
+            self._whole_document_reference_eligible(node, xref[0])
+        ):
+            xref = None
 
         # D-09 (Phase 48): unconditional. Whether the cross-document
         # target this reference points at is actually reachable in any
@@ -4800,19 +4898,26 @@ class TypstTranslator(SphinxTranslator):
         ``link("url", ...)``) for:
 
         - external URLs (any ``scheme://`` or ``mailto:`` / protocol-relative);
-        - same-document ``#anchor`` refs (handled earlier by the caller);
-        - whole-document refs with no ``#anchor`` (kept as a string-url link,
-          per requirement -- there is no single anchor to target);
+        - same-document ``#anchor`` refs (handled earlier by the caller --
+          these have an empty ``path_part``, since the caller strips the
+          leading ``#`` before ever consulting this method);
         - refuris whose path does not end in the builder's ``out_suffix``
           (arbitrary relative asset links), or when the current docname is
           unknown.
+
+        A LOCAL whole-document refuri with no ``#anchor`` fragment (or an
+        explicit but empty one, e.g. ``path.typ#``) resolves too (G-48-4 /
+        XREF-03, Phase 48 plan 07): the SAME path arithmetic the anchored
+        case uses, returned with an EMPTY anchor (``(target_docname,
+        "")``) rather than ``None`` -- the caller (``_reference_anchor_
+        decision``) is the single place that decides whether an empty-anchor
+        resolution is actually exposed through its own ``.xref`` field; this
+        method answers only "which document and which anchor", never policy.
         """
-        if "#" not in refuri:
-            return None
         if "://" in refuri or refuri.startswith(("mailto:", "//")):
             return None
         path_part, _, anchor = refuri.partition("#")
-        if not anchor or not path_part:
+        if not path_part:
             return None
         suffix = getattr(self.builder, "out_suffix", "")
         if not suffix or not path_part.endswith(suffix):
@@ -5164,8 +5269,19 @@ class TypstTranslator(SphinxTranslator):
             # `query(<label>)` guard around the link. Namespace with the
             # TARGET docname so the guarded label byte-matches the anchor
             # the target document emits.
+            #
+            # G-48-4 (Phase 48 plan 07): an EMPTY anchor means this is a
+            # WHOLE-DOCUMENT reference (`_resolve_xref_docname` found no
+            # single anchor to target, and `_reference_anchor_decision`'s
+            # `_whole_document_reference_eligible` gate already confirmed
+            # it is eligible) -- it targets the target document's own
+            # whole-document self-anchor (the module-level
+            # `_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN`, emitted once per content
+            # file by `visit_document`) instead of a specific anchor.
             target_docname, anchor = xref
-            label = self._namespace_label(target_docname, anchor)
+            label = self._namespace_label(
+                target_docname, anchor or _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN
+            )
             guard = self._label_existence_guard(
                 label, prefix=prefix, code_mode_body=True
             )

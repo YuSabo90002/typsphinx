@@ -798,3 +798,69 @@ https://nix.dev/permalink/stub-ld
 Items, and every prior Phase 48 plan's own "Next Phase Readiness" note). This is recorded plainly
 rather than claimed as a clean ruff result — CI carries lint authority per the same documented
 deferral. `pytest`, `black`, and `mypy` are all green locally.
+
+## Whole-document self-anchor: load-bearing Typst semantics probe (plan 48-07, Task 1 Step 0)
+
+**Purpose:** before writing any emitter code, confirm by a throwaway compile probe (never read off
+the new emitter — no emitter change exists in `typsphinx/` while this section was written,
+`git status --porcelain typsphinx/` printed nothing before this probe ran) that a `metadata`-
+attached label is findable by `query()` and linkable by `link()` — the entire design G-48-4's fix
+rests on. This repo already carries a measured note to the same effect
+(`tests/fixtures/xref_per_master_guard_gate/conf.py`'s load-bearing property (e), and
+`_link_annotation_dests`'s docstring in the render-gate module), so this probe is a confirmation,
+not a discovery.
+
+**Methodology:** two hand-written `.typ` files under
+`/tmp/claude-.../scratchpad/48-07-probes/` (outside the repository), compiled via
+`typst.compile()` (typst-py 0.15.0, the same installed version this worktree pins) and read back
+with `pypdf`. `probe_present.typ` carries a zero-width `metadata` anchor
+(`[#metadata(none) <included:__tsx-doc__>]`) near the top, and further down the D-07 guard
+expression querying that anchor's label; `probe_absent.typ` is byte-identical with the anchor
+line removed.
+
+**`probe_present.typ` (verbatim):**
+
+```typst
+#{
+[#metadata(none) <included:__tsx-doc__>]
+
+par({text("See ")
+context { let __tsx_body = [#{text("Included Whole-Document Target")}]; if query(<included:__tsx-doc__>).len() > 0 { link(<included:__tsx-doc__>, __tsx_body) } else { __tsx_body } }
+text(".")})
+}
+```
+
+**`probe_absent.typ` (verbatim, same source with the `metadata` anchor line removed):**
+
+```typst
+#{
+par({text("See ")
+context { let __tsx_body = [#{text("Included Whole-Document Target")}]; if query(<included:__tsx-doc__>).len() > 0 { link(<included:__tsx-doc__>, __tsx_body) } else { __tsx_body } }
+text(".")})
+}
+```
+
+**Compile transcript (verbatim, both files, one `typst.compile()` call each):**
+
+```
+=== probe_present.typ ===
+compiled bytes: 7713
+extracted text: 'See Included Whole-Document Target.'
+/Link annotation count: 1
+destinations: [('positional', [IndirectObject(14, 0, ...), '/XYZ', 70.86614, 781.0236, 0])]
+
+=== probe_absent.typ ===
+compiled bytes: 7315
+extracted text: 'See Included Whole-Document Target.'
+/Link annotation count: 0
+destinations: []
+```
+
+**Result, exactly as expected:** both compiles succeed (no `TypstError` either way). With the
+anchor PRESENT, the guard's `query(<included:__tsx-doc__>).len() > 0` condition is true, its
+positive branch fires, and a real `/Link` annotation exists with a POSITIONAL (non-string)
+destination — consistent with `_classify_link_annotations`'s own documented finding that a
+`metadata`-only (non-heading) label never gets a NAMED PDF destination, only a positional one.
+With the anchor ABSENT, the compile still succeeds, the reference's visible text is unchanged, and
+zero `/Link` annotations exist — the guard's `else` branch degrades silently, exactly as D-02
+requires. The probe did not contradict the design; the emitter change proceeded as planned.

@@ -142,7 +142,6 @@ class TestResolveWholeDocumentXref:
     resolution step; the POLICY gate lives one layer up
     (``TestReferenceAnchorDecisionWholeDocumentPolicy`` below)."""
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 1")
     def test_resolve_xref_docname_returns_empty_anchor_for_whole_document_refuri(
         self,
     ):
@@ -204,7 +203,6 @@ class TestReferenceAnchorDecisionWholeDocumentPolicy:
     verbatim in ``48-EXPECTED-STRUCTURE.md`` §6.
     """
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 2")
     def test_internal_reference_onto_known_document_yields_pair(self):
         """48-06-PLAN.md Task 2 behaviour item 2: a Sphinx-internal
         whole-document reference whose target IS a known document
@@ -288,7 +286,6 @@ class TestSelfAnchorEmission:
     """48-EXPECTED-STRUCTURE.md §2's definition-site form, fully substituted
     for docname ``included``."""
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 3")
     def test_document_with_builder_docname_emits_self_anchor_once(self):
         """48-06-PLAN.md Task 2 behaviour item 3 /
         ``48-EXPECTED-STRUCTURE.md`` §2's fully-substituted example: a
@@ -359,7 +356,6 @@ class TestSelfAnchorTokenSingleDerivationPointStructural:
     MISSING constant fails THIS test instead of breaking collection for the
     whole file on the unfixed tree."""
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 4")
     def test_self_anchor_token_is_single_module_level_constant(self):
         """48-06-PLAN.md Task 2 behaviour item 4 /
         ``48-EXPECTED-STRUCTURE.md`` §1: the fixed token ``__tsx-doc__`` as
