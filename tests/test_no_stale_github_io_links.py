@@ -52,7 +52,7 @@ _LANGUAGE_SEGMENT_RE = re.compile(r"/(en|ja)/")
 # without also picking up a language prefix.
 _VERSION_LIKE_SEGMENT_RE = re.compile(r"/(latest|stable|v?\d+\.\d+(?:\.\d+)?)(?:/|$)")
 
-# The seven quick-link deep-link suffixes, in the order they must appear in
+# The eight quick-link deep-link suffixes, in the order they must appear in
 # README.md's "## Documentation" section. A dropped, reordered, or renamed
 # suffix must fail this test, not just a wrong host.
 _EXPECTED_DEEP_LINK_SUFFIXES = (
@@ -60,6 +60,7 @@ _EXPECTED_DEEP_LINK_SUFFIXES = (
     "quickstart.html",
     "user_guide/",
     "user_guide/configuration.html",
+    "user_guide/output_layout.html",
     "examples/",
     "api/",
     "contributing.html",
@@ -92,16 +93,16 @@ def test_readme_documentation_links_point_at_readthedocs():
 
 
 def test_readme_deep_links_carry_language_version_prefix():
-    """README.md must have exactly 7 `/en/latest/` deep links, in order.
+    """README.md must have exactly 8 `/en/latest/` deep links, in order.
 
     Asserts both the count and the exact suffixes so a dropped, reordered,
     or silently-retargeted link is caught -- not just a wrong host.
     """
     text = _read_readme_text()
     deep_links = _DEEP_LINK_RE.findall(text)
-    assert len(deep_links) == 7, (
-        f"expected exactly 7 README deep links under /en/latest/, found "
-        f"{len(deep_links)}: {deep_links}"
+    assert len(deep_links) == len(_EXPECTED_DEEP_LINK_SUFFIXES), (
+        f"expected exactly {len(_EXPECTED_DEEP_LINK_SUFFIXES)} README deep "
+        f"links under /en/latest/, found {len(deep_links)}: {deep_links}"
     )
     assert deep_links == list(_EXPECTED_DEEP_LINK_SUFFIXES), (
         "README.md's /en/latest/ deep links do not match the expected "
