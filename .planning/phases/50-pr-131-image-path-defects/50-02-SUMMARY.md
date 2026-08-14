@@ -151,6 +151,13 @@ None - no external service configuration required.
 
 Plan 50-03 can now add dedicated unit-test coverage for `_track_image()`'s escape branch (D-05/D-06 relocation + warning) and the Windows cross-drive `path.relpath()` `ValueError` catch (D-07) -- both implemented here but not yet directly exercised by an automated test, per this plan's own coverage D2 rationale and threat_model row T-50-02. `RESERVED_IMAGE_NAMESPACE`, `_escapes_outdir()`'s cross-domain reuse, and the escape-check-first/collision-check-second branch ordering are all in place and ready to be driven by new `tests/test_builder.py` cases (the two existing D-12-pinned tests in that file remain untouched). SC#1 and SC#2's production code is complete; SC#2's own dedicated automated proof and the second-order reserved-namespace collision guard (if the owner ever wants it -- currently accepted-unguarded per `<recorded_assumption>` A1) remain open for 50-03 or a future todo.
 
+## Self-Check: PASSED
+
+All created/modified files confirmed present on disk (`typsphinx/builder.py`,
+`tests/test_converted_image_collision_render_gate.py`, both D-11 manifests,
+`50-D11-EVIDENCE.md`, this SUMMARY). All four task/plan commits confirmed
+present in `git log` (`670bf7d2`, `cd75fa1d`, `f3910b4d`, `fe8c90d0`).
+
 ---
 *Phase: 50-pr-131-image-path-defects*
 *Completed: 2026-08-14*
