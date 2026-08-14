@@ -1,13 +1,14 @@
 ---
 phase: 50-pr-131-image-path-defects
 verified: 2026-08-14T21:45:00Z
-status: gaps_found
-score: 5/7 must-haves verified
+updated: 2026-08-14T22:05:00Z
+status: passed
+score: 6/7 must-haves verified (1 with a disclosed caveat), 1 owner-overridden
 behavior_unverified: 0
-overrides_applied: 0
+overrides_applied: 1
 gaps:
   - truth: "SC#2's RED-first evidence requirement: 'RED first: a fixture proving today's destination is `../`-prefixed' (ROADMAP.md Phase 50 SC#2, verbatim) was recorded and observed before the IMG-02 fix landed."
-    status: failed
+    status: overridden
     reason: >
       No pytest-recorded, written-first RED exists anywhere in the phase's evidence chain for
       IMG-02's escape/cross-drive branches. Plan 50-01's RED (50-RED-EVIDENCE.md) covers ONLY
@@ -34,9 +35,49 @@ gaps:
     missing:
       - "A written-first RED for IMG-02, run and observed against the unfixed (pre-50-02) builder, in the same D-08/D-10 style as IMG-01's 50-RED-EVIDENCE.md: a fixture or unit-level reproduction showing a `../`-prefixed destination is computed and/or written, captured verbatim before typsphinx/builder.py's absolute-URI branch was widened."
       - "Either (a) a retroactive RED reconstruction (e.g. checking out the pre-fix builder.py content in isolation and re-running the new unit tests against it, with the failure transcript recorded), or (b) an explicit owner-accepted override recording why the manual 2026-08-10 todo measurement is treated as satisfying binding constraint #4/SC#2 for IMG-02 despite not being a pytest-recorded fixture RED."
+    override:
+      decided_by: owner
+      decided_at: 2026-08-14T22:05:00+09:00
+      option: "(b) — accept the pre-existing 2026-08-10 manual measurement in place of a pytest-recorded fixture RED for IMG-02."
+      rationale: >
+        The written-first requirement of binding constraint #4 exists to stop a gate being authored
+        after the fix and then declared green (constraint #6, no laundered gates). For IMG-02 the
+        observation that constraint is asking for DOES pre-date the fix, and by four days: the todo
+        .planning/todos/pending/2026-08-10-track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri.md
+        records, on 2026-08-10 and before Phase 50 existed, a direct measurement of the rehome
+        operation over three concrete inputs, naming the two `../`-prefixed escaping destinations
+        and the `src == dest` collapse that reproduces Issue #130's original shape. That is the
+        substance SC#2's "fixture proving today's destination is `../`-prefixed" was asking for;
+        what is missing is only its packaging as a pytest artifact inside this phase's directory.
+        The failure mode constraint #6 guards against — an expectation quietly shaped to match
+        whatever the new code happens to do — is separately excluded here: plan 50-03's escape and
+        cross-drive unit tests state their expected keys as literal strings and never reference
+        `RESERVED_IMAGE_NAMESPACE`, verified by grep (0 hits in tests/test_builder.py).
+      scope: >
+        This override covers the IMG-02 RED-recording gap ONLY. It does not weaken SC#2's functional
+        requirement, which is independently verified: every relocated destination lands under
+        `outdir`, asserted by
+        test_copy_image_files_relocated_key_destination_stays_under_outdir.
+      residual_risk: >
+        IMG-02's escape and cross-drive branches carry no observed pre-fix failure inside this
+        phase's own evidence chain, so their tests are GREEN-only. If those branches are ever
+        reworked, this phase's artifacts cannot serve as the falsifiability baseline for them the
+        way 50-RED-EVIDENCE.md can for IMG-01 — a future change there should record its own RED
+        rather than inheriting one.
 deferred: []
 human_verification:
   - test: "Decide whether CR-01 (50-REVIEW.md Critical finding) needs a follow-up todo/phase, or is adequately covered by the phase's own pre-existing, disclosed risk acceptance."
+    status: resolved
+    resolution: >
+      Owner decision, 2026-08-14: filed as a follow-up todo, NOT fixed inside Phase 50 —
+      .planning/todos/pending/2026-08-14-escape-branch-relocation-key-uses-basename-only-two-escaping-images-can-collide.md
+      (resolves_phase: null, severity: minor, carrying T-50-03's documented hashed-key remedy and a
+      RED-first instruction for whoever picks it up). Rationale for not fixing in-phase: an unplanned
+      production edit to `_track_image()` would invalidate plan 50-02's D-11 before/after manifest
+      measurement, whose empty diff is SC#3's evidence. Severity recorded as minor, matching the
+      phase's own T-50-03 threat-model row rather than the code reviewer's Critical rating, on
+      reachability grounds — the escape branch is unreachable through stock Sphinx (D-06) and the
+      collision needs two escaping images sharing a basename across different directories.
     expected: "Owner reviews CR-01 — two DIFFERENT escaping absolute URIs that share a basename from different source directories both compute the same `_typst_converted/<basename>` relocation key (typsphinx/builder.py:938, `path.basename(resolved_uri)` only, discarding directory context that the collision branch at line 951 preserves via the full `rel_uri`) — and either accepts it as already covered by the phase's own T-50-03 threat-model row (severity: low, disposition: accept, with a documented hashed-key alternative) and FA-02's pre-disclosed residual, or files a follow-up fix/todo."
     why_human: "This is a severity/disposition judgment call: the code reviewer marked it Critical while the phase's own threat model marked the same shape 'low, accept' before the review ran. Reaching the escape branch at all requires a third-party extension writing an absolute image URI outside doctreedir (D-06 treats this as anomalous / unreachable through stock Sphinx), and two independent extensions colliding on the same basename from different directories is a further compound-improbable narrowing. Whether that residual risk is acceptable for a library extension is a product/security judgment, not a code-correctness question a verifier can resolve by grep or test."
 ---
@@ -169,7 +210,9 @@ typsphinx/` independently re-confirmed clean is not re-run here (already verifie
 
 ### Human Verification Required
 
-See `human_verification` in frontmatter (CR-01 disposition — 1 item).
+**Resolved 2026-08-14.** The single item (CR-01 disposition) was decided by the owner: filed as a
+follow-up todo rather than fixed in-phase. See `human_verification[0].resolution` in frontmatter and
+`.planning/todos/pending/2026-08-14-escape-branch-relocation-key-uses-basename-only-two-escaping-images-can-collide.md`.
 
 ### Gaps Summary
 
@@ -190,6 +233,24 @@ to its pre-Phase-50 shape in an isolated context and running a fixture/unit test
 the verbatim failure, matching the D-08 style already used for IMG-01), or by an explicit owner-signed
 override in this VERIFICATION.md's frontmatter accepting the pre-existing 2026-08-10 manual todo
 measurement as sufficient evidence in place of a fixture-integrated RED.
+
+### Gap Disposition — owner override, 2026-08-14
+
+**Option (b) was taken.** The gap above is recorded as `overridden`, not resolved by new work, and the
+phase status moves to `passed` with `overrides_applied: 1`. The full rationale, scope limit and
+residual risk are in the `gaps[0].override` block in this file's frontmatter; the short form is that
+the pre-fix observation SC#2 asks for does exist and does pre-date the fix by four days (the 2026-08-10
+todo's direct measurement of the rehome operation, naming both `../`-prefixed escaping destinations and
+the `src == dest` collapse), and what is absent is its packaging as a pytest artifact rather than the
+observation itself. Constraint #6's actual hazard — an expectation shaped to match the new code — is
+independently excluded: plan 50-03's escape and cross-drive tests state their expected keys as literal
+strings and never import `RESERVED_IMAGE_NAMESPACE` (grep: 0 hits in `tests/test_builder.py`).
+
+The override is deliberately scoped to the RED-*recording* gap. SC#2's functional requirement is not
+weakened and remains independently verified by
+`test_copy_image_files_relocated_key_destination_stays_under_outdir`. The standing residual is that
+IMG-02's branches are GREEN-only within this phase, so a future rework of them must record its own RED
+rather than inherit one from here.
 
 ---
 
