@@ -623,7 +623,7 @@ pinned test files, `pyproject.toml`), or by interpreter introspection inside the
 `typst.__version__`). No package name, API shape, or file/line claim in this document is drawn from
 training-data recollection alone.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 None outstanding. All seven items CONTEXT.md's "Claude's Discretion" / "the researcher should
 measure this" list handed to this research were closed by direct measurement above:

@@ -813,9 +813,18 @@ abort loudly, and now renders the wrong picture silently.
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 50-01-PLAN.md — Wave 1: D-10 sibling fixture + the D-08 render gate, with both collision assertions recorded RED against the unfixed builder
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 50-02-PLAN.md — Wave 2: tracer — widen `_track_image()` end-to-end for IMG-01 and IMG-02 as one change, bracketed by the D-11 two-build measurement
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 50-03-PLAN.md — Wave 3: unit coverage for the three relocation branches, plus the cross-wave audit of the phase's evidence chain
+
 **UI hint**: no
 
 ### Phase 51: Two-Layer Output Documentation
