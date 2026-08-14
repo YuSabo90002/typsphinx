@@ -33,9 +33,10 @@ To build the documentation and generate `.typ` files:
 sphinx-build -b typst . _build/typst
 ```
 
-This will create two files in `_build/typst/`: `basic-example.typ`, the
-wrapper file to compile, and `index.typ`, the content file holding the
-document body that the wrapper includes.
+This will create three files in `_build/typst/`: `basic-example.typ`, the
+wrapper file to compile; `index.typ`, the content file holding the document
+body that the wrapper includes; and `_template.typ`, the template the
+wrapper imports.
 
 ### Generate PDF Output
 

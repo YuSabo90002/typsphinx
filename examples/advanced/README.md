@@ -61,6 +61,7 @@ This will generate:
 - `_build/typst/index.typ` - Master content (the `index` document's own body)
 - `_build/typst/chapter1.typ` - Chapter 1 content
 - `_build/typst/chapter2.typ` - Chapter 2 content
+- `_build/typst/_template.typ` - Template imported by the wrapper (here, your `_templates/custom.typ`)
 
 The wrapper (`advanced-example.typ`) is a thin file that includes the
 master's content file, `index.typ`. The chapter includes live inside that

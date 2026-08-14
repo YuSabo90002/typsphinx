@@ -28,10 +28,11 @@ wrapper's chain of ``#include()`` calls eventually reaches it.
        ("index", "manual", "Title", "Author", "typst"),
    ]
 
-This configuration writes two files: ``manual.typ`` at the output
-directory's root -- the wrapper for the ``index`` docname's target
-``manual`` -- and ``index.typ``, also at the output directory's root -- the
-content file for the ``index`` docname itself.
+This configuration writes three files, all at the output directory's root:
+``manual.typ``, the wrapper for the ``index`` docname's target ``manual``;
+``index.typ``, the content file for the ``index`` docname itself; and
+``_template.typ``, which holds the template the wrapper imports. The
+wrapper will not compile without it.
 
 Which File to Compile
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -153,8 +154,11 @@ intended behaviour, and no configuration is needed to get it.
 This implies a file-count rule worth stating plainly, since it is what you
 will actually observe when you build: a build writes one wrapper per
 ``typst_documents`` entry, one content file for every document in the
-project, and the reserved ``_template.typ``. A three-master project over
-six documents therefore writes ten ``.typ`` files.
+project, and -- unless you configure a Typst Universe package with
+``typst_package`` and no ``typst_template`` -- the reserved
+``_template.typ``. A three-master project over six documents therefore
+writes ten ``.typ`` files; on the ``typst_package`` route it writes nine,
+because the wrapper imports the package directly instead.
 
 See Also
 --------
