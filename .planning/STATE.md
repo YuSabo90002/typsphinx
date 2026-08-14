@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 49
-current_phase_name: Per-Master Include Graph with State-Guarded Includes
+current_phase_name: per-master-include-graph-with-state-guarded-includes
 status: executing
 stopped_at: Phase 49 planned (6 plans, waves 1-5)
-last_updated: "2026-08-14T07:16:15.589Z"
+last_updated: "2026-08-14T07:22:33.333Z"
 last_activity: 2026-08-14
-last_activity_desc: Phase 49 planned — 6 plans in 5 waves, plan-checker passed
+last_activity_desc: Phase 49 execution started
 progress:
   total_phases: 6
   completed_phases: 2
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 49 — Per-Master Include Graph with State-Guarded Includes. Each wrapper
+**Current focus:** Phase 49 — per-master-include-graph-with-state-guarded-includes
 computes its own include edge set by mirroring `inline_all_toctrees` and publishes it as Typst
 `state`; content files emit state-guarded includes at their toctree's own position, closing defect A
 and the diamond, and holding at full-corpus scale.
@@ -36,10 +36,10 @@ Next action: `/gsd-execute-phase 49`
 
 ## Current Position
 
-Phase: 49 — Per-Master Include Graph with State-Guarded Includes
-Plan: 6 plans in 5 waves — 0/6 executed
-Status: Ready to execute
-Last activity: 2026-08-14 — Phase 49 planned (6 plans, 18 tasks, plan-checker passed)
+Phase: 49 (per-master-include-graph-with-state-guarded-includes) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 49
+Last activity: 2026-08-14 — Phase 49 execution started
 
 Progress: [██████░░░░░░] 33% (2/6 phases) · 21/27 plans
 
