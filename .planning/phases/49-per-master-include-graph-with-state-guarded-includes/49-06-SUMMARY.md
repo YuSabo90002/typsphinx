@@ -25,13 +25,17 @@ provides:
     fixture and its measurement gate, closing open question #2"
   - "REQUIREMENTS.md: COMP-12 marked Complete -- the last of Phase 49's
     eight requirements"
+  - ".planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md:
+    the owner-requested tracked todo for the numref divergence,
+    resolves_phase 52, naming both the Phase 51 doc obligation and the
+    Phase 52 CHANGELOG obligation explicitly"
 affects: [51-documentation, 52-changelog]
 
 # Actuals (#2632)
 actuals:
-  tokens: 10390
-  tasks: 2
-  commits: 2
+  tokens: 11800
+  tasks: 3
+  commits: 5
 
 # Tech tracking
 tech-stack:
@@ -156,9 +160,12 @@ coverage:
       fix-or-document call requires owner confirmation of the recorded
       reading per this plan's checkpoint protocol, regardless of whether
       the measured result is a null finding or a genuine divergence --
-      this is not something a test can rubber-stamp."
+      this is not something a test can rubber-stamp. RESOLVED: owner
+      responded 'approved' to both items, with the additional instruction
+      to file the numref limitation as a tracked pending todo (done --
+      see key-files/provides above)."
 
-duration: ~55min
+duration: ~80min
 completed: 2026-08-14
 status: complete
 ---
@@ -169,11 +176,11 @@ status: complete
 
 ## Performance
 
-- **Duration:** ~55 min
+- **Duration:** ~80 min (includes the checkpoint round-trip)
 - **Started:** ~2026-08-14T09:10:00Z (estimated; provisioning and extensive `<read_first>` reading preceded the first commit)
-- **Completed:** 2026-08-14T10:05:00Z
-- **Tasks:** 2 of 3 (Task 3 is a `checkpoint:human-verify` gate — this SUMMARY and the checkpoint return discharge it)
-- **Files modified:** 9 (7 created, 2 modified)
+- **Completed:** 2026-08-14T10:35:00Z
+- **Tasks:** 3 of 3 — Task 3 (`checkpoint:human-verify`, `gate="blocking"`) is now RESOLVED: owner responded "approved" to both items, with the additional instruction to file the numref limitation as a tracked pending todo (done)
+- **Files modified:** 10 (8 created, 2 modified)
 
 ## Accomplishments
 
@@ -186,6 +193,7 @@ status: complete
 - Applied D-01's fix-or-document decision: both findings are recorded as a documented limitation, handed forward to Phase 51 (documentation) and Phase 52 (CHANGELOG) — not fixed in this phase. No file under `typsphinx/` was touched to produce either measurement.
 - Marked COMP-12 Complete in `REQUIREMENTS.md` — the unmodified corpus gate actually ran and passed on this tree, satisfying the plan's own factual precondition for that mark independent of the owner-review checkpoint below.
 - Re-measured the standing green bar: full `uv run pytest -q` → **1153 passed, 1 skipped** (see "Deviations" for why the skip count differs from the wave-4/5 baseline of 5 skips), `black --check .`, `ruff check .`, `mypy typsphinx/` all clean.
+- **Checkpoint resolved:** owner approved both items (the corpus result and the numref decision, including the "zero warning" correction) with one addition — file the numref limitation as a tracked pending todo. Filed `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md` (`resolves_phase: 52`, naming both the Phase 51 doc obligation and the Phase 52 CHANGELOG obligation explicitly in its own body, per the owner's own instruction that closing at 51 alone would let the 52 half go dark).
 
 ## Task Commits
 
@@ -193,7 +201,10 @@ Each task was committed atomically:
 
 1. **Task 1: Run the GATE-02 full-corpus gate unmodified and record the result** - `aa56b0d8` (docs)
 2. **Task 2: Build the two-case numref fixture, measure both cases, record verbatim** - `e99f526f` (test)
-3. **Task 3: Owner review** - `checkpoint:human-verify`, `gate="blocking"` — not a code task; discharged by this SUMMARY plus the checkpoint return below, per this plan's own `autonomous: false` protocol
+3. **Plan metadata (SUMMARY.md + REQUIREMENTS.md, COMP-12 → Complete)** - `ae9ee37f` (docs)
+4. **Task 3: Owner review** - `checkpoint:human-verify`, `gate="blocking"` — RESOLVED (owner: "approved", plus file the numref limitation as a todo)
+5. **Todo filed per owner instruction** - `912faf41` (docs: file numref per-master divergence as a tracked todo)
+6. **This SUMMARY update recording checkpoint resolution + final green bar** - see commit below
 
 _No TDD tasks (plan `type="execute"`) — each of Tasks 1-2 is its own atomic committed artifact._
 
@@ -208,6 +219,7 @@ _No TDD tasks (plan `type="execute"`) — each of Tasks 1-2 is its own atomic co
 - `tests/test_state_guard_numref_gate.py` - the measurement gate (invariants) + extraction/recording test + reachability structural gate (created)
 - `.planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EVIDENCE.md` - two appended sections: `## Corpus convergence measurement`, `## numref measurement`
 - `.planning/REQUIREMENTS.md` - COMP-12 marked Complete
+- `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md` - owner-requested tracked todo (created, post-checkpoint)
 
 ## Decisions Made
 
@@ -236,6 +248,81 @@ None (Rules 1-4) — no bug fix, missing functionality, blocking fix, or archite
 
 None - no external service configuration required.
 
+## Checkpoint Resolution
+
+**Task 3 (`checkpoint:human-verify`, `gate="blocking"`) is RESOLVED.** Owner response, verbatim
+intent: **approved**, with one addition — "2はapprovedだがtodo化しておいて欲しい" (item 2, the
+`:numref:` fix-or-document decision, is approved AND must additionally be filed as a tracked
+pending todo). Item 1 (the corpus convergence result and its recorded cost) carried no objection
+and no escalation request, and is accepted as recorded.
+
+1. **Corpus convergence result and cost — accepted as recorded, no escalation.** The orchestrator
+   additionally reported independent corroboration performed on the main tree (a second GATE-02
+   run, and a byte-level diff of the corpus PDF and `.typ` output between the pre-phase commit and
+   current HEAD, confirming no content was silently dropped). That corroboration is orchestrator-side
+   verification, not new plan scope — it is recorded HERE, in the SUMMARY, as the audit trail for
+   why no further action was needed, and is NOT added to `49-EVIDENCE.md`'s own recorded evidence
+   (which stays exactly what this plan itself measured).
+2. **`:numref:` fix-or-document decision — accepted as recorded, INCLUDING the "zero warning"
+   correction, PLUS filed as a tracked todo per the owner's explicit instruction.** The orchestrator
+   independently re-read the same Sphinx source lines this plan cited
+   (`sphinx/domains/std/__init__.py`'s `_resolve_numref_xref()` `except ValueError:` clause calling
+   `logger.warning(...)`, and `sphinx/environment/collectors/toctree.py:373`'s single
+   `_walk_doc(env.config.root_doc, ())` call) and confirmed both directly. The todo is filed at
+   `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`
+   with `resolves_phase: 52` (deliberately, since the obligation has two halves — Phase 51
+   documentation and Phase 52 CHANGELOG — and closing at 51 alone would let the 52 half go dark;
+   both halves are named explicitly in the todo's own `## Solution` section).
+
+No amendment was requested to any recorded evidence. `49-EVIDENCE.md`'s `## Corpus convergence
+measurement` and `## numref measurement` sections are exactly as this plan itself measured them,
+unmodified by the checkpoint round-trip.
+
+## Standing Green Bar (final, post-checkpoint re-measurement, ROADMAP binding constraint #8)
+
+Pasted verbatim, re-run after the checkpoint resolved (identical to the pre-checkpoint measurement
+— no code changed in the interim, only the todo file and this SUMMARY):
+
+```
+$ time uv run python -m pytest -q
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7a7bacfe8f502177
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0
+collected 1154 items
+
+tests/test_abbr_pep_separator_render_gate.py ..                          [  0%]
+... (full per-file progress omitted for length; every file printed only '.'/'s') ...
+tests/test_xref_whole_document_guard_render_gate.py ........             [100%]
+
+================= 1153 passed, 1 skipped in 107.73s (0:01:47) ==================
+
+real	1m48.021s
+user	1m37.794s
+sys	0m9.086s
+```
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+294 files would be left unchanged.
+```
+
+```
+$ uv run python -m ruff check .
+All checks passed!
+```
+
+```
+$ uv run python -m mypy typsphinx/
+Success: no issues found in 6 source files
+```
+
+`git status --porcelain typsphinx/` prints nothing; `git diff --name-only HEAD -- tests/test_corpus_gate.py`
+prints nothing — both invariants hold through the checkpoint round-trip.
+
 ## Next Phase Readiness
 
 - **Measured numbers at the end of this plan** (compare against the orchestrator's stated wave-4/5 baseline):
@@ -252,8 +339,8 @@ None - no external service configuration required.
   4. **Prose keeps its position, write-time machinery is gone** — discharged by 49-04 (interleaving, `test_state_guard_composition_gate.py`) and 49-05 (`test_include_ledger_removal_gate.py`'s structural absence gates, proven able to go RED). Not re-verified by this plan.
   5. **Holds at real corpus scale; `:numref:` answered by measurement** — **discharged by THIS plan**: the corpus half by Task 1 (`## Corpus convergence measurement`, two green GATE-02 runs, unmodified gate, empty unsupported-node catalogue, runtime recorded beside Phase 48's baseline with honest scope-stated convergence); the `:numref:` half by Task 2 (`## numref measurement`, both cases measured live, extracted values recorded before the reading, D-01's fix-or-document decision applied — documented limitation, handed to Phase 51/52).
 - **No criterion is undischarged.** All five have an artifact and a measurement on the record.
-- **Owner review still required (Task 3, `checkpoint:human-verify`, `gate="blocking"`)**: two items need explicit confirmation before the phase closes — (a) the corpus convergence result and its cost (large improvement, not a regression, but the owner should confirm "record only" is the right call per this plan's own no-cost-tier-of-its-own framing), and (b) the `:numref:` recorded limitation, INCLUDING the measured divergence from D-01's own "zero warning" hypothesis — the owner should confirm this is the text Phase 51 documents and Phase 52 announces, or amend it. See the checkpoint return accompanying this SUMMARY.
-- No blockers beyond the above owner-review checkpoint, which this plan's own `autonomous: false` frontmatter requires.
+- **Owner review RESOLVED (Task 3, `checkpoint:human-verify`, `gate="blocking"`)**: owner approved both items — (a) the corpus convergence result and its cost, accepted as recorded with no escalation, and (b) the `:numref:` recorded limitation (including the measured "zero warning" correction), accepted as the text Phase 51 documents and Phase 52 announces, with the additional instruction to file it as a tracked pending todo — done, see "## Checkpoint Resolution" above.
+- No blockers. This plan's own `autonomous: false` frontmatter's checkpoint requirement is fully discharged.
 
 ---
 *Phase: 49-per-master-include-graph-with-state-guarded-includes*
@@ -265,5 +352,8 @@ None - no external service configuration required.
 - FOUND: `tests/test_state_guard_numref_gate.py`
 - FOUND: `.planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EVIDENCE.md`
 - FOUND: `.planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-06-SUMMARY.md`
+- FOUND: `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`
 - FOUND commit: `aa56b0d8`
 - FOUND commit: `e99f526f`
+- FOUND commit: `ae9ee37f`
+- FOUND commit: `912faf41`
