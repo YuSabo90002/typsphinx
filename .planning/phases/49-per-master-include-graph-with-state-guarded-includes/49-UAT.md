@@ -1,21 +1,18 @@
 ---
-status: testing
+status: resolved
 phase: 49-per-master-include-graph-with-state-guarded-includes
 source: [49-VERIFICATION.md]
 started: 2026-08-14T20:20:00Z
-updated: 2026-08-14T20:20:00Z
+updated: 2026-08-14T19:56:00+09:00
 ---
 
 ## Current Test
 
-number: 1
-name: Decide disposition of code-review WR-01 — edge-key separator collision
+number: -
+name: (none — both items dispositioned by the owner on 2026-08-14)
 expected: |
-  Either fixed in this phase (escape `#` / `>` in `make_include_edge_key`'s components, or
-  choose a separator that cannot appear in a docname) or explicitly filed as a tracked pending
-  todo under `.planning/todos/pending/`, the same way the `:numref:` divergence was handled at
-  49-06's checkpoint — before the phase ships.
-awaiting: user response
+  n/a
+awaiting: nothing
 
 ## Tests
 
@@ -40,7 +37,10 @@ this phase's own prohibitions forbid trading one instance of for another. Fix-vs
 judgment call.
 
 expected: Fixed in this phase, or filed as a tracked pending todo before the phase ships.
-result: [pending]
+result: resolved — owner chose TRACK, not fix (2026-08-14). Filed as
+  `.planning/todos/pending/2026-08-14-include-edge-key-separators-unescaped-two-edges-can-collide.md`
+  (`resolves_phase: null`, severity minor), carrying the reproduction, three candidate fixes, and the
+  binding-constraint-#4 requirement to write the RED first.
 
 ### 2. Decide disposition of code-review WR-02 — unbounded recursion in the traversal
 
@@ -54,15 +54,26 @@ crash path introduced by this phase's own new traversal function and it is curre
 
 expected: Fixed (iterative traversal, or a guarded limit raising an actionable error), or filed as
 a tracked pending todo before the phase ships.
-result: [pending]
+result: resolved — owner chose TRACK, not fix (2026-08-14). Filed as
+  `.planning/todos/pending/2026-08-14-unbounded-recursion-in-derive-master-edge-keys.md`
+  (`resolves_phase: null`, severity minor), noting that the recursion shape itself is deliberate
+  (a LIFO work-stack reverses sibling order and is a named forbidden shape) so the fix is a bound,
+  not a rewrite.
 
 ## Summary
 
 total: 2
-passed: 0
+passed: 2
 issues: 0
-pending: 2
+pending: 0
 skipped: 0
 blocked: 0
 
+Both items were disposition decisions rather than manual tests. The owner's decision (2026-08-14)
+was to TRACK both rather than fix either inside Phase 49: neither fails a stated Success Criterion
+or requirement, and neither is reachable without an unusual input (a docname containing a literal
+`#`/`>` for WR-01; an include chain near Python's 1000-frame recursion limit for WR-02).
+
 ## Gaps
+
+None. Both human-verification items are dispositioned and tracked.

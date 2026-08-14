@@ -1,7 +1,7 @@
 ---
 phase: 49-per-master-include-graph-with-state-guarded-includes
 verified: 2026-08-14T20:15:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -25,7 +25,7 @@ unconditional `include()`, and `builder.py`'s build-scoped `_included_docnames` 
 unnecessary. This closes defect A and the diamond shape no write-time ledger can serve.
 
 **Verified:** 2026-08-14T20:15:00Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -108,12 +108,24 @@ No orphaned requirements: REQUIREMENTS.md's Phase 49 row set (COMP-05..12, 8 tot
 
 Both warnings were found and reported by the phase's own committed code review (`49-REVIEW.md`, 0 critical / 2 warning / 1 info) and are re-confirmed here by independent reproduction. Neither undermines a stated Success Criterion or requirement (COMP-05..12) — none of the fixtures or gates exercise a docname containing `#`/`>` or a chain deep enough to hit Python's recursion limit — so this verification does not mark any truth FAILED on their account. They are, however, unresolved instances of exactly the "silent content mis-inclusion with no diagnostic" class this phase's own prohibitions target, and — unlike the `:numref:` divergence, which was explicitly triaged and filed as a tracked todo at the 49-06 owner checkpoint — neither has been fixed nor filed. This is an open completion-quality question for the owner, not a mechanically-decidable gap.
 
-### Human Verification Required
+### Human Verification Required — RESOLVED 2026-08-14
 
-1. **WR-01 disposition** — fix now, or file as a tracked pending todo (mirroring how the numref finding was handled)?
-2. **WR-02 disposition** — fix now, or file as a tracked pending todo?
+Both items were disposition decisions, presented to the owner and answered on 2026-08-14. The owner
+chose to TRACK both rather than fix either inside Phase 49 (recorded in `49-UAT.md`, both items
+`result: resolved`):
 
-Both are detailed in the frontmatter `human_verification` block above.
+1. **WR-01 disposition** — TRACKED. Filed as
+   `.planning/todos/pending/2026-08-14-include-edge-key-separators-unescaped-two-edges-can-collide.md`
+   (`resolves_phase: null`, severity minor), carrying the reproduction, three candidate fixes, and
+   the binding-constraint-#4 requirement to write the RED first.
+2. **WR-02 disposition** — TRACKED. Filed as
+   `.planning/todos/pending/2026-08-14-unbounded-recursion-in-derive-master-edge-keys.md`
+   (`resolves_phase: null`, severity minor), noting the recursion shape is deliberate — a LIFO
+   work-stack reverses sibling order and is a named forbidden shape — so the fix is a bound, not a
+   rewrite.
+
+Neither fails a stated Success Criterion or requirement, and this verification's score of 5/5 stands
+unchanged. Status is therefore `passed`.
 
 ### Gaps Summary
 
