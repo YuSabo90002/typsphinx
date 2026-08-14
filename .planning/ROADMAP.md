@@ -756,12 +756,27 @@ not independently parallelizable)
 **Plans**: 6 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 49-01-PLAN.md — Emission contract measured against real compiles, plus the written-first expected structure: fixture specification, degenerate-shape outcome table and repo-wide assertion census (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 49-02-PLAN.md — Two-master and mirror-pair fixtures, defect A's non-fatal pre-fix RED, and the composition gate recorded as strict xfails (wave 2)
 - [ ] 49-03-PLAN.md — Seven degenerate-shape and hazard fixtures, the `self`/external-URL classic RED, and the shapes gate recorded as strict xfails (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 49-04-PLAN.md — TRACER: per-master include graph wired end to end (builder graph, wrapper `state` publication, guarded emission, ledger deleted) plus the full assertion migration in the same plan (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 49-05-PLAN.md — COMP-11 removal gate, the assumption-delta contract test, the SC#4 repo-wide sweep and the degenerate-shape closure record (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 49-06-PLAN.md — GATE-02 full-corpus convergence, the two-case `:numref:` measurement, and the owner checkpoint on the corpus result and the D-01 decision (wave 5)
+
 **UI hint**: no
 
 ### Phase 50: PR #131 Image Path Defects
