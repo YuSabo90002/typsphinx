@@ -157,7 +157,12 @@ Build multiple related documents:
        ("tutorial/index", "tutorial", "Tutorial", "Team", "typst"),
    ]
 
-Each document is built separately with its own output file.
+Each entry gets its own wrapper file at the entry's target -- ``main.typ``,
+``api-reference.typ`` and ``tutorial.typ`` -- and each is compiled
+separately. The wrappers are not the whole story: every document in the
+project also gets a content file named after its docname, whether or not it
+appears above. See :doc:`/user_guide/output_layout` for the full
+wrapper/content contract and which file to compile.
 
 Custom Styling
 --------------
