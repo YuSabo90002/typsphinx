@@ -94,7 +94,7 @@ position".
 
 ### Documentation (DOC)
 
-- [ ] **DOC-14**: The published documentation describes the two-layer output — which file to compile,
+- [x] **DOC-14**: The published documentation describes the two-layer output — which file to compile,
       that a content file compiled standalone includes no children, the target-as-path semantics, and
       what changed from v0.7.x
 
@@ -264,7 +264,7 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | BLD-04 | Phase 47 | Complete |
 | IMG-01 | Phase 50 | Complete |
 | IMG-02 | Phase 50 | Complete |
-| DOC-14 | Phase 51 | Pending |
+| DOC-14 | Phase 51 | Complete |
 | REL-07 | Phase 52 | Pending |
 
 **Coverage:**
