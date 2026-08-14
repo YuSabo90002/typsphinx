@@ -56,11 +56,23 @@ created: 2026-08-14
 
 ## Per-Task Verification Map
 
-*Populated by the planner / execute-phase once PLAN.md task IDs exist. Rows below are the shape.*
+*Populated by the planner 2026-08-14 from the six PLAN.md files. Execute-phase updates the Status column.*
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 51-NN-NN | NN | N | DOC-14 | — | N/A | gate | `uv run python -m pytest tests/test_output_layout_docs_gate.py -q` | ❌ W0 | ⬜ pending |
+| 51-01-01 | 01 | 1 | DOC-14 | T-51-01, T-51-02 | list-arg subprocess, no `shell=True`; only build-relative paths published | gate (tracer) | `uv run python -m pytest tests/test_output_layout_docs_gate.py -q` | ❌ W0 (creates it) | ⬜ pending |
+| 51-01-02 | 01 | 1 | DOC-14 | T-51-02 | only build-relative paths published | gate | `uv run python -m pytest tests/test_output_layout_docs_gate.py -q` | ✅ | ⬜ pending |
+| 51-02-01 | 02 | 2 | DOC-14 | T-51-04 | migration bullet names the still-refused target shapes | docs gate | `uv run python -m pytest tests/test_changelog_page_gate.py tests/test_docs_contract_claims_gate.py -q` | ✅ | ⬜ pending |
+| 51-02-02 | 02 | 2 | DOC-14 | T-51-02 | build-relative path only | docs gate + negative grep | `uv run python -m pytest tests/test_changelog_page_gate.py -q && ! grep -q 'build/typst/index.typ' docs/source/changelog.rst` | ✅ | ⬜ pending |
+| 51-03-01 | 03 | 2 | DOC-14 | T-51-01, T-51-03 | escape guard observed on the filesystem, not re-derived | gate | `uv run python -m pytest tests/test_output_layout_docs_gate.py -q` | ✅ | ⬜ pending |
+| 51-03-02 | 03 | 2 | DOC-14 | T-51-05 | expected non-zero exit asserted, not treated as infra failure | gate | `uv run python -m pytest tests/test_output_layout_docs_gate.py tests/test_typst_documents_collision_gate.py -q` | ✅ | ⬜ pending |
+| 51-04-01 | 04 | 2 | DOC-14 | T-51-02 | build-relative paths only | docs gate + negative greps | `uv run python -m pytest tests/test_output_layout_docs_gate.py tests/test_docs_contract_claims_gate.py -q` | ✅ | ⬜ pending |
+| 51-04-02 | 04 | 2 | DOC-14 | T-51-03 | corrected element-2 text names all three still-refused shapes | docs gate + negative grep | `uv run python -m pytest tests/test_docs_contract_claims_gate.py tests/test_builder_output_stem.py -q` | ✅ | ⬜ pending |
+| 51-04-03 | 04 | 2 | DOC-14 | — | N/A | docs gate + negative grep | `uv run python -m pytest tests/test_docs_contract_claims_gate.py -q` | ✅ | ⬜ pending |
+| 51-05-01 | 05 | 2 | DOC-14 | T-51-06 | new RTD link shares the origin of every existing doc link | docs gate + negative grep | `uv run python -m pytest tests/test_quickstart_docs_gate.py -q` | ✅ | ⬜ pending |
+| 51-05-02 | 05 | 2 | DOC-14 | T-51-02 | transcript directory path not published | real build + docs gate | `uv run python -m pytest tests/test_examples_basic.py tests/test_integration_advanced.py -q` | ✅ | ⬜ pending |
+| 51-06-01 | 06 | 3 | DOC-14 | T-51-01 | list-arg subprocess over the reused fixture | gate | `uv run python -m pytest tests/test_output_layout_docs_gate.py -q` | ✅ | ⬜ pending |
+| 51-06-02 | 06 | 3 | DOC-14 | T-51-02, T-51-07 | audit row count asserted mechanically; host paths elided | full suite + real docs build | `uv run python -m pytest -q -m "not slow"` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -94,7 +106,7 @@ created: 2026-08-14
 | Standalone content-file compile yields the document's own body with no children, no error, no warning | DOC-14 (SC#1) | Requires a real `typst.compile()`, which fails in this sandbox (`FileNotFoundError`, measured). Not re-measurable locally. | Evidence is Phase 49's already-recorded real-compile transcript, quoted in `51-RESEARCH.md` Part C § "Standalone-content-compile behaviour". Do not re-derive; cite it. |
 | Shared child renders once per master, at that master's own traversal position and heading level | DOC-14 (SC#3) | PDF-marker counting needs a real compile (same constraint). | Evidence is Phase 49's `state_guard_three_master_gate` measurement (`COMMON-B-MARKER` count = 1 in all three masters; `common_b` heading levels `[3]` in m1, `[2]` in m2/m3). Cite, do not re-measure. |
 | Repo-wide falsified-claim sweep completeness (D-04) | DOC-14 | One-time discovery grep, not a standing regression gate — no locked decision mandates a permanent "no stale `.typ` filename in docs/" test. | `51-RESEARCH.md` Part A's sweep table is the closed task list for this phase. Verify at phase close that every FALSE/MISLEADING row is either fixed or explicitly deferred with a reason — no silent drops. |
-| `:numref:` absent from all published surfaces (D-07) | DOC-14 | Literal-absence check; cheaper as a one-line grep than a pytest module. | `grep -rn ':numref:' docs/source/ README.md CHANGELOG.md` must return empty before the phase closes. If the planner elects to make this a standing test, use the concatenated-fragment idiom (`test_quickstart_docs_gate.py:181-187`'s `_MANDATORY_CLAUSE` pattern) so the module does not match its own grep. |
+| `:numref:` absent from all published surfaces (D-07) | DOC-14 | Literal-absence check; cheaper as a scoped grep than a pytest module. | **CORRECTED AT PLANNING TIME (2026-08-14).** The single repo-wide grep this row originally proposed — `grep -rn ':numref:' docs/source/ README.md CHANGELOG.md` returning empty — is **unsatisfiable and would be wrong to satisfy**: `CHANGELOG.md` already carries two pre-existing occurrences (lines 68 and 246) in v0.7.x entries about a table anchor, entirely unrelated to the Phase 49 divergence D-07 excludes; satisfying it would mean rewriting shipped release history. Plan 51-06 Task 2 replaces it with three scoped checks: (a) `grep -rn ':numref:' docs/source/ README.md examples/` returns empty — measured empty at planning time and must stay empty; (b) `git diff --name-only HEAD -- CHANGELOG.md` is empty, so this phase adds no occurrence there and Phase 52's own amended SC#2 governs the new `## [0.8.0]` entry; (c) `grep -c ':numref:' CHANGELOG.md` is still exactly 2. **Planner decision: no standing pytest module** — D-07 forbids publishing, not testing, and the decision is rated `costly` because a later milestone is expected to reverse it. |
 
 ---
 

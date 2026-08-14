@@ -864,7 +864,24 @@ ordering v0.7.1 used for Phase 45 after Phase 44)
      documentation entirely — the owner classifies it as a bug to be fixed in a later milestone
      rather than a limitation to publish. It stays tracked in
      `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 51-01-PLAN.md — Tracer: the wrapper/content contract end to end — bare-target slice through fixture, real `-b typst` build, the new `output_layout.rst` page, both User Guide index lists, and the never-skipping SC#3 gate; then the explicit-path worked example
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 51-02-PLAN.md — `docs/source/changelog.rst`: the `Migrating from 0.7.x to 0.8.0` subsection (output shape, target-as-path reversal, collision abort, and the v0.7.1 rename kept distinct), plus Part A row 8
+- [ ] 51-03-PLAN.md — The refusal cases (`..`, absolute, drive-qualified) with verbatim warnings and three built fixtures, and the collision abort proved against the existing Phase 47 fixture
+- [ ] 51-04-PLAN.md — `docs/source/user_guide/` sweep: Part A rows 1-7 across `builders.rst`, `configuration.rst`, `templates.rst`, each linking to the new page instead of duplicating it
+- [ ] 51-05-PLAN.md — `README.md` false-claim corrections plus a link (D-03), and the two bundled example walkthroughs rewritten from real builds (Part A rows 9-13)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 51-06-PLAN.md — Shared-child composition in the user's language with the three-master file-set proof, the page's See Also, and the phase-closing audit: full suite, real `-b html` build, the D-07 exclusion measurement, and `51-SWEEP-AUDIT.md` disposing all 13 Part A rows
+
 **UI hint**: no
 
 ### Phase 52: v0.8.0 Release Prep (prep-only)
