@@ -5,8 +5,8 @@ milestone_name: multi-master composition
 current_phase: 51
 current_phase_name: Two-Layer Output Documentation
 status: planning
-stopped_at: Phase 50 context gathered
-last_updated: "2026-08-14T13:04:35.073Z"
+stopped_at: Phase 51 context gathered
+last_updated: "2026-08-14T13:38:01.454Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 50 complete, transitioned to Phase 51
 progress:
@@ -698,12 +698,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/50-pr-131-image-path-defects/50-CONTEXT.md
+**Resume file:** .planning/phases/51-two-layer-output-documentation/51-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-14T11:16:41.324Z
-Stopped at: Phase 50 context gathered
+Last session: 2026-08-14T13:38:01.442Z
+Stopped at: Phase 51 context gathered
 Resume: `/gsd-discuss-phase 49`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
