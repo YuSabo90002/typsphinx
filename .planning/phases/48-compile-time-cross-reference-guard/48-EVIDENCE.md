@@ -864,3 +864,96 @@ destination — consistent with `_classify_link_annotations`'s own documented fi
 With the anchor ABSENT, the compile still succeeds, the reference's visible text is unchanged, and
 zero `/Link` annotations exist — the guard's `else` branch degrades silently, exactly as D-02
 requires. The probe did not contradict the design; the emitter change proceeded as planned.
+
+## G-48-4 post-fix re-measurement (plan 48-07, Task 3)
+
+**Purpose:** re-measure the built documentation PDF's dead-link population against `48-RED-EVIDENCE.md`'s "Baseline 4" (plan 48-05, pre-fix), using the SAME build invocation and the SAME enumeration snippet, so the delta is subtractable rather than argued. Captured 2026-08-14, against this plan's own emitter change (Tasks 1-2 committed; `git status --porcelain typsphinx/` prints nothing at the time this build ran).
+
+### Build invocation — identical to Baseline 4's
+
+`uv run tox -e docs-pdf` (`sphinx-build -b typstpdf source _build/pdf` run from `docs/`, per `tox.ini` `[testenv:docs-pdf]`). **Exit code:** 0. **Build tail (verbatim):**
+
+```
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Copying template assets...
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a544e588b68e23891/docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (3.99=setup[0.15]+cmd[3.85] seconds)
+  congratulations :) (4.03 seconds)
+```
+
+Same "build succeeded, 5 warnings" outcome as Baseline 4, confirming this re-measurement started from the same warning population. **Built PDF byte size:** 2,465,811 bytes (Baseline 4: 2,467,467 bytes — a small, expected delta, since 35 string-url `link("...", ` calls became guarded `context { ... }` expressions of slightly different byte length).
+
+### Enumeration output (verbatim, Baseline 4's own snippet re-run unchanged)
+
+```
+internal /Dest: 72   URI actions: 430   other: 0   (502 total)
+
+URI actions ending in '.pdf': 5 across 5 distinct targets
+
+target                                        count
+../genindex.pdf                               1
+../py-modindex.pdf                            1
+genindex.pdf                                  1
+py-modindex.pdf                               1
+search.pdf                                    1
+
+found_docs (13): ['api/index', 'changelog', 'contributing', 'examples/advanced', 'examples/basic', 'examples/index', 'index', 'installation', 'quickstart', 'user_guide/builders', 'user_guide/configuration', 'user_guide/index', 'user_guide/templates']
+
+target -> citing docname(s) -> resolved docname(s) -> in found_docs?
+  '../genindex.pdf': citing=['api/index'] resolved=['genindex'] in_found_docs={'genindex': False}
+  '../py-modindex.pdf': citing=['api/index'] resolved=['py-modindex'] in_found_docs={'py-modindex': False}
+  'genindex.pdf': citing=['index'] resolved=['genindex'] in_found_docs={'genindex': False}
+  'py-modindex.pdf': citing=['index'] resolved=['py-modindex'] in_found_docs={'py-modindex': False}
+  'search.pdf': citing=['index'] resolved=['search'] in_found_docs={'search': False}
+
+Sub-population A (resolves onto a real docname): 0 distinct targets, 0 annotations
+
+Sub-population B (does not resolve onto a real docname): 5 distinct targets, 5 annotations
+  ../genindex.pdf  x1
+  ../py-modindex.pdf  x1
+  genindex.pdf  x1
+  py-modindex.pdf  x1
+  search.pdf  x1
+```
+
+### Before/after bucket totals
+
+| Bucket | Baseline 4 (pre-fix) | This measurement (post-fix) | Delta |
+|---|---|---|---|
+| internal `/Dest` | 37 | 72 | **+35** |
+| URI actions (all) | 465 | 430 | **-35** |
+| other | 0 | 0 | 0 |
+| **Total annotations** | **502** | **502** | **0** |
+| URI actions ending in `.pdf` | 40 | 5 | **-35** |
+| Distinct `.pdf`-suffixed targets | 20 | 5 | **-15** |
+
+The total annotation count is unchanged (502 → 502): every annotation that stopped being a `.pdf`-suffixed URI action became a real internal `/Dest` — none disappeared, none were added spuriously. This is the exact shape sub-population A's 35 annotations converting from broken `/URI` file-actions into real, working internal `/Dest` links predicts.
+
+### Before/after per-target table (Baseline 4's own 20-row table, collapsed to what survives)
+
+All 15 sub-population-A targets from Baseline 4 (`../examples/advanced.pdf`, `../examples/basic.pdf`, `../user_guide/configuration.pdf`, `../user_guide/templates.pdf`, `advanced.pdf`, `basic.pdf`, `builders.pdf`, `configuration.pdf`, `contributing.pdf`, `examples/index.pdf`, `quickstart.pdf`, `templates.pdf`, `user_guide/builders.pdf`, `user_guide/configuration.pdf`, `user_guide/templates.pdf` — 35 annotations total) are **absent from the post-fix URI-action enumeration entirely** — confirmed by their absence from the 5-row table above. All 5 sub-population-B targets (`../genindex.pdf`, `../py-modindex.pdf`, `genindex.pdf`, `py-modindex.pdf`, `search.pdf`) remain, each at its original count of 1, byte-identical to Baseline 4's own sub-population-B rows.
+
+### Both sub-population subtotals, before/after
+
+| | Baseline 4 (pre-fix) | This measurement (post-fix) |
+|---|---|---|
+| Sub-population A (resolves onto a real docname) | 15 distinct targets, 35 annotations | **0 distinct targets, 0 annotations** |
+| Sub-population B (does not resolve — Sphinx-generated pages) | 5 distinct targets, 5 annotations | **5 distinct targets, 5 annotations** (unchanged) |
+
+### Outcome against the pre-declared expected value
+
+**`48-EXPECTED-STRUCTURE.md` "Phase 48 Plan 05" section 6 fixed the single expected post-fix count at `5`, before this fix existed.** The measured post-fix count of URI actions ending in the builder's `out_suffix` is **5**. **These two numbers agree exactly — the gap is closed for every real document (sub-population A, 35/35 annotations converted) and, by the owner's option-a policy choice, deliberately not closed for the 5 Sphinx-generated-page references, which remain exactly as predicted.**
+
+Independently re-confirmed via the plan's own pinned one-liner (`uv run python -c "import pypdf,collections;..."`, `<verification>`'s automated check): **`5`**.
+
+### The Quickstart "What's Next?" page — the originally reported symptom, re-checked
+
+Re-run against this rebuild: **zero** URI actions anywhere in the document now cite any of the four target strings `48-UAT.md`'s `measured_scope` quoted (`user_guide/configuration.pdf`, `user_guide/builders.pdf`, `user_guide/templates.pdf`, `examples/index.pdf`) — all four converted to internal `/Dest` links (sub-population A). Page 6's extracted text still carries the "What's Next?" section's own visible words unchanged ("Learn about Configuration options", "Explore Builders (typst vs typstpdf)", "Customize with Templates", "See Examples for more examples") — D-02: the reader sees identical prose, now with working links instead of dead ones.
+
+### Closing: what G-48-4 was, and what this fix did NOT change
+
+**G-48-4** was a whole-document `:doc:`-role cross-reference (e.g. the Quickstart page's four "What's Next?" links) rendering, pre-fix, as a plain string-url `link("<target-docname>.pdf", ...)` call — a URI action pointing at a local file the Typst `typstpdf` builder never produces (each content file only ever gets a `.typ` companion, never its own standalone `.pdf`), which every reader's PDF viewer reports as `ERR_FILE_NOT_FOUND` on click. Post-fix, every whole-document reference whose target resolves onto a real, `found_docs`-member document is routed through the SAME D-07 compile-time guard every other cross-document reference already uses, against that target's own whole-document self-anchor — it either becomes a real internal link (when the target is `#include()`d in the compiling wrapper) or degrades silently to identical plain text (when it is not), exactly like every other guarded site.
+
+**What this fix did NOT change:** the accepted label-collision false-negative limit (`.planning/todos/pending/2026-08-12-label-collision-false-negative-in-compile-time-xref-guard.md`) is untouched and not worsened — the whole-document path queries the fixed token `_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN` (`__tsx-doc__`), a raw id neither `make_id` output nor a Sphinx domain object id can ever produce (the two collision-safety claims measured in `48-EXPECTED-STRUCTURE.md` "Phase 48 Plan 05" section 1), so this new label class cannot participate in that pre-existing collision. And, under option-a (the owner's recorded checkpoint choice), the 5 Sphinx-generated pages remain string-url links, named individually with their counts: `genindex.pdf` (cited from `index`, x1), `py-modindex.pdf` (cited from `index`, x1), `search.pdf` (cited from `index`, x1), `../genindex.pdf` (cited from `api/index`, x1), `../py-modindex.pdf` (cited from `api/index`, x1) — clicking any of these five still produces the owner's original `ERR_FILE_NOT_FOUND`, by policy, not by omission.
