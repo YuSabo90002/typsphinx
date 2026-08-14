@@ -1,18 +1,14 @@
 ---
-status: resolved
+status: complete
 phase: 49-per-master-include-graph-with-state-guarded-includes
 source: [49-VERIFICATION.md]
 started: 2026-08-14T20:20:00Z
-updated: 2026-08-14T19:56:00+09:00
+updated: 2026-08-14T20:07:03+09:00
 ---
 
 ## Current Test
 
-number: -
-name: (none — both items dispositioned by the owner on 2026-08-14)
-expected: |
-  n/a
-awaiting: nothing
+[testing complete]
 
 ## Tests
 
@@ -37,7 +33,10 @@ this phase's own prohibitions forbid trading one instance of for another. Fix-vs
 judgment call.
 
 expected: Fixed in this phase, or filed as a tracked pending todo before the phase ships.
-result: resolved — owner chose TRACK, not fix (2026-08-14). Filed as
+result: pass
+reason: |
+  Owner chose TRACK, not fix (2026-08-14) — the "filed as a tracked pending todo" branch of the
+  stated expectation, so the expectation is MET. Filed as
   `.planning/todos/pending/2026-08-14-include-edge-key-separators-unescaped-two-edges-can-collide.md`
   (`resolves_phase: null`, severity minor), carrying the reproduction, three candidate fixes, and the
   binding-constraint-#4 requirement to write the RED first.
@@ -54,7 +53,10 @@ crash path introduced by this phase's own new traversal function and it is curre
 
 expected: Fixed (iterative traversal, or a guarded limit raising an actionable error), or filed as
 a tracked pending todo before the phase ships.
-result: resolved — owner chose TRACK, not fix (2026-08-14). Filed as
+result: pass
+reason: |
+  Owner chose TRACK, not fix (2026-08-14) — the "filed as a tracked pending todo" branch of the
+  stated expectation, so the expectation is MET. Filed as
   `.planning/todos/pending/2026-08-14-unbounded-recursion-in-derive-master-edge-keys.md`
   (`resolves_phase: null`, severity minor), noting that the recursion shape itself is deliberate
   (a LIFO work-stack reverses sibling order and is a named forbidden shape) so the fix is a bound,
