@@ -82,3 +82,59 @@ given. The content file is unaffected by where the wrapper landed: it still
 writes to ``index.typ``, at the output directory's root, because a content
 file's location is derived from its docname alone, never from any
 ``typst_documents`` target.
+
+Targets that are refused
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Not every path-bearing target is accepted. Three target shapes are refused:
+a target with a ``..`` path segment (parent-directory traversal), an
+absolute target, and a drive-qualified target such as a Windows drive
+prefix (for example ``C:manual``). The drive-qualified check is a pure
+string-shape test, so a Windows-shaped target is refused identically on
+Linux and macOS -- it does not depend on which platform the build runs on.
+
+A refused target does not stop the build. The build emits a warning, falls
+back to the target's own basename, and writes the wrapper at the output
+directory's root exactly as a bare target would; the build still succeeds.
+For example, a target of ``"../escape"`` falls back to ``escape``, and a
+target of ``"/abs/manual"`` or ``"C:manual"`` both fall back to ``manual``.
+
+.. code-block:: text
+
+   WARNING: a path is not supported in a typst_documents target name: '../escape' -- using 'escape' instead
+
+The other two refused shapes emit the same warning, naming their own
+target and fallback: ``/abs/manual`` falls back to ``manual``, and
+``C:manual`` falls back to ``manual`` as well.
+
+Targets That Stop the Build
+-----------------------------
+
+A path-shape refusal (above) still succeeds, with a fallback. A different
+kind of target problem does not: when the output path a target resolves to
+is already claimed by something else, the build raises an error instead of
+falling back, and stops before writing anything.
+
+A path can be claimed by any of three things: the reserved ``_template.typ``
+file typsphinx writes for its own use, any document's own content file
+(named after its docname, and written for every document whether or not it
+appears in ``typst_documents``), or any other entry's own wrapper.
+
+.. code-block:: python
+
+   typst_documents = [
+       ("index", "index.typ", "Title", "Author", "typst"),
+   ]
+
+This exact configuration built successfully in v0.7.x, and now stops the
+build: the ``index`` entry's target, ``index.typ``, resolves onto the
+``index`` document's own content file -- the same path two different things
+now claim.
+
+.. code-block:: text
+
+   ExtensionError: typst: 1 output path collision(s): 'index.typ': the content file for docname 'index' and typst_documents entry 0 (docname 'index', target 'index.typ') both resolve to the same output path 'index.typ'
+
+This check runs before any file is written, so a build that fails this way
+leaves no ``.typ`` files behind at all -- not even ``_template.typ``. The
+fix is to choose a target that is not any document's own name.
