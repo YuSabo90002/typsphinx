@@ -24,6 +24,14 @@ from typsphinx.writer import TypstWriter
 
 logger = logging.getLogger(__name__)
 
+# Phase 50 (D-02): the reserved top-level namespace an absolute image URI is
+# relocated under when its rehome target either collides with a real source
+# image (IMG-01) or would escape the doctree directory (IMG-02). A single
+# reserved top-level path component -- the leading underscore already marks
+# "owned by typsphinx, not the user's source tree" in this codebase
+# (`_template.typ`) and in Sphinx itself (`_images`, `_static`, `_sources`).
+RESERVED_IMAGE_NAMESPACE = "_typst_converted"
+
 
 def _is_drive_qualified(stem: str) -> bool:
     """Whether ``stem`` is a drive-qualified path (e.g. ``"C:manual"``) --
@@ -858,6 +866,41 @@ class TypstBuilder(Builder):
         the true absolute location kept as the ``self.images`` value so
         ``copy_image_files()`` can use it as the real copy source.
 
+        Phase 50 widens the rehome with two further, filesystem-probed
+        outcomes (IMG-01/IMG-02), both routed through the SAME reserved
+        ``RESERVED_IMAGE_NAMESPACE`` top-level namespace so
+        ``copy_image_files()`` still copies the file and every destination
+        it computes (``path.join(self.outdir, imguri)``) lands under
+        ``outdir`` -- a relocated key never carries a leading ``..``:
+
+        - **Collision (D-01/D-02/D-03/D-04):** if a REAL source image
+          already occupies the rehome target --
+          ``path.isfile(path.join(self.srcdir, rel_uri))`` -- the converted
+          image is relocated under the reserved namespace instead,
+          SILENTLY. The probe is against the FILESYSTEM, never against
+          ``self.images``' own accumulated keys: ``write()`` iterates
+          ``sorted(docnames)``, so the real source image and the converted
+          image can be tracked in either order depending on docname
+          alphabetization, and a dict-membership check would make the
+          outcome depend on that order (reintroducing exactly the
+          write-order dependence D-02 rejects). A filesystem probe answers
+          the same question regardless of traversal order.
+        - **Escape (D-05/D-06/D-07):** if the rehome result would escape
+          ``doctreedir`` -- a leading parent-traversal segment, detected by
+          ``_escapes_outdir()`` -- or ``path.relpath()`` itself raises
+          ``ValueError`` (the Windows cross-drive case, caught around the
+          ``relpath()`` call itself so the crash path is closed), the
+          image is likewise relocated under the reserved namespace, but
+          WITH a warning: reaching this branch means a third-party
+          extension placed an absolute URI somewhere none of Sphinx's own
+          post-transforms ever write (``ImageDownloader``,
+          ``DataURIExtractor`` and ``ImageConverter`` all write under
+          ``<doctreedir>/images``).
+
+        The common, non-colliding, non-escaping case (today's behavior and
+        today's emitted path) is preserved unchanged -- this is the branch
+        the D-12-pinned regression tests exercise.
+
         Args:
             node: The image node whose ``uri`` should reflect the tracked
                 path.
@@ -865,10 +908,56 @@ class TypstBuilder(Builder):
                 ``node["candidates"]`` by the caller).
         """
         if path.isabs(resolved_uri):
-            rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(path.sep, "/")
-            node["uri"] = rel_uri
-            if rel_uri not in self.images:
-                self.images[rel_uri] = resolved_uri
+            try:
+                rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(
+                    path.sep, "/"
+                )
+                # Cross-domain reuse: _escapes_outdir() is documented as a
+                # typst_documents target-stem guard (OUT-02), but its body
+                # is a pure string-shape test with no typst_documents
+                # state threaded through it, so it answers the same "does
+                # this relative path escape its base directory" question
+                # for a rehomed image path too. Re-evaluate this call site
+                # if that helper's contract is ever narrowed to something
+                # OUT-02-specific.
+                escaped = _escapes_outdir(rel_uri)
+            except ValueError:
+                # D-07: Windows cross-drive relpath() crash -- there is no
+                # meaningful doctreedir-relative path to compute at all,
+                # so treat this identically to an escape.
+                rel_uri = ""
+                escaped = True
+
+            if escaped:
+                # D-05/D-06: rehome result points outside doctreedir (or
+                # could not be computed at all) -- relocate under the
+                # reserved namespace and WARN, because reaching this
+                # branch means a third-party extension placed an absolute
+                # URI somewhere none of Sphinx's own post-transforms ever
+                # do.
+                key = f"{RESERVED_IMAGE_NAMESPACE}/{path.basename(resolved_uri)}"
+                logger.warning(
+                    f"could not rehome image URI {resolved_uri!r} relative "
+                    f"to the doctree directory -- relocated to {key!r}"
+                )
+            elif path.isfile(path.join(self.srcdir, rel_uri)):
+                # D-01/D-03/D-04: a REAL source image already occupies the
+                # target this rehome would produce -- relocate under the
+                # same reserved namespace, SILENTLY (an ordinary, expected
+                # shape for any project combining an images/ srcdir
+                # layout with an image-conversion extension). Probed
+                # against the FILESYSTEM, never against self.images -- see
+                # this method's own docstring for why.
+                key = f"{RESERVED_IMAGE_NAMESPACE}/{rel_uri}"
+            else:
+                # D-01: no collision -- today's behavior and today's
+                # emitted path are preserved unchanged. This is the
+                # branch all three D-12-pinned test assertions exercise.
+                key = rel_uri
+
+            node["uri"] = key
+            if key not in self.images:
+                self.images[key] = resolved_uri
             return
 
         # Store empty string as value to be compatible with parent class type
