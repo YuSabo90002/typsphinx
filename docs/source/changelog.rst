@@ -264,7 +264,9 @@ None. Version 0.2.0 is backward compatible with 0.1.x.
 
      # Old way (still works)
      sphinx-build -b typst source/ build/typst
-     typst compile build/typst/index.typ output.pdf
+     # Since 0.8.0, the file to compile is the wrapper -- for project = "My Project"
+     # (typst_documents unset), that wrapper is myproject.typ.
+     typst compile build/typst/myproject.typ output.pdf
 
      # New way (recommended)
      sphinx-build -b typstpdf source/ build/pdf
