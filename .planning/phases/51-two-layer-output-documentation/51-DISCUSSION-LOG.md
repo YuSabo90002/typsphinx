@@ -194,6 +194,19 @@ masters' PDFs; `common_b` heading level `[3]` in m1, `[2]` in m2 and m3.
 **User's choice:** Amend `ROADMAP.md` now. Done in this session — SC#3 (`.planning/ROADMAP.md`
 §"Phase 51") now excludes `:numref:` explicitly and names the owner decision and its tracking todo.
 
+### Follow-up — Phase 52 alignment
+
+Asked afterwards whether Phase 52 should be aligned too, since its SC#2 still required measured
+limitations to appear in the v0.8.0 CHANGELOG. **User's instruction: 「揃えておいて」** — align it.
+Applied in the same session:
+
+- `.planning/ROADMAP.md` §"Phase 52" SC#2 now excludes `:numref:` explicitly, naming this decision.
+- `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`
+  moved from `resolves_phase: 52` to `resolves_phase: null`, its Solution section rewritten to
+  record the superseded Phase 51 / Phase 52 obligations as history rather than as instructions.
+- `51-CONTEXT.md` D-07 and its Deferred Ideas entry updated to match; the "open, decide in Phase 52"
+  item is gone.
+
 ---
 
 ## Claude's Discretion

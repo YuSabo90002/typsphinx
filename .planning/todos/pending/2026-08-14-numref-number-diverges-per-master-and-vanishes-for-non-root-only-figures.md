@@ -2,13 +2,11 @@
 created: 2026-08-14T19:32:35+09:00
 title: "numref numbers diverge per master and vanish entirely for figures reachable only from a non-root master"
 area: translator, docs
-resolves_phase: 52
+resolves_phase: null
 source: .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EVIDENCE.md (## numref measurement)
 severity: major
 files:
-  - typsphinx/translator.py  # figure/caption emission -- no numref override exists here today, and D-01 keeps it that way; a future fix would need to touch it
-  - .planning/phases/51-documentation/  # Phase 51's own doc obligation (does not exist yet -- filed here as a forward pointer)
-  - .planning/phases/52-changelog/  # Phase 52's own CHANGELOG obligation (does not exist yet -- filed here as a forward pointer)
+  - typsphinx/translator.py  # figure/caption emission -- no numref override exists here today; a future fix would need to touch it
   - tests/fixtures/state_guard_numref_two_case_gate/  # the live fixture this todo's own measurement came from
   - tests/test_state_guard_numref_gate.py  # the measurement gate (not an assertion gate for the numbering outcome)
 ---
@@ -51,22 +49,28 @@ entry 10 はいずれも Case (b) を「ゼロ警告での静かなフォール�
 
 ## Solution
 
-これは **修正がスケジュールされた todo ではなく、ドキュメント化された制限事項**である。D-01 が
-既に決めている通り、この乖離は Phase 49 では直さず、Phase 51 と Phase 52 に引き継ぐ。
+**オーナー判断で方針が変わった（2026-08-14、Phase 51 の discuss で決定。記録:
+`.planning/phases/51-two-layer-output-documentation/51-CONTEXT.md` D-07 と同 DISCUSSION-LOG）。**
 
-- **Phase 51（ドキュメント）が書くべきこと:**
-  1. 複数の master から到達可能な図は、master によって `:numref:` の参照番号が実際の
-     キャプション番号と一致しない場合がある（コンパイルエラーなし）。
-  2. root master からしか到達できない図と異なり、非 root master からしか到達できない図への
-     `:numref:` 参照は、番号ではなく生のラベル文字列（例: `fig-y`）にフォールバックする。
-  3. 上記2のケースでは Sphinx のビルドログに
-     `Failed to create a cross reference. Any number is not assigned: <label>`
-     という警告が出る（PDF 自体には手がかりが出ない）。
-- **Phase 52（CHANGELOG）が書くべきこと:** これを per-master 合成の既知の制限として告知する
-  こと（このマイルストーンで導入された退行ではなく、Sphinx の単一 root 番号付けモデルと
-  Typst のコンパイル単位ごとのカウンタが出会うことで元々内在していた不整合が、Phase 47 の
-  two-layer split で per-master 合成が可能になって以来ずっと存在し、Phase 49 で初めて実測
-  された、という位置づけ）。
+この乖離は **「文書化された制限事項」ではなく、将来のマイルストーンで直すバグ** として扱う。
+したがって v0.8.0 では:
+
+- **Phase 51（ドキュメント）: 一切書かない。** `docs/source/**` にも `README.md` にも、節・
+  admonition・一文のいずれの形でも登場させない。`.planning/ROADMAP.md` の Phase 51 SC#3 は
+  この決定に合わせて 2026-08-14 に改訂済み（`:numref:` を明示的に除外）。
+- **Phase 52（CHANGELOG）: 一切書かない。** `.planning/ROADMAP.md` の Phase 52 SC#2 も同日に
+  改訂済み（「Phase 49 が測定・文書化した制限は CHANGELOG にも現れる」という要求から
+  `:numref:` を明示的に除外）。
+- **この todo が唯一の追跡先になる。** `resolves_phase` は `52` から `null` に変更した
+  （v0.8.0 のどのフェーズもこれを解決しない）。将来のマイルストーンで拾うこと。
+
+以下の旧方針は**破棄済み**であり、履歴として残す（下流エージェントへの指示として読まないこと）:
+Phase 51 が 3 点（番号の食い違い・生ラベルへのフォールバック・ビルドログの警告）を書き、
+Phase 52 が per-master 合成の既知の制限として告知する、という Phase 49 D-01 由来の計画。
+`49-CONTEXT.md` D-01、`49-EVIDENCE.md` の `## numref measurement` の "Fix-or-document decision"
+段落、および同ファイルの Handoff 項目 3 も、**測定値は有効だが引き継ぎ義務としては失効**して
+いる。
+
 - **もし将来 実際に直すなら（あくまで方向性であって計画ではない）:** `:numref:` 解決を
   master 単位で再計算する仕組み（Typst 側のカウンタを Sphinx 側に投影し直すか、逆に
   Sphinx の焼き込み済み番号を捨てて Typst 側のカウンタを `:numref:` 参照テキストにも

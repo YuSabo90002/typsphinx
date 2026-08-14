@@ -107,9 +107,12 @@ The surface is wider than `docs/source/`: the docs were last touched in Phase 46
   `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
   The measurement itself stays on the record in `49-EVIDENCE.md` — only its publication is dropped.
 
-  **Open, not decided here:** Phase 52's own SC#2 still says "Any limitation Phase 49 measured and
-  documented appears here too", i.e. in the v0.8.0 CHANGELOG. This phase does not amend Phase 52.
-  Whether the `:numref:` behaviour gets a CHANGELOG line is a Phase 52 question.
+  **Extended to Phase 52 on the same owner instruction (2026-08-14):** the decision covers the
+  v0.8.0 CHANGELOG as well, so `:numref:` appears in neither `docs/source/**`, `README.md`, nor
+  `CHANGELOG.md` for this release. `ROADMAP.md` Phase 52 SC#2 was amended to exclude it explicitly,
+  and the tracking todo's `resolves_phase` was moved from `52` to `null` with its superseded Phase
+  51 / Phase 52 obligations struck through in place — no v0.8.0 phase resolves it, and a later
+  milestone picks it up.
 
 - **D-08:** The **standalone content-file behaviour is written as prose inside the "which file to
   compile" section**, not as a `.. note::` or a limitation entry. Measured (Phase 49, real build):
@@ -318,12 +321,11 @@ The surface is wider than `docs/source/`: the docs were last touched in Phase 46
 <deferred>
 ## Deferred Ideas
 
-- **`:numref:` numbering divergence.** Not documented in v0.8.0 by owner decision (D-07); to be
-  fixed as a bug in a later milestone. Tracked in
+- **`:numref:` numbering divergence.** Not documented anywhere in v0.8.0 by owner decision (D-07) —
+  not in `docs/source/**`, not in `README.md`, not in `CHANGELOG.md` — and to be fixed as a bug in a
+  later milestone. ROADMAP SC#3 (Phase 51) and SC#2 (Phase 52) were both amended on 2026-08-14 to
+  exclude it. Tracked, with `resolves_phase: null`, in
   `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
-- **Whether the v0.8.0 CHANGELOG mentions the `:numref:` behaviour.** Phase 52's SC#2 still requires
-  measured limitations to appear in the CHANGELOG; this phase deliberately does not amend Phase 52.
-  Decide it in Phase 52's own discussion.
 - **A short two-layer explanation in `README.md`.** Considered and declined (D-03) — README gets
   only the false-claim corrections plus a link.
 - **Cross-reference degradation when a content file is compiled standalone.** Raised in Phase 48 Q4;

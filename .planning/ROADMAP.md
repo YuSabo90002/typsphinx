@@ -898,7 +898,12 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      distinguished from v0.7.1's own `index.typ` → `<project>.typ` rename; and (b) the
      **target-as-path reversal** of v0.7.1 Phase 44's D-05/D-06/D-07, stated as a deliberate behaviour
      change with its security half retained. Any limitation Phase 49 measured and documented appears
-     here too. The tail link block advances (new tag link + `Unreleased` compare), and
+     here too — **except open question #2's `:numref:` divergence, which is explicitly excluded**
+     (owner decision 2026-08-14, `51-CONTEXT.md` D-07: it is classified as a bug for a later
+     milestone rather than a limitation to publish, so it appears in neither the v0.8.0
+     documentation nor the v0.8.0 CHANGELOG, and stays tracked in
+     `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`).
+     The tail link block advances (new tag link + `Unreleased` compare), and
      `docs/source/changelog.rst` is confirmed still rendering live from the repo-root file (DOC-12's
      mechanism) rather than needing a second hand edit.
 
