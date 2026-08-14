@@ -789,3 +789,47 @@ test with a comment tracing it here — never copied out of a fresh build. A lat
 the grep above (and its own broader sweep, per the "How to find any assertion I missed" section
 above) against its own diff, since this finding is only as complete as the corpus this session
 measured it against.
+
+---
+
+# Phase 48 Plan 07 — Collateral Test Changes (G-48-4 / XREF-03 emitter fix)
+
+**Written:** 2026-08-14, after the emitter change (Task 1) landed and the full suite was re-run
+(Task 2's own action). Per §7's own prediction, the corpus-wide one-line-per-content-file emission
+change surfaced exactly one failure — no more, no fewer than the grep in §7 found.
+
+## Tests whose expected value changed
+
+| Test | File | Sub-part derived from | Reason |
+|------|------|------------------------|--------|
+| `test_emitted_typ_is_byte_identical_to_golden` | `tests/test_desc_rubric_decoupling_render_gate.py` (fixture: `tests/fixtures/desc_rubric_decoupling_render_gate/golden.typ`) | "Phase 48 Plan 05" §2's definition-site form, docname `index` | This fixture's `index.rst` is built via a real `-b typst` `sphinx-build` (a builder-supplied current docname of `index`), so `visit_document` now emits `[#metadata(none) <index:__tsx-doc__>]` immediately after the opening `#{` — exactly the corpus-wide emission change §7 predicted. `golden.typ` gained that one line at the position §2 fixes; the test file's own docstring was updated with a comment tracing the change to this section. |
+
+No other test's expected value moved. `uv run pytest -q` was run to completion once the emitter
+change landed (Task 1's own commit) and surfaced this single failure; fixing it (updating the
+committed golden fixture, not the emitter) returned the suite to fully green with no further
+iteration needed.
+
+## Real regressions found
+
+None. Every hand-built-doctree test (no builder docname) stayed byte-unchanged, confirming the
+"only when a docname is supplied" gate in `visit_document` is correctly wired. No duplicate-label
+fatal was observed on any fixture, including the diamond-include case
+(`tests/test_duplicate_include_label_render_gate.py`, run explicitly per Task 1's own acceptance
+criteria).
+
+## Quality trio
+
+- `uv run pytest -q` → **1083 passed, 1 skipped, 0 failed, 0 errors, 0 xfailed, 0 XPASS.**
+- `uv run black --check .` → one file needed reformatting after Task 1's edit
+  (`typsphinx/translator.py`, the `_reference_anchor_decision` policy-gate `if` statement's line
+  wrap); reformatted via `uv run black typsphinx/translator.py`, re-verified clean, and the suite
+  re-run green afterward (no behavioural change — a pure line-wrap).
+- `uv run mypy typsphinx/` → `Success: no issues found in 6 source files`.
+- `uv run ruff check .` → could not execute locally: `Could not start dynamically linked
+  executable: ruff` / `NixOS cannot run dynamically linked executables intended for generic linux
+  environments out of the box.` This is the documented, pre-existing NixOS deferral
+  (`ruff-generic-linux-elf-unrunnable-on-nixos`, `.planning/todos/pending/`, PROJECT.md's Deferred
+  Items, and every prior Phase 48 plan's own note) — no standalone nix-store `ruff` package was
+  available to symlink in this worktree (plan 48-06 recorded the identical finding). CI carries
+  lint authority per the same documented deferral; this is recorded plainly rather than claimed as
+  a clean result.

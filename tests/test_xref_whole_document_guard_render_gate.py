@@ -289,7 +289,6 @@ class TestXrefWholeDocumentGuardRenderGate:
             f"{full_text}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 5")
     def test_index_typ_carries_both_guard_expressions(self, whole_document_guard_build):
         """
         48-EXPECTED-STRUCTURE.md §3: the emitted ``index.typ`` carries the
@@ -312,7 +311,6 @@ class TestXrefWholeDocumentGuardRenderGate:
             f"orphan:__tsx-doc__:\n{index_typ}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 6")
     def test_index_typ_carries_no_string_url_link_to_targets(
         self, whole_document_guard_build
     ):
@@ -335,7 +333,6 @@ class TestXrefWholeDocumentGuardRenderGate:
             f"{index_typ}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 7")
     def test_included_and_orphan_typ_each_carry_self_anchor_once(
         self, whole_document_guard_build
     ):
@@ -356,7 +353,6 @@ class TestXrefWholeDocumentGuardRenderGate:
             f"{orphan_typ.count('<orphan:__tsx-doc__>')}:\n{orphan_typ}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 8")
     def test_master_pdf_zero_uri_actions_ending_in_out_suffix(
         self, whole_document_guard_build
     ):
@@ -377,7 +373,6 @@ class TestXrefWholeDocumentGuardRenderGate:
             f"{sorted(suffix_uri_actions)}"
         )
 
-    @pytest.mark.xfail(strict=True, reason="RED - 48-RED-EVIDENCE.md Flip 9")
     def test_pdf_positional_destination_resolves_to_included_page(
         self, whole_document_guard_build
     ):
