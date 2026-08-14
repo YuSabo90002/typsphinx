@@ -864,12 +864,12 @@ ordering v0.7.1 used for Phase 45 after Phase 44)
      documentation entirely — the owner classifies it as a bug to be fixed in a later milestone
      rather than a limitation to publish. It stays tracked in
      `.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`.
-**Plans**: 6 plans
+**Plans**: 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 51-01-PLAN.md — Tracer: the wrapper/content contract end to end — bare-target slice through fixture, real `-b typst` build, the new `output_layout.rst` page, both User Guide index lists, and the never-skipping SC#3 gate; then the explicit-path worked example
+- [x] 51-01-PLAN.md — Tracer: the wrapper/content contract end to end — bare-target slice through fixture, real `-b typst` build, the new `output_layout.rst` page, both User Guide index lists, and the never-skipping SC#3 gate; then the explicit-path worked example
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -982,7 +982,7 @@ sequential, not merely numbered:
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
-| 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
+| 51. Two-Layer Output Documentation | v0.8.0 | 1/6 | In Progress|  |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion

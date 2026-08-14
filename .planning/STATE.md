@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 51
-current_phase_name: Two-Layer Output Documentation
+current_phase_name: two-layer-output-documentation
 status: executing
 stopped_at: Phase 51 planned
-last_updated: "2026-08-14T14:37:27.467Z"
+last_updated: "2026-08-14T14:41:24.821Z"
 last_activity: 2026-08-14
-last_activity_desc: Phase 51 planned — 6 plans across 3 waves
+last_activity_desc: Phase 51 execution started
 progress:
   total_phases: 6
   completed_phases: 4
@@ -40,10 +40,10 @@ Next action: `/gsd-execute-phase 51`
 
 ## Current Position
 
-Phase: 51 — Two-Layer Output Documentation
-Plan: 0/6 complete (3 waves — W1: 51-01 tracer · W2: 51-02..51-05 · W3: 51-06)
-Status: Ready to execute
-Last activity: 2026-08-14 — Phase 51 planned (6 plans, plan-checker PASSED)
+Phase: 51 (two-layer-output-documentation) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 51
+Last activity: 2026-08-14 — Phase 51 execution started
 
 Progress: [██████████░░] 67% (4/6 phases) · 30/36 plans
 
