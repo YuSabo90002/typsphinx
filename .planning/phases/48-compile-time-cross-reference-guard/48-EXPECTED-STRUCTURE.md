@@ -520,3 +520,272 @@ text either way. This was checked concretely:
 VALUE flips. Grep 2's wider hit list is expected and was individually triaged, not a gap — a later
 plan must still re-run both commands against its own diff, since a future edit to any of these
 "robust" files could introduce a genuinely fragile assertion this reasoning does not anticipate.
+
+---
+
+# Phase 48 Plan 05 — Whole-Document Reference Path (G-48-4 / XREF-03 gap closure)
+
+**Written:** 2026-08-14. **No emitter change exists while this section was written** —
+`git status --porcelain typsphinx/` printed nothing throughout Task 3. Every value below is
+derived from `48-EVIDENCE.md`'s "Guard contract, fixed by this measurement" (quoted verbatim where
+substituted), the existing `_namespace_label`/`_sanitize_label`/`_emit_id_anchors` code read
+literally (`typsphinx/translator.py`), a real `docutils.nodes.make_id` transcript run this session,
+and the fixture-comment convention established by
+`tests/fixtures/xref_orphan_degrade_render_gate/conf.py` and
+`tests/fixtures/xref_per_master_guard_gate/conf.py`. Binding constraint #6 forbids deriving any of
+this from a fresh build — none was run for this section.
+
+## 1. The self-anchor token
+
+**Fixed token: `__tsx-doc__`** — the planner's derived preference recorded in `48-05-PLAN.md`
+Task 3, matching the project-wide `__tsx_` prefix convention `48-EVIDENCE.md` already fixed for the
+D-07 guard's own bound identifier (`__tsx_body`). It lives as **one module-level constant** in
+`typsphinx/translator.py` (suggested name: `_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN`), consumed by both
+the definition site (§2 below) and the reference site (§3 below) — never re-spelled at either.
+
+**Collision-safety argument, run rather than asserted.** The token deliberately carries BOTH an
+underscore (`_`) and a hyphen (`-`). Two claims must both hold for that combination to be safe
+against the two label sources named in the plan task, and both were measured this session rather
+than assumed:
+
+**Claim 1 — `make_id` never emits an underscore, even when the input already contains one.**
+Verbatim transcript, `uv run python` against this worktree's pinned docutils
+(`docutils.nodes.make_id`), nine adversarial probes including inputs that already carry
+underscores:
+
+```
+make_id('Guarded Target Section') = 'guarded-target-section'   contains '_': False
+make_id('already_has_underscore') = 'already-has-underscore'   contains '_': False
+make_id('already_has__double__underscore') = 'already-has-double-underscore'   contains '_': False
+make_id('Mixed_Case With Spaces_and-Hyphens') = 'mixed-case-with-spaces-and-hyphens'   contains '_': False
+make_id('trailing_underscore_') = 'trailing-underscore'   contains '_': False
+make_id('_leading_underscore') = 'leading-underscore'   contains '_': False
+make_id('C++ / weird @#$% chars') = 'c-weird-chars'   contains '_': False
+make_id('1234 numeric start') = 'numeric-start'   contains '_': False
+make_id('') = ''   contains '_': False
+```
+
+Every probe — including the two that deliberately fed `make_id` an input already containing one or
+two underscores — comes back with the underscore(s) mapped to hyphen(s). `make_id` cannot produce a
+raw docutils auto-id (the source `_emit_id_anchors`/`_namespace_label` namespace for every
+same-document target, section heading, and figure/table anchor) containing `_` at all.
+
+**Claim 2 — a Sphinx domain object id (a Python identifier) cannot contain a hyphen.** Python's own
+identifier grammar (`[A-Za-z_][A-Za-z0-9_]*`) structurally excludes `-`; every python-domain object
+id in this corpus is built from a dotted chain of such identifiers. Measured directly against this
+worktree's own real corpus build (`docs/_build/pdf/api/index.typ`, produced by Task 1's build,
+read-only — no emitter change), a representative sample of the actual namespaced labels this build
+emitted for real domain objects:
+
+```
+<api_u2f_index:typsphinx.builder.TypstBuilder.write_doc>
+<api_u2f_index:typsphinx.builder.TypstBuilder.get_target_uri>
+<api_u2f_index:typsphinx.pdf.TypstCompilationError.message>
+<api_u2f_index:module-typsphinx.translator>
+```
+
+Every domain-object segment (`typsphinx.builder.TypstBuilder.write_doc`, etc.) is dots and word
+characters only — zero hyphens anywhere in any of the 40+ domain-object ids this corpus's `api/index`
+page emits (spot-checked; every hit in the corpus grep carries `_` freely inside identifier
+segments, e.g. `get_target_uri`, but never `-`).
+
+**Conclusion:** `make_id` output can contain `-` but never `_`; a Sphinx domain object id can
+contain `_` but never `-` (Python identifiers exclude it structurally). A token requiring the raw
+id to contain BOTH `_` and `-` simultaneously — `__tsx-doc__` — is therefore unreachable from
+either generation mechanism. (This argument is scoped to the two sources the plan task names —
+`make_id` output and Sphinx domain ids; it does not claim protection against a user's own
+hand-written explicit target name that happens to spell `__tsx-doc__` literally, an edge case this
+phase does not defend against, matching the accepted-limit precedent already recorded for the
+label-collision false negative above.)
+
+## 2. The definition-site form
+
+Immediately after the document's opening code-block brace — `visit_document`
+(`typsphinx/translator.py:672-705`) currently ends with `self.add_text("#{\n")` and nothing else —
+a new line is added directly after it, using the SAME zero-width `[#metadata(none) <label>]` anchor
+form `_emit_id_anchors` already establishes (`typsphinx/translator.py:668`), with the label computed
+through `_namespace_label(current_docname, _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN)` per D-13 — no second
+label-derivation spelling.
+
+**Emitted only when the builder supplies a current docname** (`self._current_docname()` is
+truthy) — hand-built test doctrees (no builder docname) keep byte-identical output, matching every
+other `_current_docname()`-gated site in the translator.
+
+**Fully substituted example, docname `included`:**
+
+`_namespace_label("included", "__tsx-doc__")` = `_sanitize_label("included:__tsx-doc__")` — every
+character in `included:__tsx-doc__` is already in `_sanitize_label`'s valid set
+(`[A-Za-z0-9_.:-]`), so sanitize is a no-op: `"included:__tsx-doc__"`.
+
+```
+#{
+[#metadata(none) <included:__tsx-doc__>]
+```
+
+(the second line immediately follows `#{\n`, with no leading blank line — the code-block brace's
+own trailing newline is what separates them).
+
+## 3. The reference-site form
+
+The D-07 guard contract (`48-EVIDENCE.md` "Guard contract, fixed by this measurement"),
+`code_mode_body=True`, `prefix=""`, with the label substituted for the whole-document self-anchor
+instead of an anchored xref's own label — no second guard-string derivation point, one
+`_label_existence_guard` call whose second argument is the reference's own anchor when it has one
+(the existing `xref is not None` branch, unchanged) and the whole-document self-anchor token when it
+does not (the `xref is None` branch this gap fix newly routes through the guard instead of the
+string-url `else`).
+
+**Docname `included`** (`_namespace_label("included", "__tsx-doc__")` = `"included:__tsx-doc__"`,
+link text = the target document's title, per Sphinx's `:doc:` auto-text rule — this fixture's
+`included.rst` is titled "Included Whole-Document Target", per §4 below):
+
+```
+context { let __tsx_body = [#{text("Included Whole-Document Target")}]; if query(<included:__tsx-doc__>).len() > 0 { link(<included:__tsx-doc__>, __tsx_body) } else { __tsx_body } }
+```
+
+**Docname `orphan`** (`_namespace_label("orphan", "__tsx-doc__")` = `"orphan:__tsx-doc__"`,
+`orphan.rst` titled "Orphan Whole-Document Target", per §4 below):
+
+```
+context { let __tsx_body = [#{text("Orphan Whole-Document Target")}]; if query(<orphan:__tsx-doc__>).len() > 0 { link(<orphan:__tsx-doc__>, __tsx_body) } else { __tsx_body } }
+```
+
+Both strings are byte-for-byte the `48-EVIDENCE.md` contract with only the label and body text
+substituted (diffed by eye against that section's "Fully substituted example" while writing this —
+`close_str`'s `if query(...).len() > 0 {` stays on one unbroken statement in both, per Pitfall 1).
+The guard's `query`/`link` arguments are the identical string in both cases (the label appears
+twice, byte-identical, exactly as the contract requires).
+
+## 4. The fixture's expected emission
+
+`tests/fixtures/xref_whole_document_guard_gate/` (files created by plan 48-06, designed here on
+paper per D-03):
+
+- `conf.py`: single well-formed entry `("index", "manual.typ", "Whole Document Guard Gate", "Probe
+  Author")` — target `manual.typ` does NOT casefold-collide with the docname's own content path
+  `index.typ` (fixture de-collision rule, `47-EXPECTED-STRUCTURE.md`, same convention every sibling
+  fixture in this phase already follows).
+- `index.rst`: toctrees `included` ONLY. Body carries one whole-document reference to each target:
+  `:doc:`included`` and `:doc:`orphan``.
+- `included.rst`: titled "Included Whole-Document Target", body carries a distinctive marker string
+  `INCLUDED_BODY_MARKER_TEXT` so the compiled PDF's extracted text can identify this page by
+  content.
+- `orphan.rst`: marked `:orphan:`, in NO toctree, titled "Orphan Whole-Document Target", body
+  carries a distinctive marker string `ORPHAN_BODY_MARKER_TEXT`.
+
+**Per emitted file, what must be present and what must be absent:**
+
+- `index.typ` carries BOTH guarded expressions from §3 above, and carries NO string-url form naming
+  either target's output file (i.e. no `link("included.typ", ...)` / `link("included.pdf", ...)`
+  anywhere — the whole point of routing the `xref is None` whole-document case through the guard
+  instead of the external-link `else` branch).
+- `included.typ` carries its own self-anchor from §2 exactly once:
+  `[#metadata(none) <included:__tsx-doc__>]`.
+- `orphan.typ` carries its own self-anchor from §2 exactly once:
+  `[#metadata(none) <orphan:__tsx-doc__>]`.
+
+## 5. The expected PDF shape
+
+Derived from the compiled master (`manual.typ` `#include()`s `index.typ` and `included.typ` via
+`index`'s own toctree; `orphan.typ` is written but never `#include()`d, matching the established
+orphan-degrade pattern this phase's other fixtures already exercise), NOT from a build:
+
+- The master's PDF carries **ZERO** URI actions whose target ends in the builder's `out_suffix` —
+  both whole-document references route through the guard now, never the string-url branch.
+- The master's PDF carries **exactly ONE** link annotation with a **positional (non-string)
+  destination** — the whole-document reference to `included`. Its target is a `metadata` anchor
+  (§2's zero-width form), not a heading anchor; per
+  `tests/test_xref_compile_time_guard_render_gate.py`'s `_link_annotation_dests` docstring
+  (`typsphinx/translator.py`-adjacent, already measured this phase): Typst registers a NAMED PDF
+  destination only for a label that participates in `#outline()` (a heading anchor) — a link to a
+  non-heading label still compiles and still produces a real `/Link` annotation, but its `/Dest` is
+  an unnamed positional array with no string to recover. `included.typ` IS `#include()`d in
+  `manual.typ` (via `index`'s toctree), so `query(<included:__tsx-doc__>)` finds the self-anchor
+  and the guard's `if` branch fires — a real link, positional destination.
+- The reference to `orphan` produces **NO annotation at all** — `orphan.typ` is never
+  `#include()`d into `manual.typ`, so `<orphan:__tsx-doc__>` never exists in that compile;
+  `query(<orphan:__tsx-doc__>)` finds nothing, the guard's `else` branch fires, and the reference
+  renders as plain non-clickable text.
+- The visible text of BOTH references — "Included Whole-Document Target" and "Orphan Whole-Document
+  Target" — is present in the extracted page text, identically shaped, per D-02: the reader sees
+  the same words whether or not the reference happens to be clickable in this compile.
+
+The positional destination's page is resolvable through `pypdf` (walk `/Annots`, find the one
+`/Link` whose `/Dest` is a non-string array, read its page-reference entry), and the gate will
+assert that page's extracted text contains `included`'s body marker
+(`INCLUDED_BODY_MARKER_TEXT`). **Stated honestly:** if this fixture's whole compiled document lays
+out on a single PDF page (plausible — it is a minimal three-document fixture), this assertion is
+TRUE but WEAK — it would pass even if the annotation pointed at the wrong page, because there is
+only one page to point at. The gate module implementing this in plan 48-06 must say so in its own
+docstring rather than overclaim page-level precision, matching the honesty standard
+`_link_annotation_dests`'s own docstring already sets for this exact class of PDF-structural
+caveat.
+
+## 6. The owner's decision (Task 2 checkpoint), recorded verbatim
+
+**Selected: option-a** — "Leave them as they are — guard only references that resolve onto a real
+document." Recorded verbatim from the checkpoint's option text (`48-05-PLAN.md` Task 2): "Smallest
+change; the policy predicate is a plain `found_docs` membership test; nothing that is not a real
+document changes behaviour at all; zero risk to any relative link to a genuine file asset."
+Consequence, also verbatim: "Sub-population B's annotations stay in the PDF as dead file links —
+clicking 'Index', 'Module Index' or 'Search Page' still produces the owner's original
+ERR_FILE_NOT_FOUND. The gap is closed for every real document but not for these." **This choice was
+made by the owner at the blocking checkpoint task, not by the executor** — the executor's earlier
+checkpoint return presented both options with their full pros/cons and awaited the decision without
+recommending either.
+
+**Predicate the chosen option implies:** a plain `found_docs` membership test — the SAME test
+already available at the D-07 guard's single existing call site (`visit_reference`'s `xref is
+not None` branch already namespaces via the target docname; the `xref is None` whole-document case
+this gap adds routes through the identical `_label_existence_guard` call, gated by whether
+`_resolve_xref_docname`'s target-path resolution lands on a docname Sphinx's own `env.found_docs`
+contains). No second degrade mechanism, no second guard-string derivation point (D-07), no second
+label helper (D-13) — the predicate lives as one condition at the one existing call site, exactly as
+the checkpoint's option text promised.
+
+**The single expected post-fix number, subtracted from the baseline pinned in Task 1:**
+
+- **Baseline (pre-fix, `48-RED-EVIDENCE.md` "Baseline 4"):** 40 URI-action annotations across 20
+  distinct targets, built via `uv run tox -e docs-pdf` (the SAME invocation plan 48-07 must re-run).
+- **Sub-population A — 15 distinct targets, 35 annotations — CLOSES.** Every target resolves onto a
+  real docname per Task 1's measurement, so under option-a's `found_docs` test every one of these
+  routes through the D-07 guard instead of the string-url branch post-fix. In THIS corpus every
+  resolved docname is toctree-reachable from the single `typst_documents` master
+  (`docs/source/conf.py` defines exactly one master, `typsphinx.typ`, and Task 1's own
+  `found_docs` enumeration — 13 docnames — matches the corpus's full toctree closure), so
+  `query()` finds every one of these self-anchors at Typst compile time: all 35 annotations convert
+  from broken `/URI` file-actions into real, working internal `/Dest` links. Zero of them remain as
+  URI actions ending in `.pdf`.
+- **Sub-population B — 5 distinct targets, 5 annotations — REMAINS, by policy.** `genindex.pdf`
+  (cited from `index`), `py-modindex.pdf` (cited from `index`), `search.pdf` (cited from `index`),
+  `../genindex.pdf` (cited from `api/index`), `../py-modindex.pdf` (cited from `api/index`) — none
+  resolves onto a member of `found_docs` (`genindex`/`py-modindex`/`search` are Sphinx-generated
+  virtual pages, never real documents), so option-a's predicate leaves every one of them on the
+  UNCHANGED string-url branch. Each stays exactly as it was pre-fix: a `link("<target>.pdf", ...)`
+  URI action pointing at a file the Typst output never produces.
+- **Expected post-fix count: `5`** URI actions ending in the builder's `out_suffix` (`.pdf`) in the
+  rebuilt `docs/_build/pdf/typsphinx.pdf`, built via `uv run tox -e docs-pdf` — NOT `0`. Plan
+  48-07's end-to-end re-measurement task asserts this exact number, subtracted from the 40-annotation
+  baseline this section names, using the identical build invocation Task 1 pinned.
+
+## 7. The collateral-change budget
+
+**The one emission change that is corpus-wide:** every content file gains one line at its top — §2's
+self-anchor metadata line, emitted for EVERY document that has a builder-supplied current docname
+(unconditionally, regardless of whether anything actually references that document whole-document-
+style — `visit_document` cannot know in advance whether a future reference will need the anchor).
+This is the expected CAUSE of any existing test asserting an exact byte-for-byte match against a
+document's opening bytes (the line immediately after `#{\n`).
+
+**Measured this session, honestly, not assumed:** `grep -rn 'startswith("#{'"'"'\|"#{\\\\n"' tests/*.py`
+found exactly one hit, `tests/test_citation_degradation_gate.py:786-787`
+(`if not body.startswith("#{"): body = "#{\n" + body`) — a DEFENSIVE normalization that PREPENDS the
+wrapper when absent, not a brittle equality assertion; it is unaffected by an extra line appearing
+after the brace. No test in this corpus was found asserting an exact multi-line equality against a
+document's opening bytes that would break from this one-line insertion. **The rule plan 48-07 must
+still follow regardless:** any test whose expected value DOES turn out to depend on a document's
+exact opening bytes has its new expected value derived from THIS artifact's §2, written into the
+test with a comment tracing it here — never copied out of a fresh build. A later plan must re-run
+the grep above (and its own broader sweep, per the "How to find any assertion I missed" section
+above) against its own diff, since this finding is only as complete as the corpus this session
+measured it against.
