@@ -86,10 +86,10 @@ position".
 
 ### Images (IMG)
 
-- [ ] **IMG-01**: A converted image rehomed to `images/<basename>` no longer collides with a real
+- [x] **IMG-01**: A converted image rehomed to `images/<basename>` no longer collides with a real
       source image at `<srcdir>/images/<basename>`
 
-- [ ] **IMG-02**: An absolute image URI outside `doctreedir` no longer causes `copy_image_files()` to
+- [x] **IMG-02**: An absolute image URI outside `doctreedir` no longer causes `copy_image_files()` to
       write outside the output directory
 
 ### Documentation (DOC)
@@ -262,8 +262,8 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | BLD-02 | Phase 47 | Complete |
 | BLD-03 | Phase 47 | Complete |
 | BLD-04 | Phase 47 | Complete |
-| IMG-01 | Phase 50 | Pending |
-| IMG-02 | Phase 50 | Pending |
+| IMG-01 | Phase 50 | Complete |
+| IMG-02 | Phase 50 | Complete |
 | DOC-14 | Phase 51 | Pending |
 | REL-07 | Phase 52 | Pending |
 
