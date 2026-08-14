@@ -753,7 +753,7 @@ not independently parallelizable)
      diverge — expected, since Sphinx numbers project-wide while Typst counts per compiled wrapper,
      with **no compile error to catch it** — the divergence is either fixed or recorded as a
      documented limitation and handed forward to Phase 51 (docs) and Phase 52 (CHANGELOG).
-**Plans**: 4/6 plans executed
+**Plans**: 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -771,7 +771,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 49-05-PLAN.md — COMP-11 removal gate, the assumption-delta contract test, the SC#4 repo-wide sweep and the degenerate-shape closure record (wave 4)
+- [x] 49-05-PLAN.md — COMP-11 removal gate, the assumption-delta contract test, the SC#4 repo-wide sweep and the degenerate-shape closure record (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -939,7 +939,7 @@ sequential, not merely numbered:
 |-------|-----------|----------------|--------|-----------|
 | 47. Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | v0.8.0 | 14/14 | Complete    | 2026-08-12 |
 | 48. Compile-Time Cross-Reference Guard | v0.8.0 | 7/7 | Complete    | 2026-08-14 |
-| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 4/6 | In Progress|  |
+| 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 5/6 | In Progress|  |
 | 50. PR #131 Image Path Defects | v0.8.0 | 0/TBD | Not started | - |
 | 51. Two-Layer Output Documentation | v0.8.0 | 0/TBD | Not started | - |
 | 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
