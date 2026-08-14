@@ -458,12 +458,19 @@ If you encounter errors:
    # Generate .typ files for inspection
    sphinx-build -b typst source/ build/typst
 
-   # Check the generated template usage
-   cat build/typst/index.typ
+   # Check the template usage in the wrapper -- with typst_documents
+   # unset, project = "My Project" produces the wrapper myproject.typ
+   cat build/typst/myproject.typ
+
+The docname-named content file (``index.typ`` in this example) holds the
+body only and carries no template application at all, so a template
+problem is always visible in the wrapper -- see :doc:`output_layout` for
+the full wrapper/content contract.
 
 See Also
 --------
 
+- :doc:`output_layout` - The wrapper/content output contract
 - :doc:`configuration` - Template configuration options
 - :doc:`/examples/advanced` - Advanced template examples
 - `Typst Documentation <https://typst.app/docs>`_ - Official Typst docs

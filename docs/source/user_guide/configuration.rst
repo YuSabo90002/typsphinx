@@ -43,13 +43,20 @@ template wrapper.
 Each tuple contains:
 
 1. **Source file** (without ``.rst`` extension)
-2. **Output filename stem** -- governs both the emitted ``.typ`` file and,
-   under the ``typstpdf`` builder, the compiled ``.pdf``. A literal trailing
-   ``.typ`` is stripped if present, and nothing else is, so a stem
-   containing a period such as ``v1.2-manual`` is preserved intact. A path
-   component is not supported: a path-bearing value produces a build
-   warning and the file is written under its basename next to the source
-   document.
+2. **Wrapper output target** -- names the entry's **wrapper** file only; it
+   does not govern the entry's content file, which is written separately
+   under the entry's own source docname. A literal trailing ``.typ`` is
+   stripped if present, and nothing else is, so a stem containing a period
+   such as ``v1.2-manual`` is preserved intact. A path in the target is
+   honoured relative to the output directory: a target of
+   ``"manuals/guide.typ"`` writes the wrapper to ``manuals/guide.typ``
+   under the output directory. Three shapes are still refused, each with a
+   build warning and a basename fallback written at the output root
+   instead: a target with a ``..`` path segment, an absolute target, and a
+   drive-qualified target -- the drive-qualified check is a pure
+   string-shape test, so a Windows-shaped target (``"C:manual"``) is
+   refused identically on every platform. See :doc:`output_layout` for
+   worked examples of both the honoured-path and the refused shapes.
 3. **Document title** -- the entry's own value is used when present,
    including an empty string, which renders as an empty title: an empty
    string is a *value*, not a signal to fall back. When the element is
@@ -405,6 +412,7 @@ Here's a complete ``conf.py`` example:
 See Also
 --------
 
+- :doc:`output_layout` - The wrapper/content output contract
 - :doc:`builders` - Understanding the typst and typstpdf builders
 - :doc:`templates` - Customizing Typst templates
 - :doc:`/examples/advanced` - Advanced configuration examples
