@@ -54,6 +54,16 @@ class TemplateResolution:
     shadow of the bundled default lives), or ``"default"`` (Priority 3, the
     bundled ``templates/base.typ``)."""
 
+    path: Path | None
+    """The resolved template's own file path -- ``self.template_path`` at
+    Priority 1, ``Path(search_dir) / self.template_name`` at Priority 2,
+    ``Path(get_default_template_path())`` at Priority 3. No branch inside
+    ``resolve_template()`` itself yields ``None`` here; the field is typed
+    Optional only for a hypothetical future caller that resolves no file at
+    all (e.g. a package-only engine with a distinct entry point) -- a
+    caller that does not exist today and is deliberately not added by this
+    change (53-04-PLAN.md)."""
+
 
 class _ElementsEmissionKind:
     """Enum-like sentinel values naming HOW an ``ELEMENTS_ALLOWLIST`` key
@@ -308,7 +318,9 @@ class TemplateEngine:
         if self.template_path:
             template_content = self._try_load_file(self.template_path)
             if template_content is not None:
-                return TemplateResolution(template_content, "explicit")
+                return TemplateResolution(
+                    template_content, "explicit", Path(self.template_path)
+                )
             logger.warning(
                 f"Custom template not found: {self.template_path}. "
                 f"Falling back to default template."
@@ -321,7 +333,9 @@ class TemplateEngine:
                 template_content = self._try_load_file(str(candidate_path))
                 if template_content is not None:
                     logger.debug(f"Loaded template from: {candidate_path}")
-                    return TemplateResolution(template_content, "search")
+                    return TemplateResolution(
+                        template_content, "search", candidate_path
+                    )
 
         # Priority 3: Default template
         default_path = self.get_default_template_path()
@@ -333,7 +347,7 @@ class TemplateEngine:
                 f"Package installation may be corrupted."
             )
 
-        return TemplateResolution(template_content, "default")
+        return TemplateResolution(template_content, "default", Path(default_path))
 
     def load_template(self) -> str:
         """
