@@ -569,7 +569,7 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 2/5 plans executed (4 waves)
+**Plans**: 4/5 plans executed (4 waves)
 **Wave 1**
 
 - [x] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
@@ -580,8 +580,8 @@ this milestone does not touch.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 53-03-PLAN.md — Validation: CONF-14…CONF-18, denylist enumeration, accumulate-then-raise-once — wave 3
-- [ ] 53-04-PLAN.md — `TemplateResolution` widened to carry the resolved path through the single priority walk — wave 3
+- [x] 53-03-PLAN.md — Validation: CONF-14…CONF-18, denylist enumeration, accumulate-then-raise-once — wave 3
+- [x] 53-04-PLAN.md — `TemplateResolution` widened to carry the resolved path through the single priority walk — wave 3
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -811,7 +811,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 2/5 | In Progress|  |
+| 53. Template Registry Foundation | v0.9.0 | 4/5 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
