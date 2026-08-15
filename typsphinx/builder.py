@@ -9,7 +9,7 @@ import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
@@ -36,6 +36,50 @@ logger = logging.getLogger(__name__)
 # "owned by typsphinx, not the user's source tree" in this codebase
 # (`_template.typ`) and in Sphinx itself (`_images`, `_static`, `_sources`).
 RESERVED_IMAGE_NAMESPACE = "_typst_converted"
+
+# Phase 54 (D-04): the bundle-copy driver's exclusion set is EXACTLY the
+# four kinds ROADMAP SC#3 names and nothing more -- do not exceed the
+# roadmap text (the same stance Phase 53's D-02 took on the
+# registry-key denylist). `.svn`, `.hg`, `__pycache__`, `.idea`,
+# `.vscode` are deliberately NOT excluded; widening this set is a
+# separate, later-milestone decision (54-CONTEXT.md's Deferred Ideas).
+_EXCLUDED_BUNDLE_DIR_NAMES = frozenset({".git"})
+_EXCLUDED_BUNDLE_FILE_NAMES = frozenset({".DS_Store", "Thumbs.db"})
+_EXCLUDED_BUNDLE_FILE_SUFFIXES = ("~", ".swp", ".swo", ".bak", ".orig")
+
+
+def _is_excluded_bundle_entry(name: str) -> bool:
+    """Whether ``name`` (a single path segment -- a directory or file
+    basename encountered by ``_copy_bundle_directory()``'s
+    ``os.walk()``) is one of D-04's exactly-four excluded kinds: the
+    ``.git`` VCS directory, one of the two named OS-metadata files
+    (``.DS_Store``, ``Thumbs.db``), or an editor-backup-shaped filename.
+
+    Applied to BOTH the ``dirs`` list (pruning ``.git`` out of the walk
+    so its contents are never even visited) and the ``files`` list
+    (skipping the OS-metadata/backup kinds) -- one predicate, two call
+    sites, so the "exactly four kinds" property cannot drift between
+    them.
+
+    Args:
+        name: A single path segment -- a directory or file basename.
+
+    Returns:
+        True if ``name`` matches one of D-04's four excluded kinds.
+
+    Examples:
+        >>> _is_excluded_bundle_entry(".git")
+        True
+        >>> _is_excluded_bundle_entry(".DS_Store")
+        True
+        >>> _is_excluded_bundle_entry("notes.txt~")
+        True
+        >>> _is_excluded_bundle_entry("base.typ")
+        False
+    """
+    if name in _EXCLUDED_BUNDLE_DIR_NAMES or name in _EXCLUDED_BUNDLE_FILE_NAMES:
+        return True
+    return name.endswith(_EXCLUDED_BUNDLE_FILE_SUFFIXES)
 
 
 def _is_drive_qualified(stem: str) -> bool:
@@ -258,6 +302,18 @@ class TypstBuilder(Builder):
         # method's own comment for why that is the SAME resolution
         # function, not a second registry-resolution mechanism.
         self._document_template_registry: Dict[str, TemplateRegistryEntry] = {}
+
+        # Phase 54 (OUT-04): the write-time accumulator of every registry
+        # key an ACTUALLY-WRITTEN wrapper resolved, feeding the
+        # finish()-time bundle copy (`_copy_used_template_bundles()`) --
+        # mirrors `self.images`/`copy_image_files()` above (ROADMAP
+        # constraint #4). Populated in `_write_typst_files()`'s wrapper
+        # loop, immediately after that loop's existing
+        # `resolve_registry_key()` call -- only entries whose docname is
+        # in THIS build's write set reach that line, which is precisely
+        # why the bundle copy cannot run before the write loop on an
+        # incremental build.
+        self._used_template_keys: set[str] = set()
 
     def _build_include_edge_map(self) -> Dict[str, Tuple[str, ...]]:
         """Derive the per-master include-edge mapping (COMP-05/COMP-06).
@@ -1195,6 +1251,12 @@ class TypstBuilder(Builder):
             template_entry = resolve_registry_key(
                 self._document_template_registry, entry
             )
+            # Phase 54 (OUT-04): record this ACTUALLY-WRITTEN wrapper's
+            # resolved registry key -- the finish()-time bundle copy
+            # (`_copy_used_template_bundles()`) iterates exactly this
+            # set, so a key no wrapper ever names gets no bundle copied
+            # for it.
+            self._used_template_keys.add(template_entry.key)
             wrapper_output = self.writer.render_wrapper(
                 entry,
                 doctree,
@@ -1229,6 +1291,7 @@ class TypstBuilder(Builder):
         Only writes if a template is configured (not using Typst Universe packages).
         """
         from typsphinx.template_engine import (
+            TEMPLATE_SEARCH_SUBDIR,
             TemplateEngine,
             resolve_package_for_engine,
         )
@@ -1274,9 +1337,12 @@ class TypstBuilder(Builder):
         # Reaching here means a custom template IS configured, so the helper
         # suppresses the package; deriving it rather than hardcoding None keeps
         # one rule, one place.
+        # Phase 54 (D-14): the shadow-template search path is
+        # <srcdir>/_typst, never srcdir itself -- see
+        # TEMPLATE_SEARCH_SUBDIR's own docstring in template_engine.py.
         template_engine = TemplateEngine(
             template_path=template_path,
-            search_paths=[self.srcdir],
+            search_paths=[path.join(self.srcdir, TEMPLATE_SEARCH_SUBDIR)],
             parameter_mapping=getattr(config, "typst_template_mapping", None),
             typst_package=resolve_package_for_engine(typst_package, raw_template_path),
             typst_template_function=getattr(config, "typst_template_function", None),
@@ -1505,15 +1571,248 @@ class TypstBuilder(Builder):
             logger.warning(f"Failed to copy template asset {rel_path}: {e}")
             return False
 
+    def _copy_bundle_directory(
+        self, src_dir: str, dest_dir: str, key: str, template_filename: str
+    ) -> None:
+        """Copy one registry key's resolved template bundle wholesale
+        from ``src_dir`` to ``dest_dir`` (OUT-04), generalizing
+        ``_copy_template_directory()``'s existing ``os.walk()`` +
+        ``shutil.copy2`` body (D-02): no ``.typ`` skip (the template body
+        now travels this SAME path, not a separate write), a name-based
+        exclusion for exactly D-04's four kinds
+        (``_is_excluded_bundle_entry()``), and a fatal/non-fatal error
+        split (D-05) keyed on whether the file being copied IS the
+        resolved template file itself.
+
+        An existing destination file is overwritten in place; this
+        method never deletes anything under ``dest_dir`` first (D-01) --
+        a destination file absent from ``src_dir`` is left alone,
+        accepted behaviour on an incremental rebuild.
+
+        Args:
+            src_dir: The resolved template's own parent directory (the
+                bundle source), an ABSOLUTE path -- the bundled
+                ``"typst"`` key's source lives inside the installed
+                package, not under ``srcdir``, so this is never assumed
+                to be ``srcdir``-relative.
+            dest_dir: ``<outdir>/_template/<key>/``, an ABSOLUTE path.
+            key: The registry key this bundle belongs to (named in the
+                ``ExtensionError`` message on a fatal failure).
+            template_filename: The resolved template's own basename
+                (e.g. ``"base.typ"``) -- the ONE file in this bundle
+                whose copy failure, or absence after the walk, is FATAL
+                rather than a warn-and-continue (D-05).
+
+        Raises:
+            ExtensionError: When copying the resolved template file
+                itself fails, or when it was never found under
+                ``src_dir`` at all -- ``-b typst`` must not report
+                success over an output that cannot compile.
+        """
+        import os
+
+        template_copied = False
+        for root, dirs, files in os.walk(src_dir, followlinks=False):
+            dirs[:] = [d for d in dirs if not _is_excluded_bundle_entry(d)]
+            for file in files:
+                if _is_excluded_bundle_entry(file):
+                    continue
+                src_file = path.join(root, file)
+                rel_path = path.relpath(src_file, src_dir)
+                dest_file = path.join(dest_dir, rel_path)
+                is_template_file = rel_path.replace(path.sep, "/") == template_filename
+                ensuredir(path.dirname(dest_file))
+                try:
+                    shutil.copy2(src_file, dest_file)
+                    logger.debug(f"Copied bundle file for {key!r}: {rel_path}")
+                    if is_template_file:
+                        template_copied = True
+                except Exception as e:
+                    if is_template_file:
+                        raise ExtensionError(
+                            f"typst_document_templates: failed to copy the "
+                            f"resolved template for registry key {key!r} "
+                            f"from {src_file!r} to {dest_file!r}: {e}"
+                        ) from e
+                    logger.warning(
+                        f"Failed to copy template bundle file {rel_path}: {e}"
+                    )
+
+        if not template_copied:
+            raise ExtensionError(
+                f"typst_document_templates: the resolved template for "
+                f"registry key {key!r} ({template_filename!r}) was never "
+                f"copied from {src_dir!r} to {dest_dir!r} -- a wrapper "
+                "naming this key would import a file that does not exist"
+            )
+
+    def _copy_used_template_bundles(self) -> None:
+        """Copy every USED registry key's resolved template bundle
+        wholesale to ``<outdir>/_template/<key>/`` (OUT-04), replacing
+        ``copy_template_assets()``. Called once from ``finish()``, fed
+        by the write-time ``self._used_template_keys`` accumulator
+        (mirrors ``self.images``/``copy_image_files()``, ROADMAP
+        constraint #4).
+
+        Returns immediately when the accumulator is empty -- a build
+        that writes no wrapper creates no ``<outdir>/_template/``
+        directory at all.
+
+        Iterates ``sorted(self._used_template_keys)`` so log and error
+        order is deterministic across runs of the same project (D-05's
+        byte-identical property, mirroring
+        ``resolve_template_registry()``'s own ``sorted()`` use).
+
+        A key whose registry entry carries a ``package`` and no
+        ``template`` has nothing to copy -- a package-alone master has
+        no bundle -- and is skipped, matching
+        ``render_wrapper()``'s own package-alone predicate exactly
+        (``entry.package and not entry.template``).
+
+        A-01 (resolved ``54-CONTEXT.md`` assumption, not an open
+        question): applies the SAME parent-directory predicate CONF-17
+        already applies to every DECLARED key's ``template`` to the
+        RESOLVED path of EVERY used key, including the synthesized
+        ``"typst"`` key -- D-14 removes ``srcdir`` itself from the
+        search path list, but that alone does not cover a
+        ``typst_template`` (or a registry entry's ``template``) set to a
+        bare filename with no directory component, which resolves
+        directly under ``srcdir``. Raised before any file for that key
+        is copied.
+
+        Two used keys whose destinations fold to the same
+        ``<outdir>/_template/<key>/`` path (case-differing on a
+        case-insensitive filesystem) are accumulated and raise ONE
+        aggregated ``ExtensionError`` naming both keys and the shared
+        destination, following ``_validate_output_path_collisions()``'s
+        own accumulate-then-raise-once idiom -- routed through the SAME
+        ``_collision_key()`` folding, never a second normalization
+        primitive. Every key resolves and is destination-checked BEFORE
+        any bundle is actually copied, so a collision leaves zero bundle
+        files written for the colliding pair.
+
+        Raises:
+            ExtensionError: On an A-01 violation (immediate, per key),
+                or once, aggregated, when two used keys collide on their
+                bundle destination.
+        """
+        if not self._used_template_keys:
+            return
+
+        import importlib.resources
+
+        from typsphinx.template_engine import (
+            TEMPLATE_SEARCH_SUBDIR,
+            TemplateEngine,
+            default_template_bundle_traversable,
+            resolve_package_for_engine,
+        )
+        from typsphinx.template_registry import _violates_conf17
+        from typsphinx.writer import TEMPLATE_OUTPUT_DIR
+
+        destinations: Dict[str, Tuple[str, str]] = {}
+        failures: List[Tuple[str, str]] = []
+        to_copy: List[Tuple[str, Any, str, str]] = []
+
+        for key in sorted(self._used_template_keys):
+            entry = self._document_template_registry[key]
+            if entry.package and not entry.template:
+                # Package-alone: no bundle to copy (mirrors
+                # render_wrapper()'s own package-alone predicate).
+                continue
+
+            raw_template_path = entry.template
+            template_path = None
+            if raw_template_path:
+                template_path = path.join(self.srcdir, raw_template_path)
+            search_paths = [path.join(str(self.srcdir), TEMPLATE_SEARCH_SUBDIR)]
+            package_for_engine = resolve_package_for_engine(
+                entry.package, raw_template_path
+            )
+
+            template_engine = TemplateEngine(
+                template_path=template_path,
+                search_paths=search_paths,
+                typst_package=package_for_engine,
+                typst_template_function=entry.template_function,
+            )
+            resolution = template_engine.resolve_template()
+            resolved_path = resolution.path
+
+            # A-01 guard: apply CONF-17's predicate to the RESOLVED path
+            # of this used key -- closes the explicit-route half of the
+            # source-tree-republication hole D-14 closes structurally
+            # for the search-path route.
+            if _violates_conf17(str(resolved_path), str(self.srcdir)):
+                raise ExtensionError(
+                    f"typst_document_templates: registry key {key!r}'s "
+                    f"resolved template {str(resolved_path)!r} has a "
+                    "parent directory that is srcdir itself, or an "
+                    f"ancestor of srcdir ({str(self.srcdir)!r}) -- put "
+                    "the template in its own subdirectory (CONF-17, A-01)"
+                )
+
+            dest_dir = path.join(self.outdir, TEMPLATE_OUTPUT_DIR, key)
+            dest_relpath = posixpath.join(TEMPLATE_OUTPUT_DIR, key)
+            dest_key = self._collision_key(dest_relpath)
+            existing = destinations.get(dest_key)
+            if existing is not None:
+                failures.append(
+                    (
+                        key,
+                        f"registry key {existing[0]!r} and registry key "
+                        f"{key!r} both resolve to the same bundle "
+                        f"destination {dest_dir!r}",
+                    )
+                )
+                continue
+            destinations[dest_key] = (key, dest_dir)
+            to_copy.append((key, resolution, dest_dir, resolved_path.name))
+
+        if failures:
+            summary = "; ".join(f"{key!r}: {message}" for key, message in failures)
+            raise ExtensionError(
+                f"typst_document_templates: {len(failures)} bundle "
+                f"destination collision(s): {summary}"
+            )
+
+        for key, resolution, dest_dir, template_filename in to_copy:
+            ensuredir(dest_dir)
+            if resolution.source == "default":
+                # The packaged default's bundle lives inside the
+                # installed package -- hold as_file()'s context open
+                # around the ENTIRE copy, not just the path lookup, so a
+                # non-filesystem loader cannot clean up a temporary
+                # extraction mid-copy (T-54-10).
+                with importlib.resources.as_file(
+                    default_template_bundle_traversable()
+                ) as bundle_dir:
+                    self._copy_bundle_directory(
+                        str(bundle_dir), dest_dir, key, template_filename
+                    )
+            else:
+                bundle_src = str(resolution.path.parent)
+                self._copy_bundle_directory(
+                    bundle_src, dest_dir, key, template_filename
+                )
+
     def finish(self) -> None:
         """
         Finish the build process.
 
         This method is called once after all documents have been written.
-        Copies image files and template assets to the output directory.
+        Copies image files and template assets to the output directory,
+        then copies every USED registry key's resolved template bundle
+        wholesale to ``<outdir>/_template/<key>/`` (Phase 54, OUT-04).
+
+        ``copy_template_assets()`` (the old shared-``_template.typ``-
+        relative asset copy) deliberately stays in place here -- its
+        deletion is `54-05`'s own commit; removing the call here would
+        break assertions this plan is not migrating.
         """
         self.copy_image_files()
         self.copy_template_assets()
+        self._copy_used_template_bundles()
 
 
 class TypstPDFBuilder(TypstBuilder):

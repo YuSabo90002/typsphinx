@@ -5,6 +5,7 @@ This module implements template loading, parameter mapping, and rendering
 for Typst documents (Requirement 8).
 """
 
+import importlib.resources
 import logging
 import re
 from dataclasses import dataclass
@@ -14,6 +15,28 @@ from typing import Any, Dict, List
 from sphinx.errors import ExtensionError
 
 logger = logging.getLogger(__name__)
+
+
+# Phase 54 (D-14): the shadow-template route's SOURCE-side location is a
+# DIRECTORY, not srcdir's own root -- so the resolved template's parent
+# directory is a genuine bundle directory and OUT-04's "the resolved
+# template's parent directory is copied wholesale" rule applies to the
+# synthesized "typst" registry key with zero exceptions. Before this
+# constant existed, Priority 2 searched `srcdir` itself (the caller
+# passed a search-paths list containing bare `srcdir`, no subdirectory)
+# for a `base.typ` shadow of the bundled default -- a real, tested,
+# intentionally-supported override mechanism
+# (see `tests/test_template_engine.py`'s `test_resolve_template_search_path`)
+# whose resolved path's PARENT was `srcdir` itself. Naively copying that
+# parent wholesale (Phase 54's bundle-copy driver) would republish a
+# user's entire Sphinx source tree -- `conf.py`, every `.rst` file,
+# `_static/`, everything -- as build output (`54-01-RED-EVIDENCE.md`
+# "Pitfall 0" / the resolved A-01 assumption in `54-CONTEXT.md`).
+# Deliberately NOT named `_templates/` -- that is Sphinx's own
+# `templates_path` default and would collide with its meaning; `_typst/`
+# is this repository's own precedent (`docs/source/conf.py`'s
+# `typst_template = "_typst/custom_template.typ"`).
+TEMPLATE_SEARCH_SUBDIR = "_typst"
 
 
 @dataclass(frozen=True)
@@ -183,6 +206,29 @@ def resolve_package_for_engine(
     return None if raw_template_path else typst_package
 
 
+def default_template_bundle_traversable() -> Any:
+    """Return the ``importlib.resources`` traversable for the packaged
+    ``templates`` directory -- the ``"typst"`` registry key's bundle
+    (BLD-05/OUT-04).
+
+    The bundle-copy driver (``typsphinx/builder.py``) needs the
+    DIRECTORY, not merely ``base.typ`` alone, and must hold
+    ``importlib.resources.as_file()``'s context manager open around the
+    ENTIRE walk-and-copy, not just this lookup -- for a non-filesystem
+    loader that context manager may delete a temporary extraction on
+    exit (T-54-10). This is a SEPARATE accessor from
+    ``TemplateEngine.get_default_template_path()``, which resolves only
+    the single ``base.typ`` file and is safe to call standalone because
+    its caller reads the file's content immediately, before the
+    ``with`` block it opened and closed internally ever exits.
+
+    Returns:
+        An ``importlib.resources.abc.Traversable`` for
+        ``typsphinx/templates/``.
+    """
+    return importlib.resources.files("typsphinx") / "templates"
+
+
 class TemplateEngine:
     """
     Manages Typst templates for document generation.
@@ -277,15 +323,17 @@ class TemplateEngine:
         """
         Get the path to the default template bundled with the package.
 
+        Phase 54 (SC#2): resolved through ``importlib.resources`` rather
+        than module-file-location arithmetic -- loader-agnostic, so it
+        stays correct under a non-filesystem loader (zipimport/frozen),
+        unlike the path math it replaces.
+
         Returns:
             Absolute path to default template file
         """
-        # Template is located in sphinxcontrib/typst/templates/base.typ
-        package_dir = Path(__file__).parent
-        template_dir = package_dir / "templates"
-        default_template = template_dir / "base.typ"
-
-        return str(default_template)
+        resource = importlib.resources.files("typsphinx") / "templates" / "base.typ"
+        with importlib.resources.as_file(resource) as real_path:
+            return str(real_path)
 
     def resolve_template(self) -> TemplateResolution:
         """

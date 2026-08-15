@@ -876,15 +876,17 @@ class TestPreFixBasisFailureProof:
         genuinely-emitted master from the custom_template_lang fixture
         already carries ``lang: "ja",`` (D-I's whole point -- no splice
         needed). Mutate the SIBLING TEMPLATE FILE the same real build
-        wrote (``_template.typ``) to strip its ``lang`` parameter back out
-        -- reconstructing the shape of a real, pre-existing user template
-        that predates the published nine-parameter contract -- and assert
-        that recompiling the untouched master against this reconstructed
-        template RAISES. This is precisely the cost D-I accepts
-        (T-45.1-05): an existing custom template that omits ``lang`` now
-        genuinely fails, because the extension always emits the argument
-        on every non-package route. Only ``pytest.raises`` is asserted --
-        never the exception's message text.
+        wrote (Phase 54: the built-in ``"typst"`` key's bundled copy at
+        ``_template/typst/custom.typ``, not the pre-Phase-54 shared
+        ``_template.typ`` root file) to strip its ``lang`` parameter back
+        out -- reconstructing the shape of a real, pre-existing user
+        template that predates the published nine-parameter contract --
+        and assert that recompiling the untouched master against this
+        reconstructed template RAISES. This is precisely the cost D-I
+        accepts (T-45.1-05): an existing custom template that omits
+        ``lang`` now genuinely fails, because the extension always emits
+        the argument on every non-package route. Only ``pytest.raises``
+        is asserted -- never the exception's message text.
         """
         index_path = custom_template_lang_build_dir / "master.typ"
         master_text = index_path.read_text(encoding="utf-8")
@@ -893,7 +895,9 @@ class TestPreFixBasisFailureProof:
             f"lang argument (no splice needed post-D-I):\n{master_text}"
         )
 
-        template_path = custom_template_lang_build_dir / "_template.typ"
+        template_path = (
+            custom_template_lang_build_dir / "_template" / "typst" / "custom.typ"
+        )
         template_text = template_path.read_text(encoding="utf-8")
         assert '  lang: "en",\n' in template_text, (
             f"Expected the real template to declare a lang parameter to "

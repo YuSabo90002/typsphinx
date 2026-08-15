@@ -1,5 +1,5 @@
-// CONF-12/D-I case (2): a `<srcdir>/base.typ` shadow of the bundled
-// default template that DOES declare `lang`, matching
+// CONF-12/D-I case (2): a `<srcdir>/_typst/base.typ` shadow of the
+// bundled default template that DOES declare `lang`, matching
 // `typsphinx/templates/base.typ`'s nine-parameter signature.
 // `TemplateEngine.resolve_template()`'s Priority 2 (search-path hit)
 // finds THIS file even though this fixture's conf.py sets neither
