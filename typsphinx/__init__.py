@@ -56,6 +56,11 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value("typst_debug", False, "html", [bool])
     # Issue #75: Template asset support
     app.add_config_value("typst_template_assets", None, "html", [list, type(None)])
+    # Phase 53 (TPL-01): named template definitions, keyed by a registry
+    # key referenced from a typst_documents entry's fifth element. Absent
+    # or empty is legal -- it resolves to a registry containing only the
+    # synthesized built-in "typst" key (D-02).
+    app.add_config_value("typst_document_templates", {}, "html", [dict])
 
     return {
         "version": __version__,

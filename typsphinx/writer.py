@@ -17,6 +17,11 @@ from typsphinx.template_engine import (
     derive_typst_lang,
     resolve_package_for_engine,
 )
+from typsphinx.template_registry import (
+    RESERVED_REGISTRY_KEY,
+    TemplateRegistryEntry,
+    resolve_template_registry,
+)
 from typsphinx.translator import TypstTranslator, render_include_edge_state
 
 logger = logging.getLogger(__name__)
@@ -266,6 +271,7 @@ class TypstWriter(writers.Writer):
         wrapper_relative_dir: str,
         content_relative_path: str,
         edge_keys: Tuple[str, ...] = (),
+        template_entry: TemplateRegistryEntry | None = None,
     ) -> str:
         """
         Render a wrapper ``.typ`` document for one ``typst_documents``
@@ -302,6 +308,14 @@ class TypstWriter(writers.Writer):
                 compile-time guard in every content file false, which is
                 the correct, safe default when no edge mapping was ever
                 derived.
+            template_entry: The resolved ``TemplateRegistryEntry`` this
+                wrapper's template is built from (Phase 53, TPL-01/TPL-03).
+                Defaults to ``None`` so every EXISTING direct caller keeps
+                working unchanged -- when ``None``, the built-in ``"typst"``
+                entry is derived through the same
+                ``resolve_template_registry()`` function the builder's
+                write path calls, never a second, independently-written
+                config read.
 
         Returns:
             The complete wrapper ``.typ`` document text.
@@ -320,9 +334,21 @@ class TypstWriter(writers.Writer):
 
         config = self.builder.config
 
-        # Get template configuration from Sphinx config
-        raw_template_path = getattr(config, "typst_template", None)
-        typst_package = getattr(config, "typst_package", None)
+        # Phase 53 (TPL-01/TPL-03): build the TemplateEngine from a
+        # resolved TemplateRegistryEntry -- never by re-reading
+        # `typst_template` / `typst_package` / `typst_template_function`
+        # off `config` directly. When no entry was threaded in (every
+        # EXISTING direct caller), derive the built-in "typst" entry
+        # through the SAME `resolve_template_registry()` function the
+        # builder's write path calls -- one derivation point, never two.
+        resolved_entry = template_entry
+        if resolved_entry is None:
+            resolved_entry = resolve_template_registry(
+                config, str(self.builder.srcdir)
+            )[RESERVED_REGISTRY_KEY]
+
+        raw_template_path = resolved_entry.template
+        typst_package = resolved_entry.package
 
         template_path = raw_template_path
         if template_path:
@@ -341,13 +367,22 @@ class TypstWriter(writers.Writer):
             typst_package, raw_template_path
         )
 
+        # D-11: global `typst_template_mapping` reaches ONLY the "typst"
+        # key's engine -- every other key passes `None`, which
+        # `TemplateEngine.__init__` then resolves to its own
+        # `DEFAULT_PARAMETER_MAPPING` or `{}`-when-package rule
+        # (template_engine.py:230-238), never an inherited global.
+        parameter_mapping = None
+        if resolved_entry.key == RESERVED_REGISTRY_KEY:
+            parameter_mapping = getattr(config, "typst_template_mapping", None)
+
         # Create template engine
         template_engine = TemplateEngine(
             template_path=template_path,
             search_paths=[self.builder.srcdir],
-            parameter_mapping=getattr(config, "typst_template_mapping", None),
+            parameter_mapping=parameter_mapping,
             typst_package=package_for_engine,
-            typst_template_function=getattr(config, "typst_template_function", None),
+            typst_template_function=resolved_entry.template_function,
             typst_package_imports=getattr(config, "typst_package_imports", None),
         )
 
