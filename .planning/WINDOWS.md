@@ -1,15 +1,15 @@
 ---
 schema_version: 1
-open_count: 0
+open_count: 1
 waived_count: 0
 fixed_count: 6
-total_count: 6
-last_updated: 2026-08-15T02:07:52.046Z
+total_count: 7
+last_updated: 2026-08-15T07:54:06.398Z
 ---
 
 # Broken Windows Ledger
 
-> Cross-phase defect register. `/gsd-ship` blocks while `open_count > 0`.
+> Cross-phase defect register. With `workflow.windows_enforce` enabled, `/gsd-ship` blocks while `open_count > 0`.
 > Waive with `gsd-tools windows waive <id> "<reason>"` (reason required).
 > Mark fixed with `gsd-tools windows fixed <id>`.
 
@@ -21,6 +21,7 @@ last_updated: 2026-08-15T02:07:52.046Z
 | 4 | 52 | todo | tests/test_state_guard_shapes_gate.py | 781 | Locale-dependent baseline warning fragments (hardcoded Japanese) fail against English-locale CI runners in TestNoLostDiagnostics::test_warning_baseline_preserved (2 parametrized cases, all 6 OS/py lanes + Code Coverage, discovered by phase 52-04 CI dispatch) | fixed |  | 2026-08-15T01:14:02.516Z | 2026-08-15T02:07:49.645Z |
 | 5 | 52 | lint-warning | tests/test_builder.py | 569 | ruff I001 unsorted import block fails Lint and Format Check on CI (never caught locally -- .venv/bin/ruff is a generic-linux ELF unrunnable on NixOS; discovered by phase 52-04 CI dispatch) | fixed |  | 2026-08-15T01:14:03.951Z | 2026-08-15T02:07:49.944Z |
 | 6 | 52 | stub | typsphinx/builder.py |  | Python 3.13 changed ntpath.isabs() semantics on Windows for driveless-absolute paths (leading single backslash, no drive letter) -- TypstBuilder._track_image()'s 'if path.isabs(resolved_uri):' branch is skipped under CPython 3.13.15 on windows-latest CI, so the escape-relocation/warning path never runs; py3.12.14 on the same OS/lane is unaffected. Surfaced by CI run 31856929828 (Test Python 3.13 on windows-latest), not root-caused to a fix in Phase 52. | fixed |  | 2026-08-15T01:45:59.831Z | 2026-08-15T02:07:52.046Z |
+| 7 | 53 | unrun-verify | tests/test_state_guard_shapes_gate.py |  | 7 tests reference archived .planning/phases/49-.../49-SHAPES-RED-EVIDENCE.md path; pre-existing, unrelated to 53-01's plan-verify pytest run | open |  | 2026-08-15T07:54:06.398Z |  |
 
 ````json
 [
@@ -95,6 +96,18 @@ last_updated: 2026-08-15T02:07:52.046Z
     "reason": "",
     "recorded_at": "2026-08-15T01:45:59.831Z",
     "resolved_at": "2026-08-15T02:07:52.046Z"
+  },
+  {
+    "id": 7,
+    "kind": "unrun-verify",
+    "phase": "53",
+    "file": "tests/test_state_guard_shapes_gate.py",
+    "line": null,
+    "description": "7 tests reference archived .planning/phases/49-.../49-SHAPES-RED-EVIDENCE.md path; pre-existing, unrelated to 53-01's plan-verify pytest run",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-15T07:54:06.398Z",
+    "resolved_at": null
   }
 ]
 ````
