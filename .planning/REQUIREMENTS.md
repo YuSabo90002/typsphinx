@@ -100,7 +100,7 @@ position".
 
 ### Release (REL)
 
-- [ ] **REL-07**: v0.8.0 is released to PyPI with a curated CHANGELOG entry calling out the
+- [x] **REL-07**: v0.8.0 is released to PyPI with a curated CHANGELOG entry calling out the
       output-shape change and the target-as-path reversal
 
 ## Future Requirements
@@ -265,7 +265,7 @@ Filled at roadmap creation, 2026-08-11 (Phases 47-52).
 | IMG-01 | Phase 50 | Complete |
 | IMG-02 | Phase 50 | Complete |
 | DOC-14 | Phase 51 | Complete |
-| REL-07 | Phase 52 | Pending |
+| REL-07 | Phase 52 | Complete |
 
 **Coverage:**
 
