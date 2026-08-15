@@ -54,29 +54,35 @@ name a template, and the ability to emit more than one template file.
 - **Built-in key `"typst"` defers to global config** — `typst_template` / `typst_package` /
   `typst_template_function` / `typst_template_mapping` if set, bundled `base.typ` otherwise. A
   four-element tuple behaves identically, per `configuration.rst:84`. This is what makes every
-  existing `conf.py` — in this repository and in the wild — keep working with zero edits.
-- **N template files, written into the mirror of their own source directory** — today
-  `_write_template_file()` writes exactly one `_template.typ` at the outdir root and the collision
-  detector reserves that name (`builder.py:571`). A registry template is instead written to
-  `<outdir>/<its srcdir-relative directory>/_template.typ`, landing beside the assets that
-  `_copy_template_directory()` already mirrors there. The `"typst"` key keeps the root
-  `_template.typ` unchanged.
-- **Template-relative asset references start working** — because the template now sits beside its
-  assets, `#image("logo.png")` resolves. This is the shape `templates.rst:106-113` already
-  documents and which is currently wrong: a root-placed template resolves relative paths from the
-  outdir root, which is why `advanced.rst:129-138` has to tell users to write
-  `"_templates/refs.bib"`.
-- **Asset copying follows the registry** — no new config surface. `copy_template_assets()` today
-  returns immediately when global `typst_template` is unset (`builder.py:1237-1240`), so a project
-  that moves entirely to the registry would silently copy no fonts, logos, or `.bib` files at all.
-  Its enumeration source becomes the set of distinct template directories across the registry plus
-  the global `typst_template`, and its global-`typst_package` early return is narrowed to the
-  `"typst"` route.
+  existing `conf.py` keep working with zero edits.
+- **One output rule, no exceptions: the resolved template's parent directory is copied wholesale to
+  `<outdir>/_template/<key>/`.** `"typst"` is not special-cased — its bundle is
+  `typsphinx/templates/` (one file, `base.typ`), or the global `typst_template`'s own directory, or
+  the `<srcdir>/base.typ` shadow's directory. A package-only key has no bundle and copies nothing.
+  Unifying the route is what makes the rest of this list collapse into deletions rather than
+  additions.
+- **Four mechanisms are deleted, not extended.** `_write_template_file()` disappears entirely —
+  `resolve_template()` reads the file verbatim with no substitution, so the bundle copy already
+  carries the template. `_copy_template_directory()`'s `.typ` exclusion disappears with it, since
+  it existed only to avoid double-writing. `copy_template_assets()`'s three early returns
+  disappear: the unset-global-`typst_template` guard because `"typst"` always resolves to
+  something, and the `typst_package` guard because "has no bundle" becomes a per-key property. The
+  collision detector's reserved `_template.typ` file claim (`builder.py:571`) becomes a single
+  reserved `_template/` prefix.
+- **Template-relative asset references start working** — the template now sits inside its own
+  bundle, so `#image("logo.png")` resolves. This is the shape `templates.rst:106-113` already
+  documents and which is currently wrong, and it retires `advanced.rst:129-138`'s instruction to
+  write the outdir-root-relative `"_templates/refs.bib"` instead.
+- **`typst_template_assets` is removed.** With every bundle copied wholesale there is nothing left
+  for it to select, and this project does not leave inert config registered — v0.6.3's CONF-05
+  deleted `typst_toctree_defaults` for exactly this reason. Its removal is the one user-visible
+  breaking change in this milestone.
 - **Fail-loud configuration errors** — an unregistered key, a registry entry carrying both
-  `template` and `package`, a user-defined `"typst"` key (reserved), and two registry templates
-  sharing one source directory (their fixed `_template.typ` names would collide) each raise
-  `ExtensionError`, following CONF-04's unknown-`typst_elements`-key and BLD-02/03/04's
-  output-path-collision precedent.
+  `template` and `package`, a user-defined `"typst"` key (reserved), and a `template` pointing at a
+  file directly under `srcdir` (it has no bundle directory; "copy the parent directory" would mean
+  copying all of `srcdir`) each raise `ExtensionError`, following CONF-04's
+  unknown-`typst_elements`-key and BLD-02/03/04's output-path-collision precedent. Registry keys
+  become path segments, so they are charset-validated at config-read time.
 - **Documentation** — `configuration.rst` (retract the element-[4] definition), `templates.rst`
   (the asset example becomes correct), `quickstart.rst`, `output_layout.rst`, `builders.rst`.
 - **Clean up the five v0.8.0-derived defects** that shipped unfixed by decision D-01 or with only a
@@ -105,11 +111,22 @@ name a template, and the ability to emit more than one template file.
   `params` also share one literal title — the entry's own title/author elements are discarded. A
   custom template wanting non-default parameter names must use the `params` route and therefore
   gives up per-entry title/author. These two constraints cannot both be avoided; accepted.
-- **`package_imports`, `elements`, and `template_assets` stay global** and apply to every document.
-  `typst_template_assets` in particular remains all-or-nothing across all templates.
+- **`package_imports` and `elements` stay global** and apply to every document. No `assets` key is
+  added to the registry — a bundle is always copied whole, which keeps the output rule to one
+  sentence.
+- **`"typst"` gets no exception in the output layout.** Moving it into `_template/typst/` was
+  measured to break nothing here: all three real custom templates in this repository
+  (`docs/source/_typst/custom_template.typ:91`, `examples/advanced/_templates/custom.typ:131`,
+  `examples/charged-ieee/approach2/source/_templates/_template.typ`) reference fonts by *family
+  name* only, with zero `#image()`/`#bibliography()`/`read()` path references, and no `.bib` file
+  exists anywhere in the repository — `advanced.rst`'s `refs.bib` guidance describes a
+  hypothetical. The exposure is limited to a wild template hardcoding an outdir-root-relative asset
+  path, and the output directory is build-generated. One code path is worth more than the
+  exception.
 
-**Version rationale:** v0.9.0. A new config surface with no behaviour change for any existing
-`conf.py` — additive and backward-compatible, unlike v0.8.0's breaking output-shape change.
+**Version rationale:** v0.9.0. The registry is additive and no existing `conf.py` needs editing to
+keep working, but `typst_template_assets` is removed and the output layout of `_template.typ`
+changes, so this is a breaking minor release — as v0.8.0 was.
 
 <details>
 <summary>v0.8.0 milestone brief (as scoped 2026-08-11) — retained for reference</summary>
@@ -1537,12 +1554,13 @@ own template, package, and template-function arguments:
       `configuration.rst:80` currently defines as "accepted and ignored"
 - [ ] The built-in key `"typst"`, and a four-element tuple, defer to global config, so every
       existing `conf.py` keeps working unchanged
-- [ ] Each registry template is written into the mirror of its own source directory, beside the
-      assets already copied there, so template-relative asset references resolve
-- [ ] Asset copying enumerates the registry's template directories instead of the single global
-      `typst_template`, which today makes a registry-only project copy nothing at all
+- [ ] Every key's template bundle — `"typst"` included, with no exception — is copied wholesale to
+      `<outdir>/_template/<key>/`, so template-relative asset references resolve
+- [ ] `_write_template_file()`, `_copy_template_directory()`'s `.typ` exclusion,
+      `copy_template_assets()`'s three early returns, and the reserved `_template.typ` file claim
+      are deleted rather than extended; `typst_template_assets` is removed as inert config
 - [ ] Misconfiguration fails loudly: unregistered key, `template` + `package` in one entry, a
-      user-defined `"typst"` key, and two registry templates sharing a source directory
+      user-defined `"typst"` key, and a `template` directly under `srcdir`
 - [ ] The five v0.8.0-derived defects that shipped unfixed by decision D-01, or with only a
       test-side fix, are closed
 
