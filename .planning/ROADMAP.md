@@ -569,8 +569,14 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 7/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
-to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness defects the owner opted in to
+**Plans**: 10 plans (8 waves) — 7/7 executed through Wave 6. 53-06/53-07 added 2026-08-15 by
+`/gsd-plan-phase 53 --gaps` to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness
+defects the owner opted in to; 53-08…53-10 added 2026-08-15 by a second `--gaps` round to close the
+re-verification's one scored gap (SC#5, stale CI evidence), the two new ⚠ WARNING crash paths
+`53-REVIEW.md` found in `template_registry.py`, and `.planning/REQUIREMENTS.md`'s stale TPL-01/TPL-05/
+CONF-16 tracking. `53-REVIEW.md` IN-01 was reviewed and declined by the owner and is deliberately
+unplanned
+
 **Wave 1**
 
 - [x] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
@@ -595,6 +601,15 @@ to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness def
 **Wave 6** *(gap closure — blocked on Wave 5 completion)*
 
 - [x] 53-07-PLAN.md — Registry robustness: cross-drive `commonpath` crash (CR-02) and raw `AttributeError` on non-`str` keys / non-`dict` definitions (WR-02/WR-03) become clean accumulated `ExtensionError`s — wave 6
+
+**Wave 7** *(second gap-closure round — blocked on Wave 6 completion)*
+
+- [ ] 53-08-PLAN.md — Registry robustness, one level up and one field deeper: a truthy non-`dict` `typst_document_templates` container (WR-01) and a truthy unusable `template` field (WR-02) become this module's own `ExtensionError` instead of a raw `AttributeError`/`TypeError` — wave 7
+- [ ] 53-09-PLAN.md — `.planning/REQUIREMENTS.md` tracking correction: TPL-01, TPL-05 and CONF-16 marked delivered in BOTH the checkbox list and the traceability table, six lines, no code — wave 7
+
+**Wave 8** *(second gap-closure round — blocked on Wave 7 completion)*
+
+- [ ] 53-10-PLAN.md — SC#5 re-closure: push the re-measured milestone-branch tip, dispatch a fresh 3-OS CI run over it, and record evidence carrying a `git log <ci_head>..<tip> -- typsphinx/ tests/` staleness assertion plus a positive content proof of what the certified SHA carries — wave 8
 
 **UI hint**: no
 
