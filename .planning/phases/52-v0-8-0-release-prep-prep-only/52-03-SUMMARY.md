@@ -121,6 +121,15 @@ None - no external service configuration required.
 - No irreversible action was taken: `git tag -l v0.8.0` and `git ls-remote --tags origin v0.8.0` both empty at plan end.
 - REL-07 stays open by design — it closes only at `/gsd-complete-milestone`, not in this plan.
 
+## Self-Check: PASSED
+
+- FOUND: `tests/test_state_guard_shapes_gate.py`
+- FOUND: `.planning/phases/52-v0-8-0-release-prep-prep-only/52-GOAL-CLAIM-EVIDENCE.md`
+- FOUND: `.planning/phases/52-v0-8-0-release-prep-prep-only/52-03-SUMMARY.md`
+- FOUND commit: `aa9739e0` (Task 1)
+- FOUND commit: `24d34a03` (Task 2)
+- FOUND commit: `fffaa420` (SUMMARY.md)
+
 ---
 *Phase: 52-v0-8-0-release-prep-prep-only*
 *Completed: 2026-08-15*
