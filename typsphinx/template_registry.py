@@ -256,9 +256,55 @@ def resolve_template_registry(
             a ``str`` or a declared definition is a truthy non-``dict``.
             The iteration key below is total across mixed key types, so a
             heterogeneous registry produces this module's own accumulated
-            error rather than ``sorted()``'s ``TypeError``.
+            error rather than ``sorted()``'s ``TypeError``. (53-08 Task 1,
+            53-REVIEW.md WR-01) When ``typst_document_templates`` itself is
+            a TRUTHY non-``dict`` value (e.g. a `list`, the plausible
+            copy-paste-from-``typst_documents`` typo), this is raised
+            IMMEDIATELY, before the accumulate loop even starts -- see the
+            container-guard comment below for why this is a container-level
+            failure and not one more entry in the accumulated
+            ``N invalid definition(s)`` summary. (53-08 Task 2,
+            53-REVIEW.md WR-02) When a declared definition's ``template``
+            field is truthy but neither a ``str`` nor an ``os.PathLike``
+            (e.g. a `list`), that failure joins the SAME accumulated
+            ``failures`` list as every other definition-level check.
     """
     declared = getattr(config, "typst_document_templates", None) or {}
+
+    # 53-08 Task 1 (53-REVIEW.md WR-01; 53-VERIFICATION.md Anti-Patterns
+    # row 2): Sphinx's own `add_config_value("typst_document_templates",
+    # {}, "html", [dict])` (typsphinx/__init__.py:63) declares `[dict]` as
+    # the expected type, but that declaration only *warns* on a mismatch --
+    # it never coerces or rejects -- so a wrong-typed value reaches this
+    # module completely unchanged. This guard therefore enforces exactly
+    # the type the extension already publishes as its own contract, no
+    # more and no less.
+    #
+    # It raises IMMEDIATELY here, before the accumulate-then-raise-once
+    # loop below even starts, rather than joining `failures` (contrast
+    # with the `template`-field guard inside the loop, which DOES join
+    # `failures` -- see that guard's comment for why the two are
+    # deliberately asymmetric). The accumulate loop's own precondition is
+    # that `declared` is safely iterable AS A MAPPING (`declared.keys()`,
+    # `declared[key]`); when the container itself is the wrong shape,
+    # there is nothing to iterate and accumulate over, so raising
+    # up front is the only structurally sound option. The message
+    # deliberately does NOT reuse the `"typst_document_templates: N
+    # invalid definition(s): ..."` prefix below -- a malformed CONTAINER
+    # is not one more DEFINITION, and counting it as one would misreport
+    # what actually went wrong.
+    #
+    # Because the preceding `or {}` has already normalized every FALSY
+    # value (`{}`, `[]`, `None`, `""`, `0`) to `{}`, this `isinstance`
+    # check provably fires only for a TRUTHY non-`dict` value -- exactly
+    # the crash surface `declared.keys()` below would otherwise hit, and
+    # nothing more. No separate truthiness test is needed here.
+    if not isinstance(declared, dict):
+        raise ExtensionError(
+            "typst_document_templates must be a dict mapping registry key to definition,"
+            f" got {declared!r}"
+        )
+
     all_keys = {key for key in declared.keys() if isinstance(key, str)}
 
     failures: list[str] = []
