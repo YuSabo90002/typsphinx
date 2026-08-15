@@ -142,3 +142,133 @@ def test_template_registry_entry_is_frozen_dataclass():
 
     with pytest.raises(FrozenInstanceError):
         entry.key = "mutated"
+
+
+# Phase 53 plan 02, Task 2: lock the singular-to-plural promotion with an
+# invariant test on render_wrapper()'s OWN source region -- scoped via
+# `inspect.getsource(TypstWriter.render_wrapper)`, never the whole of
+# writer.py, which legitimately mentions the global config names in its
+# module docstring and in OTHER functions (D-11's own `typst_package_imports`
+# global read, for instance).
+
+# The three globals render_wrapper() must no longer read directly off
+# `config`, per this plan's promotion (D-10: template_function; the
+# "typst"-only scoping of `parameter_mapping` is D-11, and typst_package_imports
+# is explicitly OUT of this set -- it legitimately stays a global read).
+_PROMOTED_GLOBAL_CONFIG_NAMES = (
+    "typst_template",
+    "typst_package",
+    "typst_template_function",
+)
+
+
+def _render_wrapper_source() -> str:
+    return inspect.getsource(TypstWriter.render_wrapper)
+
+
+def _exact_quoted_config_read_matches(source: str, name: str) -> bool:
+    """Whether ``source`` contains the EXACT quoted config-attribute name
+    ``name``, matched by the name immediately followed by its closing
+    quote character (``"typst_template"``) -- never a substring match.
+    This is what keeps ``typst_template_mapping`` and
+    ``typst_package_imports`` (both of which legitimately REMAIN in
+    ``render_wrapper()`` per D-11 and the global-scope decision) from
+    being mistaken for a hit on the shorter, promoted names."""
+    return f'"{name}"' in source
+
+
+def test_render_wrapper_reads_none_of_the_three_promoted_globals_by_exact_name():
+    """The source region of `TypstWriter.render_wrapper` contains no
+    whole-name config read of the three promoted globals
+    (`typst_template`/`typst_package`/`typst_template_function`).
+    Matching is by exact quoted name, not substring, so
+    `typst_template_mapping` and `typst_package_imports` -- both of which
+    legitimately REMAIN in this function per D-11 and the global-scope
+    decision -- cannot be mistaken for a hit on the shorter names."""
+    source = _render_wrapper_source()
+    matched = [
+        name
+        for name in _PROMOTED_GLOBAL_CONFIG_NAMES
+        if _exact_quoted_config_read_matches(source, name)
+    ]
+    assert not matched, (
+        "render_wrapper() still reads the following promoted global(s) "
+        f"directly off config, by exact quoted name: {matched!r} -- this "
+        "reintroduces the singular template-config assumption Phase 53 "
+        "promotes to a resolved TemplateRegistryEntry."
+    )
+
+
+def test_render_wrapper_source_contains_template_entry_identifier():
+    """The same source region DOES contain the identifier
+    `template_entry`, proving the read was REPLACED rather than merely
+    deleted."""
+    source = _render_wrapper_source()
+    assert "template_entry" in source
+
+
+def test_reserved_key_engine_gets_global_mapping_user_defined_key_gets_none(
+    temp_sphinx_app,
+):
+    """D-11 edge: a `TemplateEngine` built for a user-defined key receives
+    `parameter_mapping` `None`, while one built for the `"typst"` key
+    receives the value of global `typst_template_mapping` -- asserted by
+    constructing both entries and inspecting the engines
+    `render_wrapper()` builds."""
+    from docutils import nodes
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    app = temp_sphinx_app
+    app.config.typst_template_mapping = {"project": "custom_title"}
+
+    reporter = Reporter("", 2, 4)
+    doctree = nodes.document("", reporter=reporter)
+    doctree.settings = states.Struct()
+    doctree += nodes.section()
+
+    writer = TypstWriter(app.builder)
+
+    reserved_entry = TemplateRegistryEntry(
+        key=RESERVED_REGISTRY_KEY, template=None, package=None, template_function=None
+    )
+    user_entry = TemplateRegistryEntry(
+        key="report", template=None, package=None, template_function=None
+    )
+
+    engines: dict = {}
+
+    original_init = __import__(
+        "typsphinx.template_engine", fromlist=["TemplateEngine"]
+    ).TemplateEngine.__init__
+
+    def _capture_init(self, *args, **kwargs):
+        engines["parameter_mapping"] = kwargs.get("parameter_mapping")
+        return original_init(self, *args, **kwargs)
+
+    import typsphinx.template_engine as template_engine_module
+
+    template_engine_module.TemplateEngine.__init__ = _capture_init
+    try:
+        writer.render_wrapper(
+            ("index", "manual.typ", "T", "A"),
+            doctree,
+            "",
+            "index.typ",
+            template_entry=reserved_entry,
+        )
+        reserved_mapping = engines["parameter_mapping"]
+
+        writer.render_wrapper(
+            ("index", "manual.typ", "T", "A"),
+            doctree,
+            "",
+            "index.typ",
+            template_entry=user_entry,
+        )
+        user_mapping = engines["parameter_mapping"]
+    finally:
+        template_engine_module.TemplateEngine.__init__ = original_init
+
+    assert reserved_mapping == {"project": "custom_title"}
+    assert user_mapping is None
