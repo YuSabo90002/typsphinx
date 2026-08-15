@@ -378,3 +378,299 @@ Three entries appended to `.planning/WINDOWS.md` (`phase: 52`), one per defect a
 
 All three are `status: open` as of this plan's execution and will block `/gsd-ship` until
 resolved or explicitly waived.
+
+---
+
+## Second run (Plan 52-08) — three defects fixed, ONE NEW blocking defect found
+
+**Provisioning note:** same as above -- this section's commands ran inside plan 52-08's own
+isolated git worktree, after `unset VIRTUAL_ENV; unset UV_PROJECT_ENVIRONMENT; uv sync --extra dev`.
+
+**Status: NOT accepted as SC#3's authority run either. 11 of 12 jobs report `success` -- all
+three defects the first run found are confirmed fixed by this run's own evidence -- but
+`Test Python 3.13 on windows-latest` fails on a DIFFERENT assertion than the one plan 52-08 fixed,
+for what this section's own log-reading measures to be a fourth, previously-unknown, Python-3.13-
+specific defect. Recorded here honestly per this plan's own Task 4 step 3 instruction
+("If any job still fails, record it honestly and STOP with a checkpoint rather than iterating
+silently") rather than attempting a blind fourth fix outside this plan's declared scope.**
+
+### Local RED -> GREEN proof, defect A (locale)
+
+Command (against the UNMODIFIED tree, before any fix in this plan):
+```
+$ LC_ALL=C LANG=C LANGUAGE=C uv run python -m pytest \
+  "tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics" \
+  -q --tb=line -p no:randomly
+```
+Verbatim tail:
+```
+FAILED tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics::test_warning_baseline_preserved[state_guard_self_and_url_gate]
+FAILED tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics::test_warning_baseline_preserved[state_guard_selfref_gate]
+========================= 2 failed, 5 passed in 4.35s ==========================
+```
+Exactly the 2 parametrized cases this plan's `<context>` predicted -- RED confirmed on this
+executor's own re-measurement, not transcribed from the plan.
+
+Same selection under the machine's default (Japanese) locale, unmodified tree:
+```
+$ uv run python -m pytest "tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics" -q --tb=line -p no:randomly
+============================== 7 passed in 3.84s ===============================
+```
+Both halves of the locale-dependence claim established: fails under `LC_ALL=C`, passes under the
+default Japanese locale, on the identical unmodified tree.
+
+After the fix (`_locale_invariant_anchors()` -- anchors on the untranslated `file:line: WARNING:`
+location prefix plus the untranslated bracketed diagnostic tag, instead of the full localized
+message):
+```
+$ LC_ALL=C LANG=C LANGUAGE=C uv run python -m pytest "tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics" -q --tb=short -p no:randomly
+============================== 7 passed in 3.68s ===============================
+
+$ uv run python -m pytest "tests/test_state_guard_shapes_gate.py::TestNoLostDiagnostics" -q --tb=short -p no:randomly
+============================== 7 passed in 3.76s ===============================
+```
+GREEN under both locales. `git diff --name-only -- typsphinx/` was empty at every step (confirmed
+below, run-wide).
+
+### Local full-suite proof, defects B and C
+
+Defect B's assertion fix (`repr(abs_uri) in message` instead of `abs_uri in message`) re-run
+locally on its own POSIX-only affected test:
+```
+$ uv run python -m pytest tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q
+============================== 1 passed in 0.15s ===============================
+```
+Not reproducible as a local RED on this POSIX host by construction (repr() escapes nothing when
+`os.sep == "/"`) -- the second CI run's Windows lanes are the GREEN authority for this fix, per the
+plan's own instruction.
+
+Defect C's `ruff I001` fix (blind -- `ruff` cannot execute on this machine, per the standing
+NixOS toolchain defect) verified by running the full local suite, both locales:
+```
+$ uv run python -m pytest tests/ -q
+================= 1170 passed, 5 skipped in 109.46s (0:01:49) ==================
+
+$ LC_ALL=C LANG=C LANGUAGE=C uv run python -m pytest tests/ -q
+================= 1170 passed, 5 skipped in 106.10s (0:01:46) ==================
+```
+Both green, identical counts to the executor's own local baseline (`1170 passed, 5 skipped`,
+matching the count cited in the first run's evidence above).
+
+### Push
+
+Command:
+```
+$ git merge-base --is-ancestor aaeec80439c7b5f0dfe5e0d64f4af83bd0550b3e HEAD && echo fast-forward-ok
+fast-forward-ok
+```
+
+Command:
+```
+$ git rev-parse HEAD
+21eb439853e2f53c738ecb0234758b64061d6ff7
+```
+
+Command:
+```
+$ git ls-remote origin refs/heads/gsd/v0.8.0-multi-master-composition
+aaeec80439c7b5f0dfe5e0d64f4af83bd0550b3e	refs/heads/gsd/v0.8.0-multi-master-composition
+```
+Remote tip equals the exact SHA the fast-forward check was measured against -- a plain
+fast-forward, not a force-push, and not needed.
+
+Command and verbatim output:
+```
+$ git push origin HEAD:refs/heads/gsd/v0.8.0-multi-master-composition
+To https://github.com/YuSabo90002/typsphinx.git
+   aaeec804..21eb4398  HEAD -> gsd/v0.8.0-multi-master-composition
+```
+Not rejected.
+
+Confirmation:
+```
+$ git rev-parse HEAD
+21eb439853e2f53c738ecb0234758b64061d6ff7
+$ git ls-remote origin refs/heads/gsd/v0.8.0-multi-master-composition
+21eb439853e2f53c738ecb0234758b64061d6ff7	refs/heads/gsd/v0.8.0-multi-master-composition
+```
+Equal.
+
+### Dispatch
+
+Command:
+```
+$ gh workflow run ci.yml --ref gsd/v0.8.0-multi-master-composition
+https://github.com/YuSabo90002/typsphinx/actions/runs/31856929828
+```
+
+Matched by `headSha`:
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.8.0-multi-master-composition --limit 5 --json databaseId,headSha,event,status
+```
+First row: `{"databaseId":31856929828,"headSha":"21eb439853e2f53c738ecb0234758b64061d6ff7","event":"workflow_dispatch","status":"in_progress"}` --
+`headSha` equals the pushed SHA.
+
+Run id: `31856929828`
+Run URL: `https://github.com/YuSabo90002/typsphinx/actions/runs/31856929828`
+
+Overall run conclusion, confirmed after `gh run watch`:
+```
+$ gh run view 31856929828 --json conclusion,status
+{"conclusion":"failure","status":"completed"}
+```
+
+### Job conclusions
+
+Command:
+```
+$ gh run view 31856929828 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv' | sort
+```
+
+| Job | Conclusion |
+|---|---|
+| Build Package | success |
+| Code Coverage | success |
+| Integration Test - advanced | success |
+| Integration Test - basic | success |
+| Lint and Format Check | success |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| Test Python 3.13 on windows-latest | **failure** |
+| Type Check | success |
+
+11 of 12 jobs succeed. `[.jobs[].conclusion]|unique` is `["failure","success"]`, not the required
+`["success"]`.
+
+### Defects A, B, C confirmed fixed by this run's own evidence
+
+- **Defect A (locale):** `Code Coverage` and all six OS/Python test-matrix lanes now `success`,
+  including the five that only carried defect A (`macos-latest` x2, `ubuntu-latest` x2, and
+  `Code Coverage`). Fixed.
+- **Defect C (`ruff I001`):** `Lint and Format Check` now `success` (was the sole failure driver
+  for that job in the first run). Fixed -- confirmed by CI, the only available authority for this
+  defect since `ruff` cannot run locally.
+- **Defect B (repr escaping) and the locale half of defect A on Windows:** `Test Python 3.12 on
+  windows-latest` is now fully `success` -- both the two locale-dependent cases and the repr-
+  escaping case that used to fail on this lane are gone. Confirmed by direct log read (see below).
+  Defect B is fixed on at least one of its two originally-affected lanes.
+
+### NEW finding: `Test Python 3.13 on windows-latest` fails on a DIFFERENT assertion
+
+Command:
+```
+$ gh run view 31856929828 --json jobs --jq '.jobs[] | select(.name == "Test Python 3.13 on windows-latest") | .databaseId'
+94943364244
+```
+
+Log excerpt (`gh run view --job 94943364244 --log-failed`), verbatim:
+```
+>       assert img["uri"] == "_typst_converted/chart.png"
+E       AssertionError: assert '\\typsphinx_...ot\\chart.png' == '_typst_converted/chart.png'
+E
+E         - _typst_converted/chart.png
+E         + \typsphinx_test_50_03_escape_root\chart.png
+
+tests\test_builder.py:547: AssertionError
+============ 1 failed, 1169 passed, 5 skipped in 296.62s (0:04:56) ============
+```
+
+This fails at `test_builder.py:547` -- the URI-rewrite assertion, which comes BEFORE the message
+assertion this plan's Task 2 fixed (line ~561 post-fix). `img["uri"]` is entirely unchanged from
+the raw input, meaning `TypstBuilder._track_image()`'s `if path.isabs(resolved_uri):` branch
+(`typsphinx/builder.py`) was never entered at all for this Windows lane -- not a repr-formatting
+defect, a different failure mode one step earlier in the same code path.
+
+**Confirmed NOT the same failure the first run recorded.** The first run's Windows-lane failure
+for this exact test was at line 555 (the message-content assertion), which only executes AFTER
+line 547's `img["uri"]` assertion passes -- proving `img["uri"]` WAS correctly rewritten to
+`_typst_converted/chart.png` on Windows in the first run. This run's failure is upstream of that,
+on the SAME test, on the SAME OS.
+
+**Confirmed Python-3.13-specific, not OS-specific, by direct comparison against the sibling
+Windows lane:**
+```
+$ gh run view 31856929828 --json jobs --jq '.jobs[] | select(.name == "Test Python 3.12 on windows-latest") | .databaseId'
+94943364251
+$ gh run view --job 94943364251 --log 2>&1 | grep -i "rehome_escape_relocates_with_warning\|1170 passed"
+tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning PASSED [  6%]
+================= 1170 passed, 5 skipped in 346.34s (0:05:46) =================
+```
+`Test Python 3.12 on windows-latest` -- same OS, same runner image, same commit -- passes this
+exact test cleanly, full suite `1170 passed, 5 skipped` (this plan's own local baseline count).
+Only the 3.13 lane fails.
+
+Exact interpreter versions, read from each job's own "Set up Python" / pytest banner lines:
+```
+Test Python 3.13 on windows-latest: Installed Python 3.13.15 ... platform win32 -- Python 3.13.15
+Test Python 3.12 on windows-latest: Installed Python 3.12.14 ... platform win32 -- Python 3.12.10 / 3.12.14
+```
+
+**Root-cause hypothesis (not independently executed on this POSIX host -- read from CPython's
+`ntpath` source and cross-referenced against the observed symptom, not asserted as verified
+fact):** `abs_uri = os.path.join(os.sep, "typsphinx_test_50_03_escape_root", "chart.png")`
+constructs a Windows path with a leading single backslash and NO drive letter (e.g.
+`\typsphinx_test_50_03_escape_root\chart.png`). CPython's `ntpath.isabs()` historically treated a
+leading-separator, driveless path as absolute; a stdlib correction changed that in Python 3.13, so
+`os.path.isabs()` on Windows now requires a drive letter (or UNC prefix) to report `True`. If that
+is what is happening here, `path.isabs(resolved_uri)` in `typsphinx/builder.py`'s
+`_track_image()` now evaluates `False` for this exact fixture shape under 3.13, so the entire
+rehome/relocate/warn branch this test exercises is skipped, and `img["uri"]` is left completely
+untouched -- matching the observed symptom exactly. This reads as a fourth, previously-unknown
+defect distinct from A/B/C, of ambiguous scope: the fix could be test-side (construct a
+genuinely drive-absolute Windows path in the fixture, keeping `typsphinx/` untouched) or
+product-side (also treat a driveless-absolute Windows URI as needing rehome, which
+`typsphinx/builder.py` may or may not have ever handled correctly). **Not fixed in this plan** --
+this plan's Task 4 step 3 instruction is to stop and record rather than attempt a blind fourth fix
+outside the plan's own declared scope.
+
+### No irreversible action (second run)
+
+Timestamp:
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-15T01:44:24Z
+```
+```
+$ git tag -l v0.8.0
+(no output)
+$ git ls-remote --tags origin v0.8.0
+(no output)
+$ gh pr list --head gsd/v0.8.0-multi-master-composition --json number,state
+[]
+$ gh run list --workflow=release.yml --limit 3 --json databaseId,createdAt,event
+[{"createdAt":"2026-08-11T05:33:22Z","databaseId":31462027486,"event":"push"},
+ {"createdAt":"2026-08-03T20:08:22Z","databaseId":30848860064,"event":"push"},
+ {"createdAt":"2026-07-28T20:57:57Z","databaseId":30398631991,"event":"push"}]
+```
+All three listed `release.yml` runs predate this plan; none was started by this plan. No `v0.8.0`
+tag, locally or on `origin`. Zero open pull requests. Exactly two actions taken by this plan: a
+plain fast-forward branch push and a `ci.yml workflow_dispatch` -- both on the reversible side of
+the prep/publish fence.
+
+### Ledger NOT closed -- CI is not fully green
+
+`.planning/WINDOWS.md` ledger entries 3, 4, 5 are **NOT** marked `fixed` by this plan.
+Entries 4 (locale) and 5 (`ruff I001`) are conclusively discharged by this run's own evidence, but
+entry 3 (Windows-only backslash/rehome defect) names the same lane (`Test Python 3.X on
+windows-latest`) that is STILL red -- for a different reason than entry 3's own original
+description, but the same test, the same lane, still failing. Closing entry 3 now would
+misrepresent the ledger. `open_count` stays as recorded by the first run until this new finding is
+resolved or explicitly waived by the owner.
+
+### Escalation
+
+This plan's Task 4 step 3 says: "If any job still fails, record it honestly and STOP with a
+checkpoint rather than iterating silently." 11 of 12 jobs are green and this plan's own three
+declared defects are conclusively fixed, but a fourth, previously-unknown defect surfaced on
+`Test Python 3.13 on windows-latest` that this plan did not anticipate, was not measured at
+planning time, and sits at a different code path than any of defects A/B/C. Per the SCOPE
+BOUNDARY rule ("Only auto-fix issues DIRECTLY caused by the current task's changes... log...
+do NOT fix them") and this plan's own explicit stop instruction, this plan does not attempt a
+fourth fix. A follow-up decision is needed from the owner: whether to author a new plan to fix the
+Python-3.13 `isabs()` driveless-absolute-path gap (test-fixture-only, or product-side, per the two
+options above), whether to accept it as a filed, deferred defect and re-attempt the CI authority
+run later, or another disposition. Filed to `.planning/WINDOWS.md` as a new entry so it is visible
+at ship time (see below).
