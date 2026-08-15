@@ -501,9 +501,8 @@ class TestComputeTemplateImportPath:
     Unit tests for ``compute_template_import_path()`` (Phase 54, OUT-06):
     a root-absolute import path computed from a registry key and the
     resolved template's own filename -- NOT from the wrapper's own
-    resolved directory, unlike the depth-counted
-    ``compute_template_import_path_for_dir()`` this replaces (deleted).
-    Typst resolves a leading ``/`` against the project root
+    resolved directory, unlike the depth-counted helper this replaces
+    (since deleted). Typst resolves a leading ``/`` against the project root
     (``pdf.py``'s ``root=self.outdir``), so the wrapper's own nesting
     depth is irrelevant by construction.
     """

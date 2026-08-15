@@ -9,8 +9,8 @@ named ``_template`` (the reserved shared-template basename). The Phase
 22.1 fix computed the import purely from the wrapper's own resolved
 directory's path-segment count -- correct, but still fundamentally a
 depth-relative ``"../"`` counter against a SINGLE shared file written at
-the outdir root (``compute_template_import_path_for_dir()``, since
-deleted).
+the outdir root (the per-wrapper-directory depth-counting helper this
+module used to exercise directly, since deleted).
 
 **Phase 54 (OUT-04/OUT-06) replaces the entire depth-counting contract.**
 Every used registry key's resolved template bundle is now copied wholesale
