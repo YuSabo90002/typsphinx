@@ -1,8 +1,8 @@
 ---
 phase: 53-template-registry-foundation
-reviewed: 2026-08-15T11:11:04Z
+reviewed: 2026-08-15T00:00:00Z
 depth: standard
-files_reviewed: 20
+files_reviewed: 24
 files_reviewed_list:
   - tests/fixtures/conf14_prewrite_bad_first_gate/aaa_bad.rst
   - tests/fixtures/conf14_prewrite_bad_first_gate/conf.py
@@ -16,6 +16,9 @@ files_reviewed_list:
   - tests/fixtures/conf14_prewrite_control_gate/five.rst
   - tests/fixtures/conf14_prewrite_control_gate/four.rst
   - tests/fixtures/conf14_prewrite_control_gate/index.rst
+  - tests/fixtures/registry_container_shape_gate/conf.py
+  - tests/fixtures/registry_container_shape_gate/index.rst
+  - tests/test_registry_container_shape_gate.py
   - tests/test_registry_prewrite_validation_gate.py
   - tests/test_state_guard_shapes_gate.py
   - tests/test_template_engine.py
@@ -27,101 +30,123 @@ files_reviewed_list:
   - typsphinx/writer.py
 findings:
   critical: 0
-  warning: 2
-  info: 1
-  total: 3
-status: issues_found
+  warning: 0
+  info: 2
+  total: 2
+status: clean
 ---
 
-# Phase 53: Code Review Report
+# Phase 53: Code Review Report (Re-review — second gap-closure round)
 
-**Reviewed:** 2026-08-15T11:11:04Z
+**Reviewed:** 2026-08-15
 **Depth:** standard
-**Files Reviewed:** 20
-**Status:** issues_found
+**Files Reviewed:** 24
+**Status:** clean
 
 ## Summary
 
-Re-review after gap closure (plans 53-06, 53-07). The prior report's CR-02
-(Windows cross-drive `ValueError` crashing `_violates_conf17()`) and WR-02/
-WR-03 (non-`str` registry key / truthy non-`dict` definition crashing with
-raw `AttributeError`/`TypeError`) were verified fixed by direct code
-inspection and by re-running their pinning tests
-(`tests/test_template_registry.py`, `tests/test_registry_prewrite_validation_gate.py`,
-168 tests, all green). `_validate_registry_key_references()` correctly
-closes CONF-14's order-dependent partial-write gap: both `conf14_prewrite_bad_first_gate`
-and `conf14_prewrite_bad_last_gate` leave zero `.typ` files on disk with a
-byte-identical error message, matching `53-06-RED-EVIDENCE.md`'s claim, and
-`conf14_prewrite_control_gate` proves the pass is a no-op for an ordinary
-config.
+This is a targeted re-review of `typsphinx/template_registry.py` (and its callers/tests) after
+plan 53-08 closed the two prior WARNING findings (WR-01: truthy non-`dict`
+`typst_document_templates` container crashing with a raw `AttributeError`; WR-02: a truthy
+non-consumable `template` field crashing with a raw `TypeError` from `os.path.join`). I traced
+both fixes end to end against `resolve_template_registry()`'s actual source, the accompanying
+unit tests (`tests/test_template_registry.py`, `tests/test_registry_container_shape_gate.py`)
+and the real-`sphinx-build` subprocess gates (`tests/test_registry_prewrite_validation_gate.py`,
+`tests/test_registry_container_shape_gate.py`), and re-derived the edge cases by hand (falsy vs.
+truthy container values, `bytes`/`list`/`bool` template values, `os.PathLike` acceptance, the
+CONF-15/type-guard/CONF-17/D-08 interaction inside the same accumulate loop, and the
+declaration-order determinism of the accumulated message).
 
-While tracing the accumulate-then-raise-once validation pass in
-`resolve_template_registry()` for cases NOT covered by the 53-07 guards, I
-found and reproduced two further raw-exception crash paths in the same
-function that are one level "up" from the ones just fixed: a non-`dict`
-top-level `typst_document_templates` value, and a non-`str` `template`
-field inside an otherwise well-formed definition. Both are live today
-(reproduced against a real `sphinx-build` subprocess below) and both are
-the identical defect class WR-02/WR-03 just closed for narrower inputs —
-Sphinx only *warns* (not enforces) `typst_document_templates`'s
-`[dict]` config-value type, so a user typo reaches this module's own code
-with no earlier gate.
+**Both WR-01 and WR-02 are correctly and completely fixed — no residual hole found.**
 
-## Warnings
+- **WR-01**: `resolve_template_registry()` now does `declared = getattr(config,
+  "typst_document_templates", None) or {}` followed immediately by `if not isinstance(declared,
+  dict): raise ExtensionError(...)`, placed *before* `declared.keys()` is ever touched. Because the
+  preceding `or {}` has already normalized every falsy value, the `isinstance` check provably fires
+  only for a truthy non-`dict` (verified this is exactly the crash surface `declared.keys()` would
+  otherwise hit). Confirmed against both the unit test (`test_truthy_non_dict_container_unit_raises_extension_error`)
+  and the subprocess gate, which explicitly asserts `"AttributeError" not in combined_output`.
+- **WR-02**: a truthy `template` field is now type-checked against `(str, os.PathLike)` before
+  `os.path.join(srcdir, template)` is ever called, joining the same accumulate-then-raise-once
+  `failures` list as every other definition-level check (not a `continue`, so CONF-15's
+  both-set check for the *same* key still fires in the same raise when applicable — confirmed by
+  `test_bad_typed_template_and_package_both_reported_in_one_raise`). Falsy `template` values
+  (`None`/`""`/`0`/`[]`) are untouched, and the accepted-type set (`str` and `os.PathLike`, not
+  `str` alone) is deliberately wider than the WR-02 finding's own suggested fix, correctly measured
+  against what `TemplateEngine.resolve_template()`'s `_try_load_file()`/`Path(...)` chain already
+  accepts today (verified via `test_pathlike_template_field_still_resolves`, which proves the guard
+  does not withdraw a working shape). `bytes` is correctly rejected (`test_bytes_template_field_raises_extension_error_not_typeerror`).
 
-### WR-01: Non-`dict` `typst_document_templates` crashes with raw `AttributeError` instead of `ExtensionError`
+I additionally traced the full validation pipeline order in `TypstBuilder.write()` (collision
+validation → `resolve_template_registry()` → `_validate_registry_key_references()` →
+`prepare_writing()`) and confirmed the "zero `.typ` files survive any of these three failure
+classes" guarantee holds for the container-shape guard exactly as it already held for CONF-14
+(both are validated before `prepare_writing()`'s `_write_template_file()` call, which is the first
+thing that touches disk).
 
-**File:** `typsphinx/template_registry.py:261-262`
-**Issue:** `resolve_template_registry()` does `declared = getattr(config, "typst_document_templates", None) or {}` then immediately calls `declared.keys()`. `app.add_config_value("typst_document_templates", {}, "html", [dict])` (`typsphinx/__init__.py:63`) only makes Sphinx *warn* on a type mismatch — it does not coerce or reject the value — so a truthy non-`dict` config value (e.g. a `list`, which is a plausible copy-paste-from-`typst_documents` typo) reaches this line unchanged and crashes with a raw `AttributeError: 'list' object has no attribute 'keys'`, producing an internal Sphinx traceback dump instead of this module's own `typst_document_templates: N invalid definition(s): ...` contract. Reproduced live:
-```
-$ python -m sphinx -b typst src build   # conf.py: typst_document_templates = ["a", "b"]
-...
-WARNING: 設定値 `typst_document_templates' に `list' 型が指定されていますが、 `dict' 型を指定してください。
-...
-AttributeError: 'list' object has no attribute 'keys'
-```
-An empty list (`[]`) does NOT trigger this — `[] or {}` is falsy so it silently resolves to `{}` — only a *truthy* non-`dict` value does. This is exactly the WR-02/WR-03 defect class ("raw internal exception instead of this module's own `ExtensionError`"), one level higher: the container itself, not a key or a definition inside it.
-**Fix:**
-```python
-declared = getattr(config, "typst_document_templates", None) or {}
-if not isinstance(declared, dict):
-    raise ExtensionError(
-        f"typst_document_templates must be a dict, got {declared!r}"
-    )
-all_keys = {key for key in declared.keys() if isinstance(key, str)}
-```
+I also independently confirmed the Phase 53 scope boundary is intact: `render_wrapper()` reads a
+per-key `TemplateRegistryEntry.template`/`.package`/`.template_function` and builds a
+`TemplateEngine` from it, but the wrapper's own `#import` statement (`template_file`, computed in
+`render()`) still always points at the single shared `_template.typ` written by
+`_write_template_file()` from the *global* `typst_template`/`typst_package` config — a per-key
+custom `template`/`template_function` is validated but not yet actually wired into wrapper output.
+This is explicitly documented as intentional and deferred: ROADMAP Phase 53's own goal states "this
+phase changes no output" and Phase 54 ("One Bundle Rule — `_template/<key>/`, Per-Document
+Selection, Four Deletions") is the phase that performs that wiring. Not reported as a finding.
 
-### WR-02: Non-`str` `template` field crashes with raw `TypeError` instead of `ExtensionError`
-
-**File:** `typsphinx/template_registry.py:334-340`
-**Issue:** Once a definition passes the WR-03-fixed dict-shape guard, `template = definition.get("template")` is used unchecked: `if template:` only tests truthiness, then `template_abs_path = os.path.join(srcdir, template)` is called directly. A non-`str` truthy `template` value (e.g. a `list`, again a plausible typo such as writing `"template": ["a", "b"]` or forgetting to unwrap a one-element list) crashes `os.path.join()` with a raw `TypeError: join() argument must be str, bytes, or os.PathLike object, not 'list'` — an unhandled internal exception, not this module's accumulated `ExtensionError`. Reproduced live against `conf.py: typst_document_templates = {"key": {"template": ["a", "b"]}}`:
-```
-File "<frozen genericpath>", line 188, in _check_arg_types
-TypeError: join() argument must be str, bytes, or os.PathLike object, not 'list'
-```
-This is the same defect class as WR-01 above and the just-fixed WR-02/WR-03, now found one field deeper: the `template` value itself is never type-checked before being handed to `os.path.join()`.
-**Fix:**
-```python
-if template is not None and not isinstance(template, str):
-    failures.append(
-        f"registry key {key!r}'s template {template!r} must be a "
-        "string, not a path list or other type"
-    )
-elif template:
-    template_abs_path = os.path.join(srcdir, template)
-    ...  # existing CONF-17 / D-08 checks unchanged
-```
+Only two Info-level items remain, both non-functional. No Critical or Warning findings.
 
 ## Info
 
-### IN-01: `package` field is never type-validated, silently emits malformed Typst on a non-`str` value
+### IN-01: `package` field is not type-validated (owner-declined, unchanged from prior review)
 
-**File:** `typsphinx/template_registry.py:323`, `typsphinx/writer.py:530-554` (`TemplateEngine.generate_package_import()`)
-**Issue:** Unlike `template`, a non-`str` `package` value (e.g. `{"package": 123}`) does not crash — it silently flows through to `generate_package_import()`, which f-string-interpolates it into `#import "{self.typst_package}"`, producing `#import "123"` in the emitted `.typ` file: syntactically valid but semantically nonsensical Typst that only surfaces as a confusing compile-time error far from the misconfiguration's source. This mirrors the pre-existing (out-of-scope) behavior of the global `typst_package` config value, so it is not a phase-53 regression, but since `resolve_template_registry()` already validates several other shapes of this same definition dict (CONF-15/CONF-17/D-08), a `str` type-check here would be a small, consistent addition rather than a new validation axis.
-**Fix:** Optionally extend the same truthy-non-`str` guard pattern proposed for WR-02 to `package`, reporting it as an accumulated failure rather than leaving it to surface as an opaque Typst compile error.
+**File:** `typsphinx/template_registry.py:369, 451-456`
+**Issue:** `TemplateRegistryEntry.package` is read via `definition.get("package")` with no
+type check, unlike `template`, which now (post-WR-02) rejects a non-`str`/`os.PathLike` value
+before it can reach `os.path.join`. A truthy, wrongly-typed `package` (e.g. a `list`) still flows
+through `resolve_package_for_engine()` into `TemplateEngine.typst_package` and eventually into
+`generate_package_import()`'s f-string (`f'#import "{self.typst_package}": ...'`), producing a
+malformed Typst `#import` statement (e.g. `#import "['a', 'b']": ...`) rather than a clean,
+actionable `ExtensionError` at config-validation time. This is the identical gap the prior
+`53-REVIEW.md` reported as IN-01.
+**Status:** Per this round's phase context, this was reviewed by the project owner and explicitly
+declined as out of scope for Phase 53. Recorded here only because it remains observably true, not
+as a request to fix it in this phase.
+**Fix (if ever revisited):** Mirror the `template` guard — `if package and not isinstance(package,
+str): failures.append(...)` — inside the same accumulate loop, immediately after the existing
+`template`-type guard.
+
+### IN-02: misleading "elif" description in the WR-02 fix's own comment block
+
+**File:** `typsphinx/template_registry.py:380-407`
+**Issue:** The comment block introducing the `template`-type guard states: "1. This branch is an
+`elif` of `if template and package:` above, NOT a `continue`". The actual code has these as two
+independent, sibling `if` statements at the same indentation level inside the `for key in
+sorted(...)` loop —
+
+```python
+if template and package:                                  # line 374 (CONF-15)
+    failures.append(...)
+
+if template and not isinstance(template, (str, os.PathLike)):  # line 408 (type guard)
+    failures.append(...)
+elif template:
+    ...
+```
+
+— not `if template and package: ... elif template and not isinstance(...): ...`. The described
+*behavior* (CONF-15's both-set check still fires for the same key even when `template` is
+bad-typed, so both failures land in one accumulated raise) is correct and is exactly what
+`test_bad_typed_template_and_package_both_reported_in_one_raise` proves. Only the comment's
+characterization of *how* that is achieved is inaccurate — describing two independent `if`
+statements as one being "an `elif`" of the other. Purely a documentation-precision nit; no
+behavioral impact.
+**Fix:** Reword point 1 to something like: "This is a separate, sibling `if` (not chained via
+`elif`, and not a `continue`) to the CONF-15 check above, so CONF-15's both-set check still
+independently evaluates for the same definition regardless of this branch's outcome."
 
 ---
 
-_Reviewed: 2026-08-15T11:11:04Z_
+_Reviewed: 2026-08-15_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
