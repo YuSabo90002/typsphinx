@@ -196,9 +196,11 @@ ExtensionError: typst_document_templates: 1 invalid definition(s): registry key 
 
 - WR-01 (Task 1): `6846a190` — `feat(53-08): close WR-01 -- typo'd typst_document_templates
   container fails cleanly`.
-- WR-02 (Task 2): recorded in a small follow-up docs commit immediately after the Task 2
-  feat commit lands, naming that commit's own SHA (both are, by construction, distinct
-  from the pre-fix base `74eb4440ba8bc0dda6bed63e24b9aab6bb26d146`).
+- WR-02 (Task 2): `daca9a7d` — `feat(53-08): close WR-02 -- truthy unusable template field
+  joins accumulated raise`.
+
+Both are, by construction, distinct from the pre-fix base
+`74eb4440ba8bc0dda6bed63e24b9aab6bb26d146`.
 
 ### Full-suite and toolchain checks (Task 2 acceptance criteria)
 
