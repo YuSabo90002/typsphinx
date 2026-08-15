@@ -5,10 +5,10 @@ milestone_name: per-document templates
 current_phase: 54
 current_phase_name: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
 status: planning
-stopped_at: "Completed Phase 53 -- all 10 plans executed, verification passed 5/5 (SC#5 re-closed on CI run 31884774067 over 35ee8a0e)"
-last_updated: "2026-08-15T12:58:40.822Z"
+stopped_at: Phase 54 context gathered
+last_updated: "2026-08-15T13:43:38.226Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 53 complete — 10/10 plans, verification 5/5 passed, code review clean, ready to plan Phase 54
+last_activity_desc: Phase 54 context gathered — 13 decisions captured, BLD-06/SC#3 symlink clause retracted by owner, ready to plan Phase 54
 progress:
   total_phases: 5
   completed_phases: 1
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 53 — template-registry-foundation
+**Current focus:** Phase 54 — one-bundle-rule-template-key-per-document-selection-four-deletions
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
 template through a validated `typst_document_templates` registry, and one output rule — every used
 key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
@@ -778,12 +778,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/54-one-bundle-rule-template-key-per-document-selection-four-del/54-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-15T09:13:17.887Z
-Stopped at: Completed 53-05-PLAN.md -- Phase 53 all 5 plans complete
+Last session: 2026-08-15T13:43:38.214Z
+Stopped at: Phase 54 context gathered
 Resume: `/gsd-plan-phase 53`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
