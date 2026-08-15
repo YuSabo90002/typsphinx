@@ -4,15 +4,15 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 53
 current_phase_name: Template Registry Foundation
-status: planning
-stopped_at: Phase 53 context gathered
-last_updated: "2026-08-15T06:39:33.973Z"
+status: Ready to execute
+stopped_at: Phase 53 planned (5 plans, 4 waves)
+last_updated: "2026-08-15T07:29:27.019Z"
 last_activity: 2026-08-15
-last_activity_desc: v0.9.0 roadmap created (Phases 53–57)
+last_activity_desc: Phase 53 planned — 5 plans across 4 waves
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---

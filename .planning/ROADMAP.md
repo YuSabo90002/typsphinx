@@ -570,11 +570,21 @@ this milestone does not touch.
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
 **Plans**: 5 plans (4 waves)
+**Wave 1**
 
 - [ ] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 53-02-PLAN.md — Tracer: `typst_document_templates` registered, `template_registry.py`, resolution threaded from `write()` into `render_wrapper()`, output unchanged — wave 2
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 53-03-PLAN.md — Validation: CONF-14…CONF-18, denylist enumeration, accumulate-then-raise-once — wave 3
 - [ ] 53-04-PLAN.md — `TemplateResolution` widened to carry the resolved path through the single priority walk — wave 3
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 53-05-PLAN.md — SC#2 post-change identity diff + SC#5 branch push and dispatched 3-OS CI run — wave 4
 
 **UI hint**: no
