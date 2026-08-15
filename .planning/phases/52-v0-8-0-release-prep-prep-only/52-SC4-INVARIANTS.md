@@ -520,3 +520,253 @@ $ git tag -l v0.8.0
 
 No working-tree change under `typsphinx/`; no `v0.8.0` tag exists locally. No irreversible action
 was taken while gathering this evidence.
+
+---
+
+## Positive control
+
+**This is new work for this phase.** `46-SC4-INVARIANTS.md` — the only prior evidence file of this
+shape — recorded figures and reasoning for all three invariants but attempted **no** independent
+demonstration that its own detectors could fire on a real violation. Its own text for the dependency
+invariant states plainly: *"this particular invariant has no non-vacuous control available at the
+file level [in that milestone] ... borrow the shortstat as the sweep's own liveness proof."* That
+precedent was deliberately **not** copied forward here. Each control below is a live command run
+against a genuine historical or scratch-mutated violation, not a restatement of Task 1's clean
+verdicts.
+
+### Control 1 — the dependency detector
+
+**Vacuity mode this closes:** an empty `dependencies`-array diff is indistinguishable from a
+mis-typed pathspec or a `sed` range matching nothing — a detector pointed at the wrong file, or one
+whose extraction range never matches real content, silently agrees with a genuinely clean tree.
+
+This project's `dependencies` array has never had an entry added or removed in its entire git
+history (verified: `git log --oneline -- pyproject.toml`'s earliest and latest states both list
+exactly `sphinx`, `docutils`, `typst`) — so "a commit that added a runtime dependency" does not
+exist to cite. The strongest available real violation is a commit that changed the array's actual
+content (version bounds) rather than merely its surrounding lines:
+
+```
+$ git show 63f4284c^:pyproject.toml | sed -n '/^dependencies = \[/,/^\]/p'
+dependencies = [
+    "sphinx>=5.0",
+    "docutils>=0.18",
+    "typst>=0.14.1",
+]
+
+$ git show 63f4284c:pyproject.toml | sed -n '/^dependencies = \[/,/^\]/p'
+dependencies = [
+    "sphinx>=5.0,<9",
+    "docutils>=0.18,<0.22",
+    "typst>=0.14.1,<0.15",
+]
+
+$ diff <63f4284c^-extraction> <63f4284c-extraction>
+2,4c2,4
+<     "sphinx>=5.0",
+<     "docutils>=0.18",
+<     "typst>=0.14.1",
+---
+>     "sphinx>=5.0,<9",
+>     "docutils>=0.18,<0.22",
+>     "typst>=0.14.1,<0.15",
+(exit 1)
+```
+
+`63f4284c` (`fix(01-01): pin runtime deps to known-good, drop dead sphinx-testing`) genuinely moved
+the `dependencies` array — all three entries gained upper bounds — and running the IDENTICAL
+extraction-and-diff shape from Task 1 step 3 across it and its parent produces a **non-empty diff**
+(exit 1), proving the detector fires on real content movement rather than always agreeing.
+
+```
+$ git show HEAD:pyproject.toml | sed -n '/^dependencies = \[/,/^\]/p' | wc -l
+5
+```
+
+(Already recorded under Invariant 1 above — repeated here for locality: the HEAD block is 5 lines,
+confirming the `sed` range matches genuine, non-empty content at the anchor this plan actually
+sweeps, not only at the historical control commit.)
+
+### Control 2 — the `@preview` detector
+
+**Vacuity mode this closes:** a cross-surface identity check comparing two structurally-empty or
+always-agreeing sets would report "clean" regardless of whether the surfaces genuinely agree — the
+control must show the comparison can report a *mismatch*.
+
+The three sync surfaces were copied to a scratch directory under `/tmp/gsd-52-06-control2/`
+(**never the tracked files**) via `mkdir -p /tmp/gsd-52-06-control2` then three separate `cp`
+commands (`typsphinx/writer.py`, `typsphinx/template_engine.py`,
+`typsphinx/templates/base.typ`). One `@preview` version string was then changed in exactly ONE
+scratch copy:
+
+```
+$ sed -i 's/@preview\/codly:1.3.0/@preview\/codly:1.2.0/' /tmp/gsd-52-06-control2/base.typ
+$ grep -n '@preview/codly:' /tmp/gsd-52-06-control2/base.typ
+8:#import "@preview/codly:1.2.0": *
+```
+
+Running the same cross-surface identity comparison Task 1 step 4(b) used, against the scratch
+copies:
+
+```
+$ grep -o '@preview/[a-z-]*:[0-9.]*' /tmp/gsd-52-06-control2/base.typ | sort -u
+@preview/codly-languages:0.1.10
+@preview/codly:1.2.0
+@preview/gentle-clues:1.3.1
+@preview/mitex:0.2.7
+
+$ grep -o '@preview/[a-z-]*:[0-9.]*' /tmp/gsd-52-06-control2/writer.py | sort -u
+@preview/codly-languages:0.1.10
+@preview/codly:1.3.0
+@preview/gentle-clues:1.3.1
+@preview/mitex:0.2.7
+
+$ diff <scratch-base.typ-pairs> <scratch-writer.py-pairs>
+2c2
+< @preview/codly:1.2.0
+---
+> @preview/codly:1.3.0
+(exit 1)
+```
+
+**The comparison reports a mismatch and names the drifted surface**: `base.typ`'s scratch copy now
+declares `codly:1.2.0` while `writer.py`'s (unmutated) copy still declares `codly:1.3.0` — exactly
+the class of drift `test_preview_version_sync.py` exists to catch.
+
+```
+$ git status --porcelain
+(no output)
+```
+
+The tracked tree is confirmed untouched — the mutation never left `/tmp/gsd-52-06-control2/`.
+
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+tests/test_preview_version_sync.py ...                                   [100%]
+============================== 3 passed in 0.02s ===============================
+```
+
+The real guard re-runs green immediately afterward, confirming the scratch mutation had zero effect
+on the tracked tree's own test outcome.
+
+```
+$ rm -rf /tmp/gsd-52-06-control2
+```
+
+The scratch directory was removed after the control ran.
+
+**Corroborating history, explicitly labelled as such and not as the control itself:** `STATE.md`'s
+v0.6.3-close entry records a real, historical catch of exactly this drift class — the bundled
+`examples/advanced` sample's `custom.typ` was three milestones behind on its `@preview` pins and
+failed to compile with `unknown variable: kai`, which is when `test_preview_version_sync.py` was
+extended to cover `examples/**/*.typ` as a fourth, drift-guarded surface. This is cited as prior
+real-world evidence the hazard class is genuine, not as this control's own live demonstration.
+
+### Control 3 — the config-value detector
+
+**Vacuity mode this closes:** a pattern that matches nothing on ANY input (a mis-spelled function
+name, a regex with a typo) returns empty on every range, including a genuinely dirty one — passing
+this range too looks identical to a real clean result.
+
+```
+$ grep -c 'add_config_value' typsphinx/__init__.py
+10
+```
+
+**(a) Non-vacuous on the current file:** the token exists 10 times at HEAD — if it were 0, the whole
+invariant would trivially pass on every range for the wrong reason.
+
+**(b) A historical range where a `typst_*` config value was genuinely added:**
+
+```
+$ git log --oneline -S'add_config_value' -- typsphinx/__init__.py
+d5277d0d feat(45.1-04): remove typst_authors config value (CONF-10, D-F)
+f8abfc6d feat(24-01): remove typst_toctree_defaults config registration
+06c0d1f6 feat(22.2-01): remove dead typst_output_dir and typst_author_params config registrations
+10100b9d feat: add automatic template asset copying support
+dd225a91 feat: add Typst Universe template support (Issue #13)
+56f5bbc4 refactor: rename package from sphinxcontrib-typst to typsphinx
+```
+
+`10100b9d` (`feat: add automatic template asset copying support`, closing Issue #75) is the commit
+that introduced `typst_template_assets` — the same config value `typsphinx/__init__.py`'s own
+`# Issue #75: Template asset support` comment documents today. Running the IDENTICAL
+set-extraction-and-diff shape from Task 1 step 5 across it and its parent (`e87e852b`):
+
+```
+$ git show e87e852b:typsphinx/__init__.py | grep -o 'add_config_value(\s*"[A-Za-z0-9_]*"' | grep -o '"[A-Za-z0-9_]*"' | sort
+"typst_author_params"
+"typst_authors"
+"typst_debug"
+"typst_documents"
+"typst_elements"
+"typst_output_dir"
+"typst_package"
+"typst_package_imports"
+"typst_template"
+"typst_template_mapping"
+"typst_toctree_defaults"
+"typst_use_mitex"
+
+$ git show 10100b9d:typsphinx/__init__.py | grep -o 'add_config_value(\s*"[A-Za-z0-9_]*"' | grep -o '"[A-Za-z0-9_]*"' | sort
+"typst_author_params"
+"typst_authors"
+"typst_debug"
+"typst_documents"
+"typst_elements"
+"typst_output_dir"
+"typst_package"
+"typst_package_imports"
+"typst_template"
+"typst_template_assets"
+"typst_template_mapping"
+"typst_toctree_defaults"
+"typst_use_mitex"
+
+$ diff <e87e852b-set> <10100b9d-set>
+9a10
+> "typst_template_assets"
+(exit 1)
+```
+
+**The two sets differ** (exit 1) and the added config value is named exactly: `typst_template_assets`.
+The detector fires on a real config-registration addition.
+
+```
+$ git status --porcelain -- typsphinx/ pyproject.toml tests/
+(no output)
+
+$ git tag -l v0.8.0
+(no output)
+$ git ls-remote --tags origin v0.8.0
+(no output)
+```
+
+No tracked file was touched by any of the three controls; no `v0.8.0` tag exists locally or on the
+remote.
+
+---
+
+## Roll-up verdict
+
+| Invariant / Control | Verdict | Evidence |
+|---|---|---|
+| Invariant 1 — zero new runtime dependencies | **MET** | `[project] dependencies` byte-identical `v0.7.1` → HEAD; the only `pyproject.toml` movement is the single version-literal line. |
+| Invariant 2 — `@preview` count still four, no new lockstep site | **MET** (substance) | All four versions agree across `writer.py`/`template_engine.py`/`templates/base.typ`; `test_preview_version_sync.py` 3/3 passed. The literal repo-wide file-count proxy is **not** clean (37→39) — both additions named, content-classified as test-assertion consumers of the canonical pins, not new production declaration sites, per the same non-hazard bucket the v0.7.1 precedent already established. |
+| Invariant 3 — no new `typst_*` config value | **MET** | `typsphinx/__init__.py` byte-identical `v0.7.1` → HEAD — the strongest possible form of this invariant. |
+| Control 1 — dependency detector fires | **FIRED** | `63f4284c` vs. parent: non-empty diff, exit 1. |
+| Control 2 — `@preview` detector fires | **FIRED** | Scratch-copy mutation: cross-surface comparison reports mismatch naming `codly` (`1.2.0` vs `1.3.0`), exit 1; tracked tree confirmed untouched; real guard re-runs green. |
+| Control 3 — config-value detector fires | **FIRED** | `10100b9d` vs. parent `e87e852b`: sets differ, exit 1, names `typst_template_assets`. |
+
+**Overall SC#4 verdict: MET.** All three standing milestone invariants hold over the SHA-anchored,
+live-re-verified `v0.7.1..HEAD` range (324 commits, 344 files, +15,308/−2,477 excluding
+`.planning/`) — zero new runtime dependencies, the `@preview` package count still four with all
+four versions in lockstep, and no new `typst_*` config value. Each invariant's detector was proven
+to fire on a real, independent violation, closing the exact vacuity mode `46-SC4-INVARIANTS.md`
+never attempted to close. The one substantive nuance — Invariant 2's raw file-count proxy growing by
+two test-assertion files — is recorded in full above rather than softened into a caveat: it does not
+change the overall verdict because both additions were named, content-inspected, and classified as
+non-hazard consumers of the canonical pins, using the identical methodology the project's own
+precedent already established for this exact pattern. No irreversible action was taken anywhere in
+this plan: `git tag -l v0.8.0` and `git ls-remote --tags origin v0.8.0` are both empty throughout,
+and `git status --porcelain -- typsphinx/ pyproject.toml tests/` is empty at every checkpoint.
