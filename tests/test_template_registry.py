@@ -1,4 +1,4 @@
-"""Tests for `typsphinx.template_registry` (Phase 53, plan 53-02).
+"""Tests for `typsphinx.template_registry` (Phase 53, plans 53-02/53-03).
 
 In-process unit style, following
 `tests/test_builder_output_stem.py::test_validate_output_path_collisions_raises_on_docname_collision`
@@ -7,6 +7,10 @@ and direct calls into the module under test -- no subprocess build.
 """
 
 import inspect
+from pathlib import Path
+
+import pytest
+from sphinx.errors import ExtensionError
 
 from typsphinx.template_registry import (
     RESERVED_REGISTRY_KEY,
@@ -52,6 +56,9 @@ def test_two_entries_naming_same_user_defined_key_share_one_object(temp_sphinx_a
     resolve to the IDENTICAL `TemplateRegistryEntry` object -- the dict
     value, not two per-entry copies -- asserted with `is`."""
     app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "_templates").mkdir()
+    (srcdir / "_templates" / "report.typ").write_text("")
     app.config.typst_document_templates = {
         "report": {"template": "_templates/report.typ"}
     }
@@ -74,8 +81,11 @@ def test_user_defined_key_omitting_template_function_gets_none_not_inherited(
     `template_function` resolves to `template_function` `None` -- it does
     NOT inherit global `typst_template_function`."""
     app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "sub").mkdir()
+    (srcdir / "sub" / "custom.typ").write_text("")
     app.config.typst_template_function = "global_project_fn"
-    app.config.typst_document_templates = {"custom": {"template": "custom.typ"}}
+    app.config.typst_document_templates = {"custom": {"template": "sub/custom.typ"}}
 
     registry = resolve_template_registry(app.config, str(app.srcdir))
 
@@ -273,3 +283,471 @@ def test_reserved_key_engine_gets_global_mapping_user_defined_key_gets_none(
 
     assert reserved_mapping == {"project": "custom_title"}
     assert user_mapping is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 03, Task 1: CONF-18's seven-case key-shape denylist and
+# CONF-16's reserved key.
+#
+# Every definition below is deliberately `{}` (neither `template` nor
+# `package`) so these SHAPE-only tests stay valid unmodified once Task 2
+# adds CONF-15/CONF-17/D-08 validation on top of the same
+# `resolve_template_registry()` -- a definition carrying a `template` value
+# pointing at a file that does not exist would start failing D-08's
+# existence check the moment Task 2 lands, which is not what these tests
+# are pinning.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_key,expected_substring",
+    [
+        ("", "empty or whitespace-only"),
+        ("   ", "empty or whitespace-only"),
+        (".", "'.' or '..'"),
+        ("..", "'.' or '..'"),
+        ("a/b", "path separator"),
+        ("a\\b", "path separator"),
+        ("CON", "Windows reserved device name"),
+        ("nul", "Windows reserved device name"),
+        ("CON.txt", "Windows reserved device name"),
+        ("COM1", "Windows reserved device name"),
+        ("LPT9", "Windows reserved device name"),
+        ("foo.", "trailing dot"),
+        ("foo ", "trailing space"),
+    ],
+)
+def test_registry_key_shape_denylist_case_raises(
+    temp_sphinx_app, bad_key, expected_substring
+):
+    """CONF-18: each of the seven denylist cases stops the build with a
+    message naming that specific reason (D-01/D-02)."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {bad_key: {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert expected_substring in str(excinfo.value)
+
+
+def test_registry_two_keys_differing_only_by_case_raises(temp_sphinx_app):
+    """CONF-18 case 7: two registry keys differing only by case stop the
+    build -- the comparison is performed via `TypstBuilder._collision_key()`
+    (ROADMAP SC#4), not a second independently-written casefold."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {
+        "Report": {},
+        "report": {},
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "only by case" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "accepted_key",
+    [
+        "paper:v2",  # Windows-illegal punctuation character
+        "key\x01name",  # control character (0x01)
+        ".hidden",  # leading dot
+        "inner space",  # interior whitespace
+    ],
+)
+def test_registry_key_deliberately_accepted_shapes_resolve_without_raising(
+    temp_sphinx_app, accepted_key
+):
+    """D-02: the four shapes deliberately NOT in the denylist stay accepted
+    in Phase 53, pinning that an eighth case cannot be added silently."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {accepted_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert accepted_key in registry
+
+
+@pytest.mark.parametrize("boundary_key", ["COM0", "LPT0", "ICONIC"])
+def test_registry_key_reserved_name_boundary_not_rejected(
+    temp_sphinx_app, boundary_key
+):
+    """Negative control: `COM0`/`LPT0` are NOT on the 22-name reserved list
+    (D-02's exact citation), and `ICONIC` does not match the whole-stem
+    comparison against `CON` (no dot, no whole-string match)."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {boundary_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert boundary_key in registry
+
+
+def test_registry_key_literal_typst_raises(temp_sphinx_app):
+    """CONF-16: a user-defined key equal to the literal string `typst`
+    stops the build -- it collides with the synthesized built-in key."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"typst": {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "reserved" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("case_variant_key", ["Typst", "TYPST"])
+def test_registry_key_case_variant_of_typst_resolves_without_raising(
+    temp_sphinx_app, case_variant_key
+):
+    """CONF-16/D-04: only the LITERAL string `typst` is reserved --
+    `Typst`/`TYPST` pass as ordinary user-defined keys, because the
+    case-collision check (case 7) compares REGISTERED keys against each
+    other and the synthesized built-in is never a member of that set."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {case_variant_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert case_variant_key in registry
+
+
+def test_key_shape_validator_exposes_exactly_seven_distinct_rejection_reasons():
+    """SC#4/T-53-03: the validator's rejection-reason enumeration is
+    assertable as exactly seven distinct cases, not merely reviewed --
+    pins against both silently loosening the denylist and silently adding
+    an eighth case."""
+    from typsphinx.template_registry import _KEY_SHAPE_REJECTION_CASES
+
+    assert len(_KEY_SHAPE_REJECTION_CASES) == 7
+    assert len(set(_KEY_SHAPE_REJECTION_CASES)) == 7
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 03, Task 2: CONF-15's xor, CONF-17's path arithmetic, and
+# D-08's existence check -- accumulated into one raise.
+# ---------------------------------------------------------------------------
+
+
+def test_definition_with_both_template_and_package_raises(temp_sphinx_app):
+    """CONF-15: a definition carrying both `template` and `package`
+    stops the build."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "both.typ").write_text("")
+    app.config.typst_document_templates = {
+        "combo": {"template": "both.typ", "package": "@preview/pkg:0.1.0"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "CONF-15" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "definition",
+    [
+        {"template": "sub/solo_tpl.typ"},
+        {"package": "@preview/pkg:0.1.0"},
+        {},
+    ],
+)
+def test_definition_with_template_xor_package_or_neither_resolves(
+    temp_sphinx_app, definition
+):
+    """CONF-15: a definition carrying only `template`, only `package`, or
+    neither all resolve without raising."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "sub").mkdir()
+    (srcdir / "sub" / "solo_tpl.typ").write_text("")
+    app.config.typst_document_templates = {"solo": definition}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "solo" in registry
+
+
+def test_conf17_template_parent_is_srcdir_itself_raises(temp_sphinx_app):
+    """CONF-17/D-07 rejection: a `template` whose resolved parent
+    directory IS `srcdir` itself."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "rootfile.typ").write_text("")
+    app.config.typst_document_templates = {"bad": {"template": "rootfile.typ"}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "CONF-17" in str(excinfo.value)
+
+
+def test_conf17_template_parent_is_ancestor_of_srcdir_raises(temp_sphinx_app):
+    """CONF-17/D-07 rejection: a `template` whose resolved parent
+    directory is an ANCESTOR of `srcdir`."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir.parent / "ancestorfile.typ").write_text("")
+    app.config.typst_document_templates = {"bad": {"template": "../ancestorfile.typ"}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "CONF-17" in str(excinfo.value)
+
+
+def test_conf17_template_under_subdirectory_of_srcdir_resolves(temp_sphinx_app):
+    """CONF-17/D-07 acceptance: a `template` under a SUBDIRECTORY of
+    `srcdir` stays legal."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "sub").mkdir()
+    (srcdir / "sub" / "tpl.typ").write_text("")
+    app.config.typst_document_templates = {"ok": {"template": "sub/tpl.typ"}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "ok" in registry
+
+
+def test_conf17_template_in_sibling_directory_resolves(temp_sphinx_app):
+    """CONF-17/D-07 acceptance: a `template` in a SIBLING directory of
+    `srcdir`, reached through `..`, stays legal."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    sibling = srcdir.parent / "sibling"
+    sibling.mkdir()
+    (sibling / "tpl.typ").write_text("")
+    app.config.typst_document_templates = {"ok": {"template": "../sibling/tpl.typ"}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "ok" in registry
+
+
+def test_conf17_absolute_template_path_outside_srcdir_resolves(temp_sphinx_app):
+    """CONF-17/D-07 acceptance: an absolute `template` path OUTSIDE
+    `srcdir` stays legal."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    external = srcdir.parent / "external"
+    external.mkdir()
+    external_file = external / "tpl.typ"
+    external_file.write_text("")
+    app.config.typst_document_templates = {"ok": {"template": str(external_file)}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "ok" in registry
+
+
+def test_user_defined_key_template_names_nonexistent_file_raises(temp_sphinx_app):
+    """D-08: a user-defined key whose `template` names a file that does
+    not exist stops the build."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {
+        "missing": {"template": "does_not_exist.typ"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "does not exist" in str(excinfo.value)
+    assert "typst_document_templates" in str(excinfo.value)
+
+
+def test_builtin_typst_key_nonexistent_global_template_does_not_raise(
+    temp_sphinx_app,
+):
+    """D-08: the built-in `typst` key's not-found path is UNCHECKED by
+    this module -- it keeps reaching `resolve_template()`'s existing
+    warn-and-fall-back behaviour unchanged. No `typst_document_templates`
+    entry is declared here, so the only source of a "does the file exist"
+    question is the SYNTHESIZED built-in key, which this module must never
+    raise for."""
+    app = temp_sphinx_app
+    app.config.typst_template = "no_such_global_tpl.typ"
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert registry[RESERVED_REGISTRY_KEY].template == "no_such_global_tpl.typ"
+
+
+def test_conf17_and_not_found_both_reported_in_one_raise(temp_sphinx_app):
+    """D-09: one user-defined key whose `template` BOTH violates CONF-17
+    AND names a nonexistent file produces a SINGLE `ExtensionError` whose
+    message contains BOTH reasons."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {
+        "both_broken": {"template": "rootfile_missing.typ"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "CONF-17" in message
+    assert "does not exist" in message
+
+
+def test_three_independently_broken_keys_raise_once_order_independently(
+    temp_sphinx_app,
+):
+    """D-03/D-05: a registry with three independently-broken keys
+    produces exactly ONE `ExtensionError` naming all three, and the
+    message text is byte-identical across two runs with the keys declared
+    in a DIFFERENT `dict` insertion order -- proving the accumulation
+    iterates via `sorted()`, not raw insertion order."""
+    app = temp_sphinx_app
+
+    # "missing"'s template lives under a subdirectory so its ONLY failure
+    # is D-08's not-found check -- a bare top-level filename would ALSO
+    # trip CONF-17 (parent == srcdir), which would make this test's exact
+    # "3 invalid" count entangled with a second, unrelated validation
+    # rule.
+    forward = {
+        "bad/slash": {},
+        "typst": {},
+        "missing": {"template": "sub/does_not_exist.typ"},
+    }
+    app.config.typst_document_templates = forward
+    with pytest.raises(ExtensionError) as excinfo_forward:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_forward = str(excinfo_forward.value)
+
+    reordered = {
+        "missing": {"template": "sub/does_not_exist.typ"},
+        "typst": {},
+        "bad/slash": {},
+    }
+    app.config.typst_document_templates = reordered
+    with pytest.raises(ExtensionError) as excinfo_reordered:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_reordered = str(excinfo_reordered.value)
+
+    assert message_forward == message_reordered
+    assert "'bad/slash'" in message_forward
+    assert "'missing'" in message_forward
+    assert "'typst'" in message_forward
+    assert message_forward.startswith("typst_document_templates: 3 invalid")
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 03, Task 3: CONF-14's unregistered key and D-06's non-str
+# element [4].
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_registry_key_unregistered_key_raises_naming_registered_keys(
+    temp_sphinx_app,
+):
+    """CONF-14: a `typst_documents` entry whose element [4] names a key
+    absent from the resolved registry raises `ExtensionError`, and the
+    message contains the sorted resolved registry keys."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"paper": {}}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "nonexistent")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    message = str(excinfo.value)
+    assert "nonexistent" in message
+    assert "['paper', 'typst']" in message
+
+
+def test_resolve_registry_key_empty_registry_lists_typst_not_empty_list(
+    temp_sphinx_app,
+):
+    """CONF-14 empty edge: with `typst_document_templates` empty, the
+    message lists `['typst']` -- the sorted resolved keys -- never an
+    empty list."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "nonexistent")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    assert "['typst']" in str(excinfo.value)
+
+
+def test_resolve_registry_key_lookup_is_exact_str_equality_not_casefolded(
+    temp_sphinx_app,
+):
+    """CONF-14 encoding edge: a registry declaring `Paper` does not
+    satisfy an entry naming `paper`; the lookup is exact `str` equality,
+    never case-folded."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"Paper": {}}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "paper")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    assert "'paper'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("bad_value", [None, 123, ("a", "b")])
+def test_resolve_registry_key_non_str_element_four_raises(temp_sphinx_app, bad_value):
+    """D-06: an element [4] that is PRESENT but not a `str` -- `None`, an
+    int, and a tuple -- each raises the same class of error, naming the
+    offending value and the registered keys. It is neither tolerated-and-
+    skipped nor coerced to the built-in key."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", bad_value)
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    message = str(excinfo.value)
+    assert repr(bad_value) in message
+    assert "['typst']" in message
+
+
+def test_resolve_registry_key_absent_element_four_still_resolves_to_typst(
+    temp_sphinx_app,
+):
+    """TPL-04 regression: an absent element [4] (a four-element tuple)
+    still resolves to the built-in key without raising -- Task 3's D-06
+    branch must not regress plan 53-02's behaviour."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A")
+
+    resolved = resolve_registry_key(registry, entry)
+
+    assert resolved is registry[RESERVED_REGISTRY_KEY]
+
+
+def test_resolve_registry_key_bad_key_fails_identically_regardless_of_master_order(
+    temp_sphinx_app,
+):
+    """SC#3: a multi-master `typst_documents` with two masters, one of
+    them naming a bad key, fails identically whichever master would have
+    been written first."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    good_entry = ("index", "manual.typ", "T", "A")
+    bad_entry = ("other", "other.typ", "T2", "A2", "does_not_exist")
+
+    # Simulate "the bad master would have been written FIRST": resolve it,
+    # then resolve the good one (which never raises).
+    with pytest.raises(ExtensionError) as excinfo_bad_first:
+        resolve_registry_key(registry, bad_entry)
+    resolve_registry_key(registry, good_entry)
+    message_bad_first = str(excinfo_bad_first.value)
+
+    # Simulate "the bad master would have been written SECOND": resolve
+    # the good one first, then the bad one.
+    resolve_registry_key(registry, good_entry)
+    with pytest.raises(ExtensionError) as excinfo_bad_second:
+        resolve_registry_key(registry, bad_entry)
+    message_bad_second = str(excinfo_bad_second.value)
+
+    assert message_bad_first == message_bad_second
