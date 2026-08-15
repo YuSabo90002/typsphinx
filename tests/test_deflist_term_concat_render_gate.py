@@ -123,10 +123,12 @@ class TestDeflistTermConcatRenderGate:
           and contains NO juxtaposed ``raw("make.bat")text(`` form;
         - a single-inline-node term still emits cleanly with no leading/trailing
           ``+`` (``terms.item(text("SingleTerm")``);
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
-          bytes -- the only proof the juxtaposed term compiled to valid Typst
-          and ``typst.compile()`` did NOT abort with the "expected comma" fatal
-          that GATE-02 surfaced against the corpus.
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with the ``%PDF`` magic bytes -- the
+          only proof the juxtaposed term compiled to valid Typst and
+          ``typst.compile()`` did NOT abort with the "expected comma"
+          fatal that GATE-02 surfaced against the corpus.
         """
         result = _run_sphinx_build_typstpdf(
             deflist_term_concat_render_gate_dir, temp_build_dir
@@ -167,11 +169,13 @@ class TestDeflistTermConcatRenderGate:
             'terms.item(text("SingleTerm")' in typ_text
         ), "A single-inline-node term must emit cleanly with no leading '+'"
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
-            f"on the juxtaposed term expressions:\nstderr: {result.stderr}"
+            "master.pdf was not produced -- typst.compile() aborted, most "
+            f"likely on the juxtaposed term expressions:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -205,8 +209,8 @@ class TestDeflistTermInListitemRenderGate:
           post-fix), which is what forces the term onto its own line even
           though the nested-in-a-list-item definition's first content is
           bare inline text;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
-          magic bytes.
+        - ``master.pdf`` (the wrapper's compiled output) exists, is
+          non-empty, and starts with the ``%PDF`` magic bytes.
         """
         result = _run_sphinx_build_typstpdf(
             deflist_term_in_listitem_render_gate_dir, temp_build_dir
@@ -229,9 +233,9 @@ class TestDeflistTermInListitemRenderGate:
             f"the FID-05 fix is not applied:\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -265,8 +269,8 @@ class TestDeflistTermNestedListRenderGate:
           post-fix), which is what forces the OUTER term onto its own line
           even though its definition's first rendered content is the ALSO
           inline first term of a nested ``terms(...)`` list;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
-          magic bytes.
+        - ``master.pdf`` (the wrapper's compiled output) exists, is
+          non-empty, and starts with the ``%PDF`` magic bytes.
         """
         result = _run_sphinx_build_typstpdf(
             deflist_term_nested_list_render_gate_dir, temp_build_dir
@@ -289,9 +293,9 @@ class TestDeflistTermNestedListRenderGate:
             f"the FID-05 fix is not applied:\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:

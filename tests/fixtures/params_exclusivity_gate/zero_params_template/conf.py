@@ -25,8 +25,16 @@ extensions = ["typsphinx"]
 
 # index must be a master document so the writer applies the full
 # custom-template routing (not the minimal included-document import set).
+#
+# Phase 47 (OUT-01/BLD-03): the target is "master", not the identity
+# "index" -- since a typst_documents target is now a literal output path,
+# an identity target would make the wrapper resolve onto this docname's
+# own content file (index.typ) and silently overwrite it with a
+# self-referential #include(), producing "TypstError: cyclic import".
+# "master" is the canonical de-collision replacement
+# (47-EXPECTED-STRUCTURE.md's fixture de-collision rule).
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master", project, author),
 ]
 
 typst_template = "_templates/zero_param.typ"

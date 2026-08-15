@@ -1,41 +1,95 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7.1
-milestone_name: bug-fix round
-status: Awaiting next milestone
-stopped_at: "Milestone v0.7.1 shipped, published, and archived"
-last_updated: "2026-08-11T05:55:07.075Z"
-last_activity: 2026-08-11
-last_activity_desc: Milestone v0.7.1 completed, published to PyPI, and archived
+milestone: v0.8.0
+milestone_name: multi-master composition
+current_phase: 52
+status: completed
+stopped_at: Phase 52 context gathered
+last_updated: "2026-08-15T02:43:35.653Z"
+last_activity: 2026-08-15
+last_activity_desc: Phase 52 complete
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 43
-  completed_plans: 43
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 45
+  completed_plans: 45
   percent: 100
-current_phase: 46
-current_phase_name: v0-7-1-release-prep-prep-only
+current_phase_name: v0-8-0-release-prep-prep-only
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-11 at the v0.7.1 milestone close — full evolution review)
+See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.7.1 shipped 2026-08-11. Scope the next milestone with `/gsd-new-milestone`.
-**19/19** v1 requirements complete with zero orphans and zero known gaps. `.planning/REQUIREMENTS.md`
-has been removed; the milestone's final state is archived at
-`.planning/milestones/v0.7.1-REQUIREMENTS.md`. Phase numbering continues at **47**.
-Next action: `/gsd-new-milestone`
+**Current focus:** Phase 52 — v0-8-0-release-prep-prep-only
+The v0.8.0 tree is made ready to publish and proven green with **zero irreversible action taken** —
+no tag, nothing pushed to PyPI, no GitHub Release. Bump, curate the `## [0.8.0]` CHANGELOG entry,
+prove the post-bump tree green live (including the milestone goal claim on generated multi-master PDF
+evidence), assert the milestone invariants over the SHA-anchored diff with a real positive control,
+and hand off a standalone publish checklist. Zero lines change under `typsphinx/`. **REL-07 stays
+open** — it closes at `/gsd-complete-milestone`, at the publish.
+Roadmap created 2026-08-11 — **Phases 47-52**, **24/24** v1 requirements mapped, zero orphans.
+Phase 47 complete 2026-08-12 (14/14 plans, UAT 72/72).
+Phase 48 complete 2026-08-14 (7/7 plans, UAT 16/16, verification 19/19, security threats_open 0).
+Phase 49 complete 2026-08-14 (6/6 plans, verification 5/5 SC, UAT 2/2 dispositioned; code review
+0 blockers / 2 warnings, both tracked as pending todos; GATE-02 corpus gate green unmodified).
+Phase 50 complete 2026-08-14 (3/3 plans; SC#2's IMG-02 RED-recording gap closed by a recorded owner
+override, scoped to that gap only — see `50-VERIFICATION.md`).
+Phase 51 complete 2026-08-15 (6/6 plans; verification 3/3 SC, DOC-14 discharged; documentation-only,
+zero lines under `typsphinx/`). Code review found one Critical — four published emitted-file claims
+omitted `_template.typ`, which every wrapper imports — plus a vacuous gate assertion; both fixed
+post-execution, along with the two sweep residuals `51-SWEEP-AUDIT.md` reported as outstanding.
+Next action: `/gsd-execute-phase 52`
 
 ## Current Position
 
-Phase: Milestone v0.7.1 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-11 — Milestone v0.7.1 completed and archived
+Phase: 52
+Plan: Not started
+Status: All phases complete
+Last activity: 2026-08-15 — Phase 52 complete
+
+Progress: [██████████░░] 83% (5/6 phases) · 36/43 plans
+
+## Active Milestone (v0.8.0 — multi-master composition)
+
+**Goal:** move the unit of composition from "one `.typ` shared by every master, with the include
+decision baked in at write time" to "per-master wrapper files that publish their include edge set as
+Typst `state`, plus template-less docname-named content files that emit state-guarded includes at the
+toctree's own position" — cutting the single root B-1, B-2 and defect A all grow from.
+
+**Six phases, executing 47 → 48 → 49 → 50 → 51 → 52:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 47 | Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | COMP-01..04, OUT-01..03, BLD-02..04 (10) |
+| 48 | Compile-Time Cross-Reference Guard | XREF-03, XREF-04 (2) |
+| 49 | Per-Master Include Graph with State-Guarded Includes | COMP-05..12 (8) |
+| 50 | PR #131 Image Path Defects | IMG-01, IMG-02 (2) |
+| 51 | Two-Layer Output Documentation | DOC-14 (1) |
+| 52 | v0.8.0 Release Prep (prep-only) | REL-07 (1) |
+
+**The one hard ordering constraint: 48 must land no later than 49.** Fixing the include graph turns a
+currently-silent content omission into a hard `label ... does not exist in the document` compile
+abort for any shared document referencing a target present in one master but not another. Shipping the
+graph first produces builds that fail outright. These two phases are **not** independently
+parallelizable, in either direction.
+
+**Milestone invariant #5 is Phase 47's SC#5.** `gsd/v0.8.0-multi-master-composition` exists locally
+with planning commits and has **not** been pushed. It reaches `origin` in Phase 47, not at the release
+PR — the discipline that paid immediately in v0.7.1, and whose absence cost v0.7.0 two defects. This
+milestone raises the stakes: the case-insensitive-filesystem collision gap (research Pitfall 5) is
+structurally invisible on Linux-only local runs.
+
+**Phase 52 is prep-only** — version bump, curated CHANGELOG, evidence, handoff checklist, zero
+irreversible action. REL-07 closes at `/gsd-complete-milestone`, not in the phase.
+
+**Five open questions are assigned, not mapped.** They carry no REQ-IDs and are not counted in
+coverage: B-2's RED state, the CR-01 self-collision policy and the case-normalization scope close in
+Phase 47; `translator.py:4291`'s nature closes in Phase 48; the `:numref:` project-wide-vs-per-wrapper
+divergence closes in Phase 49, on a live two-master fixture — no compile error catches that one.
 
 ## Shipped Milestone (v0.7.1 — archived)
 
@@ -227,6 +281,11 @@ verified, integration all-wired); 5 pending todos acknowledged as deferred (see 
   census and found it matched both the discussion-time and planning-time counts exactly.
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 47 P10 | 35min | 3 tasks | 4 files |
 
 ## Shipped Milestone (v0.6.3 — archived)
 
@@ -280,6 +339,24 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
   section: every design defect in this milestone compiles fine today, so RED is a structural /
   regex / `pypdf`-text assertion defined before any code is written, except for CIT-01 (Phase 40),
   which keeps the classic `TypstError`.
+
+- [Phase 47]: Milestone branch gsd/v0.8.0-multi-master-composition pushed to origin (no PR); CI run 31492380799 completed success including windows-latest/macos-latest lanes, discharging Phase 47 SC#5
+
+- [Phase 48] D-07: ONE shared guard-string derivation point. `_label_existence_guard()` is the sole
+  site that builds a `context`/`query` string; it never derives a label itself, taking only
+  `_namespace_label()`'s output, so demand and supply sides cannot diverge. Four call sites; a fifth
+  spelling is the drift class the decision exists to reject.
+
+- [Phase 48] D-11 accepted at UAT: the per-reference compile-time `query()` costs **-2.37%** on a
+  full corpus, against tiers fixed before the measurement — bottom tier, record only.
+
+- [Phase 48] Owner accepted two named limits rather than hiding them: a coincidental
+  docname/label-namespace collision can still link to the wrong document (todo filed,
+  `48-REVIEW.md` WR-02), and an `:orphan:` target now degrades with zero diagnostic at any layer.
+
+- [Phase 48] G-48-4 **option-a**: whole-document references are guarded only when they resolve onto
+  a real `found_docs` member. The five Sphinx-generated virtual pages (`genindex`, `py-modindex`,
+  `search`, and two `../` forms) have no PDF counterpart and stay dead links by explicit choice.
 
 ### Pending Todos
 
@@ -396,6 +473,18 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 (→ TBL-03, backlog 999.2).
 
 ### Blockers/Concerns
+
+**[Phase 47] One open review Warning carried forward, doc-only: WR-02.**
+`47-REVIEW.md` closes at `status: issues_found` with CR-01 and WR-01 both verified-closed and one
+Warning left open. `tests/test_master_include_set_predicate_gate.py`'s module docstring (lines ~25-31)
+still says the pre-fix RED is "recording ... as `xfail(strict=True)`", but commit `e422bfb` removed all
+six `@pytest.mark.xfail` decorators when the 47-13 fix landed. **Re-measured 2026-08-12 at UAT close and
+still live** — `grep -c '@pytest.mark.xfail'` returns `0` while the docstring claim stands. Two class
+docstrings (`TestGhostEntryIncludeSetUnit`, `TestUnhashableDocnameIncludeSetUnit`) carry the milder
+"lands as an xfail" variant of the same staleness. **Not a functional defect** — all 8 tests pass and
+the verbatim RED transcripts remain correctly cited to `47-GAP2-RED-EVIDENCE.md`; the cost is a
+maintainer searching for markers that no longer exist. Fix is a past-tense rewrite, suggested verbatim
+in `47-REVIEW.md`.
 
 **Phase 44.1 SC#2 rests on a falsified premise — a blocking decision waits in wave 2.** Measured
 2026-08-04 during planning and re-measured independently by the orchestrator against the pinned
@@ -538,6 +627,29 @@ evidence.
 - Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
 - Phase 45.2 inserted after Phase 45: Local Toolchain Repair — tox-uv to tox-uv-bare (QUA-04); tox is non-functional locally (every env exits 127) and 13 test modules fail under the mandated outer uv run; one dependency name; coverage 18/18 -> 19/19; no CHANGELOG callout (URGENT)
 
+- **2026-08-11** — v0.8.0 roadmap created: **Phases 47-52**, 24/24 v1 requirements mapped, zero
+  orphans, zero duplicates. Derived from this milestone's own `REQUIREMENTS.md`;
+  `research/SUMMARY.md`'s build order was adopted for its **sequence** but not its labels (it proposes
+  "Phase 47.1 … 47.6", and in this project decimals are reserved for phases *inserted* mid-milestone).
+  Three deliberate divergences from the suggested structure: **(a)** the BLD-02/03/04 collision work
+  is folded **into** Phase 47 rather than run later, because the split is what creates the
+  self-collision hazard — with target-as-path in the same phase, the common `("index", "index.typ")`
+  config collides immediately, and deferring the guard would ship a phase whose most common
+  configuration is silently wrong; **(b)** OUT-01..03 ride with Phase 47, because B-1's fix *is*
+  "compute include paths from the wrapper's resolved location", the same computation OUT-01 changes;
+  **(c)** COMP-12's full-corpus GATE-02 pass stays inside the composition phase, per PROJECT.md's
+  explicit instruction to treat a convergence failure there as a design-level finding. Also recorded:
+  `research/ARCHITECTURE.md` predates PROJECT.md's design decision and proposes a **flattened**
+  wrapper-side include graph — measured, rejected (it breaks document-order interleaving) and
+  superseded by the state-guarded form. Its file:line integration inventory remains authoritative;
+  its build-order flattening proposal does not.
+
+- **2026-08-11** — OUT-01 is recorded in the roadmap as a deliberate **reversal** of v0.7.1 Phase 44's
+  D-05/D-06/D-07 (a path in a target rejected and truncated to its basename; a nested docname's output
+  forced into its own directory). OUT-02 keeps the security half of the same guards. The precedent is
+  Phase 44.2 reversing Phase 44's D-02 within v0.7.1 — the phase that owns OUT-01 must state the
+  reversal so the executor does not treat the existing guard code as sacred.
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -596,17 +708,25 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in flight.
+**Resume file:** .planning/phases/52-v0-8-0-release-prep-prep-only/52-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.7.1-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-11 — `/gsd-complete-milestone` for v0.7.1.
-Stopped at: milestone shipped, published to PyPI, and archived.
-Resume: `/gsd-new-milestone` (defines a fresh `REQUIREMENTS.md`; phase numbering continues at 47).
+Last session: 2026-08-14T22:20:19.063Z
+Stopped at: Phase 52 context gathered
+Resume: `/gsd-discuss-phase 49`.
 
 **Nothing is owed forward.** All seven `46-HANDOFF.md` publish-checklist items are discharged,
 including item 5 (Read the Docs `stable`), confirmed by the owner and re-measured live 2026-08-11.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Discuss the next phase with /gsd-discuss-phase 49
+- Milestone invariant #5 is **discharged**: Phase 47 pushed `gsd/v0.8.0-multi-master-composition` to
+  `origin` (no PR) and drove CI run `31492380799` green, including the `windows-latest` and
+  `macos-latest` lanes — which is where it caught a real Windows-only OUT-02 defect
+  (`os.path` vs `posixpath` disagreement), fixed in-phase.
+
+- **The milestone's one hard ordering constraint is discharged: Phase 48 landed before Phase 49.**
+  The compile-time guard is in place, so Phase 49's include-graph fix can no longer turn a silent
+  content omission into a hard `label ... does not exist in the document` compile abort.

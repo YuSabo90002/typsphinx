@@ -8,14 +8,15 @@ directly, so a master document's rendered title and author were always the
 project-wide config values, never the entry's own values, even when an
 entry explicitly specified different ones.
 
-Fix: ``_resolve_entry_element()`` (``typsphinx/writer.py``) resolves the
-FIRST ``typst_documents`` entry whose ``entry[0] == docname`` and returns
-``entry[index]`` when it is a ``str`` (including ``""`` -- D-01), falling
-back silently to ``config.project`` / ``config.author`` when the element is
-absent, too-short, or ``None`` (D-02), and warning-then-falling-back when
-the element is present but not a ``str`` (D-02). ``TypstWriter.translate()``
-now calls this helper twice when building ``sphinx_metadata``, so the
-entry's title/author reach every template route (D-03).
+Fix: ``_entry_element_value()`` (``typsphinx/writer.py``) reads
+``entry[index]`` positionally off the SPECIFIC ``typst_documents`` entry a
+wrapper is being generated for, returning it when it is a ``str``
+(including ``""`` -- D-01), falling back silently to ``config.project`` /
+``config.author`` when the element is absent, too-short, or ``None``
+(D-02), and warning-then-falling-back when the element is present but not
+a ``str`` (D-02). ``TypstWriter.render_wrapper()`` calls this helper twice
+when building ``sphinx_metadata``, so the entry's title/author reach every
+template route (D-03).
 
 Verification is end-to-end (SC#1's own requirement): a real
 ``sphinx-build -b typstpdf`` compile, read back through
@@ -111,6 +112,18 @@ class TestEntryTitleAuthorRenderGate:
         AND author both differ from ``config.project`` / ``config.author``
         produces a PDF whose ``/Title`` and ``/Author`` are the ENTRY's
         values, not the config's.
+
+        Phase 47 note: this fixture's ``typst_documents`` now carries a
+        SECOND entry naming the SAME docname (D-04, added by task 2 to
+        prove D-08 -- see the fixture's own conf.py comment and
+        ``test_repeated_docname_wrapper_reads_its_own_entry_title_not_
+        first_match`` below). This SC#1 test reads the SECOND entry's own
+        wrapper, ``master.pdf`` (target ``"master.typ"``) -- since plan
+        47-09's unified validator fixed ``_wrapper_output_relpath()``'s
+        docname-first-match write-path bug, each entry now physically
+        writes to its OWN declared target instead of both landing on the
+        first entry's path, so ``master.pdf`` is exactly this entry's own
+        compiled output, carrying its own pinned title/author values.
         """
         result = _run_sphinx_build_typstpdf(
             entry_title_author_render_gate_dir, temp_build_dir
@@ -125,9 +138,9 @@ class TestEntryTitleAuthorRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = PdfReader(io.BytesIO(pdf_output.read_bytes()))
@@ -153,6 +166,103 @@ class TestEntryTitleAuthorRenderGate:
             "the entry's own author was not consumed."
         )
 
+    def test_repeated_docname_wrapper_reads_its_own_entry_title_not_first_match(
+        self, entry_title_author_render_gate_dir, temp_build_dir
+    ):
+        """
+        D-04 + D-08 end-to-end proof. This fixture's ``typst_documents``
+        carries TWO entries naming the SAME docname (``"index"``) with
+        different targets and different titles (D-04's repeated-docname
+        case, permitted -- see the fixture's own conf.py comment)::
+
+            ("index", "second-handbook.typ", "Second Handbook", "Jane Doe"),
+            ("index", "master.typ", "My Handbook", "Jane Doe"),
+
+        Plan 47-09 fixed ``_wrapper_output_relpath()``'s docname-based
+        FIRST-MATCH write-path bug (the ``47-02-SUMMARY.md``/
+        ``47-06-SUMMARY.md``-acknowledged gap this test used to measure):
+        it now resolves each entry's wrapper path directly from THAT
+        entry's own target, via ``_resolve_target_stem(entry[0],
+        entry[1])``, never via a docname-based search. Both entries now
+        physically write to THEIR OWN declared targets --
+        ``second-handbook.typ`` and ``master.typ`` BOTH exist, neither
+        overwrites the other (D-04 is exactly the "two logical files, two
+        physical paths" case the unified validator permits).
+
+        This is still the one end-to-end proof that D-08 landed: EACH
+        wrapper carries ITS OWN entry's title, read positionally via
+        ``_entry_element_value()`` -- ``second-handbook.typ`` reads
+        ``"Second Handbook"`` (the FIRST entry's own value) and
+        ``master.typ`` reads ``"My Handbook"`` (the SECOND entry's own
+        value) -- never the other entry's title, which is what a docname
+        first-match lookup would have returned for BOTH wrappers
+        regardless of which entry was actually being rendered.
+        Historical note: that first-match lookup was
+        ``_resolve_entry_element()``, the pre-D-08 helper this test used
+        to contrast against; 47-12-PLAN.md deleted it from
+        ``typsphinx/writer.py`` because D-08 had already made it a
+        superseded implementation with zero production call sites.
+        """
+        result = _run_sphinx_build_typstpdf(
+            entry_title_author_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        # Plan 47-09 fix: both entries now write to their OWN declared
+        # targets -- neither wrapper write overwrites the other (D-04).
+        assert (temp_build_dir / "second-handbook.typ").exists(), (
+            "second-handbook.typ (the FIRST entry's own declared target) "
+            "was not written"
+        )
+        assert (temp_build_dir / "master.typ").exists(), (
+            "master.typ (the SECOND entry's own declared target) was not " "written"
+        )
+
+        # The D-08 proof, now provable on BOTH wrappers independently:
+        # each carries ITS OWN entry's title, not the other entry's.
+        first_wrapper_text = (temp_build_dir / "second-handbook.typ").read_text(
+            encoding="utf-8"
+        )
+        assert 'title: "Second Handbook"' in first_wrapper_text, (
+            "Expected the FIRST entry's own wrapper to carry its OWN "
+            f"title 'Second Handbook':\n{first_wrapper_text}"
+        )
+        assert 'title: "My Handbook"' not in first_wrapper_text, (
+            "The first entry's wrapper carries the SECOND entry's title "
+            "-- this is exactly the docname-first-match bug D-08 fixes; "
+            f"each wrapper must read its OWN entry's title:\n"
+            f"{first_wrapper_text}"
+        )
+
+        second_wrapper_text = (temp_build_dir / "master.typ").read_text(
+            encoding="utf-8"
+        )
+        assert 'title: "My Handbook"' in second_wrapper_text, (
+            "Expected the SECOND entry's own wrapper to carry its OWN "
+            f"title 'My Handbook':\n{second_wrapper_text}"
+        )
+        assert 'title: "Second Handbook"' not in second_wrapper_text, (
+            "The second entry's wrapper carries the FIRST entry's title "
+            "-- this is exactly the docname-first-match bug D-08 fixes; "
+            f"each wrapper must read its OWN entry's title:\n"
+            f"{second_wrapper_text}"
+        )
+
+        pdf_output = temp_build_dir / "master.pdf"
+        assert (
+            pdf_output.exists()
+        ), f"master.pdf was not produced:\nstderr: {result.stderr}"
+        reader = PdfReader(io.BytesIO(pdf_output.read_bytes()))
+        metadata = reader.metadata
+        assert metadata.title == "My Handbook", (
+            "Expected the compiled PDF's title to be 'My Handbook' "
+            f"(D-08's positional per-entry read), got {metadata.title!r}"
+        )
+
     def test_empty_entry_elements_are_values_not_fallback_signals(
         self, entry_empty_metadata_render_gate_dir, temp_build_dir
     ):
@@ -173,9 +283,14 @@ class TestEntryTitleAuthorRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ"
+        # (de-collided from the pre-Phase-47 "index", which
+        # self-collided with the docname-derived content file,
+        # index.typ) -- so the compiled PDF is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = PdfReader(io.BytesIO(pdf_output.read_bytes()))
@@ -203,6 +318,14 @@ class TestEntryTitleAuthorRenderGate:
         A ``.typ``-level companion assertion so a future failure can be
         localised to either the emission side (writer.py/template_engine.py)
         or the compile side (typst.compile()).
+
+        Phase 47 (R2): template application -- including the
+        ``title``/``authors`` parameters this test pins -- moved from the
+        docname-derived CONTENT file (``index.typ``, which now carries
+        no template application at all) to the target-derived WRAPPER
+        file. This fixture's SECOND entry's own wrapper is ``master.typ``
+        (see the fixture's own conf.py comment for why), so THIS entry's
+        title is read from there, not from ``index.typ``.
         """
         result = _run_sphinx_build_typstpdf(
             entry_title_author_render_gate_dir, temp_build_dir
@@ -213,11 +336,11 @@ class TestEntryTitleAuthorRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        typ_output = temp_build_dir / "index.typ"
-        assert typ_output.exists(), "index.typ was not emitted"
+        typ_output = temp_build_dir / "master.typ"
+        assert typ_output.exists(), "master.typ was not emitted"
         typ_text = typ_output.read_text(encoding="utf-8")
 
         assert "My Handbook" in typ_text, (
             "Expected the entry's title 'My Handbook' to appear in the "
-            f"emitted .typ:\n{typ_text}"
+            f"emitted wrapper .typ:\n{typ_text}"
         )

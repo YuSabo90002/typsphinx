@@ -44,6 +44,25 @@ Per this repository's established convention (mirrored from
 ``tests/test_pdf_render_gate.py``), no assertion anywhere in this module
 matches on the TEXT of a Typst compiler error message -- only that a real
 compile / ``sphinx-build`` invocation succeeds, fails, or raises.
+
+Phase 47 migration (R2, ``47-EXPECTED-STRUCTURE.md``): template application
+(the ``#show: <func>.with(...)`` region every assertion here parses) lives
+exclusively on the WRAPPER file since the content/wrapper split, so every
+``.typ``/``.pdf``-reading assertion reads the entry's resolved wrapper
+(``master.typ``/``master.pdf``) instead of the docname content file. All
+eight fixture ``conf.py``s had their ``typst_documents`` target renamed
+from the identity ``'index'`` to ``'master'`` -- an identity target is now
+a BLD-03 self-collision (the wrapper resolves onto the docname's own
+content file and silently overwrites it with a self-referential
+``#include()``, producing ``TypstError: cyclic import``; 47-02-SUMMARY.md's
+"Known Deferred Failures" section traced this module's
+``TestMalformedLanguage::test_build_does_not_abort`` to exactly this root
+cause). As with ``tests/test_params_exclusivity_gate.py``, these fixture
+directories are not listed in any Phase 47 plan's ``files_modified``; plan
+47-08 de-collides them directly under deviation Rule 3 (blocking) -- see
+its SUMMARY. The ``_template.typ`` mutations in ``TestPreFixBasisFailureProof``
+are unaffected by this rename -- they target the shared template file, not
+the wrapper's own resolved path.
 """
 
 import io
@@ -190,15 +209,15 @@ class TestJapaneseSourceProof:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_lang_ja_emitted_in_show_rule_region(self, build):
@@ -257,9 +276,9 @@ class TestGermanLinkageProof:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        pdf_path = build_dir / "index.pdf"
+        pdf_path = build_dir / "master.pdf"
         assert pdf_path.exists(), (
-            f"index.pdf was not produced:\nstdout: {result.stdout}\n"
+            f"master.pdf was not produced:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         reader = pypdf.PdfReader(str(pdf_path))
@@ -333,7 +352,7 @@ class TestPrecedence:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return typ_path.read_text(encoding="utf-8")
 
@@ -386,15 +405,15 @@ class TestMalformedLanguage:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_build_does_not_abort(self, build):
@@ -456,15 +475,15 @@ class TestNullElementsDoesNotAbort:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_null_elements_build_does_not_abort(self, build):
@@ -522,15 +541,15 @@ class TestCustomTemplateLang:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_custom_template_lang_build_succeeds_with_lang_injected(self, build):
@@ -591,15 +610,15 @@ class TestSrcdirShadowLang:
             f"sphinx-build -b typstpdf failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists(), (
-            f"index.typ was not emitted:\nstdout: {result.stdout}\n"
+            f"master.typ (the wrapper) was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         return {
             "result": result,
             "text": typ_path.read_text(encoding="utf-8"),
-            "pdf_path": build_dir / "index.pdf",
+            "pdf_path": build_dir / "master.pdf",
         }
 
     def test_srcdir_shadow_lang_build_succeeds_with_lang_injected(self, build):
@@ -657,7 +676,7 @@ class TestPackageNoLang:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return {"result": result, "text": typ_path.read_text(encoding="utf-8")}
 
@@ -762,7 +781,7 @@ class TestPreFixBasisFailureProof:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         return build_dir
 
@@ -784,7 +803,7 @@ class TestPreFixBasisFailureProof:
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        typ_path = build_dir / "index.typ"
+        typ_path = build_dir / "master.typ"
         assert typ_path.exists()
         template_path = build_dir / "_template.typ"
         assert template_path.exists()
@@ -808,7 +827,7 @@ class TestPreFixBasisFailureProof:
         ("Abbildung"/"Tabelle") do not -- exactly the pre-fix hardcoded
         ``lang: "en"`` shape.
         """
-        typ_path = de_default_build_dir / "index.typ"
+        typ_path = de_default_build_dir / "master.typ"
         text = typ_path.read_text(encoding="utf-8")
         lines = text.split("\n")
 
@@ -867,7 +886,7 @@ class TestPreFixBasisFailureProof:
         on every non-package route. Only ``pytest.raises`` is asserted --
         never the exception's message text.
         """
-        index_path = custom_template_lang_build_dir / "index.typ"
+        index_path = custom_template_lang_build_dir / "master.typ"
         master_text = index_path.read_text(encoding="utf-8")
         assert 'lang: "ja",' in master_text, (
             f"Expected the real build to already carry an auto-derived "

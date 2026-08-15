@@ -127,7 +127,7 @@ class TestEpigraphAttributionRenderGate:
         # continues (so a returncode of 0 alone does not prove the PDF
         # compiled). Assert the compile-error signatures are absent from the
         # build output -- the pre-fix markup-mode attribution aborts here with
-        # `TypstError: unclosed delimiter` and writes NO index.pdf.
+        # `TypstError: unclosed delimiter` and writes NO master.pdf.
         combined = result.stdout + result.stderr
         for compile_error_marker in (
             "Failed to compile",
@@ -158,9 +158,11 @@ class TestEpigraphAttributionRenderGate:
             "source-leak / unclosed-delimiter bug):\n" + typ_source
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not created -- the attribution compile likely "
+            "master.pdf was not created -- the attribution compile likely "
             "aborted (pre-fix markup-mode emission)"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

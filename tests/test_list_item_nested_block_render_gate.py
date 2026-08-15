@@ -114,7 +114,7 @@ class TestListItemNestedBlockRenderGate:
         - a nested list's closing ``)`` is followed by a newline before the next
           statement, both for the list-then-paragraph and paragraph-then-list
           sibling orderings;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
+        - ``master.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
           bytes -- the only proof the juxtaposed blocks compiled to valid Typst
           and ``typst.compile()`` did NOT abort with the "expected semicolon or
           line break" fatal that GATE-02 surfaced against the corpus.
@@ -165,9 +165,9 @@ class TestListItemNestedBlockRenderGate:
         )
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
+            "master.pdf was not produced -- typst.compile() aborted, most likely "
             f"on the juxtaposed nested-list/paragraph siblings:\n"
             f"stderr: {result.stderr}"
         )

@@ -123,10 +123,12 @@ class TestFieldListInListItemRenderGate:
           (no spurious leading newline);
         - no ``TypstCompilationError`` / "expected semicolon or line break"
           signature is logged;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF``
-          magic bytes -- the only proof the field list compiled to valid
-          Typst and ``typst.compile()`` did NOT abort with the fatal that
-          GATE-02 surfaced against the corpus.
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with the ``%PDF`` magic bytes -- the only
+          proof the field list compiled to valid Typst and
+          ``typst.compile()`` did NOT abort with the fatal that GATE-02
+          surfaced against the corpus.
         """
         result = _run_sphinx_build_typstpdf(
             field_list_in_list_item_render_gate_dir, temp_build_dir
@@ -231,10 +233,12 @@ class TestFieldListInListItemRenderGate:
             f"(CR-01 regression):\n{typ_text}"
         )
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the juxtaposed field list:\nstderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -270,9 +274,9 @@ class TestFieldListInListItemRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted:\n"
+            "master.pdf was not produced -- typst.compile() aborted:\n"
             f"stderr: {result.stderr}"
         )
 

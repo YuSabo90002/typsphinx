@@ -579,14 +579,15 @@ class TestCitationRenderGateStructural:
         )
 
         # (4) D-14 negative control: the master's toctree inclusion of
-        # second.typ carries no citation-style attached anchor. Measured
-        # this session: visit_toctree reads node['entries'] directly and
+        # second.typ carries no citation-style attached anchor. Phase 49
+        # (D-03): visit_toctree reads node['includefiles'] directly and
         # raises nodes.SkipNode, so it NEVER walks into (or emits via)
         # visit_reference for a toctree entry -- there is no
         # toctree-generated `reference` node in this translator's real
         # write path to attach an anchor to in the first place. This
         # checks that structural fact directly on the actual include()
-        # emission rather than asserting something unobservable.
+        # emission (now inside a Phase 49 compile-time guard line) rather
+        # than asserting something unobservable.
         include_line = next(
             line for line in index_typ.splitlines() if 'include("second.typ")' in line
         )
@@ -851,9 +852,9 @@ class TestCitationRenderGateRealCompile:
             f"TypstPDFBuilder.finish() logged a compilation failure:\n" f"{combined}"
         )
 
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             f"likely on the classic citation compile fatal:\n"
             f"stderr: {result.stderr}"
         )
@@ -884,9 +885,9 @@ class TestCitationRenderGateCompiledPdf:
         self, citation_gate_build
     ):
         """CIT-02 + D-05 + D-06."""
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )
@@ -969,10 +970,20 @@ class TestCitationRenderGateCompiledPdf:
         # (2+ backrefs -> plain label + numbered markers, D-03), targeting
         # -- IN ORDER -- the citing sites' own D-14 anchors, extracted from
         # Sphinx's resolved doctree, never written as literals.
+        # 48-03 (D-05): each marker is now an independently-guarded
+        # `context { let __tsx_body = [#{[N]}]; if query(<L>).len() > 0 {
+        # link(<L>, __tsx_body) } else { __tsx_body } }` expression, not a
+        # bare `link(<L>, [N])` call -- match the WHOLE guarded marker so
+        # the separator check below (between two full markers, not two
+        # bare `link()` calls) still finds a bare comma with nothing else
+        # between them.
         krizhevsky_label_cell = refs_grid[:alpha_idx]
-        backref_matches = list(
-            re.finditer(r"link\(<([^>]+)>[^)]*\)", krizhevsky_label_cell)
+        marker_pattern = re.compile(
+            r"context \{ let __tsx_body = \[#\{\[\d+\]\}\]; "
+            r"if query\(<([^>]+)>\)\.len\(\) > 0 \{ "
+            r"link\(<[^>]+>, __tsx_body\) \} else \{ __tsx_body \} \}"
         )
+        backref_matches = list(marker_pattern.finditer(krizhevsky_label_cell))
         backref_targets = [m.group(1) for m in backref_matches]
         assert len(backref_targets) == 2, (
             "D-03: Krizhevsky2012's label cell must carry exactly TWO "
@@ -1040,9 +1051,9 @@ class TestCitationRenderGateCompiledPdf:
         # LEFT of CITORDERALPHA's own x position -- i.e. a real, clickable
         # back-reference marker living in the grid's LEFT column (D-02's
         # placement claim), not merely a string in the .typ source.
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )
@@ -1082,9 +1093,9 @@ class TestCitationRenderGateCompiledPdf:
         a citation key's label text ALSO appears at its own citing site(s)
         earlier in the document.
         """
-        pdf_output = citation_gate_build.build_dir / "index.pdf"
+        pdf_output = citation_gate_build.build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted "
+            "master.pdf was not produced -- typst.compile() aborted "
             "pre-fix on the classic CIT-01 compile fatal:\n"
             f"stderr: {citation_gate_build.result.stderr}"
         )

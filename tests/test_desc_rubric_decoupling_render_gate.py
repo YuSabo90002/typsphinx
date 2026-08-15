@@ -280,6 +280,14 @@ class TestDescRubricDecouplingRenderGate:
         D-07) with exact ``str`` equality. Runs unconditionally: no
         typst-py requirement (no compile needed for a ``-b typst`` build),
         and no skip.
+
+        Phase 48 plan 07 (G-48-4 / XREF-03): ``golden.typ`` gained one line
+        (``[#metadata(none) <index:__tsx-doc__>]``) immediately after the
+        opening ``#{`` -- every content file with a builder-supplied
+        current docname now emits its own whole-document self-anchor there
+        (``48-EXPECTED-STRUCTURE.md`` "Phase 48 Plan 05" section 2's
+        definition-site form, docname ``index``). This fixture's own
+        content is otherwise untouched by this phase.
         """
         result = _run_sphinx_build_typst(
             desc_rubric_decoupling_render_gate_dir, temp_build_dir
@@ -341,10 +349,15 @@ class TestDescRubricDecouplingRenderGate:
                 f"found in stderr:\n{result.stderr}"
             )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF is
+        # master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert (
             pdf_output.exists()
-        ), f"index.pdf was not produced:\nstderr: {result.stderr}"
+        ), f"master.pdf was not produced:\nstderr: {result.stderr}"
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"

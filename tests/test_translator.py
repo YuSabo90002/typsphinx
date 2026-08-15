@@ -1971,7 +1971,18 @@ def test_external_reference(simple_document, mock_builder):
 
 
 def test_pending_xref_doc_reference(simple_document, mock_builder):
-    """Test that pending_xref for document references are handled."""
+    """
+    Test that pending_xref for document references route through the
+    shared D-07 guard (Phase 48, D-04 defence in depth).
+
+    Expected strings derived from `48-EXPECTED-STRUCTURE.md`'s Guard
+    contract, never read off a fresh build: the label derivation is
+    byte-identical to before (the legacy dot/underscore transform applied
+    to "other_document", then `_namespace_label` with the current docname
+    -- `None` here, since a hand-built test doctree has no builder
+    docname per `_current_docname`'s own docstring -- giving the bare
+    sanitized label "other-document").
+    """
     from sphinx import addnodes
 
     from typsphinx.translator import TypstTranslator
@@ -1992,14 +2003,29 @@ def test_pending_xref_doc_reference(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Should generate a link (pending_xref is typically resolved by Sphinx,
-    # but we handle the fallback case)
-    # For now, we expect it to extract the text content
+    # The guard's open string (non-code-mode body, `#`-prefixed -- this
+    # site's own children stream into a markup bracket exactly as before).
+    assert "#context { let __tsx_body = [" in output
+    # The guard's close string: the existence query and link/else branches
+    # over the SAME label, one unbroken statement.
+    assert (
+        "]; if query(<other-document>).len() > 0 { "
+        "link(<other-document>, __tsx_body) } else { __tsx_body } }"
+    ) in output
+    # The link text still renders unchanged.
     assert "Other Document" in output
 
 
 def test_pending_xref_with_refid(simple_document, mock_builder):
-    """Test that pending_xref with refid generates proper reference."""
+    """
+    Test that pending_xref with refid routes through the shared D-07
+    guard (Phase 48, D-04 defence in depth).
+
+    Expected strings derived from `48-EXPECTED-STRUCTURE.md`'s Guard
+    contract: the legacy dot/underscore transform is a no-op on
+    "section-label" (no dots or underscores present), so the namespaced
+    label is the bare sanitized "section-label".
+    """
     from sphinx import addnodes
 
     from typsphinx.translator import TypstTranslator
@@ -2020,8 +2046,43 @@ def test_pending_xref_with_refid(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Should handle the cross-reference
+    assert "#context { let __tsx_body = [" in output
+    assert (
+        "]; if query(<section-label>).len() > 0 { "
+        "link(<section-label>, __tsx_body) } else { __tsx_body } }"
+    ) in output
     assert "Section Reference" in output
+
+
+def test_pending_xref_empty_reftarget_emits_nothing(simple_document, mock_builder):
+    """
+    An empty reftarget pins the "only when reftarget is truthy" branch
+    (Phase 48, D-04): visit_pending_xref emits no guard open at visit and
+    depart_pending_xref emits no guard close at depart, exactly as this
+    site behaved before the guard was introduced -- only the child text
+    renders.
+    """
+    from sphinx import addnodes
+
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    xref = addnodes.pending_xref(
+        refdomain="std",
+        reftype="ref",
+        reftarget="",
+        refexplicit=False,
+    )
+    xref += nodes.Text("Fallback Text")
+
+    xref.walkabout(translator)
+
+    output = translator.astext()
+
+    assert "context {" not in output
+    assert "query(<" not in output
+    assert "Fallback Text" in output
 
 
 def test_toctree_generates_outline(simple_document, mock_builder):
@@ -2029,6 +2090,11 @@ def test_toctree_generates_outline(simple_document, mock_builder):
     Test that toctree node generates #include() directives.
 
     Updated for Requirement 13: toctree now generates #include() instead of #outline()
+
+    Phase 49 (COMP-05/D-03, SYNTHETIC-NODE): the emission side now reads
+    the toctree's INCLUDE-FILE list, not its entry list -- a hand-built
+    node must set ``includefiles`` alongside ``entries`` or it is treated
+    as having no children at all.
     """
     from sphinx import addnodes
 
@@ -2043,6 +2109,7 @@ def test_toctree_generates_outline(simple_document, mock_builder):
         ("Getting Started", "getting_started"),
         ("API Reference", "api"),
     ]
+    toctree["includefiles"] = ["intro", "getting_started", "api"]
 
     # Visit using walkabout
     toctree.walkabout(translator)

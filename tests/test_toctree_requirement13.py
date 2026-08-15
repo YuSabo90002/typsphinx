@@ -51,6 +51,12 @@ def test_toctree_generates_include_directives(simple_document, mock_builder):
     Requirement 13.2: WHEN `addnodes.toctree` ノードが TypstTranslator で処理される
     THEN 参照された各ドキュメントに対して `include("relative/path/to/doc.typ")`
     SHALL 生成される
+
+    Phase 49 (COMP-05/D-03): the emission side now reads the toctree's
+    INCLUDE-FILE list, not its entry list -- a hand-built node must set
+    ``includefiles`` alongside ``entries`` or it is treated as having no
+    children at all (the emission side reads the entry list only to
+    resolve titles, which this synthetic node never does).
     """
     from typsphinx.translator import TypstTranslator
 
@@ -63,6 +69,7 @@ def test_toctree_generates_include_directives(simple_document, mock_builder):
         ("Getting Started", "getting_started"),
         ("API Reference", "api"),
     ]
+    toctree["includefiles"] = ["intro", "getting_started", "api"]
 
     # Visit the toctree node
     try:
@@ -72,7 +79,9 @@ def test_toctree_generates_include_directives(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Should generate include() directives, NOT outline()
+    # Should generate include() directives, NOT outline(). Each include()
+    # call now lives inside a per-entry compile-time guard line
+    # (Phase 49), so a plain substring check still finds it.
     assert "include(" in output
     assert 'include("intro.typ")' in output
     assert 'include("getting_started.typ")' in output
@@ -98,6 +107,9 @@ def test_toctree_with_heading_offset(simple_document, mock_builder):
     toctree["entries"] = [
         ("Chapter 1", "chapter1"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["chapter1"]
 
     try:
         translator.visit_toctree(toctree)
@@ -130,6 +142,9 @@ def test_toctree_with_nested_path(simple_document, mock_builder):
         ("Chapter 1 Section", "chapter1/section"),
         ("Chapter 2 Subsection", "chapter2/sub/content"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["chapter1/section", "chapter2/sub/content"]
 
     try:
         translator.visit_toctree(toctree)
@@ -155,6 +170,10 @@ def test_toctree_empty_entries(simple_document, mock_builder):
 
     toctree = addnodes.toctree()
     toctree["entries"] = []
+    # Phase 49 (D-03): the emptiness check now reads includefiles, not
+    # entries -- set explicitly here for clarity, though both default to
+    # empty on a hand-built node with neither key set.
+    toctree["includefiles"] = []
 
     # visit_toctree must raise SkipNode before adding any text for an
     # empty-entries toctree.
@@ -200,6 +219,18 @@ def test_toctree_single_content_block_multiple_includes(simple_document, mock_bu
     Issue #7 - Requirement 1.1, 1.2, 1.3:
     WHEN toctree has multiple entries
     THEN a single scope block {...} SHALL contain all include() directives
+
+    Phase 49 (COMP-05/D-03/D-04, FLIPS -- genuine reshape, not merely a
+    SYNTHETIC-NODE fix, per 49-EXPECTED-STRUCTURE.md's assertion census):
+    each entry now emits its OWN one-line compile-time guard
+    (``if "<key>" in state(...).get() { include(...) }``), a NESTED
+    ``{``/``}`` pair per entry INSIDE the single outer ``context { ... }``
+    scope -- so for 3 entries the brace counts become 4 (1 scope + 3
+    guards), not 1, and a ``find("{")``/``find("}", block_start)`` pair
+    would capture only up through the FIRST guard's own closing brace,
+    silently truncating before the second and third entries' includes.
+    ``block_content`` is now the WHOLE output (the single ``context {
+    ... }`` scope IS the entire emitted block, guards nested inside it).
     """
     from typsphinx.translator import TypstTranslator
 
@@ -211,6 +242,9 @@ def test_toctree_single_content_block_multiple_includes(simple_document, mock_bu
         ("Chapter 2", "chapter2"),
         ("Chapter 3", "chapter3"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["chapter1", "chapter2", "chapter3"]
 
     try:
         translator.visit_toctree(toctree)
@@ -219,20 +253,17 @@ def test_toctree_single_content_block_multiple_includes(simple_document, mock_bu
 
     output = translator.astext()
 
-    # Should have exactly one opening scope block
-    assert output.count("{") == 1, f"Expected 1 opening block, got {output.count('{')}"
+    # 1 outer context{} scope + 3 per-entry guard {}'s = 4 opening/closing
+    # braces, not 1 (Phase 49 FLIPS).
+    assert output.count("{") == 4, f"Expected 4 opening braces, got {output.count('{')}"
+    assert output.count("}") == 4, f"Expected 4 closing braces, got {output.count('}')}"
 
-    # Should have exactly one closing scope block
-    assert output.count("}") == 1, f"Expected 1 closing block, got {output.count('}')}"
+    # The single outer context { ... } scope IS the entire emitted block --
+    # every guard (and therefore every include()) lives inside it, so the
+    # whole output is the block to search, not a find()-derived slice.
+    block_content = output
 
-    # Extract scope block
-    block_start = output.find("{")
-    block_end = output.find("}", block_start)
-    assert block_start != -1 and block_end != -1, "Scope block not found"
-
-    block_content = output[block_start : block_end + 1]
-
-    # All includes should be within the single block
+    # All includes should be within the single (outer) block
     assert 'include("chapter1.typ")' in block_content
     assert 'include("chapter2.typ")' in block_content
     assert 'include("chapter3.typ")' in block_content
@@ -259,6 +290,9 @@ def test_toctree_heading_offset_appears_once(simple_document, mock_builder):
         ("Doc 2", "doc2"),
         ("Doc 3", "doc3"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["doc1", "doc2", "doc3"]
 
     try:
         translator.visit_toctree(toctree)
@@ -267,7 +301,9 @@ def test_toctree_heading_offset_appears_once(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Count occurrences of set heading(offset: heading.offset + 1)
+    # Count occurrences of set heading(offset: heading.offset + 1) -- this
+    # count SURVIVES Phase 49 unchanged: D-08 keeps exactly ONE offset
+    # line per toctree regardless of how many per-entry guards it emits.
     pattern = r"set heading\(offset: heading\.offset \+ 1\)"
     matches = re.findall(pattern, output)
 
@@ -295,6 +331,9 @@ def test_toctree_reduced_line_count(simple_document, mock_builder):
         ("Entry 2", "entry2"),
         ("Entry 3", "entry3"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["entry1", "entry2", "entry3"]
 
     try:
         translator.visit_toctree(toctree)
@@ -304,12 +343,14 @@ def test_toctree_reduced_line_count(simple_document, mock_builder):
     output = translator.astext()
     lines = [line for line in output.split("\n") if line.strip()]
 
-    # Expected structure:
+    # Expected structure (SURVIVES Phase 49 unchanged -- each entry still
+    # emits exactly ONE text line, a guard line instead of a bare
+    # include() line, so the total line count is the same shape):
     # 1. context {
     # 2.   set heading(offset: heading.offset + 1)
-    # 3.   include("entry1.typ")
-    # 4.   include("entry2.typ")
-    # 5.   include("entry3.typ")
+    # 3.   if "..." in state(...).get() { include("entry1.typ") }
+    # 4.   if "..." in state(...).get() { include("entry2.typ") }
+    # 5.   if "..." in state(...).get() { include("entry3.typ") }
     # 6. }
     # Total: ~5-6 lines (vs ~12 lines with individual blocks)
 
@@ -324,6 +365,13 @@ def test_toctree_single_entry_with_single_block(simple_document, mock_builder):
     Issue #7 - Requirement 1.1:
     WHEN toctree has a single entry
     THEN a single scope block {...} SHALL be generated
+
+    Phase 49 (COMP-05/D-03, SYNTHETIC-NODE + brace-count FLIPS): the
+    single entry now emits its own one-line guard, a NESTED ``{``/``}``
+    pair inside the outer ``context { ... }`` scope -- so the brace count
+    becomes 2 (1 scope + 1 guard), not 1. The ``include(`` call count
+    itself SURVIVES unchanged: one guard still emits exactly one
+    ``include(`` call.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -333,6 +381,9 @@ def test_toctree_single_entry_with_single_block(simple_document, mock_builder):
     toctree["entries"] = [
         ("Single Doc", "single"),
     ]
+    # Phase 49 (COMP-05/D-03): the emission side reads includefiles, not
+    # entries.
+    toctree["includefiles"] = ["single"]
 
     try:
         translator.visit_toctree(toctree)
@@ -341,13 +392,15 @@ def test_toctree_single_entry_with_single_block(simple_document, mock_builder):
 
     output = translator.astext()
 
-    # Should still have exactly one scope block
-    assert output.count("{") == 1
-    assert output.count("}") == 1
+    # 1 outer context{} scope + 1 per-entry guard {} = 2 braces, not 1
+    # (Phase 49 FLIPS).
+    assert output.count("{") == 2
+    assert output.count("}") == 2
 
     # Should contain exactly one include() -- counted, not merely checked
     # for membership, since a single-entry toctree must produce a single
-    # include() inside its single scope block.
+    # include() inside its single scope block. SURVIVES Phase 49
+    # unchanged: one guard emits exactly one include( call.
     assert 'include("single.typ")' in output
     assert output.count("include(") == 1
     assert "set heading(offset: heading.offset + 1)" in output

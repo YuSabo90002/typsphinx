@@ -116,9 +116,13 @@ def figure_gate_artifacts(tmp_path_factory):
     )
     build_dir = tmp_path_factory.mktemp("fig_gate") / "_build"
     result = _run_sphinx_build_typstpdf(source_dir, build_dir)
+    # Phase 47 (R1/R4): the translator-body markup assertions below read
+    # the CONTENT file (docname-derived, "index.typ", unchanged); only the
+    # compiled PDF moves to the WRAPPER's own output ("master.pdf", the
+    # fixture's typst_documents target after de-collision).
     typ_output = build_dir / "index.typ"
     typ_text = typ_output.read_text(encoding="utf-8") if typ_output.exists() else ""
-    pdf_path = build_dir / "index.pdf"
+    pdf_path = build_dir / "master.pdf"
     return _FigureGateArtifacts(result=result, typ_text=typ_text, pdf_path=pdf_path)
 
 
@@ -265,6 +269,31 @@ class TestFigurePropagatedTargetRenderGate:
             f"{sorted(anchor_names)}\n{scan_text}"
         )
 
+    def test_wrapper_has_exactly_one_include_of_its_content(
+        self, figure_gate_artifacts
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ").
+        """
+        result = figure_gate_artifacts.result
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        master_typ = figure_gate_artifacts.pdf_path.with_suffix(".typ")
+        assert master_typ.exists(), "master.typ was not generated"
+        content = master_typ.read_text(encoding="utf-8")
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'
+
     def test_pdf_compiles_to_valid_pdf(self, figure_gate_artifacts):
         """
         The emitted ``.typ`` must have compiled to a real, non-empty PDF
@@ -274,7 +303,7 @@ class TestFigurePropagatedTargetRenderGate:
         """
         pdf_path = figure_gate_artifacts.pdf_path
         assert pdf_path.exists(), (
-            "index.pdf was not produced -- typst.compile() likely aborted "
+            "master.pdf was not produced -- typst.compile() likely aborted "
             f"on a dangling label:\nstderr: {figure_gate_artifacts.result.stderr}"
         )
         assert pdf_path.stat().st_size > 0, "PDF file is empty"

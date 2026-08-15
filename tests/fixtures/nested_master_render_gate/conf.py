@@ -34,9 +34,23 @@ extensions = [
 # the project could accidentally mask the nested-master condition.
 root_doc = "api/index"
 
-# Target name equals the docname's basename ON PURPOSE (D-07): the Phase 22
-# target-name rename must NOT be exercised here, so that when this gate goes
-# red the cause is unambiguously PDF-02, not a target-name interaction.
+# Phase 47 (OUT-01): the target used to equal the docname's basename
+# ("index") on purpose (D-07), to keep the Phase 22 target-name rename out
+# of this gate's failure surface. Under OUT-01 a bare target still resolves
+# at the outdir root regardless of its literal string -- "index" itself
+# does not collide with anything in THIS fixture (there is no root-level
+# "index" docname; the only docname is the NESTED "api/index", whose
+# content file is unconditionally at "api/index.typ", never at the outdir
+# root). The rename to "nested-master.typ" below is not a collision fix
+# for this specific fixture -- it is the general fixture de-collision
+# convention (47-EXPECTED-STRUCTURE.md): a target string that reads as an
+# "index" identity invites exactly the misreading this comment forestalls.
+# What is load-bearing about this fixture is unchanged: the DOCNAME is
+# nested ("api/index") while the TARGET is a bare name with no path
+# component, so the WRAPPER resolves at the outdir root -- one directory
+# level away from its own entry's CONTENT file (COMP-01, always at
+# "api/index.typ") and from the sibling include/image references that
+# live inside that content file's own body.
 typst_documents = [
-    ("api/index", "index", "Nested Master Render Gate", "Test Author"),
+    ("api/index", "nested-master.typ", "Nested Master Render Gate", "Test Author"),
 ]

@@ -121,8 +121,10 @@ class TestAbbrPepSeparatorRenderGate:
           cases;
         - the genuine ``:abbr:`` usage DOES still append its expansion
           text -- ``text(" (ABBRSENTINELEXPANSIONPHRASE)")`` is present;
-        - ``index.pdf`` exists, is non-empty, and begins with the ``%PDF``
-          magic bytes (real ``typst.compile()`` succeeded).
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and begins with the ``%PDF`` magic bytes (real
+          ``typst.compile()`` succeeded).
         """
         result = _run_sphinx_build_typstpdf(
             abbr_pep_separator_render_gate_dir, temp_build_dir
@@ -160,10 +162,12 @@ class TestAbbrPepSeparatorRenderGate:
             f":abbr: usage:\n{typ_text}"
         )
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -200,9 +204,9 @@ class TestAbbrPepSeparatorRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = pypdf.PdfReader(str(pdf_output))

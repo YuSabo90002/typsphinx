@@ -157,8 +157,12 @@ def nested_toctree_heading_outline(tmp_path_factory):
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
-    master_typ = build_dir / "index.typ"
-    assert master_typ.exists(), "index.typ was not generated"
+    # Phase 47 (R3): only the WRAPPER file (this fixture's typst_documents
+    # target, "master.typ") is a complete, self-contained document with a
+    # template application and outline -- the content file ("index.typ")
+    # carries no template, so it is the wrapper that must be queried.
+    master_typ = build_dir / "master.typ"
+    assert master_typ.exists(), "master.typ was not generated"
 
     levels = _query_heading_levels(master_typ, build_dir)
     outline = _query_heading_outline(master_typ, build_dir)
@@ -356,9 +360,17 @@ class TestNoHeadingOffsetOutsideVisitToctree:
         proving the searched construct is producible in this exact build,
         so its absence from the template (both packaged and emitted) is
         informative rather than an artifact of an empty/unbuilt input.
+
+        Phase 47 (R5): a toctree #include() -- and the `set heading(offset:
+        ...)` scope wrapping it -- is emitted where its OWN doctree is
+        translated, i.e. into the CONTENT file ("index.typ"), unaffected
+        by the content/wrapper split; the wrapper ("master.typ") carries
+        only the template application and a single #include() of the
+        content file, so this construct is read from the content file.
         """
-        _levels, _outline, master_typ, _build_dir = nested_toctree_heading_outline
-        content = master_typ.read_text(encoding="utf-8")
+        _levels, _outline, _master_typ, build_dir = nested_toctree_heading_outline
+        content_typ = build_dir / "index.typ"
+        content = content_typ.read_text(encoding="utf-8")
         assert "set heading(offset: heading.offset + 1)" in content, (
             "expected the master's own .typ to contain the offset "
             "expression visit_toctree emits -- if this fails, the "

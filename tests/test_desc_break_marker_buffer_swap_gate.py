@@ -256,8 +256,11 @@ class TestDescBreakMarkerBufferSwapCompileGate:
         verbatim exit status quoted alongside the structural gate's.
         """
         _build_typ(desc_break_marker_buffer_swap_gate_dir, temp_build_dir)
-        typ_path = temp_build_dir / "index.typ"
-        pdf_output = temp_build_dir / "index.pdf"
-        typst.compile(str(typ_path), output=str(pdf_output))
+        # Compile the WRAPPER (R3), not the content file directly -- only
+        # the wrapper is a complete, self-contained document; the content
+        # file the structural gates above read carries no template.
+        wrapper_path = temp_build_dir / "master.typ"
+        pdf_output = temp_build_dir / "master.pdf"
+        typst.compile(str(wrapper_path), output=str(pdf_output))
         assert pdf_output.exists(), "PDF file was not created"
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

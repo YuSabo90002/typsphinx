@@ -36,8 +36,13 @@ Output
 ~~~~~~
 
 - Generates ``.typ`` files in the output directory
-- One file per document defined in ``typst_documents``
-- Include files for multi-document projects
+- Each ``typst_documents`` entry writes a **wrapper** file at that entry's
+  own target path, plus a **content** file named after the entry's source
+  document
+- Every document in the project gets a content file, whether or not it is
+  named in ``typst_documents``
+- See :doc:`output_layout` for the full wrapper/content contract and which
+  file to compile
 
 When to Use
 ~~~~~~~~~~~
@@ -50,15 +55,18 @@ When to Use
 Manual Compilation
 ~~~~~~~~~~~~~~~~~~
 
-After generating ``.typ`` files, compile with Typst CLI:
+After generating ``.typ`` files, compile with Typst CLI. Compile the
+**wrapper**, not the docname-named content file -- see :doc:`output_layout`
+for the full wrapper/content contract.
 
 .. code-block:: bash
 
    # Install Typst CLI if needed
    # https://github.com/typst/typst
 
-   # Compile to PDF
-   typst compile build/typst/index.typ output.pdf
+   # Compile to PDF -- with typst_documents unset, project = "My Project"
+   # produces the wrapper myproject.typ
+   typst compile build/typst/myproject.typ output.pdf
 
 typstpdf Builder
 ----------------
@@ -111,14 +119,15 @@ Document Definitions
        ("api", "api-ref", "API Reference", "Author", "typst"),
    ]
 
-The second tuple element is the output filename stem, and it governs both
-the emitted ``.typ`` file and the compiled ``.pdf`` (under the ``typstpdf``
-builder). With the configuration shown above, the builders therefore emit
-``main.typ`` / ``main.pdf`` and ``api-ref.typ`` / ``api-ref.pdf`` -- not
-``index.typ`` / ``index.pdf`` or ``api.typ`` / ``api.pdf``. The CLI
-walkthroughs elsewhere on this page assume the default identity
-configuration, where the source name and the target name agree, so their
-docname-named artifacts are correct for that configuration.
+The second tuple element names the **wrapper** file for that entry, and
+only the wrapper -- it does not govern the entry's content file. With the
+configuration shown above, the builders emit five ``.typ`` files: wrappers
+``main.typ`` and ``api-ref.typ``, content files ``index.typ`` and
+``api.typ``, named after the two source documents shown above, and
+``_template.typ``, which both wrappers import. Under the
+``typstpdf`` builder only the wrappers become PDFs: ``main.pdf`` and
+``api-ref.pdf``, and no others. See :doc:`output_layout` for the full
+wrapper/content contract.
 
 Builder-Specific Options
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -153,7 +162,9 @@ During development, use ``typstpdf`` for quick feedback:
 .. code-block:: bash
 
    sphinx-build -b typstpdf source/ build/pdf
-   open build/pdf/index.pdf
+   # With typst_documents unset, project = "My Project" produces the
+   # wrapper's PDF as myproject.pdf
+   open build/pdf/myproject.pdf
 
 Production
 ~~~~~~~~~~
@@ -167,7 +178,9 @@ For production, you can use either builder:
 
    # Option 2: Typst + manual compilation
    sphinx-build -b typst source/ build/typst
-   typst compile build/typst/index.typ output.pdf
+   # With typst_documents unset, project = "My Project" produces the
+   # wrapper myproject.typ
+   typst compile build/typst/myproject.typ output.pdf
 
 CI/CD
 ~~~~~
@@ -184,6 +197,7 @@ In CI/CD, ``typstpdf`` is recommended for simplicity:
 See Also
 --------
 
+- :doc:`output_layout` - The wrapper/content output contract
 - :doc:`configuration` - Configuration options
 - :doc:`templates` - Customizing templates
 - :doc:`/examples/basic` - Basic usage examples

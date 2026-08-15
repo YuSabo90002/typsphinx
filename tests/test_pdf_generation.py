@@ -113,23 +113,39 @@ class TestTypstPDFBuilder:
     def test_finish_compiles_master_at_its_own_directory(
         self, temp_sphinx_app, tmp_path
     ):
-        """D-08(b): the path handed to the compile function is the master's
-        own .typ (inside its docname directory), never a file at the outdir
-        root -- this is the structural invariant the PDF-02 fix depends on,
-        and it is checkable even where typst-py is not installed because the
-        compile function is mocked."""
+        """D-08(b), re-derived Phase 47 onto OUT-01: the path handed to the
+        compile function is the WRAPPER's own real, resolved on-disk
+        location -- never a file synthesized at the outdir root -- this is
+        the structural invariant the PDF-02 fix depends on, and it is
+        checkable even where typst-py is not installed because the compile
+        function is mocked.
+
+        Phase 47 (OUT-01) reverses Phase 44's D-05/D-06/D-07
+        directory-preserving relocation: a target is now a literal
+        outdir-relative path, taken as-is, never force-relocated into the
+        docname's OWN directory. This test used to configure a BARE target
+        ("index") for a nested docname ("api/index") specifically to prove
+        the pre-Phase-47 relocation forced the compiled path into
+        "api/index.typ" -- that premise is now the reversed behavior (a
+        bare target resolves at the outdir ROOT under OUT-01, not the
+        docname's directory). Re-derived with a PATH-BEARING target
+        ("manuals/nested.typ") instead, which preserves this test's real
+        structural subject -- the compile function receives the wrapper's
+        own real resolved directory, wherever OUT-01 says that is, never a
+        copy relocated elsewhere -- while accurately reflecting OUT-01's
+        literal-path-as-written rule."""
         from typsphinx.builder import TypstPDFBuilder
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
         builder.outdir = str(tmp_path)
 
         builder.config.typst_documents = [
-            ("api/index", "index", "Test Document", "Test Author"),
+            ("api/index", "manuals/nested.typ", "Test Document", "Test Author"),
         ]
 
-        api_dir = tmp_path / "api"
-        api_dir.mkdir()
-        (api_dir / "index.typ").write_text("= Test Document\n\nNested master.\n")
+        manuals_dir = tmp_path / "manuals"
+        manuals_dir.mkdir()
+        (manuals_dir / "nested.typ").write_text("= Test Document\n\nNested master.\n")
 
         with patch.object(TypstPDFBuilder.__bases__[0], "finish"):
             with patch("typsphinx.builder.compile_typst_file_to_pdf") as mock_compile:
@@ -138,8 +154,8 @@ class TestTypstPDFBuilder:
 
         called_args, called_kwargs = mock_compile.call_args
         called_path = called_args[0]
-        assert called_path == str(api_dir / "index.typ")
-        assert path.dirname(called_path) == str(api_dir)
+        assert called_path == str(manuals_dir / "nested.typ")
+        assert path.dirname(called_path) == str(manuals_dir)
         assert path.dirname(called_path) != str(tmp_path)
         # builder.outdir may be a Sphinx _StrPath (path-like, not a plain
         # str); stringify explicitly to avoid its deprecated str-equality
@@ -389,13 +405,21 @@ class TestPDFErrorHandling:
             "Master document not found" not in message
         ), "the two D-04 branches must never emit colliding message text"
 
-    def test_builder_appends_failure_for_malformed_entry_but_not_short_entry(
+    def test_builder_appends_failure_for_malformed_entry_and_short_entry(
         self, temp_sphinx_app, tmp_path
     ):
-        """D-05, D-07 (empty and single-element edges): a falsy entry such as
-        `()` is malformed and fails the build, but a 1-element entry such as
-        `("valid",)` is NOT malformed and resolves its stem from the
-        docname."""
+        """BLD-03 (Phase 47 gap-closure plan 11, REVERSES this test's own
+        pre-fix name/assertions): a falsy entry such as `()` is malformed
+        and fails the build, and a 1-element entry such as `("valid",)` is
+        now ALSO a failure -- `_is_usable_typst_documents_entry()` (the
+        single predicate all four wrapper-path-resolving sites now share)
+        rejects any entry with fewer than two elements, so `finish()`
+        reports "has no target element" instead of silently falling the
+        stem back to the docname and compiling whatever `.typ` happens to
+        already sit there. The pre-fix version of this test asserted the
+        exact silent-fallback behavior that let a 1-element entry's
+        write-phase wrapper self-collide with and destroy its own
+        docname's content file -- the BLD-03 defect this plan closes."""
         from typsphinx.builder import TypstPDFBuilder
 
         builder = TypstPDFBuilder(temp_sphinx_app, temp_sphinx_app.env)
@@ -410,16 +434,21 @@ class TestPDFErrorHandling:
             builder.finish()
 
         message = str(exc_info.value)
-        assert "1 master document(s) failed" in message, (
-            "only the empty-tuple entry is malformed; the 1-element entry "
-            "must not also be counted as a failure"
+        assert "2 master document(s) failed" in message, (
+            "both the empty-tuple entry and the now-unusable 1-element "
+            "entry must be counted as failures"
         )
         assert (
             "(): malformed typst_documents entry" in message
         ), "the malformed entry's identifier must be the entry's own repr"
-        assert (tmp_path / "valid.pdf").exists(), (
-            "a 1-element entry is not malformed and must still compile, "
-            "with its stem falling back to the docname"
+        assert "has no target element" in message, (
+            "the 1-element entry's failure message must state it has no "
+            "target element"
+        )
+        assert not (tmp_path / "valid.pdf").exists(), (
+            "a 1-element entry produces no wrapper file (BLD-03) -- it "
+            "must not be compiled even though a same-named .typ happens "
+            "to pre-exist on disk"
         )
 
     def test_aggregate_message_lists_failures_in_typst_documents_order(

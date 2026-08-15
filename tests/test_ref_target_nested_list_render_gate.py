@@ -220,9 +220,11 @@ class TestRefTargetNestedListRenderGate:
         )
 
         # (c) The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the PDF is the WRAPPER's own output ("master.pdf",
+        # this fixture's typst_documents target after de-collision).
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most "
+            "master.pdf was not produced -- typst.compile() aborted, most "
             "likely on one of the two juxtapositions:\n"
             f"stderr: {result.stderr}"
         )

@@ -57,12 +57,15 @@ sphinx-build -b typst . _build/typst
 ```
 
 This will generate:
-- `_build/typst/advanced-example.typ` - Master document
-- `_build/typst/chapter1.typ` - Chapter 1
-- `_build/typst/chapter2.typ` - Chapter 2
+- `_build/typst/advanced-example.typ` - Wrapper (compile this)
+- `_build/typst/index.typ` - Master content (the `index` document's own body)
+- `_build/typst/chapter1.typ` - Chapter 1 content
+- `_build/typst/chapter2.typ` - Chapter 2 content
+- `_build/typst/_template.typ` - Template imported by the wrapper (here, your `_templates/custom.typ`)
 
-The master document (`advanced-example.typ`) uses `#include()` directives to
-combine all chapters into a single document structure.
+The wrapper (`advanced-example.typ`) is a thin file that includes the
+master's content file, `index.typ`. The chapter includes live inside that
+content file, emitted at the toctree's own position -- not in the wrapper.
 
 ### Generate PDF Output
 
@@ -110,19 +113,23 @@ The project uses Sphinx's `toctree` directive to organize content:
    chapter2
 ```
 
-This generates Typst `#include()` directives:
+This generates a Typst compile-time guard, not an unconditional `#include()`,
+inside the master's content file (`index.typ`):
 
 ```typst
-{
-  #set heading(offset: 1)
-  #include("chapter1.typ")
-}
-
-{
-  #set heading(offset: 1)
-  #include("chapter2.typ")
+context {
+  set heading(offset: heading.offset + 1)
+  if "index#0>chapter1" in state("typsphinx:include-edges", ()).get() { include("chapter1.typ") }
+  if "index#0>chapter2" in state("typsphinx:include-edges", ()).get() { include("chapter2.typ") }
 }
 ```
+
+Each wrapper publishes its own set of include edges as Typst state before
+including its content file, and the guard above includes a chapter only
+when that chapter's edge key is present in the state its own wrapper
+published. This guard exists because a document reachable from several
+masters must render once in each master's own output, rather than being
+claimed by only one of them.
 
 ### 2. Mathematical Content
 

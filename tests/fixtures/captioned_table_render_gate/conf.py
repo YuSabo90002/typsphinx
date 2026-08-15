@@ -20,7 +20,11 @@ extensions = [
 # emits the full template -- included documents only get a minimal import
 # set (see typsphinx/writer.py).
 typst_documents = [
-    ("index", "index", "Captioned Table Render Gate", "Test Author"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    ("index", "master.typ", "Captioned Table Render Gate", "Test Author"),
 ]
 
 numfig = True

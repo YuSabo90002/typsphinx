@@ -130,11 +130,13 @@ class TestMissingAndMalformedMasterGate:
 
         # CR-01 regression: a malformed entry must not abort the WRITE phase.
         # The fixture's chapter1.rst is not in typst_documents, so writing it
-        # scans the whole list and reaches the malformed () entry. An unguarded
-        # doc_tuple[0] in TypstWriter._is_master_document() raised IndexError
-        # here, killing sphinx-build before finish() ran. "IndexError" is a
-        # Python builtin name, not an upstream diagnostic string, so asserting
-        # its absence does not reintroduce the WR-02 coupling this phase removed.
+        # scans the whole list (TypstBuilder._write_typst_files()'s per-
+        # docname wrapper-entry matching loop, typsphinx/builder.py) and
+        # reaches the malformed () entry. An unguarded doc_tuple[0] there
+        # raised IndexError here, killing sphinx-build before finish() ran.
+        # "IndexError" is a Python builtin name, not an upstream diagnostic
+        # string, so asserting its absence does not reintroduce the WR-02
+        # coupling this phase removed.
         assert "IndexError" not in result.stderr, (
             f"A malformed typst_documents entry aborted the write phase with a "
             f"raw IndexError instead of being reported by finish()'s aggregate "
@@ -148,11 +150,22 @@ class TestMissingAndMalformedMasterGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
+        # R1: the valid master's docname-derived content file, unconditional
+        # and unchanged by this fixture's target de-collision.
         assert (build_dir / "index.typ").exists(), (
-            f"The valid master's .typ was not written before the aggregate "
-            f"failure:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+            f"The valid master's content file (.typ) was not written before "
+            f"the aggregate failure:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
         )
-        assert (build_dir / "index.pdf").exists(), (
+        # R4: the wrapper (target "master.typ", de-collided per
+        # 47-EXPECTED-STRUCTURE.md) is the file TypstPDFBuilder.finish()
+        # actually compiles.
+        assert (build_dir / "master.typ").exists(), (
+            f"The valid master's wrapper (.typ) was not written before the "
+            f"aggregate failure:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert (build_dir / "master.pdf").exists(), (
             f"D-02's attempt-all-then-raise contract failed end to end: "
             f"the valid master should still get its PDF even though the "
             f"build as a whole fails:\nstdout: {result.stdout}\n"

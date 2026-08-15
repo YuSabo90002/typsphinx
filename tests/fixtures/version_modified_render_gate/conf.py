@@ -18,5 +18,9 @@ extensions = [
 # emits the full template plus the gentle-clues @preview import -- included
 # documents only get a minimal import set (see typsphinx/writer.py).
 typst_documents = [
-    ("index", "index", "Version Modified Render Gate", "Test Author"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    ("index", "master.typ", "Version Modified Render Gate", "Test Author"),
 ]

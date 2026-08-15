@@ -128,7 +128,7 @@ class TestInlineLiteralOverflowRenderGate:
         - the emitted ``raw(...)`` content for the colon-leading role tokens
           begins with a U+200B zero-width space immediately before the
           leading colon (the break-opportunity fix, FID-10);
-        - ``index.pdf`` exists, is non-empty, and begins with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and begins with the ``%PDF``
           magic bytes.
 
         This structural assert is the FAIL-PRE-FIX gate for FID-10 (see
@@ -164,9 +164,9 @@ class TestInlineLiteralOverflowRenderGate:
             f"(FID-10 regression):\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -214,9 +214,9 @@ class TestInlineLiteralOverflowRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = pypdf.PdfReader(str(pdf_output))

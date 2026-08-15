@@ -169,13 +169,21 @@ class TestSignatureTypographyMultiSignaturePageCountGate:
         result = _run_sphinx_build_typst(fixture_dir, build_dir)
         assert result.returncode == 0, f"Sphinx build failed:\n{result.stderr}"
 
-        # Compile the emitted .typ to PDF
+        # The docname-derived CONTENT file (translator body markup, R1) --
+        # used below only for the wrapper-count degenerate-pass guard.
         typ_file = build_dir / "index.typ"
         assert typ_file.exists(), "Emitted index.typ not found"
 
-        pdf_file = build_dir / "index.pdf"
+        # Compile the WRAPPER, not the content file (R3): only the wrapper
+        # carries the title page and outline that decide page indices --
+        # compiling the content file directly would produce an untitled,
+        # template-less fragment and make the page count meaningless.
+        wrapper_file = build_dir / "master.typ"
+        assert wrapper_file.exists(), "Emitted master.typ (wrapper) not found"
+
+        pdf_file = build_dir / "master.pdf"
         try:
-            typst.compile(str(typ_file), output=str(pdf_file))
+            typst.compile(str(wrapper_file), output=str(pdf_file))
         except Exception as exc:
             pytest.fail(f"typst.compile failed: {exc}")
 

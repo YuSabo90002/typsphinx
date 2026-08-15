@@ -123,8 +123,10 @@ class TestConfvalFieldBodyRenderGate:
         - a block/normal paragraph stays wrapped in ``par({...})``;
         - no ``TypstCompilationError`` / "expected semicolon or line break"
           signature is logged;
-        - ``index.pdf`` exists, is non-empty, and starts with the ``%PDF`` magic
-          bytes -- the only proof the field body compiled to valid Typst and
+        - ``master.pdf`` (the wrapper's compiled output -- R4:
+          ``TypstPDFBuilder.finish()`` compiles only wrapper files) exists,
+          is non-empty, and starts with the ``%PDF`` magic bytes -- the
+          only proof the field body compiled to valid Typst and
           ``typst.compile()`` did NOT abort with the fatal that GATE-02
           surfaced against the corpus.
         """
@@ -179,11 +181,13 @@ class TestConfvalFieldBodyRenderGate:
             "must not drop par() where it is required"
         )
 
-        # The emitted .typ must have compiled to a real, non-empty PDF.
-        pdf_output = temp_build_dir / "index.pdf"
+        # The wrapper (target "master.typ", per this fixture's conf.py --
+        # R4: only wrapper files are ever compiled) must have compiled to a
+        # real, non-empty PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted, most likely "
-            f"on the juxtaposed collapsed field body:\n"
+            "master.pdf was not produced -- typst.compile() aborted, most "
+            f"likely on the juxtaposed collapsed field body:\n"
             f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"

@@ -200,9 +200,14 @@ class TestNestedTableRenderGate:
                 f"(list-table in list-table):\n{typ_text}"
             )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" (de-collided
+        # from the pre-Phase-47 "index", which self-collided with the
+        # docname-derived content file, index.typ) -- so the compiled PDF
+        # is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted:\n"
+            "master.pdf was not produced -- typst.compile() aborted:\n"
             f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -255,7 +260,10 @@ class TestNestedTableRenderGate:
                 f"in list-table):\n{typ_text}"
             )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
+        # fixture's typst_documents entry targets "master.typ" -- so the
+        # compiled PDF is master.pdf, not index.pdf.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists() and pdf_output.stat().st_size > 0
         reader = pypdf.PdfReader(str(pdf_output))
         full_text = "\n".join(page.extract_text() for page in reader.pages)

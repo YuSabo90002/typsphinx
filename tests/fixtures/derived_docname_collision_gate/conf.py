@@ -1,8 +1,11 @@
-# CR-01: real-sphinx-build reproduction of the zero-configuration docname
-# collision. `project = "Chapter 1"` slugifies (make_filename_from_project)
-# to the stem "chapter1", which is IDENTICAL to the docname of the real
-# `chapter1.rst` this project toctree-includes -- an ordinary "project named
-# after its first chapter" docs layout.
+# D-01 (Phase 47 plan 09, replacing CR-01): real-sphinx-build reproduction
+# of the zero-configuration docname collision. `project = "Chapter 1"`
+# slugifies (make_filename_from_project) to the stem "chapter1", which is
+# IDENTICAL to the docname of the real `chapter1.rst` this project
+# toctree-includes -- an ordinary "project named after its first chapter"
+# docs layout. Since the content/wrapper split, this now FAILS the build
+# with a single pre-write ExtensionError (D-01/D-02/D-03) instead of
+# warning and keeping both documents (CR-01's old behaviour).
 #
 # Load-bearing properties -- do NOT touch any of these, or this fixture
 # silently stops exercising CR-01:

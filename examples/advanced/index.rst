@@ -36,8 +36,11 @@ Key Features Demonstrated
 
    The project is organized into multiple chapters using Sphinx's ``toctree``
    directive. Each chapter is a separate ``.rst`` file that gets converted
-   to a separate ``.typ`` file. Typst's ``#include()`` directive is used
-   to combine them into a single document.
+   to a separate ``.typ`` content file. The chapters are combined by guarded
+   ``include()`` calls that live in this document's own content file, at the
+   toctree's position -- each one runs only when the wrapper being compiled
+   has published that edge, so a chapter is rendered once per master that
+   actually reaches it.
 
 2. **Mathematics with mitex**
 

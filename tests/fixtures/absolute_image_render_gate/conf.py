@@ -48,8 +48,15 @@ html_static_path = ["_static"]
 # emits the full template and TypstPDFBuilder.finish() actually compiles it
 # to PDF -- the only build path where the "same file" / "file not found"
 # fatals from Issue #130 are observable.
+#
+# Phase 47 fixture de-collision: the target was originally "index", whose
+# resolved stem is identical to the docname "index" itself -- a self-
+# collision under the two-layer content/wrapper split. Renamed to
+# "master.typ" per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule;
+# no other element changed. Image-path handling (IMG-01/IMG-02) is
+# Phase 50's scope and is untouched by this rename.
 typst_documents = [
-    ("index", "index", "Absolute Image Render Gate", "Test Author"),
+    ("index", "master.typ", "Absolute Image Render Gate", "Test Author"),
 ]
 
 

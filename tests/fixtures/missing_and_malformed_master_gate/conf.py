@@ -13,9 +13,13 @@
 # bad entries below must stay in this relative order for the gate's
 # ordering assertions to hold:
 #
-#   1. ("index", "index", project, author) -- the ONE VALID master. Its
-#      .typ is generated and it must still produce index.pdf even though
-#      the build overall fails -- D-02's attempt-all-then-raise contract.
+#   1. ("index", "master.typ", project, author) -- the ONE VALID master.
+#      Its target is de-collided per 47-EXPECTED-STRUCTURE.md's fixture
+#      de-collision rule (a bare "index" target would collide with the
+#      unconditional docname-derived content file, index.typ); its
+#      wrapper is still generated and must still produce master.pdf even
+#      though the build overall fails -- D-02's attempt-all-then-raise
+#      contract.
 #   2. ("ghost", "ghost", project, author) -- a docname that is
 #      deliberately NOT a real Sphinx document in this project. There is
 #      no ghost.rst file anywhere in this fixture and "ghost" is never
@@ -28,11 +32,13 @@
 #
 # The fixture also contains a SECOND, non-master document (chapter1.rst,
 # reached from index.rst's toctree and deliberately absent from the list
-# below). Writing it forces TypstWriter._is_master_document("chapter1") to
-# scan this whole list without matching, so the scan reaches the malformed
-# () entry -- the condition behind code-review finding CR-01. Keep
-# chapter1.rst out of typst_documents; adding it would make the scan match
-# early and silently stop exercising that path.
+# below). Writing it forces TypstBuilder._write_typst_files("chapter1", ...)
+# (Phase 47's per-docname wrapper-entry matching loop, `typsphinx/
+# builder.py`) to scan this whole typst_documents list without matching any
+# entry -- chapter1 gets only a content file, no wrapper -- so the scan
+# reaches the malformed () entry, the condition behind code-review finding
+# CR-01. Keep chapter1.rst out of typst_documents; adding it would make the
+# scan match early and silently stop exercising that path.
 #
 # No other typst_* config value is set here -- in particular, no
 # typst_template, no typst_package, and no typst_template_function. The
@@ -48,7 +54,7 @@ copyright = "2026, Test Author"
 extensions = ["typsphinx"]
 
 typst_documents = [
-    ("index", "index", project, author),
+    ("index", "master.typ", project, author),
     ("ghost", "ghost", project, author),
     (),
 ]

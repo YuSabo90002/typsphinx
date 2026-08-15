@@ -36,6 +36,10 @@ extensions = ["typsphinx"]
 # index must be a master document so the writer emits the full template and
 # TypstPDFBuilder.finish() actually compiles it to PDF -- required for the
 # FLD-02 pypdf-extracted-text adjacency assertions (D-07).
+#
+# Target "index" (stem "index") casefold-collides with the docname's own
+# content path "index.typ" (fixture de-collision rule, 47-EXPECTED-STRUCTURE.md);
+# renamed to the canonical "master.typ".
 typst_documents = [
-    ("index", "index", "Field Body Typography Render Gate", "typsphinx tests"),
+    ("index", "master.typ", "Field Body Typography Render Gate", "typsphinx tests"),
 ]

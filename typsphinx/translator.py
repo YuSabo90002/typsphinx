@@ -29,6 +29,20 @@ _TYPST_PASSTHROUGH_UNITS = {"%", "em", "pt", "cm", "mm", "in"}
 # three renderings; see 37-CONTEXT.md).
 SHARED_INDENT_STEP = "2.5em"
 
+# Phase 48 plan 07 (G-48-4 / XREF-03 gap closure): the whole-document
+# self-anchor's raw id, fixed at `__tsx-doc__`
+# (48-EXPECTED-STRUCTURE.md "Phase 48 Plan 05" section 1). Deliberately
+# carries BOTH an underscore and a hyphen -- unreachable from either raw-id
+# source this codebase namespaces through `_namespace_label`: docutils'
+# `make_id` never emits an underscore, even when its input already
+# contains one (nine adversarial probes, section 1 Claim 1), and a Sphinx
+# domain object id is built from Python identifiers, which structurally
+# exclude a hyphen (section 1 Claim 2). ONE module-level constant, consumed
+# by BOTH the definition site (`visit_document`, below) and the reference
+# site (`visit_reference`'s cross-document branch) through the SAME
+# `_namespace_label` call (D-13) -- never re-spelled at either.
+_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN = "__tsx-doc__"
+
 
 class _ReferenceAnchorDecision(NamedTuple):
     """
@@ -47,8 +61,11 @@ class _ReferenceAnchorDecision(NamedTuple):
     ``visit_citation``'s backref loop (the anchor-CONSUMING site), so the
     two cannot silently drift apart again (D-05).
 
-    Every field is derived from the node plus builder state (D-06) --
-    nothing here is passed in pre-computed:
+    Every field is derived from the node alone (D-09): the label-existence
+    question this decision used to answer via a build-time degrade field
+    (deleted in Phase 48) is now decided entirely at Typst compile time by
+    ``_label_existence_guard()``'s ``query(<label>)`` -- this predicate no
+    longer consults any builder state to decide whether a wrapper opens.
 
     Attributes:
         refuri: ``node.get("refuri", "")``.
@@ -56,15 +73,12 @@ class _ReferenceAnchorDecision(NamedTuple):
         xref: ``self._resolve_xref_docname(refuri)`` result, or ``None``
             when ``refuri`` is empty or does not resolve to a local
             cross-document anchor.
-        degrade_xref_to_text: ``True`` only when ``xref`` resolved AND the
-            builder's ``master_included_docnames`` is non-empty and does
-            NOT contain the target docname -- reproducing
-            ``visit_reference``'s existing ``getattr`` lookup exactly,
-            including the "empty include-set means unknown, never
-            degrade" behaviour mock/hand-built builders rely on.
-        opens_wrapper: ``bool(refuri or refid) and not
-            degrade_xref_to_text`` -- whether ANY link wrapper is opened
-            at all (citation-derived or otherwise).
+        opens_wrapper: ``bool(refuri or refid)`` -- whether ANY link
+            wrapper is opened at all (citation-derived or otherwise),
+            unconditionally (D-09): whether the reference's TARGET is
+            reachable in any particular compile is a question the D-07
+            compile-time guard now answers, never a reason to withhold
+            the citing site's OWN same-document anchor.
         next_is_target: whether the node's immediately-following sibling
             is a ``nodes.target`` -- has TWO consumers in
             ``visit_reference`` (Pitfall 3, `40.1-RESEARCH.md`): the D-14
@@ -85,21 +99,43 @@ class _ReferenceAnchorDecision(NamedTuple):
             ``_namespace_label`` call this phase measured (D-07).
 
     This predicate is SILENT (Pitfall 2, `40.1-RESEARCH.md`): no
-    ``logger`` call, no ``add_text``, no translator-state mutation.
-    ``visit_reference``'s existing cross-document degrade-to-text
-    ``logger.warning`` stays exactly where it is, in ``visit_reference``'s
-    own branch -- re-deriving ``degrade_xref_to_text`` here would
-    otherwise double-fire that warning once per degraded reference.
+    ``logger`` call, no ``add_text``, no translator-state mutation. Phase
+    48 deleted the build-time cross-document degrade-to-text warning this
+    docstring used to reference -- no diagnostic replaces it (D-01); the
+    only remaining build-time signal that a reference is broken is
+    Sphinx's own resolver warnings.
     """
 
     refuri: str
     refid: str
     xref: Tuple[str, str] | None
-    degrade_xref_to_text: bool
     opens_wrapper: bool
     next_is_target: bool
     eligible: bool
     anchor_label: str | None
+
+
+class _LabelGuardStrings(NamedTuple):
+    """
+    The D-07 shared guard-string pair returned by
+    ``TypstTranslator._label_existence_guard()``: the exact bytes to emit
+    immediately BEFORE a reference's body (``open_str``) and immediately
+    AFTER it (``close_str``), wrapping the body in a Typst ``context { ...
+    }`` block that decides at COMPILE TIME, per compiled wrapper, whether
+    ``label`` actually exists in this particular ``#include()`` graph.
+
+    Attributes:
+        open_str: the prefix (if any), the ``context`` keyword, an
+            opening brace, the ``let __tsx_body = `` binding, and the
+            body opener (``[#{`` in code-mode-body form, bare ``[`` in
+            markup-mode-body form).
+        close_str: the body closer, a semicolon, then the conditional --
+            ``if query(<label>).len() > 0 { link(<label>, __tsx_body) }
+            else { __tsx_body }``, closed by the block's own final brace.
+    """
+
+    open_str: str
+    close_str: str
 
 
 def escape_typst_string(text: str) -> str:
@@ -134,6 +170,211 @@ def escape_typst_string(text: str) -> str:
     text = text.replace("\r", "\\r")  # Carriage return
     text = text.replace("\t", "\\t")  # Tab
     return text
+
+
+# Phase 49 (COMP-05/COMP-06/D-04..D-09): the per-master include graph moves
+# the include DECISION from write time (a build-scoped ledger claiming a
+# docname the first time any document's toctree names it, which can only
+# ever pick ONE winner across the WHOLE build) to Typst COMPILE time (a
+# per-master published `state` array, read by a per-emission-site guard).
+# These five module-level symbols are the complete derivation surface;
+# placed here, immediately after `escape_typst_string`, because every one
+# of them depends on it and no import is needed for a same-module call.
+
+# D-07: the namespaced Typst `state` key every wrapper publishes to and
+# every guard reads from. A user-supplied `typst_template` is arbitrary
+# Typst and may legitimately call `state("inc")` (or any other short,
+# unnamespaced key) for its own purposes -- a project-prefixed key with a
+# separator no bare identifier would use makes a silent collision with
+# user template code implausible. Measured against a real `typst.compile()`
+# in `49-EVIDENCE.md`'s State-syntax measurement; this literal spelling is
+# fixed by that measurement, not a placeholder.
+INCLUDE_STATE_KEY = "typsphinx:include-edges"
+
+
+def make_include_edge_key(
+    parent_docname: str, child_docname: str, occurrence: int = 0
+) -> str:
+    """Derive the ONE edge-key spelling for a toctree parent/child pair
+    (D-04/D-05).
+
+    This is the SINGLE derivation point for this phase's edge-key format,
+    called by BOTH the builder's graph computation
+    (``TypstBuilder._build_include_edge_map()``, via
+    ``derive_master_edge_keys()``) and the translator's own guard emission
+    (``visit_toctree``). A second, independently-spelled edge-key
+    expression anywhere in the codebase is exactly the drift class this
+    single-function rule exists to reject -- and a mismatch between the
+    two call sites would NOT fail the build: the guard would simply never
+    fire, silently dropping the child's content with no diagnostic at any
+    layer (T-49-02).
+
+    Args:
+        parent_docname: The docname whose toctree names ``child_docname``.
+        child_docname: The docname being claimed.
+        occurrence: The 0-based index of THIS emission site among the
+            emission sites in ``parent_docname`` naming ``child_docname``
+            (D-04's occurrence rule). Defaults to 0, the only value the
+            graph side (``derive_master_edge_keys()``) can ever emit -- a
+            child is claimed at its FIRST non-traversed appearance in its
+            parent's ordered list, which is always occurrence 0.
+
+    Returns:
+        The edge key, e.g. ``"index#0>child"``. Both docnames route
+        through ``escape_typst_string()`` (T-49-01), so a docname
+        containing a double quote or a backslash still produces a key
+        that is byte-identical whether derived on the graph side or the
+        emission side.
+    """
+    escaped_parent = escape_typst_string(parent_docname)
+    escaped_child = escape_typst_string(child_docname)
+    return f"{escaped_parent}#{occurrence}>{escaped_child}"
+
+
+def derive_master_edge_keys(
+    toctree_includes: Dict[str, List[str]], master_docname: str
+) -> Tuple[str, ...]:
+    """Walk one master's own include graph and return its published edge
+    keys, in document-order discovery order (COMP-05).
+
+    A fresh RECURSIVE walk with an ordered ``traversed`` list threaded
+    through the recursion -- seeded with ``[master_docname]`` before the
+    walk begins, and appended to BEFORE recursing into each newly-claimed
+    child -- mirroring Sphinx's own ``inline_all_toctrees()``
+    (``sphinx/util/nodes.py:499-517``) and its two callers, both of which
+    seed ``traversed`` with the compiling document's own docname. The
+    composition rule this produces is document-order FIRST-ENCOUNTER-WINS:
+    whichever parent's own ordered list reaches a shared child FIRST (in
+    THIS master's own traversal) claims it; a later parent's own entry for
+    the same child is dark (no edge emitted). This is NOT
+    prefer-the-deeper-path, and it does NOT consult or port Sphinx's own
+    ``document is referenced in multiple toctrees: [...], selecting: X <-
+    Y`` message -- that message comes from a DIFFERENT function
+    (``_check_toc_parents()``, ``sphinx/environment/__init__.py:942-959``),
+    takes a plain lexicographic ``max(parents)`` tiebreak, and governs NONE
+    of this DFS.
+
+    The FORBIDDEN shape, by name and by defect: an explicit work-stack
+    seeded with the master, fed by iterating each parent's children with
+    forward ``append`` calls, and drained LAST-IN-FIRST-OUT (removing and
+    processing the most-recently-appended element each iteration, the
+    way a call stack unwinds) processes the LAST-listed child of any
+    given parent FIRST, silently REVERSING sibling order with NO compile
+    error -- this is a DIFFERENT, already Phase-48-deleted helper's own
+    traversal shape (that helper solved a DIFFERENT problem, a flat
+    cross-master docname union for XREF-safety), and COMP-05/SC#3 forbids
+    reusing it here. This function's genuine recursion preserves document
+    order; a naive forward-push LIFO stack does not.
+
+    Occurrence is always 0 on this side: a child is claimed by its parent
+    at that child's FIRST non-traversed appearance in the parent's ordered
+    list, which -- because ``traversed`` membership can only GROW, never
+    shrink, during one master's walk -- is ALWAYS the occurrence-0
+    appearance. A duplicate toctree entry for the same child (occurrence
+    >= 1) is therefore structurally dark: no second, independent emission
+    site exists on this side to ever claim it.
+
+    Args:
+        toctree_includes: A mapping from docname to its ordered
+            include-file list (``env.toctree_includes``, or an equivalent
+            mapping in a unit test). A docname absent from this mapping is
+            treated as having no children, matching how the mirrored
+            Sphinx walk behaves for a document with no toctree.
+        master_docname: The master document's own docname -- the DFS seed.
+
+    Returns:
+        The master's edge keys, in discovery order, as an ordered tuple.
+    """
+    traversed: List[str] = [master_docname]
+    edge_keys: List[str] = []
+
+    def walk(parent: str) -> None:
+        for child in toctree_includes.get(parent, []):
+            if child not in traversed:
+                edge_keys.append(make_include_edge_key(parent, child, occurrence=0))
+                traversed.append(child)
+                walk(child)
+            # else: already traversed -- dark, no edge emitted (first-encounter-wins)
+
+    walk(master_docname)
+    return tuple(edge_keys)
+
+
+def render_include_edge_state(edge_keys: Tuple[str, ...]) -> str:
+    """Render a wrapper's ``state`` publication line for ``edge_keys``.
+
+    The array-literal rendering rule (measured against a real
+    ``typst.compile()`` in ``49-EVIDENCE.md`` Probes 1-4): ``()`` for zero
+    keys, and for one or more keys a parenthesized comma-separated list of
+    double-quoted keys with an UNCONDITIONAL trailing comma after the LAST
+    element. This uniform rule removes the ``len(keys) == 1`` special case
+    RESEARCH Pitfall 1 warns is otherwise required: omitting the trailing
+    comma on a SINGLE-element literal is not a syntax error at all -- Typst
+    silently reparses ``("key")`` as a parenthesized STRING expression
+    instead of a one-element array (``49-EVIDENCE.md`` Probe 5), and the
+    published state's Typst type degrades from ``array`` to ``str`` with
+    ZERO compile-time diagnostic at any layer. Every guard's ``in``
+    membership test then silently degrades to substring containment
+    against that one string. The uniform trailing-comma rule this function
+    implements has no single-element special case, so this hazard cannot
+    arise by construction.
+
+    Args:
+        edge_keys: The master's own edge keys, in discovery order (the
+            return value of ``derive_master_edge_keys()``).
+
+    Returns:
+        The complete publication line, e.g.
+        ``'#state("typsphinx:include-edges", ()).update(("index#0>child",))'``.
+    """
+    if not edge_keys:
+        array_literal = "()"
+    else:
+        quoted_keys = ", ".join(f'"{key}"' for key in edge_keys)
+        array_literal = f"({quoted_keys},)"
+    return f'#state("{INCLUDE_STATE_KEY}", ()).update({array_literal})'
+
+
+def render_include_guard(edge_key: str, include_relpath: str) -> str:
+    """Render one content file's per-emission-site compile-time guard line.
+
+    The condition and its opening ``{`` MUST stay on ONE unbroken physical
+    line -- ``49-EVIDENCE.md`` Probe 7 measured a newline inserted between
+    them against a real ``typst.compile()`` and got the verbatim parser
+    error ``expected block``; Probe 7's passing variant keeps them on one
+    line, which is what this function's returned template does
+    unconditionally.
+
+    This site is always reached from CODE mode: content-file bodies are
+    unconditionally wrapped in a top-level ``#{ ... }`` code block
+    (``writer.py``'s ``translate()``), so no markup-mode ``#`` prefix
+    computation is needed here, unlike the reference and citation sites
+    Phase 48 touched. A future change that violates that invariant (moving
+    this guard's emission site into markup-mode body text) should fail
+    loudly rather than silently emit a bare ``if``/``state`` scope keyword
+    with no leading ``#``.
+
+    Args:
+        edge_key: The edge key this guard tests membership of (already
+            escaped -- ``make_include_edge_key()`` routes both docnames
+            through ``escape_typst_string()`` before this function ever
+            sees the key).
+        include_relpath: The relative path to the child's own content
+            file, WITHOUT the ``.typ`` suffix (``_compute_relative_include_
+            path()``'s own return shape). Routed through
+            ``escape_typst_string()`` here (T-49-01's guard-side half of
+            the escaping rule) so a docname-derived path containing a
+            quote or backslash still produces a valid literal.
+
+    Returns:
+        The complete guard line, e.g.
+        ``'if "index#0>child" in state("typsphinx:include-edges", ()).get() { include("child.typ") }'``.
+    """
+    escaped_relpath = escape_typst_string(include_relpath)
+    return (
+        f'if "{edge_key}" in state("{INCLUDE_STATE_KEY}", ()).get() '
+        f'{{ include("{escaped_relpath}.typ") }}'
+    )
 
 
 class TypstTranslator(SphinxTranslator):
@@ -344,6 +585,26 @@ class TypstTranslator(SphinxTranslator):
         # NEW slot, never a fourth consumer of the _strong_was_* slots
         # (Phase 36 D-01/D-02 warn against exactly that).
         self._reference_own_anchor: str | None = None
+        # D-07 (Phase 48): the D-07 guard's close string
+        # (`_label_existence_guard()`'s `close_str`) for the guarded
+        # cross-document reference CURRENTLY being emitted, or None. Set
+        # in visit_reference's cross-document branch, consumed/cleared in
+        # depart_reference in place of the plain closing parenthesis. A
+        # single scalar slot, mirroring `_reference_own_anchor`'s own
+        # lifecycle exactly -- a reference node cannot nest inside another
+        # reference node.
+        self._reference_guard_close: str | None = None
+        # D-04 (Phase 48): a DEDICATED close-string slot for
+        # visit_pending_xref/depart_pending_xref's own D-07 guard --
+        # deliberately NOT shared with `_reference_guard_close`. This site
+        # is unreachable through Sphinx's normal pipeline
+        # (`ReferencesResolver` replaces every `pending_xref` node
+        # unconditionally before the writer runs, `48-RED-EVIDENCE.md`'s
+        # D-04 section), so a stale value here can never leak into a real
+        # `visit_reference` call in practice -- but a dedicated slot means
+        # this defence-in-depth site cannot corrupt the reachable one's
+        # state even in principle, regardless of that argument.
+        self._pending_xref_guard_close: str | None = None
         self.in_desc_parameter = (
             False  # Track if inside desc_parameter to avoid newlines between text nodes
         )
@@ -474,6 +735,15 @@ class TypstTranslator(SphinxTranslator):
         self._line_block_depth: int = 0
         self._line_block_was_in_paragraph: bool = False
         self._line_block_was_paragraph_has_content: bool = False
+
+        # Phase 49 (D-04's occurrence rule): per-document counter, keyed by
+        # child docname, of how many of THIS document's own toctree entries
+        # (flattened across every `.. toctree::` directive the document
+        # has, in document order) have already named that child. A fresh
+        # translator instance is constructed by `TypstWriter.translate()`
+        # for EVERY document it translates (see that method), so this
+        # counter is per-document without any explicit reset here.
+        self._toctree_entry_occurrences: Dict[str, int] = {}
 
     def astext(self) -> str:
         """
@@ -661,6 +931,23 @@ class TypstTranslator(SphinxTranslator):
 
         # Start code block for unified code mode (all content uses function syntax without # prefix)
         self.add_text("#{\n")
+
+        # G-48-4 / XREF-03 (Phase 48 plan 07): every content file emits its
+        # own whole-document self-anchor exactly once, immediately after
+        # the opening code-block brace, in the established zero-width
+        # `metadata` anchor form `_emit_id_anchors` already uses -- so a
+        # whole-document reference (`visit_reference`'s cross-document
+        # branch, below) has a real per-document label to guard against
+        # instead of falling into the external-link string-url branch.
+        # Emitted ONLY when the builder supplies a current docname:
+        # hand-built test doctrees (no builder docname) keep byte-identical
+        # output, matching every other `_current_docname()`-gated site.
+        docname = self._current_docname()
+        if docname:
+            self_anchor_label = self._namespace_label(
+                docname, _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN
+            )
+            self.add_text(f"[#metadata(none) <{self_anchor_label}>]\n")
 
     def depart_document(self, node: nodes.document) -> None:
         """
@@ -3008,6 +3295,78 @@ class TypstTranslator(SphinxTranslator):
                 return candidate
         return None
 
+    def _whole_document_reference_eligible(
+        self, node: nodes.reference, target_docname: str
+    ) -> bool:
+        """
+        G-48-4 / XREF-03 (Phase 48 plan 07) ROUTING predicate, consulted
+        exactly once, immediately after ``_reference_anchor_decision``'s
+        own ``_resolve_xref_docname`` call: does a WHOLE-DOCUMENT reference
+        (the resolver found no single anchor to target, an EMPTY-anchor
+        resolution) get exposed through ``.xref`` -- and thus routed
+        through the D-07 compile-time guard against its target's own
+        whole-document self-anchor -- or does it keep the plain string-url
+        form?
+
+        This is a ROUTING decision, never a second degrade decision (the
+        phase's own standing prohibition on a second degrade mechanism
+        under any name): it only decides which of the D-07 guard's two
+        existing outcomes -- the guarded ``xref is not None`` branch, or
+        the string-url ``else`` branch -- a whole-document reference
+        enters. The actual degrade-to-plain-text decision, for every
+        guarded reference alike, is made once, by the guard's own
+        ``query(<label>).len() > 0`` else-branch, at Typst compile time.
+
+        Implements OPTION-A, the owner's choice recorded verbatim at the
+        plan 48-05 blocking checkpoint (``48-EXPECTED-STRUCTURE.md``
+        "Phase 48 Plan 05" section 6): "leave [Sphinx-generated pages] as
+        they are -- guard only references that resolve onto a real
+        document."
+
+        Two conjuncts, both required -- exactly as plan 48-06's own unit
+        gate specified this policy BEFORE any emitter existed (see that
+        module's "Design split" docstring): the node must be
+        Sphinx-internal AND the resolved target must be a real document.
+
+        - ``node.get("internal")`` is the discriminator the checkpoint
+          recorded as available to BOTH options: ``sphinx.util.nodes.
+          make_refnode`` sets ``internal=True`` on every reference Sphinx
+          itself builds, while a hand-written relative rST link carries no
+          ``internal`` flag at all. Both options were chosen on the stated
+          guarantee that they "preserve such asset links untouched", so
+          dropping this conjunct is not option-a -- it is a defect against
+          the decision as presented. Without it, a hand-written link to a
+          genuine asset (``report.pdf``) is hijacked into a guarded jump to
+          an unrelated document's self-anchor whenever a real document
+          happens to share the asset's path stem (CR-01).
+        - ``found_docs`` membership is what separates option-a from
+          option-b: it withholds the guard from a Sphinx-internal
+          reference whose target is NOT a real document, which is exactly
+          the ``genindex`` / ``py-modindex`` / ``search`` population the
+          owner chose to leave as-is.
+
+        Read defensively (nested ``getattr`` with an empty-tuple default):
+        a hand-built test doctree's stub builder may carry no ``env`` at
+        all, or an ``env`` with no ``found_docs`` attribute; either case
+        yields ``False`` (not eligible), keeping every existing hand-built-
+        doctree test byte-unchanged rather than raising.
+
+        Args:
+            node: The reference node under judgement; its ``internal``
+                flag is the first conjunct.
+            target_docname: The docname ``_resolve_xref_docname`` resolved
+                the whole-document refuri to.
+
+        Returns:
+            Whether the whole-document reference is eligible to be
+            routed through the D-07 guard.
+        """
+        if not node.get("internal"):
+            return False
+        return target_docname in getattr(
+            getattr(self.builder, "env", None), "found_docs", ()
+        )
+
     def _reference_anchor_decision(
         self, node: nodes.reference
     ) -> _ReferenceAnchorDecision:
@@ -3026,13 +3385,18 @@ class TypstTranslator(SphinxTranslator):
         ``_find_citing_reference``) now call THIS method and consume its
         answer, so the two cannot drift apart again.
 
-        Derives every field from ``node`` plus builder state ONLY (D-06)
-        -- ``refuri``/``refid``/``xref``/``degrade_xref_to_text``/
-        ``opens_wrapper``/``next_is_target`` are all re-derived here,
-        exactly as ``visit_reference`` computed them locally before this
-        phase, rather than accepting them as pre-computed booleans (a
-        pure predicate over three booleans would leave the DERIVATION
-        drifting upstream even with the judgement unified). When
+        Derives every field from ``node`` alone (D-09, Phase 48) --
+        ``refuri``/``refid``/``xref``/``opens_wrapper``/``next_is_target``
+        are all re-derived here, exactly as ``visit_reference`` computed
+        them locally before Phase 40.1, rather than accepting them as
+        pre-computed booleans (a pure predicate over three booleans would
+        leave the DERIVATION drifting upstream even with the judgement
+        unified). ``opens_wrapper`` no longer consults any builder state:
+        Phase 48 deleted the build-time all-masters union this method
+        used to look up, so whether the reference's cross-document
+        TARGET is reachable in any particular compile is answered
+        entirely by ``_label_existence_guard()``'s ``query(<label>)`` at
+        Typst compile time, never here. When
         eligible, the anchor label is computed via D-13's single
         ``_namespace_label`` derivation point (D-07) -- never a second
         label helper -- so the link target ``visit_citation`` appends and
@@ -3041,10 +3405,6 @@ class TypstTranslator(SphinxTranslator):
 
         SILENT by contract (Pitfall 2, `40.1-RESEARCH.md`): no
         ``logger`` call, no ``add_text``, no translator-state mutation.
-        ``visit_reference``'s existing cross-document degrade-to-text
-        warning stays exactly where it is, in ``visit_reference``'s own
-        branch -- this method must never log, or that warning would fire
-        a second time per degraded reference.
 
         Note on ``next_is_target``'s parentless default: this differs
         from the deleted ``_citing_reference_has_own_anchor``, which
@@ -3068,13 +3428,29 @@ class TypstTranslator(SphinxTranslator):
         refid = node.get("refid", "")
 
         xref = self._resolve_xref_docname(refuri) if refuri else None
-        degrade_xref_to_text = False
-        if xref is not None:
-            master_included = getattr(self.builder, "master_included_docnames", None)
-            if master_included and xref[0] not in master_included:
-                degrade_xref_to_text = True
+        # G-48-4 / XREF-03 (Phase 48 plan 07): `_resolve_xref_docname` now
+        # also resolves a whole-document refuri (no single anchor) to an
+        # EMPTY-anchor pair. Whether that empty-anchor resolution is
+        # actually exposed through `.xref` -- and thus routed through the
+        # D-07 guard -- is a POLICY question, decided here, immediately
+        # after the resolver call, by `_whole_document_reference_eligible`
+        # (see its own docstring for the two options the plan 48-05
+        # checkpoint recorded and which one this predicate implements). An
+        # anchored cross-document `xref` (non-empty anchor) is untouched.
+        if (
+            xref is not None
+            and xref[1] == ""
+            and not (self._whole_document_reference_eligible(node, xref[0]))
+        ):
+            xref = None
 
-        opens_wrapper = bool(refuri or refid) and not degrade_xref_to_text
+        # D-09 (Phase 48): unconditional. Whether the cross-document
+        # target this reference points at is actually reachable in any
+        # particular compile is now a question the D-07 compile-time
+        # guard answers, never a reason to withhold the citing site's
+        # OWN same-document anchor -- see _ReferenceAnchorDecision's
+        # docstring.
+        opens_wrapper = bool(refuri or refid)
 
         next_is_target = False
         if node.parent:
@@ -3095,12 +3471,87 @@ class TypstTranslator(SphinxTranslator):
             refuri=refuri,
             refid=refid,
             xref=xref,
-            degrade_xref_to_text=degrade_xref_to_text,
             opens_wrapper=opens_wrapper,
             next_is_target=next_is_target,
             eligible=eligible,
             anchor_label=anchor_label,
         )
+
+    def _label_existence_guard(
+        self, label: str, *, prefix: str = "", code_mode_body: bool = False
+    ) -> _LabelGuardStrings:
+        """
+        The SINGLE D-07 shared guard-string derivation point (Phase 48,
+        XREF-03/XREF-04): every site that must ask "does this label exist
+        in THIS compile" -- ``visit_reference``'s cross-document branch,
+        ``visit_citation``'s back-reference loop, and
+        ``visit_pending_xref``/``depart_pending_xref`` -- calls this ONE
+        method rather than building its own ``context``/``query`` string.
+        Before Phase 48 that question was answered once, at BUILD time, by
+        a Python union across every master's toctree closure, computed by
+        a builder method that no longer exists. After Phase 47 that
+        answer can no longer be a single per-docname
+        value: the same content ``.typ`` is compiled zero, one, or many
+        times -- once per wrapper that ``#include()``s it -- and the
+        degrade decision must come out differently in each compile. This
+        method moves the decision to Typst COMPILE time instead, wrapping
+        the reference's body in a ``context { ... }`` block whose
+        ``query(<label>)`` is evaluated fresh by whichever wrapper is
+        compiling right now. A site that builds its own
+        ``context``/``query`` string instead of calling this method is
+        exactly the drift class D-07 exists to reject: never a second
+        spelling.
+
+        This method NEVER derives a label itself -- ``label`` is always
+        the return value of ``_namespace_label()``, computed once by the
+        caller and passed in unchanged, so the ``query(<L>)`` argument and
+        the ``link(<L>, ...)`` argument inside the returned strings are
+        always the identical string the caller obtained (XREF-03,
+        edge/encoding): the demand side and the supply side can never
+        spell the label differently.
+
+        The bound identifier the guard's ``let`` statement introduces is
+        fixed, project-wide, as ``__tsx_body`` -- every one of this
+        phase's call sites and every gate asserting the emitted shape
+        agrees on this exact spelling.
+
+        ``close_str``'s conditional is emitted as ONE unbroken statement:
+        the ``if query(<L>).len() > 0`` condition and its opening ``{``
+        are never separated by a newline. Typst's parser requires them on
+        one physical statement -- a newline there is a hard ``expected
+        block`` parse error (research Pitfall 1), not a style choice.
+
+        Args:
+            label: The already-namespaced label to guard (the output of
+                ``_namespace_label()`` -- never re-derived here).
+            prefix: ``"#"`` when the guard is emitted from markup mode,
+                ``""`` from code mode -- mirrors every other emission
+                site's own prefix convention.
+            code_mode_body: When ``True`` (the spelling every Phase 48
+                call site uses, adopted by ``48-EVIDENCE.md``'s Body-mode
+                measurement), the body streams in CODE mode
+                (``[#{ ... }]``) so a caller whose children already
+                stream in code mode today emits byte-identical child
+                content, just nested one level deeper. When ``False``,
+                the body streams in MARKUP mode (bare ``[ ... ]``) for a
+                future caller whose children already stream in markup
+                mode -- no site in this phase uses this branch.
+
+        Returns:
+            The ``_LabelGuardStrings`` pair: emit ``open_str`` immediately
+            before the body, stream the body unchanged, then emit
+            ``close_str`` immediately after it.
+        """
+        if code_mode_body:
+            open_str = f"{prefix}context {{ let __tsx_body = [#{{"
+        else:
+            open_str = f"{prefix}context {{ let __tsx_body = ["
+        close_body = "}]" if code_mode_body else "]"
+        close_str = (
+            f"{close_body}; if query(<{label}>).len() > 0 {{ "
+            f"link(<{label}>, __tsx_body) }} else {{ __tsx_body }} }}"
+        )
+        return _LabelGuardStrings(open_str=open_str, close_str=close_str)
 
     def visit_citation(self, node: nodes.citation) -> None:
         """
@@ -3269,18 +3720,38 @@ class TypstTranslator(SphinxTranslator):
                 continue
             backref_targets.append(decision.anchor_label)
 
+        # D-05 (48-RED-EVIDENCE.md failure mode 2): every back-reference
+        # target below is routed through the shared _label_existence_guard
+        # rather than a bare link(<label>, ...) call. SC#4 exempts an
+        # ordinary same-document anchor from guarding because content files
+        # are included wholesale -- but a citation back-reference target is
+        # NOT guaranteed to exist even though it is same-document: its
+        # presence depends on visit_reference having actually RUN on the
+        # citing node, and visit_caption's SkipNode (translator.py, the
+        # captioned-code-block route) can prune the walker from ever
+        # reaching it while _find_citing_reference's document.findall scan
+        # still structurally finds the node and judges it eligible. Unlike
+        # an ordinary same-document target, this one can be judged eligible
+        # with no anchor ever attached -- so it is guarded here even though
+        # it is same-document.
         if len(backref_targets) == 1:
-            label_body = f"link(<{backref_targets[0]}>, {label_content})"
+            guard = self._label_existence_guard(
+                backref_targets[0], prefix="", code_mode_body=True
+            )
+            label_body = f"{guard.open_str}{label_content}{guard.close_str}"
         else:
             label_body = label_content
 
         label_expr = f'text("[") + {label_body} + text("]")'
 
         if len(backref_targets) >= 2:
-            markers = ",".join(
-                f"link(<{target}>, [{i}])"
-                for i, target in enumerate(backref_targets, start=1)
-            )
+            marker_parts = []
+            for i, target in enumerate(backref_targets, start=1):
+                guard = self._label_existence_guard(
+                    target, prefix="", code_mode_body=True
+                )
+                marker_parts.append(f"{guard.open_str}[{i}]{guard.close_str}")
+            markers = ",".join(marker_parts)
             label_expr += f' + text(" (") + ({markers}).join(",") + text(")")'
 
         # Attach the citation's OWN definition anchor via the bracket-wrap
@@ -4263,6 +4734,17 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a pending_xref node (Sphinx cross-reference).
 
+        D-04 (Phase 48, ``48-RED-EVIDENCE.md``): Sphinx's
+        ``ReferencesResolver`` post-transform (``default_priority=10``,
+        supported for every builder) replaces every ``pending_xref`` node
+        in the document unconditionally before the writer runs -- so no
+        such node survives to this handler through the normal pipeline,
+        for any resolution outcome (resolved, unresolved, or unknown role
+        all fall back to ``node.replace_self(...)``). This handler is
+        applied anyway, as defence in depth: a future Sphinx version or an
+        unusual extension interaction is not ruled out by the four source
+        shapes measured this session.
+
         Args:
             node: The pending_xref node
         """
@@ -4288,7 +4770,25 @@ class TypstTranslator(SphinxTranslator):
                 self._current_docname(),
                 reftarget.replace(".", "-").replace("_", "-"),
             )
-            self.add_text(f"#link(<{label}>)[")
+            # D-07: routed through the shared guard as defence in depth
+            # (this site is otherwise unreachable, see the docstring
+            # above). The `#` prefix below is preserved UNCHANGED from
+            # this site's prior unconditional emission -- unlike
+            # visit_reference, this handler does not compute a mode-aware
+            # prefix (`"#" if self._in_markup_mode else ""`). That was
+            # noticed and deliberately left unchanged: D-04's scope is
+            # "bring this site under the guard", not "audit it for
+            # unrelated mode bugs". The argument rests on research
+            # assumption A2 (`48-RESEARCH.md`), which states no
+            # third-party extension was observed emitting a fresh
+            # `pending_xref` after `ReferencesResolver` runs -- and was
+            # NOT independently tested. If A2 is wrong, this fixed `#`
+            # prefix may not match the surrounding mode.
+            # Children stream into a markup bracket below exactly as
+            # before, so the non-code-mode body spelling is used.
+            guard = self._label_existence_guard(label, prefix="#")
+            self.add_text(guard.open_str)
+            self._pending_xref_guard_close = guard.close_str
         # Continue processing children to get the link text
 
     def depart_pending_xref(self, node: nodes.Node) -> None:
@@ -4299,8 +4799,9 @@ class TypstTranslator(SphinxTranslator):
             node: The pending_xref node
         """
         reftarget = node.get("reftarget", "")
-        if reftarget:
-            self.add_text("]")
+        if reftarget and self._pending_xref_guard_close:
+            self.add_text(self._pending_xref_guard_close)
+            self._pending_xref_guard_close = None
 
     def _compute_relative_include_path(
         self, target_docname: str, current_docname: str | None
@@ -4631,19 +5132,26 @@ class TypstTranslator(SphinxTranslator):
         ``link("url", ...)``) for:
 
         - external URLs (any ``scheme://`` or ``mailto:`` / protocol-relative);
-        - same-document ``#anchor`` refs (handled earlier by the caller);
-        - whole-document refs with no ``#anchor`` (kept as a string-url link,
-          per requirement -- there is no single anchor to target);
+        - same-document ``#anchor`` refs (handled earlier by the caller --
+          these have an empty ``path_part``, since the caller strips the
+          leading ``#`` before ever consulting this method);
         - refuris whose path does not end in the builder's ``out_suffix``
           (arbitrary relative asset links), or when the current docname is
           unknown.
+
+        A LOCAL whole-document refuri with no ``#anchor`` fragment (or an
+        explicit but empty one, e.g. ``path.typ#``) resolves too (G-48-4 /
+        XREF-03, Phase 48 plan 07): the SAME path arithmetic the anchored
+        case uses, returned with an EMPTY anchor (``(target_docname,
+        "")``) rather than ``None`` -- the caller (``_reference_anchor_
+        decision``) is the single place that decides whether an empty-anchor
+        resolution is actually exposed through its own ``.xref`` field; this
+        method answers only "which document and which anchor", never policy.
         """
-        if "#" not in refuri:
-            return None
         if "://" in refuri or refuri.startswith(("mailto:", "//")):
             return None
         path_part, _, anchor = refuri.partition("#")
-        if not anchor or not path_part:
+        if not path_part:
             return None
         suffix = getattr(self.builder, "out_suffix", "")
         if not suffix or not path_part.endswith(suffix):
@@ -4724,7 +5232,8 @@ class TypstTranslator(SphinxTranslator):
         Visit a toctree node (Sphinx table of contents tree).
 
         Requirement 13: Multi-document integration and toctree processing
-        - Generate #include() for each entry
+        - Generate a compile-time state guard for each include-file entry
+          (Phase 49, COMP-05/COMP-06 -- see below)
         - D-07: apply `set heading(offset: heading.offset + 1)` -- a
           context-relative increment, not an absolute assignment -- to
           lower heading levels. `set` is an absolute assignment on Typst's
@@ -4738,10 +5247,20 @@ class TypstTranslator(SphinxTranslator):
         - Issue #5: Fix relative paths for nested toctrees
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
-          - Generate single #[...] block containing all includes
+          - Generate single #[...] block containing all guards
           - D-07: apply `heading.offset + 1` once per toctree, inside a
             `context { ... }` block (required because `heading.offset` is
             a context-dependent style query)
+
+        Phase 49 (COMP-05/D-03): reads the toctree's INCLUDE-FILE list
+        (`node["includefiles"]`), never its entry list
+        (`node["entries"]`). Sphinx's own `parse_content` appends a
+        `self`/external-URL entry only to `entries`, never to
+        `includefiles` (`sphinx/directives/other.py:146-149`), so those
+        entries produce no guard here at all -- closing the
+        `TypstError: file not found (searched at .../self.typ)` compile
+        fatal as a structural consequence of reading the right list, not a
+        separate patch.
 
         Args:
             node: The toctree node
@@ -4751,15 +5270,24 @@ class TypstTranslator(SphinxTranslator):
             within a single content block #[...] to apply heading offset without
             displaying the block delimiters in the output. This simplifies the
             generated Typst code and improves readability.
+
+            Phase 49: each `#include()` directive is now wrapped in its own
+            one-line compile-time guard (`render_include_guard()`), still
+            emitted within that same single content block, rather than as
+            an unconditional call.
         """
-        # Get entries from the toctree node
-        entries = node.get("entries", [])
+        # Phase 49 (D-03): read the include-file list, not the entry list.
+        includefiles = node.get("includefiles", [])
 
-        logger.debug(f"Processing toctree with {len(entries)} entries")
+        logger.debug(f"Processing toctree with {len(includefiles)} include files")
 
-        # If no entries, don't generate anything
-        if not entries:
-            logger.debug("Toctree has no entries, skipping")
+        # If no include files, don't generate anything. A toctree whose
+        # entries are all navigation constructs (self/external-URL) has a
+        # non-empty `entries` list but an EMPTY `includefiles` list here --
+        # this is the D-03 shift that makes such a toctree emit no
+        # `context { ... }` block at all, rather than an empty one.
+        if not includefiles:
+            logger.debug("Toctree has no include files, skipping")
             raise nodes.SkipNode
 
         # Get current document name for relative path calculation
@@ -4767,10 +5295,10 @@ class TypstTranslator(SphinxTranslator):
 
         logger.debug(
             f"Current document for toctree: {current_docname}, "
-            f"entries: {[docname for _, docname in entries]}"
+            f"include files: {includefiles}"
         )
 
-        # Generate scope block for all includes (unified code mode)
+        # Generate scope block for all guards (unified code mode)
         # Use {...} scope block to isolate set rules while maintaining code mode
         # D-07: `context` is required because `heading.offset` is a
         # context-dependent style query -- `set` alone cannot read the
@@ -4781,44 +5309,49 @@ class TypstTranslator(SphinxTranslator):
         self.add_text("context {\n")
         self.add_text("  set heading(offset: heading.offset + 1)\n")
 
-        # Generate include() for each entry within the scope block
-        # Each included file has its own imports, so block scope is safe.
-        #
-        # Deduplicate by ABSOLUTE docname across the whole master include graph
-        # (the ledger lives on the builder, so it spans every document composing
-        # one master -- not just this one toctree). Sphinx documentation
-        # commonly lists the same document in more than one toctree (e.g.
-        # doc/index.rst lists usage/extensions/index both directly and nested
-        # under usage/index). In HTML each page is its own file, so a repeated
-        # toctree entry is harmless navigation; but Typst's #include() flattens
-        # each file inline, so #including one .typ twice re-emits every Typst
-        # <label> it defines and the compile aborts with "label ... occurs
-        # multiple times". Keeping only the FIRST include() of each docname
-        # leaves every label defined exactly once, so all references (which are
-        # never dropped) still resolve. Mock builders in unit tests have no
-        # ledger; getattr(..., None) falls back to the original no-dedup path.
-        included_docnames = getattr(self.builder, "_included_docnames", None)
-        for _title, docname in entries:
-            if included_docnames is not None:
-                if docname in included_docnames:
-                    logger.debug(
-                        f"Skipping duplicate toctree include() for already-"
-                        f"included document: {docname}"
-                    )
-                    continue
-                included_docnames.add(docname)
+        # Phase 49 (COMP-05/COMP-06): the include DECISION moves from
+        # write time to Typst COMPILE time. A single content file, written
+        # ONCE per docname, cannot both omit and emit the same include for
+        # two different masters that each legitimately reach it via their
+        # own, independent traversal -- the deleted build-scoped
+        # include-dedup ledger attribute (COMP-11), which claimed a
+        # docname globally, the first time ANY document's toctree named
+        # it, could therefore express only ONE global winner across the
+        # whole build, never a per-master answer. Every emission site below instead
+        # emits a STATIC compile-time guard, unconditionally: each
+        # wrapper (`writer.py`'s `render_wrapper()`) publishes ITS OWN
+        # master's derived edge set as a Typst `state` array BEFORE
+        # `#include()`-ing this content file, and the guard reads that
+        # published state at compile time to decide whether THIS
+        # PARTICULAR master's own traversal claimed this child.
+        for docname in includefiles:
+            # D-04: the occurrence is a per-DOCUMENT counter, keyed by
+            # child docname, across ALL of this document's own toctree
+            # entries (flattened in document order, mirroring
+            # `env.toctree_includes[docname]`) -- not reset per
+            # `.. toctree::` directive.
+            occurrence = self._toctree_entry_occurrences.get(docname, 0)
+            self._toctree_entry_occurrences[docname] = occurrence + 1
 
-            # Compute relative path for include() (Issue #5 fix)
+            edge_key = make_include_edge_key(
+                current_docname or "", docname, occurrence=occurrence
+            )
+
+            # Compute relative path for include() (Issue #5 fix) -- this
+            # helper survives Phase 49 completely unchanged.
             relative_path = self._compute_relative_include_path(
                 docname, current_docname
             )
 
             logger.debug(
-                f"Generated include() for toctree: {docname} -> {relative_path}.typ"
+                f"Generated guard for toctree: {docname} -> {relative_path}.typ "
+                f"(edge_key={edge_key!r})"
             )
 
-            # Generate include() within the block (no # prefix in code mode)
-            self.add_text(f'  include("{relative_path}.typ")\n')
+            # Generate the guard line within the block (no # prefix in
+            # code mode -- this site is always reached from code mode,
+            # see render_include_guard()'s own docstring).
+            self.add_text("  " + render_include_guard(edge_key, relative_path) + "\n")
 
         # End scope block
         self.add_text("}\n\n")
@@ -4850,17 +5383,17 @@ class TypstTranslator(SphinxTranslator):
 
         # WR-03 (D-05/D-06/D-07, `40.1-CONTEXT.md`): the single shared D-14
         # eligibility judgement, called ONCE here and consumed for
-        # `refuri`/`refid`/`xref`/`degrade_xref_to_text`/`opens_wrapper`/
-        # `next_is_target`/the D-14 guard below -- this method no longer
-        # re-derives any of them locally, so this call site and
-        # `visit_citation`'s backref loop cannot silently disagree about
-        # whether a citing site was actually anchored (`40.1-GATE-
-        # EVIDENCE-03.md`).
+        # `refuri`/`refid`/`xref`/`opens_wrapper`/`next_is_target`/the D-14
+        # guard below -- this method no longer re-derives any of them
+        # locally, so this call site and `visit_citation`'s backref loop
+        # cannot silently disagree about whether a citing site was
+        # actually anchored (`40.1-GATE-EVIDENCE-03.md`). D-09 (Phase 48):
+        # `opens_wrapper` is unconditional now -- no build-time degrade
+        # decision is derived here any more.
         decision = self._reference_anchor_decision(node)
         refuri = decision.refuri
         refid = decision.refid
         xref = decision.xref
-        degrade_xref_to_text = decision.degrade_xref_to_text
 
         # An empty-url reference (no refuri and no refid) opens NO wrapper: it
         # renders its children as plain inline content directly in the outer
@@ -4882,9 +5415,6 @@ class TypstTranslator(SphinxTranslator):
         # expression'. Every other inline visitor (visit_Text / visit_literal /
         # visit_strong / visit_emphasis) already guards its newline this way; do
         # the same here rather than emitting the newline unconditionally.
-        # A degraded cross-document reference renders as plain inline text (no
-        # link wrapper), so like the empty-url path it must NOT enter/suppress a
-        # concat context -- its children participate in the outer context.
         in_concat = self._inline_concat_context() is not None
         opens_wrapper = decision.opens_wrapper
         if opens_wrapper:
@@ -4947,6 +5477,10 @@ class TypstTranslator(SphinxTranslator):
             # A bare refid is a SAME-document target -> namespace with the
             # current docname so it matches the anchor that document emitted.
             label = self._namespace_label(self._current_docname(), refid)
+            # SC#4/D-06 (Phase 48): deliberately UNGUARDED. Content files
+            # are included wholesale (COMP-01), so a same-document
+            # target's presence is guaranteed -- this branch stays on the
+            # plain `link(<label>, ` form, never the D-07 guard.
             self.add_text(f"{prefix}link(<{label}>, ")
 
             # Replicate the method-end bookkeeping inline since this branch
@@ -4981,37 +5515,45 @@ class TypstTranslator(SphinxTranslator):
             # Internal reference to a label in the SAME document -> namespace
             # with the current docname so it matches this document's anchor.
             label = self._namespace_label(self._current_docname(), refuri[1:])
+            # SC#4/D-06 (Phase 48): deliberately UNGUARDED, same rationale
+            # as the bare-refid branch above -- content files are included
+            # wholesale, so a same-document target's presence is guaranteed.
             self.add_text(f"{prefix}link(<{label}>, ")
         elif xref is not None:
             # Resolved CROSS-document reference (`<relpath><out_suffix>#anchor`).
-            if degrade_xref_to_text:
-                # Target document is NOT part of the compiled master (orphan /
-                # excluded from every toctree). Its anchor does not exist in the
-                # master, so emit NO label link -- render the reference's text as
-                # plain inline content (opens_wrapper was False, so no concat
-                # element was entered; this mirrors the empty-url skip-wrapper
-                # path exactly). Warn Sphinx-style so it surfaces in the build
-                # warnings without turning a graceful degradation into a fatal.
-                logger.warning(
-                    f"cross-reference to non-included document '{xref[0]}' "
-                    f"rendered as plain text (typstpdf includes only "
-                    f"toctree-reachable documents): {node.astext()}"
-                )
-                self._skip_link_wrapper = True
-                return
-            # In the flattened master this must become a real label link, not a
-            # dead string url: namespace with the TARGET docname so it byte-
-            # matches the anchor the target document emitted.
+            # D-07/XREF-03 (Phase 48): whether the target document is part
+            # of THIS compiled wrapper's include graph is no longer a
+            # build-time Python decision (the deleted all-masters union) --
+            # it is decided by Typst itself, per compile, via a
+            # `query(<label>)` guard around the link. Namespace with the
+            # TARGET docname so the guarded label byte-matches the anchor
+            # the target document emits.
+            #
+            # G-48-4 (Phase 48 plan 07): an EMPTY anchor means this is a
+            # WHOLE-DOCUMENT reference (`_resolve_xref_docname` found no
+            # single anchor to target, and `_reference_anchor_decision`'s
+            # `_whole_document_reference_eligible` gate already confirmed
+            # it is eligible) -- it targets the target document's own
+            # whole-document self-anchor (the module-level
+            # `_WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN`, emitted once per content
+            # file by `visit_document`) instead of a specific anchor.
             target_docname, anchor = xref
-            label = self._namespace_label(target_docname, anchor)
-            self.add_text(f"{prefix}link(<{label}>, ")
+            label = self._namespace_label(
+                target_docname, anchor or _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN
+            )
+            guard = self._label_existence_guard(
+                label, prefix=prefix, code_mode_body=True
+            )
+            self.add_text(guard.open_str)
+            self._reference_guard_close = guard.close_str
         else:
             # External reference (HTTP/HTTPS URL, whole-document ref, or other
             # relative path) -> plain string-url link, left unaffected.
             self.add_text(f'{prefix}link("{refuri}", ')
 
-        # After outputting link(), turn off markup mode for content (second argument)
-        # Content inside function arguments is code mode (no # prefix)
+        # After outputting link()/the guard's open string, turn off markup
+        # mode for content (the body). Content inside function arguments
+        # or the guard's code-mode body is code mode (no # prefix).
         if self._in_markup_mode:
             self._in_markup_mode = False
 
@@ -5038,6 +5580,11 @@ class TypstTranslator(SphinxTranslator):
             # THIS node -- but clearing it unconditionally is cheap insurance
             # against a stale token leaking into the NEXT reference.
             self._reference_own_anchor = None
+            # D-07 (Phase 48): defensively clear the guard-close slot too,
+            # for the same reason -- this branch is unreachable from the
+            # guarded cross-document path, but a stale token must never
+            # leak into the NEXT reference.
+            self._reference_guard_close = None
             # Restore list item separator state if needed
             if hasattr(self, "_reference_was_list_item_needs_separator"):
                 if self.in_list_item:
@@ -5045,8 +5592,20 @@ class TypstTranslator(SphinxTranslator):
                 delattr(self, "_reference_was_list_item_needs_separator")
             return
 
-        # Close the link function
-        self.add_text(")")
+        # Close the link function -- or, on the guarded cross-document
+        # path, the D-07 guard's close string (`_label_existence_guard()`'s
+        # `close_str`, stashed in visit_reference) IN PLACE OF the plain
+        # closing parenthesis. Emitted FIRST, before the D-14 own-anchor
+        # block below, so the whole `context { ... }` block is complete
+        # before `#label("...")]` attaches -- the own-anchor label lands
+        # OUTSIDE the guard's context block, attached to the block's
+        # result rather than to the `let`-bound body (48-EVIDENCE.md's
+        # Body-mode measurement, own-anchor composition probe).
+        if self._reference_guard_close:
+            self.add_text(self._reference_guard_close)
+            self._reference_guard_close = None
+        else:
+            self.add_text(")")
 
         # Exit link context
         self._in_link = False

@@ -1,22 +1,15 @@
-// Essential package imports
+// Essential imports for included document
 #import "@preview/codly:1.3.0": *
 #import "@preview/codly-languages:0.1.10": *
 #import "@preview/mitex:0.2.7": mi, mitex
 #import "@preview/gentle-clues:1.3.1": *
 
+// Initialize codly
 #show: codly-init.with()
 #codly(languages: codly-languages)
 
-#import "_template.typ": project
-
-#show: project.with(
-  title: "Desc Rubric Decoupling Render Gate",
-  authors: ("typsphinx tests",),
-  date: "0.0.0",
-  lang: "en",
-)
-
 #{
+[#metadata(none) <index:__tsx-doc__>]
 [#heading(depth: 1, {text("Desc Rubric Decoupling Render Gate")}) <index:desc-rubric-decoupling-render-gate>]
 
 par({text("This fixture combines a single signature, sibling signatures, plain bold markup, an autodoc-style Options rubric, a rubric carrying a propagated target inside a list item, and a rubric at true end-of-document – the constructs Phase 36’s SC#2 names – into one file, so the desc_signature/ rubric decoupling can be proven to produce byte-identical .typ output.")})

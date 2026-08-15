@@ -146,12 +146,43 @@ class TestParagraphConcatRenderGate:
             f"list-item paragraphs:\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        # Phase 47 (R4): the compiled PDF is the WRAPPER's own output
+        # ("master.pdf", this fixture's typst_documents target after
+        # de-collision) -- only wrappers compile to PDF.
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced -- typst.compile() aborted:\n"
+            "master.pdf was not produced -- typst.compile() aborted:\n"
             f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
+
+    def test_wrapper_has_exactly_one_include_of_its_content(
+        self, paragraph_concat_render_gate_dir, temp_build_dir
+    ):
+        """
+        Phase 47 (R2/R3): the WRAPPER file (this fixture's typst_documents
+        target, "master.typ") must contain exactly one #include(, naming
+        its own master's content file ("index.typ").
+        """
+        result = _run_sphinx_build_typstpdf(
+            paragraph_concat_render_gate_dir, temp_build_dir
+        )
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        master_typ = temp_build_dir / "master.typ"
+        assert master_typ.exists(), "master.typ was not emitted"
+        content = master_typ.read_text(encoding="utf-8")
+        assert content.count("#include(") == 1, (
+            "Expected exactly one #include( in the wrapper -- "
+            f"got {content.count('#include(')}:\n{content}"
+        )
+        assert (
+            '#include("index.typ")' in content
+        ), 'Expected the wrapper to include("index.typ") (its own content file)'

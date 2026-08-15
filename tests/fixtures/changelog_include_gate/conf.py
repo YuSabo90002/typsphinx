@@ -28,5 +28,9 @@ extensions = [
 # index must be a master document so TypstPDFBuilder.finish() actually
 # compiles it to PDF -- the only build path this gate's PDF assertions need.
 typst_documents = [
-    ("index", "index", "Changelog Include Gate", "Test Author"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    ("index", "master.typ", "Changelog Include Gate", "Test Author"),
 ]

@@ -154,18 +154,29 @@ def test_write_doc_generates_typst_content(temp_sphinx_app, sample_doctree):
     # Write a document
     builder.write_doc("index", sample_doctree)
 
-    # CONF-08: temp_sphinx_app's conf.py omits typst_documents, so the
-    # config value now resolves through _default_typst_documents, which
-    # names the "index" master's output via
-    # make_filename_from_project("Test Project") -> "testproject.typ"
-    # rather than the old literal "index.typ".
-    output_file = Path(builder.outdir) / "testproject.typ"
-    content = output_file.read_text()
+    # Phase 47 (R1/COMP-01): the translated BODY (the title from
+    # sample_doctree) lives on the docname-derived CONTENT file, always at
+    # "index.typ" -- unconditional, regardless of what any typst_documents
+    # entry's target names.
+    content_file = Path(builder.outdir) / "index.typ"
+    content = content_file.read_text()
 
     # Should contain basic Typst markup
     assert len(content) > 0
     # Should contain the title from sample_doctree
     assert "Test Section" in content
+
+    # CONF-08 (R2): temp_sphinx_app's conf.py omits typst_documents, so the
+    # config value now resolves through _default_typst_documents, which
+    # names the "index" master's WRAPPER via
+    # make_filename_from_project("Test Project") -> "testproject.typ"
+    # rather than the old literal "index.typ". The wrapper carries the
+    # template application and an #include() of the content file above,
+    # never the translated body itself.
+    wrapper_file = Path(builder.outdir) / "testproject.typ"
+    wrapper_content = wrapper_file.read_text()
+    assert len(wrapper_content) > 0
+    assert '#include("index.typ")' in wrapper_content
 
 
 def test_finish_completes_build(temp_sphinx_app, sample_doctree):
@@ -446,6 +457,213 @@ def test_copy_image_files_uses_override_source_for_absolute_uri(temp_sphinx_app)
     img_dest_file = Path(builder.outdir) / "images" / "converted.png"
     assert img_dest_file.exists()
     assert img_dest_file.read_bytes() == b"converted image content"
+
+
+def test_post_process_images_rehome_collision_relocates_silently(
+    temp_sphinx_app, caplog
+):
+    """
+    D-01/D-02/D-03/D-04: when a REAL source image already occupies the
+    rehome target, post_process_images() relocates the converted image
+    under the reserved _typst_converted/ namespace instead of the plain
+    images/<basename> key -- SILENTLY (no WARNING records) and decided by
+    a filesystem probe, not by whether the key is already present in
+    self.images (no self.images entry is pre-seeded here).
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri = os.path.join(builder.doctreedir, "images", "converted.png")
+
+    # A REAL source image occupies the target this rehome would produce.
+    # The collision decision must come from this filesystem probe, not
+    # from any pre-seeded self.images entry (D-03).
+    real_images_dir = os.path.join(builder.srcdir, "images")
+    os.makedirs(real_images_dir, exist_ok=True)
+    with open(os.path.join(real_images_dir, "converted.png"), "wb") as f:
+        f.write(b"real source image content")
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    assert img["uri"] == "_typst_converted/images/converted.png"
+    assert builder.images.get("_typst_converted/images/converted.png") == abs_uri
+    assert "images/converted.png" not in builder.images
+    assert [r for r in caplog.records if r.levelname == "WARNING"] == []
+
+
+def test_post_process_images_rehome_escape_relocates_with_warning(
+    temp_sphinx_app, caplog
+):
+    """
+    D-05/D-06: an absolute URI whose rehome result cannot possibly sit
+    under doctreedir -- built from the filesystem root -- is relocated
+    to the reserved namespace plus the basename of the ORIGINAL absolute
+    URI, and emits exactly one WARNING naming the offending URI.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    # Built from the filesystem root so it cannot possibly sit under the
+    # app's temporary doctreedir. The file need not exist on disk --
+    # _track_image() decides purely from the path shape.
+    #
+    # 52-09: CPython 3.13 changed ntpath.isabs() -- a driveless
+    # leading-separator path (e.g. os.path.join(os.sep, "x", "y") on
+    # Windows) is no longer absolute under 3.13, where it was under 3.12
+    # (see .planning/phases/52-v0-8-0-release-prep-prep-only/
+    # 52-CI-EVIDENCE.md for the measured before/after). path.isabs()
+    # therefore no longer sees this fixture as absolute on Windows+3.13,
+    # so it must be drive-qualified there to keep exercising the rehome
+    # branch this test targets. POSIX is already unambiguously absolute
+    # via os.sep and is left untouched.
+    if os.name == "nt":
+        abs_root = os.path.join("C:" + os.sep, "typsphinx_test_50_03_escape_root")
+    else:
+        abs_root = os.path.join(os.sep, "typsphinx_test_50_03_escape_root")
+    abs_uri = os.path.join(abs_root, "chart.png")
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    assert img["uri"] == "_typst_converted/chart.png"
+    assert ".." not in img["uri"].split("/")
+    assert builder.images.get("_typst_converted/chart.png") == abs_uri
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+    message = warning_records[0].getMessage()
+    assert "could not rehome image URI" in message
+    # The product formats the URI with `!r` (deliberate -- it quotes the
+    # path), so the emitted message contains repr(abs_uri), not abs_uri
+    # itself. On POSIX repr() escapes nothing and the two happen to be
+    # equal, masking this on this host; on Windows repr() doubles every
+    # backslash (os.sep == "\\"), so the raw path is no longer a substring
+    # of the message. Asserting against repr(abs_uri) holds on both.
+    assert repr(abs_uri) in message
+
+
+def test_post_process_images_rehome_cross_drive_value_error_relocates(
+    temp_sphinx_app, caplog, monkeypatch
+):
+    """
+    D-07: a ValueError raised by path.relpath (the Windows cross-drive
+    case) is caught and routed into the same relocation outcome instead
+    of propagating out of the build. Genuine two-drive paths are not
+    reproducible on this POSIX host, so relpath is monkeypatched to raise
+    only for this test's specific absolute URI -- a blanket replacement
+    would break unrelated path work inside the same call.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    import typsphinx.builder as builder_module
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri = os.path.join(builder.doctreedir, "images", "crossdrive.png")
+
+    real_relpath = builder_module.path.relpath
+
+    def _raising_relpath(a, *args, **kwargs):
+        if a == abs_uri:
+            raise ValueError("simulated Windows cross-drive relpath failure")
+        return real_relpath(a, *args, **kwargs)
+
+    monkeypatch.setattr(builder_module.path, "relpath", _raising_relpath)
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    assert img["uri"] == "_typst_converted/crossdrive.png"
+    assert builder.images.get("_typst_converted/crossdrive.png") == abs_uri
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+
+
+def test_copy_image_files_relocated_key_destination_stays_under_outdir(
+    temp_sphinx_app,
+):
+    """
+    T-50-01/D-05: a builder.images key already carrying the reserved
+    namespace (as _track_image() would produce for either relocation
+    branch) still lands its destination under outdir when
+    copy_image_files() writes it -- and the resolved destination's
+    common path with outdir is outdir itself, the containment check that
+    fails loudly if a future change ever lets a parent segment back into
+    a tracked key.
+    """
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    real_src_dir = Path(builder.doctreedir) / "images"
+    real_src_dir.mkdir(parents=True, exist_ok=True)
+    real_src_file = real_src_dir / "converted.png"
+    real_src_file.write_bytes(b"relocated converted image content")
+
+    builder.images["_typst_converted/images/converted.png"] = str(real_src_file)
+
+    builder.copy_image_files()
+
+    img_dest_file = (
+        Path(builder.outdir) / "_typst_converted" / "images" / "converted.png"
+    )
+    assert img_dest_file.exists()
+    assert img_dest_file.read_bytes() == b"relocated converted image content"
+
+    resolved_dest = img_dest_file.resolve()
+    resolved_outdir = Path(builder.outdir).resolve()
+    assert os.path.commonpath([str(resolved_dest), str(resolved_outdir)]) == str(
+        resolved_outdir
+    )
 
 
 def test_finish_calls_copy_image_files(temp_sphinx_app):

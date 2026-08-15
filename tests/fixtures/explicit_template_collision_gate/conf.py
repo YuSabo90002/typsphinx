@@ -1,8 +1,11 @@
-# CR-01: real-sphinx-build reproduction of an EXPLICIT typst_documents entry
-# colliding with the reserved `_template.typ` infrastructure file. `project`
-# is deliberately neutral (non-colliding) so the only source of the
-# collision is the explicit entry naming "_template.typ" as the master's
-# target.
+# D-01 (Phase 47 plan 09, replacing CR-01): real-sphinx-build reproduction
+# of an EXPLICIT typst_documents entry colliding with the reserved
+# `_template.typ` infrastructure file. `project` is deliberately neutral
+# (non-colliding) so the only source of the collision is the explicit
+# entry naming "_template.typ" as the master's target. Since the
+# content/wrapper split, this now FAILS the build with a single pre-write
+# ExtensionError (D-01/D-02/D-03), and NO `.typ` file -- including
+# `_template.typ` itself -- is ever written.
 #
 # Load-bearing property -- do NOT touch, or this fixture silently stops
 # exercising CR-01's explicit-template half:

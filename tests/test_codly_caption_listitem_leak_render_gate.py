@@ -115,7 +115,7 @@ class TestCodlyCaptionListitemLeakRenderGate:
           figure's markup open is ``#{`` (the ``#``-prefixed fix), NOT the
           pre-fix bare ``{`` -- asserted by the substring ``"])[\\n#{\\n"``,
           which is ABSENT pre-fix (pre-fix emits ``"])[\\n{\\n"`` instead);
-        - ``index.pdf`` exists, is non-empty, and begins with the ``%PDF``
+        - ``master.pdf`` exists, is non-empty, and begins with the ``%PDF``
           magic bytes.
         """
         result = _run_sphinx_build_typstpdf(
@@ -148,9 +148,9 @@ class TestCodlyCaptionListitemLeakRenderGate:
             f"as visible prose (FID-12 regression):\n{typ_text}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
         assert pdf_output.stat().st_size > 0, "PDF file is empty"
         with open(pdf_output, "rb") as f:
@@ -183,9 +183,9 @@ class TestCodlyCaptionListitemLeakRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        pdf_output = temp_build_dir / "index.pdf"
+        pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
-            "index.pdf was not produced:\n" f"stderr: {result.stderr}"
+            "master.pdf was not produced:\n" f"stderr: {result.stderr}"
         )
 
         reader = pypdf.PdfReader(str(pdf_output))

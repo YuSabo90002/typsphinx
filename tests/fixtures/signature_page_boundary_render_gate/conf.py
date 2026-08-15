@@ -18,5 +18,14 @@ extensions = [
 # emits the full template -- the SIG-09 gate places a signature relative to
 # a real page boundary reached by compiling the real production template.
 typst_documents = [
-    ("index", "index", "Signature Page Boundary Render Gate", "Test Author"),
+    # De-collided per 47-EXPECTED-STRUCTURE.md's fixture de-collision rule
+    # (a bare "index" target would collide with the unconditional
+    # docname-derived content file, index.typ) -- "master.typ" carries no
+    # special meaning here.
+    (
+        "index",
+        "master.typ",
+        "Signature Page Boundary Render Gate",
+        "Test Author",
+    ),
 ]
