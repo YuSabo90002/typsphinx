@@ -456,9 +456,10 @@ def resolve_template_registry(
         )
 
     # TPL-03: synthesize the built-in "typst" key from the SAME three
-    # globals `_write_template_file()` (builder.py:1124-1132) already
-    # reads, unmodified -- this is what makes an untouched conf.py produce
-    # byte-identical output.
+    # globals the write-time and finish-time template resolution paths
+    # (writer.py's render_wrapper(), builder.py's
+    # _copy_used_template_bundles()) already read, unmodified -- this is
+    # what makes an untouched conf.py produce byte-identical output.
     registry[RESERVED_REGISTRY_KEY] = TemplateRegistryEntry(
         key=RESERVED_REGISTRY_KEY,
         template=getattr(config, "typst_template", None),
