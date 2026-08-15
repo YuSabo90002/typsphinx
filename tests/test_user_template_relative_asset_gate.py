@@ -19,10 +19,12 @@ Scaffolding (subprocess-based ``sys.executable -m sphinx``,
 ``tests/test_typst_lang_gate.py``'s ``TestJapaneseSourceProof`` /
 ``TestGermanLinkageProof`` classes.
 
-This module is marked ``xfail(strict=False)`` -- see
-``54-01-RED-EVIDENCE.md``'s ``## Handover`` section; ``54-04`` removes the
-marker once the per-key bundle relocation lands and proves this gate
-green.
+Made green by ``54-04`` (OUT-05): the per-key bundle relocation now copies
+the user template's own directory wholesale to
+``<outdir>/_template/<key>/``, so its same-directory ``logo.png`` sits
+beside it, and the wrapper imports the template by its root-absolute
+``/_template/<key>/<file>.typ`` path. RED recorded in
+``54-01-RED-EVIDENCE.md``.
 """
 
 import subprocess
@@ -73,21 +75,13 @@ def _run_sphinx_build(
     not TYPST_AVAILABLE,
     reason="typst-py is required for the OUT-05 real-compile gate",
 )
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Phase 54: green only once the per-key bundle relocation lands in "
-        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
-    ),
-)
+# Made green for real by 54-04 (OUT-05) -- the marker 54-01 recorded
+# this module's RED under has been removed.
 class TestUserTemplateRelativeAssetGate:
     @staticmethod
     @pytest.fixture(scope="class")
     def build(tmp_path_factory):
-        # CRITICAL: this fixture body performs no verification of its own.
-        # xfail (above) covers only the CALL phase of each test -- a
-        # verification failure raised inside a class-scoped fixture
-        # reports as a setup ERROR, which xfail does not swallow. Every
+        # This fixture body performs no verification of its own -- every
         # test method below carries its own verification instead.
         build_dir = tmp_path_factory.mktemp("user_template_relative_asset_gate_build")
         result = _run_sphinx_build(FIXTURE_DIR, build_dir, "typstpdf")

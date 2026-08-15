@@ -10,10 +10,12 @@ depth-counted ``"../"`` relative path).
 Scaffolding is modelled on ``tests/test_typst_lang_gate.py``'s
 ``_run_sphinx_build()`` / ``TYPST_AVAILABLE`` idiom.
 
-This module is marked ``xfail(strict=False)`` -- see
-``54-01-RED-EVIDENCE.md``'s ``## Handover`` section; ``54-04`` removes the
-marker once the per-key bundle relocation lands and proves this gate
-green.
+Made green by ``54-04`` (TPL-02/OUT-06): every used registry key's bundle
+is copied wholesale to ``<outdir>/_template/<key>/`` and every wrapper
+imports its own key by a root-absolute path
+(``compute_template_import_path()``), so two wrappers sharing a key at
+different nesting depths now emit the identical string. RED recorded in
+``54-01-RED-EVIDENCE.md``.
 """
 
 import re
@@ -71,21 +73,14 @@ def _extract_template_import_path(text: str) -> str:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the TPL-02/OUT-06 real-compile gate",
 )
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Phase 54: green only once the per-key bundle relocation lands in "
-        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
-    ),
-)
+# Made green for real by 54-04 (TPL-02/OUT-06) -- the marker 54-01
+# recorded this module's RED under has been removed.
 class TestTwoKeySelectionGate:
     @staticmethod
     @pytest.fixture(scope="class")
     def build(tmp_path_factory):
-        # CRITICAL: this fixture body performs no verification of its own
-        # -- xfail (added in 54-01 Task 3) covers only the CALL phase; a
-        # verification failure raised here would report as a setup ERROR,
-        # which xfail does not swallow.
+        # This fixture body performs no verification of its own -- every
+        # test method below carries its own verification instead.
         build_dir = tmp_path_factory.mktemp("two_key_selection_gate_build")
         result = _run_sphinx_build(FIXTURE_DIR, build_dir, "typstpdf")
 

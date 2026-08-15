@@ -134,8 +134,8 @@ class TestDefaultTypstDocumentsDerivationGate:
         typ_content = (build_dir / "quickstartdefaultgate.typ").read_text(
             encoding="utf-8"
         )
-        assert "_template.typ" in typ_content, (
-            f"Expected the shared-template import a wrapper carries -- "
+        assert '#import "/_template/typst/base.typ"' in typ_content, (
+            f"Expected the bundled-template import a wrapper carries -- "
             f"root_doc must be treated as a master now that the derived "
             f"entry makes it one:\n{typ_content}"
         )

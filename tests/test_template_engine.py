@@ -235,16 +235,20 @@ class TestTemplateResolutionProvenance:
     def test_resolve_template_search_path(self, tmp_path):
         """Priority 2: an engine with template_path None and a search_paths
         directory containing base.typ reports a resolved path equal to that
-        directory joined with the template name -- the <srcdir>/base.typ
-        shadow case."""
+        directory joined with the template name -- Phase 54 (D-14): the
+        <srcdir>/base.typ shadow case's SOURCE-side location is now a
+        directory (<srcdir>/_typst/), not srcdir's own root, so the
+        resolved template's parent is a genuine bundle directory rather
+        than srcdir itself."""
         srcdir = tmp_path / "docs"
-        srcdir.mkdir()
-        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+        shadow_dir = srcdir / "_typst"
+        shadow_dir.mkdir(parents=True)
+        (shadow_dir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
 
-        engine = TemplateEngine(search_paths=[str(srcdir)])
+        engine = TemplateEngine(search_paths=[str(shadow_dir)])
         resolution = engine.resolve_template()
 
-        assert resolution.path == srcdir / "base.typ"
+        assert resolution.path == shadow_dir / "base.typ"
 
     def test_resolve_template_default_path(self):
         """Priority 3: an engine with no explicit path and no search-path

@@ -24,10 +24,11 @@ to this repository (a nested ``.git`` directory cannot be tracked by git
 at all, and the other three are exactly the kinds a working tree
 routinely gitignores).
 
-This module is marked ``xfail(strict=False)`` -- see
-``54-01-RED-EVIDENCE.md``'s ``## Handover`` section; ``54-04`` removes the
-marker once the per-key bundle relocation lands and proves this gate
-green.
+Made green by ``54-04`` (BLD-06/OUT-04): ``_copy_used_template_bundles()``
+now copies every used key's bundle to ``<outdir>/_template/<key>/``,
+excluding exactly D-04's four kinds via ``_is_excluded_bundle_entry()``,
+and never deletes an existing destination file first. RED recorded in
+``54-01-RED-EVIDENCE.md``.
 """
 
 import shutil
@@ -94,21 +95,14 @@ def _materialize_excluded_kinds(bundle_dir: Path) -> None:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the BLD-06/OUT-04 real-compile gate",
 )
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Phase 54: green only once the per-key bundle relocation lands in "
-        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
-    ),
-)
+# Made green for real by 54-04 (BLD-06/OUT-04) -- the marker 54-01
+# recorded this module's RED under has been removed.
 class TestBundleCopyExclusionManifestGate:
     @staticmethod
     @pytest.fixture(scope="class")
     def build(tmp_path_factory):
-        # CRITICAL: this fixture body performs no verification of its own
-        # -- xfail (added in 54-01 Task 3) covers only the CALL phase; a
-        # verification failure raised here would report as a setup ERROR,
-        # which xfail does not swallow.
+        # This fixture body performs no verification of its own -- every
+        # test method below carries its own verification instead.
         src_dir = tmp_path_factory.mktemp("bundle_exclusion_manifest_gate_src")
         # D-01: the manifest claim is a claim about a CLEAN outdir, so the
         # committed fixture is copied into a fresh source tree rather than

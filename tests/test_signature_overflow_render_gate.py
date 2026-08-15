@@ -166,9 +166,12 @@ def _measure_widths(index_typ_path: Path, build_dir: Path, segments: list) -> tu
     on Typst PDFs in this sandbox, contract section 4.2/RESEARCH.md).
 
     The probe is written and compiled INSIDE ``build_dir`` (not a separate
-    scratch directory) so its relative ``#import "_template.typ": project``
-    resolves -- this is what makes the measurement use the REAL production
-    template and page geometry, not a hand-approximated stand-in.
+    scratch directory) so its root-absolute
+    ``#import "/_template/<key>/<file>.typ": project`` resolves (Phase 54,
+    OUT-06 -- ``typst.compile()`` defaults its project root to the
+    compiled file's own directory when ``root=`` is omitted) -- this is
+    what makes the measurement use the REAL production template and page
+    geometry, not a hand-approximated stand-in.
 
     Returns ``(column_width_pt, [segment_width_pt, ...])``.
     """

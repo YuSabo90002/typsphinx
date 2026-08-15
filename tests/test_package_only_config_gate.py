@@ -503,7 +503,7 @@ class TestConfigOutputDifferenceMatrix:
     def test_removing_package_config_changes_output(self, baseline_text, tmp_path):
         """
         Removing ``typst_package`` changes the emitted output: the package
-        import line disappears, and a shared-template import reappears
+        import line disappears, and a bundled-template import reappears
         (the routing this phase's plan 04 repaired).
         """
         variant_dir = _write_variant_project(
@@ -524,8 +524,8 @@ class TestConfigOutputDifferenceMatrix:
         assert '#import "@preview/charged-ieee:0.1.4"' in baseline_text
         assert '#import "@preview/charged-ieee:0.1.4"' not in variant_text
 
-        assert "_template.typ" not in baseline_text
-        assert "_template.typ" in variant_text
+        assert "/_template/" not in baseline_text
+        assert '#import "/_template/typst/base.typ"' in variant_text
         assert variant_text != baseline_text
 
     def test_removing_authors_config_changes_output(self, baseline_text, tmp_path):
