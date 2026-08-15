@@ -399,3 +399,115 @@ $ git status --porcelain
 ```
 
 Clean.
+
+### Task 2 — push the measured tip, dispatch CI, and capture per-lane conclusions
+
+**Push.** `git push origin gsd/v0.9.0-per-document-templates` -- only that ref, no `--force`, no
+`--all`, no other branch:
+
+```
+$ git push origin gsd/v0.9.0-per-document-templates
+To https://github.com/YuSabo90002/typsphinx.git
+   48c957cd..35ee8a0e  gsd/v0.9.0-per-document-templates -> gsd/v0.9.0-per-document-templates
+```
+
+Fast-forward, not rejected, no divergence reported.
+
+**Post-push remote confirmation, verbatim.**
+
+```
+$ git ls-remote --heads origin gsd/v0.9.0-per-document-templates
+35ee8a0ee8a4f8701c99a6596be8e37d975de307	refs/heads/gsd/v0.9.0-per-document-templates
+```
+
+Equals Task 1's candidate SHA exactly (`35ee8a0ee8a4f8701c99a6596be8e37d975de307`) -- nothing moved
+the branch between measurement and push.
+
+**Dispatch.** `gh workflow run CI --ref gsd/v0.9.0-per-document-templates` returned
+`https://github.com/YuSabo90002/typsphinx/actions/runs/31884774067`.
+
+**Run identification, matched on all three fields (never on recency).**
+
+```
+$ gh run list --branch gsd/v0.9.0-per-document-templates --limit 10 --json databaseId,name,event,status,conclusion,headSha,createdAt
+[{"conclusion":"","createdAt":"2026-08-15T12:30:25Z","databaseId":31884774067,"event":"workflow_dispatch","headSha":"35ee8a0ee8a4f8701c99a6596be8e37d975de307","name":"CI","status":"in_progress"},
+ {"conclusion":"","createdAt":"2026-08-15T12:30:22Z","databaseId":31884770727,"event":"push","headSha":"35ee8a0ee8a4f8701c99a6596be8e37d975de307","name":"Link Check","status":"in_progress"},
+ ... (older runs omitted, all at earlier heads)]
+```
+
+Run `31884774067` matches name `CI`, event `workflow_dispatch`, and `headSha`
+`35ee8a0ee8a4f8701c99a6596be8e37d975de307` -- the pushed SHA. `31884770727` is the separate `Link
+Check` workflow that the same push also fired (event `push`, not `workflow_dispatch`); it is not
+the run this criterion cites, exactly the confusion the three-field match rule exists to prevent.
+
+**Polling.** `gh run watch 31884774067 --exit-status` refreshed every 3 seconds and exited 0 when
+the run reached `completed` -- well inside the ~20-minute bound. Overall duration
+**12:30:25Z -> 12:36:58Z (~6m33s)**, in line with the v0.8.0 and 53-05 precedents (~6 minutes each).
+
+**Run summary, verbatim.**
+
+```
+$ gh run view 31884774067 --json status,conclusion,headSha,event,createdAt,updatedAt,url,displayTitle -q '.'
+{
+  "conclusion": "success",
+  "createdAt": "2026-08-15T12:30:25Z",
+  "displayTitle": "CI",
+  "event": "workflow_dispatch",
+  "headSha": "35ee8a0ee8a4f8701c99a6596be8e37d975de307",
+  "status": "completed",
+  "updatedAt": "2026-08-15T12:36:58Z",
+  "url": "https://github.com/YuSabo90002/typsphinx/actions/runs/31884774067"
+}
+```
+
+Run ID: **31884774067**. URL:
+<https://github.com/YuSabo90002/typsphinx/actions/runs/31884774067>. Triggering event:
+**`workflow_dispatch`**. Head SHA: **`35ee8a0ee8a4f8701c99a6596be8e37d975de307`** -- this plan's
+own candidate SHA, carrying both plan 53-08's and plan 53-09's commits. Conclusion: **`success`**.
+
+**Per-job conclusions, verbatim from `gh run view 31884774067 --json jobs -q '.jobs[] | {name, conclusion}'`.**
+
+```
+{"conclusion":"success","name":"Code Coverage"}
+{"conclusion":"success","name":"Type Check"}
+{"conclusion":"success","name":"Build Package"}
+{"conclusion":"success","name":"Test Python 3.12 on macos-latest"}
+{"conclusion":"success","name":"Lint and Format Check"}
+{"conclusion":"success","name":"Integration Test - basic"}
+{"conclusion":"success","name":"Test Python 3.13 on ubuntu-latest"}
+{"conclusion":"success","name":"Integration Test - advanced"}
+{"conclusion":"success","name":"Test Python 3.13 on windows-latest"}
+{"conclusion":"success","name":"Test Python 3.12 on windows-latest"}
+{"conclusion":"success","name":"Test Python 3.12 on ubuntu-latest"}
+{"conclusion":"success","name":"Test Python 3.13 on macos-latest"}
+```
+
+**All 12 of the 12 jobs concluded `success`.** All six of the `Test Python … on …` legs (both
+Python versions x all three OSes) succeeded, including both platform-specific pairs SC#5 names
+individually: `Test Python 3.12 on windows-latest`, `Test Python 3.13 on windows-latest`,
+`Test Python 3.12 on macos-latest`, `Test Python 3.13 on macos-latest`.
+
+**No lane failed.** No re-dispatch was needed.
+
+**Post-conditions, verbatim.**
+
+```
+$ gh pr list --head gsd/v0.9.0-per-document-templates
+(no output -- zero open pull requests)
+
+$ git rev-parse gsd/v0.9.0-milestone
+aed773c9807ab871468b1b2a7e1ec36b54e82907
+
+$ git branch --list 'gsd/v0.9.0-milestone'
+  gsd/v0.9.0-milestone
+
+$ git reflog show gsd/v0.9.0-per-document-templates | head -5
+35ee8a0e gsd/v0.9.0-per-document-templates@{0}: commit: docs(phase-53): update tracking after wave 7
+19b31573 gsd/v0.9.0-per-document-templates@{1}: merge worktree-agent-ad9a0183436586fee: Merge made by the 'ort' strategy.
+a8925baa gsd/v0.9.0-per-document-templates@{2}: merge worktree-agent-ab5ce17ca9f847f14: Merge made by the 'ort' strategy.
+74eb4440 gsd/v0.9.0-per-document-templates@{3}: commit: docs(53): mark phase 53 executing for gap-closure round 2
+ce09f3e8 gsd/v0.9.0-per-document-templates@{4}: commit: docs(53): record gap-closure round 2 planning in STATE.md
+```
+
+No open PR. `gsd/v0.9.0-milestone` unchanged at its pre-existing SHA, still listed. Reflog top
+entry is an ordinary `commit`, not a `rebase` or `reset` -- no history rewrite occurred.
