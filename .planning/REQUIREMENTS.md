@@ -12,7 +12,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 
 ### Template registry
 
-- [ ] **TPL-01**: User can define named template definitions in `typst_document_templates`, each
+- [x] **TPL-01**: User can define named template definitions in `typst_document_templates`, each
       carrying `template` **xor** `package`, plus an optional `template_function`
 
 - [ ] **TPL-02**: User can select a named template per output document via element [4] of a
@@ -152,7 +152,7 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TPL-01 | Phase 53 | Pending |
+| TPL-01 | Phase 53 | Complete |
 | TPL-02 | Phase 54 | Pending |
 | TPL-03 | Phase 53 | Complete |
 | TPL-04 | Phase 53 | Complete |
