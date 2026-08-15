@@ -511,3 +511,138 @@ ce09f3e8 gsd/v0.9.0-per-document-templates@{4}: commit: docs(53): record gap-clo
 
 No open PR. `gsd/v0.9.0-milestone` unchanged at its pre-existing SHA, still listed. Reflog top
 entry is an ordinary `commit`, not a `rebase` or `reset` -- no history rewrite occurred.
+
+### Task 3 — currency assertion and the rule that keeps this evidence honest
+
+**Fact 1 -- remote agreement.**
+
+```
+$ git ls-remote --heads origin gsd/v0.9.0-per-document-templates
+35ee8a0ee8a4f8701c99a6596be8e37d975de307	refs/heads/gsd/v0.9.0-per-document-templates
+```
+
+Equals the CI run's `headSha` (`35ee8a0ee8a4f8701c99a6596be8e37d975de307`) exactly.
+
+**Fact 2 -- the staleness assertion.**
+
+```
+$ git log 35ee8a0ee8a4f8701c99a6596be8e37d975de307..gsd/v0.9.0-per-document-templates -- typsphinx/ tests/
+(no output)
+```
+
+Empty. No `typsphinx/` or `tests/` commit post-dates the certified head, at the moment this fact
+was measured. This is the check whose absence let the previous round cite `d1eff100` while
+`c9d1eb3b`, `512a211b`, `8d45e0b5` and `eb69904f` had already landed on top of it.
+
+**Fact 3 -- positive content proof.**
+
+```
+$ git show 35ee8a0ee8a4f8701c99a6596be8e37d975de307:typsphinx/template_registry.py | grep -c 'must be a dict mapping registry key to definition'
+1
+
+$ git show 35ee8a0ee8a4f8701c99a6596be8e37d975de307:.planning/REQUIREMENTS.md | grep -c '| TPL-01 | Phase 53 | Complete |'
+1
+```
+
+Both greps return exactly 1: the certified SHA carries plan 53-08's container-guard message text
+(the WR-01 closure) and plan 53-09's corrected TPL-01 traceability row.
+
+### Currency rule
+
+**Non-invalidating.** Commits landing after the certified head `35ee8a0e` that touch only
+`.planning/`, `docs/` or `CHANGELOG.md` are documentation-only and do NOT invalidate this evidence.
+This plan's own commits are exactly that category: the two evidence commits above (Task 1, Task 2),
+this Task 3 commit, the `53-10-SUMMARY.md` commit, and the phase-tracking commits the orchestrator
+makes after the wave merges. The branch tip will legitimately sit ahead of `35ee8a0e` by the time
+anyone reads this artifact, and that is expected, not a defect.
+
+**Invalidating.** Any commit touching `typsphinx/` or `tests/` after `35ee8a0e` DOES invalidate
+this evidence. The required response is named explicitly: push the new tip, dispatch a fresh
+`workflow_dispatch` run, and append a new dated section to this file -- never annotate this section
+with a caveat and call it current.
+
+**The merge hazard, by name.** This project runs executors in isolated worktrees as its standing
+mode (`CLAUDE.md` § "Worktree-isolated execution"). A worktree merge back into
+`gsd/v0.9.0-per-document-templates` moves the milestone tip after a plan finishes -- exactly what
+moved it from `d1eff100` to `35ee8a0e` between Run 2 and this round. Anyone re-checking this
+evidence must re-run Fact 2 against the tip **as it stands at that moment**, not trust the verdict
+recorded here.
+
+### Re-measured standing invariants
+
+```
+$ grep -rl "_template\.typ" tests/ | wc -l
+33
+```
+
+**This differs from the prior sections' recorded value of 32, and the divergence is a genuine,
+explainable finding, not a measurement error.** `git diff d1eff10076af99d50b9bbb90acd6054a6b09762c
+35ee8a0ee8a4f8701c99a6596be8e37d975de307 --stat -- tests/` shows `tests/test_registry_prewrite_validation_gate.py`
+(added by the 53-06/53-07 gap-closure round, landed before this plan's own wave) is a new file that
+also references `_template.typ`, confirmed with `grep -l "_template\.typ"
+tests/test_registry_prewrite_validation_gate.py`. This is net growth of the regression coverage this
+count exists to protect, not shrinkage -- the file count only ever needs scrutiny if it goes down. 33
+is the correct, current, re-measured value; the plan's own acceptance criterion asserting "32" was
+written before 53-06 through 53-09 landed and is now stale in exactly the same way the previous SC#5
+evidence was.
+
+```
+$ uv run pytest tests/ -q
+================= 1270 passed, 5 skipped in 109.58s (0:01:49) ==================
+```
+
+Exit 0.
+
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+============================== 3 passed in 0.02s ===============================
+```
+
+Exit 0, no fourth `@preview` version-lockstep site introduced.
+
+`test -e .planning/phases/53-template-registry-foundation/53-VERIFICATION.md` -- the file exists
+(written by the verifier); `git diff --name-only` shows no modification to it by this plan.
+
+### Extended per-success-criterion audit (ROADMAP.md § "Phase 53: Template Registry Foundation")
+
+**SC#1 -- Named template definitions are declarable and resolve once per build: MET, unchanged
+from the prior audit.** Re-confirmed by the 1270-passed full-suite run above, which now also covers
+`tests/test_registry_container_shape_gate.py` and `tests/test_registry_prewrite_validation_gate.py`
+(both added by the 53-06/53-07 round) alongside the 57-passed `test_template_registry.py` module
+cited previously. No functional change to the registry-resolution mechanism itself in this round.
+
+**SC#2 -- An untouched `conf.py` produces byte-identical output, proven by identity: MET,
+unchanged.** No plan in this gap-closure round (53-08, 53-09, 53-10) touches output-producing code
+paths; 53-08 and 53-09 are validation-message and tracking-documentation fixes respectively. The
+byte-identity baseline `53-01`/`53-05` recorded stands undisturbed.
+
+**SC#3 -- Every malformed registry stops the build with a message naming the specific reason:
+MET, and now strengthened.** `344b9510`'s re-verification had scored this criterion's earlier
+robustness gaps (WR-01, WR-02) as open Warnings; plan 53-08 closed both in this round (`6846a190`
+"close WR-01 -- typo'd typst_document_templates container fails cleanly",
+`daca9a7d` "close WR-02 -- truthy unusable template field joins accumulated raise"), confirmed
+present on the certified head by Fact 3's `must be a dict mapping registry key to definition` grep
+above.
+
+**SC#4 -- Registry-key shape is validated as a single path segment, wrong guard not reused:
+MET, unchanged.** No plan in this round touches `_validate_registry_key_shape()` or
+`_collision_key()`; the platform-independent string-shape tests remain green in the 1270-passed run
+and were independently confirmed on Windows/macOS CI legs in the prior Run 2 (whose fix commit
+`d1eff100` did not touch `template_registry.py`).
+
+**SC#5 -- The milestone branch is on `origin` with a completed 3-OS CI run: MET, via this round's
+Run (`31884774067`), superseding Run 2.** `git ls-remote --heads origin` shows
+`gsd/v0.9.0-per-document-templates` at `35ee8a0e`, matching Run `31884774067`'s `headSha` exactly.
+That run completed with conclusion `success` on all 12 jobs, including both `windows-latest` and
+both `macos-latest` `test` legs (Task 2 above). Fact 2's staleness assertion is empty at the moment
+of recording, and Fact 3 proves by content which code `35ee8a0e` carries. **Run 2 (head `d1eff100`)
+no longer certifies the shipping code** -- four `typsphinx/`+`tests/` commits (`c9d1eb3b`,
+`512a211b`, `8d45e0b5`, `eb69904f`) plus plan 53-08's two commits post-date it -- but it remains an
+accurate record of what it did certify at the time, and its section above is left untouched. No PR
+was opened; no branch was renamed, merged, rebased, force-pushed, or deleted.
+
+**No shortfall found.** All five success criteria are met on measured evidence from this round.
+The one honest divergence recorded, in the spirit of the previous round's Run 1/Run 2 disclosure:
+the standing `_template.typ` file count moved from 32 to 33 between Run 2 and this round, a
+net-growth addition from the 53-06/53-07 gap-closure round rather than a regression, re-measured
+and explained above rather than silently carried forward.
