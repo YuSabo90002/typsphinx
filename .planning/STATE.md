@@ -8,7 +8,7 @@ status: executing
 stopped_at: Phase 54 planned
 last_updated: "2026-08-15T14:42:28.805Z"
 last_activity: 2026-08-15
-last_activity_desc: "Phase 54 planned — 7 plans across 4 waves, plan-checker VERIFICATION PASSED, 8/8 requirements and 15/15 decisions covered; D-14/D-15 added at plan time (shadow route moves to <srcdir>/_typst/), flagged assumption A-01 awaiting owner"
+last_activity_desc: "Phase 54 planned — 7 plans across 4 waves, plan-checker VERIFICATION PASSED, 8/8 requirements and 14/14 decisions covered; D-14 added at plan time (shadow route moves to <srcdir>/_typst/), drafted D-15 runtime warning removed by owner, flagged assumption A-01 awaiting owner"
 progress:
   total_phases: 5
   completed_phases: 1

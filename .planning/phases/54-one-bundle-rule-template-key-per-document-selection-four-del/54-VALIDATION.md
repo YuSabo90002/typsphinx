@@ -84,7 +84,7 @@ unchanged main-tree package and gates stay RED after a correct fix.
 | OUT-07 | A source tree writing under `_template/` stops the build, naming the docname | integration (negative) | Successor fixture to `template_named_dir_master` + its test | ❌ Wave 0 |
 | BLD-05 | The built wheel contains a non-`.typ` bundle file | CI-only (not pytest) | New step in `.github/workflows/ci.yml`'s `build` job (D-13) | ❌ Wave 0 (CI step, not a test file) |
 | BLD-06 | Copy excludes exactly the four D-04 kinds; asserted manifest-diff, not presence-only | integration (fixture containing `.git`, `.DS_Store`, `Thumbs.db`, an editor backup) | `uv run pytest tests/<bundle-copy-exclusion-manifest-gate>.py -x` | ❌ Wave 0 |
-| D-14/D-15 | Shadow route resolves at `<srcdir>/_typst/base.typ` (never `<srcdir>/` itself), and a stray `<srcdir>/base.typ` warns | unit + integration | `tests/test_template_engine.py` (relocated plant dir) + `tests/test_typst_lang_gate.py:624,632` (relocated fixture) + the CONF-19 warning test | ✅ files exist, need relocation + new assertions |
+| D-14 | Shadow route resolves at `<srcdir>/_typst/base.typ`, never `<srcdir>/` itself | unit + integration | `tests/test_template_engine.py` (relocated plant dir) + `tests/test_typst_lang_gate.py:624,632` (relocated fixture) | ✅ files exist, need relocation + new assertions |
 
 *Test module names above are Claude's discretion per CONTEXT.md; only the shape is fixed here.*
 
@@ -93,7 +93,7 @@ unchanged main-tree package and gates stay RED after a correct fix.
 ## Wave 0 Requirements
 
 - [ ] `tests/fixtures/<two-key-selection-fixture>/` + its test module — covers TPL-02
-- [ ] `tests/<removed-config-deprecation-warning>.py` — covers CONF-19 and D-15's stray-`base.typ` warning
+- [ ] `tests/<removed-config-deprecation-warning>.py` — covers CONF-19
 - [ ] `tests/<bundle-copy-layout-gate>.py` — covers OUT-04, including the `package`-only-copies-nothing
       and unused-key-copies-nothing cases
 - [ ] `tests/fixtures/<user-template-relative-asset-fixture>/` + its test module — covers OUT-05,
@@ -112,8 +112,10 @@ unchanged main-tree package and gates stay RED after a correct fix.
       relocation rather than rewrite (D-14)
 
 *Open Question #1 from 54-RESEARCH.md (the `srcdir`-shadow whole-tree-copy risk) is **resolved** by
-CONTEXT.md D-14/D-15 — the guard is structural (the shadow moves into `_typst/`), so its regression
-coverage is the two relocation items above plus D-15's warning test, not a separate guard fixture.*
+CONTEXT.md D-14 — the guard is structural (the shadow moves into `_typst/`), so its regression
+coverage is the two relocation items above, not a separate guard fixture. The runtime warning
+originally drafted as D-15 was removed by owner decision; the relocation is announced by docs and
+changelog only.*
 
 ---
 
