@@ -674,3 +674,189 @@ Python-3.13 `isabs()` driveless-absolute-path gap (test-fixture-only, or product
 options above), whether to accept it as a filed, deferred defect and re-attempt the CI authority
 run later, or another disposition. Filed to `.planning/WINDOWS.md` as a new entry so it is visible
 at ship time (see below).
+
+---
+
+## Third run (Plan 52-09) — the isabs-on-Windows-3.13 defect fixed test-side, all 12 jobs green
+
+**Provisioning note:** same as above -- this section's commands ran inside plan 52-09's own
+isolated git worktree, after `unset VIRTUAL_ENV; unset UV_PROJECT_ENVIRONMENT; uv sync --extra dev`.
+
+**Status: ACCEPTED as SC#3's authority run. All 12 of 12 jobs report `success`, including
+`Test Python 3.13 on windows-latest` -- the lane that carried the fourth defect the second run
+found. `[.jobs[].conclusion]|unique` is `["success"]`.**
+
+### The fix (test-side only, product-side inconsistency filed as a todo)
+
+CPython 3.13 changed `ntpath.isabs()`: a driveless path beginning with a single leading separator
+is no longer treated as absolute on Windows (measured on this machine, Python 3.13.13):
+
+```
+ntpath.isabs('\typsphinx_test_50_03_escape_root\chart.png') = False
+ntpath.isabs('C:\typsphinx_test\chart.png')                 = True
+```
+
+`tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning`'s fixture
+was drive-qualified on Windows (unchanged on POSIX), so it is genuinely absolute on the platform
+the test runs on and exercises the rehome branch it claims to exercise. The product-side
+inconsistency this exposed -- `typsphinx/builder.py:910`'s `_track_image()` uses bare
+`path.isabs()` rather than the platform-independent `posixpath.isabs()` +
+`_is_drive_qualified()` idiom its own sibling `_escapes_outdir()` already uses -- was deliberately
+**not** fixed here, per the owner's decision recorded in `52-09-PLAN.md`'s `<context>`: fix the
+test, file the product issue, keep Phase 52's zero-product-lines fence intact for the release.
+Filed as
+`.planning/todos/pending/2026-08-15-track-image-isabs-not-drive-aware-on-py313-windows.md`.
+
+### Local RED -> GREEN proof
+
+Against this plan's own fixed tree, both locales, targeted then full-module:
+```
+$ uv run python -m pytest tests/test_builder.py -q
+============================== 26 passed in 0.76s ===============================
+
+$ LC_ALL=C LANG=C LANGUAGE=C uv run python -m pytest tests/test_builder.py -q
+============================== 26 passed in 0.34s ===============================
+```
+Both green under both locales. `git diff --name-only -- typsphinx/` was empty at every commit in
+this plan (confirmed below, run-wide). Not reproducible as a local RED on this POSIX host by
+construction (the defect is Windows+3.13-specific) -- the Windows lanes of this third dispatch are
+the GREEN authority for the actual fix, exactly as this plan's Task 1 step 3 anticipated.
+
+### Push
+
+Command:
+```
+$ git merge-base --is-ancestor 21eb439853e2f53c738ecb0234758b64061d6ff7 HEAD && echo fast-forward-ok
+fast-forward-ok
+```
+
+Command:
+```
+$ git rev-parse HEAD
+6924a0bec916227569f5332a99951972c1dafdaf
+```
+
+Command:
+```
+$ git ls-remote origin refs/heads/gsd/v0.8.0-multi-master-composition
+21eb439853e2f53c738ecb0234758b64061d6ff7	refs/heads/gsd/v0.8.0-multi-master-composition
+```
+Remote tip equals the exact SHA the fast-forward check was measured against -- a plain
+fast-forward, not a force-push, and not needed.
+
+Command and verbatim output:
+```
+$ git push origin HEAD:refs/heads/gsd/v0.8.0-multi-master-composition
+To https://github.com/YuSabo90002/typsphinx.git
+   21eb4398..6924a0be  HEAD -> gsd/v0.8.0-multi-master-composition
+```
+Not rejected.
+
+Confirmation:
+```
+$ git ls-remote origin refs/heads/gsd/v0.8.0-multi-master-composition
+6924a0bec916227569f5332a99951972c1dafdaf	refs/heads/gsd/v0.8.0-multi-master-composition
+```
+Equal to the pushed SHA.
+
+### Dispatch
+
+Command:
+```
+$ gh workflow run ci.yml --ref gsd/v0.8.0-multi-master-composition
+https://github.com/YuSabo90002/typsphinx/actions/runs/31858016832
+```
+
+Matched by `headSha`:
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.8.0-multi-master-composition --limit 5 --json databaseId,headSha,event,status
+```
+First row: `{"databaseId":31858016832,"headSha":"6924a0bec916227569f5332a99951972c1dafdaf","event":"workflow_dispatch","status":"queued"}` --
+`headSha` equals the pushed SHA.
+
+Run id: `31858016832`
+Run URL: `https://github.com/YuSabo90002/typsphinx/actions/runs/31858016832`
+
+Overall run conclusion, confirmed after `gh run watch`:
+```
+$ gh run view 31858016832 --json conclusion,status
+{"conclusion":"success","status":"completed"}
+```
+
+### Job conclusions
+
+Command:
+```
+$ gh run view 31858016832 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv' | sort
+```
+
+| Job | Conclusion |
+|---|---|
+| Build Package | success |
+| Code Coverage | success |
+| Integration Test - advanced | success |
+| Integration Test - basic | success |
+| Lint and Format Check | success |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| **Test Python 3.13 on windows-latest** | **success** |
+| Type Check | success |
+
+12 of 12 jobs succeed.
+```
+$ gh run view 31858016832 --json jobs --jq '[.jobs[].conclusion]|unique'
+["success"]
+$ gh run view 31858016832 --json jobs --jq '.jobs | length'
+12
+```
+The required all-green condition is met: `["success"]`, 12 jobs.
+
+### No irreversible action (third run)
+
+Timestamp:
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-15T02:06:49Z
+```
+```
+$ git tag -l v0.8.0
+(no output)
+$ git ls-remote --tags origin v0.8.0
+(no output)
+$ gh pr list --head gsd/v0.8.0-multi-master-composition --json number,state
+[]
+$ gh run list --workflow=release.yml --limit 3 --json databaseId,createdAt,event
+[{"createdAt":"2026-08-11T05:33:22Z","databaseId":31462027486,"event":"push"},
+ {"createdAt":"2026-08-03T20:08:22Z","databaseId":30848860064,"event":"push"},
+ {"createdAt":"2026-07-28T20:57:57Z","databaseId":30398631991,"event":"push"}]
+```
+All three listed `release.yml` runs predate this plan; none was started by this plan. No `v0.8.0`
+tag, locally or on `origin`. Zero open pull requests. Exactly two actions taken by this plan: a
+plain fast-forward branch push and a `ci.yml workflow_dispatch` -- both on the reversible side of
+the prep/publish fence.
+
+Command:
+```
+$ git diff --name-only -- typsphinx/ .github/
+(no output)
+```
+No line under `typsphinx/` or `.github/` changed by this plan across either of its two prior
+commits (the fixture fix and the todo file).
+
+### Ledger closed -- CI is fully green
+
+`.planning/WINDOWS.md` ledger entries 3, 4, 5 (confirmed conclusively fixed by the second run's own
+evidence above) and 6 (this run's own fourth defect, now discharged by
+`Test Python 3.13 on windows-latest` reporting `success`) are all marked `fixed`. `open_count`
+returns to 0.
+
+### SC#3's toolchain half: discharged
+
+This is the accepted authority run for ROADMAP Phase 52 SC#3's toolchain half: a live `ci.yml`
+dispatch on the exact tip pushed to `origin`, all 12 jobs `success`. Combined with plan 52-05's
+independent local coverage of the two docs builds and the full-corpus `-b typstpdf` GATE-02 gate
+(`52-GREEN-TREE-EVIDENCE.md`, not restated here), SC#3 is fully discharged.
+
