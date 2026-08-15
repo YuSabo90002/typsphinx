@@ -299,3 +299,103 @@ which was fixed (outside this plan's declared `files_modified` scope) before the
 
 No file exists at `.planning/phases/53-template-registry-foundation/53-VERIFICATION.md` (checked
 throughout this plan; that name is reserved by `gsd-verifier`, per D-12).
+
+## Gap-closure round 2 — 2026-08-15 (plan 53-10)
+
+**Why this round exists.** Run 2 above (head `d1eff100`) closed SC#5 for the code that existed at
+that moment. Plan 53-08 landed two more `typsphinx/`+`tests/` commits after it (WR-01/WR-02
+closures), and re-verification (`344b9510`) scored SC#5 stale for exactly that reason — a green run
+existed, but it no longer certified the shipping code. This plan runs LAST, after both 53-08 and
+53-09 merged, measures the branch tip at execution time, and records the staleness assertion this
+round's own acceptance criteria require.
+
+### Task 1 — local CI-parity gates and the pre-push tip measurement
+
+**Precondition confirmed.** Worktree provisioned (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv
+sync --extra dev`); `uv run python -c "import typsphinx, pathlib; print(pathlib.Path(typsphinx.__file__).resolve())"`
+printed `/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5fcb448ce0de875e/typsphinx/__init__.py`
+— inside this worktree, not the main checkout. `git log gsd/v0.9.0-per-document-templates --oneline
+-20 | grep -c '53-08'` → **8**; `| grep -c '53-09'` → **4** — both wave-7 plans are present on the
+branch this task measures.
+
+**Local gate 1 — full suite, ambient locale.**
+
+```
+$ uv run pytest tests/ -q
+================= 1270 passed, 5 skipped in 110.92s (0:01:50) ==================
+```
+
+Exit 0.
+
+**Local gate 2 — full suite, `LC_ALL=C` locale control.**
+
+```
+$ LC_ALL=C uv run pytest tests/ -q
+================= 1270 passed, 5 skipped in 109.54s (0:01:49) ==================
+```
+
+Exit 0, same passed/skipped counts as the ambient-locale run (1270 passed, 5 skipped both times) —
+no gettext-translated-string divergence.
+
+**Local gate 3 — `black --check .`.**
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+310 files would be left unchanged.
+```
+
+Exit 0.
+
+**Local gate 4 — `mypy typsphinx/`.**
+
+```
+$ uv run mypy typsphinx/
+Success: no issues found in 7 source files
+```
+
+Exit 0.
+
+**Local gate 5 — `ruff check .` (transcribed verbatim, not claimed as a pass).**
+
+```
+$ uv run ruff check .
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+This is the recorded NixOS generic-linux ELF hazard (Future requirement QUA-06), reproduced exactly
+as in prior phases' evidence. **Lint coverage for this phase therefore comes only from the
+dispatched CI run's `Lint and Format Check` job** — this local pytest/black/mypy pass is not lint
+evidence.
+
+**Candidate SHA.**
+
+```
+$ git rev-parse gsd/v0.9.0-per-document-templates
+35ee8a0ee8a4f8701c99a6596be8e37d975de307
+```
+
+Measured by ref name, not `HEAD` — this worktree's own `HEAD` is `worktree-agent-a5fcb448ce0de875e`'s
+tip, a different commit entirely, per `CLAUDE.md` § "Worktree-isolated execution".
+
+**Pre-push remote state.**
+
+```
+$ git ls-remote --heads origin gsd/v0.9.0-per-document-templates
+48c957cd1744d4cb028a58890d041fab49ede8dc	refs/heads/gsd/v0.9.0-per-document-templates
+```
+
+The stale SHA on `origin` that Task 2's push is about to advance — 24+ commits behind the candidate,
+including all of wave 7 (53-08, 53-09) and this round's own preceding tracking commits.
+
+**Working tree.**
+
+```
+$ git status --porcelain
+(no output)
+```
+
+Clean.
