@@ -694,6 +694,20 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.9.0 in progress — Phase 53 (Template Registry Foundation) complete 2026-08-15.** 10 plans
+across 8 waves (7 planned + two gap-closure rounds), verification `passed` 5/5 must-haves,
+`53-REVIEW.md` 0 critical / 0 warning / 2 info. `typsphinx/template_registry.py` is new: a
+`typst_document_templates` registry resolved **once per build** in `TypstBuilder.write()` — after
+`_validate_output_path_collisions()`, before `prepare_writing()` — so a malformed registry fails
+order-independently and leaves ZERO `.typ` files on disk. Every malformed shape (unregistered key,
+`template`+`package` together, a user-defined `"typst"` key, a `template` directly under `srcdir`,
+a bad key shape, a non-`dict` container, a non-path-typed `template`) raises typsphinx's own
+`ExtensionError` naming the reason, accumulated into a single raise. Output is byte-identical for
+an untouched `conf.py` — applying a per-key template is Phase 54's scope. Nine requirements closed:
+TPL-01, TPL-03, TPL-04, TPL-05, CONF-14…CONF-18. `gsd/v0.9.0-per-document-templates` is on `origin`
+at `35ee8a0e` with a 12/12-green 3-OS `workflow_dispatch` CI run (`31884774067`) over exactly that
+SHA. `53-REVIEW.md` IN-01 (the `package` field is not type-validated) is open by owner decision.
+
 **v0.8.0 SHIPPED 2026-08-15 — PyPI `typsphinx 0.8.0` live.** Six phases (47-52), 45 plans, 121
 tasks, **24/24 v1 requirements complete, zero known gaps**. PR #133 merged to `main` with all 13
 real CI checks green; tag `v0.8.0` on the merge commit `78e01e5`; release run `31861043480` ran
