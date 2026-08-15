@@ -22,13 +22,94 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
-## Current Milestone: none — v0.8.0 shipped 2026-08-15
+## Current Milestone: v0.9.0 per-document templates
 
-**No milestone is active.** v0.8.0 (multi-master composition, Phases 47-52) shipped 2026-08-15 with
-24/24 v1 requirements complete and zero known gaps. The next milestone is scoped with
-`/gsd-new-milestone`, which creates a fresh `.planning/REQUIREMENTS.md`; v0.8.0's is archived at
-`milestones/v0.8.0-REQUIREMENTS.md` and its roadmap at `milestones/v0.8.0-ROADMAP.md`. Phase
-numbering continues at **53**.
+**Goal:** every `typst_documents` entry can use its own template, Typst Universe package, and
+template-function arguments — instead of one globally-configured template being applied to every
+master.
+
+**Why now.** v0.8.0 made multi-master composition produce a complete PDF per master, but every one
+of those PDFs is still typeset by the same template. Template resolution is read entirely from
+global config: `writer.py:324-351` (per wrapper) and `builder.py:1124-1168` (once per build) both
+read `typst_template` / `typst_package` / `typst_package_imports` / `typst_template_function` /
+`typst_template_mapping` off `config` and never consult the entry. The v0.8.0 wrapper/content split
+already threads the specific `typst_documents` entry into `TypstWriter.render_wrapper()`, so the
+entry is in hand at the exact point the template is chosen — what is missing is a per-entry way to
+name a template, and the ability to emit more than one template file.
+
+**Target features:**
+
+- **`typst_document_templates` registry (new config value)** — a dict of named template definitions.
+  Each entry carries at most three keys: `template` (srcdir-relative local `.typ`) **xor** `package`
+  (Typst Universe spec), plus `template_function` (`str` or `{"name", "params"}` dict). Two shapes
+  fall out of the existing engine with no new predicate: declaring `"params"` selects the exclusive
+  parameter set (`TemplateEngine.__init__`'s `params_specified`, D-D), omitting it selects the
+  auto-derived set.
+- **`typst_documents` element [4] becomes the registry key** — the slot exists and is already
+  populated project-wide with the literal `"typst"`: `_default_typst_documents()` emits it
+  (`builder.py:184`), `docs/source/conf.py` and both `examples/charged-ieee` configs set it, nine
+  documentation examples show it, and `configuration.rst:80` defines it as *"Document class (usually
+  "typst") — accepted and ignored"*. This milestone retires that definition and gives the slot
+  meaning.
+- **Built-in key `"typst"` defers to global config** — `typst_template` / `typst_package` /
+  `typst_template_function` / `typst_template_mapping` if set, bundled `base.typ` otherwise. A
+  four-element tuple behaves identically, per `configuration.rst:84`. This is what makes every
+  existing `conf.py` — in this repository and in the wild — keep working with zero edits.
+- **N template files, written into the mirror of their own source directory** — today
+  `_write_template_file()` writes exactly one `_template.typ` at the outdir root and the collision
+  detector reserves that name (`builder.py:571`). A registry template is instead written to
+  `<outdir>/<its srcdir-relative directory>/_template.typ`, landing beside the assets that
+  `_copy_template_directory()` already mirrors there. The `"typst"` key keeps the root
+  `_template.typ` unchanged.
+- **Template-relative asset references start working** — because the template now sits beside its
+  assets, `#image("logo.png")` resolves. This is the shape `templates.rst:106-113` already
+  documents and which is currently wrong: a root-placed template resolves relative paths from the
+  outdir root, which is why `advanced.rst:129-138` has to tell users to write
+  `"_templates/refs.bib"`.
+- **Asset copying follows the registry** — no new config surface. `copy_template_assets()` today
+  returns immediately when global `typst_template` is unset (`builder.py:1237-1240`), so a project
+  that moves entirely to the registry would silently copy no fonts, logos, or `.bib` files at all.
+  Its enumeration source becomes the set of distinct template directories across the registry plus
+  the global `typst_template`, and its global-`typst_package` early return is narrowed to the
+  `"typst"` route.
+- **Fail-loud configuration errors** — an unregistered key, a registry entry carrying both
+  `template` and `package`, a user-defined `"typst"` key (reserved), and two registry templates
+  sharing one source directory (their fixed `_template.typ` names would collide) each raise
+  `ExtensionError`, following CONF-04's unknown-`typst_elements`-key and BLD-02/03/04's
+  output-path-collision precedent.
+- **Documentation** — `configuration.rst` (retract the element-[4] definition), `templates.rst`
+  (the asset example becomes correct), `quickstart.rst`, `output_layout.rst`, `builders.rst`.
+- **Clean up the five v0.8.0-derived defects** that shipped unfixed by decision D-01 or with only a
+  test-side fix: the compile-time xref guard's label-collision false negative, the unescaped
+  include-edge key separators, the unbounded recursion in `derive_master_edge_keys`, the escape
+  branch's basename-only relocation key, and `_track_image`'s non-drive-aware `isabs` on Python
+  3.13 Windows (product side still open — plan 52-09 fixed only the test).
+
+**Decisions locked at scoping (2026-08-15), each measured rather than assumed:**
+
+- **The registry is function-only — no `template_mapping` key.** `typst_template_mapping` overlaps
+  `template_function` and is strictly weaker: it is a rename table whose source dict is the
+  three-key `{project, author, release}` built at `writer.py:365`, so any other key it names can
+  never fire; and `render()`'s D-B/D-D branch discards its entire output whenever `params` is
+  declared, so the two can never both be in effect. The owner intends to remove the global value in
+  a later milestone. Global `typst_template_mapping` is untouched here — it still works, with no
+  deprecation notice and no warning.
+- **P×A stays broken as-is.** A package with no declared `params` emits a Typst compile fatal for
+  any master carrying a toctree, because two writes escape the D-05 package suppression:
+  `map_parameters()` merges `typst_elements` unconditionally at its tail, and
+  `render_wrapper()` calls `params.update(toctree_options)` *after* it (`writer.py:421-423`), so
+  `toctree_maxdepth`/`toctree_numbered`/`toctree_caption` reach a third-party function that never
+  declared them. This is why `examples/charged-ieee/approach1` uses the `params` route. Out of
+  scope by owner decision.
+- **`params` exclusivity is preserved**, so two entries sharing one registry key that declares
+  `params` also share one literal title — the entry's own title/author elements are discarded. A
+  custom template wanting non-default parameter names must use the `params` route and therefore
+  gives up per-entry title/author. These two constraints cannot both be avoided; accepted.
+- **`package_imports`, `elements`, and `template_assets` stay global** and apply to every document.
+  `typst_template_assets` in particular remains all-or-nothing across all templates.
+
+**Version rationale:** v0.9.0. A new config surface with no behaviour change for any existing
+`conf.py` — additive and backward-compatible, unlike v0.8.0's breaking output-shape change.
 
 <details>
 <summary>v0.8.0 milestone brief (as scoped 2026-08-11) — retained for reference</summary>
@@ -1448,8 +1529,25 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
      is the authoritative, REQ-ID'd list; this section only ever carries the active milestone's headline
      commitments, and is re-scoped by `/gsd-new-milestone`. -->
 
-**No active milestone.** The list below is v0.8.0's, complete — retained until `/gsd-new-milestone`
-re-scopes this section.
+**v0.9.0 per-document templates (scoped 2026-08-15)** — every `typst_documents` entry can use its
+own template, package, and template-function arguments:
+
+- [ ] A new `typst_document_templates` registry names template definitions (`template` xor
+      `package`, plus `template_function`), and `typst_documents` element [4] selects one — the slot
+      `configuration.rst:80` currently defines as "accepted and ignored"
+- [ ] The built-in key `"typst"`, and a four-element tuple, defer to global config, so every
+      existing `conf.py` keeps working unchanged
+- [ ] Each registry template is written into the mirror of its own source directory, beside the
+      assets already copied there, so template-relative asset references resolve
+- [ ] Asset copying enumerates the registry's template directories instead of the single global
+      `typst_template`, which today makes a registry-only project copy nothing at all
+- [ ] Misconfiguration fails loudly: unregistered key, `template` + `package` in one entry, a
+      user-defined `"typst"` key, and two registry templates sharing a source directory
+- [ ] The five v0.8.0-derived defects that shipped unfixed by decision D-01, or with only a
+      test-side fix, are closed
+
+<details>
+<summary>v0.8.0's Active list (complete, shipped 2026-08-15) — retained for reference</summary>
 
 **v0.8.0 multi-master composition (SHIPPED 2026-08-15)** — a `typst_documents` configuration with
 more than one master produces a complete PDF for each:
@@ -1490,6 +1588,8 @@ more than one master produces a complete PDF for each:
   cannot run one of the three gates CI enforces.
 - **SEED-003** — split the `dev` extra into PEP 735 `[dependency-groups]` so each tox environment
   installs only what it needs.
+
+</details>
 
 ### Out of Scope
 
@@ -1630,7 +1730,11 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-08-11 at the **v0.7.1 milestone close** (`/gsd-complete-milestone`) — full evolution review complete. **v0.7.1 (bug-fix round) shipped: 8 phases (43–46, incl. inserted 44.1, 44.2, 45.1, 45.2) / 43 plans / 122 tasks, 19/19 v1 requirements validated, zero known gaps, `override_closeout`.** PyPI `typsphinx 0.7.1` is live (wheel 135,318 B + sdist 580,288 B) via release run `31462027486`; PR #132 merged with 15/15 CI checks green (`48bf135`), tagged `v0.7.1`, and `typsphinx-doc-translations` took its standing second tag after `update-pin.yml` run `31462409929` advanced the pin `87f242a` → `48bf135`. **This milestone closed the gap between what the documentation promises and what a `conf.py` gets**: `typst_documents` gained a LaTeX-shaped default so the Quick Start produces a PDF, an explicit entry's title and author reach the rendered document, the custom-template parameter contract was rewritten onto the nine parameters actually passed and locked with a RED-proved gate, `typst_authors` was removed, nested tables and figures stopped corrupting the enclosing structure, and the published changelog page stopped being two years stale by rendering live from `CHANGELOG.md`. Four things are worth carrying forward. **REL-04 finally closed, and closed correctly**: carried unmet from v0.7.0 where it was reported done on the strength of the workflow file, it was here proved by a real tag push whose `create-release` completed success, with the published body then *measured* byte-identical to the extractor's output rather than assumed. **Milestone invariant #5 paid immediately**: pushing the branch from Phase 43 surfaced a Windows-only defect on a dispatched CI run in Phase 46, not at the release PR — the exact failure mode that cost v0.7.0 two defects. **The `phase.complete` auto-flip hazard is now three-for-three on release-prep phases**: it flipped REL-06 and auto-closed the REL-04 todo at Phase 46 close-out, and the diff-before-trusting guard caught both again (`73d6a86`). **A root-cause fix retired five deferred items**: renaming `tox-uv` to `tox-uv-bare` (QUA-04) took the full suite from 45 failures to 0 and made `tox` work locally for the first time, dissolving the Phase 45.1 deferrals rather than carrying them. Archived to `milestones/v0.7.1-ROADMAP.md` + `v0.7.1-REQUIREMENTS.md` with phase artifacts under `milestones/v0.7.1-phases/`; `REQUIREMENTS.md` removed for the next milestone. **Nine todos and two dormant seeds stay open, every one argued in `46-HANDOFF.md` before the close** — the `typst_documents`-modelling cluster of three, the two `_track_image` defects shipped unfixed by decision D-27, and the declined `typst_authors` fail-loud shim are this file's named Active candidates. Next milestone starts at **Phase 47**. Prior footer retained below.*
+*Last updated: 2026-08-15 — started milestone **v0.9.0 per-document templates** via `/gsd-new-milestone`. Scoped over an extended measured discussion in which four of my own framings were corrected against the source rather than accepted. **The 5th `typst_documents` element is not a hypothetical slot**: `_default_typst_documents()` emits `"typst"` into it (`builder.py:184`), `docs/source/conf.py` and both `examples/charged-ieee` configs set it, and `configuration.rst:80` defines it as "accepted and ignored" — so making it the registry key is a promotion of an existing populated placeholder, not a tuple extension, and `"typst"` deferring to global config is what keeps every existing `conf.py` working untouched. **`typst_template_mapping` genuinely duplicates `template_function`** and is strictly weaker (a rename table over the three-key dict built at `writer.py:365`, discarded wholesale by `render()`'s D-B/D-D branch whenever `params` is declared), so the registry is function-only and the global value will be removed in a later milestone — untouched here. **The template-asset spec was already per-template**: `_copy_template_directory()` copies the *directory* containing the template and mirrors srcdir structure, so no new config is needed — only the enumeration source changes, and `copy_template_assets()`'s early return on an unset global `typst_template` would otherwise make a registry-only project silently copy nothing. **Root placement was not forced**: writing each registry template into its own source directory's mirror puts it beside its assets, making `#image("logo.png")` work and `templates.rst:106-113`'s currently-wrong example correct, while `"typst"` keeps the root `_template.typ` so `docs/source` and `approach2` are unaffected. Deliberately NOT fixed: the P×A cell (a package with no declared `params` emits a compile fatal for any master with a toctree, because `typst_elements` and `params.update(toctree_options)` both escape the D-05 suppression) — owner decision, and the reason `approach1` uses the `params` route. Five v0.8.0-derived defects ride along. Next: define REQUIREMENTS.md, then the roadmap. Prior footer retained below.*
+
+---
+
+<!-- Prior: *Last updated: 2026-08-11 at the **v0.7.1 milestone close** (`/gsd-complete-milestone`) — full evolution review complete. **v0.7.1 (bug-fix round) shipped: 8 phases (43–46, incl. inserted 44.1, 44.2, 45.1, 45.2) / 43 plans / 122 tasks, 19/19 v1 requirements validated, zero known gaps, `override_closeout`.** PyPI `typsphinx 0.7.1` is live (wheel 135,318 B + sdist 580,288 B) via release run `31462027486`; PR #132 merged with 15/15 CI checks green (`48bf135`), tagged `v0.7.1`, and `typsphinx-doc-translations` took its standing second tag after `update-pin.yml` run `31462409929` advanced the pin `87f242a` → `48bf135`. **This milestone closed the gap between what the documentation promises and what a `conf.py` gets**: `typst_documents` gained a LaTeX-shaped default so the Quick Start produces a PDF, an explicit entry's title and author reach the rendered document, the custom-template parameter contract was rewritten onto the nine parameters actually passed and locked with a RED-proved gate, `typst_authors` was removed, nested tables and figures stopped corrupting the enclosing structure, and the published changelog page stopped being two years stale by rendering live from `CHANGELOG.md`. Four things are worth carrying forward. **REL-04 finally closed, and closed correctly**: carried unmet from v0.7.0 where it was reported done on the strength of the workflow file, it was here proved by a real tag push whose `create-release` completed success, with the published body then *measured* byte-identical to the extractor's output rather than assumed. **Milestone invariant #5 paid immediately**: pushing the branch from Phase 43 surfaced a Windows-only defect on a dispatched CI run in Phase 46, not at the release PR — the exact failure mode that cost v0.7.0 two defects. **The `phase.complete` auto-flip hazard is now three-for-three on release-prep phases**: it flipped REL-06 and auto-closed the REL-04 todo at Phase 46 close-out, and the diff-before-trusting guard caught both again (`73d6a86`). **A root-cause fix retired five deferred items**: renaming `tox-uv` to `tox-uv-bare` (QUA-04) took the full suite from 45 failures to 0 and made `tox` work locally for the first time, dissolving the Phase 45.1 deferrals rather than carrying them. Archived to `milestones/v0.7.1-ROADMAP.md` + `v0.7.1-REQUIREMENTS.md` with phase artifacts under `milestones/v0.7.1-phases/`; `REQUIREMENTS.md` removed for the next milestone. **Nine todos and two dormant seeds stay open, every one argued in `46-HANDOFF.md` before the close** — the `typst_documents`-modelling cluster of three, the two `_track_image` defects shipped unfixed by decision D-27, and the declined `typst_authors` fail-loud shim are this file's named Active candidates. Next milestone starts at **Phase 47**. Prior footer retained below.* -->
 
 ---
 *Prior: 2026-08-11 — Phase 46 (v0.7.1 Release Prep, prep-only) complete, 6/6 plans across 4 waves, verification `passed` 5/5 success criteria, code review 0 critical / 3 warning / 2 info. **Every v0.7.1 phase is done — the milestone is prepped, proven green, and awaits `/gsd-complete-milestone`.** The tree is publish-ready with zero irreversible action taken: `git tag -l v0.7.1` and `git ls-remote --tags origin v0.7.1` are both empty, verified twice by the phase 3m4s apart and a third time by the verifier independently. `pyproject.toml` is the sole `0.7.1` literal with `uv.lock`/`README.md` in lockstep and `typsphinx.__version__` regenerated to match; the curated `## [0.7.1]` CHANGELOG entry marks both user-visible patch-release behaviour changes (CONF-08's filename rename, CONF-09's title/author change) three ways, since D-01 held the version at `0.7.1` and the number itself warns no one. **SC#3's proof is a live CI run because it has to be** — local sees neither Windows nor macOS and `tox -e lint` cannot execute on this machine at all — so D-23 dispatched two: run `31456868265` first, to confirm a Windows-only path-separator repair that is unverifiable locally, placed at the head of the phase so a missed repair could not land retry commits after the bump; then run `31458368833` on pushed SHA `26b2e6c`, carrying the bump and the changelog entry, 12/12 green, re-fetched by the verifier rather than read from the transcript. **Two requirements deliberately did not close and that is the design.** REL-04's acceptance evidence is a real tag push whose `create-release` job completes — v0.7.0 called this mechanism done on the strength of the workflow file and the release then failed, and this phase was fenced so it could not repeat that; REL-06's own text ends "*and the publish … executed at `/gsd-complete-milestone`*". **The recorded `phase.complete` auto-flip hazard recurred and was caught again**: close-out flipped REL-06 to `[x]` and auto-closed the REL-04 todo on a `resolves_phase: 46` line predating the prep-only scoping; both were reverted via the diff-before-trusting guard `46-HANDOFF.md` item 6 carries from `41-HANDOFF.md`, making the hazard three-for-three on release-prep phases specifically. **A plan-verification defect was found twice independently and corrected rather than scored as a gap:** `git diff origin/main..HEAD -- typsphinx/` is unsatisfiable under `branching_strategy: milestone` (the merge-base predates Phase 43), and the corrected anchor `c72be91..HEAD` is genuinely empty; both forms are recorded verbatim rather than the literal being quietly swapped. Code review: 0 critical, and two of three warnings belong to PR #131's `_track_image` — which this phase merged but, under the prep-only fence, could not fix — both filed as todos. `46-HANDOFF.md` carries the seven-item publish checklist. Prior footer retained below.*

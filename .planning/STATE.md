@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.8.0
-milestone_name: multi-master composition
-status: Awaiting next milestone
-stopped_at: Milestone v0.8.0 shipped and archived
-last_updated: "2026-08-15T03:29:43.056Z"
+milestone: v0.9.0
+milestone_name: per-document templates
+status: planning
+last_updated: "2026-08-15T04:47:05.888Z"
 last_activity: 2026-08-15
-last_activity_desc: Milestone v0.8.0 completed and archived
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 45
-  completed_plans: 45
-  percent: 100
-current_phase: 52
-current_phase_name: v0-8-0-release-prep-prep-only
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -39,10 +35,10 @@ Next action: `/gsd-new-milestone`
 
 ## Current Position
 
-Phase: Milestone v0.8.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-15 — Milestone v0.8.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-15 — Milestone v0.9.0 started
 
 ## Shipped Milestone (v0.8.0 — archived)
 
