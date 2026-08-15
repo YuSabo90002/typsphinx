@@ -529,7 +529,21 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     # Built from the filesystem root so it cannot possibly sit under the
     # app's temporary doctreedir. The file need not exist on disk --
     # _track_image() decides purely from the path shape.
-    abs_uri = os.path.join(os.sep, "typsphinx_test_50_03_escape_root", "chart.png")
+    #
+    # 52-09: CPython 3.13 changed ntpath.isabs() -- a driveless
+    # leading-separator path (e.g. os.path.join(os.sep, "x", "y") on
+    # Windows) is no longer absolute under 3.13, where it was under 3.12
+    # (see .planning/phases/52-v0-8-0-release-prep-prep-only/
+    # 52-CI-EVIDENCE.md for the measured before/after). path.isabs()
+    # therefore no longer sees this fixture as absolute on Windows+3.13,
+    # so it must be drive-qualified there to keep exercising the rehome
+    # branch this test targets. POSIX is already unambiguously absolute
+    # via os.sep and is left untouched.
+    if os.name == "nt":
+        abs_root = os.path.join("C:" + os.sep, "typsphinx_test_50_03_escape_root")
+    else:
+        abs_root = os.path.join(os.sep, "typsphinx_test_50_03_escape_root")
+    abs_uri = os.path.join(abs_root, "chart.png")
 
     reporter = Reporter("", 2, 4)
     doc = nodes.document("", reporter=reporter)
