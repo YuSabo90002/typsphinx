@@ -192,3 +192,110 @@ $ git diff --name-only -- tox.ini pyproject.toml
 (no output)
 
 ---
+
+## Local evidence — full-corpus gate
+
+Command:
+```
+$ uv run pytest tests/test_corpus_gate.py -v -m "" --junit-xml="${TMPDIR:-/tmp}/52-05-corpus.xml"
+```
+
+Transcript:
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ad418208b39cc9bf9
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 5 items
+
+tests/test_corpus_gate.py::test_catalogue_unknown_visit_multiline PASSED [ 20%]
+tests/test_corpus_gate.py::test_catalogue_unknown_visit_windows_crlf_and_prefix PASSED [ 40%]
+tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error PASSED [ 60%]
+tests/test_corpus_gate.py::test_count_empty_url_warnings PASSED          [ 80%]
+tests/test_corpus_gate.py::test_empty_url_before_after SKIPPED (SC#3
+before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1
+to run it (RESEARCH Open Question 1))                                    [100%]
+
+- generated xml file: /tmp/claude-1000/-home-yuta-Documents-typsphinx/46a5e196-26a6-4f33-b141-8f127e6e6593/scratchpad/52-05-corpus.xml -
+======================== 4 passed, 1 skipped in 14.18s =========================
+```
+
+JUnit `testsuite` attributes:
+```
+<testsuite name="pytest" errors="0" failures="0" skipped="1" tests="5" time="14.183" ...>
+```
+
+**The gate RAN, and PASSED.** `TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error`
+is `PASSED`, in words, per the `-v` transcript above — not inferred from the `0 failed` summary
+line, which per this plan's Pitfall 4 warning is not by itself evidence of anything (a skip also
+produces `0 failed`). `corpus_doc_dir`'s session fixture only calls `pytest.skip` when the
+shallow clone of Sphinx's own `doc/` tree (at the tag matching the installed
+`sphinx.__version__`, `v9.1.0`) fails — network was reachable in this environment, so a real
+`sphinx-build -b typstpdf` compiled Sphinx's own 154-document corpus through `typsphinx`'s own
+translator and builder end to end with no fatal Typst error, wired into the corpus's `conf.py`
+via `wire_typsphinx_into_corpus_conf`.
+
+The one `SKIPPED` test, `test_empty_url_before_after`, is unrelated to the gate's own pass/fail
+criterion — per its own skip reason (verbatim above) it is gated on
+`TYPSPHINX_CORPUS_REPORT=1`, an opt-in before/after reporting measurement (RESEARCH Open
+Question 1), not on network or corpus availability. This skip is expected and does not weaken
+the gate's PASSED result; the `skipped="1"` count above is transcribed as a number, not
+summarised away.
+
+**No `human_needed` marker applies here** — the gate PASSED, it did not skip.
+
+---
+
+## Local suite spot-check
+
+Command:
+```
+$ uv run pytest tests/ -q --junit-xml="${TMPDIR:-/tmp}/52-05-suite.xml"
+```
+
+Final lines:
+```
+================= 1170 passed, 5 skipped in 106.67s (0:01:46) ==================
+```
+
+JUnit `testsuite` attributes:
+```
+<testsuite name="pytest" errors="0" failures="0" skipped="5" tests="1175" time="106.657" ...>
+```
+
+**This is a SPOT-CHECK, not authority.** Per D-08, pytest authority for this phase belongs to
+the dispatched CI run plan 52-04 collected — this local run exercises only this machine's
+Linux/py313 environment and cannot stand in for the py312/py313 × ubuntu/macos/windows matrix
+CI covers. It is recorded here purely as a local sanity signal that this worktree's tree
+(waves 1 and 2 merged back, this plan's evidence-only change on top) has no local regression:
+`1170 passed, 5 skipped`, `failures="0"`, `errors="0"`.
+
+---
+
+## Executed versus skipped
+
+| Environment / gate | Verdict | Reason |
+|---|---|---|
+| `tox -e docs-html` | RAN | `uv run --extra dev tox -e docs-html` exits 0, `build succeeded, 3 warnings`, `docs-html: OK`. |
+| `tox -e docs-pdf` | RAN | `uv run --extra dev tox -e docs-pdf` exits 0, `build succeeded, 5 warnings`, `docs-pdf: OK`, PDF generated and measured (2,614,546 bytes, 128 pages, `0.8.0` on the title page). |
+| Full-corpus gate (`tests/test_corpus_gate.py::TestCorpusRenderGate::test_corpus_compiles_with_no_fatal_error`) | RAN — **PASSED** | Network reachable; the shallow clone of Sphinx's own `doc/` corpus at `v9.1.0` succeeded and compiled fatal-free through `typsphinx`'s `typstpdf` builder. Not a skip. |
+| Local suite spot-check (`pytest tests/`) | RAN (spot-check only) | `1170 passed, 5 skipped`, `failures="0"`, `errors="0"` — recorded as a spot-check per D-08, not as authority for pytest/lint/type/matrix, which belongs to the dispatched CI run (plan 52-04). |
+| A bare `tox` (no `-e` selector) | NOT RUN | `tox.ini`'s `env_list = py312, py313, lint, type, cov, docs` includes `lint`, which dies at exit 127 on this NixOS machine: `.venv/bin/ruff` is a generic-linux ELF the NixOS stub loader rejects. Filed, out-of-scope toolchain defect: `.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`. Lint authority sits with CI per D-08; this plan never ran a bare `tox` anywhere. |
+| `tox -e py312` | NOT RUN | `uv venv -p cpython3.12` downloads a standalone CPython whose ELF the same NixOS stub loader rejects, so the environment cannot provision at all — the same class of environmental defect filed at `.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md` as the `lint` row above, unrelated to any code change in this plan. `py312`/`py313`/`lint`/`type`/`cov` matrix authority sits with the dispatched CI run (plan 52-04) per D-08. |
+
+Repo cleanliness and prep/publish-fence re-assertion (this plan changed only the evidence file
+itself):
+```
+$ git diff --name-only -- tests/ typsphinx/
+```
+(no output)
+```
+$ git tag -l v0.8.0
+```
+(no output)
+```
+$ git ls-remote --tags origin v0.8.0
+```
+(no output)
