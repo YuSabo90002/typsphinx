@@ -251,13 +251,40 @@ def resolve_template_registry(
     Raises:
         ExtensionError: When one or more declared keys fail CONF-18's
             key-shape denylist or CONF-16's reserved-key check (Task 1),
-            or CONF-15/CONF-17/D-08's definition-level checks (Task 2).
+            or CONF-15/CONF-17/D-08's definition-level checks (Task 2), or
+            (53-07 Task 2, 53-REVIEW.md WR-02/WR-03) a declared key is not
+            a ``str`` or a declared definition is a truthy non-``dict``.
+            The iteration key below is total across mixed key types, so a
+            heterogeneous registry produces this module's own accumulated
+            error rather than ``sorted()``'s ``TypeError``.
     """
     declared = getattr(config, "typst_document_templates", None) or {}
     all_keys = {key for key in declared.keys() if isinstance(key, str)}
 
     failures: list[str] = []
-    for key in sorted(declared.keys()):
+    # 53-07 Task 2 (53-REVIEW.md WR-02): a total ordering key across mixed
+    # key types. Slot 0 partitions `str` keys before non-`str` keys; slot 1
+    # then compares `str` to `str` within each partition, so `sorted()` can
+    # never raise its own `TypeError` for a heterogeneous key set (e.g. an
+    # `int` beside a `str`). Deliberately NOT `repr(k)` for both partitions:
+    # `repr()` switches to double quotes for a string containing an
+    # apostrophe, which would silently reorder such a key relative to
+    # today's plain `sorted()` and break D-03's published byte-identical
+    # ordering for any config that has one. The all-`str` ordering below is
+    # therefore byte-for-byte unchanged from before this edit.
+    for key in sorted(
+        declared.keys(),
+        key=lambda k: (not isinstance(k, str), k if isinstance(k, str) else repr(k)),
+    ):
+        # 53-07 Task 2 (53-REVIEW.md WR-02): a non-`str` key is a TYPE
+        # GUARD on this loop, not an eighth entry in
+        # `_KEY_SHAPE_REJECTION_CASES` -- 53-03-PLAN.md's prohibition
+        # freezes that denylist at exactly seven locked cases, and
+        # `_validate_registry_key_shape()` keeps its `str`-only contract
+        # unchanged, simply never reached with a non-`str` key.
+        if not isinstance(key, str):
+            failures.append(f"registry key {key!r} is not a string")
+            continue
         shape_reason = _validate_registry_key_shape(key, all_keys)
         if shape_reason is not None:
             failures.append(shape_reason)
@@ -280,7 +307,18 @@ def resolve_template_registry(
             # warn-and-fall-back behaviour, unobstructed by this module.
             continue
 
-        definition = declared[key] or {}
+        # 53-07 Task 2 (53-REVIEW.md WR-03): a truthy non-`dict` definition
+        # is a guard, not a silent `.get()` crash. The falsy path (`None`,
+        # `""`, `0`) is unchanged -- it still normalizes to `{}` and
+        # resolves exactly as it does today.
+        raw_definition = declared[key]
+        if raw_definition and not isinstance(raw_definition, dict):
+            failures.append(
+                f"registry key {key!r}'s definition must be a dict, got "
+                f"{raw_definition!r}"
+            )
+            continue
+        definition = raw_definition or {}
         template = definition.get("template")
         package = definition.get("package")
 
@@ -323,6 +361,11 @@ def resolve_template_registry(
             f"definition(s): {summary}"
         )
 
+    # 53-07 Task 2: this loop needs no new guard. It runs only when
+    # `failures` is empty, by which point the accumulate loop above has
+    # already proven every key is a `str` and every definition is a `dict`
+    # or falsy -- a second, independent guard here would be redundant
+    # state that could drift from the first.
     registry: Dict[str, TemplateRegistryEntry] = {}
     for key, definition in declared.items():
         definition = definition or {}
