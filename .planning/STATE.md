@@ -71,9 +71,12 @@ output-identically first, so the tree is green at the boundary and the layout ch
 from the plumbing change. Phase 55 has no functional dependency on 53/54 and is sequenced after them
 only to avoid contending for `builder.py` and `writer.py`.
 
-**Milestone branch:** `gsd/v0.9.0-milestone` exists locally and is **not** on `origin` (measured at
-roadmap creation). Milestone invariant #5 is encoded as Phase 53's SC#5 — push it in the first
-phase, evidenced by a completed CI run including the Windows and macOS lanes.
+**Milestone branch:** `gsd/v0.9.0-per-document-templates` — the branch carrying every milestone
+commit — is **not** on `origin`. Milestone invariant #5 is encoded as Phase 53's SC#5 — push it in
+the first phase, evidenced by a completed CI run including the Windows and macOS lanes, produced by
+`gh workflow run CI --ref <branch>` (ci.yml's push/PR triggers are scoped to `main`/`develop`, so
+the push alone runs no CI). *(Corrected 2026-08-15 during Phase 53 planning: originally named
+`gsd/v0.9.0-milestone`, a stale local branch measured at `aed773c9` with zero milestone commits.)*
 
 **Owner decisions locked before roadmapping** (do not re-open at planning): `_template/` is reserved
 wholesale, so `tests/fixtures/template_named_dir_master/` moves in Phase 54; the
@@ -790,6 +793,6 @@ unfixed by decision D-01 with no published surface other than that ledger and
 ## Operator Next Steps
 
 - Plan the first phase with `/gsd-plan-phase 53`
-- Phase 53 must push `gsd/v0.9.0-milestone` to `origin` (milestone invariant #5) — the branch is
-  local-only today, and CONF-18's reserved-device-name and case-collision cases are invisible to a
-  local Linux-only run
+- Phase 53 must push `gsd/v0.9.0-per-document-templates` to `origin` (milestone invariant #5) — the
+  branch is local-only today, and CONF-18's reserved-device-name and case-collision cases are
+  invisible to a local Linux-only run

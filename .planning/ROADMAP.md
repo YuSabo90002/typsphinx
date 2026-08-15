@@ -448,9 +448,13 @@ questions):
    **and** a built-wheel content check — inspection of the glob is not evidence.
 
 9. **Push the milestone branch to `origin` from the FIRST phase, not at the release PR** (milestone
-   invariant #5, adopted v0.7.1, paid four times over in v0.8.0). `gsd/v0.9.0-milestone` exists
-   locally and is **not** on `origin`. Phase 53 carries this as SC#5; every later phase inherits it
-   as a standing expectation.
+   invariant #5, adopted v0.7.1, paid four times over in v0.8.0). The milestone branch is
+   `gsd/v0.9.0-per-document-templates` — the branch that actually carries this milestone's commits,
+   named the same way v0.8.0's was (`gsd/v0.8.0-multi-master-composition`). It is **not** on
+   `origin`. (Corrected 2026-08-15 during Phase 53 planning: this constraint originally named
+   `gsd/v0.9.0-milestone`, a local branch measured to sit at the merge-base `aed773c9` with zero
+   milestone commits. That stale branch is not the milestone branch.) Phase 53 carries this as SC#5;
+   every later phase inherits it as a standing expectation.
 
 10. **The final phase (57) is prep-only and takes zero irreversible action.** Version bump, curated
     CHANGELOG entry, evidence gathering, handoff checklist. No tag, no publish, no GitHub Release.
@@ -496,7 +500,7 @@ and `render_wrapper()` builds its `TemplateEngine` from the resolved definition 
 built-in `"typst"` key synthesizes exactly those same global values, so **this phase changes no
 output**. That is the point: it separates "does the registry plumbing work" from "does the output
 layout change" (Phase 54) into two independently verifiable states, which is what keeps the tree
-green while 31 test files still assert the old `_template.typ` path.
+green while 32 test files still assert the old `_template.typ` path.
 
 Resolution belongs **once per build in `write()`**, immediately after `_validate_output_path_collisions()`
 and before `prepare_writing()` — mirroring `self._master_include_edges = self._build_include_edge_map()`,
@@ -549,12 +553,21 @@ this milestone does not touch.
      record explicitly **why `_escapes_outdir()`/`_is_drive_qualified()` are not reused** — their
      documented contract permits a `/`, which is the opposite of a single segment's contract.
 
-  5. **The milestone branch is on `origin` with a completed 3-OS CI run.** `gsd/v0.9.0-milestone` is
-     pushed to `origin` **in this phase**, evidenced by a `git ls-remote --heads origin` hit plus at
-     least one completed CI run over it including the `windows-latest` and `macos-latest` lanes
-     (milestone invariant #5, binding constraint #9). This milestone raises the stakes again:
+  5. **The milestone branch is on `origin` with a completed 3-OS CI run.**
+     `gsd/v0.9.0-per-document-templates` is pushed to `origin` **in this phase**, evidenced by a
+     `git ls-remote --heads origin` hit plus at least one completed CI run over it including the
+     `windows-latest` and `macos-latest` lanes (milestone invariant #5, binding constraint #9).
+     The run is produced by **`workflow_dispatch`**, not by the push: `.github/workflows/ci.yml:3-8`
+     scopes its `push`/`pull_request` triggers to `main`/`develop` only, so a feature-branch push
+     alone runs no CI (measured — the `push` events on v0.8.0's milestone branch were the Link Check
+     workflow; every completed `CI` run over that branch was `workflow_dispatch`). Sequence:
+     `git push origin <branch>` → `gh workflow run CI --ref <branch>` → poll `gh run list --branch
+     <branch>` → capture `gh run view <run-id> --json jobs`. This milestone raises the stakes again:
      CONF-18's reserved-device-name and case-collision failures are structurally invisible to a local
      Linux-only run.
+
+     *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
+     original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
 **Plans**: TBD
 **UI hint**: no
@@ -570,7 +583,7 @@ four mechanisms are **deleted rather than extended**: `_write_template_file()` e
 `copy_template_assets()`'s three early returns ("has no bundle" becomes a per-key property), and
 `typst_template_assets` with `_copy_explicit_assets()`/`_copy_single_asset()`.
 
-This is the phase that pays binding constraints #1, #2, #7 and #8 simultaneously. The 31 test files
+This is the phase that pays binding constraints #1, #2, #7 and #8 simultaneously. The 32 test files
 asserting the root `_template.typ` migrate here; the `template_named_dir_master` fixture moves here;
 the user-template asset fixture is created here; the wheel-content check is added here. The copy is
 driven from `finish()` by a write-time accumulator of used keys, because incremental builds pass a
@@ -771,7 +784,7 @@ Active milestone phases execute in numeric order (decimal insertions between the
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already proven
 by the preceding phases' gates. v0.9.0 executes 53 → 54 → 55 → 56 → 57. The one hard ordering
 constraint is **53 before 54**: the registry plumbing must be in place and output-identical before
-the output layout moves, because 31 test files still assert the old `_template.typ` path and the tree
+the output layout moves, because 32 test files still assert the old `_template.typ` path and the tree
 must be green at every phase boundary. Phase 55 has no functional dependency on 53/54 and is
 sequenced after them only to avoid contending for `builder.py` and `writer.py`.
 
@@ -796,7 +809,7 @@ the active milestone only.
   its **sequence** but not its phase count: it proposes seven phases, written before the two owner
   decisions that close its own "Open Decisions Carried Forward" section were taken. Three deliberate
   divergences, each with a reason:
-  **(a)** Its steps 3–5 (introduce the layout / migrate the 31 test files / delete
+  **(a)** Its steps 3–5 (introduce the layout / migrate the 32 test files / delete
   `_write_template_file()`) are **one** phase (54), because they are one green boundary — the
   parallel-run state between them is deliberately wasteful scaffolding, not a shippable milestone
   state, and splitting it would create a phase boundary at which the outdir carries both the old
@@ -819,9 +832,15 @@ the active milestone only.
   alternative (a different reserved directory name).
 
 - **2026-08-15** — Milestone invariant #5 (push the branch from the first phase) encoded as Phase
-  53's SC#5, as v0.8.0 encoded it in Phase 47's and v0.7.1 in Phase 43's. The branch
-  `gsd/v0.9.0-milestone` exists locally and is **not** yet on `origin` (measured at roadmap creation
-  by `git ls-remote --heads origin`, which returned empty).
+  53's SC#5, as v0.8.0 encoded it in Phase 47's and v0.7.1 in Phase 43's. The branch is **not** yet
+  on `origin` (measured at roadmap creation by `git ls-remote --heads origin`, which returned empty).
+  **Corrected 2026-08-15 during Phase 53 planning:** this entry, binding constraint #9, SC#5 and
+  STATE.md all originally named `gsd/v0.9.0-milestone`. Measured: that branch sits at `aed773c9`
+  (identical to `main`, and to the merge-base) and carries zero milestone commits, while all nine
+  milestone commits are on `gsd/v0.9.0-per-document-templates`. The latter is the milestone branch,
+  matching v0.8.0's `gsd/v0.8.0-multi-master-composition` and v0.7.1's `gsd/v0.7.1-bug-fix-round`
+  naming — no `gsd/vX-milestone` branch has ever been pushed in this repository. Owner decision:
+  retarget SC#5 to the working branch rather than rename it.
 
 - **2026-08-15** — v0.8.0 closed and reorganized. Six phases (47–52), 45 plans, 121 tasks,
   24/24 v1 requirements complete, zero known gaps. Binding constraint #1 (48 before 49) held and was

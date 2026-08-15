@@ -14,8 +14,8 @@ exactly those same global values, so **an untouched `conf.py` produces byte-iden
 
 In scope: config registration, the registry resolver, its validation pass (CONF-14…CONF-18),
 widening `TemplateEngine`'s resolution so the resolved template PATH is recoverable, threading the
-resolved definition into `render_wrapper()`, and pushing `gsd/v0.9.0-milestone` to `origin` with a
-completed 3-OS CI run (SC#5).
+resolved definition into `render_wrapper()`, and pushing `gsd/v0.9.0-per-document-templates` to
+`origin` with a completed 3-OS CI run (SC#5).
 
 Out of scope (Phase 54): element [4] actually selecting a different template per document, the
 `<outdir>/_template/<key>/` bundle copy, `_write_template_file()`'s deletion, `typst_template_assets`'s
@@ -52,7 +52,7 @@ defects.
 
 ### Evidence for SC#2 (byte-identical output)
 
-- **D-12:** SC#2 is proven by a **one-off evidence artifact only** — `53-RED-EVIDENCE.md` recording the before/after commit SHAs, per-file SHA-256 of the emitted `.typ` files, and PDF page counts across the four existing shapes (`typst_template` set / `typst_package` set / `typst_template_function` set / nothing set). **No new golden-file pytest gate is added.** The standing regression net already exists: the 31 test files asserting the root `_template.typ` must pass **unchanged**, which is exactly what "behaviour-preserving" means for this phase. A golden generated from post-change code cannot prove pre-change identity, and Phase 54 deliberately invalidates that layout one phase later. Note the file name — `53-VERIFICATION.md` is reserved by `gsd-verifier` and must not be used for evidence.
+- **D-12:** SC#2 is proven by a **one-off evidence artifact only** — `53-RED-EVIDENCE.md` recording the before/after commit SHAs, per-file SHA-256 of the emitted `.typ` files, and PDF page counts across the four existing shapes (`typst_template` set / `typst_package` set / `typst_template_function` set / nothing set). **No new golden-file pytest gate is added.** The standing regression net already exists: the 32 test files asserting the root `_template.typ` must pass **unchanged**, which is exactly what "behaviour-preserving" means for this phase. A golden generated from post-change code cannot prove pre-change identity, and Phase 54 deliberately invalidates that layout one phase later. Note the file name — `53-VERIFICATION.md` is reserved by `gsd-verifier` and must not be used for evidence.
 
 ### Claude's Discretion
 
@@ -73,7 +73,7 @@ defects.
 
 - `.planning/ROADMAP.md` § "🚧 v0.9.0 — per-document templates (ACTIVE)" — the eleven binding
   constraints and Phase 53's five success criteria. Constraints #2 (green at every phase boundary,
-  31 test files), #5 (registry keys are single path segments; the existing guards are the wrong
+  32 test files), #5 (registry keys are single path segments; the existing guards are the wrong
   contract), #6 (standing GATE-01 RED-first bar), #9 (push the milestone branch from the first
   phase), #11 (standing invariants) all bind this phase.
 - `.planning/ROADMAP.md` § "Phase 53: Template Registry Foundation" — the goal statement locking
@@ -91,7 +91,7 @@ defects.
 - `.planning/research/ARCHITECTURE.md` §2 — NEW vs MODIFIED integration inventory with file:line for
   every touch point.
 - `.planning/research/ARCHITECTURE.md` §3 — why resolution belongs once per build in `write()`.
-- `.planning/research/ARCHITECTURE.md` §4 — the 31 test files that assert the root `_template.typ`,
+- `.planning/research/ARCHITECTURE.md` §4 — the test files that assert the root `_template.typ`,
   and the additive → behaviour-preserving → layout-change → deletion sequence. Phase 53 is steps 1–2.
 - `.planning/research/PITFALLS.md` § "Pitfall 1" — why `_escapes_outdir()`/`_is_drive_qualified()`
   must not be reused for registry keys, and the per-case denylist D-01 adopts.
@@ -201,7 +201,8 @@ defects.
 6. `template_engine.py` — widen the resolution so the resolved `Path` is recoverable, through the
    existing single priority walk. Unused by the write path in this phase; Phase 54's bundle copy is
    its first consumer.
-7. Git/CI — push `gsd/v0.9.0-milestone` to `origin` and land a completed 3-OS CI run (SC#5). This is
+7. Git/CI — push `gsd/v0.9.0-per-document-templates` to `origin` and land a completed 3-OS CI run
+   via `gh workflow run CI --ref <branch>` (SC#5). This is
    phase work, not a code change, and CONF-18's reserved-device-name and case-collision cases are
    structurally invisible to a local Linux-only run.
 
