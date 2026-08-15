@@ -945,12 +945,12 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 7 plans
+**Plans**: 1/7 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 52-01-PLAN.md — Tracer: re-measure the fence and anchors, bump the version across `pyproject.toml`/`README.md`/`uv.lock`, regenerate the editable install, prove the release-machinery extractor live (SC#1)
+- [x] 52-01-PLAN.md — Tracer: re-measure the fence and anchors, bump the version across `pyproject.toml`/`README.md`/`uv.lock`, regenerate the editable install, prove the release-machinery extractor live (SC#1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -1008,7 +1008,7 @@ sequential, not merely numbered:
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
 | 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
-| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 0/TBD | Not started | - |
+| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 1/7 | In Progress|  |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`.

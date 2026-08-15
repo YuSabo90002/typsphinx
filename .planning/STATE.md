@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.8.0
 milestone_name: multi-master composition
 current_phase: 52
-current_phase_name: v0.8.0 Release Prep (prep-only)
+current_phase_name: v0-8-0-release-prep-prep-only
 status: executing
 stopped_at: Phase 52 planned — 7 plans in 4 waves
-last_updated: "2026-08-14T23:07:02.233Z"
+last_updated: "2026-08-15T00:39:27.673Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 52 planned — 7 plans in 4 waves, plan-checker VERIFICATION PASSED
+last_activity_desc: Phase 52 execution started
 progress:
   total_phases: 6
   completed_phases: 5
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-12 after Phase 47)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 52 — v0.8.0 Release Prep (prep-only)
+**Current focus:** Phase 52 — v0-8-0-release-prep-prep-only
 The v0.8.0 tree is made ready to publish and proven green with **zero irreversible action taken** —
 no tag, nothing pushed to PyPI, no GitHub Release. Bump, curate the `## [0.8.0]` CHANGELOG entry,
 prove the post-bump tree green live (including the milestone goal claim on generated multi-master PDF
@@ -46,10 +46,10 @@ Next action: `/gsd-execute-phase 52`
 
 ## Current Position
 
-Phase: 52 — v0.8.0 Release Prep (prep-only)
-Plan: 0/7 complete
-Status: Ready to execute
-Last activity: 2026-08-15 — Phase 52 planned (7 plans, 4 waves)
+Phase: 52 (v0-8-0-release-prep-prep-only) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 52
+Last activity: 2026-08-15 — Phase 52 execution started
 
 Progress: [██████████░░] 83% (5/6 phases) · 36/43 plans
 
