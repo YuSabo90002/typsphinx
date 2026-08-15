@@ -5,9 +5,11 @@
 # phase and each given its own named assertion in
 # tests/test_package_only_config_gate.py:
 #
-#   BUG-A: a package-alone master must NOT reference the shared
-#          `_template.typ` file -- the builder deliberately never writes one
-#          for this path (typsphinx/builder.py:_write_template_file()).
+#   BUG-A: a package-alone master must NOT reference a template bundle --
+#          the built-in "typst" key has no bundle on this path at all
+#          (Phase 54, D-01: `entry.package and not entry.template`), so
+#          `_copy_used_template_bundles()` (typsphinx/builder.py) copies
+#          nothing for it.
 #   BUG-B: the package path must NOT back-fill an unrequested `date`
 #          argument into the emitted `#show: ieee.with(...)` call.
 #   BUG-C: an author entry declared on the `typst_template_function["params"]`
@@ -49,8 +51,9 @@ extensions = ["typsphinx"]
 # 47-EXPECTED-STRUCTURE.md's fixture de-collision rule (a bare "index"
 # target would collide with the content file, index.typ) -- "master.typ"
 # carries no special meaning here. NOTE (task 1 <action>): the package-alone
-# route emits no `_template.typ` import at all, so this wrapper's R2
-# assertions are about the `typst_package` import, not a template file.
+# route emits no template import at all (Phase 54: no `/_template/<key>/...`
+# reference), so this wrapper's R2 assertions are about the `typst_package`
+# import, not a template file.
 typst_documents = [
     ("index", "master.typ", project, author),
 ]

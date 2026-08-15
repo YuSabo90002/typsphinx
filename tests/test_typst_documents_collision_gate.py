@@ -176,10 +176,13 @@ class TestTypstDocumentsCollisionGate:
         """
         Zero-configuration RESERVED-TEMPLATE clobber: `project = "_Template"`
         derives to the target `_template.typ`, identical to the reserved
-        shared-template basename `_write_template_file()` writes at the
-        outdir root. `-b typst` must exit non-zero, raise an
-        ExtensionError naming the collision, and write NO `.typ` file at
-        all -- including `_template.typ` itself (D-02).
+        shared-template basename `_validate_output_path_collisions()`
+        reserves at the outdir root (Phase 54, 54-05: the single-file
+        writer that used to physically write this file is deleted, but
+        the exact-name reservation stays functional). `-b typst` must
+        exit non-zero, raise an ExtensionError naming the collision, and
+        write NO `.typ` file at all -- including `_template.typ` itself
+        (D-02).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(

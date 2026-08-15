@@ -14,8 +14,8 @@ DEFAULT template ``typsphinx/templates/base.typ`` carries a new
 ``#show link:`` rule that colors + underlines a link ONLY when ``it.dest`` is
 a ``str`` (an external URL) -- an internal cross-reference's dest is a
 ``label``, so it stays unstyled. Verified structurally: the rule is present
-in the rendered ``_template.typ``, and the external reference emits a
-``link("http...`` call in ``index.typ``.
+in the rendered bundled template (Phase 54: ``_template/typst/base.typ``),
+and the external reference emits a ``link("http...`` call in ``index.typ``.
 
 FID-13 boundary (D-03, structural + pypdf adjacency per D-09): docutils
 generates a ``reference`` node followed by a sibling ``target`` node for
@@ -117,9 +117,9 @@ class TestExternalLinkStyleRenderGate:
         is not text-extractable):
 
         - the build exits cleanly and did not report a compile failure;
-        - the rendered ``_template.typ`` (the build's copy of the default
-          ``base.typ``) contains a ``show link:`` rule scoped by
-          ``type(it.dest) == str`` (D-01/D-02);
+        - the rendered bundled default template (Phase 54:
+          ``_template/typst/base.typ``) contains a ``show link:`` rule
+          scoped by ``type(it.dest) == str`` (D-01/D-02);
         - the emitted ``index.typ`` contains a ``link("http...`` call for
           the external reference (the translator keeps emitting `link(...)`
           unchanged -- D-01);
@@ -141,8 +141,11 @@ class TestExternalLinkStyleRenderGate:
 
         # D-10: the show link: rule's presence in the rendered template is the
         # structural proof for the (non-text-extractable) styling half.
-        template_output = temp_build_dir / "_template.typ"
-        assert template_output.exists(), "_template.typ was not emitted"
+        # Phase 54 (OUT-04): the built-in "typst" key's bundled default
+        # template is copied to _template/typst/base.typ, not a root-level
+        # _template.typ (the single-file writer that wrote there is deleted).
+        template_output = temp_build_dir / "_template" / "typst" / "base.typ"
+        assert template_output.exists(), "_template/typst/base.typ was not emitted"
         template_text = template_output.read_text(encoding="utf-8")
         assert "show link:" in template_text, (
             "Expected a 'show link:' rule in the rendered default template -- "

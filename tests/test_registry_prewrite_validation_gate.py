@@ -166,12 +166,12 @@ class TestRegistryKeyPreWriteGate:
         survivors = sorted(p.name for p in _typ_files(build_dir))
         expected = sorted(
             [
-                "_template.typ",
-                # Phase 54 (OUT-04): the built-in "typst" key's bundled
-                # default template, now ALSO copied to
-                # _template/typst/base.typ -- a legitimate addition from
-                # this plan's own bundle-copy driver, unrelated to
-                # CONF-14's validation pass this control test pins.
+                # Phase 54 (OUT-04/54-05): the single shared-template
+                # writer that used to put "_template.typ" at the outdir
+                # root is deleted -- the built-in "typst" key's bundled
+                # default template is the ONLY route now, copied to
+                # _template/typst/base.typ. Unrelated to CONF-14's
+                # validation pass this control test pins.
                 "base.typ",
                 "five.typ",
                 "five_out.typ",

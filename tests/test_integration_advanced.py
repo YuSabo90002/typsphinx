@@ -140,14 +140,16 @@ class TestMathAndFiguresIntegration:
           target resolved to the SAME physical path as the docname's own
           content file). Every entry gets a WRAPPER file at its resolved
           target: `master.typ`.
-        - `conf.py` sets neither `typst_template` nor `typst_package`,
-          so `TypstBuilder._write_template_file()` falls through to the
-          bundled default template and writes `_template.typ` at the
-          outdir root unconditionally (one call per build, not per
-          docname).
+        - `conf.py` sets neither `typst_template` nor `typst_package`, so
+          the built-in `"typst"` registry key resolves to the bundled
+          default template, copied wholesale to
+          `_template/typst/base.typ` (Phase 54, OUT-04) -- one directory
+          down from the outdir root, not a root-level `.typ` file.
 
-        Expected `.typ` file set: `{index.typ, master.typ,
-        _template.typ}` -- exactly three files, no more, no fewer.
+        Expected `.typ` file set AT THE OUTDIR ROOT: `{index.typ,
+        master.typ}` -- exactly two files, no more, no fewer. The
+        bundled template is asserted separately, at its own reserved
+        destination.
         """
         subprocess.run(
             [
@@ -167,8 +169,11 @@ class TestMathAndFiguresIntegration:
         assert typ_files == {
             "index.typ",
             "master.typ",
-            "_template.typ",
         }, f"Unexpected .typ file set in output directory: {typ_files}"
+        assert (temp_build_dir / "_template" / "typst" / "base.typ").exists(), (
+            'Expected the built-in "typst" key\'s bundled template at '
+            "_template/typst/base.typ"
+        )
 
     def test_generated_has_code_and_math(
         self, math_figures_project_dir, temp_build_dir
