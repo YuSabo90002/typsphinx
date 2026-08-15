@@ -268,3 +268,8 @@ finding's fix lands on), confirming `open_count` returns to `0`.
 ---
 *Phase: 52-v0-8-0-release-prep-prep-only*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/52-v0-8-0-release-prep-prep-only/52-08-SUMMARY.md
+- FOUND commits: c0df09a6, 681e15ed, 21eb4398, f525414d, 346b84c9
