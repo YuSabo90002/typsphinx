@@ -256,9 +256,55 @@ def resolve_template_registry(
             a ``str`` or a declared definition is a truthy non-``dict``.
             The iteration key below is total across mixed key types, so a
             heterogeneous registry produces this module's own accumulated
-            error rather than ``sorted()``'s ``TypeError``.
+            error rather than ``sorted()``'s ``TypeError``. (53-08 Task 1,
+            53-REVIEW.md WR-01) When ``typst_document_templates`` itself is
+            a TRUTHY non-``dict`` value (e.g. a `list`, the plausible
+            copy-paste-from-``typst_documents`` typo), this is raised
+            IMMEDIATELY, before the accumulate loop even starts -- see the
+            container-guard comment below for why this is a container-level
+            failure and not one more entry in the accumulated
+            ``N invalid definition(s)`` summary. (53-08 Task 2,
+            53-REVIEW.md WR-02) When a declared definition's ``template``
+            field is truthy but neither a ``str`` nor an ``os.PathLike``
+            (e.g. a `list`), that failure joins the SAME accumulated
+            ``failures`` list as every other definition-level check.
     """
     declared = getattr(config, "typst_document_templates", None) or {}
+
+    # 53-08 Task 1 (53-REVIEW.md WR-01; 53-VERIFICATION.md Anti-Patterns
+    # row 2): Sphinx's own `add_config_value("typst_document_templates",
+    # {}, "html", [dict])` (typsphinx/__init__.py:63) declares `[dict]` as
+    # the expected type, but that declaration only *warns* on a mismatch --
+    # it never coerces or rejects -- so a wrong-typed value reaches this
+    # module completely unchanged. This guard therefore enforces exactly
+    # the type the extension already publishes as its own contract, no
+    # more and no less.
+    #
+    # It raises IMMEDIATELY here, before the accumulate-then-raise-once
+    # loop below even starts, rather than joining `failures` (contrast
+    # with the `template`-field guard inside the loop, which DOES join
+    # `failures` -- see that guard's comment for why the two are
+    # deliberately asymmetric). The accumulate loop's own precondition is
+    # that `declared` is safely iterable AS A MAPPING (`declared.keys()`,
+    # `declared[key]`); when the container itself is the wrong shape,
+    # there is nothing to iterate and accumulate over, so raising
+    # up front is the only structurally sound option. The message
+    # deliberately does NOT reuse the `"typst_document_templates: N
+    # invalid definition(s): ..."` prefix below -- a malformed CONTAINER
+    # is not one more DEFINITION, and counting it as one would misreport
+    # what actually went wrong.
+    #
+    # Because the preceding `or {}` has already normalized every FALSY
+    # value (`{}`, `[]`, `None`, `""`, `0`) to `{}`, this `isinstance`
+    # check provably fires only for a TRUTHY non-`dict` value -- exactly
+    # the crash surface `declared.keys()` below would otherwise hit, and
+    # nothing more. No separate truthiness test is needed here.
+    if not isinstance(declared, dict):
+        raise ExtensionError(
+            "typst_document_templates must be a dict mapping registry key to definition,"
+            f" got {declared!r}"
+        )
+
     all_keys = {key for key in declared.keys() if isinstance(key, str)}
 
     failures: list[str] = []
@@ -331,7 +377,40 @@ def resolve_template_registry(
                 "and 'package', which is unsupported (CONF-15)"
             )
 
-        if template:
+        # 53-08 Task 2 (53-REVIEW.md WR-02; 53-VERIFICATION.md
+        # Anti-Patterns row 3): a truthy `template` that `os.path.join`
+        # cannot consume (e.g. a `list`) is a guard joining the
+        # accumulated `failures` list, not a silent crash into
+        # `os.path.join`'s raw `TypeError`. Three properties are
+        # load-bearing here:
+        #
+        # 1. This branch is an `elif` of `if template and package:` above,
+        #    NOT a `continue` -- so CONF-15's both-set check still runs
+        #    for the SAME definition, and a definition carrying both a
+        #    bad-typed `template` and a `package` reports BOTH failures
+        #    in the one accumulated raise (D-09).
+        # 2. The guard is gated on TRUTHINESS, matching this module's
+        #    established convention that a falsy field means "absent"
+        #    (`raw_definition or {}` above, this same `if template:`
+        #    gate today). This is what keeps `template: None` / `""` /
+        #    `0` / `[]` resolving exactly as they do today, unchanged --
+        #    the guard covers precisely the crash surface and no more.
+        # 3. The accepted types are `str` AND `os.PathLike`, deliberately
+        #    NOT `str` alone as `53-REVIEW.md` WR-02's suggested fix
+        #    reads. Measured: `os.path.join()` with a `str` `srcdir`
+        #    succeeds for both `str` and `os.PathLike` and raises
+        #    `TypeError` for `bytes` and everything else, and
+        #    `TemplateEngine.resolve_template()`'s Priority 1 consumes
+        #    the value through `_try_load_file()` and `Path(...)`, both
+        #    of which accept `os.PathLike` -- so a `pathlib.Path`
+        #    `template` works end to end TODAY, and blanket-rejecting it
+        #    would withdraw a working shape rather than close a crash.
+        if template and not isinstance(template, (str, os.PathLike)):
+            failures.append(
+                f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
+                f"not a {type(template).__name__}"
+            )
+        elif template:
             # CONF-17 (D-07/D-09) and D-08's existence check are two
             # structurally INDEPENDENT checks on the declared `template`
             # value -- neither is an elif of the other -- so a value that

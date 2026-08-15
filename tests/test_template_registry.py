@@ -806,6 +806,126 @@ def test_non_str_key_is_excluded_from_case_collision_comparison(temp_sphinx_app)
 
 
 # ---------------------------------------------------------------------------
+# Phase 53 plan 08, Task 2: a truthy unusable `template` field joins the
+# accumulate-then-raise-once pass instead of crashing with a raw `TypeError`
+# from `os.path.join()` (53-REVIEW.md WR-02; 53-VERIFICATION.md
+# Anti-Patterns row 3). Pre-fix RED transcript recorded in
+# `.planning/phases/53-template-registry-foundation/53-08-RED-EVIDENCE.md`.
+# ---------------------------------------------------------------------------
+
+
+def test_non_path_template_field_raises_extension_error_not_typeerror(
+    temp_sphinx_app,
+):
+    """Test F / 53-REVIEW.md WR-02: a definition whose `template` is
+    `["a", "b"]` raises `ExtensionError` whose message contains `must be a
+    path string` and the `repr` of the offending value; no `TypeError`
+    escapes."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"bad_tpl": {"template": ["a", "b"]}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "must be a path string" in message
+    assert repr(["a", "b"]) in message
+
+
+def test_bytes_template_field_raises_extension_error_not_typeerror(temp_sphinx_app):
+    """Test G: a definition whose `template` is `b"base.typ"` (bytes --
+    the other value `os.path.join` refuses against a `str` srcdir) raises
+    the same `ExtensionError` class with the same message shape."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"bad_tpl": {"template": b"base.typ"}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "must be a path string" in message
+    assert repr(b"base.typ") in message
+
+
+def test_pathlike_template_field_still_resolves(temp_sphinx_app):
+    """Test H (control): a definition whose `template` is a `pathlib.Path`
+    pointing at a real file inside a subdirectory of `srcdir` resolves
+    WITHOUT raising, and the resolved entry's `template` is that same
+    `Path` -- proving the guard did not withdraw a working shape."""
+    app = temp_sphinx_app
+    srcdir = Path(str(app.srcdir))
+    (srcdir / "sub").mkdir()
+    tpl_path = srcdir / "sub" / "path_tpl.typ"
+    tpl_path.write_text("")
+    declared_template = Path("sub/path_tpl.typ")
+    app.config.typst_document_templates = {"pathlike": {"template": declared_template}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert registry["pathlike"].template == declared_template
+    assert isinstance(registry["pathlike"].template, Path)
+
+
+@pytest.mark.parametrize("falsy_template", [None, "", 0, []])
+def test_falsy_template_field_still_resolves_verbatim(temp_sphinx_app, falsy_template):
+    """Test I (parametrized control): a FALSY `template` -- `None`, `""`,
+    `0`, `[]` -- still resolves without raising, and the resolved entry's
+    `template` is that value verbatim, exactly as measured at HEAD."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"falsy_tpl": {"template": falsy_template}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert registry["falsy_tpl"].template == falsy_template
+
+
+def test_bad_typed_template_and_package_both_reported_in_one_raise(temp_sphinx_app):
+    """Test J / D-09: a definition carrying BOTH a bad-typed `template`
+    and a `package` reports BOTH the CONF-15 both-set failure and the
+    type failure in the one accumulated raise."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {
+        "combo_bad": {"template": ["a", "b"], "package": "@preview/pkg:0.1.0"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "CONF-15" in message
+    assert "must be a path string" in message
+
+
+def test_bad_typed_template_message_is_byte_identical_across_insertion_orders(
+    temp_sphinx_app,
+):
+    """Test K: the same registry -- a bad-typed `template` on one key plus
+    an independently-broken second key -- declared in two different `dict`
+    insertion orders yields two byte-identical message strings."""
+    app = temp_sphinx_app
+
+    forward = {
+        "bad_tpl": {"template": ["a", "b"]},
+        "bad/slash": {},
+    }
+    app.config.typst_document_templates = forward
+    with pytest.raises(ExtensionError) as excinfo_forward:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_forward = str(excinfo_forward.value)
+
+    reordered = {
+        "bad/slash": {},
+        "bad_tpl": {"template": ["a", "b"]},
+    }
+    app.config.typst_document_templates = reordered
+    with pytest.raises(ExtensionError) as excinfo_reordered:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_reordered = str(excinfo_reordered.value)
+
+    assert message_forward == message_reordered
+
+
+# ---------------------------------------------------------------------------
 # Phase 53 plan 03, Task 3: CONF-14's unregistered key and D-06's non-str
 # element [4].
 # ---------------------------------------------------------------------------
