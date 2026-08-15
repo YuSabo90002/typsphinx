@@ -203,3 +203,99 @@ local pytest pass.
 - No pull request was opened by either dispatch. No branch was renamed, merged, rebased,
   force-pushed, or deleted; `gsd/v0.9.0-milestone` remains at its pre-existing SHA
   `aed773c9807ab871468b1b2a7e1ec36b54e82907`.
+
+## Audit
+
+Re-measured standing invariants at the current branch tip (this plan's own final commit) rather
+than trusting earlier plans' SUMMARYs:
+
+```
+$ grep -rl "_template\.typ" tests/ | wc -l
+32
+```
+
+Equals the phase-start count (32, first measured by plan 53-01/53-02 and unchanged through
+53-03/53-04) — the standing `_template.typ` regression net is unmodified.
+
+```
+$ uv run pytest tests/ -q
+================= 1232 passed, 5 skipped in 107.47s (0:01:47) ==================
+```
+
+Exit 0. This is an improvement over the phase-start baseline (7 failed / 1225 passed / 5 skipped)
+because the pre-existing `test_state_guard_shapes_gate.py` defect logged by plan 53-01 was fixed
+during this plan's own CI-evidence gathering (see "Run 1" / "Run 2" above) — not a regression, a
+resolved pre-existing gap.
+
+```
+$ uv run pytest tests/test_preview_version_sync.py -q
+============================== 3 passed in 0.02s ===============================
+```
+
+Exit 0, no fourth `@preview` version-lockstep site introduced.
+
+Additional confirmation, not required by the plan's acceptance criteria but relevant to SC#1's
+verdict below: `uv run pytest tests/test_template_registry.py -q` → **57 passed**;
+`uv run pytest tests/test_template_engine.py -q` → **91 passed**.
+
+### Per-success-criterion verdicts (ROADMAP.md § "Phase 53: Template Registry Foundation")
+
+**SC#1 — Named template definitions are declarable and resolve once per build: MET.**
+`resolve_template_registry()` / `resolve_registry_key()` (`typsphinx/template_registry.py`)
+implement `template` xor `package` enforcement (CONF-15), the `str`/`{"name","params"}`
+`template_function` forms, same-key resolution to one shared `TemplateRegistryEntry` object
+(TPL-05), and the existing `params`-exclusivity rule left untouched (D-10/D-11 in
+`53-CONTEXT.md`). Evidence: `53-02-SUMMARY.md` (registry plumbing, MH1-MH10), `53-03-SUMMARY.md`
+(CONF-14..18 validation, D1-D9), both requirements-completed lists cite TPL-01/TPL-05, and
+`tests/test_template_registry.py` (57 passed, re-measured above) plus resolution running once per
+build in `write()` between `_validate_output_path_collisions()` and `prepare_writing()`
+(`53-02-SUMMARY.md` MH8, confirmed by direct code read there). This plan (53-05) re-ran the full
+suite including this module and found it green; it did not re-derive the functional coverage
+itself, which is 53-02/53-03's job.
+
+**SC#2 — An untouched `conf.py` produces byte-identical output, proven by identity: MET.**
+`53-RED-EVIDENCE.md`'s post-change section (this plan's Task 1) records all four shapes (A —
+`typst_template` set, B — `typst_package` set, C — `typst_template_function` set, D — nothing set)
+plus the TPL-04 four-element-vs-fifth-element comparison, each with a per-shape verdict of
+"MATCH" against the pre-change SHA-256 and PDF-page-count baseline `53-01` recorded, plus an
+overall summary verdict. Every claim is backed by a transcribed SHA-256 or page count, not a bare
+statement.
+
+**SC#3 — Every malformed registry stops the build with a message naming the specific reason:
+MET.** `53-03-SUMMARY.md` documents CONF-14 (unregistered key, names `sorted(registry.keys())`),
+CONF-15 (template+package xor), CONF-16 (reserved `"typst"` key), and CONF-17
+(`_violates_conf17()` path-arithmetic bundle-escape guard), each accumulated into one independent
+`ExtensionError` via the `_validate_output_path_collisions()`-mirroring shape (D-03), confirmed
+order-independent (D6/`test_three_independently_broken_keys_raise_once_order_independently`).
+This plan did not re-run those unit tests individually but confirmed they remain green as part of
+the 1232-passed full-suite run above (`tests/test_template_registry.py`, 57 passed).
+
+**SC#4 — Registry-key shape is validated as a single path segment, wrong guard not reused: MET.**
+`53-03-SUMMARY.md`'s Task 1 records `_validate_registry_key_shape()`'s fixed-order seven-case
+denylist (CONF-18) exposed via a countable `_KEY_SHAPE_REJECTION_CASES` constant
+(`test_key_shape_validator_exposes_exactly_seven_distinct_rejection_reasons`), the case-collision
+check routing through `TypstBuilder._collision_key()` via a documented local import rather than a
+second folding, and the module docstring recording why `_escapes_outdir()`/`_is_drive_qualified()`
+are not reused (opposite contract: legal multi-segment output path vs. legal single path segment
+— `53-02-SUMMARY.md`'s module docstring note). All platform-independent string-shape tests, so they
+pass on the local Linux run and are additionally confirmed passing on the Windows and macOS CI
+legs in Run 2 above (the state-guard fix in `d1eff100` did not touch `template_registry.py` or its
+tests, so their behavior on those platforms is exactly what the green run reports).
+
+**SC#5 — The milestone branch is on `origin` with a completed 3-OS CI run: MET, via Run 2.**
+`git ls-remote --heads origin` shows `gsd/v0.9.0-per-document-templates` present (measured above).
+Run 1 (`31875380355`, `workflow_dispatch`) completed but concluded `failure` on all six `test`
+legs, for a cause unrelated to Phase 53's own code (the pre-existing `test_state_guard_shapes_gate.py`
+path defect, already logged as out-of-scope by plan 53-01). After the owner-authorized fix
+(`d1eff100`), Run 2 (`31875707734`, `workflow_dispatch`) completed with conclusion `success` on
+all 12 jobs, including both `windows-latest` and both `macos-latest` `test` legs. Six of six `test`
+job legs concluded `success` in Run 2 (0 of 6 in Run 1). No PR was opened; no branch was renamed,
+merged, rebased, force-pushed, or deleted.
+
+**No shortfall found.** All five success criteria are met on measured evidence, with the one
+caveat recorded plainly rather than smoothed over: SC#5 required two dispatched runs because the
+first one surfaced a real, pre-existing, cross-platform defect unrelated to this phase's own code,
+which was fixed (outside this plan's declared `files_modified` scope) before the passing run.
+
+No file exists at `.planning/phases/53-template-registry-foundation/53-VERIFICATION.md` (checked
+throughout this plan; that name is reserved by `gsd-verifier`, per D-12).
