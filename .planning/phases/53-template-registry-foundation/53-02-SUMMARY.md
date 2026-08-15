@@ -304,3 +304,15 @@ One item carried forward from 53-01, unaffected by this plan: the 7 pre-existing
 ---
 *Phase: 53-template-registry-foundation*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+- FOUND: `typsphinx/__init__.py`
+- FOUND: `typsphinx/template_registry.py`
+- FOUND: `typsphinx/builder.py`
+- FOUND: `typsphinx/writer.py`
+- FOUND: `tests/test_template_registry.py`
+- FOUND: `.planning/phases/53-template-registry-foundation/53-02-SUMMARY.md`
+- FOUND commit `c35801b0` (Task 1)
+- FOUND commit `200ec8d6` (Task 2)
+- FOUND commit `cd981e16` (Task 3 / this SUMMARY)
