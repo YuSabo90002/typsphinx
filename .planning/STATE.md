@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 54
-current_phase_name: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
+current_phase_name: one-bundle-rule-template-key-per-document-selection-four-del
 status: executing
 stopped_at: Phase 54 planned
-last_updated: "2026-08-15T14:42:28.805Z"
-last_activity: 2026-08-15
-last_activity_desc: "Phase 54 planned — 7 plans across 4 waves, plan-checker VERIFICATION PASSED, 8/8 requirements and 14/14 decisions covered; D-14 added at plan time (shadow route moves to <srcdir>/_typst/), drafted D-15 runtime warning removed by owner, flagged assumption A-01 awaiting owner"
+last_updated: "2026-08-15T15:00:29.474Z"
+last_activity: 2026-08-16
+last_activity_desc: Phase 54 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 54 — one-bundle-rule-template-key-per-document-selection-four-deletions
+**Current focus:** Phase 54 — one-bundle-rule-template-key-per-document-selection-four-del
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
 template through a validated `typst_document_templates` registry, and one output rule — every used
 key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
@@ -39,11 +39,11 @@ Next action: `/gsd-execute-phase 54`
 
 ## Current Position
 
-Phase: 54 — One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
-Plan: 7 plans across 4 waves — 0/7 complete
-Status: Ready to execute
+Phase: 54 (one-bundle-rule-template-key-per-document-selection-four-del) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 54
 Progress: [░░░░░░░░░░] 0% (0/7 plans — Phase 54 planned)
-Last activity: 2026-08-15 — Phase 54 planned (7 plans, 4 waves); plan-checker VERIFICATION PASSED
+Last activity: 2026-08-16 — Phase 54 execution started
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
