@@ -181,16 +181,20 @@ class TypstWriter(writers.Writer):
     @staticmethod
     def _compute_template_import_path(docname: str) -> str:
         """
-        Compute the master document's import path for the shared
-        ``_template.typ`` file, from the master's docname alone.
+        DEAD CODE (confirmed zero non-docstring callers since Phase 53;
+        see ``54-CONTEXT.md``'s Deferred Ideas -- Phase 54 does not chase
+        its removal). Left in place, historical, unreachable from any
+        production or test call site.
 
-        `_write_template_file()` (``typsphinx/builder.py``) always writes
-        ``_template.typ`` at the OUTDIR ROOT, unconditionally, regardless of
-        where any given master document lives. The reference a master needs
-        is therefore purely "climb from my own directory to the outdir root,
-        then name the file" -- a function of nesting depth alone, with no
-        dependence on string equality against the reserved ``_template``
-        basename.
+        Historically computed the master document's import path for the
+        single shared ``_template.typ`` file that used to be written at
+        the outdir root by a now-deleted ``builder.py`` method (Phase 54
+        replaced that write entirely with the per-key bundle copied to
+        ``<outdir>/_template/<key>/``, imported by the ROOT-ABSOLUTE path
+        ``compute_template_import_path()`` in this module computes -- see
+        that function instead for the live equivalent). This function's
+        own depth-only climb-to-root shape is preserved below unchanged,
+        purely as a historical artifact.
 
         Args:
             docname: Master document name (e.g. ``"index"``,
@@ -367,8 +371,8 @@ class TypstWriter(writers.Writer):
         # D-01/D-03 routing decision -- see `resolve_package_for_engine()` for
         # the rule and why it lives in exactly one place (WR-04). The both-set
         # case is announced with a build warning in builder.py's
-        # `_write_template_file()` (which runs once per build, unlike this
-        # per-document method).
+        # `_copy_used_template_bundles()` (which runs once per build, per
+        # used key, unlike this per-document method).
         package_for_engine = resolve_package_for_engine(
             typst_package, raw_template_path
         )

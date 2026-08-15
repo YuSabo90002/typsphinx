@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # image (IMG-01) or would escape the doctree directory (IMG-02). A single
 # reserved top-level path component -- the leading underscore already marks
 # "owned by typsphinx, not the user's source tree" in this codebase
-# (`_template.typ`) and in Sphinx itself (`_images`, `_static`, `_sources`).
+# (`_template/`) and in Sphinx itself (`_images`, `_static`, `_sources`).
 RESERVED_IMAGE_NAMESPACE = "_typst_converted"
 
 # Phase 54 (D-04): the bundle-copy driver's exclusion set is EXACTLY the
@@ -577,13 +577,13 @@ class TypstBuilder(Builder):
         same physical output path (D-01/D-02/D-03/D-04/D-05).
 
         Runs ONCE, called from ``write()`` at the very top -- before
-        ``prepare_writing()`` (which writes the shared ``_template.typ``
-        immediately) and before the per-docname write loop -- so "no
-        output file is written when any collision is found" (D-02) is
-        structural rather than a promise, and covers ``_template.typ``
-        itself, not only content/wrapper files. Defined on
-        ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it unchanged
-        (D-03) -- both builders reject the same configurations identically.
+        ``prepare_writing()`` and before the per-docname write loop -- so
+        "no output file is written when any collision is found" (D-02) is
+        structural rather than a promise, and covers the reserved
+        ``_template.typ`` name itself, not only content/wrapper files.
+        Defined on ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it
+        unchanged (D-03) -- both builders reject the same configurations
+        identically.
 
         Builds ONE map from ``_collision_key()`` to a human-readable
         description of the logical file that claimed it, populated in
@@ -635,10 +635,14 @@ class TypstBuilder(Builder):
                 return
             claims[key] = description
 
-        # 1. The reserved _template.typ infrastructure file
-        #    (_write_template_file() writes it once, at the outdir root)
-        #    -- inserted first so any later claimant is reported against
-        #    it by name (D-01's reserved-file kind).
+        # 1. The reserved _template.typ name -- no build-time write puts a
+        #    file there any more (Phase 54 deleted the single-file writer
+        #    that used to; the per-key bundle copy lands under
+        #    _template/<key>/ instead), but the exact-name reservation
+        #    itself stays functional here: `54-07` is the plan that widens
+        #    it into a `_template/` prefix reservation. Inserted first so
+        #    any later claimant is reported against it by name (D-01's
+        #    reserved-file kind).
         _claim("_template.typ", "the reserved _template.typ infrastructure file")
 
         # 2. Every docname's own content file -- unconditional, regardless
@@ -690,11 +694,11 @@ class TypstBuilder(Builder):
 
         Runs ONCE, called from ``write()`` immediately after
         ``self._document_template_registry = resolve_template_registry(...)``
-        and before ``prepare_writing()`` (which writes the shared
-        ``_template.typ`` immediately) -- exactly
-        ``_validate_output_path_collisions()``'s own precedent, extended to
-        cover the one registry validation that previously had no up-front
-        treatment: ``resolve_registry_key()`` was reachable only from
+        and before ``prepare_writing()`` and the per-docname write loop --
+        exactly ``_validate_output_path_collisions()``'s own precedent,
+        extended to cover the one registry validation that previously had
+        no up-front treatment: ``resolve_registry_key()`` was reachable
+        only from
         ``_write_typst_files()``'s per-docname wrapper loop, which runs
         strictly after that docname's own content file -- and after every
         earlier-sorted docname's content and wrapper files -- have already
@@ -796,17 +800,17 @@ class TypstBuilder(Builder):
         """
         Prepare for writing the documents.
 
-        This method is called before writing begins.
-        Writes the template file to the output directory for master documents to import.
+        This method is called before writing begins. Creates the writer
+        instance every wrapper/content write below uses; the per-key
+        template bundle each wrapper imports is copied later, at
+        ``finish()`` time (Phase 54, OUT-04), fed by the write-time
+        ``self._used_template_keys`` accumulator -- not written here.
 
         Args:
             docnames: Set of document names to be written
         """
         # Create the writer instance
         self.writer = TypstWriter(self)
-
-        # Write template file for master documents to import
-        self._write_template_file()
 
     def write(
         self,
@@ -838,19 +842,17 @@ class TypstBuilder(Builder):
             # build all
             docnames = set(build_docnames)
 
-        # D-02/D-03: validate BEFORE anything is written -- including
-        # prepare_writing()'s own _write_template_file() call just below,
-        # which writes "_template.typ" to outdir immediately. Placed here,
-        # at the very top of write(), so a collision leaves ZERO ".typ"
-        # files on disk, not just zero content/wrapper files (BLD-02's own
-        # gate asserts no ".typ" file anywhere in the build directory,
-        # which "_template.typ" would violate if this ran any later).
+        # D-02/D-03: validate BEFORE anything is written -- the per-docname
+        # content and wrapper files below are the first things write()
+        # produces on disk. Placed here, at the very top of write(), so a
+        # collision leaves ZERO ".typ" files on disk (BLD-02's own gate
+        # asserts no ".typ" file anywhere in the build directory).
         # TypstPDFBuilder inherits this unchanged (D-03).
         self._validate_output_path_collisions()
 
         # Phase 53 (TPL-03, D-03/D-09): resolve the template registry
         # ONCE per build, here -- after collision validation, before
-        # `prepare_writing()`'s own `_write_template_file()` call -- so
+        # `prepare_writing()` and the per-docname write loop below -- so
         # resolution is order-independent and every wrapper this write()
         # writes below sees the SAME resolved registry. Mirrors
         # `self._master_include_edges = self._build_include_edge_map()`
@@ -1283,82 +1285,6 @@ class TypstBuilder(Builder):
         """
         self._write_typst_files(docname, doctree)
 
-    def _write_template_file(self) -> None:
-        """
-        Write the template file to the output directory.
-
-        This writes a separate template.typ file that master documents can import.
-        Only writes if a template is configured (not using Typst Universe packages).
-        """
-        from typsphinx.template_engine import (
-            TEMPLATE_SEARCH_SUBDIR,
-            TemplateEngine,
-            resolve_package_for_engine,
-        )
-
-        config = self.config
-
-        # Get template configuration
-        raw_template_path = getattr(config, "typst_template", None)
-        template_path = raw_template_path
-        if template_path:
-            # Resolve relative path from source directory
-            import os
-
-            template_path = os.path.join(self.srcdir, template_path)
-
-        typst_package = getattr(config, "typst_package", None)
-
-        # D-03: when BOTH a Typst Universe package and a custom template are
-        # configured, the combination is unsupported. `typst_template` wins
-        # (D-01's routing decision promotes it to the primary route) and
-        # `typst_package` is ignored end-to-end -- named here rather than
-        # silently dropped (T-22.2-11). This method runs exactly once per
-        # build (see the single call site in `prepare_writing()`), so the
-        # warning fires once per build, not once per master document.
-        if typst_package and raw_template_path:
-            logger.warning(
-                "Both 'typst_package' and 'typst_template' are configured; "
-                "this combination is unsupported. 'typst_template' will be "
-                "honoured and 'typst_package' will be ignored."
-            )
-
-        # Skip if using a Typst Universe package ALONE (no custom template
-        # configured) -- a package-alone master needs no separate template
-        # file (D-01). When a custom template is ALSO configured, fall
-        # through: the custom template must still be written regardless of
-        # the package setting (D-03).
-        if typst_package and not raw_template_path:
-            return
-
-        # Create template engine. The package value goes through the same
-        # single routing helper writer.py uses (WR-04) so the two can never
-        # disagree about package-vs-template routing -- BUG-A's failure shape.
-        # Reaching here means a custom template IS configured, so the helper
-        # suppresses the package; deriving it rather than hardcoding None keeps
-        # one rule, one place.
-        # Phase 54 (D-14): the shadow-template search path is
-        # <srcdir>/_typst, never srcdir itself -- see
-        # TEMPLATE_SEARCH_SUBDIR's own docstring in template_engine.py.
-        template_engine = TemplateEngine(
-            template_path=template_path,
-            search_paths=[path.join(self.srcdir, TEMPLATE_SEARCH_SUBDIR)],
-            parameter_mapping=getattr(config, "typst_template_mapping", None),
-            typst_package=resolve_package_for_engine(typst_package, raw_template_path),
-            typst_template_function=getattr(config, "typst_template_function", None),
-            typst_package_imports=getattr(config, "typst_package_imports", None),
-        )
-
-        # Get template content
-        template_content = template_engine.get_template_content()
-
-        # Write template file
-        template_file_path = path.join(self.outdir, "_template.typ")
-        with open(template_file_path, "w", encoding="utf-8") as f:
-            f.write(template_content)
-
-        logger.info(f"Template written to {template_file_path}")
-
     def copy_image_files(self) -> None:
         """
         Copy image files to the output directory.
@@ -1397,189 +1323,15 @@ class TypstBuilder(Builder):
             except Exception as e:
                 logger.warning(f"Failed to copy image {imguri}: {e}")
 
-    def copy_template_assets(self) -> None:
-        """
-        Copy template-associated assets to the output directory.
-
-        When using custom Typst templates via typst_template configuration,
-        this method copies assets (fonts, images, logos, etc.) referenced by
-        the template to the output directory.
-
-        Behavior:
-        - If typst_template_assets is configured, copies only specified files/directories
-        - If typst_template_assets is None (default), automatically copies entire template directory
-        - If typst_template_assets is empty list, disables automatic copying
-        - Skips .typ files to avoid duplicating template file (already handled by _write_template_file)
-
-        This follows the same pattern as copy_image_files() from Issue #38.
-        """
-
-        # Early return if no custom template is configured
-        template_path = getattr(self.config, "typst_template", None)
-        if not template_path:
-            return  # No custom template
-
-        # Early return if using Typst Universe package (assets handled by Typst compiler)
-        typst_package = getattr(self.config, "typst_package", None)
-        if typst_package:
-            return
-
-        # Get template assets configuration
-        template_assets = getattr(self.config, "typst_template_assets", None)
-
-        # Check if explicitly disabled (empty list)
-        if template_assets is not None and len(template_assets) == 0:
-            logger.debug("Template asset copying disabled (empty list)")
-            return
-
-        logger.info("Copying template assets...")
-
-        if template_assets:
-            # Option 2: Explicit asset list
-            self._copy_explicit_assets(template_assets)
-        else:
-            # Option 1: Automatic directory copy
-            self._copy_template_directory(template_path)
-
-    def _copy_template_directory(self, template_path: str) -> None:
-        """
-        Copy entire template directory to output (default behavior).
-
-        Automatically copies all files in the template directory,
-        excluding .typ files (which are handled separately).
-
-        Args:
-            template_path: Path to template file relative to source directory
-        """
-        import os
-
-        # Get template directory path
-        template_dir = path.dirname(template_path)
-        if not template_dir:
-            # Template is in root directory, no assets to copy
-            return
-
-        # Resolve absolute paths
-        src_dir = path.join(self.srcdir, template_dir)
-        dest_dir = path.join(self.outdir, template_dir)
-
-        # Check if template directory exists
-        if not path.exists(src_dir):
-            logger.warning(f"Template directory not found: {src_dir}")
-            return
-
-        # Track copied files for logging
-        copied_count = 0
-
-        # Walk through directory and copy all files except .typ
-        for root, _dirs, files in os.walk(src_dir):
-            for file in files:
-                # Skip .typ files (already handled by _write_template_file)
-                if file.endswith(".typ"):
-                    continue
-
-                # Get source and destination paths
-                src_file = path.join(root, file)
-                rel_path = path.relpath(src_file, src_dir)
-                dest_file = path.join(dest_dir, rel_path)
-
-                # Ensure destination directory exists
-                ensuredir(path.dirname(dest_file))
-
-                # Copy the file
-                try:
-                    shutil.copy2(src_file, dest_file)
-                    logger.debug(f"Copied template asset: {rel_path}")
-                    copied_count += 1
-                except Exception as e:
-                    logger.warning(f"Failed to copy template asset {rel_path}: {e}")
-
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} template asset(s) from {template_dir}/")
-
-    def _copy_explicit_assets(self, assets: list) -> None:
-        """
-        Copy explicitly specified assets.
-
-        Supports individual files, directories, and glob patterns.
-
-        Args:
-            assets: List of asset paths (relative to source directory)
-                   May include glob patterns like "*.png" or "fonts/*.otf"
-        """
-        import glob
-
-        copied_count = 0
-
-        for asset_pattern in assets:
-            # Resolve absolute pattern path
-            abs_pattern = path.join(self.srcdir, asset_pattern)
-
-            # Check if pattern contains wildcards
-            if "*" in asset_pattern or "?" in asset_pattern:
-                # Expand glob pattern
-                matches = glob.glob(abs_pattern, recursive=True)
-                if not matches:
-                    logger.warning(f"No files matched pattern: {asset_pattern}")
-                    continue
-
-                for match in matches:
-                    if self._copy_single_asset(match, asset_pattern):
-                        copied_count += 1
-            else:
-                # Single file or directory
-                if self._copy_single_asset(abs_pattern, asset_pattern):
-                    copied_count += 1
-
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} explicitly specified template asset(s)")
-
-    def _copy_single_asset(self, src_path: str, original_pattern: str) -> bool:
-        """
-        Copy a single asset file or directory.
-
-        Args:
-            src_path: Absolute source path
-            original_pattern: Original pattern from configuration (for error messages)
-
-        Returns:
-            True if successfully copied, False otherwise
-        """
-
-        # Check if source exists
-        if not path.exists(src_path):
-            logger.warning(f"Template asset not found: {original_pattern}")
-            return False
-
-        # Calculate relative path from source directory
-        rel_path = path.relpath(src_path, self.srcdir)
-        dest_path = path.join(self.outdir, rel_path)
-
-        try:
-            if path.isdir(src_path):
-                # Copy directory recursively
-                # Use copytree with dirs_exist_ok for Python 3.8+
-                shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
-                logger.debug(f"Copied template asset directory: {rel_path}/")
-            else:
-                # Copy single file
-                ensuredir(path.dirname(dest_path))
-                shutil.copy2(src_path, dest_path)
-                logger.debug(f"Copied template asset: {rel_path}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to copy template asset {rel_path}: {e}")
-            return False
-
     def _copy_bundle_directory(
         self, src_dir: str, dest_dir: str, key: str, template_filename: str
     ) -> None:
         """Copy one registry key's resolved template bundle wholesale
-        from ``src_dir`` to ``dest_dir`` (OUT-04), generalizing
-        ``_copy_template_directory()``'s existing ``os.walk()`` +
-        ``shutil.copy2`` body (D-02): no ``.typ`` skip (the template body
-        now travels this SAME path, not a separate write), a name-based
-        exclusion for exactly D-04's four kinds
+        from ``src_dir`` to ``dest_dir`` (OUT-04) via ``os.walk()`` +
+        ``shutil.copy2`` (D-02): no ``.typ`` skip (the template body
+        travels this SAME path, not a separate write -- this is the
+        ONLY route from a template directory to the output tree), a
+        name-based exclusion for exactly D-04's four kinds
         (``_is_excluded_bundle_entry()``), and a fatal/non-fatal error
         split (D-05) keyed on whether the file being copied IS the
         resolved template file itself.
@@ -1648,11 +1400,11 @@ class TypstBuilder(Builder):
 
     def _copy_used_template_bundles(self) -> None:
         """Copy every USED registry key's resolved template bundle
-        wholesale to ``<outdir>/_template/<key>/`` (OUT-04), replacing
-        ``copy_template_assets()``. Called once from ``finish()``, fed
-        by the write-time ``self._used_template_keys`` accumulator
-        (mirrors ``self.images``/``copy_image_files()``, ROADMAP
-        constraint #4).
+        wholesale to ``<outdir>/_template/<key>/`` (OUT-04) -- the ONLY
+        route from a template directory to the output tree. Called once
+        from ``finish()``, fed by the write-time
+        ``self._used_template_keys`` accumulator (mirrors
+        ``self.images``/``copy_image_files()``, ROADMAP constraint #4).
 
         Returns immediately when the accumulator is empty -- a build
         that writes no wrapper creates no ``<outdir>/_template/``
@@ -1668,6 +1420,16 @@ class TypstBuilder(Builder):
         no bundle -- and is skipped, matching
         ``render_wrapper()``'s own package-alone predicate exactly
         (``entry.package and not entry.template``).
+
+        A key whose registry entry carries BOTH a ``package`` and a
+        ``template`` is unsupported (D-03 -- the template wins, the
+        package is ignored, mirroring ``resolve_package_for_engine()``'s
+        own routing) and gets a ``logger.warning`` naming the key, ONCE
+        per build here -- this warning used to be hosted by the
+        single-file writer Phase 54 deleted from this class;
+        ``render_wrapper()`` (``writer.py``) has no equivalent
+        per-document warning of its own, so dropping this one silently
+        would have been a genuine user-facing regression (T-54-20).
 
         A-01 (resolved ``54-CONTEXT.md`` assumption, not an open
         question): applies the SAME parent-directory predicate CONF-17
@@ -1715,7 +1477,7 @@ class TypstBuilder(Builder):
             default_template_bundle_traversable,
             resolve_package_for_engine,
         )
-        from typsphinx.template_registry import _violates_conf17
+        from typsphinx.template_registry import RESERVED_REGISTRY_KEY, _violates_conf17
         from typsphinx.writer import TEMPLATE_OUTPUT_DIR
 
         destinations: Dict[str, Tuple[str, str]] = {}
@@ -1724,6 +1486,32 @@ class TypstBuilder(Builder):
 
         for key in sorted(self._used_template_keys):
             entry = self._document_template_registry[key]
+
+            # D-03/T-54-20: when a used key carries BOTH a Typst Universe
+            # package and a custom template, the combination is
+            # unsupported -- the template wins (the same routing
+            # `resolve_package_for_engine()` applies below and inside
+            # `render_wrapper()`) and the package is ignored end-to-end.
+            # Relocated here from the single-file writer Phase 54 deleted
+            # so the warning still fires exactly once per build, rather
+            # than being silently dropped. Only the synthesized RESERVED
+            # "typst" key can ever reach this branch -- CONF-15 already
+            # rejects a DECLARED `typst_document_templates` entry naming
+            # both `template` and `package` at config-read time, before
+            # this method ever runs -- so the message names the two
+            # GLOBAL config values it is actually built from, matching
+            # this warning's wording from before its relocation
+            # (test_package_template_routing.py's own substring check
+            # depends on this exact phrasing).
+            if entry.package and entry.template:
+                assert key == RESERVED_REGISTRY_KEY
+                logger.warning(
+                    "Both 'typst_package' and 'typst_template' are "
+                    "configured; this combination is unsupported. "
+                    "'typst_template' will be honoured and "
+                    "'typst_package' will be ignored."
+                )
+
             if entry.package and not entry.template:
                 # Package-alone: no bundle to copy (mirrors
                 # render_wrapper()'s own package-alone predicate).
@@ -1809,17 +1597,18 @@ class TypstBuilder(Builder):
         Finish the build process.
 
         This method is called once after all documents have been written.
-        Copies image files and template assets to the output directory,
-        then copies every USED registry key's resolved template bundle
-        wholesale to ``<outdir>/_template/<key>/`` (Phase 54, OUT-04).
-
-        ``copy_template_assets()`` (the old shared-``_template.typ``-
-        relative asset copy) deliberately stays in place here -- its
-        deletion is `54-05`'s own commit; removing the call here would
-        break assertions this plan is not migrating.
+        Copies image files, then copies every USED registry key's
+        resolved template bundle wholesale to
+        ``<outdir>/_template/<key>/`` (Phase 54, OUT-04) -- the ONLY
+        route from a template directory to the output tree. The
+        parallel asset-copy path this bundle copy superseded (three
+        early returns, plus the explicit-list expander and its
+        single-asset copier) was deleted in this same plan (`54-05`);
+        "has no bundle" is now a per-key property of
+        ``_copy_used_template_bundles()`` itself, not a build-wide
+        early return.
         """
         self.copy_image_files()
-        self.copy_template_assets()
         self._copy_used_template_bundles()
 
 

@@ -130,15 +130,21 @@ class TestEmptyTypstDocumentsOptoutGate:
         )
 
         # COMP-01/R4 explicitly: the full .typ file set is exactly ONE
-        # content file per docname, plus the unconditional shared
-        # _template.typ (_write_template_file() always runs in
-        # prepare_writing(), regardless of typst_documents) -- zero
-        # wrapper files, since an empty typst_documents produces zero
-        # entries to generate a wrapper for.
+        # content file per docname -- zero wrapper files, since an empty
+        # typst_documents produces zero entries to generate a wrapper
+        # for. Phase 54 (OUT-04): the template bundle copy is fed by a
+        # WRITE-TIME accumulator of USED registry keys, populated only
+        # when a wrapper is actually written -- an empty typst_documents
+        # writes no wrapper, so the accumulator stays empty and
+        # `_copy_used_template_bundles()` creates no `_template/`
+        # directory at all. There is therefore no template file anywhere
+        # in this build's output, unlike the single-file writer this
+        # phase deleted, which ran unconditionally regardless of
+        # typst_documents.
         typ_files = sorted(p.relative_to(build_dir) for p in build_dir.rglob("*.typ"))
-        assert typ_files == [Path("_template.typ"), Path("index.typ")], (
-            f"Expected exactly the shared template file and one content "
-            f"file (index.typ), and zero wrapper files, in the build "
+        assert typ_files == [Path("index.typ")], (
+            f"Expected exactly one content file (index.typ), and zero "
+            f"wrapper files and zero template files, in the build "
             f"directory, found: {typ_files}\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )

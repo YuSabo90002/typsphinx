@@ -3,10 +3,14 @@
 #
 # Reproduces a project whose master documents live inside a source
 # subdirectory literally named `_template`, colliding with the reserved
-# `_template.typ` basename that `_write_template_file()` (builder.py)
-# unconditionally writes at the outdir root. This is a realistic layout --
-# an author holding custom Typst partials in a `_template/` directory,
-# mirroring the tool's own reserved naming.
+# `_template.typ` basename that `_validate_output_path_collisions()`
+# (builder.py) reserves before any document is written (Phase 54, 54-05:
+# the single-file writer that used to physically write this file at the
+# outdir root is deleted, but the exact-name reservation itself is
+# deliberately left functional -- 54-07 widens it into a `_template/`
+# prefix reservation and relocates this fixture). This is a realistic
+# layout -- an author holding custom Typst partials in a `_template/`
+# directory, mirroring the tool's own reserved naming.
 #
 # Pre-fix, TypstWriter.translate() computed the template import by
 # relativizing the master's docname against a synthetic "_template" sentinel
