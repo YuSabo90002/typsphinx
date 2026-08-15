@@ -11,7 +11,7 @@
 # in one project. This fixture is unrelated to bld02_duplicate_target_gate
 # (a target-collision gate) and missing_and_malformed_master_gate (a
 # malformed-entry gate) -- it is the first genuine THREE-master
-# composition fixture in the repository (template_named_dir_master has
+# composition fixture in the repository (nested_dir_multi_master has
 # only two).
 #
 # Load-bearing properties -- do NOT touch any of these, or this fixture

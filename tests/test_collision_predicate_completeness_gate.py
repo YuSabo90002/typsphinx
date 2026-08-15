@@ -145,10 +145,12 @@ class TestBld02PathShapeCollisionGate:
 )
 class TestBld02TemplateClobberGate:
     """
-    BLD-02, shape 2: a target that, once './'-shape normalized, IS the
-    reserved ``_template.typ`` infrastructure file must collide -- pre-fix
-    the wrapper silently overwrites the template every content and wrapper
-    file imports.
+    BLD-02, shape 2: a target that, once './'-shape normalized, resolves
+    UNDER the reserved ``_template/`` output directory must collide
+    (Phase 54 plan 07, OUT-07 -- pre-Phase-54-07 this fixture targeted
+    the exact reserved ``_template.typ`` basename instead; the reservation
+    it collides with is now a directory prefix, not a single filename,
+    but the shape-normalization gap it exercises is the same one).
     """
 
     def test_bld02_dot_slash_template_clobber_rejected_typst(self, tmp_path):
@@ -159,7 +161,7 @@ class TestBld02TemplateClobberGate:
 
         assert result.returncode != 0, (
             f"Expected the build to FAIL on a './'-prefixed target "
-            f"clobbering the reserved _template.typ:\n"
+            f"resolving under the reserved _template/ directory:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         combined_output = result.stdout + result.stderr
@@ -186,8 +188,8 @@ class TestBld02TemplateClobberGate:
 
         assert result.returncode != 0, (
             f"Expected the build to FAIL on a './'-prefixed target "
-            f"clobbering the reserved _template.typ, both builders "
-            f"sharing one validator:\nstdout: {result.stdout}\n"
+            f"resolving under the reserved _template/ directory, both "
+            f"builders sharing one validator:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         combined_output = result.stdout + result.stderr
