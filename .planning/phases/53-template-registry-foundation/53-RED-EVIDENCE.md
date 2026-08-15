@@ -199,6 +199,61 @@ default template with zero custom parameters, which is the expected, unremarkabl
 shapes resolving to `typsphinx/templates/base.typ` via `resolve_template()`'s Priority 3. This
 is recorded as measured, not asserted from assumption.)
 
+## TPL-04 equivalence (pre-change)
+
+**Fixture used (per RESEARCH.md Q6 step 6):** `tests/fixtures/params_exclusivity_gate/
+zero_params_default`, whose `conf.py:30` already authors a four-element `typst_documents` tuple
+— confirmed by direct read before copying:
+
+```python
+typst_documents = [
+    ("index", "master", project, author),
+]
+```
+
+Two copies of this fixture tree were made into the session scratchpad:
+
+- **Copy 1 (`tpl04_four`):** `typst_documents` left exactly as authored (four elements —
+  `"index"`, `"master"`, `project`, `author`).
+- **Copy 2 (`tpl04_five`):** every `typst_documents` tuple given a literal fifth element
+  `"typst"` appended, changing nothing else:
+  ```python
+  typst_documents = [
+      ("index", "master", project, author, "typst"),
+  ]
+  ```
+
+Both copies were built with the same builder (`-b typstpdf`) used throughout this artifact, into
+two separate scratch output directories (`<scratch>/pre/tpl04_four`, `<scratch>/pre/tpl04_five`).
+
+### Copy 1 (`tpl04_four`, four-element tuple) — sorted `.typ` inventory
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+faaad8f821d381215b50eaa87ddb85f50810a6903b9555f101e507cc1bedefb2  index.typ
+20d0162ec4e84fae8cc1af30e563746355efd4e2107360689a9335e6e6e40490  master.typ
+```
+
+### Copy 2 (`tpl04_five`, explicit fifth element `"typst"`) — sorted `.typ` inventory
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+faaad8f821d381215b50eaa87ddb85f50810a6903b9555f101e507cc1bedefb2  index.typ
+20d0162ec4e84fae8cc1af30e563746355efd4e2107360689a9335e6e6e40490  master.typ
+```
+
+### Comparison result
+
+**Identical.** Every SHA-256 in Copy 1's inventory matches the corresponding file's SHA-256 in
+Copy 2's inventory, file for file (`_template.typ`, `index.typ`, `master.typ` — same three
+files, same three hashes, in both trees). PDF page counts also match:
+`pypdf.PdfReader('<scratch>/pre/tpl04_four/master.pdf').pages` → **3 pages**;
+`pypdf.PdfReader('<scratch>/pre/tpl04_five/master.pdf').pages` → **3 pages**.
+
+This comparison is between the two trees directly (Copy 1 vs. Copy 2), independent of the
+four-shapes pre/post baseline above — it is TPL-04's own equivalence claim: an absent element
+[4] and an explicit `"typst"` fifth element produce byte-identical output, pre-change.
+
 ## Post-change section
 
 Not yet populated. Plan 53-05 reads this file's recorded pre-change SHAs and diffs post-change
