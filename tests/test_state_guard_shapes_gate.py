@@ -50,13 +50,33 @@ except ImportError:
     PYPDF_AVAILABLE = False
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-EVIDENCE_PATH = (
-    Path(__file__).parent.parent
-    / ".planning"
-    / "phases"
-    / "49-per-master-include-graph-with-state-guarded-includes"
-    / "49-SHAPES-RED-EVIDENCE.md"
-)
+
+EVIDENCE_FILENAME = "49-SHAPES-RED-EVIDENCE.md"
+
+
+def _locate_evidence() -> Path:
+    """Find 49-SHAPES-RED-EVIDENCE.md whether Phase 49 is active or archived.
+
+    The v0.8.0 milestone close moved the whole phase directory from
+    ``.planning/phases/`` to ``.planning/milestones/v0.8.0-phases/``, which
+    silently broke this gate's hardcoded path -- the seven
+    ``test_warning_baseline_preserved`` cases failed with ``FileNotFoundError``
+    on every platform until Phase 53 caught it. Search both roots so the next
+    milestone archival cannot rebreak it the same way.
+    """
+    planning = Path(__file__).parent.parent / ".planning"
+    roots = [planning / "phases", *sorted((planning / "milestones").glob("*"))]
+    for root in roots:
+        hit = next(root.glob(f"49-*/{EVIDENCE_FILENAME}"), None)
+        if hit is not None:
+            return hit
+    raise FileNotFoundError(
+        f"{EVIDENCE_FILENAME} not found under any of: "
+        + ", ".join(str(r) for r in roots)
+    )
+
+
+EVIDENCE_PATH = _locate_evidence()
 
 # The state key decided in 49-EXPECTED-STRUCTURE.md's Emission contract
 # (D-07, measured in 49-EVIDENCE.md's State-syntax measurement) -- fixed
