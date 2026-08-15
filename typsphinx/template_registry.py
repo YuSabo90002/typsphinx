@@ -27,12 +27,110 @@ This module adds zero new runtime dependencies -- only stdlib.
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from sphinx.errors import ExtensionError
+
 # Phase 53 (CONF-16/D-04): the ONLY reserved registry key, compared as a
 # literal string. "Typst"/"TYPST" are ordinary user-defined keys (D-04) --
 # the case-collision check (plan 53-03's CONF-18 case 7) compares
 # REGISTERED keys against each other, and this synthesized built-in key is
 # never a member of that set.
 RESERVED_REGISTRY_KEY = "typst"
+
+# Phase 53 plan 03 (CONF-18/D-02, case 4): the canonical 22-name Windows
+# reserved-device-name set, cited to
+# learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file. `COM0`,
+# `LPT0` and `CLOCK$` are DELIBERATELY absent -- Microsoft's own current
+# documentation does not list them, and RESEARCH.md Q4 carries the single
+# authoritative citation for that boundary. Do not add them "for safety";
+# doing so would silently add an eighth denylist case, which D-02 forbids.
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{i}" for i in range(1, 10)}
+    | {f"LPT{i}" for i in range(1, 10)}
+)
+
+# CONF-18/SC#4: the seven -- and ONLY seven -- key-shape rejection reasons,
+# in the fixed order `_validate_registry_key_shape()` checks them. Exposed
+# as a module-level constant so the "exactly seven" property is assertable
+# by an enumeration test, rather than merely reviewed by eye (T-53-03).
+_KEY_SHAPE_REJECTION_CASES = (
+    "empty_or_whitespace_only",
+    "dot_or_dotdot",
+    "contains_path_separator",
+    "windows_reserved_device_name",
+    "trailing_dot",
+    "trailing_space",
+    "case_collision",
+)
+
+
+def _is_windows_reserved_name(key: str) -> bool:
+    """Whether ``key`` is a Windows reserved device name (CONF-18 case 4),
+    compared case-insensitively against everything BEFORE the first ``.``
+    -- ``"CON.txt"`` is reserved (the extension does not exempt it),
+    ``"ICONIC"`` is not (no dot, and no match against the full string
+    either).
+    """
+    stem = key.split(".", 1)[0]
+    return stem.upper() in _WINDOWS_RESERVED_NAMES
+
+
+def _has_case_collision(key: str, other_keys: "set[str]") -> bool:
+    """Whether ``key`` differs from some OTHER key in ``other_keys`` only
+    by case (CONF-18 case 7), folded through
+    ``TypstBuilder._collision_key()`` -- ROADMAP SC#4 requires the SAME
+    comparison CONF-18 uses for output-path collisions, not an equivalent
+    one re-derived here. Imported locally (not at module scope) to avoid a
+    circular import: ``builder.py`` imports this module at its own module
+    scope, so importing ``typsphinx.builder`` back at THIS module's scope
+    would deadlock the import graph. By the time this function is called
+    at runtime, ``typsphinx.builder`` has always already finished
+    importing this module, so the local import safely resolves against an
+    already-fully-initialized ``sys.modules`` entry.
+    """
+    from typsphinx.builder import TypstBuilder
+
+    folded = TypstBuilder._collision_key(key)
+    return any(
+        other != key and TypstBuilder._collision_key(other) == folded
+        for other in other_keys
+    )
+
+
+def _validate_registry_key_shape(key: str, other_keys: "set[str]") -> str | None:
+    """Return the case-specific rejection reason for ``key``'s SHAPE as a
+    single path segment (CONF-18, D-01/D-02), or ``None`` if it passes all
+    seven locked cases.
+
+    Checked in the fixed order below, matching
+    ``_KEY_SHAPE_REJECTION_CASES``'s order -- a key matching an earlier
+    case is reported for that case only. No allowlist regex is used
+    anywhere, not even as a trailing catch-all (D-01): every case is its
+    own named predicate with its own message.
+    """
+    if not key.strip():
+        return f"registry key {key!r} is empty or whitespace-only"
+    if key in (".", ".."):
+        return f"registry key {key!r} is '.' or '..', which is not a legal registry key"
+    if "/" in key or "\\" in key:
+        return (
+            f"registry key {key!r} contains a path separator ('/' or "
+            "'\\\\'), which is not legal in a single-segment registry key"
+        )
+    if _is_windows_reserved_name(key):
+        return (
+            f"registry key {key!r} is a Windows reserved device name "
+            "(https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)"
+        )
+    if key.endswith("."):
+        return f"registry key {key!r} ends with a trailing dot"
+    if key.endswith(" "):
+        return f"registry key {key!r} ends with a trailing space"
+    if _has_case_collision(key, other_keys):
+        return (
+            f"registry key {key!r} differs from another registered key " "only by case"
+        )
+    return None
 
 
 @dataclass(frozen=True)
@@ -73,10 +171,22 @@ def resolve_template_registry(
 ) -> Dict[str, TemplateRegistryEntry]:
     """Resolve every declared ``typst_document_templates`` entry into a
     ``TemplateRegistryEntry``, plus the synthesized built-in ``"typst"``
-    key.
+    key -- after validating every declared key (D-05, order-independent
+    per SC#3).
 
-    This task performs NO validation -- CONF-14..CONF-18's fail-loud
-    checks are plan 53-03's expansion built on top of this proven slice.
+    Validation mirrors ``_validate_output_path_collisions()``'s
+    accumulate-then-raise-once shape (D-03) through this module's OWN
+    ``ExtensionError`` -- never appended into that method's ``failures``
+    list, and never changing its ``"typst: N output path collision(s):"``
+    message text. Keys are iterated via ``sorted()`` so the accumulated
+    message is byte-identical across runs regardless of ``dict`` insertion
+    order (D-03).
+
+    Plan 53-03, Task 1 validates CONF-18's seven-case key-shape denylist
+    and CONF-16's reserved key. CONF-15/CONF-17/D-08's definition-level
+    checks (Task 2) accumulate into this SAME ``failures`` list, still
+    raised once at the end.
+
     A user-defined key inherits nothing from global config (D-10); the
     synthesized ``"typst"`` key is the ONLY inheritance route (TPL-03).
 
@@ -88,17 +198,40 @@ def resolve_template_registry(
     Args:
         config: The Sphinx ``Config`` object (or any object exposing the
             same ``typst_*`` attributes via ``getattr``).
-        srcdir: The build's source directory. Unused by this task -- kept
-            in the signature now so it does not churn between waves; plan
-            53-03's CONF-17/D-08 checks need it.
+        srcdir: The build's source directory. Unused by Task 1 -- kept in
+            the signature so it does not churn between waves; Task 2's
+            CONF-17/D-08 checks consume it.
 
     Returns:
         A mapping from registry key to its resolved ``TemplateRegistryEntry``,
         always containing at least the synthesized ``"typst"`` key.
-    """
-    del srcdir  # Unused in this task; kept for signature stability (D-08/CONF-17, 53-03).
 
+    Raises:
+        ExtensionError: When one or more declared keys fail CONF-18's
+            key-shape denylist or CONF-16's reserved-key check (Task 1),
+            or CONF-15/CONF-17/D-08's definition-level checks (Task 2).
+    """
     declared = getattr(config, "typst_document_templates", None) or {}
+    all_keys = {key for key in declared.keys() if isinstance(key, str)}
+
+    failures: list[str] = []
+    for key in sorted(declared.keys()):
+        shape_reason = _validate_registry_key_shape(key, all_keys)
+        if shape_reason is not None:
+            failures.append(shape_reason)
+        elif key == RESERVED_REGISTRY_KEY:
+            failures.append(
+                f"registry key {key!r} is reserved for the built-in "
+                f"{RESERVED_REGISTRY_KEY!r} key and cannot be redeclared "
+                "(CONF-16)"
+            )
+
+    if failures:
+        summary = "; ".join(failures)
+        raise ExtensionError(
+            f"typst_document_templates: {len(failures)} invalid "
+            f"definition(s): {summary}"
+        )
 
     registry: Dict[str, TemplateRegistryEntry] = {}
     for key, definition in declared.items():

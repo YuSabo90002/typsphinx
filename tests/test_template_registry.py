@@ -1,4 +1,4 @@
-"""Tests for `typsphinx.template_registry` (Phase 53, plan 53-02).
+"""Tests for `typsphinx.template_registry` (Phase 53, plans 53-02/53-03).
 
 In-process unit style, following
 `tests/test_builder_output_stem.py::test_validate_output_path_collisions_raises_on_docname_collision`
@@ -7,6 +7,9 @@ and direct calls into the module under test -- no subprocess build.
 """
 
 import inspect
+
+import pytest
+from sphinx.errors import ExtensionError
 
 from typsphinx.template_registry import (
     RESERVED_REGISTRY_KEY,
@@ -273,3 +276,141 @@ def test_reserved_key_engine_gets_global_mapping_user_defined_key_gets_none(
 
     assert reserved_mapping == {"project": "custom_title"}
     assert user_mapping is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 03, Task 1: CONF-18's seven-case key-shape denylist and
+# CONF-16's reserved key.
+#
+# Every definition below is deliberately `{}` (neither `template` nor
+# `package`) so these SHAPE-only tests stay valid unmodified once Task 2
+# adds CONF-15/CONF-17/D-08 validation on top of the same
+# `resolve_template_registry()` -- a definition carrying a `template` value
+# pointing at a file that does not exist would start failing D-08's
+# existence check the moment Task 2 lands, which is not what these tests
+# are pinning.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_key,expected_substring",
+    [
+        ("", "empty or whitespace-only"),
+        ("   ", "empty or whitespace-only"),
+        (".", "'.' or '..'"),
+        ("..", "'.' or '..'"),
+        ("a/b", "path separator"),
+        ("a\\b", "path separator"),
+        ("CON", "Windows reserved device name"),
+        ("nul", "Windows reserved device name"),
+        ("CON.txt", "Windows reserved device name"),
+        ("COM1", "Windows reserved device name"),
+        ("LPT9", "Windows reserved device name"),
+        ("foo.", "trailing dot"),
+        ("foo ", "trailing space"),
+    ],
+)
+def test_registry_key_shape_denylist_case_raises(
+    temp_sphinx_app, bad_key, expected_substring
+):
+    """CONF-18: each of the seven denylist cases stops the build with a
+    message naming that specific reason (D-01/D-02)."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {bad_key: {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert expected_substring in str(excinfo.value)
+
+
+def test_registry_two_keys_differing_only_by_case_raises(temp_sphinx_app):
+    """CONF-18 case 7: two registry keys differing only by case stop the
+    build -- the comparison is performed via `TypstBuilder._collision_key()`
+    (ROADMAP SC#4), not a second independently-written casefold."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {
+        "Report": {},
+        "report": {},
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "only by case" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "accepted_key",
+    [
+        "paper:v2",  # Windows-illegal punctuation character
+        "key\x01name",  # control character (0x01)
+        ".hidden",  # leading dot
+        "inner space",  # interior whitespace
+    ],
+)
+def test_registry_key_deliberately_accepted_shapes_resolve_without_raising(
+    temp_sphinx_app, accepted_key
+):
+    """D-02: the four shapes deliberately NOT in the denylist stay accepted
+    in Phase 53, pinning that an eighth case cannot be added silently."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {accepted_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert accepted_key in registry
+
+
+@pytest.mark.parametrize("boundary_key", ["COM0", "LPT0", "ICONIC"])
+def test_registry_key_reserved_name_boundary_not_rejected(
+    temp_sphinx_app, boundary_key
+):
+    """Negative control: `COM0`/`LPT0` are NOT on the 22-name reserved list
+    (D-02's exact citation), and `ICONIC` does not match the whole-stem
+    comparison against `CON` (no dot, no whole-string match)."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {boundary_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert boundary_key in registry
+
+
+def test_registry_key_literal_typst_raises(temp_sphinx_app):
+    """CONF-16: a user-defined key equal to the literal string `typst`
+    stops the build -- it collides with the synthesized built-in key."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"typst": {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "reserved" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("case_variant_key", ["Typst", "TYPST"])
+def test_registry_key_case_variant_of_typst_resolves_without_raising(
+    temp_sphinx_app, case_variant_key
+):
+    """CONF-16/D-04: only the LITERAL string `typst` is reserved --
+    `Typst`/`TYPST` pass as ordinary user-defined keys, because the
+    case-collision check (case 7) compares REGISTERED keys against each
+    other and the synthesized built-in is never a member of that set."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {case_variant_key: {}}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert case_variant_key in registry
+
+
+def test_key_shape_validator_exposes_exactly_seven_distinct_rejection_reasons():
+    """SC#4/T-53-03: the validator's rejection-reason enumeration is
+    assertable as exactly seven distinct cases, not merely reviewed --
+    pins against both silently loosening the denylist and silently adding
+    an eighth case."""
+    from typsphinx.template_registry import _KEY_SHAPE_REJECTION_CASES
+
+    assert len(_KEY_SHAPE_REJECTION_CASES) == 7
+    assert len(set(_KEY_SHAPE_REJECTION_CASES)) == 7
