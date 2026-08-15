@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 6/7 plans executed
+**Plans**: 6/8 plans executed
 
 Plans:
 **Wave 1**
@@ -964,6 +964,10 @@ Plans:
 - [x] 52-06-PLAN.md — SC#4 invariant sweep over `v0.7.1..HEAD` with three real positive controls proving each detector fires (SC#4)
 
 **Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 52-08-PLAN.md — Fix the three pre-existing defects the 52-04 CI authority run surfaced (locale-dependent baseline, `repr()`-escaped assertion, ruff I001), re-push and re-dispatch, record the green run and close the ledger (SC#3, toolchain half — added mid-phase after 52-04 came back RED)
+
+**Wave 5** *(blocked on Wave 4 completion)*
 
 - [ ] 52-07-PLAN.md — Roll-up evidence, standalone publish handoff, deferred-defect register, and the REL-07-stays-open closeout guard (SC#5)
 
