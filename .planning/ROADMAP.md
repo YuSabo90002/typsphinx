@@ -569,7 +569,8 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 5/5 plans executed (4 waves)
+**Plans**: 5/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
+to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness defects the owner opted in to
 **Wave 1**
 
 - [x] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
@@ -586,6 +587,14 @@ this milestone does not touch.
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [x] 53-05-PLAN.md — SC#2 post-change identity diff + SC#5 branch push and dispatched 3-OS CI run — wave 4
+
+**Wave 5** *(gap closure — blocked on Wave 4 completion)*
+
+- [ ] 53-06-PLAN.md — SC#3 gap: validate every `typst_documents` entry's registry key up front in `write()`, so a CONF-14 failure leaves ZERO `.typ` files in both master orders — wave 5
+
+**Wave 6** *(gap closure — blocked on Wave 5 completion)*
+
+- [ ] 53-07-PLAN.md — Registry robustness: cross-drive `commonpath` crash (CR-02) and raw `AttributeError` on non-`str` keys / non-`dict` definitions (WR-02/WR-03) become clean accumulated `ExtensionError`s — wave 6
 
 **UI hint**: no
 
