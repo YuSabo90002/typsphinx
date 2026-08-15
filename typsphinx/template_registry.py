@@ -25,7 +25,7 @@ This module adds zero new runtime dependencies -- only stdlib.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Phase 53 (CONF-16/D-04): the ONLY reserved registry key, compared as a
 # literal string. "Typst"/"TYPST" are ordinary user-defined keys (D-04) --
@@ -47,19 +47,19 @@ class TemplateRegistryEntry:
     """The registry key this entry was resolved under -- ``"typst"`` for
     the synthesized built-in entry, or the user-declared key otherwise."""
 
-    template: Optional[str]
+    template: str | None
     """srcdir-relative path string, exactly as declared (or synthesized
     from global ``typst_template`` for the ``"typst"`` key). ``None``
     when the entry carries ``package`` instead, or when the definition
     declares neither."""
 
-    package: Optional[str]
+    package: str | None
     """Typst Universe package spec, exactly as declared (or synthesized
     from global ``typst_package`` for the ``"typst"`` key). ``None`` when
     the entry carries ``template`` instead, or when the definition
     declares neither."""
 
-    template_function: Optional[Any]
+    template_function: Any | None
     """``str`` or ``{"name": str, "params": dict}``, passed straight to
     ``TemplateEngine.__init__``'s ``typst_template_function`` parameter
     unmodified -- that constructor already parses both shapes

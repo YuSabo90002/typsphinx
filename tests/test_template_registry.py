@@ -137,8 +137,9 @@ def test_template_registry_entry_is_frozen_dataclass():
     field_names = {f.name for f in dataclasses.fields(entry)}
     assert field_names == {"key", "template", "package", "template_function"}
 
-    import pytest
     from dataclasses import FrozenInstanceError
+
+    import pytest
 
     with pytest.raises(FrozenInstanceError):
         entry.key = "mutated"
