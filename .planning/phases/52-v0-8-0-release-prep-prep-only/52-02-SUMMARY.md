@@ -126,6 +126,15 @@ None - no external service configuration required.
 - Nothing under `typsphinx/` changed (`git diff --name-only -- typsphinx/` empty throughout); no `.github/` path touched; no tag created (`git tag -l v0.8.0` empty).
 - REL-07's requirement checkbox is intentionally left untouched by this plan (per the plan's own scope) — it stays Pending until the publish, consistent with the phase's prep-only fence.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/52-v0-8-0-release-prep-prep-only/52-02-SUMMARY.md`
+- `grep -c '^## \[0\.8\.0\]' CHANGELOG.md` → `1`
+- `grep -c '"0.8.0"' tests/test_changelog_page_gate.py` → `1`
+- FOUND: `c4b5a048` (Task 2 commit)
+- FOUND: `0c784c48` (Task 3 commit)
+- FOUND: `39b46940` (SUMMARY commit)
+
 ---
 *Phase: 52-v0-8-0-release-prep-prep-only*
 *Completed: 2026-08-15*
