@@ -1,0 +1,2 @@
+A nested non-.typ asset that must reach the output -- this is what proves
+the bundle copy is recursive, not top-level-only.

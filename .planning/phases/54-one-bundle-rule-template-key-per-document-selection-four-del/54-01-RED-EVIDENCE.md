@@ -86,3 +86,93 @@ in two different directories, so `#image("logo.png")` — resolved relative to t
 own location, `<outdir>/_template.typ` — has nothing to resolve against; Typst reports
 `file not found (searched at <outdir>/logo.png)`. There is no per-key bundle directory at all on
 this tree, which is exactly what `54-04`'s relocation introduces.
+
+## TPL-02 / OUT-06
+
+**Fixture:** `tests/fixtures/two_key_selection_gate/` — two `typst_document_templates` registry
+keys (`"report"`, `"memo"`), with the `"report"` key selected by two `typst_documents` entries at
+two different wrapper nesting depths (root `master` and nested `manuals/guide`).
+
+**Command:**
+
+```
+uv run pytest tests/test_two_key_selection_gate.py tests/test_bundle_copy_exclusion_manifest_gate.py
+```
+
+**Result:** `5 failed, 5 passed in 0.74s` — zero errors.
+
+**Two_key_selection_gate failures (verbatim assertions):**
+
+```
+FAILED tests/test_two_key_selection_gate.py::TestTwoKeySelectionGate::test_both_report_wrappers_emit_an_identical_import_string
+  AssertionError: the two 'report'-keyed wrappers do not emit an identical root-absolute import string:
+  master: '_template.typ'
+  guide: '../_template.typ'
+  assert '_template.typ' == '../_template.typ'
+
+FAILED tests/test_two_key_selection_gate.py::TestTwoKeySelectionGate::test_memo_wrapper_imports_its_own_key
+  AssertionError: memo wrapper does not import its own key's bundle: '../_template.typ'
+  assert '../_template.typ' == '/_template/memo/base.typ'
+
+FAILED tests/test_two_key_selection_gate.py::TestTwoKeySelectionGate::test_both_bundles_are_published
+  AssertionError: the 'report' bundle was not published to <outdir>/_template/report/base.typ
+  assert False
+   +  where False = exists()
+```
+
+`test_build_succeeds`, `test_three_pdfs_produced`, and
+`test_the_two_templates_produce_different_pdfs` all PASS today — the build succeeds and produces
+three distinct PDFs, because `render_wrapper()` already threads `template_entry` per document
+(Phase 53); what fails is specifically OUT-06's root-absolute, depth-independent import contract.
+
+**Why it is RED on this tree:** the writer still computes the template import path with
+`compute_template_import_path_for_dir()`, a DEPTH-COUNTED `"../"` relative path
+(`writer.py:69-106`) rather than a root-absolute `/_template/<key>/<file>.typ` string — the root
+wrapper gets `_template.typ` and the nested wrapper gets `../_template.typ`, two DIFFERENT
+strings for the SAME registry key, and both point at the single shared `_template.typ` written at
+the outdir root rather than a per-key bundle. No per-key bundle directory (`_template/report/`,
+`_template/memo/`) exists on this tree at all.
+
+## BLD-06 / OUT-04
+
+**Fixture:** `tests/fixtures/bundle_exclusion_manifest_gate/` — one registry key (`"styled"`)
+whose bundle carries a nested non-`.typ` asset (`_typst/styled/assets/note.txt`); the test module
+injects the four D-04 excluded kinds (`.git/config`, `.DS_Store`, `Thumbs.db`, `notes.txt~`) into
+a fresh copy of the fixture at runtime.
+
+**Command:** (same combined run as TPL-02/OUT-06 above)
+
+**Verbatim failures:**
+
+```
+FAILED tests/test_bundle_copy_exclusion_manifest_gate.py::TestBundleCopyExclusionManifestGate::test_bundle_manifest_is_exactly_the_expected_set
+  AssertionError: the 'styled' bundle was not published to
+  /tmp/pytest-of-yuta/pytest-1302/bundle_exclusion_manifest_gate_build0/_template/styled:
+    stdout: ...preparing documents... Template written to
+    /tmp/pytest-of-yuta/pytest-1302/bundle_exclusion_manifest_gate_build0/_template.typ
+    done
+    writing output... [index] done
+    typst: wrote 1 wrapper file(s) -- compile these: master.typ
+    build succeeded.
+  assert False
+   +  where False = exists()
+   +    where exists = PosixPath('.../bundle_exclusion_manifest_gate_build0/_template/styled').exists
+
+FAILED tests/test_bundle_copy_exclusion_manifest_gate.py::TestBundleCopyExclusionManifestGate::test_rerun_leaves_a_removed_source_file_in_place
+  AssertionError: note.txt was not published by the first build at
+  .../bundle_exclusion_manifest_gate_build0/_template/styled/assets/note.txt
+  assert False
+   +  where False = exists()
+```
+
+`test_build_succeeds` and `test_each_excluded_kind_is_named_in_the_expected_set_comment` PASS
+(the plain `-b typst` build succeeds today, and the module's own text does enumerate the four D-04
+literals) — what fails is specifically the manifest-diff claim, because there is no
+`<outdir>/_template/styled/` bundle directory to diff against at all.
+
+**Why it is RED on this tree:** `_template/<key>/` does not exist as a destination shape today —
+`copy_template_assets()`/`_copy_template_directory()` copies non-`.typ` bundle files to a
+SOURCE-relative destination under `<outdir>/_typst/styled/...`, never under a `_template/`
+prefix, so both the manifest-equality assertion and the incremental-rebuild
+(`test_rerun_leaves_a_removed_source_file_in_place`) assertion fail on the same missing
+directory.
