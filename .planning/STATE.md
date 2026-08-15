@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
 status: planning
-last_updated: "2026-08-15T04:47:05.888Z"
+last_updated: "2026-08-15T06:00:00.000Z"
 last_activity: 2026-08-15
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,25 +20,63 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — **v0.8.0 shipped 2026-08-15**, awaiting `/gsd-new-milestone`.
-v0.8.0 multi-master composition closed with 6 phases (47-52), 45 plans, 121 tasks, **24/24 v1
-requirements complete, zero known gaps**. PR #133 merged to `main` (all 13 real CI checks green),
-tag `v0.8.0` on merge commit `78e01e5`, release run `31861043480` all five jobs `success` including
-`create-release`, PyPI `typsphinx 0.8.0` live, GitHub Release body byte-identical to the CHANGELOG
-extractor over its first 70 lines. `typsphinx-doc-translations` pin advanced to `78e01e5` via its
-own dispatched `update-pin.yml` (run `31861094950`, commit `588b96d`) and tagged `v0.8.0`. Read the
-Docs `stable` measured live: `en` `78e01e53`, `ja` `588b96da`, both reporting `0.8.0`, both serving
-`application/pdf`. Closeout type: **override_closeout** — no milestone audit was run, and 12 open
-artifacts were acknowledged as deferred (see § Deferred Items below).
+**Current focus:** **v0.9.0 per-document templates** — roadmap created 2026-08-15, **Phases 53–57**,
+26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
+template through a validated `typst_document_templates` registry, and one output rule — every used
+key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
+`_copy_template_directory()`'s `.typ` exclusion, `copy_template_assets()`'s three early returns and
+`typst_template_assets`. Breaking on two axes: the `_template.typ` relocation and that removal.
 
-Next action: `/gsd-new-milestone`
+v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known gaps) and is archived;
+its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
+BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
+
+Next action: `/gsd-plan-phase 53`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 53 — Template Registry Foundation (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-15 — Milestone v0.9.0 started
+Status: Roadmap created; awaiting `/gsd-plan-phase 53`
+Progress: [                    ] 0% (0/5 phases)
+Last activity: 2026-08-15 — v0.9.0 roadmap created (Phases 53–57)
+
+## Active Milestone (v0.9.0 — per-document templates)
+
+Full phase detail, binding constraints and success criteria: [`ROADMAP.md`](ROADMAP.md) §
+"🚧 v0.9.0 — per-document templates (ACTIVE)". Requirements and traceability:
+[`REQUIREMENTS.md`](REQUIREMENTS.md).
+
+**Goal:** every `typst_documents` entry can use its own template, Typst Universe package and
+template-function arguments, instead of one globally-configured template being applied to every
+master.
+
+**Five phases, executing 53 → 54 → 55 → 56 → 57:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 53 | Template Registry Foundation | TPL-01, TPL-03, TPL-04, TPL-05, CONF-14..18 (9) |
+| 54 | One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions | TPL-02, CONF-19, OUT-04..07, BLD-05, BLD-06 (8) |
+| 55 | v0.8.0-Derived Defects | XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 (5) |
+| 56 | Per-Document Template Documentation | DOC-15, DOC-16, DOC-17 (3) |
+| 57 | v0.9.0 Release Prep (prep-only) | REL-08 (1) |
+
+**The one hard ordering constraint is 53 before 54.** Deleting `_write_template_file()` breaks 31
+test files that assert the root `_template.typ`; Phase 53 therefore lands the registry plumbing
+output-identically first, so the tree is green at the boundary and the layout change is isolated
+from the plumbing change. Phase 55 has no functional dependency on 53/54 and is sequenced after them
+only to avoid contending for `builder.py` and `writer.py`.
+
+**Milestone branch:** `gsd/v0.9.0-milestone` exists locally and is **not** on `origin` (measured at
+roadmap creation). Milestone invariant #5 is encoded as Phase 53's SC#5 — push it in the first
+phase, evidenced by a completed CI run including the Windows and macOS lanes.
+
+**Owner decisions locked before roadmapping** (do not re-open at planning): `_template/` is reserved
+wholesale, so `tests/fixtures/template_named_dir_master/` moves in Phase 54; the
+`typst_template_assets` removal ships a `config-inited` handler that also detects `typst_authors` and
+`typst_toctree_defaults` — this codebase's first use of `config-inited`; the bundle copy runs in
+`finish()` off a write-time key accumulator; `_write_template_file()` is deleted, not adapted; and
+`TemplateEngine.resolve_template()` is widened to return the resolved path.
 
 ## Shipped Milestone (v0.8.0 — archived)
 
@@ -641,6 +679,25 @@ evidence.
   Phase 44.2 reversing Phase 44's D-02 within v0.7.1 — the phase that owns OUT-01 must state the
   reversal so the executor does not treat the existing guard code as sacred.
 
+- **2026-08-15** — v0.9.0 roadmap created: **Phases 53–57**, 26/26 v1 requirements mapped, zero
+  orphans, zero duplicates. **REL-08 was added to `REQUIREMENTS.md` at roadmap creation** (v1 total
+  25 → 26) as the release requirement of the prep-only final phase, mirroring v0.8.0's REL-07; it
+  closes at `/gsd-complete-milestone`, not in Phase 57. `research/SUMMARY.md`'s seven-phase
+  suggestion was adopted for its **sequence** but not its count: its steps 3–5 (layout, 31-file test
+  migration, deletion of `_write_template_file()`) are one phase because they are one green
+  boundary, and its step 6 (config cleanup) rides with them because Pitfall 5 requires the
+  `config-inited` detection handler in the identical commit as the `add_config_value()` removal. The
+  five v0.8.0-derived defects, which SUMMARY.md explicitly left to the roadmapper, became their own
+  phase (55) rather than being distributed into the registry phases.
+
+- **2026-08-15** — Both of `research/SUMMARY.md`'s "Open Decisions Carried Forward" were **already
+  closed by owner decision** when the roadmap was written and are recorded as binding constraints,
+  not planning questions: `_template/` reserved wholesale (with the `template_named_dir_master`
+  fixture moving in Phase 54), and the `typst_template_assets` removal shipping a `config-inited`
+  warning covering all three removed values. `research/ARCHITECTURE.md` §5 asks for an owner decision
+  on the fixture collision — it has one; the alternative (a different reserved directory name) must
+  not be re-derived at planning.
+
 ## Deferred Items
 
 Items acknowledged and carried forward from milestone closes:
@@ -715,9 +772,9 @@ Items acknowledged and carried forward from milestone closes:
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-15 — v0.8.0 milestone close (`/gsd-complete-milestone`).
-Stopped at: milestone shipped and archived.
-Resume: `/gsd-new-milestone`.
+Last session: 2026-08-15 — v0.9.0 roadmap created (Phases 53–57).
+Stopped at: roadmap written, requirements traceability populated; no phase planned yet.
+Resume: `/gsd-plan-phase 53`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
 discharged, including item 5 (Read the Docs `stable`), re-measured live 2026-08-15 through RTD's
@@ -728,4 +785,7 @@ unfixed by decision D-01 with no published surface other than that ledger and
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan the first phase with `/gsd-plan-phase 53`
+- Phase 53 must push `gsd/v0.9.0-milestone` to `origin` (milestone invariant #5) — the branch is
+  local-only today, and CONF-18's reserved-device-name and case-collision cases are invisible to a
+  local Linux-only run

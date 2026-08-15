@@ -77,6 +77,18 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
       what actually works under the bundle layout
 - [ ] **DOC-17**: Migration guidance for the removed config values is published
 
+### Release
+
+- [ ] **REL-08**: v0.9.0 is published — PyPI wheel + sdist, GitHub Release carrying the curated
+      `## [0.9.0]` CHANGELOG section, the second-repository tag on `typsphinx-doc-translations`, and
+      Read the Docs `stable` serving 0.9.0 on both projects
+
+      *Added at roadmap creation 2026-08-15, mirroring v0.8.0's REL-07. It is the requirement of the
+      prep-only final phase (57), which takes zero irreversible action — REL-08 closes at
+      `/gsd-complete-milestone`, on the publish, not on the prep. It stays `[ ]` through every plan
+      of Phase 57; the `phase.complete` auto-flip has fired against this requirement shape at four
+      consecutive release-prep closes and must be caught and reverted there.*
+
 ## Future Requirements
 
 Acknowledged but out of this milestone.
@@ -117,41 +129,50 @@ Acknowledged but out of this milestone.
 
 ## Traceability
 
-Populated during roadmap creation.
+Populated at roadmap creation, 2026-08-15. Every v1 requirement maps to exactly one phase; no
+requirement appears twice and none is unmapped. Phase numbering continues from v0.8.0's last phase
+(52), so this milestone runs **Phases 53–57**.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TPL-01 | — | Pending |
-| TPL-02 | — | Pending |
-| TPL-03 | — | Pending |
-| TPL-04 | — | Pending |
-| TPL-05 | — | Pending |
-| CONF-14 | — | Pending |
-| CONF-15 | — | Pending |
-| CONF-16 | — | Pending |
-| CONF-17 | — | Pending |
-| CONF-18 | — | Pending |
-| CONF-19 | — | Pending |
-| OUT-04 | — | Pending |
-| OUT-05 | — | Pending |
-| OUT-06 | — | Pending |
-| OUT-07 | — | Pending |
-| BLD-05 | — | Pending |
-| BLD-06 | — | Pending |
-| XREF-05 | — | Pending |
-| BLD-07 | — | Pending |
-| BLD-08 | — | Pending |
-| BLD-09 | — | Pending |
-| IMG-03 | — | Pending |
-| DOC-15 | — | Pending |
-| DOC-16 | — | Pending |
-| DOC-17 | — | Pending |
+| TPL-01 | Phase 53 | Pending |
+| TPL-02 | Phase 54 | Pending |
+| TPL-03 | Phase 53 | Pending |
+| TPL-04 | Phase 53 | Pending |
+| TPL-05 | Phase 53 | Pending |
+| CONF-14 | Phase 53 | Pending |
+| CONF-15 | Phase 53 | Pending |
+| CONF-16 | Phase 53 | Pending |
+| CONF-17 | Phase 53 | Pending |
+| CONF-18 | Phase 53 | Pending |
+| CONF-19 | Phase 54 | Pending |
+| OUT-04 | Phase 54 | Pending |
+| OUT-05 | Phase 54 | Pending |
+| OUT-06 | Phase 54 | Pending |
+| OUT-07 | Phase 54 | Pending |
+| BLD-05 | Phase 54 | Pending |
+| BLD-06 | Phase 54 | Pending |
+| XREF-05 | Phase 55 | Pending |
+| BLD-07 | Phase 55 | Pending |
+| BLD-08 | Phase 55 | Pending |
+| BLD-09 | Phase 55 | Pending |
+| IMG-03 | Phase 55 | Pending |
+| DOC-15 | Phase 56 | Pending |
+| DOC-16 | Phase 56 | Pending |
+| DOC-17 | Phase 56 | Pending |
+| REL-08 | Phase 57 | Pending |
+
+**Per-phase totals:** Phase 53 → 9 · Phase 54 → 8 · Phase 55 → 5 · Phase 56 → 3 · Phase 57 → 1.
 
 **Coverage:**
 
-- v1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- v1 requirements: 26 total (25 defined 2026-08-15 + REL-08 added at roadmap creation)
+- Mapped to phases: 26
+- Unmapped: 0 ✓
+- Duplicated across phases: 0 ✓
+
+Requirements listed under **Future Requirements** and **Out of Scope** are deliberately unmapped and
+are not counted in this tally.
 
 ---
-*Requirements defined: 2026-08-15*
+*Requirements defined: 2026-08-15 · Traceability populated at roadmap creation 2026-08-15 (Phases 53–57)*
