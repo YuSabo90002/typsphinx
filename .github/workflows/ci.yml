@@ -142,6 +142,33 @@ jobs:
       - name: Build package
         run: uv build
 
+      # BLD-05/D-13: the editable install used everywhere else in CI cannot
+      # detect a narrowed package-data glob -- it never packs a wheel, so a
+      # file silently dropped from `pyproject.toml`'s
+      # [tool.setuptools.package-data] entry would never surface locally or
+      # in any other CI job. This step opens the REAL wheel built by the
+      # previous step and proves the bundle's non-.typ canary reached it.
+      - name: Verify wheel carries the template bundle
+        run: |
+          uv run python -c "
+          import glob
+          import sys
+          import zipfile
+
+          wheel = sorted(glob.glob('dist/*.whl'))[-1]
+          names = zipfile.ZipFile(wheel).namelist()
+          target = 'typsphinx/templates/README.md'
+          if target not in names:
+              print(
+                  f'FATAL: {target!r} is missing from {wheel!r}. '
+                  \"pyproject.toml's [tool.setuptools.package-data] glob for \"
+                  \"the 'typsphinx' key was narrowed and no longer packs this \"
+                  'file into the wheel -- widen it back to templates/**/*.'
+              )
+              sys.exit(1)
+          print(f'OK: {target!r} found in {wheel!r}')
+          "
+
       - name: Check package
         run: |
           uv sync --extra dev --locked
