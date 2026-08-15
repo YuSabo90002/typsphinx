@@ -4,15 +4,15 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 54
 current_phase_name: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
-status: planning
-stopped_at: Phase 54 context gathered
-last_updated: "2026-08-15T13:43:38.226Z"
+status: executing
+stopped_at: Phase 54 planned
+last_updated: "2026-08-15T14:42:28.805Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 54 context gathered — 13 decisions captured, BLD-06/SC#3 symlink clause retracted by owner, ready to plan Phase 54
+last_activity_desc: "Phase 54 planned — 7 plans across 4 waves, plan-checker VERIFICATION PASSED, 8/8 requirements and 15/15 decisions covered; D-14/D-15 added at plan time (shadow route moves to <srcdir>/_typst/), flagged assumption A-01 awaiting owner"
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 10
+  total_plans: 17
   completed_plans: 10
   percent: 20
 ---
@@ -35,15 +35,15 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-discuss-phase 54`
+Next action: `/gsd-execute-phase 54`
 
 ## Current Position
 
 Phase: 54 — One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
-Plan: Not started
-Status: Ready to plan
-Progress: [██████████] 100% (10/10 plans — Phase 53 complete)
-Last activity: 2026-08-15 — Phase 53 complete, transitioned to Phase 54
+Plan: 7 plans across 4 waves — 0/7 complete
+Status: Ready to execute
+Progress: [░░░░░░░░░░] 0% (0/7 plans — Phase 54 planned)
+Last activity: 2026-08-15 — Phase 54 planned (7 plans, 4 waves); plan-checker VERIFICATION PASSED
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
