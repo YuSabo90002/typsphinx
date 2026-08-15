@@ -220,6 +220,73 @@ class TestTemplateResolutionProvenance:
         assert engine.resolve_template().source == "explicit"
         assert engine.uses_bundled_default_template() is True
 
+    def test_resolve_template_explicit_path(self, tmp_path):
+        """Priority 1: an engine built with an existing explicit
+        template_path reports a resolved path equal to that same explicit
+        path (53-RESEARCH.md Q2)."""
+        custom_template_path = tmp_path / "custom.typ"
+        custom_template_path.write_text("#let custom(body) = { body }")
+
+        engine = TemplateEngine(template_path=str(custom_template_path))
+        resolution = engine.resolve_template()
+
+        assert resolution.path == Path(str(custom_template_path))
+
+    def test_resolve_template_search_path(self, tmp_path):
+        """Priority 2: an engine with template_path None and a search_paths
+        directory containing base.typ reports a resolved path equal to that
+        directory joined with the template name -- the <srcdir>/base.typ
+        shadow case."""
+        srcdir = tmp_path / "docs"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { /* shadow */ }")
+
+        engine = TemplateEngine(search_paths=[str(srcdir)])
+        resolution = engine.resolve_template()
+
+        assert resolution.path == srcdir / "base.typ"
+
+    def test_resolve_template_default_path(self):
+        """Priority 3: an engine with no explicit path and no search-path
+        hit reports a resolved path equal to get_default_template_path()'s
+        value, i.e. the bundled template."""
+        engine = TemplateEngine()
+        resolution = engine.resolve_template()
+
+        assert resolution.path == Path(engine.get_default_template_path())
+
+    def test_resolve_template_fallthrough_path_is_never_the_missing_path(self):
+        """Fall-through: an engine whose template_path does not exist still
+        emits the existing warning, still resolves to a later priority, and
+        reports THAT priority's path -- never the missing explicit path."""
+        engine = TemplateEngine(template_path="/nonexistent/template.typ")
+        resolution = engine.resolve_template()
+
+        assert resolution.path != Path("/nonexistent/template.typ")
+        assert resolution.path == Path(engine.get_default_template_path())
+
+    def test_resolve_template_path_parent_directory_obtainable_at_every_priority(
+        self, tmp_path
+    ):
+        """The resolved path's parent directory is obtainable for each of
+        the three priorities, which is the capability Phase 54 needs."""
+        # Priority 1
+        explicit_path = tmp_path / "explicit.typ"
+        explicit_path.write_text("#let custom(body) = { body }")
+        explicit_engine = TemplateEngine(template_path=str(explicit_path))
+        assert explicit_engine.resolve_template().path.parent.is_dir()
+
+        # Priority 2
+        srcdir = tmp_path / "search"
+        srcdir.mkdir()
+        (srcdir / "base.typ").write_text("#let project(body) = { body }")
+        search_engine = TemplateEngine(search_paths=[str(srcdir)])
+        assert search_engine.resolve_template().path.parent.is_dir()
+
+        # Priority 3
+        default_engine = TemplateEngine()
+        assert default_engine.resolve_template().path.parent.is_dir()
+
 
 class TestParameterMapping:
     """Test Sphinx metadata to template parameter mapping (Task 9.2)"""
