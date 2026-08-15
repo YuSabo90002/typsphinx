@@ -12,7 +12,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 
 ### Template registry
 
-- [ ] **TPL-01**: User can define named template definitions in `typst_document_templates`, each
+- [x] **TPL-01**: User can define named template definitions in `typst_document_templates`, each
       carrying `template` **xor** `package`, plus an optional `template_function`
 
 - [ ] **TPL-02**: User can select a named template per output document via element [4] of a
@@ -26,7 +26,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [x] **TPL-04**: A four-element `typst_documents` tuple behaves identically to one whose fifth
       element is `"typst"`
 
-- [ ] **TPL-05**: Several `typst_documents` entries can share one registry key
+- [x] **TPL-05**: Several `typst_documents` entries can share one registry key
 
 ### Configuration validation
 
@@ -34,7 +34,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
       keys
 
 - [x] **CONF-15**: A registry entry carrying both `template` and `package` stops the build
-- [ ] **CONF-16**: Defining `"typst"` in the registry stops the build — it is a reserved key
+- [x] **CONF-16**: Defining `"typst"` in the registry stops the build — it is a reserved key
 - [x] **CONF-17**: A `template` pointing at a file directly under `srcdir` stops the build — it has
       no bundle directory
 
@@ -152,14 +152,14 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TPL-01 | Phase 53 | Pending |
+| TPL-01 | Phase 53 | Complete |
 | TPL-02 | Phase 54 | Pending |
 | TPL-03 | Phase 53 | Complete |
 | TPL-04 | Phase 53 | Complete |
-| TPL-05 | Phase 53 | Pending |
+| TPL-05 | Phase 53 | Complete |
 | CONF-14 | Phase 53 | Complete |
 | CONF-15 | Phase 53 | Complete |
-| CONF-16 | Phase 53 | Pending |
+| CONF-16 | Phase 53 | Complete |
 | CONF-17 | Phase 53 | Complete |
 | CONF-18 | Phase 53 | Complete |
 | CONF-19 | Phase 54 | Pending |
