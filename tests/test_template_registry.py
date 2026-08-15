@@ -7,6 +7,7 @@ and direct calls into the module under test -- no subprocess build.
 """
 
 import inspect
+import os
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from sphinx.errors import ExtensionError
 from typsphinx.template_registry import (
     RESERVED_REGISTRY_KEY,
     TemplateRegistryEntry,
+    _violates_conf17,
     resolve_registry_key,
     resolve_template_registry,
 )
@@ -542,6 +544,54 @@ def test_conf17_absolute_template_path_outside_srcdir_resolves(temp_sphinx_app):
     assert "ok" in registry
 
 
+def test_conf17_cross_drive_commonpath_valueerror_is_not_a_violation(monkeypatch):
+    """53-07 Task 1 / 53-REVIEW.md CR-02: `_violates_conf17()` returns
+    `False`, not `True`, when `os.path.commonpath()` raises `ValueError`
+    for two absolute paths on different Windows drives.
+
+    This is a deliberate platform-independent simulation of the
+    `windows-latest` CI lane's real behaviour, following D-05's precedent
+    of validating Windows-shaped input identically on POSIX, rather than
+    importing `ntpath`: `template_registry` binds `os` at import time and
+    resolves `os.path.commonpath` at call time, so patching that attribute
+    reaches the call under test, and `monkeypatch` reverts it afterward.
+    """
+
+    def _raise_cross_drive(_paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(os.path, "commonpath", _raise_cross_drive)
+
+    assert _violates_conf17("/elsewhere/tpl.typ", "/some/srcdir") is False
+
+
+def test_conf17_cross_drive_valueerror_surfaces_as_extension_error_not_valueerror(
+    temp_sphinx_app, monkeypatch
+):
+    """53-07 Task 1 / 53-REVIEW.md CR-02: with `os.path.commonpath()`
+    monkeypatched to raise `ValueError` (simulating the `windows-latest`
+    CI lane's real cross-drive behaviour, per D-05's POSIX-simulation
+    precedent), a registry declaring an absolute `template` path under a
+    directory that does not exist still raises this module's own
+    `ExtensionError` (D-08's not-found failure) -- never a raw
+    `ValueError` escaping as an internal exception.
+    """
+    app = temp_sphinx_app
+
+    def _raise_cross_drive(_paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(os.path, "commonpath", _raise_cross_drive)
+    app.config.typst_document_templates = {
+        "cross_drive": {"template": "/nonexistent_dir_xyz/tpl.typ"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "does not exist" in str(excinfo.value)
+
+
 def test_user_defined_key_template_names_nonexistent_file_raises(temp_sphinx_app):
     """D-08: a user-defined key whose `template` names a file that does
     not exist stops the build."""
@@ -631,6 +681,128 @@ def test_three_independently_broken_keys_raise_once_order_independently(
     assert "'missing'" in message_forward
     assert "'typst'" in message_forward
     assert message_forward.startswith("typst_document_templates: 3 invalid")
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 07, Task 2: a non-`str` registry key and a truthy non-`dict`
+# definition each join the accumulate-then-raise-once pass instead of
+# crashing with a raw `AttributeError`/`TypeError` (53-REVIEW.md WR-02,
+# WR-03; 53-VERIFICATION.md Anti-Patterns row 3).
+# ---------------------------------------------------------------------------
+
+
+def test_non_str_registry_key_raises_extension_error_not_attributeerror(
+    temp_sphinx_app,
+):
+    """53-REVIEW.md WR-02 / 53-VERIFICATION.md Anti-Patterns row 3: a
+    non-`str` registry key (e.g. an `int`) stops the build with this
+    module's own `ExtensionError` naming the offending key, never a raw
+    `AttributeError` from `key.strip()`."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {42: {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "is not a string" in message
+    assert "42" in message
+
+
+def test_non_dict_definition_raises_extension_error_not_attributeerror(
+    temp_sphinx_app,
+):
+    """53-REVIEW.md WR-03: a truthy non-`dict` registry definition (a bare
+    string) stops the build with this module's own `ExtensionError` naming
+    the offending value, never a raw `AttributeError` from
+    `definition.get(...)`."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"bad_def": "not_a_dict"}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "must be a dict" in message
+    assert "'not_a_dict'" in message
+
+
+@pytest.mark.parametrize("falsy_definition", [None, "", 0])
+def test_falsy_definition_still_normalizes_and_resolves(
+    temp_sphinx_app, falsy_definition
+):
+    """53-REVIEW.md WR-03: a FALSY definition (`None`, `""`, `0`) still
+    normalizes to an empty definition and resolves without raising -- the
+    new non-`dict` guard only rejects TRUTHY non-`dict` values, exactly as
+    it does today."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"falsy": falsy_definition}
+
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+
+    assert registry["falsy"].template is None
+    assert registry["falsy"].package is None
+    assert registry["falsy"].template_function is None
+
+
+def test_mixed_type_keys_raise_extension_error_not_sorted_typeerror(
+    temp_sphinx_app,
+):
+    """53-REVIEW.md WR-02: a registry mixing an `int` key with a `str` key
+    raises this module's `ExtensionError`, never the `TypeError`
+    `sorted()` raises when it compares an `int` to a `str` -- the
+    iteration key is total across mixed types."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {99: {}, "bad/slash": {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "is not a string" in message
+    assert "path separator" in message
+
+
+def test_mixed_type_key_message_is_byte_identical_across_insertion_orders(
+    temp_sphinx_app,
+):
+    """TPL-01 ordering edge / D-03: the same malformed registry, declared
+    in two different `dict` insertion orders -- including a mixed-type key
+    set -- yields a byte-identical `ExtensionError` message, extending
+    D-03's determinism guarantee over the new total iteration key."""
+    app = temp_sphinx_app
+
+    forward = {99: {}, "bad/slash": {}, "typst": {}}
+    app.config.typst_document_templates = forward
+    with pytest.raises(ExtensionError) as excinfo_forward:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_forward = str(excinfo_forward.value)
+
+    reordered = {"typst": {}, "bad/slash": {}, 99: {}}
+    app.config.typst_document_templates = reordered
+    with pytest.raises(ExtensionError) as excinfo_reordered:
+        resolve_template_registry(app.config, str(app.srcdir))
+    message_reordered = str(excinfo_reordered.value)
+
+    assert message_forward == message_reordered
+
+
+def test_non_str_key_is_excluded_from_case_collision_comparison(temp_sphinx_app):
+    """CONF-18 encoding edge (53-07 must_haves): a non-`str` key never
+    reaches `TypstBuilder._collision_key()` -- `all_keys` stays
+    `isinstance(key, str)`-filtered, so a registry mixing a non-`str` key
+    with two case-colliding `str` keys reports BOTH failures in the one
+    accumulated raise, proving the non-`str` key is excluded from CONF-18's
+    case-collision comparison rather than crashing it."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {7: {}, "Report": {}, "report": {}}
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    message = str(excinfo.value)
+    assert "is not a string" in message
+    assert "only by case" in message
 
 
 # ---------------------------------------------------------------------------
