@@ -569,7 +569,7 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 9/10 plans executed (8 waves) — 7/7 executed through Wave 6. 53-06/53-07 added 2026-08-15 by
+**Plans**: 10/10 plans executed (8 waves) — 7/7 executed through Wave 6. 53-06/53-07 added 2026-08-15 by
 `/gsd-plan-phase 53 --gaps` to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness
 defects the owner opted in to; 53-08…53-10 added 2026-08-15 by a second `--gaps` round to close the
 re-verification's one scored gap (SC#5, stale CI evidence), the two new ⚠ WARNING crash paths
@@ -609,7 +609,7 @@ unplanned
 
 **Wave 8** *(second gap-closure round — blocked on Wave 7 completion)*
 
-- [ ] 53-10-PLAN.md — SC#5 re-closure: push the re-measured milestone-branch tip, dispatch a fresh 3-OS CI run over it, and record evidence carrying a `git log <ci_head>..<tip> -- typsphinx/ tests/` staleness assertion plus a positive content proof of what the certified SHA carries — wave 8
+- [x] 53-10-PLAN.md — SC#5 re-closure: push the re-measured milestone-branch tip, dispatch a fresh 3-OS CI run over it, and record evidence carrying a `git log <ci_head>..<tip> -- typsphinx/ tests/` staleness assertion plus a positive content proof of what the certified SHA carries — wave 8
 
 **UI hint**: no
 
@@ -835,7 +835,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 9/10 | In Progress|  |
+| 53. Template Registry Foundation | v0.9.0 | 10/10 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
