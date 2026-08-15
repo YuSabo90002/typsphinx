@@ -569,7 +569,7 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 5/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
+**Plans**: 6/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
 to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness defects the owner opted in to
 **Wave 1**
 
@@ -590,7 +590,7 @@ to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness def
 
 **Wave 5** *(gap closure — blocked on Wave 4 completion)*
 
-- [ ] 53-06-PLAN.md — SC#3 gap: validate every `typst_documents` entry's registry key up front in `write()`, so a CONF-14 failure leaves ZERO `.typ` files in both master orders — wave 5
+- [x] 53-06-PLAN.md — SC#3 gap: validate every `typst_documents` entry's registry key up front in `write()`, so a CONF-14 failure leaves ZERO `.typ` files in both master orders — wave 5
 
 **Wave 6** *(gap closure — blocked on Wave 5 completion)*
 
@@ -820,7 +820,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 5/5 | In Progress|  |
+| 53. Template Registry Foundation | v0.9.0 | 6/7 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |

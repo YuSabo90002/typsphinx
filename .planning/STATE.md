@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 53
-current_phase_name: Template Registry Foundation
+current_phase_name: template-registry-foundation
 status: executing
-stopped_at: Planned 53-06/53-07 -- Phase 53 gap closure (SC#3 CONF-14 + registry robustness)
-last_updated: "2026-08-15T09:58:50.811Z"
+stopped_at: "Planned 53-06/53-07 -- Phase 53 gap closure (SC#3 CONF-14 + registry robustness)"
+last_updated: "2026-08-15T10:25:25.822Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 53 gap closure planned — 7 plans across 6 waves
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 7
   completed_plans: 5
-  percent: 20
+  percent: 0
 ---
 
 # Project State
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 53 — Template Registry Foundation
+**Current focus:** Phase 53 — template-registry-foundation
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
 template through a validated `typst_document_templates` registry, and one output rule — every used
 key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
@@ -39,11 +39,11 @@ Next action: `/gsd-execute-phase 53`
 
 ## Current Position
 
-Phase: 53 (Template Registry Foundation) — EXECUTING
-Plan: 5 of 7 (53-06, 53-07 planned for gap closure)
-Status: Ready to execute
+Phase: 53 (template-registry-foundation) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 53
 Progress: [███████░░░] 71% (5/7 plans)
-Last activity: 2026-08-15 — Phase 53 gap closure planned (SC#3 CONF-14 + registry robustness)
+Last activity: 2026-08-15 — Phase 53 execution started
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
