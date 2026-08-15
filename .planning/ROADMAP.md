@@ -569,7 +569,7 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 6/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
+**Plans**: 7/7 plans executed (6 waves) — 53-06/53-07 added 2026-08-15 by `/gsd-plan-phase 53 --gaps`
 to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness defects the owner opted in to
 **Wave 1**
 
@@ -594,7 +594,7 @@ to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness def
 
 **Wave 6** *(gap closure — blocked on Wave 5 completion)*
 
-- [ ] 53-07-PLAN.md — Registry robustness: cross-drive `commonpath` crash (CR-02) and raw `AttributeError` on non-`str` keys / non-`dict` definitions (WR-02/WR-03) become clean accumulated `ExtensionError`s — wave 6
+- [x] 53-07-PLAN.md — Registry robustness: cross-drive `commonpath` crash (CR-02) and raw `AttributeError` on non-`str` keys / non-`dict` definitions (WR-02/WR-03) become clean accumulated `ExtensionError`s — wave 6
 
 **UI hint**: no
 
@@ -820,7 +820,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 6/7 | In Progress|  |
+| 53. Template Registry Foundation | v0.9.0 | 7/7 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
