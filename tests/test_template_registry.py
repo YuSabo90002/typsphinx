@@ -7,6 +7,7 @@ and direct calls into the module under test -- no subprocess build.
 """
 
 import inspect
+import os
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from sphinx.errors import ExtensionError
 from typsphinx.template_registry import (
     RESERVED_REGISTRY_KEY,
     TemplateRegistryEntry,
+    _violates_conf17,
     resolve_registry_key,
     resolve_template_registry,
 )
@@ -540,6 +542,54 @@ def test_conf17_absolute_template_path_outside_srcdir_resolves(temp_sphinx_app):
     registry = resolve_template_registry(app.config, str(app.srcdir))
 
     assert "ok" in registry
+
+
+def test_conf17_cross_drive_commonpath_valueerror_is_not_a_violation(monkeypatch):
+    """53-07 Task 1 / 53-REVIEW.md CR-02: `_violates_conf17()` returns
+    `False`, not `True`, when `os.path.commonpath()` raises `ValueError`
+    for two absolute paths on different Windows drives.
+
+    This is a deliberate platform-independent simulation of the
+    `windows-latest` CI lane's real behaviour, following D-05's precedent
+    of validating Windows-shaped input identically on POSIX, rather than
+    importing `ntpath`: `template_registry` binds `os` at import time and
+    resolves `os.path.commonpath` at call time, so patching that attribute
+    reaches the call under test, and `monkeypatch` reverts it afterward.
+    """
+
+    def _raise_cross_drive(_paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(os.path, "commonpath", _raise_cross_drive)
+
+    assert _violates_conf17("/elsewhere/tpl.typ", "/some/srcdir") is False
+
+
+def test_conf17_cross_drive_valueerror_surfaces_as_extension_error_not_valueerror(
+    temp_sphinx_app, monkeypatch
+):
+    """53-07 Task 1 / 53-REVIEW.md CR-02: with `os.path.commonpath()`
+    monkeypatched to raise `ValueError` (simulating the `windows-latest`
+    CI lane's real cross-drive behaviour, per D-05's POSIX-simulation
+    precedent), a registry declaring an absolute `template` path under a
+    directory that does not exist still raises this module's own
+    `ExtensionError` (D-08's not-found failure) -- never a raw
+    `ValueError` escaping as an internal exception.
+    """
+    app = temp_sphinx_app
+
+    def _raise_cross_drive(_paths):
+        raise ValueError("Paths don't have the same drive")
+
+    monkeypatch.setattr(os.path, "commonpath", _raise_cross_drive)
+    app.config.typst_document_templates = {
+        "cross_drive": {"template": "/nonexistent_dir_xyz/tpl.typ"}
+    }
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_template_registry(app.config, str(app.srcdir))
+
+    assert "does not exist" in str(excinfo.value)
 
 
 def test_user_defined_key_template_names_nonexistent_file_raises(temp_sphinx_app):

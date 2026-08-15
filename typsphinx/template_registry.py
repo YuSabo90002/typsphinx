@@ -151,11 +151,28 @@ def _violates_conf17(template_abs_path: str, srcdir: str) -> bool:
     ``os.path.join(srcdir, "/abs/x.typ")`` returns ``"/abs/x.typ"``
     verbatim (measured stdlib behaviour -- a later absolute component
     discards every earlier one), so an absolute ``template`` naturally
-    evaluates against its own parent, not ``srcdir``'s.
+    evaluates against its own parent, not ``srcdir``'s. A cross-drive
+    absolute ``template`` (e.g. Windows ``D:\\tpl.typ`` against a
+    ``C:\\...`` ``srcdir``) also stays LEGAL -- see the ``except
+    ValueError`` below -- so a future tightening of this function must not
+    silently withdraw that guarantee.
     """
     parent = os.path.normpath(os.path.dirname(os.path.abspath(template_abs_path)))
     norm_srcdir = os.path.normpath(os.path.abspath(srcdir))
-    return os.path.commonpath([norm_srcdir, parent]) == parent
+    try:
+        return os.path.commonpath([norm_srcdir, parent]) == parent
+    except ValueError:
+        # 53-REVIEW.md CR-02 / D-07: os.path.commonpath() raises
+        # ValueError("Paths don't have the same drive") when handed two
+        # absolute paths on different Windows drives. Two paths on
+        # different drives can never share an ancestor, so a cross-drive
+        # `parent` is definitionally NOT `srcdir` itself and not an
+        # ancestor of `srcdir` -- `False` is the correct answer here, not
+        # a silent permissive default. This mirrors builder.py's
+        # `_track_image()`, which guards its own `path.relpath()` call the
+        # same way for the identical Windows cross-drive hazard (D-07:
+        # "Windows cross-drive relpath() crash").
+        return False
 
 
 @dataclass(frozen=True)
