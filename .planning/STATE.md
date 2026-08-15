@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 53
-current_phase_name: template-registry-foundation
-status: executing
-stopped_at: "Planned 53-08/53-09/53-10 -- Phase 53 gap closure round 2 (SC#5 CI currency + WR-01/WR-02 + REQUIREMENTS.md tracking)"
-last_updated: "2026-08-15T11:55:31.912Z"
+current_phase: 54
+current_phase_name: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
+status: planning
+stopped_at: "Completed Phase 53 -- all 10 plans executed, verification passed 5/5 (SC#5 re-closed on CI run 31884774067 over 35ee8a0e)"
+last_updated: "2026-08-15T12:58:40.822Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 53 gap closure round 2 planned — 10 plans across 8 waves (53-08/09 wave 7, 53-10 wave 8)
+last_activity_desc: Phase 53 complete — 10/10 plans, verification 5/5 passed, code review clean, ready to plan Phase 54
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 10
-  completed_plans: 7
-  percent: 0
+  completed_plans: 10
+  percent: 20
 ---
 
 # Project State
@@ -35,15 +35,15 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-execute-phase 53`
+Next action: `/gsd-discuss-phase 54`
 
 ## Current Position
 
-Phase: 53 (template-registry-foundation) — EXECUTING
-Plan: 1 of 10
-Status: Executing Phase 53
-Progress: [███████░░░] 70% (7/10 plans)
-Last activity: 2026-08-15 — Phase 53 execution started
+Phase: 54 — One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
+Plan: Not started
+Status: Ready to plan
+Progress: [██████████] 100% (10/10 plans — Phase 53 complete)
+Last activity: 2026-08-15 — Phase 53 complete, transitioned to Phase 54
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
