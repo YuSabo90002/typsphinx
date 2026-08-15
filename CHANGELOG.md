@@ -14,6 +14,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks
 - Additional Typst Universe template integration
 
+## [0.8.0] - 2026-08-15
+
+This release makes multi-master composition work: a `typst_documents` configuration declaring
+more than one master now produces a complete PDF for each of them, with every document it reaches
+rendering at that master's own traversal position and heading level instead of being silently
+dropped from all but one. Achieving this required restructuring what typsphinx writes to disk, so
+**this minor release can break a working configuration** — read the `### Changed` section below,
+and see the "Migrating from 0.7.x to 0.8.0" guide in the published documentation for the exact
+rewrite each of the three breaking changes needs.
+
+### Added
+
+- **Multi-master composition — every master now gets its own complete PDF (COMP-05, COMP-06,
+  COMP-07, COMP-09, COMP-10, COMP-12)** — the builder computes each master's include graph by
+  document-order depth-first traversal and publishes it as Typst `state`, so a document reached
+  from more than one master renders once in each master's PDF, at that master's own traversal
+  position, with its heading level varying independently per master; two masters requiring
+  conflicting include sets from the same content file now resolve correctly instead of one
+  silently winning.
+- **Compile-time cross-reference degradation (XREF-03, XREF-04)** — a reference whose target label
+  is absent from the compiling master now degrades to plain text instead of aborting the compile;
+  every label-reference emission site routes through one shared guard so demand and supply sides
+  cannot diverge.
+- **The published documentation now describes the two-layer output (DOC-14)** — which file to
+  compile, what a standalone content-file compile does, and target-as-path semantics are all
+  documented on the new output-layout page.
+
+### Changed
+
+- **Breaking:** the output shape — one `typst_documents` entry now writes TWO files instead of one
+  (COMP-01, COMP-02, COMP-11, OUT-03). With
+  `typst_documents = [("index", "manual.typ", "Title", "Author", "typst")]`, v0.7.x wrote
+  `manual.typ` containing the whole document; v0.8.0 writes `manual.typ` as a thin wrapper
+  (template application plus one include) and `index.typ` as the document body — every docname
+  gets a content file, not only the ones named in `typst_documents`. This is a different change
+  from v0.7.1's own `index.typ` → `<project>.typ` default-target rename: that changed what the
+  target is *called*, this changes what the target file *contains*. A content file compiled
+  standalone yields only its own body, with its state-guarded children absent and no error or
+  warning.
+- **Breaking:** the target-as-path reversal (OUT-01, OUT-02) — a target containing a path
+  separator was rejected in v0.7.x and written under its basename; it is now honoured as-is
+  relative to the output directory. This deliberately reverses v0.7.1 Phase 44's
+  D-05/D-06/D-07; the security half is retained — a target escaping the output directory (`..`
+  segments, absolute or drive-qualified paths) is still refused with a warning and a safe
+  basename fallback.
+- **Breaking:** the collision hard error (BLD-02, BLD-03, BLD-04) — a configuration whose wrapper
+  target resolves onto a content file's own path now raises an `ExtensionError` before anything is
+  written, instead of silently dropping that master's body. This stops a build that used to
+  succeed, for the most common configuration shape (`("index", "index.typ", ...)`); collision
+  detection behaves identically on case-insensitive filesystems.
+
+### Fixed
+
+- **A master that is also another master's toctree child now builds, and an included master no
+  longer re-expands its template (COMP-03, COMP-04)** — a document listed in `typst_documents`
+  that is also another master's toctree child previously failed or rendered incorrectly; an
+  included master no longer re-expands its own template's title page and outline into the middle
+  of the parent's body.
+- **Prose around a toctree keeps its position (COMP-08)** — prose written before and after a
+  `.. toctree::` now keeps its position relative to the included content instead of being
+  reordered.
+- **Two image-path defects fixed (IMG-01, IMG-02)** — a converted image rehomed to
+  `images/<basename>` no longer collides with a real source image of the same basename; an
+  absolute image URI outside the doctree directory no longer causes the copy step to write outside
+  the output directory.
+
+### Verified
+
+- No new **runtime** dependencies across the full milestone diff.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf` re-run remains fatal-free.
+
 ## [0.7.1] - 2026-08-11
 
 This release closes the gap between what typsphinx's documentation promises and what a `conf.py`
@@ -1016,6 +1089,7 @@ untouched.
 
 ---
 
+[0.8.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.8.0
 [0.7.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.1
 [0.7.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.0
 [0.6.5]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.6.5
@@ -1035,4 +1109,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.8.0...HEAD
