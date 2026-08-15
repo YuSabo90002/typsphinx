@@ -552,7 +552,13 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     assert len(warning_records) == 1
     message = warning_records[0].getMessage()
     assert "could not rehome image URI" in message
-    assert abs_uri in message
+    # The product formats the URI with `!r` (deliberate -- it quotes the
+    # path), so the emitted message contains repr(abs_uri), not abs_uri
+    # itself. On POSIX repr() escapes nothing and the two happen to be
+    # equal, masking this on this host; on Windows repr() doubles every
+    # backslash (os.sep == "\\"), so the raw path is no longer a substring
+    # of the message. Asserting against repr(abs_uri) holds on both.
+    assert repr(abs_uri) in message
 
 
 def test_post_process_images_rehome_cross_drive_value_error_relocates(
@@ -566,10 +572,10 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     only for this test's specific absolute URI -- a blanket replacement
     would break unrelated path work inside the same call.
     """
-    import typsphinx.builder as builder_module
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
+    import typsphinx.builder as builder_module
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
