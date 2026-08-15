@@ -256,5 +256,160 @@ four-shapes pre/post baseline above — it is TPL-04's own equivalence claim: an
 
 ## Post-change section
 
-Not yet populated. Plan 53-05 reads this file's recorded pre-change SHAs and diffs post-change
-measurements against them once Phase 53's code has landed.
+Measured by plan 53-05 after Phase 53's registry plumbing (plans 53-01..53-04) landed.
+
+### Post-change commit SHA
+
+Measured with `git rev-parse HEAD` in the main working tree at capture time (not copied from any
+planning document, distinct from the pre-change SHA above):
+
+```
+$ git rev-parse HEAD
+eb445058858994744a29cda93548503c90c76462
+```
+
+### Environment note — live `typst.compile()` probe re-verified
+
+Per the pre-change section's own instruction to re-verify live rather than trust a prior note:
+
+```
+$ uv run python -c "
+import typst
+try:
+    pdf_bytes = typst.compile(input='<scratch>/probe/hello.typ', format='pdf')
+    print('COMPILE OK, bytes:', len(pdf_bytes))
+except Exception as e:
+    print('COMPILE FAILED:', type(e).__name__, e)
+"
+COMPILE OK, bytes: 8552
+```
+
+**Path taken: the real PDF-compile path**, identical to the pre-change measurement — no divergence
+to record. All four shapes below were built with `sphinx-build -b typstpdf` (via
+`uv run python -m sphinx -b typstpdf <source_dir> <scratch_dir>`) and compiled to real PDFs, with
+page counts read via `pypdf.PdfReader(...).pages`, matching the pre-change procedure exactly. This
+measurement ran in the main working tree on branch `gsd/v0.9.0-per-document-templates` (not a
+worktree), so no separate `uv sync` was required — the tree's own `.venv` is already provisioned
+with the post-change `typsphinx` package.
+
+### Four configuration shapes — post-change `.typ` file inventory and SHA-256
+
+Same four fixtures, same builder, same shape labels as the pre-change section.
+
+#### Shape A — `typst_template` set
+
+**Fixture:** `tests/fixtures/documented_params_contract_gate`. Builder: `-b typstpdf`.
+
+Sorted `.typ` file list with SHA-256:
+
+```
+22bc8c60c644fc5e809e58799fb52da82840c08b1e715c6fa8dab9d9d4571511  _template.typ
+c160a6b5cd565ce452736d59b42b5f6d2a066e54608016dd9328232ff9b6e6d3  chapter.typ
+f9fbfa8cacf58676ec6963370bc635dafc61410c0c83613a66f9e894cd2210dc  index.typ
+ef419a0e6264f32a043c40154840ae926590495d1ec19c8241dce6a86579a21f  master.typ
+```
+
+PDF page count: `pypdf.PdfReader('<scratch>/post/shapeA/master.pdf').pages` → **3 pages**.
+
+**Verdict: MATCH.** Sorted file list is identical (4 files, same names). Every SHA-256 matches
+the pre-change value for the same file, exactly. Page count matches (3 = 3).
+
+#### Shape B — `typst_package` set alone (no `typst_template`)
+
+**Fixture:** `tests/fixtures/typst_lang_gate/package_no_lang`. Builder: `-b typstpdf`.
+
+Sorted `.typ` file list with SHA-256:
+
+```
+ce6842fcf4d122f2c5d0f21d711a967406f8357d7e54d1a013e86411c384aa00  index.typ
+3e97a827a8ef0c9151eaf7bbbdb86f28b91a7ac16a0f35c7311a46e88a5831cb  master.typ
+```
+
+(No `_template.typ` emitted, matching pre-change — this shape's package-alone route does not
+write the shared template file, unchanged by Phase 53.)
+
+PDF page count: `pypdf.PdfReader('<scratch>/post/shapeB/master.pdf').pages` → **1 page**.
+
+**Verdict: MATCH.** Sorted file list is identical (2 files, same names, `_template.typ` absent in
+both). Every SHA-256 matches the pre-change value for the same file, exactly. Page count matches
+(1 = 1).
+
+#### Shape C — `typst_template_function` set alone (no `typst_template`, no `typst_package`)
+
+**Fixture:** `tests/fixtures/params_exclusivity_gate/zero_params_default`. Builder: `-b typstpdf`.
+
+Sorted `.typ` file list with SHA-256:
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+faaad8f821d381215b50eaa87ddb85f50810a6903b9555f101e507cc1bedefb2  index.typ
+20d0162ec4e84fae8cc1af30e563746355efd4e2107360689a9335e6e6e40490  master.typ
+```
+
+PDF page count: `pypdf.PdfReader('<scratch>/post/shapeC/master.pdf').pages` → **3 pages**.
+
+**Verdict: MATCH.** Sorted file list is identical (3 files, same names). Every SHA-256 matches
+the pre-change value for the same file, exactly. Page count matches (3 = 3).
+
+#### Shape D — nothing set (bundled `base.typ`)
+
+**Fixture:** `tests/roots/test-basic`. Builder: `-b typstpdf`.
+
+Sorted `.typ` file list with SHA-256:
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+57b4af37eae8588497ecd0613d633facd0d3e1a24ad315802f4db469f638c43e  index.typ
+8613bc8366e60145da1c12fa1d50596cf54799bcf1adefd502d7de1248119f3d  output.typ
+```
+
+PDF page count: `pypdf.PdfReader('<scratch>/post/shapeD/output.pdf').pages` → **3 pages**.
+
+**Verdict: MATCH.** Sorted file list is identical (3 files, same names). Every SHA-256 matches
+the pre-change value for the same file, exactly. Page count matches (3 = 3).
+
+### TPL-04 equivalence (post-change)
+
+Repeated plan 53-01 Task 2's procedure exactly: two copies of
+`tests/fixtures/params_exclusivity_gate/zero_params_default` in the session scratchpad — Copy 1
+(`tpl04_four`) with `typst_documents` left as authored (four elements), Copy 2 (`tpl04_five`) with
+a literal fifth element `"typst"` appended to every tuple — both built with `-b typstpdf` into
+separate scratch output directories.
+
+#### Copy 1 (`tpl04_four`, four-element tuple) — sorted `.typ` inventory
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+faaad8f821d381215b50eaa87ddb85f50810a6903b9555f101e507cc1bedefb2  index.typ
+20d0162ec4e84fae8cc1af30e563746355efd4e2107360689a9335e6e6e40490  master.typ
+```
+
+#### Copy 2 (`tpl04_five`, explicit fifth element `"typst"`) — sorted `.typ` inventory
+
+```
+3976ef36a1da147038b6dd51d6c73632a26454258733aac0c05502d91110a5cc  _template.typ
+faaad8f821d381215b50eaa87ddb85f50810a6903b9555f101e507cc1bedefb2  index.typ
+20d0162ec4e84fae8cc1af30e563746355efd4e2107360689a9335e6e6e40490  master.typ
+```
+
+#### Post-change comparison result
+
+**Identical.** Every SHA-256 in Copy 1's inventory matches the corresponding file's SHA-256 in
+Copy 2's inventory, file for file (`_template.typ`, `index.typ`, `master.typ`), confirmed with a
+direct `diff` of the two sorted hash listings (empty diff). PDF page counts also match:
+`pypdf.PdfReader('<scratch>/post/tpl04_four/master.pdf').pages` → **3 pages**;
+`pypdf.PdfReader('<scratch>/post/tpl04_five/master.pdf').pages` → **3 pages**.
+
+Both copies are additionally byte-identical to the pre-change TPL-04 baseline above (same three
+hashes, same three page counts) — the registry resolver now performs this resolution
+(`resolve_registry_key()` mapping an absent element [4] and an explicit `"typst"` fifth element to
+the same `TemplateRegistryEntry`, per plan 53-02/53-03), and produces the same output the
+pre-registry code path produced.
+
+### Post-change summary verdict
+
+All four shapes (A, B, C, D) and the TPL-04 four-element-vs-fifth-element comparison are
+byte-identical between the pre-change commit (`222e1b9b81809ef31b06c897e6eae0efdadf2cf9`) and the
+post-change commit (`eb445058858994744a29cda93548503c90c76462`). No file list changed (no file
+appeared or disappeared in any shape), no SHA-256 changed, and no PDF page count changed. SC#2's
+zero-edit-equivalence claim for TPL-03/TPL-04 is proven by measured identity, not assumption.
