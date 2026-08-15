@@ -246,9 +246,10 @@ class TestOut01DirectoryBearingTarget:
             f"Expected the wrapper's #include() to climb one level back "
             f"to the outdir-root content file:\n{wrapper_text}"
         )
-        assert '#import "../_template.typ"' in wrapper_text, (
-            f"Expected the wrapper's template import to climb one level "
-            f"back to the outdir-root _template.typ:\n{wrapper_text}"
+        assert '#import "/_template/typst/base.typ"' in wrapper_text, (
+            f"Expected the wrapper's root-absolute bundled-template "
+            f"import (OUT-06), unaffected by its own nesting "
+            f"depth:\n{wrapper_text}"
         )
         wrapper_pdf = outdir / "manuals" / "guide.pdf"
         assert wrapper_pdf.exists(), (

@@ -20,10 +20,11 @@ build:
     build:
       pdf:
         # The typstpdf builder writes many files into its output directory
-        # (the PDF, one .typ per document, _template.typ, and a doctrees
-        # tree -- 31 files, measured 2026-07-25) -- only the PDF may cross
-        # into RTD's public download area, so the build target is a
-        # temporary directory, never $READTHEDOCS_OUTPUT itself (D-04).
+        # (the PDF, one .typ per document, every used template key's own
+        # copied bundle directory under _template/<key>/, and a doctrees
+        # tree) -- only the PDF may cross into RTD's public download area,
+        # so the build target is a temporary directory, never
+        # $READTHEDOCS_OUTPUT itself (D-04).
         - mkdir -p /tmp/typst-pdf-build/doctrees
         - sphinx-build -b typstpdf -d /tmp/typst-pdf-build/doctrees docs/source /tmp/typst-pdf-build/out
         # $READTHEDOCS_OUTPUT expands to a `_readthedocs/` directory whose

@@ -145,14 +145,15 @@ class TestBothConfiguredRouting:
             f"{combined_output}"
         )
 
-        # The custom template IS written and imported...
-        template_out = outdir / "_template.typ"
+        # The custom template IS copied into the built-in key's bundle
+        # and imported by its root-absolute path (OUT-04/OUT-06)...
+        template_out = outdir / "_template" / "typst" / "template.typ"
         assert template_out.exists()
 
         wrapper_typ = outdir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
         emitted_text = wrapper_typ.read_text()
-        assert '#import "_template.typ": project' in emitted_text
+        assert '#import "/_template/typst/template.typ": project' in emitted_text
 
         # ...and the package import is genuinely suppressed, not merely
         # deprioritised.
@@ -207,4 +208,4 @@ class TestTemplateAloneNonRegression:
         wrapper_typ = outdir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
         emitted_text = wrapper_typ.read_text()
-        assert '#import "_template.typ": ieee' in emitted_text
+        assert '#import "/_template/typst/template.typ": ieee' in emitted_text

@@ -178,9 +178,10 @@ def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) 
     the real `#show: project.with(...)` call's closing paren and the blank
     line that follows it in `template_engine.py`'s `render()` output.
 
-    R2 (post-Phase-47): the `#import "_template.typ"` line and the
-    `#show: project.with(...)` call this function searches for now live on
-    the WRAPPER file (this fixture's `typst_documents` target,
+    R2 (post-Phase-47): the bundled-template import line (Phase 54,
+    OUT-06: `#import "/_template/<key>/<file>.typ"`, root-absolute) and
+    the `#show: project.with(...)` call this function searches for now
+    live on the WRAPPER file (this fixture's `typst_documents` target,
     `master.typ`), not the docname-derived content file (`index.typ`,
     which carries only the D-06 preamble and the translated body) --
     `base_source` must be the wrapper's own text.
@@ -205,9 +206,9 @@ def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) 
     artifact under test stays the translator's own output. Locates the
     LATER of the document's two `#show: ` statements (the earlier one,
     `#show: codly-init.with()`, is unrelated) by searching from the
-    `#import "_template.typ"` line onward.
+    bundled-template import line onward.
     """
-    template_import_idx = base_source.index('#import "_template.typ"')
+    template_import_idx = base_source.index('#import "/_template/')
     show_idx = base_source.index("#show: ", template_import_idx)
     insertion_idx = base_source.index(")\n\n", show_idx) + len(")\n\n")
     override = f"#set page(height: {height_pt}pt, margin: {margin_pt}pt)\n\n"
@@ -227,9 +228,13 @@ def _compile_and_extract_pages(wrapper_typ_path: Path, build_dir: Path) -> list:
     docname-derived content file's body (R1, where the sentinels this
     module asserts on actually live), unaffected by this override. The
     probe file is written alongside the wrapper (`build_dir`), so the
-    `#include("index.typ")` and `#import "_template.typ"` paths inside the
-    copied source keep resolving exactly as they did for the real
-    `master.typ`.
+    `#include("index.typ")` path AND the root-absolute
+    `#import "/_template/<key>/<file>.typ"` path inside the copied
+    source keep resolving exactly as they did for the real `master.typ`
+    -- ``typst.compile()`` defaults its project root to the compiled
+    file's own directory when ``root=`` is omitted (as it is here), and
+    the real build already copied the bundle to
+    ``build_dir/_template/<key>/``.
     """
     base_source = wrapper_typ_path.read_text(encoding="utf-8")
     probe_source = _insert_page_override(base_source, PAGE_HEIGHT_PT, PAGE_MARGIN_PT)
@@ -277,7 +282,7 @@ def signature_page_boundary_pages(tmp_path_factory):
     assert (
         result.returncode == 0
     ), f"sphinx-build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-    # R2/R3: the template application (#import "_template.typ" + #show:
+    # R2/R3: the template application (#import "/_template/<key>/..." + #show:
     # project.with(...)) the page-override probe mutates lives on the
     # wrapper (this fixture's target, "master.typ"), not the
     # docname-derived content file.

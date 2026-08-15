@@ -82,9 +82,10 @@ class TestTwoLayerOutputGate:
         47-EXPECTED-STRUCTURE.md Fixture 1, expected table row "Content
         (docname index)": a docname-named content file must exist at
         ``index.typ``, carry NO template application (no
-        ``#show: project.with(``, no ``_template.typ`` import) and NO
-        title-page framing, only the D-06 preamble (four ``@preview``
-        imports plus codly init) and the translated body.
+        ``#show: project.with(``, no bundled-template import under
+        ``/_template/``) and NO title-page framing, only the D-06
+        preamble (four ``@preview`` imports plus codly init) and the
+        translated body.
 
         Pre-fix: no ``index.typ`` file exists at all -- the unfixed tree
         writes exactly one file per docname, at its RESOLVED STEM
@@ -112,8 +113,8 @@ class TestTwoLayerOutputGate:
             "#show: project.with(" not in content
         ), f"Expected NO template application in the content file:\n{content}"
         assert (
-            "_template.typ" not in content
-        ), f"Expected NO _template.typ import in the content file:\n{content}"
+            "/_template/" not in content
+        ), f"Expected NO bundled-template import in the content file:\n{content}"
         assert (
             '#import "@preview/codly:1.3.0": *' in content
         ), f"Expected the D-06 codly import in the content file:\n{content}"
@@ -162,8 +163,8 @@ class TestTwoLayerOutputGate:
 
         content = wrapper_typ.read_text(encoding="utf-8")
         assert (
-            "_template.typ" in content
-        ), f"Expected the shared-template import in the wrapper:\n{content}"
+            '#import "/_template/typst/base.typ"' in content
+        ), f"Expected the bundled default's root-absolute import in the wrapper:\n{content}"
         assert "#include(" in content, (
             f"Expected an #include() of the content file in the wrapper:\n" f"{content}"
         )
@@ -495,25 +496,43 @@ class TestComputeContentIncludePath:
         assert compute_content_include_path("", "index.typ") == "index.typ"
 
 
-class TestComputeTemplateImportPathForDir:
+class TestComputeTemplateImportPath:
     """
-    Unit tests for ``compute_template_import_path_for_dir`` (task 1's
-    behavior block): the wrapper's own resolved directory alone
-    determines the shared ``_template.typ`` import path, since
-    ``_write_template_file()`` always writes it at the outdir root.
+    Unit tests for ``compute_template_import_path()`` (Phase 54, OUT-06):
+    a root-absolute import path computed from a registry key and the
+    resolved template's own filename -- NOT from the wrapper's own
+    resolved directory, unlike the depth-counted
+    ``compute_template_import_path_for_dir()`` this replaces (deleted).
+    Typst resolves a leading ``/`` against the project root
+    (``pdf.py``'s ``root=self.outdir``), so the wrapper's own nesting
+    depth is irrelevant by construction.
     """
 
-    def test_root_wrapper_imports_bare_template(self):
-        from typsphinx.writer import compute_template_import_path_for_dir
+    def test_bare_key_imports_root_absolute_path(self):
+        from typsphinx.writer import compute_template_import_path
 
-        assert compute_template_import_path_for_dir("") == "_template.typ"
+        assert (
+            compute_template_import_path("typst", "base.typ")
+            == "/_template/typst/base.typ"
+        )
 
-    def test_one_level_nested_wrapper_imports_one_up(self):
-        from typsphinx.writer import compute_template_import_path_for_dir
+    def test_same_key_same_path_regardless_of_a_notional_wrapper_depth(self):
+        """OUT-06: the function accepts no wrapper-directory argument at
+        all, so calling it repeatedly for the SAME key/filename -- as if
+        for wrappers written at increasingly deep notional nesting --
+        always returns the IDENTICAL string."""
+        from typsphinx.writer import compute_template_import_path
 
-        assert compute_template_import_path_for_dir("manuals") == "../_template.typ"
+        results = {
+            compute_template_import_path("report", "custom.typ")
+            for _notional_depth in range(4)
+        }
+        assert results == {"/_template/report/custom.typ"}
 
-    def test_two_level_nested_wrapper_imports_two_up(self):
-        from typsphinx.writer import compute_template_import_path_for_dir
+    def test_different_key_imports_its_own_bundle(self):
+        from typsphinx.writer import compute_template_import_path
 
-        assert compute_template_import_path_for_dir("a/b") == "../../_template.typ"
+        assert (
+            compute_template_import_path("report", "custom.typ")
+            == "/_template/report/custom.typ"
+        )

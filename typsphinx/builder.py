@@ -1696,7 +1696,15 @@ class TypstBuilder(Builder):
                 or once, aggregated, when two used keys collide on their
                 bundle destination.
         """
-        if not self._used_template_keys:
+        # Defensive getattr: several existing unit tests construct a
+        # builder directly (`TypstPDFBuilder(app, env)`) and call
+        # `finish()` without ever calling `init()` (Sphinx's own
+        # `Builder.__init__` does not call it -- only `app._init_builder()`
+        # does) or `write()`. Such a builder wrote no wrapper at all, so
+        # "nothing to copy" is the CORRECT answer, not a crash -- mirrors
+        # CONF-19's own `getattr(config, "_raw_config", {})` defensiveness
+        # convention elsewhere in this codebase.
+        if not getattr(self, "_used_template_keys", None):
             return
 
         import importlib.resources

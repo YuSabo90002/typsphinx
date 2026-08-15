@@ -167,6 +167,12 @@ class TestRegistryKeyPreWriteGate:
         expected = sorted(
             [
                 "_template.typ",
+                # Phase 54 (OUT-04): the built-in "typst" key's bundled
+                # default template, now ALSO copied to
+                # _template/typst/base.typ -- a legitimate addition from
+                # this plan's own bundle-copy driver, unrelated to
+                # CONF-14's validation pass this control test pins.
+                "base.typ",
                 "five.typ",
                 "five_out.typ",
                 "four.typ",
