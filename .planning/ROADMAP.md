@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 6/8 plans executed
+**Plans**: 7/8 plans executed
 
 Plans:
 **Wave 1**
@@ -965,7 +965,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 52-08-PLAN.md — Fix the three pre-existing defects the 52-04 CI authority run surfaced (locale-dependent baseline, `repr()`-escaped assertion, ruff I001), re-push and re-dispatch, record the green run and close the ledger (SC#3, toolchain half — added mid-phase after 52-04 came back RED)
+- [x] 52-08-PLAN.md — Fix the three pre-existing defects the 52-04 CI authority run surfaced (locale-dependent baseline, `repr()`-escaped assertion, ruff I001), re-push and re-dispatch, record the green run and close the ledger (SC#3, toolchain half — added mid-phase after 52-04 came back RED)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -1012,7 +1012,7 @@ sequential, not merely numbered:
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
 | 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
-| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 6/7 | In Progress|  |
+| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 7/8 | In Progress|  |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`.
