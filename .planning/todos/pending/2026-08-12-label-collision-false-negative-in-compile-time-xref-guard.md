@@ -2,7 +2,7 @@
 created: 2026-08-12T15:22:16+09:00
 title: Label-collision false negative in the compile-time cross-reference guard — a reference whose real target is absent can render as a working link to a same-spelled decoy
 area: translator
-resolves_phase: null
+resolves_phase: 55
 severity: minor
 files:
   - typsphinx/translator.py  # TypstTranslator._label_existence_guard()

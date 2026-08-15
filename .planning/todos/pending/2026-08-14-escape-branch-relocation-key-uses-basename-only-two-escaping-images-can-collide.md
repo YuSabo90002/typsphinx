@@ -2,7 +2,7 @@
 created: 2026-08-14T22:05:00+09:00
 title: "`_track_image()`'s escape branch keys the relocation on `basename` alone — two escaping absolute URIs sharing a basename collide onto one `_typst_converted/<basename>` key"
 area: builder
-resolves_phase: null
+resolves_phase: 55
 source: .planning/phases/50-pr-131-image-path-defects/50-REVIEW.md (CR-01), 50-VERIFICATION.md (human_verification item 1, owner-dispositioned 2026-08-14)
 severity: minor
 files:

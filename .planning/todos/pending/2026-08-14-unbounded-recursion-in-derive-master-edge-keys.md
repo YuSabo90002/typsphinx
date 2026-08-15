@@ -2,7 +2,7 @@
 created: 2026-08-14T19:55:48+09:00
 title: "`derive_master_edge_keys`'s recursive `walk()` has no depth guard — a deep include chain crashes the build with a raw RecursionError"
 area: translator
-resolves_phase: null
+resolves_phase: 55
 source: .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-REVIEW.md (WR-02), 49-VERIFICATION.md (human_verification item 2)
 severity: minor
 files:

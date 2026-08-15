@@ -2,7 +2,7 @@
 created: 2026-08-15
 title: "`_track_image()` uses bare `path.isabs()`, not the project's own `posixpath.isabs()` + `_is_drive_qualified()` idiom -- a driveless-absolute Windows image URI is silently not rehomed under CPython 3.13"
 area: builder
-resolves_phase: null
+resolves_phase: 55
 severity: minor
 source: Phase 52 plan 52-09, surfaced by CI run 31856929828 (Test Python 3.13 on windows-latest), root-caused by direct log read plus CPython source cross-reference; Broken Windows ledger entry 6
 files:
