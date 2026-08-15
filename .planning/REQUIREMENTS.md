@@ -33,12 +33,12 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [x] **CONF-14**: An unregistered registry key stops the build, and the error names the registered
       keys
 
-- [ ] **CONF-15**: A registry entry carrying both `template` and `package` stops the build
+- [x] **CONF-15**: A registry entry carrying both `template` and `package` stops the build
 - [ ] **CONF-16**: Defining `"typst"` in the registry stops the build — it is a reserved key
-- [ ] **CONF-17**: A `template` pointing at a file directly under `srcdir` stops the build — it has
+- [x] **CONF-17**: A `template` pointing at a file directly under `srcdir` stops the build — it has
       no bundle directory
 
-- [ ] **CONF-18**: A registry key whose shape is unsafe as a single path segment stops the build:
+- [x] **CONF-18**: A registry key whose shape is unsafe as a single path segment stops the build:
       empty, `.`/`..`, containing `/` or `\`, a Windows reserved device name, a trailing dot or
       space, or differing from another key only by case
 
@@ -158,10 +158,10 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | TPL-04 | Phase 53 | Complete |
 | TPL-05 | Phase 53 | Pending |
 | CONF-14 | Phase 53 | Complete |
-| CONF-15 | Phase 53 | Pending |
+| CONF-15 | Phase 53 | Complete |
 | CONF-16 | Phase 53 | Pending |
-| CONF-17 | Phase 53 | Pending |
-| CONF-18 | Phase 53 | Pending |
+| CONF-17 | Phase 53 | Complete |
+| CONF-18 | Phase 53 | Complete |
 | CONF-19 | Phase 54 | Pending |
 | OUT-04 | Phase 54 | Pending |
 | OUT-05 | Phase 54 | Pending |
