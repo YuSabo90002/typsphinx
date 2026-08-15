@@ -294,3 +294,90 @@ earlier plan within it) had been interrupted or only partially merged at any poi
 observations, there would still be no tag, no PyPI release, and no GitHub Release to unwind. The
 repository's git-tag state for `v0.8.0` is exactly as it was before this phase's Task 1 ran, and
 remains exactly that at this document's own close.
+
+## Closeout guard — REL-07 must stay Pending
+
+Recorded BEFORE anything else in this plan's Task 3 ran, so a later diff has something to compare
+against.
+
+**REL-07's two lines in `.planning/REQUIREMENTS.md`, verbatim, with their line numbers:**
+
+```
+103:- [ ] **REL-07**: v0.8.0 is released to PyPI with a curated CHANGELOG entry calling out the
+```
+```
+268:| REL-07 | Phase 52 | Pending |
+```
+
+**Checksum of the whole file:**
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+566859ead9c24a37281f81c96fcec0d6702424637add5f7b2346d156dab4682e  .planning/REQUIREMENTS.md
+```
+
+**REL-07's checkbox must read `- [ ]` and its Traceability row must read `Pending` at phase close.**
+`.planning/REQUIREMENTS.md` is expected to appear in NO diff produced by this phase.
+
+### The phase's own closing fence checks, run and recorded (never asserted from memory)
+
+Command:
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+```
+Verbatim output:
+```
+(empty)
+```
+
+Command:
+```
+$ grep -n 'REL-07' .planning/REQUIREMENTS.md
+```
+Verbatim output:
+```
+103:- [ ] **REL-07**: v0.8.0 is released to PyPI with a curated CHANGELOG entry calling out the
+268:| REL-07 | Phase 52 | Pending |
+279:(REL-07).
+```
+Checkbox still `- [ ]`, Traceability row still `Pending` — unchanged.
+
+Command:
+```
+$ git diff --name-only -- typsphinx/
+```
+Verbatim output:
+```
+(empty)
+```
+
+Command:
+```
+$ ls .planning/phases/52-v0-8-0-release-prep-prep-only/
+```
+No `52-VERIFICATION.md` present in the listing (30 files: PLAN/SUMMARY pairs for plans 01-09,
+`52-BUMP-EVIDENCE.md`, `52-CI-EVIDENCE.md`, `52-CONTEXT.md`, `52-DISCUSSION-LOG.md`,
+`52-GOAL-CLAIM-EVIDENCE.md`, `52-GREEN-TREE-EVIDENCE.md`, `52-HANDOFF.md`, `52-PATTERNS.md`,
+`52-RELEASE-EVIDENCE.md`, `52-RESEARCH.md`, `52-SC4-INVARIANTS.md`, `52-VALIDATION.md`,
+`COVERAGE.md`).
+
+Command:
+```
+$ git status --porcelain
+```
+Verbatim output (immediately before this task's own commit):
+```
+(empty)
+```
+The working tree is at rest — no uncommitted change of any kind — before this task's own
+`52-HANDOFF.md` edit is staged.
+
+### Instruction for whoever runs the phase close
+
+**Diff `.planning/REQUIREMENTS.md` after any closeout automation runs and before committing the
+close.** If REL-07's checkbox or Traceability row changed, revert that change by hand and re-apply
+the correct still-`Pending` state, then record the revert. `phase.complete` has a recorded, repeated
+habit of auto-flipping REL rows against a CONTEXT decision — caught in Phase 41, pre-empted in
+Phase 42 by `42-CLOSEOUT-GUARD.md`, and documented again at the v0.7.1 close (`46-HANDOFF.md` item
+6, same procedure). This has happened before on this exact class of phase and must not be assumed
+not to recur.
