@@ -243,3 +243,10 @@ fix:
 Plans 52-05 and 52-06 (local docs/corpus evidence and the SC#4 invariant sweep) are independent
 of this outcome and can proceed regardless. Plan 52-07 (the mechanical post-authority-SHA
 assertion) depends on this plan's accepted authority SHA existing, which does not yet exist.
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/52-v0-8-0-release-prep-prep-only/52-CI-EVIDENCE.md`
+- FOUND: `.planning/phases/52-v0-8-0-release-prep-prep-only/52-04-SUMMARY.md`
+- FOUND: commit `c87a9213` (CI evidence + WINDOWS.md ledger)
+- FOUND: commit `a2a71e26` (this SUMMARY)
