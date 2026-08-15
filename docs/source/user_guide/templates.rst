@@ -81,22 +81,22 @@ Template Assets
 
 When using custom templates, you often need additional assets like fonts, logos, or images. typsphinx automatically copies these assets to the output directory.
 
-**Automatic Asset Copying (Default)**
+**Automatic Bundle Copying**
 
-By default, all files in your template directory are automatically copied (except ``.typ`` files):
+Your template's whole bundle directory (the directory containing the resolved template file) is copied wholesale to the output directory -- no configuration needed:
 
 .. code-block:: python
 
    # conf.py
    typst_template = "_templates/custom.typ"
-   # All files in _templates/ are automatically copied
+   # Every file in _templates/ is automatically copied, including custom.typ itself
 
 Directory structure:
 
 .. code-block:: text
 
    _templates/
-     ├── custom.typ          # Template file
+     ├── custom.typ          # Template file, automatically copied
      ├── logo.png            # Automatically copied
      ├── fonts/
      │   └── custom.otf      # Automatically copied
@@ -112,40 +112,10 @@ Reference assets in your template using relative paths:
    #set text(font: "fonts/custom.otf")
    #image("icons/icon.svg")
 
-**Explicit Asset Specification**
-
-For more control, explicitly specify which assets to copy:
-
-.. code-block:: python
-
-   # conf.py
-   typst_template = "_templates/custom.typ"
-   typst_template_assets = [
-       "_templates/logo.png",
-       "_templates/fonts/",
-       "_templates/icons/*.svg"
-   ]
-
-Features:
-
-- Individual files: ``"_templates/logo.png"``
-- Directories: ``"_templates/fonts/"``
-- Glob patterns: ``"_templates/icons/*.svg"``
-
-**Disabling Automatic Copying**
-
-To disable automatic asset copying (for performance):
-
-.. code-block:: python
-
-   # conf.py
-   typst_template = "_templates/custom.typ"
-   typst_template_assets = []  # Empty list = no automatic copying
-
 .. note::
 
    Typst Universe packages (``typst_package``) handle assets automatically.
-   Asset copying only applies to custom local templates (``typst_template``).
+   Bundle copying only applies to custom local templates (``typst_template``).
 
 Basic Structure
 ~~~~~~~~~~~~~~~

@@ -64,7 +64,7 @@ The four Typst Universe `@preview` package versions (`codly`, `codly-languages`,
 
 ## Configuration surface
 
-User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_template_assets`, and `typst_debug`. Rich author structure (department/organization/location/email) is expressed via `typst_template_function`'s `params` route, not a dedicated config value — the dedicated author-details value that once existed here was removed in Phase 45.1 (CONF-10).
+User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, and `typst_debug`. Rich author structure (department/organization/location/email) is expressed via `typst_template_function`'s `params` route, not a dedicated config value — the dedicated author-details value that once existed here was removed in Phase 45.1 (CONF-10). The asset-list config value that once selected which template-directory files reached the output was removed in Phase 54 (CONF-19) — every used template's whole bundle directory is now copied wholesale to `<outdir>/_template/<key>/` automatically.
 
 ## Tests
 
