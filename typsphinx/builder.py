@@ -627,6 +627,71 @@ class TypstBuilder(Builder):
                 f"typst: {len(failures)} output path collision(s): {summary}"
             )
 
+    def _validate_registry_key_references(self) -> None:
+        """Validate that every usable ``typst_documents`` entry's registry
+        key reference (TPL-04's element ``[4]``) resolves against
+        ``self._document_template_registry`` (CONF-14).
+
+        Runs ONCE, called from ``write()`` immediately after
+        ``self._document_template_registry = resolve_template_registry(...)``
+        and before ``prepare_writing()`` (which writes the shared
+        ``_template.typ`` immediately) -- exactly
+        ``_validate_output_path_collisions()``'s own precedent, extended to
+        cover the one registry validation that previously had no up-front
+        treatment: ``resolve_registry_key()`` was reachable only from
+        ``_write_typst_files()``'s per-docname wrapper loop, which runs
+        strictly after that docname's own content file -- and after every
+        earlier-sorted docname's content and wrapper files -- have already
+        hit disk. Placing this check here makes "no ``.typ`` file is
+        written when a registry-key reference is bad" structural rather
+        than a promise, for both master orders (53-06-RED-EVIDENCE.md).
+
+        Iterates ``typst_documents`` in DECLARATION order and raises on
+        the FIRST offending entry -- failures are deliberately NOT
+        accumulated across entries here, unlike
+        ``_validate_output_path_collisions()``'s own D-02 aggregation,
+        because ``resolve_registry_key()`` already owns CONF-14's message
+        text and shape; accumulating here would mint a second, divergent
+        message shape for the same error class. Declaration order is
+        fixed for a given ``conf.py``, so the raise is byte-identical
+        across runs (D-03).
+
+        Covers EVERY usable entry in ``typst_documents``, including an
+        entry whose docname is not in THIS build's ``docnames`` set --
+        deliberate, matching D-05's "validation covers every declared
+        key, not only keys referenced by an entry being written", which
+        is what makes order-independence hold trivially.
+
+        Skips entries failing ``_is_usable_typst_documents_entry()``
+        without raising -- ``_validate_output_path_collisions()`` already
+        emits the one per-build warning for those, so this method stays
+        silent about them (it never becomes a second warning site for the
+        same skip).
+
+        The per-wrapper ``resolve_registry_key()`` call in
+        ``_write_typst_files()`` (builder.py, inside the wrapper loop)
+        DELIBERATELY STAYS: it is the data-flow lookup that hands
+        ``render_wrapper()`` its resolved ``TemplateRegistryEntry``, an
+        idempotent dict lookup, and it is load-bearing for the several
+        existing tests that drive ``write_doc()``/``_write_typst_files()``
+        directly without ever calling ``write()`` (the same reason the
+        lazy registry fallback there exists). After this change it can no
+        longer be the FIRST place a bad key is noticed in a real build.
+        No memoization is introduced here; a second per-entry cache would
+        be new state for no behavioural gain.
+
+        Raises:
+            ExtensionError: The same error ``resolve_registry_key()``
+                raises for the first offending entry, unchanged --
+                either a non-``str`` element ``[4]`` (D-06) or a ``str``
+                absent from the resolved registry (CONF-14).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        for entry in typst_documents:
+            if not _is_usable_typst_documents_entry(entry):
+                continue
+            resolve_registry_key(self._document_template_registry, entry)
+
     def get_outdated_docs(self) -> Iterator[str]:
         """
         Return an iterator of document names that need to be rebuilt.
@@ -737,6 +802,15 @@ class TypstBuilder(Builder):
         self._document_template_registry = resolve_template_registry(
             self.config, str(self.srcdir)
         )
+
+        # Phase 53 plan 06 (CONF-14, ROADMAP SC#3): validate every usable
+        # typst_documents entry's registry key reference HERE, before
+        # prepare_writing() writes anything, so a bad key leaves ZERO
+        # ".typ" files on disk regardless of that entry's docname sort
+        # position -- covers EVERY declared entry, not only ones in this
+        # build's docnames set (D-05), which is what makes the guarantee
+        # order-independent.
+        self._validate_registry_key_references()
 
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
