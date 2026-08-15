@@ -36,13 +36,17 @@ This module is split into two parts:
   depths -- that real, end-to-end proof (two wrappers at two different
   nesting depths naming the SAME registry key, built and compared for
   real) lives in ``tests/test_two_key_selection_gate.py``.
-- A real-compile render gate (``TestTemplateNamedDirMasterRenderGate``)
-  that drives a real ``-b typst`` build of a fixture whose only docnames
-  sit under a directory literally named ``_template``, and compiles both
-  emitted WRAPPERS for real via ``typst.compile(wrapper, root=outdir)`` --
-  proving the emitted reference actually RESOLVES against the bundled
+- A real-compile render gate (``TestNestedDirMultiMasterRenderGate``) that
+  drives a real ``-b typst`` build of ``tests/fixtures/nested_dir_multi_master/``
+  (Phase 54 plan 07's positive successor to the former
+  `template-named-dir-master` fixture -- that predecessor's docnames sat
+  under a directory literally named ``_template``, which OUT-07's prefix
+  reservation now refuses outright; ``tests/test_template_prefix_reservation_gate.py``
+  proves THAT refusal, on the relocated negative successor) and compiles
+  both emitted WRAPPERS for real via ``typst.compile(wrapper, root=outdir)``
+  -- proving the emitted reference actually RESOLVES against the bundled
   default's own copied bundle, not merely that it reads correctly, and
-  that a content-file directory literally named ``_template`` has zero
+  that the two entries' distinct nested docname directories have zero
   effect on either wrapper's import string (CR-01's original concern,
   now closed structurally rather than arithmetically).
 """
@@ -185,9 +189,9 @@ def _run_sphinx_build(
 
 
 @pytest.fixture
-def template_named_dir_master_dir():
-    """Return the path to the template_named_dir_master fixture project."""
-    return Path(__file__).parent / "fixtures" / "template_named_dir_master"
+def nested_dir_multi_master_dir():
+    """Return the path to the nested_dir_multi_master fixture project."""
+    return Path(__file__).parent / "fixtures" / "nested_dir_multi_master"
 
 
 @pytest.fixture
@@ -198,18 +202,18 @@ def temp_build_dir(tmp_path):
 
 @pytest.mark.skipif(
     not TYPST_AVAILABLE,
-    reason="typst-py is required for the template-named-dir-master render gate",
+    reason="typst-py is required for the nested-dir-multi-master render gate",
 )
-class TestTemplateNamedDirMasterRenderGate:
+class TestNestedDirMultiMasterRenderGate:
     """
     Real-compile render gate (GATE-01 shape, D-06) proving that a project
-    whose docnames live inside a directory literally named ``_template``
-    still emits correct, resolvable content AND wrapper files, and that
-    both wrappers compile for real to valid PDF bytes via
+    whose docnames live inside a nested source directory still emits
+    correct, resolvable content AND wrapper files, and that both wrappers
+    compile for real to valid PDF bytes via
     ``typst.compile(wrapper, root=outdir)``.
 
-    Fixture shape: ``tests/fixtures/template_named_dir_master/`` has two
-    docnames, ``_template/index`` (depth 1) and ``_template/sub/index``
+    Fixture shape: ``tests/fixtures/nested_dir_multi_master/`` has two
+    docnames, ``partials/index`` (depth 1) and ``partials/sub/index``
     (depth 2), each named by its own ``typst_documents`` entry with a
     DISTINCT, bare (no path separator) target -- ``template-dir-master.typ``
     and ``template-dir-sub.typ`` -- so both wrappers resolve at the OUTDIR
@@ -218,20 +222,25 @@ class TestTemplateNamedDirMasterRenderGate:
     key's bundled default template (``base.typ``); under OUT-06's
     root-absolute contract both wrappers import the IDENTICAL
     ``/_template/typst/base.typ`` string regardless of their own
-    directory -- including the wrapper whose docname's own directory is
-    literally named ``_template`` -- this render gate's own real-compile
-    proof that CR-01's original defect class is now structurally
-    impossible, not merely avoided by depth arithmetic.
+    directory -- this render gate's own real-compile proof that CR-01's
+    original defect class (a depth-counted import going stem-less when a
+    docname directory happened to collide with the reserved basename) is
+    now structurally impossible, not merely avoided by depth arithmetic.
+    The original layout that literally reproduced CR-01 (a docname
+    directory named ``_template``) is relocated to
+    ``tests/fixtures/template_prefix_reservation_gate/`` and is now a
+    build error, proved by
+    ``tests/test_template_prefix_reservation_gate.py`` instead.
     """
 
-    def test_template_named_dir_master_resolves_and_compiles(
-        self, template_named_dir_master_dir, temp_build_dir
+    def test_nested_dir_multi_master_resolves_and_compiles(
+        self, nested_dir_multi_master_dir, temp_build_dir
     ):
         """
         Build the fixture through ``-b typst``, then assert:
 
         1. Both docnames' CONTENT files exist at their docname-derived
-           paths (inside the ``_template/`` directory tree), carrying no
+           paths (inside the ``partials/`` directory tree), carrying no
            template application (R1).
         2. Both entries' WRAPPER files exist at their bare, outdir-root
            target paths, each importing the built-in key's bundled
@@ -245,18 +254,16 @@ class TestTemplateNamedDirMasterRenderGate:
            placed at ``<outdir>/_template/typst/``, not merely that it
            reads correctly.
         """
-        result = _run_sphinx_build(
-            template_named_dir_master_dir, temp_build_dir, "typst"
-        )
+        result = _run_sphinx_build(nested_dir_multi_master_dir, temp_build_dir, "typst")
         assert result.returncode == 0, (
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
         # --- Content files (R1, COMP-01): docname-derived, no template ---
-        depth1_content = temp_build_dir / "_template" / "index.typ"
+        depth1_content = temp_build_dir / "partials" / "index.typ"
         assert depth1_content.exists(), (
-            f"_template/index.typ (content) was not emitted:\n"
+            f"partials/index.typ (content) was not emitted:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         depth1_content_text = depth1_content.read_text(encoding="utf-8")
@@ -265,9 +272,9 @@ class TestTemplateNamedDirMasterRenderGate:
             f"{depth1_content_text}"
         )
 
-        depth2_content = temp_build_dir / "_template" / "sub" / "index.typ"
+        depth2_content = temp_build_dir / "partials" / "sub" / "index.typ"
         assert depth2_content.exists(), (
-            f"_template/sub/index.typ (content) was not emitted:\n"
+            f"partials/sub/index.typ (content) was not emitted:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         depth2_content_text = depth2_content.read_text(encoding="utf-8")
@@ -290,7 +297,7 @@ class TestTemplateNamedDirMasterRenderGate:
             f"key's bundled default by its root-absolute path:\n"
             f"{wrapper1_text[:400]}"
         )
-        assert '#include("_template/index.typ")' in wrapper1_text, (
+        assert '#include("partials/index.typ")' in wrapper1_text, (
             "Expected the wrapper to #include() its own entry's content "
             f"file:\n{wrapper1_text[:400]}"
         )
@@ -304,18 +311,18 @@ class TestTemplateNamedDirMasterRenderGate:
         assert expected_import in wrapper2_text, (
             "Expected the depth-2 entry's wrapper to import the SAME "
             "root-absolute path as the depth-1 entry (OUT-06) -- the "
-            f"docname directory literally named '_template' must have "
-            f"zero effect:\n{wrapper2_text[:400]}"
+            f"docname's own nested directory must have zero effect:\n"
+            f"{wrapper2_text[:400]}"
         )
-        assert '#include("_template/sub/index.typ")' in wrapper2_text, (
+        assert '#include("partials/sub/index.typ")' in wrapper2_text, (
             "Expected the wrapper to #include() its own entry's content "
             f"file:\n{wrapper2_text[:400]}"
         )
 
         # CR-01's original defect class, restated structurally: both
         # wrappers' import strings must be BYTE-IDENTICAL, proving the
-        # docname/wrapper directory's own name (including "_template"
-        # itself) had zero influence on either import string.
+        # docname/wrapper directory's own name had zero influence on
+        # either import string.
         assert expected_import in wrapper1_text and expected_import in wrapper2_text
 
         # --- Real compile (the GATE-01 bar) ---

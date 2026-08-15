@@ -1,8 +1,8 @@
 # Sphinx configuration for the template-prefix-reservation-gate fixture.
 #
-# Relocated from tests/fixtures/template_named_dir_master/ (Phase 22.1,
-# gap G-22.1-4 / CR-01 closure) by Phase 54 plan 07 (OUT-07). This is
-# that fixture's NEGATIVE successor -- it keeps the ORIGINAL docname
+# Relocated from the former `template-named-dir-master` fixture (Phase
+# 22.1, gap G-22.1-4 / CR-01 closure) by Phase 54 plan 07 (OUT-07). This
+# is that fixture's NEGATIVE successor -- it keeps the ORIGINAL docname
 # layout verbatim (both docnames live inside a source subdirectory
 # literally named `_template`), but where that layout used to compile
 # successfully, it is now a build error.

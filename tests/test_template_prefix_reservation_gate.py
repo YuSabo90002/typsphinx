@@ -7,9 +7,9 @@ replacing the narrower exact-name claim on the single, now-nonexistent
 ``_template.typ`` infrastructure file (Phase 54 plans 04/05 deleted its
 writer; this plan's Task 1 deleted the exact-name claim itself).
 
-``tests/fixtures/template_prefix_reservation_gate/`` is
-``tests/fixtures/template_named_dir_master/``'s NEGATIVE successor
-(Phase 22.1/CR-01's original fixture, relocated): it keeps the ORIGINAL
+``tests/fixtures/template_prefix_reservation_gate/`` is the former
+`template-named-dir-master` fixture's NEGATIVE successor (Phase
+22.1/CR-01's original fixture, relocated): it keeps the ORIGINAL
 docname layout verbatim -- both docnames living inside a source
 directory literally named ``_template`` -- but where that layout used to
 compile successfully (Phase 22.1 through Phase 54 plan 05), it is now a

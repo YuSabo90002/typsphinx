@@ -1,19 +1,19 @@
 # Sphinx configuration for the nested-dir-multi-master fixture.
 #
-# Positive successor to tests/fixtures/template_named_dir_master/ (Phase
-# 54 plan 07, OUT-07) -- see
+# Positive successor to the former `template-named-dir-master` fixture
+# (Phase 54 plan 07, OUT-07) -- see
 # tests/fixtures/template_prefix_reservation_gate/conf.py for the
 # negative successor that proves the OLD `_template`-named docname
 # layout is now a build error, and for the full CR-01 history both
 # successors share.
 #
-# What moved and why: tests/fixtures/template_named_dir_master/'s
-# docname layout (a source subdirectory literally named `_template`) is
-# now itself a build error under OUT-07's wholesale directory
-# reservation, so this successor moves the SAME two docnames into a
-# directory named `partials` instead (deliberately not the name Sphinx's
-# own `templates_path` default uses) while keeping every OTHER
-# regression property of the original fixture identical.
+# What moved and why: the predecessor fixture's docname layout (a source
+# subdirectory literally named `_template`) is now itself a build error
+# under OUT-07's wholesale directory reservation, so this successor moves
+# the SAME two docnames into a directory named `partials` instead
+# (deliberately not the name Sphinx's own `templates_path` default uses)
+# while keeping every OTHER regression property of the original fixture
+# identical.
 #
 # BLD-02/OUT-01: two `typst_documents` entries against ONE docname tree,
 # each with its own DISTINCT, bare (no path separator) target

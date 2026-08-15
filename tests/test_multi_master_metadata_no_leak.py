@@ -13,8 +13,11 @@ made a fresh dict to avoid (Phase 44's CONF-07 D-05): caching an entry
 lookup on the builder, or mutating a shared dict across master documents in
 a multi-master build.
 
-``tests/fixtures/template_named_dir_master/`` has two masters with
-divergent titles (``entry[2]``) since Phase 22.1; this plan additionally
+``tests/fixtures/nested_dir_multi_master/`` (Phase 54 plan 07's positive
+successor to the former `template-named-dir-master` fixture, relocated
+because that fixture's original `_template`-named docname directory is
+now a reserved output-directory collision) has two masters with
+divergent titles (``entry[2]``) since Phase 22.1; Phase 44.2 additionally
 diverges the SECOND entry's author (``entry[3]``), which was previously
 identical across both masters and so could not detect an author leak.
 
@@ -31,7 +34,7 @@ fixtures read below are each entry's resolved WRAPPER
 1's de-collision of this shared fixture -- both entries used to target the
 identity basename ``"index"``, a BLD-02 duplicate-target collision once
 OUT-01 makes a bare target resolve at the outdir root) rather than the
-docname content files (``_template/index.typ``/``_template/sub/index.typ``,
+docname content files (``partials/index.typ``/``partials/sub/index.typ``,
 which now carry no template application at all). D-08's per-entry
 isolation this module pins is unaffected by the split -- each wrapper
 still reads its own entry's title/author positionally
@@ -45,7 +48,7 @@ from pathlib import Path
 
 import pytest
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures" / "template_named_dir_master"
+FIXTURE_DIR = Path(__file__).parent / "fixtures" / "nested_dir_multi_master"
 
 # The conf.py scalar values, read here as plain literals (not imported --
 # this module deliberately does not exec conf.py) so the no-config-fallback
