@@ -19,6 +19,11 @@ from sphinx.util import logging
 from sphinx.util.osutil import ensuredir, make_filename_from_project
 
 from typsphinx.pdf import compile_typst_file_to_pdf
+from typsphinx.template_registry import (
+    TemplateRegistryEntry,
+    resolve_registry_key,
+    resolve_template_registry,
+)
 from typsphinx.translator import derive_master_edge_keys
 from typsphinx.writer import TypstWriter
 
@@ -243,6 +248,16 @@ class TypstBuilder(Builder):
         # that method's own comment for why that is the SAME derivation
         # function, not a second include-decision mechanism.
         self._master_include_edges: Dict[str, Tuple[str, ...]] = {}
+
+        # Phase 53 (TPL-03): the resolved template registry, keyed by
+        # registry key. Populated for real in `write()` (mirrors
+        # `self._master_include_edges` above); a unit test driving the
+        # per-document write path directly (some existing tests bypass
+        # `write()` this way) sees this start empty and
+        # `_write_typst_files()` lazily derives it on demand -- see that
+        # method's own comment for why that is the SAME resolution
+        # function, not a second registry-resolution mechanism.
+        self._document_template_registry: Dict[str, TemplateRegistryEntry] = {}
 
     def _build_include_edge_map(self) -> Dict[str, Tuple[str, ...]]:
         """Derive the per-master include-edge mapping (COMP-05/COMP-06).
@@ -712,6 +727,17 @@ class TypstBuilder(Builder):
         # TypstPDFBuilder inherits this unchanged (D-03).
         self._validate_output_path_collisions()
 
+        # Phase 53 (TPL-03, D-03/D-09): resolve the template registry
+        # ONCE per build, here -- after collision validation, before
+        # `prepare_writing()`'s own `_write_template_file()` call -- so
+        # resolution is order-independent and every wrapper this write()
+        # writes below sees the SAME resolved registry. Mirrors
+        # `self._master_include_edges = self._build_include_edge_map()`
+        # a few lines down.
+        self._document_template_registry = resolve_template_registry(
+            self.config, str(self.srcdir)
+        )
+
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
         logger.info("done")
@@ -1071,6 +1097,17 @@ class TypstBuilder(Builder):
         if not self._master_include_edges:
             self._master_include_edges = self._build_include_edge_map()
 
+        # Phase 53 (TPL-03): lazily resolve the template registry if it is
+        # still empty -- the SAME fallback shape as `_master_include_edges`
+        # above, calling the SAME resolution function `write()` itself
+        # calls. Load-bearing: many existing tests drive `write_doc()` /
+        # `_write_typst_files()` directly without ever calling `write()`,
+        # and without this fallback the registry would be empty for them.
+        if not self._document_template_registry:
+            self._document_template_registry = resolve_template_registry(
+                self.config, str(self.srcdir)
+            )
+
         for entry in typst_documents:
             if not _is_usable_typst_documents_entry(entry) or entry[0] != docname:
                 continue
@@ -1081,12 +1118,16 @@ class TypstBuilder(Builder):
             ensuredir(path.dirname(wrapper_destination))
             wrapper_relative_dir = posixpath.dirname(wrapper_relpath)
             edge_keys = self._master_include_edges.get(docname, ())
+            template_entry = resolve_registry_key(
+                self._document_template_registry, entry
+            )
             wrapper_output = self.writer.render_wrapper(
                 entry,
                 doctree,
                 wrapper_relative_dir,
                 content_relative_path,
                 edge_keys=edge_keys,
+                template_entry=template_entry,
             )
             with open(wrapper_destination, "w", encoding="utf-8") as f:
                 f.write(wrapper_output)
