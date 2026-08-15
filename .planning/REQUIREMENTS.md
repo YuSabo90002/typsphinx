@@ -65,8 +65,10 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [ ] **BLD-05**: A non-`.typ` file belonging to the bundled `"typst"` template is present in the
       built wheel, not only in an editable install
 
-- [ ] **BLD-06**: The bundle copy excludes VCS and OS metadata and does not follow a symlink out of
-      the bundle
+- [ ] **BLD-06**: The bundle copy excludes VCS and OS metadata (the refusal clause for a linked file
+      resolving outside the bundle was retracted by the owner at Phase 54 planning, D-03; the
+      recorded behavior at a linked file is `os.walk(followlinks=False)` plus per-file
+      `shutil.copy2`)
 
 ### v0.8.0-derived defects
 
