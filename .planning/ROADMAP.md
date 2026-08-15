@@ -569,7 +569,7 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 10 plans (8 waves) — 7/7 executed through Wave 6. 53-06/53-07 added 2026-08-15 by
+**Plans**: 9/10 plans executed (8 waves) — 7/7 executed through Wave 6. 53-06/53-07 added 2026-08-15 by
 `/gsd-plan-phase 53 --gaps` to close `53-VERIFICATION.md`'s SC#3 gap plus the two ⚠ WARNING robustness
 defects the owner opted in to; 53-08…53-10 added 2026-08-15 by a second `--gaps` round to close the
 re-verification's one scored gap (SC#5, stale CI evidence), the two new ⚠ WARNING crash paths
@@ -604,8 +604,8 @@ unplanned
 
 **Wave 7** *(second gap-closure round — blocked on Wave 6 completion)*
 
-- [ ] 53-08-PLAN.md — Registry robustness, one level up and one field deeper: a truthy non-`dict` `typst_document_templates` container (WR-01) and a truthy unusable `template` field (WR-02) become this module's own `ExtensionError` instead of a raw `AttributeError`/`TypeError` — wave 7
-- [ ] 53-09-PLAN.md — `.planning/REQUIREMENTS.md` tracking correction: TPL-01, TPL-05 and CONF-16 marked delivered in BOTH the checkbox list and the traceability table, six lines, no code — wave 7
+- [x] 53-08-PLAN.md — Registry robustness, one level up and one field deeper: a truthy non-`dict` `typst_document_templates` container (WR-01) and a truthy unusable `template` field (WR-02) become this module's own `ExtensionError` instead of a raw `AttributeError`/`TypeError` — wave 7
+- [x] 53-09-PLAN.md — `.planning/REQUIREMENTS.md` tracking correction: TPL-01, TPL-05 and CONF-16 marked delivered in BOTH the checkbox list and the traceability table, six lines, no code — wave 7
 
 **Wave 8** *(second gap-closure round — blocked on Wave 7 completion)*
 
@@ -835,7 +835,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 7/7 | In Progress|  |
+| 53. Template Registry Foundation | v0.9.0 | 9/10 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
