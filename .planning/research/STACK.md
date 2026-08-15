@@ -1,278 +1,108 @@
 # Stack Research
 
-**Domain:** Sphinx→Typst output composition rework (v0.8.0 "multi-master composition" milestone)
-**Researched:** 2026-08-11
-**Confidence:** HIGH
+**Domain:** Per-document Typst template registry for the `typsphinx` Sphinx extension (v0.9.0)
+**Researched:** 2026-08-15
+**Confidence:** HIGH (all four questions resolved against primary sources: PyPI's JSON API for
+installed-version ground truth, official Sphinx `extdev/appapi.html`, official Typst
+`reference/foundations/path/` docs, and this repository's own existing code)
 
-## Headline Answer
+## Verdict
 
-**Nothing new needs to be installed.** No new PyPI runtime dependency, no new dev/test dependency,
-no new `@preview` package, no new version-lockstep site. The milestone is a pure restructuring of
-*how* the existing translator output is assembled into files, using Typst 0.15 standard-library
-primitives (`include`, `set heading(offset:)`, `context`, `query`, `link`, `label`) that are already
-in active use in `typsphinx/translator.py` and `typsphinx/writer.py` today, plus Python-side Sphinx
-9.1 APIs (`env.toctree_includes`, `env.get_doctree`, `sphinx.util.nodes.inline_all_toctrees`) that
-are stable, undeprecated, and already imported/vendored-as-reference by this codebase's own
-docstrings (`builder.py`'s `_compute_master_included_docnames` already cites
-`sphinx/util/nodes.py:485`). The prior stated in the question is correct; the effort below is spent
-verifying it rather than manufacturing additions.
+**Add nothing.** No new runtime dependency, no new stdlib import that isn't already imported
+elsewhere in this codebase, no Sphinx API this project isn't already using. Every piece this
+milestone needs — dict-of-dicts config registration, directory-tree copy, and
+nesting-depth-independent Typst imports — is either already present in `typsphinx/builder.py` or
+is a one-line addition to an import list of a module already used elsewhere in the package. The
+zero-new-runtime-dependency invariant holds with room to spare.
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies (already pinned, unchanged by this milestone)
 
-No changes. The milestone ships entirely inside the existing stack:
+| Technology | Version (verified via PyPI JSON API, 2026-08-15) | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| Sphinx | 9.1.0 | Config registration (`add_config_value`), builder lifecycle | Already the pinned floor (`pyproject.toml:28` `sphinx>=9.1,<10`); latest PyPI release is 9.1.0/9.1.1 patch line — no version bump needed for this feature |
+| typst (typst-py) | 0.15.0 | `typst.compile(path, root=...)` — the PDF compile step | Already the pinned floor (`pyproject.toml:30` `typst>=0.15.0,<0.16`); latest PyPI release is 0.15.0 — matches exactly |
+| docutils | 0.22.x (pinned `>=0.21,<0.23`) | Doctree the translator walks | Unaffected by this milestone; noting only that PyPI's current docutils release (0.23) is *outside* today's pin — pre-existing, not something this feature should touch |
 
-| Technology | Version (pinned today) | Purpose | Why no change is needed |
-|------------|------------------------|---------|--------------------------|
-| `sphinx` | `>=9.1,<10` | Doctree read/build pipeline | `env.toctree_includes`, `env.get_doctree`, `Builder.write_doc`/`finish` — all present, undeprecated, unchanged in 9.1.0 (verified against installed package, see Sources) |
-| `docutils` | `>=0.21,<0.23` | Node types (`toctree`, `section`, etc.) | Doctree shape the wrapper walks is unaffected by this milestone |
-| `typst` (typst-py) | `>=0.15.0,<0.16` | `.typ` → PDF compilation | All four language primitives the wrapper design needs (`include`, `set heading(offset:)`, `context`+`query`, `link`) are stable Typst 0.15 stdlib features already exercised by the current translator/writer |
+No version change is required in any of the three for this milestone.
 
-### Supporting Libraries
+### Supporting Libraries / stdlib (all already imported in this codebase)
 
-No additions. Existing bundled `@preview` packages are unaffected — see "@preview package impact" below.
+| Module | Stdlib since | Purpose | When to Use (this milestone) |
+|--------|---------|---------|-------------|
+| `shutil` (`copytree(..., dirs_exist_ok=True)`) | 3.8 | Recursive directory copy that tolerates a pre-existing destination | The "copy the resolved template's parent directory wholesale to `<outdir>/_template/<key>/`" rule (PROJECT.md line 58-63) is exactly this call. **Already used this way in this file**: `builder.py:1381` — `shutil.copytree(src_path, dest_path, dirs_exist_ok=True)` inside `_copy_single_asset()`. Reuse that pattern (or lift it into a small shared helper) for every registry key's bundle copy instead of writing a second directory-copy routine. `dirs_exist_ok=True` matters here specifically because Sphinx incremental builds don't guarantee `outdir` is clean, and multiple `typst_documents` entries can share one registry key, so the destination directory legitimately gets written more than once per build. |
+| `importlib.resources` (`files()`, `as_file()`) | 3.9 (`files()`), directory-`Traversable` support solidified in 3.12 | Get a real filesystem path for a directory bundled *inside* the installed package, safe under zipimport | Needed for exactly one case: the built-in `"typst"` key's bundle is `typsphinx/templates/` (`template_engine.py:274-278`, currently read via `Path(__file__).parent / "templates" / "base.typ"`). That line reads a single file's *text* today; this milestone needs to copy the *directory* it lives in. `Path(__file__).parent` works for the overwhelming majority of real installs (pip always unpacks wheels to real files on disk; this project ships no `zip_safe`/zipapp packaging), but `importlib.resources.files("typsphinx") / "templates"` + `importlib.resources.as_file(...)` is the textbook-correct, packaging-guide-endorsed way to turn package data into a real directory for `shutil.copytree`, and it degrades correctly (extracts to a cleaned-up temp dir) in the rare zipimport case `Path(__file__).parent` would silently mis-resolve. Zero cost: it's stdlib, and Python 3.12 is already this project's floor (`pyproject.toml:10`), which is also the exact version `files()`'s directory-`Traversable` walking matured in — no fallback shim needed for an older interpreter. |
+| `re` (`re.fullmatch`) | stdlib | Charset-validate registry keys as path segments | PROJECT.md line 85 requires registry keys be "charset-validated at config-read time" because they become a path segment (`_template/<key>/`). This project already has a validate-and-`ExtensionError`-on-failure precedent using plain `re` (see `derive_typst_lang()`'s `re.fullmatch(r"[a-z]{2,3}", head)` in `template_engine.py:133`) — reuse that idiom, e.g. `re.fullmatch(r"[A-Za-z0-9_-]+", key)`, rejecting anything with `/`, `\`, `..`, or a leading `.` so a key can never escape `_template/` or collide with a dotfile. No path-sanitizing library is needed for this — the key space is small and fully under the user's/project's own control, unlike arbitrary untrusted input. |
 
 ### Development Tools
 
-No additions. `pytest`, `pypdf`, `pillow`, `black`, `ruff`, `mypy`, `tox` all already cover what
-this milestone's gates need (see "Test-side tooling" below).
+No change. `black`, `ruff`, `mypy`, `pytest` configurations in `pyproject.toml` need no new entries for this feature — no new third-party import is introduced that would need an ignore rule or type stub.
 
 ## Installation
 
 ```bash
-# No installation step. pyproject.toml's [project.dependencies] and
-# [project.optional-dependencies].dev are unchanged by this milestone.
+# Nothing to install. All of the above are either already-pinned runtime
+# dependencies or Python 3.12+ stdlib modules already imported elsewhere
+# in typsphinx/builder.py (shutil, re) or importable with zero new
+# dependency (importlib.resources).
 ```
-
-## Verification: Typst 0.15 language surface the wrapper design rests on
-
-Typst's website docs (`typst.app/docs`) track the latest stable release; the currently installed
-`typst-py` reports `0.15.0`, and the latest upstream Typst release is `0.15.1` (2026-07-17) — a
-patch release (font/layout fixes only, no language changes). So the fetched docs below are
-version-matched to the pin, not drifted ahead to an unreleased 0.16.
-
-### 1. `include` path resolution — relative to the file it's written in, NOT the including file
-
-**Read from documentation + confirmed by a Typst core maintainer (laurmaedje) on the official
-forum**, not inferred:
-
-> "When writing chapters of text, it is very natural to be able to use relative paths to include
-> other chapters." … "Arguments retain their source location for error messages and the same
-> source location mechanism is used to resolve relative paths."
-
-This is **lexical, per-file resolution**: a relative path written inside `guide/index.typ` resolves
-relative to `guide/index.typ`'s own location on disk, regardless of which wrapper (or how deeply
-nested a wrapper) eventually `#include()`s it. Absolute paths (leading `/`) resolve against the
-Typst project root instead.
-
-**Implication for the wrapper design:** content files stay resolvable exactly as they are today
-even after every wrapper moves to `set` its own template and its includes are driven from a
-different file. An `#image("../foo.png")` or a nested `#include("other.typ")` written inside a
-content file keeps working unmodified when that content file is pulled into a wrapper at any
-directory depth, because Typst never re-resolves it relative to the wrapper. This directly
-retires **B-1** (today's "parent includes from the docname, output stem from the target" mismatch)
-as a *class* of bug, not just today's specific instance.
-
-### 2. `#include()` DOES inherit the enclosing `show`/`set` style chain
-
-**Read from an official Typst GitHub discussion, maintainer laurmaedje replying directly**, not
-inferred:
-
-> "If you `#set math.equation(numbering: "(1)")` in main.typ all included files (after the set
-> rule) will also be affected."
-
-Style rules (`set`/`show`) are not lexically confined to the file they're written in — they apply
-to the document flow from the point they're established onward, and `#include()` splices the
-included file's returned content into that same flow at the call site. This is the exact mechanism
-the multi-file-book pattern (`main.typ` sets, then `#include`s chapter files) documented across the
-Typst community relies on.
-
-**Implication for the wrapper design:** a wrapper can `set heading(offset: N)` immediately before
-each `#include(<docname>.typ)` and have that offset apply to every heading inside that included
-content file — including headings inside files that content file itself further `#include()`s,
-*unless* a deeper file re-`set`s `heading(offset:)` itself (nested `set` rules override for their
-own remaining scope, standard Typst scoping). Since content files carry no template and (per the
-milestone's own scope) no `set heading(offset:)` of their own, this composes cleanly: the wrapper's
-per-include `offset` derived from DFS depth is the *only* place that rule is set, so there's no
-override collision to design around.
-
-### 3. `context { }` + `query(<label>)` for compile-time label-existence — array-based, not
-error-based
-
-**Read from official docs (Query, Context, Label reference pages) plus corroborating community
-usage (GitHub issues/discussions on the `.len()`-check idiom)**:
-
-- `query()` must run inside a `context` block (it is a *contextual* function).
-- `query(<label>)` returns an **array** of matching elements. When no element carries that label,
-  the array is empty (`.len() == 0`) — **querying a nonexistent label is not an error**, it is the
-  standard, documented way to test existence.
-- The conventional idiom (used throughout the Typst ecosystem, and already the shape typsphinx uses
-  per PROJECT.md's own live measurement) is: `#context { if query(<label>).len() > 0 { link(...) }
-  else { plain-text } }`.
-- No documentation-stated restriction on using a `query()` result inside a conditional to decide
-  whether to `link()` — this is the documented, common pattern, not a workaround.
-
-**Implication:** this is not new territory for typsphinx — PROJECT.md already records this exact
-guard as "measured working" against the live tree. The stack-research contribution here is the
-external confirmation that this is *documented, supported* behavior (not an implementation detail
-that could silently regress), plus the fact that two more call sites (`translator.py:3273/3281`
-citation back-references, and `:4291`) share the same shape and should follow the same guard.
-
-### 4. `set heading(offset: N)` — additive, not absolute
-
-**Read directly from the official Heading reference page**:
-
-> "The starting offset of each heading's `level`, used to turn its relative `depth` into its
-> absolute `level`."
-
-Formula, stated in the docs: **`level = offset + depth`**. It is **additive/relative**, not an
-absolute reassignment — a heading written with `=` (syntactic depth 1) under `offset: 2` becomes
-`level` 3, not `level` 2. This matches the milestone's own design ("`set heading(offset: N)` per
-include derived from DFS depth" — i.e., the wrapper computes an additive shift per include, not a
-literal target level).
-
-Composition across nested scopes is not spelled out verbatim in the reference page (confirmed by
-direct fetch — the docs state the formula but not nested-`set` interaction explicitly); the nested
-behavior above (innermost `set` wins for its remaining scope) is standard Typst `set`-rule scoping,
-not `heading`-specific, and is consistent with community usage of this exact "one offset per
-include depth" pattern for book-style multi-chapter documents.
-
-### 5. Version-sensitivity risk toward Typst 0.16
-
-No announced breaking change to `include`, `heading(offset:)`, `context`, or `query` was found in
-the changelog index or the two most recent release notes (0.15.0, 0.15.1). These are long-standing,
-widely-relied-upon stdlib primitives (the multi-chapter `include` + `set heading(offset:)` pattern
-and the `context`+`query` existence-check idiom both predate 0.15 in community usage), so the risk
-of a silent 0.16 behavior change is assessed **LOW**. The project's existing `typst>=0.15.0,<0.16`
-pin plus the weekly `drift.yml` re-resolution job (per CLAUDE.md) is the correct, already-existing
-mitigation — no new safeguard is needed for this milestone specifically.
-
-## Verification: Sphinx 9.1 Python API surface
-
-All read directly from the **installed** `sphinx==9.1.0` package
-(`.venv/lib/python3.13/site-packages/sphinx/`), not recalled — HIGH confidence, primary source.
-
-| API | File:line | Status in 9.1.0 | Notes |
-|---|---|---|---|
-| `env.toctree_includes` | `environment/__init__.py:188` | Plain `dict[str, list[str]]` attribute, no deprecation | Actively used by Sphinx's own `Builder.write()` (sorted for determinism at line 739) — this is core infrastructure, not a legacy escape hatch |
-| `env.get_doctree(docname)` | `environment/__init__.py:650` | Plain method, no deprecation | Used by both the LaTeX builder's `assemble_doctree` and typsphinx's own existing `write()` override |
-| `sphinx.util.nodes.inline_all_toctrees` | `util/nodes.py:485` | **Not** deprecated | A *different*, unrelated function in the same module (`nested_parse_with_titles`, line 393-407) carries a "will be deprecated in Sphinx 8" docstring note — do not confuse the two. `inline_all_toctrees` itself has no such marker and is the live reference algorithm the LaTeX and Texinfo builders both still call |
-| `Builder.write_doc()` | `builders/__init__.py:828` | Abstract extension point (`raise NotImplementedError`), no deprecation | Correct, intended override point — typsphinx already uses it |
-| `Builder.prepare_writing()` | `builders/__init__.py:820` | No-op extension point, no deprecation | Available if the wrapper generator needs a pre-write hook distinct from `write_doc`/`finish` |
-| `Builder.finish()` | `builders/__init__.py:846` | No-op extension point, no deprecation | typsphinx already uses this for PDF compilation in `TypstPDFBuilder` |
-| `Builder.write()` | `builders/__init__.py:704` | **Decorated `@final`** | See note below — pre-existing, not new to this milestone |
-| `LaTeXBuilder.assemble_doctree` | `builders/latex/__init__.py:369` | Live, calls `inline_all_toctrees` at line 389 | Confirms `inline_all_toctrees(builder, docnameset, docname, tree, colorfunc, traversed)` is the still-current call shape to mirror, matching PROJECT.md's stated reference point |
-
-**`@final` note (pre-existing, not a new risk introduced by this milestone):** `Builder.write()`
-carries `typing.final` in Sphinx 9.1. typsphinx's `TypstBuilder` already overrides it today
-(`builder.py:384`, to preserve raw `toctree` nodes instead of Sphinx's default
-`get_and_resolve_doctree()`-expanded ones) — a pattern that predates this milestone. `@final` is a
-static-analysis-only marker; nothing breaks at runtime. `pyproject.toml`'s `[tool.mypy.overrides]`
-already disables the `override` and `misc` error codes for `typsphinx.*` (`pyproject.toml:145`),
-which is what keeps this override green under `mypy typsphinx/`. Whatever this milestone's wrapper
-generator does (continuing to override `write()`, or moving the toctree-graph-walk logic into
-`write_doc`/`finish` using `env.toctree_includes` directly instead) works within this same,
-already-accepted pattern — no new mypy exemption is required.
-
-**No PendingDeprecationWarning/DeprecationWarning exposure found** in any of the above call paths
-under Sphinx 9.1.0 — relevant because `pyproject.toml`'s `filterwarnings` already escalates both to
-hard errors (`pyproject.toml:85-97`). The only `RemovedInSphinx11Warning` (a `PendingDeprecationWarning`
-subclass) sites in the installed package are unrelated `builder.app`/`env.app`/`events.app` accessors
-(`deprecation.py:13`, `builders/__init__.py:142`) — typsphinx's translator/writer/builder code does
-not touch those attributes, and this milestone's design doesn't introduce a new touch point either.
-
-## Test-side tooling: no gap
-
-`pypdf>=6.14,<7` and `pillow>=12.3,<13` (already dev dependencies, `pyproject.toml:46-47`) are
-sufficient for the milestone's stated assertions — multiple PDFs from one build, per-master content
-presence/absence, heading-level checks — because each is just "open PDF N, extract text/structure,
-assert." Nothing about asserting on N independent PDF outputs instead of 1 requires new tooling;
-it's the same `pypdf.PdfReader` call made once per master's output path.
-
-**One already-available, zero-new-dependency option worth naming for the roadmap (not a
-requirement):** the installed `typst` Python package (`typst-py`, already pinned) exposes a
-`typst.query(input, selector, field=None, one=False, ...)` function at the Python binding level —
-distinct from the in-language `context`+`query()` used inside `.typ` files. This lets a test compile
-a `.typ` wrapper and then query it by selector/label directly (e.g., heading `level` fields, or
-label presence) without going through PDF text extraction at all. It ships with the dependency
-that's already pinned, so reaching for it costs nothing new — but `pypdf`/`pillow` already fully
-cover the milestone's stated needs, so this is a "could simplify some assertions later," not a gap
-to fill now.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|--------------------------|
-| Stay at the file-composition layer (per-master wrapper `#include()`s content files) | Compose at the doctree layer like Sphinx's `LaTeXBuilder` (inline everything into one doctree before translation, emit one `.typ` per master with no `#include()`s at all) | Only if the `-b typst` builder's per-document `.typ` output were dropped as a goal — PROJECT.md already rules this out explicitly: doctree-layer composition would delete the per-document `.typ` files that builder exists to produce |
-| `context`+`query(<label>)` compile-time existence guard | A build-time Python-computed boolean (today's `master_included_docnames` approach) | Never, for this milestone — the build-time approach is exactly what's being retired; it can't express "does this label exist in *this specific compiled unit*" once one content file can be `#include()`d into more than one wrapper |
-| `env.toctree_includes` walked directly (mirroring `inline_all_toctrees`'s DFS) | Re-fetching each doctree via `env.get_doctree()` and walking live `toctree` nodes (today's `TypstBuilder.write()` override approach) | `env.toctree_includes` is cheaper (no doctree deserialization) and is what the milestone's own stated design ("mirror `sphinx/util/nodes.py:485`... at the file-composition layer") calls for; doctree-node walking remains relevant only if the translator itself still needs raw `toctree` nodes for something other than composition (a `write_doc`-time question, not a stack question) |
+|-------------|-------------|-------------------------|
+| Hand-rolled validation of `typst_document_templates` inside `TypstBuilder.init()` / a `config-inited`-connected function, raising `sphinx.errors.ExtensionError` (existing pattern) | Sphinx's `ENUM` type validator (`sphinx.config.ENUM`) passed as the `types=` argument to `add_config_value` | `ENUM` validates that a single scalar config value is one of a fixed, enumerable set of literals (e.g. `ENUM("no", "footnote", "inline")` for `latex_show_urls`) — it has no concept of validating the *shape* of a dict-of-dicts (per-key `template` xor `package`, optional `template_function`) or of applying a regex to dict *keys*. It is the wrong tool for this schema regardless of Sphinx version; do not reach for it. |
+| Validating in `TypstBuilder.init()` (this codebase's existing pattern — see the output-path-collision check at `builder.py:611`, which runs from inside builder methods, not a `config-inited` hook) | A new `app.connect("config-inited", ...)` handler registered in `__init__.py:setup()` | `config-inited` exists in Sphinx 9.x (`Callable[[Sphinx, Config], None]`, confirmed via `extdev/appapi.html`) and is a legitimate place to validate/convert config, but this project has **zero existing precedent** for it — every current `ExtensionError` this extension raises for bad config (unknown `typst_elements` key, output-path collisions, unusable `typst_documents` entries) is raised from inside a `Builder` method at build time, not from a `config-inited` callback at config-parse time. Introducing the first `config-inited` hook in this codebase to validate one new config value would add a second validation *mechanism* alongside the first for no behavioral gain — prefer following the established in-builder pattern (fail loud from `TypstBuilder.init()`, same place `_check_output_path_collisions`-style checks already live) unless a later need specifically requires pre-parse-time validation. |
+| Root-relative Typst paths: emit `#import "/_template/<key>/custom.typ": project` from every wrapper, regardless of nesting depth | Depth-computed relative paths: emit `#import "../../_template/<key>/custom.typ": project`, computed via `os.path.relpath`/`posixpath.relpath` per wrapper's output location | Typst resolves a path starting with `/` "relative to the root of the project," and by default that root is "the parent directory of the main Typst file" *unless* overridden — which this codebase already does: `pdf.py:143` calls `typst.compile(typ_path, root=root_dir)`, and its sole call site (`builder.py:1545`) passes `root_dir=self.outdir`. Since every wrapper and content `.typ` file is written under `self.outdir`, and the milestone's own output rule places every bundle at `<outdir>/_template/<key>/`, a root-relative import from *any* wrapper file at *any* nesting depth resolves correctly with **one fixed string per key**, with no per-caller relative-path arithmetic and no possible off-by-one `../` count. Use depth-computed relative paths only if the project ever needs the emitted `.typ` files to also compile correctly via the bare `typst compile` CLI *without* an explicit `--root` flag pointed at `outdir` — not the case here, since this project always compiles through `typst-py`'s `root=` parameter (confirmed no existing CLI-only compile path in `pdf.py`). |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| A 5th `@preview` Typst Universe package (e.g. a "book"/"chapterize" template package) to drive the wrapper's include graph or heading offsets | Breaks the standing zero-new-dependency / four-package invariant for no capability gain — `include`, `set heading(offset:)`, `context`+`query` are already stdlib and already used in this codebase | Hand-written wrapper generation using the four primitives above, exactly as scoped in PROJECT.md |
-| A Python templating engine addition (Jinja2, Mako, etc.) for wrapper generation | `template_engine.py` already has a working, dependency-free template-rendering approach for the *existing* master template step; the wrapper is a structurally similar (arguably simpler — no user-facing customization surface stated for it) generation task | Extend `TemplateEngine`/existing string-building patterns in `writer.py`/`template_engine.py` |
-| `sphinx.util.nodes.inline_all_toctrees` called directly at the Python/doctree layer to *produce* the wrapper's Typst output | It builds a merged **doctree** (docutils nodes) for a single-file translation pass — exactly the doctree-layer composition PROJECT.md explicitly rejects for this milestone (would delete the per-document `.typ` files) | Use it only as the *algorithmic reference* for DFS order/`traversed`-list semantics, reimplemented over `env.toctree_includes` at the file-composition layer, as the milestone's own key-context notes already state |
-| A new Python PDF-diffing or PDF-assertion library for the multi-master test gates | `pypdf`/`pillow` already installed and already used by GATE-01/GATE-02-style gates; "several PDFs from one build" is not a different *kind* of assertion, just more of the same kind | Reuse `pypdf.PdfReader` per output path, as existing tests already do |
+|-------|-----|-------------|
+| `sphinx.config.ENUM` for `typst_document_templates` schema validation | Validates one scalar against a fixed candidate list, not a dict-of-dicts shape; not applicable at all here (see Alternatives row above) | Manual validation with `ExtensionError`, following this project's existing `map_parameters()`/`_check_output_path_collisions`-style fail-loud pattern |
+| A new `app.connect("config-inited", ...)` hook as this feature's validation entry point | No precedent in this codebase; every existing config-shape error in this extension is raised from a `Builder` method, and introducing a second validation *mechanism* for one new config value fragments where "typsphinx validates its own config" lives | Validate inside `TypstBuilder.init()` (or a helper it calls), matching `_check_output_path_collisions` (`builder.py:611`) |
+| Any third-party path-safety / slugify library (e.g. `python-slugify`, `pathvalidate`) for registry-key charset validation | The zero-new-runtime-dependency invariant explicitly rules this out, and it is unnecessary: the key space is small, author-controlled `conf.py` config (not untrusted user input), and one `re.fullmatch()` call fully covers "safe path segment" | `re.fullmatch(r"[A-Za-z0-9_-]+", key)` (or similarly narrow), following the `derive_typst_lang()` precedent already in `template_engine.py:133` |
+| Depth-computed `../../..` relative `#import` paths for the template bundle | Fragile: correctness depends on getting the wrapper's nesting depth exactly right at every call site, and multi-master composition (v0.8.0) already produces wrappers at varying output locations — a wrong `../` count is a silent-until-compile-time Typst "file not found" error | Typst's root-relative `/`-prefixed path, given `root=self.outdir` is already fixed at every compile call site (`pdf.py:143`, `builder.py:1545`) |
+| Changing `get_default_template_path()`'s `Path(__file__).parent` pattern everywhere in `template_engine.py` | Out of scope creep — every OTHER read in this file (loading a single template's text) works today and isn't touched by this milestone; rewriting working, unrelated code isn't warranted | Scope the `importlib.resources.files()`/`as_file()` change to *only* the new operation this milestone introduces: producing a real directory to hand to `shutil.copytree` for the `"typst"` key's bundle |
 
 ## Stack Patterns by Variant
 
-**If the wrapper generator needs a pre-`write_doc` hook to build the per-master include graph
-before any content file is written:**
-- Use `Builder.prepare_writing(docnames)` (an existing, undeprecated, no-op-by-default extension
-  point at `builders/__init__.py:820`)
-- Because it runs once per `write()` invocation before any `write_doc` call, and is the same
-  extension point Sphinx's own builders use for this kind of pre-computation
+**If the registry key is `"typst"` (the reserved built-in key):**
+- Its bundle source is `typsphinx/templates/` — data shipped *inside* the installed package.
+- Use `importlib.resources.files("typsphinx") / "templates"` wrapped in `importlib.resources.as_file(...)` to get a real directory, then `shutil.copytree(that_dir, outdir/_template/typst, dirs_exist_ok=True)`.
+- Because this is the one bundle source that might not be a plain file on disk (zipimport edge case) — every other bundle source is already guaranteed to be a real path.
 
-**If the wrapper generator instead needs the fully-resolved `env.toctree_includes` graph (built
-during the read phase, before any write-phase hook runs):**
-- Read `self.env.toctree_includes` directly inside whichever hook is chosen — it's populated by the
-  time `write()` starts (Sphinx's own `Builder.write()` sorts it at line 739, confirming it's fully
-  populated pre-write)
-- Because this avoids re-walking doctrees via `env.get_doctree()` for graph-shape information that
-  `env.toctree_includes` already has in the cheaper `dict[str, list[str]]` form
+**If the registry key names a local `template` (srcdir-relative `.typ` file):**
+- Its bundle source is `Path(srcdir) / dirname(that .typ path)` — already a real directory on the user's filesystem, exactly like today's `_copy_template_directory()` (`builder.py:1263-1317`) and `_copy_single_asset()` (`builder.py:1356-1391`) inputs.
+- Use plain `shutil.copytree(src_dir, outdir/_template/<key>, dirs_exist_ok=True)` directly — `importlib.resources` does not apply; there is no installed-package indirection to route around.
+
+**If the registry key names a `package` only (no `template`):**
+- No bundle exists to copy (PROJECT.md line 61: "A package-only key has no bundle and copies nothing").
+- No filesystem or stdlib call is needed for that key's copy step at all — skip it, exactly as `copy_template_assets()`'s existing `typst_package` early-return already does for the global-config case (PROJECT.md line 69-70, being generalized to a per-key property this milestone).
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
-|-----------|------------------|-------|
-| `typst-py 0.15.0` (installed) | Typst language docs at `typst.app/docs` (tracks 0.15.1, latest stable) | 0.15.1 is a patch release (font/layout fixes only per its release notes) — no language-surface drift between the installed compiler and the fetched docs |
-| `sphinx 9.1.0` (installed) | This milestone's Python API surface | Verified directly against the installed package tree; no deprecation warnings on any API this milestone newly depends on |
-| Four `@preview` packages (codly 1.3.0, codly-languages 0.1.10, mitex 0.2.7, gentle-clues 1.3.1) | Wrapper/content split | Unaffected — both wrapper and content files continue to need their own `@preview` imports exactly as master/included files do today (Typst's `#include()` still does not inherit *import* statements, only style rules — an orthogonal fact already documented in `writer.py:206`), so the version-lockstep site count does not grow |
+|-----------|-----------------|-------|
+| Python 3.12 (project floor, `pyproject.toml:10`) | `importlib.resources.files()` returning a `Traversable` that correctly walks *subdirectories* | This directory-walking behavior for `files()` was solidified in 3.12 (earlier 3.9-3.11 versions had rougher edges around nested-directory `Traversable`s per the CPython docs) — this project's floor is exactly the version where the modern API is fully reliable, so no compatibility shim or `importlib_resources` backport package is ever needed. |
+| typst-py 0.15.0 | Typst 0.15's root-relative `/`-path resolution | Root-relative (`/`-prefixed) path resolution against an explicit `root=` is long-standing Typst behavior (predates 0.15 by several major/minor releases); 0.15 additionally introduced a first-class *file path type* accepted throughout the language, but did not change how a leading `/` resolves. No version-sensitivity risk for this milestone on the currently-pinned typst-py floor. |
+| `typst.compile(path, root=root_dir)` | `root_dir` must be an ancestor of (or equal to) every `.typ` file's own directory | Already satisfied today: `builder.py:1545` passes `root_dir=self.outdir`, and every wrapper/content `.typ` file this extension writes already lives under `self.outdir` (enforced by the existing output-path-collision machinery at `builder.py:524-613`). The new `_template/<key>/` bundles are specified to land at `<outdir>/_template/<key>/` — also under `self.outdir` — so this constraint continues to hold with no new code needed to enforce it. |
 
 ## Sources
 
-- `https://typst.app/docs/reference/scripting/` — `include` syntax reference (confirms syntax; does
-  not itself state path-resolution rule, which was confirmed via the forum thread below)
-- `https://forum.typst.app/t/why-are-paths-always-relative-to-the-current-file/306` — Typst core
-  maintainer (laurmaedje) confirming per-file lexical path resolution — HIGH confidence (primary
-  maintainer statement)
-- `https://github.com/typst/typst/discussions/2201` — official Typst GitHub discussion, maintainer
-  laurmaedje confirming `set`/`show` rule inheritance across `#include()` — HIGH confidence
-- `https://typst.app/docs/reference/model/heading/` — official Heading reference page, `offset`
-  parameter exact wording and `level = offset + depth` formula — HIGH confidence (primary docs)
-- `https://typst.app/docs/reference/introspection/query/` — official Query reference page — HIGH
-  confidence (primary docs)
-- `https://typst.app/docs/reference/context/` — official Context reference page — HIGH confidence
-  (primary docs)
-- `https://typst.app/docs/changelog/`, `https://github.com/typst/typst/releases/tag/v0.15.0`,
-  `https://github.com/typst/typst/releases/tag/v0.15.1` — version-currency check (0.15.1 is a patch
-  release, no language-surface changes) — HIGH confidence
-- Installed `sphinx==9.1.0` package source, read directly:
-  `environment/__init__.py`, `util/nodes.py`, `builders/__init__.py`, `builders/latex/__init__.py`,
-  `deprecation.py` — HIGH confidence (primary source, matches this project's exact pinned version)
-- `/home/yuta/Documents/typsphinx/pyproject.toml` — current dependency/tooling declarations
-- `/home/yuta/Documents/typsphinx/typsphinx/builder.py`, `typsphinx/writer.py` — existing
-  implementation this milestone extends (confirms `@final`-override pattern predates this milestone,
-  confirms current dedup/degradation mechanisms being replaced)
-- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` §"Current Milestone: v0.8.0" — milestone
-  scope and live-measured defect evidence (2026-08-11)
-- Installed `typst-py 0.15.0` Python binding, introspected directly (`typst.query` signature) — HIGH
-  confidence (primary source)
+- PyPI JSON API (`https://pypi.org/pypi/{sphinx,typst,docutils}/json`), queried directly 2026-08-15 — HIGH confidence, authoritative registry data: Sphinx 9.1.0, typst-py 0.15.0, docutils 0.23 (current pins: `sphinx>=9.1,<10`, `typst>=0.15.0,<0.16`, `docutils>=0.21,<0.23`, all confirmed in `pyproject.toml:28-30`)
+- [Application API — Sphinx documentation](https://www.sphinx-doc.org/en/master/extdev/appapi.html) — HIGH confidence (direct fetch of official docs): `Sphinx.add_config_value(name, default, rebuild, types=(), description='')` signature; `ENUM` and `config-inited` both confirmed present in Sphinx 9.x
+- [Typst reference — Path](https://typst.app/docs/reference/foundations/path/) — HIGH confidence (direct fetch of official docs, quoted verbatim): "`/`-prefixed paths resolve relative to the root of the project... the project root is the parent directory of the main Typst file" by default, overridable; relative paths (no leading `/`) "resolve in relation to the parent directory of the Typst file where the function is called" — applies uniformly to `#import`, `#include`, `image()`, `read()`
+- [Typst 0.15.0 changelog](https://typst.app/docs/changelog/0.15.0/) — MEDIUM confidence (web-search-sourced, cross-checked against the official changelog page and GitHub release notes): confirms 0.15 added a first-class file path *type*, not a change to `/`-prefix resolution semantics
+- This repository, read directly (HIGH confidence — ground truth):
+  - `typsphinx/builder.py:1381` — existing `shutil.copytree(src_path, dest_path, dirs_exist_ok=True)` call, the pattern to reuse
+  - `typsphinx/builder.py:611`, `builder.py:524-613` — existing in-builder `ExtensionError` validation pattern (no `config-inited` hook precedent anywhere in this codebase, confirmed via `grep -n "config-inited" typsphinx/*.py` returning nothing)
+  - `typsphinx/pdf.py:110-153`, `builder.py:1545` — `typst.compile(typ_path, root=root_dir)` with `root_dir=self.outdir` at its only call site
+  - `typsphinx/template_engine.py:133`, `derive_typst_lang()` — existing `re.fullmatch()` validate-and-warn/raise idiom to follow for registry-key charset validation
+  - `typsphinx/template_engine.py:266-278`, `get_default_template_path()` — the `Path(__file__).parent / "templates" / "base.typ"` line this milestone's `"typst"`-key bundle copy needs to route around with `importlib.resources`
+  - `pyproject.toml:10,27-31,72-73` — Python floor, dependency pins, `package-data` declaration for `typsphinx/templates/*.typ`
 
 ---
-*Stack research for: v0.8.0 multi-master composition (typsphinx)*
-*Researched: 2026-08-11*
-</content>
+*Stack research for: per-document Typst template registry (typsphinx v0.9.0)*
+*Researched: 2026-08-15*
