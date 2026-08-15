@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 3/7 plans executed
+**Plans**: 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -959,9 +959,9 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 52-04-PLAN.md — Push the merged tip and dispatch the `ci.yml` authority run; record every job conclusion (SC#3, toolchain half)
-- [ ] 52-05-PLAN.md — Local green tree: both docs builds and the full-corpus GATE-02 gate, PASSED-versus-SKIPPED kept distinct (SC#3, local half)
-- [ ] 52-06-PLAN.md — SC#4 invariant sweep over `v0.7.1..HEAD` with three real positive controls proving each detector fires (SC#4)
+- [x] 52-04-PLAN.md — Push the merged tip and dispatch the `ci.yml` authority run; record every job conclusion (SC#3, toolchain half)
+- [x] 52-05-PLAN.md — Local green tree: both docs builds and the full-corpus GATE-02 gate, PASSED-versus-SKIPPED kept distinct (SC#3, local half)
+- [x] 52-06-PLAN.md — SC#4 invariant sweep over `v0.7.1..HEAD` with three real positive controls proving each detector fires (SC#4)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -1008,7 +1008,7 @@ sequential, not merely numbered:
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
 | 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
-| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 3/7 | In Progress|  |
+| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 6/7 | In Progress|  |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`.
