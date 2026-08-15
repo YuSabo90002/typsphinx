@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 1/7 plans executed
+**Plans**: 3/7 plans executed
 
 Plans:
 **Wave 1**
@@ -954,8 +954,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 52-02-PLAN.md — Curate the `## [0.8.0]` CHANGELOG entry and roll the tail link block over; confirm `docs/source/changelog.rst`; extend `RELEASE_VERSIONS` to 14 (SC#2)
-- [ ] 52-03-PLAN.md — Extend `TestThreeMasterGate` with a page-level, full-include-set PDF gate proving the milestone goal on generated evidence (SC#3, goal-claim half)
+- [x] 52-02-PLAN.md — Curate the `## [0.8.0]` CHANGELOG entry and roll the tail link block over; confirm `docs/source/changelog.rst`; extend `RELEASE_VERSIONS` to 14 (SC#2)
+- [x] 52-03-PLAN.md — Extend `TestThreeMasterGate` with a page-level, full-include-set PDF gate proving the milestone goal on generated evidence (SC#3, goal-claim half)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -1008,7 +1008,7 @@ sequential, not merely numbered:
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
 | 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
-| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 1/7 | In Progress|  |
+| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 3/7 | In Progress|  |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`.
