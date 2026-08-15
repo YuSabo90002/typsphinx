@@ -131,38 +131,10 @@ Use external Typst packages from Typst Universe:
 Template Assets
 ~~~~~~~~~~~~~~~
 
-Control how template assets (fonts, images, logos) are copied:
-
-.. code-block:: python
-
-   # Default: Automatic directory copy
-   typst_template = "_templates/custom.typ"
-   # All files in _templates/ are automatically copied
-
-   # Explicit: Specify which assets to copy
-   typst_template_assets = [
-       "_templates/logo.png",
-       "_templates/fonts/",
-       "_templates/icons/*.svg"  # Glob patterns supported
-   ]
-
-   # Disable: Empty list prevents automatic copying
-   typst_template_assets = []
-
-**Default**: ``None`` (automatic directory copy)
-
-**Type**: ``list[str] | None``
-
-When ``typst_template_assets`` is:
-
-- ``None`` (default): Automatically copy entire template directory
-- List of paths: Copy only specified files/directories (supports glob patterns)
-- Empty list ``[]``: Disable automatic asset copying
-
-.. note::
-
-   This setting only applies to local custom templates (``typst_template``).
-   Typst Universe packages (``typst_package``) handle assets automatically.
+Every used template's bundle directory (the resolved template file's own
+parent directory) is copied wholesale to the output tree automatically --
+fonts, images, logos, and any other file alongside the template file all
+reach the output with no configuration needed.
 
 See :doc:`templates` for detailed examples.
 
