@@ -678,7 +678,17 @@ needed key set is not known until the write loop has run.
      consequence rather than only that the value "was removed" (CONF-19). The handler ships in the
      same commit as the removal; detection cannot be retrofitted later.
 
-**Plans**: TBD
+**Plans**: 7 plans (4 waves)
+
+Plans:
+- [ ] 54-01-PLAN.md — Wave 1: the three real-compile gates (OUT-05 user-template asset, TPL-02/OUT-06 two-key selection, BLD-06/OUT-04 manifest diff), each recorded RED against the pre-relocation tree
+- [ ] 54-02-PLAN.md — Wave 1: BLD-05 packaging — the bundle's non-`.typ` canary, a recursive package-data glob, and a CI step that opens the built wheel
+- [ ] 54-03-PLAN.md — Wave 1: contract amendments — D-03's symlink retraction in REQUIREMENTS.md and SC#3, plus D-14's relocated shadow route in the docs and changelog
+- [ ] 54-04-PLAN.md — Wave 2 (tracer): every used key's bundle at `<outdir>/_template/<key>/`, root-absolute import, `importlib.resources` resolution, shadow route moved to `<srcdir>/_typst/`, import-string migration
+- [ ] 54-05-PLAN.md — Wave 3: the four deletions and the output-tree assertion migration
+- [ ] 54-06-PLAN.md — Wave 4: CONF-19's `config-inited` handler shipping with the `typst_template_assets` unregistration, plus D-15's relocation warning
+- [ ] 54-07-PLAN.md — Wave 4: OUT-07's `_template/` prefix reservation and the `template_named_dir_master` fixture split
+
 **UI hint**: no
 
 ### Phase 55: v0.8.0-Derived Defects
