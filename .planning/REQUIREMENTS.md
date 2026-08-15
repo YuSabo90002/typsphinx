@@ -30,7 +30,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 
 ### Configuration validation
 
-- [ ] **CONF-14**: An unregistered registry key stops the build, and the error names the registered
+- [x] **CONF-14**: An unregistered registry key stops the build, and the error names the registered
       keys
 
 - [ ] **CONF-15**: A registry entry carrying both `template` and `package` stops the build
@@ -157,7 +157,7 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | TPL-03 | Phase 53 | Complete |
 | TPL-04 | Phase 53 | Complete |
 | TPL-05 | Phase 53 | Pending |
-| CONF-14 | Phase 53 | Pending |
+| CONF-14 | Phase 53 | Complete |
 | CONF-15 | Phase 53 | Pending |
 | CONF-16 | Phase 53 | Pending |
 | CONF-17 | Phase 53 | Pending |
