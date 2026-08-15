@@ -341,9 +341,13 @@ def resolve_registry_key(
     tuple and the same tuple with an explicit fifth element of the literal
     ``"typst"`` resolve to the identical object.
 
-    This task's lookup assumes the key is already present in ``registry``
-    -- the raise branches for an unregistered key (CONF-14) and for a
-    present-but-non-``str`` element ``[4]`` (D-06) are plan 53-03's work.
+    Because ``resolve_template_registry()`` already validates every
+    DECLARED key up front (D-05), this lookup can never discover a NEW
+    validation failure against a key that is genuinely IN the registry --
+    it stays a plain presence check with a raise, not a second validation
+    pass. The lookup is exact ``str`` equality, never case-folded: a
+    registry declaring ``"Paper"`` does not satisfy an entry naming
+    ``"paper"`` (CONF-14 encoding edge, D-04).
 
     Args:
         registry: The resolved registry, as returned by
@@ -353,6 +357,33 @@ def resolve_registry_key(
     Returns:
         The ``TemplateRegistryEntry`` this entry's fifth element (or its
         absence) names.
+
+    Raises:
+        ExtensionError: When element ``[4]`` is present but not a ``str``
+            (D-06 -- this is the SAME CONF-14 class of error as an
+            unregistered key, naming the offending value; it does NOT
+            join ``_is_usable_typst_documents_entry()``'s tolerate-and-
+            skip contract and is never silently coerced to the built-in
+            key), or when it is a ``str`` absent from ``registry``
+            (CONF-14 -- the message names the registered keys, sorted).
     """
-    key = entry[4] if len(entry) > 4 else RESERVED_REGISTRY_KEY
+    if len(entry) > 4:
+        raw_key = entry[4]
+        if not isinstance(raw_key, str):
+            raise ExtensionError(
+                f"typst_documents entry names registry key {raw_key!r}, "
+                "which is not a string -- registered "
+                f"typst_document_templates keys: {sorted(registry.keys())!r}"
+            )
+        key = raw_key
+    else:
+        key = RESERVED_REGISTRY_KEY
+
+    if key not in registry:
+        raise ExtensionError(
+            f"typst_documents entry names registry key {key!r}, which is "
+            "not a registered typst_document_templates key -- registered "
+            f"keys: {sorted(registry.keys())!r}"
+        )
+
     return registry[key]

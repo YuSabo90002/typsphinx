@@ -448,7 +448,7 @@ def test_definition_with_both_template_and_package_raises(temp_sphinx_app):
 @pytest.mark.parametrize(
     "definition",
     [
-        {"template": "sub/only_template.typ"},
+        {"template": "sub/solo_tpl.typ"},
         {"package": "@preview/pkg:0.1.0"},
         {},
     ],
@@ -461,7 +461,7 @@ def test_definition_with_template_xor_package_or_neither_resolves(
     app = temp_sphinx_app
     srcdir = Path(str(app.srcdir))
     (srcdir / "sub").mkdir()
-    (srcdir / "sub" / "only_template.typ").write_text("")
+    (srcdir / "sub" / "solo_tpl.typ").write_text("")
     app.config.typst_document_templates = {"solo": definition}
 
     registry = resolve_template_registry(app.config, str(app.srcdir))
@@ -567,11 +567,11 @@ def test_builtin_typst_key_nonexistent_global_template_does_not_raise(
     question is the SYNTHESIZED built-in key, which this module must never
     raise for."""
     app = temp_sphinx_app
-    app.config.typst_template = "no_such_global_template.typ"
+    app.config.typst_template = "no_such_global_tpl.typ"
 
     registry = resolve_template_registry(app.config, str(app.srcdir))
 
-    assert registry[RESERVED_REGISTRY_KEY].template == "no_such_global_template.typ"
+    assert registry[RESERVED_REGISTRY_KEY].template == "no_such_global_tpl.typ"
 
 
 def test_conf17_and_not_found_both_reported_in_one_raise(temp_sphinx_app):
@@ -631,3 +631,123 @@ def test_three_independently_broken_keys_raise_once_order_independently(
     assert "'missing'" in message_forward
     assert "'typst'" in message_forward
     assert message_forward.startswith("typst_document_templates: 3 invalid")
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 plan 03, Task 3: CONF-14's unregistered key and D-06's non-str
+# element [4].
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_registry_key_unregistered_key_raises_naming_registered_keys(
+    temp_sphinx_app,
+):
+    """CONF-14: a `typst_documents` entry whose element [4] names a key
+    absent from the resolved registry raises `ExtensionError`, and the
+    message contains the sorted resolved registry keys."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"paper": {}}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "nonexistent")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    message = str(excinfo.value)
+    assert "nonexistent" in message
+    assert "['paper', 'typst']" in message
+
+
+def test_resolve_registry_key_empty_registry_lists_typst_not_empty_list(
+    temp_sphinx_app,
+):
+    """CONF-14 empty edge: with `typst_document_templates` empty, the
+    message lists `['typst']` -- the sorted resolved keys -- never an
+    empty list."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "nonexistent")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    assert "['typst']" in str(excinfo.value)
+
+
+def test_resolve_registry_key_lookup_is_exact_str_equality_not_casefolded(
+    temp_sphinx_app,
+):
+    """CONF-14 encoding edge: a registry declaring `Paper` does not
+    satisfy an entry naming `paper`; the lookup is exact `str` equality,
+    never case-folded."""
+    app = temp_sphinx_app
+    app.config.typst_document_templates = {"Paper": {}}
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", "paper")
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    assert "'paper'" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("bad_value", [None, 123, ("a", "b")])
+def test_resolve_registry_key_non_str_element_four_raises(temp_sphinx_app, bad_value):
+    """D-06: an element [4] that is PRESENT but not a `str` -- `None`, an
+    int, and a tuple -- each raises the same class of error, naming the
+    offending value and the registered keys. It is neither tolerated-and-
+    skipped nor coerced to the built-in key."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A", bad_value)
+
+    with pytest.raises(ExtensionError) as excinfo:
+        resolve_registry_key(registry, entry)
+
+    message = str(excinfo.value)
+    assert repr(bad_value) in message
+    assert "['typst']" in message
+
+
+def test_resolve_registry_key_absent_element_four_still_resolves_to_typst(
+    temp_sphinx_app,
+):
+    """TPL-04 regression: an absent element [4] (a four-element tuple)
+    still resolves to the built-in key without raising -- Task 3's D-06
+    branch must not regress plan 53-02's behaviour."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    entry = ("index", "manual.typ", "T", "A")
+
+    resolved = resolve_registry_key(registry, entry)
+
+    assert resolved is registry[RESERVED_REGISTRY_KEY]
+
+
+def test_resolve_registry_key_bad_key_fails_identically_regardless_of_master_order(
+    temp_sphinx_app,
+):
+    """SC#3: a multi-master `typst_documents` with two masters, one of
+    them naming a bad key, fails identically whichever master would have
+    been written first."""
+    app = temp_sphinx_app
+    registry = resolve_template_registry(app.config, str(app.srcdir))
+    good_entry = ("index", "manual.typ", "T", "A")
+    bad_entry = ("other", "other.typ", "T2", "A2", "does_not_exist")
+
+    # Simulate "the bad master would have been written FIRST": resolve it,
+    # then resolve the good one (which never raises).
+    with pytest.raises(ExtensionError) as excinfo_bad_first:
+        resolve_registry_key(registry, bad_entry)
+    resolve_registry_key(registry, good_entry)
+    message_bad_first = str(excinfo_bad_first.value)
+
+    # Simulate "the bad master would have been written SECOND": resolve
+    # the good one first, then the bad one.
+    resolve_registry_key(registry, good_entry)
+    with pytest.raises(ExtensionError) as excinfo_bad_second:
+        resolve_registry_key(registry, bad_entry)
+    message_bad_second = str(excinfo_bad_second.value)
+
+    assert message_bad_first == message_bad_second
