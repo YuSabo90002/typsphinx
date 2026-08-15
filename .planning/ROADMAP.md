@@ -678,7 +678,7 @@ needed key set is not known until the write loop has run.
      consequence rather than only that the value "was removed" (CONF-19). The handler ships in the
      same commit as the removal; detection cannot be retrofitted later.
 
-**Plans**: 5/7 plans executed (4 waves)
+**Plans**: 7/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -697,8 +697,8 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 54-06-PLAN.md — Wave 4: CONF-19's `config-inited` handler shipping with the `typst_template_assets` unregistration, plus D-15's relocation warning
-- [ ] 54-07-PLAN.md — Wave 4: OUT-07's `_template/` prefix reservation and the `template_named_dir_master` fixture split
+- [x] 54-06-PLAN.md — Wave 4: CONF-19's `config-inited` handler shipping with the `typst_template_assets` unregistration, plus D-15's relocation warning
+- [x] 54-07-PLAN.md — Wave 4: OUT-07's `_template/` prefix reservation and the `template_named_dir_master` fixture split
 
 **UI hint**: no
 
@@ -857,7 +857,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
-| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 5/7 | In Progress|  |
+| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | In Progress|  |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
