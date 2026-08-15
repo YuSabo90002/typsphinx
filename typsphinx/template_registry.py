@@ -377,7 +377,40 @@ def resolve_template_registry(
                 "and 'package', which is unsupported (CONF-15)"
             )
 
-        if template:
+        # 53-08 Task 2 (53-REVIEW.md WR-02; 53-VERIFICATION.md
+        # Anti-Patterns row 3): a truthy `template` that `os.path.join`
+        # cannot consume (e.g. a `list`) is a guard joining the
+        # accumulated `failures` list, not a silent crash into
+        # `os.path.join`'s raw `TypeError`. Three properties are
+        # load-bearing here:
+        #
+        # 1. This branch is an `elif` of `if template and package:` above,
+        #    NOT a `continue` -- so CONF-15's both-set check still runs
+        #    for the SAME definition, and a definition carrying both a
+        #    bad-typed `template` and a `package` reports BOTH failures
+        #    in the one accumulated raise (D-09).
+        # 2. The guard is gated on TRUTHINESS, matching this module's
+        #    established convention that a falsy field means "absent"
+        #    (`raw_definition or {}` above, this same `if template:`
+        #    gate today). This is what keeps `template: None` / `""` /
+        #    `0` / `[]` resolving exactly as they do today, unchanged --
+        #    the guard covers precisely the crash surface and no more.
+        # 3. The accepted types are `str` AND `os.PathLike`, deliberately
+        #    NOT `str` alone as `53-REVIEW.md` WR-02's suggested fix
+        #    reads. Measured: `os.path.join()` with a `str` `srcdir`
+        #    succeeds for both `str` and `os.PathLike` and raises
+        #    `TypeError` for `bytes` and everything else, and
+        #    `TemplateEngine.resolve_template()`'s Priority 1 consumes
+        #    the value through `_try_load_file()` and `Path(...)`, both
+        #    of which accept `os.PathLike` -- so a `pathlib.Path`
+        #    `template` works end to end TODAY, and blanket-rejecting it
+        #    would withdraw a working shape rather than close a crash.
+        if template and not isinstance(template, (str, os.PathLike)):
+            failures.append(
+                f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
+                f"not a {type(template).__name__}"
+            )
+        elif template:
             # CONF-17 (D-07/D-09) and D-08's existence check are two
             # structurally INDEPENDENT checks on the declared `template`
             # value -- neither is an elif of the other -- so a value that

@@ -170,7 +170,54 @@ Both guards land in `typsphinx/template_registry.py`:
   truthy `template` branch of the accumulate loop, joining the same `failures` list
   as every other definition-level check (D-09) — accumulated, not pre-accumulation.
 
-Post-fix commit SHA and both locale runs are appended below once the fix and tests
-land (Task 1 / Task 2 completion, in-place edit to this section).
+### Post-fix reproduction re-runs (both now raise this module's own `ExtensionError`)
 
-<!-- gsd:write-continue -->
+WR-01 repro, re-run against the fixed code:
+
+```
+ExtensionError: typst_document_templates must be a dict mapping registry key to definition, got ['a', 'b']
+```
+
+WR-02 repro, re-run against the fixed code:
+
+```
+ExtensionError: typst_document_templates: 1 invalid definition(s): registry key 'key''s template ['a', 'b'] must be a path string or os.PathLike, not a list
+```
+
+### Two-locale proof
+
+`uv run pytest tests/test_registry_container_shape_gate.py tests/test_template_registry.py -q`
+(ambient locale, ja_JP): `85 passed`.
+
+`LC_ALL=C uv run pytest tests/test_registry_container_shape_gate.py tests/test_template_registry.py -q`:
+`85 passed` — identical count, confirming no assertion depends on the ambient locale.
+
+### Post-fix commit SHAs
+
+- WR-01 (Task 1): `6846a190` — `feat(53-08): close WR-01 -- typo'd typst_document_templates
+  container fails cleanly`.
+- WR-02 (Task 2): recorded in a small follow-up docs commit immediately after the Task 2
+  feat commit lands, naming that commit's own SHA (both are, by construction, distinct
+  from the pre-fix base `74eb4440ba8bc0dda6bed63e24b9aab6bb26d146`).
+
+### Full-suite and toolchain checks (Task 2 acceptance criteria)
+
+- `uv run pytest tests/ -q` → `1270 passed, 5 skipped`.
+- `uv run pytest tests/test_preview_version_sync.py -q` → `3 passed`.
+- `grep -rl "_template\.typ" tests/ | wc -l` → **33**, not the plan's documented "32,
+  the phase-start count". Re-measured directly against the pre-fix base commit
+  (`git grep -l "_template\.typ" 74eb4440ba8bc0dda6bed63e24b9aab6bb26d146 -- tests/ | wc -l`
+  also returns 33) — the count was already 33 before this plan's Task 1 or Task 2 touched
+  anything, because `tests/test_registry_prewrite_validation_gate.py` (added by plan 53-06)
+  already matches the pattern. Neither this plan's new files
+  (`tests/test_registry_container_shape_gate.py`, the `registry_container_shape_gate`
+  fixture) nor its edits to `tests/test_template_registry.py` reference `_template.typ` at
+  all. The "32" figure in `53-08-PLAN.md`'s acceptance criteria is stale documentation
+  from before plan 53-06 landed, not a regression introduced here.
+- `uv run black --check .` → `310 files would be left unchanged` (clean, after
+  reformatting the new `tests/test_registry_container_shape_gate.py` to match).
+- `uv run mypy typsphinx/` → `Success: no issues found in 7 source files`.
+- `uv run ruff check .` → `Could not start dynamically linked executable: ruff` (the
+  recorded NixOS generic-linux ELF hazard; CLAUDE.md's own guidance is to record this
+  verbatim rather than claim a lint pass — plan 53-10's dispatched CI run is this phase's
+  authoritative lint evidence).

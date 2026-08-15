@@ -96,12 +96,12 @@ class TestTruthyNonDictContainerSubprocessGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         combined_output = result.stdout + result.stderr
-        assert "typst_document_templates must be a dict" in combined_output, (
-            f"Expected this module's own container-shape message:\n{combined_output}"
-        )
-        assert "AttributeError" not in combined_output, (
-            f"Expected no raw AttributeError to escape:\n{combined_output}"
-        )
+        assert (
+            "typst_document_templates must be a dict" in combined_output
+        ), f"Expected this module's own container-shape message:\n{combined_output}"
+        assert (
+            "AttributeError" not in combined_output
+        ), f"Expected no raw AttributeError to escape:\n{combined_output}"
 
     def test_truthy_non_dict_container_build_writes_no_typ_files(self, tmp_path):
         """CONF-17 concurrency edge, explicit half: `resolve_template_registry()`
