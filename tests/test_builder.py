@@ -572,10 +572,10 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     only for this test's specific absolute URI -- a blanket replacement
     would break unrelated path work inside the same call.
     """
-    import typsphinx.builder as builder_module
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
+    import typsphinx.builder as builder_module
     from typsphinx.builder import TypstBuilder
 
     app = temp_sphinx_app
