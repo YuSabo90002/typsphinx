@@ -176,3 +176,20 @@ SOURCE-relative destination under `<outdir>/_typst/styled/...`, never under a `_
 prefix, so both the manifest-equality assertion and the incremental-rebuild
 (`test_rerun_leaves_a_removed_source_file_in_place`) assertion fail on the same missing
 directory.
+
+## Handover
+
+All three modules above are marked `@pytest.mark.xfail(strict=False, reason="Phase 54: green
+only once the per-key bundle relocation lands in 54-04; RED recorded in
+54-01-RED-EVIDENCE.md")` as of this plan's Task 3, so the full suite (`uv run pytest tests/ -q`)
+stays green at this phase boundary (ROADMAP binding constraint #2) while the real RED evidence
+above remains on record (constraint #6). `strict=False` is deliberate: once `54-04` lands the
+bundle relocation but before its own task removes these markers, the tests XPASS, and a strict
+marker would turn that XPASS into a failure — inverting the gate exactly when it starts working.
+
+**`54-04` Task 3 removes the `xfail` marker from each of the three modules below and proves the
+suite green for real:**
+
+- `tests/test_user_template_relative_asset_gate.py`
+- `tests/test_two_key_selection_gate.py`
+- `tests/test_bundle_copy_exclusion_manifest_gate.py`

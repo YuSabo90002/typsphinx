@@ -94,6 +94,13 @@ def _materialize_excluded_kinds(bundle_dir: Path) -> None:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the BLD-06/OUT-04 real-compile gate",
 )
+@pytest.mark.xfail(
+    strict=False,
+    reason=(
+        "Phase 54: green only once the per-key bundle relocation lands in "
+        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
+    ),
+)
 class TestBundleCopyExclusionManifestGate:
     @staticmethod
     @pytest.fixture(scope="class")

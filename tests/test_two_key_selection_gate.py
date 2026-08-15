@@ -71,6 +71,13 @@ def _extract_template_import_path(text: str) -> str:
     not TYPST_AVAILABLE,
     reason="typst-py is required for the TPL-02/OUT-06 real-compile gate",
 )
+@pytest.mark.xfail(
+    strict=False,
+    reason=(
+        "Phase 54: green only once the per-key bundle relocation lands in "
+        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
+    ),
+)
 class TestTwoKeySelectionGate:
     @staticmethod
     @pytest.fixture(scope="class")

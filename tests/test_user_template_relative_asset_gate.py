@@ -73,6 +73,13 @@ def _run_sphinx_build(
     not TYPST_AVAILABLE,
     reason="typst-py is required for the OUT-05 real-compile gate",
 )
+@pytest.mark.xfail(
+    strict=False,
+    reason=(
+        "Phase 54: green only once the per-key bundle relocation lands in "
+        "54-04; RED recorded in 54-01-RED-EVIDENCE.md"
+    ),
+)
 class TestUserTemplateRelativeAssetGate:
     @staticmethod
     @pytest.fixture(scope="class")
