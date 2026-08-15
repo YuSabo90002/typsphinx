@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 8/9 plans executed
+**Plans**: 9/9 plans executed
 
 Plans:
 **Wave 1**
@@ -973,7 +973,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 52-07-PLAN.md — Roll-up evidence, standalone publish handoff, deferred-defect register, and the REL-07-stays-open closeout guard (SC#5)
+- [x] 52-07-PLAN.md — Roll-up evidence, standalone publish handoff, deferred-defect register, and the REL-07-stays-open closeout guard (SC#5)
 
 **Cross-cutting constraints:**
 
@@ -1016,7 +1016,7 @@ sequential, not merely numbered:
 | 49. Per-Master Include Graph with State-Guarded Includes | v0.8.0 | 6/6 | Complete    | 2026-08-14 |
 | 50. PR #131 Image Path Defects | v0.8.0 | 3/3 | Complete    | 2026-08-14 |
 | 51. Two-Layer Output Documentation | v0.8.0 | 6/6 | Complete    | 2026-08-15 |
-| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 8/9 | In Progress|  |
+| 52. v0.8.0 Release Prep (prep-only) | v0.8.0 | 9/9 | In Progress|  |
 
 Phases 1–46 shipped across v0.4.4 → v0.7.1; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`.
