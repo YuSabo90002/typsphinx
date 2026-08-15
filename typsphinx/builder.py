@@ -1323,189 +1323,15 @@ class TypstBuilder(Builder):
             except Exception as e:
                 logger.warning(f"Failed to copy image {imguri}: {e}")
 
-    def copy_template_assets(self) -> None:
-        """
-        Copy template-associated assets to the output directory.
-
-        When using custom Typst templates via typst_template configuration,
-        this method copies assets (fonts, images, logos, etc.) referenced by
-        the template to the output directory.
-
-        Behavior:
-        - If typst_template_assets is configured, copies only specified files/directories
-        - If typst_template_assets is None (default), automatically copies entire template directory
-        - If typst_template_assets is empty list, disables automatic copying
-        - Skips .typ files to avoid duplicating template file (already handled by _write_template_file)
-
-        This follows the same pattern as copy_image_files() from Issue #38.
-        """
-
-        # Early return if no custom template is configured
-        template_path = getattr(self.config, "typst_template", None)
-        if not template_path:
-            return  # No custom template
-
-        # Early return if using Typst Universe package (assets handled by Typst compiler)
-        typst_package = getattr(self.config, "typst_package", None)
-        if typst_package:
-            return
-
-        # Get template assets configuration
-        template_assets = getattr(self.config, "typst_template_assets", None)
-
-        # Check if explicitly disabled (empty list)
-        if template_assets is not None and len(template_assets) == 0:
-            logger.debug("Template asset copying disabled (empty list)")
-            return
-
-        logger.info("Copying template assets...")
-
-        if template_assets:
-            # Option 2: Explicit asset list
-            self._copy_explicit_assets(template_assets)
-        else:
-            # Option 1: Automatic directory copy
-            self._copy_template_directory(template_path)
-
-    def _copy_template_directory(self, template_path: str) -> None:
-        """
-        Copy entire template directory to output (default behavior).
-
-        Automatically copies all files in the template directory,
-        excluding .typ files (which are handled separately).
-
-        Args:
-            template_path: Path to template file relative to source directory
-        """
-        import os
-
-        # Get template directory path
-        template_dir = path.dirname(template_path)
-        if not template_dir:
-            # Template is in root directory, no assets to copy
-            return
-
-        # Resolve absolute paths
-        src_dir = path.join(self.srcdir, template_dir)
-        dest_dir = path.join(self.outdir, template_dir)
-
-        # Check if template directory exists
-        if not path.exists(src_dir):
-            logger.warning(f"Template directory not found: {src_dir}")
-            return
-
-        # Track copied files for logging
-        copied_count = 0
-
-        # Walk through directory and copy all files except .typ
-        for root, _dirs, files in os.walk(src_dir):
-            for file in files:
-                # Skip .typ files (already handled by _write_template_file)
-                if file.endswith(".typ"):
-                    continue
-
-                # Get source and destination paths
-                src_file = path.join(root, file)
-                rel_path = path.relpath(src_file, src_dir)
-                dest_file = path.join(dest_dir, rel_path)
-
-                # Ensure destination directory exists
-                ensuredir(path.dirname(dest_file))
-
-                # Copy the file
-                try:
-                    shutil.copy2(src_file, dest_file)
-                    logger.debug(f"Copied template asset: {rel_path}")
-                    copied_count += 1
-                except Exception as e:
-                    logger.warning(f"Failed to copy template asset {rel_path}: {e}")
-
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} template asset(s) from {template_dir}/")
-
-    def _copy_explicit_assets(self, assets: list) -> None:
-        """
-        Copy explicitly specified assets.
-
-        Supports individual files, directories, and glob patterns.
-
-        Args:
-            assets: List of asset paths (relative to source directory)
-                   May include glob patterns like "*.png" or "fonts/*.otf"
-        """
-        import glob
-
-        copied_count = 0
-
-        for asset_pattern in assets:
-            # Resolve absolute pattern path
-            abs_pattern = path.join(self.srcdir, asset_pattern)
-
-            # Check if pattern contains wildcards
-            if "*" in asset_pattern or "?" in asset_pattern:
-                # Expand glob pattern
-                matches = glob.glob(abs_pattern, recursive=True)
-                if not matches:
-                    logger.warning(f"No files matched pattern: {asset_pattern}")
-                    continue
-
-                for match in matches:
-                    if self._copy_single_asset(match, asset_pattern):
-                        copied_count += 1
-            else:
-                # Single file or directory
-                if self._copy_single_asset(abs_pattern, asset_pattern):
-                    copied_count += 1
-
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} explicitly specified template asset(s)")
-
-    def _copy_single_asset(self, src_path: str, original_pattern: str) -> bool:
-        """
-        Copy a single asset file or directory.
-
-        Args:
-            src_path: Absolute source path
-            original_pattern: Original pattern from configuration (for error messages)
-
-        Returns:
-            True if successfully copied, False otherwise
-        """
-
-        # Check if source exists
-        if not path.exists(src_path):
-            logger.warning(f"Template asset not found: {original_pattern}")
-            return False
-
-        # Calculate relative path from source directory
-        rel_path = path.relpath(src_path, self.srcdir)
-        dest_path = path.join(self.outdir, rel_path)
-
-        try:
-            if path.isdir(src_path):
-                # Copy directory recursively
-                # Use copytree with dirs_exist_ok for Python 3.8+
-                shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
-                logger.debug(f"Copied template asset directory: {rel_path}/")
-            else:
-                # Copy single file
-                ensuredir(path.dirname(dest_path))
-                shutil.copy2(src_path, dest_path)
-                logger.debug(f"Copied template asset: {rel_path}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to copy template asset {rel_path}: {e}")
-            return False
-
     def _copy_bundle_directory(
         self, src_dir: str, dest_dir: str, key: str, template_filename: str
     ) -> None:
         """Copy one registry key's resolved template bundle wholesale
-        from ``src_dir`` to ``dest_dir`` (OUT-04), generalizing
-        ``_copy_template_directory()``'s existing ``os.walk()`` +
-        ``shutil.copy2`` body (D-02): no ``.typ`` skip (the template body
-        now travels this SAME path, not a separate write), a name-based
-        exclusion for exactly D-04's four kinds
+        from ``src_dir`` to ``dest_dir`` (OUT-04) via ``os.walk()`` +
+        ``shutil.copy2`` (D-02): no ``.typ`` skip (the template body
+        travels this SAME path, not a separate write -- this is the
+        ONLY route from a template directory to the output tree), a
+        name-based exclusion for exactly D-04's four kinds
         (``_is_excluded_bundle_entry()``), and a fatal/non-fatal error
         split (D-05) keyed on whether the file being copied IS the
         resolved template file itself.
@@ -1574,11 +1400,11 @@ class TypstBuilder(Builder):
 
     def _copy_used_template_bundles(self) -> None:
         """Copy every USED registry key's resolved template bundle
-        wholesale to ``<outdir>/_template/<key>/`` (OUT-04), replacing
-        ``copy_template_assets()``. Called once from ``finish()``, fed
-        by the write-time ``self._used_template_keys`` accumulator
-        (mirrors ``self.images``/``copy_image_files()``, ROADMAP
-        constraint #4).
+        wholesale to ``<outdir>/_template/<key>/`` (OUT-04) -- the ONLY
+        route from a template directory to the output tree. Called once
+        from ``finish()``, fed by the write-time
+        ``self._used_template_keys`` accumulator (mirrors
+        ``self.images``/``copy_image_files()``, ROADMAP constraint #4).
 
         Returns immediately when the accumulator is empty -- a build
         that writes no wrapper creates no ``<outdir>/_template/``
@@ -1771,17 +1597,18 @@ class TypstBuilder(Builder):
         Finish the build process.
 
         This method is called once after all documents have been written.
-        Copies image files and template assets to the output directory,
-        then copies every USED registry key's resolved template bundle
-        wholesale to ``<outdir>/_template/<key>/`` (Phase 54, OUT-04).
-
-        ``copy_template_assets()`` (the old shared-``_template.typ``-
-        relative asset copy) deliberately stays in place here -- its
-        deletion is `54-05`'s own commit; removing the call here would
-        break assertions this plan is not migrating.
+        Copies image files, then copies every USED registry key's
+        resolved template bundle wholesale to
+        ``<outdir>/_template/<key>/`` (Phase 54, OUT-04) -- the ONLY
+        route from a template directory to the output tree. The
+        parallel asset-copy path this bundle copy superseded (three
+        early returns, plus the explicit-list expander and its
+        single-asset copier) was deleted in this same plan (`54-05`);
+        "has no bundle" is now a per-key property of
+        ``_copy_used_template_bundles()`` itself, not a build-wide
+        early return.
         """
         self.copy_image_files()
-        self.copy_template_assets()
         self._copy_used_template_bundles()
 
 
