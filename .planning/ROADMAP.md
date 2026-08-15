@@ -569,10 +569,10 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: 5 plans (4 waves)
+**Plans**: 1/5 plans executed (4 waves)
 **Wave 1**
 
-- [ ] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
+- [x] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -811,7 +811,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 53. Template Registry Foundation | v0.9.0 | 0/? | Not started | - |
+| 53. Template Registry Foundation | v0.9.0 | 1/5 | In Progress|  |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |

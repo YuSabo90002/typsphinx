@@ -4,9 +4,9 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 53
 current_phase_name: Template Registry Foundation
-status: Ready to execute
+status: executing
 stopped_at: Phase 53 planned (5 plans, 4 waves)
-last_updated: "2026-08-15T07:29:27.019Z"
+last_updated: "2026-08-15T07:46:05.689Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 53 planned — 5 plans across 4 waves
 progress:
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **v0.9.0 per-document templates** — roadmap created 2026-08-15, **Phases 53–57**,
+**Current focus:** Phase 53 — Template Registry Foundation
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
 template through a validated `typst_document_templates` registry, and one output rule — every used
 key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
@@ -39,11 +39,11 @@ Next action: `/gsd-plan-phase 53`
 
 ## Current Position
 
-Phase: 53 — Template Registry Foundation (not started)
-Plan: —
-Status: Roadmap created; awaiting `/gsd-plan-phase 53`
+Phase: 53 (Template Registry Foundation) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 53
 Progress: [                    ] 0% (0/5 phases)
-Last activity: 2026-08-15 — v0.9.0 roadmap created (Phases 53–57)
+Last activity: 2026-08-15 — Phase 53 execution started
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
