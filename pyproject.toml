@@ -70,7 +70,11 @@ include = ["typsphinx*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"typsphinx" = ["templates/*.typ"]
+# Recursive glob is load-bearing (BLD-05, D-12): a flat `templates/*` would
+# silently drop a future `templates/fonts/x.otf` from the wheel. Narrowing
+# this glob back down is caught by the wheel-content check in
+# .github/workflows/ci.yml's `build` job, not by this comment alone.
+"typsphinx" = ["templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
