@@ -196,6 +196,16 @@ None - no external service configuration required.
 - Full suite: 1270 passed, 5 skipped. `black`/`mypy` clean; `ruff` unrunnable on this NixOS sandbox (recorded ELF hazard — plan 53-10's dispatched CI run is this phase's authoritative lint evidence).
 - Ready for 53-09 (REQUIREMENTS.md tracking corrections) and 53-10 (SC#5 CI currency), both of which change no code and have no dependency on this plan's specific line numbers.
 
+## Self-Check: PASSED
+
+All created files verified present on disk (`typsphinx/template_registry.py`,
+`tests/test_registry_container_shape_gate.py`,
+`tests/fixtures/registry_container_shape_gate/conf.py`,
+`.planning/phases/53-template-registry-foundation/53-08-RED-EVIDENCE.md`,
+`.planning/phases/53-template-registry-foundation/53-08-SUMMARY.md`) and all four
+commit hashes (`6846a190`, `daca9a7d`, `b39f3987`, `e6c1ebd7`) verified present in
+`git log --oneline --all`.
+
 ---
 *Phase: 53-template-registry-foundation*
 *Completed: 2026-08-15*
