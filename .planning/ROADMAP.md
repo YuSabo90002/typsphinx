@@ -569,7 +569,14 @@ this milestone does not touch.
      *(Branch name corrected 2026-08-15 during Phase 53 planning — see binding constraint #9. The
      original text named `gsd/v0.9.0-milestone`, which carries zero milestone commits.)*
 
-**Plans**: TBD
+**Plans**: 5 plans (4 waves)
+
+- [ ] 53-01-PLAN.md — SC#2 pre-change byte-identity baseline (`53-RED-EVIDENCE.md`) — wave 1
+- [ ] 53-02-PLAN.md — Tracer: `typst_document_templates` registered, `template_registry.py`, resolution threaded from `write()` into `render_wrapper()`, output unchanged — wave 2
+- [ ] 53-03-PLAN.md — Validation: CONF-14…CONF-18, denylist enumeration, accumulate-then-raise-once — wave 3
+- [ ] 53-04-PLAN.md — `TemplateResolution` widened to carry the resolved path through the single priority walk — wave 3
+- [ ] 53-05-PLAN.md — SC#2 post-change identity diff + SC#5 branch push and dispatched 3-OS CI run — wave 4
+
 **UI hint**: no
 
 ### Phase 54: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions
