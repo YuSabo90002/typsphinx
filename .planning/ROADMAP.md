@@ -945,7 +945,7 @@ must rest on a real multi-master round trip, not on unit-level fixture passes.
      `typsphinx-doc-translations` → the Read the Docs `stable` measurement on both projects. The
      phase's artifacts state that **REL-07 remains open until the publish**, and do not report it
      complete on the strength of the prep being correct.
-**Plans**: 7/8 plans executed
+**Plans**: 7/9 plans executed
 
 Plans:
 **Wave 1**
@@ -968,6 +968,10 @@ Plans:
 - [x] 52-08-PLAN.md — Fix the three pre-existing defects the 52-04 CI authority run surfaced (locale-dependent baseline, `repr()`-escaped assertion, ruff I001), re-push and re-dispatch, record the green run and close the ledger (SC#3, toolchain half — added mid-phase after 52-04 came back RED)
 
 **Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 52-09-PLAN.md — Close the last CI defect test-side (CPython 3.13 `ntpath.isabs` drops driveless-absolute Windows paths), file the product-side inconsistency as a todo, and prove the third CI run fully green (SC#3, toolchain half — added mid-phase after 52-08 reached 11/12)
+
+**Wave 6** *(blocked on Wave 5 completion)*
 
 - [ ] 52-07-PLAN.md — Roll-up evidence, standalone publish handoff, deferred-defect register, and the REL-07-stays-open closeout guard (SC#5)
 
