@@ -678,7 +678,7 @@ needed key set is not known until the write loop has run.
      consequence rather than only that the value "was removed" (CONF-19). The handler ships in the
      same commit as the removal; detection cannot be retrofitted later.
 
-**Plans**: 3/7 plans executed (4 waves)
+**Plans**: 4/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -689,7 +689,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 54-04-PLAN.md — Wave 2 (tracer): every used key's bundle at `<outdir>/_template/<key>/`, root-absolute import, `importlib.resources` resolution, shadow route moved to `<srcdir>/_typst/`, import-string migration
+- [x] 54-04-PLAN.md — Wave 2 (tracer): every used key's bundle at `<outdir>/_template/<key>/`, root-absolute import, `importlib.resources` resolution, shadow route moved to `<srcdir>/_typst/`, import-string migration
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -857,7 +857,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
-| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 3/7 | In Progress|  |
+| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 4/7 | In Progress|  |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
