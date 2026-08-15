@@ -24,6 +24,7 @@ of those two.
 This module adds zero new runtime dependencies -- only stdlib.
 """
 
+import os
 from dataclasses import dataclass
 from typing import Any, Dict
 
@@ -133,6 +134,30 @@ def _validate_registry_key_shape(key: str, other_keys: "set[str]") -> str | None
     return None
 
 
+def _violates_conf17(template_abs_path: str, srcdir: str) -> bool:
+    """CONF-17/D-07: whether ``template_abs_path``'s resolved parent
+    directory IS ``srcdir`` itself, or is an ANCESTOR of ``srcdir`` --
+    pure path arithmetic on the DECLARED value, taking no
+    filesystem-existence branch (D-09's "these two checks are structurally
+    independent" requirement).
+
+    Framed by the harm this predicate exists to prevent, not by the
+    literal roadmap wording: "copy the parent directory" (Phase 54's
+    future bundle copy) must never mean "copy the source tree". A single
+    ``os.path.commonpath`` comparison covers BOTH of D-07's rejected
+    shapes -- ``parent == srcdir`` and ``parent`` a proper ancestor of
+    ``srcdir`` -- without two separate comparisons. Siblings of ``srcdir``
+    (reached via ``..``) and absolute paths outside ``srcdir`` stay legal:
+    ``os.path.join(srcdir, "/abs/x.typ")`` returns ``"/abs/x.typ"``
+    verbatim (measured stdlib behaviour -- a later absolute component
+    discards every earlier one), so an absolute ``template`` naturally
+    evaluates against its own parent, not ``srcdir``'s.
+    """
+    parent = os.path.normpath(os.path.dirname(os.path.abspath(template_abs_path)))
+    norm_srcdir = os.path.normpath(os.path.abspath(srcdir))
+    return os.path.commonpath([norm_srcdir, parent]) == parent
+
+
 @dataclass(frozen=True)
 class TemplateRegistryEntry:
     """One resolved ``typst_document_templates`` entry -- either declared
@@ -198,9 +223,9 @@ def resolve_template_registry(
     Args:
         config: The Sphinx ``Config`` object (or any object exposing the
             same ``typst_*`` attributes via ``getattr``).
-        srcdir: The build's source directory. Unused by Task 1 -- kept in
-            the signature so it does not churn between waves; Task 2's
-            CONF-17/D-08 checks consume it.
+        srcdir: The build's source directory, consumed by Task 2's
+            CONF-17/D-08 checks to resolve a declared ``template`` value
+            to an absolute path.
 
     Returns:
         A mapping from registry key to its resolved ``TemplateRegistryEntry``,
@@ -219,12 +244,60 @@ def resolve_template_registry(
         shape_reason = _validate_registry_key_shape(key, all_keys)
         if shape_reason is not None:
             failures.append(shape_reason)
-        elif key == RESERVED_REGISTRY_KEY:
+            continue
+        if key == RESERVED_REGISTRY_KEY:
             failures.append(
                 f"registry key {key!r} is reserved for the built-in "
                 f"{RESERVED_REGISTRY_KEY!r} key and cannot be redeclared "
                 "(CONF-16)"
             )
+            # No further definition-level checks for this key: it is
+            # already rejected, and -- since this `continue` means the
+            # loop never runs the D-08 existence check below for a
+            # user-DECLARED "typst" key -- the SYNTHESIZED built-in
+            # "typst" entry (added after this loop, from global
+            # `typst_template`, never from `declared`) is structurally
+            # never subject to D-08's existence check either. That is
+            # exactly D-08's contract: the built-in key's not-found path
+            # keeps reaching `resolve_template()`'s existing
+            # warn-and-fall-back behaviour, unobstructed by this module.
+            continue
+
+        definition = declared[key] or {}
+        template = definition.get("template")
+        package = definition.get("package")
+
+        # CONF-15: a definition carrying BOTH `template` and `package` is
+        # rejected. One carrying only `template`, only `package`, or
+        # NEITHER (flagged assumption 3) is accepted.
+        if template and package:
+            failures.append(
+                f"registry key {key!r}'s definition sets both 'template' "
+                "and 'package', which is unsupported (CONF-15)"
+            )
+
+        if template:
+            # CONF-17 (D-07/D-09) and D-08's existence check are two
+            # structurally INDEPENDENT checks on the declared `template`
+            # value -- neither is an elif of the other -- so a value that
+            # is both CONF-17-violating AND names a nonexistent file
+            # reports BOTH failures in the same accumulated raise (D-09).
+            template_abs_path = os.path.join(srcdir, template)
+            if _violates_conf17(template_abs_path, srcdir):
+                failures.append(
+                    f"registry key {key!r}'s template {template!r} "
+                    "resolves to a parent directory that is srcdir "
+                    "itself, or an ancestor of srcdir (CONF-17)"
+                )
+            if not os.path.isfile(template_abs_path):
+                # D-08: a BARE filesystem existence check, never routed
+                # through `TemplateEngine.resolve_template()` -- that
+                # method's multi-priority walk always succeeds via
+                # fallback and can therefore never itself signal
+                # "not found" (PITFALLS.md's Phase-53-specific pitfall).
+                failures.append(
+                    f"registry key {key!r}'s template {template!r} does " "not exist"
+                )
 
     if failures:
         summary = "; ".join(failures)
