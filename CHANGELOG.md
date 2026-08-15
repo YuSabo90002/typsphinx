@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: the `<srcdir>/base.typ` shadow-template route moved to
+  `<srcdir>/_typst/base.typ` (OUT-04).** The reason, in one clause: the resolved template's
+  parent directory is now copied wholesale to the output as that registry key's bundle, so it
+  must be a real bundle directory and not the whole source tree. If your project still has a
+  `<srcdir>/base.typ`, move it to `<srcdir>/_typst/base.typ`. If you do nothing, the build
+  silently typesets with the bundled default template instead of your file — there is **no
+  build-time warning** for this relocation, so this changelog entry is the only place it is
+  announced.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
