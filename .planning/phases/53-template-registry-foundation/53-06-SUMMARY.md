@@ -158,3 +158,10 @@ Each task was committed atomically:
 ---
 *Phase: 53-template-registry-foundation*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+All claimed files verified present on disk (`typsphinx/builder.py`,
+`tests/test_registry_prewrite_validation_gate.py`, all three fixture `conf.py` files,
+`53-06-RED-EVIDENCE.md`, `53-06-SUMMARY.md`) and all three task/summary commit hashes
+(`c9d1eb3b`, `512a211b`, `e0f324b2`) verified present in `git log --oneline --all`.
