@@ -25,7 +25,7 @@ from typsphinx.template_registry import (
     resolve_template_registry,
 )
 from typsphinx.translator import derive_master_edge_keys
-from typsphinx.writer import TypstWriter
+from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter
 
 logger = logging.getLogger(__name__)
 
@@ -570,29 +570,89 @@ class TypstBuilder(Builder):
         normalized_shape = posixpath.normpath(folded_separators)
         return normalized_shape.casefold()
 
+    @staticmethod
+    def _reserves_template_prefix(relative_path: str) -> bool:
+        """Whether ``relative_path``'s FIRST output-path segment is the
+        reserved template-bundle directory (OUT-07).
+
+        This is a separate predicate from ``_collision_key()``-keyed
+        ``_claim()`` on purpose, not a widened exact-match claim: the
+        deleted claim this replaces compared one exact string against one
+        exact string (a single reserved *filename*), whereas this asks a
+        PREFIX question about a resolved relative path (any file under a
+        reserved *directory*) -- conflating the two shapes into one
+        function would risk regressing the non-prefix collision cases
+        ``_validate_output_path_collisions()`` already handles correctly.
+        Deliberately does NOT reuse ``_escapes_outdir()`` or
+        ``_is_drive_qualified()`` -- both are built to answer "does this
+        WHOLE relative path try to leave outdir", where a ``/`` separator
+        is a legal, expected part of the input; this function asks the
+        opposite-shaped question, "is this path's first ``/``-delimited
+        segment one specific reserved name".
+
+        Routes through ``_collision_key()`` -- the single normalization
+        primitive this builder uses for every other output-path
+        comparison -- for BOTH ``relative_path`` and the reserved
+        directory name itself, so the comparison is symmetric: a
+        differently-cased spelling of the reserved directory
+        (``"_Template/index.typ"``) is refused on the same case-folded,
+        separator-folded, ``normpath()``-shaped terms as every other
+        collision check in this method (T-54-27).
+
+        Args:
+            relative_path: An outdir-relative output path (the same shape
+                ``_collision_key()`` accepts).
+
+        Returns:
+            True if ``relative_path``'s first path segment is the
+            reserved template-bundle directory, False otherwise.
+
+        Examples:
+            >>> TypstBuilder._reserves_template_prefix("_template/index.typ")
+            True
+            >>> TypstBuilder._reserves_template_prefix("_Template/sub/index.typ")
+            True
+            >>> TypstBuilder._reserves_template_prefix("manual.typ")
+            False
+            >>> TypstBuilder._reserves_template_prefix("_templates/index.typ")
+            False
+        """
+        folded = TypstBuilder._collision_key(relative_path)
+        reserved = TypstBuilder._collision_key(TEMPLATE_OUTPUT_DIR)
+        first_segment = folded.split("/", 1)[0]
+        return first_segment == reserved
+
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's
-        content file, a ``typst_documents`` entry's wrapper file, or the
-        reserved ``_template.typ`` infrastructure file -- resolve to the
-        same physical output path (D-01/D-02/D-03/D-04/D-05).
+        content file, or a ``typst_documents`` entry's wrapper file --
+        resolve to the same physical output path, AND that no such file
+        would be written under the reserved template-bundle directory
+        (D-01/D-02/D-03/D-04/D-05, OUT-07).
 
         Runs ONCE, called from ``write()`` at the very top -- before
         ``prepare_writing()`` and before the per-docname write loop -- so
-        "no output file is written when any collision is found" (D-02) is
-        structural rather than a promise, and covers the reserved
-        ``_template.typ`` name itself, not only content/wrapper files.
+        "no output file is written when any collision or reservation
+        violation is found" (D-02) is structural rather than a promise.
         Defined on ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it
         unchanged (D-03) -- both builders reject the same configurations
         identically.
 
         Builds ONE map from ``_collision_key()`` to a human-readable
         description of the logical file that claimed it, populated in
-        this order: the reserved ``_template.typ`` infrastructure file;
-        every docname in ``self.env.found_docs`` mapped to its content
-        path; every ``typst_documents`` entry mapped to its resolved
-        wrapper path. On a repeat key, BOTH claimants are recorded as one
-        failure rather than raising immediately, so every offending entry
-        is named in a SINGLE ``ExtensionError`` (D-02).
+        this order: every docname in ``self.env.found_docs`` mapped to
+        its content path; every ``typst_documents`` entry mapped to its
+        resolved wrapper path. On a repeat key, BOTH claimants are
+        recorded as one failure rather than raising immediately, so every
+        offending entry is named in a SINGLE ``ExtensionError`` (D-02).
+        Alongside each claim, ``_reserves_template_prefix()`` (OUT-07)
+        checks whether that same path's first segment is the reserved
+        template-bundle directory (``TEMPLATE_OUTPUT_DIR``, the same
+        directory Phase 54's ``_copy_used_template_bundles()`` writes
+        every used registry key's bundle under); a violation is appended
+        to the SAME ``failures`` list and therefore reported in the SAME
+        aggregated error as a destination collision -- every offending
+        docname in a whole subtree under the reserved name is named at
+        once, not just the first.
 
         An unusable entry (per ``_is_usable_typst_documents_entry()`` --
         an empty tuple, fewer than two elements, or a non-``str``
@@ -612,11 +672,20 @@ class TypstBuilder(Builder):
         resolution), so this never asks "is this docname repeated" --
         only "do two logical files want one physical path".
 
+        This validator never evaluates the reservation against the
+        builder's OWN bundle writes -- ``_copy_used_template_bundles()``
+        runs at ``finish()`` time, entirely outside this method, and is
+        never routed through it; only paths derived from docnames and
+        from ``typst_documents`` targets reach ``_reserves_template_prefix()``
+        here.
+
         Raises:
             ExtensionError: When one or more physical output paths are
-                claimed by more than one logical file. The message begins
-                with ``"typst: N output path collision(s)"`` (D-02's
-                summary prefix) followed by every offending pair.
+                claimed by more than one logical file, or would be
+                written under the reserved template-bundle directory. The
+                message begins with ``"typst: N output path
+                collision(s)"`` (D-02's summary prefix) followed by every
+                offending pair or reservation violation.
         """
         claims: Dict[str, str] = {}
         failures: List[Tuple[str, str]] = []
@@ -635,27 +704,37 @@ class TypstBuilder(Builder):
                 return
             claims[key] = description
 
-        # 1. The reserved _template.typ name -- no build-time write puts a
-        #    file there any more (Phase 54 deleted the single-file writer
-        #    that used to; the per-key bundle copy lands under
-        #    _template/<key>/ instead), but the exact-name reservation
-        #    itself stays functional here: `54-07` is the plan that widens
-        #    it into a `_template/` prefix reservation. Inserted first so
-        #    any later claimant is reported against it by name (D-01's
-        #    reserved-file kind).
-        _claim("_template.typ", "the reserved _template.typ infrastructure file")
-
-        # 2. Every docname's own content file -- unconditional, regardless
+        # 1. Every docname's own content file -- unconditional, regardless
         #    of whether any typst_documents entry names it (COMP-01/OUT-03).
+        #    Alongside the ordinary collision claim, OUT-07's reservation
+        #    predicate is evaluated on the SAME resolved relative path: a
+        #    docname whose content file would land under the reserved
+        #    template-bundle directory is a build-stopping failure, not a
+        #    collision between two logical files.
         found_docs = getattr(self.env, "found_docs", None) or set()
         for docname in found_docs:
-            _claim(docname + ".typ", f"the content file for docname {docname!r}")
+            content_relpath = docname + ".typ"
+            _claim(content_relpath, f"the content file for docname {docname!r}")
+            if self._reserves_template_prefix(content_relpath):
+                failures.append(
+                    (
+                        content_relpath,
+                        f"the content file for docname {docname!r} would "
+                        f"be written to {content_relpath!r}, whose first "
+                        f"path segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        "directory is reserved for template bundles",
+                    )
+                )
 
-        # 3. Every typst_documents entry's wrapper file (BLD-02/BLD-03/
+        # 2. Every typst_documents entry's wrapper file (BLD-02/BLD-03/
         #    BLD-04), resolved per-entry via _wrapper_output_relpath() --
         #    never via a docname-based first-match search, which is what
         #    makes D-04's repeated-docname/different-target case resolve
         #    to two independent keys instead of colliding with itself.
+        #    The reservation predicate is evaluated here too, on the
+        #    resolved wrapper path, naming the entry index and target at
+        #    the same detail level the ordinary wrapper claim already
+        #    gives.
         typst_documents = getattr(self.config, "typst_documents", []) or []
         for index, entry in enumerate(typst_documents):
             if not _is_usable_typst_documents_entry(entry):
@@ -678,6 +757,17 @@ class TypstBuilder(Builder):
                 f"typst_documents entry {index} (docname {docname!r}, "
                 f"target {target!r})",
             )
+            if self._reserves_template_prefix(wrapper_relpath):
+                failures.append(
+                    (
+                        wrapper_relpath,
+                        f"typst_documents entry {index} (docname "
+                        f"{docname!r}, target {target!r}) would write its "
+                        f"wrapper to {wrapper_relpath!r}, whose first path "
+                        f"segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        "directory is reserved for template bundles",
+                    )
+                )
 
         if failures:
             summary = "; ".join(
