@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 54
-current_phase_name: one-bundle-rule-template-key-per-document-selection-four-del
-status: executing
-stopped_at: Phase 54 planned
-last_updated: "2026-08-15T15:00:29.474Z"
+current_phase: 55
+current_phase_name: v0.8.0-Derived Defects
+status: planning
+stopped_at: Phase 54 context gathered
+last_updated: "2026-08-15T22:24:08.652Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 54 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 17
-  completed_plans: 10
-  percent: 20
+  completed_plans: 17
+  percent: 40
 ---
 
 # Project State
@@ -39,11 +39,11 @@ Next action: `/gsd-execute-phase 54`
 
 ## Current Position
 
-Phase: 54 (one-bundle-rule-template-key-per-document-selection-four-del) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 54
+Phase: 55 — v0.8.0-Derived Defects
+Plan: Not started
+Status: Ready to plan
 Progress: [░░░░░░░░░░] 0% (0/7 plans — Phase 54 planned)
-Last activity: 2026-08-16 — Phase 54 execution started
+Last activity: 2026-08-16 — Phase 54 complete, transitioned to Phase 55
 
 ## Active Milestone (v0.9.0 — per-document templates)
 

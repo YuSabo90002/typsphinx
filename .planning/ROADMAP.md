@@ -485,7 +485,7 @@ therefore carries an explicit `**UI hint**: no` line, the authoritative override
 reads, rather than relying on a per-run `--skip-ui`.
 
 - [x] **Phase 53: Template Registry Foundation** - A `conf.py` can declare named template definitions and every malformed registry stops the build by name, while the built-in `"typst"` key defers to today's global configuration so an untouched `conf.py` produces byte-identical output (completed 2026-08-15)
-- [ ] **Phase 54: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions** - Element [4] actually selects the template, every used key's bundle is copied wholesale to `<outdir>/_template/<key>/` with `"typst"` under the same rule, template-relative asset references start working, and `_write_template_file()` / `typst_template_assets` / the two explicit-asset helpers are gone
+- [x] **Phase 54: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions** - Element [4] actually selects the template, every used key's bundle is copied wholesale to `<outdir>/_template/<key>/` with `"typst"` under the same rule, template-relative asset references start working, and `_write_template_file()` / `typst_template_assets` / the two explicit-asset helpers are gone (completed 2026-08-16)
 - [ ] **Phase 55: v0.8.0-Derived Defects** - The five defects v0.8.0 shipped unfixed by decision D-01, or fixed only test-side, are closed on the product side with a RED-recorded reproduction each
 - [ ] **Phase 56: Per-Document Template Documentation** - The published documentation describes the registry that shipped: element [4] is the registry key, the asset examples work under the bundle layout, and the removed config values have migration guidance
 - [ ] **Phase 57: v0.9.0 Release Prep (prep-only)** - The v0.9.0 tree is bumped, its CHANGELOG curated around the two breaking changes, proven green on live multi-template evidence, and handed off with no irreversible action taken
@@ -857,7 +857,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
-| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | In Progress|  |
+| 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |

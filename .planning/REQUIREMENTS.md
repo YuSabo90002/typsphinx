@@ -15,7 +15,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [x] **TPL-01**: User can define named template definitions in `typst_document_templates`, each
       carrying `template` **xor** `package`, plus an optional `template_function`
 
-- [ ] **TPL-02**: User can select a named template per output document via element [4] of a
+- [x] **TPL-02**: User can select a named template per output document via element [4] of a
       `typst_documents` entry
 
 - [x] **TPL-03**: The built-in key `"typst"` resolves to the existing global configuration
@@ -42,30 +42,30 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
       empty, `.`/`..`, containing `/` or `\`, a Windows reserved device name, a trailing dot or
       space, or differing from another key only by case
 
-- [ ] **CONF-19**: A `conf.py` still setting a removed config value (`typst_template_assets`,
+- [x] **CONF-19**: A `conf.py` still setting a removed config value (`typst_template_assets`,
       `typst_authors`, or `typst_toctree_defaults`) gets a build warning naming its replacement
 
 ### Output layout
 
-- [ ] **OUT-04**: Every used key's template bundle — the resolved template's parent directory — is
+- [x] **OUT-04**: Every used key's template bundle — the resolved template's parent directory — is
       copied wholesale to `<outdir>/_template/<key>/`, with `"typst"` handled by the same rule and
       not special-cased
 
-- [ ] **OUT-05**: A template-relative asset reference such as `#image("logo.png")` resolves, because
+- [x] **OUT-05**: A template-relative asset reference such as `#image("logo.png")` resolves, because
       the template sits inside its own copied bundle
 
-- [ ] **OUT-06**: A wrapper imports its own template by a path that does not depend on the wrapper's
+- [x] **OUT-06**: A wrapper imports its own template by a path that does not depend on the wrapper's
       nesting depth
 
-- [ ] **OUT-07**: `_template/` is reserved output space; a source tree that would write there stops
+- [x] **OUT-07**: `_template/` is reserved output space; a source tree that would write there stops
       the build
 
 ### Builder mechanics
 
-- [ ] **BLD-05**: A non-`.typ` file belonging to the bundled `"typst"` template is present in the
+- [x] **BLD-05**: A non-`.typ` file belonging to the bundled `"typst"` template is present in the
       built wheel, not only in an editable install
 
-- [ ] **BLD-06**: The bundle copy excludes VCS and OS metadata (the refusal clause for a linked file
+- [x] **BLD-06**: The bundle copy excludes VCS and OS metadata (the refusal clause for a linked file
       resolving outside the bundle was retracted by the owner at Phase 54 planning, D-03; the
       recorded behavior at a linked file is `os.walk(followlinks=False)` plus per-file
       `shutil.copy2`)
@@ -155,7 +155,7 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TPL-01 | Phase 53 | Complete |
-| TPL-02 | Phase 54 | Pending |
+| TPL-02 | Phase 54 | Complete |
 | TPL-03 | Phase 53 | Complete |
 | TPL-04 | Phase 53 | Complete |
 | TPL-05 | Phase 53 | Complete |
@@ -164,13 +164,13 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | CONF-16 | Phase 53 | Complete |
 | CONF-17 | Phase 53 | Complete |
 | CONF-18 | Phase 53 | Complete |
-| CONF-19 | Phase 54 | Pending |
-| OUT-04 | Phase 54 | Pending |
-| OUT-05 | Phase 54 | Pending |
-| OUT-06 | Phase 54 | Pending |
-| OUT-07 | Phase 54 | Pending |
-| BLD-05 | Phase 54 | Pending |
-| BLD-06 | Phase 54 | Pending |
+| CONF-19 | Phase 54 | Complete |
+| OUT-04 | Phase 54 | Complete |
+| OUT-05 | Phase 54 | Complete |
+| OUT-06 | Phase 54 | Complete |
+| OUT-07 | Phase 54 | Complete |
+| BLD-05 | Phase 54 | Complete |
+| BLD-06 | Phase 54 | Complete |
 | XREF-05 | Phase 55 | Pending |
 | BLD-07 | Phase 55 | Pending |
 | BLD-08 | Phase 55 | Pending |
