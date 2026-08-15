@@ -181,3 +181,11 @@ no output.
 ---
 *Phase: 52-v0-8-0-release-prep-prep-only*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/52-v0-8-0-release-prep-prep-only/52-GREEN-TREE-EVIDENCE.md
+- FOUND: .planning/phases/52-v0-8-0-release-prep-prep-only/52-05-SUMMARY.md
+- FOUND: commit 4c371cc9 (Task 1)
+- FOUND: commit d9e6e352 (Task 2)
+- FOUND: commit 9eb0f8d1 (this SUMMARY)
