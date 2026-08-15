@@ -127,6 +127,17 @@ class _Build:
         reader = pypdf.PdfReader(str(pdf_path))
         return "\n".join(page.extract_text() for page in reader.pages)
 
+    def pdf_page_texts(self, target: str) -> list:
+        """
+        Same idiom as ``pdf_text`` -- resolve the compiled PDF path and read
+        each page's extracted text via ``pypdf.PdfReader`` -- but return the
+        per-page list instead of joining, for page-level occurrence
+        assertions.
+        """
+        pdf_path = self.pdf_dir / target.replace(".typ", ".pdf")
+        reader = pypdf.PdfReader(str(pdf_path))
+        return [page.extract_text() for page in reader.pages]
+
     def heading_levels(self, wrapper_target: str, selector: str) -> list:
         """
         Query resolved heading levels for ``selector`` against the compiled
@@ -492,6 +503,82 @@ class TestThreeMasterGate:
         w2 = build.wrapper_text("manual2.typ")
         w3 = build.wrapper_text("manual3.typ")
         assert w1 != w2 != w3 != w1
+
+    def test_three_masters_each_carry_their_full_include_set_in_pdf(self, all_builds):
+        """
+        SC#3's goal-claim half: the milestone's own claim is that a
+        ``typst_documents`` configuration declaring more than one master
+        produces a COMPLETE PDF for each of them, with no silently dropped
+        content. This method proves the completeness and isolation halves
+        of that claim -- every document in a master's own include set
+        contributes content to that master's PDF, a document outside that
+        set contributes nothing, and no master's own body leaks into
+        another master's PDF -- at both the full-text and the page level.
+        Its sibling ``test_three_masters_each_render_shared_children_once``
+        covers the shared-child occurrence counts and resolved heading
+        levels; neither duplicates the other.
+        """
+        build = all_builds["state_guard_three_master_gate"]
+        assert build.pdf_result.returncode == 0
+
+        m1_text = build.pdf_text("manual1.typ")
+        m2_text = build.pdf_text("manual2.typ")
+        m3_text = build.pdf_text("manual3.typ")
+
+        m1_pages = build.pdf_page_texts("manual1.typ")
+        m2_pages = build.pdf_page_texts("manual2.typ")
+        m3_pages = build.pdf_page_texts("manual3.typ")
+
+        # Page-level structure: each master's PDF has at least one page.
+        assert len(m1_pages) >= 1
+        assert len(m2_pages) >= 1
+        assert len(m3_pages) >= 1
+
+        # Presence -- every document in a master's include set contributes
+        # content. "Mid" carries a heading and no marker, which is exactly
+        # why it is the right probe for "non-shared, non-marker-bearing
+        # content is not silently dropped" -- used for both the m1/m3
+        # presence assertions and the m2 absence assertion below.
+        assert "Mid" in m1_text
+        assert _marker_count(m1_text, "COMMON-A-MARKER") == 1
+        assert _marker_count(m1_text, "COMMON-B-MARKER") == 1
+
+        assert _marker_count(m2_text, "COMMON-A-MARKER") == 1
+        assert _marker_count(m2_text, "COMMON-B-MARKER") == 1
+
+        assert "Mid" in m3_text
+        assert _marker_count(m3_text, "COMMON-B-MARKER") == 1
+
+        # Absence -- a document outside a master's include set contributes
+        # nothing.
+        assert _marker_count(m3_text, "COMMON-A-MARKER") == 0
+        assert "Mid" not in m2_text
+
+        # Cross-master isolation -- no master's own body leaks into another
+        # master's PDF. The fixture's typst_documents titles each embed
+        # that master's own token, so a same-master presence check would be
+        # satisfied by the title page alone and prove nothing about the
+        # body; the cross-master ABSENCE form below cannot be satisfied
+        # that way.
+        assert "M2" not in m1_text
+        assert "M3" not in m1_text
+        assert "M1" not in m2_text
+        assert "M3" not in m2_text
+        assert "M1" not in m3_text
+        assert "M2" not in m3_text
+
+        # Page-level marker occurrence -- each marker that must be present
+        # occurs on exactly one page of that master's PDF; each marker that
+        # must be absent occurs on zero pages.
+        def _pages_with(pages: list, marker: str) -> list:
+            return [i for i, text in enumerate(pages) if marker in text]
+
+        assert len(_pages_with(m1_pages, "COMMON-A-MARKER")) == 1
+        assert len(_pages_with(m1_pages, "COMMON-B-MARKER")) == 1
+        assert len(_pages_with(m2_pages, "COMMON-A-MARKER")) == 1
+        assert len(_pages_with(m2_pages, "COMMON-B-MARKER")) == 1
+        assert len(_pages_with(m3_pages, "COMMON-B-MARKER")) == 1
+        assert len(_pages_with(m3_pages, "COMMON-A-MARKER")) == 0
 
 
 # ---------------------------------------------------------------------------
