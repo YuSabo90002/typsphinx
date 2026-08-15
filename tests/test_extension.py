@@ -22,6 +22,11 @@ def test_setup_returns_metadata():
         def add_config_value(self, name, default, rebuild, types):
             pass
 
+        def connect(self, event, callback):
+            # Phase 54 (CONF-19): setup() now connects a config-inited
+            # handler; the mock must tolerate it.
+            pass
+
     app = MockApp()
     metadata = setup(app)
 
@@ -43,6 +48,11 @@ def test_setup_parallel_safety():
         def add_config_value(self, name, default, rebuild, types):
             pass
 
+        def connect(self, event, callback):
+            # Phase 54 (CONF-19): setup() now connects a config-inited
+            # handler; the mock must tolerate it.
+            pass
+
     app = MockApp()
     metadata = setup(app)
 
@@ -60,6 +70,11 @@ def test_setup_version_matches():
             pass
 
         def add_config_value(self, name, default, rebuild, types):
+            pass
+
+        def connect(self, event, callback):
+            # Phase 54 (CONF-19): setup() now connects a config-inited
+            # handler; the mock must tolerate it.
             pass
 
     app = MockApp()
