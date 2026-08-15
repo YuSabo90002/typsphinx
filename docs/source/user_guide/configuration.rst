@@ -322,7 +322,7 @@ Scope: every non-package route
 
 Automatic derivation applies on every route **except** ``typst_package``:
 the bundled default template, an explicit ``typst_template``, and a
-``<srcdir>/base.typ`` shadow of the bundled template all receive the
+``<srcdir>/_typst/base.typ`` shadow of the bundled template all receive the
 auto-derived ``lang`` argument unconditionally. It is withheld only when
 ``typst_package`` is configured, because typsphinx never introspects a
 third-party Typst Universe function's signature and would otherwise hand

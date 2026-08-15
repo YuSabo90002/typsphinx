@@ -656,11 +656,11 @@ needed key set is not known until the write loop has run.
      same-directory asset by relative path builds and compiles green through `typst.compile()`,
      recorded RED against the pre-relocation tree (OUT-05) — the built-in template, which has zero
      path-relative references by measurement, is not accepted as evidence for this. The copy excludes
-     VCS and OS metadata (`.git`, `.DS_Store`, `Thumbs.db`, editor backups) and refuses, with a named
-     error, a symlink whose resolved path is not a descendant of the bundle; both are asserted by a
+     VCS and OS metadata (`.git`, `.DS_Store`, `Thumbs.db`, editor backups), asserted by a
      **manifest-diff** test ("no file I didn't expect is present"), not a presence-only test, and the
      re-run/staleness policy for an existing destination bundle is a recorded decision rather than an
-     inherited `dirs_exist_ok=True` default (BLD-06).
+     inherited `dirs_exist_ok=True` default (BLD-06). The symlink-refusal clause originally paired
+     with this criterion was retracted by owner decision D-03 at Phase 54 planning.
 
   4. **The built wheel carries the bundle — the editable install is not evidence.**
      `pyproject.toml`'s package-data declaration covers every file kind present in

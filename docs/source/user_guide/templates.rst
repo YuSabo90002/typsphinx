@@ -210,7 +210,7 @@ emission condition:
 
 - ``title`` -- the document title (from ``typst_documents``, or Sphinx's ``project``).
   Arrives unconditionally on every non-package route -- the bundled default, an
-  explicit ``typst_template``, and a ``<srcdir>/base.typ`` shadow alike.
+  explicit ``typst_template``, and a ``<srcdir>/_typst/base.typ`` shadow alike.
 - ``authors`` -- always a Typst **array**, never a bare string. A string source
   (Sphinx's ``author``, or the entry's own author element) is split on commas: a
   single name becomes a one-element array, and ``"Alice Smith, Bob Jones"`` becomes a
