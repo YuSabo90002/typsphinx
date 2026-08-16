@@ -97,7 +97,7 @@ You can customize the output by adding options to ``conf.py``:
    typst_use_mitex = True
 
    # Custom template (optional)
-   typst_template = "_templates/custom.typ"
+   typst_template = "_typst/custom.typ"
 
 Setting ``typst_documents`` explicitly is optional -- omitting it derives a
 single master entry from ``root_doc``, ``project``, and ``author``, as shown

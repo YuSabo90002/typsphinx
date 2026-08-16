@@ -161,7 +161,7 @@ Create a custom Typst template:
 
 ```python
 # conf.py
-typst_template = '_templates/custom.typ'
+typst_template = '_typst/custom.typ'
 ```
 
 ### Template Parameter Mapping

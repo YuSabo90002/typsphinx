@@ -112,9 +112,9 @@ def test_every_surviving_jinja_dir_mention_names_templates_path():
     for path in _discover_policed_files():
         text = path.read_text(encoding="utf-8")
         for lineno, line in enumerate(text.splitlines(), start=1):
-            if UNEXPLAINED_JINJA_DIR_RE.search(line) and not LEGITIMATE_SPHINX_CONFIG_RE.search(
+            if UNEXPLAINED_JINJA_DIR_RE.search(
                 line
-            ):
+            ) and not LEGITIMATE_SPHINX_CONFIG_RE.search(line):
                 offenders.append(
                     f"{path.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}"
                 )
@@ -144,6 +144,8 @@ def test_patterns_have_teeth():
     assert UNEXPLAINED_JINJA_DIR_RE.search(violating_bare_mention)
     assert not UNEXPLAINED_JINJA_DIR_RE.search(clean_bare_mention)
 
-    annotated_mention = 'templates_path = ["_templates"]  # Sphinx Jinja override directory'
+    annotated_mention = (
+        'templates_path = ["_templates"]  # Sphinx Jinja override directory'
+    )
     assert UNEXPLAINED_JINJA_DIR_RE.search(annotated_mention)
     assert LEGITIMATE_SPHINX_CONFIG_RE.search(annotated_mention)

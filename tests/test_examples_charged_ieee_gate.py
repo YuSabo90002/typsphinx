@@ -234,7 +234,7 @@ class TestChargedIeeeExamplesGate:
         # Phase 54 (OUT-04): the built-in "typst" key's resolved template
         # is copied wholesale to <outdir>/_template/typst/, keeping its
         # own basename ("_template.typ", per approach2/conf.py's
-        # typst_template = "_templates/_template.typ") -- not the
+        # typst_template = "_typst/_template.typ") -- not the
         # pre-Phase-54 single shared file written at the outdir root.
         shared_template_path = build_dir / "_template" / "typst" / "_template.typ"
         assert shared_template_path.exists(), (
