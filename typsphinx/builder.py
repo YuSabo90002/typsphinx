@@ -940,9 +940,8 @@ class TypstBuilder(Builder):
             resolve_registry_key(self._document_template_registry, entry)
 
     def _validate_used_template_paths(self) -> None:
-        """WR-01/D-01 + CR-01/D-04: refuse the build pre-write for either
-        of TWO failure kinds, both derived from the SAME per-used-key
-        template resolution:
+        """WR-01/D-01 + CR-01/D-04/D-07: refuse the build pre-write for
+        any of THREE failure kinds:
 
         1. A used key's RESOLVED template bundle directory is, contains,
            or is contained by a Sphinx ``templates_path`` entry -- the
@@ -966,6 +965,26 @@ class TypstBuilder(Builder):
            appends that key AFTER its declared-key validation loop
            returns, so the loop's own CONF-17 check never reaches it
            (CR-01's precise root cause).
+        3. A DECLARED registry key differs from the reserved built-in key
+           (``RESERVED_REGISTRY_KEY = "typst"``) only by case -- CONF-16
+           rejects only the literal spelling ``"typst"`` at declaration
+           time, and CONF-18 compares declared keys only against EACH
+           OTHER, never against the synthesized built-in key, so a lone
+           case-variant key passes both existing checks (D-07). The
+           comparison routes exclusively through the existing
+           ``TypstBuilder._collision_key()`` primitive -- never a second
+           ``.casefold()``/``.lower()`` helper.
+
+        Kind 3's scope is deliberately DIFFERENT from kinds 1 and 2: it
+        iterates every DECLARED key in ``self._document_template_registry``
+        (not the reference-derived ``used_keys`` set kinds 1/2 use). This
+        is NOT the widening CONTEXT.md's Claude's Discretion ruled
+        against -- that ruling is about running the PATH checks (kinds 1
+        and 2) on declared-but-unreferenced keys, and it stands. Kind 3 is
+        a key-NAME collision whose sibling CONF-18 is already
+        declaration-scoped, and the built-in key is always present in the
+        registry, so a declared case variant is always wrong regardless
+        of whether any ``typst_documents`` entry references it.
 
         Runs ONCE, called from ``write()`` immediately after
         ``self._validate_registry_key_references()`` and before
@@ -974,19 +993,21 @@ class TypstBuilder(Builder):
         validators. This is the FIRST read of ``self.config.templates_path``
         anywhere in ``typsphinx/``.
 
-        The checked key set (D-05) is derived from every USABLE
-        ``typst_documents`` entry (``_is_usable_typst_documents_entry()``),
-        resolved through ``resolve_registry_key()`` -- including the entry
+        The checked key set for kinds 1 and 2 (D-05) is derived from every
+        USABLE ``typst_documents`` entry
+        (``_is_usable_typst_documents_entry()``), resolved through
+        ``resolve_registry_key()`` -- including the entry
         ``_default_typst_documents()`` synthesizes when ``typst_documents``
         is unset -- never ``self._used_template_keys`` (still empty at
         this point in the build). This is reference-derived scope,
-        applying to BOTH failure kinds above. A registry key that is
-        DECLARED but referenced by no ``typst_documents`` entry is
-        deliberately NOT checked here (Claude's Discretion, "do not
-        widen" recommendation): the pre-write set stays
-        reference-derived, matching
-        ``_validate_registry_key_references()``'s own scope; such a key is
-        still caught at ``finish()`` if it ever becomes used.
+        applying to kinds 1 and 2 ONLY (kind 3's declaration-derived scope
+        is documented above). A registry key that is DECLARED but
+        referenced by no ``typst_documents`` entry is deliberately NOT
+        checked by kinds 1/2 (Claude's Discretion, "do not widen"
+        recommendation): their checked set stays reference-derived,
+        matching ``_validate_registry_key_references()``'s own scope;
+        such a key is still caught at ``finish()`` if it ever becomes
+        used.
 
         For each used key, this method reproduces
         ``_copy_used_template_bundles()``'s own per-key resolution
@@ -1040,32 +1061,38 @@ class TypstBuilder(Builder):
         (NFC/NFD) is NOT applied, matching ``_collision_key()``'s own
         documented non-normalization.
 
-        Multiple colliding keys, across BOTH failure kinds, are
+        Multiple colliding keys, across ALL THREE failure kinds, are
         accumulated into ONE ``failures`` list and raised as a SINGLE
         ``ExtensionError``, iterated in ``sorted()`` key order (D-03), so
         the message is byte-identical across runs -- never a
         first-offender raise. The summary prefix
         (``"typst: N pre-write template path failure(s)"``) is
-        deliberately failure-kind-neutral: a sibling check in this same
-        phase (the reserved-key case collision) feeds a THIRD failure
-        kind into this SAME list.
+        deliberately failure-kind-neutral, feeding every kind into this
+        SAME list.
 
         Raises:
             ExtensionError: When one or more used keys' resolved template
                 bundle directories collide with a ``templates_path``
-                entry, or violate A-01/CONF-17. Each ``templates_path``
-                failure message names the registry key, the resolved
-                bundle directory, the colliding ``templates_path`` entry
-                (both the raw config string and its resolved absolute
-                path), the consequence (the whole bundle directory would
-                be copied to build output, republishing this Sphinx
-                template directory), and the remedy (move the Typst
-                template into a directory that is not on
-                ``templates_path`` -- this repository uses ``_typst/``
-                -- and update ``typst_template`` /
+                entry, violate A-01/CONF-17, or when a declared registry
+                key differs from the reserved built-in key only by case.
+                Each ``templates_path`` failure message names the
+                registry key, the resolved bundle directory, the
+                colliding ``templates_path`` entry (both the raw config
+                string and its resolved absolute path), the consequence
+                (the whole bundle directory would be copied to build
+                output, republishing this Sphinx template directory), and
+                the remedy (move the Typst template into a directory
+                that is not on ``templates_path`` -- this repository
+                uses ``_typst/`` -- and update ``typst_template`` /
                 ``typst_document_templates`` to match). Each CONF-17
                 failure message is built by ``_conf17_violation_message()``,
                 shared byte-for-byte with the ``finish()``-side guard.
+                Each reserved-key case-collision failure message names
+                the declared key and the reserved built-in key, states
+                that both fold to the same bundle destination, states
+                that CONF-18 does not catch it, and tells the user to
+                rename the declared key or configure the built-in key
+                through the global Typst template settings instead.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
         used_keys: Set[str] = set()
@@ -1087,6 +1114,38 @@ class TypstBuilder(Builder):
             )
 
         failures: List[Tuple[str, str]] = []
+
+        from typsphinx.template_registry import RESERVED_REGISTRY_KEY
+
+        # D-07: reserved-key case-collision check (kind 3) -- scoped to
+        # every DECLARED registry key, not the reference-derived
+        # used_keys set kinds 1/2 below use (see docstring). Routes
+        # exclusively through the existing _collision_key() folding --
+        # never a second case-folding primitive.
+        reserved_folded = self._collision_key(RESERVED_REGISTRY_KEY)
+        for declared_key in sorted(self._document_template_registry):
+            if declared_key == RESERVED_REGISTRY_KEY:
+                continue
+            if self._collision_key(declared_key) == reserved_folded:
+                failures.append(
+                    (
+                        declared_key,
+                        f"registry key {declared_key!r} differs from "
+                        f"the built-in {RESERVED_REGISTRY_KEY!r} "
+                        "registry key only by case -- both resolve to "
+                        "the same bundle destination under the "
+                        "output-path folding this project applies on "
+                        "every platform; CONF-18 does not catch this "
+                        "because it compares declared keys only "
+                        "against each other and never against the "
+                        f"synthesized built-in key -- rename "
+                        f"{declared_key!r} to something that does not "
+                        "fold to the reserved key, or drop it and "
+                        "configure the built-in key through the "
+                        "global Typst template settings "
+                        "(typst_template / typst_package)",
+                    )
+                )
 
         if used_keys:
             from typsphinx.template_engine import (
