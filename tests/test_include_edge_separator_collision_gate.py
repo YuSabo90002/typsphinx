@@ -23,7 +23,6 @@ module is skipped on Windows instead.
 
 import io
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -230,9 +229,7 @@ class TestIncludeEdgeSeparatorCollisionGate:
             f"shared child's content"
         )
 
-    def test_published_array_and_two_guards_use_distinct_keys(
-        self, collision_build
-    ):
+    def test_published_array_and_two_guards_use_distinct_keys(self, collision_build):
         """The emitted ``manual.typ`` publishes an array containing the
         live edge's key and NOT the dark edge's key, and the two content
         files' guard lines test two DIFFERENT keys. Both expected keys are

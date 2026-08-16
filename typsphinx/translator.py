@@ -10,6 +10,7 @@ from typing import Any, Dict, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.errors import ExtensionError
 from sphinx.locale import admonitionlabels
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxTranslator
@@ -320,6 +321,25 @@ def make_include_edge_key(
     return f"{escaped_parent}#{occurrence}>{escaped_child}"
 
 
+# Phase 55 plan 02 (BLD-08): the fixed, documented policy bound on
+# `derive_master_edge_keys()`'s own recursion depth. Re-measured directly
+# in this worktree (`55-02-RED-EVIDENCE.md` "Depth headroom measurement"),
+# not guessed: the interpreter's own default maximum call-stack depth is
+# 1000 frames; the deepest linear include chain this function survives
+# from a near-empty stack is 996; a 900-deep chain already raises
+# `RecursionError` once roughly 100 extra Python caller frames sit above
+# the walk -- which is why `55-RESEARCH.md`'s originally proposed value of
+# 900 was REJECTED as unsafe. A real `sphinx-build` was measured at 11
+# caller frames above this function, and a `pytest` plus `SphinxTestApp`
+# stack is deeper still. 500 leaves roughly 495 frames of headroom below
+# the measured 996-deep near-empty-stack ceiling for any embedder's own
+# stack, while remaining two orders of magnitude beyond any real
+# documentation tree. This is a FIXED POLICY CHOICE, deliberately NOT read
+# from the interpreter's own call-stack limit at runtime, so behaviour
+# does not vary by interpreter or embedder.
+_MAX_INCLUDE_CHAIN_DEPTH = 500
+
+
 def derive_master_edge_keys(
     toctree_includes: Dict[str, List[str]], master_docname: str
 ) -> Tuple[str, ...]:
@@ -353,7 +373,16 @@ def derive_master_edge_keys(
     traversal shape (that helper solved a DIFFERENT problem, a flat
     cross-master docname union for XREF-safety), and COMP-05/SC#3 forbids
     reusing it here. This function's genuine recursion preserves document
-    order; a naive forward-push LIFO stack does not.
+    order; a naive forward-push LIFO stack does not. The recursion is
+    deliberately PRESERVED by the depth bound below (Phase 55 plan 02,
+    BLD-08), rather than replaced by that forbidden work-stack shape: a
+    chain deeper than ``_MAX_INCLUDE_CHAIN_DEPTH`` now raises a named
+    ``sphinx.errors.ExtensionError`` instead of an uncaught
+    ``RecursionError`` escaping through Sphinx's own traceback. This bound
+    can ONLY ever be reached by a genuinely deep ACYCLIC chain -- a CYCLE
+    is already structurally dark through the ``traversed`` membership
+    check at any depth (see above), so the raised message never claims a
+    repeated document was found.
 
     Occurrence is always 0 on this side: a child is claimed by its parent
     at that child's FIRST non-traversed appearance in the parent's ordered
@@ -373,19 +402,31 @@ def derive_master_edge_keys(
 
     Returns:
         The master's edge keys, in discovery order, as an ordered tuple.
+
+    Raises:
+        ExtensionError: If the include chain reaches a depth greater than
+            ``_MAX_INCLUDE_CHAIN_DEPTH`` edges below ``master_docname``.
     """
     traversed: List[str] = [master_docname]
     edge_keys: List[str] = []
 
-    def walk(parent: str) -> None:
+    def walk(parent: str, depth: int, path: Tuple[str, ...]) -> None:
+        if depth > _MAX_INCLUDE_CHAIN_DEPTH:
+            raise ExtensionError(
+                f"typsphinx: the include chain for master document "
+                f"{master_docname!r} is a very deep toctree nesting -- "
+                f"reached depth {depth}, exceeding the "
+                f"{_MAX_INCLUDE_CHAIN_DEPTH}-edge bound, running from "
+                f"{path[0]!r} to {path[-1]!r}."
+            )
         for child in toctree_includes.get(parent, []):
             if child not in traversed:
                 edge_keys.append(make_include_edge_key(parent, child, occurrence=0))
                 traversed.append(child)
-                walk(child)
+                walk(child, depth + 1, path + (child,))
             # else: already traversed -- dark, no edge emitted (first-encounter-wins)
 
-    walk(master_docname)
+    walk(master_docname, 0, (master_docname,))
     return tuple(edge_keys)
 
 
