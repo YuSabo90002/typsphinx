@@ -28,11 +28,28 @@ wrapper's chain of ``#include()`` calls eventually reaches it.
        ("index", "manual", "Title", "Author", "typst"),
    ]
 
-This configuration writes three files, all at the output directory's root:
-``manual.typ``, the wrapper for the ``index`` docname's target ``manual``;
-``index.typ``, the content file for the ``index`` docname itself; and
-``_template.typ``, which holds the template the wrapper imports. The
-wrapper will not compile without it.
+This configuration writes ``manual.typ`` and ``index.typ`` at the output
+directory's root -- the wrapper for the ``index`` docname's target
+``manual``, and the content file for the ``index`` docname itself -- plus
+the template bundle for the registry key this entry uses, one directory
+down. This entry's fifth element is omitted, so it resolves to the
+reserved ``"typst"`` key, and that key's whole bundle -- the resolved
+template file and every other file that sat beside it -- is copied
+wholesale to ``_template/typst/``. The wrapper will not compile without
+it.
+
+The bundle rule in full: for every registry key that some
+``typst_documents`` entry actually names, the resolved template file's own
+parent directory -- and everything in it -- is copied wholesale to that
+key's own directory under the reserved ``_template/`` output directory. A
+key declared in ``typst_document_templates`` that no entry names has
+nothing copied. The built-in ``"typst"`` key is handled by the exact same
+rule, with no special case -- see :doc:`configuration` for the registry
+schema.
+
+Nothing under the output directory is deleted between builds. A file
+removed from a source bundle can therefore survive at its destination
+across an incremental rebuild.
 
 Which File to Compile
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -116,10 +133,11 @@ kind of target problem does not: when the output path a target resolves to
 is already claimed by something else, the build raises an error instead of
 falling back, and stops before writing anything.
 
-A path can be claimed by any of three things: the reserved ``_template.typ``
-file typsphinx writes for its own use, any document's own content file
-(named after its docname, and written for every document whether or not it
-appears in ``typst_documents``), or any other entry's own wrapper.
+A path can be claimed by any of three things: the reserved ``_template/``
+output directory typsphinx writes template bundles into, any document's own
+content file (named after its docname, and written for every document
+whether or not it appears in ``typst_documents``), or any other entry's own
+wrapper.
 
 .. code-block:: python
 
@@ -137,8 +155,8 @@ now claim.
    ExtensionError: typst: 1 output path collision(s): 'index.typ': the content file for docname 'index' and typst_documents entry 0 (docname 'index', target 'index.typ') both resolve to the same output path 'index.typ'
 
 This check runs before any file is written, so a build that fails this way
-leaves no ``.typ`` files behind at all -- not even ``_template.typ``. The
-fix is to choose a target that is not any document's own name.
+leaves no ``.typ`` files behind, and no template bundle either. The fix is
+to choose a target that is not any document's own name.
 
 Documents Shared by Several Masters
 ------------------------------------
