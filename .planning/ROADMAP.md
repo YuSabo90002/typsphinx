@@ -971,8 +971,8 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: 9 plans in 4 waves — W1 `57-01` (tracer: the release-surface slice) + `57-02` (D-12's
-pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
+**Plans**: 9 plans in 4 waves, 4/9 executed — W1 `57-01` (tracer: the release-surface slice) +
+`57-02` (D-12's pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
 D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
 authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-08` (SC#4
 sweep and fence) · W4 `57-09` (todo-ledger disposition and the handoff). Four planning-time
@@ -988,10 +988,10 @@ dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check 
 
 **Wave 1**
 
-- [ ] 57-01-PLAN.md — SC#1 tracer: the end-to-end release-surface slice (manifest, lockfile, README status line, editable-install metadata, the version-sync guard trio and the release machinery's own extractor in both directions), plus the phase-head fence observation, the live anchor re-measurement and the `REQUIREMENTS.md` closeout-guard baseline SC#4 requires
-- [ ] 57-02-PLAN.md — D-12 run 1: push the pre-bump tip and dispatch `ci.yml` against it, giving Phases 54 / 54.1 / 55 / 56 their first Windows and macOS exposure so pre-existing breakage stays separable from bump-caused breakage
-- [ ] 57-03-PLAN.md — SC#2: the curated `## [0.9.0]` section (seven `Unreleased` bullets promoted as written, three authored, exactly four `**Breaking` marks, a `### Removed` bullet stating the warning shim exists, `### Verified` unchanged), the routine tail-block rollover, and the published-page coverage tuple
-- [ ] 57-04-PLAN.md — SC#2 docs half: `Migrating from 0.8.x to 0.9.0` written from a real `-b typst` build in a second, independently-provisioned worktree at the `v0.8.0` tag (D-08), plus D-10 discharged by a live repo-wide discovery grep with any newly-surfaced hit fixed in scope
+- [x] 57-01-PLAN.md — SC#1 tracer: the end-to-end release-surface slice (manifest, lockfile, README status line, editable-install metadata, the version-sync guard trio and the release machinery's own extractor in both directions), plus the phase-head fence observation, the live anchor re-measurement and the `REQUIREMENTS.md` closeout-guard baseline SC#4 requires
+- [x] 57-02-PLAN.md — D-12 run 1: push the pre-bump tip and dispatch `ci.yml` against it, giving Phases 54 / 54.1 / 55 / 56 their first Windows and macOS exposure so pre-existing breakage stays separable from bump-caused breakage
+- [x] 57-03-PLAN.md — SC#2: the curated `## [0.9.0]` section (seven `Unreleased` bullets promoted as written, three authored, exactly four `**Breaking` marks, a `### Removed` bullet stating the warning shim exists, `### Verified` unchanged), the routine tail-block rollover, and the published-page coverage tuple
+- [x] 57-04-PLAN.md — SC#2 docs half: `Migrating from 0.8.x to 0.9.0` written from a real `-b typst` build in a second, independently-provisioned worktree at the `v0.8.0` tag (D-08), plus D-10 discharged by a live repo-wide discovery grep with any newly-surfaced hit fixed in scope
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -1037,7 +1037,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 4/9 | In Progress | - |
 
 ## Roadmap Evolution
 
