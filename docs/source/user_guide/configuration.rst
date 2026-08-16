@@ -162,6 +162,9 @@ column three names what to change.
    :header-rows: 1
    :widths: 30 35 35
 
+   * - What went wrong
+     - What the build says
+     - What to change
    * - ``typst_document_templates`` is set to a truthy value that is
        not a dict
      - ``typst_document_templates must be a dict mapping registry key to definition,``
