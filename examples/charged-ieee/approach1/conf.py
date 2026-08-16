@@ -55,11 +55,12 @@ ieee_authors = [
 #
 # NOTE: no citation-source ("refs.bib"-style) parameter here. The package-only
 # path (typst_package, no typst_template) has no asset-copying mechanism to
-# place a supporting file next to the emitted .typ
-# (TypstBuilder.copy_template_assets() early-returns when typst_template is
-# unset), so a parameter naming such a file would point at a path that never
-# resolves. A template parameter naming a file path must refer to a file the
-# build itself produces in the output directory.
+# place a supporting file next to the emitted .typ -- the bundle copy that
+# ships every used registry key's template directory wholesale to the output
+# tree skips any key whose entry carries a package and no template, so a
+# parameter naming such a file would point at a path that never resolves. A
+# template parameter naming a file path must refer to a file the build
+# itself produces in the output directory.
 typst_template_function = {
     "name": "ieee",
     "params": {
