@@ -1,26 +1,23 @@
 ---
-status: testing
+status: complete
 phase: 56-per-document-template-documentation
 source: [56-VERIFICATION.md]
 started: 2026-08-16T12:45:00Z
-updated: 2026-08-16T12:45:00Z
+updated: 2026-08-16T13:10:00Z
 ---
 
 ## Current Test
 
-number: 1
-name: Rendered readability of the error-catalogue, key-naming, and removed-values tables
-expected: |
-  All three list-tables render fully legible in both HTML and PDF — no row clipped,
-  no horizontal overflow past the PDF page margin.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
 ### 1. Rendered readability of the error-catalogue, key-naming, and removed-values tables
 
 expected: All three tables are legible in both HTML and PDF, no row clipped, no horizontal overflow.
-result: [pending]
+result: pass
+verified_at: 2026-08-16T13:10:00Z
+verified_against: clean rebuild (rm -rf docs/_build; tox -e docs-html [3 warnings]; tox -e docs-pdf [5 warnings])
 
 **How to run this test:**
 
@@ -68,10 +65,12 @@ block and is listed in `56-VALIDATION.md`'s Manual-Only Verifications table.
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
+
+[none]

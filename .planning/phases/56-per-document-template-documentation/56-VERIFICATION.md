@@ -1,11 +1,12 @@
 ---
 phase: 56-per-document-template-documentation
 verified: 2026-08-16T12:32:09Z
-status: human_needed
+status: passed
 score: 8/8 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Open the built `docs/_build/html/user_guide/configuration.html` and the `docs-pdf` output (`docs/_build/pdf/typsphinx.pdf`); confirm the registry error table, the key-naming table, and the removed-values table each render with every row visible and no text overflowing the page margin in the PDF."
     expected: "All three list-tables display fully readable in both HTML and PDF, no row clipped, no horizontal overflow in the PDF."
     why_human: "Layout/legibility is not expressible as an assertion — this project has no PDF text-overflow inspection tooling available (`pdfinfo` not installed in this environment) and rendered-table legibility is inherently a visual judgment. This item was explicitly deferred to end-of-phase by 56-05-PLAN.md's own `<human-check>` block; the build-green half is independently confirmed automated below (both `tox -e docs-html` and `tox -e docs-pdf` succeeded, and all three table headings were confirmed present in the rendered HTML)."
