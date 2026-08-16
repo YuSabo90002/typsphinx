@@ -901,7 +901,27 @@ which teaches a path the bundle layout no longer resolves.
      green. The sweep is run repo-wide at discovery time; the three requirements above name where the
      fixes are expected, not where the search is scoped.
 
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves — W1 `56-01` (tracer) · W2 `56-02` + `56-03` + `56-04` (parallel, zero
+`files_modified` overlap) · W3 `56-05` (the sweep audit, deliberately one wave after every prose fix
+it audits). Two planning-time measurements changed the plans: D-03's `--root` claim is measurably
+false for a bare-target wrapper and is published conditionally with **both** branches pinned by a
+real `typst.compile()` gate; and correcting `output_layout.rst`'s file-count clause breaks a
+currently-GREEN prose assertion, so the prose and the assertion move in one task and one commit.
+
+**Wave 1**
+
+- [ ] 56-01-PLAN.md — DOC-15 tracer: the element [4] retraction plus the published error catalogue, pinned two-way to every `raise ExtensionError` in `typsphinx/*.py` by a never-skipping AST gate with falsification self-tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 56-02-PLAN.md — DOC-15 + DOC-17: the registry subsection and its network-free two-master worked example, the CONF-18 key-naming rules bound to the code's own case enumeration, the `templates_path` preventive note, and the removed-values migration guidance bound to `REMOVED_CONFIG_VALUES`
+- [ ] 56-03-PLAN.md — DOC-15/SC#4: `output_layout.rst` becomes canonical for the per-key bundle layout, both stale file counts are corrected with their assertion, and the conditional hand-compile root rule ships with both branches proven by real compiles
+- [ ] 56-04-PLAN.md — DOC-16: the two asset examples corrected to the bundle-relative reference, proven by one extended real `-b typstpdf` fixture and bound to it by a never-skipping prose gate
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 56-05-PLAN.md — SC#4 closure: the discovery greps re-run at execution time with a written per-hit disposition, the example READMEs and `CLAUDE.md` corrected, a run-time anchored sweep gate landed, and the phase-boundary evidence recorded
+
 **UI hint**: no
 
 ### Phase 57: v0.9.0 Release Prep (prep-only)

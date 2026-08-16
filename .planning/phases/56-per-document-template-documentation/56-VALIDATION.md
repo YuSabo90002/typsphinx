@@ -53,20 +53,41 @@ execution"). Every command above runs after
 
 ## Per-Task Verification Map
 
-> Populated by `/gsd-plan-phase` task IDs once PLAN.md files exist. Requirement → test-type rows below
-> are fixed by research; the Task ID / Plan / Wave columns are filled at plan time.
+> Populated by `/gsd-plan-phase`. Requirement → test-type rows are fixed by research; Task ID / Plan /
+> Wave / Threat Ref filled at plan time (2026-08-16).
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | DOC-15 | — | N/A | static prose-scan + repo-wide grep self-test | new D-06 two-way catalogue gate module | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | DOC-15 | — | N/A | static AST-scan of `typsphinx/*.py` `ExtensionError` raises | same module | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | DOC-16 | — | N/A | real `sphinx-build -b typstpdf` → `typst.compile()` | `uv run pytest tests/test_user_template_relative_asset_gate.py -x` | ✅ extend | ⬜ pending |
-| TBD | TBD | TBD | DOC-16 | — | N/A | prose-binding against the extended fixture's measured destination paths | same module or sibling gate | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | DOC-17 | — | N/A | prose ↔ `REMOVED_CONFIG_VALUES` dict binding | new module or extend `tests/test_removed_config_deprecation_gate.py` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | SC#4 | — | N/A | repo-wide grep self-test + both doc builds | `uv run tox -e docs-html && uv run tox -e docs-pdf` | ✅ tox envs exist | ⬜ pending |
-| TBD | TBD | TBD | SC#4 (`output_layout.rst:159`) | — | N/A | existing prose-binding assertion, **updated in the same task as the prose fix** | `uv run pytest tests/test_output_layout_docs_gate.py -x` | ✅ **update, don't create** | ⬜ pending |
+| 56-01-T1 | 56-01 | 1 | DOC-15 | T-56-01, T-56-02 | AST parse only — never `exec`/`import` a scanned module; repo-relative paths only | static AST-scan of every `raise ExtensionError` in `typsphinx/*.py`, two-way against the published catalogue | `uv run pytest tests/test_registry_documentation_gate.py -x -q && uv run tox -e docs-html && uv run tox -e docs-pdf` | ❌ W0 — new module | ⬜ pending |
+| 56-01-T2 | 56-01 | 1 | DOC-15 | T-56-01 | same | falsification self-tests over inline synthetic inputs (no files on disk) | `uv run pytest tests/test_registry_documentation_gate.py -q` | ❌ W0 | ⬜ pending |
+| 56-01-T3 | 56-01 | 1 | DOC-15 | T-56-02, T-56-03 | bounded `rglob` over three repo-relative policed roots | repo-wide presence sweep for the retracted element-[4] phrase + teeth test | `uv run pytest tests/test_registry_documentation_gate.py -q` | ❌ W0 | ⬜ pending |
+| 56-02-T1 | 56-02 | 2 | DOC-15 | — | N/A | prose ↔ existing same-line `templates_path` gate | `uv run pytest tests/test_docs_template_layout_gate.py tests/test_registry_documentation_gate.py tests/test_docs_contract_claims_gate.py -q` | ✅ + ❌ new class | ⬜ pending |
+| 56-02-T2 | 56-02 | 2 | DOC-15 | T-56-06 | imports this repo's own production modules only | published key-naming rules ↔ imported `_KEY_SHAPE_REJECTION_CASES` enumeration + teeth test | `uv run pytest tests/test_registry_documentation_gate.py -q` | ❌ W0 | ⬜ pending |
+| 56-02-T3 | 56-02 | 2 | DOC-17 | T-56-04, T-56-05 | test-authored `conf.py` under `tmp_path`; fixed subprocess argv | prose ↔ imported `REMOVED_CONFIG_VALUES`, plus a real `sphinx-build` proving one warning per name in declaration order | `uv run pytest tests/test_registry_documentation_gate.py tests/test_removed_config_deprecation_gate.py -q` | ❌ W0 + ✅ extend | ⬜ pending |
+| 56-03-T1 | 56-03 | 2 | DOC-15 | — | N/A | existing prose-binding class over the rewritten layout page | `uv run pytest tests/test_output_layout_docs_gate.py -x -q` | ✅ exists | ⬜ pending |
+| 56-03-T2 | 56-03 | 2 | SC#4 (`output_layout.rst` count rule) | — | N/A | existing prose-binding assertion, **updated in the same commit as the prose fix** | `uv run pytest tests/test_output_layout_docs_gate.py -q` | ✅ **update, don't create** | ⬜ pending |
+| 56-03-T3 | 56-03 | 2 | DOC-15 (D-03 amended) | T-56-07, T-56-08, T-56-09 | runtime `conf.py` is a test-written literal; project root is always the `tmp_path` build dir | real `sphinx-build -b typst` + `typst.compile()` pinning BOTH root branches, plus a never-skipping prose check that the rule is published conditionally | `uv run pytest tests/test_hand_compile_root_gate.py tests/test_output_layout_docs_gate.py -q` | ❌ W0 — new module | ⬜ pending |
+| 56-04-T1 | 56-04 | 2 | DOC-16 | T-56-10, T-56-12 | static committed BibTeX data, read never executed | real `sphinx-build -b typstpdf` → `typst.compile()`; new asset asserted at the measured bundle destination | `uv run pytest tests/test_user_template_relative_asset_gate.py -q` | ✅ extend fixture | ⬜ pending |
+| 56-04-T2 | 56-04 | 2 | DOC-16 | — | N/A | prose correction validated by both doc builds and the existing layout gates | `uv run pytest tests/test_docs_template_layout_gate.py tests/test_docs_contract_claims_gate.py -q && uv run tox -e docs-html && uv run tox -e docs-pdf` | ✅ exists | ⬜ pending |
+| 56-04-T3 | 56-04 | 2 | DOC-16 | T-56-11 | text read + containment only; no `exec`/import of read pages | prose-binding class (outside the `typst-py` skipif scope) tying both pages to the fixture's measured destination + teeth test | `uv run pytest tests/test_user_template_relative_asset_gate.py tests/test_docs_template_layout_gate.py tests/test_output_layout_docs_gate.py -q` | ❌ W0 — new class | ⬜ pending |
+| 56-05-T1 | 56-05 | 3 | DOC-15, DOC-16, DOC-17 | T-56-16 | every sweep command and its full output recorded against a named commit | execution-time re-run of all five discovery greps + written per-hit disposition + real builds of both example projects | `uv run pytest tests/test_examples_charged_ieee_gate.py -q && uv run pytest -q` | ❌ W0 — new record | ⬜ pending |
+| 56-05-T2 | 56-05 | 3 | SC#4 | T-56-13, T-56-14, T-56-15 | swept `.py` files are read as TEXT and regex-matched — never `exec`/imported; repo-relative roots only | run-time anchored repo-wide presence gate with reasoned exclusions, a staleness test and both-direction teeth tests | `uv run pytest tests/test_bundle_layout_sweep_gate.py -q && uv run pytest -q` | ❌ W0 — new module | ⬜ pending |
+| 56-05-T3 | 56-05 | 3 | DOC-15, DOC-16, DOC-17 | — | N/A | phase-boundary gate: full suite + lint/type trio + both doc builds + empty `typsphinx/` diff | `uv run pytest -q && uv run black --check . && uv run ruff check . && uv run mypy typsphinx/ && uv run tox -e docs-html && uv run tox -e docs-pdf && git diff --stat typsphinx/` | ✅ all exist | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+
+**Wave map:** W1 = `56-01` (the tracer: the two-way catalogue gate proven end-to-end before any
+expansion prose is written) · W2 = `56-02` + `56-03` + `56-04` (zero `files_modified` overlap) ·
+W3 = `56-05` (the sweep audit, deliberately one wave AFTER every prose fix it audits — an auditor
+sharing a wave with the measurement abstains on its own criterion because the evidence does not yet
+exist in its worktree).
+
+**Same-wave coupling checked explicitly:** `56-03` owns `tests/test_output_layout_docs_gate.py`,
+whose `test_helper_derived_wrapper_stem_matches_the_published_walkthroughs` also reads
+`docs/source/user_guide/templates.rst`, which `56-04` owns. `56-04`'s edits are confined to the
+`Template Assets` subsection and its acceptance criteria re-run that module, so the disjoint-files
+merge hazard is covered rather than assumed. The `output_layout.rst` count clause and the assertion
+quoting it are deliberately in the SAME task of the SAME plan, never split across a wave.
 
 ---
 
