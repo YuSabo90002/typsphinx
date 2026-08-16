@@ -85,6 +85,34 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [ ] **IMG-03**: Two escaping absolute image URIs in different directories sharing a basename do not
       collide onto one relocation key
 
+### Phase 54 review findings
+
+*Raised as `WR-01`/`CR-01` in `phases/54-one-bundle-rule-template-key-per-document-selection-four-del/54-REVIEW.md`
+and assigned to the inserted Phase 54.1. Both are defects in what Phase 54 shipped, on the same
+`builder.py` bundle-copy surface. The same review's `WR-02` belongs to Phase 57's CHANGELOG
+curation; `WR-03`, `WR-04` and `IN-01` are unassigned.*
+
+- [ ] **WR-01**: A used key's template bundle is never copied in a way that republishes the
+      project's Sphinx `templates_path` directory into build output, and no published page under
+      `docs/source/` recommends putting a Typst template in `_templates/` — the name
+      `templates_path` defaults to. Phase 54 made the resolved template's parent directory the unit
+      of copying, so the pre-existing documentation recommendation
+      (`templates.rst`, `configuration.rst`: `typst_template = "_templates/custom.typ"`) now causes a
+      user's Jinja override directory to be published. `typsphinx/` reads `templates_path` nowhere
+      today — the collision is acknowledged only in the `template_engine.py:36` comment explaining
+      why `_typst/` was chosen. Refusal-vs-warning is open going into `/gsd-discuss-phase 54.1`
+
+- [ ] **CR-01**: A CONF-17 violation on the built-in `"typst"` key, and a reserved-key case
+      collision (a declared key differing from `"typst"` only by case, which CONF-18 does not catch
+      because it compares declared keys only against each other), are both detected before any
+      `.typ` file is written — not at `finish()`, which Sphinx runs only after `write()` has emitted
+      every content and wrapper file. Today the A-01/CONF-17 guard lives in
+      `_copy_used_template_bundles()`, so a global `typst_template` naming a bare filename at the
+      source root writes a full, broken output tree and only then raises. This is the one path that
+      breaks the invariant `_validate_output_path_collisions()` and
+      `_validate_registry_key_references()` establish and
+      `test_template_prefix_reservation_gate.py::test_no_typ_file_written_after_refusal` gates
+
 ### Documentation
 
 - [ ] **DOC-15**: `configuration.rst` describes element [4] as the registry key, retracting the
@@ -171,6 +199,8 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | OUT-07 | Phase 54 | Complete |
 | BLD-05 | Phase 54 | Complete |
 | BLD-06 | Phase 54 | Complete |
+| WR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Pending |
+| CR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Pending |
 | XREF-05 | Phase 55 | Pending |
 | BLD-07 | Phase 55 | Pending |
 | BLD-08 | Phase 55 | Pending |

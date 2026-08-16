@@ -15,11 +15,12 @@
 - ✅ **v0.8.0 — multi-master composition** — Phases 47–52 (shipped 2026-08-15) → [archive](milestones/v0.8.0-ROADMAP.md)
 - 🚧 **v0.9.0 — per-document templates** — Phases 53–57 (active, started 2026-08-15)
 
-**Active milestone: v0.9.0 — per-document templates.** Five phases (53–57): the validated
-`typst_document_templates` registry with the built-in `"typst"` key deferring to today's global
-configuration; the one output rule — every used key's template bundle copied wholesale to
-`<outdir>/_template/<key>/` — which lets four mechanisms be deleted rather than extended; the five
-v0.8.0-derived defects; the documentation rewrite; then prep-only release.
+**Active milestone: v0.9.0 — per-document templates.** Six phases (53–57, plus 54.1 inserted): the
+validated `typst_document_templates` registry with the built-in `"typst"` key deferring to today's
+global configuration; the one output rule — every used key's template bundle copied wholesale to
+`<outdir>/_template/<key>/` — which lets four mechanisms be deleted rather than extended; the two
+bundle-directory safety defects that rule surfaced; the five v0.8.0-derived defects; the
+documentation rewrite; then prep-only release.
 
 Phase numbering is **continuous across milestones** — v0.8.0 ran Phases 47–52, so v0.9.0 starts at
 **Phase 53**.
@@ -486,6 +487,7 @@ reads, rather than relying on a per-run `--skip-ui`.
 
 - [x] **Phase 53: Template Registry Foundation** - A `conf.py` can declare named template definitions and every malformed registry stops the build by name, while the built-in `"typst"` key defers to today's global configuration so an untouched `conf.py` produces byte-identical output (completed 2026-08-15)
 - [x] **Phase 54: One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions** - Element [4] actually selects the template, every used key's bundle is copied wholesale to `<outdir>/_template/<key>/` with `"typst"` under the same rule, template-relative asset references start working, and `_write_template_file()` / `typst_template_assets` / the two explicit-asset helpers are gone (completed 2026-08-16)
+- [ ] **Phase 54.1: Bundle Directory Safety — `templates_path` Collision Refusal and Pre-Write Path Validation (INSERTED)** - Close the two Phase 54 `/gsd-code-review` findings: the wholesale bundle copy can republish a project's Sphinx `templates_path` Jinja directory into public build output while the published docs actively recommend that layout (WR-01), and a CONF-17 violation on the built-in `"typst"` key is discovered only at `finish()`, after every content and wrapper `.typ` file has already been written (CR-01)
 - [ ] **Phase 55: v0.8.0-Derived Defects** - The five defects v0.8.0 shipped unfixed by decision D-01, or fixed only test-side, are closed on the product side with a RED-recorded reproduction each
 - [ ] **Phase 56: Per-Document Template Documentation** - The published documentation describes the registry that shipped: element [4] is the registry key, the asset examples work under the bundle layout, and the removed config values have migration guidance
 - [ ] **Phase 57: v0.9.0 Release Prep (prep-only)** - The v0.9.0 tree is bumped, its CHANGELOG curated around the two breaking changes, proven green on live multi-template evidence, and handed off with no irreversible action taken
@@ -702,6 +704,75 @@ Plans:
 
 **UI hint**: no
 
+### Phase 54.1: Bundle Directory Safety — templates_path Collision Refusal and Pre-Write Path Validation (INSERTED)
+
+**Goal**: The two findings Phase 54's `/gsd-code-review` raised are closed. Phase 54 made the
+resolved template's **parent directory** the unit of copying, which turned a pre-existing
+documentation choice into a live hazard: `templates.rst` and `configuration.rst` recommend
+`typst_template = "_templates/custom.typ"`, and `_templates/` is exactly the directory name
+Sphinx's own `templates_path` defaults to — so a project following the published documentation has
+its Jinja override directory copied wholesale into public build output. That directly violates
+Phase 54's own stated prohibition ("A user's Sphinx source tree must never be republished as build
+output", `54-01-PLAN.md`). The extension currently reads `templates_path` nowhere: the only mention
+in the tree is the comment at `template_engine.py:36` explaining why `_typst/` was chosen over
+`_templates/` — the collision was known and left undefended. Separately, the built-in `"typst"`
+key's CONF-17 validation is the one path that never runs before `write()`, so a one-line config
+mistake writes a full, broken output tree and only then fails.
+
+Both are defects in what Phase 54 shipped, in the same `builder.py` bundle-copy surface, which is
+why they are one inserted phase rather than two, and why it sits immediately after 54 rather than
+after Phase 55 (translator/registry-independent work that only queues behind 54 for file
+contention). It must land before Phase 56, which documents the settled layout.
+
+**Depends on**: Phase 54
+**Requirements**: WR-01, CR-01
+**Success Criteria** (what must be TRUE):
+
+  1. **A bundle that would republish the Sphinx template directory does not silently ship.** When a
+     used key's resolved bundle directory is, contains, or is contained by any entry of Sphinx's
+     `templates_path`, the build says so by name rather than copying it — the exact refusal-vs-warning
+     shape is **open going in** and is decided at `/gsd-discuss-phase 54.1`. Whichever is chosen, the
+     detection is new code: `templates_path` is read nowhere in `typsphinx/` today (WR-01).
+
+  2. **The published documentation stops recommending the colliding layout.** No page under
+     `docs/source/` instructs a user to put a Typst template in `_templates/` — verified by a
+     repo-wide grep at discovery time, not only in the two pages this review named. The replacement
+     guidance matches what this repository's own `docs/source/conf.py:96` already does
+     (`_typst/custom_template.typ`), so the project's documentation and its own configuration agree
+     (WR-01).
+
+  3. **A CONF-17 violation costs zero written files.** A global `typst_template` naming a bare
+     filename at the source root stops the build with **no** `.typ` file on disk — the A-01/CONF-17
+     guard runs in the same pre-write position as `_validate_output_path_collisions()` and
+     `_validate_registry_key_references()`, and is pinned by a test of the same shape as
+     `test_template_prefix_reservation_gate.py::test_no_typ_file_written_after_refusal`, which is the
+     sibling property that already has one (CR-01).
+
+  4. **The reserved-key case collision is caught in the same pass.** A declared key differing from
+     the reserved `"typst"` key only by case (e.g. `"Typst"`) — which CONF-18 does not catch, because
+     it compares declared keys only against each other and never against the synthesized key — is
+     detected before any file is written, not at `finish()` (CR-01).
+
+  5. Each fix is pinned by a test that **fails against the pre-fix tree**, recorded RED before
+     implementation (binding constraint #6). Zero new runtime deps, no `@preview` bump, the 3-way
+     version-sync surface untouched. Any user-visible behaviour change is carried into the v0.9.0
+     CHANGELOG that Phase 57 curates.
+
+Source of record: `CR-01` and `WR-01` in
+[`phases/54-one-bundle-rule-template-key-per-document-selection-four-del/54-REVIEW.md`](phases/54-one-bundle-rule-template-key-per-document-selection-four-del/54-REVIEW.md).
+The same review's `WR-02` (CHANGELOG coverage of the `typst_template_assets` removal and the
+curated-list→wholesale-copy change) belongs to Phase 57's CHANGELOG curation; `WR-03` (a declared
+key with neither `template` nor `package` shares the reserved key's shadow search path), `WR-04`
+and `IN-01` are **not** in this phase's scope.
+
+**UI hint**: no
+
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 54.1 to break down)
+
 ### Phase 55: v0.8.0-Derived Defects
 
 **Goal**: The four minor defects v0.8.0 shipped unfixed by owner decision D-01 — all new failure
@@ -844,11 +915,17 @@ editing.
 **Execution Order:**
 Active milestone phases execute in numeric order (decimal insertions between their surrounding
 integers), with the prep-only Release phase last so its CHANGELOG entry describes work already proven
-by the preceding phases' gates. v0.9.0 executes 53 → 54 → 55 → 56 → 57. The one hard ordering
+by the preceding phases' gates. v0.9.0 executes 53 → 54 → 54.1 → 55 → 56 → 57. The one hard ordering
 constraint is **53 before 54**: the registry plumbing must be in place and output-identical before
 the output layout moves, because 32 test files still assert the old `_template.typ` path and the tree
 must be green at every phase boundary. Phase 55 has no functional dependency on 53/54 and is
 sequenced after them only to avoid contending for `builder.py` and `writer.py`.
+
+Phase 54.1 was inserted on 2026-08-16 after Phase 54's `/gsd-code-review`, so v0.9.0 now executes
+53 → 54 → 54.1 → 55 → 56 → 57. It sits immediately after 54 rather than after 55 for two reasons:
+it repairs defects in what 54 itself shipped, on the same `builder.py` bundle-copy surface 54 just
+rewrote; and it must precede Phase 56, which documents the settled bundle layout and would otherwise
+publish guidance for behaviour 54.1 is about to change.
 
 Phases 1–52 shipped across v0.4.4 → v0.8.0; their per-phase plan counts, statuses and completion
 dates are preserved in each milestone's archived roadmap under `milestones/`. The table below tracks
@@ -858,6 +935,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
+| 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 0/? | Not started | - |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |

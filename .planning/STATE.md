@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 55
-current_phase_name: v0.8.0-Derived Defects
+current_phase: 54.1
+current_phase_name: Bundle Directory Safety — templates_path Collision Refusal and Pre-Write Path Validation
 status: planning
-stopped_at: Phase 54 context gathered
-last_updated: "2026-08-15T22:24:08.652Z"
+stopped_at: Phase 54 complete; Phase 54.1 inserted from its code review
+last_updated: "2026-08-16T00:25:58.102Z"
 last_activity: 2026-08-16
-last_activity_desc: Phase 54 execution started
+last_activity_desc: Phase 54 complete, Phase 54.1 inserted (WR-01, CR-01)
 progress:
-  total_phases: 5
+  total_phases: 7
   completed_phases: 2
   total_plans: 17
   completed_plans: 17
-  percent: 40
+  percent: 33
 ---
 
 # Project State
@@ -39,11 +39,11 @@ Next action: `/gsd-execute-phase 54`
 
 ## Current Position
 
-Phase: 55 — v0.8.0-Derived Defects
+Phase: 54.1 — Bundle Directory Safety (INSERTED)
 Plan: Not started
-Status: Ready to plan
-Progress: [░░░░░░░░░░] 0% (0/7 plans — Phase 54 planned)
-Last activity: 2026-08-16 — Phase 54 complete, transitioned to Phase 55
+Status: Ready to discuss
+Progress: [░░░░░░░░░░] 0% (0 plans — not yet planned)
+Last activity: 2026-08-16 — Phase 54 complete (7/7, verified 8/8); Phase 54.1 inserted from its code review (WR-01, CR-01)
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
@@ -55,12 +55,13 @@ Full phase detail, binding constraints and success criteria: [`ROADMAP.md`](ROAD
 template-function arguments, instead of one globally-configured template being applied to every
 master.
 
-**Five phases, executing 53 → 54 → 55 → 56 → 57:**
+**Six phases, executing 53 → 54 → 54.1 → 55 → 56 → 57:**
 
 | Phase | Name | Requirements |
 |-------|------|--------------|
 | 53 | Template Registry Foundation | TPL-01, TPL-03, TPL-04, TPL-05, CONF-14..18 (9) |
 | 54 | One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions | TPL-02, CONF-19, OUT-04..07, BLD-05, BLD-06 (8) |
+| 54.1 | Bundle Directory Safety — `templates_path` Collision Refusal and Pre-Write Path Validation (INSERTED) | WR-01, CR-01 (2) |
 | 55 | v0.8.0-Derived Defects | XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 (5) |
 | 56 | Per-Document Template Documentation | DOC-15, DOC-16, DOC-17 (3) |
 | 57 | v0.9.0 Release Prep (prep-only) | REL-08 (1) |
@@ -707,6 +708,8 @@ evidence.
   warning covering all three removed values. `research/ARCHITECTURE.md` §5 asks for an owner decision
   on the fixture collision — it has one; the alternative (a different reserved directory name) must
   not be re-derived at planning.
+
+- Phase 54.1 inserted after Phase 54: Bundle Directory Safety — closes Phase 54 review findings WR-01 (templates_path collision republishes Jinja dir) and CR-01 (CONF-17 checked only at finish(), after full write) (URGENT)
 
 ## Deferred Items
 
