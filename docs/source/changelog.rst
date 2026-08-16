@@ -13,13 +13,14 @@ versus what it does now: the ``# v0.8.x`` block is what that fragment used to pr
 ``# v0.9.0`` block is what it produces now.
 
 - **Breaking:** template layout is now validated before anything is written. With a ``conf.py``
-  combining ``templates_path = ["_templates"]`` and a Typst template resolved to
-  ``_templates/base.typ``, v0.8.x copied that template's bundle -- everything living beside it --
-  with no check against Sphinx's own ``templates_path``. v0.9.0 refuses that build outright, before
-  any file is written, because the whole bundle directory is copied wholesale to the output and
-  would republish the project's Sphinx template directory. The same check also refuses a resolved
-  template bundle whose parent directory is the source directory itself (or an ancestor of it), and
-  a declared registry key differing from the built-in ``"typst"`` key only by case.
+  combining ``templates_path = ["_templates"]`` and a Typst template resolved inside that
+  ``templates_path`` directory as ``_templates/base.typ``, v0.8.x copied that template's bundle --
+  everything living beside it -- with no check against Sphinx's own ``templates_path``. v0.9.0
+  refuses that build outright, before any file is written, because the whole bundle directory is
+  copied wholesale to the output and would republish the project's Sphinx template directory. The
+  same check also refuses a resolved template bundle whose parent directory is the source directory
+  itself (or an ancestor of it), and a declared registry key differing from the built-in ``"typst"``
+  key only by case.
 
   .. code-block:: text
 
@@ -35,12 +36,12 @@ versus what it does now: the ``# v0.8.x`` block is what that fragment used to pr
      Extension error!
      sphinx.errors.ExtensionError: typst: 1 pre-write template path failure(s):
      'typst': registry key 'typst''s resolved template bundle directory
-     'source/_templates' collides with the Sphinx templates_path entry
-     '_templates' (resolved to 'source/_templates') -- the whole bundle
-     directory is copied to the build output, so this would republish the
-     project's Sphinx template directory; move the Typst template into a
-     directory that is not on templates_path (this repository uses _typst/)
-     and update typst_template / typst_document_templates to match
+     'source/_templates' collides with the Sphinx templates_path entry '_templates' (resolved to 'source/_templates')
+     -- the whole bundle directory is copied to the build output, so this
+     would republish the project's Sphinx template directory; move the
+     Typst template into a directory that is not on templates_path (this
+     repository uses _typst/) and update typst_template /
+     typst_document_templates to match
 
   Fix it by moving the Typst template into a directory that is not on ``templates_path`` -- this
   project's own documentation build uses ``_typst/`` -- and updating ``typst_template`` /
