@@ -50,6 +50,13 @@ NO_TYPST_TEMPLATE_CONTROL_FIXTURE_DIR = (
     Path(__file__).parent / "fixtures" / "templates_path_no_typst_template_control_gate"
 )
 
+# Phase 54.1 plan 04, task 3: D-05's synthesized-entry gate -- an unset
+# document-list config value still routes the built-in "typst" key
+# through the checked key set via this extension's callable default.
+DEFAULT_DOCUMENTS_FIXTURE_DIR = (
+    Path(__file__).parent / "fixtures" / "templates_path_default_documents_gate"
+)
+
 # D-01: the exact sentence fragment the new ``ExtensionError`` message
 # must contain, naming this specific failure kind -- asserted by both
 # tests below and reused as the gate's own marker constant so a future
@@ -341,3 +348,40 @@ class TestNonCollidingShapesControlGate:
         survivors = sorted(p.name for p in _typ_files(build_dir))
         expected = sorted(["base.typ", "index.typ", "index_out.typ"])
         assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
+
+
+def test_default_documents_collision_refuses_build(tmp_path):
+    """D-05: an unset document-list config value still routes through
+    ``_default_typst_documents()``'s single synthesized entry, whose
+    fifth element (the built-in registry key ``"typst"``) is what
+    supplies the checked key -- proving the synthesized entry reaches
+    the checked key set, not just explicitly-declared entries."""
+    build_dir = tmp_path / "build"
+    result = _run_sphinx_build(DEFAULT_DOCUMENTS_FIXTURE_DIR, build_dir, "typst")
+    combined_output = result.stdout + result.stderr
+
+    assert result.returncode != 0, (
+        f"Expected the default-documents fixture to refuse the build:\n"
+        f"stdout: {result.stdout}\nstderr: {result.stderr}"
+    )
+    assert TEMPLATES_PATH_COLLISION_MARKER in combined_output, (
+        f"Expected the collision marker "
+        f"{TEMPLATES_PATH_COLLISION_MARKER!r} in the build output:\n"
+        f"{combined_output}"
+    )
+    assert "'typst'" in combined_output, (
+        f"Expected the synthesized built-in registry key 'typst' "
+        f"named:\n{combined_output}"
+    )
+
+
+def test_no_typ_file_written_after_default_documents_refusal(tmp_path):
+    """D-04, carried into the synthesized-entry case: the refusal still
+    leaves ZERO ``.typ`` files anywhere under the build directory."""
+    build_dir = tmp_path / "build"
+    _run_sphinx_build(DEFAULT_DOCUMENTS_FIXTURE_DIR, build_dir, "typst")
+    survivors = _typ_files(build_dir)
+    assert not survivors, (
+        f"Expected NO .typ file written when the default-documents "
+        f"collision refuses the build, found: {survivors}"
+    )
