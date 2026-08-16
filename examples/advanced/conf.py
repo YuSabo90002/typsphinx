@@ -55,7 +55,7 @@ typst_use_mitex = True
 # naming the supported keys, rather than being silently dropped.
 #
 # On top of that, the *template in use* must declare a matching parameter in
-# its `project()` function. `_templates/custom.typ` below declares all three;
+# its `project()` function. `_typst/custom.typ` below declares all three;
 # a template that did not would fail the Typst compile with
 # `unexpected argument: papersize`. To pass template parameters beyond this
 # allowlist, use `typst_template_function` with a `params` dict instead.
@@ -67,7 +67,13 @@ typst_elements = {
 
 # Custom template (optional)
 # This example ships one; remove this line to fall back to the bundled default
-typst_template = "_templates/custom.typ"
+#
+# Lives in `_typst/`, a directory typsphinx owns -- deliberately NOT the
+# Sphinx Jinja override directory named on line 24 above. Both directories
+# coexist here on purpose: the Sphinx one keeps its own meaning (HTML theme
+# overrides), while the Typst template lives somewhere that copying it
+# wholesale to build output can never republish Sphinx's own directory.
+typst_template = "_typst/custom.typ"
 
 # Template parameter mapping (optional)
 # Maps Sphinx metadata to custom template parameter names

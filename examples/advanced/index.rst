@@ -82,8 +82,9 @@ Project Structure
    ├── index.rst               # This file (master document)
    ├── chapter1.rst            # Chapter 1: Mathematics
    ├── chapter2.rst            # Chapter 2: Figures and Tables
-   ├── _templates/             # Custom templates (optional)
+   ├── _typst/                 # Typst-owned template directory (optional)
    │   └── custom.typ
+   ├── _templates/             # Sphinx's own templates_path override directory
    └── README.md               # Build instructions
 
 Mathematics Example

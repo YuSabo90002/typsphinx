@@ -17,8 +17,9 @@ advanced/
 ├── index.rst               # Master document with toctree
 ├── chapter1.rst            # Chapter 1: Mathematical content
 ├── chapter2.rst            # Chapter 2: Figures and tables
-├── _templates/             # Custom template directory
+├── _typst/                 # Typst-owned template directory (typst_template points here)
 │   └── custom.typ          # Example custom Typst template
+├── _templates/             # Sphinx's own templates_path override directory (HTML theme; empty here)
 ├── README.md               # This file
 └── _build/                 # Build output (generated)
     ├── typst/              # Typst markup files (.typ)
@@ -61,7 +62,7 @@ This will generate:
 - `_build/typst/index.typ` - Master content (the `index` document's own body)
 - `_build/typst/chapter1.typ` - Chapter 1 content
 - `_build/typst/chapter2.typ` - Chapter 2 content
-- `_build/typst/_template.typ` - Template imported by the wrapper (here, your `_templates/custom.typ`)
+- `_build/typst/_template.typ` - Template imported by the wrapper (here, your `_typst/custom.typ`)
 
 The wrapper (`advanced-example.typ`) is a thin file that includes the
 master's content file, `index.typ`. The chapter includes live inside that
@@ -82,7 +83,7 @@ This creates both `.typ` and `.pdf` files in `_build/pdf/`.
 To use the custom template, edit `conf.py` and uncomment:
 
 ```python
-typst_template = '_templates/custom.typ'
+typst_template = '_typst/custom.typ'
 ```
 
 Then rebuild:
@@ -230,7 +231,7 @@ typst_use_mitex = True
 # Custom elements for templates.
 # Allowlisted keys only (papersize / fontsize / lang); any other key aborts
 # the build. The template in use must also declare a matching project()
-# parameter -- _templates/custom.typ declares all three.
+# parameter -- _typst/custom.typ declares all three.
 typst_elements = {
     'papersize': 'a4',
     'fontsize': '11pt',
@@ -244,7 +245,7 @@ This example demonstrates additional advanced options:
 
 ```python
 # Custom template (optional)
-typst_template = '_templates/custom.typ'
+typst_template = '_typst/custom.typ'
 
 # Template parameter mapping (optional)
 # Customize how Sphinx metadata maps to template parameters
@@ -296,7 +297,7 @@ available in your Typst installation.
 
 After exploring this example:
 
-1. Try modifying the custom template in `_templates/custom.typ`
+1. Try modifying the custom template in `_typst/custom.typ`
 2. Add your own chapters and content
 3. Experiment with different Typst packages
 4. Customize styling and layout
