@@ -4,15 +4,15 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 55
 current_phase_name: v0.8.0-Derived Defects
-status: planning
-stopped_at: Phase 55 context gathered
-last_updated: "2026-08-16T04:31:29.586Z"
+status: executing
+stopped_at: Phase 55 planned — 4 plans in 3 waves, ready to execute
+last_updated: "2026-08-16T05:22:23.713Z"
 last_activity: 2026-08-16
-last_activity_desc: Phase 54.1 complete — 5 plans in 3 waves, verification passed 5/5 must-haves, WR-01 and CR-01 closed; 1318 passed / 5 skipped / 0 failed, black+ruff+mypy clean
+last_activity_desc: Phase 55 planned — 4 plans in 3 waves (W1 55-01 tracer · W2 55-02 + 55-03 parallel · W3 55-04); planning measurement rejected both proposed XREF-05 constructions as non-injective and found SC#4's locked BLD-09 predicate does not produce SC#4's own required behaviour (blocking decision checkpoint in 55-03)
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 22
+  total_plans: 26
   completed_plans: 22
   percent: 50
 ---
@@ -71,10 +71,40 @@ is enabled and Phase 54.1 has no SECURITY.md).
 ## Current Position
 
 Phase: 55 — v0.8.0-Derived Defects
-Plan: Not started
-Status: Ready to plan
-Progress: [░░░░░░░░░░] 0% (0/? plans — Phase 55 not yet planned; Phase 54.1 finished 5/5)
-Last activity: 2026-08-16 — Phase 54.1 complete, transitioned to Phase 55
+Plan: Not started (4 plans written)
+Status: Ready to execute
+Progress: [░░░░░░░░░░] 0% (0/4 plans)
+Last activity: 2026-08-16 — Phase 55 planned, 4 plans in 3 waves
+
+**Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
+injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`
+(BLD-09 + IMG-03, `builder.py`; **not autonomous**) · W3 = `55-04` (CHANGELOG `Fixed` entries per
+D-03, phase-boundary evidence). `55-01` and `55-02` both touch `typsphinx/translator.py`, so they are
+deliberately in different waves; wave 2's two plans have zero `files_modified` overlap.
+
+**Three planning-time measurements that changed the plans (all reproducible, all recorded in the
+plans themselves):**
+
+1. **Both XREF-05 constructions the phase's own research proposed are NOT injective.** Doubling a
+   literal token's leading underscore collides `a_/b` with `a_u2f_b`; inserting an extra `u` collides
+   `_u2f/` with `/u2f_`. Root cause: they protect token shapes present in the RAW input, while the
+   main substitution creates new token shapes at the SEAMS between literal text and emitted tokens.
+   `55-01` locks a construction that escapes the token's own INTRODUCER instead, verified by decoder
+   round-trip over an exhaustive alphabet plus 400k random strings.
+2. **ROADMAP SC#4 contradicts itself, and `55-03` is therefore non-autonomous.** The predicate SC#4
+   names literally evaluates False for the driveless-absolute Windows URI the same criterion requires
+   to reach the rehome branch, and also for the UNC shape. The consequence is worse than a missing
+   rehome: the untouched rooted URI reaches `copy_image_files()`, whose Windows destination join
+   discards `outdir` and writes at the drive root (rated `high` in `55-03`'s threat register). A
+   blocking `checkpoint:decision` puts the choice to the owner with the measurement in hand.
+3. **BLD-08's proposed depth bound of 900 is unsafe.** The interpreter limit is 1000, the deepest
+   surviving chain from a shallow caller is 995, and 900 already fails under ~100 caller frames.
+   `55-02` locks **500** with the measurement as its commented rationale.
+
+Also measured at planning time: BLD-07's collision reproduces end-to-end on a real `-b typstpdf`
+build (the shared child's marker appears twice in the compiled PDF), but the fixture CANNOT be
+committed — the greater-than character is reserved in Windows filenames, so `55-02` builds its source
+tree at runtime and skips on Windows.
 
 **Phase 54.1 wave map (executed):** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs
 half, two `git mv` renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) +

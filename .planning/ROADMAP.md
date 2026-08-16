@@ -828,7 +828,22 @@ dependency on the registry.
      keys instead of collapsing onto one, so neither image is silently replaced by the other
      (IMG-03).
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
+W3 `55-04`. `55-01` and `55-02` both touch `translator.py` and are deliberately sequenced into
+different waves; `55-03` is non-autonomous (a blocking decision checkpoint on SC#4's predicate, see
+below).
+
+- [ ] 55-01-PLAN.md — XREF-05: make `_sanitize_label` injective; invert the characterization test; prove injectivity by decoder round-trip
+- [ ] 55-02-PLAN.md — BLD-07 + BLD-08: escape the edge-key separators inside the single derivation point; bound the include-chain recursion with a named `ExtensionError`
+- [ ] 55-03-PLAN.md — BLD-09 + IMG-03: one named platform-independent absolute-URI predicate for `_track_image()`; a digest-prefixed escape-branch relocation key
+- [ ] 55-04-PLAN.md — the `Unreleased` `Fixed` changelog entries (D-03) and the phase-boundary green evidence
+
+**Planning note (SC#4):** measurement taken at planning time shows SC#4's two clauses disagree — the
+predicate it names literally evaluates False for the driveless-absolute Windows shape the same
+criterion requires to reach the rehome branch. Plan `55-03` presents this as a blocking decision
+checkpoint rather than resolving it silently; see `55-03-PLAN.md` and `55-03-RED-EVIDENCE.md`
+§ "Predicate measurement".
+
 **UI hint**: no
 
 ### Phase 56: Per-Document Template Documentation
