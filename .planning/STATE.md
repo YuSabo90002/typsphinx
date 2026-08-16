@@ -4,15 +4,15 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 54.1
 current_phase_name: Bundle Directory Safety — templates_path Collision Refusal and Pre-Write Path Validation
-status: planning
-stopped_at: Phase 54.1 context gathered
-last_updated: "2026-08-16T00:58:21.575Z"
+status: planned
+stopped_at: Phase 54.1 planned (5 plans, 3 waves)
+last_updated: "2026-08-16T02:06:26.961Z"
 last_activity: 2026-08-16
-last_activity_desc: Phase 54 complete, Phase 54.1 inserted (WR-01, CR-01)
+last_activity_desc: Phase 54.1 planned — 5 plans in 3 waves, plan-checker PASSED, 13/13 decisions and 2/2 requirements covered
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 17
+  total_plans: 22
   completed_plans: 17
   percent: 33
 ---
@@ -30,6 +30,12 @@ while the docs recommend exactly that layout) and CR-01 (the built-in `"typst"` 
 violation is discovered only at `finish()`, after every `.typ` file is written). Context gathered
 2026-08-16: refuse with `ExtensionError`, check in a pre-write pass at the top of `write()`, and fix
 the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`.
+Planned 2026-08-16: 5 plans in 3 waves. Three decisions were added at planning time — **D-11**
+(`examples/charged-ieee/approach2/` gets the same `_templates/`→`_typst/` rename as D-09), **D-12**
+(SC#2's grep gate polices `docs/source/` + `README.md` + `examples/` only; `tests/` is excluded,
+measured basis: zero files under `tests/` set both `templates_path` and `typst_template`), and
+**D-13** (the discovery-time grep found one hit D-08's floor missed —
+`examples/advanced/_templates/custom.typ:5`, a comment inside the file D-09 moves).
 
 Phase 54 (complete) context, retained for reference:
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
@@ -42,15 +48,35 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-plan-phase 54.1`
+Next action: `/gsd-execute-phase 54.1`
 
 ## Current Position
 
 Phase: 54.1 — Bundle Directory Safety (INSERTED)
-Plan: Not started
-Status: Context gathered — ready to plan
-Progress: [░░░░░░░░░░] 0% (0 plans — not yet planned)
-Last activity: 2026-08-16 — Phase 54.1 context gathered (10 decisions; refusal + pre-write placement + docs/examples breadth)
+Plan: Not started (5 planned)
+Status: Ready to execute
+Progress: [░░░░░░░░░░] 0% (0/5 plans complete)
+Last activity: 2026-08-16 — Phase 54.1 planned (5 plans / 3 waves; 13 decisions; plan-checker VERIFICATION PASSED)
+
+**Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
+renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
+cases) · W3 = `54.1-05` (cross-kind aggregation, `Unreleased` CHANGELOG entry, phase-boundary green).
+
+**Two execution hazards recorded at planning time:**
+1. `54.1-02` deletes tracked paths (both renames are `git mv`). `worktree.cleanup-wave` blocks any
+   branch containing deletions with **no bypass** — expected, not a failure. Verify the deletion
+   scope is exactly `examples/advanced/_templates/custom.typ` and
+   `examples/charged-ieee/approach2/source/_templates/_template.typ`, then merge that worktree
+   branch by hand.
+2. `54.1-03` and `54.1-04` share Wave 2 with disjoint `files_modified`, but `03` changes runtime
+   refusal behaviour while `04` authors five new fixtures — a fixture with a template at its
+   source-tree root would pass in `04`'s worktree and fail after merge. `54.1-04` carries two
+   mechanical sweep assertions against exactly that.
+
+**"Green" for this phase means green modulo exactly the 7 pre-existing
+`tests/test_state_guard_shapes_gate.py` failures** (recorded in
+`phases/53-template-registry-foundation/deferred-items.md`, predating Phase 53). They are not a
+regression this phase causes; no executor should "fix" them or report them as new RED.
 
 ## Active Milestone (v0.9.0 — per-document templates)
 

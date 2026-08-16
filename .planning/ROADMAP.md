@@ -770,11 +770,18 @@ and `IN-01` are **not** in this phase's scope.
 **Plans:** 5 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 54.1-01-PLAN.md — WR-01 tracer: pre-write `templates_path` collision refusal, end to end (RED recorded first)
 - [ ] 54.1-02-PLAN.md — WR-01 docs half: retire the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`, pinned by an executable repo-wide-grep gate
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 54.1-03-PLAN.md — CR-01: hoist the A-01/CONF-17 check into the pre-write pass and refuse a reserved-key case collision
 - [ ] 54.1-04-PLAN.md — WR-01 expansion: all three D-02 path relations, the three measured non-colliding shapes, and D-03's aggregated sorted raise
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 54.1-05-PLAN.md — cross-kind aggregation, the v0.9.0 `Unreleased` breaking-change entry, and the phase-boundary green evidence
 
 ### Phase 55: v0.8.0-Derived Defects
