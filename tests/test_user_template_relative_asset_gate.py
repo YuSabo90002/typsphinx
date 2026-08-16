@@ -126,6 +126,10 @@ class TestUserTemplateRelativeAssetGate:
             "branded.typ did not reach the bundle destination "
             "<outdir>/_template/typst/branded.typ"
         )
+        assert (build_dir / "_template" / "typst" / "refs.bib").exists(), (
+            "refs.bib did not reach the bundle destination "
+            "<outdir>/_template/typst/refs.bib"
+        )
 
     def test_wrapper_imports_the_bundled_template(self, build):
         wrapper_text = build["wrapper_text"]
