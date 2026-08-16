@@ -284,28 +284,25 @@ class TestNoAttachment:
     cannot introduce a duplicate label -- it does NOT prove a namespace
     collision is harmless.
 
-    Two label namespaces that collide after sanitization therefore produce
-    ONE label whose existence query is satisfied, and the guard links
-    rather than aborting; the guard adds no new duplicate-label COMPILE
-    failure of its own. The compile-level CONSEQUENCE -- a reference whose
-    real target is absent instead linking to a colliding decoy -- is a
-    false negative characterized by
+    A label-namespace collision after sanitization used to produce ONE
+    label whose existence query was satisfied, so a reference whose real
+    target was absent instead linked to a colliding decoy -- a false
+    negative characterized by
     `tests/fixtures/xref_label_collision_guard_gate/` and its gate in
-    `tests/test_xref_compile_time_guard_render_gate.py`, and accepted as a
-    limit in 48-04, not proven or disproven by this string-level test.
-
-    Narrowing: labels are namespaced `docname:id` and `_sanitize_label`
-    maps each invalid character to a distinct `_u{codepoint:x}_` token, so
-    a cross-document collision additionally requires the DOCNAME segment
-    to collide too -- realistically only via the `/` -> `_u2f_` route that
-    fixture exercises. This is NOT the broader claim that any two ids
-    colliding is sufficient.
+    `tests/test_xref_compile_time_guard_render_gate.py`. That collision is
+    now CLOSED by XREF-05 in Phase 55: `_sanitize_label` re-escapes any
+    literal occurrence of its own encoding token before the main
+    substitution runs, proven injective by an exhaustive decoder
+    round-trip in `tests/test_sanitize_label_injectivity_unit.py` and by
+    the render gate above. This class is unaffected either way -- it only
+    proves the guard itself attaches no label, regardless of what the
+    label string happens to be.
     """
 
     def test_guard_attaches_no_label(self):
         translator = TypstTranslator(_make_document(), _StubBuilderNoIncludeSetAttr())
         guard = translator._label_existence_guard(
-            "a_u2f_b:nested-target", code_mode_body=True
+            "a_u5f_u2f_b:nested-target", code_mode_body=True
         )
         combined = guard.open_str + guard.close_str
         assert "label(" not in combined

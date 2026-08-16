@@ -72,7 +72,7 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 
 ### v0.8.0-derived defects
 
-- [ ] **XREF-05**: When two docnames sanitize to the same label string, a reference to the absent one
+- [x] **XREF-05**: When two docnames sanitize to the same label string, a reference to the absent one
       degrades to plain text instead of linking to the other document
 
 - [ ] **BLD-07**: A docname containing `#` or `>` cannot collide two include-edge keys
@@ -201,7 +201,7 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | BLD-06 | Phase 54 | Complete |
 | WR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Complete |
 | CR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Complete |
-| XREF-05 | Phase 55 | Pending |
+| XREF-05 | Phase 55 | Complete |
 | BLD-07 | Phase 55 | Pending |
 | BLD-08 | Phase 55 | Pending |
 | BLD-09 | Phase 55 | Pending |
