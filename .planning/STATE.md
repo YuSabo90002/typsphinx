@@ -5,10 +5,10 @@ milestone_name: per-document templates
 current_phase: 56
 current_phase_name: Per-Document Template Documentation
 status: planning
-stopped_at: Phase 55 complete (4/4 plans, verification passed 5/5)
-last_updated: "2026-08-16T08:17:08.819Z"
+stopped_at: Phase 56 context gathered
+last_updated: "2026-08-16T10:05:06.237Z"
 last_activity: 2026-08-16
-last_activity_desc: "Phase 55 complete — 4 plans across 3 waves, verification passed 5/5 must-haves. All five v0.8.0-derived defects (XREF-05, BLD-07, BLD-08, BLD-09, IMG-03) closed on the product side, each with a git-history-verified RED-before-fix reproduction. 55-03 Task 2 blocking checkpoint resolved by owner as option-b (backslash-normalized absolute-URI predicate); ROADMAP SC#4 amended in 55-04 to match what shipped. Code review CR-01 (pre-existing, not a Phase 55 regression) filed as a pending todo by owner decision rather than fixed in-phase"
+last_activity_desc: "Phase 56 context gathered (docs-only phase, no production code changes). Owner selected 2 of 4 gray areas; D-01..D-08 locked: typst_document_templates documented as ONE new subsection of configuration.rst (no new page, no templates.rst walkthrough); element [4] renamed to the registry key with all 15 existing five-element examples left byte-identical (measured: \"typst\" is always synthesized, so every published example is still correct); output_layout.rst becomes the canonical layout page and carries the new `--root build/typst` hand-compile note; error catalogue = condition→outcome table over the 7 config-caused ExtensionError shapes with the 2 I/O shapes noted separately, pinned by a two-way leading-clause doc↔code gate that never skips. DOC-16 (asset-example real-build proof) and DOC-17 (migration-guidance placement + history scope) left to Claude's discretion with recommendations recorded. Measured during discussion: test_output_layout_docs_gate.py already asserts a nine-file root set while output_layout.rst:159 still publishes ten"
 progress:
   total_phases: 6
   completed_phases: 4
@@ -886,13 +886,13 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/55-v0-8-0-derived-defects/55-CONTEXT.md
+**Resume file:** .planning/phases/56-per-document-template-documentation/56-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-16T04:31:29.573Z
-Stopped at: Phase 55 context gathered
-Resume: `/gsd-plan-phase 53`.
+Last session: 2026-08-16T10:05:06.223Z
+Stopped at: Phase 56 context gathered
+Resume: `/gsd-plan-phase 56`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
 discharged, including item 5 (Read the Docs `stable`), re-measured live 2026-08-15 through RTD's
