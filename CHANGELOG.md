@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for Future Releases
+- BibTeX/bibliography support
+- Glossary generation
+- Index generation
+- Pre-commit hooks
+- Additional Typst Universe template integration
+
+## [0.9.0] - 2026-08-17
+
+This release lets every `typst_documents` entry choose its own template, Typst Universe package,
+and template-function arguments through the validated `typst_document_templates` registry, instead
+of one globally-configured template being applied to every master document. **This minor release
+breaks two independent things** — read the `### Changed` and `### Removed` sections below, and see
+the "Migrating from 0.8.x to 0.9.0" guide in the published documentation for the exact rewrite each
+breaking change needs. What does **not** break: the registry itself is additive — a `conf.py` that
+declares no `typst_document_templates` and no fifth `typst_documents` element keeps producing the
+same PDF, because the built-in `"typst"` key resolves to exactly the same global configuration
+(`typst_template` / `typst_package` / `typst_template_function` / `typst_template_mapping`) it
+always did.
+
+### Added
+
+- **A `conf.py` can now declare per-document templates through the `typst_document_templates`
+  registry (TPL-01, TPL-02, TPL-03, TPL-04, TPL-05, CONF-14, CONF-15, CONF-16, CONF-17,
+  CONF-18).** Each entry carries `template` (a local `.typ` path) **xor** `package` (a Typst
+  Universe spec), plus an optional `template_function`; a `typst_documents` entry's fifth element
+  now names the registry key to use, several entries can share one key, and a four-element entry
+  behaves identically to one whose fifth element is `"typst"`. The built-in `"typst"` key is
+  resolved by the same rule as any declared key rather than being special-cased: it falls back to
+  today's global `typst_template` / `typst_package` / `typst_template_function` /
+  `typst_template_mapping` configuration, or the bundled default template when none of those is
+  set — so a `conf.py` that declares no registry keeps working unchanged.
+
 ### Changed
 
 - **Breaking: the `<srcdir>/base.typ` shadow-template route moved to
@@ -35,6 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alternative, warning and skipping that key's bundle copy, leaves the wrapper importing a
   template file that was never written, so the emitted `.typ` tree cannot compile while the build
   reports success.
+
+- **Breaking: every used template's bundle is now copied to its own directory under the output
+  tree, and an explicit asset list no longer decides what reaches it (OUT-04, OUT-05, OUT-06,
+  OUT-07, BLD-05, BLD-06).** v0.8.x wrote one shared template file, `_template.typ`, at the
+  output root; v0.9.0 copies each used registry key's whole template bundle — the resolved
+  template's parent directory — wholesale to `<outdir>/_template/<key>/<file>`, with the
+  built-in `"typst"` key copied by the identical rule. If your template references an asset by a
+  relative path (an `#image("logo.png")`, a partial `#import`), that asset must now live inside
+  the template's own bundle directory — anywhere else, it will not reach the output.
 
 ### Fixed
 
@@ -72,12 +114,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other. The user-visible consequence: the relocated file's emitted name now carries a short
   digest prefix ahead of the original filename, so the two images keep separate files.
 
-### Planned for Future Releases
-- BibTeX/bibliography support
-- Glossary generation
-- Index generation
-- Pre-commit hooks
-- Additional Typst Universe template integration
+### Removed
+
+- **Breaking:** the `typst_template_assets` config value is removed (CONF-19) — every used
+  template's bundle directory is now copied wholesale to the output, so an explicit asset list is
+  no longer needed to select what reaches it; see the `### Changed` bundle-relocation entry above
+  for what replaces it. Delete `typst_template_assets` from your `conf.py`; if you leave it set, a
+  `config-inited` warning names the value and explains the wholesale copy, rather than the list
+  being silently ignored — unlike v0.7.1's `typst_authors` removal, this one ships with a warning
+  shim.
+
+### Verified
+
+- No new **runtime** dependencies across the full milestone diff.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The full-corpus (Sphinx v9.1.0 `doc/`) `-b typstpdf` re-run remains fatal-free.
 
 ## [0.8.0] - 2026-08-15
 
@@ -1154,6 +1206,7 @@ untouched.
 
 ---
 
+[0.9.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.0
 [0.8.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.8.0
 [0.7.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.1
 [0.7.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.0
@@ -1174,4 +1227,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.0...HEAD
