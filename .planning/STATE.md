@@ -546,8 +546,16 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
-**Measured 2026-08-16: seven open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
+**Measured 2026-08-16: eight open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
 record kept for provenance; it is not the current count.
+`dependabot-prs-die-on-uv-lock-locked-mismatch` was **filed 2026-08-16** (major): dependabot bumps
+`pyproject.toml` only and never regenerates `uv.lock`, so all eleven `uv sync --locked` steps across
+`ci.yml`/`docs.yml`/`release.yml` refuse the stale lockfile and no test ever runs — measured on both
+open PRs (#128 run 31861132557, #123 run 30398777260, identical `error:` line in every failing job),
+with #123 dead since 2026-07-27. `drift.yml` is unaffected and is also the shape of the fix (it runs
+`uv lock --upgrade` before `uv sync --locked`). Distinct from `main`'s own red CI at run 31862249232,
+which is the archived-milestone path defect in `tests/test_state_guard_shapes_gate.py` already fixed
+by `d1eff100` on the milestone branch and resolving itself at merge.
 `stale-version-prerequisites-and-dead-config-link-in-published-docs` was **closed 2026-08-16** — the
 four published `Python 3.9` / `Sphinx 5.0` prerequisite pairs now read the real floors (`Python 3.12`,
 `Sphinx 9.1`, below 10) derived from `pyproject.toml:10,28`, `examples/advanced/README.md:270` points at
