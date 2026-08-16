@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 56
-current_phase_name: per-document-template-documentation
-status: executing
-stopped_at: Phase 56 planned — 5 plans in 3 waves, ready to execute
-last_updated: "2026-08-16T11:05:07.397Z"
+current_phase: 57
+current_phase_name: v0.9.0 Release Prep (prep-only)
+status: planning
+stopped_at: Phase 56 complete — UAT 1/1 passed, verification passed 8/8; ready to plan Phase 57
+last_updated: "2026-08-16T13:00:12.665Z"
 last_activity: 2026-08-16
-last_activity_desc: "Phase 56 planned -- 5 plans in 3 waves (W1 56-01 tracer; W2 56-02/03/04 parallel, zero files_modified overlap; W3 56-05 sweep audit, deliberately one wave after every prose fix it audits). Research + pattern map + Nyquist VALIDATION.md produced; decision coverage 10/10, requirements DOC-15/16/17 3/3. Two planning-time corrections landed against the locked context: (1) D-03 was AMENDED -- its claim that a hand-run typst compile of build/typst/manual.typ now needs --root build/typst is measurably FALSE for a bare-target wrapper (reproduced twice: a bare target compiles with no root because Typst default-roots to the input file directory = outdir; only a target with a path component such as manuals/guide.typ needs --root), so the note ships CONDITIONALLY with both branches pinned by a real typst.compile() gate; (2) D-09/D-10 added -- the SC#4 discovery grep is the measured hit set, not the CONTEXT floor, and already surfaced two hits beyond it (CLAUDE.md:49 still names the deleted _write_template_file; examples/charged-ieee/approach2/conf.py:21-25 claims typst_package skips emitting an artifact that no longer exists). Also measured at plan time: correcting output_layout.rst file-count prose breaks a currently-GREEN assertion in test_output_layout_docs_gate.py, so prose and assertion move in one commit; the D-06 two-way error-catalogue gate must be AST-based because builder.py:2151 raises via a shared helper and template_registry.py:422 uses implicit string concatenation; and the reserved-key casefold refusal (builder.py:1197) means Phase 53 D-04 no longer holds -- a key that folds onto the reserved key is now refused. Baseline at HEAD is fully green (1366 passed, 5 skipped, 0 failed; black/ruff/mypy clean; docs-html and docs-pdf green), so no RED during this phase can be attributed to a pre-existing failure. Plan-checker raised one BLOCKER on a 56-05 grep filter; refuted by measurement (plain grep uses BRE where .* is still a metacharacter) and its suggested broadening would have silently swallowed a stale hit D-10 requires fixing -- criterion kept, rationale written into the plan."
+last_activity_desc: "Phase 56 COMPLETE (2026-08-16) -- DOC-15/DOC-16/DOC-17 closed, 5/5 plans executed, verification `passed` 8/8 must-haves with 0 behavior-unverified, UAT 1/1 passed, `56-SECURITY.md` threats_open 0, `56-REVIEW.md` 0 BLOCKER / 2 WARNING (both pre-existing, filed forward as the todo `stale-version-prerequisites-and-dead-config-link-in-published-docs` by owner decision rather than folded into the phase). The verifier built its report from its own re-run commands rather than SUMMARY narration and hardened it with THREE live falsification tests -- reintroducing the retracted 'accepted and ignored' phrase, a stale `_template.typ` claim, and an undocumented `raise ExtensionError` shape all correctly turned their gate RED, working tree restored clean after each. The single human item (rendered legibility of the error-catalogue / key-naming / removed-values list-tables in HTML and PDF), deferred to end-of-phase by 56-05-PLAN.md's own <human-check> block, passed at UAT against a clean-`_build` rebuild: docs-html 3 warnings, docs-pdf 5 warnings, matching the measured pre-existing baseline with none from any page this phase touched. Original planning record retained: 5 plans in 3 waves (W1 56-01 tracer; W2 56-02/03/04 parallel, zero files_modified overlap; W3 56-05 sweep audit, deliberately one wave after every prose fix it audits). Research + pattern map + Nyquist VALIDATION.md produced; decision coverage 10/10, requirements DOC-15/16/17 3/3. Two planning-time corrections landed against the locked context: (1) D-03 was AMENDED -- its claim that a hand-run typst compile of build/typst/manual.typ now needs --root build/typst is measurably FALSE for a bare-target wrapper (reproduced twice: a bare target compiles with no root because Typst default-roots to the input file directory = outdir; only a target with a path component such as manuals/guide.typ needs --root), so the note ships CONDITIONALLY with both branches pinned by a real typst.compile() gate; (2) D-09/D-10 added -- the SC#4 discovery grep is the measured hit set, not the CONTEXT floor, and already surfaced two hits beyond it (CLAUDE.md:49 still names the deleted _write_template_file; examples/charged-ieee/approach2/conf.py:21-25 claims typst_package skips emitting an artifact that no longer exists). Also measured at plan time: correcting output_layout.rst file-count prose breaks a currently-GREEN assertion in test_output_layout_docs_gate.py, so prose and assertion move in one commit; the D-06 two-way error-catalogue gate must be AST-based because builder.py:2151 raises via a shared helper and template_registry.py:422 uses implicit string concatenation; and the reserved-key casefold refusal (builder.py:1197) means Phase 53 D-04 no longer holds -- a key that folds onto the reserved key is now refused. Baseline at HEAD is fully green (1366 passed, 5 skipped, 0 failed; black/ruff/mypy clean; docs-html and docs-pdf green), so no RED during this phase can be attributed to a pre-existing failure. Plan-checker raised one BLOCKER on a 56-05 grep filter; refuted by measurement (plain grep uses BRE where .* is still a metacharacter) and its suggested broadening would have silently swallowed a stale hit D-10 requires fixing -- criterion kept, rationale written into the plan."
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 31
-  completed_plans: 26
-  percent: 67
+  completed_plans: 31
+  percent: 83
 ---
 
 # Project State
@@ -24,11 +24,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 56 — per-document-template-documentation
-3 waves, ready to execute). DOC-15/DOC-16/DOC-17: the published documentation is brought into
-agreement with the registry and bundle layout that actually shipped in Phases 53/54/54.1. Docs-only —
-`typsphinx/*.py` is read-only for this phase; the new work in `tests/` is doc↔code binding gates,
-not behaviour change.
+**Current focus:** Phase 57 — v0.9.0 Release Prep (prep-only). REL-08: bump the version, curate the
+CHANGELOG around the two breaking changes (the `_template.typ` relocation and the four deletions),
+prove the tree green on live multi-template evidence, and hand off with **no irreversible action**
+taken. REL-08 closes at `/gsd-complete-milestone`, not in the phase.
+
+Phase 56 (complete 2026-08-16) context, retained for reference:
+DOC-15/DOC-16/DOC-17 closed — the published documentation now describes the registry and bundle
+layout that actually shipped in Phases 53/54/54.1. 5 plans in 3 waves. Docs-only: `typsphinx/*.py`
+stayed read-only; the new work in `tests/` is doc↔code binding gates, not behaviour change.
+Verification `passed` 8/8 must-haves, 0 behavior-unverified, built entirely from the verifier's own
+re-run commands and hardened by **three live falsification tests** (reintroducing the retracted
+"accepted and ignored" phrase, a stale `_template.typ` claim, and an undocumented `raise
+ExtensionError` shape) — all three correctly turned their gate RED, working tree restored clean each
+time. The one human item (rendered legibility of the error-catalogue / key-naming / removed-values
+tables in HTML **and** PDF) was deliberately deferred to end-of-phase by `56-05-PLAN.md`'s own
+`<human-check>` block and **passed at UAT on 2026-08-16** against a clean-`_build` rebuild
+(`docs-html` 3 warnings, `docs-pdf` 5 warnings — the measured pre-existing baseline, none from any
+page this phase touched). `56-REVIEW.md`: 0 BLOCKER / 2 WARNING, both pre-existing and both filed
+forward as the todo `stale-version-prerequisites-and-dead-config-link-in-published-docs` by owner
+decision rather than folded into the phase. `56-SECURITY.md` `threats_open: 0`.
 
 Phase 54.1 (complete 2026-08-16) context, retained for reference:
 Closed WR-01 (the wholesale bundle copy could republish a project's Sphinx `templates_path`
@@ -67,15 +82,15 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-discuss-phase 56`
+Next action: `/gsd-discuss-phase 57`
 
 ## Current Position
 
-Phase: 56 (per-document-template-documentation) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 56
-Progress: [░░░░░░░░░░] 0% (0 plans — phase not yet planned)
-Last activity: 2026-08-16 — Phase 56 execution started
+Phase: 57 — v0.9.0 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
+Progress: [████████████████████] 31/31 plans (100%) — Phase 57 not yet planned
+Last activity: 2026-08-16 — Phase 56 complete (UAT 1/1 passed), transitioned to Phase 57
 
 **Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
 injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`
@@ -503,6 +518,30 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
   a real `found_docs` member. The five Sphinx-generated virtual pages (`genindex`, `py-modindex`,
   `search`, and two `../` forms) have no PDF counterpart and stay dead links by explicit choice.
 
+- [Phase 56] D-03 was AMENDED at planning time against the locked context, on measurement: a
+  hand-run `typst compile` of a **bare-target** wrapper needs no `--root` (Typst default-roots to the
+  compiled file's own directory = `outdir`); only a target carrying a path component, e.g.
+  `manuals/guide.typ`, needs `--root <outdir>`. The note therefore ships **conditionally**, with both
+  branches pinned by a real `typst.compile()` gate (`tests/test_hand_compile_root_gate.py`, 10 tests).
+  A locked D-NN can be falsified by measurement — reproduce, then amend in place with the evidence.
+
+- [Phase 56] D-09/D-10: an "anywhere under X" success criterion's hit set is what the **discovery-time
+  repo-wide grep** returns, not the floor the CONTEXT happens to enumerate. SC#4's grep surfaced two
+  hits beyond the floor (`CLAUDE.md:49` still naming the deleted `_write_template_file`;
+  `examples/charged-ieee/approach2/conf.py:21-25` claiming `typst_package` skips emitting an artifact
+  that no longer exists). Milestone invariant #4 held.
+
+- [Phase 56] A green gate is not proof a gate is load-bearing. The phase verifier ran **three live
+  falsification tests** — reintroducing the retracted "accepted and ignored" phrase, a stale
+  `_template.typ` claim, and an undocumented `raise ExtensionError` shape — and confirmed each turned
+  its own gate RED before accepting the 8/8. Adopt this for doc↔code binding gates.
+
+- [Phase 56] The two `56-REVIEW.md` warnings (stale `Python 3.9` / `Sphinx 5.0` prerequisites on four
+  published surfaces; a dead `../../docs/configuration.rst` link in `examples/advanced/README.md:270`)
+  were measured **pre-existing** and outside SC#4's class ("claims the new layout invalidates"), so
+  the 8/8 verification stands. Owner decision 2026-08-16: split out as a todo, not folded into the
+  phase.
+
 - [Phase 53] SC#2/SC#5 closed on measured evidence: all four configuration shapes plus TPL-04 byte-identical post-change; milestone branch pushed to origin with honest two-run CI history (Run 31875380355 failed on pre-existing test_state_guard_shapes_gate.py path defect unrelated to Phase 53, fixed by d1eff100, Run 31875707734 succeeded on all 12 jobs including windows-latest/macos-latest)
 
 ### Pending Todos
@@ -905,13 +944,13 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/56-per-document-template-documentation/56-CONTEXT.md
+**Resume file:** None — Phase 56 is closed; Phase 57 has no artifacts yet.
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-16T10:05:06.223Z
-Stopped at: Phase 56 context gathered
-Resume: `/gsd-plan-phase 56`.
+Last session: 2026-08-16T13:10:00Z
+Stopped at: Phase 56 complete (UAT 1/1 passed, verification passed), ready to plan Phase 57
+Resume: `/gsd-discuss-phase 57`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
 discharged, including item 5 (Read the Docs `stable`), re-measured live 2026-08-15 through RTD's

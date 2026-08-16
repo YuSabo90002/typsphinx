@@ -115,13 +115,13 @@ curation; `WR-03`, `WR-04` and `IN-01` are unassigned.*
 
 ### Documentation
 
-- [ ] **DOC-15**: `configuration.rst` describes element [4] as the registry key, retracting the
+- [x] **DOC-15**: `configuration.rst` describes element [4] as the registry key, retracting the
       "accepted and ignored" definition
 
-- [ ] **DOC-16**: `templates.rst`'s asset example and `advanced.rst`'s `refs.bib` guidance describe
+- [x] **DOC-16**: `templates.rst`'s asset example and `advanced.rst`'s `refs.bib` guidance describe
       what actually works under the bundle layout
 
-- [ ] **DOC-17**: Migration guidance for the removed config values is published
+- [x] **DOC-17**: Migration guidance for the removed config values is published
 
 ### Release
 
@@ -206,9 +206,9 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | BLD-08 | Phase 55 | Complete |
 | BLD-09 | Phase 55 | Complete |
 | IMG-03 | Phase 55 | Complete |
-| DOC-15 | Phase 56 | Pending |
-| DOC-16 | Phase 56 | Pending |
-| DOC-17 | Phase 56 | Pending |
+| DOC-15 | Phase 56 | Complete |
+| DOC-16 | Phase 56 | Complete |
+| DOC-17 | Phase 56 | Complete |
 | REL-08 | Phase 57 | Pending |
 
 **Per-phase totals:** Phase 53 → 9 · Phase 54 → 8 · Phase 55 → 5 · Phase 56 → 3 · Phase 57 → 1.
