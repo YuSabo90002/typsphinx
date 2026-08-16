@@ -49,11 +49,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TYPSPHINX_PKG_DIR = REPO_ROOT / "typsphinx"
-CONFIGURATION_RST_PATH = (
-    REPO_ROOT / "docs" / "source" / "user_guide" / "configuration.rst"
-)
+DOCS_SOURCE_DIR = REPO_ROOT / "docs" / "source"
+README_PATH = REPO_ROOT / "README.md"
+EXAMPLES_DIR = REPO_ROOT / "examples"
+CONFIGURATION_RST_PATH = DOCS_SOURCE_DIR / "user_guide" / "configuration.rst"
 
 CATALOGUE_HEADING = "When the Build Stops"
+
+# Phase 56 plan 01 (D-02/DOC-15): the retracted element [4] definition
+# ("Document class ... accepted and ignored") must survive on no
+# published surface. This is the exact four-word phrase that named it.
+RETRACTED_ELEMENT_FOUR_PHRASE = "accepted and ignored"
 
 # Phase 56 plan 01 (D-06): the three ExtensionError shapes that are
 # deliberately OUT OF SCOPE for the registry/bundle catalogue above, with
@@ -301,6 +307,56 @@ def _chunks_containing_fragment(fragment: str, chunks: list) -> list:
     return [index for index, chunk in enumerate(chunks) if fragment in chunk]
 
 
+# --------------------------------------------------------------------------
+# The element [4] retraction sweep (D-02/DOC-15, Task 3) -- a separate
+# concern from the error-catalogue gate above, sharing this module only
+# because both are D-06-shaped never-skipping doc<->code checks.
+# --------------------------------------------------------------------------
+
+# Empty by design -- unlike EXCLUDED_CLAIM_PAGES in
+# tests/test_docs_contract_claims_gate.py, docs/source/changelog.rst is
+# NOT excluded here, because RETRACTED_ELEMENT_FOUR_PHRASE does not
+# appear in it. An empty exclusion set is the honest current state, not
+# a placeholder waiting to be filled in -- if a future edit reintroduces
+# the phrase somewhere it belongs historically, add a reasoned entry
+# then, rather than pre-excluding a page that has nothing to exclude
+# today.
+EXCLUDED_SWEEP_PATHS: dict = {}
+
+
+def _iter_policed_sweep_files() -> list:
+    """Every ``*.rst`` under ``docs/source/``, plus ``README.md``, plus
+    every ``*.md``/``*.rst``/``*.py`` under ``examples/`` -- the exact
+    policed surface 54.1 D-08/D-12 established, discovered at run time
+    via ``rglob`` over repository-relative roots, never a written file
+    list."""
+    files = set(DOCS_SOURCE_DIR.rglob("*.rst"))
+    if README_PATH.is_file():
+        files.add(README_PATH)
+    for pattern in ("*.md", "*.rst", "*.py"):
+        files |= set(EXAMPLES_DIR.rglob(pattern))
+    return sorted(files)
+
+
+def _phrase_present(text: str, phrase: str) -> bool:
+    return phrase in text
+
+
+def _files_containing_phrase(phrase: str, files: list) -> list:
+    """Repository-relative paths (posix form) of every file in
+    ``files`` whose text contains ``phrase``, skipping anything listed
+    in ``EXCLUDED_SWEEP_PATHS``."""
+    offending = []
+    for file_path in files:
+        rel = file_path.relative_to(REPO_ROOT).as_posix()
+        if rel in EXCLUDED_SWEEP_PATHS:
+            continue
+        text = file_path.read_text(encoding="utf-8")
+        if _phrase_present(text, phrase):
+            offending.append(rel)
+    return offending
+
+
 def _shape_by_fragment(shapes: list, identifying_fragment: str) -> ErrorShape:
     """The discovered shape whose chunks contain ``identifying_fragment``
     -- used only to DERIVE synthetic teeth-test inputs from the real
@@ -513,4 +569,46 @@ class TestCatalogueGateHasTeeth:
             f"exclusion as stale -- got {stale}, expected "
             f"{list(synthetic_excluded)}. The staleness check would pass "
             f"vacuously for a genuinely stale exclusion."
+        )
+
+
+class TestRetractedElementFourDefinitionIsGone:
+    """D-02/DOC-15: the retracted "accepted and ignored" definition of
+    ``typst_documents`` element [4] survives on no published surface --
+    swept repo-wide at discovery time (milestone invariant #4/#11), never
+    scoped to the one line the retraction is known to have touched."""
+
+    def test_retracted_phrase_absent_from_every_policed_file(self):
+        files = _iter_policed_sweep_files()
+        offending = _files_containing_phrase(RETRACTED_ELEMENT_FOUR_PHRASE, files)
+        assert not offending, (
+            f"The retracted phrase {RETRACTED_ELEMENT_FOUR_PHRASE!r} still "
+            f"appears in {offending} -- DOC-15 requires it survive on no "
+            f"published surface."
+        )
+
+    def test_no_stale_sweep_exclusion(self):
+        discovered = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in _iter_policed_sweep_files()
+        }
+        stale = set(EXCLUDED_SWEEP_PATHS) - discovered
+        assert not stale, (
+            f"{sorted(stale)} are in EXCLUDED_SWEEP_PATHS but were not "
+            f"discovered by the sweep -- a stale exclusion. Remove them "
+            f"from EXCLUDED_SWEEP_PATHS."
+        )
+
+    def test_sweep_predicate_has_teeth(self):
+        # Without this test, test_retracted_phrase_absent_from_every_
+        # policed_file could pass vacuously if _phrase_present() stopped
+        # matching anything.
+        synthetic_text = (
+            '5. Document class (usually "typst") -- accepted and '
+            "ignored: typsphinx reads nothing from this position."
+        )
+        assert _phrase_present(synthetic_text, RETRACTED_ELEMENT_FOUR_PHRASE), (
+            "The sweep predicate failed to detect the retracted phrase "
+            "in a synthetic known-bad string -- this guard would pass "
+            "vacuously."
         )

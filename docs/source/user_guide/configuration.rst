@@ -77,13 +77,21 @@ Each tuple contains:
    function and its arguments has already made a more specific decision
    than either, and when ``params`` is present it is the *complete*
    parameter set, discarding whatever the mapping stage produced.
-5. **Document class** (usually "typst") -- **accepted and ignored**:
-   typsphinx reads nothing from this position today, and a five-element
-   tuple is valid and behaves identically to a four-element one. Real
-   five-element tuples already exist in this repository --
-   ``docs/source/conf.py`` and both ``examples/charged-ieee`` configs
-   (``approach1`` and ``approach2``) all set one -- so this is not merely
-   a hypothetical shape.
+5. **Document registry key** -- the registry key into
+   ``typst_document_templates`` that this entry's wrapper resolves its
+   template, package, and template function through. An absent
+   element [4] resolves to the reserved ``"typst"`` registry key, which
+   typsphinx synthesizes on every build from the global
+   ``typst_template`` / ``typst_package`` / ``typst_template_function``
+   settings -- so a four-element entry and a five-element entry naming
+   ``"typst"`` behave identically. The lookup is exact string equality
+   and is never case-folded: a registry declaring ``"Paper"`` does not
+   satisfy an entry naming ``"paper"``. See `Per-Document Templates`_
+   below for the registry itself, including what happens when a named
+   key is not registered. Real five-element tuples already exist in this
+   repository -- ``docs/source/conf.py`` and both ``examples/charged-ieee``
+   configs (``approach1`` and ``approach2``) all set one -- so this is not
+   merely a hypothetical shape.
 
 Template Configuration
 ----------------------
