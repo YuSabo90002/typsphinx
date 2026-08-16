@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 54.1
-current_phase_name: Bundle Directory Safety — templates_path Collision Refusal and Pre-Write Path Validation
-status: planned
+current_phase_name: bundle-directory-safety-templates-path-collision-refusal-and
+status: executing
 stopped_at: Phase 54.1 planned (5 plans, 3 waves)
-last_updated: "2026-08-16T02:06:26.961Z"
+last_updated: "2026-08-16T02:10:32.666Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 54.1 planned — 5 plans in 3 waves, plan-checker PASSED, 13/13 decisions and 2/2 requirements covered
 progress:
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 54.1 — Bundle Directory Safety (INSERTED, from Phase 54's code review).
+**Current focus:** Phase 54.1 — bundle-directory-safety-templates-path-collision-refusal-and
 Close WR-01 (the wholesale bundle copy can republish a project's Sphinx `templates_path` directory,
 while the docs recommend exactly that layout) and CR-01 (the built-in `"typst"` key's CONF-17
 violation is discovered only at `finish()`, after every `.typ` file is written). Context gathered
@@ -52,22 +52,24 @@ Next action: `/gsd-execute-phase 54.1`
 
 ## Current Position
 
-Phase: 54.1 — Bundle Directory Safety (INSERTED)
-Plan: Not started (5 planned)
-Status: Ready to execute
-Progress: [░░░░░░░░░░] 0% (0/5 plans complete)
-Last activity: 2026-08-16 — Phase 54.1 planned (5 plans / 3 waves; 13 decisions; plan-checker VERIFICATION PASSED)
+Phase: 54.1 (bundle-directory-safety-templates-path-collision-refusal-and) — EXECUTING
+Plan: Wave 1 complete (54.1-01, 54.1-02); Wave 2 next
+Status: Executing Phase 54.1
+Progress: [████░░░░░░] 40% (2/5 plans complete)
+Last activity: 2026-08-16 — Phase 54.1 Wave 1 merged, post-merge gate green (1299 passed, 5 skipped)
 
 **Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
 renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
 cases) · W3 = `54.1-05` (cross-kind aggregation, `Unreleased` CHANGELOG entry, phase-boundary green).
 
 **Two execution hazards recorded at planning time:**
+
 1. `54.1-02` deletes tracked paths (both renames are `git mv`). `worktree.cleanup-wave` blocks any
    branch containing deletions with **no bypass** — expected, not a failure. Verify the deletion
    scope is exactly `examples/advanced/_templates/custom.typ` and
    `examples/charged-ieee/approach2/source/_templates/_template.typ`, then merge that worktree
    branch by hand.
+
 2. `54.1-03` and `54.1-04` share Wave 2 with disjoint `files_modified`, but `03` changes runtime
    refusal behaviour while `04` authors five new fixtures — a fixture with a template at its
    source-tree root would pass in `04`'s worktree and fail after merge. `54.1-04` carries two

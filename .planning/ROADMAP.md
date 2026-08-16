@@ -767,13 +767,13 @@ and `IN-01` are **not** in this phase's scope.
 
 **UI hint**: no
 
-**Plans:** 5 plans
+**Plans:** 2/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 54.1-01-PLAN.md — WR-01 tracer: pre-write `templates_path` collision refusal, end to end (RED recorded first)
-- [ ] 54.1-02-PLAN.md — WR-01 docs half: retire the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`, pinned by an executable repo-wide-grep gate
+- [x] 54.1-01-PLAN.md — WR-01 tracer: pre-write `templates_path` collision refusal, end to end (RED recorded first)
+- [x] 54.1-02-PLAN.md — WR-01 docs half: retire the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`, pinned by an executable repo-wide-grep gate
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -946,7 +946,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
-| 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 0/? | Not started | - |
+| 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 2/5 | In Progress|  |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
