@@ -514,13 +514,28 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     """
     D-05/D-06: an absolute URI whose rehome result cannot possibly sit
     under doctreedir -- built from the filesystem root -- is relocated
-    to the reserved namespace plus the basename of the ORIGINAL absolute
-    URI, and emits exactly one WARNING naming the offending URI.
+    to the reserved namespace plus a short hash prefix plus the basename
+    of the ORIGINAL absolute URI, and emits exactly one WARNING naming
+    the offending URI.
+
+    IMG-03 (Phase 55) collateral: the key format changed from
+    ``{namespace}/{basename}`` to ``{namespace}/{digest8}-{basename}`` --
+    a pure function of the whole URI, restoring the injectivity two
+    escaping URIs sharing a basename would otherwise lose (see
+    ``test_post_process_images_escape_same_basename_keys_stay_distinct``,
+    IMG-03's own RED evidence). This test's own assertions are collateral
+    to that fix, not IMG-03's evidence -- it characterizes the ESCAPE
+    branch existing (D-05/D-06, Phase 50), not the key's distinctness
+    property. The expected key is COMPUTED from the same construction
+    below (fixture URIs are temp-directory paths, so a hardcoded digest
+    literal would be unstable across runs and machines).
     """
+    import hashlib
+
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
-    from typsphinx.builder import TypstBuilder
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
@@ -558,9 +573,17 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     with caplog.at_level("WARNING"):
         builder.post_process_images(doc)
 
-    assert img["uri"] == "_typst_converted/chart.png"
+    # IMG-03: expected key COMPUTED from the same construction the
+    # product uses -- the reserved namespace, a slash, the first 8 hex
+    # characters of the SHA-1 digest of the UTF-8 encoding of this
+    # test's own abs_uri, a hyphen, and the basename. Never a hardcoded
+    # digest literal (abs_uri is a temp-directory path).
+    digest = hashlib.sha1(abs_uri.encode("utf-8")).hexdigest()[:8]
+    expected_key = f"{RESERVED_IMAGE_NAMESPACE}/{digest}-chart.png"
+
+    assert img["uri"] == expected_key
     assert ".." not in img["uri"].split("/")
-    assert builder.images.get("_typst_converted/chart.png") == abs_uri
+    assert builder.images.get(expected_key) == abs_uri
 
     warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warning_records) == 1
@@ -585,12 +608,20 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     reproducible on this POSIX host, so relpath is monkeypatched to raise
     only for this test's specific absolute URI -- a blanket replacement
     would break unrelated path work inside the same call.
+
+    IMG-03 (Phase 55) collateral: the key format changed from
+    ``{namespace}/{basename}`` to ``{namespace}/{digest8}-{basename}``,
+    the same change ``test_post_process_images_rehome_escape_relocates_with_warning``
+    documents; this test's own assertions are collateral to that fix,
+    not IMG-03's own evidence. The expected key is COMPUTED below.
     """
+    import hashlib
+
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
     import typsphinx.builder as builder_module
-    from typsphinx.builder import TypstBuilder
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
@@ -620,8 +651,14 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     with caplog.at_level("WARNING"):
         builder.post_process_images(doc)
 
-    assert img["uri"] == "_typst_converted/crossdrive.png"
-    assert builder.images.get("_typst_converted/crossdrive.png") == abs_uri
+    # IMG-03: expected key COMPUTED from the same construction the
+    # product uses -- see the sibling escape-relocation test's comment
+    # for why this is never a hardcoded digest literal.
+    digest = hashlib.sha1(abs_uri.encode("utf-8")).hexdigest()[:8]
+    expected_key = f"{RESERVED_IMAGE_NAMESPACE}/{digest}-crossdrive.png"
+
+    assert img["uri"] == expected_key
+    assert builder.images.get(expected_key) == abs_uri
     warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warning_records) == 1
 

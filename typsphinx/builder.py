@@ -5,6 +5,7 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import hashlib
 import posixpath
 import shutil
 from collections.abc import Iterator
@@ -1677,7 +1678,30 @@ class TypstBuilder(Builder):
                 # branch means a third-party extension placed an absolute
                 # URI somewhere none of Sphinx's own post-transforms ever
                 # do.
-                key = f"{RESERVED_IMAGE_NAMESPACE}/{path.basename(resolved_uri)}"
+                #
+                # IMG-03 (Phase 55): the digest prefix is taken over the
+                # WHOLE resolved_uri, not just its basename -- restoring
+                # the injectivity two escaping URIs sharing a basename lost
+                # under the old basename-only key, while the basename
+                # itself stays visible in the emitted filename. It is a
+                # PURE function of resolved_uri alone, with no dependence
+                # on self.images or on write()'s sorted(docnames) order
+                # (Phase 50 D-02); it introduces no parent-traversal
+                # segment (Phase 50 SC#2 outdir containment); and it must
+                # be .encode()d first -- hashlib takes bytes, not str.
+                # Python's own built-in string hash is unusable here: it
+                # is randomized per process unless seeded, so two builds
+                # of the identical project would emit two different
+                # filenames. This is a non-cryptographic collision-
+                # avoidance key over a build-local path string, not a
+                # security boundary -- this project's ruff selection does
+                # not include the security rule set, and this comment is
+                # the answer if a future, stricter scanner ever flags it.
+                digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
+                key = (
+                    f"{RESERVED_IMAGE_NAMESPACE}/{digest}-"
+                    f"{path.basename(resolved_uri)}"
+                )
                 logger.warning(
                     f"could not rehome image URI {resolved_uri!r} relative "
                     f"to the doctree directory -- relocated to {key!r}"
