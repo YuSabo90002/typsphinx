@@ -24,6 +24,8 @@ from pathlib import Path
 
 import pytest
 
+from typsphinx.removed_config import REMOVED_CONFIG_VALUES
+
 REMOVED_NAMES = ["typst_template_assets", "typst_authors", "typst_toctree_defaults"]
 
 # D-09's required content, one bespoke phrase per value -- deliberately NOT
@@ -245,4 +247,49 @@ class TestNoWarningSubtype:
         assert "type=" not in src, (
             "typsphinx/removed_config.py must not pass a keyword argument "
             "to logger.warning() -- see D-08."
+        )
+
+
+class TestMultipleRemovedValuesEachWarnSeparately:
+    """
+    DOC-17 ordering edge: a ``conf.py`` setting all three removed values
+    together emits three separate warnings, one per name, in
+    ``REMOVED_CONFIG_VALUES`` declaration order -- never a single
+    aggregated warning. Measured by a real build rather than asserted;
+    the three names and their warning bodies are imported from
+    ``REMOVED_CONFIG_VALUES``, never transcribed.
+    """
+
+    def test_all_three_set_together_warn_once_each_in_declaration_order(self, tmp_path):
+        conf_body = "\n".join(
+            f"{name} = ['some_value']" for name in REMOVED_CONFIG_VALUES
+        )
+        src_dir = _write_project(tmp_path, "proj_all_three", conf_body + "\n")
+        build_dir = tmp_path / "build_all_three"
+
+        result = _run_sphinx_build(src_dir, build_dir, "typst")
+        combined_output = result.stdout + result.stderr
+
+        assert result.returncode == 0, (
+            f"A conf.py setting all three removed values must warn, not "
+            f"fail, the build:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        positions = []
+        for name, message in REMOVED_CONFIG_VALUES.items():
+            occurrences = combined_output.count(message)
+            assert occurrences == 1, (
+                f"Expected exactly one occurrence of the {name!r} warning "
+                f"body, found {occurrences} -- either it did not fire, or "
+                f"it was aggregated/duplicated with another warning:\n"
+                f"{combined_output}"
+            )
+            positions.append(combined_output.index(message))
+
+        assert positions == sorted(positions), (
+            f"Expected the three warnings' first-occurrence positions to "
+            f"be strictly increasing in REMOVED_CONFIG_VALUES declaration "
+            f"order ({list(REMOVED_CONFIG_VALUES)}); got positions "
+            f"{positions}:\n{combined_output}"
         )

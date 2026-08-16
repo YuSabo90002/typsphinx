@@ -127,6 +127,12 @@ Use a custom Typst template file:
 The template file should define a ``project`` function (or the function
 specified in ``typst_template_function``).
 
+The template's own directory must not also be named in Sphinx's own
+``templates_path`` -- since the whole bundle directory is copied to the
+output, doing so would republish the project's Sphinx template directory
+in the build output. This repository uses ``_typst/`` for exactly that
+reason.
+
 Typst Package
 ~~~~~~~~~~~~~
 
@@ -158,6 +164,123 @@ different Typst template, Typst Universe package, or template-function
 arguments instead of one globally-configured template being applied to
 every master.
 
+Setting ``typst_document_templates`` is entirely additive: a ``conf.py``
+that never sets it behaves exactly as before, using only the synthesized
+reserved key.
+
+**Definition schema.** A definition is a dict carrying ``template``
+exclusively or ``package`` -- setting both is refused (CONF-15) -- plus
+an optional ``template_function``, taking the same string form or
+dict-with-``params`` form the `Template Function`_ subsection above
+already documents. The reserved key ``typst`` itself may not be declared
+in ``typst_document_templates`` (CONF-16), because typsphinx owns it.
+
+**Worked example.** ``typst_document_templates`` declaring one key on the
+``template`` route, and a ``typst_documents`` list with two entries --
+one resolving to the reserved key, one naming the declared key:
+
+.. code-block:: python
+
+   typst_document_templates = {
+       "report": {
+           "template": "_typst/report.typ",
+       },
+   }
+
+   typst_documents = [
+       ("index", "manual", "Manual", "Author Name"),
+       ("summary", "report", "Report", "Author Name", "report"),
+   ]
+
+The first entry has no element [4], so its wrapper resolves through the
+synthesized reserved ``typst`` key -- using whatever ``typst_template`` /
+``typst_package`` / ``typst_template_function`` are globally configured.
+The second entry's element [4] names ``report``, so its wrapper instead
+uses ``report``'s own ``_typst/report.typ`` template, independent of the
+global settings. This is the only place the published documentation shows
+a non-default registry key.
+
+**Package route.** A definition may use ``package`` instead of
+``template``:
+
+.. code-block:: python
+
+   typst_document_templates = {
+       "ieee": {
+           "package": "<typst-universe-package-spec>",
+       },
+   }
+
+The wrapper for a key using ``package`` imports the Typst Universe
+package directly, matching the shape shown in `Typst Package`_ above --
+and no bundle is copied for that key.
+
+**Which bundles reach the output.** Every key some ``typst_documents``
+entry actually names has its bundle -- the resolved template file's own
+parent directory -- copied wholesale to the output tree; a key that is
+declared but that no entry names is still validated, but its bundle is
+not copied. See :doc:`output_layout` for where the copies land. Nothing
+under the output directory is ever deleted, so a file removed from a
+source bundle can linger at the destination across an incremental
+rebuild.
+
+**Empty registry.** An empty ``typst_document_templates`` dict is
+accepted, and leaves only the synthesized reserved key -- the same state
+as not setting the value at all.
+
+Registry Key Naming Rules
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A registry key becomes a directory name under the output tree's reserved
+``_template/`` directory, so it must be a single, portable path segment.
+The seven shapes below are refused, in the order they are checked:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Rejected key shape
+     - Why
+   * - Empty or whitespace-only
+     - A key becomes a directory name, so it must contain at least one
+       non-whitespace character.
+   * - Exactly ``.`` or ``..``
+     - These are reserved by every filesystem for the current and parent
+       directory.
+   * - Contains a path separator (``/`` or ``\``)
+     - A registry key is a single path segment; a separator would split
+       it into more than one.
+   * - A Windows reserved device name, matched case-insensitively
+       against everything before the first ``.`` -- ``CON.txt`` is
+       reserved, ``ICONIC`` is not
+     - Some of these names cannot be created as an ordinary file or
+       directory on Windows.
+   * - Ends with a trailing dot
+     - Windows silently strips a trailing dot from a directory name, so
+       the written directory would not match the declared key.
+   * - Ends with a trailing space
+     - Windows silently strips a trailing space from a directory name,
+       for the same reason.
+   * - Differs from another declared key only by case
+     - Two keys that fold to the same directory name would collide when
+       their bundles are copied to the output tree.
+
+The case comparison in the last row folds ``/``/``\`` separators,
+normalizes path shape, then applies Python's ``casefold()`` -- and
+applies no Unicode normalization at all, so the composed (NFC) and
+decomposed (NFD) spellings of one accented character are two DIFFERENT
+keys, on every platform, with no ``sys.platform`` branch.
+
+A declared key that folds onto the reserved ``typst`` key the same way is
+also refused, before any file is written -- reported by the
+``pre-write template path failure(s):`` shape below, not by this
+key-shape check itself, since the comparison there is against the
+synthesized built-in key rather than another declared key.
+
+The ``typst_documents`` element [4] lookup itself, in contrast, is exact
+``str`` equality and is never case-folded, so a key must be spelled in an
+entry exactly as it was declared.
+
 When the Build Stops
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -187,7 +310,7 @@ column three names what to change.
        ``os.PathLike``, a CONF-17 source-tree bundle, or a template
        file that does not exist
      - ``invalid definition(s):``
-     - See the registry key naming rules for the key-shape cases; for
+     - See `Registry Key Naming Rules`_ for the key-shape cases; for
        the others, correct the named definition's ``template`` or
        ``package`` value.
    * - A ``typst_documents`` entry's element [4] is set to a
@@ -476,6 +599,46 @@ Here's a complete ``conf.py`` example:
 
    # Paper size and base font size
    typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
+
+Removed Configuration Values
+-----------------------------
+
+typsphinx detects a removed configuration name still present in
+``conf.py`` and emits one build warning per name. The warning fires for
+every builder, including ``-b html``, because the check runs on Sphinx's
+``config-inited`` event before a builder even exists. Setting a removed
+name to ``None`` or an empty list still warns, because writing the line
+at all means holding a wrong belief about what it does. Detection is
+exact name matching, so a differently-spelled or differently-cased name
+is not detected at all. There is no per-warning suppression route -- the
+warning carries no warning type -- so the only lever is
+``sphinx-build -W``, which turns it into a build failure.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Removed value
+     - Removed in
+     - What to do instead
+   * - ``typst_template_assets``
+     - v0.9.0
+     - Delete the setting. Every used template's bundle directory is now
+       copied wholesale, so MORE files reach the output than the
+       explicit list used to select -- no asset list is needed.
+   * - ``typst_authors``
+     - v0.7.1
+     - Express rich author structure through
+       ``typst_template_function``'s ``params`` route (see
+       `Author Information`_ above). Author department, organization,
+       and email do not reach the output unless supplied that way.
+   * - ``typst_toctree_defaults``
+     - v0.6.3
+     - No replacement -- it was registered but never read even when it
+       existed, so deleting it changes no build output.
+
+A ``conf.py`` setting more than one of these emits one separate warning
+per name, in the order listed above, never a single combined warning.
 
 See Also
 --------
