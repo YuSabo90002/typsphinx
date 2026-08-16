@@ -5,12 +5,12 @@ milestone_name: per-document templates
 current_phase: 54.1
 current_phase_name: Bundle Directory Safety — templates_path Collision Refusal and Pre-Write Path Validation
 status: planning
-stopped_at: Phase 54 complete; Phase 54.1 inserted from its code review
-last_updated: "2026-08-16T00:25:58.102Z"
+stopped_at: Phase 54.1 context gathered
+last_updated: "2026-08-16T00:58:21.575Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 54 complete, Phase 54.1 inserted (WR-01, CR-01)
 progress:
-  total_phases: 7
+  total_phases: 6
   completed_phases: 2
   total_plans: 17
   completed_plans: 17
@@ -24,7 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 54 — one-bundle-rule-template-key-per-document-selection-four-del
+**Current focus:** Phase 54.1 — Bundle Directory Safety (INSERTED, from Phase 54's code review).
+Close WR-01 (the wholesale bundle copy can republish a project's Sphinx `templates_path` directory,
+while the docs recommend exactly that layout) and CR-01 (the built-in `"typst"` key's CONF-17
+violation is discovered only at `finish()`, after every `.typ` file is written). Context gathered
+2026-08-16: refuse with `ExtensionError`, check in a pre-write pass at the top of `write()`, and fix
+the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`.
+
+Phase 54 (complete) context, retained for reference:
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
 template through a validated `typst_document_templates` registry, and one output rule — every used
 key's bundle copied wholesale to `<outdir>/_template/<key>/` — replaces `_write_template_file()`,
@@ -35,15 +42,15 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-execute-phase 54`
+Next action: `/gsd-plan-phase 54.1`
 
 ## Current Position
 
 Phase: 54.1 — Bundle Directory Safety (INSERTED)
 Plan: Not started
-Status: Ready to discuss
+Status: Context gathered — ready to plan
 Progress: [░░░░░░░░░░] 0% (0 plans — not yet planned)
-Last activity: 2026-08-16 — Phase 54 complete (7/7, verified 8/8); Phase 54.1 inserted from its code review (WR-01, CR-01)
+Last activity: 2026-08-16 — Phase 54.1 context gathered (10 decisions; refusal + pre-write placement + docs/examples breadth)
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
@@ -781,12 +788,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/54-one-bundle-rule-template-key-per-document-selection-four-del/54-CONTEXT.md
+**Resume file:** .planning/phases/54.1-bundle-directory-safety-templates-path-collision-refusal-and/54.1-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-15T13:43:38.214Z
-Stopped at: Phase 54 context gathered
+Last session: 2026-08-16T00:58:21.562Z
+Stopped at: Phase 54.1 context gathered
 Resume: `/gsd-plan-phase 53`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
