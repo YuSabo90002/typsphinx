@@ -4,9 +4,9 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 55
 current_phase_name: v0.8.0-Derived Defects
-status: planned
+status: executing
 stopped_at: Phase 55 planned (4 plans, 3 waves)
-last_updated: "2026-08-16T05:28:11.259Z"
+last_updated: "2026-08-16T05:32:20.600Z"
 last_activity: 2026-08-16
 last_activity_desc: "Phase 55 planned — 4 plans in 3 waves (W1 55-01 tracer · W2 55-02 + 55-03 parallel · W3 55-04), plan-checker PASSED, 5/5 requirements and 5/5 decisions covered; planning measurement rejected both proposed XREF-05 constructions as non-injective and found SC#4's locked BLD-09 predicate does not produce SC#4's own required behaviour (blocking decision checkpoint in 55-03)"
 progress:
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 55 — v0.8.0-Derived Defects (planned 2026-08-16, ready to execute).
+**Current focus:** Phase 55 — v0.8.0-Derived Defects (executing; Wave 1 complete)
 Five v0.8.0-derived requirements — XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 — that shipped unfixed
 by decision D-01, or with only a test-side fix.
 
@@ -69,11 +69,11 @@ Next action: `/gsd-execute-phase 55`
 
 ## Current Position
 
-Phase: 55 — v0.8.0-Derived Defects
-Plan: Not started (4 plans written)
-Status: Ready to execute
-Progress: [░░░░░░░░░░] 0% (0/4 plans)
-Last activity: 2026-08-16 — Phase 55 planned, 4 plans in 3 waves
+Phase: 55 — v0.8.0-Derived Defects — EXECUTING
+Plan: 1 of 4 complete (Wave 1 done)
+Status: Executing Phase 55
+Progress: [███░░░░░░░] 25% (1/4 plans)
+Last activity: 2026-08-16 — Phase 55 execution started
 
 **Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
 injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`

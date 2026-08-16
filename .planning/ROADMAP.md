@@ -828,14 +828,14 @@ dependency on the registry.
      keys instead of collapsing onto one, so neither image is silently replaced by the other
      (IMG-03).
 
-**Plans**: 4 plans in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
+**Plans**: 1/4 plans executed in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
 W3 `55-04`. `55-01` and `55-02` both touch `translator.py` and are deliberately sequenced into
 different waves; `55-03` is non-autonomous (a blocking decision checkpoint on SC#4's predicate, see
 below).
 
 **Wave 1**
 
-- [ ] 55-01-PLAN.md — XREF-05: make `_sanitize_label` injective; invert the characterization test; prove injectivity by decoder round-trip
+- [x] 55-01-PLAN.md — XREF-05: make `_sanitize_label` injective; invert the characterization test; prove injectivity by decoder round-trip
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -970,7 +970,7 @@ the active milestone only.
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 55. v0.8.0-Derived Defects | v0.9.0 | 0/? | Not started | - |
+| 55. v0.8.0-Derived Defects | v0.9.0 | 1/4 | In Progress | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
 
