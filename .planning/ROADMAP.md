@@ -901,7 +901,7 @@ which teaches a path the bundle layout no longer resolves.
      green. The sweep is run repo-wide at discovery time; the three requirements above name where the
      fixes are expected, not where the search is scoped.
 
-**Plans**: 4/5 plans executed in 3 waves — W1 `56-01` (tracer) · W2 `56-02` + `56-03` + `56-04` (parallel, zero
+**Plans**: 5/5 plans executed in 3 waves — W1 `56-01` (tracer) · W2 `56-02` + `56-03` + `56-04` (parallel, zero
 `files_modified` overlap) · W3 `56-05` (the sweep audit, deliberately one wave after every prose fix
 it audits). Two planning-time measurements changed the plans: D-03's `--root` claim is measurably
 false for a bare-target wrapper and is published conditionally with **both** branches pinned by a
@@ -920,7 +920,7 @@ currently-GREEN prose assertion, so the prose and the assertion move in one task
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 56-05-PLAN.md — SC#4 closure: the discovery greps re-run at execution time with a written per-hit disposition, the example READMEs and `CLAUDE.md` corrected, a run-time anchored sweep gate landed, and the phase-boundary evidence recorded
+- [x] 56-05-PLAN.md — SC#4 closure: the discovery greps re-run at execution time with a written per-hit disposition, the example READMEs and `CLAUDE.md` corrected, a run-time anchored sweep gate landed, and the phase-boundary evidence recorded
 
 **UI hint**: no
 
@@ -1001,7 +1001,7 @@ the active milestone only.
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
-| 56. Per-Document Template Documentation | v0.9.0 | 4/5 | In Progress|  |
+| 56. Per-Document Template Documentation | v0.9.0 | 5/5 | In Progress|  |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
 
 ## Roadmap Evolution
