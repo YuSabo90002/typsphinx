@@ -4,8 +4,8 @@ This is a basic example project demonstrating how to use `typsphinx` to generate
 
 ## Prerequisites
 
-- Python 3.9 or higher
-- Sphinx 5.0 or higher
+- Python 3.12 or higher
+- Sphinx 9.1 or higher (below 10)
 - typsphinx installed
 
 ## Installation

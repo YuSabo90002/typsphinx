@@ -546,6 +546,20 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**Measured 2026-08-16: seven open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
+record kept for provenance; it is not the current count.
+`stale-version-prerequisites-and-dead-config-link-in-published-docs` was **closed 2026-08-16** — the
+four published `Python 3.9` / `Sphinx 5.0` prerequisite pairs now read the real floors (`Python 3.12`,
+`Sphinx 9.1`, below 10) derived from `pyproject.toml:10,28`, `examples/advanced/README.md:270` points at
+the real `docs/source/user_guide/configuration.rst`, and the todo's own instruction to re-sweep
+repo-wide surfaced three hits beyond its file list (`docs/source/contributing.rst:122,128` named tox
+envs `py311` / `py39,py310,py311,py312` that `tox.ini`'s `env_list = py312, py313` does not define;
+`docs/source/examples/advanced.rst:378` pinned a copyable CI workflow to `python-version: "3.11"`,
+below the 3.12 floor) — all three fixed in the same commit. The Solution's proposed
+`pyproject.toml`-derived drift gate was **declined by the owner** (prose fix only), so the version-drift
+class remains ungated. Verified after the fix: repo-wide re-sweep clean, 748 passed / 1 skipped on the
+doc/example/gate selection, `docs-html` `build succeeded, 3 warnings` matching the Phase 56 baseline.
+
 **Eight of the ten open records are now v0.7.1 requirements** (promoted at roadmap creation
 2026-08-04): `nested-table-clobbers-outer-table-state` → TBL-04,
 `table-whitespace-only-title-anchor-divergence` → TBL-05,

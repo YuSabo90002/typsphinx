@@ -28,8 +28,8 @@ advanced/
 
 ## Prerequisites
 
-- Python 3.9 or higher
-- Sphinx 5.0 or higher
+- Python 3.12 or higher
+- Sphinx 9.1 or higher (below 10)
 - typsphinx installed
 
 ## Installation
@@ -267,7 +267,7 @@ typst_template = '_typst/custom.typ'
 # typst_debug = False
 ```
 
-See [Configuration Reference](../../docs/configuration.rst) for complete documentation of all options.
+See [Configuration Reference](../../docs/source/user_guide/configuration.rst) for complete documentation of all options.
 
 ## Troubleshooting
 
