@@ -5,6 +5,7 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import hashlib
 import posixpath
 import shutil
 from collections.abc import Iterator
@@ -115,6 +116,82 @@ def _is_drive_qualified(stem: str) -> bool:
         False
     """
     return len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+
+
+def _is_absolute_image_uri(resolved_uri: str) -> bool:
+    """Whether ``resolved_uri`` is absolute, as a platform-independent
+    STRING SHAPE rather than the OS-native ``path.isabs()`` decision
+    ``_track_image()`` used before BLD-09 (Phase 55).
+
+    The OS-native ``path`` module resolves to ``ntpath`` on Windows, and
+    CPython 3.13 narrowed ``ntpath.isabs()``: a driveless path beginning
+    with a single leading separator (e.g. ``"\\\\foo\\\\bar.png"``,
+    written here with one leading backslash) is no longer treated as
+    absolute there, where CPython 3.12 on the identical OS treated it as
+    absolute. ROADMAP SC#4's own literal predicate --
+    ``posixpath.isabs(...) or _is_drive_qualified(...)`` applied to the
+    RAW ``resolved_uri`` -- inherits the same gap: it evaluates False
+    for that same driveless-absolute shape and for a UNC path (two
+    leading separators, a server name, a share name), which is exactly
+    the behaviour BLD-09 requires this function to widen. Measured this
+    phase, in this worktree, over the five shapes below
+    (``55-03-RED-EVIDENCE.md`` §"Predicate measurement"):
+
+    - driveless-absolute: os-native(Win)=False, posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=True
+    - drive-qualified:    os-native(Win)=True,  posixpath.isabs=False,
+      drive_qualified=True,  SC4-literal=True,  backslash-normalized=True
+    - posix-absolute:     os-native(Win)=False, posixpath.isabs=True,
+      drive_qualified=False, SC4-literal=True,  backslash-normalized=True
+    - unc:                os-native(Win)=True,  posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=True
+    - ordinary-relative:  os-native(Win)=False, posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=False
+
+    Task 2's owner-resolved decision (option-b) is this function's body:
+    normalize every backslash to a forward slash FIRST (the same
+    normalization ``_escapes_outdir()`` already performs on its own
+    first line, for the identical platform-independence reason -- D-05),
+    then apply the same ``posixpath.isabs(...) or
+    _is_drive_qualified(...)`` idiom to the normalized string. This is
+    the "backslash-normalized" column above: True for every one of the
+    four absolute shapes, False for the ordinary-relative control, which
+    is what BLD-09 requires and what SC#4's own literal spelling does
+    not achieve. The tradeoff accepted with this choice, mirroring
+    ``_escapes_outdir()``'s own accepted tradeoff: a POSIX filename that
+    literally contains a backslash character is classified as absolute
+    here, on every platform, even though a bare backslash carries no
+    special meaning in a POSIX filename. ROADMAP SC#4's literal wording
+    is deliberately NOT what ships (the widened, normalized form is);
+    the amendment is delegated to plan ``55-04`` (see ``55-03-SUMMARY.md``).
+
+    Detected as a pure string shape, on every platform and every
+    supported Python version -- consulting no filesystem state at all --
+    matching this module's existing platform-independence principle
+    (``_is_drive_qualified()``, ``_escapes_outdir()``).
+
+    Args:
+        resolved_uri: The concrete image URI being tested (as passed to
+            ``_track_image()``).
+
+    Returns:
+        True if ``resolved_uri`` is absolute under the widened,
+        backslash-normalized predicate; False otherwise.
+
+    Note:
+        No ``Examples:`` doctest block here (unlike this module's other
+        pure-string predicates) -- ``55-03-PLAN.md`` Task 3's own
+        acceptance criteria require this name to appear on exactly two
+        lines of this file (the definition and the single gate call
+        site inside ``_track_image()``), which a doctest transcript
+        calling this function would violate. The five shapes above are
+        exercised directly, as a pure string function needing no
+        builder instance, by the inline check in that same task's
+        acceptance criteria and by
+        ``tests/test_builder.py``'s BLD-09 test cluster.
+    """
+    normalized = resolved_uri.replace("\\", "/")
+    return posixpath.isabs(normalized) or _is_drive_qualified(normalized)
 
 
 def _escapes_outdir(stem: str) -> bool:
@@ -1552,13 +1629,28 @@ class TypstBuilder(Builder):
         today's emitted path) is preserved unchanged -- this is the branch
         the D-12-pinned regression tests exercise.
 
+        BLD-09 (Phase 55): the absolute-URI decision above is a
+        platform-independent string shape owned by the module-level
+        ``_is_absolute_image_uri`` predicate, not the OS-native
+        absolute-path check this method used before. A
+        rooted URI that escapes this gate reaches ``copy_image_files()``,
+        where the platform's own destination join (``path.join(self.outdir,
+        imguri)``) silently discards ``outdir`` once ``imguri`` is itself
+        rooted -- which is why this gate is the containment boundary for
+        every destination this builder writes, and not merely a
+        convenience rewrite.
+
         Args:
             node: The image node whose ``uri`` should reflect the tracked
                 path.
             resolved_uri: The concrete URI to track (already resolved from
                 ``node["candidates"]`` by the caller).
         """
-        if path.isabs(resolved_uri):
+        # BLD-09: the platform-independent predicate, not the OS-native
+        # absolute-path check -- see that helper's own docstring for the
+        # measured reasoning (CPython 3.13's narrowed Windows behaviour and
+        # the backslash-normalized widening Task 2's checkpoint selected).
+        if _is_absolute_image_uri(resolved_uri):
             try:
                 rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(
                     path.sep, "/"
@@ -1586,7 +1678,30 @@ class TypstBuilder(Builder):
                 # branch means a third-party extension placed an absolute
                 # URI somewhere none of Sphinx's own post-transforms ever
                 # do.
-                key = f"{RESERVED_IMAGE_NAMESPACE}/{path.basename(resolved_uri)}"
+                #
+                # IMG-03 (Phase 55): the digest prefix is taken over the
+                # WHOLE resolved_uri, not just its basename -- restoring
+                # the injectivity two escaping URIs sharing a basename lost
+                # under the old basename-only key, while the basename
+                # itself stays visible in the emitted filename. It is a
+                # PURE function of resolved_uri alone, with no dependence
+                # on self.images or on write()'s sorted(docnames) order
+                # (Phase 50 D-02); it introduces no parent-traversal
+                # segment (Phase 50 SC#2 outdir containment); and it must
+                # be .encode()d first -- hashlib takes bytes, not str.
+                # Python's own built-in string hash is unusable here: it
+                # is randomized per process unless seeded, so two builds
+                # of the identical project would emit two different
+                # filenames. This is a non-cryptographic collision-
+                # avoidance key over a build-local path string, not a
+                # security boundary -- this project's ruff selection does
+                # not include the security rule set, and this comment is
+                # the answer if a future, stricter scanner ever flags it.
+                digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
+                key = (
+                    f"{RESERVED_IMAGE_NAMESPACE}/{digest}-"
+                    f"{path.basename(resolved_uri)}"
+                )
                 logger.warning(
                     f"could not rehome image URI {resolved_uri!r} relative "
                     f"to the doctree directory -- relocated to {key!r}"

@@ -514,13 +514,28 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     """
     D-05/D-06: an absolute URI whose rehome result cannot possibly sit
     under doctreedir -- built from the filesystem root -- is relocated
-    to the reserved namespace plus the basename of the ORIGINAL absolute
-    URI, and emits exactly one WARNING naming the offending URI.
+    to the reserved namespace plus a short hash prefix plus the basename
+    of the ORIGINAL absolute URI, and emits exactly one WARNING naming
+    the offending URI.
+
+    IMG-03 (Phase 55) collateral: the key format changed from
+    ``{namespace}/{basename}`` to ``{namespace}/{digest8}-{basename}`` --
+    a pure function of the whole URI, restoring the injectivity two
+    escaping URIs sharing a basename would otherwise lose (see
+    ``test_post_process_images_escape_same_basename_keys_stay_distinct``,
+    IMG-03's own RED evidence). This test's own assertions are collateral
+    to that fix, not IMG-03's evidence -- it characterizes the ESCAPE
+    branch existing (D-05/D-06, Phase 50), not the key's distinctness
+    property. The expected key is COMPUTED from the same construction
+    below (fixture URIs are temp-directory paths, so a hardcoded digest
+    literal would be unstable across runs and machines).
     """
+    import hashlib
+
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
-    from typsphinx.builder import TypstBuilder
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
@@ -558,9 +573,17 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     with caplog.at_level("WARNING"):
         builder.post_process_images(doc)
 
-    assert img["uri"] == "_typst_converted/chart.png"
+    # IMG-03: expected key COMPUTED from the same construction the
+    # product uses -- the reserved namespace, a slash, the first 8 hex
+    # characters of the SHA-1 digest of the UTF-8 encoding of this
+    # test's own abs_uri, a hyphen, and the basename. Never a hardcoded
+    # digest literal (abs_uri is a temp-directory path).
+    digest = hashlib.sha1(abs_uri.encode("utf-8")).hexdigest()[:8]
+    expected_key = f"{RESERVED_IMAGE_NAMESPACE}/{digest}-chart.png"
+
+    assert img["uri"] == expected_key
     assert ".." not in img["uri"].split("/")
-    assert builder.images.get("_typst_converted/chart.png") == abs_uri
+    assert builder.images.get(expected_key) == abs_uri
 
     warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warning_records) == 1
@@ -585,12 +608,20 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     reproducible on this POSIX host, so relpath is monkeypatched to raise
     only for this test's specific absolute URI -- a blanket replacement
     would break unrelated path work inside the same call.
+
+    IMG-03 (Phase 55) collateral: the key format changed from
+    ``{namespace}/{basename}`` to ``{namespace}/{digest8}-{basename}``,
+    the same change ``test_post_process_images_rehome_escape_relocates_with_warning``
+    documents; this test's own assertions are collateral to that fix,
+    not IMG-03's own evidence. The expected key is COMPUTED below.
     """
+    import hashlib
+
     from docutils.parsers.rst import states
     from docutils.utils import Reporter
 
     import typsphinx.builder as builder_module
-    from typsphinx.builder import TypstBuilder
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
 
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
@@ -620,8 +651,14 @@ def test_post_process_images_rehome_cross_drive_value_error_relocates(
     with caplog.at_level("WARNING"):
         builder.post_process_images(doc)
 
-    assert img["uri"] == "_typst_converted/crossdrive.png"
-    assert builder.images.get("_typst_converted/crossdrive.png") == abs_uri
+    # IMG-03: expected key COMPUTED from the same construction the
+    # product uses -- see the sibling escape-relocation test's comment
+    # for why this is never a hardcoded digest literal.
+    digest = hashlib.sha1(abs_uri.encode("utf-8")).hexdigest()[:8]
+    expected_key = f"{RESERVED_IMAGE_NAMESPACE}/{digest}-crossdrive.png"
+
+    assert img["uri"] == expected_key
+    assert builder.images.get(expected_key) == abs_uri
     warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
     assert len(warning_records) == 1
 
@@ -664,6 +701,235 @@ def test_copy_image_files_relocated_key_destination_stays_under_outdir(
     assert os.path.commonpath([str(resolved_dest), str(resolved_outdir)]) == str(
         resolved_outdir
     )
+
+
+def test_post_process_images_driveless_absolute_uri_reaches_rehome_branch(
+    temp_sphinx_app, caplog
+):
+    """
+    BLD-09 / ROADMAP SC#4: a driveless-absolute Windows-shaped image URI
+    (a leading separator, no drive letter) must reach the
+    rehome/relocate/warn branch on EVERY platform and EVERY supported
+    Python version -- not merely when the OS-native ``path.isabs()``
+    happens to agree. Written as a platform-independent STRING LITERAL
+    (not built from ``os.sep``) so the exact same assertion is exercised
+    identically on POSIX CI and on a real Windows host under CPython
+    3.13, where ``ntpath.isabs()`` no longer treats this shape as
+    absolute -- this project's own D-05 precedent for validating
+    Windows-shaped input on POSIX (mirrors ``_escapes_outdir()``).
+
+    Plan 52-09's drive-qualified fixture in
+    ``test_post_process_images_rehome_escape_relocates_with_warning`` is
+    deliberately NOT reverted -- this is an ADDITIONAL case beside it.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri = "\\typsphinx_test_55_03_driveless\\chart.png"
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    assert img["uri"] != abs_uri
+    assert img["uri"].startswith(f"{RESERVED_IMAGE_NAMESPACE}/")
+    assert builder.images.get(img["uri"]) == abs_uri
+    assert ".." not in img["uri"].split("/")
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+
+
+def test_post_process_images_unc_absolute_uri_reaches_rehome_branch(
+    temp_sphinx_app, caplog
+):
+    """
+    BLD-09 / ROADMAP SC#4: a UNC-shaped image URI (two leading
+    separators, a server name, a share name) must likewise reach the
+    rehome/relocate/warn branch on every platform, written as the same
+    kind of platform-independent string literal as the driveless case
+    above.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri = "\\\\typsphinx_test_55_03_server\\share\\chart.png"
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+    doc += img
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    assert img["uri"] != abs_uri
+    assert img["uri"].startswith(f"{RESERVED_IMAGE_NAMESPACE}/")
+    assert builder.images.get(img["uri"]) == abs_uri
+    assert ".." not in img["uri"].split("/")
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 1
+
+
+def test_post_process_images_relative_uri_is_not_treated_as_absolute(
+    temp_sphinx_app,
+):
+    """
+    BLD-09 control: an ordinary relative image URI is NOT treated as
+    absolute and takes the unchanged non-absolute path -- the bound on
+    the widening the two tests above perform. Must pass both BEFORE and
+    AFTER the BLD-09 fix.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    rel_uri = "images/chart.png"
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img = nodes.image(uri=rel_uri, candidates={"*": rel_uri})
+    doc += img
+
+    builder.post_process_images(doc)
+
+    assert img["uri"] == rel_uri
+    assert builder.images.get(rel_uri) == ""
+
+
+def test_post_process_images_escape_same_basename_keys_stay_distinct(
+    temp_sphinx_app, caplog
+):
+    """
+    IMG-03: two absolute URIs that both escape doctreedir, living in
+    DIFFERENT directories but sharing a basename, must relocate to two
+    DISTINCT keys -- not collapse onto one, which would silently make
+    the second document embed the first document's image with no
+    diagnostic at any layer.
+
+    Because the BLD-09 gate is not fixed yet at this point in the plan,
+    both URIs are POSIX-absolute forward-slash literals, which the
+    OS-native gate already accepts as absolute on this (POSIX) host --
+    so this test's RED is genuinely about the KEY, not about the gate.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import RESERVED_IMAGE_NAMESPACE, TypstBuilder
+
+    app = temp_sphinx_app
+    builder = TypstBuilder(app, app.env)
+    builder.init()
+
+    abs_uri_a = "/typsphinx_test_55_03_setA/shared.png"
+    abs_uri_b = "/typsphinx_test_55_03_setB/shared.png"
+
+    reporter = Reporter("", 2, 4)
+    doc = nodes.document("", reporter=reporter)
+    doc.settings = states.Struct()
+    doc.settings.env = None
+    doc.settings.language_code = "en"
+    doc.settings.strict_visitor = False
+
+    img_a = nodes.image(uri=abs_uri_a, candidates={"*": abs_uri_a})
+    img_b = nodes.image(uri=abs_uri_b, candidates={"*": abs_uri_b})
+    doc += img_a
+    doc += img_b
+
+    with caplog.at_level("WARNING"):
+        builder.post_process_images(doc)
+
+    key_a, key_b = img_a["uri"], img_b["uri"]
+
+    assert key_a != key_b
+    assert builder.images.get(key_a) == abs_uri_a
+    assert builder.images.get(key_b) == abs_uri_b
+    for key in (key_a, key_b):
+        assert key.startswith(f"{RESERVED_IMAGE_NAMESPACE}/")
+        assert key.endswith("shared.png")
+        assert ".." not in key.split("/")
+
+    warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warning_records) == 2
+
+
+def test_post_process_images_escape_key_is_pure_function_of_uri(
+    temp_sphinx_app,
+):
+    """
+    IMG-03 purity: the escape-branch relocation key for a given
+    ``resolved_uri`` is reproducible from that URI alone, across
+    independently-constructed builders -- the write-order independence
+    Phase 50's D-02 requires, and which a process-dependent derivation
+    (e.g. Python's own built-in string hash, randomized per process
+    unless seeded) would break.
+    """
+    from docutils.parsers.rst import states
+    from docutils.utils import Reporter
+
+    from typsphinx.builder import TypstBuilder
+
+    app = temp_sphinx_app
+    abs_uri = "/typsphinx_test_55_03_purity/shared.png"
+
+    def _track_and_get_key():
+        builder = TypstBuilder(app, app.env)
+        builder.init()
+
+        reporter = Reporter("", 2, 4)
+        doc = nodes.document("", reporter=reporter)
+        doc.settings = states.Struct()
+        doc.settings.env = None
+        doc.settings.language_code = "en"
+        doc.settings.strict_visitor = False
+
+        img = nodes.image(uri=abs_uri, candidates={"*": abs_uri})
+        doc += img
+
+        builder.post_process_images(doc)
+        return img["uri"]
+
+    key_1 = _track_and_get_key()
+    key_2 = _track_and_get_key()
+
+    assert key_1 == key_2
 
 
 def test_finish_calls_copy_image_files(temp_sphinx_app):
