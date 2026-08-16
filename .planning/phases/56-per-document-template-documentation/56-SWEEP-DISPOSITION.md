@@ -315,4 +315,198 @@ still TRUE — verified by reading `typsphinx/builder.py:2123-2126`'s
 - `grep -c 'typst_template = "_typst/_template.typ"' examples/charged-ieee/approach2/conf.py` — 1.
 - `git diff --stat -- docs/source/changelog.rst CHANGELOG.md typsphinx/ tests/` — empty.
 
-<!-- gsd:write-continue -->
+## Fixes applied (Task 2)
+
+5. `CLAUDE.md:49` — D-09: the Architecture section's `builder.py` bullet named
+   `_write_template_file`, deleted in Phase 54's bundle-copy consolidation. Rewritten to
+   describe `_copy_used_template_bundles()`: the builder accumulates the registry keys used at
+   write time and, in `finish()`, copies each used key's whole bundle directory to its own
+   directory under the reserved output directory. Scope decision recorded per the plan's
+   instruction: `CLAUDE.md` stays agent-facing instruction, not published user documentation,
+   so 54.1 D-12's policed set (`docs/source/` + `README.md` + `examples/`) is NOT widened by
+   this fix — no test greps `CLAUDE.md`.
+
+6. New `tests/test_bundle_layout_sweep_gate.py` — the machine-enforced, never-skipping,
+   run-time, repo-wide presence gate over the three policed roots (`docs/source/`, `README.md`,
+   `examples/`), discovered via `rglob()`, never a hardcoded file list. Two patterns:
+   `RESERVED_TEMPLATE_BASENAME_RE` (anchored: the character before the match must be
+   start-of-line or non-alphanumeric, so a longer basename like `custom_template.typ` cannot
+   fire) and `DELETED_WRITE_TEMPLATE_FILE_METHOD_RE` (word-bounded). `EXCLUDED_SWEEP_PATHS`
+   carries two reasoned exclusions populated from Task 1's disposition table above: the
+   historical `docs/source/changelog.rst` (whole-file) and
+   `examples/charged-ieee/approach2/conf.py:28` (line-scoped, the legitimate
+   `typst_template` assignment). `TestNoStaleBundleLayoutClaimSurvives` (4 tests: non-empty
+   discovery, both patterns clean, exclusion staleness check) and
+   `TestSweepPatternsHaveTeeth` (5 tests: both patterns fire on a synthetic bad string and do
+   not fire on a synthetic clean string, including the anchor's exact false-positive case) — 9
+   tests total, none skipped, no `typst-py` import, no `sphinx-build` subprocess.
+
+**Verification for Task 2:**
+- `uv run pytest tests/test_bundle_layout_sweep_gate.py -q` — 9 passed, 0 skipped.
+- `uv run pytest -q` — 1417 passed, 5 skipped, 0 failed.
+- `grep -c '_write_template_file' CLAUDE.md` — 0.
+- `grep -c 'skipif' tests/test_bundle_layout_sweep_gate.py` — 0; `grep -c 'subprocess' tests/test_bundle_layout_sweep_gate.py` — 0.
+- `grep -c 'EXCLUDED_SWEEP_PATHS' tests/test_bundle_layout_sweep_gate.py` — 10 (well above 1).
+- `uv run black --check .` — clean. `uv run mypy typsphinx/` — clean (8 source files, no issues).
+- `cd /home/yuta/Documents/typsphinx && uv run ruff check .claude/worktrees/agent-ad68ec9a3759def94/` — all checks passed (one `B007` unused-loop-variable finding was caught and fixed before this commit: `for key, reason in EXCLUDED_SWEEP_PATHS.items()` → `for key in EXCLUDED_SWEEP_PATHS`, since the staleness test never used `reason`).
+
+**Issue encountered (documented, not fixed — same class as 56-01/56-02/56-04's own "Issues
+Encountered" false positives):** the plan's Task 2 acceptance criterion
+`grep -rc 'CLAUDE.md' tests/ is 0 — the policed set was not widened` cannot be literally
+satisfied: `tests/` already carries 25 PRE-EXISTING citations of `CLAUDE.md` across 22 files
+(mostly `// ... (CLAUDE.md).` comments inside `.typ` fixtures citing the `@preview`
+version-lockstep hazard, plus a handful of prose citations in
+`test_toolchain_config_gate.py`/`test_citation_degradation_gate.py`/
+`test_readthedocs_config.py`). None of these are new; none is inside
+`tests/test_bundle_layout_sweep_gate.py` (`grep -c 'CLAUDE.md' tests/test_bundle_layout_sweep_gate.py`
+is 0); and `git diff HEAD~1 -- tests/` for this commit shows zero added lines containing
+`CLAUDE.md`. The intent of the criterion — "this task's own new test does not grep
+`CLAUDE.md`'s content" — is genuinely satisfied; the literal repo-wide grep count is not, for
+reasons that predate this plan entirely.
+
+---
+
+## Phase-boundary evidence
+
+Recorded against commit `0811ab69` (Task 2's own commit, the tip of this plan's worktree
+before Task 3's own commit) — the merged tree carrying all five plans of Phase 56.
+
+### Full pytest suite
+
+Command: `uv run pytest -q`
+
+```
+================= 1417 passed, 5 skipped in 118.84s (0:01:58) ==================
+```
+
+Compared against the phase's measured starting baseline (`56-VALIDATION.md`: 1366 passed, 5
+skipped, 0 failed at HEAD `f07e8cb8`): **+51 passed**, contributed across the phase's five
+plans (each plan's own SUMMARY.md records its individual delta: 56-01 +13, 56-02 +15, 56-03
++10, 56-04 +8, 56-05 +9 from `test_bundle_layout_sweep_gate.py`'s own new module — some
+plans' growth also extended existing test methods rather than adding new ones, which is why a
+per-plan sum does not need to land on exactly +51 to be consistent). **Failed count: zero**,
+matching the phase's unconditional-zero-failures standard (`STATE.md` § "The green bar is
+UNCONDITIONAL ZERO FAILURES") — no RED is attributed to a pre-existing condition; none
+occurred.
+
+### Lint / type trio
+
+Commands: `uv run black --check .` / `uv run ruff check .` (via the documented NixOS
+main-checkout workaround) / `uv run mypy typsphinx/`
+
+```
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+339 files would be left unchanged.
+
+$ cd /home/yuta/Documents/typsphinx && uv run ruff check .claude/worktrees/agent-ad68ec9a3759def94/
+All checks passed!
+
+$ uv run mypy typsphinx/
+Success: no issues found in 8 source files
+```
+
+### Documentation builds
+
+Commands: `uv run tox -e docs-html` / `uv run tox -e docs-pdf`
+
+```
+$ uv run tox -e docs-html
+...
+build succeeded, 3 warnings.
+  docs-html: OK (3.80=setup[0.12]+cmd[3.68] seconds)
+  congratulations :) (3.85 seconds)
+
+$ uv run tox -e docs-pdf
+...
+WARNING: unknown node type: <doctest_block ...> (compute_content_include_path docstring)
+WARNING: unknown node type: <doctest_block ...> (compute_template_import_path docstring)
+...
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Compiling 1 master document(s) to PDF...
+Generated PDF: .../docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (4.12=setup[0.12]+cmd[4.00] seconds)
+  congratulations :) (4.16 seconds)
+```
+
+Both report `build succeeded`. `docs-html`'s 3 warnings and `docs-pdf`'s 5 warnings match the
+pre-existing baseline exactly (56-02-SUMMARY.md and 56-04-SUMMARY.md both independently
+measured and recorded this same 3/5 split; the unknown-node-type autodoc warnings are the
+`writer.py` docstring doctest blocks and are pre-existing and unrelated to any page this phase
+edited — confirmed by name: `compute_content_include_path` and `compute_template_import_path`,
+neither touched by any of this phase's five plans).
+
+### Production-code diff
+
+Command: `git diff --stat f07e8cb8 -- typsphinx/` (the phase's base commit — `f07e8cb8`,
+"docs(state): record phase 56 context session", the commit `56-RESEARCH.md` itself measured
+against)
+
+```
+(empty)
+```
+
+Confirms this phase changed zero lines under `typsphinx/`, across all five plans, matching the
+phase's docs-only scope (`56-CONTEXT.md` § "Phase Boundary": "No production code changes").
+
+### Sweep gate and registry documentation gate, independently
+
+Command: `uv run pytest tests/test_bundle_layout_sweep_gate.py tests/test_registry_documentation_gate.py -q`
+
+```
+tests/test_bundle_layout_sweep_gate.py .........                         [ 28%]
+tests/test_registry_documentation_gate.py .......................        [100%]
+
+============================== 32 passed in 0.27s ==============================
+```
+
+---
+
+## Requirement-to-evidence mapping
+
+### DOC-15 — Per-document template registry documentation
+
+- `tests/test_registry_documentation_gate.py::TestErrorCatalogueAgreesWithCode` — the seven
+  config-caused `ExtensionError` shapes' error catalogue agrees two-way with
+  `typsphinx/template_registry.py` and `typsphinx/builder.py`'s real raise sites.
+- `tests/test_registry_documentation_gate.py::TestRetractedElementFourDefinitionIsGone` —
+  the retracted "accepted and ignored" phrase is absent repo-wide from the policed set.
+- `tests/test_registry_documentation_gate.py::TestKeyNamingRulesMatchTheCode` — the seven
+  CONF-18 key-shape rejection cases agree with `_KEY_SHAPE_REJECTION_CASES`.
+- `tests/test_docs_template_layout_gate.py::test_every_surviving_jinja_dir_mention_names_templates_path`
+  — the D-08 `templates_path` preventive note satisfies the existing same-line exemption rule.
+- `tests/test_output_layout_docs_gate.py::TestPublishedOutputLayoutTextMatchesBuild` and
+  `tests/test_hand_compile_root_gate.py` — the per-key `_template/<key>/` bundle-directory
+  story, the corrected nine-root-level-file count, and the conditional hand-compile `--root`
+  rule, all pinned by real builds.
+- `tests/test_bundle_layout_sweep_gate.py::TestNoStaleBundleLayoutClaimSurvives` (this plan) —
+  the repo-wide, machine-enforced guarantee that no page in the policed set claims the retired
+  root-level `_template.typ` artifact or the deleted `_write_template_file` method, going
+  forward.
+
+### DOC-16 — Per-document template asset examples
+
+- `tests/test_user_template_relative_asset_gate.py::TestPublishedAssetGuidanceMatchesTheFixture`
+  — both `templates.rst`'s no-exceptions bundle rule and `advanced.rst`'s bare-filename
+  bibliography reference are bound to the fixture's real, measured bundle destination.
+- `tests/test_user_template_relative_asset_gate.py::TestUserTemplateRelativeAssetGate::test_asset_reached_the_bundle_destination`
+  — a real `sphinx-build -b typstpdf` proves `refs.bib` reaches
+  `_template/typst/refs.bib` alongside `logo.png` and `branded.typ`.
+- `tests/test_bundle_layout_sweep_gate.py::TestNoStaleBundleLayoutClaimSurvives::test_no_reserved_template_basename_claim_survives`
+  (this plan) — the sweep confirms neither `templates.rst` nor `advanced.rst` (nor any other
+  policed page) reintroduces a stale `_template.typ` claim.
+
+### DOC-17 — Removed configuration values migration guidance
+
+- `tests/test_registry_documentation_gate.py::TestRemovedValuesGuidanceMatchesTheWarnings` —
+  `configuration.rst`'s Removed Configuration Values section agrees with
+  `typsphinx/removed_config.py`'s `REMOVED_CONFIG_VALUES` for all three removed names.
+- `tests/test_removed_config_deprecation_gate.py::TestMultipleRemovedValuesEachWarnSeparately::test_all_three_set_together_warn_once_each_in_declaration_order`
+  — a real `sphinx-build` with all three removed names set together proves three separate
+  warnings fire in declaration order, not aggregated.
+- This plan's own Command 4 discovery grep (above) confirms no stale claim about any of the
+  three removed names survives outside the intentional, already-published
+  `configuration.rst` section and the historical `CHANGELOG.md`/`docs/source/changelog.rst`
+  entries.
+
