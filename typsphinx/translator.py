@@ -43,6 +43,20 @@ SHARED_INDENT_STEP = "2.5em"
 # `_namespace_label` call (D-13) -- never re-spelled at either.
 _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN = "__tsx-doc__"
 
+# Phase 55 plan 01 (XREF-05, D-01/D-02): `_sanitize_label`'s own encoding
+# token alphabet (`_u{codepoint:x}_`) is a SUBSET of its "safe" character
+# class, so a raw input that already spells the encoder's own token shape
+# passes through the main substitution untouched -- collapsing two distinct
+# inputs (e.g. docnames `a/b` and `a_u2f_b`) onto one label. This pattern
+# matches the introducing underscore of any such literal run -- `u` followed
+# by one or more lowercase hex digits, followed by either an underscore or a
+# character the main substitution is about to escape -- so `_sanitize_label`
+# can neutralise it BEFORE the main substitution runs. Matched via lookahead
+# (the underscore itself is what gets replaced, not the whole run) so the
+# pre-pass and the main substitution never have to agree on where the run
+# ends. See `55-01-RED-EVIDENCE.md` and `tests/test_sanitize_label_injectivity_unit.py`.
+_LABEL_TOKEN_INTRODUCER_RE = re.compile(r"_(?=u[0-9a-f]+(?:_|[^A-Za-z0-9_.:-]))")
+
 
 class _ReferenceAnchorDecision(NamedTuple):
     """
@@ -5055,13 +5069,39 @@ class TypstTranslator(SphinxTranslator):
         ``footnote(<...>)``) -- so a definition and its reference sanitize to
         the SAME string and cross-references keep resolving.
 
+        INJECTIVITY (Phase 55, XREF-05, D-01/D-02): the encoder's own token
+        alphabet (``_u{codepoint:x}_``) is a SUBSET of its own safe character
+        set, so a raw input that already spells that token shape passes
+        through the main substitution below untouched -- two DIFFERENT raw
+        inputs can then collapse onto the SAME label (e.g. docname ``a/b``
+        and docname ``a_u2f_b`` both namespace-and-sanitize to
+        ``a_u2f_b:nested-target``). Protecting only COMPLETE literal tokens
+        present in the raw input is not enough, because the main substitution
+        itself creates NEW token-shaped runs at the seam between literal text
+        and an emitted token -- two constructions that tried this were
+        measured non-injective this phase: doubling a literal token's leading
+        underscore collides ``a_/b`` with ``a_u2f_b`` (both become
+        ``a__u2f_b``), and inserting an extra ``u`` collides ``_u2f/`` with
+        ``/u2f_`` (both become ``_u2f_u2f_``). The construction below instead
+        escapes the run's own INTRODUCING underscore -- via the module-level
+        ``_LABEL_TOKEN_INTRODUCER_RE`` pre-pass, run BEFORE the main
+        substitution -- with the replacement ``_u5f_``, which is precisely
+        what the encoder itself emits for a literal underscore (``ord("_")``
+        is ``0x5f``), so no new escaping primitive is introduced. This is
+        verified injective by an exhaustive decoder round-trip in
+        ``tests/test_sanitize_label_injectivity_unit.py`` (the Pitfall-3
+        proof obligation for this construction), over an exhaustive alphabet
+        plus 400,000 random strings; see also ``55-01-RED-EVIDENCE.md``.
+
         Args:
             name: A docutils id/name (or a derived label such as ``fn-<id>``).
 
         Returns:
             The same string with every Typst-label-invalid character replaced
-            by a ``_u{codepoint:x}_`` token.
+            by a ``_u{codepoint:x}_`` token, and every literal occurrence of
+            the encoder's own token-introducing underscore re-escaped first.
         """
+        name = _LABEL_TOKEN_INTRODUCER_RE.sub("_u5f_", name)
         return re.sub(
             r"[^A-Za-z0-9_.:-]",
             lambda m: f"_u{ord(m.group(0)):x}_",

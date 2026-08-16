@@ -192,8 +192,10 @@ def collision_guard_build(tmp_path_factory):
     Build ``xref_label_collision_guard_gate`` ONCE per class via
     ``-b typstpdf`` (this fixture compiles cleanly both before and after this
     phase -- only the emitted content's SHAPE and the link's ultimate
-    destination change) and return the emitted content file's text plus the
-    compiled PDF's bytes.
+    destination change) and return the emitted content files' text plus the
+    compiled PDF's bytes. ``a_u2f_b.typ`` is the decoy's own included
+    content file -- its emitted anchor label lives there, not in
+    ``index.typ`` (Phase 55 plan 01, XREF-05).
     """
     build_dir = tmp_path_factory.mktemp("xref_label_collision_guard")
     result = _run_sphinx_build_typstpdf(COLLISION_FIXTURE_DIR, build_dir)
@@ -209,6 +211,7 @@ def collision_guard_build(tmp_path_factory):
     return {
         "result": result,
         "index_typ": _read_text("index.typ"),
+        "decoy_typ": _read_text("a_u2f_b.typ"),
         "manual_pdf": _read_bytes("manual.pdf"),
     }
 
@@ -325,18 +328,32 @@ class TestXrefCompileTimeGuardRenderGate:
             f"or degraded):\n{bravo_text}"
         )
 
-    def test_label_collision_guard_links_to_decoy(self, collision_guard_build):
+    def test_label_collision_no_longer_links_to_decoy(self, collision_guard_build):
         """
-        48-EXPECTED-STRUCTURE.md "Fixture: xref_label_collision_guard_gate":
-        the measured, ACCEPTED false-negative. -b typstpdf exits 0, the
-        emitted index.typ carries the guarded expression on the colliding
-        label a_u2f_b:nested-target, and the compiled PDF's link
-        destinations DO include a_u2f_b:nested-target -- resolving to the
-        DECOY's heading, even though the reference's real intended target
-        (a/b, :orphan:, excluded from the toctree) is absent from the
-        compiled master. This is a characterization test of a known,
-        narrow, documented limit (48-EXPECTED-STRUCTURE.md's own
-        explanation of why), not a defect gate.
+        XREF-05 (Phase 55 plan 01, D-01/D-02/D-04): a CLOSED defect. Until
+        this phase, ``_sanitize_label`` was not injective -- two distinct
+        docnames (``a/b`` and the decoy ``a_u2f_b``) could sanitize to the
+        SAME label, so a reference whose real target (``a/b``, ``:orphan:``,
+        excluded from the toctree) was absent from the compiled master
+        resolved to the DECOY's identically-spelled heading instead of
+        degrading. That pre-fix behaviour is recorded verbatim, against the
+        real pre-fix commit, in ``55-01-RED-EVIDENCE.md`` (binding
+        constraint #6) -- this test is that RED evidence's assertion,
+        inverted, plus the render gate this module is named for.
+
+        Post-fix: ``-b typstpdf`` still exits 0, ``index.typ`` still carries
+        the IDENTICAL guarded ``context { ... if query(...).len() > 0 { ...
+        } ... }`` expression on ``a_u2f_b:nested-target`` (the REFERENCE
+        side is namespaced by the TARGET docname ``a/b``, whose sanitized
+        form does not move -- ``_COLLISION_GUARD_PATTERN`` is unchanged),
+        the compiled PDF's link destinations no longer include
+        ``a_u2f_b:nested-target`` (the guard's ``query()`` no longer finds a
+        same-spelled decoy label, so the reference degrades to plain text),
+        the decoy's OWN anchor label has moved to
+        ``a_u5f_u2f_b:nested-target`` and appears in the emitted ``.typ``
+        (the decoy still gets a label, just a different, non-colliding one),
+        and the reference's visible text still renders (the Phase 48 D-02
+        invariance -- a degraded reference looks identical to a linked one).
         """
         result = collision_guard_build["result"]
         assert result.returncode == 0, (
@@ -348,11 +365,31 @@ class TestXrefCompileTimeGuardRenderGate:
         match = _COLLISION_GUARD_PATTERN.search(index_typ)
         assert match is not None, (
             "index.typ does not carry the guarded expression for the "
-            f"colliding label a_u2f_b:nested-target:\n{index_typ}"
+            f"reference's namespaced label a_u2f_b:nested-target:\n{index_typ}"
+        )
+
+        decoy_typ = _strip_raw_literals(collision_guard_build["decoy_typ"])
+        assert "a_u5f_u2f_b:nested-target" in decoy_typ, (
+            "a_u2f_b.typ does not carry the decoy's re-escaped, "
+            "no-longer-colliding anchor label "
+            f"a_u5f_u2f_b:nested-target:\n{decoy_typ}"
         )
 
         dests = _link_annotation_dests(collision_guard_build["manual_pdf"])
-        assert "a_u2f_b:nested-target" in dests, (
-            "manual.pdf's link destinations do not include the colliding "
-            f"label a_u2f_b:nested-target: {sorted(dests)}"
+        assert "a_u2f_b:nested-target" not in dests, (
+            "manual.pdf's link destinations unexpectedly still include the "
+            f"formerly-colliding label a_u2f_b:nested-target: {sorted(dests)}"
+        )
+
+        reader = pypdf.PdfReader(io.BytesIO(collision_guard_build["manual_pdf"]))
+        manual_text = "".join(page.extract_text() for page in reader.pages)
+        assert "Alpha Nested Section" in manual_text, (
+            "manual.pdf is missing the reference's visible text -- "
+            "':ref:`nested-target`' resolves its default text from the "
+            "label's REAL target (a/b.rst's 'Alpha Nested Section' title, "
+            "resolved by Sphinx's own domain data at build time, "
+            "independent of which document is actually compiled in) -- "
+            "the Phase 48 D-02 invariance requires this text render "
+            "identically whether the reference ends up linked or "
+            f"degraded:\n{manual_text}"
         )
