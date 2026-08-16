@@ -36,6 +36,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   template file that was never written, so the emitted `.typ` tree cannot compile while the build
   reports success.
 
+### Fixed
+
+- **A cross-reference to an absent target no longer links to a same-spelled decoy (XREF-05).**
+  Two docnames that sanitized to the same Typst label used to let a reference whose real target
+  document was absent from the compiling master resolve to the other, wrong document instead of
+  degrading to plain text as an absent target always should. Note in passing: the fix makes label
+  sanitization injective by re-escaping a literal occurrence of the sanitizer's own `_u<hex>_`
+  escape token, so the emitted label name changes for an identifier that literally spells that
+  token — the only such name in this repository is one test fixture's docname. PDF appearance is
+  otherwise unchanged; only the label name in the emitted `.typ` output and the corresponding link
+  destination name in the PDF move. Not a breaking change.
+
+- **A document name containing `#` or `>` can no longer collide two include-edge keys (BLD-07).**
+  Two structurally different include edges whose docnames contained one of those characters could
+  previously derive the identical key, letting a state guard that should have stayed dark fire and
+  duplicate or substitute a document's content in the compiled output. Document names without
+  either character produce byte-identical keys, so nothing changes for an ordinary project.
+
+- **An include chain deeper than this project's own bound now stops the build with a named error
+  instead of a raw Python traceback (BLD-08).** An include chain deeper than the module's bound
+  (500 — two orders of magnitude beyond any real documentation tree) now raises a
+  `sphinx.errors.ExtensionError` naming the depth reached and the offending chain, instead of
+  escaping as an uncaught interpreter `RecursionError`.
+
+- **A driveless-absolute Windows image URI is classified like its sibling (BLD-09).** An absolute
+  image URI written by a third-party extension in the driveless Windows shape (or the UNC shape)
+  now reaches the relocate-and-warn path on Python 3.13, where it was previously left untouched —
+  which mattered because an untouched rooted URI reached the image copy step, whose platform-native
+  destination join discards the output directory for a rooted path.
+
+- **Two escaping images sharing a basename no longer collapse onto one file (IMG-03).** Two
+  absolute image URIs in different directories that share a filename and both fall outside the
+  doctree directory used to collide onto one relocated file, so one image silently replaced the
+  other. The user-visible consequence: the relocated file's emitted name now carries a short
+  digest prefix ahead of the original filename, so the two images keep separate files.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation

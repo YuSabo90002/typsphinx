@@ -816,12 +816,18 @@ dependency on the registry.
      limit raises a named `ExtensionError` identifying the depth or cycle, not a raw `RecursionError`
      escaping through Sphinx's traceback (BLD-08).
 
-  4. **A driveless-absolute Windows image URI is classified like its sibling.** `builder.py:910`'s
-     bare `path.isabs()` is routed onto the same `posixpath.isabs(…) or _is_drive_qualified(…)`
-     predicate its sibling call site already uses, so such a URI reaches the rehome/relocate/warn
-     branch on Python 3.13 (BLD-09). The fix is on the **product** side — the test-side repair from
-     plan 52-09 is not accepted as closing this — and the predicate is asserted as a
-     platform-independent string-shape test.
+  4. **A driveless-absolute Windows image URI is classified like its sibling.** `_track_image()`'s
+     absolute-URI gate (located by grepping the literal `path.isabs(resolved_uri)` call, not a cited
+     line number — the citation had already moved twice by the time Phase 55 was planned) is routed
+     onto the module-level `_is_absolute_image_uri()` predicate: `posixpath.isabs(…) or
+     _is_drive_qualified(…)` applied to a **backslash-normalized** copy of the URI, not to the raw
+     URI this criterion originally specified — measured at Phase 55 planning time and re-measured
+     independently in the `55-03` worktree to be the only one of the two spellings that actually
+     reaches the rehome/relocate/warn branch for both the driveless-absolute and UNC shapes (see
+     `55-03-RED-EVIDENCE.md` § "Predicate measurement" and `55-03-SUMMARY.md`'s Task 2 checkpoint
+     resolution). The fix is on the **product** side — the test-side repair from plan 52-09 is not
+     accepted as closing this — and the predicate is asserted as a platform-independent string-shape
+     test that fails on Linux against the pre-fix tree (BLD-09).
 
   5. **Two escaping images sharing a basename stay distinct.** Two absolute image URIs in different
      directories that share a basename and both escape the output directory relocate to two distinct
