@@ -53,10 +53,10 @@ Next action: `/gsd-execute-phase 54.1`
 ## Current Position
 
 Phase: 54.1 (bundle-directory-safety-templates-path-collision-refusal-and) — EXECUTING
-Plan: Waves 1–2 complete (54.1-01..04); Wave 3 (54.1-05) next
-Status: Executing Phase 54.1
-Progress: [████████░░] 80% (4/5 plans complete)
-Last activity: 2026-08-16 — Phase 54.1 Wave 2 merged, post-merge gate green (1314 passed, 5 skipped; black/ruff/mypy clean)
+Plan: All 5 plans complete (54.1-01..05); phase verification next
+Status: Executing Phase 54.1 — awaiting verification
+Progress: [██████████] 100% (5/5 plans complete)
+Last activity: 2026-08-16 — Phase 54.1 Wave 3 merged, post-merge gate green (1318 passed, 5 skipped, 0 failed; black/ruff/mypy clean)
 
 **Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
 renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
