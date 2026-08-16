@@ -546,8 +546,16 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
-**Measured 2026-08-16: eight open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
+**Measured 2026-08-16: nine open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
 record kept for provenance; it is not the current count.
+`root-toctree-duplicates-section-children-in-html-sidebar` was **filed 2026-08-16** (minor, owner
+observation from the rendered sidebar): `docs/source/index.rst` lists each section index AND that
+section's children in one toctree, so Configuration/Builders/Templates render twice in the HTML
+sidebar — Sphinx emits four `document is referenced in multiple toctrees` warnings over it. **The PDF
+is unaffected and this was verified, not assumed**: the master wrapper's include-edge state seeds only
+the selected parent (`user_guide/index#0>user_guide/configuration`, never
+`index#0>user_guide/configuration`), so the duplicated `include(...)` lines the root `index.typ`
+emits are guarded false and never fire — Phase 49's guard is working as designed.
 `dependabot-prs-die-on-uv-lock-locked-mismatch` was **filed 2026-08-16** (major): dependabot bumps
 `pyproject.toml` only and never regenerates `uv.lock`, so all eleven `uv sync --locked` steps across
 `ci.yml`/`docs.yml`/`release.yml` refuse the stale lockfile and no test ever runs — measured on both
