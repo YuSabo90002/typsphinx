@@ -117,17 +117,25 @@ invisible to an assertion that stops at `node["uri"]`.
 
 ## Owner decision (2026-08-16)
 
-**Timing: close inside v0.9.0 via an INSERTED phase (56.1), not after the release.** Rejected
-deferring to the next milestone; rejected fixing inline on the current branch. Rationale for the
-insertion rather than an inline fix: Phase 57's SC#4 requires that `git diff` over the release-prep
-phase show **no unintended `typsphinx/` change**, so production-code edits must carry their own
-phase number rather than ride along with release prep.
+**Timing — AMENDED 2026-08-16, same day, before anything was created.** The final decision is:
+**defer to the NEXT milestone. Nothing is inserted into v0.9.0.**
+
+~~**Timing: close inside v0.9.0 via an INSERTED phase (56.1), not after the release.**~~
+SUPERSEDED. The earlier reading of this decision is retained above struck-through so a future reader
+does not re-derive the abandoned branch from a half-memory. No `56.1` was ever created — the ROADMAP,
+`STATE.md`, and `.planning/phases/` carry no trace of it, so the amendment costs nothing but this
+paragraph.
+
+What survives from the superseded reading, because it was measured rather than assumed: Phase 57's
+SC#4 requires that `git diff` over the release-prep phase show **no unintended `typsphinx/` change**.
+That is why this cannot be fixed inline on the current branch under any timing — it is an argument
+against inline editing, not an argument for insertion, and it still holds.
 
 **Scope: "CI の Windows ビルドが通ればまあ一旦良い。残滓は todo へ."** The acceptance bar is the
 3-OS CI lane — `windows-latest` included — green over the fix, not exhaustive closure of all three
 gaps. Whatever is not needed to reach that bar is filed forward as a new todo rather than folded in.
 
-**Recorded caveat, for whoever plans 56.1** — the bar as literally stated is not self-sufficient and
+**Recorded caveat, for whoever plans this at the next milestone** — the bar as literally stated is not self-sufficient and
 must not be read as "run CI, observe green, done": all three gaps are **latent**, covered by no test
 today, so the `windows-latest` lane is already green at HEAD and would stay green if nothing were
 fixed. The bar only becomes meaningful in its RED-first form: new gates that **fail** against the

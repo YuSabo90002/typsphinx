@@ -82,10 +82,18 @@ test, run identically everywhere) and any supported Python version.
 
 ## Owner decision (2026-08-16)
 
-**Timing: close inside v0.9.0 via an INSERTED phase (56.1), paired with its sibling
-`2026-08-16-track-image-escape-branch-basename-not-normalized` (major).** Not deferred to the next
-milestone, and not fixed inline on the current branch — Phase 57's SC#4 requires that `git diff` over
-the release-prep phase show no unintended `typsphinx/` change, so this needs its own phase number.
+**Timing — AMENDED 2026-08-16, same day, before anything was created.** The final decision is:
+**defer to the NEXT milestone, paired with its sibling
+`2026-08-16-track-image-escape-branch-basename-not-normalized` (major). Nothing is inserted into
+v0.9.0.**
+
+~~**Timing: close inside v0.9.0 via an INSERTED phase (56.1).**~~ SUPERSEDED — retained
+struck-through so the abandoned branch is not re-derived later. No `56.1` was ever created; the
+ROADMAP, `STATE.md`, and `.planning/phases/` carry no trace of it.
+
+The pairing is unchanged: these two close together whenever they close. And the reason this cannot be
+fixed inline on the current branch survives the amendment unchanged — Phase 57's SC#4 requires that
+`git diff` over the release-prep phase show no unintended `typsphinx/` change.
 
 **Scope bar for the pair: the 3-OS CI lane including `windows-latest` green over the fix; residue
 filed forward as a new todo.** For this defect specifically that bar is met by the one-function
