@@ -5,8 +5,8 @@ milestone_name: per-document templates
 current_phase: 55
 current_phase_name: v0.8.0-Derived Defects
 status: planning
-stopped_at: Phase 54.1 complete (5/5 plans, verification passed 5/5)
-last_updated: "2026-08-16T03:28:25.332Z"
+stopped_at: Phase 55 context gathered
+last_updated: "2026-08-16T04:31:29.586Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 54.1 complete — 5 plans in 3 waves, verification passed 5/5 must-haves, WR-01 and CR-01 closed; 1318 passed / 5 skipped / 0 failed, black+ruff+mypy clean
 progress:
@@ -41,11 +41,13 @@ in 3 waves; verification `passed` 5/5 must-haves, no gaps, no human verification
 one hit D-08's floor missed — a comment inside the file D-09 moves) were all honored.
 
 **Two review findings ship tracked, not fixed** (`54.1-REVIEW.md`, neither a blocker):
+
 - **WR-01** — the new pre-write pass calls `TemplateEngine.resolve_template()` unconditionally per
   used key, so an existing "Custom template not found" warning now fires **three** times instead of
   two for one narrow shape (a *synthesized* `"typst"` key whose `typst_template` names a
   nonexistent path; a declared key in that state is rejected earlier by the registry's own
   existence check). Reproduced by direct build. Undocumented in the CHANGELOG.
+
 - **WR-02** — `templates_path` entries resolve against `self.srcdir`, not `confdir`, which is what
   Sphinx documents for that value. They coincide unless `-c`/`--confdir` is used. The method's own
   docstring discloses this, but the CHANGELOG's "validated before anything is written" claim reads
@@ -853,12 +855,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/54.1-bundle-directory-safety-templates-path-collision-refusal-and/54.1-CONTEXT.md
+**Resume file:** .planning/phases/55-v0-8-0-derived-defects/55-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.8.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-16T00:58:21.562Z
-Stopped at: Phase 54.1 context gathered
+Last session: 2026-08-16T04:31:29.573Z
+Stopped at: Phase 55 context gathered
 Resume: `/gsd-plan-phase 53`.
 
 **Nothing is owed forward from the publish.** All seven `52-HANDOFF.md` publish-checklist items are
