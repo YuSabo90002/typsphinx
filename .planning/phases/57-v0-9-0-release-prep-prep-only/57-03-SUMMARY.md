@@ -139,6 +139,13 @@ None - no external service configuration required.
 - `REL-08`'s checkbox and its `.planning/REQUIREMENTS.md` traceability row remain untouched — `git diff --name-only -- .planning/REQUIREMENTS.md` was empty at every task boundary, per the plan's prohibitions.
 - No git tag, release, or publish action was taken; `typsphinx/` was never touched.
 
+## Self-Check: PASSED
+
+All created/modified files confirmed present on disk (`CHANGELOG.md`,
+`tests/test_changelog_page_gate.py`, `57-CHANGELOG-EVIDENCE.md`,
+`57-03-SUMMARY.md`); all four task/plan commits confirmed in `git log`
+(`e74733d8`, `dcee0201`, `5ec81e36`, `9bf723c2`).
+
 ---
 *Phase: 57-v0-9-0-release-prep-prep-only*
 *Completed: 2026-08-17*
