@@ -53,12 +53,33 @@ version bump (Phase 57); WR-02/WR-03/WR-04/IN-01 from `54-REVIEW.md`.
 - **D-03:** `docs/source/user_guide/output_layout.rst` becomes the **canonical page for output
   layout**: the `_template/<key>/` directory story (one bundle per used key, copied wholesale,
   keys that are declared but unused are not copied), the corrected file-count rule, and the
-  hand-compile consequence Phase 54 recorded for this phase (`typst compile build/typst/manual.typ`
-  now needs `--root build/typst`, because the wrapper's `#import` is root-absolute). The `--root`
+  hand-compile consequence Phase 54 recorded for this phase (a hand-run `typst compile` may need
+  `--root <outdir>`, because the wrapper's `#import` is root-absolute). The `--root`
   note goes in that page's existing **"Which File to Compile"** section, which already discusses
   compiling the wrapper by hand — splitting it into `builders.rst` would send the reader between two
   pages. `builders.rst:122-127` gets **only** the file-count correction. The new registry subsection
   in `configuration.rst` links to `output_layout` rather than restating the layout.
+
+  **AMENDED 2026-08-16 (post-research, owner-approved).** D-03 as originally written asserted that
+  `typst compile build/typst/manual.typ` *now needs* `--root build/typst`. That assertion is
+  **measurably false** and must not be published. Measured twice independently (56-RESEARCH.md
+  § "The `--root` Claim, Empirically Corrected", and re-reproduced by the plan-phase orchestrator
+  on a fresh `-b typst` build):
+  - **bare target** (`typst_documents` target `"manual"` → wrapper at `<outdir>/manual.typ`):
+    `typst.compile(<outdir>/manual.typ)` with **no** `root` **SUCCEEDS** (len=13764). Typst's default
+    root is the input file's own directory, which for a root-level wrapper already equals `<outdir>`,
+    so the root-absolute `#import "/_template/typst/base.typ"` resolves.
+  - **target with a path component** (`"manuals/guide.typ"` → wrapper at `<outdir>/manuals/guide.typ`):
+    no-root **FAILS** (`file not found`, searched at `<outdir>/manuals/_template/typst/base.typ`);
+    `root=<outdir>` **SUCCEEDS**.
+
+  The published note must therefore be **conditional**: a hand-run `typst compile` of a wrapper whose
+  `typst_documents` target has a path component needs `--root <outdir>`; a bare-target wrapper sitting
+  at the outdir root does not. Both branches are measured, so **both must be pinned by the phase's
+  test gate** — publishing the conditional rule without a test that exercises the nested case would
+  leave the same eyeball-review hole this phase exists to close. `pdf.py:143`'s unconditional
+  `typst.compile(typ_path, root=root_dir)` is why neither builder is ever affected; that half of
+  D-03's framing was correct.
 
   Measured stale sites: `output_layout.rst:34` ("`_template.typ`, which holds the template the
   wrapper imports"), `:119` ("the reserved `_template.typ` file"), `:140` ("not even
@@ -121,6 +142,12 @@ version bump (Phase 57); WR-02/WR-03/WR-04/IN-01 from `54-REVIEW.md`.
   `tests/test_docs_template_layout_gate.py::test_every_surviving_jinja_dir_mention_names_templates_path`
   requires any surviving mention of the bare `_templates` token to name `templates_path` on the
   **same line**.
+
+### Added post-research (2026-08-16, owner-approved)
+
+- **D-09:** `CLAUDE.md:49` is corrected **in this phase**, even though 54.1's D-08/D-12 fenced the *policed* documentation set to `docs/source/` + `README.md` + `examples/`. Measured basis: the line states the `typst` builder "writes a shared `_template.typ` file once per build (`_write_template_file`)", while `grep -rn "_write_template_file" typsphinx/ tests/` returns **zero** hits — the symbol is deleted. This was found by the SC#4 repo-wide discovery grep and is **not** in CONTEXT.md's original measured floor, which is exactly the failure mode invariants #4/#11 exist to catch. Scope of the fix is one line of prose plus whatever else in that `builder.py` bullet the deletion invalidated; **the policed set is NOT widened** — no test is added that greps `CLAUDE.md`, because CLAUDE.md is agent-facing instruction, not published user documentation. Rationale for fixing anyway: every executor agent reads CLAUDE.md, so a stale method name there actively misleads future work in a way a stale user-doc line does not.
+
+- **D-10:** The SC#4 discovery grep's hit set is **the measured hit set, not CONTEXT.md's floor**, and every hit is dispositioned in writing with its reason. Two hits already found beyond the floor: `CLAUDE.md:49` (see D-09) and `examples/charged-ieee/approach2/conf.py:21-25`, whose comment claims setting `typst_package` would "skip emitting `_template.typ`" — a claim about an output artifact that no longer exists, on a file **inside** the already-policed `examples/` set. Historical records (`docs/source/changelog.rst`, `CHANGELOG.md` pre-0.9.0 entries) stay untouched per the DOC-17 recommendation below; that exclusion is recorded with its reason rather than silently applied.
 
 ### Claude's Discretion
 
