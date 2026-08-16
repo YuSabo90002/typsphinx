@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 3
 waived_count: 0
 fixed_count: 7
-total_count: 9
-last_updated: 2026-08-16T15:46:01.324Z
+total_count: 10
+last_updated: 2026-08-16T16:46:08.050Z
 ---
 
 # Broken Windows Ledger
@@ -24,6 +24,7 @@ last_updated: 2026-08-16T15:46:01.324Z
 | 7 | 53 | unrun-verify | tests/test_state_guard_shapes_gate.py |  | 7 tests reference archived .planning/phases/49-.../49-SHAPES-RED-EVIDENCE.md path; pre-existing, unrelated to 53-01's plan-verify pytest run | open |  | 2026-08-15T07:54:06.398Z |  |
 | 8 | 54.1 | lint-warning | tests/test_templates_path_collision_gate.py |  | Pre-existing black-formatting defect (predates 54.1-03, authored by sibling 54.1-01); deferred to 54.1-05 or 54.1-01's own worktree merge | fixed |  | 2026-08-16T02:43:57.737Z | 2026-08-16T02:52:57.402Z |
 | 9 | 57 | todo | tests/test_templates_path_collision_gate.py | 255 | Windows path-separator mismatch: aggregate collision message uses native backslash join, test asserted forward-slash substring '_templates/nested' (both windows-latest lanes, CI run 31956166848). Fix landed in plan 57-10 (assertion made separator-portable via pathlib.Path, see 57-WINDOWS-FIX-EVIDENCE.md); Windows-lane confirmation still pending plan 57-05's post-bump authority CI dispatch -- stays open until that run confirms. | open |  | 2026-08-16T15:46:01.324Z |  |
+| 10 | 57 | todo | typsphinx/builder.py | 1296 | 57-10's separator-portability fix for entry 9 was measured incomplete: run 2 (CI 31959060298, both windows-latest lanes) still fails the same assertion. Root cause: builder.py:1296 builds the collision message with f"...{bundle_dir!r} collides..." -- the !r conversion means the raised message literally contains DOUBLED backslashes on Windows (Python repr() escapes each backslash char), not the single-backslash str(Path(...)) form 57-10's fix (tests/test_templates_path_collision_gate.py:262-263) assumed. 57-10 misread the doubled-backslash CI log excerpt as plain native os.sep rather than repr() escaping. Entry 9 stays open pending a corrected fix; this plan (57-05) is prohibited from touching typsphinx/ or the test file (prep-only fence) so does not attempt one. | open |  | 2026-08-16T16:46:08.050Z |  |
 
 ````json
 [
@@ -133,6 +134,18 @@ last_updated: 2026-08-16T15:46:01.324Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-16T15:46:01.324Z",
+    "resolved_at": null
+  },
+  {
+    "id": 10,
+    "kind": "todo",
+    "phase": "57",
+    "file": "typsphinx/builder.py",
+    "line": 1296,
+    "description": "57-10's separator-portability fix for entry 9 was measured incomplete: run 2 (CI 31959060298, both windows-latest lanes) still fails the same assertion. Root cause: builder.py:1296 builds the collision message with f\"...{bundle_dir!r} collides...\" -- the !r conversion means the raised message literally contains DOUBLED backslashes on Windows (Python repr() escapes each backslash char), not the single-backslash str(Path(...)) form 57-10's fix (tests/test_templates_path_collision_gate.py:262-263) assumed. 57-10 misread the doubled-backslash CI log excerpt as plain native os.sep rather than repr() escaping. Entry 9 stays open pending a corrected fix; this plan (57-05) is prohibited from touching typsphinx/ or the test file (prep-only fence) so does not attempt one.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T16:46:08.050Z",
     "resolved_at": null
   }
 ]
