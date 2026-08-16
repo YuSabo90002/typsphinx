@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 1
 waived_count: 0
-fixed_count: 6
+fixed_count: 7
 total_count: 8
-last_updated: 2026-08-16T02:43:57.737Z
+last_updated: 2026-08-16T02:52:57.402Z
 ---
 
 # Broken Windows Ledger
@@ -22,7 +22,7 @@ last_updated: 2026-08-16T02:43:57.737Z
 | 5 | 52 | lint-warning | tests/test_builder.py | 569 | ruff I001 unsorted import block fails Lint and Format Check on CI (never caught locally -- .venv/bin/ruff is a generic-linux ELF unrunnable on NixOS; discovered by phase 52-04 CI dispatch) | fixed |  | 2026-08-15T01:14:03.951Z | 2026-08-15T02:07:49.944Z |
 | 6 | 52 | stub | typsphinx/builder.py |  | Python 3.13 changed ntpath.isabs() semantics on Windows for driveless-absolute paths (leading single backslash, no drive letter) -- TypstBuilder._track_image()'s 'if path.isabs(resolved_uri):' branch is skipped under CPython 3.13.15 on windows-latest CI, so the escape-relocation/warning path never runs; py3.12.14 on the same OS/lane is unaffected. Surfaced by CI run 31856929828 (Test Python 3.13 on windows-latest), not root-caused to a fix in Phase 52. | fixed |  | 2026-08-15T01:45:59.831Z | 2026-08-15T02:07:52.046Z |
 | 7 | 53 | unrun-verify | tests/test_state_guard_shapes_gate.py |  | 7 tests reference archived .planning/phases/49-.../49-SHAPES-RED-EVIDENCE.md path; pre-existing, unrelated to 53-01's plan-verify pytest run | open |  | 2026-08-15T07:54:06.398Z |  |
-| 8 | 54.1 | lint-warning | tests/test_templates_path_collision_gate.py |  | Pre-existing black-formatting defect (predates 54.1-03, authored by sibling 54.1-01); deferred to 54.1-05 or 54.1-01's own worktree merge | open |  | 2026-08-16T02:43:57.737Z |  |
+| 8 | 54.1 | lint-warning | tests/test_templates_path_collision_gate.py |  | Pre-existing black-formatting defect (predates 54.1-03, authored by sibling 54.1-01); deferred to 54.1-05 or 54.1-01's own worktree merge | fixed |  | 2026-08-16T02:43:57.737Z | 2026-08-16T02:52:57.402Z |
 
 ````json
 [
@@ -117,10 +117,10 @@ last_updated: 2026-08-16T02:43:57.737Z
     "file": "tests/test_templates_path_collision_gate.py",
     "line": null,
     "description": "Pre-existing black-formatting defect (predates 54.1-03, authored by sibling 54.1-01); deferred to 54.1-05 or 54.1-01's own worktree merge",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-16T02:43:57.737Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-16T02:52:57.402Z"
   }
 ]
 ````

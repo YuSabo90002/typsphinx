@@ -53,10 +53,10 @@ Next action: `/gsd-execute-phase 54.1`
 ## Current Position
 
 Phase: 54.1 (bundle-directory-safety-templates-path-collision-refusal-and) — EXECUTING
-Plan: Wave 1 complete (54.1-01, 54.1-02); Wave 2 next
+Plan: Waves 1–2 complete (54.1-01..04); Wave 3 (54.1-05) next
 Status: Executing Phase 54.1
-Progress: [████░░░░░░] 40% (2/5 plans complete)
-Last activity: 2026-08-16 — Phase 54.1 Wave 1 merged, post-merge gate green (1299 passed, 5 skipped)
+Progress: [████████░░] 80% (4/5 plans complete)
+Last activity: 2026-08-16 — Phase 54.1 Wave 2 merged, post-merge gate green (1314 passed, 5 skipped; black/ruff/mypy clean)
 
 **Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
 renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
@@ -79,6 +79,14 @@ cases) · W3 = `54.1-05` (cross-kind aggregation, `Unreleased` CHANGELOG entry, 
 `tests/test_state_guard_shapes_gate.py` failures** (recorded in
 `phases/53-template-registry-foundation/deferred-items.md`, predating Phase 53). They are not a
 regression this phase causes; no executor should "fix" them or report them as new RED.
+
+> **This carve-out is STALE as of 2026-08-16 (measured at the Phase 54.1 Wave 1 and Wave 2
+> post-merge gates).** Those 7 failures no longer occur — they were fixed upstream of Phase 54.1's
+> base commit. `uv run python -m pytest` on the merged tree is **1314 passed, 5 skipped, 0
+> failed**, with `black --check .`, `ruff check .` and `mypy typsphinx/` all clean. Treat the
+> phase-boundary bar as **unconditional zero failures**, not "zero modulo 7". Any executor that
+> reports those 7 as an accepted baseline is reading a stale note. `WINDOWS.md` entry 7 still
+> tracks the underlying archived-path reference and remains open.
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
