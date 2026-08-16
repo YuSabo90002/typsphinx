@@ -36,6 +36,20 @@ MULTI_FIXTURE_DIR = (
     Path(__file__).parent / "fixtures" / "templates_path_collision_multi_gate"
 )
 
+# Phase 54.1 plan 04, task 2: the three shapes D-02 says must NEVER
+# refuse -- the adjacency false positive a naive prefix test would
+# produce, and the two measured non-colliding shapes (D-02 bullets 1
+# and 2).
+ADJACENT_CONTROL_FIXTURE_DIR = (
+    Path(__file__).parent / "fixtures" / "templates_path_adjacent_control_gate"
+)
+ABSENT_CONTROL_FIXTURE_DIR = (
+    Path(__file__).parent / "fixtures" / "templates_path_absent_control_gate"
+)
+NO_TYPST_TEMPLATE_CONTROL_FIXTURE_DIR = (
+    Path(__file__).parent / "fixtures" / "templates_path_no_typst_template_control_gate"
+)
+
 # D-01: the exact sentence fragment the new ``ExtensionError`` message
 # must contain, naming this specific failure kind -- asserted by both
 # tests below and reused as the gate's own marker constant so a future
@@ -250,3 +264,80 @@ class TestMultiRelationAggregationGate:
             f"Expected NO .typ file written when the multi-relation "
             f"collision refuses the build, found: {survivors}"
         )
+
+
+class TestNonCollidingShapesControlGate:
+    """D-02's three shapes that must NEVER refuse: the adjacency false
+    positive a naive ``str.startswith()`` prefix test would produce, and
+    the two measured non-colliding shapes (bullet 1: no
+    ``templates_path`` set at all; bullet 2: ``templates_path`` set but
+    no Typst template configured). Each control asserts BOTH exit code 0
+    AND the produced ``.typ`` file set -- an exit-0-only assertion would
+    pass for a build that silently produced nothing -- and asserts the
+    collision marker is ABSENT from the build output. No RED transcript
+    exists for any of these three: they pass both before and after the
+    fix by design."""
+
+    def test_adjacent_sibling_directory_does_not_refuse(self, tmp_path):
+        """A directory whose name merely shares a prefix with a
+        ``templates_path`` entry, but is neither the entry nor under it,
+        must NOT be reported as a collision."""
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(ADJACENT_CONTROL_FIXTURE_DIR, build_dir, "typst")
+        combined_output = result.stdout + result.stderr
+
+        assert result.returncode == 0, (
+            f"Expected the adjacency control build to succeed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert TEMPLATES_PATH_COLLISION_MARKER not in combined_output, (
+            f"Expected NO collision marker in the adjacency control's "
+            f"output:\n{combined_output}"
+        )
+        survivors = sorted(p.name for p in _typ_files(build_dir))
+        expected = sorted(["custom.typ", "index.typ", "index_out.typ"])
+        assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
+
+    def test_absent_templates_path_does_not_refuse(self, tmp_path):
+        """D-02 bullet 1: no Sphinx Jinja override directory is set at
+        all, even though the Typst template lives inside a directory
+        spelled exactly like that config value's own default -- there is
+        nothing to relate the template's directory against."""
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(ABSENT_CONTROL_FIXTURE_DIR, build_dir, "typst")
+        combined_output = result.stdout + result.stderr
+
+        assert result.returncode == 0, (
+            f"Expected the absent-templates_path control build to "
+            f"succeed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert TEMPLATES_PATH_COLLISION_MARKER not in combined_output, (
+            f"Expected NO collision marker in the absent-templates_path "
+            f"control's output:\n{combined_output}"
+        )
+        survivors = sorted(p.name for p in _typ_files(build_dir))
+        expected = sorted(["custom.typ", "index.typ", "index_out.typ"])
+        assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
+
+    def test_no_typst_template_configured_does_not_refuse(self, tmp_path):
+        """D-02 bullet 2: ``templates_path`` is set, but no Typst
+        template is configured at all, so the built-in registry key
+        falls through to the packaged default -- never subjected to the
+        containment test."""
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            NO_TYPST_TEMPLATE_CONTROL_FIXTURE_DIR, build_dir, "typst"
+        )
+        combined_output = result.stdout + result.stderr
+
+        assert result.returncode == 0, (
+            f"Expected the no-typst-template control build to succeed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert TEMPLATES_PATH_COLLISION_MARKER not in combined_output, (
+            f"Expected NO collision marker in the no-typst-template "
+            f"control's output:\n{combined_output}"
+        )
+        survivors = sorted(p.name for p in _typ_files(build_dir))
+        expected = sorted(["base.typ", "index.typ", "index_out.typ"])
+        assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
