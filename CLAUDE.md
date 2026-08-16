@@ -46,7 +46,7 @@ The pipeline follows Sphinx's standard builder → writer → translator layerin
 
 - **`__init__.py`** — `setup(app)` registers both builders and all `typst_*` config values. Builders are auto-discovered via `sphinx.builders` entry points (declared in `pyproject.toml`), so users don't strictly need to add `typsphinx` to `extensions`.
 
-- **`builder.py`** — `TypstBuilder` (`name="typst"`) drives the write loop, image copying, and template-asset copying. It also writes a shared `_template.typ` file once per build (`_write_template_file`). `TypstPDFBuilder` (`name="typstpdf"`) subclasses it: `write_doc` still emits `.typ`, and `finish()` compiles master documents to PDF via `pdf.py`.
+- **`builder.py`** — `TypstBuilder` (`name="typst"`) drives the write loop and image copying, accumulating the `typst_document_templates` registry keys actually used as it writes each document. In `finish()` it copies each used key's whole template bundle directory wholesale to its own `<outdir>/_template/<key>/` directory (`_copy_used_template_bundles()`) — the one route from a template directory to the output tree. `TypstPDFBuilder` (`name="typstpdf"`) subclasses it: `write_doc` still emits `.typ`, and `finish()` compiles master documents to PDF via `pdf.py`.
 
 - **`writer.py`** — `TypstWriter.translate()` is the key control point. It runs the translator to get the body, then branches on **master vs. included** documents via `_is_master_document()`:
   - *Master* documents (those listed in the `typst_documents` config) get the full template applied through `TemplateEngine`.
