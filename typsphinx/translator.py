@@ -206,6 +206,74 @@ def escape_typst_string(text: str) -> str:
 INCLUDE_STATE_KEY = "typsphinx:include-edges"
 
 
+def _escape_include_edge_separators(text: str) -> str:
+    """Escape literal occurrences of this module's edge-key FORMAT
+    separators (``#`` and ``>``) inside a single already
+    ``escape_typst_string()``-escaped docname component (Phase 55 plan 02,
+    BLD-07).
+
+    Two ordinary ``str.replace`` calls, nothing else: each literal ``#``
+    becomes ``\\#``, then each literal ``>`` becomes ``\\>``. This is a
+    SECOND, NARROWER rule than ``escape_typst_string()`` and is
+    deliberately NOT folded into it -- ``escape_typst_string()`` is called
+    from many sites across the translator that emit ordinary Typst string
+    literals where ``#`` is meaningful markup syntax and must NOT be
+    escaped; widening its four-character contract to also cover the two
+    edge-key separators would churn unrelated emitted bytes across the
+    whole module. This helper is applied ONLY inside
+    ``make_include_edge_key()``, to each of the two docname components,
+    never to the ``#``/``>`` the f-string itself inserts as the key
+    format's own structural separators.
+
+    Call-order is LOAD-BEARING and is why this helper runs AFTER
+    ``escape_typst_string()``, never before: ``escape_typst_string()`` has
+    already doubled every literal backslash in its input (its own
+    docstring's "escaped first" rule), so by the time this helper runs, a
+    literal backslash in the ORIGINAL docname is represented by an EVEN
+    run of backslashes (``\\`` -> ``\\\\``, ``\\\\`` -> ``\\\\\\\\``, ...).
+    This helper then introduces exactly ONE further backslash immediately
+    before each literal ``#``/``>`` byte, so every literal separator
+    character that was actually PRESENT in a docname component is now
+    preceded by an ODD run of backslashes, while the key format's own two
+    structural separators (inserted by the f-string in
+    ``make_include_edge_key()`` after both components have already been
+    escaped) are preceded by an EVEN run (usually zero, since no
+    backslash immediately precedes them). That parity is what makes the
+    three-part ``<parent>#<occurrence>><child>`` boundary uniquely
+    locatable, and is therefore what makes the parent/child/occurrence
+    triple-to-key map injective. Reversing the order (escaping the two
+    separators BEFORE ``escape_typst_string()`` runs) does NOT hold this
+    property: the later backslash-doubling pass would turn an
+    originally-odd run even, destroying the parity invariant. This
+    ordering and the resulting injectivity were brute-forced over 640,000
+    ``(parent, child, occurrence)`` triples this phase (drawn from the
+    alphabet ``a # > \\ 0 1 "`` with component lengths 0-3 and occurrences
+    0, 1, 2 and 10): zero collisions with this construction, versus a
+    first collision at ``('', '#0>', 0)`` against ``('#0>', '', 0)`` (both
+    ``#0>#0>``) without it.
+
+    The measured Typst-level fact this fix rests on: Typst keeps the
+    escaping backslash as an ordinary character in the string VALUE (a
+    two-character sequence, ``\\`` followed by the separator, not folded
+    away) -- so two differently-escaped key spellings stay distinct
+    inside the published ``state`` array at compile time. This property
+    is pinned directly against a real ``typst.compile()`` by
+    ``tests/test_include_edge_separator_collision_gate.py``'s language
+    probe (``test_typst_language_keeps_escape_character_distinct``).
+
+    Args:
+        text: A single docname component, already passed through
+            ``escape_typst_string()``.
+
+    Returns:
+        ``text`` with every literal ``#`` and ``>`` byte preceded by one
+        additional backslash.
+    """
+    text = text.replace("#", "\\#")
+    text = text.replace(">", "\\>")
+    return text
+
+
 def make_include_edge_key(
     parent_docname: str, child_docname: str, occurrence: int = 0
 ) -> str:
@@ -235,13 +303,20 @@ def make_include_edge_key(
 
     Returns:
         The edge key, e.g. ``"index#0>child"``. Both docnames route
-        through ``escape_typst_string()`` (T-49-01), so a docname
-        containing a double quote or a backslash still produces a key
-        that is byte-identical whether derived on the graph side or the
-        emission side.
+        through ``escape_typst_string()`` (T-49-01) AND the
+        separator-escaping helper above it (Phase 55 plan 02, BLD-07),
+        so a docname containing a double quote, a backslash, a ``#`` or a
+        ``>`` still produces a key that is byte-identical whether derived
+        on the graph side or the emission side, and two structurally
+        different edges can no longer collide onto one key. A docname
+        containing NEITHER separator character produces a byte-identical
+        key to before this fix, e.g.
+        ``make_include_edge_key('index', 'child', 0) == 'index#0>child'``.
     """
-    escaped_parent = escape_typst_string(parent_docname)
-    escaped_child = escape_typst_string(child_docname)
+    escaped_parent = _escape_include_edge_separators(
+        escape_typst_string(parent_docname)
+    )
+    escaped_child = _escape_include_edge_separators(escape_typst_string(child_docname))
     return f"{escaped_parent}#{occurrence}>{escaped_child}"
 
 
