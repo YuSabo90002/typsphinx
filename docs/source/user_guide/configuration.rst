@@ -600,6 +600,46 @@ Here's a complete ``conf.py`` example:
    # Paper size and base font size
    typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
 
+Removed Configuration Values
+-----------------------------
+
+typsphinx detects a removed configuration name still present in
+``conf.py`` and emits one build warning per name. The warning fires for
+every builder, including ``-b html``, because the check runs on Sphinx's
+``config-inited`` event before a builder even exists. Setting a removed
+name to ``None`` or an empty list still warns, because writing the line
+at all means holding a wrong belief about what it does. Detection is
+exact name matching, so a differently-spelled or differently-cased name
+is not detected at all. There is no per-warning suppression route -- the
+warning carries no warning type -- so the only lever is
+``sphinx-build -W``, which turns it into a build failure.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Removed value
+     - Removed in
+     - What to do instead
+   * - ``typst_template_assets``
+     - v0.9.0
+     - Delete the setting. Every used template's bundle directory is now
+       copied wholesale, so MORE files reach the output than the
+       explicit list used to select -- no asset list is needed.
+   * - ``typst_authors``
+     - v0.7.1
+     - Express rich author structure through
+       ``typst_template_function``'s ``params`` route (see
+       `Author Information`_ above). Author department, organization,
+       and email do not reach the output unless supplied that way.
+   * - ``typst_toctree_defaults``
+     - v0.6.3
+     - No replacement -- it was registered but never read even when it
+       existed, so deleting it changes no build output.
+
+A ``conf.py`` setting more than one of these emits one separate warning
+per name, in the order listed above, never a single combined warning.
+
 See Also
 --------
 

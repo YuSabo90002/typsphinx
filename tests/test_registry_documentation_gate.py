@@ -47,6 +47,7 @@ import ast
 import re
 from pathlib import Path
 
+from typsphinx.removed_config import REMOVED_CONFIG_VALUES
 from typsphinx.template_registry import _KEY_SHAPE_REJECTION_CASES
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -73,6 +74,18 @@ CASE_NAME_TO_PHRASE = {
     "trailing_dot": "Ends with a trailing dot",
     "trailing_space": "Ends with a trailing space",
     "case_collision": "Differs from another declared key only by case",
+}
+
+# Phase 56 plan 02 (D-09/DOC-17): the "removed configuration values"
+# section heading and the removed-name -> distinguishing-phrase map. Keys
+# are checked for exact set-equality against ``set(REMOVED_CONFIG_VALUES)``
+# for the same reason as CASE_NAME_TO_PHRASE above.
+REMOVED_VALUES_HEADING = "Removed Configuration Values"
+
+REMOVED_NAME_TO_PHRASE = {
+    "typst_template_assets": "copied wholesale",
+    "typst_authors": "params",
+    "typst_toctree_defaults": "No replacement",
 }
 
 # Phase 56 plan 01 (D-02/DOC-15): the retracted element [4] definition
@@ -247,7 +260,9 @@ def _region_text_by_heading(heading: str) -> str:
             heading_idx = i
             break
     if heading_idx is None:
-        raise AssertionError(f"configuration.rst does not contain a {heading!r} heading.")
+        raise AssertionError(
+            f"configuration.rst does not contain a {heading!r} heading."
+        )
     underline_re = re.compile(r"^[=\-~^]+$")
     start = heading_idx + 2  # past the heading text and its own underline
     end = len(lines)
@@ -715,4 +730,84 @@ class TestKeyNamingRulesMatchTheCode:
             f"omitted 'trailing_dot' case as missing from a synthetic "
             f"region -- got {missing}. This guard would pass vacuously "
             f"for a genuinely incomplete naming-rules page."
+        )
+
+
+# --------------------------------------------------------------------------
+# Phase 56 plan 02 (D-09/DOC-17): the removed-configuration-values
+# guidance gate -- the published table bound to REMOVED_CONFIG_VALUES by
+# import, never transcription.
+# --------------------------------------------------------------------------
+
+
+def _removed_values_region_text() -> str:
+    return _region_text_by_heading(REMOVED_VALUES_HEADING)
+
+
+class TestRemovedValuesGuidanceMatchesTheWarnings:
+    """DOC-17: the published 'Removed Configuration Values' section is
+    held to ``typsphinx.removed_config.REMOVED_CONFIG_VALUES`` by import
+    -- a fourth removal added to the dict fails this class until the page
+    names it."""
+
+    def test_every_removed_name_is_published(self):
+        region = _removed_values_region_text()
+        missing = [name for name in REMOVED_CONFIG_VALUES if name not in region]
+        assert not missing, (
+            f"{missing} are keys of REMOVED_CONFIG_VALUES with no mention "
+            f"in the 'Removed Configuration Values' region of "
+            f"configuration.rst."
+        )
+
+    def test_phrase_map_keys_match_the_code_exactly(self):
+        assert set(REMOVED_NAME_TO_PHRASE) == set(REMOVED_CONFIG_VALUES), (
+            f"REMOVED_NAME_TO_PHRASE's keys "
+            f"{sorted(REMOVED_NAME_TO_PHRASE)} do not exactly match "
+            f"REMOVED_CONFIG_VALUES's keys "
+            f"{sorted(REMOVED_CONFIG_VALUES)} -- a renamed or added "
+            f"removal must not go silently unchecked."
+        )
+
+    def test_every_name_carries_its_required_phrase(self):
+        region = _removed_values_region_text()
+        missing = _region_missing_phrases(region, REMOVED_NAME_TO_PHRASE)
+        assert not missing, (
+            f"{missing} have no distinguishing phrase published in the "
+            f"'Removed Configuration Values' region of configuration.rst."
+        )
+
+    def test_region_states_no_suppression_and_every_builder_facts(self):
+        region = _removed_values_region_text()
+        assert "suppress_warnings" not in region, (
+            "The 'Removed Configuration Values' region must not name "
+            "'suppress_warnings' -- no such per-warning suppression route "
+            "exists (removed_config.py's logger.warning() call carries no "
+            "type/subtype)."
+        )
+        assert "every builder" in region, (
+            "The 'Removed Configuration Values' region does not state "
+            "that the warning fires for every builder, not just the "
+            "Typst ones."
+        )
+        assert "-b html" in region, (
+            "The 'Removed Configuration Values' region does not name "
+            "'-b html' as a concrete example of a non-Typst builder that "
+            "still triggers the warning."
+        )
+
+    def test_teeth_a_missing_name_is_detected(self):
+        # Without this test, test_every_removed_name_is_published could
+        # pass vacuously if the membership check stopped detecting
+        # anything.
+        synthetic_region = "\n".join(
+            name for name in REMOVED_CONFIG_VALUES if name != "typst_authors"
+        )
+        missing = [
+            name for name in REMOVED_CONFIG_VALUES if name not in synthetic_region
+        ]
+        assert missing == ["typst_authors"], (
+            f"The membership check failed to report the deliberately "
+            f"omitted 'typst_authors' name as missing from a synthetic "
+            f"region -- got {missing}. This guard would pass vacuously "
+            f"for a genuinely incomplete removed-values page."
         )
