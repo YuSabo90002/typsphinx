@@ -4,11 +4,11 @@ milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 55
 current_phase_name: v0.8.0-Derived Defects
-status: executing
-stopped_at: Phase 55 planned — 4 plans in 3 waves, ready to execute
-last_updated: "2026-08-16T05:22:23.713Z"
+status: planned
+stopped_at: Phase 55 planned (4 plans, 3 waves)
+last_updated: "2026-08-16T05:28:11.259Z"
 last_activity: 2026-08-16
-last_activity_desc: Phase 55 planned — 4 plans in 3 waves (W1 55-01 tracer · W2 55-02 + 55-03 parallel · W3 55-04); planning measurement rejected both proposed XREF-05 constructions as non-injective and found SC#4's locked BLD-09 predicate does not produce SC#4's own required behaviour (blocking decision checkpoint in 55-03)
+last_activity_desc: "Phase 55 planned — 4 plans in 3 waves (W1 55-01 tracer · W2 55-02 + 55-03 parallel · W3 55-04), plan-checker PASSED, 5/5 requirements and 5/5 decisions covered; planning measurement rejected both proposed XREF-05 constructions as non-injective and found SC#4's locked BLD-09 predicate does not produce SC#4's own required behaviour (blocking decision checkpoint in 55-03)"
 progress:
   total_phases: 6
   completed_phases: 3
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 55 — v0.8.0-Derived Defects (needs a plan).
+**Current focus:** Phase 55 — v0.8.0-Derived Defects (planned 2026-08-16, ready to execute).
 Five v0.8.0-derived requirements — XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 — that shipped unfixed
 by decision D-01, or with only a test-side fix.
 
@@ -65,8 +65,7 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-plan-phase 55` (optionally `/gsd-secure-phase 54.1` first — security enforcement
-is enabled and Phase 54.1 has no SECURITY.md).
+Next action: `/gsd-execute-phase 55`
 
 ## Current Position
 
@@ -91,12 +90,14 @@ plans themselves):**
    main substitution creates new token shapes at the SEAMS between literal text and emitted tokens.
    `55-01` locks a construction that escapes the token's own INTRODUCER instead, verified by decoder
    round-trip over an exhaustive alphabet plus 400k random strings.
+
 2. **ROADMAP SC#4 contradicts itself, and `55-03` is therefore non-autonomous.** The predicate SC#4
    names literally evaluates False for the driveless-absolute Windows URI the same criterion requires
    to reach the rehome branch, and also for the UNC shape. The consequence is worse than a missing
    rehome: the untouched rooted URI reaches `copy_image_files()`, whose Windows destination join
    discards `outdir` and writes at the drive root (rated `high` in `55-03`'s threat register). A
    blocking `checkpoint:decision` puts the choice to the owner with the measurement in hand.
+
 3. **BLD-08's proposed depth bound of 900 is unsafe.** The interpreter limit is 1000, the deepest
    surviving chain from a shallow caller is 995, and 900 already fails under ~100 caller frames.
    `55-02` locks **500** with the measurement as its commented rationale.

@@ -833,9 +833,17 @@ W3 `55-04`. `55-01` and `55-02` both touch `translator.py` and are deliberately 
 different waves; `55-03` is non-autonomous (a blocking decision checkpoint on SC#4's predicate, see
 below).
 
+**Wave 1**
+
 - [ ] 55-01-PLAN.md — XREF-05: make `_sanitize_label` injective; invert the characterization test; prove injectivity by decoder round-trip
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 55-02-PLAN.md — BLD-07 + BLD-08: escape the edge-key separators inside the single derivation point; bound the include-chain recursion with a named `ExtensionError`
 - [ ] 55-03-PLAN.md — BLD-09 + IMG-03: one named platform-independent absolute-URI predicate for `_track_image()`; a digest-prefixed escape-branch relocation key
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 55-04-PLAN.md — the `Unreleased` `Fixed` changelog entries (D-03) and the phase-boundary green evidence
 
 **Planning note (SC#4):** measurement taken at planning time shows SC#4's two clauses disagree — the
