@@ -60,8 +60,35 @@ install step fails and no test, lint or type signal is produced at all. Two live
 
 ## Per-Task Verification Map
 
-Task rows are filled in once `57-*-PLAN.md` files exist. The requirement-level map below is the
-contract each task row must inherit from.
+Task rows filled in 2026-08-17 from the nine authored plans. The requirement-level map below is the
+contract each task row inherits from.
+
+| Plan / Task | Behavior | Automated verify (abbreviated) | Inherits |
+|---|---|---|---|
+| 57-01 T1 (tracer) | Version moves across manifest / README / lockfile; editable metadata regenerated; extractor live in both directions; fence empty | `uv lock --check` + `uv sync --extra dev --locked` + `__version__ == 0.9.0` + extractor exit-0/exit-1 pair + both tag probes empty | SC#1, SC#4 |
+| 57-01 T2 | Version-sync guard trio green, zero skips; D-13 census counted live | combined pytest `--junit-xml` with `skipped="0" failures="0" errors="0"` | SC#1 |
+| 57-01 T3 | `REQUIREMENTS.md` digest baseline recorded; matrix-free coverage declaration present | `sha256sum -c` against the recorded line + empty name-only diff + zero table rows in `COVERAGE.md` | SC#4 |
+| 57-02 T1 | Pre-bump check run dispatched and completed on the phase-head tip | `origin/<branch>` equals HEAD + `uv lock --check` + `gh run view --json status` completed | SC#3 (precondition) |
+| 57-02 T2 | Run 1 transcribed with both cross-platform lanes named | heading + `windows-latest`/`macos-latest` + run URL greps | SC#3 |
+| 57-03 T1 | Curated `## [0.9.0]`: exactly 4 `**Breaking`, one `### Removed`, residual `Unreleased` reduced to one heading | `extract_changelog_section.py 0.9.0` non-empty + three `awk`-scoped counts | SC#2 |
+| 57-03 T2 | Tail rollover; coverage tuple extended; page gate zero skips | anchored tail-line greps + page-gate `--junit-xml` with `skipped="0"` | SC#2 |
+| 57-03 T3 | SC#2 evidence with both extractor directions and the Breaking census | heading greps + `skipped="0"` present; **plus `<human-check>`** on editorial quality | SC#2 |
+| 57-04 T1 | Before-side built in an independently-provisioned worktree at the prior tag | evidence headings + `git worktree list` shows no leftover + isolation transcript | SC#2 (D-08) |
+| 57-04 T2 | Migration guide first under `Migration Guides`, ≥8 `code-block:: text`, no gate added | anchored heading greps + `grep -rn Migrating tests/` empty + page gate | SC#2 (D-06/D-07) |
+| 57-04 T3 | D-10 discovery grep returns zero hits outside `.planning/` and `CHANGELOG.md` | repo-wide grep piped through both exclusions, asserted `= 0` | D-10 (as amended) |
+| 57-05 T1 | Post-bump authority run all-green; lockfile commit strictly precedes dispatch | `[.jobs[].conclusion]|unique` equals `success` + `merge-base --is-ancestor` on the lock commit | SC#3 |
+| 57-05 T2 | Both dispatches transcribed and cross-referenced | heading greps + ≥2 distinct run URLs + placeholder removed | SC#3 |
+| 57-06 T1 | Full suite, format and type gates green on the post-bump tree | full-suite `--junit-xml` `failures="0" errors="0"` + `black --check` + `mypy` | SC#3 (local) |
+| 57-06 T2 | Both docs environments build; corpus gate honest; local wheel carries the bundle | `tox -e docs-html`/`docs-pdf` + corpus `--junit-xml` + `uv build` zipfile namelist check | SC#3 (local) |
+| 57-06 T3 | Local green-tree record with an unambiguous corpus outcome line | `^Outcome: (PASSED|SKIPPED)` + `A pytest.skip is not evidence` greps | SC#3 (local) |
+| 57-07 T1 | Multi-template gate re-run post-bump, zero skips; two PDFs measured differently typeset | gate `--junit-xml` `skipped="0"` + `tests/` diff empty | SC#3 (goal claim) |
+| 57-07 T2 | Goal-claim record states what the byte assertion does and does not prove | heading greps + `skipped="0"` present | SC#3 (goal claim) |
+| 57-08 T1 | Milestone sweep with hunk-level dependency argument and two real positive controls | anchor ancestry + `@preview` count `= 4` + dependency-array diff empty + clean `git status` after falsification | SC#4 |
+| 57-08 T2 | Fence proven over this phase's own diff; second tag observation; digest re-verified | phase-start SHA extracted from `57-BUMP-EVIDENCE.md` + empty `typsphinx/` diff + `sha256sum -c` | SC#4 |
+| 57-08 T3 | SC#4 record with the adjacency edge resolved | nine heading greps + `adjacency edge case` literal | SC#4 |
+| 57-09 T1 | Ledger censused by listing; `ruff` record annotated and kept in `pending/` | filename-match counts in both ledger dirs + exactly one changed path under `.planning/todos/` | SC#5 |
+| 57-09 T2 | Standalone publish checklist with Owner/Ordering on every item | `REL-08 remains open` + ≥6 `**Owner:**` and `**Ordering:**` lines + extractor byte-identity check named | SC#5 |
+| 57-09 T3 | Third separated fence observation; final closeout-guard verification | both tag probes empty + `sha256sum -c` + `gsd-complete-milestone` named; **plus `<human-check>`** on handoff completeness | SC#4, SC#5 |
 
 | Req / SC | Behavior | Test Type | Automated Command | File Exists |
 |----------|----------|-----------|-------------------|-------------|
@@ -110,7 +137,16 @@ leaves ungated**, and the `## [0.9.0]` CHANGELOG entry, which is bound only by
 - [ ] Wave 0 covers all MISSING references — *N/A, none missing*
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 420 s (one CI dispatch)
-- [ ] `uv.lock` regenerated and committed **before** the first CI dispatch (D-13 sequencing)
+- [ ] D-13 sequencing satisfied at **both** dispatches. Refined at plan time to what the constraint
+      actually protects — *the lockfile at the dispatched SHA agrees with the manifest*, so the
+      `uv sync --extra dev --locked` step that opens every job can install:
+      - **Run 1 (pre-bump, `57-02`)** dispatches the phase-head tip, which this phase has not
+        modified. `uv lock --check` exiting 0 there is a hard precondition in that plan's `<verify>`
+        and acceptance; the plan instructs STOP-rather-than-dispatch on failure.
+      - **Run 2 (post-bump, `57-05`)** dispatches the merged Wave-1 tip, where `57-01` regenerated
+        and committed `uv.lock`. That plan proves the ordering explicitly with
+        `git merge-base --is-ancestor "$(git log -1 --format=%H -- uv.lock)" HEAD`, not merely by
+        wave position — and carries it as the phase's resolved `ordering` edge probe.
 - [ ] `test_corpus_gate.py` outcome recorded as PASSED or SKIPPED, never conflated
 - [ ] `nyquist_compliant: true` set in frontmatter
 

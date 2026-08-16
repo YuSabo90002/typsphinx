@@ -971,7 +971,42 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: TBD
+**Plans**: 9 plans in 4 waves — W1 `57-01` (tracer: the release-surface slice) + `57-02` (D-12's
+pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
+D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
+authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-08` (SC#4
+sweep and fence) · W4 `57-09` (todo-ledger disposition and the handoff). Four planning-time
+corrections landed against the locked context, each re-measured live: the CHANGELOG tail block is
+**complete** (the `[0.8.0]` line exists at `CHANGELOG.md:1157` and is topmost), so no "repair the
+missing line" task exists; **D-10 is verification, not a fix** — commit `70e24958` already corrected
+five surfaces and a repo-wide grep returns zero hits, so the plan re-runs that grep at execution time
+and cites the commit as closing evidence; **`ruff` runs locally** (`uv run ruff check .` → exit 0,
+0.15.20), so its todo is annotated and kept open rather than closed, and CI keeps lint authority on
+D-12's independent Windows/macOS grounds; and the `--locked` census is **10** steps, not eleven —
+with the hard sequencing constraint (`uv.lock` regenerated and committed strictly before either CI
+dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check in `57-05`.
+
+**Wave 1**
+
+- [ ] 57-01-PLAN.md — SC#1 tracer: the end-to-end release-surface slice (manifest, lockfile, README status line, editable-install metadata, the version-sync guard trio and the release machinery's own extractor in both directions), plus the phase-head fence observation, the live anchor re-measurement and the `REQUIREMENTS.md` closeout-guard baseline SC#4 requires
+- [ ] 57-02-PLAN.md — D-12 run 1: push the pre-bump tip and dispatch `ci.yml` against it, giving Phases 54 / 54.1 / 55 / 56 their first Windows and macOS exposure so pre-existing breakage stays separable from bump-caused breakage
+- [ ] 57-03-PLAN.md — SC#2: the curated `## [0.9.0]` section (seven `Unreleased` bullets promoted as written, three authored, exactly four `**Breaking` marks, a `### Removed` bullet stating the warning shim exists, `### Verified` unchanged), the routine tail-block rollover, and the published-page coverage tuple
+- [ ] 57-04-PLAN.md — SC#2 docs half: `Migrating from 0.8.x to 0.9.0` written from a real `-b typst` build in a second, independently-provisioned worktree at the `v0.8.0` tag (D-08), plus D-10 discharged by a live repo-wide discovery grep with any newly-surfaced hit fixed in scope
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 57-05-PLAN.md — SC#3 toolchain authority: D-12 run 2 on the merged Wave-1 tip, all twelve jobs green, the built-wheel content check captured, and the lockfile-precedes-dispatch ordering proven explicitly
+- [ ] 57-06-PLAN.md — SC#3 local half: full suite, format/lint/type, both docs tox environments with their warning counts against baseline, the full-corpus gate recorded as PASSED or honestly SKIPPED, and a locally built wheel's content check
+- [ ] 57-07-PLAN.md — SC#3 goal claim: D-14's existing multi-template gate re-run post-bump with zero skips, plus a page-geometry read-back closing the gap between "the bytes differ" and "differently typeset" — recorded as a transcript, with no new gate authored
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 57-08-PLAN.md — SC#4: the milestone-diff sweep with the runtime-dependency claim argued at hunk level and backed by a real positive control, the `@preview` guard proven load-bearing by a live falsification, the retired config-value assertion recorded, the fence proven over this phase's own diff, and the second separated tag observation
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 57-09-PLAN.md — SC#5: the todo ledger dispositioned by directory listing (never a content grep), the `ruff` record annotated and kept open, and the standalone `57-HANDOFF.md` publish checklist with REL-08 stated to remain open and the third fence observation
+
 **UI hint**: no
 
 ## Progress
