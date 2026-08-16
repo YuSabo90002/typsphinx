@@ -80,6 +80,25 @@ containing a driveless-absolute Windows-shaped target stem, authored (accidental
 deliberately) by a project maintainer, evaluated on any platform (this is a pure string-shape
 test, run identically everywhere) and any supported Python version.
 
+## Owner decision (2026-08-16)
+
+**Timing: close inside v0.9.0 via an INSERTED phase (56.1), paired with its sibling
+`2026-08-16-track-image-escape-branch-basename-not-normalized` (major).** Not deferred to the next
+milestone, and not fixed inline on the current branch — Phase 57's SC#4 requires that `git diff` over
+the release-prep phase show no unintended `typsphinx/` change, so this needs its own phase number.
+
+**Scope bar for the pair: the 3-OS CI lane including `windows-latest` green over the fix; residue
+filed forward as a new todo.** For this defect specifically that bar is met by the one-function
+change already sketched above, plus its RED-first fixture — a driveless-absolute Windows-shaped
+`typst_documents` target stem asserted REJECTED by OUT-02's guard, failing against the unfixed
+function first. Note this is a pure string-shape predicate that runs identically on every platform,
+so the `windows-latest` lane is not where its evidence comes from; the RED fixture is.
+
+Re-measured at HEAD 2026-08-16: `typsphinx/builder.py:238` still reads
+`".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)` — `segments` built from the
+backslash-normalized string, the other two predicates applied to the raw `stem`. Unchanged since
+filing.
+
 ## Related
 
 - `.planning/todos/pending/2026-08-15-track-image-isabs-not-drive-aware-on-py313-windows.md` —

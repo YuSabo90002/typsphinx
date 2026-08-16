@@ -115,6 +115,31 @@ Whatever lands must carry a real `typst.compile()` gate. Neither of BLD-09's new
 or compiles its result, which is why this survived Phase 55's own suite — the property is
 invisible to an assertion that stops at `node["uri"]`.
 
+## Owner decision (2026-08-16)
+
+**Timing: close inside v0.9.0 via an INSERTED phase (56.1), not after the release.** Rejected
+deferring to the next milestone; rejected fixing inline on the current branch. Rationale for the
+insertion rather than an inline fix: Phase 57's SC#4 requires that `git diff` over the release-prep
+phase show **no unintended `typsphinx/` change**, so production-code edits must carry their own
+phase number rather than ride along with release prep.
+
+**Scope: "CI の Windows ビルドが通ればまあ一旦良い。残滓は todo へ."** The acceptance bar is the
+3-OS CI lane — `windows-latest` included — green over the fix, not exhaustive closure of all three
+gaps. Whatever is not needed to reach that bar is filed forward as a new todo rather than folded in.
+
+**Recorded caveat, for whoever plans 56.1** — the bar as literally stated is not self-sufficient and
+must not be read as "run CI, observe green, done": all three gaps are **latent**, covered by no test
+today, so the `windows-latest` lane is already green at HEAD and would stay green if nothing were
+fixed. The bar only becomes meaningful in its RED-first form: new gates that **fail** against the
+unfixed tree first, then pass on `windows-latest`. Per this todo's own §"Fix sketch", at least one
+of those gates must be a real `typst.compile()` — an assertion that stops at `node["uri"]` cannot
+see the property that failed here, which is exactly why this survived Phase 55's suite.
+
+Expected residue → todo: gap 3 (WR-01, the unbounded `{digest}-{basename}` key length) has no
+compile-visible symptom and will not be forced out by a compile gate, so it is the likeliest item to
+file forward. Gap 2 (`escape_typst_string()` at the `image("...")` emission site) is the general
+guard; whether it is needed to reach the bar depends on what the RED gate is written against.
+
 ## Related
 
 - `.planning/todos/pending/2026-08-16-escapes-outdir-isabs-not-backslash-normalized.md` — the
