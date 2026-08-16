@@ -47,6 +47,8 @@ import ast
 import re
 from pathlib import Path
 
+from typsphinx.template_registry import _KEY_SHAPE_REJECTION_CASES
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TYPSPHINX_PKG_DIR = REPO_ROOT / "typsphinx"
 DOCS_SOURCE_DIR = REPO_ROOT / "docs" / "source"
@@ -55,6 +57,23 @@ EXAMPLES_DIR = REPO_ROOT / "examples"
 CONFIGURATION_RST_PATH = DOCS_SOURCE_DIR / "user_guide" / "configuration.rst"
 
 CATALOGUE_HEADING = "When the Build Stops"
+
+# Phase 56 plan 02 (D-07/DOC-15): the "registry key naming rules"
+# sub-subsection heading and the case-name -> distinguishing-phrase map.
+# Keys are checked for exact set-equality against
+# ``set(_KEY_SHAPE_REJECTION_CASES)``, so a renamed or an eighth case
+# fails loudly here rather than silently going unchecked.
+NAMING_RULES_HEADING = "Registry Key Naming Rules"
+
+CASE_NAME_TO_PHRASE = {
+    "empty_or_whitespace_only": "Empty or whitespace-only",
+    "dot_or_dotdot": "Exactly ``.`` or ``..``",
+    "contains_path_separator": "Contains a path separator",
+    "windows_reserved_device_name": "Windows reserved device name",
+    "trailing_dot": "Ends with a trailing dot",
+    "trailing_space": "Ends with a trailing space",
+    "case_collision": "Differs from another declared key only by case",
+}
 
 # Phase 56 plan 01 (D-02/DOC-15): the retracted element [4] definition
 # ("Document class ... accepted and ignored") must survive on no
@@ -214,21 +233,21 @@ def _discover_error_shapes() -> list:
     return shapes
 
 
-def _catalogue_region_text() -> str:
-    """Every line of ``configuration.rst`` from the ``When the Build
-    Stops`` heading (found by its title TEXT, never by line number) up
-    to but excluding the next section-underline-only line."""
+def _region_text_by_heading(heading: str) -> str:
+    """Every line of ``configuration.rst`` from ``heading`` (found by its
+    title TEXT, never by line number) up to but excluding the next
+    section-underline-only line -- shared by every doc-gate class in this
+    module that binds a code-side enumeration to one section of the
+    page."""
     text = CONFIGURATION_RST_PATH.read_text(encoding="utf-8")
     lines = text.splitlines()
     heading_idx = None
     for i, line in enumerate(lines):
-        if line.strip() == CATALOGUE_HEADING:
+        if line.strip() == heading:
             heading_idx = i
             break
     if heading_idx is None:
-        raise AssertionError(
-            f"configuration.rst does not contain a {CATALOGUE_HEADING!r} " "heading."
-        )
+        raise AssertionError(f"configuration.rst does not contain a {heading!r} heading.")
     underline_re = re.compile(r"^[=\-~^]+$")
     start = heading_idx + 2  # past the heading text and its own underline
     end = len(lines)
@@ -238,6 +257,12 @@ def _catalogue_region_text() -> str:
             end = j
             break
     return "\n".join(lines[start:end])
+
+
+def _catalogue_region_text() -> str:
+    """Every line of ``configuration.rst``'s ``When the Build Stops``
+    section -- see ``_region_text_by_heading()``."""
+    return _region_text_by_heading(CATALOGUE_HEADING)
 
 
 def _published_fragments() -> list:
@@ -611,4 +636,83 @@ class TestRetractedElementFourDefinitionIsGone:
             "The sweep predicate failed to detect the retracted phrase "
             "in a synthetic known-bad string -- this guard would pass "
             "vacuously."
+        )
+
+
+# --------------------------------------------------------------------------
+# Phase 56 plan 02 (D-07/DOC-15): the registry key naming rules gate --
+# the published seven-case table bound to _KEY_SHAPE_REJECTION_CASES by
+# import, never transcription.
+# --------------------------------------------------------------------------
+
+
+def _naming_rules_region_text() -> str:
+    return _region_text_by_heading(NAMING_RULES_HEADING)
+
+
+def _region_missing_phrases(region: str, name_to_phrase: dict) -> list:
+    """Names whose distinguishing phrase from ``name_to_phrase`` is absent
+    from ``region`` -- shared pure helper: both the real assertions and
+    the teeth tests below call this SAME function."""
+    return [name for name, phrase in name_to_phrase.items() if phrase not in region]
+
+
+class TestKeyNamingRulesMatchTheCode:
+    """D-07: the published seven registry-key rejection cases, in the
+    fixed order the code checks them, held to
+    ``typsphinx.template_registry._KEY_SHAPE_REJECTION_CASES`` by import
+    -- an eighth case added in code fails this class until the page names
+    it."""
+
+    def test_exactly_seven_cases_in_the_code(self):
+        assert len(_KEY_SHAPE_REJECTION_CASES) == 7, (
+            f"_KEY_SHAPE_REJECTION_CASES has "
+            f"{len(_KEY_SHAPE_REJECTION_CASES)} entries, expected exactly "
+            f"7 -- CONF-18's denylist is locked at seven cases; if an "
+            f"eighth was genuinely added, CASE_NAME_TO_PHRASE and the "
+            f"published naming-rules table must grow with it."
+        )
+
+    def test_phrase_map_keys_match_the_code_exactly(self):
+        assert set(CASE_NAME_TO_PHRASE) == set(_KEY_SHAPE_REJECTION_CASES), (
+            f"CASE_NAME_TO_PHRASE's keys {sorted(CASE_NAME_TO_PHRASE)} do "
+            f"not exactly match _KEY_SHAPE_REJECTION_CASES "
+            f"{sorted(_KEY_SHAPE_REJECTION_CASES)} -- a renamed or added "
+            f"case must not go silently unchecked."
+        )
+
+    def test_every_case_phrase_is_published(self):
+        region = _naming_rules_region_text()
+        missing = _region_missing_phrases(region, CASE_NAME_TO_PHRASE)
+        assert not missing, (
+            f"{missing} have no distinguishing phrase published in the "
+            f"'Registry Key Naming Rules' region of configuration.rst."
+        )
+
+    def test_region_names_casefold_and_no_unicode_normalization(self):
+        region = _naming_rules_region_text()
+        assert "casefold" in region, (
+            "The 'Registry Key Naming Rules' region does not name "
+            "'casefold' -- the comparison rule must be stated precisely."
+        )
+        assert "no Unicode normalization" in region, (
+            "The 'Registry Key Naming Rules' region does not state that "
+            "no Unicode normalization is applied."
+        )
+
+    def test_teeth_a_missing_phrase_is_detected(self):
+        # Without this test, test_every_case_phrase_is_published could
+        # pass vacuously if _region_missing_phrases() stopped detecting
+        # anything.
+        synthetic_region = "\n".join(
+            phrase
+            for name, phrase in CASE_NAME_TO_PHRASE.items()
+            if name != "trailing_dot"
+        )
+        missing = _region_missing_phrases(synthetic_region, CASE_NAME_TO_PHRASE)
+        assert missing == ["trailing_dot"], (
+            f"_region_missing_phrases() failed to report the deliberately "
+            f"omitted 'trailing_dot' case as missing from a synthetic "
+            f"region -- got {missing}. This guard would pass vacuously "
+            f"for a genuinely incomplete naming-rules page."
         )

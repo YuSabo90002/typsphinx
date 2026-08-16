@@ -228,6 +228,59 @@ rebuild.
 accepted, and leaves only the synthesized reserved key -- the same state
 as not setting the value at all.
 
+Registry Key Naming Rules
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A registry key becomes a directory name under the output tree's reserved
+``_template/`` directory, so it must be a single, portable path segment.
+The seven shapes below are refused, in the order they are checked:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Rejected key shape
+     - Why
+   * - Empty or whitespace-only
+     - A key becomes a directory name, so it must contain at least one
+       non-whitespace character.
+   * - Exactly ``.`` or ``..``
+     - These are reserved by every filesystem for the current and parent
+       directory.
+   * - Contains a path separator (``/`` or ``\``)
+     - A registry key is a single path segment; a separator would split
+       it into more than one.
+   * - A Windows reserved device name, matched case-insensitively
+       against everything before the first ``.`` -- ``CON.txt`` is
+       reserved, ``ICONIC`` is not
+     - Some of these names cannot be created as an ordinary file or
+       directory on Windows.
+   * - Ends with a trailing dot
+     - Windows silently strips a trailing dot from a directory name, so
+       the written directory would not match the declared key.
+   * - Ends with a trailing space
+     - Windows silently strips a trailing space from a directory name,
+       for the same reason.
+   * - Differs from another declared key only by case
+     - Two keys that fold to the same directory name would collide when
+       their bundles are copied to the output tree.
+
+The case comparison in the last row folds ``/``/``\`` separators,
+normalizes path shape, then applies Python's ``casefold()`` -- and
+applies no Unicode normalization at all, so the composed (NFC) and
+decomposed (NFD) spellings of one accented character are two DIFFERENT
+keys, on every platform, with no ``sys.platform`` branch.
+
+A declared key that folds onto the reserved ``typst`` key the same way is
+also refused, before any file is written -- reported by the
+``pre-write template path failure(s):`` shape below, not by this
+key-shape check itself, since the comparison there is against the
+synthesized built-in key rather than another declared key.
+
+The ``typst_documents`` element [4] lookup itself, in contrast, is exact
+``str`` equality and is never case-folded, so a key must be spelled in an
+entry exactly as it was declared.
+
 When the Build Stops
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -257,7 +310,7 @@ column three names what to change.
        ``os.PathLike``, a CONF-17 source-tree bundle, or a template
        file that does not exist
      - ``invalid definition(s):``
-     - See the registry key naming rules for the key-shape cases; for
+     - See `Registry Key Naming Rules`_ for the key-shape cases; for
        the others, correct the named definition's ``template`` or
        ``package`` value.
    * - A ``typst_documents`` entry's element [4] is set to a
