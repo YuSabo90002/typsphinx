@@ -212,3 +212,119 @@ template file at the output root (`_template.typ`, imported as `#import "_templa
 and the after tree names a path under an output-tree bundle directory
 (`_template/typst/base.typ`, imported as `#import "/_template/typst/base.typ": project`). This is
 the exact contrast D-08 requires; the wrong `.venv` was not used.
+
+## D-10 — discovery grep, run live
+
+**Truth source**, read from `pyproject.toml` and quoted verbatim:
+
+```
+$ grep -n 'requires-python\|"sphinx>=' pyproject.toml
+10:requires-python = ">=3.12"
+28:    "sphinx>=9.1,<10",
+```
+
+**A note on the plan's own `<verify>` exclusion regex.** The plan's automated `<verify>` block
+filters with `grep -v '^\./\.planning/'` and `grep -v '^\./CHANGELOG\.md'`, anchored on a leading
+`./`. On this machine's `grep`, `grep -rn ... .` does **not** prefix matched paths with `./` (paths
+come back as `.planning/foo.md`, not `./.planning/foo.md`), so that anchor never matches and the
+literal `<verify>` command as written reports every `.planning/`/`CHANGELOG.md` hit as if it were
+outside the exclusion — a path-format mismatch, not a real defect in the swept content. Confirmed
+directly:
+
+```
+$ grep -rn 'Python 3\.9\|Sphinx 5\.0' --include='*.rst' --include='*.md' --include='*.txt' . \
+    | grep -v '^\./\.planning/' | grep -v '^\./CHANGELOG\.md' | wc -l
+32
+```
+
+Every one of those 32 lines is inside `.planning/` or `CHANGELOG.md`'s own historical entries
+(verified by inspection below). Re-run with the exclusion anchored to match this `grep`'s actual
+output shape (`^\.planning/`, `^CHANGELOG\.md`, no leading `./`) — same search, same intent, correct
+anchor:
+
+```
+$ grep -rn 'Python 3\.9\|Sphinx 5\.0' --include='*.rst' --include='*.md' --include='*.txt' . \
+    | grep -v '^\.planning/' | grep -v '^CHANGELOG\.md'
+(no output — exit 1)
+```
+
+**Second sweep — `Sphinx 6.x`/`7.x`/`8.x`-shaped statements**, same corrected exclusion:
+
+```
+$ grep -rEn 'Sphinx 6\.[0-9]|Sphinx 7\.[0-9]|Sphinx 8\.[0-9]' --include='*.rst' --include='*.md' --include='*.txt' . \
+    | grep -v '^\.planning/' | grep -v '^CHANGELOG\.md'
+(no output — exit 1)
+```
+
+**Third sweep — the dead `docs/configuration.rst`-class link**, same corrected exclusion:
+
+```
+$ grep -rn 'docs/configuration.rst' --include='*.rst' --include='*.md' . \
+    | grep -v '^\.planning/' | grep -v '^CHANGELOG\.md'
+(no output — exit 1)
+```
+
+**Fourth sweep — every `../../docs/` relative link from `examples/`**, checked for existence of its
+target:
+
+```
+$ grep -rn '\.\./\.\./docs/' examples/
+examples/advanced/README.md:270:See [Configuration Reference](../../docs/source/user_guide/configuration.rst) for complete documentation of all options.
+
+$ test -f docs/source/user_guide/configuration.rst && echo TARGET_EXISTS
+TARGET_EXISTS
+```
+
+**What was excluded and why.** `.planning/` is excluded because planning prose deliberately quotes
+the stale strings under discussion (including this very plan file, which names `Python 3.9` and
+`Sphinx 5.0` as the strings to search for). `CHANGELOG.md`'s own historical entries are excluded
+because editing historical release notes is explicitly out of scope (they record what was true at
+the version they document, per DOC-17's carried-forward rule) — its two matching lines are inside
+the `## [0.5.0]`-era history describing what Python versions THAT release tested against, not a
+current prerequisites claim.
+
+## D-10 — disposition
+
+**Zero hits outside the excluded areas**, across all four sweeps above. No prose fix was needed or
+made in this task.
+
+**Closing evidence — commit `70e24958`:**
+
+```
+$ git show --stat 70e24958
+commit 70e249587d1f58652adf86e372f043bb02bee735
+Author: yuta <yusabo90002@gmail.com>
+Date:   Sun Aug 16 22:10:05 2026 +0900
+
+    docs: fix stale version prerequisites and dead configuration link
+
+ .planning/STATE.md                                 | 14 ++++
+ ...sites-and-dead-config-link-in-published-docs.md | 90 ++++++++++++++++++++++
+ docs/source/contributing.rst                       |  6 +-
+ docs/source/examples/advanced.rst                  |  2 +-
+ docs/source/installation.rst                       |  4 +-
+ examples/advanced/README.md                        |  6 +-
+ examples/basic/README.md                           |  4 +-
+ 7 files changed, 115 insertions(+), 11 deletions(-)
+```
+
+This commit corrected five files: `docs/source/installation.rst`, `docs/source/contributing.rst`,
+`docs/source/examples/advanced.rst`, `examples/basic/README.md`, and `examples/advanced/README.md`
+— two of them (`contributing.rst`, `examples/advanced.rst`) beyond the amendment's originally
+enumerated four-file floor. **The amendment's five-file list was treated as a floor, not a census**:
+this task's discovery grep was run repo-wide and live rather than restricted to that list, per
+milestone invariants #4/#11, and it independently confirms zero remaining hits.
+
+## D-11 — no gate added
+
+A `tests/test_readme_version_sync.py`-shaped module — reading `requires-python` and the `sphinx`
+pin out of `pyproject.toml` and sweeping every published prerequisites statement by run-time
+discovery — was proposed during context-gathering and **declined by the owner**, with this exact
+drift's measured recurrence history on the table: the same class of staleness survived from the
+0.7.x era across multiple files before being caught by `56-REVIEW.md`. The risk of recurrence is
+therefore accepted knowingly, not overlooked. **This plan added no test module.** Confirmed:
+
+```
+$ git diff --name-only -- tests/
+(no output)
+```
