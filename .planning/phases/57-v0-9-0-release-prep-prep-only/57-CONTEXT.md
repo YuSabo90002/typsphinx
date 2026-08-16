@@ -38,8 +38,25 @@ off a standalone publish checklist — with **zero irreversible action taken**. 
   `examples/advanced/README.md:270` and the stale `Python 3.9+` / `Sphinx 5.0+` prerequisites in
   `examples/basic/README.md:7-8`, `examples/advanced/README.md:31-33` **and**
   `docs/source/installation.rst:7-8`.
+
+  **AMENDED 2026-08-16 (post-research, owner-approved) — this is now VERIFICATION work, not a fix.**
+  The edit already landed on the live tree as commit `70e24958` ("docs: fix stale version
+  prerequisites and dead configuration link", 2026-08-16 22:10:05 +0900), which **predates
+  `57-CONTEXT.md`'s own commit** `4dd49979` (22:59:30) by 49 minutes — so the discussion that wrote
+  this bullet was already describing finished work. See the AMENDED block on D-10.
+
 - Close-out disposition of the pending todo ledger, including **re-filing** the 56-REVIEW records
   that `STATE.md` claims were filed forward but which do not exist on disk (see `<specifics>` 9).
+
+  **AMENDED 2026-08-16 (post-research, owner-approved) — the re-filing is MOOT; the record exists.**
+  `.planning/todos/completed/2026-08-16-stale-version-prerequisites-and-dead-config-link-in-published-docs.md`
+  is on disk (created `2026-08-16T12:45:09Z`, committed in `70e24958`). The discuss-session's
+  `grep -rl` missed it because the slug appears **only in the filename**, never in the file's body —
+  a content grep cannot see it. Ledger disposition stays in scope; *re-filing this record* does not.
+  Separately, and per owner decision this session, the pending todo
+  `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md` is **annotated with evidence and kept in
+  `pending/`** — not closed — because it no longer reproduces but no repair commit explains why (see
+  the AMENDED block on D-13).
 
 **Out of scope:**
 
@@ -174,6 +191,28 @@ recall.
   higher` / `Sphinx 5.0 or higher` at the same moment v0.9.0 ships with
   `requires-python = ">=3.12"` and `sphinx>=9.1,<10`. — **Reversibility:** reversible.
 
+  **AMENDED 2026-08-16 (post-research, owner-approved). The fix half of D-10 is ALREADY DONE; what
+  remains is proof.** Surfaced by `57-RESEARCH.md` and independently re-measured by the plan-phase
+  orchestrator against the live tree:
+  - Commit `70e24958` (2026-08-16 22:10:05 +0900) corrected **five** files — `docs/source/installation.rst`,
+    `docs/source/contributing.rst`, `docs/source/examples/advanced.rst`, `examples/basic/README.md`,
+    `examples/advanced/README.md` — replacing `Python 3.9 or higher/later` → `Python 3.12` and
+    `Sphinx 5.0 or higher/later` → `Sphinx 9.1 or higher (below 10)`, and rewriting the dead link
+    `../../docs/configuration.rst` → `../../docs/source/user_guide/configuration.rst`.
+    Note it reached **two surfaces beyond this bullet's enumerated floor** (`contributing.rst`,
+    `examples/advanced.rst`) — the standing "discovery is run-time, file lists are floors" rule
+    (invariants #4/#11) proving itself again.
+  - A repo-wide grep at this session's discovery time over `*.md`/`*.rst`/`*.txt`, excluding
+    `.planning/` and the historical `CHANGELOG.md`, returns **zero** remaining stale-prerequisite
+    hits and **zero** dead `docs/configuration.rst`-class links.
+
+  **D-10 therefore converts from a fix task to a verification task.** The plan must still cover
+  D-10 — by re-running the repo-wide discovery grep at execution time (not by trusting this
+  amendment's hit set, which is itself only a floor), asserting zero hits against the truth source
+  `pyproject.toml:10` `requires-python = ">=3.12"` / `:28` `sphinx>=9.1,<10`, and recording
+  `70e24958` as the closing evidence. If the execution-time grep finds a hit this amendment missed,
+  fixing it is in scope — the prose-only, no-gate character of D-11 is unchanged.
+
 - **D-11: The prerequisites correction is a prose fix only — no version-sync gate is added.**
   Rejected: a `tests/test_readme_version_sync.py`-shaped module reading `requires-python` and the
   `sphinx` pin from `pyproject.toml` and sweeping the published pages by run-time discovery. The
@@ -204,6 +243,26 @@ recall.
   four workflows — so `uv.lock` must be regenerated and committed **before** either dispatch, or no
   test, lint or type check runs at all. Two live dependabot PRs (#128, #123) are dying in exactly
   that way right now (`.planning/todos/pending/2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch.md`).
+
+  **AMENDED 2026-08-16 (post-research, owner-approved). Two of D-13's stated premises are false; its
+  conclusion survives on independent grounds.** Both re-measured by the plan-phase orchestrator:
+  - **`ruff` DOES run on this machine.** `uv run ruff check .` → `All checks passed!`, exit 0,
+    `ruff 0.15.20`; `.venv/bin/ruff` is a working 27.9 MB ELF. The pending todo
+    `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md` no longer reproduces. Per owner
+    decision this session it is **annotated with this evidence and kept in `pending/`**, not closed —
+    the defect was environment-dependent and no commit explains the repair, so closing it would
+    erase the record if it recurs.
+  - **The `--locked` census is 10 steps, not eleven** — `ci.yml` 6 (`:37,67,88,109,174,202`),
+    `release.yml` 2 (`:36,113`), `docs.yml` 1 (`:29`), `drift.yml` 1 (`:32`). **The hard sequencing
+    constraint is completely unaffected:** `uv.lock` must still be regenerated and committed before
+    either CI dispatch, or the install step fails before any test, lint or type signal exists.
+
+  **What does not change:** CI remains SC#3's lint/type/test authority. That rests on D-12's
+  independent grounds — the Windows and macOS lanes, which no local run reproduces at all and which
+  caught a real cp1252 defect at the v0.7.0 close and a real path-separator defect at the v0.7.1
+  close. **What may improve:** `ruff` can now also be run locally as part of the pre-dispatch gate
+  set, so a lint break is caught before burning a CI dispatch rather than after. That is additive —
+  it does not move authority off CI.
 
 - **D-14 [derived]: SC#3's multi-template PDF claim is discharged by re-running the existing permanent gate, not by building a new one.** Unlike Phase 52 — which had to author a new gate for
   its goal claim — `tests/test_two_key_selection_gate.py` already runs `-b typstpdf` over
@@ -306,6 +365,15 @@ recall.
 - `CHANGELOG.md` tail — the link-reference block, currently ending at `[0.7.1]` with `[Unreleased]`
   comparing `v0.8.0...HEAD`. **Both lines move in this phase** (ROADMAP SC#2 says so explicitly).
   Note the block has no `[0.8.0]` line — check whether that is an omission to repair alongside.
+
+  **AMENDED 2026-08-16 (post-research, owner-approved). There is nothing to repair — `[0.8.0]`
+  exists.** Measured directly: `CHANGELOG.md:1157` is
+  `[0.8.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.8.0`, and it is the **topmost**
+  release line in the block (descending order `[0.8.0]` → `[0.1.0b1]`, with `[Unreleased]` last at
+  `:1177` comparing `v0.8.0...HEAD`). Phase 52 added it. The block's true state is *complete*, so
+  this phase's tail-block work is the routine two-line edit ROADMAP SC#2 asks for and nothing more:
+  insert `[0.9.0]: …/releases/tag/v0.9.0` **above** `:1157`, and advance `[Unreleased]` to
+  `compare/v0.9.0...HEAD`. Do not plan a "repair the missing 0.8.0 line" task — there is no defect.
 - `docs/source/changelog.rst` lines 1-89 — the `.. include::` of the repo-root file, the
   "Migration Guides" heading, and `Migrating from 0.7.x to 0.8.0` (83 lines) as the shape D-06
   copies.
@@ -435,9 +503,12 @@ Everything below was measured this session (2026-08-16) against the live tree, n
    bullets written by Phases 54/54.1/55 as each landed. This is the single biggest procedural
    difference from the 52 precedent and the reason D-02 exists at all.
 
-3. **The tail link block ends at `[0.7.1]`** and `[Unreleased]` compares `v0.8.0...HEAD`. There is
+3. ~~**The tail link block ends at `[0.7.1]`** and `[Unreleased]` compares `v0.8.0...HEAD`. There is
    **no `[0.8.0]` line** in the block — worth checking whether the v0.8.0 release-prep phase missed
-   it, since this phase must add `[0.9.0]` and advance `[Unreleased]` regardless.
+   it, since this phase must add `[0.9.0]` and advance `[Unreleased]` regardless.~~
+   **RETRACTED 2026-08-16 (post-research, owner-approved) — measurably false.** `[0.8.0]` is present
+   at `CHANGELOG.md:1157` and is the topmost release line; `[Unreleased]` sits last at `:1177`.
+   The block is complete. See the AMENDED block under `<canonical_refs>` → "CHANGELOG.md tail".
 
 4. **The diff anchors coincide.** `v0.8.0` → `d9523ea`, an ancestor of HEAD. `origin/main` →
    `aed773c9`, also an ancestor, and it *is* `git merge-base origin/main HEAD`. Excluding
@@ -467,14 +538,25 @@ Everything below was measured this session (2026-08-16) against the live tree, n
 8. **SC#5's precondition already holds.** `git tag -l v0.9.0` is empty and `v0.9.0` does not appear
    in the tag list (which ends at `v0.8.0`).
 
-9. **A todo filing recorded as done does not exist.** `STATE.md`'s Phase 56 record says its two
+9. ~~**A todo filing recorded as done does not exist.** `STATE.md`'s Phase 56 record says its two
    review WARNINGs were "filed forward as the todo
    `stale-version-prerequisites-and-dead-config-link-in-published-docs` by owner decision".
-   `grep -rl` across `.planning/` finds that string **only inside `STATE.md` itself**;
-   `.planning/todos/pending/` holds 9 files and `completed/` holds none matching. D-10 fixes both
-   findings in this phase, so the missing record is moot for them — but it is direct evidence that
-   a completion narrative is not proof a record exists, which matters for every deferral
-   `57-HANDOFF.md` will carry.
+   `grep -rl` across `.planning/` finds that string **only inside `STATE.md` itself`**;
+   `.planning/todos/pending/` holds 9 files and `completed/` holds none matching.~~
+   **RETRACTED 2026-08-16 (post-research, owner-approved) — the record exists.** It is at
+   `.planning/todos/completed/2026-08-16-stale-version-prerequisites-and-dead-config-link-in-published-docs.md`
+   (frontmatter `created: 2026-08-16T12:45:09.347Z`, committed in `70e24958` alongside the fix
+   itself). The original observation was a **method artifact, not a missing file**: `grep -rl`
+   searches file *contents*, and this slug appears only in the *filename* — the body never repeats
+   it. `ls .planning/todos/completed/ | grep <slug>` finds it immediately.
+
+   **The lesson survives its own retraction, in a sharper form.** The discussion's conclusion —
+   "a completion narrative is not proof a record exists" — was right in spirit and reached by a
+   method that could not have distinguished the two cases. So the operative rule for every deferral
+   `57-HANDOFF.md` carries is stronger than originally written: **verify each record by listing the
+   ledger directory, never by grepping content**, and state which check was run. This retraction is
+   itself an instance of the rule that a narrative — including a CONTEXT's own "measured this
+   session" claim — is not proof.
 
 10. **The owner's framing across this discussion.** Consistency with the v0.8.0 close was chosen
     where the situation matched (silent deferral again — D-09; the same three `### Verified` items
