@@ -460,21 +460,23 @@ class TestPublishedOutputLayoutTextMatchesBuild:
 
     def test_page_states_the_shared_child_composition(self):
         """docs/source/user_guide/output_layout.rst's shared-child section
-        heading is present and the section publishes the literal 'ten'
-        file-count claim (D-09, SC#3)."""
+        heading is present and the section publishes the literal 'nine
+        root-level' file-count claim, matching what a real -b typst build
+        of the three-master fixture actually emits (Phase 56, D-03)."""
         text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
         assert "Documents Shared by Several Masters" in text, (
             "docs/source/user_guide/output_layout.rst does not contain the "
             "'Documents Shared by Several Masters' section heading."
         )
-        # Assert the whole claim clause, not the bare word "ten": "ten" is a
-        # substring of "written" and "content", both of which occur many times
-        # on this page, so `"ten" in text` was satisfied even when the claim
-        # was absent, deleted, or restated with a wrong number.
-        assert "writes ten ``.typ`` files" in text, (
+        # Assert the whole claim clause, not the bare word "nine": "nine" is
+        # a substring that could appear incidentally elsewhere on this page,
+        # so a bare substring check would be satisfied even when the claim
+        # was restated with a wrong number or a different scope (e.g. total
+        # vs. root-level).
+        assert "writes nine root-level ``.typ`` files" in text, (
             "docs/source/user_guide/output_layout.rst does not publish the "
-            "'writes ten ``.typ`` files' count claim for the three-master "
-            "example."
+            "'writes nine root-level ``.typ`` files' count claim for the "
+            "three-master example."
         )
 
     def test_helper_derived_wrapper_stem_matches_the_published_walkthroughs(self):

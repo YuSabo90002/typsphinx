@@ -121,13 +121,15 @@ Document Definitions
 
 The second tuple element names the **wrapper** file for that entry, and
 only the wrapper -- it does not govern the entry's content file. With the
-configuration shown above, the builders emit five ``.typ`` files: wrappers
-``main.typ`` and ``api-ref.typ``, content files ``index.typ`` and
-``api.typ``, named after the two source documents shown above, and
-``_template.typ``, which both wrappers import. Under the
-``typstpdf`` builder only the wrappers become PDFs: ``main.pdf`` and
-``api-ref.pdf``, and no others. See :doc:`output_layout` for the full
-wrapper/content contract.
+configuration shown above, the builders emit four root-level ``.typ``
+files: wrappers ``main.typ`` and ``api-ref.typ``, and content files
+``index.typ`` and ``api.typ``, named after the two source documents shown
+above. Both entries use the same registry key -- the reserved ``"typst"``
+key, since neither entry names a fifth element -- so its bundle is copied
+once, one directory down under the reserved output directory, rather than
+adding a root-level file. Under the ``typstpdf`` builder only the wrappers
+become PDFs: ``main.pdf`` and ``api-ref.pdf``, and no others. See
+:doc:`output_layout` for the full wrapper/content contract.
 
 Builder-Specific Options
 ~~~~~~~~~~~~~~~~~~~~~~~~

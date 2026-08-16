@@ -171,12 +171,14 @@ intended behaviour, and no configuration is needed to get it.
 
 This implies a file-count rule worth stating plainly, since it is what you
 will actually observe when you build: a build writes one wrapper per
-``typst_documents`` entry, one content file for every document in the
-project, and -- unless you configure a Typst Universe package with
-``typst_package`` and no ``typst_template`` -- the reserved
-``_template.typ``. A three-master project over six documents therefore
-writes ten ``.typ`` files; on the ``typst_package`` route it writes nine,
-because the wrapper imports the package directly instead.
+``typst_documents`` entry and one content file for every document in the
+project, both at the output directory's root. A three-master project over
+six documents therefore writes nine root-level ``.typ`` files -- three
+wrappers plus six content files. This is the ROOT-LEVEL count: the
+template bundle for each USED registry key sits one directory down, not
+at the root, so it does not add to this number. On the ``typst_package``
+route, no bundle is copied at all, so the root-level count is unchanged at
+nine.
 
 See Also
 --------
