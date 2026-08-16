@@ -115,6 +115,13 @@ None - no external service configuration required.
 - **Blocker for 57-05 to be aware of, not blocking this plan:** the Windows-only `test_templates_path_collision_gate.py` path-separator defect (WINDOWS.md entry 9) will reproduce identically on plan 57-05's post-bump dispatch unless a fix lands first — this plan's own action explicitly instructs "do not proceed to plan 57-05's authority dispatch expecting it to pass." That decision belongs to the owner or a future plan authorized to touch `tests/`, not to this plan.
 - No irreversible action was taken: no `v0.9.0` tag (local or remote), no `release.yml` dispatch, no pull request, `.github/` and `typsphinx/` both show zero diff from this plan.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/57-v0-9-0-release-prep-prep-only/57-CI-EVIDENCE.md`
+- FOUND: `.planning/phases/57-v0-9-0-release-prep-prep-only/57-02-SUMMARY.md`
+- FOUND commit: `131e0d1e` (evidence + ledger)
+- FOUND commit: `d91f6969` (this summary)
+
 ---
 *Phase: 57-v0-9-0-release-prep-prep-only*
 *Completed: 2026-08-16*
