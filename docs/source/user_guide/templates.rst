@@ -83,7 +83,7 @@ When using custom templates, you often need additional assets like fonts, logos,
 
 **Automatic Bundle Copying**
 
-Your template's whole bundle directory (the directory containing the resolved template file) is copied wholesale to the output directory -- no configuration needed:
+Your template's whole bundle directory (the directory containing the resolved template file) is copied wholesale to the output directory -- no configuration needed. Each used registry key's bundle is copied into its own directory named after that key, so two different keys whose bundles each contain a file of the same name do not overwrite one another. The bundle is the template file's own parent directory, whatever that directory contains -- a template with no other files beside it copies just the template file itself:
 
 .. code-block:: python
 
@@ -114,8 +114,12 @@ Reference assets in your template using relative paths:
 
 .. note::
 
-   Typst Universe packages (``typst_package``) handle assets automatically.
-   Bundle copying only applies to custom local templates (``typst_template``).
+   Bundle copying applies to every used registry key with no exceptions --
+   including the built-in ``"typst"`` key, which is copied by the same rule
+   as any custom key. A definition using a Typst Universe package
+   (``typst_package``) instead has no local bundle to copy: the wrapper
+   imports the package directly and Typst fetches its own assets, so there
+   is nothing for typsphinx to copy.
 
 Basic Structure
 ~~~~~~~~~~~~~~~
