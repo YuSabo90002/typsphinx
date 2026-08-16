@@ -127,6 +127,12 @@ Use a custom Typst template file:
 The template file should define a ``project`` function (or the function
 specified in ``typst_template_function``).
 
+The template's own directory must not also be named in Sphinx's own
+``templates_path`` -- since the whole bundle directory is copied to the
+output, doing so would republish the project's Sphinx template directory
+in the build output. This repository uses ``_typst/`` for exactly that
+reason.
+
 Typst Package
 ~~~~~~~~~~~~~
 
@@ -157,6 +163,70 @@ registry key to its own ``template``, ``package``, and
 different Typst template, Typst Universe package, or template-function
 arguments instead of one globally-configured template being applied to
 every master.
+
+Setting ``typst_document_templates`` is entirely additive: a ``conf.py``
+that never sets it behaves exactly as before, using only the synthesized
+reserved key.
+
+**Definition schema.** A definition is a dict carrying ``template``
+exclusively or ``package`` -- setting both is refused (CONF-15) -- plus
+an optional ``template_function``, taking the same string form or
+dict-with-``params`` form the `Template Function`_ subsection above
+already documents. The reserved key ``typst`` itself may not be declared
+in ``typst_document_templates`` (CONF-16), because typsphinx owns it.
+
+**Worked example.** ``typst_document_templates`` declaring one key on the
+``template`` route, and a ``typst_documents`` list with two entries --
+one resolving to the reserved key, one naming the declared key:
+
+.. code-block:: python
+
+   typst_document_templates = {
+       "report": {
+           "template": "_typst/report.typ",
+       },
+   }
+
+   typst_documents = [
+       ("index", "manual", "Manual", "Author Name"),
+       ("summary", "report", "Report", "Author Name", "report"),
+   ]
+
+The first entry has no element [4], so its wrapper resolves through the
+synthesized reserved ``typst`` key -- using whatever ``typst_template`` /
+``typst_package`` / ``typst_template_function`` are globally configured.
+The second entry's element [4] names ``report``, so its wrapper instead
+uses ``report``'s own ``_typst/report.typ`` template, independent of the
+global settings. This is the only place the published documentation shows
+a non-default registry key.
+
+**Package route.** A definition may use ``package`` instead of
+``template``:
+
+.. code-block:: python
+
+   typst_document_templates = {
+       "ieee": {
+           "package": "<typst-universe-package-spec>",
+       },
+   }
+
+The wrapper for a key using ``package`` imports the Typst Universe
+package directly, matching the shape shown in `Typst Package`_ above --
+and no bundle is copied for that key.
+
+**Which bundles reach the output.** Every key some ``typst_documents``
+entry actually names has its bundle -- the resolved template file's own
+parent directory -- copied wholesale to the output tree; a key that is
+declared but that no entry names is still validated, but its bundle is
+not copied. See :doc:`output_layout` for where the copies land. Nothing
+under the output directory is ever deleted, so a file removed from a
+source bundle can linger at the destination across an incremental
+rebuild.
+
+**Empty registry.** An empty ``typst_document_templates`` dict is
+accepted, and leaves only the synthesized reserved key -- the same state
+as not setting the value at all.
 
 When the Build Stops
 ^^^^^^^^^^^^^^^^^^^^^
