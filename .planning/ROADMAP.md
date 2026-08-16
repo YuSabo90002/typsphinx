@@ -971,7 +971,7 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: 10 plans in 4 waves (57-10 added mid-execution), 5/10 executed — W1 `57-01` (tracer: the release-surface slice) +
+**Plans**: 10 plans in 4 waves (57-10 added mid-execution), 7/10 complete, 57-05 halted — W1 `57-01` (tracer: the release-surface slice) +
 `57-02` (D-12's pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
 D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
 authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-08` (SC#4
@@ -996,9 +996,9 @@ dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check 
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 57-05-PLAN.md — SC#3 toolchain authority: D-12 run 2 on the merged Wave-1 tip, all twelve jobs green, the built-wheel content check captured, and the lockfile-precedes-dispatch ordering proven explicitly
-- [ ] 57-06-PLAN.md — SC#3 local half: full suite, format/lint/type, both docs tox environments with their warning counts against baseline, the full-corpus gate recorded as PASSED or honestly SKIPPED, and a locally built wheel's content check
-- [ ] 57-07-PLAN.md — SC#3 goal claim: D-14's existing multi-template gate re-run post-bump with zero skips, plus a page-geometry read-back closing the gap between "the bytes differ" and "differently typeset" — recorded as a transcript, with no new gate authored
+- [ ] 57-05-PLAN.md — **HALTED 2026-08-17, SC#3 toolchain half NOT discharged** — D-12 run 2 (`31959060298`) came back 10/12; both `windows-latest` lanes still fail. The built-wheel content check and the lockfile-precedes-dispatch ordering WERE discharged; the all-jobs-green criterion was not. Superseded by `57-11` (fix) + a fresh authority dispatch
+- [x] 57-06-PLAN.md — SC#3 local half: full suite, format/lint/type, both docs tox environments with their warning counts against baseline, the full-corpus gate recorded as PASSED or honestly SKIPPED, and a locally built wheel's content check
+- [x] 57-07-PLAN.md — SC#3 goal claim: D-14's existing multi-template gate re-run post-bump with zero skips, plus a page-geometry read-back closing the gap between "the bytes differ" and "differently typeset" — recorded as a transcript, with no new gate authored
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -1038,7 +1038,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 5/10 | In Progress | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 7/10 | Blocked (57-05 halted) | - |
 
 ## Roadmap Evolution
 
