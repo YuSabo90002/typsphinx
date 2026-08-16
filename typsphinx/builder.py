@@ -223,6 +223,41 @@ def _paths_related(path_a: str, path_b: str) -> bool:
     return common == folded_a or common == folded_b
 
 
+def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
+    """CR-01/D-06: the ONE place the A-01/CONF-17 violation sentence is
+    built, reproduced BYTE-FOR-BYTE from the message
+    ``_copy_used_template_bundles()``'s ``finish()``-side guard already
+    raises. The two guard sites (the hoisted pre-write check inside
+    ``TypstBuilder._validate_used_template_paths()`` and the
+    ``finish()``-side check inside ``_copy_used_template_bundles()``) are
+    DELIBERATELY duplicated (D-06 -- many existing tests drive
+    ``write_doc()``/``_write_typst_files()`` and ``finish()`` directly
+    without ever calling ``write()``, so the pre-write pass never runs on
+    that path). This single shared builder is what stops those two
+    deliberately-duplicated sites drifting apart in wording -- existing
+    tests read this exact text, so it must never be paraphrased or
+    "improved" at either call site.
+
+    Args:
+        key: The registry key whose resolved template violates CONF-17.
+        resolved_path: The RESOLVED template path (already ``str()``'d by
+            the caller) -- never the declared string.
+        srcdir: The build's source directory (already ``str()``'d by the
+            caller).
+
+    Returns:
+        The CONF-17/A-01 violation sentence, identical regardless of
+        which of the two call sites invokes this function.
+    """
+    return (
+        f"typst_document_templates: registry key {key!r}'s "
+        f"resolved template {resolved_path!r} has a "
+        "parent directory that is srcdir itself, or an "
+        f"ancestor of srcdir ({srcdir!r}) -- put "
+        "the template in its own subdirectory (CONF-17, A-01)"
+    )
+
+
 def _is_usable_typst_documents_entry(entry: tuple) -> bool:
     """Whether ``entry`` is a well-formed enough ``typst_documents`` tuple
     to produce a wrapper file (BLD-03).
@@ -905,14 +940,32 @@ class TypstBuilder(Builder):
             resolve_registry_key(self._document_template_registry, entry)
 
     def _validate_used_template_paths(self) -> None:
-        """WR-01/D-01: refuse the build when a used ``typst_document_templates``
-        registry key's RESOLVED template bundle directory is, contains, or
-        is contained by a Sphinx ``templates_path`` entry -- the
-        wholesale-bundle-copy republication hole ``_copy_used_template_bundles()``
-        (``finish()``-time) would otherwise walk into, since it copies the
-        resolved template's PARENT directory wholesale to
-        ``<outdir>/_template/<key>/`` with no awareness of
-        ``templates_path`` at all.
+        """WR-01/D-01 + CR-01/D-04: refuse the build pre-write for either
+        of TWO failure kinds, both derived from the SAME per-used-key
+        template resolution:
+
+        1. A used key's RESOLVED template bundle directory is, contains,
+           or is contained by a Sphinx ``templates_path`` entry -- the
+           wholesale-bundle-copy republication hole
+           ``_copy_used_template_bundles()`` (``finish()``-time) would
+           otherwise walk into, since it copies the resolved template's
+           PARENT directory wholesale to ``<outdir>/_template/<key>/``
+           with no awareness of ``templates_path`` at all.
+        2. A used key's RESOLVED template violates A-01/CONF-17 -- its
+           parent directory is ``srcdir`` itself, or an ancestor of it.
+           This is a HOIST (D-06) of the check
+           ``_copy_used_template_bundles()`` already runs at ``finish()``
+           time (``_conf17_violation_message()``, shared byte-for-byte
+           between both sites) -- that ``finish()``-side guard STAYS
+           (D-06: many existing tests drive
+           ``write_doc()``/``_write_typst_files()``/``finish()`` directly
+           without ever calling ``write()``, so this pre-write pass never
+           runs on that path). This is also the FIRST place the
+           SYNTHESIZED built-in ``"typst"`` registry key is ever
+           CONF-17-validated at all: ``resolve_template_registry()``
+           appends that key AFTER its declared-key validation loop
+           returns, so the loop's own CONF-17 check never reaches it
+           (CR-01's precise root cause).
 
         Runs ONCE, called from ``write()`` immediately after
         ``self._validate_registry_key_references()`` and before
@@ -926,10 +979,12 @@ class TypstBuilder(Builder):
         resolved through ``resolve_registry_key()`` -- including the entry
         ``_default_typst_documents()`` synthesizes when ``typst_documents``
         is unset -- never ``self._used_template_keys`` (still empty at
-        this point in the build). A registry key that is DECLARED but
-        referenced by no ``typst_documents`` entry is deliberately NOT
-        checked here (Claude's Discretion, "do not widen" recommendation):
-        the pre-write set stays reference-derived, matching
+        this point in the build). This is reference-derived scope,
+        applying to BOTH failure kinds above. A registry key that is
+        DECLARED but referenced by no ``typst_documents`` entry is
+        deliberately NOT checked here (Claude's Discretion, "do not
+        widen" recommendation): the pre-write set stays
+        reference-derived, matching
         ``_validate_registry_key_references()``'s own scope; such a key is
         still caught at ``finish()`` if it ever becomes used.
 
@@ -941,18 +996,32 @@ class TypstBuilder(Builder):
         the declared string -- because the declared value and the resolved
         path genuinely differ for the ``"search"`` and ``"default"``
         priorities. D-06 already accepts this write()-vs-finish()
-        duplication as the cost of covering both call paths (many existing
-        tests drive ``write_doc()``/``_write_typst_files()``/``finish()``
-        directly without ever calling ``write()``, so this pre-write pass
-        never runs on that path).
+        duplication as the cost of covering both call paths. This
+        resolution now runs for EVERY used key regardless of whether
+        ``templates_path`` is even set, because the CONF-17 hoist check
+        needs it unconditionally.
 
         A key whose entry carries ``package`` and no ``template`` has no
         bundle and is skipped, mirroring
-        ``_copy_used_template_bundles()``'s own skip. A key whose
-        resolution ``source == "default"`` is ALSO skipped -- the packaged
-        default's bundle lives inside the installed Python package, never
-        under ``srcdir``, so the containment test is meaningless for it
-        (and could be misleading under an editable install).
+        ``_copy_used_template_bundles()``'s own skip.
+
+        The CONF-17 hoist check runs UNCONDITIONALLY on the resolved
+        path, checked and appended (then ``continue``s to the next key)
+        BEFORE the ``resolution.source == "default"`` skip below --
+        unlike the ``templates_path`` branch, it does NOT skip
+        ``source == "default"``: the packaged default's parent directory
+        lives inside the installed Python package and can never be
+        ``srcdir`` or an ancestor of it, so the CONF-17 predicate simply
+        returns ``False`` for it and no special-case is warranted. The
+        ``templates_path`` containment check for that SAME key is skipped
+        when the key already violated CONF-17 (a template that already
+        fails CONF-17 has nothing useful to say about ``templates_path``
+        containment, and reporting both would be noise), and is skipped
+        separately when ``resolution.source == "default"`` -- the
+        packaged default's bundle lives inside the installed Python
+        package, never under ``srcdir``, so the containment test is
+        meaningless for it (and could be misleading under an editable
+        install).
 
         ``templates_path`` entries are resolved against ``self.srcdir``
         (D-02), matching every other path resolution in this file. A
@@ -971,28 +1040,32 @@ class TypstBuilder(Builder):
         (NFC/NFD) is NOT applied, matching ``_collision_key()``'s own
         documented non-normalization.
 
-        Multiple colliding keys are accumulated into ONE ``failures`` list
-        and raised as a SINGLE ``ExtensionError``, iterated in
-        ``sorted()`` key order (D-03), so the message is byte-identical
-        across runs -- never a first-offender raise. The summary prefix
+        Multiple colliding keys, across BOTH failure kinds, are
+        accumulated into ONE ``failures`` list and raised as a SINGLE
+        ``ExtensionError``, iterated in ``sorted()`` key order (D-03), so
+        the message is byte-identical across runs -- never a
+        first-offender raise. The summary prefix
         (``"typst: N pre-write template path failure(s)"``) is
-        deliberately failure-kind-neutral: sibling plans in this phase
-        feed additional failure kinds (the hoisted CONF-17/A-01 check, the
-        reserved-key case collision) into this SAME list.
+        deliberately failure-kind-neutral: a sibling check in this same
+        phase (the reserved-key case collision) feeds a THIRD failure
+        kind into this SAME list.
 
         Raises:
             ExtensionError: When one or more used keys' resolved template
                 bundle directories collide with a ``templates_path``
-                entry. Each per-failure message names the registry key,
-                the resolved bundle directory, the colliding
-                ``templates_path`` entry (both the raw config string and
-                its resolved absolute path), the consequence (the whole
-                bundle directory would be copied to build output,
-                republishing this Sphinx template directory), and the
-                remedy (move the Typst template into a directory that is
-                not on ``templates_path`` -- this repository uses
-                ``_typst/`` -- and update ``typst_template`` /
-                ``typst_document_templates`` to match).
+                entry, or violate A-01/CONF-17. Each ``templates_path``
+                failure message names the registry key, the resolved
+                bundle directory, the colliding ``templates_path`` entry
+                (both the raw config string and its resolved absolute
+                path), the consequence (the whole bundle directory would
+                be copied to build output, republishing this Sphinx
+                template directory), and the remedy (move the Typst
+                template into a directory that is not on
+                ``templates_path`` -- this repository uses ``_typst/``
+                -- and update ``typst_template`` /
+                ``typst_document_templates`` to match). Each CONF-17
+                failure message is built by ``_conf17_violation_message()``,
+                shared byte-for-byte with the ``finish()``-side guard.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
         used_keys: Set[str] = set()
@@ -1015,12 +1088,13 @@ class TypstBuilder(Builder):
 
         failures: List[Tuple[str, str]] = []
 
-        if templates_path_entries:
+        if used_keys:
             from typsphinx.template_engine import (
                 TEMPLATE_SEARCH_SUBDIR,
                 TemplateEngine,
                 resolve_package_for_engine,
             )
+            from typsphinx.template_registry import _violates_conf17
 
             for key in sorted(used_keys):
                 entry = self._document_template_registry[key]
@@ -1047,6 +1121,26 @@ class TypstBuilder(Builder):
                 )
                 resolution = template_engine.resolve_template()
 
+                # CR-01/D-04/D-05/D-06: hoisted A-01/CONF-17 check.
+                # Unlike the templates_path branch below, this does NOT
+                # skip resolution.source == "default" -- the packaged
+                # default's parent directory can never be srcdir or an
+                # ancestor of it, so the CONF-17 predicate simply returns
+                # False for it and no special-case is warranted.
+                if _violates_conf17(str(resolution.path), str(self.srcdir)):
+                    failures.append(
+                        (
+                            key,
+                            _conf17_violation_message(
+                                key, str(resolution.path), str(self.srcdir)
+                            ),
+                        )
+                    )
+                    # A template that already violates CONF-17 has
+                    # nothing useful to say about templates_path
+                    # containment -- reporting both for one key is noise.
+                    continue
+
                 if resolution.source == "default":
                     # The packaged default's bundle lives inside the
                     # installed Python package, never under srcdir --
@@ -1054,27 +1148,28 @@ class TypstBuilder(Builder):
                     # templates_path entry is meaningless for it.
                     continue
 
-                bundle_dir = path.dirname(str(resolution.path))
+                if templates_path_entries:
+                    bundle_dir = path.dirname(str(resolution.path))
 
-                for raw_tp_entry, resolved_tp_entry in templates_path_entries:
-                    if _paths_related(bundle_dir, resolved_tp_entry):
-                        failures.append(
-                            (
-                                key,
-                                f"registry key {key!r}'s resolved template "
-                                f"bundle directory {bundle_dir!r} collides "
-                                "with the Sphinx templates_path entry "
-                                f"{raw_tp_entry!r} (resolved to "
-                                f"{resolved_tp_entry!r}) -- the whole "
-                                "bundle directory is copied to the build "
-                                "output, so this would republish the "
-                                "project's Sphinx template directory; move "
-                                "the Typst template into a directory that "
-                                "is not on templates_path (this repository "
-                                "uses _typst/) and update typst_template / "
-                                "typst_document_templates to match",
+                    for raw_tp_entry, resolved_tp_entry in templates_path_entries:
+                        if _paths_related(bundle_dir, resolved_tp_entry):
+                            failures.append(
+                                (
+                                    key,
+                                    f"registry key {key!r}'s resolved template "
+                                    f"bundle directory {bundle_dir!r} collides "
+                                    "with the Sphinx templates_path entry "
+                                    f"{raw_tp_entry!r} (resolved to "
+                                    f"{resolved_tp_entry!r}) -- the whole "
+                                    "bundle directory is copied to the build "
+                                    "output, so this would republish the "
+                                    "project's Sphinx template directory; move "
+                                    "the Typst template into a directory that "
+                                    "is not on templates_path (this repository "
+                                    "uses _typst/) and update typst_template / "
+                                    "typst_document_templates to match",
+                                )
                             )
-                        )
 
         if failures:
             summary = "; ".join(f"{key!r}: {message}" for key, message in failures)
@@ -1880,11 +1975,7 @@ class TypstBuilder(Builder):
             # for the search-path route.
             if _violates_conf17(str(resolved_path), str(self.srcdir)):
                 raise ExtensionError(
-                    f"typst_document_templates: registry key {key!r}'s "
-                    f"resolved template {str(resolved_path)!r} has a "
-                    "parent directory that is srcdir itself, or an "
-                    f"ancestor of srcdir ({str(self.srcdir)!r}) -- put "
-                    "the template in its own subdirectory (CONF-17, A-01)"
+                    _conf17_violation_message(key, str(resolved_path), str(self.srcdir))
                 )
 
             dest_dir = path.join(self.outdir, TEMPLATE_OUTPUT_DIR, key)
