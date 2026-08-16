@@ -828,7 +828,7 @@ dependency on the registry.
      keys instead of collapsing onto one, so neither image is silently replaced by the other
      (IMG-03).
 
-**Plans**: 1/4 plans executed in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
+**Plans**: 3/4 plans executed in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
 W3 `55-04`. `55-01` and `55-02` both touch `translator.py` and are deliberately sequenced into
 different waves; `55-03` is non-autonomous (a blocking decision checkpoint on SC#4's predicate, see
 below).
@@ -839,8 +839,8 @@ below).
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 55-02-PLAN.md — BLD-07 + BLD-08: escape the edge-key separators inside the single derivation point; bound the include-chain recursion with a named `ExtensionError`
-- [ ] 55-03-PLAN.md — BLD-09 + IMG-03: one named platform-independent absolute-URI predicate for `_track_image()`; a digest-prefixed escape-branch relocation key
+- [x] 55-02-PLAN.md — BLD-07 + BLD-08: escape the edge-key separators inside the single derivation point; bound the include-chain recursion with a named `ExtensionError`
+- [x] 55-03-PLAN.md — BLD-09 + IMG-03: one named platform-independent absolute-URI predicate for `_track_image()`; a digest-prefixed escape-branch relocation key
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -970,7 +970,7 @@ the active milestone only.
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 55. v0.8.0-Derived Defects | v0.9.0 | 1/4 | In Progress | - |
+| 55. v0.8.0-Derived Defects | v0.9.0 | 3/4 | In Progress | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
 

@@ -70,10 +70,10 @@ Next action: `/gsd-execute-phase 55`
 ## Current Position
 
 Phase: 55 — v0.8.0-Derived Defects — EXECUTING
-Plan: 1 of 4 complete (Wave 1 done)
-Status: Executing Phase 55
-Progress: [███░░░░░░░] 25% (1/4 plans)
-Last activity: 2026-08-16 — Phase 55 execution started
+Plan: 3 of 4 complete (Waves 1–2 done)
+Status: Executing Phase 55 — Wave 3 next
+Progress: [████████░░] 75% (3/4 plans)
+Last activity: 2026-08-16 — Waves 1–2 complete; 55-03 Task 2 checkpoint resolved as option-b (backslash-normalized absolute-URI predicate), SC#4 wording amendment delegated to 55-04
 
 **Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
 injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`
