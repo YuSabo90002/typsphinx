@@ -28,11 +28,28 @@ wrapper's chain of ``#include()`` calls eventually reaches it.
        ("index", "manual", "Title", "Author", "typst"),
    ]
 
-This configuration writes three files, all at the output directory's root:
-``manual.typ``, the wrapper for the ``index`` docname's target ``manual``;
-``index.typ``, the content file for the ``index`` docname itself; and
-``_template.typ``, which holds the template the wrapper imports. The
-wrapper will not compile without it.
+This configuration writes ``manual.typ`` and ``index.typ`` at the output
+directory's root -- the wrapper for the ``index`` docname's target
+``manual``, and the content file for the ``index`` docname itself -- plus
+the template bundle for the registry key this entry uses, one directory
+down. This entry's fifth element is omitted, so it resolves to the
+reserved ``"typst"`` key, and that key's whole bundle -- the resolved
+template file and every other file that sat beside it -- is copied
+wholesale to ``_template/typst/``. The wrapper will not compile without
+it.
+
+The bundle rule in full: for every registry key that some
+``typst_documents`` entry actually names, the resolved template file's own
+parent directory -- and everything in it -- is copied wholesale to that
+key's own directory under the reserved ``_template/`` output directory. A
+key declared in ``typst_document_templates`` that no entry names has
+nothing copied. The built-in ``"typst"`` key is handled by the exact same
+rule, with no special case -- see :doc:`configuration` for the registry
+schema.
+
+Nothing under the output directory is deleted between builds. A file
+removed from a source bundle can therefore survive at its destination
+across an incremental rebuild.
 
 Which File to Compile
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +67,26 @@ layer, because nothing published the wrapper's include set for a guarded
 ``#include()`` to read. This is normal, well-defined behaviour, not a
 limitation -- a content file compiled on its own is simply a document with
 no children rendered.
+
+The wrapper imports its own registry key's template bundle by a
+project-root-absolute path (for example ``/_template/typst/base.typ``), so
+hand-running the Typst compiler resolves that import against the project
+root. Typst's default project root is the directory containing the file
+being compiled. For a bare target -- the ``manual.typ`` example above (see
+`A bare target`_) -- that directory already IS the output directory, so no
+root option is needed. For a target carrying a path component, as
+`A path in the target`_ shows, the wrapper sits in a subdirectory instead,
+and the default root no longer contains the template bundle -- so the
+compile must be given the output directory as the project root explicitly:
+
+.. code-block:: text
+
+   typst compile build/typst/manual.typ output.pdf
+   typst compile build/typst/manuals/guide.typ output.pdf --root build/typst
+
+Neither the ``typst`` nor the ``typstpdf`` builder is affected either way:
+typsphinx passes the output directory as the project root on every compile
+it performs.
 
 Where the Wrapper Is Written
 ------------------------------
@@ -116,10 +153,11 @@ kind of target problem does not: when the output path a target resolves to
 is already claimed by something else, the build raises an error instead of
 falling back, and stops before writing anything.
 
-A path can be claimed by any of three things: the reserved ``_template.typ``
-file typsphinx writes for its own use, any document's own content file
-(named after its docname, and written for every document whether or not it
-appears in ``typst_documents``), or any other entry's own wrapper.
+A path can be claimed by any of three things: the reserved ``_template/``
+output directory typsphinx writes template bundles into, any document's own
+content file (named after its docname, and written for every document
+whether or not it appears in ``typst_documents``), or any other entry's own
+wrapper.
 
 .. code-block:: python
 
@@ -137,8 +175,8 @@ now claim.
    ExtensionError: typst: 1 output path collision(s): 'index.typ': the content file for docname 'index' and typst_documents entry 0 (docname 'index', target 'index.typ') both resolve to the same output path 'index.typ'
 
 This check runs before any file is written, so a build that fails this way
-leaves no ``.typ`` files behind at all -- not even ``_template.typ``. The
-fix is to choose a target that is not any document's own name.
+leaves no ``.typ`` files behind, and no template bundle either. The fix is
+to choose a target that is not any document's own name.
 
 Documents Shared by Several Masters
 ------------------------------------
@@ -153,12 +191,14 @@ intended behaviour, and no configuration is needed to get it.
 
 This implies a file-count rule worth stating plainly, since it is what you
 will actually observe when you build: a build writes one wrapper per
-``typst_documents`` entry, one content file for every document in the
-project, and -- unless you configure a Typst Universe package with
-``typst_package`` and no ``typst_template`` -- the reserved
-``_template.typ``. A three-master project over six documents therefore
-writes ten ``.typ`` files; on the ``typst_package`` route it writes nine,
-because the wrapper imports the package directly instead.
+``typst_documents`` entry and one content file for every document in the
+project, both at the output directory's root. A three-master project over
+six documents therefore writes nine root-level ``.typ`` files -- three
+wrappers plus six content files. This is the ROOT-LEVEL count: the
+template bundle for each USED registry key sits one directory down, not
+at the root, so it does not add to this number. On the ``typst_package``
+route, no bundle is copied at all, so the root-level count is unchanged at
+nine.
 
 See Also
 --------
