@@ -18,6 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   build-time warning** for this relocation, so this changelog entry is the only place it is
   announced.
 
+- **Breaking: template layout is now validated before anything is written (WR-01, CR-01).** The
+  reason, in one clause: the resolved template's parent directory is copied wholesale to the
+  output as that registry key's bundle, so a template inside a directory Sphinx already treats
+  as its own would republish that directory into public build output. Three configurations now
+  stop the build: (a) a used registry key whose resolved template bundle directory is, contains,
+  or is contained by any entry of Sphinx's `templates_path`; (b) a resolved template whose parent
+  directory is the source directory itself or an ancestor of it — now caught before any file is
+  written rather than at the end of the build; (c) a declared registry key differing from the
+  built-in key only by case. Move the Typst template into a directory that is not on
+  `templates_path` — this project uses `_typst/` — and update `typst_template` /
+  `typst_document_templates` to match; Sphinx's own `templates_path` directory keeps its own
+  meaning and can stay in place, which is what this repository's own documentation build does. If
+  you do nothing, the build fails with a message naming the offending registry key, its resolved
+  bundle directory, and the colliding entry — this is a hard failure by design: the rejected
+  alternative, warning and skipping that key's bundle copy, leaves the wrapper importing a
+  template file that was never written, so the emitted `.typ` tree cannot compile while the build
+  reports success.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
