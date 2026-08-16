@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 1
+open_count: 2
 waived_count: 0
 fixed_count: 7
-total_count: 8
-last_updated: 2026-08-16T02:52:57.402Z
+total_count: 9
+last_updated: 2026-08-16T15:46:01.324Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,7 @@ last_updated: 2026-08-16T02:52:57.402Z
 | 6 | 52 | stub | typsphinx/builder.py |  | Python 3.13 changed ntpath.isabs() semantics on Windows for driveless-absolute paths (leading single backslash, no drive letter) -- TypstBuilder._track_image()'s 'if path.isabs(resolved_uri):' branch is skipped under CPython 3.13.15 on windows-latest CI, so the escape-relocation/warning path never runs; py3.12.14 on the same OS/lane is unaffected. Surfaced by CI run 31856929828 (Test Python 3.13 on windows-latest), not root-caused to a fix in Phase 52. | fixed |  | 2026-08-15T01:45:59.831Z | 2026-08-15T02:07:52.046Z |
 | 7 | 53 | unrun-verify | tests/test_state_guard_shapes_gate.py |  | 7 tests reference archived .planning/phases/49-.../49-SHAPES-RED-EVIDENCE.md path; pre-existing, unrelated to 53-01's plan-verify pytest run | open |  | 2026-08-15T07:54:06.398Z |  |
 | 8 | 54.1 | lint-warning | tests/test_templates_path_collision_gate.py |  | Pre-existing black-formatting defect (predates 54.1-03, authored by sibling 54.1-01); deferred to 54.1-05 or 54.1-01's own worktree merge | fixed |  | 2026-08-16T02:43:57.737Z | 2026-08-16T02:52:57.402Z |
+| 9 | 57 | todo | tests/test_templates_path_collision_gate.py | 255 | Windows path-separator mismatch: aggregate collision message uses native backslash join, test asserts forward-slash substring '_templates/nested' (both windows-latest lanes, CI run 31956166848) | open |  | 2026-08-16T15:46:01.324Z |  |
 
 ````json
 [
@@ -121,6 +122,18 @@ last_updated: 2026-08-16T02:52:57.402Z
     "reason": "",
     "recorded_at": "2026-08-16T02:43:57.737Z",
     "resolved_at": "2026-08-16T02:52:57.402Z"
+  },
+  {
+    "id": 9,
+    "kind": "todo",
+    "phase": "57",
+    "file": "tests/test_templates_path_collision_gate.py",
+    "line": 255,
+    "description": "Windows path-separator mismatch: aggregate collision message uses native backslash join, test asserts forward-slash substring '_templates/nested' (both windows-latest lanes, CI run 31956166848)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T15:46:01.324Z",
+    "resolved_at": null
   }
 ]
 ````
