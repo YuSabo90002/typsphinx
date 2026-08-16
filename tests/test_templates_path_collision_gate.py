@@ -252,10 +252,26 @@ class TestMultiRelationAggregationGate:
             f"Expected alpha/beta's colliding templates_path entry "
             f"'_templates' named:\n{message}"
         )
-        assert "_templates/nested" in message, (
+        # Separator-portable: this substring is part of beta's RESOLVED
+        # bundle directory, which the builder joins via pathlib.Path and
+        # therefore renders with the platform's native os.sep (backslash
+        # on Windows -- confirmed by CI run 31956166848's log excerpt:
+        # '...\\_templates\\nested'). Build the expected substring with
+        # Path(...) too, so this assertion holds on both POSIX and
+        # Windows instead of hardcoding a forward slash.
+        beta_bundle_tail = str(Path("_templates") / "nested")
+        assert beta_bundle_tail in message, (
             f"Expected beta's resolved bundle directory (containing "
-            f"'_templates/nested') named:\n{message}"
+            f"{beta_bundle_tail!r}) named:\n{message}"
         )
+        # NOT separator-portable, and that is correct: '_typst/inner' is
+        # a templates_path CONFIG VALUE echoed verbatim from the
+        # fixture's conf.py (`templates_path = ["_templates",
+        # "_typst/inner"]`), not a resolved filesystem path -- it stays a
+        # literal forward slash on every platform because that is what
+        # the config literally contains. Do not "fix" this one to use
+        # Path(...); doing so would stop proving the entry is echoed as
+        # configured.
         assert "_typst/inner" in message, (
             f"Expected gamma's colliding templates_path entry "
             f"'_typst/inner' named:\n{message}"
