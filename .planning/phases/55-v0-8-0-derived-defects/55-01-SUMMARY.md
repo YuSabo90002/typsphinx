@@ -219,6 +219,11 @@ None — no external service configuration required.
   `make_include_edge_key`'s separator escaping (BLD-07), should that plan want the same proof rigor.
 - No blockers for `55-02`/`55-03` (Wave 2) or `55-04` (Wave 3).
 
+## Self-Check: PASSED
+
+All created/modified files exist and all four task/plan commit hashes
+(`026af474`, `9dda7fef`, `a1355adb`, `7cc74da7`) resolve in `git log --oneline --all`.
+
 ---
 *Phase: 55-v0-8-0-derived-defects*
 *Completed: 2026-08-16*
