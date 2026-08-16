@@ -301,6 +301,29 @@ def _chunks_containing_fragment(fragment: str, chunks: list) -> list:
     return [index for index, chunk in enumerate(chunks) if fragment in chunk]
 
 
+def _shape_by_fragment(shapes: list, identifying_fragment: str) -> ErrorShape:
+    """The discovered shape whose chunks contain ``identifying_fragment``
+    -- used only to DERIVE synthetic teeth-test inputs from the real
+    discovered shapes at run time, never to type an ambiguous fragment by
+    hand."""
+    for shape in shapes:
+        if any(identifying_fragment in chunk for chunk in shape.chunks):
+            return shape
+    raise AssertionError(
+        f"No discovered shape contains {identifying_fragment!r} -- the "
+        f"teeth test that derives an ambiguous fragment from it cannot "
+        f"run."
+    )
+
+
+def _common_prefix(text_a: str, text_b: str) -> str:
+    length = min(len(text_a), len(text_b))
+    index = 0
+    while index < length and text_a[index] == text_b[index]:
+        index += 1
+    return text_a[:index]
+
+
 # --------------------------------------------------------------------------
 # Tests
 # --------------------------------------------------------------------------
@@ -377,4 +400,117 @@ class TestErrorCatalogueAgreesWithCode:
             f"exactly ONE literal chunk of its matching shape, never "
             f"zero (spanning an interpolation boundary) and never more "
             f"than one (D-05's 'never the aggregated body' rule)."
+        )
+
+
+class TestCatalogueGateHasTeeth:
+    """D-06 anti-vacuity: synthetic known-bad inputs fed DIRECTLY to the
+    same pure helpers ``TestErrorCatalogueAgreesWithCode`` uses, proving
+    each of the gate's five failure modes actually fires. Without these,
+    the real assertions above could pass vacuously if a helper silently
+    stopped detecting anything."""
+
+    def test_an_undocumented_code_shape_is_detected(self):
+        # Without this test, test_code_to_docs_every_non_excluded_shape_
+        # is_published could pass vacuously if _shape_is_covered() always
+        # returned True.
+        published = _published_fragments()
+        undocumented_shape = ErrorShape(
+            module="synthetic.py",
+            line=1,
+            chunks=[
+                "a sentence deliberately absent from every published "
+                "catalogue fragment"
+            ],
+        )
+        assert not _shape_is_covered(undocumented_shape, published), (
+            "_shape_is_covered() reported a synthetic shape whose chunk "
+            "text appears in no published fragment as COVERED -- the "
+            "code-to-docs coverage check would pass vacuously."
+        )
+
+    def test_an_invented_published_clause_is_detected(self):
+        # Without this test, test_docs_to_code_every_fragment_matches_
+        # exactly_one_shape could pass vacuously if _matching_shapes()
+        # always returned a non-empty list.
+        shapes = _discover_error_shapes()
+        invented_fragment = "a phrase no ExtensionError message ever raises"
+        matches = _matching_shapes(invented_fragment, shapes)
+        assert not matches, (
+            f"_matching_shapes() found {matches} for a fragment invented "
+            f"for this test, present in no real message -- the docs-to-"
+            f"code direction would pass vacuously for an invented clause."
+        )
+
+    def test_an_ambiguous_published_clause_is_detected(self):
+        # Without this test, test_docs_to_code_every_fragment_matches_
+        # exactly_one_shape could pass vacuously if _matching_shapes()
+        # never reported more than one match. The ambiguous fragment is
+        # DERIVED from two real discovered shapes at run time (their
+        # shared "typst: " leading prefix), never typed by hand.
+        shapes = _discover_error_shapes()
+        shape_a = _shape_by_fragment(shapes, "output path collision(s):")
+        shape_b = _shape_by_fragment(shapes, "pre-write template path failure(s):")
+        ambiguous_fragment = _common_prefix(shape_a.chunks[0], shape_b.chunks[0])
+        assert ambiguous_fragment, (
+            "The two shapes this test derives an ambiguous fragment from "
+            "no longer share a common prefix -- the test's own premise "
+            "broke; re-derive it from the current source."
+        )
+        matches = _matching_shapes(ambiguous_fragment, shapes)
+        assert len(matches) > 1, (
+            f"_matching_shapes({ambiguous_fragment!r}, ...) found only "
+            f"{matches} -- expected more than one discovered shape to "
+            f"share this derived prefix, so the uniqueness check would "
+            f"pass vacuously for a genuinely ambiguous fragment."
+        )
+
+    def test_a_fragment_spanning_an_interpolation_boundary_is_detected(self):
+        # Without this test, test_single_literal_chunk_rule could pass
+        # vacuously if _chunks_containing_fragment() credited a fragment
+        # that only exists once two separate literal chunks are
+        # concatenated together -- exactly what D-05 forbids.
+        chunk_one = "the alpha be"
+        chunk_two = "ta feature works"
+        synthetic_shape_chunks = [chunk_one, chunk_two]
+        spanning_fragment = chunk_one[-8:] + chunk_two[:10]  # "alpha beta feature"
+        assert spanning_fragment not in chunk_one
+        assert spanning_fragment not in chunk_two
+        spanning_matches = _chunks_containing_fragment(
+            spanning_fragment, synthetic_shape_chunks
+        )
+        assert not spanning_matches, (
+            f"_chunks_containing_fragment() credited the spanning "
+            f"fragment {spanning_fragment!r} against chunks "
+            f"{synthetic_shape_chunks!r} -- a fragment that only exists "
+            f"once chunks are concatenated must never be credited as a "
+            f"single-chunk match."
+        )
+        single_chunk_fragment = chunk_one[-8:]  # fully inside chunk_one alone
+        single_chunk_matches = _chunks_containing_fragment(
+            single_chunk_fragment, synthetic_shape_chunks
+        )
+        assert single_chunk_matches == [0], (
+            f"_chunks_containing_fragment() failed to credit a fragment "
+            f"drawn entirely from one real chunk -- expected match index "
+            f"[0], got {single_chunk_matches}."
+        )
+
+    def test_a_stale_exclusion_is_detected(self):
+        # Without this test, test_every_excluded_fragment_still_matches_
+        # a_discovered_shape could pass vacuously if _stale_exclusions()
+        # never reported anything as stale.
+        shapes = _discover_error_shapes()
+        synthetic_excluded = {
+            "a phrase deliberately excluded but present in no real shape": (
+                "synthetic exclusion for the teeth test -- never a real "
+                "denylist entry."
+            )
+        }
+        stale = _stale_exclusions(synthetic_excluded, shapes)
+        assert stale == list(synthetic_excluded), (
+            f"_stale_exclusions() failed to report the synthetic "
+            f"exclusion as stale -- got {stale}, expected "
+            f"{list(synthetic_excluded)}. The staleness check would pass "
+            f"vacuously for a genuinely stale exclusion."
         )
