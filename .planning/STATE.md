@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 54.1
-current_phase_name: bundle-directory-safety-templates-path-collision-refusal-and
-status: executing
-stopped_at: Phase 54.1 planned (5 plans, 3 waves)
-last_updated: "2026-08-16T02:10:32.666Z"
+current_phase: 55
+current_phase_name: v0.8.0-Derived Defects
+status: planning
+stopped_at: Phase 54.1 context gathered
+last_updated: "2026-08-16T03:28:25.332Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 54.1 planned — 5 plans in 3 waves, plan-checker PASSED, 13/13 decisions and 2/2 requirements covered
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 22
-  completed_plans: 17
-  percent: 33
+  completed_plans: 22
+  percent: 50
 ---
 
 # Project State
@@ -52,11 +52,11 @@ Next action: `/gsd-execute-phase 54.1`
 
 ## Current Position
 
-Phase: 54.1 (bundle-directory-safety-templates-path-collision-refusal-and) — EXECUTING
-Plan: All 5 plans complete (54.1-01..05); phase verification next
-Status: Executing Phase 54.1 — awaiting verification
+Phase: 55 — v0.8.0-Derived Defects
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 100% (5/5 plans complete)
-Last activity: 2026-08-16 — Phase 54.1 Wave 3 merged, post-merge gate green (1318 passed, 5 skipped, 0 failed; black/ruff/mypy clean)
+Last activity: 2026-08-16 — Phase 54.1 complete, transitioned to Phase 55
 
 **Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
 renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
