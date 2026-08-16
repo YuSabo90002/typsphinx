@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
 current_phase: 56
-current_phase_name: Per-Document Template Documentation
-status: planned
+current_phase_name: per-document-template-documentation
+status: executing
 stopped_at: Phase 56 planned — 5 plans in 3 waves, ready to execute
-last_updated: "2026-08-16T11:00:56.611Z"
+last_updated: "2026-08-16T11:05:07.397Z"
 last_activity: 2026-08-16
-last_activity_desc: 'Phase 56 planned -- 5 plans in 3 waves (W1 56-01 tracer; W2 56-02/03/04 parallel, zero files_modified overlap; W3 56-05 sweep audit, deliberately one wave after every prose fix it audits). Research + pattern map + Nyquist VALIDATION.md produced; decision coverage 10/10, requirements DOC-15/16/17 3/3. Two planning-time corrections landed against the locked context: (1) D-03 was AMENDED -- its claim that a hand-run typst compile of build/typst/manual.typ now needs --root build/typst is measurably FALSE for a bare-target wrapper (reproduced twice: a bare target compiles with no root because Typst default-roots to the input file directory = outdir; only a target with a path component such as manuals/guide.typ needs --root), so the note ships CONDITIONALLY with both branches pinned by a real typst.compile() gate; (2) D-09/D-10 added -- the SC#4 discovery grep is the measured hit set, not the CONTEXT floor, and already surfaced two hits beyond it (CLAUDE.md:49 still names the deleted _write_template_file; examples/charged-ieee/approach2/conf.py:21-25 claims typst_package skips emitting an artifact that no longer exists). Also measured at plan time: correcting output_layout.rst file-count prose breaks a currently-GREEN assertion in test_output_layout_docs_gate.py, so prose and assertion move in one commit; the D-06 two-way error-catalogue gate must be AST-based because builder.py:2151 raises via a shared helper and template_registry.py:422 uses implicit string concatenation; and the reserved-key casefold refusal (builder.py:1197) means Phase 53 D-04 no longer holds -- a key that folds onto the reserved key is now refused. Baseline at HEAD is fully green (1366 passed, 5 skipped, 0 failed; black/ruff/mypy clean; docs-html and docs-pdf green), so no RED during this phase can be attributed to a pre-existing failure. Plan-checker raised one BLOCKER on a 56-05 grep filter; refuted by measurement (plain grep uses BRE where .* is still a metacharacter) and its suggested broadening would have silently swallowed a stale hit D-10 requires fixing -- criterion kept, rationale written into the plan.'
+last_activity_desc: "Phase 56 planned -- 5 plans in 3 waves (W1 56-01 tracer; W2 56-02/03/04 parallel, zero files_modified overlap; W3 56-05 sweep audit, deliberately one wave after every prose fix it audits). Research + pattern map + Nyquist VALIDATION.md produced; decision coverage 10/10, requirements DOC-15/16/17 3/3. Two planning-time corrections landed against the locked context: (1) D-03 was AMENDED -- its claim that a hand-run typst compile of build/typst/manual.typ now needs --root build/typst is measurably FALSE for a bare-target wrapper (reproduced twice: a bare target compiles with no root because Typst default-roots to the input file directory = outdir; only a target with a path component such as manuals/guide.typ needs --root), so the note ships CONDITIONALLY with both branches pinned by a real typst.compile() gate; (2) D-09/D-10 added -- the SC#4 discovery grep is the measured hit set, not the CONTEXT floor, and already surfaced two hits beyond it (CLAUDE.md:49 still names the deleted _write_template_file; examples/charged-ieee/approach2/conf.py:21-25 claims typst_package skips emitting an artifact that no longer exists). Also measured at plan time: correcting output_layout.rst file-count prose breaks a currently-GREEN assertion in test_output_layout_docs_gate.py, so prose and assertion move in one commit; the D-06 two-way error-catalogue gate must be AST-based because builder.py:2151 raises via a shared helper and template_registry.py:422 uses implicit string concatenation; and the reserved-key casefold refusal (builder.py:1197) means Phase 53 D-04 no longer holds -- a key that folds onto the reserved key is now refused. Baseline at HEAD is fully green (1366 passed, 5 skipped, 0 failed; black/ruff/mypy clean; docs-html and docs-pdf green), so no RED during this phase can be attributed to a pre-existing failure. Plan-checker raised one BLOCKER on a 56-05 grep filter; refuted by measurement (plain grep uses BRE where .* is still a metacharacter) and its suggested broadening would have silently swallowed a stale hit D-10 requires fixing -- criterion kept, rationale written into the plan."
 progress:
   total_phases: 6
   completed_phases: 4
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 56 — Per-Document Template Documentation (planned 2026-08-16; 5 plans in
+**Current focus:** Phase 56 — per-document-template-documentation
 3 waves, ready to execute). DOC-15/DOC-16/DOC-17: the published documentation is brought into
 agreement with the registry and bundle layout that actually shipped in Phases 53/54/54.1. Docs-only —
 `typsphinx/*.py` is read-only for this phase; the new work in `tests/` is doc↔code binding gates,
@@ -71,11 +71,11 @@ Next action: `/gsd-discuss-phase 56`
 
 ## Current Position
 
-Phase: 56 — Per-Document Template Documentation
-Plan: Not started
-Status: Ready to execute
+Phase: 56 (per-document-template-documentation) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 56
 Progress: [░░░░░░░░░░] 0% (0 plans — phase not yet planned)
-Last activity: 2026-08-16 — Phase 55 complete (4/4 plans, verification passed 5/5), transitioned to Phase 56
+Last activity: 2026-08-16 — Phase 56 execution started
 
 **Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
 injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`
