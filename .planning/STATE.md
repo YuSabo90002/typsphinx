@@ -5,10 +5,10 @@ milestone_name: per-document templates
 current_phase: 55
 current_phase_name: v0.8.0-Derived Defects
 status: planning
-stopped_at: Phase 54.1 context gathered
+stopped_at: Phase 54.1 complete (5/5 plans, verification passed 5/5)
 last_updated: "2026-08-16T03:28:25.332Z"
 last_activity: 2026-08-16
-last_activity_desc: Phase 54.1 planned — 5 plans in 3 waves, plan-checker PASSED, 13/13 decisions and 2/2 requirements covered
+last_activity_desc: Phase 54.1 complete — 5 plans in 3 waves, verification passed 5/5 must-haves, WR-01 and CR-01 closed; 1318 passed / 5 skipped / 0 failed, black+ruff+mypy clean
 progress:
   total_phases: 6
   completed_phases: 3
@@ -24,18 +24,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 54.1 — bundle-directory-safety-templates-path-collision-refusal-and
-Close WR-01 (the wholesale bundle copy can republish a project's Sphinx `templates_path` directory,
-while the docs recommend exactly that layout) and CR-01 (the built-in `"typst"` key's CONF-17
-violation is discovered only at `finish()`, after every `.typ` file is written). Context gathered
-2026-08-16: refuse with `ExtensionError`, check in a pre-write pass at the top of `write()`, and fix
-the `_templates/` recommendation across `docs/source/`, `README.md` and `examples/`.
-Planned 2026-08-16: 5 plans in 3 waves. Three decisions were added at planning time — **D-11**
-(`examples/charged-ieee/approach2/` gets the same `_templates/`→`_typst/` rename as D-09), **D-12**
-(SC#2's grep gate polices `docs/source/` + `README.md` + `examples/` only; `tests/` is excluded,
-measured basis: zero files under `tests/` set both `templates_path` and `typst_template`), and
-**D-13** (the discovery-time grep found one hit D-08's floor missed —
-`examples/advanced/_templates/custom.typ:5`, a comment inside the file D-09 moves).
+**Current focus:** Phase 55 — v0.8.0-Derived Defects (needs a plan).
+Five v0.8.0-derived requirements — XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 — that shipped unfixed
+by decision D-01, or with only a test-side fix.
+
+Phase 54.1 (complete 2026-08-16) context, retained for reference:
+Closed WR-01 (the wholesale bundle copy could republish a project's Sphinx `templates_path`
+directory while the docs recommended exactly that layout) and CR-01 (the built-in `"typst"` key's
+CONF-17 violation was discovered only at `finish()`, after every `.typ` file was written). 5 plans
+in 3 waves; verification `passed` 5/5 must-haves, no gaps, no human verification required;
+`54.1-REVIEW.md` 0 critical / 2 warning / 2 info. Suite 1318 passed, 5 skipped, 0 failed;
+`black`/`ruff`/`mypy` clean. Decisions D-11 (`examples/charged-ieee/approach2/` gets the same
+`_templates/`→`_typst/` rename as D-09), D-12 (SC#2's grep gate polices `docs/source/` +
+`README.md` + `examples/` only; `tests/` excluded on the measured basis that zero files under
+`tests/` set both `templates_path` and `typst_template`) and D-13 (the discovery-time grep found
+one hit D-08's floor missed — a comment inside the file D-09 moves) were all honored.
+
+**Two review findings ship tracked, not fixed** (`54.1-REVIEW.md`, neither a blocker):
+- **WR-01** — the new pre-write pass calls `TemplateEngine.resolve_template()` unconditionally per
+  used key, so an existing "Custom template not found" warning now fires **three** times instead of
+  two for one narrow shape (a *synthesized* `"typst"` key whose `typst_template` names a
+  nonexistent path; a declared key in that state is rejected earlier by the registry's own
+  existence check). Reproduced by direct build. Undocumented in the CHANGELOG.
+- **WR-02** — `templates_path` entries resolve against `self.srcdir`, not `confdir`, which is what
+  Sphinx documents for that value. They coincide unless `-c`/`--confdir` is used. The method's own
+  docstring discloses this, but the CHANGELOG's "validated before anything is written" claim reads
+  as unconditional, and `_copy_used_template_bundles()` has no `templates_path` awareness of its
+  own either — so a `confdir`≠`srcdir` project still walks into the republication hole.
 
 Phase 54 (complete) context, retained for reference:
 26/26 v1 requirements mapped, zero orphans. Every `typst_documents` entry gets to name its own
@@ -48,45 +63,59 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-execute-phase 54.1`
+Next action: `/gsd-plan-phase 55` (optionally `/gsd-secure-phase 54.1` first — security enforcement
+is enabled and Phase 54.1 has no SECURITY.md).
 
 ## Current Position
 
 Phase: 55 — v0.8.0-Derived Defects
 Plan: Not started
 Status: Ready to plan
-Progress: [██████████] 100% (5/5 plans complete)
+Progress: [░░░░░░░░░░] 0% (0/? plans — Phase 55 not yet planned; Phase 54.1 finished 5/5)
 Last activity: 2026-08-16 — Phase 54.1 complete, transitioned to Phase 55
 
-**Wave map:** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs half, two `git mv`
-renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) + `54.1-04` (WR-01 edge/control
-cases) · W3 = `54.1-05` (cross-kind aggregation, `Unreleased` CHANGELOG entry, phase-boundary green).
+**Phase 54.1 wave map (executed):** W1 = `54.1-01` (WR-01 runtime tracer) + `54.1-02` (WR-01 docs
+half, two `git mv` renames) · W2 = `54.1-03` (CR-01 hoisted CONF-17 + reserved-key case) +
+`54.1-04` (WR-01 edge/control cases) · W3 = `54.1-05` (cross-kind aggregation, `Unreleased`
+CHANGELOG entry, phase-boundary green). All three waves merged clean via `worktree.cleanup-wave`.
 
-**Two execution hazards recorded at planning time:**
+**Two execution hazards were recorded at planning time — BOTH MEASURED, NEITHER FIRED:**
 
-1. `54.1-02` deletes tracked paths (both renames are `git mv`). `worktree.cleanup-wave` blocks any
-   branch containing deletions with **no bypass** — expected, not a failure. Verify the deletion
-   scope is exactly `examples/advanced/_templates/custom.typ` and
-   `examples/charged-ieee/approach2/source/_templates/_template.typ`, then merge that worktree
-   branch by hand.
+1. `54.1-02` deletes tracked paths (both renames are `git mv`). Predicted:
+   `worktree.cleanup-wave` blocks any branch containing deletions with **no bypass**, so merge it
+   by hand after measuring the deletion scope.
+   **Outcome: the block did NOT fire.** `cleanup-wave` returned `status: merged_removed` for both
+   Wave-1 branches with `reason: ok`; no manual merge was needed. The deletion scope was measured
+   independently first (`git diff --name-status --no-renames` vs the base showed exactly the two
+   declared paths; rename detection scored them R098/R100). Treat "cleanup-wave always blocks on
+   deletions" as **not currently true** — measure, do not assume, on the next deletion-carrying
+   plan.
 
 2. `54.1-03` and `54.1-04` share Wave 2 with disjoint `files_modified`, but `03` changes runtime
    refusal behaviour while `04` authors five new fixtures — a fixture with a template at its
    source-tree root would pass in `04`'s worktree and fail after merge. `54.1-04` carries two
    mechanical sweep assertions against exactly that.
+   **Outcome: no post-merge failure.** Wave 2's post-merge gate was 1314 passed / 5 skipped /
+   0 failed. `04` also left `typsphinx/builder.py` provably untouched (`git diff --stat` against
+   the wave base is empty for that path), so the two plans never contended.
 
-**"Green" for this phase means green modulo exactly the 7 pre-existing
-`tests/test_state_guard_shapes_gate.py` failures** (recorded in
-`phases/53-template-registry-foundation/deferred-items.md`, predating Phase 53). They are not a
-regression this phase causes; no executor should "fix" them or report them as new RED.
+**What the post-merge gate did NOT catch, and the one that mattered:** the gate runs pytest only.
+`54.1-01` shipped a test file that failed `black --check .` while the whole suite was green — a
+CI-only defect class. It surfaced because `54.1-03`'s executor ran a repo-wide lint pass outside
+its own scope and filed it as a deferred item; the orchestrator independently reproduced it on the
+pre-Wave-2 tree, and it then resolved in passing when `54.1-04` rewrote the same file
+black-normalized. **Run `black --check .`, `ruff check .` and `mypy` at every post-merge gate, not
+just pytest.**
 
-> **This carve-out is STALE as of 2026-08-16 (measured at the Phase 54.1 Wave 1 and Wave 2
-> post-merge gates).** Those 7 failures no longer occur — they were fixed upstream of Phase 54.1's
-> base commit. `uv run python -m pytest` on the merged tree is **1314 passed, 5 skipped, 0
-> failed**, with `black --check .`, `ruff check .` and `mypy typsphinx/` all clean. Treat the
-> phase-boundary bar as **unconditional zero failures**, not "zero modulo 7". Any executor that
-> reports those 7 as an accepted baseline is reading a stale note. `WINDOWS.md` entry 7 still
-> tracks the underlying archived-path reference and remains open.
+**The green bar is UNCONDITIONAL ZERO FAILURES.** A carve-out recorded before Phase 54.1 said
+green meant "green modulo exactly the 7 pre-existing `tests/test_state_guard_shapes_gate.py`
+failures" (`phases/53-template-registry-foundation/deferred-items.md`, predating Phase 53). That
+carve-out was **measured stale on 2026-08-16** at Phase 54.1's Wave 1 and Wave 2 post-merge gates:
+those 7 no longer fail — the module passes 18/18, fixed upstream of Phase 54.1's base commit. The
+final merged tree is **1318 passed, 5 skipped, 0 failed**, with `black --check .`,
+`ruff check .` and `mypy typsphinx/` all clean. Do not re-introduce the carve-out; any executor
+reporting those 7 as an accepted baseline is reading a stale note. `WINDOWS.md` entry 7 still
+tracks the underlying archived-path reference and remains open.
 
 ## Active Milestone (v0.9.0 — per-document templates)
 
