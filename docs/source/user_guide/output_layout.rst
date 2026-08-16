@@ -68,6 +68,26 @@ layer, because nothing published the wrapper's include set for a guarded
 limitation -- a content file compiled on its own is simply a document with
 no children rendered.
 
+The wrapper imports its own registry key's template bundle by a
+project-root-absolute path (for example ``/_template/typst/base.typ``), so
+hand-running the Typst compiler resolves that import against the project
+root. Typst's default project root is the directory containing the file
+being compiled. For a bare target -- the ``manual.typ`` example above (see
+`A bare target`_) -- that directory already IS the output directory, so no
+root option is needed. For a target carrying a path component, as
+`A path in the target`_ shows, the wrapper sits in a subdirectory instead,
+and the default root no longer contains the template bundle -- so the
+compile must be given the output directory as the project root explicitly:
+
+.. code-block:: text
+
+   typst compile build/typst/manual.typ output.pdf
+   typst compile build/typst/manuals/guide.typ output.pdf --root build/typst
+
+Neither the ``typst`` nor the ``typstpdf`` builder is affected either way:
+typsphinx passes the output directory as the project root on every compile
+it performs.
+
 Where the Wrapper Is Written
 ------------------------------
 
