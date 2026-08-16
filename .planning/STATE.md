@@ -580,6 +580,23 @@ regression: pre-PR the same project aborted the build loudly. And
 so `copy_image_files()` writes outside `outdir` (or collapses `src == dest`, reproducing #130);
 not reachable via stock Sphinx post-transforms, which all write under `<doctreedir>/images/`.
 
+**Count as of 2026-08-16: 8 files in `.planning/todos/pending/`.** The newest is
+`stale-version-prerequisites-and-dead-config-link-in-published-docs` (docs, examples, **major**),
+captured 2026-08-16 from Phase 56's code review (`56-REVIEW.md`, 0 BLOCKER / 2 WARNING). Four
+published surfaces — `docs/source/installation.rst:7-8`, `docs/source/contributing.rst:14`,
+`examples/basic/README.md:7-8`, `examples/advanced/README.md:31-32` — still state `Python 3.9` /
+`Sphinx 5.0` prerequisites, while `pyproject.toml` pins `requires-python = ">=3.12"` (line 10) and
+`sphinx>=9.1,<10` (line 28); a reader who follows them hits an immediate `pip install` resolution
+failure and the real floor appears on none of those pages. Separately,
+`examples/advanced/README.md:270` links to `../../docs/configuration.rst`, which does not exist
+(actual: `docs/source/user_guide/configuration.rst`). Both defects are **pre-existing** — neither
+was introduced by Phase 56's diff — and both fall **outside** Phase 56's SC#4, which sweeps for
+"claims the new layout invalidates"; version-prerequisite drift is a different class, so the phase
+verifier's 8/8 pass stands and this is genuine deferred work, not a missed requirement. Owner
+decision 2026-08-16: split out as a todo rather than folded into Phase 56. Best done together with
+the long-deferred `add-sphinx-linkcheck-ci-job` (LNK-01) below, which is the durable fix for the
+dead-link class.
+
 Deferred by explicit owner decision to v0.7.1+ (Phase 41 D-14, 4 items):
 
 - **add-sphinx-linkcheck-ci-job** (ci, docs) — Future requirement LNK-01; `links.yml`'s repo-wide
