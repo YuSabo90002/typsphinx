@@ -75,14 +75,14 @@ IMG-02, OUT-03, XREF-04). `TPL` is a new category introduced by this milestone.
 - [x] **XREF-05**: When two docnames sanitize to the same label string, a reference to the absent one
       degrades to plain text instead of linking to the other document
 
-- [ ] **BLD-07**: A docname containing `#` or `>` cannot collide two include-edge keys
-- [ ] **BLD-08**: An include chain deeper than Python's recursion limit fails with a named
+- [x] **BLD-07**: A docname containing `#` or `>` cannot collide two include-edge keys
+- [x] **BLD-08**: An include chain deeper than Python's recursion limit fails with a named
       `ExtensionError` rather than a raw `RecursionError`
 
-- [ ] **BLD-09**: A driveless-absolute Windows image URI reaches the rehome/relocate/warn branch on
+- [x] **BLD-09**: A driveless-absolute Windows image URI reaches the rehome/relocate/warn branch on
       Python 3.13
 
-- [ ] **IMG-03**: Two escaping absolute image URIs in different directories sharing a basename do not
+- [x] **IMG-03**: Two escaping absolute image URIs in different directories sharing a basename do not
       collide onto one relocation key
 
 ### Phase 54 review findings
@@ -202,10 +202,10 @@ requirement appears twice and none is unmapped. Phase numbering continues from v
 | WR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Complete |
 | CR-01 | Phase 54.1 (Bundle Directory Safety, INSERTED) | Complete |
 | XREF-05 | Phase 55 | Complete |
-| BLD-07 | Phase 55 | Pending |
-| BLD-08 | Phase 55 | Pending |
-| BLD-09 | Phase 55 | Pending |
-| IMG-03 | Phase 55 | Pending |
+| BLD-07 | Phase 55 | Complete |
+| BLD-08 | Phase 55 | Complete |
+| BLD-09 | Phase 55 | Complete |
+| IMG-03 | Phase 55 | Complete |
 | DOC-15 | Phase 56 | Pending |
 | DOC-16 | Phase 56 | Pending |
 | DOC-17 | Phase 56 | Pending |

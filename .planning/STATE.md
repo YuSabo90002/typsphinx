@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v0.9.0
 milestone_name: per-document templates
-current_phase: 55
-current_phase_name: v0.8.0-Derived Defects
-status: executing
-stopped_at: Phase 55 planned (4 plans, 3 waves)
-last_updated: "2026-08-16T05:32:20.600Z"
+current_phase: 56
+current_phase_name: Per-Document Template Documentation
+status: planning
+stopped_at: Phase 55 complete (4/4 plans, verification passed 5/5)
+last_updated: "2026-08-16T08:17:08.819Z"
 last_activity: 2026-08-16
-last_activity_desc: "Phase 55 planned — 4 plans in 3 waves (W1 55-01 tracer · W2 55-02 + 55-03 parallel · W3 55-04), plan-checker PASSED, 5/5 requirements and 5/5 decisions covered; planning measurement rejected both proposed XREF-05 constructions as non-injective and found SC#4's locked BLD-09 predicate does not produce SC#4's own required behaviour (blocking decision checkpoint in 55-03)"
+last_activity_desc: "Phase 55 complete — 4 plans across 3 waves, verification passed 5/5 must-haves. All five v0.8.0-derived defects (XREF-05, BLD-07, BLD-08, BLD-09, IMG-03) closed on the product side, each with a git-history-verified RED-before-fix reproduction. 55-03 Task 2 blocking checkpoint resolved by owner as option-b (backslash-normalized absolute-URI predicate); ROADMAP SC#4 amended in 55-04 to match what shipped. Code review CR-01 (pre-existing, not a Phase 55 regression) filed as a pending todo by owner decision rather than fixed in-phase"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 26
-  completed_plans: 22
-  percent: 50
+  completed_plans: 26
+  percent: 67
 ---
 
 # Project State
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-15 at the v0.8.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 55 — v0.8.0-Derived Defects (executing; Wave 1 complete)
+**Current focus:** Phase 56 — Per-Document Template Documentation (not yet planned).
 Five v0.8.0-derived requirements — XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 — that shipped unfixed
 by decision D-01, or with only a test-side fix.
 
@@ -65,15 +65,15 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-execute-phase 55`
+Next action: `/gsd-discuss-phase 56`
 
 ## Current Position
 
-Phase: 55 — v0.8.0-Derived Defects — EXECUTING
-Plan: 4 of 4 complete (all waves done)
-Status: Executing Phase 55 — all plans done, verification pending
-Progress: [██████████] 100% (4/4 plans)
-Last activity: 2026-08-16 — All 4 plans executed and merged; 55-03 Task 2 checkpoint resolved as option-b (backslash-normalized absolute-URI predicate) and ROADMAP SC#4 amended in 55-04 to match what shipped
+Phase: 56 — Per-Document Template Documentation
+Plan: Not started
+Status: Ready to plan
+Progress: [░░░░░░░░░░] 0% (0 plans — phase not yet planned)
+Last activity: 2026-08-16 — Phase 55 complete (4/4 plans, verification passed 5/5), transitioned to Phase 56
 
 **Phase 55 wave map (planned):** W1 = `55-01` (XREF-05, the phase tracer: `_sanitize_label`
 injectivity, real two-master compile) · W2 = `55-02` (BLD-07 + BLD-08, `translator.py`) + `55-03`
