@@ -694,6 +694,49 @@ final Release phase bumps version + CHANGELOG, publish executes at `/gsd-complet
 
 ## Current State
 
+**v0.9.0 in progress — Phase 54.1 (Bundle Directory Safety, INSERTED) complete 2026-08-16.**
+5 plans across 3 waves, verification `passed` 5/5 must-haves with no gaps and no human
+verification required, `54.1-REVIEW.md` 0 critical / 2 warning / 2 info. The phase closes the two
+findings Phase 54's own `/gsd-code-review` raised against what Phase 54 shipped. **WR-01**: making
+the resolved template's *parent directory* the unit of copying turned a pre-existing documentation
+choice into a live hazard, because the docs recommended `typst_template = "_templates/custom.typ"`
+and `_templates/` is exactly Sphinx's own `templates_path` default — a project following the
+published documentation had its Jinja override directory copied wholesale into public build
+output. **CR-01**: the built-in `"typst"` key's CONF-17 validation was the one path that never ran
+before `write()`, so a one-line config mistake wrote a full, broken output tree and only then
+failed. Both close in one place: `typsphinx/builder.py` gains `_paths_related()` (a symmetric
+is/contains/is-contained-by predicate, case-folded through the existing `_collision_key()`
+primitive rather than a second helper) and `TypstBuilder._validate_used_template_paths()`, wired
+into `write()` after `_validate_registry_key_references()` and before `prepare_writing()`, which
+aggregates three failure kinds — `templates_path` collision, the hoisted A-01/CONF-17 violation,
+and a reserved-key case collision `"Typst"` that CONF-18 structurally cannot catch — into ONE
+`sorted()`-ordered `ExtensionError` naming the key, the resolved bundle directory, the colliding
+entry, and `_typst/` as the remedy. `templates_path` had been read nowhere in `typsphinx/` before
+this phase; the only mention in the tree was the `template_engine.py:36` comment explaining why
+`_typst/` was chosen over `_templates/` — the collision was known and left undefended. The
+documentation half retires that layout across `docs/source/`, `README.md` and `examples/` (two
+`git mv` renames into `_typst/`), pinned by the repo-wide grep gate
+`tests/test_docs_template_layout_gate.py` so it cannot regress. Suite 1296 → **1318 passed, 5
+skipped, 0 failed**; `black`/`ruff`/`mypy` clean. **Three things are worth carrying forward.**
+First, **the "green modulo 7 pre-existing failures" carve-out this phase inherited was stale** —
+`tests/test_state_guard_shapes_gate.py` passes 18/18 and had been fixed upstream, so the bar was
+corrected to unconditional zero *before* the closing plan wrote its phase-boundary evidence
+against the wrong one. Second, **a real CI-only defect was caught by an executor working outside
+its own scope**: `54.1-01`'s new test file failed `black --check .` while the full pytest suite was
+green, reported by `54.1-03` as a deferred item, independently reproduced on the pre-Wave-2 tree —
+and then resolved in passing when `54.1-04` appended tests to the same file and wrote it back
+normalized. The post-merge gate runs pytest only; the lint half has to be run deliberately. Third,
+**the planning-time hazard that was predicted did not fire and the one that did was cosmetic**:
+`worktree.cleanup-wave` merged the deletion-carrying branch without blocking (deletion scope
+independently measured as exactly the two declared renames first), and Wave 2's predicted
+`03`-changes-behaviour / `04`-asserts-on-it collision produced no post-merge failure. Two open
+items ship tracked, both from the code review and neither a blocker: the new pre-write pass makes
+an existing "Custom template not found" warning fire three times instead of two for one narrow
+misconfiguration shape, and `templates_path` is resolved against `srcdir` rather than Sphinx's
+documented `confdir` (self-disclosed in the method's own docstring, so a `-c`-using project is not
+covered). *(Phase 54's own Current State paragraph was never written — this file skips from 53 to
+54.1.)*
+
 **v0.9.0 in progress — Phase 53 (Template Registry Foundation) complete 2026-08-15.** 10 plans
 across 8 waves (7 planned + two gap-closure rounds), verification `passed` 5/5 must-haves,
 `53-REVIEW.md` 0 critical / 0 warning / 2 info. `typsphinx/template_registry.py` is new: a
