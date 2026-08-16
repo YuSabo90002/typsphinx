@@ -138,6 +138,91 @@ reach the output with no configuration needed.
 
 See :doc:`templates` for detailed examples.
 
+Per-Document Templates
+~~~~~~~~~~~~~~~~~~~~~~
+
+Every ``typst_documents`` entry's registry key (element [4], or the
+reserved ``"typst"`` key when the element is absent) selects a
+definition from ``typst_document_templates`` -- the dict mapping a
+registry key to its own ``template``, ``package``, and
+``template_function`` settings, so each master document can use a
+different Typst template, Typst Universe package, or template-function
+arguments instead of one globally-configured template being applied to
+every master.
+
+When the Build Stops
+^^^^^^^^^^^^^^^^^^^^^
+
+A misconfigured registry or an unwritable template bundle stops the
+build with an ``ExtensionError``. The table below identifies each
+config-caused shape by the leading clause of the message it raises;
+column three names what to change.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - ``typst_document_templates`` is set to a truthy value that is
+       not a dict
+     - ``typst_document_templates must be a dict mapping registry key to definition,``
+     - Set ``typst_document_templates`` to a dict mapping each registry
+       key to its own definition.
+   * - One or more registry definitions are invalid -- this single
+       shape aggregates every per-definition failure into one message:
+       a non-``str`` key, a rejected key shape, a reserved-key
+       redeclaration (CONF-16), a non-``dict`` definition, a definition
+       setting both ``template`` and ``package`` (CONF-15), a
+       ``template`` value that is neither a path string nor
+       ``os.PathLike``, a CONF-17 source-tree bundle, or a template
+       file that does not exist
+     - ``invalid definition(s):``
+     - See the registry key naming rules for the key-shape cases; for
+       the others, correct the named definition's ``template`` or
+       ``package`` value.
+   * - A ``typst_documents`` entry's element [4] is set to a
+       non-string value
+     - ``which is not a string -- registered typst_document_templates keys:``
+     - Set element [4] to a string naming one of the registered keys
+       the message lists.
+   * - A ``typst_documents`` entry names a registry key that was
+       never declared in ``typst_document_templates``
+     - ``which is not a registered typst_document_templates key -- registered keys:``
+     - Either declare the named key in ``typst_document_templates`` or
+       point element [4] at one of the registered keys the message
+       lists.
+   * - Two things claim the same output path, including the reserved
+       template-bundle directory
+     - ``output path collision(s):``
+     - Rename one of the colliding wrapper targets, or move a
+       definition out of the reserved bundle directory.
+   * - A used registry key's template path fails validation before
+       anything is written -- covers both a CONF-17 source-tree
+       bundle and a collision with Sphinx's own ``templates_path``
+     - ``pre-write template path failure(s):`` -- the CONF-17 sub-case
+       specifically also reports ``put the template in its own subdirectory (CONF-17, A-01)``
+     - Move the template out of ``srcdir`` (or an ancestor of it) and
+       out of any directory named in Sphinx's ``templates_path`` --
+       this repository uses ``_typst/``.
+   * - Two used registry keys resolve to the same bundle destination
+     - ``bundle destination collision(s):``
+     - Give the colliding keys' definitions distinct template paths so
+       their bundles do not land at the same ``_template/<key>/``
+       destination.
+
+.. note::
+
+   The two remaining shapes report a filesystem failure at copy time,
+   not a ``conf.py`` mistake.
+   ``typst_document_templates: failed to copy the resolved template for registry key``
+   means the source template file could not be read, or the
+   destination could not be written.
+   ``was never copied from`` means the resolved template file was
+   expected inside its own bundle directory but never arrived there,
+   so a wrapper naming this key would import a file that does not
+   exist.
+   Neither names a ``suppress_warnings`` route, because neither is a
+   warning -- both abort the build.
+
 Math Rendering
 --------------
 
