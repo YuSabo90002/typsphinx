@@ -292,6 +292,14 @@ None — no external service configuration required.
   ready for `55-04`'s CHANGELOG entries and phase-boundary evidence.
 - No blockers for `55-04` (Wave 3).
 
+## Self-Check: PASSED
+
+All created/modified files exist (`typsphinx/builder.py`, `tests/test_builder.py`,
+`.planning/phases/55-v0-8-0-derived-defects/55-03-RED-EVIDENCE.md`,
+`.planning/todos/pending/2026-08-16-escapes-outdir-isabs-not-backslash-normalized.md`,
+`.planning/phases/55-v0-8-0-derived-defects/55-03-SUMMARY.md`) and all four commit hashes
+(`b8aa7f0f`, `1ae047db`, `9a5ab47b`, `8341073a`) resolve in `git log --oneline --all`.
+
 ---
 *Phase: 55-v0-8-0-derived-defects*
 *Completed: 2026-08-16*
