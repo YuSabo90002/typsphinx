@@ -2,7 +2,7 @@
 // This is an example of a custom template that can be used with typsphinx
 //
 // To use this template, uncomment the following line in conf.py:
-//   typst_template = '_templates/custom.typ'
+//   typst_template = '_typst/custom.typ'
 
 // Import required packages
 // Keep these versions in lockstep with typsphinx's own bundled template

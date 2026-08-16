@@ -114,7 +114,7 @@ Use a custom Typst template file:
 
 .. code-block:: python
 
-   typst_template = "_templates/custom.typ"
+   typst_template = "_typst/custom.typ"
 
 The template file should define a ``project`` function (or the function
 specified in ``typst_template_function``).

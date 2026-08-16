@@ -17,7 +17,7 @@ some of them, or a different package entirely (charged-ieee). But when an
 example does pin one of the four, a stale pin is not cosmetic: it makes the
 shipped sample fail to compile outright (`codly-languages` older than 0.1.10
 aborts with `unknown variable: kai`). That is exactly what happened to
-`examples/advanced/_templates/custom.typ`, which sat three milestones behind
+`examples/advanced/_typst/custom.typ`, which sat three milestones behind
 the v0.5.0 bump because nothing watched it. `test_example_templates_match_canonical_versions`
 closes that gap.
 """

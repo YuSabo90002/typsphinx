@@ -88,14 +88,14 @@ Your template's whole bundle directory (the directory containing the resolved te
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/custom.typ"
-   # Every file in _templates/ is automatically copied, including custom.typ itself
+   typst_template = "_typst/custom.typ"
+   # Every file in _typst/ is automatically copied, including custom.typ itself
 
 Directory structure:
 
 .. code-block:: text
 
-   _templates/
+   _typst/
      ├── custom.typ          # Template file, automatically copied
      ├── logo.png            # Automatically copied
      ├── fonts/
@@ -107,7 +107,7 @@ Reference assets in your template using relative paths:
 
 .. code-block:: typst
 
-   // _templates/custom.typ
+   // _typst/custom.typ
    #image("logo.png")
    #set text(font: "fonts/custom.otf")
    #image("icons/icon.svg")
@@ -120,7 +120,7 @@ Reference assets in your template using relative paths:
 Basic Structure
 ~~~~~~~~~~~~~~~
 
-Create a file ``_templates/custom.typ``:
+Create a file ``_typst/custom.typ``:
 
 .. code-block:: typst
 
@@ -165,7 +165,7 @@ Reference your custom template in ``conf.py``:
 
 .. code-block:: python
 
-   typst_template = "_templates/custom.typ"
+   typst_template = "_typst/custom.typ"
 
 Template Parameters
 -------------------
@@ -318,7 +318,7 @@ keys the build supplies) would arrive as undeclared arguments and abort the comp
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/minimal.typ"
+   typst_template = "_typst/minimal.typ"
    typst_template_function = {
        "name": "project",
        "params": {
@@ -348,7 +348,7 @@ a ``params`` dict naming all four.
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/academic.typ"
+   typst_template = "_typst/academic.typ"
    typst_template_function = {
        "name": "project",
        "params": {
