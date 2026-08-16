@@ -834,7 +834,7 @@ dependency on the registry.
      keys instead of collapsing onto one, so neither image is silently replaced by the other
      (IMG-03).
 
-**Plans**: 3/4 plans executed in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
+**Plans**: 4/4 plans executed in 3 waves — W1 `55-01` (tracer) · W2 `55-02` + `55-03` (parallel, disjoint files) ·
 W3 `55-04`. `55-01` and `55-02` both touch `translator.py` and are deliberately sequenced into
 different waves; `55-03` is non-autonomous (a blocking decision checkpoint on SC#4's predicate, see
 below).
@@ -850,13 +850,17 @@ below).
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 55-04-PLAN.md — the `Unreleased` `Fixed` changelog entries (D-03) and the phase-boundary green evidence
+- [x] 55-04-PLAN.md — the `Unreleased` `Fixed` changelog entries (D-03) and the phase-boundary green evidence
 
-**Planning note (SC#4):** measurement taken at planning time shows SC#4's two clauses disagree — the
-predicate it names literally evaluates False for the driveless-absolute Windows shape the same
-criterion requires to reach the rehome branch. Plan `55-03` presents this as a blocking decision
-checkpoint rather than resolving it silently; see `55-03-PLAN.md` and `55-03-RED-EVIDENCE.md`
-§ "Predicate measurement".
+**Planning note (SC#4) — RESOLVED 2026-08-16:** measurement taken at planning time showed SC#4's two
+clauses disagreed — the predicate it named literally evaluates False for the driveless-absolute
+Windows shape the same criterion requires to reach the rehome branch. Plan `55-03` presented this as
+a blocking decision checkpoint rather than resolving it silently. The owner selected **option-b**
+(the same idiom applied to a backslash-normalized copy of the URI) on the table re-measured inside
+the `55-03` worktree, and approved amending SC#4's wording to match what shipped; plan `55-04`
+applied that amendment, which is why SC#4 above now reads as it does. See `55-03-PLAN.md` Task 2,
+`55-03-RED-EVIDENCE.md` § "Predicate measurement", and `55-03-SUMMARY.md`'s checkpoint-resolution
+section.
 
 **UI hint**: no
 
@@ -976,7 +980,7 @@ the active milestone only.
 | 53. Template Registry Foundation | v0.9.0 | 10/10 | Complete    | 2026-08-15 |
 | 54. One Bundle Rule — `_template/<key>/` | v0.9.0 | 7/7 | Complete    | 2026-08-16 |
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 55. v0.8.0-Derived Defects | v0.9.0 | 3/4 | In Progress | - |
+| 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | In Progress | - |
 | 56. Per-Document Template Documentation | v0.9.0 | 0/? | Not started | - |
 | 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 0/? | Not started | - |
 
