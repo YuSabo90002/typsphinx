@@ -1,5 +1,160 @@
 # Milestones: typsphinx
 
+## v0.9.0 per-document templates (Shipped: 2026-08-22)
+
+**Closeout:** override_closeout — no `v0.9.0-MILESTONE-AUDIT.md` was run (owner decision at close:
+`init.manager` reported all 6 phases `phase_complete=true` / `verification_status=passed`, and every
+v1 requirement except the publish-gated REL-08 was already `Complete` before the close began).
+**Sixth consecutive close taken this way** — the pattern has outlived being a default and deserves
+an explicit decision about whether the audit step still earns its place here. 13 open artifacts
+acknowledged as deferred (see STATE.md Deferred Items) — 10 pending todos, **every one of them
+already dispositioned with a reason** in `57-HANDOFF.md` § "Deferrals carried forward", plus 3
+dormant seeds never scoped into this milestone.
+**Phases:** 6 (53–57, plus 54.1 inserted) · **Plans:** 42 · **Tasks:** 112
+**Requirements:** 26/26 v1 requirements complete · **Known gaps:** none
+**Timeline:** 2026-08-15 → 2026-08-22 (8 days)
+**Git:** milestone branch `gsd/v0.9.0-per-document-templates` (339 commits) merged to `main` via
+PR #134 with **all 15 checks green** — a fresh full matrix dispatched on the exact PR head, both
+`windows-latest` lanes included, plus the advisory link check which passed this time — and tagged
+`v0.9.0` on the merge commit `68b92e24`. Every commit between the phase's last authority CI run
+(`32557477023`) and the PR head was measured `.planning/`-only before opening the PR.
+**Code delta (milestone scope, excl. `.planning/`):** 166 files, +11,627 / −1,620 lines. The runtime
+change is concentrated in two new modules — `typsphinx/template_registry.py` (the resolver and its
+whole validation pass) and `typsphinx/removed_config.py` (this codebase's first Sphinx
+event-handler connection) — plus `typsphinx/builder.py`, where `_copy_used_template_bundles()` and
+the pre-write validators replaced **five deleted methods**; the rest is the test corpus and the
+documentation rewrite.
+**Released 2026-08-22:** PyPI `typsphinx 0.9.0` (wheel 187,400 B + sdist 809,731 B) published by
+release run `32560457509` after owner approval of the `pypi` environment. All jobs `success`,
+**`create-release` included** — the job that failed at the v0.7.0 close, and therefore observed
+directly rather than assumed, as `57-HANDOFF.md` item 3 required. GitHub Release `v0.9.0` carries
+all three assets (`.whl`, `.tar.gz`, and the tag-time `typsphinx.pdf`, 2,754,479 B, attached by
+`docs.yml`); its first **123** lines are **byte-identical** to
+`scripts/extract_changelog_section.py 0.9.0`'s stdout (`diff` clean), with **0** commit-dump-shaped
+lines in that window — the remainder is the `## Installation` block plus GitHub's own auto-generated
+"What's Changed". The standing second tag was pushed on `typsphinx-doc-translations`: for the second
+consecutive close the pin was advanced by dispatching that repository's own `update-pin.yml`
+(run `32566262655`) rather than by a hand-made clone-edit-push, moving its `typsphinx` submodule pin
+to the v0.9.0 merge commit `68b92e24` and resyncing the ja catalogs as `f9390d4b`; the annotated tag
+`v0.9.0` was then created there on that commit.
+**Read the Docs measured live 2026-08-22:** `en` `stable` resolves from the root
+(`https://typsphinx.readthedocs.io/` → `/en/stable/`, 302), reports `0.9.0`, and serves its PDF
+(2,760,619 B, `application/pdf`); `ja` (slug `typsphinx-ja`) `stable` advanced to `ref: v0.9.0` once
+the translations repository's own tag landed, reports `0.9.0`, and serves its PDF (2,963,030 B).
+Both projects' Default Versions have been `stable` since the v0.6.4 close and needed no re-flip —
+the sixth consecutive close at which none was required.
+
+**REL-08 closed on the publish, not on the prep.** Phase 57 was prep-only by design and held REL-08
+at `[ ]` through all **eleven** of its plans, guarding it with a SHA-256 of `REQUIREMENTS.md`
+recorded at phase head (`503efc7a…`) and **three separated tag/release probes** (2026-08-16T15:35Z,
+2026-08-22T06:51Z, 2026-08-22T07:04Z), all empty. The digest still matched at the close,
+immediately before this flip. The `phase.complete` auto-flip fired anyway during Phase 57's own
+close-out and was caught and reverted there: **five-for-five on release-prep phases now.**
+
+**Delivered:** every `typst_documents` entry can choose its own template, Typst Universe package,
+and template-function arguments through the validated `typst_document_templates` registry, instead
+of one globally-configured template being applied to every master. The slot that carries the choice
+already existed — `typst_documents` element [4], populated by the builder's own default and set by
+this project's own `conf.py`, and documented as "accepted and ignored" — so the milestone is a
+promotion of a live placeholder rather than a tuple extension, which is exactly why a `conf.py` that
+declares nothing new keeps producing the same PDF.
+
+**Key accomplishments:**
+
+- **The registry, and additivity proven rather than asserted** (TPL-01, TPL-03..05, CONF-14..18) —
+  `typsphinx/template_registry.py` resolves the registry once per build; each key carries `template`
+  **xor** `package` plus an optional `template_function`; validation is a fixed-order seven-case key
+  denylist, the reserved-key check, the xor, a path-arithmetic bundle-escape guard and a per-key
+  existence check, all **accumulated into one `ExtensionError`** rather than aborting on the first
+  fault, with every raw-exception crash path (cross-drive path, non-`str` key, list-for-dict,
+  list/bytes `template`) closed in follow-up plans. The first plan of the milestone captured SHA-256
+  hashes and PDF page counts across all four existing configuration shapes from real `-b typstpdf`
+  runs **before any code changed**, so "the built-in `"typst"` key produces byte-identical output"
+  became a diff against a stored artifact instead of a claim.
+- **One bundle rule replaced four mechanisms** (TPL-02, CONF-19, OUT-04..07, BLD-05, BLD-06) — every
+  used key's resolved bundle directory is copied **wholesale** to `<outdir>/_template/<key>/`, the
+  synthesized built-in key under the same rule with no exception (which closed a previously-unnamed
+  whole-source-tree-copy hole), and wrappers import by a root-absolute path independent of their own
+  nesting depth, so template-relative asset references resolve for the first time. Five `builder.py`
+  methods and an 8-test module were **deleted** rather than extended, and `typst_template_assets`
+  was deregistered in the same commit that connected `typsphinx/removed_config.py` — so a `conf.py`
+  still setting any of three removed values gets a warning naming the value, its replacement, and
+  the observable consequence instead of silently different output.
+- **The safety defects that rule created were closed in an inserted phase, not deferred** (WR-01,
+  CR-01) — a bundle directory colliding with Sphinx's own `templates_path` now refuses the build
+  **before any `.typ` file is written**, closing a hole that would have republished a project's
+  Jinja template directory into public build output while the published docs recommended that exact
+  layout; and a bundle-escape violation on the built-in key is caught pre-write instead of at
+  `finish()`. Two different failure kinds in one build raise once, with a byte-identical,
+  declaration-order-independent message.
+- **The five v0.8.0-derived defects closed on the product side** (XREF-05, BLD-07..09, IMG-03) —
+  each with a RED-recorded reproduction whose ancestry was checked against git history rather than
+  taken from prose. `_sanitize_label` was made injective and **proven general by an exhaustive
+  decoder round-trip over 66,430 adversarial strings**, not by fixture pass; include-edge keys escape
+  their own separators; the chain walk is bounded at 500 frames with a named `ExtensionError`; and
+  the image absolute-URI gate moved onto a backslash-normalized predicate with a SHA-1-prefixed
+  relocation key.
+- **The documentation describes what shipped, bound to code by import and by AST** (DOC-15..17) — a
+  two-way AST-pinned error catalogue (AST-based because one raise site uses a shared helper and
+  another implicit string concatenation), a seven-case key-naming table bound by import rather than
+  transcription, a Removed Configuration Values section, and the stale single-root `_template.typ`
+  story rewritten with both published file counts corrected **in the same commit as the test that
+  pins them**. The hand-compile `--root` note ships **conditionally** on the target's own path shape,
+  both branches proven by a real `typst.compile()` gate — after the CONTEXT-time claim was
+  reproduced twice and found false.
+- **The release was prepped without taking any irreversible action, and the fence is provable**
+  (REL-08 prep half) — version lockstep across `pyproject.toml`/`uv.lock`/`README.md`, a curated
+  `## [0.9.0]` section with four `**Breaking` marks and a rolled-over tail link block, a
+  `Migrating from 0.8.x to 0.9.0` guide written from a real build at the `v0.8.0` tag in a separately
+  provisioned worktree, and green proven across three surfaces (CI 12/12 including both Windows
+  lanes; a local 1425-passed suite with `black`/`ruff`/`mypy` clean and a built-wheel content check;
+  the multi-template PDF gate at 6 passed / 0 skips, closed against SC#3's "differently typeset"
+  wording by a `pypdf` page-geometry read-back showing A4 versus US Letter).
+
+### Known limitations shipped
+
+Three, all deferred by owner decision and recorded **only** in `57-HANDOFF.md` § "Deferrals carried
+forward" and `.planning/todos/pending/` — the **third consecutive release** to decline a
+`### Known Limitations` CHANGELOG section:
+
+- **WR-02** — `_validate_used_template_paths()` resolves Sphinx's `templates_path` against `srcdir`
+  rather than `confdir`, so a project using `-c`/`--confdir` is not covered by the new refusal and
+  keeps the republication hole. Shipped **silent** (D-09). This one is weaker than the two
+  precedents it cites: the reviewer's own recommended minimum was exactly the CHANGELOG carve-out
+  that was declined, and the shipped sentence ("template layout is now validated before anything is
+  written") therefore reads as unconditional — an over-broad true-sounding claim rather than a true
+  claim with a missing footnote.
+- **54.1 WR-01** — the "Custom template not found" warning fires three times instead of two for one
+  narrow shape (a synthesized `"typst"` key whose `typst_template` names a nonexistent path).
+- **57 WR-01** — the pre-write refusal messages quote path values with a fixed `'...'` delimiter, so
+  a path containing a literal single quote closes the quote early. Filed forward into the existing
+  `2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages.md` rather than as a new record;
+  a single delimiter-aware quoting helper resolves both halves.
+
+### The milestone's carrying story
+
+**A defect diagnosed wrong twice, at a cost of two full CI matrices.** One `windows-latest`
+assertion was read as a path **separator** problem in two successive fix attempts. It was an
+**escaping** problem: three pre-write refusal messages interpolated PATH values with `!r`, and
+`repr()` doubles every backslash, so no `str(Path(...))` assertion could ever match. Plan `57-05`
+**halted** rather than claiming its authority gate on a red matrix; `57-11` fixed the product side,
+knowingly breaking the prep-only fence once by explicit owner decision recorded as a dated `AMENDED`
+block **naming SC#4, plan `57-08` and the phase verifier as its readers** — so the downstream fence
+checks read the amended rule instead of reporting a false violation. Fresh authority run
+`32557477023` then returned 12/12 including both Windows lanes, and `57-05`'s halt was retired under
+a dated ADDENDUM that keeps its contemporaneous failure record verbatim: **retired on new evidence,
+not retracted as a mistake.**
+
+**A measurement this milestone made falsified itself within a week.** On 2026-08-16 the project
+measured that `ruff` runs on this machine and wrote that into a CONTEXT amendment; on 2026-08-22 the
+ELF-exec failure reproduced live in a freshly-provisioned worktree venv. The main checkout's `.venv`
+holds an old runnable binary (27,906,360 B) while a venv created today pulls a newer generic-linux
+wheel (27,900,480 B) that NixOS cannot exec — so **measuring `ruff` on the main tree can never
+detect the hazard**, and the owner's refusal to close that todo on the 2026-08-16 evidence is what
+preserved the record.
+
+---
+
 ## v0.8.0 multi-master composition (Shipped: 2026-08-15)
 
 **Closeout:** override_closeout — no `v0.8.0-MILESTONE-AUDIT.md` was run (owner decision at close:
@@ -64,6 +219,7 @@ known multi-master defects grew from.
   page and `#outline()` mid-body) by construction rather than by special-casing. The cost landed in
   the test corpus: five migration waves, each moving ~17 test modules and ~16–19 fixture projects,
   with every self-colliding fixture target de-collided along the way.
+
 - **Each master computes and publishes its own include graph** (COMP-05..12) — mirroring
   `inline_all_toctrees`'s document-order depth-first traversal, published as Typst `state` and read
   by a static per-emission-site guard. A document reached from several masters renders once in each
@@ -71,6 +227,7 @@ known multi-master defects grew from.
   independently per master; the diamond case and two masters requiring conflicting include sets from
   one content file both resolve correctly instead of one silently winning. Verified end to end by a
   real multi-master PDF build and a page-level completeness gate over a three-master fixture.
+
 - **Cross-reference existence moved to compile time** (XREF-03, XREF-04) — a reference whose target
   label is absent from the compiling master degrades to plain text via a shared
   `context { … query(<label>) … }` helper instead of aborting the compile, with the build-time
@@ -79,17 +236,20 @@ known multi-master defects grew from.
   ahead of the include graph**, which is what makes such a reference reachable-and-absent rather
   than merely absent. Measured effect: the rebuilt documentation PDF's dead-link population dropped
   from 40 URI actions over 20 targets to exactly the 5 pre-declared Sphinx-generated pages.
+
 - **The two PR #131 follow-on image defects closed** (IMG-01, IMG-02) — a converted image rehomed to
   `images/<basename>` no longer collides with a real source image of the same name, and an absolute
   image URI outside `doctreedir` no longer writes outside the output directory; both routed through
   a new `_typst_converted/` reserved namespace, with every assertion byte-unchanged from its
   pre-fix RED version.
+
 - **The published documentation gained an output-layout page** (DOC-14) — which file to compile,
   what a content file compiled standalone does (its own body only, state-guarded children absent,
   no error or warning), what target-as-path means, both `typst_documents` target-failure modes, and
   a "Migrating from 0.7.x to 0.8.0" guide naming the concrete before/after emitted-file set for each
   of the three breaking changes. A sweep-completeness audit run from a later wave than the fixes it
   audits found 2 residual false claims outside the fixing plan's own scope.
+
 - **Milestone invariant #5 paid four times over.** Pushing the branch and dispatching CI mid-phase
   surfaced four real, pre-existing defects local execution structurally could not see; Phase 52's CI
   history is three runs, not one — RED (8 of 12 jobs) → 11/12 → GREEN 12/12. Two are worth carrying:
@@ -110,9 +270,11 @@ shipped** — the distinction the owner had on the table when deciding:
 
 - Label-collision false negative in the compile-time xref guard — two docnames sanitizing to the
   same label string (`a/b` and `a_u2f_b`) let a reference to the absent one link to the decoy.
+
 - `make_include_edge_key` does not escape its own `#`/`>` separators, so two edges can collide.
 - `_derive_master_edge_keys` recurses unbounded; an include chain deeper than Python's 1000-frame
   limit raises a raw `RecursionError` rather than a named `ExtensionError`.
+
 - The image escape branch keys on basename while the collision branch keys on the full relative
   URI, so two escaping images sharing a basename collide onto one key.
 
