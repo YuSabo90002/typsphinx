@@ -311,6 +311,51 @@ recall.
 - How many todo records the re-filing in `<specifics>` 9 produces (one combined or two separate),
   and the granularity of the `REQUIREMENTS.md` checksum SC#4 asks for.
 
+**AMENDED 2026-08-17 (post-CI, owner-approved) — Phase 57's prep-only fence is knowingly broken by
+plan 57-11, and SC#4 must be evaluated against this amendment, not against the original "zero
+`typsphinx/` behaviour change" wording above.**
+
+Phase 57 was scoped prep-only: the `<domain>` section's "Out of scope" list above states "Any
+`typsphinx/` behaviour change" without exception, and SC#4 (`.planning/ROADMAP.md` § Phase 57) asks
+for "no unintended `typsphinx/` change" as part of its fence proof. That fence held through plans
+57-01 through 57-09.
+
+Two full CI matrix dispatches proved otherwise. Run `31956166848` and run `31959060298` (headSha
+`bfcc6f6d`, dispatched by 57-05) both failed the same assertion on **both** `windows-latest` lanes —
+a real defect in **this milestone's own new error surface**: `typsphinx/builder.py`'s pre-write
+template-path refusal messages interpolate a filesystem-path value with `!r`, and `repr()` doubles
+every backslash, so a Windows user reads a message with two literal backslashes where one path
+separator belongs. The defect is not cosmetic — it is new in this milestone (the `typst_document_templates`
+registry and its refusal messages are v0.9.0 work) and it is user-visible on the platform CI actually
+exercises.
+
+The owner was told explicitly, before deciding, that fixing the product (rather than normalizing the
+already-merged test assertion to tolerate the escaped form) breaks this phase's own prep-only fence.
+The owner chose the product fix anyway (2026-08-17), accepting that cost. Plan 57-11 is the one and
+only exception this AMENDED block records: it is the FIRST and ONLY intended change under
+`typsphinx/` in this phase, confined by its own task 2 to three named refusal sites in
+`typsphinx/builder.py`, with the full local suite passing with **zero test file edits** (proving the
+POSIX-rendered output is byte-identical before and after) — see
+`57-MESSAGE-FIX-EVIDENCE.md` for the census, the reproduction, and the RED/GREEN transcripts.
+
+**What this means for SC#4 and for `57-08`:** SC#4's "no unintended `typsphinx/` change" clause must
+be read, from this point forward, as **"no UNINTENDED `typsphinx/` change — the `builder.py` message
+fix landed by 57-11 being the one intended and owner-approved exception."** A downstream fence check
+that instead diffs against the ORIGINAL "zero `typsphinx/` change" wording above will report a false
+violation. The two readers this block is written for, by name, are:
+
+- **`57-08`** (this phase's SC#4 sweep/verification plan) — its `typsphinx/`-diff check must allow
+  exactly the 57-11 commit(s) touching `typsphinx/builder.py` (and the paired
+  `tests/test_templates_path_collision_gate.py` addition) and flag anything else under `typsphinx/`
+  as before.
+- **The phase verifier** — when it re-derives the fence proof for this phase's close, it must read
+  this AMENDED block rather than the original "Out of scope" bullet in isolation, or it will
+  independently reach the same false-violation conclusion 57-08 is warned against above.
+
+This amendment does not retroactively bless any OTHER `typsphinx/` change in this phase — the fence
+stays absolute for everything except the specific, bounded 57-11 fix described above and in
+`57-MESSAGE-FIX-EVIDENCE.md`.
+
 </decisions>
 
 <canonical_refs>
