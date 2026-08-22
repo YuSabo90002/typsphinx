@@ -114,6 +114,15 @@ always did.
   other. The user-visible consequence: the relocated file's emitted name now carries a short
   digest prefix ahead of the original filename, so the two images keep separate files.
 
+- **On Windows, the template-path refusal messages introduced above no longer double every
+  backslash in a reported path.** The `typst_document_templates` collision refusals — a template
+  bundle colliding with Sphinx's own `templates_path`, a template resolving to an ancestor of the
+  source directory, or two registry keys resolving to the same bundle destination — used to quote
+  the offending path with Python's `repr()`, which escapes each backslash; on Windows the message
+  a user read carried two literal backslashes where the platform's own single separator belongs.
+  The path is now quoted without escaping, so the reported path matches what actually appears on
+  disk.
+
 ### Removed
 
 - **Breaking:** the `typst_template_assets` config value is removed (CONF-19) — every used

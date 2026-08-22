@@ -328,10 +328,77 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     """
     return (
         f"typst_document_templates: registry key {key!r}'s "
-        f"resolved template {resolved_path!r} has a "
+        f"resolved template '{resolved_path}' has a "
         "parent directory that is srcdir itself, or an "
-        f"ancestor of srcdir ({srcdir!r}) -- put "
+        f"ancestor of srcdir ('{srcdir}') -- put "
         "the template in its own subdirectory (CONF-17, A-01)"
+    )
+
+
+def _templates_path_collision_message(
+    key: str, bundle_dir: str, raw_tp_entry: str, resolved_tp_entry: str
+) -> str:
+    """57-11: the ONE place the ``templates_path`` collision sentence is
+    built for ``TypstBuilder._validate_used_template_paths()``, extracted
+    to its own function so a unit test can call it directly with a
+    Windows-shaped path string -- driving the REAL message-construction
+    code rather than a copy of the f-string pasted into a test module,
+    which is exactly what would silently pass if this site regressed
+    back to ``!r`` (57-11-PLAN.md task 2).
+
+    Args:
+        key: The registry key whose resolved template bundle collides.
+        bundle_dir: The resolved template's bundle directory (a
+            filesystem path -- quoted with explicit ``'...'``, never
+            ``!r``, so a Windows backslash is not doubled by
+            ``repr()``).
+        raw_tp_entry: The colliding ``templates_path`` entry exactly as
+            configured (may be a bare, unresolved fragment).
+        resolved_tp_entry: ``raw_tp_entry`` resolved against ``srcdir``
+            (a filesystem path -- same quoting rule as ``bundle_dir``).
+
+    Returns:
+        The templates_path collision sentence.
+    """
+    return (
+        f"registry key {key!r}'s resolved template "
+        f"bundle directory '{bundle_dir}' collides "
+        "with the Sphinx templates_path entry "
+        f"'{raw_tp_entry}' (resolved to "
+        f"'{resolved_tp_entry}') -- the whole "
+        "bundle directory is copied to the build "
+        "output, so this would republish the "
+        "project's Sphinx template directory; move "
+        "the Typst template into a directory that "
+        "is not on templates_path (this repository "
+        "uses _typst/) and update typst_template / "
+        "typst_document_templates to match"
+    )
+
+
+def _bundle_destination_collision_message(
+    existing_key: str, key: str, dest_dir: str
+) -> str:
+    """57-11: the ONE place the bundle-destination collision sentence is
+    built for ``TypstBuilder._copy_used_template_bundles()``, extracted
+    for the same reason as ``_templates_path_collision_message()`` above
+    -- a unit test can call it directly with a Windows-shaped
+    ``dest_dir`` and assert no doubled separator survives, exercising
+    the real product code rather than a re-pasted format string.
+
+    Args:
+        existing_key: The registry key that already claimed ``dest_dir``.
+        key: The registry key that collides with it.
+        dest_dir: The shared bundle destination (a filesystem path --
+            quoted with explicit ``'...'``, never ``!r``).
+
+    Returns:
+        The bundle-destination collision sentence.
+    """
+    return (
+        f"registry key {existing_key!r} and registry key "
+        f"{key!r} both resolve to the same bundle "
+        f"destination '{dest_dir}'"
     )
 
 
@@ -1292,18 +1359,12 @@ class TypstBuilder(Builder):
                             failures.append(
                                 (
                                     key,
-                                    f"registry key {key!r}'s resolved template "
-                                    f"bundle directory {bundle_dir!r} collides "
-                                    "with the Sphinx templates_path entry "
-                                    f"{raw_tp_entry!r} (resolved to "
-                                    f"{resolved_tp_entry!r}) -- the whole "
-                                    "bundle directory is copied to the build "
-                                    "output, so this would republish the "
-                                    "project's Sphinx template directory; move "
-                                    "the Typst template into a directory that "
-                                    "is not on templates_path (this repository "
-                                    "uses _typst/) and update typst_template / "
-                                    "typst_document_templates to match",
+                                    _templates_path_collision_message(
+                                        key,
+                                        bundle_dir,
+                                        raw_tp_entry,
+                                        resolved_tp_entry,
+                                    ),
                                 )
                             )
 
@@ -2160,9 +2221,9 @@ class TypstBuilder(Builder):
                 failures.append(
                     (
                         key,
-                        f"registry key {existing[0]!r} and registry key "
-                        f"{key!r} both resolve to the same bundle "
-                        f"destination {dest_dir!r}",
+                        _bundle_destination_collision_message(
+                            existing[0], key, dest_dir
+                        ),
                     )
                 )
                 continue
