@@ -26,6 +26,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from typsphinx.builder import (
+    _bundle_destination_collision_message,
+    _conf17_violation_message,
+    _templates_path_collision_message,
+)
+
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "templates_path_collision_gate"
 
 # Phase 54.1 plan 04: the multi-relation fixture exercising all three of
@@ -401,3 +407,85 @@ def test_no_typ_file_written_after_default_documents_refusal(tmp_path):
         f"Expected NO .typ file written when the default-documents "
         f"collision refuses the build, found: {survivors}"
     )
+
+
+class TestWindowsPathEscapingRegressionGuard:
+    """57-11: closes the blind spot that let CI runs 31956166848 and
+    31959060298 both fail on windows-latest for the same reason before
+    being twice misdiagnosed as a path-separator problem. The real
+    defect is ESCAPING -- these three refusal sites used to interpolate
+    a filesystem-path value with ``!r``, and ``repr()`` doubles every
+    backslash, so the message a Windows user reads carried TWO literal
+    backslashes where one separator belongs.
+
+    Each test below calls the ACTUAL message-construction function --
+    ``_conf17_violation_message()``, ``_templates_path_collision_message()``,
+    and ``_bundle_destination_collision_message()`` -- the same three
+    functions ``typsphinx/builder.py`` calls at its three pre-write
+    refusal sites, never a copy of their f-strings pasted into this test
+    module. A re-pasted format string would keep passing even if the
+    product regressed back to ``!r``; calling the real function is what
+    makes reverting any one site turn its own test RED (recorded in
+    57-MESSAGE-FIX-EVIDENCE.md).
+
+    Honest limit: this drives real product code with a Windows-SHAPED
+    string (one built by hand, containing backslashes), not a
+    Windows-host-resolved ``pathlib.WindowsPath`` -- there is no Windows
+    host available to this suite. It cannot observe anything that only a
+    real ``ntpath``/``ntpath.dirname`` resolution would produce; it can
+    only observe what these three functions do to a path string they are
+    handed, which is exactly the surface the ``!r``-escaping defect lives
+    on (the functions never call ``os.path`` themselves).
+    """
+
+    WINDOWS_SHAPED_PATH = "C:\\Users\\runner\\project\\_templates\\nested"
+    WINDOWS_SHAPED_SRCDIR = "C:\\Users\\runner\\project\\source"
+
+    @staticmethod
+    def _assert_no_doubled_separator(message: str) -> None:
+        """No run of consecutive backslashes longer than 1 may appear --
+        that is what ``repr()`` escaping would produce and what this
+        guard exists to catch."""
+        doubled = re.findall(r"\\\\+", message)
+        assert not doubled, (
+            f"Expected every backslash run to be a single unescaped "
+            f"separator, found a doubled/escaped run in:\n{message!r}"
+        )
+
+    def test_conf17_violation_message_does_not_double_backslashes(self):
+        message = _conf17_violation_message(
+            "mykey", self.WINDOWS_SHAPED_PATH, self.WINDOWS_SHAPED_SRCDIR
+        )
+        self._assert_no_doubled_separator(message)
+        # And the path value itself must still be present, unescaped.
+        assert self.WINDOWS_SHAPED_PATH in message
+        assert self.WINDOWS_SHAPED_SRCDIR in message
+
+    def test_templates_path_collision_message_does_not_double_backslashes(self):
+        message = _templates_path_collision_message(
+            "mykey",
+            self.WINDOWS_SHAPED_PATH,
+            "_templates",
+            self.WINDOWS_SHAPED_SRCDIR + "\\_templates",
+        )
+        self._assert_no_doubled_separator(message)
+        assert self.WINDOWS_SHAPED_PATH in message
+
+    def test_bundle_destination_collision_message_does_not_double_backslashes(self):
+        message = _bundle_destination_collision_message(
+            "alpha", "beta", self.WINDOWS_SHAPED_PATH
+        )
+        self._assert_no_doubled_separator(message)
+        assert self.WINDOWS_SHAPED_PATH in message
+
+    def test_registry_keys_stay_repr_quoted(self):
+        """Control: the registry-key interpolations in these same
+        messages are IDENTIFIER-valued and must keep using ``!r`` --
+        this guard is only about path values. A key containing no
+        separator is unaffected by the escaping defect either way, so
+        this asserts the quoting style rather than a backslash count."""
+        message = _bundle_destination_collision_message(
+            "alpha", "beta", self.WINDOWS_SHAPED_PATH
+        )
+        assert "'alpha'" in message
+        assert "'beta'" in message
