@@ -971,11 +971,11 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: 10 plans in 4 waves (57-10 added mid-execution), 7/10 complete, 57-05 halted — W1 `57-01` (tracer: the release-surface slice) +
+**Plans**: 11 plans in 4 waves (57-10 and 57-11 added mid-execution), 9/11 complete, 57-05 halted — W1 `57-01` (tracer: the release-surface slice) +
 `57-02` (D-12's pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
 D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
-authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-08` (SC#4
-sweep and fence) · W4 `57-09` (todo-ledger disposition and the handoff). Four planning-time
+authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-11` (the
+Windows `repr()`-escaping fix) + `57-08` (SC#4 sweep and fence) · W4 `57-09` (todo-ledger disposition and the handoff). Four planning-time
 corrections landed against the locked context, each re-measured live: the CHANGELOG tail block is
 **complete** (the `[0.8.0]` line exists at `CHANGELOG.md:1157` and is topmost), so no "repair the
 missing line" task exists; **D-10 is verification, not a fix** — commit `70e24958` already corrected
@@ -1002,6 +1002,7 @@ dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check 
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
+- [x] 57-11-PLAN.md — *(added mid-execution 2026-08-17, owner decision; the phase's one intended `typsphinx/` change, recorded as an AMENDED fence exception in `57-CONTEXT.md`)* the real root cause of both `windows-latest` failures: the three pre-write template-path refusal messages interpolated PATH values with `!r`, and `repr()` doubles every backslash. Unescaped at all three sites, with a POSIX-runnable guard that drives the real message builders with a Windows-shaped path. **No Windows CI lane has confirmed it** — that is `57-05`'s fresh authority dispatch
 - [ ] 57-08-PLAN.md — SC#4: the milestone-diff sweep with the runtime-dependency claim argued at hunk level and backed by a real positive control, the `@preview` guard proven load-bearing by a live falsification, the retired config-value assertion recorded, the fence proven over this phase's own diff, and the second separated tag observation
 
 **Wave 4** *(blocked on Wave 3 completion)*
@@ -1038,7 +1039,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 7/10 | Blocked (57-05 halted) | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 9/11 | Blocked (57-05 halted) | - |
 
 ## Roadmap Evolution
 
