@@ -1,12 +1,14 @@
 ---
 created: 2026-08-17
-title: "Path-valued `!r` interpolations remain in user-facing messages OUTSIDE the three refusal sites 57-11 fixed -- each doubles backslashes in the emitted message on Windows"
+title: "Path quoting in user-facing messages is unfinished on BOTH sides: path-valued `!r` still doubles backslashes at the sites 57-11 did NOT touch, and the three sites it DID fix lost `repr()`'s quote-disambiguation for paths containing a literal single quote"
 area: builder, writer, template_registry
 resolves_phase: unassigned
 severity: minor
 source: 57-11 task 1's whole-file `!r` census over typsphinx/, taken from the DEFECT PROPERTY
   ("a filesystem path interpolated with !r into a message a user is expected to read and act
   on") rather than from the single line CI named. Filed per 57-11-PLAN.md task 3 step 4.
+  EXTENDED 2026-08-22 with WR-01 from `57-REVIEW.md` (Phase 57 code review), which is the
+  converse defect at the three sites 57-11 DID fix -- see the second Problem section below.
 files:
   - typsphinx/builder.py       # v0.8.0-era output-path collision family (lines ~875-948)
   - typsphinx/builder.py       # bundle-copy I/O failure messages (lines ~1992-2007, post-refactor line numbers)
@@ -93,3 +95,57 @@ collision family (1), the same fix is a smaller behavioral risk (they are not re
 messages) but should still go through the same "zero test edits proves POSIX-identical output"
 discipline 57-11 task 1 step 3 established, plus a Windows-shape check per 57-11 task 2's
 pattern, before landing.
+
+---
+
+## Problem, part 2 (added 2026-08-22) — the three FIXED sites lost quote-disambiguation
+
+Source: `57-REVIEW.md` finding **WR-01** (Phase 57 code review, standard depth), independently
+reproduced by the orchestrator before filing.
+
+`repr()` does two jobs at once: it escapes backslashes (the Windows defect 57-11 correctly
+removed) **and** it picks a delimiter that cannot appear unescaped inside the value. Replacing
+`{value!r}` with a hardcoded `'{value}'` kept the first fix but dropped the second. A single
+quote is a legal character in a POSIX filename, so a real path can now close the quote early:
+
+```
+$ python -c "from typsphinx.builder import _templates_path_collision_message as m; \
+             print(m('mykey', \"/home/O'Brien's Projects/_templates/nested\", '_templates', '...'))"
+... bundle directory '/home/O'Brien's Projects/_templates/nested' collides ...
+                      ^ reads as closing here
+
+# what repr() produced before 57-11 — it switched delimiter automatically:
+... bundle directory "/home/O'Brien's Projects/_templates/nested" collides ...
+```
+
+Affected sites are exactly the three 57-11 changed, all in `typsphinx/builder.py`:
+`_conf17_violation_message()` (~329-334), `_templates_path_collision_message()` (~363-376),
+`_bundle_destination_collision_message()` (~398-402).
+
+**Severity: minor, and lower than it looks.** These are refusal messages — the build is already
+being refused; only legibility degrades, never the refusal decision. It requires a single quote
+in a project path. No test or CI run has failed on it. The backslash fix itself is unaffected
+and was re-verified after this reproduction (zero doubled runs).
+
+**Why not fixed in Phase 57 (owner decision, 2026-08-22):** the tree at the time carried a
+measured **12/12 green CI run (`32557477023`, both `windows-latest` lanes)**, and a second
+`typsphinx/builder.py` edit would have invalidated that evidence and required another full
+matrix dispatch — for a cosmetic issue on an already-failing path — while also widening the
+phase's single owner-approved prep-only fence exception into a second one. Filed here instead
+of as an 11th ledger record deliberately: `57-HANDOFF.md` states the pending ledger holds ten
+records and dispositions all ten, and a shared fix resolves both halves of this file anyway.
+
+## Suggested fix, part 2
+
+Do NOT reach back for `!r`. Write one small helper that quotes a path value **without**
+escaping backslashes, e.g. choose `"` as the delimiter when the value contains `'` and no `"`,
+otherwise `'`, escaping only the chosen delimiter if both appear — and route all path-valued
+interpolations through it, the three fixed sites and every site in part 1 alike. That single
+helper is the reason both halves belong in one todo.
+
+Gate it the way 57-11 gated its own fix: a Windows-shaped path asserting no doubled separator
+(the existing `TestWindowsPathEscapingRegressionGuard` in
+`tests/test_templates_path_collision_gate.py` already does this), **plus** the sibling case
+`57-REVIEW.md` finding **IN-01** names as missing — a path containing a literal single quote,
+asserting the emitted message delimits it unambiguously.
+
