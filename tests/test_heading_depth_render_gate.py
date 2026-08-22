@@ -294,14 +294,15 @@ class TestNoHeadingOffsetOutsideVisitToctree:
 
     Leg 2 (live) builds `tests/fixtures/integration_nested_toctree` (a
     fixture with no custom `typst_template` or `typst_package` configured,
-    so `TypstBuilder._write_template_file` falls through to the packaged
-    default and writes it as `_template.typ` at the build's output root --
-    the same fixture `nested_toctree_heading_outline` above already builds)
-    and asserts the emitted `_template.typ` ALSO contains no
+    so the built-in `"typst"` registry key resolves to the packaged
+    default, copied wholesale to `_template/typst/base.typ` -- Phase 54,
+    OUT-04 -- the same fixture `nested_toctree_heading_outline` above
+    already builds) and asserts the copied bundle file ALSO contains no
     `heading(offset` construct. This is the half a static grep of the
-    packaged source cannot cover, because `_write_template_file` composes
-    what it actually writes (parameter substitution, asset copying) rather
-    than copying the source file byte-for-byte.
+    packaged source alone cannot cover, because it checks the file the
+    build ACTUALLY published -- an accidental divergence between the
+    installed package and the copy the bundle-copy driver writes would
+    surface here even though the copy is byte-for-byte today.
 
     Both legs assert absence, which is vacuous on its own (an empty or
     unbuilt input would also show no `heading(offset` construct) -- so both
@@ -333,22 +334,23 @@ class TestNoHeadingOffsetOutsideVisitToctree:
         self, nested_toctree_heading_outline
     ):
         """
-        Live leg: the `_template.typ` actually WRITTEN by
-        `TypstBuilder._write_template_file` for a real build must also
-        carry no `heading(offset` construct -- this is composed output
-        (parameter substitution applied), not a copy of the packaged
-        source, so it must be checked independently of the static leg.
+        Live leg: the built-in ``"typst"`` key's bundled template, copied
+        by `_copy_used_template_bundles()` (Phase 54, OUT-04) to
+        `_template/typst/base.typ` for a real build, must also carry no
+        `heading(offset` construct -- checked independently of the static
+        leg, which reads the installed package directly rather than the
+        build's own published output.
         """
         _levels, _outline, _master_typ, build_dir = nested_toctree_heading_outline
-        emitted_template = build_dir / "_template.typ"
+        emitted_template = build_dir / "_template" / "typst" / "base.typ"
         assert (
             emitted_template.exists()
         ), f"expected {emitted_template} to have been written by the build"
         content = emitted_template.read_text(encoding="utf-8")
         assert "heading(offset" not in content, (
-            "the emitted _template.typ must not introduce its own heading "
-            "offset -- that responsibility belongs solely to visit_toctree "
-            "(SC#8)"
+            "the emitted _template/typst/base.typ must not introduce its "
+            "own heading offset -- that responsibility belongs solely to "
+            "visit_toctree (SC#8)"
         )
 
     def test_offset_expression_is_producible_in_the_same_build(

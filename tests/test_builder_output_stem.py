@@ -435,10 +435,15 @@ def test_resolve_target_stem_no_longer_falls_back_on_reserved_template_name(
 def test_validate_output_path_collisions_raises_on_reserved_template_name(
     temp_sphinx_app,
 ):
-    """Phase 47 plan 09's D-03: the reserved "_template" collision is
-    caught by _validate_output_path_collisions(), independent of
-    found_docs membership -- the reservation is inserted into the
-    collision map first, unconditionally."""
+    """Phase 47 plan 09's D-03 originally caught an exact-name clobber of
+    the reserved shared-template basename. Phase 54 plan 07 (OUT-07)
+    widens that exact-name claim into a wholesale reservation of the
+    ``_template/`` output DIRECTORY -- there is no longer any build-time
+    write to a bare ``_template.typ`` file for a target to clobber, since
+    every used registry key's bundle now lives under
+    ``_template/<key>/`` (Phase 54 plan 04). A wrapper target that
+    resolves anywhere under that reserved directory still raises,
+    independent of ``found_docs`` membership."""
     import types
 
     import pytest
@@ -449,7 +454,7 @@ def test_validate_output_path_collisions_raises_on_reserved_template_name(
     app = temp_sphinx_app
     builder = TypstBuilder(app, app.env)
     builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
-    builder.config.typst_documents = [("index", "_template.typ", "T", "A")]
+    builder.config.typst_documents = [("index", "_template/index.typ", "T", "A")]
 
     with pytest.raises(ExtensionError):
         builder._validate_output_path_collisions()

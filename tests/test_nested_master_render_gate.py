@@ -47,9 +47,10 @@ WHICH FILE carries which of this module's two historical reference classes:
   the content file's own on-disk directory (``api/``) is where these two
   references resolve FROM, unconditionally.
 - The WRAPPER file (target ``nested-master.typ``, resolving at the OUTDIR
-  ROOT -- a bare target under OUT-01) carries the template import
-  (``#import "_template.typ"``, depth 0 from the outdir root, R2) and a
-  single ``#include("api/index.typ")`` of its own entry's content file
+  ROOT -- a bare target under OUT-01) carries the bundled-template
+  import (``#import "/_template/typst/base.typ"``, root-absolute
+  regardless of the wrapper's own nesting, OUT-06) and a single
+  ``#include("api/index.typ")`` of its own entry's content file
   (R2/R3, computed by ``compute_content_include_path``) -- it no longer
   carries the sibling include or the image reference at all.
 
@@ -278,9 +279,9 @@ class TestNestedMasterRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         wrapper_text = wrapper_output.read_text(encoding="utf-8")
-        assert '#import "_template.typ"' in wrapper_text, (
-            f"Expected the wrapper's template import at depth 0 (it "
-            f"resolves at the outdir root):\n{wrapper_text}"
+        assert '#import "/_template/typst/base.typ"' in wrapper_text, (
+            f"Expected the wrapper's root-absolute bundled-template "
+            f"import (OUT-06):\n{wrapper_text}"
         )
         assert '#include("api/index.typ")' in wrapper_text, (
             f"Expected the wrapper to #include() its own entry's content "

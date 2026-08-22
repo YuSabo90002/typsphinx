@@ -10,6 +10,7 @@ from typing import Any, Dict, List, NamedTuple, Tuple
 
 from docutils import nodes
 from sphinx import addnodes
+from sphinx.errors import ExtensionError
 from sphinx.locale import admonitionlabels
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxTranslator
@@ -42,6 +43,20 @@ SHARED_INDENT_STEP = "2.5em"
 # site (`visit_reference`'s cross-document branch) through the SAME
 # `_namespace_label` call (D-13) -- never re-spelled at either.
 _WHOLE_DOCUMENT_SELF_ANCHOR_TOKEN = "__tsx-doc__"
+
+# Phase 55 plan 01 (XREF-05, D-01/D-02): `_sanitize_label`'s own encoding
+# token alphabet (`_u{codepoint:x}_`) is a SUBSET of its "safe" character
+# class, so a raw input that already spells the encoder's own token shape
+# passes through the main substitution untouched -- collapsing two distinct
+# inputs (e.g. docnames `a/b` and `a_u2f_b`) onto one label. This pattern
+# matches the introducing underscore of any such literal run -- `u` followed
+# by one or more lowercase hex digits, followed by either an underscore or a
+# character the main substitution is about to escape -- so `_sanitize_label`
+# can neutralise it BEFORE the main substitution runs. Matched via lookahead
+# (the underscore itself is what gets replaced, not the whole run) so the
+# pre-pass and the main substitution never have to agree on where the run
+# ends. See `55-01-RED-EVIDENCE.md` and `tests/test_sanitize_label_injectivity_unit.py`.
+_LABEL_TOKEN_INTRODUCER_RE = re.compile(r"_(?=u[0-9a-f]+(?:_|[^A-Za-z0-9_.:-]))")
 
 
 class _ReferenceAnchorDecision(NamedTuple):
@@ -192,6 +207,74 @@ def escape_typst_string(text: str) -> str:
 INCLUDE_STATE_KEY = "typsphinx:include-edges"
 
 
+def _escape_include_edge_separators(text: str) -> str:
+    """Escape literal occurrences of this module's edge-key FORMAT
+    separators (``#`` and ``>``) inside a single already
+    ``escape_typst_string()``-escaped docname component (Phase 55 plan 02,
+    BLD-07).
+
+    Two ordinary ``str.replace`` calls, nothing else: each literal ``#``
+    becomes ``\\#``, then each literal ``>`` becomes ``\\>``. This is a
+    SECOND, NARROWER rule than ``escape_typst_string()`` and is
+    deliberately NOT folded into it -- ``escape_typst_string()`` is called
+    from many sites across the translator that emit ordinary Typst string
+    literals where ``#`` is meaningful markup syntax and must NOT be
+    escaped; widening its four-character contract to also cover the two
+    edge-key separators would churn unrelated emitted bytes across the
+    whole module. This helper is applied ONLY inside
+    ``make_include_edge_key()``, to each of the two docname components,
+    never to the ``#``/``>`` the f-string itself inserts as the key
+    format's own structural separators.
+
+    Call-order is LOAD-BEARING and is why this helper runs AFTER
+    ``escape_typst_string()``, never before: ``escape_typst_string()`` has
+    already doubled every literal backslash in its input (its own
+    docstring's "escaped first" rule), so by the time this helper runs, a
+    literal backslash in the ORIGINAL docname is represented by an EVEN
+    run of backslashes (``\\`` -> ``\\\\``, ``\\\\`` -> ``\\\\\\\\``, ...).
+    This helper then introduces exactly ONE further backslash immediately
+    before each literal ``#``/``>`` byte, so every literal separator
+    character that was actually PRESENT in a docname component is now
+    preceded by an ODD run of backslashes, while the key format's own two
+    structural separators (inserted by the f-string in
+    ``make_include_edge_key()`` after both components have already been
+    escaped) are preceded by an EVEN run (usually zero, since no
+    backslash immediately precedes them). That parity is what makes the
+    three-part ``<parent>#<occurrence>><child>`` boundary uniquely
+    locatable, and is therefore what makes the parent/child/occurrence
+    triple-to-key map injective. Reversing the order (escaping the two
+    separators BEFORE ``escape_typst_string()`` runs) does NOT hold this
+    property: the later backslash-doubling pass would turn an
+    originally-odd run even, destroying the parity invariant. This
+    ordering and the resulting injectivity were brute-forced over 640,000
+    ``(parent, child, occurrence)`` triples this phase (drawn from the
+    alphabet ``a # > \\ 0 1 "`` with component lengths 0-3 and occurrences
+    0, 1, 2 and 10): zero collisions with this construction, versus a
+    first collision at ``('', '#0>', 0)`` against ``('#0>', '', 0)`` (both
+    ``#0>#0>``) without it.
+
+    The measured Typst-level fact this fix rests on: Typst keeps the
+    escaping backslash as an ordinary character in the string VALUE (a
+    two-character sequence, ``\\`` followed by the separator, not folded
+    away) -- so two differently-escaped key spellings stay distinct
+    inside the published ``state`` array at compile time. This property
+    is pinned directly against a real ``typst.compile()`` by
+    ``tests/test_include_edge_separator_collision_gate.py``'s language
+    probe (``test_typst_language_keeps_escape_character_distinct``).
+
+    Args:
+        text: A single docname component, already passed through
+            ``escape_typst_string()``.
+
+    Returns:
+        ``text`` with every literal ``#`` and ``>`` byte preceded by one
+        additional backslash.
+    """
+    text = text.replace("#", "\\#")
+    text = text.replace(">", "\\>")
+    return text
+
+
 def make_include_edge_key(
     parent_docname: str, child_docname: str, occurrence: int = 0
 ) -> str:
@@ -221,14 +304,40 @@ def make_include_edge_key(
 
     Returns:
         The edge key, e.g. ``"index#0>child"``. Both docnames route
-        through ``escape_typst_string()`` (T-49-01), so a docname
-        containing a double quote or a backslash still produces a key
-        that is byte-identical whether derived on the graph side or the
-        emission side.
+        through ``escape_typst_string()`` (T-49-01) AND the
+        separator-escaping helper above it (Phase 55 plan 02, BLD-07),
+        so a docname containing a double quote, a backslash, a ``#`` or a
+        ``>`` still produces a key that is byte-identical whether derived
+        on the graph side or the emission side, and two structurally
+        different edges can no longer collide onto one key. A docname
+        containing NEITHER separator character produces a byte-identical
+        key to before this fix, e.g.
+        ``make_include_edge_key('index', 'child', 0) == 'index#0>child'``.
     """
-    escaped_parent = escape_typst_string(parent_docname)
-    escaped_child = escape_typst_string(child_docname)
+    escaped_parent = _escape_include_edge_separators(
+        escape_typst_string(parent_docname)
+    )
+    escaped_child = _escape_include_edge_separators(escape_typst_string(child_docname))
     return f"{escaped_parent}#{occurrence}>{escaped_child}"
+
+
+# Phase 55 plan 02 (BLD-08): the fixed, documented policy bound on
+# `derive_master_edge_keys()`'s own recursion depth. Re-measured directly
+# in this worktree (`55-02-RED-EVIDENCE.md` "Depth headroom measurement"),
+# not guessed: the interpreter's own default maximum call-stack depth is
+# 1000 frames; the deepest linear include chain this function survives
+# from a near-empty stack is 996; a 900-deep chain already raises
+# `RecursionError` once roughly 100 extra Python caller frames sit above
+# the walk -- which is why `55-RESEARCH.md`'s originally proposed value of
+# 900 was REJECTED as unsafe. A real `sphinx-build` was measured at 11
+# caller frames above this function, and a `pytest` plus `SphinxTestApp`
+# stack is deeper still. 500 leaves roughly 495 frames of headroom below
+# the measured 996-deep near-empty-stack ceiling for any embedder's own
+# stack, while remaining two orders of magnitude beyond any real
+# documentation tree. This is a FIXED POLICY CHOICE, deliberately NOT read
+# from the interpreter's own call-stack limit at runtime, so behaviour
+# does not vary by interpreter or embedder.
+_MAX_INCLUDE_CHAIN_DEPTH = 500
 
 
 def derive_master_edge_keys(
@@ -264,7 +373,16 @@ def derive_master_edge_keys(
     traversal shape (that helper solved a DIFFERENT problem, a flat
     cross-master docname union for XREF-safety), and COMP-05/SC#3 forbids
     reusing it here. This function's genuine recursion preserves document
-    order; a naive forward-push LIFO stack does not.
+    order; a naive forward-push LIFO stack does not. The recursion is
+    deliberately PRESERVED by the depth bound below (Phase 55 plan 02,
+    BLD-08), rather than replaced by that forbidden work-stack shape: a
+    chain deeper than ``_MAX_INCLUDE_CHAIN_DEPTH`` now raises a named
+    ``sphinx.errors.ExtensionError`` instead of an uncaught
+    ``RecursionError`` escaping through Sphinx's own traceback. This bound
+    can ONLY ever be reached by a genuinely deep ACYCLIC chain -- a CYCLE
+    is already structurally dark through the ``traversed`` membership
+    check at any depth (see above), so the raised message never claims a
+    repeated document was found.
 
     Occurrence is always 0 on this side: a child is claimed by its parent
     at that child's FIRST non-traversed appearance in the parent's ordered
@@ -284,19 +402,31 @@ def derive_master_edge_keys(
 
     Returns:
         The master's edge keys, in discovery order, as an ordered tuple.
+
+    Raises:
+        ExtensionError: If the include chain reaches a depth greater than
+            ``_MAX_INCLUDE_CHAIN_DEPTH`` edges below ``master_docname``.
     """
     traversed: List[str] = [master_docname]
     edge_keys: List[str] = []
 
-    def walk(parent: str) -> None:
+    def walk(parent: str, depth: int, path: Tuple[str, ...]) -> None:
+        if depth > _MAX_INCLUDE_CHAIN_DEPTH:
+            raise ExtensionError(
+                f"typsphinx: the include chain for master document "
+                f"{master_docname!r} is a very deep toctree nesting -- "
+                f"reached depth {depth}, exceeding the "
+                f"{_MAX_INCLUDE_CHAIN_DEPTH}-edge bound, running from "
+                f"{path[0]!r} to {path[-1]!r}."
+            )
         for child in toctree_includes.get(parent, []):
             if child not in traversed:
                 edge_keys.append(make_include_edge_key(parent, child, occurrence=0))
                 traversed.append(child)
-                walk(child)
+                walk(child, depth + 1, path + (child,))
             # else: already traversed -- dark, no edge emitted (first-encounter-wins)
 
-    walk(master_docname)
+    walk(master_docname, 0, (master_docname,))
     return tuple(edge_keys)
 
 
@@ -5055,13 +5185,39 @@ class TypstTranslator(SphinxTranslator):
         ``footnote(<...>)``) -- so a definition and its reference sanitize to
         the SAME string and cross-references keep resolving.
 
+        INJECTIVITY (Phase 55, XREF-05, D-01/D-02): the encoder's own token
+        alphabet (``_u{codepoint:x}_``) is a SUBSET of its own safe character
+        set, so a raw input that already spells that token shape passes
+        through the main substitution below untouched -- two DIFFERENT raw
+        inputs can then collapse onto the SAME label (e.g. docname ``a/b``
+        and docname ``a_u2f_b`` both namespace-and-sanitize to
+        ``a_u2f_b:nested-target``). Protecting only COMPLETE literal tokens
+        present in the raw input is not enough, because the main substitution
+        itself creates NEW token-shaped runs at the seam between literal text
+        and an emitted token -- two constructions that tried this were
+        measured non-injective this phase: doubling a literal token's leading
+        underscore collides ``a_/b`` with ``a_u2f_b`` (both become
+        ``a__u2f_b``), and inserting an extra ``u`` collides ``_u2f/`` with
+        ``/u2f_`` (both become ``_u2f_u2f_``). The construction below instead
+        escapes the run's own INTRODUCING underscore -- via the module-level
+        ``_LABEL_TOKEN_INTRODUCER_RE`` pre-pass, run BEFORE the main
+        substitution -- with the replacement ``_u5f_``, which is precisely
+        what the encoder itself emits for a literal underscore (``ord("_")``
+        is ``0x5f``), so no new escaping primitive is introduced. This is
+        verified injective by an exhaustive decoder round-trip in
+        ``tests/test_sanitize_label_injectivity_unit.py`` (the Pitfall-3
+        proof obligation for this construction), over an exhaustive alphabet
+        plus 400,000 random strings; see also ``55-01-RED-EVIDENCE.md``.
+
         Args:
             name: A docutils id/name (or a derived label such as ``fn-<id>``).
 
         Returns:
             The same string with every Typst-label-invalid character replaced
-            by a ``_u{codepoint:x}_`` token.
+            by a ``_u{codepoint:x}_`` token, and every literal occurrence of
+            the encoder's own token-introducing underscore re-escaped first.
         """
+        name = _LABEL_TOKEN_INTRODUCER_RE.sub("_u5f_", name)
         return re.sub(
             r"[^A-Za-z0-9_.:-]",
             lambda m: f"_u{ord(m.group(0)):x}_",

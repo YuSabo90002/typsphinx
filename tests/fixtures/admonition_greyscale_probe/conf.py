@@ -34,12 +34,16 @@ extensions = [
 # unrelated to the collision itself: `scripts/render_admonition_
 # greyscale.py`'s `_build_typ()` (out of this plan's files_modified
 # scope, so it cannot be edited here) locates "the master document" by
-# globbing `*.typ` (excluding `_template.typ`) and picking the
-# ALPHABETICALLY FIRST result -- a convention that was harmless before
-# the split (exactly one non-template .typ file existed) but now must
-# sort before the docname-derived content file, "index.typ", or the
-# script would rasterise the untemplated CONTENT file instead of the
-# wrapper. "admonition-greyscale-probe.typ" sorts before "index.typ"
+# globbing `*.typ` (excluding a `_template.typ` name, a filter that
+# predates Phase 54's bundle relocation and is now vestigial rather than
+# load-bearing -- the bundle-copy driver's own `_template/<key>/` bundle
+# is one directory down, so it never matches a non-recursive `*.typ`
+# glob at all) and picking the ALPHABETICALLY FIRST result -- a
+# convention that was harmless before the split (exactly one
+# non-template .typ file existed) but now must sort before the
+# docname-derived content file, "index.typ", or the script would
+# rasterise the untemplated CONTENT file instead of the wrapper.
+# "admonition-greyscale-probe.typ" sorts before "index.typ"
 # ("a" < "i") and keeps `tests/test_admonition_greyscale_pipeline.py`'s
 # own duplicate glob-and-sort logic pointed at the same wrapper.
 typst_documents = [

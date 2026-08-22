@@ -174,12 +174,17 @@ class TestTypstDocumentsCollisionGate:
 
     def test_derived_default_template_collision_fails_build(self, tmp_path):
         """
-        Zero-configuration RESERVED-TEMPLATE clobber: `project = "_Template"`
-        derives to the target `_template.typ`, identical to the reserved
-        shared-template basename `_write_template_file()` writes at the
-        outdir root. `-b typst` must exit non-zero, raise an
-        ExtensionError naming the collision, and write NO `.typ` file at
-        all -- including `_template.typ` itself (D-02).
+        Zero-`typst_documents`-configuration RESERVED-DIRECTORY clobber:
+        with no `typst_documents` set at all, CONF-08's derived default
+        (`_default_typst_documents()`) reads `root_doc` directly as the
+        sole entry's docname -- and `root_doc = "_template/index"` puts
+        that docname's own CONTENT file under the reserved `_template/`
+        output directory (Phase 54 plan 07, OUT-07: the prefix
+        reservation this fixture exercises replaced Phase 47's
+        exact-name `_template.typ` claim, which a project-name slug could
+        collide with but a docname's own directory could not). `-b typst`
+        must exit non-zero, raise an ExtensionError naming the collision,
+        and write NO `.typ` file at all (D-02).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
@@ -198,13 +203,17 @@ class TestTypstDocumentsCollisionGate:
         assert (
             COLLISION_ERROR_SUBSTRING in combined_output
         ), f"Expected the collision-error substring:\n{combined_output}"
-        assert "_template.typ" in combined_output, (
-            f"Expected the reserved _template.typ named in the error:\n"
+        assert "_template/index" in combined_output, (
+            f"Expected the offending docname '_template/index' named in "
+            f"the error:\n{combined_output}"
+        )
+        assert "reserved" in combined_output, (
+            f"Expected the error to say the directory is reserved:\n"
             f"{combined_output}"
         )
         assert _no_typ_files_written(build_dir), (
             f"D-02: expected NO .typ file written when a collision is "
-            f"found (including _template.typ itself), found: "
+            f"found, found: "
             f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )
 
@@ -244,11 +253,13 @@ class TestTypstDocumentsCollisionGate:
 
     def test_explicit_target_template_collision_fails_build(self, tmp_path):
         """
-        Explicit-path reserved-template clobber: `typst_documents =
-        [("index", "_template.typ", ...)]` names the reserved shared-
-        template basename as the master's target. `-b typst` must exit
-        non-zero, raise an ExtensionError naming the collision, and write
-        NO `.typ` file at all -- including `_template.typ` itself.
+        Explicit-path reserved-directory clobber: `typst_documents =
+        [("index", "_template/index.typ", ...)]` names a WRAPPER target
+        resolving under the reserved `_template/` output directory
+        (Phase 54 plan 07, OUT-07: the prefix reservation this fixture
+        exercises replaced Phase 47's exact-name `_template.typ` claim).
+        `-b typst` must exit non-zero, raise an ExtensionError naming the
+        collision, and write NO `.typ` file at all.
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(
@@ -267,12 +278,16 @@ class TestTypstDocumentsCollisionGate:
         assert (
             COLLISION_ERROR_SUBSTRING in combined_output
         ), f"Expected the collision-error substring:\n{combined_output}"
-        assert "_template.typ" in combined_output, (
-            f"Expected the reserved _template.typ named in the error:\n"
+        assert "_template/index.typ" in combined_output, (
+            f"Expected the offending wrapper path '_template/index.typ' "
+            f"named in the error:\n{combined_output}"
+        )
+        assert "reserved" in combined_output, (
+            f"Expected the error to say the directory is reserved:\n"
             f"{combined_output}"
         )
         assert _no_typ_files_written(build_dir), (
             f"D-02: expected NO .typ file written when a collision is "
-            f"found (including _template.typ itself), found: "
+            f"found, found: "
             f"{list(build_dir.rglob('*.typ')) if build_dir.exists() else []}"
         )

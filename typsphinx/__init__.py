@@ -23,6 +23,7 @@ except importlib.metadata.PackageNotFoundError:
 __author__ = "YuSabo"
 
 from typsphinx.builder import TypstBuilder, TypstPDFBuilder, _default_typst_documents
+from typsphinx.removed_config import check_config_at_init
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
@@ -54,8 +55,22 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     )
     # Task 13.4: Debug mode
     app.add_config_value("typst_debug", False, "html", [bool])
-    # Issue #75: Template asset support
-    app.add_config_value("typst_template_assets", None, "html", [list, type(None)])
+    # Phase 53 (TPL-01): named template definitions, keyed by a registry
+    # key referenced from a typst_documents entry's fifth element. Absent
+    # or empty is legal -- it resolves to a registry containing only the
+    # synthesized built-in "typst" key (D-02).
+    app.add_config_value("typst_document_templates", {}, "html", [dict])
+
+    # Phase 54 (CONF-19): this codebase's FIRST event-handler connection --
+    # a deliberate, roadmap-locked exception to this project's usual
+    # pattern of raising config-shape errors from inside a Builder method.
+    # A removed config value is not an error in a Builder's config (there
+    # is nothing left for a Builder to validate -- Sphinx no longer knows
+    # the name exists at all by the time a Builder runs); it can only be
+    # observed by reading the raw `conf.py` namespace before Sphinx's own
+    # config validation drops unknown names, which happens at
+    # `config-inited`, before any Builder is even selected.
+    app.connect("config-inited", check_config_at_init)
 
     return {
         "version": __version__,

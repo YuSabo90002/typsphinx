@@ -4,8 +4,8 @@ This is a basic example project demonstrating how to use `typsphinx` to generate
 
 ## Prerequisites
 
-- Python 3.9 or higher
-- Sphinx 5.0 or higher
+- Python 3.12 or higher
+- Sphinx 9.1 or higher (below 10)
 - typsphinx installed
 
 ## Installation
@@ -33,10 +33,10 @@ To build the documentation and generate `.typ` files:
 sphinx-build -b typst . _build/typst
 ```
 
-This will create three files in `_build/typst/`: `basic-example.typ`, the
-wrapper file to compile; `index.typ`, the content file holding the document
-body that the wrapper includes; and `_template.typ`, the template the
-wrapper imports.
+This will create two files at the root of `_build/typst/`: `basic-example.typ`,
+the wrapper file to compile; and `index.typ`, the content file holding the
+document body that the wrapper includes. The template the wrapper imports is
+copied to `_build/typst/_template/typst/`, one directory down.
 
 ### Generate PDF Output
 

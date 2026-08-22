@@ -81,22 +81,22 @@ Template Assets
 
 When using custom templates, you often need additional assets like fonts, logos, or images. typsphinx automatically copies these assets to the output directory.
 
-**Automatic Asset Copying (Default)**
+**Automatic Bundle Copying**
 
-By default, all files in your template directory are automatically copied (except ``.typ`` files):
+Your template's whole bundle directory (the directory containing the resolved template file) is copied wholesale to the output directory -- no configuration needed. Each used registry key's bundle is copied into its own directory named after that key, so two different keys whose bundles each contain a file of the same name do not overwrite one another. The bundle is the template file's own parent directory, whatever that directory contains -- a template with no other files beside it copies just the template file itself:
 
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/custom.typ"
-   # All files in _templates/ are automatically copied
+   typst_template = "_typst/custom.typ"
+   # Every file in _typst/ is automatically copied, including custom.typ itself
 
 Directory structure:
 
 .. code-block:: text
 
-   _templates/
-     ├── custom.typ          # Template file
+   _typst/
+     ├── custom.typ          # Template file, automatically copied
      ├── logo.png            # Automatically copied
      ├── fonts/
      │   └── custom.otf      # Automatically copied
@@ -107,50 +107,24 @@ Reference assets in your template using relative paths:
 
 .. code-block:: typst
 
-   // _templates/custom.typ
+   // _typst/custom.typ
    #image("logo.png")
    #set text(font: "fonts/custom.otf")
    #image("icons/icon.svg")
 
-**Explicit Asset Specification**
-
-For more control, explicitly specify which assets to copy:
-
-.. code-block:: python
-
-   # conf.py
-   typst_template = "_templates/custom.typ"
-   typst_template_assets = [
-       "_templates/logo.png",
-       "_templates/fonts/",
-       "_templates/icons/*.svg"
-   ]
-
-Features:
-
-- Individual files: ``"_templates/logo.png"``
-- Directories: ``"_templates/fonts/"``
-- Glob patterns: ``"_templates/icons/*.svg"``
-
-**Disabling Automatic Copying**
-
-To disable automatic asset copying (for performance):
-
-.. code-block:: python
-
-   # conf.py
-   typst_template = "_templates/custom.typ"
-   typst_template_assets = []  # Empty list = no automatic copying
-
 .. note::
 
-   Typst Universe packages (``typst_package``) handle assets automatically.
-   Asset copying only applies to custom local templates (``typst_template``).
+   Bundle copying applies to every used registry key with no exceptions --
+   including the built-in ``"typst"`` key, which is copied by the same rule
+   as any custom key. A definition using a Typst Universe package
+   (``typst_package``) instead has no local bundle to copy: the wrapper
+   imports the package directly and Typst fetches its own assets, so there
+   is nothing for typsphinx to copy.
 
 Basic Structure
 ~~~~~~~~~~~~~~~
 
-Create a file ``_templates/custom.typ``:
+Create a file ``_typst/custom.typ``:
 
 .. code-block:: typst
 
@@ -195,7 +169,7 @@ Reference your custom template in ``conf.py``:
 
 .. code-block:: python
 
-   typst_template = "_templates/custom.typ"
+   typst_template = "_typst/custom.typ"
 
 Template Parameters
 -------------------
@@ -210,7 +184,7 @@ emission condition:
 
 - ``title`` -- the document title (from ``typst_documents``, or Sphinx's ``project``).
   Arrives unconditionally on every non-package route -- the bundled default, an
-  explicit ``typst_template``, and a ``<srcdir>/base.typ`` shadow alike.
+  explicit ``typst_template``, and a ``<srcdir>/_typst/base.typ`` shadow alike.
 - ``authors`` -- always a Typst **array**, never a bare string. A string source
   (Sphinx's ``author``, or the entry's own author element) is split on commas: a
   single name becomes a one-element array, and ``"Alice Smith, Bob Jones"`` becomes a
@@ -348,7 +322,7 @@ keys the build supplies) would arrive as undeclared arguments and abort the comp
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/minimal.typ"
+   typst_template = "_typst/minimal.typ"
    typst_template_function = {
        "name": "project",
        "params": {
@@ -378,7 +352,7 @@ a ``params`` dict naming all four.
 .. code-block:: python
 
    # conf.py
-   typst_template = "_templates/academic.typ"
+   typst_template = "_typst/academic.typ"
    typst_template_function = {
        "name": "project",
        "params": {

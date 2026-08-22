@@ -4,8 +4,8 @@ Installation
 Requirements
 ------------
 
-- Python 3.9 or later
-- Sphinx 5.0 or later
+- Python 3.12 or later
+- Sphinx 9.1 or later (below 10)
 
 Installing from PyPI
 --------------------

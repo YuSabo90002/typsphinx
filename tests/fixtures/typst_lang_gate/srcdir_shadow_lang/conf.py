@@ -1,14 +1,21 @@
 # Sphinx configuration for the GATE-01 typst `lang` gate's CONF-12/D-I
-# case (2): a `<srcdir>/base.typ` SHADOW of the bundled default template
-# that DOES declare `lang`, combined with Sphinx `language = "ja"` -- the
-# DIRECT proof that D-I's widened judgment covers the search-path shadow
-# route too.
+# case (2): a `<srcdir>/_typst/base.typ` SHADOW of the bundled default
+# template that DOES declare `lang`, combined with Sphinx
+# `language = "ja"` -- the DIRECT proof that D-I's widened judgment
+# covers the search-path shadow route too.
 #
 # CRITICAL: this conf.py deliberately sets NEITHER `typst_template` NOR
 # `typst_package`. That is exactly the shape that silently shadows the
 # bundled `templates/base.typ` with the sibling `base.typ` file placed
-# at THIS directory's root (`TemplateEngine`'s Priority 2 search:
-# `search_paths=[srcdir]`, `template_name="base.typ"`).
+# under THIS directory's `_typst/` subdirectory (`TemplateEngine`'s
+# Priority 2 search: `search_paths=[srcdir/_typst]`,
+# `template_name="base.typ"`). Phase 54 (D-14): the shadow route's
+# source-side location moved from `<srcdir>/base.typ` to
+# `<srcdir>/_typst/base.typ` so the resolved template's parent is a
+# genuine bundle directory, never `srcdir` itself -- see
+# `54-CONTEXT.md` D-14 and `54-01-RED-EVIDENCE.md` "Pitfall 0" for why
+# copying `srcdir` wholesale would otherwise republish the entire
+# source tree as build output.
 # `TemplateEngine.uses_bundled_default_template()` is narrowed by D-I to
 # `not self.typst_package`, so it now returns `True` here too -- the
 # shadow's own `lang` parameter receives the auto-derived value.
@@ -37,5 +44,5 @@ typst_documents = [
 language = "ja"
 
 # NOTE: `typst_template` and `typst_package` are BOTH deliberately left
-# unset -- the shadow at `<srcdir>/base.typ` (this same directory) is
-# what actually gets loaded.
+# unset -- the shadow at `<srcdir>/_typst/base.typ` (this directory's
+# `_typst/` subdirectory) is what actually gets loaded.

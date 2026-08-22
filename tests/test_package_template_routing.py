@@ -3,10 +3,10 @@ Phase 22.2 plan 04: package-vs-template routing tests (D-01, D-03, D-04).
 
 Before this plan, `TypstWriter.translate()` unconditionally computed and
 emitted an ``#import`` of the shared ``_template.typ`` file for every master
-document, while `TypstBuilder._write_template_file()` unconditionally
-refused to WRITE that file whenever ``typst_package`` was configured
-(BUG-A). A package-alone project therefore emitted a master referencing a
-file that was never created -- unbuildable.
+document, while the builder's single-file template writer of that era
+unconditionally refused to WRITE that file whenever ``typst_package`` was
+configured (BUG-A). A package-alone project therefore emitted a master
+referencing a file that was never created -- unbuildable.
 
 This module pins the routing decision the plan introduces:
 
@@ -145,14 +145,15 @@ class TestBothConfiguredRouting:
             f"{combined_output}"
         )
 
-        # The custom template IS written and imported...
-        template_out = outdir / "_template.typ"
+        # The custom template IS copied into the built-in key's bundle
+        # and imported by its root-absolute path (OUT-04/OUT-06)...
+        template_out = outdir / "_template" / "typst" / "template.typ"
         assert template_out.exists()
 
         wrapper_typ = outdir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
         emitted_text = wrapper_typ.read_text()
-        assert '#import "_template.typ": project' in emitted_text
+        assert '#import "/_template/typst/template.typ": project' in emitted_text
 
         # ...and the package import is genuinely suppressed, not merely
         # deprioritised.
@@ -207,4 +208,4 @@ class TestTemplateAloneNonRegression:
         wrapper_typ = outdir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (the wrapper) was not generated"
         emitted_text = wrapper_typ.read_text()
-        assert '#import "_template.typ": ieee' in emitted_text
+        assert '#import "/_template/typst/template.typ": ieee' in emitted_text

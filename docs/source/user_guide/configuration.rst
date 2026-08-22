@@ -77,13 +77,21 @@ Each tuple contains:
    function and its arguments has already made a more specific decision
    than either, and when ``params`` is present it is the *complete*
    parameter set, discarding whatever the mapping stage produced.
-5. **Document class** (usually "typst") -- **accepted and ignored**:
-   typsphinx reads nothing from this position today, and a five-element
-   tuple is valid and behaves identically to a four-element one. Real
-   five-element tuples already exist in this repository --
-   ``docs/source/conf.py`` and both ``examples/charged-ieee`` configs
-   (``approach1`` and ``approach2``) all set one -- so this is not merely
-   a hypothetical shape.
+5. **Document registry key** -- the registry key into
+   ``typst_document_templates`` that this entry's wrapper resolves its
+   template, package, and template function through. An absent
+   element [4] resolves to the reserved ``"typst"`` registry key, which
+   typsphinx synthesizes on every build from the global
+   ``typst_template`` / ``typst_package`` / ``typst_template_function``
+   settings -- so a four-element entry and a five-element entry naming
+   ``"typst"`` behave identically. The lookup is exact string equality
+   and is never case-folded: a registry declaring ``"Paper"`` does not
+   satisfy an entry naming ``"paper"``. See `Per-Document Templates`_
+   below for the registry itself, including what happens when a named
+   key is not registered. Real five-element tuples already exist in this
+   repository -- ``docs/source/conf.py`` and both ``examples/charged-ieee``
+   configs (``approach1`` and ``approach2``) all set one -- so this is not
+   merely a hypothetical shape.
 
 Template Configuration
 ----------------------
@@ -114,10 +122,16 @@ Use a custom Typst template file:
 
 .. code-block:: python
 
-   typst_template = "_templates/custom.typ"
+   typst_template = "_typst/custom.typ"
 
 The template file should define a ``project`` function (or the function
 specified in ``typst_template_function``).
+
+The template's own directory must not also be named in Sphinx's own
+``templates_path`` -- since the whole bundle directory is copied to the
+output, doing so would republish the project's Sphinx template directory
+in the build output. This repository uses ``_typst/`` for exactly that
+reason.
 
 Typst Package
 ~~~~~~~~~~~~~
@@ -131,40 +145,217 @@ Use external Typst packages from Typst Universe:
 Template Assets
 ~~~~~~~~~~~~~~~
 
-Control how template assets (fonts, images, logos) are copied:
+Every used template's bundle directory (the resolved template file's own
+parent directory) is copied wholesale to the output tree automatically --
+fonts, images, logos, and any other file alongside the template file all
+reach the output with no configuration needed.
+
+See :doc:`templates` for detailed examples.
+
+Per-Document Templates
+~~~~~~~~~~~~~~~~~~~~~~
+
+Every ``typst_documents`` entry's registry key (element [4], or the
+reserved ``"typst"`` key when the element is absent) selects a
+definition from ``typst_document_templates`` -- the dict mapping a
+registry key to its own ``template``, ``package``, and
+``template_function`` settings, so each master document can use a
+different Typst template, Typst Universe package, or template-function
+arguments instead of one globally-configured template being applied to
+every master.
+
+Setting ``typst_document_templates`` is entirely additive: a ``conf.py``
+that never sets it behaves exactly as before, using only the synthesized
+reserved key.
+
+**Definition schema.** A definition is a dict carrying ``template``
+exclusively or ``package`` -- setting both is refused (CONF-15) -- plus
+an optional ``template_function``, taking the same string form or
+dict-with-``params`` form the `Template Function`_ subsection above
+already documents. The reserved key ``typst`` itself may not be declared
+in ``typst_document_templates`` (CONF-16), because typsphinx owns it.
+
+**Worked example.** ``typst_document_templates`` declaring one key on the
+``template`` route, and a ``typst_documents`` list with two entries --
+one resolving to the reserved key, one naming the declared key:
 
 .. code-block:: python
 
-   # Default: Automatic directory copy
-   typst_template = "_templates/custom.typ"
-   # All files in _templates/ are automatically copied
+   typst_document_templates = {
+       "report": {
+           "template": "_typst/report.typ",
+       },
+   }
 
-   # Explicit: Specify which assets to copy
-   typst_template_assets = [
-       "_templates/logo.png",
-       "_templates/fonts/",
-       "_templates/icons/*.svg"  # Glob patterns supported
+   typst_documents = [
+       ("index", "manual", "Manual", "Author Name"),
+       ("summary", "report", "Report", "Author Name", "report"),
    ]
 
-   # Disable: Empty list prevents automatic copying
-   typst_template_assets = []
+The first entry has no element [4], so its wrapper resolves through the
+synthesized reserved ``typst`` key -- using whatever ``typst_template`` /
+``typst_package`` / ``typst_template_function`` are globally configured.
+The second entry's element [4] names ``report``, so its wrapper instead
+uses ``report``'s own ``_typst/report.typ`` template, independent of the
+global settings. This is the only place the published documentation shows
+a non-default registry key.
 
-**Default**: ``None`` (automatic directory copy)
+**Package route.** A definition may use ``package`` instead of
+``template``:
 
-**Type**: ``list[str] | None``
+.. code-block:: python
 
-When ``typst_template_assets`` is:
+   typst_document_templates = {
+       "ieee": {
+           "package": "<typst-universe-package-spec>",
+       },
+   }
 
-- ``None`` (default): Automatically copy entire template directory
-- List of paths: Copy only specified files/directories (supports glob patterns)
-- Empty list ``[]``: Disable automatic asset copying
+The wrapper for a key using ``package`` imports the Typst Universe
+package directly, matching the shape shown in `Typst Package`_ above --
+and no bundle is copied for that key.
+
+**Which bundles reach the output.** Every key some ``typst_documents``
+entry actually names has its bundle -- the resolved template file's own
+parent directory -- copied wholesale to the output tree; a key that is
+declared but that no entry names is still validated, but its bundle is
+not copied. See :doc:`output_layout` for where the copies land. Nothing
+under the output directory is ever deleted, so a file removed from a
+source bundle can linger at the destination across an incremental
+rebuild.
+
+**Empty registry.** An empty ``typst_document_templates`` dict is
+accepted, and leaves only the synthesized reserved key -- the same state
+as not setting the value at all.
+
+Registry Key Naming Rules
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A registry key becomes a directory name under the output tree's reserved
+``_template/`` directory, so it must be a single, portable path segment.
+The seven shapes below are refused, in the order they are checked:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Rejected key shape
+     - Why
+   * - Empty or whitespace-only
+     - A key becomes a directory name, so it must contain at least one
+       non-whitespace character.
+   * - Exactly ``.`` or ``..``
+     - These are reserved by every filesystem for the current and parent
+       directory.
+   * - Contains a path separator (``/`` or ``\``)
+     - A registry key is a single path segment; a separator would split
+       it into more than one.
+   * - A Windows reserved device name, matched case-insensitively
+       against everything before the first ``.`` -- ``CON.txt`` is
+       reserved, ``ICONIC`` is not
+     - Some of these names cannot be created as an ordinary file or
+       directory on Windows.
+   * - Ends with a trailing dot
+     - Windows silently strips a trailing dot from a directory name, so
+       the written directory would not match the declared key.
+   * - Ends with a trailing space
+     - Windows silently strips a trailing space from a directory name,
+       for the same reason.
+   * - Differs from another declared key only by case
+     - Two keys that fold to the same directory name would collide when
+       their bundles are copied to the output tree.
+
+The case comparison in the last row folds ``/``/``\`` separators,
+normalizes path shape, then applies Python's ``casefold()`` -- and
+applies no Unicode normalization at all, so the composed (NFC) and
+decomposed (NFD) spellings of one accented character are two DIFFERENT
+keys, on every platform, with no ``sys.platform`` branch.
+
+A declared key that folds onto the reserved ``typst`` key the same way is
+also refused, before any file is written -- reported by the
+``pre-write template path failure(s):`` shape below, not by this
+key-shape check itself, since the comparison there is against the
+synthesized built-in key rather than another declared key.
+
+The ``typst_documents`` element [4] lookup itself, in contrast, is exact
+``str`` equality and is never case-folded, so a key must be spelled in an
+entry exactly as it was declared.
+
+When the Build Stops
+^^^^^^^^^^^^^^^^^^^^^
+
+A misconfigured registry or an unwritable template bundle stops the
+build with an ``ExtensionError``. The table below identifies each
+config-caused shape by the leading clause of the message it raises;
+column three names what to change.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - What went wrong
+     - What the build says
+     - What to change
+   * - ``typst_document_templates`` is set to a truthy value that is
+       not a dict
+     - ``typst_document_templates must be a dict mapping registry key to definition,``
+     - Set ``typst_document_templates`` to a dict mapping each registry
+       key to its own definition.
+   * - One or more registry definitions are invalid -- this single
+       shape aggregates every per-definition failure into one message:
+       a non-``str`` key, a rejected key shape, a reserved-key
+       redeclaration (CONF-16), a non-``dict`` definition, a definition
+       setting both ``template`` and ``package`` (CONF-15), a
+       ``template`` value that is neither a path string nor
+       ``os.PathLike``, a CONF-17 source-tree bundle, or a template
+       file that does not exist
+     - ``invalid definition(s):``
+     - See `Registry Key Naming Rules`_ for the key-shape cases; for
+       the others, correct the named definition's ``template`` or
+       ``package`` value.
+   * - A ``typst_documents`` entry's element [4] is set to a
+       non-string value
+     - ``which is not a string -- registered typst_document_templates keys:``
+     - Set element [4] to a string naming one of the registered keys
+       the message lists.
+   * - A ``typst_documents`` entry names a registry key that was
+       never declared in ``typst_document_templates``
+     - ``which is not a registered typst_document_templates key -- registered keys:``
+     - Either declare the named key in ``typst_document_templates`` or
+       point element [4] at one of the registered keys the message
+       lists.
+   * - Two things claim the same output path, including the reserved
+       template-bundle directory
+     - ``output path collision(s):``
+     - Rename one of the colliding wrapper targets, or move a
+       definition out of the reserved bundle directory.
+   * - A used registry key's template path fails validation before
+       anything is written -- covers both a CONF-17 source-tree
+       bundle and a collision with Sphinx's own ``templates_path``
+     - ``pre-write template path failure(s):`` -- the CONF-17 sub-case
+       specifically also reports ``put the template in its own subdirectory (CONF-17, A-01)``
+     - Move the template out of ``srcdir`` (or an ancestor of it) and
+       out of any directory named in Sphinx's ``templates_path`` --
+       this repository uses ``_typst/``.
+   * - Two used registry keys resolve to the same bundle destination
+     - ``bundle destination collision(s):``
+     - Give the colliding keys' definitions distinct template paths so
+       their bundles do not land at the same ``_template/<key>/``
+       destination.
 
 .. note::
 
-   This setting only applies to local custom templates (``typst_template``).
-   Typst Universe packages (``typst_package``) handle assets automatically.
-
-See :doc:`templates` for detailed examples.
+   The two remaining shapes report a filesystem failure at copy time,
+   not a ``conf.py`` mistake.
+   ``typst_document_templates: failed to copy the resolved template for registry key``
+   means the source template file could not be read, or the
+   destination could not be written.
+   ``was never copied from`` means the resolved template file was
+   expected inside its own bundle directory but never arrived there,
+   so a wrapper naming this key would import a file that does not
+   exist.
+   Neither names a ``suppress_warnings`` route, because neither is a
+   warning -- both abort the build.
 
 Math Rendering
 --------------
@@ -322,7 +513,7 @@ Scope: every non-package route
 
 Automatic derivation applies on every route **except** ``typst_package``:
 the bundled default template, an explicit ``typst_template``, and a
-``<srcdir>/base.typ`` shadow of the bundled template all receive the
+``<srcdir>/_typst/base.typ`` shadow of the bundled template all receive the
 auto-derived ``lang`` argument unconditionally. It is withheld only when
 ``typst_package`` is configured, because typsphinx never introspects a
 third-party Typst Universe function's signature and would otherwise hand
@@ -408,6 +599,46 @@ Here's a complete ``conf.py`` example:
 
    # Paper size and base font size
    typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
+
+Removed Configuration Values
+-----------------------------
+
+typsphinx detects a removed configuration name still present in
+``conf.py`` and emits one build warning per name. The warning fires for
+every builder, including ``-b html``, because the check runs on Sphinx's
+``config-inited`` event before a builder even exists. Setting a removed
+name to ``None`` or an empty list still warns, because writing the line
+at all means holding a wrong belief about what it does. Detection is
+exact name matching, so a differently-spelled or differently-cased name
+is not detected at all. There is no per-warning suppression route -- the
+warning carries no warning type -- so the only lever is
+``sphinx-build -W``, which turns it into a build failure.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Removed value
+     - Removed in
+     - What to do instead
+   * - ``typst_template_assets``
+     - v0.9.0
+     - Delete the setting. Every used template's bundle directory is now
+       copied wholesale, so MORE files reach the output than the
+       explicit list used to select -- no asset list is needed.
+   * - ``typst_authors``
+     - v0.7.1
+     - Express rich author structure through
+       ``typst_template_function``'s ``params`` route (see
+       `Author Information`_ above). Author department, organization,
+       and email do not reach the output unless supplied that way.
+   * - ``typst_toctree_defaults``
+     - v0.6.3
+     - No replacement -- it was registered but never read even when it
+       existed, so deleting it changes no build output.
+
+A ``conf.py`` setting more than one of these emits one separate warning
+per name, in the order listed above, never a single combined warning.
 
 See Also
 --------

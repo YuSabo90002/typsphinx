@@ -13,9 +13,15 @@ from docutils import writers
 from sphinx.util import logging
 
 from typsphinx.template_engine import (
+    TEMPLATE_SEARCH_SUBDIR,
     TemplateEngine,
     derive_typst_lang,
     resolve_package_for_engine,
+)
+from typsphinx.template_registry import (
+    RESERVED_REGISTRY_KEY,
+    TemplateRegistryEntry,
+    resolve_template_registry,
 )
 from typsphinx.translator import TypstTranslator, render_include_edge_state
 
@@ -61,44 +67,49 @@ def compute_content_include_path(
     return posixpath.relpath(content_relative_path, start=start)
 
 
-def compute_template_import_path_for_dir(wrapper_relative_dir: str) -> str:
-    """Compute a wrapper's import path for the shared ``_template.typ``
-    file, from the WRAPPER's own resolved output directory.
+# Phase 54 (OUT-04): the reserved top-level output directory every used
+# registry key's template bundle is copied wholesale into, one
+# subdirectory per key (`<outdir>/_template/<key>/`). Paired with
+# `compute_template_import_path()` below -- the same literal must never
+# be spelled out a second time at either call site.
+TEMPLATE_OUTPUT_DIR = "_template"
 
-    ``_write_template_file()`` (``typsphinx/builder.py``) always writes
-    ``_template.typ`` at the outdir root, unconditionally, regardless of
-    where any given wrapper is written -- so this is a pure function of
-    the wrapper's own nesting depth. Unlike
-    ``compute_content_include_path``, a depth-only ``"../"`` counter IS
-    correct here, because the imported file's location (the outdir root)
-    is a fixed, known constant rather than another entry's independently
-    resolved path -- but the depth must come from the WRAPPER's resolved
-    directory, not from the master's docname, or a wrapper written
-    outside its docname's own directory would import a file that was
-    never written at the depth the docname implied.
+
+def compute_template_import_path(key: str, template_filename: str) -> str:
+    """Compute a wrapper's root-absolute import path for its own
+    registry key's bundled template (OUT-06).
+
+    Replaces the depth-counted ``"../"`` computation the previous
+    per-wrapper-directory helper used to perform against a single
+    shared file written at the outdir root. The returned string
+    is IDENTICAL for the same key regardless of where the importing
+    wrapper is written, because a leading ``/`` makes Typst resolve the
+    path against the PROJECT ROOT rather than the importing file's own
+    directory -- and the builder already fixes that root at the output
+    directory for every compile call (``pdf.py``'s
+    ``typst.compile(typ_path, root=root_dir)``), so no depth counting,
+    and no dependence on the wrapper's own nesting, is needed at all.
 
     Args:
-        wrapper_relative_dir: The wrapper's own resolved output
-            directory, relative to the outdir root (``""`` for the
-            outdir root itself).
+        key: The registry key the importing wrapper resolved (TPL-04) --
+            the same key ``_copy_used_template_bundles()`` (builder.py)
+            copies this bundle under.
+        template_filename: The resolved template's own basename (e.g.
+            ``"base.typ"``), exactly as copied into
+            ``<outdir>/_template/<key>/`` alongside the rest of its
+            bundle.
 
     Returns:
-        The complete relative import path, including the ``.typ``
-        suffix, e.g. ``"_template.typ"`` or ``"../_template.typ"``.
+        The complete root-absolute import path, including the ``.typ``
+        suffix, e.g. ``"/_template/typst/base.typ"``.
 
     Examples:
-        >>> compute_template_import_path_for_dir("")
-        '_template.typ'
-        >>> compute_template_import_path_for_dir("manuals")
-        '../_template.typ'
-        >>> compute_template_import_path_for_dir("a/b")
-        '../../_template.typ'
+        >>> compute_template_import_path("typst", "base.typ")
+        '/_template/typst/base.typ'
+        >>> compute_template_import_path("report", "custom.typ")
+        '/_template/report/custom.typ'
     """
-    if not wrapper_relative_dir:
-        depth = 0
-    else:
-        depth = len(PurePosixPath(wrapper_relative_dir).parts)
-    return "".join(["../"] * depth) + "_template.typ"
+    return f"/{TEMPLATE_OUTPUT_DIR}/{key}/{template_filename}"
 
 
 def _entry_element_value(entry: tuple, index: int, default: str) -> str:
@@ -170,16 +181,20 @@ class TypstWriter(writers.Writer):
     @staticmethod
     def _compute_template_import_path(docname: str) -> str:
         """
-        Compute the master document's import path for the shared
-        ``_template.typ`` file, from the master's docname alone.
+        DEAD CODE (confirmed zero non-docstring callers since Phase 53;
+        see ``54-CONTEXT.md``'s Deferred Ideas -- Phase 54 does not chase
+        its removal). Left in place, historical, unreachable from any
+        production or test call site.
 
-        `_write_template_file()` (``typsphinx/builder.py``) always writes
-        ``_template.typ`` at the OUTDIR ROOT, unconditionally, regardless of
-        where any given master document lives. The reference a master needs
-        is therefore purely "climb from my own directory to the outdir root,
-        then name the file" -- a function of nesting depth alone, with no
-        dependence on string equality against the reserved ``_template``
-        basename.
+        Historically computed the master document's import path for the
+        single shared ``_template.typ`` file that used to be written at
+        the outdir root by a now-deleted ``builder.py`` method (Phase 54
+        replaced that write entirely with the per-key bundle copied to
+        ``<outdir>/_template/<key>/``, imported by the ROOT-ABSOLUTE path
+        ``compute_template_import_path()`` in this module computes -- see
+        that function instead for the live equivalent). This function's
+        own depth-only climb-to-root shape is preserved below unchanged,
+        purely as a historical artifact.
 
         Args:
             docname: Master document name (e.g. ``"index"``,
@@ -266,6 +281,7 @@ class TypstWriter(writers.Writer):
         wrapper_relative_dir: str,
         content_relative_path: str,
         edge_keys: Tuple[str, ...] = (),
+        template_entry: TemplateRegistryEntry | None = None,
     ) -> str:
         """
         Render a wrapper ``.typ`` document for one ``typst_documents``
@@ -302,6 +318,14 @@ class TypstWriter(writers.Writer):
                 compile-time guard in every content file false, which is
                 the correct, safe default when no edge mapping was ever
                 derived.
+            template_entry: The resolved ``TemplateRegistryEntry`` this
+                wrapper's template is built from (Phase 53, TPL-01/TPL-03).
+                Defaults to ``None`` so every EXISTING direct caller keeps
+                working unchanged -- when ``None``, the built-in ``"typst"``
+                entry is derived through the same
+                ``resolve_template_registry()`` function the builder's
+                write path calls, never a second, independently-written
+                config read.
 
         Returns:
             The complete wrapper ``.typ`` document text.
@@ -320,34 +344,64 @@ class TypstWriter(writers.Writer):
 
         config = self.builder.config
 
-        # Get template configuration from Sphinx config
-        raw_template_path = getattr(config, "typst_template", None)
-        typst_package = getattr(config, "typst_package", None)
+        # Phase 53 (TPL-01/TPL-03): build the TemplateEngine from a
+        # resolved TemplateRegistryEntry -- never by re-reading
+        # `typst_template` / `typst_package` / `typst_template_function`
+        # off `config` directly. When no entry was threaded in (every
+        # EXISTING direct caller), derive the built-in "typst" entry
+        # through the SAME `resolve_template_registry()` function the
+        # builder's write path calls -- one derivation point, never two.
+        resolved_entry = template_entry
+        if resolved_entry is None:
+            resolved_entry = resolve_template_registry(
+                config, str(self.builder.srcdir)
+            )[RESERVED_REGISTRY_KEY]
+
+        raw_template_path = resolved_entry.template
+        typst_package = resolved_entry.package
+
+        import os
 
         template_path = raw_template_path
         if template_path:
             # Resolve relative path from source directory
-            import os
-
             source_dir = self.builder.srcdir
             template_path = os.path.join(source_dir, template_path)
 
         # D-01/D-03 routing decision -- see `resolve_package_for_engine()` for
         # the rule and why it lives in exactly one place (WR-04). The both-set
         # case is announced with a build warning in builder.py's
-        # `_write_template_file()` (which runs once per build, unlike this
-        # per-document method).
+        # `_copy_used_template_bundles()` (which runs once per build, per
+        # used key, unlike this per-document method).
         package_for_engine = resolve_package_for_engine(
             typst_package, raw_template_path
         )
 
+        # D-11: global `typst_template_mapping` reaches ONLY the "typst"
+        # key's engine -- every other key passes `None`, which
+        # `TemplateEngine.__init__` then resolves to its own
+        # `DEFAULT_PARAMETER_MAPPING` or `{}`-when-package rule
+        # (template_engine.py:230-238), never an inherited global.
+        parameter_mapping = None
+        if resolved_entry.key == RESERVED_REGISTRY_KEY:
+            parameter_mapping = getattr(config, "typst_template_mapping", None)
+
+        # Phase 54 (D-14): the shadow-template search path is
+        # <srcdir>/_typst, never srcdir itself -- leaving srcdir in as a
+        # fallback member would republish the user's entire source tree
+        # as the "typst" key's bundle the moment a stray base.typ sits
+        # at srcdir's own root (Pitfall 0 / the resolved A-01 assumption
+        # in 54-CONTEXT.md). See TEMPLATE_SEARCH_SUBDIR's own docstring
+        # in template_engine.py.
+        search_paths = [os.path.join(str(self.builder.srcdir), TEMPLATE_SEARCH_SUBDIR)]
+
         # Create template engine
         template_engine = TemplateEngine(
             template_path=template_path,
-            search_paths=[self.builder.srcdir],
-            parameter_mapping=getattr(config, "typst_template_mapping", None),
+            search_paths=search_paths,
+            parameter_mapping=parameter_mapping,
             typst_package=package_for_engine,
-            typst_template_function=getattr(config, "typst_template_function", None),
+            typst_template_function=resolved_entry.template_function,
             typst_package_imports=getattr(config, "typst_package_imports", None),
         )
 
@@ -426,23 +480,33 @@ class TypstWriter(writers.Writer):
 
         # Render with template (using separate template file).
         #
-        # `_write_template_file()` (builder.py) always writes `_template.typ`
-        # at the OUTDIR ROOT, regardless of where any given wrapper lives.
-        # `compute_template_import_path_for_dir()` computes the import path
-        # from the WRAPPER's own resolved directory (OUT-01) -- not from the
-        # master's docname -- so a wrapper written outside its docname's own
-        # directory still imports the file that was actually written.
+        # Phase 54 (OUT-04/OUT-06): `_copy_used_template_bundles()`
+        # (builder.py, finish()-time) copies this entry's resolved
+        # registry key's bundle wholesale to
+        # `<outdir>/_template/<key>/`. `compute_template_import_path()`
+        # computes a ROOT-ABSOLUTE import path from the key and the
+        # resolved template's own basename -- not from the wrapper's own
+        # nesting depth -- so every wrapper naming the same key imports
+        # the identical string regardless of where it is written
+        # (OUT-06). Resolving here (rather than inside
+        # compute_template_import_path() itself) reuses the SAME
+        # TemplateEngine instance already constructed above, so the
+        # write-time wrapper and the finish-time bundle copy can never
+        # resolve to two different files for the same build.
         #
         # D-01: a package configured ALONE (no custom template) must not
-        # reference that shared template file -- `_write_template_file()`
-        # (builder.py) deliberately never writes it for that case, and an
+        # reference a bundle -- `_copy_used_template_bundles()`
+        # (builder.py) deliberately copies nothing for that case, and an
         # unconditional computation here would produce a wrapper that
-        # imports a file the builder refused to create, making the entire
+        # imports a file the builder never copied, making the entire
         # package-alone path unbuildable.
         if typst_package and not raw_template_path:
             template_file = None
         else:
-            template_file = compute_template_import_path_for_dir(wrapper_relative_dir)
+            resolution = template_engine.resolve_template()
+            template_file = compute_template_import_path(
+                resolved_entry.key, resolution.path.name
+            )
         logger.debug(
             f"Rendering wrapper for docname {docname!r} at "
             f"wrapper_relative_dir={wrapper_relative_dir!r}, "

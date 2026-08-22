@@ -95,3 +95,66 @@ declarations should read both together.
 - `tox -e py312` (and the full `env_list`) runs to completion on this NixOS machine with a real
   Python 3.12 interpreter, not an auto-downloaded generic-linux build.
 - Neither repair regresses CI, which already has working `ruff`/`py312` today.
+
+## 2026-08-22 evidence — this milestone's re-measurement, KEPT OPEN (owner decision, Phase 57)
+
+Recorded inside Phase 57 plan `57-09`'s isolated git worktree
+(`worktree-agent-a4512207ecf0821b3`), after `unset VIRTUAL_ENV UV_PROJECT_ENVIRONMENT; uv sync
+--extra dev` provisioned this worktree's own `.venv` fresh. Every command below was run live in
+this session, moments before this annotation was written.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-22T07:02:11Z
+
+$ file .venv/bin/ruff
+.venv/bin/ruff: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked,
+interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=ca2c631a338418e6129fa7e04e290477442b8489, stripped
+
+$ uv run ruff --version
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+
+$ uv run ruff check .
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+EXIT CODE: 127
+
+$ ls -la /lib64/ld-linux-x86-64.so.2
+lrwxrwxrwx 1 root root 77  8月 22 14:59 /lib64/ld-linux-x86-64.so.2 -> /nix/store/af76y16gym2y1adsx1gv66lxk6rl9aql-stub-ld-x86_64-unknown-linux-musl
+```
+
+**The failure signature quoted in this record's own `## Problem` section DOES reproduce on this
+machine as of today** — not "no longer reproduces" as an earlier session's discussion (2026-08-16,
+recorded in `57-CONTEXT.md`'s AMENDED D-13 block) anticipated finding. That earlier session
+measured `uv run ruff check .` → `All checks passed!`, exit 0, `ruff 0.15.20`, in a different
+`.venv` (not a freshly `uv sync`-provisioned worktree venv). Today, in this freshly provisioned
+worktree, the identical stub-loader rejection from this record's original `## Problem` section
+(`Could not start dynamically linked executable`, `/lib64/ld-linux-x86-64.so.2` resolving to a
+`stub-ld` package) reproduces byte-for-byte against the exact same `.venv/bin/ruff` ELF shape.
+
+No commit is known to explain either the 2026-08-16 disappearance or this 2026-08-22 recurrence —
+the condition flips with the environment (which venv, which moment the NixOS store's `/lib64`
+symlink target resolves to), not with any change to this repository's own tree. This is precisely
+why the owner decided during this milestone (57-CONTEXT.md AMENDED D-13) to annotate this record
+with evidence and **keep it in `pending/`** rather than close it: closing it after the 2026-08-16
+green measurement would have erased the record, and this very session's flip back to RED — inside
+the same milestone, seven days later — is the recurrence that decision anticipated. The owner's
+decision to keep this record open is reaffirmed by this session's own measurement, not merely
+repeated from an earlier session's prose.
+
+The durable, intentional fix `## Acceptance` above asks for (`pkgs.ruff` in `flake.nix`'s devShell,
+`patchelf`, or system `nix-ld`) is unaffected by either measurement and remains undone — CI is
+still SC#3's lint/type authority for this reason (`57-CONTEXT.md` D-13's surviving conclusion, only
+its now-doubly-falsified premise "ruff cannot run on this machine at all" has been shown to be a
+sometimes-true, environment-dependent statement rather than an always-true one).
+
+**Record disposition (Phase 57, plan `57-09`):** this record's existence in `.planning/todos/pending/`
+was confirmed by `ls -1 .planning/todos/pending/ | grep ruff-generic-linux-elf-unrunnable-on-nixos`
+(directory listing, not a content grep) and its absence from `.planning/todos/completed/` was
+confirmed the same way. It stays in `pending/`. Neither the frontmatter's `severity` nor this
+file's `## Acceptance` section was altered by this annotation.

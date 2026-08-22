@@ -191,7 +191,7 @@ class TestChargedIeeeExamplesGate:
         # not just "the example broke".
         text = typ_path.read_text(encoding="utf-8")
         assert '#import "@preview/charged-ieee:0.1.4": ieee' in text
-        assert "_template.typ" not in text
+        assert "/_template/" not in text
 
         show_rule_region = _show_rule_call_region(text)
         assert "date:" not in show_rule_region
@@ -231,11 +231,17 @@ class TestChargedIeeeExamplesGate:
             magic = f.read(4)
         assert magic == b"%PDF", "Generated file is not a valid PDF"
 
-        shared_template_path = build_dir / "_template.typ"
+        # Phase 54 (OUT-04): the built-in "typst" key's resolved template
+        # is copied wholesale to <outdir>/_template/typst/, keeping its
+        # own basename ("_template.typ", per approach2/conf.py's
+        # typst_template = "_typst/_template.typ") -- not the
+        # pre-Phase-54 single shared file written at the outdir root.
+        shared_template_path = build_dir / "_template" / "typst" / "_template.typ"
         assert shared_template_path.exists(), (
-            "Expected the custom template to be written to the output "
-            "directory as _template.typ -- its absence is exactly the "
-            "pre-fix BUG-A-class defect this sample was broken by."
+            "Expected the custom template to be copied into the built-in "
+            "key's bundle at _template/typst/_template.typ -- its absence "
+            "is exactly the pre-fix BUG-A-class defect this sample was "
+            "broken by."
         )
         shared_template_text = shared_template_path.read_text(encoding="utf-8")
 
@@ -250,12 +256,13 @@ class TestChargedIeeeExamplesGate:
 
         # The emitted master imports the sample's configured template
         # function ("project", per approach2/conf.py's typst_template_function)
-        # BY NAME from the shared template file -- proving the user's own
-        # wrapper is what actually runs, not merely that a file exists.
+        # BY NAME from the bundled template file, by its root-absolute
+        # path (OUT-06) -- proving the user's own wrapper is what
+        # actually runs, not merely that a file exists.
         master_typ_path = build_dir / "paper.typ"
         assert master_typ_path.exists(), (
             f"paper.typ was not emitted:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
         master_text = master_typ_path.read_text(encoding="utf-8")
-        assert '#import "_template.typ": project' in master_text
+        assert '#import "/_template/typst/_template.typ": project' in master_text

@@ -1,325 +1,247 @@
-# Feature Research: v0.8.0 Multi-Master Composition
+# Feature Research: Per-Document Templates in Multi-Output Doc Toolchains
 
-**Domain:** Sphinx extension multi-document/multi-master output (Sphinx → Typst)
-**Researched:** 2026-08-11
-**Confidence:** HIGH — every Sphinx-side claim below was read from the installed source
-(`.venv/lib/python3.13/site-packages/sphinx` 9.1.0), not recalled; ecosystem claims about
-other tools are WebSearch-sourced and marked accordingly with dates/URLs in Sources.
+**Domain:** Documentation-toolchain output/template configuration (Sphinx builders, Pandoc, Quarto,
+MkDocs, Asciidoctor, Hugo, Typst Universe)
+**Researched:** 2026-08-15
+**Confidence:** HIGH for Sphinx's own precedent (primary-source `.rst`/`.py` quotes from
+`sphinx-doc/sphinx`, verified 2026-08-15 against the `master` branch, current 9.x); MEDIUM for
+non-Sphinx systems (official docs quoted directly, cross-checked across ≥2 pages per claim, but not
+verified against the tools' own source code the way Sphinx was).
 
-## Verified: Sphinx's LaTeX Builder (the direct precedent)
+## Answering the four research questions directly
 
-This is the closest upstream analog to `typst_documents`, and typsphinx's own milestone
-plan explicitly patterns the wrapper's include graph on it
-(`sphinx/util/nodes.py:485 inline_all_toctrees`). Read directly from
-`sphinx/builders/latex/__init__.py` and `sphinx/util/nodes.py` (Sphinx 9.1.0).
+### 1. Sphinx's own builders — per-output-document variation vs global-only
 
-### `latex_documents` entry anatomy
+Quoted verbatim from `doc/usage/configuration.rst` on `sphinx-doc/sphinx` `master` (tracks current
+9.x) and `sphinx/builders/latex/__init__.py`:
 
-5 required positions + 1 optional (`sphinx/builders/latex/__init__.py:304-309`):
-`(docname, targetname, title, author, theme, [toctree_only])`.
+| Config | Tuple shape / type | Per-document? | Quote |
+|---|---|---|---|
+| `latex_documents` | `Sequence[tuple[str, str, str, str, str, bool]]` = `(startdocname, targetname, title, author, theme, toctree_only)` | **YES** — element [4] is a per-entry theme-name override | *"theme — LaTeX theme. See `latex_theme`."* Confirmed by source: `default_latex_documents()` builds the fallback tuple as `(root_doc, target, title, author, config.latex_theme)` — i.e. the per-entry slot's default **is** the global value, exactly the "reserved key defers to global" shape typsphinx is proposing. |
+| `latex_theme` | `str`, default `'manual'` | Global only (but is the fallback value each per-entry `theme` slot resolves to when equal to it) | *"The 'theme' that the LaTeX output should use. It is a collection of settings for LaTeX output (e.g. document class, top level sectioning unit and so on). The bundled first-party LaTeX themes are manual and howto."* |
+| `latex_theme_options` | `dict[str, Any]`, default `{}` | **Global only** — one dict applies to whichever theme is selected build-wide, not per-entry | *"A dictionary of options that influence the look and feel of the selected theme. These are theme-specific."* Validated at `config-inited` — `validate_latex_theme_options()` drops (and warns on) any key not in `Theme.UPDATABLE_KEYS`: `"Unknown theme option: latex_theme_options[%r], ignored."` — a **fail-loud-ish but not fail-hard** precedent (warn + drop, not abort). |
+| `latex_theme_path` | `list[str]`, default `[]` | Global only — a directory-scan registry, not a dict | *"A list of paths that contain custom LaTeX themes as subdirectories."* Each subdirectory name becomes a usable theme name; the same convention as `html_theme_path`. |
+| `latex_docclass` | `dict[str, str]`, default `{}` | Global only, and fixed-shape (exactly two keys) | *"A dictionary mapping `'howto'` and `'manual'` to names of real document classes that will be used as the base for the two Sphinx classes. Default is to use `'article'` for `'howto'` and `'report'` for `'manual'`."* This is NOT a general per-key registry — it only ever has two meaningful keys. |
+| `man_pages` | `Sequence[tuple[str, str, str, str, str]]` = `(startdocname, name, description, authors, section)` | **NO per-document template element at all.** No `man_theme`, no styling hook per entry. | Full tuple quoted above; there is nothing analogous to `theme`. |
+| `texinfo_documents` | `Sequence[tuple[str, str, str, str, str, str, str, bool]]` = `(startdocname, targetname, title, author, dir_entry, description, category, toctree_only)` | **NO** per-document template element | Full tuple quoted above; same absence as `man_pages`. |
+| `epub_theme` | `str`, default `'epub'` | N/A — EPUB has no multi-master concept (`epub_documents` does not exist; one build = one `.epub`), so "per-document" doesn't apply | *"The HTML theme for the EPUB output... This defaults to `'epub'`."* |
 
-- **`theme`** (position 5, required) — a *named theme* (`'manual'`, `'howto'`, or a
-  custom-registered one) resolved via `self.themes.get(themename)` and applied per entry
-  (`update_doc_context`, line 361-367): it sets `docclass`, `papersize`, `pointsize`,
-  `wrapperclass`, and (via `theming.py:32/66-68`) `toplevel_sectioning`
-  (`'chapter'` vs `'section'`). **typsphinx has no positional equivalent**, but
-  functionally overlaps with the *existing* `typst_template_mapping` /
-  `typst_template_function` machinery — except those are currently **global**, applied
-  identically to every master (verified: `typst_template_mapping` flows through
-  `TemplateEngine.__init__(parameter_mapping=...)` in `template_engine.py:207-238`, with
-  no per-docname branch anywhere in `builder.py`'s master-write path). A theme is a
-  *choice of template*, and typsphinx already has templates — it just can't select a
-  different one per master yet.
-- **`toctree_only`** (position 6, optional bool, default `False`, line 307-309) — when
-  `True`, `assemble_doctree` (line 379-388) discards the index doc's own body and
-  synthesizes a bare document containing only its `toctree` nodes, so the PDF opens
-  directly on the front matter/first chapter instead of the index page's own prose.
-  **typsphinx has no equivalent** — every master's own content (whatever came before/after
-  its `toctree::` directives) is always part of the wrapper's include graph.
+**Historical precedent for widening a tuple slot's meaning (directly on point for this milestone):**
+pre-3.0 Sphinx's `latex_documents` 5th element was literally called **`documentclass`**, and its
+value was a raw string, mostly `'manual'`/`'howto'` but explicitly open-ended: *"documentclass:
+Normally, one of `'manual'` or `'howto'` (provided by Sphinx). Other document classes can be given,
+but they must include the 'sphinx' package..."* — i.e., historically the slot was **accepted almost
+as free text**, much like typsphinx's current "usually `'typst'` — accepted and ignored." In Sphinx
+3.0 this same tuple position was formalized into a **named registry key** resolved against
+`latex_theme`/`latex_theme_options`/`latex_theme_path`, with a matching per-entry override. **This is
+the closest one-to-one precedent for typsphinx's exact move**: an already-existing, loosely-defined
+tuple slot gets promoted into a strict per-entry registry-key lookup, with the global config value
+becoming the fallback default. Sphinx did this once and never walked it back.
 
-### `assemble_doctree` / `inline_all_toctrees` — the three composition scenarios
+**Verdict for Q1:** only the LaTeX builder supports true per-output-document template variation, and
+it does so with exactly the shape typsphinx is proposing — a tuple element naming a registry key,
+global config as the fallback/default value for that key. `man_pages` and `texinfo_documents` prove
+the alternative (no per-document hook at all) is also a legitimate, shipped design when a format has
+no real "theming" concept — relevant if typsphinx ever considers whether every builder needs this,
+but typst output clearly does (it already has `typst_template`/`typst_package`, so removing per-doc
+variation isn't on the table).
 
-All three were traced in `sphinx/builders/latex/__init__.py:369-415` and
-`sphinx/util/nodes.py:485-534`.
+### 2. Non-Sphinx systems — shape of the mapping
 
-1. **A document reachable from TWO masters** (confirmed, matches the milestone's own
-   measurement). `write_documents` calls `self.assemble_doctree(docname, toctree_only,
-   appendices=...)` once per `latex_documents` entry (line 318), and `assemble_doctree`
-   seeds `inline_all_toctrees` with a **fresh** `traversed = [indexfile]` list *at that
-   call site* (line 390: `inline_all_toctrees(self, self.docnames, indexfile, tree,
-   darkgreen, [indexfile])`). Nothing carries state between entries. Each master therefore
-   independently, fully inlines the shared doc — the exact behavior typsphinx's design
-   note calls "not concatenated, each an independent PDF, a shared chapter in both is the
-   correct outcome." **This is why LaTeX never needed a per-master ledger: `assemble_doctree`
-   IS the fresh-traversed-list mechanism typsphinx's wrapper is being redesigned to mirror.**
-2. **A document reachable TWICE from ONE master** (a diamond entirely inside one master's
-   toctree graph, e.g. `M → [p,q]`, `p → [c]`, `q → [c]`). Inside `inline_all_toctrees`
-   (`sphinx/util/nodes.py:503-506`), the *same* `traversed` list is threaded through every
-   recursive call for that one master's assembly. The check `if includefile not in
-   traversed` means `c` is expanded fully at its **first-visited** site (document order,
-   depth-first) and, at the second site, contributes **zero** `newnodes` — the toctree
-   entry silently vanishes there, **with no warning emitted anywhere in this function**.
-   One copy of `c` ends up in the master, at the position/depth of its first occurrence.
-   This is almost certainly the *desired* LaTeX behavior (a chapter shouldn't typeset twice
-   in one PDF) — but note it is achieved by **silent, unannounced pruning**, not a warning.
-3. **A document listed in `latex_documents` (its own master) that is ALSO another master's
-   toctree child — traced further, not previously measured.** There is **no cross-check
-   at all** between `self.document_data` (the `latex_documents` list) and
-   `env.toctree_includes` (the toctree graph) anywhere in `sphinx/builders/latex/__init__.py`
-   — confirmed by an exhaustive grep of every `latex_documents` reference in the installed
-   package (6 hits total, all in `init_document_data`/defaults, none touching
-   toctree membership). Consequence: the shared doc is built **twice**, independently and
-   with zero interaction: (a) once as its own standalone master via its own
-   `document_data` loop iteration (full `\documentclass`, its own theme/title/author), and
-   (b) once again, separately, inlined as a bare nested section inside whichever other
-   master's `assemble_doctree` call reaches it via `toctree`. **No warning, no error, no
-   flag connecting the two.** For typsphinx's wrapper/content-split design this is actually
-   **already the structurally correct outcome and needs no special-casing**: the shared
-   docname's content file carries no template-awareness, so it naturally (a) gets its own
-   wrapper as a master (full template, its own PDF) and (b) gets `#include()`d bare into
-   the other master's wrapper at whatever DFS depth, heading-offset-adjusted. Recommend a
-   **regression fixture** proving this combination compiles correctly, not new production
-   code — see Table Stakes below.
+| System | Mechanism | Shape | Quote / evidence |
+|---|---|---|---|
+| **Pandoc** | `--template=FILE`, or a `defaults` YAML file's `template:` key | **Per-invocation flag / per-defaults-file key**, not a registry inside one config. Convention-over-configuration fallback: dropping `templates/default.FORMAT` into the user data directory silently becomes the default for that writer with **no key at all**. | *"A custom template can be specified using the `--template` option... you can also override the system default templates for a given output format FORMAT by putting a file `templates/default.FORMAT` in the user data directory."* Different outputs from one source get different templates by running pandoc **multiple times** with different `--template`/defaults-file arguments — there is no single config expressing "doc A uses template X, doc B uses template Y" the way Sphinx's tuple does. |
+| **Quarto** | `format:` key, nestable per-format under `_quarto.yml` (project), `_metadata.yml` (directory), or the document's own YAML frontmatter | **Named registry keyed by *format*, not by *document*** (`html:`, `pdf:`, `epub:`, each a themed sub-map), with **directory-level override files** (`_metadata.yml` per subfolder) as the closest thing to "this subset of documents gets this config." No first-class "document A vs document B, same format, different theme" key. | *"You can set defaults for more than one format in `_quarto.yml` by nesting them under `format`"*; and, matching typsphinx's own `params`-exclusivity decision almost exactly: *"The one exception to metadata merging is `format`. If the document-level YAML defines a format, it must define the complete list of formats to be rendered."* — Quarto independently arrived at "declaring the key at all replaces the whole set, no partial merge," the same rule typsphinx already applies to `params`. |
+| **MkDocs** | `theme.name` / `theme.custom_dir` | **Single global theme per build, full stop.** Multiple templates for one content tree require **multiple separate top-level config files** and separate `mkdocs build -f siteN.yml` invocations — explicitly the maintainer's own answer to "can I have multiple themes for one docs/ tree," not a registry inside one config. | GitHub maintainer (`lovelydinosaur`) on a "Multiple Themes" feature discussion: *"You could have this kind of layout... `site1.yml site2.yml site3.yml docs/...` `mkdocs -f site1.yml` — Each config file could also point to a different custom theme directory."* This is the strongest **negative** precedent found: a mature, widely-used tool with real demand for this exact feature chose N-builds-of-one-config over a per-document/per-output registry inside one config. |
+| **Asciidoctor PDF** | `-a pdf-theme=NAME` / `--theme NAME` document attribute, resolved against `pdf-themesdir` | **Per-CLI-invocation attribute**, resolvable per document because Asciidoctor is normally invoked once per source file already (unlike Sphinx/typsphinx's one-build-many-masters model). A theme file can also `extends:` another theme file for composition. | *"asciidoctor-pdf -a pdf-theme=basic -a pdf-themesdir=resources/themes doc.adoc"* — no in-repo multi-document registry exists because there's no multi-document build unit to register against. |
+| **Hugo** | `layouts/<type>/<kind>.html` directory convention + front-matter `type:`/`layout:` override, searched via a fixed **lookup-order** algorithm | **Directory-convention registry**, not an explicit dict: the "key" is implicit in a content file's path/front matter (`type`, `layout`), and Hugo walks a fixed precedence list (`layouts/<type>/<kind>.html` → `layouts/_default/<kind>.html` → theme equivalents) until it finds a match. | *"You cannot change the lookup order to target a content page, but you can change a content page to target a template. Specify `type`, `layout`, or both in front matter."* This is the closest analog to "per-document key selects from a registry with a global fallback," but the registry is a filesystem convention (directory tree), not a `dict` in one config file. |
+| **Typst Universe `template` packages** | `typst.toml`'s `[template]` table: `path` (dir copied into the user's new project) + `entrypoint` (the file inside it Typst opens) | **One template = one package = one directory, copied wholesale.** No per-document selection concept exists at the Typst-package level at all — that's exactly the layer typsphinx itself sits above and is building the missing per-document dispatch for. | *"`path`: The directory within the package that contains the files that should be copied into the user's new project directory. `entrypoint`: A path relative to the template's path that points to the file serving as the compilation target."* This directly validates typsphinx's **"resolved template's parent directory is copied wholesale"** output rule (D-in-milestone-brief) — it is exactly how Typst's own template convention already behaves at the single-package level; typsphinx is only adding the *selection* layer on top (which key's bundle to copy for which master), not inventing a new bundling convention. |
 
-### The "selecting" message — verified to be a *different, narrower* mechanism than framed
+**Shape taxonomy answer:** three shapes were found in the wild —
+1. **Inline per-invocation** (Pandoc `--template`, Asciidoctor `-a pdf-theme`) — works because the
+   tool is normally invoked once per output anyway.
+2. **Directory convention, positionally resolved** (Hugo lookup order, Typst package `path`) — no
+   explicit registry dict; the "key" is a path/front-matter value walked against a fixed search order.
+3. **Named registry inside one config, referenced by key** (Sphinx `latex_documents[4]` → `latex_theme`
+   family; Quarto `format:` sub-maps) — the shape typsphinx is proposing.
+Shape 3 is real and shipped (Sphinx), but it is the **least common** of the three — most tools that
+build many-outputs-from-one-source (Pandoc, Asciidoctor) sidestep the "one config, many named
+templates" problem entirely by re-invoking the tool per output instead. MkDocs explicitly rejected
+folding it into one config for its one-output-per-build model.
 
-Two **separate, non-communicating** functions resolve "which parent does this shared doc
-belong to," and they can disagree:
+### 3. Table stakes vs differentiators for a per-document-template feature
 
-- **`sphinx/environment/adapters/toctree.py:562-575 _get_toctree_ancestors`** — builds a
-  `docname → parent` map via `parent |= dict.fromkeys(children, p)` while iterating
-  `toctree_includes.items()`; because dict union overwrites on each later key, **the
-  parent recorded for a doubly-referenced child is whichever `toctree_includes` entry was
-  processed LAST in dict-insertion order** (i.e., document *read* order — unrelated to
-  nesting depth). This function drives real behavior: it feeds `_resolve_toctree`'s pruning
-  (`toctree.py:165`), i.e. the HTML sidebar / breadcrumb "ancestors" computation.
-- **`sphinx/environment/__init__.py:942-959 _check_toc_parents`** — called exactly once,
-  from `check_consistency()` (`environment/__init__.py:819`), purely to emit the
-  **`logger.info`** (not even a warning — `type='toc', subtype='multiple_toc_parents'`)
-  message `'document is referenced in multiple toctrees: %s, selecting: %s <- %s'`. Its
-  "selecting" value is `max(parents)` — **plain Python string `max()`, i.e. lexicographic
-  comparison of docnames. There is no depth computation anywhere in this function.**
+| Item | Category | Precedent |
+|---|---|---|
+| Fallback to a sane default when a document doesn't specify a template | **Table stakes** | Sphinx: `default_latex_documents()` always fills the per-entry `theme` slot with `config.latex_theme`; Hugo: lookup order always bottoms out at `layouts/_default/`. typsphinx's `"typst"` reserved key does exactly this. |
+| Error (not silent fallback) on an unregistered/typo'd key | **Table stakes** | Sphinx: `validate_latex_theme_options()` warns+drops unknown *option* keys (not unknown *theme names* — an unknown `latex_theme` string is a harder LaTeX-level failure since it can't find the theme's `theme.conf`). typsphinx's own precedent (CONF-04's unknown-`typst_elements`-key `ExtensionError`) is a stricter bar than Sphinx's own warn-and-drop, and matches the milestone's "fail-loud" decision — reasonable to hold to a higher bar than upstream Sphinx here. |
+| Per-document assets travelling with the chosen template | **Table stakes** | Typst's own `[template]` `path` convention makes this the default expectation at the package level already; typsphinx's "copy the bundle wholesale" rule matches it exactly. |
+| Reusing one named template across several documents (many masters → one registry key) | **Table stakes**, not a differentiator | Quarto's `format:` sub-maps are shared across every document unless overridden per-document/per-directory; nothing in the precedent suggests 1:1 document-to-template cardinality is expected — N:1 is the norm. |
+| Per-document page size / paper size | **Differentiator** | No system surveyed exposes this as *only* a per-document-template axis distinct from the template's own logic — Sphinx's `latex_elements`/`typst_elements` equivalent is global (this milestone explicitly keeps `elements` global too, matching precedent, not diverging). |
+| Per-document language | **Differentiator**, and notably **absent from every precedent surveyed** — no tool's per-document/per-format registry carries a language override independent of the whole-project locale setting (Quarto: `lang` is global per `_quarto.yml`; Sphinx: `language` is a single project-wide config value with no per-`latex_documents`-entry override). This is out of scope for the current milestone and consistent with every precedent's own scope choice. | — |
+| A distinct template-function-parameter set per registry entry (the `params` route) | **Differentiator** — none of Pandoc/Quarto/Hugo/Asciidoctor expose "this named template gets this literal argument dict," because none of them have Typst's typed-function-call template model. This is a typsphinx-specific capability inherited from the pre-existing `typst_template_function` mechanism, not something borrowed from precedent — call this out to the roadmapper as genuinely novel, not validated by outside prior art. | — |
 
-**Correction to the milestone's own framing:** the "prefer the deeper path" description
-(`zmid` over `xmaster`) is **not falsified** by the measured example — `'zmid' >
-'xmaster'` lexicographically too, so the single measured case cannot distinguish "deeper
-wins" from "alphabetically-last wins." Reading the source resolves the ambiguity: it is
-**pure lexicographic string comparison**, coincidentally aligned with depth in that one
-example. **What the "selecting" message actually governs: nothing that touches document
-composition.** `assemble_doctree`/`inline_all_toctrees` (the code path that determines
-what actually ends up IN a compiled master) never calls `_check_toc_parents` or consults
-its result. The message is purely a diagnostic about HTML-style navigation
-ancestry/breadcrumbs, and even *that* real mechanism (`_get_toctree_ancestors`) uses a
-**different, non-lexicographic** tiebreak (last-read-order-wins) than the one the log
-message reports. **Practical implication for typsphinx: there is no upstream "resolution
-policy" worth mirroring here.** typsphinx's own multi-master model doesn't need a
-single-winner tiebreak at all — the milestone's wrapper design sidesteps the whole
-question by keeping every master's DFS independent (see Anti-Feature #4 below for why NOT
-to add an analogous tiebreak).
+### 4. Anti-features — what's been added and regretted or explicitly refused
 
-### `latex_appendices`, `latex_toplevel_sectioning`, and the rest of the multi-doc surface
+- **MkDocs refused a within-one-config multi-theme registry outright.** The maintainer's answer to a
+  real, repeatedly-requested feature ("branded doc sets from one content tree") was: don't add a
+  per-page/per-output theme key to `mkdocs.yml` — run the builder N times with N separate top-level
+  config files instead. Read as: **when a tool's output unit is fundamentally "one site," bolting a
+  named-registry selector onto the single config is the wrong shape** — the config file itself should
+  be the unit of "which template." typsphinx doesn't have this problem because its output unit is
+  already N PDFs from one `conf.py` (established at v0.8.0), so the "config file = one theme" workaround
+  doesn't apply — but this is the strongest evidence *against* assuming per-document template registries
+  are the default expected shape; they're conditional on the tool already having a multi-output-per-build
+  unit, which typsphinx does and MkDocs doesn't.
+- **Sphinx's `latex_docclass` is a cautionary shape, not a template registry to imitate.** It looks
+  like a registry (`dict[str, str]`) but is fixed at exactly two meaningful keys (`'howto'`, `'manual'`)
+  — extending it to arbitrary user-defined keys was never done; instead Sphinx built the *separate*,
+  properly-general `latex_theme`/`latex_theme_path` system for that. Lesson for typsphinx: don't grow
+  `typst_document_templates` keys by special-casing a fixed enum later — the milestone's decision to
+  make it a genuinely open `dict[str, ...]` from day one, with `"typst"` as the only reserved value,
+  avoids repeating this Sphinx wrinkle.
+- **Quarto's partial-merge trap on `format:`** — silently discarding formats not re-declared at a more
+  specific level when a document-level `format:` key is present at all — is exactly the failure mode
+  typsphinx's own docs already warn about for `params` (`configuration.rst`'s "silent trap" warning on
+  partial migration). No new anti-feature to add here; this milestone's design already avoids repeating
+  it for the *new* registry (declaring `template`/`package` xor, and `template_function` either absent
+  or complete, mirrors the same all-or-nothing rule Quarto had to document as a gotcha rather than fix).
+- **No evidence found of any surveyed tool having added and then removed a per-output template
+  selector.** The closest thing to a "regretted" per-document knob is Sphinx's `latex_theme_options`
+  warn-and-drop-unknown-key behavior, which is not a removal, just weaker validation than typsphinx's
+  own `ExtensionError` bar — nothing suggests the *existence* of per-document template selection itself
+  was ever walked back once shipped (LaTeX's `theme` slot has existed unchanged since 3.0, i.e. many
+  years, through the current 9.x line).
 
-- **`latex_appendices`** (global `list[str]` of docnames) — appended, verbatim, to the
-  END of **every** non-`'howto'`-themed master's assembled doctree
-  (`assemble_doctree(docname, toctree_only, appendices=self.config.latex_appendices if
-  theme.name != 'howto' else [])`, line 318-324). One global list, unconditionally shared
-  by all masters that don't opt out via theme. **No typst equivalent.** Given typsphinx's
-  per-master wrapper design, a user can already get the identical effect by adding the
-  appendix docname to every master's own `toctree::` — this config value mainly saves
-  *editing N toctrees* for N masters that share the same appendix set. Real but modest
-  value; not required for correctness.
-- **`latex_toplevel_sectioning`** (global, `None`/`'part'`/`'section'`, read in
-  `sphinx/writers/latex.py:375-388`) — controls whether a master's top-level doc maps to
-  `\part`, `\chapter`, or `\section` in the emitted LaTeX. **typsphinx already has a
-  structural equivalent, in scope this milestone:** the wrapper's `set heading(offset: N)`
-  derived from each doc's DFS depth in the per-master include graph achieves the same
-  effect (how "high" a doc's headings render) without any new config surface — this LaTeX
-  feature exists because LaTeX's sectioning commands are fixed-name (`\chapter` vs
-  `\section`), a constraint Typst's numeric heading levels don't share. **No new work
-  needed; note it in the wrapper's design doc as "structurally already covered."**
-- **Texinfo and man-page builders corroborate the same 3-part pattern** (read directly):
-  `sphinx/builders/texinfo.py:69-131` uses the identical
-  `N-tuple config → per-entry assemble_doctree → inline_all_toctrees` shape as LaTeX (own
-  copy of the algorithm, same "fresh traversed list per entry" property).
-  `sphinx/builders/manpage.py:55-98` skips `assemble_doctree` entirely but still calls
-  `inline_all_toctrees(self, docnames, docname, tree, darkgreen, [docname])` per
-  `man_pages` entry with a fresh `traversed` list each time (line 90-92) — same
-  independence guarantee, simpler because man pages have no theme/appendix concept. This
-  corroborates that "N independent config entries, each producing one complete, freshly-
-  assembled output via its own DFS traversal" is Sphinx's own established, three-times-
-  repeated pattern for multi-document output — not a one-off LaTeX quirk. typsphinx's
-  wrapper design (this milestone) brings the `-b typst`/`-b typstpdf` builders into line
-  with that same, well-worn shape.
-- **`singlehtml` and `epub3` are useful *negative* precedents** (`sphinx/builders/
-  singlehtml.py`, `sphinx/builders/epub3.py`) — both always resolve to `root_doc` only;
-  neither builder has any N-entries-in/N-outputs-out concept at all. This confirms the
-  "one tree → several independent deliverables" feature is **not universal** across Sphinx
-  builders — it is specifically the province of the "document assembly" builders
-  (LaTeX/Texinfo/man), which is exactly the family `typst_documents` already models itself
-  on.
-
-## Other Builders and Extensions Surveyed
-
-| Tool | Multi-document affordance | Table stakes vs. differentiator (for typsphinx) |
-|------|---------------------------|---------------------------------------------------|
-| **rinohtype** (`rinoh` Sphinx builder, PDF-from-doctree — the closest non-LaTeX analog to typsphinx) | `rinoh_documents` is a **list of dicts**, not tuples (`doc`/`target` required; `template`, `title`, `logo`, `stamp`, arbitrary extra keys accepted as free-form per-document metadata usable in a custom template) — confirmed via rinohtype's own Sphinx-builder docs. Crucially: **`template` is a per-document key**, i.e. rinohtype already supports what typsphinx currently cannot (a different template per master). | Differentiator (future milestone) — dict-shaped config + per-master template selection. Not required for v0.8.0 correctness. |
-| **sphinx-multiversion** | Builds N *whole builds* (one per git tag/branch) into N output directories, by checking out each ref into a temp dir and re-running Sphinx per ref — not a "several masters in one build" mechanism at all; orthogonal axis (version) rather than typsphinx's axis (multiple simultaneous manuals from one checkout). | Not applicable — different problem (versioning, not multi-master). Confirms multi-master and multi-version are separate concerns typsphinx should not conflate. |
-| **EPUB3 / singlehtml** | Always exactly one output from `root_doc`; no multi-entry config at all (verified above). | N/A — these builders simply don't have this feature; not a source of precedent either way. |
-
-## Typst-Native and Other Markup-First Toolchains
-
-| Tool | "One tree → several deliverables" convention | Shared-chapter handling |
-|------|-----------------------------------------------|--------------------------|
-| **Typst itself** | No first-party multi-document/book system. `#include()` is the only primitive; community convention (Typst's own examples-book, GitHub Discussion #2201) is a flat `chapters/*.typ` + one `main.typ` that includes them all. Typst has **no cross-file label resolution and no global imports by design** (`typst/typst` issues were closed "not planned" as against Typst's core design) — every included file must re-declare its own imports, which is exactly the constraint CLAUDE.md already documents and typsphinx already works around (`writer.py`'s minimal-import-prepend for included docs). | No convention exists for "one chapter, two books" — confirms typsphinx is filling a **genuine gap in the Typst ecosystem itself**, not just re-solving a problem other tools already handle well. |
-| **Asciidoctor** | `include::chapter.adoc[leveloffset=+1]` — a **per-inclusion-site relative heading offset**, explicitly designed so the same chapter file can be (a) published standalone with its own document title and (b) included into a parent book at a shifted heading level, all from one file. | This is the closest cross-ecosystem precedent for the milestone's own planned mechanism (`set heading(offset: N)` derived from DFS depth at each include site). **Validates the design**: "offset computed per include-site, not stored on the shared file" is an established, working pattern elsewhere, not a novel invention. |
-| **mdBook** | `SUMMARY.md` defines exactly one book; no native mechanism found (searched official docs/GitHub) for referencing the same source file from two `SUMMARY.md` trees — community workarounds are OS-level symlinks or external preprocessors. | mdBook has **no answer** to "a chapter that belongs to more than one book." Typsphinx's wrapper design, once complete, will do something a fairly popular contemporary tool doesn't support natively at all. |
-| **Quarto (book projects)** | Multiple books from one source tree = multiple **Project Profile** YAML files (`_quarto-basic.yml`, `_quarto-advanced.yml`), each declaring its own chapter list — the same "N independent config entries, each with its own include list" shape as `latex_documents`/`typst_documents`. Quarto explicitly has **no "render all profiles" command** — building N books requires N separate `quarto render --profile X` invocations. | typsphinx already does better here (existing feature, not part of this milestone): `TypstPDFBuilder.finish()` iterates every `typst_documents` entry and compiles all masters in **one** `sphinx-build` invocation — worth explicitly protecting as an invariant while doing the wrapper rework, since it's a real, already-earned advantage over a widely-used contemporary tool. |
-
-## Feature Landscape
-
-### Table Stakes (a correct v0.8.0 implementation must have these)
+## Table Stakes (Users Expect These)
 
 | Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Each master's include graph assembled independently, from a fresh per-master traversal state | Established 3-times-over in Sphinx itself (LaTeX/Texinfo/man-page all seed a fresh `traversed` list per entry) — this is the industry-standard shape, not a typsphinx invention | MEDIUM (already scoped: wrapper/content split + per-master include graph) | Directly closes defect A; mirrors `inline_all_toctrees`'s per-call `traversed` list |
-| A doc reachable from two masters renders fully, independently, in each | Confirmed via `assemble_doctree`'s fresh-`traversed`-per-call behavior; matches typsphinx's own already-stated invariant "masters are not concatenated" | Included in the wrapper work above | No dedup across masters — see Anti-Feature #3 |
-| A doc reachable twice within ONE master is included once, at its first-DFS-encountered depth, without breaking the compile | Matches LaTeX's own (silent, unwarned) `inline_all_toctrees` behavior — this is expected/correct, not a defect, in the one-master case | Included in the wrapper work above | Already measured per milestone context; no warning needed to match upstream, though typsphinx may choose to log more helpfully than upstream does (optional, non-blocking) |
-| Duplicate `typst_documents` target names across entries are detected and warned, never silently drop a master's body | Sphinx's own LaTeX builder has the **identical bug and zero detection** for this exact case (verified: no cross-check anywhere in `latex_documents` handling) — so typsphinx doing better here is itself table-stakes-level correctness, this is not optional polish | LOW–MEDIUM (already scoped as CR-02) | Simultaneously the milestone's clearest point of *exceeding* upstream — see differentiator framing below |
-| Cross-reference degradation is resolved per compilation unit (per master), not via a single build-wide union set | Direct consequence of masters being independently assembled — a union-based `master_included_docnames` becomes wrong the moment two masters have different include sets | MEDIUM–HIGH (already scoped: `context`+`query` compile-time guard) | Two more label-reference sites share the shape and must be covered: `translator.py:3273/3281` (citation back-refs), `:4291` |
-| Per-master `toctree` option resolution (`maxdepth`→`#outline(depth:)`, `numbered`, `caption`) keeps working after the wrapper refactor | **Already built and already correct** — `TemplateEngine.extract_toctree_options` (`template_engine.py:542-586`) reads the maxdepth/numbered/caption off *that master's own* first toctree node, exactly mirroring LaTeX's own `tocdepth` handling (`latex/__init__.py:312-316`, also TOC-listing-depth only, not content pruning) | LOW (regression risk only — verify the wrapper-generation code path still calls this per master) | Not new work; a "don't regress" item as the master/included branch in `writer.py` is torn out |
-| A docname that is simultaneously its own `typst_documents` master AND a toctree child of another master compiles correctly in both roles | Verified Sphinx allows this silently and with no cross-check at all (LaTeX builder) — and typsphinx's wrapper design produces the structurally correct result for free (own wrapper as master; bare `#include` at whatever depth in the other master) | LOW (needs a regression fixture, not new logic — confirmed no special-casing required by the design) | Add a GATE-01 fixture: one docname is both a `typst_documents` entry and toctree'd elsewhere; assert both PDFs compile and both contain its content |
-| The two PR #131 image defects (rehomed-image collision with a real `srcdir` image; rehome path escaping `outdir` for non-`doctreedir` absolute URIs) | Both are already real, measured regressions in `TypstBuilder._track_image()` unrelated to the master/included split but living in the same builder file being reworked | LOW–MEDIUM each (already scoped) | Independent of the composition model — worth fixing in the same milestone mainly because the file is already open, not because multi-master *causes* them |
+|---|---|---|---|
+| Reserved "use the global config" key with zero-edit backward compatibility | Sphinx's own `latex_documents` per-entry default falls back to `config.latex_theme`; every existing `conf.py` with a bare four-tuple keeps building | LOW — already the milestone's `"typst"` design | Directly matches `default_latex_documents()`'s fallback behavior |
+| Fail-loud on unregistered registry key / typo | typsphinx's own CONF-04 precedent, stricter than Sphinx's warn-and-drop | LOW | Milestone already commits to `ExtensionError` |
+| Per-entry bundle (assets travel with the chosen template) | Typst's own `[template]` package convention already does this at the single-package granularity | MEDIUM — the "copy parent directory wholesale, no exceptions" rule this milestone adopts | Validated directly against Typst Universe's own template-package shape |
+| N documents sharing one named template | Quarto's format sub-maps and Sphinx's `latex_theme` are both N:1 by default | LOW | Registry-by-key naturally gives this; no extra work needed |
 
-### Differentiators (competitive value, explicitly OUT of this milestone)
+## Differentiators (Competitive Advantage)
 
 | Feature | Value Proposition | Complexity | Notes |
-|---------|--------------------|------------|-------|
-| Per-master template selection (rinohtype's `template=` key precedent) | Different manuals (e.g. an internal "howto" vs. a formal "manual") often want different cover pages / layouts; today every `typst_documents` entry shares one global template | MEDIUM | **Enabled by, not included in,** this milestone — once every master has its own wrapper `.typ`, that wrapper is exactly the natural place to `#import` a per-master-chosen template. Needs its own config-shape decision; don't fold into v0.8.0's already-large blast radius |
-| Richer/dict-shaped `typst_documents` entries with arbitrary metadata (rinohtype precedent) | Lets a custom template read master-specific values (subtitle, stamp, logo) without inventing new positional tuple slots forever | MEDIUM–HIGH | Config-compatibility question of its own; explicitly defer — this milestone's own risk log already flags "large test blast radius" from the wrapper/content split alone |
-| Shared-appendix shortcut (`latex_appendices` equivalent) — a config list of docnames auto-appended to every master | Saves editing N toctrees by hand when N masters share a common "glossary"/"license" chapter set | LOW–MEDIUM | Users can already get the identical effect today by adding the docname to each master's own toctree; this is a convenience wrapper around already-correct behavior, not new capability |
-| `toctree_only`-equivalent — suppress a master's own index-page prose, emit only its toctree structure | Lets an `index.rst` written for HTML (with a "Welcome to..." landing paragraph) drive a PDF that opens straight on front matter/chapter 1 | LOW | Straightforward once the wrapper exists (skip the root content file, include only its resolved children); genuinely useful for projects whose `root_doc` is HTML-navigational, not book front matter |
-| More informative "docname serves double duty" note (master + included child) | Sphinx gives zero signal for this combination (verified); a one-line `logger.info` is cheap and prevents user confusion the day they add a manual's own docname to a sibling manual's toctree by accident | LOW | Genuinely optional polish riding on the table-stakes fixture above — do not let it grow scope |
+|---|---|---|---|
+| Literal `params` argument dict per registry entry | No precedent tool has typed Typst-style function-call templates, so this parameter-injection model is typsphinx-specific, inherited from the already-shipped `typst_template_function` | MEDIUM (already exists per-global; extending per-registry-entry is what's new) | Not validated by outside prior art — flag as own design risk, not precedent-backed |
+| Per-document template selection inside a single build, without re-invoking the tool | Pandoc/Asciidoctor require a separate CLI invocation per template; MkDocs requires a separate config file per theme. typsphinx (like Sphinx's LaTeX builder) does it in one `sphinx-build` pass | MEDIUM — already largely built by the v0.8.0 wrapper/content split, which threads the specific `typst_documents` entry into `render_wrapper()` | This is genuinely rarer than the milestone brief's framing suggests; most peers punt to "just run the build twice" |
 
-### Anti-Features (attractive-looking, explicitly exclude)
+## Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
-|---------|----------------|-------------------|-------------|
-| Abandon per-document `.typ` output and assemble each master purely at the in-memory doctree layer (LaTeX's own model, exactly) | "Sphinx's own reference builder does it this way and it structurally cannot have B-1/B-2/defect A at all" — verified true (LaTeX's `assemble_doctree` produces zero `\input`/`\include`) | Deletes the very artifact the `-b typst` builder exists to produce: inspectable, individually-compilable per-document `.typ` files. The milestone's own PROJECT.md already reaches this conclusion and rejects it explicitly | Stay at the file layer, mirror `inline_all_toctrees`'s *algorithm* (fresh traversal state per master) without adopting its *output shape* (one flattened in-memory tree) |
-| A single, shared root `.typ` file applied uniformly across every master (the exact shape this milestone is dismantling) | Looks like it reduces duplication / write work versus one wrapper per master | This is the direct cause of B-1 and B-2 (a shared template file re-expanding its title page/outline mid-body when re-included); reintroducing it — even as a later "optimization" — reopens both defects | One wrapper `.typ` per `typst_documents` entry, each applying the template independently; content files stay template-free |
-| Cross-master content deduplication (detect that two masters render the same chapter and cross-link instead of duplicating the typeset text) | Smaller total output size, faster incremental builds, "DRY" appeal | Breaks the explicit design invariant that masters produce independent, standalone PDFs (a reader of `bmaster.pdf` should never need `index.pdf` open to read a chapter); reintroduces exactly the "which master does this belong to" ambiguity the wrapper design exists to eliminate structurally | Accept duplication across independently-produced PDF artifacts as correct and cheap — Typst compiles fast, disk is cheap, and each PDF stays genuinely self-contained |
-| A "prefer the deeper/more-specific parent" (or any single-winner) tiebreak for a doc claimed by multiple masters or multiple toctree parents | Sphinx appears to do this (`'selecting: zmid <- shared'`) | Verified the actual mechanism is `max(parents)` — **plain lexicographic string comparison with no depth concept at all** — and that it doesn't even agree with the *other* internal Sphinx function (`_get_toctree_ancestors`, last-read-order-wins) that governs real behavior (breadcrumb ancestry). There is no coherent "resolution policy" here worth porting, and copying an incidental artifact of Sphinx's HTML-navigation code as if it were a deliberate design choice would import a bug, not a feature | typsphinx's own model needs no single-winner tiebreak at all: masters are independent, so "which master does this belong to" is never a question that needs answering for composition (only CR-02's *target-name* collisions need a winner, and that already has its own warn-and-fallback convention) |
-| Per-master conditional content inside a shared content file (e.g. a directive letting one `.typ` render differently depending on which master included it) | "One chapter, two slightly different versions for two audiences" seems efficient | Directly violates the milestone's own foundational property that content files carry **no** master-awareness ("the unanswerable question... removed from the shared content files") — reintroducing conditional-per-master logic into a content file recreates exactly what B-1/B-2/defect A came from | If a chapter must genuinely differ per audience, make it two distinct docnames (Sphinx's own `only::`/tag mechanism already resolves audience-conditional content at the doctree-read layer, upstream of typsphinx entirely) |
-| Free-form per-master output subdirectories / structured naming (`manuals/foo.pdf`) | Looks like natural organization for a project with many manuals | typsphinx's existing target-name guard (`builder.py` D-06/D-07) **deliberately forbids path separators** in a `typst_documents` target specifically to prevent path-traversal and cross-master collisions; Sphinx's own LaTeX builder doesn't support subdirectories either (flat `outdir`) | Not ruled out forever, but requires its own deliberate collision-safety redesign — do not lift the existing guard as a side effect of this milestone's other work |
+|---|---|---|---|
+| Per-document *language* override in the registry | Multi-language project docs feels natural to want per-master | No precedent tool exposes this at the per-output-document granularity (Quarto/Sphinx both keep language whole-project); adding it here would be inventing unvalidated design, not following precedent | Leave `lang` derivation from Sphinx's project-wide `language` as-is (unchanged this milestone); revisit only if demand appears, informed by nothing in this survey |
+| Growing the registry into a fixed enum of "blessed" keys (mirroring `latex_docclass`'s `'howto'`/`'manual'` shape) | Feels safer/more guided than open string keys | Sphinx itself moved *away* from this shape (superseded by the general `latex_theme` system); repeating it would be adopting the deprecated-in-spirit half of Sphinx's own history, not the current one | Keep `typst_document_templates` a fully open `dict[str, ...]` with only `"typst"` reserved, as already decided |
+| Silent partial-merge when a registry entry declares only some of `template`/`package`/`template_function` | Looks convenient ("just override the one thing you need") | Quarto's own docs had to add an explicit warning for exactly this shape on `format:`; typsphinx already learned this lesson the hard way with `params` exclusivity | Keep the existing all-or-nothing rules (xor on `template`/`package`; `params` presence is the complete-set signal) — already the milestone's design |
 
 ## Feature Dependencies
 
 ```
-wrapper/content split (this milestone)
-    └──requires──> master/included binary at writer.py:96 removed
-                       └──enables──> per-master include graph in the wrapper (this milestone)
-                                          └──enables──> compile-time xref degradation via context+query (this milestone)
-                                          └──enables (future)──> per-master template selection (differentiator, deferred)
-                                          └──enables (future)──> toctree_only-equivalent (differentiator, deferred)
+typst_document_templates registry (new)
+    └──requires──> v0.8.0 wrapper/content split (entry already threaded into render_wrapper())
+    └──requires──> existing resolve_template()/TemplateEngine per-key invocation (already per-master-capable post v0.8.0)
 
-duplicate-target detection (CR-02, this milestone)
-    └──independent of──> per-master include graph (separate registry, same "warn + docname fallback" convention as CR-01)
+Reserved "typst" key defers to global config
+    └──requires──> typst_document_templates registry existing at all
+    └──enhances──> zero-edit backward compatibility (matches Sphinx latex_documents precedent)
 
-"docname is both a master and a toctree child" regression fixture
-    └──depends on──> wrapper/content split landing first (the property being verified doesn't exist as a clean guarantee before it)
+Fail-loud unregistered-key / xor-violation errors
+    └──requires──> registry existing
+    └──enhances──> matches typsphinx's own CONF-04/BLD-02..04 precedent bar (stricter than Sphinx's own warn-and-drop)
 
-per-master toctree option resolution (maxdepth/numbered/caption)
-    └──already built──> must be re-verified, not re-implemented, once writer.py's master branch is torn out
+Bundle-copy-wholesale per key ("_template/<key>/")
+    └──requires──> registry existing (one bundle root per key, not one global _template.typ)
+    └──conflicts──> typst_template_assets (this milestone removes it — no assets key needed once every bundle is copied whole)
 
-shared-appendix shortcut / dict-shaped typst_documents / per-master templates (differentiators)
-    └──all depend on──> wrapper/content split shipping first (the wrapper file is the natural anchor point for every one of them)
+Per-entry params (literal template-function arguments)
+    └──requires──> existing typst_template_function dict-form / params-exclusivity machinery (TemplateEngine.__init__'s params_specified)
+    └──conflicts──> per-entry title/author when params is declared (same exclusivity constraint that already exists globally, now scoped per registry entry)
 ```
 
 ### Dependency Notes
 
-- **Per-master include graph requires the master/included binary's removal first**: the
-  graph has to live somewhere that is unambiguously "per master," and today's
-  `_is_master_document()` split means there is no such place — every included document's
-  `.typ` is currently written once, shared by whichever masters reach it. The wrapper is
-  what creates the per-master anchor point.
-- **CR-02 (duplicate-target detection) is independent of the include-graph work** — it
-  operates purely on the `typst_documents` config list itself (comparing target names
-  across entries), not on the toctree graph, so it can be built and tested without waiting
-  on the wrapper split, though shipping them in the same milestone is reasonable since both
-  touch `builder.py`.
-- **All differentiators here share one dependency**: none of them are worth attempting
-  before the wrapper exists, because the wrapper is precisely the file each one would need
-  to extend (a per-master template import, a per-master metadata dict, a per-master
-  toctree-only truncation). Sequencing them into a later milestone, after the wrapper has
-  shipped and stabilized, is lower-risk than trying to design the wrapper's shape and its
-  extension points simultaneously.
+- **The registry requires the v0.8.0 wrapper/content split:** before v0.8.0, there was one shared
+  `.typ` output and one shared `_write_template_file()` call per build; the per-master
+  `render_wrapper()` call is what makes "which entry is this, so which registry key applies" a
+  question with a well-defined answer at the exact point template resolution happens. This milestone
+  is not buildable without v0.8.0's entry-aware wrapper.
+- **Bundle-copy-wholesale conflicts with `typst_template_assets`:** once every registry key's bundle
+  (including `"typst"`'s own) is copied in full with no selection mechanism, an asset-allowlist config
+  value has nothing left to filter — this is a genuine conflict (not just redundancy), which is why
+  the milestone brief removes `typst_template_assets` rather than keeping it inert.
+- **Fail-loud errors enhance (don't require) the registry:** they could technically ship as a laxer
+  warn-and-drop like Sphinx's own `latex_theme_options` validation, but the milestone's own precedent
+  (CONF-04) sets a stricter bar already in the codebase, so it's an internal-consistency dependency,
+  not a technical one.
 
-## Explicitly Out of This Milestone
+## MVP Definition
 
-Per the downstream requirements author's already-decided scope (wrapper/content split,
-per-master include graph, duplicate-target detection, compile-time xref degradation, two
-image defects, release prep), the following researched items are differentiators or
-anti-features that should **not** be pulled into v0.8.0 requirements, even though they
-surfaced directly from studying the same code paths this milestone touches:
+### Launch With (v1 — this milestone, v0.9.0)
 
-- Per-master template selection (differentiator — needs its own config-shape milestone)
-- Dict-shaped / arbitrary-metadata `typst_documents` entries (differentiator — config
-  compatibility risk on top of an already-large blast radius)
-- Shared-appendix shortcut, `toctree_only`-equivalent (differentiators — real but modest
-  value, cleanly deferrable; users have a manual workaround for the first today)
-- Any single-winner tiebreak for doc-claimed-by-multiple-parents (anti-feature — not
-  needed by typsphinx's independent-masters model at all, and the closest upstream
-  precedent is not something worth mirroring — see Anti-Features table)
-- Cross-master content deduplication (anti-feature — violates the "independent PDFs"
-  invariant)
-- Free-form per-master output subdirectories (anti-feature-adjacent — the existing
-  target-name path guard is deliberate; don't lift it here)
+- [ ] `typst_document_templates` dict registry (`template` xor `package`, plus `template_function`) —
+  essential: this is the entire feature
+- [ ] `"typst"` reserved key deferring to existing global config — essential for zero-edit backward
+  compatibility, matching the strongest precedent found (Sphinx `latex_documents` per-entry default)
+- [ ] Wholesale bundle-copy-per-key output rule — essential to make template-relative assets
+  (`#image("logo.png")`) actually work, which is a currently-documented-but-broken promise
+  (`templates.rst:106-113`)
+- [ ] Fail-loud errors on: unregistered key, `template`+`package` both set, user-defined `"typst"`
+  key, `template` pointing directly under `srcdir` — essential given this project's own CONF-04/BLD-02..04
+  precedent for config-time validation
+
+### Add After Validation (v1.x)
+
+- [ ] Nothing identified in this survey as a natural "add next" — no precedent tool exposes a
+  materially different per-document axis (page size, language) that isn't already covered by the
+  existing global `typst_elements`/`typst_template_function` machinery. If demand emerges, the closest
+  analog is Quarto's directory-level `_metadata.yml` override (apply a registry key to "everything
+  under this subtree" rather than naming it per-master) — not validated by this research, flag as
+  speculative.
+
+### Future Consideration (v2+)
+
+- [ ] Directory-convention resolution (Hugo-style implicit lookup order) as an alternative/adjunct to
+  the explicit dict registry — **not recommended**: it would add a second, weaker-precedent mechanism
+  alongside the stronger, already-decided explicit-registry shape, for no demonstrated need.
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---|---|---|---|
+| `typst_document_templates` registry + `"typst"` reserved key | HIGH | MEDIUM | P1 |
+| Wholesale bundle-copy-per-key output rule | HIGH (fixes a documented-but-broken promise) | MEDIUM | P1 |
+| Fail-loud config validation (unregistered key, xor violation, reserved-key collision, srcdir-root template) | MEDIUM | LOW | P1 |
+| Deleting `typst_template_assets` / `_write_template_file()` / the three `.typ`-exclusion special cases | MEDIUM (reduces surface area, prevents inert config) | LOW (deletions, not additions per the milestone brief) | P1 |
+| Per-document language / page-size axis | LOW (no precedent demand found) | MEDIUM–HIGH | P3 (explicitly deferred) |
+
+## Competitor Feature Analysis
+
+| Feature | Sphinx LaTeX builder | Quarto | MkDocs | typsphinx's plan |
+|---|---|---|---|---|
+| Per-output-document template key | YES — `latex_documents[4]` (`theme`) | Partial — `format:` keys by *format*, not by *document*; directory-level `_metadata.yml` is the closest per-subtree override | NO — one theme per build; multi-theme needs multi-config | YES — `typst_documents[4]` → `typst_document_templates` key |
+| Reserved "use global" sentinel | YES — per-entry default *is* `config.latex_theme` | N/A (format-keyed, not document-keyed) | N/A | YES — `"typst"` |
+| Fail-loud on typo'd key | Partial — warns+drops unknown *option* keys, not unknown theme names | Partial — documented gotcha (silent partial-merge on `format`), not an error | N/A | YES — `ExtensionError`, stricter than either precedent |
+| Assets travel with the template automatically | Themes carry their own static files as part of the theme directory | N/A (Pandoc-format-specific, not Quarto's concern) | YES — theme dir is the whole theme | YES — wholesale bundle copy, matching Typst's own `[template]` `path` convention |
 
 ## Sources
 
-- `sphinx/builders/latex/__init__.py` (Sphinx 9.1.0, installed at
-  `.venv/lib/python3.13/site-packages/sphinx/builders/latex/__init__.py`) — `latex_documents`
-  anatomy, `init_document_data`, `write_documents`, `assemble_doctree`, `latex_appendices`,
-  theme/`toctree_only` handling — read directly, function/line references above
-- `sphinx/util/nodes.py:485-534` (Sphinx 9.1.0) — `inline_all_toctrees`
-- `sphinx/environment/__init__.py:797-823, 914-960` (Sphinx 9.1.0) — `check_consistency`,
-  `_traverse_toctree`, `_check_toc_parents` (the `max(parents)` "selecting" message)
-- `sphinx/environment/adapters/toctree.py:32-47, 119-200, 560-576` (Sphinx 9.1.0) —
-  `note_toctree`, `_resolve_toctree`, `_get_toctree_ancestors`
-- `sphinx/writers/latex.py:375-388` (Sphinx 9.1.0) — `latex_toplevel_sectioning` consumption
-- `sphinx/builders/texinfo.py:69-131`, `sphinx/builders/manpage.py:55-98` (Sphinx 9.1.0) —
-  corroborating N-tuple-config + fresh-`inline_all_toctrees`-per-entry pattern
-- `sphinx/builders/singlehtml.py`, `sphinx/builders/epub3.py` (Sphinx 9.1.0) — negative
-  precedent (no multi-entry config)
-- `/home/yuta/Documents/typsphinx/typsphinx/builder.py` (project source) — existing
-  `_resolve_output_stem`, `_included_docnames`/`master_included_docnames` ledger,
-  D-06/D-07 path guard
-- `/home/yuta/Documents/typsphinx/typsphinx/template_engine.py:542-586` (project source) —
-  `extract_toctree_options`, confirming per-master maxdepth/numbered/caption already works
-- `/home/yuta/Documents/typsphinx/typsphinx/templates/base.typ:43,79-86` (project source) —
-  `toctree_maxdepth` feeds `#outline(depth:)` only (TOC-listing depth, not content pruning)
-- rinohtype Sphinx builder docs — `rinoh_documents` dict shape, per-document `template` key
-  ([mos6581.org/rinohtype/master/sphinx.html](https://www.mos6581.org/rinohtype/master/sphinx.html),
-  WebSearch, 2026-08-11)
-- Typst multi-file project conventions — GitHub Discussion
-  [typst/typst#2201](https://github.com/typst/typst/discussions/2201), Typst Examples Book
-  ([sitandr.github.io](https://sitandr.github.io/typst-examples-book/book/basics/must_know/project_struct.html)),
-  bibliography-across-files issue
-  [typst/typst#424](https://github.com/typst/typst/issues/424) (WebSearch, 2026-08-11)
-- Asciidoctor `leveloffset` on `include::` — official docs
-  ([docs.asciidoctor.org/asciidoc/latest/directives/include-with-leveloffset](https://docs.asciidoctor.org/asciidoc/latest/directives/include-with-leveloffset/))
-  (WebSearch, 2026-08-11)
-- mdBook `SUMMARY.md` — official docs
-  ([rust-lang.github.io/mdBook/format/summary.html](https://rust-lang.github.io/mdBook/format/summary.html));
-  no native cross-book chapter-sharing mechanism found (WebSearch, 2026-08-11)
-- Quarto book Project Profiles — official docs
-  ([quarto.org/docs/projects/quarto-projects.html](https://quarto.org/docs/projects/quarto-projects.html))
-  and community discussion
-  [quarto-dev/discussions#9152](https://github.com/orgs/quarto-dev/discussions/9152)
-  (WebSearch, 2026-08-11)
-- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` — v0.8.0 milestone brief (goal,
-  target features, key context, carried-forward deferred items) and `CLAUDE.md` —
-  architecture overview
+- [Sphinx `latex_documents` / `latex_theme` / `latex_theme_options` / `latex_theme_path` / `latex_docclass` — `configuration.rst` on `sphinx-doc/sphinx` master](https://raw.githubusercontent.com/sphinx-doc/sphinx/master/doc/usage/configuration.rst) — HIGH, primary source, directly quoted
+- [Sphinx `default_latex_documents()` / `validate_latex_theme_options()` — `sphinx/builders/latex/__init__.py`](https://raw.githubusercontent.com/sphinx-doc/sphinx/master/sphinx/builders/latex/__init__.py) — HIGH, primary source
+- [Sphinx `man_pages` / `texinfo_documents` tuple shapes — Configuration docs](https://www.sphinx-doc.org/en/master/usage/configuration.html) — HIGH, primary source
+- [Sphinx 1.2 historical `latex_documents` docs (`documentclass` element, pre-`latex_theme`)](https://sphinx-rtd-trial.readthedocs.io/en/latest/config.html) — MEDIUM, archived third-party mirror of period-accurate Sphinx docs
+- [Pandoc User's Guide — `--template`, `--reference-doc`, `defaults` files, `templates/default.FORMAT` convention](https://pandoc.org/MANUAL.html) — HIGH, primary source
+- [Quarto `_quarto.yml` project format-nesting and the format-key no-partial-merge rule](https://quarto.org/docs/projects/quarto-projects.html) and [Including Other Formats](https://quarto.org/docs/output-formats/html-multi-format.html) — HIGH, primary source
+- [MkDocs `theme.custom_dir` docs](https://www.mkdocs.org/dev-guide/themes) — HIGH, primary source
+- [MkDocs maintainer answer on multi-theme-per-site (GitHub Discussion #3645)](https://github.com/mkdocs/mkdocs/discussions/3645) — MEDIUM, maintainer statement not a docs page, but authoritative for project intent
+- [Asciidoctor PDF theme application (`pdf-theme`/`pdf-themesdir` attributes)](https://docs.asciidoctor.org/pdf-converter/latest/theme/apply-theme) — HIGH, primary source
+- [Hugo template lookup order](https://gohugo.io/templates/lookup-order) — HIGH, primary source
+- [Typst package manifest — `[template]` table (`path`, `entrypoint`)](https://github.com/typst/packages/blob/main/docs/manifest.md) — HIGH, primary source
+- typsphinx internal: `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (v0.9.0 milestone brief) — HIGH, project's own decisions
+- typsphinx internal: `/home/yuta/Documents/typsphinx/docs/source/user_guide/configuration.rst`, `/home/yuta/Documents/typsphinx/docs/source/user_guide/templates.rst` — HIGH, current documented behavior being changed by this milestone
 
 ---
-*Feature research for: typsphinx v0.8.0 multi-master composition*
-*Researched: 2026-08-11*
+*Feature research for: per-document template registries in documentation toolchains*
+*Researched: 2026-08-15*

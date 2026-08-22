@@ -11,7 +11,7 @@ Development Setup
 Prerequisites
 ~~~~~~~~~~~~~
 
-- Python 3.9 or later
+- Python 3.12 or later
 - uv (recommended) or pip
 - Git
 
@@ -119,13 +119,13 @@ Tox provides the same commands used in CI, making it easy to reproduce issues lo
    # Run specific environments
    uv run tox -e lint          # Black + Ruff
    uv run tox -e type          # Mypy type checking
-   uv run tox -e py311         # Tests on Python 3.11
+   uv run tox -e py312         # Tests on Python 3.12
    uv run tox -e docs-html     # Build HTML documentation
    uv run tox -e docs-pdf      # Build PDF documentation
    uv run tox -e docs          # Build both HTML and PDF
 
    # Run tests on specific Python versions
-   uv run tox -e py39,py310,py311,py312
+   uv run tox -e py312,py313
 
 The tox configuration is defined in ``tox.ini`` and provides:
 

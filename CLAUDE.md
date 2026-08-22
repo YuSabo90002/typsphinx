@@ -46,7 +46,7 @@ The pipeline follows Sphinx's standard builder → writer → translator layerin
 
 - **`__init__.py`** — `setup(app)` registers both builders and all `typst_*` config values. Builders are auto-discovered via `sphinx.builders` entry points (declared in `pyproject.toml`), so users don't strictly need to add `typsphinx` to `extensions`.
 
-- **`builder.py`** — `TypstBuilder` (`name="typst"`) drives the write loop, image copying, and template-asset copying. It also writes a shared `_template.typ` file once per build (`_write_template_file`). `TypstPDFBuilder` (`name="typstpdf"`) subclasses it: `write_doc` still emits `.typ`, and `finish()` compiles master documents to PDF via `pdf.py`.
+- **`builder.py`** — `TypstBuilder` (`name="typst"`) drives the write loop and image copying, accumulating the `typst_document_templates` registry keys actually used as it writes each document. In `finish()` it copies each used key's whole template bundle directory wholesale to its own `<outdir>/_template/<key>/` directory (`_copy_used_template_bundles()`) — the one route from a template directory to the output tree. `TypstPDFBuilder` (`name="typstpdf"`) subclasses it: `write_doc` still emits `.typ`, and `finish()` compiles master documents to PDF via `pdf.py`.
 
 - **`writer.py`** — `TypstWriter.translate()` is the key control point. It runs the translator to get the body, then branches on **master vs. included** documents via `_is_master_document()`:
   - *Master* documents (those listed in the `typst_documents` config) get the full template applied through `TemplateEngine`.
@@ -64,7 +64,7 @@ The four Typst Universe `@preview` package versions (`codly`, `codly-languages`,
 
 ## Configuration surface
 
-User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, `typst_template_assets`, and `typst_debug`. Rich author structure (department/organization/location/email) is expressed via `typst_template_function`'s `params` route, not a dedicated config value — the dedicated author-details value that once existed here was removed in Phase 45.1 (CONF-10).
+User-facing config values (all registered in `__init__.py`, prefix `typst_`) include: `typst_documents` (defines master docs, format `[(source, target, title, author), ...]`), `typst_template` / `typst_template_mapping` / `typst_template_function`, `typst_package` / `typst_package_imports`, `typst_use_mitex` (LaTeX math via mitex vs. native Typst math), `typst_elements`, and `typst_debug`. Rich author structure (department/organization/location/email) is expressed via `typst_template_function`'s `params` route, not a dedicated config value — the dedicated author-details value that once existed here was removed in Phase 45.1 (CONF-10). The asset-list config value that once selected which template-directory files reached the output was removed in Phase 54 (CONF-19) — every used template's whole bundle directory is now copied wholesale to `<outdir>/_template/<key>/` automatically.
 
 ## Tests
 

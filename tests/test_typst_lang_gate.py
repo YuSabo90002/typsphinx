@@ -60,9 +60,10 @@ content file and silently overwrites it with a self-referential
 cause). As with ``tests/test_params_exclusivity_gate.py``, these fixture
 directories are not listed in any Phase 47 plan's ``files_modified``; plan
 47-08 de-collides them directly under deviation Rule 3 (blocking) -- see
-its SUMMARY. The ``_template.typ`` mutations in ``TestPreFixBasisFailureProof``
-are unaffected by this rename -- they target the shared template file, not
-the wrapper's own resolved path.
+its SUMMARY. The template-file mutations in ``TestPreFixBasisFailureProof``
+are unaffected by this rename -- they target the bundled template file (Phase
+54: ``_template/<key>/...``, not a root-level ``_template.typ``), not the
+wrapper's own resolved path.
 """
 
 import io
@@ -728,9 +729,10 @@ class TestPreFixBasisFailureProof:
        auto-derived ``lang: "ja"`` argument, no splicing required, because
        D-I means the explicit-template route always receives it -- then
        mutate the SIBLING TEMPLATE FILE the real build already wrote
-       (``_template.typ``, in the same build directory) to reconstruct the
-       pre-D-I shape: a real, pre-existing user template that declares no
-       ``lang`` parameter. Recompile the untouched, genuinely-emitted
+       (Phase 54: the built-in ``"typst"`` key's bundled copy at
+       ``_template/typst/custom.typ``, in the same build directory) to
+       reconstruct the pre-D-I shape: a real, pre-existing user template
+       that declares no ``lang`` parameter. Recompile the untouched, genuinely-emitted
        master against that reconstructed template and prove a real
        compile RAISES. This is no longer a hypothetical reconstruction of
        what an unguarded auto-derivation *would* do (its 27.1-era framing,
@@ -771,9 +773,10 @@ class TestPreFixBasisFailureProof:
         builder (no compile needed to obtain the source text this
         reconstruction mutates) and return the BUILD DIRECTORY (not just
         the text) -- the mutated master is written back into THIS SAME
-        directory, alongside the sibling ``_template.typ`` and
-        ``image.png`` the real recompile below needs to resolve, rather
-        than an unrelated tmp directory that would lack them.
+        directory, alongside the sibling bundled template (Phase 54:
+        ``_template/typst/base.typ``) and ``image.png`` the real recompile
+        below needs to resolve, rather than an unrelated tmp directory
+        that would lack them.
         """
         build_dir = tmp_path_factory.mktemp("prefix_basis_de_source_build")
         result = _run_sphinx_build(DE_DEFAULT_FIXTURE_DIR, build_dir, "typst")
@@ -792,10 +795,12 @@ class TestPreFixBasisFailureProof:
         Build the custom_template_lang fixture ONCE via the faster
         ``-b typst`` builder and return the BUILD DIRECTORY (not just the
         text) -- unlike the pre-D-I version of this fixture function, this
-        reconstruction mutates the SIBLING TEMPLATE FILE
-        (``_template.typ``) the real build already wrote into this same
-        directory, not the master text, so the master's genuinely emitted
-        ``lang: "ja",`` argument is left completely untouched.
+        reconstruction mutates the SIBLING TEMPLATE FILE (Phase 54: the
+        built-in ``"typst"`` key's bundled copy at
+        ``_template/typst/custom.typ``, not the pre-Phase-54 shared
+        ``_template.typ`` root file) the real build already wrote into this
+        same directory, not the master text, so the master's genuinely
+        emitted ``lang: "ja",`` argument is left completely untouched.
         """
         build_dir = tmp_path_factory.mktemp("prefix_basis_custom_source_build")
         result = _run_sphinx_build(CUSTOM_TEMPLATE_LANG_FIXTURE_DIR, build_dir, "typst")
@@ -805,7 +810,7 @@ class TestPreFixBasisFailureProof:
         )
         typ_path = build_dir / "master.typ"
         assert typ_path.exists()
-        template_path = build_dir / "_template.typ"
+        template_path = build_dir / "_template" / "typst" / "custom.typ"
         assert template_path.exists()
         return build_dir
 
@@ -820,7 +825,7 @@ class TestPreFixBasisFailureProof:
         """
         Omission basis: remove the ``lang: "de"`` line from the
         post-fix German master's show-rule region, recompile the mutated
-        master FOR REAL (in place, so its sibling ``_template.typ`` and
+        master FOR REAL (in place, so its sibling bundled template and
         ``image.png`` remain resolvable), extract the recompiled PDF's
         text with pypdf, and assert the ENGLISH supplements
         ("Figure"/"Table") now appear while the GERMAN ones
@@ -876,15 +881,17 @@ class TestPreFixBasisFailureProof:
         genuinely-emitted master from the custom_template_lang fixture
         already carries ``lang: "ja",`` (D-I's whole point -- no splice
         needed). Mutate the SIBLING TEMPLATE FILE the same real build
-        wrote (``_template.typ``) to strip its ``lang`` parameter back out
-        -- reconstructing the shape of a real, pre-existing user template
-        that predates the published nine-parameter contract -- and assert
-        that recompiling the untouched master against this reconstructed
-        template RAISES. This is precisely the cost D-I accepts
-        (T-45.1-05): an existing custom template that omits ``lang`` now
-        genuinely fails, because the extension always emits the argument
-        on every non-package route. Only ``pytest.raises`` is asserted --
-        never the exception's message text.
+        wrote (Phase 54: the built-in ``"typst"`` key's bundled copy at
+        ``_template/typst/custom.typ``, not the pre-Phase-54 shared
+        ``_template.typ`` root file) to strip its ``lang`` parameter back
+        out -- reconstructing the shape of a real, pre-existing user
+        template that predates the published nine-parameter contract --
+        and assert that recompiling the untouched master against this
+        reconstructed template RAISES. This is precisely the cost D-I
+        accepts (T-45.1-05): an existing custom template that omits
+        ``lang`` now genuinely fails, because the extension always emits
+        the argument on every non-package route. Only ``pytest.raises``
+        is asserted -- never the exception's message text.
         """
         index_path = custom_template_lang_build_dir / "master.typ"
         master_text = index_path.read_text(encoding="utf-8")
@@ -893,7 +900,9 @@ class TestPreFixBasisFailureProof:
             f"lang argument (no splice needed post-D-I):\n{master_text}"
         )
 
-        template_path = custom_template_lang_build_dir / "_template.typ"
+        template_path = (
+            custom_template_lang_build_dir / "_template" / "typst" / "custom.typ"
+        )
         template_text = template_path.read_text(encoding="utf-8")
         assert '  lang: "en",\n' in template_text, (
             f"Expected the real template to declare a lang parameter to "

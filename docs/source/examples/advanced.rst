@@ -59,7 +59,7 @@ Custom Template Wrapping
 
 Wrap external packages with custom logic:
 
-**_templates/custom_ieee.typ**:
+**_typst/custom_ieee.typ**:
 
 .. code-block:: typst
 
@@ -104,7 +104,7 @@ Wrap external packages with custom logic:
        authors: ieee_authors,
        abstract: ieee_abstract,
        index-terms: ieee_keywords,
-       bibliography: bibliography("_templates/refs.bib"),
+       bibliography: bibliography("refs.bib"),
      )
 
      body
@@ -114,21 +114,20 @@ Wrap external packages with custom logic:
 
 .. code-block:: python
 
-   typst_template = "_templates/custom_ieee.typ"
+   typst_template = "_typst/custom_ieee.typ"
 
 .. note::
 
    ``bibliography`` takes the **result of a call to** Typst's own
    ``bibliography()`` function, not a bare path string -- ``ieee()`` rejects
    a plain ``"refs.bib"`` string with a type error. Place ``refs.bib`` next
-   to ``custom_ieee.typ`` in your ``_templates/`` directory; typsphinx's
-   automatic asset copying (see :doc:`/user_guide/templates`'s Template
-   Assets section) copies it to the output directory under that same
-   ``_templates/`` path. The template file itself is written to the output
-   root (as ``_template.typ``), so a relative path written inside it
-   resolves from the output root too -- reference the copied asset as
-   ``"_templates/refs.bib"``, matching where the copy lands, not the bare
-   filename.
+   to ``custom_ieee.typ`` in your ``_typst/`` directory: typsphinx copies
+   that whole directory -- the template's bundle -- to its own directory
+   under the output tree (see :doc:`/user_guide/templates`'s Template
+   Assets section), so ``refs.bib`` lands **beside** the template file, not
+   at the output root. The relative reference written inside the template
+   therefore resolves against that same directory -- reference the asset
+   by its bare filename, ``"refs.bib"``, matching where the copy lands.
 
 .. important::
 
@@ -169,7 +168,7 @@ Custom Styling
 
 Apply custom fonts and colors:
 
-**_templates/styled.typ**:
+**_typst/styled.typ**:
 
 .. code-block:: typst
 
@@ -213,7 +212,7 @@ Apply custom fonts and colors:
 
 .. code-block:: python
 
-   typst_template = "_templates/styled.typ"
+   typst_template = "_typst/styled.typ"
 
    typst_template_function = {
        "name": "project",
@@ -251,7 +250,7 @@ Use different templates for different documents:
 .. code-block:: python
 
    # Default template for most documents
-   typst_template = "_templates/default.typ"
+   typst_template = "_typst/default.typ"
 
    # Define multiple documents
    typst_documents = [
@@ -376,7 +375,7 @@ GitHub Actions workflow for documentation:
          - name: Setup Python
            uses: actions/setup-python@v5
            with:
-             python-version: "3.11"
+             python-version: "3.12"
 
          - name: Install dependencies
            run: |

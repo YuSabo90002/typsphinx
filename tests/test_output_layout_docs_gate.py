@@ -116,10 +116,12 @@ class TestOutputLayoutBuildFileSets:
         A real ``-b typst`` build of the bare-target fixture
         (``typst_documents = [("index", "manual", ...)]``) exits 0 and
         writes ``manual.typ`` (the wrapper, at the outdir root),
-        ``index.typ`` (the content file, unconditional), and
-        ``_template.typ`` (shared infrastructure). ``index.typ`` carries no
-        template application; ``manual.typ`` does -- the measured
-        wrapper/content discriminator (51-RESEARCH.md Part C build 5).
+        ``index.typ`` (the content file, unconditional), and the built-in
+        ``"typst"`` key's bundled default template at
+        ``_template/typst/base.typ`` (Phase 54, OUT-04). ``index.typ``
+        carries no template application; ``manual.typ`` does -- the
+        measured wrapper/content discriminator (51-RESEARCH.md Part C
+        build 5).
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(BARE_TARGET_FIXTURE_DIR, build_dir, "typst")
@@ -131,7 +133,7 @@ class TestOutputLayoutBuildFileSets:
 
         wrapper_typ = build_dir / "manual.typ"
         content_typ = build_dir / "index.typ"
-        template_typ = build_dir / "_template.typ"
+        template_typ = build_dir / "_template" / "typst" / "base.typ"
 
         assert wrapper_typ.exists(), (
             f"Expected the wrapper file manual.typ:\n"
@@ -142,7 +144,8 @@ class TestOutputLayoutBuildFileSets:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         assert template_typ.exists(), (
-            f"Expected the shared template file _template.typ:\n"
+            'Expected the built-in "typst" key\'s bundled template at '
+            f"_template/typst/base.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
@@ -214,8 +217,9 @@ class TestOutputLayoutBuildFileSets:
             f"Expected the content file index.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert (build_dir / "_template.typ").exists(), (
-            f"Expected the shared template file _template.typ:\n"
+        assert (build_dir / "_template" / "typst" / "base.typ").exists(), (
+            'Expected the built-in "typst" key\'s bundled template at '
+            f"_template/typst/base.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
@@ -258,8 +262,9 @@ class TestOutputLayoutBuildFileSets:
             f"Expected the content file index.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert (build_dir / "_template.typ").exists(), (
-            f"Expected the shared template file _template.typ:\n"
+        assert (build_dir / "_template" / "typst" / "base.typ").exists(), (
+            'Expected the built-in "typst" key\'s bundled template at '
+            f"_template/typst/base.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
@@ -298,8 +303,9 @@ class TestOutputLayoutBuildFileSets:
             f"Expected the content file index.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
-        assert (build_dir / "_template.typ").exists(), (
-            f"Expected the shared template file _template.typ:\n"
+        assert (build_dir / "_template" / "typst" / "base.typ").exists(), (
+            'Expected the built-in "typst" key\'s bundled template at '
+            f"_template/typst/base.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
@@ -347,12 +353,17 @@ class TestOutputLayoutBuildFileSets:
         A real ``-b typst`` build of the EXISTING Phase 49
         ``state_guard_three_master_gate`` fixture (three ``typst_documents``
         masters over six documents, two of them shared) exits 0 and writes
-        EXACTLY ten ``.typ`` files: three wrappers (``manual1.typ``,
-        ``manual2.typ``, ``manual3.typ``), six content files (one per
-        docname -- ``common_a``, ``common_b``, ``m1``, ``m2``, ``m3``,
-        ``mid``), and the reserved ``_template.typ``
-        (51-RESEARCH.md Part C build 4). Asserts the exact SET, not merely
-        that each file exists, so an extra or missing file fails.
+        EXACTLY nine ``.typ`` files at the outdir ROOT: three wrappers
+        (``manual1.typ``, ``manual2.typ``, ``manual3.typ``) and six content
+        files (one per docname -- ``common_a``, ``common_b``, ``m1``,
+        ``m2``, ``m3``, ``mid``) (51-RESEARCH.md Part C build 4). All three
+        masters name the SAME built-in ``"typst"`` key, so its bundled
+        default template is copied exactly ONCE, one directory down at
+        ``_template/typst/base.typ`` (Phase 54, OUT-04) -- not at the
+        outdir root, so a root-level glob legitimately returns one fewer
+        entry than before this phase. Asserts the exact root-level SET,
+        not merely that each file exists, so an extra or missing file
+        fails; the bundle file is asserted separately.
         """
         build_dir = tmp_path / "build"
         result = _run_sphinx_build(THREE_MASTER_FIXTURE_DIR, build_dir, "typst")
@@ -364,7 +375,6 @@ class TestOutputLayoutBuildFileSets:
 
         actual_typ_names = {p.name for p in build_dir.glob("*.typ")}
         expected_typ_names = {
-            "_template.typ",
             "manual1.typ",
             "manual2.typ",
             "manual3.typ",
@@ -376,8 +386,14 @@ class TestOutputLayoutBuildFileSets:
             "mid.typ",
         }
         assert actual_typ_names == expected_typ_names, (
-            f"Expected exactly the ten-file set {sorted(expected_typ_names)}, "
-            f"got {sorted(actual_typ_names)}:\n"
+            f"Expected exactly the nine-file root-level set "
+            f"{sorted(expected_typ_names)}, got {sorted(actual_typ_names)}:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        assert (build_dir / "_template" / "typst" / "base.typ").exists(), (
+            'Expected the built-in "typst" key\'s bundled template, '
+            "shared by all three masters, at _template/typst/base.typ:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
@@ -444,21 +460,23 @@ class TestPublishedOutputLayoutTextMatchesBuild:
 
     def test_page_states_the_shared_child_composition(self):
         """docs/source/user_guide/output_layout.rst's shared-child section
-        heading is present and the section publishes the literal 'ten'
-        file-count claim (D-09, SC#3)."""
+        heading is present and the section publishes the literal 'nine
+        root-level' file-count claim, matching what a real -b typst build
+        of the three-master fixture actually emits (Phase 56, D-03)."""
         text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
         assert "Documents Shared by Several Masters" in text, (
             "docs/source/user_guide/output_layout.rst does not contain the "
             "'Documents Shared by Several Masters' section heading."
         )
-        # Assert the whole claim clause, not the bare word "ten": "ten" is a
-        # substring of "written" and "content", both of which occur many times
-        # on this page, so `"ten" in text` was satisfied even when the claim
-        # was absent, deleted, or restated with a wrong number.
-        assert "writes ten ``.typ`` files" in text, (
+        # Assert the whole claim clause, not the bare word "nine": "nine" is
+        # a substring that could appear incidentally elsewhere on this page,
+        # so a bare substring check would be satisfied even when the claim
+        # was restated with a wrong number or a different scope (e.g. total
+        # vs. root-level).
+        assert "writes nine root-level ``.typ`` files" in text, (
             "docs/source/user_guide/output_layout.rst does not publish the "
-            "'writes ten ``.typ`` files' count claim for the three-master "
-            "example."
+            "'writes nine root-level ``.typ`` files' count claim for the "
+            "three-master example."
         )
 
     def test_helper_derived_wrapper_stem_matches_the_published_walkthroughs(self):

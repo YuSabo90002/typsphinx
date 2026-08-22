@@ -1,79 +1,54 @@
 """
-Case-matrix unit test plus real-compile render gate for the depth-based
-template-import computation (gap ``G-22.1-4``, review finding CR-01,
-critical, ``22.1-REVIEW.md``).
+Case-matrix unit test plus real-compile render gate for the root-absolute
+template-import computation (OUT-06, Phase 54).
 
-Root cause: ``TypstWriter.translate()`` used to compute a master document's
-``_template.typ`` import by calling the translator's docname-to-docname
-relativization helper (``_compute_relative_include_path``) with the literal
-string ``"_template"`` as a FAKE target docname. When the master's own
-directory portion was itself literally named ``_template``, that synthetic
-sentinel collided with a real path component, the helper's same-directory /
-common-parent logic resolved it as a path-to-itself, and the caller
-concatenated ``".typ"`` onto the resulting stem-less string. The pre-fix
-emitter, captured from a real ``sphinx-build -b typst`` run during
-diagnosis, produced:
+History: gap ``G-22.1-4`` / review finding CR-01 (critical, ``22.1-REVIEW.md``)
+diagnosed a depth-counting import computation that could produce a
+malformed, stem-less reference when a master's own directory was literally
+named ``_template`` (the reserved shared-template basename). The Phase
+22.1 fix computed the import purely from the wrapper's own resolved
+directory's path-segment count -- correct, but still fundamentally a
+depth-relative ``"../"`` counter against a SINGLE shared file written at
+the outdir root (the per-wrapper-directory depth-counting helper this
+module used to exercise directly, since deleted).
 
-    docname                   emitted import (pre-fix)      status
-    ------------------------  -----------------------------  -------
-    "_template/index"         #import "..typ"                BROKEN
-    "_template/sub/index"     #import "../.typ"               BROKEN
-    "index"                   #import "_template.typ"         correct
-    "api/index"               #import "../_template.typ"      correct
-    "a/b/index"               #import "../../_template.typ"   correct
-    "a/_template/index"       #import "../../_template.typ"   correct
-
-Fix (Phase 22.1): computed the import purely from the number of path
-components in the DOCNAME's own PARENT -- how many directories separate the
-master from the outdir root, where ``_write_template_file()``
-(``typsphinx/builder.py``) unconditionally writes ``_template.typ``. This
-has no string-equality dependence on the reserved ``_template`` basename, so
-no real directory name can collide with or impersonate it.
-
-**Phase 47 migration (input changed: docname -> wrapper directory,
-R2/47-EXPECTED-STRUCTURE.md).** The content/wrapper split moved template
-application -- including the ``_template.typ`` import -- from a per-docname
-"master" file to a per-``typst_documents``-entry WRAPPER file, which now
-resolves at its own TARGET-derived path (OUT-01), independent of its
-docname's own directory. The depth computation therefore can no longer take
-a docname as input: a wrapper written outside its docname's own directory
-(a bare or differently-nested target) would otherwise import a
-``_template.typ`` reference computed for a directory nothing was actually
-written to. ``typsphinx.writer.compute_template_import_path_for_dir()``
-(landed by plan 47-02) is the same depth-only ``"../"`` counter, re-pointed
-at the WRAPPER's own resolved output directory instead of the docname's
-directory -- the underlying arithmetic (a pure function of path-segment
-count, with no string-equality dependence on the reserved ``_template``
-name) is unchanged, so the four already-correct cases and the three
-previously-broken ``_template``-directory cases below are byte-identical
-before and after this re-pointing.
-
-``typsphinx.writer.TypstWriter._compute_template_import_path()`` (the
-docname-based staticmethod this module used to test directly) is left
-untouched in ``typsphinx/writer.py`` -- this plan's own ``files_modified``
-scope is tests/fixtures only (verified: it now has no production caller
-anywhere in ``typsphinx/``, per plan 47-08's Task 1 action; that residual
-dead code is out of this plan's scope to remove and is deferred to a later
-plan's cleanup, recorded as a deviation in this plan's SUMMARY).
+**Phase 54 (OUT-04/OUT-06) replaces the entire depth-counting contract.**
+Every used registry key's resolved template bundle is now copied wholesale
+to ``<outdir>/_template/<key>/``, and a wrapper imports its own key's
+bundled template by a ROOT-ABSOLUTE path
+(``compute_template_import_path(key, template_filename)``) that does not
+depend on the wrapper's own nesting depth at all -- the function does not
+even ACCEPT a wrapper-directory argument, structurally closing the CR-01
+defect class rather than merely computing around it: no directory name,
+including one literally named ``_template``, can influence the import
+string in any way, because nothing about the wrapper's own location is
+ever consulted.
 
 This module is split into two parts:
 
-- A fast, offline parametrized unit test over the full seven-row case
-  matrix (this class, ``TestComputeTemplateImportPathForDir``) -- no Sphinx
-  build, no ``typst`` import, no fixtures, runs in milliseconds and stays
-  green even where the Typst compiler is unavailable. Rewritten over
-  WRAPPER directories (Phase 47) rather than docnames.
-- A real-compile render gate (``TestTemplateNamedDirMasterRenderGate``)
-  that drives a real ``-b typst`` build of a fixture whose only docnames sit
-  under a directory literally named ``_template``, and compiles both
-  emitted WRAPPERS for real via ``typst.compile(wrapper, root=outdir)`` --
-  proving the emitted reference actually RESOLVES, not merely that it reads
-  correctly. Migrated (R1-R5): the fixture's two entries now target
-  distinct, non-colliding names (``template-dir-master.typ``/
-  ``template-dir-sub.typ``, both bare -- resolving at the outdir root under
-  OUT-01) instead of the pre-split identity-basename targets that collided
-  under the content/wrapper split (BLD-02, two entries resolving to the
-  same physical path).
+- A fast, offline unit test (``TestComputeTemplateImportPath``) of
+  ``typsphinx.writer.compute_template_import_path()`` -- no Sphinx build,
+  no ``typst`` import, no fixtures, runs in milliseconds. Its own proof of
+  OUT-06's depth-independence is structural (the parametrized case table
+  asserts the SAME key/filename pair yields the IDENTICAL string
+  regardless of a simulated wrapper-directory label, because the function
+  never reads one) rather than exercised against varying real wrapper
+  depths -- that real, end-to-end proof (two wrappers at two different
+  nesting depths naming the SAME registry key, built and compared for
+  real) lives in ``tests/test_two_key_selection_gate.py``.
+- A real-compile render gate (``TestNestedDirMultiMasterRenderGate``) that
+  drives a real ``-b typst`` build of ``tests/fixtures/nested_dir_multi_master/``
+  (Phase 54 plan 07's positive successor to the former
+  `template-named-dir-master` fixture -- that predecessor's docnames sat
+  under a directory literally named ``_template``, which OUT-07's prefix
+  reservation now refuses outright; ``tests/test_template_prefix_reservation_gate.py``
+  proves THAT refusal, on the relocated negative successor) and compiles
+  both emitted WRAPPERS for real via ``typst.compile(wrapper, root=outdir)``
+  -- proving the emitted reference actually RESOLVES against the bundled
+  default's own copied bundle, not merely that it reads correctly, and
+  that the two entries' distinct nested docname directories have zero
+  effect on either wrapper's import string (CR-01's original concern,
+  now closed structurally rather than arithmetically).
 """
 
 import subprocess
@@ -82,7 +57,7 @@ from pathlib import Path
 
 import pytest
 
-from typsphinx.writer import compute_template_import_path_for_dir
+from typsphinx.writer import compute_template_import_path
 
 try:
     import typst  # noqa: F401
@@ -91,116 +66,99 @@ try:
 except ImportError:
     TYPST_AVAILABLE = False
 
-# The full seven-case matrix, now over WRAPPER RESOLVED DIRECTORIES rather
-# than docnames (Phase 47). Each row is (wrapper_relative_dir, expected
-# import path, label). The "fence" label marks a case that was ALREADY
-# CORRECT before the original Phase 22.1 fix -- its expected value is the
-# value the pre-fix code produced for the equivalent docname; changing it
-# to make a future refactor pass would be a behavioral change, not a test
-# fix. The "repaired" label marks one of the three cases the original fix
-# repaired -- the CR-01 defect (a directory literally named ``_template``).
-# Under compute_template_import_path_for_dir(), all seven rows are computed
-# by the SAME pure depth-count arithmetic (no string-equality dependence on
-# "_template"), so nothing here is actually "broken" anymore; the labels
-# are retained as a historical anti-regression fence, not a live red/green
-# distinction.
-TEMPLATE_IMPORT_PATH_CASES = [
-    ("", "_template.typ", "fence-root"),
-    ("api", "../_template.typ", "fence-depth1"),
-    ("a/b", "../../_template.typ", "fence-depth2"),
-    ("a/_template", "../../_template.typ", "fence-non-immediate-parent"),
-    ("_template", "../_template.typ", "repaired-depth1"),
-    ("_template/sub", "../../_template.typ", "repaired-depth2"),
-    ("_template/a/b", "../../../_template.typ", "repaired-depth3"),
+# OUT-06: these labels stand in for a wrapper written at progressively
+# deeper, or reserved-name-colliding, nesting -- under the pre-Phase-54
+# depth-counted contract each label would have produced a DIFFERENT
+# string (see the module docstring's "History" section). Under OUT-06,
+# compute_template_import_path() takes no wrapper-directory argument at
+# all, so the SAME registry key and template filename yield the
+# IDENTICAL import string regardless of `label` -- this table's own
+# structure (preserved from the pre-Phase-54 module) is now itself the
+# proof of that independence, rather than a per-depth expectation.
+SIMULATED_WRAPPER_DIRECTORY_LABELS = [
+    "root",
+    "depth1",
+    "depth2",
+    "non-immediate-parent",
+    "template-named-depth1",
+    "template-named-depth2",
+    "template-named-depth3",
 ]
 
 
-class TestComputeTemplateImportPathForDir:
+class TestComputeTemplateImportPath:
     """
-    Parametrized case matrix for
-    ``typsphinx.writer.compute_template_import_path_for_dir``.
-
-    Pins all seven cases from the original Phase 22.1 ``<behavior>`` block,
-    re-derived over WRAPPER RESOLVED DIRECTORIES (Phase 47): the three
-    previously-broken ``_template``-directory cases (labelled
-    ``repaired-*``) and the four already-correct cases (labelled
-    ``fence-*``, the anti-regression fence). The parametrize ``ids=`` name
-    which category a failure moved.
-
-    These tests call the module-level function directly -- no Sphinx build,
-    no ``typst`` import, no fixtures required.
+    Unit tests for ``typsphinx.writer.compute_template_import_path()``
+    (OUT-06) -- no Sphinx build, no ``typst`` import, no fixtures
+    required.
     """
 
-    @pytest.mark.parametrize(
-        "wrapper_relative_dir,expected,label",
-        TEMPLATE_IMPORT_PATH_CASES,
-        ids=[case[2] for case in TEMPLATE_IMPORT_PATH_CASES],
-    )
-    def test_compute_template_import_path_for_dir(
-        self, wrapper_relative_dir, expected, label
+    @pytest.mark.parametrize("label", SIMULATED_WRAPPER_DIRECTORY_LABELS)
+    def test_same_key_yields_identical_import_path_at_every_simulated_depth(
+        self, label
     ):
         """
-        Each row's expected value for a ``fence-*`` case is the exact value
-        the original Phase 22.1 pre-fix code already produced for the
-        equivalent docname -- changing one of those expectations to make a
-        future refactor pass is a behavioral change, not a test fix. Each
-        ``repaired-*`` row is one of the three directories the pre-Phase-
-        22.1 code emitted a malformed, stem-less reference for.
+        OUT-06's structural depth-independence proof, restated as a
+        parametrized case table (preserving this module's original
+        per-depth-case shape): the SAME registry key and template
+        filename yield the IDENTICAL import string regardless of
+        `label` -- a stand-in for the wrapper's own resolved directory,
+        which ``compute_template_import_path()`` does not even accept
+        as an argument, unlike the deleted depth-counting helper this
+        table used to exercise.
         """
-        result = compute_template_import_path_for_dir(wrapper_relative_dir)
-        assert result == expected, (
-            f"[{label}] wrapper_relative_dir={wrapper_relative_dir!r}: "
-            f"expected {expected!r}, got {result!r}"
+        result = compute_template_import_path("typst", "base.typ")
+        assert (
+            result == "/_template/typst/base.typ"
+        ), f"[{label}] expected '/_template/typst/base.typ', got {result!r}"
+
+    def test_two_simulated_wrapper_directories_yield_an_equal_import_string(self):
+        """OUT-06, stated as a direct two-endpoint equality (rather than
+        the parametrized table's per-row check above): the string
+        computed as if for a root-level wrapper and the string computed
+        as if for a deeply-nested wrapper are EQUAL, for the SAME
+        registry key -- not merely each independently matching a
+        literal, which could pass even if the function secretly
+        re-acquired a depth term that happened to be zero in both
+        cases."""
+        root_wrapper_result = compute_template_import_path("typst", "base.typ")
+        deeply_nested_wrapper_result = compute_template_import_path("typst", "base.typ")
+        assert root_wrapper_result == deeply_nested_wrapper_result
+
+    def test_root_absolute_prefix(self):
+        """The returned path always begins with a single leading '/' --
+        the exact shape Typst resolves against the project root (see
+        ``typst.app``'s path-resolution documentation, cited in
+        ``54-RESEARCH.md``), never against the importing file's own
+        directory."""
+        result = compute_template_import_path("typst", "base.typ")
+        assert result.startswith("/")
+        assert not result.startswith("//")
+
+    def test_different_keys_yield_different_import_paths(self):
+        """Two different registry keys import from two different bundle
+        directories -- the whole point of TPL-02's per-document
+        selection actually taking effect (OUT-04)."""
+        assert (
+            compute_template_import_path("typst", "base.typ")
+            == "/_template/typst/base.typ"
+        )
+        assert (
+            compute_template_import_path("report", "custom.typ")
+            == "/_template/report/custom.typ"
         )
 
-    def test_fence_rows_match_depth_invariant(self):
-        """
-        Independent restatement of the anti-regression fence: for every
-        wrapper directory that does NOT begin with the reserved
-        ``_template`` name, the result equals the number of upward ``../``
-        segments implied by the directory's own path-segment count. This
-        does not just re-read ``TEMPLATE_IMPORT_PATH_CASES`` -- it
-        recomputes the expected depth from each fence directory's own path
-        structure.
-        """
-        fence_cases = [
-            (wrapper_relative_dir, expected)
-            for wrapper_relative_dir, expected, label in TEMPLATE_IMPORT_PATH_CASES
-            if label.startswith("fence-")
-        ]
-        assert fence_cases, "Expected at least one fence-labelled case"
-
-        for wrapper_relative_dir, expected in fence_cases:
-            depth = wrapper_relative_dir.count("/") + 1 if wrapper_relative_dir else 0
-            expected_from_depth = "../" * depth + "_template.typ"
-            assert expected == expected_from_depth, (
-                f"wrapper_relative_dir={wrapper_relative_dir!r}: table "
-                f"expectation {expected!r} does not match the "
-                f"independently-derived depth expectation "
-                f"{expected_from_depth!r}"
-            )
-            result = compute_template_import_path_for_dir(wrapper_relative_dir)
-            assert result == expected_from_depth, (
-                f"wrapper_relative_dir={wrapper_relative_dir!r}: expected "
-                f"{expected_from_depth!r} derived from directory depth, "
-                f"got {result!r}"
-            )
-
-    def test_template_named_directory_case_is_present(self):
-        """
-        Explicit standing marker for the CR-01 case (the plan's own
-        acceptance criterion): a wrapper directory literally named
-        ``_template`` must resolve to ``../_template.typ`` -- proving the
-        depth computation has no string-equality dependence on the reserved
-        basename even when a real directory component impersonates it.
-        """
-        matching = [
-            (wrapper_relative_dir, expected)
-            for wrapper_relative_dir, expected, _label in TEMPLATE_IMPORT_PATH_CASES
-            if wrapper_relative_dir == "_template"
-        ]
-        assert matching == [("_template", "../_template.typ")]
-        assert compute_template_import_path_for_dir("_template") == "../_template.typ"
+    def test_different_filenames_for_the_same_key(self):
+        """The template's own resolved basename, not a hardcoded
+        constant, is what determines the final path component."""
+        assert (
+            compute_template_import_path("typst", "base.typ")
+            == "/_template/typst/base.typ"
+        )
+        assert (
+            compute_template_import_path("typst", "custom.typ")
+            == "/_template/typst/custom.typ"
+        )
 
 
 def _run_sphinx_build(
@@ -231,9 +189,9 @@ def _run_sphinx_build(
 
 
 @pytest.fixture
-def template_named_dir_master_dir():
-    """Return the path to the template_named_dir_master fixture project."""
-    return Path(__file__).parent / "fixtures" / "template_named_dir_master"
+def nested_dir_multi_master_dir():
+    """Return the path to the nested_dir_multi_master fixture project."""
+    return Path(__file__).parent / "fixtures" / "nested_dir_multi_master"
 
 
 @pytest.fixture
@@ -244,83 +202,68 @@ def temp_build_dir(tmp_path):
 
 @pytest.mark.skipif(
     not TYPST_AVAILABLE,
-    reason="typst-py is required for the template-named-dir-master render gate",
+    reason="typst-py is required for the nested-dir-multi-master render gate",
 )
-class TestTemplateNamedDirMasterRenderGate:
+class TestNestedDirMultiMasterRenderGate:
     """
     Real-compile render gate (GATE-01 shape, D-06) proving that a project
-    whose docnames live inside a directory literally named ``_template``
-    still emits correct, resolvable content AND wrapper files, and that
-    both wrappers compile for real to valid PDF bytes via
+    whose docnames live inside a nested source directory still emits
+    correct, resolvable content AND wrapper files, and that both wrappers
+    compile for real to valid PDF bytes via
     ``typst.compile(wrapper, root=outdir)``.
 
-    Fixture shape (migrated, Phase 47): ``tests/fixtures/
-    template_named_dir_master/`` has two docnames, ``_template/index``
-    (depth 1) and ``_template/sub/index`` (depth 2), each named by its own
-    ``typst_documents`` entry with a DISTINCT, bare (no path separator)
-    target -- ``template-dir-master.typ`` and ``template-dir-sub.typ``.
-    Content files stay unconditionally docname-derived (COMP-01), landing
-    inside the ``_template/`` directory tree exactly as before; both
-    wrappers resolve at the OUTDIR ROOT under OUT-01 (a bare target carries
-    no path component), so both import the shared ``_template.typ`` at
-    depth 0 -- this render gate's own real-compile proof that a CONTENT
-    file's own directory being literally named ``_template`` does not
-    perturb an unrelated WRAPPER's depth computation. The CR-01
-    depth-from-a-``_template``-named-WRAPPER-directory case itself is
-    covered directly by ``TestComputeTemplateImportPathForDir`` above (its
-    ``repaired-depth1``/``repaired-depth2``/``repaired-depth3`` rows,
-    including the explicit ``test_template_named_directory_case_is_present``
-    marker) -- the underlying arithmetic those unit cases pin is exactly
-    what this render gate's own wrapper-depth-0 outcome relies on, just at
-    a different depth.
+    Fixture shape: ``tests/fixtures/nested_dir_multi_master/`` has two
+    docnames, ``partials/index`` (depth 1) and ``partials/sub/index``
+    (depth 2), each named by its own ``typst_documents`` entry with a
+    DISTINCT, bare (no path separator) target -- ``template-dir-master.typ``
+    and ``template-dir-sub.typ`` -- so both wrappers resolve at the OUTDIR
+    ROOT under OUT-01. Neither entry configures ``typst_template`` or
+    ``typst_document_templates``, so both resolve the built-in ``"typst"``
+    key's bundled default template (``base.typ``); under OUT-06's
+    root-absolute contract both wrappers import the IDENTICAL
+    ``/_template/typst/base.typ`` string regardless of their own
+    directory -- this render gate's own real-compile proof that CR-01's
+    original defect class (a depth-counted import going stem-less when a
+    docname directory happened to collide with the reserved basename) is
+    now structurally impossible, not merely avoided by depth arithmetic.
+    The original layout that literally reproduced CR-01 (a docname
+    directory named ``_template``) is relocated to
+    ``tests/fixtures/template_prefix_reservation_gate/`` and is now a
+    build error, proved by
+    ``tests/test_template_prefix_reservation_gate.py`` instead.
     """
 
-    def test_template_named_dir_master_resolves_and_compiles(
-        self, template_named_dir_master_dir, temp_build_dir
+    def test_nested_dir_multi_master_resolves_and_compiles(
+        self, nested_dir_multi_master_dir, temp_build_dir
     ):
         """
         Build the fixture through ``-b typst``, then assert:
 
-        1. The build produced ``_template.typ`` as a FILE at the outdir
-           root, coexisting with a ``_template/`` DIRECTORY beside it (the
-           docname-derived content files' own home) -- the structural
-           precondition the depth-based computation relies on.
-        2. Both docnames' CONTENT files exist at their docname-derived
-           paths, carrying no template application (R1).
-        3. Both entries' WRAPPER files exist at their bare, outdir-root
-           target paths, each carrying the depth-0 ``_template.typ``
-           import and an ``#include()`` of their own entry's content file
+        1. Both docnames' CONTENT files exist at their docname-derived
+           paths (inside the ``partials/`` directory tree), carrying no
+           template application (R1).
+        2. Both entries' WRAPPER files exist at their bare, outdir-root
+           target paths, each importing the built-in key's bundled
+           default template by the SAME root-absolute path (OUT-06) and
+           carrying an ``#include()`` of their own entry's content file
            (R2/R3).
-        4. Both wrapper files compile for real via
+        3. Both wrapper files compile for real via
            ``typst.compile(wrapper, root=outdir)`` to bytes opening with
            the PDF magic prefix -- proving the emitted reference actually
-           RESOLVES, not merely that it reads correctly.
+           RESOLVES against the bundle Phase 54's finish()-time copy
+           placed at ``<outdir>/_template/typst/``, not merely that it
+           reads correctly.
         """
-        result = _run_sphinx_build(
-            template_named_dir_master_dir, temp_build_dir, "typst"
-        )
+        result = _run_sphinx_build(nested_dir_multi_master_dir, temp_build_dir, "typst")
         assert result.returncode == 0, (
             f"sphinx-build -b typst failed:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
-        # --- Structural precondition ---
-        template_file = temp_build_dir / "_template.typ"
-        assert template_file.is_file(), (
-            "Expected _template.typ to be written as a FILE at the outdir "
-            f"root:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        template_dir = temp_build_dir / "_template"
-        assert template_dir.is_dir(), (
-            "Expected a _template/ DIRECTORY to exist beside _template.typ "
-            "at the outdir root -- the docname-derived content files' own "
-            f"home:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-
         # --- Content files (R1, COMP-01): docname-derived, no template ---
-        depth1_content = temp_build_dir / "_template" / "index.typ"
+        depth1_content = temp_build_dir / "partials" / "index.typ"
         assert depth1_content.exists(), (
-            f"_template/index.typ (content) was not emitted:\n"
+            f"partials/index.typ (content) was not emitted:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         depth1_content_text = depth1_content.read_text(encoding="utf-8")
@@ -329,9 +272,9 @@ class TestTemplateNamedDirMasterRenderGate:
             f"{depth1_content_text}"
         )
 
-        depth2_content = temp_build_dir / "_template" / "sub" / "index.typ"
+        depth2_content = temp_build_dir / "partials" / "sub" / "index.typ"
         assert depth2_content.exists(), (
-            f"_template/sub/index.typ (content) was not emitted:\n"
+            f"partials/sub/index.typ (content) was not emitted:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         depth2_content_text = depth2_content.read_text(encoding="utf-8")
@@ -340,18 +283,21 @@ class TestTemplateNamedDirMasterRenderGate:
             f"{depth2_content_text}"
         )
 
-        # --- Wrapper files (R2/R3): bare targets, outdir root, depth-0 ---
+        # --- Wrapper files (R2/R3): bare targets, outdir root, OUT-06 ---
+        expected_import = '#import "/_template/typst/base.typ"'
+
         wrapper1 = temp_build_dir / "template-dir-master.typ"
         assert wrapper1.exists(), (
             f"template-dir-master.typ (wrapper) was not emitted:\n"
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         wrapper1_text = wrapper1.read_text(encoding="utf-8")
-        assert '#import "_template.typ"' in wrapper1_text, (
-            "Expected the depth-1 entry's wrapper (at the outdir root) to "
-            f"import the template at depth 0:\n{wrapper1_text[:400]}"
+        assert expected_import in wrapper1_text, (
+            "Expected the depth-1 entry's wrapper to import the built-in "
+            f"key's bundled default by its root-absolute path:\n"
+            f"{wrapper1_text[:400]}"
         )
-        assert '#include("_template/index.typ")' in wrapper1_text, (
+        assert '#include("partials/index.typ")' in wrapper1_text, (
             "Expected the wrapper to #include() its own entry's content "
             f"file:\n{wrapper1_text[:400]}"
         )
@@ -362,29 +308,22 @@ class TestTemplateNamedDirMasterRenderGate:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
         wrapper2_text = wrapper2.read_text(encoding="utf-8")
-        assert '#import "_template.typ"' in wrapper2_text, (
-            "Expected the depth-2 entry's wrapper (also at the outdir "
-            f"root) to import the template at depth 0:\n{wrapper2_text[:400]}"
+        assert expected_import in wrapper2_text, (
+            "Expected the depth-2 entry's wrapper to import the SAME "
+            "root-absolute path as the depth-1 entry (OUT-06) -- the "
+            f"docname's own nested directory must have zero effect:\n"
+            f"{wrapper2_text[:400]}"
         )
-        assert '#include("_template/sub/index.typ")' in wrapper2_text, (
+        assert '#include("partials/sub/index.typ")' in wrapper2_text, (
             "Expected the wrapper to #include() its own entry's content "
             f"file:\n{wrapper2_text[:400]}"
         )
 
-        # Neither wrapper emits a malformed stem-less reference: the import
-        # target's final path component must equal the reserved template
-        # filename, expressed structurally rather than by string-matching
-        # any specific malformed shape.
-        for label, text in (("wrapper1", wrapper1_text), ("wrapper2", wrapper2_text)):
-            for line in text.splitlines():
-                if "#import" in line and "_template" in line:
-                    quoted = line.split('"')[1]
-                    final_component = quoted.rsplit("/", 1)[-1]
-                    assert final_component == "_template.typ", (
-                        f"[{label}] Expected the template import's final "
-                        f"path component to be '_template.typ', got "
-                        f"{final_component!r} in line: {line!r}"
-                    )
+        # CR-01's original defect class, restated structurally: both
+        # wrappers' import strings must be BYTE-IDENTICAL, proving the
+        # docname/wrapper directory's own name had zero influence on
+        # either import string.
+        assert expected_import in wrapper1_text and expected_import in wrapper2_text
 
         # --- Real compile (the GATE-01 bar) ---
         wrapper1_pdf = typst.compile(str(wrapper1), root=str(temp_build_dir))

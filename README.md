@@ -161,7 +161,7 @@ Create a custom Typst template:
 
 ```python
 # conf.py
-typst_template = '_templates/custom.typ'
+typst_template = '_typst/custom.typ'
 ```
 
 ### Template Parameter Mapping
@@ -344,5 +344,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.8.0) - Production ready
+**Status**: Stable (v0.9.0) - Production ready
 **Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+

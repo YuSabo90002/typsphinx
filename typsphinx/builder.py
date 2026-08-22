@@ -5,11 +5,12 @@ This module implements the TypstBuilder class, which is responsible for
 building Typst output from Sphinx documentation.
 """
 
+import hashlib
 import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from docutils import nodes
 from sphinx.builders import Builder
@@ -19,8 +20,13 @@ from sphinx.util import logging
 from sphinx.util.osutil import ensuredir, make_filename_from_project
 
 from typsphinx.pdf import compile_typst_file_to_pdf
+from typsphinx.template_registry import (
+    TemplateRegistryEntry,
+    resolve_registry_key,
+    resolve_template_registry,
+)
 from typsphinx.translator import derive_master_edge_keys
-from typsphinx.writer import TypstWriter
+from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +35,52 @@ logger = logging.getLogger(__name__)
 # image (IMG-01) or would escape the doctree directory (IMG-02). A single
 # reserved top-level path component -- the leading underscore already marks
 # "owned by typsphinx, not the user's source tree" in this codebase
-# (`_template.typ`) and in Sphinx itself (`_images`, `_static`, `_sources`).
+# (`_template/`) and in Sphinx itself (`_images`, `_static`, `_sources`).
 RESERVED_IMAGE_NAMESPACE = "_typst_converted"
+
+# Phase 54 (D-04): the bundle-copy driver's exclusion set is EXACTLY the
+# four kinds ROADMAP SC#3 names and nothing more -- do not exceed the
+# roadmap text (the same stance Phase 53's D-02 took on the
+# registry-key denylist). `.svn`, `.hg`, `__pycache__`, `.idea`,
+# `.vscode` are deliberately NOT excluded; widening this set is a
+# separate, later-milestone decision (54-CONTEXT.md's Deferred Ideas).
+_EXCLUDED_BUNDLE_DIR_NAMES = frozenset({".git"})
+_EXCLUDED_BUNDLE_FILE_NAMES = frozenset({".DS_Store", "Thumbs.db"})
+_EXCLUDED_BUNDLE_FILE_SUFFIXES = ("~", ".swp", ".swo", ".bak", ".orig")
+
+
+def _is_excluded_bundle_entry(name: str) -> bool:
+    """Whether ``name`` (a single path segment -- a directory or file
+    basename encountered by ``_copy_bundle_directory()``'s
+    ``os.walk()``) is one of D-04's exactly-four excluded kinds: the
+    ``.git`` VCS directory, one of the two named OS-metadata files
+    (``.DS_Store``, ``Thumbs.db``), or an editor-backup-shaped filename.
+
+    Applied to BOTH the ``dirs`` list (pruning ``.git`` out of the walk
+    so its contents are never even visited) and the ``files`` list
+    (skipping the OS-metadata/backup kinds) -- one predicate, two call
+    sites, so the "exactly four kinds" property cannot drift between
+    them.
+
+    Args:
+        name: A single path segment -- a directory or file basename.
+
+    Returns:
+        True if ``name`` matches one of D-04's four excluded kinds.
+
+    Examples:
+        >>> _is_excluded_bundle_entry(".git")
+        True
+        >>> _is_excluded_bundle_entry(".DS_Store")
+        True
+        >>> _is_excluded_bundle_entry("notes.txt~")
+        True
+        >>> _is_excluded_bundle_entry("base.typ")
+        False
+    """
+    if name in _EXCLUDED_BUNDLE_DIR_NAMES or name in _EXCLUDED_BUNDLE_FILE_NAMES:
+        return True
+    return name.endswith(_EXCLUDED_BUNDLE_FILE_SUFFIXES)
 
 
 def _is_drive_qualified(stem: str) -> bool:
@@ -66,6 +116,82 @@ def _is_drive_qualified(stem: str) -> bool:
         False
     """
     return len(stem) >= 2 and stem[0].isalpha() and stem[1] == ":"
+
+
+def _is_absolute_image_uri(resolved_uri: str) -> bool:
+    """Whether ``resolved_uri`` is absolute, as a platform-independent
+    STRING SHAPE rather than the OS-native ``path.isabs()`` decision
+    ``_track_image()`` used before BLD-09 (Phase 55).
+
+    The OS-native ``path`` module resolves to ``ntpath`` on Windows, and
+    CPython 3.13 narrowed ``ntpath.isabs()``: a driveless path beginning
+    with a single leading separator (e.g. ``"\\\\foo\\\\bar.png"``,
+    written here with one leading backslash) is no longer treated as
+    absolute there, where CPython 3.12 on the identical OS treated it as
+    absolute. ROADMAP SC#4's own literal predicate --
+    ``posixpath.isabs(...) or _is_drive_qualified(...)`` applied to the
+    RAW ``resolved_uri`` -- inherits the same gap: it evaluates False
+    for that same driveless-absolute shape and for a UNC path (two
+    leading separators, a server name, a share name), which is exactly
+    the behaviour BLD-09 requires this function to widen. Measured this
+    phase, in this worktree, over the five shapes below
+    (``55-03-RED-EVIDENCE.md`` §"Predicate measurement"):
+
+    - driveless-absolute: os-native(Win)=False, posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=True
+    - drive-qualified:    os-native(Win)=True,  posixpath.isabs=False,
+      drive_qualified=True,  SC4-literal=True,  backslash-normalized=True
+    - posix-absolute:     os-native(Win)=False, posixpath.isabs=True,
+      drive_qualified=False, SC4-literal=True,  backslash-normalized=True
+    - unc:                os-native(Win)=True,  posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=True
+    - ordinary-relative:  os-native(Win)=False, posixpath.isabs=False,
+      drive_qualified=False, SC4-literal=False, backslash-normalized=False
+
+    Task 2's owner-resolved decision (option-b) is this function's body:
+    normalize every backslash to a forward slash FIRST (the same
+    normalization ``_escapes_outdir()`` already performs on its own
+    first line, for the identical platform-independence reason -- D-05),
+    then apply the same ``posixpath.isabs(...) or
+    _is_drive_qualified(...)`` idiom to the normalized string. This is
+    the "backslash-normalized" column above: True for every one of the
+    four absolute shapes, False for the ordinary-relative control, which
+    is what BLD-09 requires and what SC#4's own literal spelling does
+    not achieve. The tradeoff accepted with this choice, mirroring
+    ``_escapes_outdir()``'s own accepted tradeoff: a POSIX filename that
+    literally contains a backslash character is classified as absolute
+    here, on every platform, even though a bare backslash carries no
+    special meaning in a POSIX filename. ROADMAP SC#4's literal wording
+    is deliberately NOT what ships (the widened, normalized form is);
+    the amendment is delegated to plan ``55-04`` (see ``55-03-SUMMARY.md``).
+
+    Detected as a pure string shape, on every platform and every
+    supported Python version -- consulting no filesystem state at all --
+    matching this module's existing platform-independence principle
+    (``_is_drive_qualified()``, ``_escapes_outdir()``).
+
+    Args:
+        resolved_uri: The concrete image URI being tested (as passed to
+            ``_track_image()``).
+
+    Returns:
+        True if ``resolved_uri`` is absolute under the widened,
+        backslash-normalized predicate; False otherwise.
+
+    Note:
+        No ``Examples:`` doctest block here (unlike this module's other
+        pure-string predicates) -- ``55-03-PLAN.md`` Task 3's own
+        acceptance criteria require this name to appear on exactly two
+        lines of this file (the definition and the single gate call
+        site inside ``_track_image()``), which a doctest transcript
+        calling this function would violate. The five shapes above are
+        exercised directly, as a pure string function needing no
+        builder instance, by the inline check in that same task's
+        acceptance criteria and by
+        ``tests/test_builder.py``'s BLD-09 test cluster.
+    """
+    normalized = resolved_uri.replace("\\", "/")
+    return posixpath.isabs(normalized) or _is_drive_qualified(normalized)
 
 
 def _escapes_outdir(stem: str) -> bool:
@@ -110,6 +236,170 @@ def _escapes_outdir(stem: str) -> bool:
     # would let a POSIX-shaped escape target through unrefused on Windows.
     # Measured on the windows-latest CI lane, 47-10/T2.
     return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)
+
+
+def _paths_related(path_a: str, path_b: str) -> bool:
+    """WR-01/D-02: whether ``path_a`` IS ``path_b``, ``path_a`` CONTAINS
+    ``path_b``, or ``path_a`` IS CONTAINED BY ``path_b`` -- the three-way
+    path-relationship test ``TypstBuilder._validate_used_template_paths()``
+    needs to detect a ``templates_path`` collision, generalizing
+    ``template_registry._violates_conf17()``'s one-way ancestor-only
+    ``commonpath()`` idiom to a symmetric containment test.
+
+    Both operands are normalized with ``path.normpath(path.abspath(...))``
+    first (neither path is guaranteed to exist on disk). A naive
+    ``str.startswith()`` prefix comparison is forbidden here: it would
+    report a false collision for a sibling directory whose name merely
+    shares a prefix with the entry (e.g. ``"_templatesfoo"`` against
+    ``"_templates"``).
+
+    Case folding (Claude's Discretion, decided here): both normalized
+    operands are then routed through the existing
+    ``TypstBuilder._collision_key()`` primitive -- never a second
+    ``.casefold()``/``.lower()`` helper -- unconditionally, on every
+    platform, with no ``sys.platform`` branch. This repository's Linux CI
+    must catch what only a case-insensitive filesystem would otherwise
+    surface, which is ``_collision_key()``'s own stated rationale, and a
+    ``templates_path``/``typst_template`` collision is exactly that class
+    of cross-platform-only hazard. Unicode normalization (NFC/NFD) is NOT
+    applied, matching ``_collision_key()``'s own documented
+    non-normalization.
+
+    The ``try``/``except ValueError`` guard below covers BOTH shapes
+    ``commonpath()`` can raise for -- cross-drive Windows paths, and the
+    mixed absolute/relative case -- mirroring
+    ``template_registry._violates_conf17()``'s own guard; both are
+    treated as "not related", never an unhandled exception mid-build.
+
+    Args:
+        path_a: A filesystem path (need not exist on disk).
+        path_b: A filesystem path (need not exist on disk).
+
+    Returns:
+        True if ``path_a`` and ``path_b`` are the same path, or one
+        contains the other; False otherwise.
+
+    Examples:
+        >>> _paths_related("/a/b", "/a/b")
+        True
+        >>> _paths_related("/a", "/a/b/c")
+        True
+        >>> _paths_related("/a/b/c", "/a")
+        True
+        >>> _paths_related("/a/b", "/a/c")
+        False
+    """
+    norm_a = path.normpath(path.abspath(path_a))
+    norm_b = path.normpath(path.abspath(path_b))
+    folded_a = TypstBuilder._collision_key(norm_a)
+    folded_b = TypstBuilder._collision_key(norm_b)
+    try:
+        common = posixpath.commonpath([folded_a, folded_b])
+    except ValueError:
+        return False
+    return common == folded_a or common == folded_b
+
+
+def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
+    """CR-01/D-06: the ONE place the A-01/CONF-17 violation sentence is
+    built, reproduced BYTE-FOR-BYTE from the message
+    ``_copy_used_template_bundles()``'s ``finish()``-side guard already
+    raises. The two guard sites (the hoisted pre-write check inside
+    ``TypstBuilder._validate_used_template_paths()`` and the
+    ``finish()``-side check inside ``_copy_used_template_bundles()``) are
+    DELIBERATELY duplicated (D-06 -- many existing tests drive
+    ``write_doc()``/``_write_typst_files()`` and ``finish()`` directly
+    without ever calling ``write()``, so the pre-write pass never runs on
+    that path). This single shared builder is what stops those two
+    deliberately-duplicated sites drifting apart in wording -- existing
+    tests read this exact text, so it must never be paraphrased or
+    "improved" at either call site.
+
+    Args:
+        key: The registry key whose resolved template violates CONF-17.
+        resolved_path: The RESOLVED template path (already ``str()``'d by
+            the caller) -- never the declared string.
+        srcdir: The build's source directory (already ``str()``'d by the
+            caller).
+
+    Returns:
+        The CONF-17/A-01 violation sentence, identical regardless of
+        which of the two call sites invokes this function.
+    """
+    return (
+        f"typst_document_templates: registry key {key!r}'s "
+        f"resolved template '{resolved_path}' has a "
+        "parent directory that is srcdir itself, or an "
+        f"ancestor of srcdir ('{srcdir}') -- put "
+        "the template in its own subdirectory (CONF-17, A-01)"
+    )
+
+
+def _templates_path_collision_message(
+    key: str, bundle_dir: str, raw_tp_entry: str, resolved_tp_entry: str
+) -> str:
+    """57-11: the ONE place the ``templates_path`` collision sentence is
+    built for ``TypstBuilder._validate_used_template_paths()``, extracted
+    to its own function so a unit test can call it directly with a
+    Windows-shaped path string -- driving the REAL message-construction
+    code rather than a copy of the f-string pasted into a test module,
+    which is exactly what would silently pass if this site regressed
+    back to ``!r`` (57-11-PLAN.md task 2).
+
+    Args:
+        key: The registry key whose resolved template bundle collides.
+        bundle_dir: The resolved template's bundle directory (a
+            filesystem path -- quoted with explicit ``'...'``, never
+            ``!r``, so a Windows backslash is not doubled by
+            ``repr()``).
+        raw_tp_entry: The colliding ``templates_path`` entry exactly as
+            configured (may be a bare, unresolved fragment).
+        resolved_tp_entry: ``raw_tp_entry`` resolved against ``srcdir``
+            (a filesystem path -- same quoting rule as ``bundle_dir``).
+
+    Returns:
+        The templates_path collision sentence.
+    """
+    return (
+        f"registry key {key!r}'s resolved template "
+        f"bundle directory '{bundle_dir}' collides "
+        "with the Sphinx templates_path entry "
+        f"'{raw_tp_entry}' (resolved to "
+        f"'{resolved_tp_entry}') -- the whole "
+        "bundle directory is copied to the build "
+        "output, so this would republish the "
+        "project's Sphinx template directory; move "
+        "the Typst template into a directory that "
+        "is not on templates_path (this repository "
+        "uses _typst/) and update typst_template / "
+        "typst_document_templates to match"
+    )
+
+
+def _bundle_destination_collision_message(
+    existing_key: str, key: str, dest_dir: str
+) -> str:
+    """57-11: the ONE place the bundle-destination collision sentence is
+    built for ``TypstBuilder._copy_used_template_bundles()``, extracted
+    for the same reason as ``_templates_path_collision_message()`` above
+    -- a unit test can call it directly with a Windows-shaped
+    ``dest_dir`` and assert no doubled separator survives, exercising
+    the real product code rather than a re-pasted format string.
+
+    Args:
+        existing_key: The registry key that already claimed ``dest_dir``.
+        key: The registry key that collides with it.
+        dest_dir: The shared bundle destination (a filesystem path --
+            quoted with explicit ``'...'``, never ``!r``).
+
+    Returns:
+        The bundle-destination collision sentence.
+    """
+    return (
+        f"registry key {existing_key!r} and registry key "
+        f"{key!r} both resolve to the same bundle "
+        f"destination '{dest_dir}'"
+    )
 
 
 def _is_usable_typst_documents_entry(entry: tuple) -> bool:
@@ -243,6 +533,28 @@ class TypstBuilder(Builder):
         # that method's own comment for why that is the SAME derivation
         # function, not a second include-decision mechanism.
         self._master_include_edges: Dict[str, Tuple[str, ...]] = {}
+
+        # Phase 53 (TPL-03): the resolved template registry, keyed by
+        # registry key. Populated for real in `write()` (mirrors
+        # `self._master_include_edges` above); a unit test driving the
+        # per-document write path directly (some existing tests bypass
+        # `write()` this way) sees this start empty and
+        # `_write_typst_files()` lazily derives it on demand -- see that
+        # method's own comment for why that is the SAME resolution
+        # function, not a second registry-resolution mechanism.
+        self._document_template_registry: Dict[str, TemplateRegistryEntry] = {}
+
+        # Phase 54 (OUT-04): the write-time accumulator of every registry
+        # key an ACTUALLY-WRITTEN wrapper resolved, feeding the
+        # finish()-time bundle copy (`_copy_used_template_bundles()`) --
+        # mirrors `self.images`/`copy_image_files()` above (ROADMAP
+        # constraint #4). Populated in `_write_typst_files()`'s wrapper
+        # loop, immediately after that loop's existing
+        # `resolve_registry_key()` call -- only entries whose docname is
+        # in THIS build's write set reach that line, which is precisely
+        # why the bundle copy cannot run before the write loop on an
+        # incremental build.
+        self._used_template_keys: set[str] = set()
 
     def _build_include_edge_map(self) -> Dict[str, Tuple[str, ...]]:
         """Derive the per-master include-edge mapping (COMP-05/COMP-06).
@@ -499,29 +811,89 @@ class TypstBuilder(Builder):
         normalized_shape = posixpath.normpath(folded_separators)
         return normalized_shape.casefold()
 
+    @staticmethod
+    def _reserves_template_prefix(relative_path: str) -> bool:
+        """Whether ``relative_path``'s FIRST output-path segment is the
+        reserved template-bundle directory (OUT-07).
+
+        This is a separate predicate from ``_collision_key()``-keyed
+        ``_claim()`` on purpose, not a widened exact-match claim: the
+        deleted claim this replaces compared one exact string against one
+        exact string (a single reserved *filename*), whereas this asks a
+        PREFIX question about a resolved relative path (any file under a
+        reserved *directory*) -- conflating the two shapes into one
+        function would risk regressing the non-prefix collision cases
+        ``_validate_output_path_collisions()`` already handles correctly.
+        Deliberately does NOT reuse ``_escapes_outdir()`` or
+        ``_is_drive_qualified()`` -- both are built to answer "does this
+        WHOLE relative path try to leave outdir", where a ``/`` separator
+        is a legal, expected part of the input; this function asks the
+        opposite-shaped question, "is this path's first ``/``-delimited
+        segment one specific reserved name".
+
+        Routes through ``_collision_key()`` -- the single normalization
+        primitive this builder uses for every other output-path
+        comparison -- for BOTH ``relative_path`` and the reserved
+        directory name itself, so the comparison is symmetric: a
+        differently-cased spelling of the reserved directory
+        (``"_Template/index.typ"``) is refused on the same case-folded,
+        separator-folded, ``normpath()``-shaped terms as every other
+        collision check in this method (T-54-27).
+
+        Args:
+            relative_path: An outdir-relative output path (the same shape
+                ``_collision_key()`` accepts).
+
+        Returns:
+            True if ``relative_path``'s first path segment is the
+            reserved template-bundle directory, False otherwise.
+
+        Examples:
+            >>> TypstBuilder._reserves_template_prefix("_template/index.typ")
+            True
+            >>> TypstBuilder._reserves_template_prefix("_Template/sub/index.typ")
+            True
+            >>> TypstBuilder._reserves_template_prefix("manual.typ")
+            False
+            >>> TypstBuilder._reserves_template_prefix("_templates/index.typ")
+            False
+        """
+        folded = TypstBuilder._collision_key(relative_path)
+        reserved = TypstBuilder._collision_key(TEMPLATE_OUTPUT_DIR)
+        first_segment = folded.split("/", 1)[0]
+        return first_segment == reserved
+
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's
-        content file, a ``typst_documents`` entry's wrapper file, or the
-        reserved ``_template.typ`` infrastructure file -- resolve to the
-        same physical output path (D-01/D-02/D-03/D-04/D-05).
+        content file, or a ``typst_documents`` entry's wrapper file --
+        resolve to the same physical output path, AND that no such file
+        would be written under the reserved template-bundle directory
+        (D-01/D-02/D-03/D-04/D-05, OUT-07).
 
         Runs ONCE, called from ``write()`` at the very top -- before
-        ``prepare_writing()`` (which writes the shared ``_template.typ``
-        immediately) and before the per-docname write loop -- so "no
-        output file is written when any collision is found" (D-02) is
-        structural rather than a promise, and covers ``_template.typ``
-        itself, not only content/wrapper files. Defined on
-        ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it unchanged
-        (D-03) -- both builders reject the same configurations identically.
+        ``prepare_writing()`` and before the per-docname write loop -- so
+        "no output file is written when any collision or reservation
+        violation is found" (D-02) is structural rather than a promise.
+        Defined on ``TypstBuilder`` so ``TypstPDFBuilder`` inherits it
+        unchanged (D-03) -- both builders reject the same configurations
+        identically.
 
         Builds ONE map from ``_collision_key()`` to a human-readable
         description of the logical file that claimed it, populated in
-        this order: the reserved ``_template.typ`` infrastructure file;
-        every docname in ``self.env.found_docs`` mapped to its content
-        path; every ``typst_documents`` entry mapped to its resolved
-        wrapper path. On a repeat key, BOTH claimants are recorded as one
-        failure rather than raising immediately, so every offending entry
-        is named in a SINGLE ``ExtensionError`` (D-02).
+        this order: every docname in ``self.env.found_docs`` mapped to
+        its content path; every ``typst_documents`` entry mapped to its
+        resolved wrapper path. On a repeat key, BOTH claimants are
+        recorded as one failure rather than raising immediately, so every
+        offending entry is named in a SINGLE ``ExtensionError`` (D-02).
+        Alongside each claim, ``_reserves_template_prefix()`` (OUT-07)
+        checks whether that same path's first segment is the reserved
+        template-bundle directory (``TEMPLATE_OUTPUT_DIR``, the same
+        directory Phase 54's ``_copy_used_template_bundles()`` writes
+        every used registry key's bundle under); a violation is appended
+        to the SAME ``failures`` list and therefore reported in the SAME
+        aggregated error as a destination collision -- every offending
+        docname in a whole subtree under the reserved name is named at
+        once, not just the first.
 
         An unusable entry (per ``_is_usable_typst_documents_entry()`` --
         an empty tuple, fewer than two elements, or a non-``str``
@@ -541,11 +913,20 @@ class TypstBuilder(Builder):
         resolution), so this never asks "is this docname repeated" --
         only "do two logical files want one physical path".
 
+        This validator never evaluates the reservation against the
+        builder's OWN bundle writes -- ``_copy_used_template_bundles()``
+        runs at ``finish()`` time, entirely outside this method, and is
+        never routed through it; only paths derived from docnames and
+        from ``typst_documents`` targets reach ``_reserves_template_prefix()``
+        here.
+
         Raises:
             ExtensionError: When one or more physical output paths are
-                claimed by more than one logical file. The message begins
-                with ``"typst: N output path collision(s)"`` (D-02's
-                summary prefix) followed by every offending pair.
+                claimed by more than one logical file, or would be
+                written under the reserved template-bundle directory. The
+                message begins with ``"typst: N output path
+                collision(s)"`` (D-02's summary prefix) followed by every
+                offending pair or reservation violation.
         """
         claims: Dict[str, str] = {}
         failures: List[Tuple[str, str]] = []
@@ -564,23 +945,37 @@ class TypstBuilder(Builder):
                 return
             claims[key] = description
 
-        # 1. The reserved _template.typ infrastructure file
-        #    (_write_template_file() writes it once, at the outdir root)
-        #    -- inserted first so any later claimant is reported against
-        #    it by name (D-01's reserved-file kind).
-        _claim("_template.typ", "the reserved _template.typ infrastructure file")
-
-        # 2. Every docname's own content file -- unconditional, regardless
+        # 1. Every docname's own content file -- unconditional, regardless
         #    of whether any typst_documents entry names it (COMP-01/OUT-03).
+        #    Alongside the ordinary collision claim, OUT-07's reservation
+        #    predicate is evaluated on the SAME resolved relative path: a
+        #    docname whose content file would land under the reserved
+        #    template-bundle directory is a build-stopping failure, not a
+        #    collision between two logical files.
         found_docs = getattr(self.env, "found_docs", None) or set()
         for docname in found_docs:
-            _claim(docname + ".typ", f"the content file for docname {docname!r}")
+            content_relpath = docname + ".typ"
+            _claim(content_relpath, f"the content file for docname {docname!r}")
+            if self._reserves_template_prefix(content_relpath):
+                failures.append(
+                    (
+                        content_relpath,
+                        f"the content file for docname {docname!r} would "
+                        f"be written to {content_relpath!r}, whose first "
+                        f"path segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        "directory is reserved for template bundles",
+                    )
+                )
 
-        # 3. Every typst_documents entry's wrapper file (BLD-02/BLD-03/
+        # 2. Every typst_documents entry's wrapper file (BLD-02/BLD-03/
         #    BLD-04), resolved per-entry via _wrapper_output_relpath() --
         #    never via a docname-based first-match search, which is what
         #    makes D-04's repeated-docname/different-target case resolve
         #    to two independent keys instead of colliding with itself.
+        #    The reservation predicate is evaluated here too, on the
+        #    resolved wrapper path, naming the entry index and target at
+        #    the same detail level the ordinary wrapper claim already
+        #    gives.
         typst_documents = getattr(self.config, "typst_documents", []) or []
         for index, entry in enumerate(typst_documents):
             if not _is_usable_typst_documents_entry(entry):
@@ -603,6 +998,17 @@ class TypstBuilder(Builder):
                 f"typst_documents entry {index} (docname {docname!r}, "
                 f"target {target!r})",
             )
+            if self._reserves_template_prefix(wrapper_relpath):
+                failures.append(
+                    (
+                        wrapper_relpath,
+                        f"typst_documents entry {index} (docname "
+                        f"{docname!r}, target {target!r}) would write its "
+                        f"wrapper to {wrapper_relpath!r}, whose first path "
+                        f"segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        "directory is reserved for template bundles",
+                    )
+                )
 
         if failures:
             summary = "; ".join(
@@ -610,6 +1016,363 @@ class TypstBuilder(Builder):
             )
             raise ExtensionError(
                 f"typst: {len(failures)} output path collision(s): {summary}"
+            )
+
+    def _validate_registry_key_references(self) -> None:
+        """Validate that every usable ``typst_documents`` entry's registry
+        key reference (TPL-04's element ``[4]``) resolves against
+        ``self._document_template_registry`` (CONF-14).
+
+        Runs ONCE, called from ``write()`` immediately after
+        ``self._document_template_registry = resolve_template_registry(...)``
+        and before ``prepare_writing()`` and the per-docname write loop --
+        exactly ``_validate_output_path_collisions()``'s own precedent,
+        extended to cover the one registry validation that previously had
+        no up-front treatment: ``resolve_registry_key()`` was reachable
+        only from
+        ``_write_typst_files()``'s per-docname wrapper loop, which runs
+        strictly after that docname's own content file -- and after every
+        earlier-sorted docname's content and wrapper files -- have already
+        hit disk. Placing this check here makes "no ``.typ`` file is
+        written when a registry-key reference is bad" structural rather
+        than a promise, for both master orders (53-06-RED-EVIDENCE.md).
+
+        Iterates ``typst_documents`` in DECLARATION order and raises on
+        the FIRST offending entry -- failures are deliberately NOT
+        accumulated across entries here, unlike
+        ``_validate_output_path_collisions()``'s own D-02 aggregation,
+        because ``resolve_registry_key()`` already owns CONF-14's message
+        text and shape; accumulating here would mint a second, divergent
+        message shape for the same error class. Declaration order is
+        fixed for a given ``conf.py``, so the raise is byte-identical
+        across runs (D-03).
+
+        Covers EVERY usable entry in ``typst_documents``, including an
+        entry whose docname is not in THIS build's ``docnames`` set --
+        deliberate, matching D-05's "validation covers every declared
+        key, not only keys referenced by an entry being written", which
+        is what makes order-independence hold trivially.
+
+        Skips entries failing ``_is_usable_typst_documents_entry()``
+        without raising -- ``_validate_output_path_collisions()`` already
+        emits the one per-build warning for those, so this method stays
+        silent about them (it never becomes a second warning site for the
+        same skip).
+
+        The per-wrapper ``resolve_registry_key()`` call in
+        ``_write_typst_files()`` (builder.py, inside the wrapper loop)
+        DELIBERATELY STAYS: it is the data-flow lookup that hands
+        ``render_wrapper()`` its resolved ``TemplateRegistryEntry``, an
+        idempotent dict lookup, and it is load-bearing for the several
+        existing tests that drive ``write_doc()``/``_write_typst_files()``
+        directly without ever calling ``write()`` (the same reason the
+        lazy registry fallback there exists). After this change it can no
+        longer be the FIRST place a bad key is noticed in a real build.
+        No memoization is introduced here; a second per-entry cache would
+        be new state for no behavioural gain.
+
+        Raises:
+            ExtensionError: The same error ``resolve_registry_key()``
+                raises for the first offending entry, unchanged --
+                either a non-``str`` element ``[4]`` (D-06) or a ``str``
+                absent from the resolved registry (CONF-14).
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        for entry in typst_documents:
+            if not _is_usable_typst_documents_entry(entry):
+                continue
+            resolve_registry_key(self._document_template_registry, entry)
+
+    def _validate_used_template_paths(self) -> None:
+        """WR-01/D-01 + CR-01/D-04/D-07: refuse the build pre-write for
+        any of THREE failure kinds:
+
+        1. A used key's RESOLVED template bundle directory is, contains,
+           or is contained by a Sphinx ``templates_path`` entry -- the
+           wholesale-bundle-copy republication hole
+           ``_copy_used_template_bundles()`` (``finish()``-time) would
+           otherwise walk into, since it copies the resolved template's
+           PARENT directory wholesale to ``<outdir>/_template/<key>/``
+           with no awareness of ``templates_path`` at all.
+        2. A used key's RESOLVED template violates A-01/CONF-17 -- its
+           parent directory is ``srcdir`` itself, or an ancestor of it.
+           This is a HOIST (D-06) of the check
+           ``_copy_used_template_bundles()`` already runs at ``finish()``
+           time (``_conf17_violation_message()``, shared byte-for-byte
+           between both sites) -- that ``finish()``-side guard STAYS
+           (D-06: many existing tests drive
+           ``write_doc()``/``_write_typst_files()``/``finish()`` directly
+           without ever calling ``write()``, so this pre-write pass never
+           runs on that path). This is also the FIRST place the
+           SYNTHESIZED built-in ``"typst"`` registry key is ever
+           CONF-17-validated at all: ``resolve_template_registry()``
+           appends that key AFTER its declared-key validation loop
+           returns, so the loop's own CONF-17 check never reaches it
+           (CR-01's precise root cause).
+        3. A DECLARED registry key differs from the reserved built-in key
+           (``RESERVED_REGISTRY_KEY = "typst"``) only by case -- CONF-16
+           rejects only the literal spelling ``"typst"`` at declaration
+           time, and CONF-18 compares declared keys only against EACH
+           OTHER, never against the synthesized built-in key, so a lone
+           case-variant key passes both existing checks (D-07). The
+           comparison routes exclusively through the existing
+           ``TypstBuilder._collision_key()`` primitive -- never a second
+           ``.casefold()``/``.lower()`` helper.
+
+        Kind 3's scope is deliberately DIFFERENT from kinds 1 and 2: it
+        iterates every DECLARED key in ``self._document_template_registry``
+        (not the reference-derived ``used_keys`` set kinds 1/2 use). This
+        is NOT the widening CONTEXT.md's Claude's Discretion ruled
+        against -- that ruling is about running the PATH checks (kinds 1
+        and 2) on declared-but-unreferenced keys, and it stands. Kind 3 is
+        a key-NAME collision whose sibling CONF-18 is already
+        declaration-scoped, and the built-in key is always present in the
+        registry, so a declared case variant is always wrong regardless
+        of whether any ``typst_documents`` entry references it.
+
+        Runs ONCE, called from ``write()`` immediately after
+        ``self._validate_registry_key_references()`` and before
+        ``prepare_writing()`` (D-04) -- so a refusal leaves ZERO ``.typ``
+        files on disk, exactly like this class's other two pre-write
+        validators. This is the FIRST read of ``self.config.templates_path``
+        anywhere in ``typsphinx/``.
+
+        The checked key set for kinds 1 and 2 (D-05) is derived from every
+        USABLE ``typst_documents`` entry
+        (``_is_usable_typst_documents_entry()``), resolved through
+        ``resolve_registry_key()`` -- including the entry
+        ``_default_typst_documents()`` synthesizes when ``typst_documents``
+        is unset -- never ``self._used_template_keys`` (still empty at
+        this point in the build). This is reference-derived scope,
+        applying to kinds 1 and 2 ONLY (kind 3's declaration-derived scope
+        is documented above). A registry key that is DECLARED but
+        referenced by no ``typst_documents`` entry is deliberately NOT
+        checked by kinds 1/2 (Claude's Discretion, "do not widen"
+        recommendation): their checked set stays reference-derived,
+        matching ``_validate_registry_key_references()``'s own scope;
+        such a key is still caught at ``finish()`` if it ever becomes
+        used.
+
+        For each used key, this method reproduces
+        ``_copy_used_template_bundles()``'s own per-key resolution
+        construction exactly (``template_path``, ``search_paths``,
+        ``resolve_package_for_engine()``, ``TemplateEngine``,
+        ``resolve_template()``) to obtain the RESOLVED bundle path -- never
+        the declared string -- because the declared value and the resolved
+        path genuinely differ for the ``"search"`` and ``"default"``
+        priorities. D-06 already accepts this write()-vs-finish()
+        duplication as the cost of covering both call paths. This
+        resolution now runs for EVERY used key regardless of whether
+        ``templates_path`` is even set, because the CONF-17 hoist check
+        needs it unconditionally.
+
+        A key whose entry carries ``package`` and no ``template`` has no
+        bundle and is skipped, mirroring
+        ``_copy_used_template_bundles()``'s own skip.
+
+        The CONF-17 hoist check runs UNCONDITIONALLY on the resolved
+        path, checked and appended (then ``continue``s to the next key)
+        BEFORE the ``resolution.source == "default"`` skip below --
+        unlike the ``templates_path`` branch, it does NOT skip
+        ``source == "default"``: the packaged default's parent directory
+        lives inside the installed Python package and can never be
+        ``srcdir`` or an ancestor of it, so the CONF-17 predicate simply
+        returns ``False`` for it and no special-case is warranted. The
+        ``templates_path`` containment check for that SAME key is skipped
+        when the key already violated CONF-17 (a template that already
+        fails CONF-17 has nothing useful to say about ``templates_path``
+        containment, and reporting both would be noise), and is skipped
+        separately when ``resolution.source == "default"`` -- the
+        packaged default's bundle lives inside the installed Python
+        package, never under ``srcdir``, so the containment test is
+        meaningless for it (and could be misleading under an editable
+        install).
+
+        ``templates_path`` entries are resolved against ``self.srcdir``
+        (D-02), matching every other path resolution in this file. A
+        project using Sphinx's separate ``-c`` confdir option is NOT
+        covered by this method -- ``confdir`` defaults to ``srcdir`` in
+        the near-universal case, but this method never reads
+        ``self.confdir``. A non-``str`` ``templates_path`` member is
+        skipped defensively rather than raising -- Sphinx already
+        type-validates this config value as a list, and a malformed
+        member is not this method's error class.
+
+        Containment (``_paths_related()``) is case-folded unconditionally
+        on every platform via ``TypstBuilder._collision_key()`` -- this
+        repository's Linux CI must catch what only a case-insensitive
+        filesystem would otherwise surface. Unicode normalization
+        (NFC/NFD) is NOT applied, matching ``_collision_key()``'s own
+        documented non-normalization.
+
+        Multiple colliding keys, across ALL THREE failure kinds, are
+        accumulated into ONE ``failures`` list and raised as a SINGLE
+        ``ExtensionError``, iterated in ``sorted()`` key order (D-03), so
+        the message is byte-identical across runs -- never a
+        first-offender raise. The summary prefix
+        (``"typst: N pre-write template path failure(s)"``) is
+        deliberately failure-kind-neutral, feeding every kind into this
+        SAME list.
+
+        Raises:
+            ExtensionError: When one or more used keys' resolved template
+                bundle directories collide with a ``templates_path``
+                entry, violate A-01/CONF-17, or when a declared registry
+                key differs from the reserved built-in key only by case.
+                Each ``templates_path`` failure message names the
+                registry key, the resolved bundle directory, the
+                colliding ``templates_path`` entry (both the raw config
+                string and its resolved absolute path), the consequence
+                (the whole bundle directory would be copied to build
+                output, republishing this Sphinx template directory), and
+                the remedy (move the Typst template into a directory
+                that is not on ``templates_path`` -- this repository
+                uses ``_typst/`` -- and update ``typst_template`` /
+                ``typst_document_templates`` to match). Each CONF-17
+                failure message is built by ``_conf17_violation_message()``,
+                shared byte-for-byte with the ``finish()``-side guard.
+                Each reserved-key case-collision failure message names
+                the declared key and the reserved built-in key, states
+                that both fold to the same bundle destination, states
+                that CONF-18 does not catch it, and tells the user to
+                rename the declared key or configure the built-in key
+                through the global Typst template settings instead.
+        """
+        typst_documents = getattr(self.config, "typst_documents", []) or []
+        used_keys: Set[str] = set()
+        for entry in typst_documents:
+            if not _is_usable_typst_documents_entry(entry):
+                continue
+            resolved_entry = resolve_registry_key(
+                self._document_template_registry, entry
+            )
+            used_keys.add(resolved_entry.key)
+
+        raw_templates_path = getattr(self.config, "templates_path", []) or []
+        templates_path_entries: List[Tuple[str, str]] = []
+        for raw_entry in raw_templates_path:
+            if not isinstance(raw_entry, str):
+                continue
+            templates_path_entries.append(
+                (raw_entry, path.join(str(self.srcdir), raw_entry))
+            )
+
+        failures: List[Tuple[str, str]] = []
+
+        from typsphinx.template_registry import RESERVED_REGISTRY_KEY
+
+        # D-07: reserved-key case-collision check (kind 3) -- scoped to
+        # every DECLARED registry key, not the reference-derived
+        # used_keys set kinds 1/2 below use (see docstring). Routes
+        # exclusively through the existing _collision_key() folding --
+        # never a second case-folding primitive.
+        reserved_folded = self._collision_key(RESERVED_REGISTRY_KEY)
+        for declared_key in sorted(self._document_template_registry):
+            if declared_key == RESERVED_REGISTRY_KEY:
+                continue
+            if self._collision_key(declared_key) == reserved_folded:
+                failures.append(
+                    (
+                        declared_key,
+                        f"registry key {declared_key!r} differs from "
+                        f"the built-in {RESERVED_REGISTRY_KEY!r} "
+                        "registry key only by case -- both resolve to "
+                        "the same bundle destination under the "
+                        "output-path folding this project applies on "
+                        "every platform; CONF-18 does not catch this "
+                        "because it compares declared keys only "
+                        "against each other and never against the "
+                        f"synthesized built-in key -- rename "
+                        f"{declared_key!r} to something that does not "
+                        "fold to the reserved key, or drop it and "
+                        "configure the built-in key through the "
+                        "global Typst template settings "
+                        "(typst_template / typst_package)",
+                    )
+                )
+
+        if used_keys:
+            from typsphinx.template_engine import (
+                TEMPLATE_SEARCH_SUBDIR,
+                TemplateEngine,
+                resolve_package_for_engine,
+            )
+            from typsphinx.template_registry import _violates_conf17
+
+            for key in sorted(used_keys):
+                entry = self._document_template_registry[key]
+
+                if entry.package and not entry.template:
+                    # Package-alone: no bundle to check (mirrors
+                    # _copy_used_template_bundles()'s own skip).
+                    continue
+
+                raw_template_path = entry.template
+                template_path = None
+                if raw_template_path:
+                    template_path = path.join(self.srcdir, raw_template_path)
+                search_paths = [path.join(str(self.srcdir), TEMPLATE_SEARCH_SUBDIR)]
+                package_for_engine = resolve_package_for_engine(
+                    entry.package, raw_template_path
+                )
+
+                template_engine = TemplateEngine(
+                    template_path=template_path,
+                    search_paths=search_paths,
+                    typst_package=package_for_engine,
+                    typst_template_function=entry.template_function,
+                )
+                resolution = template_engine.resolve_template()
+
+                # CR-01/D-04/D-05/D-06: hoisted A-01/CONF-17 check.
+                # Unlike the templates_path branch below, this does NOT
+                # skip resolution.source == "default" -- the packaged
+                # default's parent directory can never be srcdir or an
+                # ancestor of it, so the CONF-17 predicate simply returns
+                # False for it and no special-case is warranted.
+                if _violates_conf17(str(resolution.path), str(self.srcdir)):
+                    failures.append(
+                        (
+                            key,
+                            _conf17_violation_message(
+                                key, str(resolution.path), str(self.srcdir)
+                            ),
+                        )
+                    )
+                    # A template that already violates CONF-17 has
+                    # nothing useful to say about templates_path
+                    # containment -- reporting both for one key is noise.
+                    continue
+
+                if resolution.source == "default":
+                    # The packaged default's bundle lives inside the
+                    # installed Python package, never under srcdir --
+                    # containment against a srcdir-relative
+                    # templates_path entry is meaningless for it.
+                    continue
+
+                if templates_path_entries:
+                    bundle_dir = path.dirname(str(resolution.path))
+
+                    for raw_tp_entry, resolved_tp_entry in templates_path_entries:
+                        if _paths_related(bundle_dir, resolved_tp_entry):
+                            failures.append(
+                                (
+                                    key,
+                                    _templates_path_collision_message(
+                                        key,
+                                        bundle_dir,
+                                        raw_tp_entry,
+                                        resolved_tp_entry,
+                                    ),
+                                )
+                            )
+
+        if failures:
+            summary = "; ".join(f"{key!r}: {message}" for key, message in failures)
+            raise ExtensionError(
+                f"typst: {len(failures)} pre-write template path "
+                f"failure(s): {summary}"
             )
 
     def get_outdated_docs(self) -> Iterator[str]:
@@ -660,17 +1423,17 @@ class TypstBuilder(Builder):
         """
         Prepare for writing the documents.
 
-        This method is called before writing begins.
-        Writes the template file to the output directory for master documents to import.
+        This method is called before writing begins. Creates the writer
+        instance every wrapper/content write below uses; the per-key
+        template bundle each wrapper imports is copied later, at
+        ``finish()`` time (Phase 54, OUT-04), fed by the write-time
+        ``self._used_template_keys`` accumulator -- not written here.
 
         Args:
             docnames: Set of document names to be written
         """
         # Create the writer instance
         self.writer = TypstWriter(self)
-
-        # Write template file for master documents to import
-        self._write_template_file()
 
     def write(
         self,
@@ -702,15 +1465,41 @@ class TypstBuilder(Builder):
             # build all
             docnames = set(build_docnames)
 
-        # D-02/D-03: validate BEFORE anything is written -- including
-        # prepare_writing()'s own _write_template_file() call just below,
-        # which writes "_template.typ" to outdir immediately. Placed here,
-        # at the very top of write(), so a collision leaves ZERO ".typ"
-        # files on disk, not just zero content/wrapper files (BLD-02's own
-        # gate asserts no ".typ" file anywhere in the build directory,
-        # which "_template.typ" would violate if this ran any later).
+        # D-02/D-03: validate BEFORE anything is written -- the per-docname
+        # content and wrapper files below are the first things write()
+        # produces on disk. Placed here, at the very top of write(), so a
+        # collision leaves ZERO ".typ" files on disk (BLD-02's own gate
+        # asserts no ".typ" file anywhere in the build directory).
         # TypstPDFBuilder inherits this unchanged (D-03).
         self._validate_output_path_collisions()
+
+        # Phase 53 (TPL-03, D-03/D-09): resolve the template registry
+        # ONCE per build, here -- after collision validation, before
+        # `prepare_writing()` and the per-docname write loop below -- so
+        # resolution is order-independent and every wrapper this write()
+        # writes below sees the SAME resolved registry. Mirrors
+        # `self._master_include_edges = self._build_include_edge_map()`
+        # a few lines down.
+        self._document_template_registry = resolve_template_registry(
+            self.config, str(self.srcdir)
+        )
+
+        # Phase 53 plan 06 (CONF-14, ROADMAP SC#3): validate every usable
+        # typst_documents entry's registry key reference HERE, before
+        # prepare_writing() writes anything, so a bad key leaves ZERO
+        # ".typ" files on disk regardless of that entry's docname sort
+        # position -- covers EVERY declared entry, not only ones in this
+        # build's docnames set (D-05), which is what makes the guarantee
+        # order-independent.
+        self._validate_registry_key_references()
+
+        # Phase 54.1 (WR-01, D-04): validate every used registry key's
+        # RESOLVED template bundle directory against templates_path HERE,
+        # before prepare_writing() writes anything, so a collision leaves
+        # ZERO ".typ" files on disk -- the wholesale bundle copy at
+        # finish() would otherwise republish the project's own Sphinx
+        # templates_path directory into build output.
+        self._validate_used_template_paths()
 
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
@@ -901,13 +1690,28 @@ class TypstBuilder(Builder):
         today's emitted path) is preserved unchanged -- this is the branch
         the D-12-pinned regression tests exercise.
 
+        BLD-09 (Phase 55): the absolute-URI decision above is a
+        platform-independent string shape owned by the module-level
+        ``_is_absolute_image_uri`` predicate, not the OS-native
+        absolute-path check this method used before. A
+        rooted URI that escapes this gate reaches ``copy_image_files()``,
+        where the platform's own destination join (``path.join(self.outdir,
+        imguri)``) silently discards ``outdir`` once ``imguri`` is itself
+        rooted -- which is why this gate is the containment boundary for
+        every destination this builder writes, and not merely a
+        convenience rewrite.
+
         Args:
             node: The image node whose ``uri`` should reflect the tracked
                 path.
             resolved_uri: The concrete URI to track (already resolved from
                 ``node["candidates"]`` by the caller).
         """
-        if path.isabs(resolved_uri):
+        # BLD-09: the platform-independent predicate, not the OS-native
+        # absolute-path check -- see that helper's own docstring for the
+        # measured reasoning (CPython 3.13's narrowed Windows behaviour and
+        # the backslash-normalized widening Task 2's checkpoint selected).
+        if _is_absolute_image_uri(resolved_uri):
             try:
                 rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(
                     path.sep, "/"
@@ -935,7 +1739,30 @@ class TypstBuilder(Builder):
                 # branch means a third-party extension placed an absolute
                 # URI somewhere none of Sphinx's own post-transforms ever
                 # do.
-                key = f"{RESERVED_IMAGE_NAMESPACE}/{path.basename(resolved_uri)}"
+                #
+                # IMG-03 (Phase 55): the digest prefix is taken over the
+                # WHOLE resolved_uri, not just its basename -- restoring
+                # the injectivity two escaping URIs sharing a basename lost
+                # under the old basename-only key, while the basename
+                # itself stays visible in the emitted filename. It is a
+                # PURE function of resolved_uri alone, with no dependence
+                # on self.images or on write()'s sorted(docnames) order
+                # (Phase 50 D-02); it introduces no parent-traversal
+                # segment (Phase 50 SC#2 outdir containment); and it must
+                # be .encode()d first -- hashlib takes bytes, not str.
+                # Python's own built-in string hash is unusable here: it
+                # is randomized per process unless seeded, so two builds
+                # of the identical project would emit two different
+                # filenames. This is a non-cryptographic collision-
+                # avoidance key over a build-local path string, not a
+                # security boundary -- this project's ruff selection does
+                # not include the security rule set, and this comment is
+                # the answer if a future, stricter scanner ever flags it.
+                digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
+                key = (
+                    f"{RESERVED_IMAGE_NAMESPACE}/{digest}-"
+                    f"{path.basename(resolved_uri)}"
+                )
                 logger.warning(
                     f"could not rehome image URI {resolved_uri!r} relative "
                     f"to the doctree directory -- relocated to {key!r}"
@@ -1071,6 +1898,17 @@ class TypstBuilder(Builder):
         if not self._master_include_edges:
             self._master_include_edges = self._build_include_edge_map()
 
+        # Phase 53 (TPL-03): lazily resolve the template registry if it is
+        # still empty -- the SAME fallback shape as `_master_include_edges`
+        # above, calling the SAME resolution function `write()` itself
+        # calls. Load-bearing: many existing tests drive `write_doc()` /
+        # `_write_typst_files()` directly without ever calling `write()`,
+        # and without this fallback the registry would be empty for them.
+        if not self._document_template_registry:
+            self._document_template_registry = resolve_template_registry(
+                self.config, str(self.srcdir)
+            )
+
         for entry in typst_documents:
             if not _is_usable_typst_documents_entry(entry) or entry[0] != docname:
                 continue
@@ -1081,12 +1919,22 @@ class TypstBuilder(Builder):
             ensuredir(path.dirname(wrapper_destination))
             wrapper_relative_dir = posixpath.dirname(wrapper_relpath)
             edge_keys = self._master_include_edges.get(docname, ())
+            template_entry = resolve_registry_key(
+                self._document_template_registry, entry
+            )
+            # Phase 54 (OUT-04): record this ACTUALLY-WRITTEN wrapper's
+            # resolved registry key -- the finish()-time bundle copy
+            # (`_copy_used_template_bundles()`) iterates exactly this
+            # set, so a key no wrapper ever names gets no bundle copied
+            # for it.
+            self._used_template_keys.add(template_entry.key)
             wrapper_output = self.writer.render_wrapper(
                 entry,
                 doctree,
                 wrapper_relative_dir,
                 content_relative_path,
                 edge_keys=edge_keys,
+                template_entry=template_entry,
             )
             with open(wrapper_destination, "w", encoding="utf-8") as f:
                 f.write(wrapper_output)
@@ -1105,78 +1953,6 @@ class TypstBuilder(Builder):
             doctree: Document tree to be written
         """
         self._write_typst_files(docname, doctree)
-
-    def _write_template_file(self) -> None:
-        """
-        Write the template file to the output directory.
-
-        This writes a separate template.typ file that master documents can import.
-        Only writes if a template is configured (not using Typst Universe packages).
-        """
-        from typsphinx.template_engine import (
-            TemplateEngine,
-            resolve_package_for_engine,
-        )
-
-        config = self.config
-
-        # Get template configuration
-        raw_template_path = getattr(config, "typst_template", None)
-        template_path = raw_template_path
-        if template_path:
-            # Resolve relative path from source directory
-            import os
-
-            template_path = os.path.join(self.srcdir, template_path)
-
-        typst_package = getattr(config, "typst_package", None)
-
-        # D-03: when BOTH a Typst Universe package and a custom template are
-        # configured, the combination is unsupported. `typst_template` wins
-        # (D-01's routing decision promotes it to the primary route) and
-        # `typst_package` is ignored end-to-end -- named here rather than
-        # silently dropped (T-22.2-11). This method runs exactly once per
-        # build (see the single call site in `prepare_writing()`), so the
-        # warning fires once per build, not once per master document.
-        if typst_package and raw_template_path:
-            logger.warning(
-                "Both 'typst_package' and 'typst_template' are configured; "
-                "this combination is unsupported. 'typst_template' will be "
-                "honoured and 'typst_package' will be ignored."
-            )
-
-        # Skip if using a Typst Universe package ALONE (no custom template
-        # configured) -- a package-alone master needs no separate template
-        # file (D-01). When a custom template is ALSO configured, fall
-        # through: the custom template must still be written regardless of
-        # the package setting (D-03).
-        if typst_package and not raw_template_path:
-            return
-
-        # Create template engine. The package value goes through the same
-        # single routing helper writer.py uses (WR-04) so the two can never
-        # disagree about package-vs-template routing -- BUG-A's failure shape.
-        # Reaching here means a custom template IS configured, so the helper
-        # suppresses the package; deriving it rather than hardcoding None keeps
-        # one rule, one place.
-        template_engine = TemplateEngine(
-            template_path=template_path,
-            search_paths=[self.srcdir],
-            parameter_mapping=getattr(config, "typst_template_mapping", None),
-            typst_package=resolve_package_for_engine(typst_package, raw_template_path),
-            typst_template_function=getattr(config, "typst_template_function", None),
-            typst_package_imports=getattr(config, "typst_package_imports", None),
-        )
-
-        # Get template content
-        template_content = template_engine.get_template_content()
-
-        # Write template file
-        template_file_path = path.join(self.outdir, "_template.typ")
-        with open(template_file_path, "w", encoding="utf-8") as f:
-            f.write(template_content)
-
-        logger.info(f"Template written to {template_file_path}")
 
     def copy_image_files(self) -> None:
         """
@@ -1216,189 +1992,289 @@ class TypstBuilder(Builder):
             except Exception as e:
                 logger.warning(f"Failed to copy image {imguri}: {e}")
 
-    def copy_template_assets(self) -> None:
-        """
-        Copy template-associated assets to the output directory.
+    def _copy_bundle_directory(
+        self, src_dir: str, dest_dir: str, key: str, template_filename: str
+    ) -> None:
+        """Copy one registry key's resolved template bundle wholesale
+        from ``src_dir`` to ``dest_dir`` (OUT-04) via ``os.walk()`` +
+        ``shutil.copy2`` (D-02): no ``.typ`` skip (the template body
+        travels this SAME path, not a separate write -- this is the
+        ONLY route from a template directory to the output tree), a
+        name-based exclusion for exactly D-04's four kinds
+        (``_is_excluded_bundle_entry()``), and a fatal/non-fatal error
+        split (D-05) keyed on whether the file being copied IS the
+        resolved template file itself.
 
-        When using custom Typst templates via typst_template configuration,
-        this method copies assets (fonts, images, logos, etc.) referenced by
-        the template to the output directory.
-
-        Behavior:
-        - If typst_template_assets is configured, copies only specified files/directories
-        - If typst_template_assets is None (default), automatically copies entire template directory
-        - If typst_template_assets is empty list, disables automatic copying
-        - Skips .typ files to avoid duplicating template file (already handled by _write_template_file)
-
-        This follows the same pattern as copy_image_files() from Issue #38.
-        """
-
-        # Early return if no custom template is configured
-        template_path = getattr(self.config, "typst_template", None)
-        if not template_path:
-            return  # No custom template
-
-        # Early return if using Typst Universe package (assets handled by Typst compiler)
-        typst_package = getattr(self.config, "typst_package", None)
-        if typst_package:
-            return
-
-        # Get template assets configuration
-        template_assets = getattr(self.config, "typst_template_assets", None)
-
-        # Check if explicitly disabled (empty list)
-        if template_assets is not None and len(template_assets) == 0:
-            logger.debug("Template asset copying disabled (empty list)")
-            return
-
-        logger.info("Copying template assets...")
-
-        if template_assets:
-            # Option 2: Explicit asset list
-            self._copy_explicit_assets(template_assets)
-        else:
-            # Option 1: Automatic directory copy
-            self._copy_template_directory(template_path)
-
-    def _copy_template_directory(self, template_path: str) -> None:
-        """
-        Copy entire template directory to output (default behavior).
-
-        Automatically copies all files in the template directory,
-        excluding .typ files (which are handled separately).
+        An existing destination file is overwritten in place; this
+        method never deletes anything under ``dest_dir`` first (D-01) --
+        a destination file absent from ``src_dir`` is left alone,
+        accepted behaviour on an incremental rebuild.
 
         Args:
-            template_path: Path to template file relative to source directory
+            src_dir: The resolved template's own parent directory (the
+                bundle source), an ABSOLUTE path -- the bundled
+                ``"typst"`` key's source lives inside the installed
+                package, not under ``srcdir``, so this is never assumed
+                to be ``srcdir``-relative.
+            dest_dir: ``<outdir>/_template/<key>/``, an ABSOLUTE path.
+            key: The registry key this bundle belongs to (named in the
+                ``ExtensionError`` message on a fatal failure).
+            template_filename: The resolved template's own basename
+                (e.g. ``"base.typ"``) -- the ONE file in this bundle
+                whose copy failure, or absence after the walk, is FATAL
+                rather than a warn-and-continue (D-05).
+
+        Raises:
+            ExtensionError: When copying the resolved template file
+                itself fails, or when it was never found under
+                ``src_dir`` at all -- ``-b typst`` must not report
+                success over an output that cannot compile.
         """
         import os
 
-        # Get template directory path
-        template_dir = path.dirname(template_path)
-        if not template_dir:
-            # Template is in root directory, no assets to copy
-            return
-
-        # Resolve absolute paths
-        src_dir = path.join(self.srcdir, template_dir)
-        dest_dir = path.join(self.outdir, template_dir)
-
-        # Check if template directory exists
-        if not path.exists(src_dir):
-            logger.warning(f"Template directory not found: {src_dir}")
-            return
-
-        # Track copied files for logging
-        copied_count = 0
-
-        # Walk through directory and copy all files except .typ
-        for root, _dirs, files in os.walk(src_dir):
+        template_copied = False
+        for root, dirs, files in os.walk(src_dir, followlinks=False):
+            dirs[:] = [d for d in dirs if not _is_excluded_bundle_entry(d)]
             for file in files:
-                # Skip .typ files (already handled by _write_template_file)
-                if file.endswith(".typ"):
+                if _is_excluded_bundle_entry(file):
                     continue
-
-                # Get source and destination paths
                 src_file = path.join(root, file)
                 rel_path = path.relpath(src_file, src_dir)
                 dest_file = path.join(dest_dir, rel_path)
-
-                # Ensure destination directory exists
+                is_template_file = rel_path.replace(path.sep, "/") == template_filename
                 ensuredir(path.dirname(dest_file))
-
-                # Copy the file
                 try:
                     shutil.copy2(src_file, dest_file)
-                    logger.debug(f"Copied template asset: {rel_path}")
-                    copied_count += 1
+                    logger.debug(f"Copied bundle file for {key!r}: {rel_path}")
+                    if is_template_file:
+                        template_copied = True
                 except Exception as e:
-                    logger.warning(f"Failed to copy template asset {rel_path}: {e}")
+                    if is_template_file:
+                        raise ExtensionError(
+                            f"typst_document_templates: failed to copy the "
+                            f"resolved template for registry key {key!r} "
+                            f"from {src_file!r} to {dest_file!r}: {e}"
+                        ) from e
+                    logger.warning(
+                        f"Failed to copy template bundle file {rel_path}: {e}"
+                    )
 
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} template asset(s) from {template_dir}/")
+        if not template_copied:
+            raise ExtensionError(
+                f"typst_document_templates: the resolved template for "
+                f"registry key {key!r} ({template_filename!r}) was never "
+                f"copied from {src_dir!r} to {dest_dir!r} -- a wrapper "
+                "naming this key would import a file that does not exist"
+            )
 
-    def _copy_explicit_assets(self, assets: list) -> None:
+    def _copy_used_template_bundles(self) -> None:
+        """Copy every USED registry key's resolved template bundle
+        wholesale to ``<outdir>/_template/<key>/`` (OUT-04) -- the ONLY
+        route from a template directory to the output tree. Called once
+        from ``finish()``, fed by the write-time
+        ``self._used_template_keys`` accumulator (mirrors
+        ``self.images``/``copy_image_files()``, ROADMAP constraint #4).
+
+        Returns immediately when the accumulator is empty -- a build
+        that writes no wrapper creates no ``<outdir>/_template/``
+        directory at all.
+
+        Iterates ``sorted(self._used_template_keys)`` so log and error
+        order is deterministic across runs of the same project (D-05's
+        byte-identical property, mirroring
+        ``resolve_template_registry()``'s own ``sorted()`` use).
+
+        A key whose registry entry carries a ``package`` and no
+        ``template`` has nothing to copy -- a package-alone master has
+        no bundle -- and is skipped, matching
+        ``render_wrapper()``'s own package-alone predicate exactly
+        (``entry.package and not entry.template``).
+
+        A key whose registry entry carries BOTH a ``package`` and a
+        ``template`` is unsupported (D-03 -- the template wins, the
+        package is ignored, mirroring ``resolve_package_for_engine()``'s
+        own routing) and gets a ``logger.warning`` naming the key, ONCE
+        per build here -- this warning used to be hosted by the
+        single-file writer Phase 54 deleted from this class;
+        ``render_wrapper()`` (``writer.py``) has no equivalent
+        per-document warning of its own, so dropping this one silently
+        would have been a genuine user-facing regression (T-54-20).
+
+        A-01 (resolved ``54-CONTEXT.md`` assumption, not an open
+        question): applies the SAME parent-directory predicate CONF-17
+        already applies to every DECLARED key's ``template`` to the
+        RESOLVED path of EVERY used key, including the synthesized
+        ``"typst"`` key -- D-14 removes ``srcdir`` itself from the
+        search path list, but that alone does not cover a
+        ``typst_template`` (or a registry entry's ``template``) set to a
+        bare filename with no directory component, which resolves
+        directly under ``srcdir``. Raised before any file for that key
+        is copied.
+
+        Two used keys whose destinations fold to the same
+        ``<outdir>/_template/<key>/`` path (case-differing on a
+        case-insensitive filesystem) are accumulated and raise ONE
+        aggregated ``ExtensionError`` naming both keys and the shared
+        destination, following ``_validate_output_path_collisions()``'s
+        own accumulate-then-raise-once idiom -- routed through the SAME
+        ``_collision_key()`` folding, never a second normalization
+        primitive. Every key resolves and is destination-checked BEFORE
+        any bundle is actually copied, so a collision leaves zero bundle
+        files written for the colliding pair.
+
+        Raises:
+            ExtensionError: On an A-01 violation (immediate, per key),
+                or once, aggregated, when two used keys collide on their
+                bundle destination.
         """
-        Copy explicitly specified assets.
+        # Defensive getattr: several existing unit tests construct a
+        # builder directly (`TypstPDFBuilder(app, env)`) and call
+        # `finish()` without ever calling `init()` (Sphinx's own
+        # `Builder.__init__` does not call it -- only `app._init_builder()`
+        # does) or `write()`. Such a builder wrote no wrapper at all, so
+        # "nothing to copy" is the CORRECT answer, not a crash -- mirrors
+        # CONF-19's own `getattr(config, "_raw_config", {})` defensiveness
+        # convention elsewhere in this codebase.
+        if not getattr(self, "_used_template_keys", None):
+            return
 
-        Supports individual files, directories, and glob patterns.
+        import importlib.resources
 
-        Args:
-            assets: List of asset paths (relative to source directory)
-                   May include glob patterns like "*.png" or "fonts/*.otf"
-        """
-        import glob
+        from typsphinx.template_engine import (
+            TEMPLATE_SEARCH_SUBDIR,
+            TemplateEngine,
+            default_template_bundle_traversable,
+            resolve_package_for_engine,
+        )
+        from typsphinx.template_registry import RESERVED_REGISTRY_KEY, _violates_conf17
+        from typsphinx.writer import TEMPLATE_OUTPUT_DIR
 
-        copied_count = 0
+        destinations: Dict[str, Tuple[str, str]] = {}
+        failures: List[Tuple[str, str]] = []
+        to_copy: List[Tuple[str, Any, str, str]] = []
 
-        for asset_pattern in assets:
-            # Resolve absolute pattern path
-            abs_pattern = path.join(self.srcdir, asset_pattern)
+        for key in sorted(self._used_template_keys):
+            entry = self._document_template_registry[key]
 
-            # Check if pattern contains wildcards
-            if "*" in asset_pattern or "?" in asset_pattern:
-                # Expand glob pattern
-                matches = glob.glob(abs_pattern, recursive=True)
-                if not matches:
-                    logger.warning(f"No files matched pattern: {asset_pattern}")
-                    continue
+            # D-03/T-54-20: when a used key carries BOTH a Typst Universe
+            # package and a custom template, the combination is
+            # unsupported -- the template wins (the same routing
+            # `resolve_package_for_engine()` applies below and inside
+            # `render_wrapper()`) and the package is ignored end-to-end.
+            # Relocated here from the single-file writer Phase 54 deleted
+            # so the warning still fires exactly once per build, rather
+            # than being silently dropped. Only the synthesized RESERVED
+            # "typst" key can ever reach this branch -- CONF-15 already
+            # rejects a DECLARED `typst_document_templates` entry naming
+            # both `template` and `package` at config-read time, before
+            # this method ever runs -- so the message names the two
+            # GLOBAL config values it is actually built from, matching
+            # this warning's wording from before its relocation
+            # (test_package_template_routing.py's own substring check
+            # depends on this exact phrasing).
+            if entry.package and entry.template:
+                assert key == RESERVED_REGISTRY_KEY
+                logger.warning(
+                    "Both 'typst_package' and 'typst_template' are "
+                    "configured; this combination is unsupported. "
+                    "'typst_template' will be honoured and "
+                    "'typst_package' will be ignored."
+                )
 
-                for match in matches:
-                    if self._copy_single_asset(match, asset_pattern):
-                        copied_count += 1
+            if entry.package and not entry.template:
+                # Package-alone: no bundle to copy (mirrors
+                # render_wrapper()'s own package-alone predicate).
+                continue
+
+            raw_template_path = entry.template
+            template_path = None
+            if raw_template_path:
+                template_path = path.join(self.srcdir, raw_template_path)
+            search_paths = [path.join(str(self.srcdir), TEMPLATE_SEARCH_SUBDIR)]
+            package_for_engine = resolve_package_for_engine(
+                entry.package, raw_template_path
+            )
+
+            template_engine = TemplateEngine(
+                template_path=template_path,
+                search_paths=search_paths,
+                typst_package=package_for_engine,
+                typst_template_function=entry.template_function,
+            )
+            resolution = template_engine.resolve_template()
+            resolved_path = resolution.path
+
+            # A-01 guard: apply CONF-17's predicate to the RESOLVED path
+            # of this used key -- closes the explicit-route half of the
+            # source-tree-republication hole D-14 closes structurally
+            # for the search-path route.
+            if _violates_conf17(str(resolved_path), str(self.srcdir)):
+                raise ExtensionError(
+                    _conf17_violation_message(key, str(resolved_path), str(self.srcdir))
+                )
+
+            dest_dir = path.join(self.outdir, TEMPLATE_OUTPUT_DIR, key)
+            dest_relpath = posixpath.join(TEMPLATE_OUTPUT_DIR, key)
+            dest_key = self._collision_key(dest_relpath)
+            existing = destinations.get(dest_key)
+            if existing is not None:
+                failures.append(
+                    (
+                        key,
+                        _bundle_destination_collision_message(
+                            existing[0], key, dest_dir
+                        ),
+                    )
+                )
+                continue
+            destinations[dest_key] = (key, dest_dir)
+            to_copy.append((key, resolution, dest_dir, resolved_path.name))
+
+        if failures:
+            summary = "; ".join(f"{key!r}: {message}" for key, message in failures)
+            raise ExtensionError(
+                f"typst_document_templates: {len(failures)} bundle "
+                f"destination collision(s): {summary}"
+            )
+
+        for key, resolution, dest_dir, template_filename in to_copy:
+            ensuredir(dest_dir)
+            if resolution.source == "default":
+                # The packaged default's bundle lives inside the
+                # installed package -- hold as_file()'s context open
+                # around the ENTIRE copy, not just the path lookup, so a
+                # non-filesystem loader cannot clean up a temporary
+                # extraction mid-copy (T-54-10).
+                with importlib.resources.as_file(
+                    default_template_bundle_traversable()
+                ) as bundle_dir:
+                    self._copy_bundle_directory(
+                        str(bundle_dir), dest_dir, key, template_filename
+                    )
             else:
-                # Single file or directory
-                if self._copy_single_asset(abs_pattern, asset_pattern):
-                    copied_count += 1
-
-        if copied_count > 0:
-            logger.info(f"Copied {copied_count} explicitly specified template asset(s)")
-
-    def _copy_single_asset(self, src_path: str, original_pattern: str) -> bool:
-        """
-        Copy a single asset file or directory.
-
-        Args:
-            src_path: Absolute source path
-            original_pattern: Original pattern from configuration (for error messages)
-
-        Returns:
-            True if successfully copied, False otherwise
-        """
-
-        # Check if source exists
-        if not path.exists(src_path):
-            logger.warning(f"Template asset not found: {original_pattern}")
-            return False
-
-        # Calculate relative path from source directory
-        rel_path = path.relpath(src_path, self.srcdir)
-        dest_path = path.join(self.outdir, rel_path)
-
-        try:
-            if path.isdir(src_path):
-                # Copy directory recursively
-                # Use copytree with dirs_exist_ok for Python 3.8+
-                shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
-                logger.debug(f"Copied template asset directory: {rel_path}/")
-            else:
-                # Copy single file
-                ensuredir(path.dirname(dest_path))
-                shutil.copy2(src_path, dest_path)
-                logger.debug(f"Copied template asset: {rel_path}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to copy template asset {rel_path}: {e}")
-            return False
+                bundle_src = str(resolution.path.parent)
+                self._copy_bundle_directory(
+                    bundle_src, dest_dir, key, template_filename
+                )
 
     def finish(self) -> None:
         """
         Finish the build process.
 
         This method is called once after all documents have been written.
-        Copies image files and template assets to the output directory.
+        Copies image files, then copies every USED registry key's
+        resolved template bundle wholesale to
+        ``<outdir>/_template/<key>/`` (Phase 54, OUT-04) -- the ONLY
+        route from a template directory to the output tree. The
+        parallel asset-copy path this bundle copy superseded (three
+        early returns, plus the explicit-list expander and its
+        single-asset copier) was deleted in this same plan (`54-05`);
+        "has no bundle" is now a per-key property of
+        ``_copy_used_template_bundles()`` itself, not a build-wide
+        early return.
         """
         self.copy_image_files()
-        self.copy_template_assets()
+        self._copy_used_template_bundles()
 
 
 class TypstPDFBuilder(TypstBuilder):

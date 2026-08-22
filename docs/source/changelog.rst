@@ -4,6 +4,138 @@
 Migration Guides
 ----------------
 
+Migrating from 0.8.x to 0.9.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This release carries four breaking changes to what typsphinx validates, writes, and reads. Each
+item below shows the ``conf.py`` fragment you have today -- unchanged -- and what it used to do
+versus what it does now: the ``# v0.8.x`` block is what that fragment used to produce, the
+``# v0.9.0`` block is what it produces now.
+
+- **Breaking:** template layout is now validated before anything is written. With a ``conf.py``
+  combining ``templates_path = ["_templates"]`` and a Typst template resolved inside that
+  ``templates_path`` directory as ``_templates/base.typ``, v0.8.x copied that template's bundle --
+  everything living beside it -- with no check against Sphinx's own ``templates_path``. v0.9.0
+  refuses that build outright, before any file is written, because the whole bundle directory is
+  copied wholesale to the output and would republish the project's Sphinx template directory. The
+  same check also refuses a resolved template bundle whose parent directory is the source directory
+  itself (or an ancestor of it), and a declared registry key differing from the built-in ``"typst"``
+  key only by case.
+
+  .. code-block:: text
+
+     # v0.8.x -- templates_path and the Typst template overlap; no check exists
+     $ sphinx-build -b typst source build
+     Copying template assets...
+     build succeeded
+
+  .. code-block:: text
+
+     # v0.9.0 -- the same overlap now stops the build before anything is written
+     $ sphinx-build -b typst source build
+     Extension error!
+     sphinx.errors.ExtensionError: typst: 1 pre-write template path failure(s):
+     'typst': registry key 'typst''s resolved template bundle directory
+     'source/_templates' collides with the Sphinx templates_path entry '_templates' (resolved to 'source/_templates')
+     -- the whole bundle directory is copied to the build output, so this
+     would republish the project's Sphinx template directory; move the
+     Typst template into a directory that is not on templates_path (this
+     repository uses _typst/) and update typst_template /
+     typst_document_templates to match
+
+  Fix it by moving the Typst template into a directory that is not on ``templates_path`` -- this
+  project's own documentation build uses ``_typst/`` -- and updating ``typst_template`` /
+  ``typst_document_templates`` to match.
+
+- **Breaking:** the template bundle relocated from a single shared file to a per-key directory.
+  With ``typst_documents = [("index", "output.typ", "Title", "Author")]`` and no custom template
+  declared, v0.8.x wrote one shared ``_template.typ`` at the output root, imported by every wrapper
+  as ``#import "_template.typ": project``. v0.9.0 writes the resolved template file's whole parent
+  directory, wholesale, to ``_template/<key>/`` -- the built-in key's own directory is
+  ``_template/typst/`` -- and every wrapper imports it by that project-root-absolute path instead.
+  A template referencing an asset by relative path must now keep that asset inside its own bundle
+  directory, since that whole directory is what gets copied.
+
+  .. code-block:: text
+
+     # v0.8.x -- one shared template file at the output root
+     $ sphinx-build -b typst source build
+     build/_template.typ   <- the one shared template, imported as "_template.typ"
+     build/output.typ      <- wrapper: #import "_template.typ": project
+
+  .. code-block:: text
+
+     # v0.9.0 -- the resolved template's whole bundle directory, per registry key
+     $ sphinx-build -b typst source build
+     build/_template/typst/base.typ   <- the bundle, copied wholesale
+     build/output.typ                 <- wrapper: #import "/_template/typst/base.typ": project
+
+- **Breaking:** the ``typst_template_assets`` config value is removed. With
+  ``typst_template_assets = ["logo.png"]`` set, v0.8.x used that list to select which extra files
+  the template bundle carried into the output. v0.9.0 ignores the setting -- with one build warning
+  -- because the whole bundle directory is now copied wholesale, so an explicit asset list is no
+  longer needed to reach the output; MORE files reach it than the list used to select.
+
+  .. code-block:: text
+
+     # v0.8.x -- typst_template_assets selects which extra files are copied
+     $ sphinx-build -b typst source build
+     build succeeded
+
+  .. code-block:: text
+
+     # v0.9.0 -- the setting is ignored, with a warning naming why
+     $ sphinx-build -b typst source build
+     WARNING: 'typst_template_assets' was removed in v0.9.0 and is now ignored.
+     Every used template's bundle directory (the resolved template file's
+     parent) is copied wholesale to the output tree, so MORE files now reach
+     the output than the explicit list used to select -- no asset list is
+     needed any more.
+     build succeeded, 1 warning.
+
+  Delete the setting; no replacement is needed.
+
+- **Breaking:** the ``<srcdir>/base.typ`` shadow-template route moved to
+  ``<srcdir>/_typst/base.typ``. A project with no ``typst_template`` set and a ``base.typ`` file
+  sitting at the source directory's own root used, in v0.8.x, that file as its template -- a
+  documented but easy-to-miss "shadow" convention. v0.9.0 no longer searches the source directory's
+  root for it; the same file must now live at ``<srcdir>/_typst/base.typ``. There is **no
+  build-time warning** for this relocation -- an untouched ``<srcdir>/base.typ`` is silently
+  skipped, and the build falls back to the bundled default template instead, so this changelog
+  entry and this guide are the only places the change is announced.
+
+  .. code-block:: text
+
+     # v0.8.x -- <srcdir>/base.typ is picked up as the project's own template
+     $ sphinx-build -b typst source build
+     build/_template.typ   <- the project's own base.typ, copied in as the template
+
+  .. code-block:: text
+
+     # v0.9.0 -- the same <srcdir>/base.typ is silently ignored
+     $ sphinx-build -b typst source build
+     build/_template/typst/base.typ   <- the BUNDLED DEFAULT template, not the project's file
+
+  Move the file to ``<srcdir>/_typst/base.typ``.
+
+- The new ``typst_document_templates`` registry itself is additive. An untouched ``conf.py`` -- one
+  declaring no registry and no fifth element on any ``typst_documents`` entry -- keeps working
+  exactly as before; ``typst_documents`` element ``[4]`` only starts selecting a template once a
+  project actually declares one in the registry and names it there -- no action is needed.
+
+Two different relocations touch the output tree across the 0.8.0 and 0.9.0 releases, and they are
+easy to conflate. v0.8.0 split what used to be one file into two: the wrapper (template application
+plus one ``#include()``) and a separate content file holding the document body -- a change to how
+many files exist and what each one contains, described in the section below. v0.9.0 does not touch
+that split at all -- a wrapper's ``#include(...)`` line is unchanged across this release; only its
+``#import(...)`` line moves, from a bare ``_template.typ`` to the per-key bundle path. If your
+tooling parses a wrapper's include line, this release does not affect it; if it parses the import
+line, that is what changed.
+
+See :doc:`/user_guide/output_layout` for the full current output-layout contract, including the
+bundle-directory rule and which key's directory a given ``typst_documents`` entry's element ``[4]``
+selects.
+
 Migrating from 0.7.x to 0.8.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

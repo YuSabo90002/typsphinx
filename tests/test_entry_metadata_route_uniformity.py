@@ -97,10 +97,14 @@ typst_documents = [
 
 
 def test_route_a2_srcdir_shadow_template_carries_entry_values(make_app, tmp_path):
-    """A2: a <srcdir>/base.typ shadow, nothing else configured -- the entry
+    """A2: a <srcdir>/_typst/base.typ shadow (Phase 54, D-14 -- the
+    shadow's source-side location moved from <srcdir>/base.typ into its
+    own subdirectory so the resolved template's parent is a genuine
+    bundle, never srcdir itself), nothing else configured -- the entry
     values still reach the emitted master, AND the marker unique to the
-    srcdir-written template appears in the written _template.typ, proving
-    the srcdir file (not the bundled one) was the template actually used."""
+    srcdir-written template appears in the copied bundle at
+    <outdir>/_template/typst/base.typ (OUT-04), proving the shadow file
+    (not the bundled default) was the template actually used."""
     srcdir = tmp_path / "srcdir"
     srcdir.mkdir()
 
@@ -117,7 +121,11 @@ typst_documents = [
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n\nContent\n")
-    (srcdir / "base.typ").write_text(FIXTURE_TEMPLATE_MARKER + "\n" + BUNDLED_BASE_TYP)
+    shadow_dir = srcdir / "_typst"
+    shadow_dir.mkdir()
+    (shadow_dir / "base.typ").write_text(
+        FIXTURE_TEMPLATE_MARKER + "\n" + BUNDLED_BASE_TYP
+    )
 
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
@@ -129,18 +137,24 @@ typst_documents = [
     assert "Config Project Must Not Win A2" not in content
     assert "Config Author Must Not Win A2" not in content
 
-    template_content = (app.outdir / "_template.typ").read_text(encoding="utf-8")
+    template_content = (app.outdir / "_template" / "typst" / "base.typ").read_text(
+        encoding="utf-8"
+    )
     assert FIXTURE_TEMPLATE_MARKER in template_content, (
         "Expected the srcdir-written base.typ (with its distinguishing "
-        "marker) to be the template actually written to _template.typ -- "
-        "without this, A2 and A1 are indistinguishable and this route is "
-        "not really covered."
+        "marker) to be the template actually copied into the built-in "
+        "key's bundle -- without this, A2 and A1 are indistinguishable "
+        "and this route is not really covered."
     )
 
 
 def test_route_a3_explicit_template_carries_entry_values(make_app, tmp_path):
-    """A3: typst_template names a non-default-named file -- the entry
-    values still reach the emitted master."""
+    """A3: typst_template names a non-default-named file, placed in its
+    own subdirectory (Phase 54, A-01: a template resolving directly
+    under srcdir's own root -- publishing the source tree as the
+    bundle -- is refused; see CONF-17's parent-directory guard applied
+    to every resolved key) -- the entry values still reach the emitted
+    master."""
     srcdir = tmp_path / "srcdir"
     srcdir.mkdir()
 
@@ -155,11 +169,13 @@ typst_documents = [
     ('index', 'master', 'Entry Title A3', 'Entry Author A3'),
 ]
 
-typst_template = 'custom_template.typ'
+typst_template = '_typst/custom_template.typ'
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n\nContent\n")
-    (srcdir / "custom_template.typ").write_text(
+    template_dir = srcdir / "_typst"
+    template_dir.mkdir()
+    (template_dir / "custom_template.typ").write_text(
         "// A3-ROUTE-UNIFORMITY-EXPLICIT-TEMPLATE-MARKER\n" + BUNDLED_BASE_TYP
     )
 
@@ -224,9 +240,10 @@ def test_route_both_configured_collapses_onto_template_and_carries_entry_values(
 ):
     """D-03: typst_package AND typst_template together is NOT a fifth
     route -- the builder warns once and the package is suppressed,
-    collapsing onto the template half (A3's shape). Entry values must
-    still reach the emitted master on this collapsed route -- pinning
-    this stops a future reader from re-deriving the routing rule
+    collapsing onto the template half (A3's shape, including A-01's
+    own-subdirectory placement requirement). Entry values must still
+    reach the emitted master on this collapsed route -- pinning this
+    stops a future reader from re-deriving the routing rule
     independently."""
     srcdir = tmp_path / "srcdir"
     srcdir.mkdir()
@@ -243,11 +260,13 @@ typst_documents = [
 ]
 
 typst_package = "@preview/charged-ieee:0.1.4"
-typst_template = 'custom_template.typ'
+typst_template = '_typst/custom_template.typ'
 """
     (srcdir / "conf.py").write_text(conf_content)
     (srcdir / "index.rst").write_text("Test\n====\n\nContent\n")
-    (srcdir / "custom_template.typ").write_text(BUNDLED_BASE_TYP)
+    template_dir = srcdir / "_typst"
+    template_dir.mkdir()
+    (template_dir / "custom_template.typ").write_text(BUNDLED_BASE_TYP)
 
     app = make_app(srcdir=srcdir, buildername="typst")
     app.build()
@@ -261,7 +280,6 @@ typst_template = 'custom_template.typ'
 
     # The collapse: no bare `#import "@preview/...:..."` package-only import
     # line (that shape belongs to the package-ALONE route, A4) -- the
-    # template import shape (`#import "_template.typ": project`) wins
-    # instead.
-    assert '#import "_template.typ": project' in content
+    # template import shape (root-absolute, OUT-06) wins instead.
+    assert '#import "/_template/typst/custom_template.typ": project' in content
     assert '#import "@preview/charged-ieee:0.1.4"\n' not in content

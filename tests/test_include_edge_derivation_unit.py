@@ -22,6 +22,7 @@ which drives one real Sphinx build via ``SphinxTestApp``.
 """
 
 from pathlib import Path
+from typing import Dict, List
 
 import pytest
 from docutils import nodes
@@ -202,6 +203,152 @@ class TestMakeIncludeEdgeKey:
         assert make_include_edge_key("index", "child", occurrence=1) == (
             "index#1>child"
         )
+
+
+# ---------------------------------------------------------------------------
+# Separator-escaping injectivity (make_include_edge_key) -- Phase 55 plan 02
+# (BLD-07)
+# ---------------------------------------------------------------------------
+
+
+def _all_strings(alphabet: str, max_len: int):
+    """Yield every string over ``alphabet`` with length ``0..max_len``
+    inclusive, shortest first -- used to brute-force
+    ``make_include_edge_key``'s injectivity below."""
+    import itertools
+
+    for length in range(max_len + 1):
+        for combo in itertools.product(alphabet, repeat=length):
+            yield "".join(combo)
+
+
+class TestMakeIncludeEdgeKeySeparatorInjectivity:
+    """BLD-07: ``make_include_edge_key()`` escapes its own ``#``/``>``
+    edge-key separators inside each docname component, so two
+    structurally different edges can no longer collide onto one key. RED
+    today (pre-fix): the todo's own collision pair produces one shared
+    key."""
+
+    def test_todo_collision_pair_now_produces_distinct_keys(self):
+        """The todo's own reproduction
+        (``.planning/todos/pending/2026-08-14-include-edge-key-separators-
+        unescaped-two-edges-can-collide.md``): ``('a', 'b#1>c', 0)`` and
+        ``('a#0>b', 'c', 1)`` both derive the raw string ``a#0>b#1>c``
+        before the fix -- RED today."""
+        key_one = make_include_edge_key("a", "b#1>c", occurrence=0)
+        key_two = make_include_edge_key("a#0>b", "c", occurrence=1)
+        assert key_one != key_two, (
+            f"expected two structurally different edges to produce "
+            f"distinct keys; both derived to {key_one!r}"
+        )
+
+    def test_docname_without_separators_stays_byte_identical(self):
+        """A docname pair containing neither separator character produces
+        the unchanged key -- every existing fixture's published state
+        array and guard lines must stay byte-identical after the fix."""
+        assert make_include_edge_key("index", "child", occurrence=0) == (
+            "index#0>child"
+        )
+
+    def test_escape_typst_string_contract_not_widened(self):
+        """``escape_typst_string()`` keeps its exact four-character
+        contract -- the behavioural statement that BLD-07's fix does NOT
+        widen it to also escape ``#``/``>``, since it is called from many
+        sites that emit ordinary Typst string literals where ``#`` is
+        meaningful markup syntax."""
+        text = "a#b>c"
+        assert escape_typst_string(text) == text
+
+    def test_separator_escaping_injective_over_brute_force_alphabet(self):
+        """A small brute-force injectivity check: every (parent, child,
+        occurrence) triple over the adversarial alphabet ``a # > \\ 0 1
+        "``, component lengths 0-2, and occurrences 0, 1, 10 maps to a
+        UNIQUE key -- no two distinct triples collide."""
+        alphabet = 'a#>\\01"'
+        occurrences = (0, 1, 10)
+        components = list(_all_strings(alphabet, max_len=2))
+
+        seen: dict = {}
+        collisions = []
+        for parent in components:
+            for child in components:
+                for occurrence in occurrences:
+                    key = make_include_edge_key(parent, child, occurrence)
+                    triple = (parent, child, occurrence)
+                    if key in seen and seen[key] != triple:
+                        collisions.append((seen[key], triple, key))
+                    else:
+                        seen[key] = triple
+
+        assert not collisions, (
+            f"found {len(collisions)} colliding triple pair(s), e.g. "
+            f"{collisions[0][0]!r} and {collisions[0][1]!r} both map to "
+            f"{collisions[0][2]!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Include-chain depth bound (derive_master_edge_keys) -- Phase 55 plan 02
+# (BLD-08)
+# ---------------------------------------------------------------------------
+
+
+def _linear_chain(n: int) -> Dict[str, List[str]]:
+    """A synthesized ``toctree_includes`` mapping for a straight-line
+    include chain ``d0 -> d1 -> ... -> d(n-1) -> d(n)`` of ``n`` edges."""
+    return {f"d{i}": [f"d{i + 1}"] for i in range(n)}
+
+
+class TestDeriveMasterEdgeKeysDepthBound:
+    """BLD-08: a too-deep include chain raises a named
+    ``sphinx.errors.ExtensionError`` instead of a raw ``RecursionError``.
+    The bound constant does not exist yet at RED time, so every test here
+    imports ``_MAX_INCLUDE_CHAIN_DEPTH`` from ``typsphinx.translator``
+    LOCALLY (not at module import time) -- the import failure IS part of
+    this defect's recorded RED, and keeping it local means the REST of
+    this module (the existing COMP-05 traversal contract, in particular)
+    still collects and runs even before the constant is added."""
+
+    def test_chain_one_below_bound_completes(self):
+        from typsphinx.translator import _MAX_INCLUDE_CHAIN_DEPTH
+
+        chain = _linear_chain(_MAX_INCLUDE_CHAIN_DEPTH - 1)
+        keys = derive_master_edge_keys(chain, "d0")
+        assert len(keys) == _MAX_INCLUDE_CHAIN_DEPTH - 1
+
+    def test_chain_at_exactly_the_bound_completes(self):
+        from typsphinx.translator import _MAX_INCLUDE_CHAIN_DEPTH
+
+        chain = _linear_chain(_MAX_INCLUDE_CHAIN_DEPTH)
+        keys = derive_master_edge_keys(chain, "d0")
+        assert len(keys) == _MAX_INCLUDE_CHAIN_DEPTH
+
+    def test_chain_one_past_the_bound_raises_extension_error(self):
+        """RED today: this raises a raw ``RecursionError``, not a named
+        ``ExtensionError``. The raised message must name the bound, the
+        depth reached, the master docname and the deepest docname."""
+        from sphinx.errors import ExtensionError
+
+        from typsphinx.translator import _MAX_INCLUDE_CHAIN_DEPTH
+
+        chain = _linear_chain(_MAX_INCLUDE_CHAIN_DEPTH + 1)
+        with pytest.raises(ExtensionError) as exc_info:
+            derive_master_edge_keys(chain, "d0")
+        message = str(exc_info.value)
+        assert str(_MAX_INCLUDE_CHAIN_DEPTH) in message, message
+        assert "d0" in message, message
+        deepest_docname = f"d{_MAX_INCLUDE_CHAIN_DEPTH + 1}"
+        assert deepest_docname in message, message
+
+    def test_bound_is_an_int_with_no_float_arithmetic(self):
+        """The precision edge probe (D-05): the bound is a module-level
+        ``int`` literal, not a value computed at runtime, and the depth
+        path is exact integer arithmetic with no float, rounding or
+        truncation anywhere."""
+        from typsphinx.translator import _MAX_INCLUDE_CHAIN_DEPTH
+
+        assert isinstance(_MAX_INCLUDE_CHAIN_DEPTH, int)
+        assert not isinstance(_MAX_INCLUDE_CHAIN_DEPTH, bool)
 
 
 # ---------------------------------------------------------------------------

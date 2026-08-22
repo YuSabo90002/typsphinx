@@ -232,8 +232,9 @@ def test_readthedocs_yaml_pdf_override():
     assert "READTHEDOCS_OUTPUT" not in pdf_commands[typstpdf_index], (
         "the sphinx-build -b typstpdf command must not reference "
         "READTHEDOCS_OUTPUT -- the builder writes many non-PDF files "
-        "(a .typ per doc, _template.typ, a doctrees tree) into its output "
-        "directory, so it must target a temporary directory instead (D-04)"
+        "(a .typ per doc, every used key's _template/<key>/ bundle, a "
+        "doctrees tree) into its output directory, so it must target a "
+        "temporary directory instead (D-04)"
     )
 
     # 6. an explicit mkdir of $READTHEDOCS_OUTPUT/.../pdf/ (RTD does not
