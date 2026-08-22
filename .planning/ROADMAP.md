@@ -971,7 +971,7 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: 11 plans in 4 waves (57-10 and 57-11 added mid-execution), 10/11 complete, 57-05's halt resolved 2026-08-22 — W1 `57-01` (tracer: the release-surface slice) +
+**Plans**: 11 plans in 4 waves (57-10 and 57-11 added mid-execution), 11/11 complete, 57-05's halt resolved 2026-08-22 — W1 `57-01` (tracer: the release-surface slice) +
 `57-02` (D-12's pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
 D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
 authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-11` (the
@@ -1007,7 +1007,7 @@ dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check 
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 57-09-PLAN.md — SC#5: the todo ledger dispositioned by directory listing (never a content grep), the `ruff` record annotated and kept open, and the standalone `57-HANDOFF.md` publish checklist with REL-08 stated to remain open and the third fence observation
+- [x] 57-09-PLAN.md — SC#5: the todo ledger dispositioned by directory listing (never a content grep), the `ruff` record annotated and kept open, and the standalone `57-HANDOFF.md` publish checklist with REL-08 stated to remain open and the third fence observation
 
 **UI hint**: no
 
@@ -1039,7 +1039,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 10/11 | In Progress | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 11/11 | In Progress | - |
 
 ## Roadmap Evolution
 
