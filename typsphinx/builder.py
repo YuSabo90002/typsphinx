@@ -328,9 +328,9 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     """
     return (
         f"typst_document_templates: registry key {key!r}'s "
-        f"resolved template {resolved_path!r} has a "
+        f"resolved template '{resolved_path}' has a "
         "parent directory that is srcdir itself, or an "
-        f"ancestor of srcdir ({srcdir!r}) -- put "
+        f"ancestor of srcdir ('{srcdir}') -- put "
         "the template in its own subdirectory (CONF-17, A-01)"
     )
 
@@ -1293,10 +1293,10 @@ class TypstBuilder(Builder):
                                 (
                                     key,
                                     f"registry key {key!r}'s resolved template "
-                                    f"bundle directory {bundle_dir!r} collides "
+                                    f"bundle directory '{bundle_dir}' collides "
                                     "with the Sphinx templates_path entry "
-                                    f"{raw_tp_entry!r} (resolved to "
-                                    f"{resolved_tp_entry!r}) -- the whole "
+                                    f"'{raw_tp_entry}' (resolved to "
+                                    f"'{resolved_tp_entry}') -- the whole "
                                     "bundle directory is copied to the build "
                                     "output, so this would republish the "
                                     "project's Sphinx template directory; move "
@@ -2162,7 +2162,7 @@ class TypstBuilder(Builder):
                         key,
                         f"registry key {existing[0]!r} and registry key "
                         f"{key!r} both resolve to the same bundle "
-                        f"destination {dest_dir!r}",
+                        f"destination '{dest_dir}'",
                     )
                 )
                 continue
