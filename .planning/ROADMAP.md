@@ -490,7 +490,7 @@ reads, rather than relying on a per-run `--skip-ui`.
 - [x] **Phase 54.1: Bundle Directory Safety — `templates_path` Collision Refusal and Pre-Write Path Validation (INSERTED)** - Close the two Phase 54 `/gsd-code-review` findings: the wholesale bundle copy can republish a project's Sphinx `templates_path` Jinja directory into public build output while the published docs actively recommend that layout (WR-01), and a CONF-17 violation on the built-in `"typst"` key is discovered only at `finish()`, after every content and wrapper `.typ` file has already been written (CR-01) (completed 2026-08-16)
 - [x] **Phase 55: v0.8.0-Derived Defects** - The five defects v0.8.0 shipped unfixed by decision D-01, or fixed only test-side, are closed on the product side with a RED-recorded reproduction each (completed 2026-08-16)
 - [x] **Phase 56: Per-Document Template Documentation** - The published documentation describes the registry that shipped: element [4] is the registry key, the asset examples work under the bundle layout, and the removed config values have migration guidance (completed 2026-08-16)
-- [ ] **Phase 57: v0.9.0 Release Prep (prep-only)** - The v0.9.0 tree is bumped, its CHANGELOG curated around the two breaking changes, proven green on live multi-template evidence, and handed off with no irreversible action taken
+- [x] **Phase 57: v0.9.0 Release Prep (prep-only)** - The v0.9.0 tree is bumped, its CHANGELOG curated around the two breaking changes, proven green on live multi-template evidence, and handed off with no irreversible action taken (completed 2026-08-22)
 
 ## Phase Details
 
@@ -1039,7 +1039,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 11/11 | In Progress | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 11/11 | Complete    | 2026-08-22 |
 
 ## Roadmap Evolution
 
