@@ -61,7 +61,7 @@ coverage:
 
 duration: ~25min
 completed: 2026-08-16
-status: halted
+status: complete
 ---
 
 # Phase 57 Plan 05: D-12 Post-Bump CI Authority Run Summary
@@ -135,3 +135,36 @@ None - no external service configuration required.
 ---
 *Phase: 57-v0-9-0-release-prep-prep-only*
 *Completed: 2026-08-16*
+
+---
+
+## ADDENDUM 2026-08-22 — HALT RESOLVED, `status: halted` → `status: complete`
+
+**Amended by the `/gsd-execute-phase 57` orchestrator, not by a re-run of this plan.** This plan's
+own § Next Phase Readiness prescribed the route out: *"a follow-up fix plan (recommended: `57-11`)
+… followed by a fresh CI dispatch recorded in a successor evidence file."* Both halves have now
+happened, so the frontmatter `status` is flipped from `halted` to `complete` and the plans that
+`depends_on` this one (`57-08`, and `57-09` transitively) are no longer blocked.
+
+**What closed it.**
+
+1. **`57-11` landed the fix** (merged `11c14366`, 2026-08-22). The root cause was `repr()` escaping,
+   not a path separator: three pre-write template-path refusal messages in `typsphinx/builder.py`
+   interpolated PATH values with `!r`, and `repr()` doubles every backslash, so no `str(Path(...))`
+   assertion could ever match on Windows. This is the diagnosis recorded in `WINDOWS.md` entry 10 by
+   *this* plan; `57-10`'s earlier separator-portability reading was the wrong one.
+2. **Fresh authority run `32557477023` came back 12/12 `success`** on the post-fix tip `fbbf48cd`,
+   **both `windows-latest` lanes included**. Recorded in `57-CI-EVIDENCE-RUN3.md` with the live
+   `gh run view` output, the step-level detail for the lane that carried the defect, and the D-13
+   ordering proof (`uv.lock` commit `237fc0a0` is a strict ancestor of `fbbf48cd`).
+
+**Scope of the flip.** SC#3's all-jobs-green criterion — the one criterion this plan halted on — is
+now discharged. The built-wheel content check and the lockfile-precedes-dispatch ordering were
+already discharged by run 2 and are untouched by this amendment. Nothing in `57-08` or `57-09` is
+discharged here, and no irreversible action was taken: `git tag -l v0.9.0` and
+`git ls-remote --tags origin v0.9.0` are both still empty.
+
+**What is deliberately NOT rewritten.** Everything above this addendum is the contemporaneous
+2026-08-16 record of a run that genuinely failed, kept verbatim — including the `status: halted`
+rationale in § Deviations. The halt was correct when it was taken; it is being retired on new
+evidence, not retracted as a mistake.

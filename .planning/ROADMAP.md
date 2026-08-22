@@ -971,7 +971,7 @@ editing.
      rather than by hand), the RTD `stable` measurement for both projects, and the GitHub Release
      body being byte-identical to `scripts/extract_changelog_section.py 0.9.0`.
 
-**Plans**: 11 plans in 4 waves (57-10 and 57-11 added mid-execution), 9/11 complete, 57-05 halted — W1 `57-01` (tracer: the release-surface slice) +
+**Plans**: 11 plans in 4 waves (57-10 and 57-11 added mid-execution), 9/11 complete, 57-05's halt resolved 2026-08-22 — W1 `57-01` (tracer: the release-surface slice) +
 `57-02` (D-12's pre-bump CI check run) + `57-03` (the curated `## [0.9.0]` entry) + `57-04` (the migration guide and
 D-10's verification), all four with zero `files_modified` overlap · W2 `57-05` (D-12's post-bump
 authority run) + `57-06` (local green tree) + `57-07` (D-14's goal-claim re-run) · W3 `57-11` (the
@@ -996,7 +996,7 @@ dispatch) unaffected and proven by an explicit `merge-base --is-ancestor` check 
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 57-05-PLAN.md — **HALTED 2026-08-17, SC#3 toolchain half NOT discharged** — D-12 run 2 (`31959060298`) came back 10/12; both `windows-latest` lanes still fail. The built-wheel content check and the lockfile-precedes-dispatch ordering WERE discharged; the all-jobs-green criterion was not. Superseded by `57-11` (fix) + a fresh authority dispatch
+- [x] 57-05-PLAN.md — *(halted 2026-08-17, **resolved 2026-08-22**)* D-12 run 2 (`31959060298`) came back 10/12 with both `windows-latest` lanes failing, so the all-jobs-green half of SC#3 went undischarged while the built-wheel content check and the lockfile-precedes-dispatch ordering did pass. Closed on this plan's own prescribed route: `57-11` fixed the `repr()`-escaping root cause, and fresh authority run `32557477023` on the post-fix tip `fbbf48cd` returned **12/12 success, both `windows-latest` lanes green** — recorded in `57-CI-EVIDENCE-RUN3.md`, with an ADDENDUM in `57-05-SUMMARY.md`
 - [x] 57-06-PLAN.md — SC#3 local half: full suite, format/lint/type, both docs tox environments with their warning counts against baseline, the full-corpus gate recorded as PASSED or honestly SKIPPED, and a locally built wheel's content check
 - [x] 57-07-PLAN.md — SC#3 goal claim: D-14's existing multi-template gate re-run post-bump with zero skips, plus a page-geometry read-back closing the gap between "the bytes differ" and "differently typeset" — recorded as a transcript, with no new gate authored
 
@@ -1039,7 +1039,7 @@ the active milestone only.
 | 54.1 Bundle Directory Safety (INSERTED) | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
 | 55. v0.8.0-Derived Defects | v0.9.0 | 4/4 | Complete    | 2026-08-16 |
 | 56. Per-Document Template Documentation | v0.9.0 | 5/5 | Complete    | 2026-08-16 |
-| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 9/11 | Blocked (57-05 halted) | - |
+| 57. v0.9.0 Release Prep (prep-only) | v0.9.0 | 9/11 | In Progress | - |
 
 ## Roadmap Evolution
 
