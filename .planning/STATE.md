@@ -5,16 +5,16 @@ milestone_name: Windows path correctness
 current_phase: 58
 current_phase_name: "`repr()`-Format Decoupling (test-side only)"
 status: executing
-stopped_at: Phase 58 wave 1 of 3 complete (58-01 merged); wave 2 (58-02) next
-last_updated: "2026-08-27T20:12:30.000Z"
+stopped_at: Phase 58 wave 2 of 3 complete (58-01, 58-02 merged); wave 3 (58-03) next
+last_updated: "2026-08-27T20:23:29.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Phase 58 wave 1 complete: 58-01 merged; post-merge suite green (1437 passed, 1 skipped)"
-state_head: 57af2d0cc4079f4d8f8d104d272d629b6bd4ada0
+last_activity_desc: "Phase 58 wave 2 complete: 58-02 merged; both MSG-01 call sites decoupled; post-merge suite green (1437 passed, 1 skipped)"
+state_head: 9ec27cdf6c95719e8e2d15ece52defea2f611825
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -97,11 +97,11 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — executing (wave 1 of 3 complete)
-Plan: 58-01 complete (1 of 3); 58-02 next in wave 2
-Status: Executing — wave 1 merged, post-merge suite green (1437 passed, 1 skipped)
-Progress: [                    ] 0% (0/4 phases, 1/3 plans complete)
-Last activity: 2026-08-28 — Phase 58 wave 1 complete. 58-01 landed the tracer slice
+Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — executing (wave 2 of 3 complete)
+Plan: 58-01, 58-02 complete (2 of 3); 58-03 next in wave 3
+Status: Executing — waves 1-2 merged, both MSG-01 call sites decoupled, post-merge suite green (1437 passed, 1 skipped)
+Progress: [                    ] 0% (0/4 phases, 2/3 plans complete)
+Last activity: 2026-08-28 — Phase 58 wave 2 complete. 58-01 landed the tracer slice
 (`tests/_path_naming.py` predicate + escape-target gate rewritten onto it + SC#2's pre-rewrite
 baseline for both target tests + the recorded RED under a reverted `builder.py:697` falsification +
 D-05(a) meta-tests); 58-02 rewrites the second call site with its own recorded RED; 58-03 adds the
