@@ -5,6 +5,7 @@ Tests for TypstBuilder class.
 import os
 from pathlib import Path
 
+from _path_naming import path_named_in
 from docutils import nodes
 from sphinx.builders import Builder
 
@@ -589,13 +590,11 @@ def test_post_process_images_rehome_escape_relocates_with_warning(
     assert len(warning_records) == 1
     message = warning_records[0].getMessage()
     assert "could not rehome image URI" in message
-    # The product formats the URI with `!r` (deliberate -- it quotes the
-    # path), so the emitted message contains repr(abs_uri), not abs_uri
-    # itself. On POSIX repr() escapes nothing and the two happen to be
-    # equal, masking this on this host; on Windows repr() doubles every
-    # backslash (os.sep == "\\"), so the raw path is no longer a substring
-    # of the message. Asserting against repr(abs_uri) holds on both.
-    assert repr(abs_uri) in message
+    # Format-agnostic: holds whether the message site quotes with `!r`
+    # (today), a hardcoded '{value}', or MSG-02's delimiter-aware helper
+    # (Phase 60) -- asserting that the URI is NAMED in the message, not
+    # asserting a particular representation of it.
+    assert path_named_in(abs_uri, message), f"{abs_uri!r} not named in {message!r}"
 
 
 def test_post_process_images_rehome_cross_drive_value_error_relocates(

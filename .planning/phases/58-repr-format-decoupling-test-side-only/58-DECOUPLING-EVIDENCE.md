@@ -536,3 +536,108 @@ the running count to `8`, exactly as expected.
 `ruff` in this worktree's venv could not execute (the same NixOS dynamic-linker hazard recorded
 above for Task 1). The `nix-shell -p ruff --run "ruff check tests/test_path_naming_predicate.py"`
 retry succeeded with `All checks passed!`.
+
+## SC#1/SC#2 (b) — post-rewrite green: image-rehome warning
+
+Recorded AFTER `tests/test_builder.py`'s `test_post_process_images_rehome_escape_relocates_with_warning`
+pass criterion was rewritten from `assert repr(abs_uri) in message` onto
+`assert path_named_in(abs_uri, message)`, consuming the shared predicate plan 58-01 created in
+`tests/_path_naming.py`.
+
+`uv run pytest tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q`:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py .                                                  [100%]
+
+============================== 1 passed in 0.13s ===============================
+```
+
+`1 passed`, zero skips.
+
+`uv run pytest tests/test_builder.py -q` — the whole module, proving the added import broke
+nothing else in a 600-line file:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 31 items
+
+tests/test_builder.py ...............................                    [100%]
+
+============================== 31 passed in 0.34s ==============================
+```
+
+`31 passed`, zero skips.
+
+The AST pass-criterion count for this file, run as
+`uv run python -c "import ast,pathlib;t=ast.parse(pathlib.Path('tests/test_builder.py').read_text(encoding='utf-8'));print(sum(1 for a in ast.walk(t) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+0
+```
+
+It measured `1` at the phase base. This number moving from 1 to 0 IS SC#1 for this file.
+
+The whole-tree count, run as
+`uv run python -c "import ast,pathlib;print(sum(1 for f in pathlib.Path('tests').rglob('*.py') if '__pycache__' not in f.parts for a in ast.walk(ast.parse(f.read_text(encoding='utf-8'))) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+7
+```
+
+`SC#3 — path-valued pass-criterion count is now zero`. It was `9` at the phase base and `8` after
+plan 58-01; this plan's rewrite removes the second and final path-valued site, moving the running
+count to `7` — exactly the seven non-path sites, with zero path-valued sites remaining.
+
+`uv run black --check tests/test_builder.py`:
+
+```
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+```
+
+Exit code 0. (An intermediate `assert path_named_in(\n    abs_uri, message\n), f"..."` shape was
+first tried; `black` reformatted it onto three lines, which split the literal
+`path_named_in(abs_uri, message)` substring the plan's own acceptance criterion greps for across a
+line break. Shortened the failure-message f-string so the whole `assert` statement fits black's
+88-column limit on one physical line — `black --check` now reports the file unchanged, and the
+literal substring the acceptance grep needs is intact.)
+
+`uv run ruff check tests/test_builder.py` in this worktree's venv:
+
+```
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+### ruff could not execute in this worktree
+
+The same NixOS dynamic-linker hazard recorded in plan 58-01's evidence. The
+`nix-shell -p ruff --run "ruff check tests/test_builder.py"` retry:
+
+```
+All checks passed!
+```
+
+Lint authority for this file falls to CI (the freshly-synced worktree venv's `ruff` is a
+generic-linux ELF that cannot exec on this NixOS host; this is an environment defect, not a code
+RED).
+
+`git status --porcelain typsphinx/`:
+
+```
+```
+
+Empty — no output.
