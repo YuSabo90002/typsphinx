@@ -790,3 +790,336 @@ SHA recorded in `## SC#2 (a)` above):
 
 Empty — no output. `typsphinx/` is byte-identical to the phase base at this point in the plan,
 proven both against the working tree and against the phase-base SHA.
+
+## D-09 — the census guard observed RED (deliberate falsification)
+
+`tests/test_repr_census_guard.py` (D-08/D-09) parses every `tests/**/*.py` with `ast`, walks each
+`ast.Assert` node's `.test` expression only, and asserts the collected `repr()`/`!r`
+pass-criterion hit set equals a recorded seven-site allowlist. A guard that has never been
+observed RED is not known to be load-bearing — this section records the one-time falsification
+cycle D-09 requires before the guard is trusted, run against `tests/test_preview_version_sync.py`
+specifically (untouched by this phase, zero `repr(`/`!r` occurrences before the injection, and
+excluded from `REWRITTEN_PATH_VALUED_MODULES` so the injection trips exactly one assertion, not
+two).
+
+**Step 1 — baseline.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.61s ===============================
+```
+
+`4 passed`, zero skips — the baseline captured immediately before the injection, so the RED in
+Step 3 is attributable to the injection and nothing else.
+
+**Step 2 — injection.** One throwaway, deliberately TRUE assertion appended as the last statement
+of `test_all_four_packages_declared` in `tests/test_preview_version_sync.py`. The function's body
+ended at line 118 before the injection; the injected statement became line 119, exactly as
+predicted before running anything. `git diff -- tests/test_preview_version_sync.py` while the
+edit was in place:
+
+```diff
+diff --git a/tests/test_preview_version_sync.py b/tests/test_preview_version_sync.py
+index aebb664a..8a298041 100644
+--- a/tests/test_preview_version_sync.py
++++ b/tests/test_preview_version_sync.py
+@@ -116,6 +116,7 @@ def test_all_four_packages_declared():
+             f"{filename} is missing expected @preview packages: {missing} "
+             f"(declared: {declared})"
+         )
++        assert "codly" in repr(EXPECTED_PACKAGES)  # temporary; reverted in this task
+ 
+ 
+ def test_example_templates_match_canonical_versions():
+```
+
+The injected assertion is deliberately TRUE (`"codly"` is a member of `EXPECTED_PACKAGES`, so
+`repr(EXPECTED_PACKAGES)` always contains the literal `codly`) — the host module itself stays
+green throughout, and the only thing that changes is the whole-tree census.
+
+**Step 3 — RED.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py F...                                     [100%]
+
+=================================== FAILURES ===================================
+___________ test_pass_criterion_repr_sites_match_recorded_allowlist ____________
+
+    def test_pass_criterion_repr_sites_match_recorded_allowlist():
+        """The collected pass-criterion set must equal the recorded allowlist
+        exactly. A new entry means a test grew a pass criterion coupled to a
+        value's representation format and 58-REPR-CENSUS.md is now stale; a
+        missing entry means a site moved or was removed and the census must be
+        re-derived, not the allowlist quietly edited."""
+        collected, _ = _collect_pass_criterion_repr_sites()
+    
+        found_but_not_allowlisted = collected - PASS_CRITERION_REPR_ALLOWLIST
+        allowlisted_but_not_found = PASS_CRITERION_REPR_ALLOWLIST - collected
+    
+>       assert collected == PASS_CRITERION_REPR_ALLOWLIST, (
+            "The repr()/!r pass-criterion census has drifted from the recorded "
+            "allowlist in 58-REPR-CENSUS.md.\n"
+            f"Sites found but NOT allowlisted (new pass-criterion site -- "
+            f"58-REPR-CENSUS.md is stale): {sorted(found_but_not_allowlisted)}\n"
+            f"Allowlisted sites no longer found (a site moved or was removed -- "
+            f"re-derive the census, do not quietly edit the allowlist): "
+            f"{sorted(allowlisted_but_not_found)}"
+        )
+E       AssertionError: The repr()/!r pass-criterion census has drifted from the recorded allowlist in 58-REPR-CENSUS.md.
+E         Sites found but NOT allowlisted (new pass-criterion site -- 58-REPR-CENSUS.md is stale): [('test_preview_version_sync.py', 119)]
+E         Allowlisted sites no longer found (a site moved or was removed -- re-derive the census, do not quietly edit the allowlist): []
+E       assert frozenset({('...', 832), ...}) == frozenset({('...', 847), ...})
+E         
+E         Extra items in the left set:
+E         ('test_preview_version_sync.py', 119)
+E         Use -v to get more diff
+
+tests/test_repr_census_guard.py:154: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_repr_census_guard.py::test_pass_criterion_repr_sites_match_recorded_allowlist
+========================= 1 failed, 3 passed in 0.62s ==========================
+```
+
+`1 failed, 3 passed`, exactly as D-09 requires: the failure is
+`test_pass_criterion_repr_sites_match_recorded_allowlist`, in its "sites found but not
+allowlisted" branch, naming `test_preview_version_sync.py` and line `119` — the exact line the
+injection landed on. The other three tests (`test_no_path_valued_pass_criterion_site_remains`,
+`test_sweep_is_not_vacuous`, `test_allowlist_entries_point_at_real_lines`) stayed green: the
+injected site is not path-valued (so it does not trip the zero-path-valued check), the sweep still
+parsed well over `MINIMUM_FILES_SWEPT` files, and every allowlist entry still points at a real
+line — the RED is attributable to the census-drift assertion alone.
+
+**Step 4 — revert, unconditionally, and prove it.** `git checkout -- tests/test_preview_version_sync.py`, then two clean checks:
+
+```
+$ git checkout -- tests/test_preview_version_sync.py
+$ git status --porcelain tests/test_preview_version_sync.py
+(empty)
+$ git status --porcelain tests/
+?? tests/test_repr_census_guard.py
+```
+
+`git status --porcelain tests/test_preview_version_sync.py` produced no output — the perturbation
+left no trace. `git status --porcelain tests/` shows nothing but the new, still-untracked
+`tests/test_repr_census_guard.py` — no survivor of the falsification remains anywhere under
+`tests/`. This second check matters because this perturbation is under `tests/`, where SC#4's
+`git status --porcelain typsphinx/` gate (the one plans 58-01 and 58-02 lean on) is blind to a
+survivor here.
+
+**Step 5 — green again.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output
+verbatim, closing the loop on the same command that opened it:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.60s ===============================
+```
+
+`4 passed`, zero skips — the same test, same command, same result as Step 1's baseline.
+
+**What this transcript establishes.** A guard that has never been seen RED is not known to be
+load-bearing, and this one has now been seen RED against a real, deliberately introduced
+pass-criterion site — attributed specifically to the census-equality assertion, reverted cleanly,
+and re-proven green on the restored tree.
+
+## Phase gate — full suite, formatting, lint
+
+`uv run pytest -q` — the full suite, verbatim final summary line (full transcript run in this
+worktree; zero failures):
+
+```
+================= 1437 passed, 5 skipped in 123.26s (0:02:03) ==================
+```
+
+All zero failures — no re-run against the phase-base SHA is needed. For completeness, the five
+skips (re-run with `-rs` to capture reasons) are all pre-existing and environment-gated, unrelated
+to this phase's changes:
+
+```
+SKIPPED [1] tests/test_changelog_page_gate.py:167: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:176: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:186: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:218: myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01)
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1437 passed, 5 skipped in 121.58s (0:02:01) ==================
+```
+
+`uv run black --check .` — whole tree, verbatim:
+
+```
+All done! ✨ 🍰 ✨
+342 files would be left unchanged.
+```
+
+Exit code 0.
+
+`uv run ruff check .` — whole tree, in this worktree's venv:
+
+```
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+### ruff could not execute in this worktree
+
+The same NixOS dynamic-linker hazard recorded in plans 58-01 and 58-02's evidence: the
+freshly-synced worktree venv's `ruff` binary is a generic-linux ELF that cannot exec on this NixOS
+host — an environment defect, not a code RED. Retry via
+`nix-shell -p ruff --run "ruff check ."`:
+
+```
+All checks passed!
+```
+
+Lint authority for this phase falls to CI, consistent with plans 58-01 and 58-02.
+
+`uv run mypy typsphinx/` — recorded as a no-change control, since this phase changes no file under
+`typsphinx/`:
+
+```
+Success: no issues found in 8 source files
+```
+
+This result must be, and is, byte-identical in shape to the pre-phase baseline: `typsphinx/` has
+zero commits in this phase's range (proven in `## SC#4` below), so mypy has nothing new to report.
+
+## SC#4 — no file under typsphinx/ changed by this phase
+
+The phase-base SHA is `3b0f2b93f924f28eba94a0e92ea76996e9d743ad`, recorded in the `## SC#2 (a)`
+section above (`git rev-parse HEAD` — this worktree's HEAD before any edit in plan 58-01).
+
+`git status --porcelain typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --name-only -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --stat 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git log --oneline 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/`:
+
+```
+```
+
+Empty — no output. No commit in this phase's range touches `typsphinx/` at all, proven at phase
+scope (not merely per task) against the same base SHA plans 58-01 and 58-02 measured their own
+per-task checks against.
+
+## SC#5 — milestone branch on origin
+
+`git rev-parse gsd/v0.9.1-windows-path-correctness` — the local tip about to be published:
+
+```
+3bce62b793824e23671059a600c2bd10ebe52580
+```
+
+`git ls-remote --heads origin` filtered for `0.9.1` — expected to match nothing before the push:
+
+```
+(no match)
+```
+
+`git branch --list 'gsd/v0.9.1-milestone'` — expected empty. This project's commit helper creates a
+decoy `gsd/<milestone>-milestone` sibling most rounds; none exists this round:
+
+```
+(empty)
+```
+
+`git push -u origin gsd/v0.9.1-windows-path-correctness` — whole output verbatim:
+
+```
+remote:
+remote: Create a pull request for 'gsd/v0.9.1-windows-path-correctness' on GitHub by visiting:
+remote:      https://github.com/YuSabo90002/typsphinx/pull/new/gsd/v0.9.1-windows-path-correctness
+remote:
+To https://github.com/YuSabo90002/typsphinx.git
+ * [new branch]        gsd/v0.9.1-windows-path-correctness -> gsd/v0.9.1-windows-path-correctness
+branch 'gsd/v0.9.1-windows-path-correctness' set up to track 'origin/gsd/v0.9.1-windows-path-correctness'.
+```
+
+`git branch -vv` filtered to the milestone branch — the line carries the
+`[origin/gsd/v0.9.1-windows-path-correctness]` tracking marker:
+
+```
++ gsd/v0.9.1-windows-path-correctness      3bce62b7 (/home/yuta/Documents/typsphinx) [origin/gsd/v0.9.1-windows-path-correctness] docs(phase-58): update tracking after wave 2
+```
+
+`git ls-remote --heads origin gsd/v0.9.1-windows-path-correctness` — returns a SHA:
+
+```
+3bce62b793824e23671059a600c2bd10ebe52580	refs/heads/gsd/v0.9.1-windows-path-correctness
+```
+
+`git ls-remote --heads origin 'gsd/v0.9.1-milestone'` — must return nothing:
+
+```
+(no output)
+```
+
+`git rev-parse --abbrev-ref 'gsd/v0.9.1-windows-path-correctness@{upstream}'` — must print exactly
+`origin/gsd/v0.9.1-windows-path-correctness`:
+
+```
+origin/gsd/v0.9.1-windows-path-correctness
+```
+
+`git tag -l 'v0.9.1*'` and `git ls-remote --tags origin 'v0.9.1*'` — both must produce no output,
+proving this phase created no tag:
+
+```
+(no output)
+(no output)
+```
+
+**Two honest notes.**
+
+First: the pushed tip is this worktree's view of the milestone branch as of this wave's start
+(`3bce62b7`, carrying plans 58-01 and 58-02's commits, but not this plan's own three commits, which
+land on the branch only after the orchestrator merges this worktree back). A remote that is a few
+commits behind the phase's final tip is expected and is not a failure of SC#5, whose wording is
+about the branch being on `origin` and tracking, not about the remote holding every commit this
+phase will ever produce.
+
+Second: `.github/workflows/ci.yml`'s `push` and `pull_request` triggers are scoped to `main` and
+`develop` only (verified: lines 3-8 of that file), so this push dispatches no CI run. Phase 58's
+SC#5 does not require one — the fresh 3-OS lane belongs to the product-code phases (59-61) whose
+success criteria name it explicitly. Recorded as RESEARCH.md Assumption A2, resolved by re-reading
+SC#5's literal wording at plan time, not by preference.
