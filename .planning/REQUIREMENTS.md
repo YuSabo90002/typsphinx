@@ -73,7 +73,7 @@ see PATH-01's reachability note and MSG-01's existence.
 
 ### MSG — user-facing path quoting
 
-- [ ] **MSG-01**: the two existing tests that hard-code `repr()`'s backslash-doubling output as
+- [x] **MSG-01**: the two existing tests that hard-code `repr()`'s backslash-doubling output as
       their pass criterion are rewritten to assert the *meaning* (the path is named in the message)
       rather than `repr()`'s output format — **before** any message site is rewired. The two are
       `tests/test_out02_escape_target_gate.py:134` (`assert repr(target) in combined_output`, for
@@ -187,7 +187,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MSG-01 | Phase 58 | Pending |
+| MSG-01 | Phase 58 | Complete |
 | PATH-01 | Phase 59 | Pending |
 | IMG-04 | Phase 59 | Pending |
 | IMG-05 | Phase 59 | Pending |

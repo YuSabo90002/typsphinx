@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
-current_phase: 58
-current_phase_name: "`repr()`-Format Decoupling (test-side only)"
-status: executing
-stopped_at: Phase 58 all 3 waves executed and merged; phase verification pending
-last_updated: "2026-08-27T20:45:38.000Z"
+current_phase: 59
+current_phase_name: Path-Shape Predicate and Image-URI Correctness
+status: planning
+stopped_at: Phase 58 complete, ready to plan Phase 59
+last_updated: "2026-08-27T20:56:09.617Z"
 last_activity: 2026-08-28
-last_activity_desc: "Phase 58 wave 3 complete: 58-03 merged; census guard locked, milestone branch on origin; post-merge suite green (1441 passed, 1 skipped)"
-state_head: 37133b6287143b41c814625b3cfd5dfe5afe9998
+last_activity_desc: Phase 58 complete, transitioned to Phase 59
+state_head: 2a52b90627eeeead6fc8524db4c7583cf192688c
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
   completed_plans: 3
-  percent: 0
+  percent: 25
 ---
 
 # Project State
@@ -97,11 +97,12 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — all 3 plans executed, verification pending
-Plan: 58-01, 58-02, 58-03 complete (3 of 3)
-Status: Executing — all waves merged, census guard locked, milestone branch on origin, post-merge suite green (1441 passed, 1 skipped)
-Progress: [                    ] 0% (0/4 phases, 3/3 plans complete)
-Last activity: 2026-08-28 — Phase 58 wave 3 complete. 58-01 landed the tracer slice
+Phase: 59 of 61 (Path-Shape Predicate and Image-URI Correctness)
+Plan: Not started
+Status: Ready to plan
+Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
+Last activity: 2026-08-28 — Phase 58 complete (3/3 plans, verification 5/5 must-haves,
+code review clean), transitioned to Phase 59. 58-01 landed the tracer slice
 (`tests/_path_naming.py` predicate + escape-target gate rewritten onto it + SC#2's pre-rewrite
 baseline for both target tests + the recorded RED under a reverted `builder.py:697` falsification +
 D-05(a) meta-tests); 58-02 rewrites the second call site with its own recorded RED; 58-03 adds the
@@ -971,9 +972,9 @@ Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and 
 directory for each earlier milestone).
 
 Last session: 2026-08-27T14:01:25.960Z
-Stopped at: Phase 58 context gathered
-Resume: `/gsd-plan-phase 58` — `repr()`-Format Decoupling, test-side only, and the phase that pushes
-`gsd/v0.9.1-windows-path-correctness` to `origin`.
+Stopped at: Phase 58 complete, ready to plan Phase 59
+Resume: `/gsd-discuss-phase 59` — Path-Shape Predicate and Image-URI Correctness. Phase 58 is
+complete and `gsd/v0.9.1-windows-path-correctness` is already on `origin` with tracking.
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API

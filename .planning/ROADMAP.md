@@ -179,7 +179,7 @@ translator and release work. `ui.plan-gate` false-positives on words this milest
 `**UI hint**: no` line, the authoritative override `ui-safety-gate.cjs` reads, rather than relying on
 a per-run `--skip-ui`.
 
-- [ ] **Phase 58: `repr()`-Format Decoupling (test-side only)** - The two tests that hard-code `repr()`'s backslash-doubling as their pass criterion assert the *meaning* instead, so every later phase in this milestone can change a message string with genuinely zero test edits
+- [x] **Phase 58: `repr()`-Format Decoupling (test-side only)** - The two tests that hard-code `repr()`'s backslash-doubling as their pass criterion assert the *meaning* instead, so every later phase in this milestone can change a message string with genuinely zero test edits (completed 2026-08-28)
 - [ ] **Phase 59: Path-Shape Predicate and Image-URI Correctness** - A Windows-shaped absolute image URI survives the whole pipeline: classified correctly by a predicate that normalizes before it decides, relocated under a key carrying no separator and bounded to a portable filesystem limit, and emitted into an `image("...")` a real `typst.compile()` accepts
 - [ ] **Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere** - Every path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py` quotes through one helper in a new leaf module that never doubles a backslash and never closes its quote early, while identifier-valued `!r` stays untouched
 - [ ] **Phase 61: v0.9.1 Release Prep (prep-only)** - The v0.9.1 tree is bumped, its CHANGELOG curated around the three defect families, proven green on a fresh 3-OS run, and handed off with no irreversible action taken
@@ -418,7 +418,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | In Progress | - |
+| 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 0/TBD | Not started | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
