@@ -641,3 +641,152 @@ RED).
 ```
 
 Empty — no output.
+
+## SC#2 (c) — recorded falsification: builder.py:1767 (image-rehome warning)
+
+D-05(b): a real, temporary edit to `typsphinx/builder.py`'s image-rehome warning, dropping ONLY the
+`{resolved_uri!r}` interpolation while leaving the `key` interpolation (and its `!r` conversion)
+untouched — the same-basename analogue of the D-03 trap: the relocation key ends in the same
+basename (`chart.png`) as the URI it replaced, so a message still carrying `key` is exactly the
+shape a basename-based predicate would wrongly accept. Made, measured, and reverted inside this
+single task; the edit never survived to a commit.
+
+**Step 1 — the falsifying edit.** `git diff -- typsphinx/builder.py` while the edit was in place:
+
+```diff
+diff --git a/typsphinx/builder.py b/typsphinx/builder.py
+index a967a58c..28cb51a3 100644
+--- a/typsphinx/builder.py
++++ b/typsphinx/builder.py
+@@ -1764,7 +1764,7 @@ class TypstBuilder(Builder):
+                     f"{path.basename(resolved_uri)}"
+                 )
+                 logger.warning(
+-                    f"could not rehome image URI {resolved_uri!r} relative "
++                    f"could not rehome image URI relative "
+                     f"to the doctree directory -- relocated to {key!r}"
+                 )
+             elif path.isfile(path.join(self.srcdir, rel_uri)):
+```
+
+The literal `could not rehome image URI` survives intact (only the `resolved_uri` interpolation
+inside the f-string is removed), and the `key` interpolation with its `!r` conversion is left fully
+in place.
+
+**Step 2 — the RED.** `uv run pytest
+tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` — whole
+output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py F                                                  [100%]
+
+=================================== FAILURES ===================================
+________ test_post_process_images_rehome_escape_relocates_with_warning _________
+
+temp_sphinx_app = <SphinxTestApp buildername='html'>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x71f8f3bc12b0>
+
+    def test_post_process_images_rehome_escape_relocates_with_warning(
+        temp_sphinx_app, caplog
+    ):
+        """
+        D-05/D-06: an absolute URI whose rehome result cannot possibly sit
+        under doctreedir -- built from the filesystem root -- is relocated
+        to the reserved namespace plus a short hash prefix plus the basename
+        of the ORIGINAL absolute URI, and emits exactly one WARNING naming
+        the offending URI.
+        ...
+        """
+        ...
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warning_records) == 1
+        message = warning_records[0].getMessage()
+        assert "could not rehome image URI" in message
+        # Format-agnostic: holds whether the message site quotes with `!r`
+        # (today), a hardcoded '{value}', or MSG-02's delimiter-aware helper
+        # (Phase 60) -- asserting that the URI is NAMED in the message, not
+        # asserting a particular representation of it.
+>       assert path_named_in(abs_uri, message), f"{abs_uri!r} not named in {message!r}"
+E       AssertionError: '/typsphinx_test_50_03_escape_root/chart.png' not named in "WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'"
+E       assert False
+E        +  where False = path_named_in('/typsphinx_test_50_03_escape_root/chart.png', "WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'")
+
+tests/test_builder.py:597: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'
+=========================== short test summary info ============================
+FAILED tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning
+============================== 1 failed in 0.15s ===============================
+```
+
+`1 failed`, containing the literal `AssertionError` and `path_named_in`.
+
+**Attribution.** The failure raises at `tests/test_builder.py:597`, the
+`assert path_named_in(abs_uri, message)` line — the naming assertion specifically. Neither
+`assert len(warning_records) == 1` nor `assert "could not rehome image URI" in message` failed:
+exactly one WARNING record is still emitted and the literal substring `could not rehome image URI`
+is still present in its message (only the `resolved_uri` interpolation was removed, not the whole
+message), so both of those assertions passed and the failure is attributable to the naming
+predicate alone finding the URI absent — the surviving `key` field (`'_typst_converted/bb60dcd8-chart.png'`)
+shares the basename `chart.png` with the removed `abs_uri`, exactly the same-basename trap shape,
+and the full-value predicate correctly refuses to be satisfied by it.
+
+**Step 3 — revert and prove it.**
+
+```
+$ git checkout -- typsphinx/builder.py
+$ git status --porcelain typsphinx/
+(empty)
+$ git diff --stat -- typsphinx/
+(empty)
+```
+
+**Step 4 — re-prove green on the restored tree.** `uv run pytest
+tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` — whole
+output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py .                                                  [100%]
+
+============================== 1 passed in 0.13s ===============================
+```
+
+`1 passed`, zero skips. The same test, same command: RED under the falsification, GREEN against the
+real (restored) product message.
+
+### SC#2 — the three recorded runs, both sites
+
+| Site | Pre-rewrite green | Post-rewrite green | Recorded RED |
+|---|---|---|---|
+| `tests/test_out02_escape_target_gate.py:134` (docname target) | `## SC#2 (a)` above | `## SC#1/SC#2 (b) — post-rewrite green: escape-target gate` above | `## SC#2 (c) — recorded falsification: builder.py:697 (docname target warning)` above |
+| `tests/test_builder.py:598` (image-rehome) | `## SC#2 (a)` above (this file's baseline is recorded in the same section, run before either rewrite) | `## SC#1/SC#2 (b) — post-rewrite green: image-rehome warning` above | `## SC#2 (c) — recorded falsification: builder.py:1767 (image-rehome warning)` above (this section) |
+
+**SC#4 scope observation.** `git diff --stat -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --name-only 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/` (the phase-base
+SHA recorded in `## SC#2 (a)` above):
+
+```
+```
+
+Empty — no output. `typsphinx/` is byte-identical to the phase base at this point in the plan,
+proven both against the working tree and against the phase-base SHA.
