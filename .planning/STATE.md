@@ -4,17 +4,17 @@ milestone: v0.9.1
 milestone_name: Windows path correctness
 current_phase: 58
 current_phase_name: "`repr()`-Format Decoupling (test-side only)"
-status: planning
-stopped_at: Phase 58 planned (3 plans, 3 waves) - ready to execute
-last_updated: "2026-08-27T14:55:18.085Z"
-last_activity: 2026-08-27
-last_activity_desc: "Phase 58 planned: 3 plans in 3 waves; plan-checker passed at iteration 2; 10/10 decisions and MSG-01 covered"
-state_head: 9758d9e2c142d2d826934b810d367154eb894925
+status: executing
+stopped_at: Phase 58 wave 1 of 3 complete (58-01 merged); wave 2 (58-02) next
+last_updated: "2026-08-27T20:12:30.000Z"
+last_activity: 2026-08-28
+last_activity_desc: "Phase 58 wave 1 complete: 58-01 merged; post-merge suite green (1437 passed, 1 skipped)"
+state_head: 57af2d0cc4079f4d8f8d104d272d629b6bd4ada0
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-22 at the v0.9.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27). A
+**Current focus:** Phase 58 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27). A
 bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
 the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
 path-quoting helper that closes **both** halves of
@@ -97,11 +97,11 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — planned, ready to execute
-Plan: — (3 plans, none started; run `/gsd-execute-phase 58`)
-Status: Planned — 3 plans in 3 waves, verified by gsd-plan-checker, ready to execute
-Progress: [                    ] 0% (0/4 phases, 0 plans complete)
-Last activity: 2026-08-27 — Phase 58 planned: 3 plans in 3 waves. 58-01 is the tracer slice
+Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — executing (wave 1 of 3 complete)
+Plan: 58-01 complete (1 of 3); 58-02 next in wave 2
+Status: Executing — wave 1 merged, post-merge suite green (1437 passed, 1 skipped)
+Progress: [                    ] 0% (0/4 phases, 1/3 plans complete)
+Last activity: 2026-08-28 — Phase 58 wave 1 complete. 58-01 landed the tracer slice
 (`tests/_path_naming.py` predicate + escape-target gate rewritten onto it + SC#2's pre-rewrite
 baseline for both target tests + the recorded RED under a reverted `builder.py:697` falsification +
 D-05(a) meta-tests); 58-02 rewrites the second call site with its own recorded RED; 58-03 adds the

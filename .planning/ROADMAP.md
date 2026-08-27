@@ -230,12 +230,12 @@ backslash-free path is the `!r` form the message already contains) and breaks on
      pushed and tracking, from this first phase rather than at the release PR (milestone invariant
      #5).
 
-**Plans**: 3 plans in 3 waves
+**Plans**: 1/3 plans executed in 3 waves
 
 Plans:
 **Wave 1**
 
-- [ ] 58-01-PLAN.md — Tracer: the `tests/_path_naming.py` predicate, the escape-target gate rewritten onto it with D-02 line narrowing, SC#2's pre-rewrite baseline for both target tests, the recorded RED under a reverted `builder.py:697` falsification, and D-05(a)'s durable meta-tests
+- [x] 58-01-PLAN.md — Tracer: the `tests/_path_naming.py` predicate, the escape-target gate rewritten onto it with D-02 line narrowing, SC#2's pre-rewrite baseline for both target tests, the recorded RED under a reverted `builder.py:697` falsification, and D-05(a)'s durable meta-tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -418,7 +418,7 @@ the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 0/TBD | Not started | - |
+| 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 1/3 | In Progress | - |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 0/TBD | Not started | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
