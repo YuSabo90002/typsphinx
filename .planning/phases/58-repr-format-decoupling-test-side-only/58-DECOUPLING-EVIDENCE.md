@@ -128,4 +128,355 @@ All checks passed!
 CI, not this worktree, is the lint authority of record for these two files; the `nix-shell` retry
 above is the successful route and is recorded for completeness.
 
+## SC#2 (c) — recorded falsification: builder.py:697 (docname target warning)
+
+D-05(b): a real, temporary edit to `typsphinx/builder.py`'s docname-target warning, dropping ONLY
+the `{target!r}` interpolation while leaving the `fallback` interpolation (and its `!r` conversion)
+untouched — the D-03 fallback-trap shape. Made, measured, and reverted inside this single task; the
+edit never survived to a commit.
+
+**Step 1 — the falsifying edit.** `git diff -- typsphinx/builder.py` while the edit was in place:
+
+```diff
+diff --git a/typsphinx/builder.py b/typsphinx/builder.py
+index a967a58c..ea829349 100644
+--- a/typsphinx/builder.py
++++ b/typsphinx/builder.py
+@@ -694,7 +694,7 @@ class TypstBuilder(Builder):
+                     return docname
+                 logger.warning(
+                     "a path is not supported in a typst_documents target "
+-                    f"name: {target!r} -- using {fallback!r} instead"
++                    f"name: -- using {fallback!r} instead"
+                 )
+                 stem = fallback
+             elif "/" in stem and not posixpath.basename(stem).strip():
+```
+
+The `ESCAPE_WARNING_SUBSTRING` anchor (`"a path is not supported in a typst_documents target
+name"`) survives intact across the implicit string concatenation, and the `fallback` interpolation
+is left fully in place — this is exactly the D-03 trap shape: for the `drive` shape, `fallback`'s
+value IS `target`'s basename, so a predicate weaker than full-value matching would stay green here.
+
+**Step 2 — the RED.** `uv run pytest
+tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof -q` —
+whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a4dccbfe29904a32f
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_out02_escape_target_gate.py FFF                               [100%]
+
+=================================== FAILURES ===================================
+_________ test_escape_shape_refused_with_containment_proof[traversal] __________
+
+shape = 'traversal'
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1592/test_escape_shape_refused_with0')
+
+    @pytest.mark.skipif(
+        not TYPST_AVAILABLE,
+        reason="typst-py is required for the escape-target-gate tests",
+    )
+    @pytest.mark.parametrize("shape", ["traversal", "absolute", "drive"])
+    def test_escape_shape_refused_with_containment_proof(shape, tmp_path):
+        """OUT-02: each escape shape still exits 0, warns naming the offending
+        target, writes the wrapper at the basename fallback inside the build
+        directory, and -- the containment proof -- every regular file under
+        the build directory resolves under the resolved build directory.
+    
+        Marked to run on every platform (including the drive-qualified case),
+        per the plan's own instruction: the drive check is a string-shape
+        check, not a filesystem behaviour, so D-05's platform-independence
+        principle applies to it too.
+        """
+        build_dir = tmp_path / "build"
+        target = _target_for_shape(shape)
+    
+        result = _run_sphinx_build(
+            ESCAPE_TARGET_GATE_FIXTURE_DIR,
+            build_dir,
+            "typst",
+            env={"TYPSPHINX_ESCAPE_SHAPE": shape},
+        )
+    
+        combined_output = result.stdout + result.stderr
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the {shape!r} escape "
+            f"attempt:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+    
+        assert ESCAPE_WARNING_SUBSTRING in combined_output, (
+            f"Expected the path-guard warning naming the refused target:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        # D-02: apply the naming predicate to the extracted warning LINE, not
+        # to the whole captured output -- a raw path leaking from any other
+        # source (a config echo, a traceback, a path Sphinx prints) would
+        # otherwise keep this test green after the path is removed from the
+        # warning itself, which would make Task 2's falsification prove
+        # nothing about the thing under test.
+        #
+        # `_resolve_target_stem()` is invoked multiple times per build for the
+        # SAME docname (once via `get_target_uri()`'s cross-reference/toctree
+        # resolution calls, once via the wrapper-output-path resolution during
+        # writing) -- measured live this session: an unmodified single-docname
+        # fixture build emits the IDENTICAL warning line 3 times, not once.
+        # De-duplicating before counting keeps D-02's actual guarantee (a
+        # DIFFERENT raw path leaking from an unrelated source produces a
+        # DIFFERENT line and still fails loudly here) without making this
+        # assertion depend on how many internal call sites happen to log the
+        # same message.
+        warning_lines = list(
+            dict.fromkeys(
+                line
+                for line in combined_output.splitlines()
+                if ESCAPE_WARNING_SUBSTRING in line
+            )
+        )
+        assert len(warning_lines) == 1, (
+            f"Expected exactly one DISTINCT warning line naming the refused "
+            f"target (repeats of the identical line are expected and "
+            f"collapsed; a second, DIFFERENT line would indicate a raw path "
+            f"leaking from an unrelated source):\n{combined_output}"
+        )
+        # D-01/D-03: assert MEANING, not representation format -- the
+        # offending target is NAMED in the warning line, whether the message
+        # site quotes it with `!r`, a hardcoded `'{value}'`, or a future
+        # delimiter-aware helper. `path_named_in` requires the FULL target
+        # value, never a basename, so a message that only still names the
+        # same-basename `fallback` field (the D-03 trap) fails this assertion.
+>       assert path_named_in(target, warning_lines[0]), (
+            f"Expected the warning to name the offending target {target!r} "
+            f"(raw or repr()'d):\n{warning_lines[0]}"
+        )
+E       AssertionError: Expected the warning to name the offending target '../escape.typ' (raw or repr()'d):
+E         WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead
+E       assert False
+E        +  where False = path_named_in('../escape.typ', "WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead")
+
+tests/test_out02_escape_target_gate.py:167: AssertionError
+__________ test_escape_shape_refused_with_containment_proof[absolute] __________
+
+shape = 'absolute'
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1592/test_escape_shape_refused_with1')
+
+    @pytest.mark.skipif(
+        not TYPST_AVAILABLE,
+        reason="typst-py is required for the escape-target-gate tests",
+    )
+    @pytest.mark.parametrize("shape", ["traversal", "absolute", "drive"])
+    def test_escape_shape_refused_with_containment_proof(shape, tmp_path):
+        """OUT-02: each escape shape still exits 0, warns naming the offending
+        target, writes the wrapper at the basename fallback inside the build
+        directory, and -- the containment proof -- every regular file under
+        the build directory resolves under the resolved build directory.
+    
+        Marked to run on every platform (including the drive-qualified case),
+        per the plan's own instruction: the drive check is a string-shape
+        check, not a filesystem behaviour, so D-05's platform-independence
+        principle applies to it too.
+        """
+        build_dir = tmp_path / "build"
+        target = _target_for_shape(shape)
+    
+        result = _run_sphinx_build(
+            ESCAPE_TARGET_GATE_FIXTURE_DIR,
+            build_dir,
+            "typst",
+            env={"TYPSPHINX_ESCAPE_SHAPE": shape},
+        )
+    
+        combined_output = result.stdout + result.stderr
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the {shape!r} escape "
+            f"attempt:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+    
+        assert ESCAPE_WARNING_SUBSTRING in combined_output, (
+            f"Expected the path-guard warning naming the refused target:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        # D-02: apply the naming predicate to the extracted warning LINE, not
+        # to the whole captured output -- a raw path leaking from any other
+        # source (a config echo, a traceback, a path Sphinx prints) would
+        # otherwise keep this test green after the path is removed from the
+        # warning itself, which would make Task 2's falsification prove
+        # nothing about the thing under test.
+        #
+        # `_resolve_target_stem()` is invoked multiple times per build for the
+        # SAME docname (once via `get_target_uri()`'s cross-reference/toctree
+        # resolution calls, once via the wrapper-output-path resolution during
+        # writing) -- measured live this session: an unmodified single-docname
+        # fixture build emits the IDENTICAL warning line 3 times, not once.
+        # De-duplicating before counting keeps D-02's actual guarantee (a
+        # DIFFERENT raw path leaking from an unrelated source produces a
+        # DIFFERENT line and still fails loudly here) without making this
+        # assertion depend on how many internal call sites happen to log the
+        # same message.
+        warning_lines = list(
+            dict.fromkeys(
+                line
+                for line in combined_output.splitlines()
+                if ESCAPE_WARNING_SUBSTRING in line
+            )
+        )
+        assert len(warning_lines) == 1, (
+            f"Expected exactly one DISTINCT warning line naming the refused "
+            f"target (repeats of the identical line are expected and "
+            f"collapsed; a second, DIFFERENT line would indicate a raw path "
+            f"leaking from an unrelated source):\n{combined_output}"
+        )
+        # D-01/D-03: assert MEANING, not representation format -- the
+        # offending target is NAMED in the warning line, whether the message
+        # site quotes it with `!r`, a hardcoded `'{value}'`, or a future
+        # delimiter-aware helper. `path_named_in` requires the FULL target
+        # value, never a basename, so a message that only still names the
+        # same-basename `fallback` field (the D-03 trap) fails this assertion.
+>       assert path_named_in(target, warning_lines[0]), (
+            f"Expected the warning to name the offending target {target!r} "
+            f"(raw or repr()'d):\n{warning_lines[0]}"
+        )
+E       AssertionError: Expected the warning to name the offending target '/tmp/escape.typ' (raw or repr()'d):
+E         WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead
+E       assert False
+E        +  where False = path_named_in('/tmp/escape.typ', "WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead")
+
+tests/test_out02_escape_target_gate.py:167: AssertionError
+___________ test_escape_shape_refused_with_containment_proof[drive] ____________
+
+shape = 'drive'
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1592/test_escape_shape_refused_with2')
+
+    @pytest.mark.skipif(
+        not TYPST_AVAILABLE,
+        reason="typst-py is required for the escape-target-gate tests",
+    )
+    @pytest.mark.parametrize("shape", ["traversal", "absolute", "drive"])
+    def test_escape_shape_refused_with_containment_proof(shape, tmp_path):
+        """OUT-02: each escape shape still exits 0, warns naming the offending
+        target, writes the wrapper at the basename fallback inside the build
+        directory, and -- the containment proof -- every regular file under
+        the build directory resolves under the resolved build directory.
+    
+        Marked to run on every platform (including the drive-qualified case),
+        per the plan's own instruction: the drive check is a string-shape
+        check, not a filesystem behaviour, so D-05's platform-independence
+        principle applies to it too.
+        """
+        build_dir = tmp_path / "build"
+        target = _target_for_shape(shape)
+    
+        result = _run_sphinx_build(
+            ESCAPE_TARGET_GATE_FIXTURE_DIR,
+            build_dir,
+            "typst",
+            env={"TYPSPHINX_ESCAPE_SHAPE": shape},
+        )
+    
+        combined_output = result.stdout + result.stderr
+        assert result.returncode == 0, (
+            f"Expected a successful build despite the {shape!r} escape "
+            f"attempt:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+    
+        assert ESCAPE_WARNING_SUBSTRING in combined_output, (
+            f"Expected the path-guard warning naming the refused target:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        # D-02: apply the naming predicate to the extracted warning LINE, not
+        # to the whole captured output -- a raw path leaking from any other
+        # source (a config echo, a traceback, a path Sphinx prints) would
+        # otherwise keep this test green after the path is removed from the
+        # warning itself, which would make Task 2's falsification prove
+        # nothing about the thing under test.
+        #
+        # `_resolve_target_stem()` is invoked multiple times per build for the
+        # SAME docname (once via `get_target_uri()`'s cross-reference/toctree
+        # resolution calls, once via the wrapper-output-path resolution during
+        # writing) -- measured live this session: an unmodified single-docname
+        # fixture build emits the IDENTICAL warning line 3 times, not once.
+        # De-duplicating before counting keeps D-02's actual guarantee (a
+        # DIFFERENT raw path leaking from an unrelated source produces a
+        # DIFFERENT line and still fails loudly here) without making this
+        # assertion depend on how many internal call sites happen to log the
+        # same message.
+        warning_lines = list(
+            dict.fromkeys(
+                line
+                for line in combined_output.splitlines()
+                if ESCAPE_WARNING_SUBSTRING in line
+            )
+        )
+        assert len(warning_lines) == 1, (
+            f"Expected exactly one DISTINCT warning line naming the refused "
+            f"target (repeats of the identical line are expected and "
+            f"collapsed; a second, DIFFERENT line would indicate a raw path "
+            f"leaking from an unrelated source):\n{combined_output}"
+        )
+        # D-01/D-03: assert MEANING, not representation format -- the
+        # offending target is NAMED in the warning line, whether the message
+        # site quotes it with `!r`, a hardcoded `'{value}'`, or a future
+        # delimiter-aware helper. `path_named_in` requires the FULL target
+        # value, never a basename, so a message that only still names the
+        # same-basename `fallback` field (the D-03 trap) fails this assertion.
+>       assert path_named_in(target, warning_lines[0]), (
+            f"Expected the warning to name the offending target {target!r} "
+            f"(raw or repr()'d):\n{warning_lines[0]}"
+        )
+E       AssertionError: Expected the warning to name the offending target 'C:\\escape.typ' (raw or repr()'d):
+E         WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead
+E       assert False
+E        +  where False = path_named_in('C:\\escape.typ', "WARNING: a path is not supported in a typst_documents target name: -- using 'escape' instead")
+
+tests/test_out02_escape_target_gate.py:167: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[traversal]
+FAILED tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[absolute]
+FAILED tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[drive]
+============================== 3 failed in 0.67s ===============================
+```
+
+**Attribution.** All three failures raise at `tests/test_out02_escape_target_gate.py:167`, the
+`assert path_named_in(target, warning_lines[0])` line — the naming assertion specifically. Neither
+`assert ESCAPE_WARNING_SUBSTRING in combined_output` (line 127) nor `assert len(warning_lines) == 1`
+(line 155) failed for any of the three shapes: the warning substring is still present (only the
+`target` field was removed, not the whole message) and exactly one distinct warning line is still
+emitted per build, so both of those assertions passed and the failure is attributable to the naming
+predicate alone finding the target absent.
+
+**Step 3 — revert and prove it.**
+
+```
+$ git checkout -- typsphinx/builder.py
+$ git status --porcelain typsphinx/
+(empty)
+$ git diff --stat -- typsphinx/
+(empty)
+```
+
+**Step 4 — re-prove green on the restored tree.** `uv run pytest
+tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof -q` —
+whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a4dccbfe29904a32f
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_out02_escape_target_gate.py ...                               [100%]
+
+============================== 3 passed in 0.66s ===============================
+```
+
+`3 passed`, zero skips. The same test, same command: RED under the falsification, GREEN against
+the real (restored) product message.
+
 <!-- gsd:write-continue -->
