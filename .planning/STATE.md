@@ -5,15 +5,15 @@ milestone_name: Windows path correctness
 current_phase: 58
 current_phase_name: "`repr()`-Format Decoupling (test-side only)"
 status: planning
-stopped_at: Phase 58 context gathered
-last_updated: "2026-08-27T14:01:25.975Z"
+stopped_at: Phase 58 planned (3 plans, 3 waves) - ready to execute
+last_updated: "2026-08-27T14:55:18.085Z"
 last_activity: 2026-08-27
-last_activity_desc: "Phase 58 context gathered: 10 decisions locked (D-01..D-10), 4 gray areas delegated by owner"
-state_head: 19bc9cdc02fedbebf90dd32d59a7b004f9189dcf
+last_activity_desc: "Phase 58 planned: 3 plans in 3 waves; plan-checker passed at iteration 2; 10/10 decisions and MSG-01 covered"
+state_head: 9758d9e2c142d2d826934b810d367154eb894925
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -97,14 +97,20 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — context gathered, not planned
-Plan: — (no plans yet; run `/gsd-plan-phase 58`)
-Status: Context captured — awaiting phase planning
+Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — planned, ready to execute
+Plan: — (3 plans, none started; run `/gsd-execute-phase 58`)
+Status: Planned — 3 plans in 3 waves, verified by gsd-plan-checker, ready to execute
 Progress: [                    ] 0% (0/4 phases, 0 plans complete)
-Last activity: 2026-08-27 — Phase 58 context gathered: D-01..D-10 locked (two-form naming
-predicate applied to the extracted warning line, `tests/_path_naming.py` leaf helper, both
-falsification routes required, two-axis census + AST guard). All four gray areas delegated by the
-owner; four matched todos reviewed, none folded (they carry `resolves_phase` 59/60/46).
+Last activity: 2026-08-27 — Phase 58 planned: 3 plans in 3 waves. 58-01 is the tracer slice
+(`tests/_path_naming.py` predicate + escape-target gate rewritten onto it + SC#2's pre-rewrite
+baseline for both target tests + the recorded RED under a reverted `builder.py:697` falsification +
+D-05(a) meta-tests); 58-02 rewrites the second call site with its own recorded RED; 58-03 adds the
+AST census guard, the two-axis `58-REPR-CENSUS.md`, SC#4 at phase scope and the SC#5 branch push.
+Waves are sequential by construction: 58-02 consumes 58-01's predicate module, and 58-03 asserts on
+an AST sweep whose result 58-02 changes — disjoint `files_modified` would not have prevented that
+merge-time collision. gsd-plan-checker passed at iteration 2 (iteration 1 raised one BLOCKER: the
+census guard's own falsification cycle was specified in `<acceptance_criteria>` but absent from
+`<action>`). Decision coverage 10/10, requirement coverage MSG-01 1/1.
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because

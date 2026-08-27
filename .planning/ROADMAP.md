@@ -233,8 +233,16 @@ backslash-free path is the `!r` form the message already contains) and breaks on
 **Plans**: 3 plans in 3 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 58-01-PLAN.md — Tracer: the `tests/_path_naming.py` predicate, the escape-target gate rewritten onto it with D-02 line narrowing, SC#2's pre-rewrite baseline for both target tests, the recorded RED under a reverted `builder.py:697` falsification, and D-05(a)'s durable meta-tests
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 58-02-PLAN.md — The second call site: `tests/test_builder.py`'s image-rehome assertion rewritten onto the predicate, plus the recorded RED under a reverted `builder.py:1767` falsification; brings the pass-criterion count to 7 with zero path-valued sites
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 58-03-PLAN.md — The AST-backed census guard, the two-axis classified `58-REPR-CENSUS.md`, the phase gate, SC#4 proven at phase scope, and the milestone branch pushed to `origin` and tracking
 
 **UI hint**: no
