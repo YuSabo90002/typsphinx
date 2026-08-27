@@ -790,3 +790,156 @@ SHA recorded in `## SC#2 (a)` above):
 
 Empty — no output. `typsphinx/` is byte-identical to the phase base at this point in the plan,
 proven both against the working tree and against the phase-base SHA.
+
+## D-09 — the census guard observed RED (deliberate falsification)
+
+`tests/test_repr_census_guard.py` (D-08/D-09) parses every `tests/**/*.py` with `ast`, walks each
+`ast.Assert` node's `.test` expression only, and asserts the collected `repr()`/`!r`
+pass-criterion hit set equals a recorded seven-site allowlist. A guard that has never been
+observed RED is not known to be load-bearing — this section records the one-time falsification
+cycle D-09 requires before the guard is trusted, run against `tests/test_preview_version_sync.py`
+specifically (untouched by this phase, zero `repr(`/`!r` occurrences before the injection, and
+excluded from `REWRITTEN_PATH_VALUED_MODULES` so the injection trips exactly one assertion, not
+two).
+
+**Step 1 — baseline.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.61s ===============================
+```
+
+`4 passed`, zero skips — the baseline captured immediately before the injection, so the RED in
+Step 3 is attributable to the injection and nothing else.
+
+**Step 2 — injection.** One throwaway, deliberately TRUE assertion appended as the last statement
+of `test_all_four_packages_declared` in `tests/test_preview_version_sync.py`. The function's body
+ended at line 118 before the injection; the injected statement became line 119, exactly as
+predicted before running anything. `git diff -- tests/test_preview_version_sync.py` while the
+edit was in place:
+
+```diff
+diff --git a/tests/test_preview_version_sync.py b/tests/test_preview_version_sync.py
+index aebb664a..8a298041 100644
+--- a/tests/test_preview_version_sync.py
++++ b/tests/test_preview_version_sync.py
+@@ -116,6 +116,7 @@ def test_all_four_packages_declared():
+             f"{filename} is missing expected @preview packages: {missing} "
+             f"(declared: {declared})"
+         )
++        assert "codly" in repr(EXPECTED_PACKAGES)  # temporary; reverted in this task
+ 
+ 
+ def test_example_templates_match_canonical_versions():
+```
+
+The injected assertion is deliberately TRUE (`"codly"` is a member of `EXPECTED_PACKAGES`, so
+`repr(EXPECTED_PACKAGES)` always contains the literal `codly`) — the host module itself stays
+green throughout, and the only thing that changes is the whole-tree census.
+
+**Step 3 — RED.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py F...                                     [100%]
+
+=================================== FAILURES ===================================
+___________ test_pass_criterion_repr_sites_match_recorded_allowlist ____________
+
+    def test_pass_criterion_repr_sites_match_recorded_allowlist():
+        """The collected pass-criterion set must equal the recorded allowlist
+        exactly. A new entry means a test grew a pass criterion coupled to a
+        value's representation format and 58-REPR-CENSUS.md is now stale; a
+        missing entry means a site moved or was removed and the census must be
+        re-derived, not the allowlist quietly edited."""
+        collected, _ = _collect_pass_criterion_repr_sites()
+    
+        found_but_not_allowlisted = collected - PASS_CRITERION_REPR_ALLOWLIST
+        allowlisted_but_not_found = PASS_CRITERION_REPR_ALLOWLIST - collected
+    
+>       assert collected == PASS_CRITERION_REPR_ALLOWLIST, (
+            "The repr()/!r pass-criterion census has drifted from the recorded "
+            "allowlist in 58-REPR-CENSUS.md.\n"
+            f"Sites found but NOT allowlisted (new pass-criterion site -- "
+            f"58-REPR-CENSUS.md is stale): {sorted(found_but_not_allowlisted)}\n"
+            f"Allowlisted sites no longer found (a site moved or was removed -- "
+            f"re-derive the census, do not quietly edit the allowlist): "
+            f"{sorted(allowlisted_but_not_found)}"
+        )
+E       AssertionError: The repr()/!r pass-criterion census has drifted from the recorded allowlist in 58-REPR-CENSUS.md.
+E         Sites found but NOT allowlisted (new pass-criterion site -- 58-REPR-CENSUS.md is stale): [('test_preview_version_sync.py', 119)]
+E         Allowlisted sites no longer found (a site moved or was removed -- re-derive the census, do not quietly edit the allowlist): []
+E       assert frozenset({('...', 832), ...}) == frozenset({('...', 847), ...})
+E         
+E         Extra items in the left set:
+E         ('test_preview_version_sync.py', 119)
+E         Use -v to get more diff
+
+tests/test_repr_census_guard.py:154: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_repr_census_guard.py::test_pass_criterion_repr_sites_match_recorded_allowlist
+========================= 1 failed, 3 passed in 0.62s ==========================
+```
+
+`1 failed, 3 passed`, exactly as D-09 requires: the failure is
+`test_pass_criterion_repr_sites_match_recorded_allowlist`, in its "sites found but not
+allowlisted" branch, naming `test_preview_version_sync.py` and line `119` — the exact line the
+injection landed on. The other three tests (`test_no_path_valued_pass_criterion_site_remains`,
+`test_sweep_is_not_vacuous`, `test_allowlist_entries_point_at_real_lines`) stayed green: the
+injected site is not path-valued (so it does not trip the zero-path-valued check), the sweep still
+parsed well over `MINIMUM_FILES_SWEPT` files, and every allowlist entry still points at a real
+line — the RED is attributable to the census-drift assertion alone.
+
+**Step 4 — revert, unconditionally, and prove it.** `git checkout -- tests/test_preview_version_sync.py`, then two clean checks:
+
+```
+$ git checkout -- tests/test_preview_version_sync.py
+$ git status --porcelain tests/test_preview_version_sync.py
+(empty)
+$ git status --porcelain tests/
+?? tests/test_repr_census_guard.py
+```
+
+`git status --porcelain tests/test_preview_version_sync.py` produced no output — the perturbation
+left no trace. `git status --porcelain tests/` shows nothing but the new, still-untracked
+`tests/test_repr_census_guard.py` — no survivor of the falsification remains anywhere under
+`tests/`. This second check matters because this perturbation is under `tests/`, where SC#4's
+`git status --porcelain typsphinx/` gate (the one plans 58-01 and 58-02 lean on) is blind to a
+survivor here.
+
+**Step 5 — green again.** `uv run pytest tests/test_repr_census_guard.py -q` — whole output
+verbatim, closing the loop on the same command that opened it:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7d7c18e818f01603
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.60s ===============================
+```
+
+`4 passed`, zero skips — the same test, same command, same result as Step 1's baseline.
+
+**What this transcript establishes.** A guard that has never been seen RED is not known to be
+load-bearing, and this one has now been seen RED against a real, deliberately introduced
+pass-criterion site — attributed specifically to the census-equality assertion, reverted cleanly,
+and re-proven green on the restored tree.
