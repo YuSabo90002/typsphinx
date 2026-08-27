@@ -479,4 +479,60 @@ tests/test_out02_escape_target_gate.py ...                               [100%]
 `3 passed`, zero skips. The same test, same command: RED under the falsification, GREEN against
 the real (restored) product message.
 
-<!-- gsd:write-continue -->
+## D-05(a) — durable meta-tests and the running census count
+
+`tests/test_path_naming_predicate.py` (D-05(a)) is the durable half of the falsification
+contract: 12 fixtureless meta-tests covering the raw/repr/hardcoded-quote/delimiter-wrapped
+positive cases, the D-03 fallback trap, all four escape shapes under a falsified line
+(parametrized), `os.PathLike` acceptance, and the `ValueError`/`TypeError` refusals.
+
+`uv run pytest tests/test_path_naming_predicate.py -q` — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a4dccbfe29904a32f
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 12 items
+
+tests/test_path_naming_predicate.py ............                         [100%]
+
+============================== 12 passed in 0.02s ==============================
+```
+
+`12 passed`, zero skips.
+
+`uv run black --check tests/test_path_naming_predicate.py`:
+
+```
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+```
+
+Exit code 0.
+
+The AST pass-criterion count for the new module, run as
+`uv run python -c "import ast,pathlib;t=ast.parse(pathlib.Path('tests/test_path_naming_predicate.py').read_text(encoding='utf-8'));print(sum(1 for a in ast.walk(t) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+0
+```
+
+The meta-tests introduce no new census site — every representation-quoted message is built in a
+separate statement above its assert, never inside the assert's own test expression.
+
+The whole-tree AST pass-criterion count, run as
+`uv run python -c "import ast,pathlib;print(sum(1 for f in pathlib.Path('tests').rglob('*.py') if '__pycache__' not in f.parts for a in ast.walk(ast.parse(f.read_text(encoding='utf-8'))) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+8
+```
+
+Measured `9` at plan time on the phase base; this plan's rewrite of
+`tests/test_out02_escape_target_gate.py`'s pass criterion removed one path-valued site, moving
+the running count to `8`, exactly as expected.
+
+`ruff` in this worktree's venv could not execute (the same NixOS dynamic-linker hazard recorded
+above for Task 1). The `nix-shell -p ruff --run "ruff check tests/test_path_naming_predicate.py"`
+retry succeeded with `All checks passed!`.
