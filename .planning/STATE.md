@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
 status: planning
-last_updated: "2026-08-27T13:04:40.655Z"
+last_updated: "2026-08-27T13:40:00.000Z"
 last_activity: 2026-08-27
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,12 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-22 at the v0.9.0 milestone close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.9.0 shipped 2026-08-22 and is archived. The next milestone is scoped by
-`/gsd-new-milestone`, and phase numbering continues at **58**. Named candidates carried forward:
-`SEED-004` (typst-py upstream maintenance is slowing; typsphinx may need to carry an equivalent
-compile path — the largest structural risk on the horizon), the delimiter-aware path-quoting helper
-that closes both halves of `2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages`, WR-02's
-`confdir` gap, and the two `builder.py` path predicates held behind Phase 57's prep-only fence.
+**Current focus:** v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27). A
+bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
+the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
+path-quoting helper that closes **both** halves of
+`2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages` (MSG-02..MSG-05), and the two
+`builder.py` path predicates held behind Phase 57's prep-only fence (PATH-01, IMG-04) together with
+their two never-filed siblings (IMG-05's unescaped `image("...")` emission and IMG-06's unbounded key
+length). Still carried forward and **not** in scope: `SEED-004` (typst-py upstream maintenance
+slowing; the largest structural risk on the horizon, never scoped into any milestone) and WR-02's
+`confdir` gap.
+
+**All three defect families are latent.** No test covers any of them and the `windows-latest` lane is
+green at HEAD and would stay green if nothing were fixed — so RED-first, recorded against the unfixed
+tree, is the only meaningful bar in this milestone.
 
 Phase 56 (complete 2026-08-16) context, retained for reference:
 DOC-15/DOC-16/DOC-17 closed — the published documentation now describes the registry and bundle
@@ -84,10 +92,20 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-27 — Milestone v0.9.1 started
+Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — not started
+Plan: — (no plans yet; run `/gsd-plan-phase 58`)
+Status: Roadmap created — awaiting phase planning
+Progress: [                    ] 0% (0/4 phases, 0 plans complete)
+Last activity: 2026-08-27 — v0.9.1 roadmap created: Phases 58–61, 11/11 v1 requirements mapped,
+zero orphans, zero duplicates
+
+**Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
+convention.** Phase 58 is test-side only and must precede any message-string change, because
+`tests/test_out02_escape_target_gate.py:134` runs on every platform and goes RED **on POSIX** the
+moment MSG-03 rewires `builder.py:697`. Phase 59 must precede Phase 60, because `builder.py:1767`
+interpolates the exact `key` value Phase 59 changes and Phase 60 re-quotes — the same-wave
+string/assertion collision this project has already paid for once. Phase 61 is prep-only: no tag, no
+publish, no PR, and REL-09 stays `[ ]` until `/gsd-complete-milestone`.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -728,6 +746,31 @@ evidence.
 
 ### Roadmap Evolution
 
+- **2026-08-27** — v0.9.1 roadmap created: **Phases 58–61**, 11/11 v1 requirements mapped, zero
+  orphans, continuing numbering from v0.9.0's Phase 57. Four phases at `granularity: standard`, each
+  carrying an explicit `**UI hint**: no` override. Three structural decisions were baked in and
+  should not be re-derived during planning: **(a)** MSG-01 is its own first phase, superseding
+  `research/SUMMARY.md`'s finding #4 that the two `repr()`-dependent test edits "must land in the
+  same wave as the source fixes" — that finding predates MSG-01's owner decision and would have
+  destroyed the zero-test-edits evidence for the phases that change product code; **(b)** PATH-01,
+  IMG-04 and IMG-06 are one phase, not three, because `_escapes_outdir()` is called from inside
+  `_track_image()` and all three land in the same ~30-line `builder.py` region — the research's A–F
+  split survives as *plan* structure inside Phase 59, not as phase structure; **(c)** IMG-07 is
+  mapped to Phase 59 rather than floated as a milestone-level obligation, because Typst's
+  value-level backslash refusal couples IMG-04 and IMG-05, so exactly one phase can hold a green
+  real-compile gate.
+
+- **2026-08-27** — Milestone invariant #5 encoded as Phase 58's SC#5, with the branch **measured
+  rather than assumed**: `gsd/v0.9.1-milestone` is three commits ahead of `main`, has no upstream
+  configured, and nothing matching `0.9.1` exists on `origin`. v0.9.0 had to correct an
+  identically-named decoy mid-milestone (`gsd/v0.9.0-milestone` sat at the merge-base with zero
+  milestone commits); this one is the real milestone branch, checked before it was written down.
+
+- **2026-08-27** — The 3-OS matrix run was deliberately **not** given a REQ-ID. It remains the
+  milestone's acceptance bar and is carried in the success criteria of each phase that changes
+  product code (59, 60), then re-run on the bumped tree in 61 — dispatched fresh on each phase's own
+  post-fix tip, never inferred from a prior run.
+
 - **2026-07-28** — v0.6.5 roadmap created: Phases 34–35, continuing numbering from v0.6.4's Phase 33.
   Backlog item **999.1** promoted into Phase 34 as requirement MATH-01 and removed from ROADMAP.md's
   Backlog section (the section itself retained with its preamble).
@@ -914,9 +957,10 @@ Items acknowledged and carried forward from milestone closes:
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-22 — `/gsd-complete-milestone` v0.9.0
-Stopped at: v0.9.0 published and archived
-Resume: `/gsd-new-milestone` (next phase number is **58**).
+Last session: 2026-08-27 — v0.9.1 roadmap created (Phases 58–61)
+Stopped at: roadmap written, 11/11 requirements mapped, no phase planned yet
+Resume: `/gsd-plan-phase 58` — `repr()`-Format Decoupling, test-side only, and the phase that pushes
+`gsd/v0.9.1-milestone` to `origin`.
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API
@@ -935,9 +979,13 @@ structural risk on the horizon and has never been scoped into any milestone, and
 
 ## Operator Next Steps
 
-- Start the next milestone with `/gsd-new-milestone` — it re-scopes PROJECT.md's
-  `## Shipped Milestone` and `### Active` sections and creates a fresh `.planning/REQUIREMENTS.md`
-  (this one was removed via `git rm` at the close). Phase numbering continues at **58**.
+- Plan the first phase with `/gsd-plan-phase 58`. It is test-side only (MSG-01) and ships no
+  `typsphinx/` change; its SC#5 also pushes `gsd/v0.9.1-milestone` to `origin`, which has never been
+  done for this milestone.
+
+- Read ROADMAP.md's 14 binding constraints before planning any phase. Constraints 2, 3, 4 and 5 are
+  the ones that determine wave structure, and each was paid for in this project's own history rather
+  than reasoned about.
 
 - Before scoping, re-read the three known limitations above: each is a *silent* ship, and the third
   consecutive one. Deciding whether that stays the project's policy is a real decision, not a default.

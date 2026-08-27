@@ -187,22 +187,35 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PATH-01 | Phase [N] | Pending |
-| IMG-04 | Phase [N] | Pending |
-| IMG-05 | Phase [N] | Pending |
-| IMG-06 | Phase [N] | Pending |
-| IMG-07 | Phase [N] | Pending |
-| MSG-01 | Phase [N] | Pending |
-| MSG-02 | Phase [N] | Pending |
-| MSG-03 | Phase [N] | Pending |
-| MSG-04 | Phase [N] | Pending |
-| MSG-05 | Phase [N] | Pending |
-| REL-09 | Phase [N] | Pending |
+| MSG-01 | Phase 58 | Pending |
+| PATH-01 | Phase 59 | Pending |
+| IMG-04 | Phase 59 | Pending |
+| IMG-05 | Phase 59 | Pending |
+| IMG-06 | Phase 59 | Pending |
+| IMG-07 | Phase 59 | Pending |
+| MSG-02 | Phase 60 | Pending |
+| MSG-03 | Phase 60 | Pending |
+| MSG-04 | Phase 60 | Pending |
+| MSG-05 | Phase 60 | Pending |
+| REL-09 | Phase 61 | Pending |
+
+Ordered by phase, not by REQ-ID, because the ordering is itself load-bearing: MSG-01 precedes every
+requirement that changes a message string, and IMG-04's value change precedes MSG-03's re-quoting of
+the same warning. See ROADMAP.md binding constraints 2 and 4.
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11
+- Unmapped: 0 ✓
+- Duplicates (a requirement in more than one phase): 0 ✓
+
+**Phase totals:** Phase 58 → 1 (MSG-01) · Phase 59 → 5 (PATH-01, IMG-04, IMG-05, IMG-06, IMG-07) ·
+Phase 60 → 4 (MSG-02, MSG-03, MSG-04, MSG-05) · Phase 61 → 1 (REL-09).
+
+**IMG-07 is mapped, not floated.** It reads as a cross-cutting obligation ("at least one gate in this
+milestone is a real `typst.compile()`"), but the gate can only be green once IMG-04 and IMG-05 have
+both landed — Typst refuses a backslash in an `image()` path by value, not by syntax. Exactly one
+phase satisfies that, so IMG-07 is owned by Phase 59, which writes the gate.
 
 ## Standing constraints for every phase in this milestone
 
@@ -230,4 +243,4 @@ These are not requirements; they are the conditions any plan in this milestone m
 
 ---
 *Requirements defined: 2026-08-27*
-*Last updated: 2026-08-27 after initial definition*
+*Last updated: 2026-08-27 after roadmap creation (Phases 58–61 mapped, 11/11 covered)*
