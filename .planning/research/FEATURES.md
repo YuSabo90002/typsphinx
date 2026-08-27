@@ -1,247 +1,299 @@
-# Feature Research: Per-Document Templates in Multi-Output Doc Toolchains
+# Feature Research
 
-**Domain:** Documentation-toolchain output/template configuration (Sphinx builders, Pandoc, Quarto,
-MkDocs, Asciidoctor, Hugo, Typst Universe)
-**Researched:** 2026-08-15
-**Confidence:** HIGH for Sphinx's own precedent (primary-source `.rst`/`.py` quotes from
-`sphinx-doc/sphinx`, verified 2026-08-15 against the `master` branch, current 9.x); MEDIUM for
-non-Sphinx systems (official docs quoted directly, cross-checked across ≥2 pages per claim, but not
-verified against the tools' own source code the way Sphinx was).
+**Domain:** Bug-fix milestone — Windows path correctness for a Sphinx→Typst extension (v0.9.1)
+**Researched:** 2026-08-27
+**Confidence:** HIGH (claims (a)-(c) verified against locally-installed Sphinx 9.1.0 / mypy source and pip's documented cache layout; claim (d) verified with a real `typst.compile()` run in this repo's own `.venv`, not documentation-only)
 
-## Answering the four research questions directly
+This is a bug-fix round, not a new-capability milestone. "Features" below means the **observable
+correct behaviours** the three defect-family fixes must produce, framed against how comparable
+tools handle the same three situations (escape-guarding a config path, relocating an unusable
+filename, quoting a path in a diagnostic) and against what Typst itself actually accepts.
 
-### 1. Sphinx's own builders — per-output-document variation vs global-only
+## Evidence summary (answers to the four research questions)
 
-Quoted verbatim from `doc/usage/configuration.rst` on `sphinx-doc/sphinx` `master` (tracks current
-9.x) and `sphinx/builders/latex/__init__.py`:
+### (a) Escape-guarding a path-shaped config value — Sphinx's own answer is "not our problem"
 
-| Config | Tuple shape / type | Per-document? | Quote |
-|---|---|---|---|
-| `latex_documents` | `Sequence[tuple[str, str, str, str, str, bool]]` = `(startdocname, targetname, title, author, theme, toctree_only)` | **YES** — element [4] is a per-entry theme-name override | *"theme — LaTeX theme. See `latex_theme`."* Confirmed by source: `default_latex_documents()` builds the fallback tuple as `(root_doc, target, title, author, config.latex_theme)` — i.e. the per-entry slot's default **is** the global value, exactly the "reserved key defers to global" shape typsphinx is proposing. |
-| `latex_theme` | `str`, default `'manual'` | Global only (but is the fallback value each per-entry `theme` slot resolves to when equal to it) | *"The 'theme' that the LaTeX output should use. It is a collection of settings for LaTeX output (e.g. document class, top level sectioning unit and so on). The bundled first-party LaTeX themes are manual and howto."* |
-| `latex_theme_options` | `dict[str, Any]`, default `{}` | **Global only** — one dict applies to whichever theme is selected build-wide, not per-entry | *"A dictionary of options that influence the look and feel of the selected theme. These are theme-specific."* Validated at `config-inited` — `validate_latex_theme_options()` drops (and warns on) any key not in `Theme.UPDATABLE_KEYS`: `"Unknown theme option: latex_theme_options[%r], ignored."` — a **fail-loud-ish but not fail-hard** precedent (warn + drop, not abort). |
-| `latex_theme_path` | `list[str]`, default `[]` | Global only — a directory-scan registry, not a dict | *"A list of paths that contain custom LaTeX themes as subdirectories."* Each subdirectory name becomes a usable theme name; the same convention as `html_theme_path`. |
-| `latex_docclass` | `dict[str, str]`, default `{}` | Global only, and fixed-shape (exactly two keys) | *"A dictionary mapping `'howto'` and `'manual'` to names of real document classes that will be used as the base for the two Sphinx classes. Default is to use `'article'` for `'howto'` and `'report'` for `'manual'`."* This is NOT a general per-key registry — it only ever has two meaningful keys. |
-| `man_pages` | `Sequence[tuple[str, str, str, str, str]]` = `(startdocname, name, description, authors, section)` | **NO per-document template element at all.** No `man_theme`, no styling hook per entry. | Full tuple quoted above; there is nothing analogous to `theme`. |
-| `texinfo_documents` | `Sequence[tuple[str, str, str, str, str, str, str, bool]]` = `(startdocname, targetname, title, author, dir_entry, description, category, toctree_only)` | **NO** per-document template element | Full tuple quoted above; same absence as `man_pages`. |
-| `epub_theme` | `str`, default `'epub'` | N/A — EPUB has no multi-master concept (`epub_documents` does not exist; one build = one `.epub`), so "per-document" doesn't apply | *"The HTML theme for the EPUB output... This defaults to `'epub'`."* |
+Read directly from the installed Sphinx 9.1.0 tree
+(`.venv/lib/python3.13/site-packages/sphinx/builders/latex/__init__.py`):
 
-**Historical precedent for widening a tuple slot's meaning (directly on point for this milestone):**
-pre-3.0 Sphinx's `latex_documents` 5th element was literally called **`documentclass`**, and its
-value was a raw string, mostly `'manual'`/`'howto'` but explicitly open-ended: *"documentclass:
-Normally, one of `'manual'` or `'howto'` (provided by Sphinx). Other document classes can be given,
-but they must include the 'sphinx' package..."* — i.e., historically the slot was **accepted almost
-as free text**, much like typsphinx's current "usually `'typst'` — accepted and ignored." In Sphinx
-3.0 this same tuple position was formalized into a **named registry key** resolved against
-`latex_theme`/`latex_theme_options`/`latex_theme_path`, with a matching per-entry override. **This is
-the closest one-to-one precedent for typsphinx's exact move**: an already-existing, loosely-defined
-tuple slot gets promoted into a strict per-entry registry-key lookup, with the global config value
-becoming the fallback default. Sphinx did this once and never walked it back.
+- `LaTeXBuilder.init_document_data()` (line 151) validates only that `entry[0]` (the **docname**)
+  is a known document (`docname not in self.env.all_docs` → `logger.warning(...)`, entry skipped).
+  It performs **zero validation** of `entry[1]` (`targetname`, the LaTeX/PDF output filename —
+  `latex_documents`' direct analogue of typsphinx's `typst_documents` target stem).
+- `write_documents()` (line 299) uses `targetname` completely unguarded:
+  `destination_path = self.outdir / targetname` (line 343), then
+  `destination_path.write_text(output, ...)`.
+- `validate_config_values()` (line 526) only checks `latex_elements` dict keys against a known
+  set — no path-shape validation anywhere in the file.
 
-**Verdict for Q1:** only the LaTeX builder supports true per-output-document template variation, and
-it does so with exactly the shape typsphinx is proposing — a tuple element naming a registry key,
-global config as the fallback/default value for that key. `man_pages` and `texinfo_documents` prove
-the alternative (no per-document hook at all) is also a legitimate, shipped design when a format has
-no real "theming" concept — relevant if typsphinx ever considers whether every builder needs this,
-but typst output clearly does (it already has `typst_template`/`typst_package`, so removing per-doc
-variation isn't on the table).
+I confirmed the consequence with real `pathlib` semantics (not assumed):
+```
+>>> Path('/outdir') / '/etc/cron.d/evil'
+PosixPath('/etc/cron.d/evil')      # outdir silently discarded — Path.__truediv__ on an
+                                     # absolute right operand drops the left operand entirely
+>>> Path('/outdir') / '../../etc/evil'
+PosixPath('/outdir/../../etc/evil') # traversal segment passed straight through
+```
+So Sphinx's own most comparable builder does **none of the three candidate behaviours** the
+question asked about (refuse loudly / sanitize silently / derive-and-warn) — it does nothing at
+all. `conf.py` is treated as fully-trusted first-party content, not untrusted input, and a
+malformed `latex_documents` target is the documentation author's problem to notice from the output
+tree, not Sphinx's to guard against.
 
-### 2. Non-Sphinx systems — shape of the mapping
+**Implication for typsphinx:** typsphinx's `_escapes_outdir()` (builder.py:197) already goes
+*beyond* Sphinx's own bar — refusing the escaping stem and falling back to a basename, per its own
+docstring's "OUT-02" contract. That policy predates this milestone and is not up for
+reconsideration here (see Anti-Features below); v0.9.1's job is narrower: make the *detection*
+itself platform-shape-correct, matching the idiom `_is_absolute_image_uri()` (builder.py:190)
+already uses (normalize backslashes to `/` **before** applying `posixpath.isabs()` /
+`_is_drive_qualified()`), rather than applying those predicates to the raw, unnormalized `stem` as
+`_escapes_outdir()` currently does at builder.py:238.
 
-| System | Mechanism | Shape | Quote / evidence |
-|---|---|---|---|
-| **Pandoc** | `--template=FILE`, or a `defaults` YAML file's `template:` key | **Per-invocation flag / per-defaults-file key**, not a registry inside one config. Convention-over-configuration fallback: dropping `templates/default.FORMAT` into the user data directory silently becomes the default for that writer with **no key at all**. | *"A custom template can be specified using the `--template` option... you can also override the system default templates for a given output format FORMAT by putting a file `templates/default.FORMAT` in the user data directory."* Different outputs from one source get different templates by running pandoc **multiple times** with different `--template`/defaults-file arguments — there is no single config expressing "doc A uses template X, doc B uses template Y" the way Sphinx's tuple does. |
-| **Quarto** | `format:` key, nestable per-format under `_quarto.yml` (project), `_metadata.yml` (directory), or the document's own YAML frontmatter | **Named registry keyed by *format*, not by *document*** (`html:`, `pdf:`, `epub:`, each a themed sub-map), with **directory-level override files** (`_metadata.yml` per subfolder) as the closest thing to "this subset of documents gets this config." No first-class "document A vs document B, same format, different theme" key. | *"You can set defaults for more than one format in `_quarto.yml` by nesting them under `format`"*; and, matching typsphinx's own `params`-exclusivity decision almost exactly: *"The one exception to metadata merging is `format`. If the document-level YAML defines a format, it must define the complete list of formats to be rendered."* — Quarto independently arrived at "declaring the key at all replaces the whole set, no partial merge," the same rule typsphinx already applies to `params`. |
-| **MkDocs** | `theme.name` / `theme.custom_dir` | **Single global theme per build, full stop.** Multiple templates for one content tree require **multiple separate top-level config files** and separate `mkdocs build -f siteN.yml` invocations — explicitly the maintainer's own answer to "can I have multiple themes for one docs/ tree," not a registry inside one config. | GitHub maintainer (`lovelydinosaur`) on a "Multiple Themes" feature discussion: *"You could have this kind of layout... `site1.yml site2.yml site3.yml docs/...` `mkdocs -f site1.yml` — Each config file could also point to a different custom theme directory."* This is the strongest **negative** precedent found: a mature, widely-used tool with real demand for this exact feature chose N-builds-of-one-config over a per-document/per-output registry inside one config. |
-| **Asciidoctor PDF** | `-a pdf-theme=NAME` / `--theme NAME` document attribute, resolved against `pdf-themesdir` | **Per-CLI-invocation attribute**, resolvable per document because Asciidoctor is normally invoked once per source file already (unlike Sphinx/typsphinx's one-build-many-masters model). A theme file can also `extends:` another theme file for composition. | *"asciidoctor-pdf -a pdf-theme=basic -a pdf-themesdir=resources/themes doc.adoc"* — no in-repo multi-document registry exists because there's no multi-document build unit to register against. |
-| **Hugo** | `layouts/<type>/<kind>.html` directory convention + front-matter `type:`/`layout:` override, searched via a fixed **lookup-order** algorithm | **Directory-convention registry**, not an explicit dict: the "key" is implicit in a content file's path/front matter (`type`, `layout`), and Hugo walks a fixed precedence list (`layouts/<type>/<kind>.html` → `layouts/_default/<kind>.html` → theme equivalents) until it finds a match. | *"You cannot change the lookup order to target a content page, but you can change a content page to target a template. Specify `type`, `layout`, or both in front matter."* This is the closest analog to "per-document key selects from a registry with a global fallback," but the registry is a filesystem convention (directory tree), not a `dict` in one config file. |
-| **Typst Universe `template` packages** | `typst.toml`'s `[template]` table: `path` (dir copied into the user's new project) + `entrypoint` (the file inside it Typst opens) | **One template = one package = one directory, copied wholesale.** No per-document selection concept exists at the Typst-package level at all — that's exactly the layer typsphinx itself sits above and is building the missing per-document dispatch for. | *"`path`: The directory within the package that contains the files that should be copied into the user's new project directory. `entrypoint`: A path relative to the template's path that points to the file serving as the compilation target."* This directly validates typsphinx's **"resolved template's parent directory is copied wholesale"** output rule (D-in-milestone-brief) — it is exactly how Typst's own template convention already behaves at the single-package level; typsphinx is only adding the *selection* layer on top (which key's bundle to copy for which master), not inventing a new bundling convention. |
+### (b) Relocating a file whose name is unusable — human-recognizable, hash-anchored, silent by default
 
-**Shape taxonomy answer:** three shapes were found in the wild —
-1. **Inline per-invocation** (Pandoc `--template`, Asciidoctor `-a pdf-theme`) — works because the
-   tool is normally invoked once per output anyway.
-2. **Directory convention, positionally resolved** (Hugo lookup order, Typst package `path`) — no
-   explicit registry dict; the "key" is a path/front-matter value walked against a fixed search order.
-3. **Named registry inside one config, referenced by key** (Sphinx `latex_documents[4]` → `latex_theme`
-   family; Quarto `format:` sub-maps) — the shape typsphinx is proposing.
-Shape 3 is real and shipped (Sphinx), but it is the **least common** of the three — most tools that
-build many-outputs-from-one-source (Pandoc, Asciidoctor) sidestep the "one config, many named
-templates" problem entirely by re-invoking the tool per output instead. MkDocs explicitly rejected
-folding it into one config for its one-output-per-build model.
+Two real, load-bearing precedents, both read from source rather than assumed:
 
-### 3. Table stakes vs differentiators for a per-document-template feature
+1. **Sphinx's own `FilenameUniqDict`** (`sphinx/util/_files.py`, used for `env.images` — the
+   closest upstream analogue of typsphinx's image relocation), on a basename collision:
+   ```python
+   unique_name = new_file.name
+   base, ext = new_file.stem, new_file.suffix
+   i = 0
+   while unique_name in self._existing:
+       i += 1
+       unique_name = f'{base}{i}{ext}'
+   ```
+   Fully human-recognizable (`figure1.png`, `figure2.png`, ...), **no warning at all** — this is
+   the "ordinary, expected" collision case, exactly the register typsphinx's own D-01/D-03/D-04
+   silent-relocation branch (builder.py, `_track_image()`) already occupies for its collision
+   case.
+2. **Sphinx's `DownloadFiles`** (same module) for downloadable-file collisions takes the opposite
+   shape: `digest = hashlib.md5(filename.as_posix()...).hexdigest(); dest_path = digest/filename.name`
+   — hash as a **directory** component, original filename preserved **in full** as the leaf, no
+   truncation, no warning. This is architecturally identical to typsphinx's own
+   `{RESERVED_IMAGE_NAMESPACE}/{digest[:8]}-{basename}` key (builder.py:1772-1776) — a
+   collision-avoidance digest paired with a human-readable basename — except Sphinx's own version
+   has the **same unbounded-length gap** v0.9.1 must close (Sphinx has never hit it in practice
+   because `latex`/`html` builders don't relocate arbitrary-URI images the way typsphinx's
+   third-party-extension rehome path does).
+3. **pip's wheel cache** (documented behaviour, `pip cache dir` / Simon Willison's TIL,
+   cross-checked against pip's own docs): `wheels/<hash>/<hash>/<hash>/<original-filename>.whl` —
+   hash-bucketed **directories**, original filename kept **byte-for-byte** as the leaf component.
+   Same shape again: hash for uniqueness, human-readable name preserved, not mangled.
 
-| Item | Category | Precedent |
+**Convergent convention across all three:** the collision-avoidance token (counter or hash) is
+kept **separate** from the human-readable name rather than replacing it, and the human-readable
+portion is preserved **in full** wherever the tool doesn't hit a hard filesystem limit — none of
+the three precedents truncate, because none of them anchors the digest to the *whole* original
+identifier (URL, absolute path) the way typsphinx's IMG-03 digest already correctly does
+(`hashlib.sha1(resolved_uri.encode()).hexdigest()[:8]`, builder.py — a comment there already notes
+this is deliberately "a pure function of resolved_uri alone", so injectivity is not at risk from
+truncating the *basename* half of the key). **Truncating only the basename half while keeping the
+8-hex-char digest intact preserves both properties this milestone needs**: collision-avoidance
+(digest, untouched) and human recognizability (as much of the original name as the length budget
+allows). No warning text is warranted for the truncation itself — silent, by the same convention
+as cases 1 and 2 above, which is also consistent with the "SILENTLY" wording already in
+`_track_image()`'s own docstring for its D-01 collision branch. (The **escape** branch is the one
+that already warns, per D-05/D-06 — truncation is orthogonal to escape and should not borrow its
+warning.)
+
+**Length bound:** the standard, portable filesystem limit both ext4 and NTFS enforce is 255 bytes
+per path *component* (not per path). A conservative bound (well under 255, leaving room for the
+`{digest8}-` prefix and any multi-byte UTF-8 basename characters) is the correct target — this is
+an implementation detail for the roadmap/plan stage, not a research finding requiring a specific
+number here.
+
+### (c) Quoting a filesystem path in a diagnostic — `repr()`/`!r` is wrong for Windows paths, for a documented reason
+
+Verified directly, not from memory:
+```python
+>>> repr(r"C:\Users\foo")
+"'C:\\\\Users\\\\foo'"        # displays as 'C:\\Users\\foo' — backslashes DOUBLED
+>>> repr(r"C:\Users\foo's file")
+'"C:\\\\Users\\\\foo\'s file"'  # repr() DOES switch quote character ' -> " when the
+                                  # string contains ' and not " (quote-disambiguation) —
+                                  # but STILL doubles every backslash regardless of which
+                                  # quote character it picked
+```
+This is the exact hazard the milestone context names: `!r` is correct for *identifiers* (docnames,
+registry keys, config tuples — values a user typed as Python source, where doubled backslashes are
+either absent or already meaningful) and wrong for *filesystem paths* (values that came from the
+OS, where a doubled backslash is pure visual noise the user did not write and must mentally
+undo). Confirmed from the installed **mypy** source
+(`.venv/lib/python3.13/site-packages/mypy/build.py:4296`,
+`.venv/lib/python3.13/site-packages/mypy/modulefinder.py:92`) that the convention among Python
+static-analysis/tooling diagnostics is to quote paths and module names with **double quotes**,
+verbatim, no escaping applied to the interpolated value at all:
+```python
+f'Duplicate module named "{st.id}" (also at "{graph[st.id].xpath}")'
+msg = 'Cannot find implementation or library stub for module named "{module}"'
+```
+mypy does not defend against an embedded `"` in its own diagnostics either — this class of tooling
+generally accepts that a pathological path (one containing the chosen delimiter) is a rare enough
+edge case that it is handled by *picking* a safe delimiter for the common case rather than by
+building a general escaping scheme.
+
+**What this means for the required helper:** the correct shape — already implied by PROJECT.md's
+own language ("the quote-disambiguation `repr()` provided ... dropped") — is `repr()`'s **quote
+selection** algorithm (prefer `'`; switch to `"` if the string contains `'` and not `"`; escape a
+literal `'` only when both are present) applied to the **raw path text**, without also running
+`repr()`'s backslash-doubling step. That is: pick a delimiter unambiguous for the specific string,
+then interpolate the path verbatim inside it — never `!r` (doubles backslashes) and never a
+hardcoded `'...'` f-string (breaks the moment the path contains an apostrophe, which is exactly
+57-REVIEW WR-01, a real regression 57-11 already introduced once).
+
+### (d) What Typst's `image("...")` actually accepts — measured with a real `typst.compile()` in this repo
+
+Ran directly against the `typst-py` version already pinned in this project's `.venv`
+(`uv run --project /home/yuta/Documents/typsphinx python3 -c "import typst; typst.compile(...)"`),
+against real files on disk (a synthesized 1×1 PNG), not documentation alone:
+
+| Typst source | Compiles? | Error |
 |---|---|---|
-| Fallback to a sane default when a document doesn't specify a template | **Table stakes** | Sphinx: `default_latex_documents()` always fills the per-entry `theme` slot with `config.latex_theme`; Hugo: lookup order always bottoms out at `layouts/_default/`. typsphinx's `"typst"` reserved key does exactly this. |
-| Error (not silent fallback) on an unregistered/typo'd key | **Table stakes** | Sphinx: `validate_latex_theme_options()` warns+drops unknown *option* keys (not unknown *theme names* — an unknown `latex_theme` string is a harder LaTeX-level failure since it can't find the theme's `theme.conf`). typsphinx's own precedent (CONF-04's unknown-`typst_elements`-key `ExtensionError`) is a stricter bar than Sphinx's own warn-and-drop, and matches the milestone's "fail-loud" decision — reasonable to hold to a higher bar than upstream Sphinx here. |
-| Per-document assets travelling with the chosen template | **Table stakes** | Typst's own `[template]` `path` convention makes this the default expectation at the package level already; typsphinx's "copy the bundle wholesale" rule matches it exactly. |
-| Reusing one named template across several documents (many masters → one registry key) | **Table stakes**, not a differentiator | Quarto's `format:` sub-maps are shared across every document unless overridden per-document/per-directory; nothing in the precedent suggests 1:1 document-to-template cardinality is expected — N:1 is the norm. |
-| Per-document page size / paper size | **Differentiator** | No system surveyed exposes this as *only* a per-document-template axis distinct from the template's own logic — Sphinx's `latex_elements`/`typst_elements` equivalent is global (this milestone explicitly keeps `elements` global too, matching precedent, not diverging). |
-| Per-document language | **Differentiator**, and notably **absent from every precedent surveyed** — no tool's per-document/per-format registry carries a language override independent of the whole-project locale setting (Quarto: `lang` is global per `_quarto.yml`; Sphinx: `language` is a single project-wide config value with no per-`latex_documents`-entry override). This is out of scope for the current milestone and consistent with every precedent's own scope choice. | — |
-| A distinct template-function-parameter set per registry entry (the `params` route) | **Differentiator** — none of Pandoc/Quarto/Hugo/Asciidoctor expose "this named template gets this literal argument dict," because none of them have Typst's typed-function-call template model. This is a typsphinx-specific capability inherited from the pre-existing `typst_template_function` mechanism, not something borrowed from precedent — call this out to the roadmapper as genuinely novel, not validated by outside prior art. | — |
+| `#image("images/normal.png")` (forward slashes, real file) | **Yes** | — |
+| `#image("images\slash.png")` (one literal backslash in the string) | **No** | `TypstError: path must not contain a backslash` |
+| `#image("images\\slash.png")` (an *escaped* backslash — decodes to the same one literal backslash character, pointed at a real file literally named `back\slash.png` which POSIX filesystems permit) | **No** | `TypstError: path must not contain a backslash` |
+| `#image("images/quo'te.png")` (unescaped single quote, no such file) | Parses fine, fails on lookup | `TypstError: file not found (searched at .../images/quo'te.png)` |
+| `#image("images/quo"te.png")` (unescaped double quote — breaks the string literal itself) | **No** | `TypstError: unclosed delimiter` |
 
-### 4. Anti-features — what's been added and regretted or explicitly refused
+**The critical finding, decisive for how defect family 2 must be fixed:** Typst's rejection is
+**value-level**, not syntax-level. Escaping the backslash so it survives Typst's own string-literal
+parsing (`\\` in source → one `\` in the decoded string) does **not** help — Typst decodes the
+literal first and then refuses the *resulting path string* because it contains a backslash
+character at all, in any position, whether used as a directory separator or as an ordinary
+character inside a filename. `escape_typst_string()` (translator.py:156) is therefore **necessary
+but not sufficient** for this defect: it must be applied at the two emission sites
+(translator.py:4746, 4749) for defense-in-depth against other syntax-breaking characters (quotes,
+newlines) already handled correctly for the plain-URI path, but it **cannot** by itself make a
+backslash-bearing path acceptable to Typst — the backslash has to be gone from the *value* before
+it ever reaches the string literal.
 
-- **MkDocs refused a within-one-config multi-theme registry outright.** The maintainer's answer to a
-  real, repeatedly-requested feature ("branded doc sets from one content tree") was: don't add a
-  per-page/per-output theme key to `mkdocs.yml` — run the builder N times with N separate top-level
-  config files instead. Read as: **when a tool's output unit is fundamentally "one site," bolting a
-  named-registry selector onto the single config is the wrong shape** — the config file itself should
-  be the unit of "which template." typsphinx doesn't have this problem because its output unit is
-  already N PDFs from one `conf.py` (established at v0.8.0), so the "config file = one theme" workaround
-  doesn't apply — but this is the strongest evidence *against* assuming per-document template registries
-  are the default expected shape; they're conditional on the tool already having a multi-output-per-build
-  unit, which typsphinx does and MkDocs doesn't.
-- **Sphinx's `latex_docclass` is a cautionary shape, not a template registry to imitate.** It looks
-  like a registry (`dict[str, str]`) but is fixed at exactly two meaningful keys (`'howto'`, `'manual'`)
-  — extending it to arbitrary user-defined keys was never done; instead Sphinx built the *separate*,
-  properly-general `latex_theme`/`latex_theme_path` system for that. Lesson for typsphinx: don't grow
-  `typst_document_templates` keys by special-casing a fixed enum later — the milestone's decision to
-  make it a genuinely open `dict[str, ...]` from day one, with `"typst"` as the only reserved value,
-  avoids repeating this Sphinx wrinkle.
-- **Quarto's partial-merge trap on `format:`** — silently discarding formats not re-declared at a more
-  specific level when a document-level `format:` key is present at all — is exactly the failure mode
-  typsphinx's own docs already warn about for `params` (`configuration.rst`'s "silent trap" warning on
-  partial migration). No new anti-feature to add here; this milestone's design already avoids repeating
-  it for the *new* registry (declaring `template`/`package` xor, and `template_function` either absent
-  or complete, mirrors the same all-or-nothing rule Quarto had to document as a gotcha rather than fix).
-- **No evidence found of any surveyed tool having added and then removed a per-output template
-  selector.** The closest thing to a "regretted" per-document knob is Sphinx's `latex_theme_options`
-  warn-and-drop-unknown-key behavior, which is not a removal, just weaker validation than typsphinx's
-  own `ExtensionError` bar — nothing suggests the *existence* of per-document template selection itself
-  was ever walked back once shipped (LaTeX's `theme` slot has existed unchanged since 3.0, i.e. many
-  years, through the current 9.x line).
+I traced why a backslash currently survives into that value even though this project runs its
+Windows-affecting logic on Linux CI: `builder.py` imports `from os import path` (platform-native,
+line 12) — **not** `posixpath`, which the file also imports separately and uses elsewhere (e.g.
+`_is_absolute_image_uri()`, `_escapes_outdir()`). `_track_image()`'s escape branch builds its
+relocation key with `path.basename(resolved_uri)` (builder.py:1772), and confirmed directly:
+```python
+>>> from os import path
+>>> path.basename(r"C:\Users\x\img.png")   # on this POSIX CI runner
+'C:\\Users\\x\\img.png'                     # unsplit — posixpath.basename only splits on "/"
+>>> path.basename("C:/Users/x/img.png")
+'img.png'                                    # splits correctly once slashes are forward
+```
+On the `windows-latest` CI lane, `path` resolves to `ntpath` and this same call *would* split
+correctly — which is exactly why the milestone context notes "the `windows-latest` lane is green
+at HEAD and would stay green if nothing were fixed" (the gap is invisible unless a gate constructs
+a Windows-shaped URI and runs it through the POSIX-native code path, or runs a real backslash
+end-to-end through `typst.compile()` on Windows). The fix for the relocation-key half of this
+defect is therefore **normalize before `path.basename()`, the same idiom `_is_absolute_image_uri()`
+already uses** — not a change to `escape_typst_string()`'s own escaping rules.
 
-## Table Stakes (Users Expect These)
+## Feature Landscape
+
+### Table Stakes (must ship in v0.9.1 — required to close the three named defect families)
 
 | Feature | Why Expected | Complexity | Notes |
-|---|---|---|---|
-| Reserved "use the global config" key with zero-edit backward compatibility | Sphinx's own `latex_documents` per-entry default falls back to `config.latex_theme`; every existing `conf.py` with a bare four-tuple keeps building | LOW — already the milestone's `"typst"` design | Directly matches `default_latex_documents()`'s fallback behavior |
-| Fail-loud on unregistered registry key / typo | typsphinx's own CONF-04 precedent, stricter than Sphinx's warn-and-drop | LOW | Milestone already commits to `ExtensionError` |
-| Per-entry bundle (assets travel with the chosen template) | Typst's own `[template]` package convention already does this at the single-package granularity | MEDIUM — the "copy parent directory wholesale, no exceptions" rule this milestone adopts | Validated directly against Typst Universe's own template-package shape |
-| N documents sharing one named template | Quarto's format sub-maps and Sphinx's `latex_theme` are both N:1 by default | LOW | Registry-by-key naturally gives this; no extra work needed |
+|---------|--------------|------------|-------|
+| `_escapes_outdir()` normalizes `stem` (backslash→`/`) before applying `posixpath.isabs()` / `_is_drive_qualified()`, matching `_is_absolute_image_uri()`'s existing idiom | A driveless-absolute Windows-shaped target (`\manuals\guide`) must be refused exactly like its POSIX-shaped equivalent (`/manuals/guide`) already is — cross-platform-correctness is this project's own stated contract (D-05 in `_escapes_outdir()`'s own docstring) | LOW | Single-function fix: `builder.py:238`. `segments` (line 230) is already built from the normalized string — only the two predicate calls on the raw `stem` need to switch to the normalized value. Gate must be RED-first (currently no test drives a driveless-absolute Windows-shaped stem) |
+| Relocation key built from a **normalized** (forward-slash) basename, not `os.path.basename()` on a possibly-Windows-shaped raw URI | Root cause of defect family 2's compile failure — see (d) above. The key must never carry a literal `\` into the value that reaches `image("...")` | LOW-MEDIUM | `_track_image()`'s escape branch, `builder.py:1772`. Same normalize-before-decide idiom as the `_escapes_outdir()` fix — a shared helper for "normalize a possibly-foreign-shaped URI's basename" is a reasonable single source of truth for both this and the length-bound truncation below |
+| `escape_typst_string()` applied at both `image("...")` emission sites | Defense-in-depth for the *other* syntax-breaking characters a basename can legally contain (`"`, embedded newlines from a pathological third-party URI) — proven necessary in general by the `unclosed delimiter` result in the (d) table, even though it does **not** by itself fix the backslash defect | LOW | `translator.py:4746` and `:4749`. Must land together with the key-normalization fix above — escaping alone leaves the backslash-refusal in place, per (d) |
+| Relocation key's basename half truncated against a length bound, digest (`{digest8}-`) kept intact and un-truncated | `ENAMETOOLONG` at `copy_image_files()` time for a long basename; the digest is the only injective/collision-avoidance element (IMG-03 comment: "a PURE function of resolved_uri alone") and must never be the truncated half | MEDIUM | Same call site as above (`builder.py:1772-1776`). Sphinx's own `DownloadFiles` has an identical unbounded-length gap (see (b)) — no upstream precedent to crib the exact bound from; pick a conservative bound under the portable 255-byte-per-component filesystem limit. **No compile-visible symptom** (PROJECT.md constraint 3) — needs its own gate, a compile gate will not surface this |
+| One path-quoting helper: `repr()`'s quote-disambiguation (prefer `'`, switch to `"` if the value contains `'` and not `"`) applied to the raw path text, with **no** backslash-doubling | Verified in (c): plain `!r` doubles backslashes (wrong for Windows paths); a hardcoded `'...'` breaks on an embedded apostrophe (57-REVIEW WR-01, a real prior regression). Neither is correct in isolation | MEDIUM | New helper, routed through all ~13 call sites the milestone's own census names: `builder.py:942,964,965,999,1007,1008,1015,2056,2066,697,1767`, `writer.py:511-513`, `template_registry.py:410,422,433`. Identifier-valued `!r` sites (registry keys, docnames, config tuples) are explicitly **out of scope** and must stay `!r` |
+| Both quoting-gate halves pass | The existing no-doubled-separator property (`TestWindowsPathEscapingRegressionGuard`, `tests/test_templates_path_collision_gate.py`) plus the missing case 57-REVIEW IN-01 names: a path containing a literal `'`, delimited unambiguously | LOW (test-only; implementation is the helper above) | Both halves must gate the *same* helper, not two independently-passing partial implementations |
+| POSIX output byte-identical to pre-fix | Constraint 5 — proven the way 57-11 proved it: zero test edits to existing POSIX-only assertions | N/A (verification discipline, not a feature) | Applies to all four fixes above |
 
-## Differentiators (Competitive Advantage)
+### Differentiators (beyond the minimum bar — worth doing if cheap, not required to close the named defects)
 
 | Feature | Value Proposition | Complexity | Notes |
-|---|---|---|---|
-| Literal `params` argument dict per registry entry | No precedent tool has typed Typst-style function-call templates, so this parameter-injection model is typsphinx-specific, inherited from the already-shipped `typst_template_function` | MEDIUM (already exists per-global; extending per-registry-entry is what's new) | Not validated by outside prior art — flag as own design risk, not precedent-backed |
-| Per-document template selection inside a single build, without re-invoking the tool | Pandoc/Asciidoctor require a separate CLI invocation per template; MkDocs requires a separate config file per theme. typsphinx (like Sphinx's LaTeX builder) does it in one `sphinx-build` pass | MEDIUM — already largely built by the v0.8.0 wrapper/content split, which threads the specific `typst_documents` entry into `render_wrapper()` | This is genuinely rarer than the milestone brief's framing suggests; most peers punt to "just run the build twice" |
+|---------|--------------------|------------|-------|
+| Quoting helper also handles a path containing **both** `'` and `"` (repr()'s own fallback: pick `'`, backslash-escape only the `'` characters) | Slightly more robust than the minimum the milestone's own gate (57-REVIEW IN-01) requires — real Windows paths can never contain `"` at all (it's a reserved character NTFS/Windows itself refuses), so this case is nearly unreachable in production, but costs almost nothing once the quote-selection logic already exists | LOW (incremental over the table-stakes helper) | Purely a robustness margin — do not let it expand the helper's scope beyond "select delimiter, interpolate raw" |
+| Shared "normalize a possibly-foreign-shaped basename" helper used by *both* the relocation-key fix and any future Windows-shaped-input fix elsewhere in the codebase | Single source of truth, same rationale `_is_absolute_image_uri()` and `_escapes_outdir()` already share | LOW | Nice factoring, not required — the three sites could each inline `.replace("\\", "/")` and still close the defect |
 
-## Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (would seem plausible, explicitly do NOT do)
 
-| Feature | Why Requested | Why Problematic | Alternative |
+| Anti-Feature | Why It Seems Appealing | Why Problematic | Correct Alternative |
 |---|---|---|---|
-| Per-document *language* override in the registry | Multi-language project docs feels natural to want per-master | No precedent tool exposes this at the per-output-document granularity (Quarto/Sphinx both keep language whole-project); adding it here would be inventing unvalidated design, not following precedent | Leave `lang` derivation from Sphinx's project-wide `language` as-is (unchanged this milestone); revisit only if demand appears, informed by nothing in this survey |
-| Growing the registry into a fixed enum of "blessed" keys (mirroring `latex_docclass`'s `'howto'`/`'manual'` shape) | Feels safer/more guided than open string keys | Sphinx itself moved *away* from this shape (superseded by the general `latex_theme` system); repeating it would be adopting the deprecated-in-spirit half of Sphinx's own history, not the current one | Keep `typst_document_templates` a fully open `dict[str, ...]` with only `"typst"` reserved, as already decided |
-| Silent partial-merge when a registry entry declares only some of `template`/`package`/`template_function` | Looks convenient ("just override the one thing you need") | Quarto's own docs had to add an explicit warning for exactly this shape on `format:`; typsphinx already learned this lesson the hard way with `params` exclusivity | Keep the existing all-or-nothing rules (xor on `template`/`package`; `params` presence is the complete-set signal) — already the milestone's design |
+| Silently rewrite/sanitize a Windows-shaped escaping `typst_documents` target into a derived relative path, no warning | Matches the surface behaviour of "just make it work" | This project has **already decided** (pre-milestone) on refuse-loudly + fallback-to-basename for `_escapes_outdir()`'s escape cases; silently rewriting would hide a real config mistake from the author and contradicts the existing OUT-02 contract this milestone is only extending to Windows shapes, not revisiting | Keep the existing refuse+fallback+warn behaviour; only fix the *detection* (normalize before deciding) |
+| Copy Sphinx's own `latex_documents` policy of validating nothing | Sphinx is the closest upstream precedent and does literally zero path-shape validation (see (a)) | typsphinx already exceeds that bar; reverting to Sphinx's laissez-faire policy for consistency-with-upstream would be a regression the project has never asked for | Treat Sphinx's silence as evidence there is no external convention to defer to — keep typsphinx's stricter, already-built guard |
+| Use `!r` (bare `repr()`) for path-valued interpolation, for consistency with the identifier-valued sites | Looks uniform, `!r` is already used everywhere else in the file for identifiers | Doubles every backslash in a Windows path (verified in (c)) — directly reintroduces the class of defect this milestone exists to close | The new delimiter-aware helper, routed through path-valued sites only; identifier-valued `!r` stays untouched |
+| Hardcode a `'...'` f-string delimiter around a path (57-11's original approach) | Simple, one extra character | Breaks the moment the path contains an apostrophe — this is exactly 57-REVIEW WR-01, a real regression already caught once | The quote-disambiguation helper (table stakes, above) |
+| Generalize the relocation-key fix into full illegal-character sanitization for *all* Windows-reserved filename characters (`<>:"|?*`, reserved device names `CON`/`PRN`/`AUX`/`NUL`/`COM1-9`/`LPT1-9`) | Feels like "doing Windows path handling properly" while already in this code | Out of scope: none of these has a demonstrated compile-visible or copy-time failure the way backslash (Typst-level refusal) and length (`ENAMETOOLONG`) do; PROJECT.md's own defect-family enumeration names exactly two vectors for gap 2/3, not a general filename-sanitization pass | Leave as an explicit gap for a future milestone if a real report surfaces one of these characters in practice; do not speculatively build for it now |
+| Try to make the quoting helper losslessly round-trip *any* path (e.g. full shell-style escaping) | Feels more "correct" | No comparable tool (Sphinx, pip, mypy — see (c)) attempts this for human-facing diagnostics; the convention is delimiter selection for the common case, not general escaping | Delimiter-disambiguation only, matching the ecosystem convention actually observed |
 
 ## Feature Dependencies
 
 ```
-typst_document_templates registry (new)
-    └──requires──> v0.8.0 wrapper/content split (entry already threaded into render_wrapper())
-    └──requires──> existing resolve_template()/TemplateEngine per-key invocation (already per-master-capable post v0.8.0)
+Defect family 1 (escape-outdir normalization)
+    -- independent of families 2 and 3, single-function change (builder.py:238)
 
-Reserved "typst" key defers to global config
-    └──requires──> typst_document_templates registry existing at all
-    └──enhances──> zero-edit backward compatibility (matches Sphinx latex_documents precedent)
+Defect family 2 (image path safety)
+    [Normalize basename before path.basename()] ──required-precondition-for──> [Length-bound truncation]
+                                                                                     (truncation must act on
+                                                                                      the ALREADY-normalized
+                                                                                      basename, else it could
+                                                                                      truncate mid-backslash-
+                                                                                      run and reintroduce noise)
+    [Normalize basename before path.basename()] ──insufficient-alone,-needs──> [escape_typst_string() at
+                                                                                  both emission sites]
+        (see (d): escaping the backslash in Typst source does NOT stop Typst's
+         value-level refusal -- normalization removes the backslash from the
+         VALUE; escaping is still needed for OTHER syntax-breaking characters)
 
-Fail-loud unregistered-key / xor-violation errors
-    └──requires──> registry existing
-    └──enhances──> matches typsphinx's own CONF-04/BLD-02..04 precedent bar (stricter than Sphinx's own warn-and-drop)
-
-Bundle-copy-wholesale per key ("_template/<key>/")
-    └──requires──> registry existing (one bundle root per key, not one global _template.typ)
-    └──conflicts──> typst_template_assets (this milestone removes it — no assets key needed once every bundle is copied whole)
-
-Per-entry params (literal template-function arguments)
-    └──requires──> existing typst_template_function dict-form / params-exclusivity machinery (TemplateEngine.__init__'s params_specified)
-    └──conflicts──> per-entry title/author when params is declared (same exclusivity constraint that already exists globally, now scoped per registry entry)
+Defect family 3 (path-quoting helper)
+    -- independent of families 1 and 2; one helper, ~13 call sites, two gate halves
+       (no-doubled-separator + embedded-single-quote) must both pass against the
+       SAME helper implementation, not two partial ones
 ```
 
 ### Dependency Notes
 
-- **The registry requires the v0.8.0 wrapper/content split:** before v0.8.0, there was one shared
-  `.typ` output and one shared `_write_template_file()` call per build; the per-master
-  `render_wrapper()` call is what makes "which entry is this, so which registry key applies" a
-  question with a well-defined answer at the exact point template resolution happens. This milestone
-  is not buildable without v0.8.0's entry-aware wrapper.
-- **Bundle-copy-wholesale conflicts with `typst_template_assets`:** once every registry key's bundle
-  (including `"typst"`'s own) is copied in full with no selection mechanism, an asset-allowlist config
-  value has nothing left to filter — this is a genuine conflict (not just redundancy), which is why
-  the milestone brief removes `typst_template_assets` rather than keeping it inert.
-- **Fail-loud errors enhance (don't require) the registry:** they could technically ship as a laxer
-  warn-and-drop like Sphinx's own `latex_theme_options` validation, but the milestone's own precedent
-  (CONF-04) sets a stricter bar already in the codebase, so it's an internal-consistency dependency,
-  not a technical one.
-
-## MVP Definition
-
-### Launch With (v1 — this milestone, v0.9.0)
-
-- [ ] `typst_document_templates` dict registry (`template` xor `package`, plus `template_function`) —
-  essential: this is the entire feature
-- [ ] `"typst"` reserved key deferring to existing global config — essential for zero-edit backward
-  compatibility, matching the strongest precedent found (Sphinx `latex_documents` per-entry default)
-- [ ] Wholesale bundle-copy-per-key output rule — essential to make template-relative assets
-  (`#image("logo.png")`) actually work, which is a currently-documented-but-broken promise
-  (`templates.rst:106-113`)
-- [ ] Fail-loud errors on: unregistered key, `template`+`package` both set, user-defined `"typst"`
-  key, `template` pointing directly under `srcdir` — essential given this project's own CONF-04/BLD-02..04
-  precedent for config-time validation
-
-### Add After Validation (v1.x)
-
-- [ ] Nothing identified in this survey as a natural "add next" — no precedent tool exposes a
-  materially different per-document axis (page size, language) that isn't already covered by the
-  existing global `typst_elements`/`typst_template_function` machinery. If demand emerges, the closest
-  analog is Quarto's directory-level `_metadata.yml` override (apply a registry key to "everything
-  under this subtree" rather than naming it per-master) — not validated by this research, flag as
-  speculative.
-
-### Future Consideration (v2+)
-
-- [ ] Directory-convention resolution (Hugo-style implicit lookup order) as an alternative/adjunct to
-  the explicit dict registry — **not recommended**: it would add a second, weaker-precedent mechanism
-  alongside the stronger, already-decided explicit-registry shape, for no demonstrated need.
-
-## Feature Prioritization Matrix
-
-| Feature | User Value | Implementation Cost | Priority |
-|---|---|---|---|
-| `typst_document_templates` registry + `"typst"` reserved key | HIGH | MEDIUM | P1 |
-| Wholesale bundle-copy-per-key output rule | HIGH (fixes a documented-but-broken promise) | MEDIUM | P1 |
-| Fail-loud config validation (unregistered key, xor violation, reserved-key collision, srcdir-root template) | MEDIUM | LOW | P1 |
-| Deleting `typst_template_assets` / `_write_template_file()` / the three `.typ`-exclusion special cases | MEDIUM (reduces surface area, prevents inert config) | LOW (deletions, not additions per the milestone brief) | P1 |
-| Per-document language / page-size axis | LOW (no precedent demand found) | MEDIUM–HIGH | P3 (explicitly deferred) |
-
-## Competitor Feature Analysis
-
-| Feature | Sphinx LaTeX builder | Quarto | MkDocs | typsphinx's plan |
-|---|---|---|---|---|
-| Per-output-document template key | YES — `latex_documents[4]` (`theme`) | Partial — `format:` keys by *format*, not by *document*; directory-level `_metadata.yml` is the closest per-subtree override | NO — one theme per build; multi-theme needs multi-config | YES — `typst_documents[4]` → `typst_document_templates` key |
-| Reserved "use global" sentinel | YES — per-entry default *is* `config.latex_theme` | N/A (format-keyed, not document-keyed) | N/A | YES — `"typst"` |
-| Fail-loud on typo'd key | Partial — warns+drops unknown *option* keys, not unknown theme names | Partial — documented gotcha (silent partial-merge on `format`), not an error | N/A | YES — `ExtensionError`, stricter than either precedent |
-| Assets travel with the template automatically | Themes carry their own static files as part of the theme directory | N/A (Pandoc-format-specific, not Quarto's concern) | YES — theme dir is the whole theme | YES — wholesale bundle copy, matching Typst's own `[template]` `path` convention |
+- **Family 2's two sub-fixes are not substitutable for each other.** Landing only the
+  `escape_typst_string()` call (translator.py:4746/4749) without normalizing the relocation key
+  (builder.py:1772) still fails to compile — proven by the `test2_escaped_backslash.typ` result in
+  the (d) evidence table, where an *escaped* backslash still triggers `path must not contain a
+  backslash`. Landing only the key normalization without adding `escape_typst_string()` closes the
+  named defect but leaves the general syntax-breaking-character gap (`"` in a basename) unguarded —
+  both must ship in the same slice per PROJECT.md's own framing ("All three `_track_image()`
+  escape-branch gaps close in one slice").
+- **Truncation must run after normalization**, not before — truncating a not-yet-normalized
+  Windows-shaped basename risks truncating in the middle of a backslash run rather than a clean
+  forward-slash-delimited path segment, which would produce a nonsensical partial filename.
+- **The quoting helper (family 3) has no ordering dependency on families 1/2** — it touches
+  different files (`writer.py`, `template_registry.py`, unrelated `builder.py` warning sites) and
+  can be built and gated independently, though all three share the same underlying "Windows path
+  correctness" root cause and are reasonably sequenced together for the milestone's single
+  3-OS-CI acceptance bar (constraint 6).
 
 ## Sources
 
-- [Sphinx `latex_documents` / `latex_theme` / `latex_theme_options` / `latex_theme_path` / `latex_docclass` — `configuration.rst` on `sphinx-doc/sphinx` master](https://raw.githubusercontent.com/sphinx-doc/sphinx/master/doc/usage/configuration.rst) — HIGH, primary source, directly quoted
-- [Sphinx `default_latex_documents()` / `validate_latex_theme_options()` — `sphinx/builders/latex/__init__.py`](https://raw.githubusercontent.com/sphinx-doc/sphinx/master/sphinx/builders/latex/__init__.py) — HIGH, primary source
-- [Sphinx `man_pages` / `texinfo_documents` tuple shapes — Configuration docs](https://www.sphinx-doc.org/en/master/usage/configuration.html) — HIGH, primary source
-- [Sphinx 1.2 historical `latex_documents` docs (`documentclass` element, pre-`latex_theme`)](https://sphinx-rtd-trial.readthedocs.io/en/latest/config.html) — MEDIUM, archived third-party mirror of period-accurate Sphinx docs
-- [Pandoc User's Guide — `--template`, `--reference-doc`, `defaults` files, `templates/default.FORMAT` convention](https://pandoc.org/MANUAL.html) — HIGH, primary source
-- [Quarto `_quarto.yml` project format-nesting and the format-key no-partial-merge rule](https://quarto.org/docs/projects/quarto-projects.html) and [Including Other Formats](https://quarto.org/docs/output-formats/html-multi-format.html) — HIGH, primary source
-- [MkDocs `theme.custom_dir` docs](https://www.mkdocs.org/dev-guide/themes) — HIGH, primary source
-- [MkDocs maintainer answer on multi-theme-per-site (GitHub Discussion #3645)](https://github.com/mkdocs/mkdocs/discussions/3645) — MEDIUM, maintainer statement not a docs page, but authoritative for project intent
-- [Asciidoctor PDF theme application (`pdf-theme`/`pdf-themesdir` attributes)](https://docs.asciidoctor.org/pdf-converter/latest/theme/apply-theme) — HIGH, primary source
-- [Hugo template lookup order](https://gohugo.io/templates/lookup-order) — HIGH, primary source
-- [Typst package manifest — `[template]` table (`path`, `entrypoint`)](https://github.com/typst/packages/blob/main/docs/manifest.md) — HIGH, primary source
-- typsphinx internal: `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (v0.9.0 milestone brief) — HIGH, project's own decisions
-- typsphinx internal: `/home/yuta/Documents/typsphinx/docs/source/user_guide/configuration.rst`, `/home/yuta/Documents/typsphinx/docs/source/user_guide/templates.rst` — HIGH, current documented behavior being changed by this milestone
+- `sphinx.builders.latex` — read directly from the installed Sphinx 9.1.0 package
+  (`.venv/lib/python3.13/site-packages/sphinx/builders/latex/__init__.py`, lines 151-175, 299-350,
+  417-505, 526-533). HIGH confidence (primary source, this repo's own pinned dependency).
+- `sphinx.util._files.FilenameUniqDict` / `DownloadFiles` — read directly
+  (`.venv/lib/python3.13/site-packages/sphinx/util/_files.py`, full file). HIGH confidence.
+- `sphinx.util.osutil.make_filename` / `_no_fn_re` — read directly
+  (`.venv/lib/python3.13/site-packages/sphinx/util/osutil.py:147-155`). HIGH confidence.
+- pip wheel cache layout — [pip cache CLI docs](https://pip.pypa.io/en/stable/cli/pip_cache/) and
+  [Simon Willison's TIL on the pip cache directory](https://til.simonwillison.net/python/pip-cache),
+  cross-checked against the documented `wheels/<hash>/<hash>/<hash>/<name>.whl` layout. MEDIUM
+  confidence (web source, but corroborated by two independent descriptions and consistent with
+  pip's own documented "makes a subdirectory... places the resulting wheels inside" behaviour).
+- mypy diagnostic quoting — read directly from the installed mypy package
+  (`.venv/lib/python3.13/site-packages/mypy/build.py:4296`,
+  `.venv/lib/python3.13/site-packages/mypy/modulefinder.py:92,95`). HIGH confidence (primary
+  source, this repo's own pinned dev dependency).
+- Python `repr()` quote-selection and backslash-doubling behaviour — measured directly,
+  `python3` one-liners in this repo's environment (see (c) above for the exact transcript). HIGH
+  confidence (reproduced, not recalled).
+- Typst `image("...")` path acceptance — measured directly with `typst.compile()` against the
+  `typst-py` version pinned in this repo's `.venv`, using synthesized real PNG files on disk (see
+  (d) above for the full transcript, including the exact `TypstError` strings). HIGH confidence
+  (reproduced against this repo's own pinned Typst version, not documentation-only).
+- typsphinx's own `builder.py` / `translator.py` — read directly at the line ranges the milestone
+  context names (`_escapes_outdir` builder.py:190-300, `_track_image` builder.py:1650-1800,
+  `escape_typst_string` translator.py:156-186, `visit_image` translator.py:4718-4760). HIGH
+  confidence (primary source, this repository).
 
 ---
-*Feature research for: per-document template registries in documentation toolchains*
-*Researched: 2026-08-15*
+*Feature research for: typsphinx v0.9.1 "Windows path correctness"*
+*Researched: 2026-08-27*
