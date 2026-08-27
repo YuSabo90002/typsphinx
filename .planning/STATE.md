@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-22 at the v0.9.0 milestone close)
+See: .planning/PROJECT.md (updated 2026-08-28 after Phase 58 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 58 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27). A
+**Current focus:** Phase 59 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28). A
 bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
 the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
 path-quoting helper that closes **both** halves of
