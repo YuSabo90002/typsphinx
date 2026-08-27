@@ -536,3 +536,257 @@ the running count to `8`, exactly as expected.
 `ruff` in this worktree's venv could not execute (the same NixOS dynamic-linker hazard recorded
 above for Task 1). The `nix-shell -p ruff --run "ruff check tests/test_path_naming_predicate.py"`
 retry succeeded with `All checks passed!`.
+
+## SC#1/SC#2 (b) — post-rewrite green: image-rehome warning
+
+Recorded AFTER `tests/test_builder.py`'s `test_post_process_images_rehome_escape_relocates_with_warning`
+pass criterion was rewritten from `assert repr(abs_uri) in message` onto
+`assert path_named_in(abs_uri, message)`, consuming the shared predicate plan 58-01 created in
+`tests/_path_naming.py`.
+
+`uv run pytest tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q`:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py .                                                  [100%]
+
+============================== 1 passed in 0.13s ===============================
+```
+
+`1 passed`, zero skips.
+
+`uv run pytest tests/test_builder.py -q` — the whole module, proving the added import broke
+nothing else in a 600-line file:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 31 items
+
+tests/test_builder.py ...............................                    [100%]
+
+============================== 31 passed in 0.34s ==============================
+```
+
+`31 passed`, zero skips.
+
+The AST pass-criterion count for this file, run as
+`uv run python -c "import ast,pathlib;t=ast.parse(pathlib.Path('tests/test_builder.py').read_text(encoding='utf-8'));print(sum(1 for a in ast.walk(t) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+0
+```
+
+It measured `1` at the phase base. This number moving from 1 to 0 IS SC#1 for this file.
+
+The whole-tree count, run as
+`uv run python -c "import ast,pathlib;print(sum(1 for f in pathlib.Path('tests').rglob('*.py') if '__pycache__' not in f.parts for a in ast.walk(ast.parse(f.read_text(encoding='utf-8'))) if isinstance(a,ast.Assert) for s in ast.walk(a.test) if (isinstance(s,ast.Call) and isinstance(s.func,ast.Name) and s.func.id=='repr') or (isinstance(s,ast.FormattedValue) and s.conversion==114)))"`:
+
+```
+7
+```
+
+`SC#3 — path-valued pass-criterion count is now zero`. It was `9` at the phase base and `8` after
+plan 58-01; this plan's rewrite removes the second and final path-valued site, moving the running
+count to `7` — exactly the seven non-path sites, with zero path-valued sites remaining.
+
+`uv run black --check tests/test_builder.py`:
+
+```
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+```
+
+Exit code 0. (An intermediate `assert path_named_in(\n    abs_uri, message\n), f"..."` shape was
+first tried; `black` reformatted it onto three lines, which split the literal
+`path_named_in(abs_uri, message)` substring the plan's own acceptance criterion greps for across a
+line break. Shortened the failure-message f-string so the whole `assert` statement fits black's
+88-column limit on one physical line — `black --check` now reports the file unchanged, and the
+literal substring the acceptance grep needs is intact.)
+
+`uv run ruff check tests/test_builder.py` in this worktree's venv:
+
+```
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+### ruff could not execute in this worktree
+
+The same NixOS dynamic-linker hazard recorded in plan 58-01's evidence. The
+`nix-shell -p ruff --run "ruff check tests/test_builder.py"` retry:
+
+```
+All checks passed!
+```
+
+Lint authority for this file falls to CI (the freshly-synced worktree venv's `ruff` is a
+generic-linux ELF that cannot exec on this NixOS host; this is an environment defect, not a code
+RED).
+
+`git status --porcelain typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+## SC#2 (c) — recorded falsification: builder.py:1767 (image-rehome warning)
+
+D-05(b): a real, temporary edit to `typsphinx/builder.py`'s image-rehome warning, dropping ONLY the
+`{resolved_uri!r}` interpolation while leaving the `key` interpolation (and its `!r` conversion)
+untouched — the same-basename analogue of the D-03 trap: the relocation key ends in the same
+basename (`chart.png`) as the URI it replaced, so a message still carrying `key` is exactly the
+shape a basename-based predicate would wrongly accept. Made, measured, and reverted inside this
+single task; the edit never survived to a commit.
+
+**Step 1 — the falsifying edit.** `git diff -- typsphinx/builder.py` while the edit was in place:
+
+```diff
+diff --git a/typsphinx/builder.py b/typsphinx/builder.py
+index a967a58c..28cb51a3 100644
+--- a/typsphinx/builder.py
++++ b/typsphinx/builder.py
+@@ -1764,7 +1764,7 @@ class TypstBuilder(Builder):
+                     f"{path.basename(resolved_uri)}"
+                 )
+                 logger.warning(
+-                    f"could not rehome image URI {resolved_uri!r} relative "
++                    f"could not rehome image URI relative "
+                     f"to the doctree directory -- relocated to {key!r}"
+                 )
+             elif path.isfile(path.join(self.srcdir, rel_uri)):
+```
+
+The literal `could not rehome image URI` survives intact (only the `resolved_uri` interpolation
+inside the f-string is removed), and the `key` interpolation with its `!r` conversion is left fully
+in place.
+
+**Step 2 — the RED.** `uv run pytest
+tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` — whole
+output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py F                                                  [100%]
+
+=================================== FAILURES ===================================
+________ test_post_process_images_rehome_escape_relocates_with_warning _________
+
+temp_sphinx_app = <SphinxTestApp buildername='html'>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x71f8f3bc12b0>
+
+    def test_post_process_images_rehome_escape_relocates_with_warning(
+        temp_sphinx_app, caplog
+    ):
+        """
+        D-05/D-06: an absolute URI whose rehome result cannot possibly sit
+        under doctreedir -- built from the filesystem root -- is relocated
+        to the reserved namespace plus a short hash prefix plus the basename
+        of the ORIGINAL absolute URI, and emits exactly one WARNING naming
+        the offending URI.
+        ...
+        """
+        ...
+        warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warning_records) == 1
+        message = warning_records[0].getMessage()
+        assert "could not rehome image URI" in message
+        # Format-agnostic: holds whether the message site quotes with `!r`
+        # (today), a hardcoded '{value}', or MSG-02's delimiter-aware helper
+        # (Phase 60) -- asserting that the URI is NAMED in the message, not
+        # asserting a particular representation of it.
+>       assert path_named_in(abs_uri, message), f"{abs_uri!r} not named in {message!r}"
+E       AssertionError: '/typsphinx_test_50_03_escape_root/chart.png' not named in "WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'"
+E       assert False
+E        +  where False = path_named_in('/typsphinx_test_50_03_escape_root/chart.png', "WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'")
+
+tests/test_builder.py:597: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: could not rehome image URI relative to the doctree directory -- relocated to '_typst_converted/bb60dcd8-chart.png'
+=========================== short test summary info ============================
+FAILED tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning
+============================== 1 failed in 0.15s ===============================
+```
+
+`1 failed`, containing the literal `AssertionError` and `path_named_in`.
+
+**Attribution.** The failure raises at `tests/test_builder.py:597`, the
+`assert path_named_in(abs_uri, message)` line — the naming assertion specifically. Neither
+`assert len(warning_records) == 1` nor `assert "could not rehome image URI" in message` failed:
+exactly one WARNING record is still emitted and the literal substring `could not rehome image URI`
+is still present in its message (only the `resolved_uri` interpolation was removed, not the whole
+message), so both of those assertions passed and the failure is attributable to the naming
+predicate alone finding the URI absent — the surviving `key` field (`'_typst_converted/bb60dcd8-chart.png'`)
+shares the basename `chart.png` with the removed `abs_uri`, exactly the same-basename trap shape,
+and the full-value predicate correctly refuses to be satisfied by it.
+
+**Step 3 — revert and prove it.**
+
+```
+$ git checkout -- typsphinx/builder.py
+$ git status --porcelain typsphinx/
+(empty)
+$ git diff --stat -- typsphinx/
+(empty)
+```
+
+**Step 4 — re-prove green on the restored tree.** `uv run pytest
+tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` — whole
+output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae1cc6425a290e0e7
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_builder.py .                                                  [100%]
+
+============================== 1 passed in 0.13s ===============================
+```
+
+`1 passed`, zero skips. The same test, same command: RED under the falsification, GREEN against the
+real (restored) product message.
+
+### SC#2 — the three recorded runs, both sites
+
+| Site | Pre-rewrite green | Post-rewrite green | Recorded RED |
+|---|---|---|---|
+| `tests/test_out02_escape_target_gate.py:134` (docname target) | `## SC#2 (a)` above | `## SC#1/SC#2 (b) — post-rewrite green: escape-target gate` above | `## SC#2 (c) — recorded falsification: builder.py:697 (docname target warning)` above |
+| `tests/test_builder.py:598` (image-rehome) | `## SC#2 (a)` above (this file's baseline is recorded in the same section, run before either rewrite) | `## SC#1/SC#2 (b) — post-rewrite green: image-rehome warning` above | `## SC#2 (c) — recorded falsification: builder.py:1767 (image-rehome warning)` above (this section) |
+
+**SC#4 scope observation.** `git diff --stat -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --name-only 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/` (the phase-base
+SHA recorded in `## SC#2 (a)` above):
+
+```
+```
+
+Empty — no output. `typsphinx/` is byte-identical to the phase base at this point in the plan,
+proven both against the working tree and against the phase-base SHA.
