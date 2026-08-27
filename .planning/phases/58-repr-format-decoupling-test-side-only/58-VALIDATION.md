@@ -59,11 +59,12 @@ task must map onto.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | MSG-01 | — | `path_named_in` distinguishes "value named" from "value absent, same-basename sibling present" (D-01/D-03) | unit (meta-test) | `uv run pytest tests/test_path_naming_predicate.py -x` | ❌ W0 — new file | ⬜ pending |
-| TBD | TBD | TBD | MSG-01 | — | Escape-target-gate test passes pre- and post-rewrite against a real `sphinx-build` subprocess (D-02) | integration | `uv run pytest tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof -q` | ✅ exists, rewritten in place | ⬜ pending |
-| TBD | TBD | TBD | MSG-01 | — | Image-rehome warning test passes pre- and post-rewrite against a real `builder.post_process_images()` call | integration | `uv run pytest tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` | ✅ exists, rewritten in place | ⬜ pending |
-| TBD | TBD | TBD | MSG-01 | T-58-01 | A real, recorded falsification (temporary `builder.py` edit dropping the path field) turns **both** rewritten tests RED (D-05b) | manual-only, recorded | Run the two commands above against the temporarily-edited `builder.py`; record RED verbatim in `58-DECOUPLING-EVIDENCE.md`; `git checkout typsphinx/builder.py`; record `git status --porcelain typsphinx/` empty | ❌ W0 — one-time recorded procedure, not a permanent test (by construction the falsifying edit must not survive) | ⬜ pending |
-| TBD | TBD | TBD | MSG-01 | — | The `repr()`/`!r` pass-criterion set in `tests/` stays at exactly the recorded allowlist (D-08/D-09) | unit (static analysis) | `uv run pytest tests/test_repr_census_guard.py -x` | ❌ W0 — new file | ⬜ pending |
+| 58-01-T3 | 58-01 | 1 | MSG-01 | T-58-02 | `path_named_in` distinguishes "value named" from "value absent, same-basename sibling present" (D-01/D-03) | unit (meta-test) | `uv run pytest tests/test_path_naming_predicate.py -x` | ❌ W0 — new file | ⬜ pending |
+| 58-01-T1 | 58-01 | 1 | MSG-01 | — | Escape-target-gate test passes pre- and post-rewrite against a real `sphinx-build` subprocess (D-02) | integration | `uv run pytest tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof -q` | ✅ exists, rewritten in place | ⬜ pending |
+| 58-01-T1 (pre) / 58-02-T1 (post) | 58-01, 58-02 | 1, 2 | MSG-01 | — | Image-rehome warning test passes pre- and post-rewrite against a real `builder.post_process_images()` call | integration | `uv run pytest tests/test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning -q` | ✅ exists, rewritten in place | ⬜ pending |
+| 58-01-T2 / 58-02-T2 | 58-01, 58-02 | 1, 2 | MSG-01 | T-58-01 | A real, recorded falsification (temporary `builder.py` edit dropping the path field) turns **both** rewritten tests RED (D-05b) | manual-only, recorded | Run the two commands above against the temporarily-edited `builder.py`; record RED verbatim in `58-DECOUPLING-EVIDENCE.md`; `git checkout typsphinx/builder.py`; record `git status --porcelain typsphinx/` empty | ❌ W0 — one-time recorded procedure, not a permanent test (by construction the falsifying edit must not survive) | ⬜ pending |
+| 58-03-T1 | 58-03 | 3 | MSG-01 | T-58-02 | The `repr()`/`!r` pass-criterion set in `tests/` stays at exactly the recorded allowlist (D-08/D-09) | unit (static analysis) | `uv run pytest tests/test_repr_census_guard.py -x` | ❌ W0 — new file | ⬜ pending |
+| 58-03-T3 | 58-03 | 3 | MSG-01 | T-58-01, T-58-06 | Phase gate green (full suite + `black --check .`), SC#4 proven at phase scope against the recorded base SHA, and the milestone branch on `origin` with a tracking upstream and no decoy sibling (D-10 / SC#5) | integration + CLI | `uv run pytest -q && uv run black --check . && git rev-parse --abbrev-ref 'gsd/v0.9.1-windows-path-correctness@{upstream}'` | ✅ suite exists; the push is a one-time recorded CLI action | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -73,10 +74,17 @@ task must map onto.
 
 - [ ] `tests/_path_naming.py` — the shared format-agnostic naming predicate (D-04)
 - [ ] `tests/test_path_naming_predicate.py` — permanent meta-tests, including the D-03 fallback-trap case (D-05a)
-- [ ] `tests/test_repr_census_guard.py` (planner may rename) — AST-based census guard (D-08/D-09)
-- [ ] `58-REPR-CENSUS.md` — the written, classified census table (D-08, SC#3)
-- [ ] `58-DECOUPLING-EVIDENCE.md` — the recorded real-falsification procedure and its verbatim output (D-05b, D-06, D-07)
+- [ ] `tests/test_repr_census_guard.py` — AST-based census guard (D-08/D-09); name kept as seeded (plan 58-03)
+- [ ] `58-REPR-CENSUS.md` — the written, classified census table (D-08, SC#3) (plan 58-03)
+- [ ] `58-DECOUPLING-EVIDENCE.md` — the recorded real-falsification procedure and its verbatim output (D-05b, D-06, D-07) (created by plan 58-01, appended by 58-02 and 58-03)
+- [ ] `COVERAGE.md` — the reasoned, matrix-free external-API declaration the seal-time gate accepts (plan 58-01)
 - [ ] No framework install needed — `pytest`, `ast`, `pathlib` are all already present.
+
+**Planner resolution of RESEARCH.md Open Question 1** (one shared script vs. two independent ones):
+one file. `tests/test_repr_census_guard.py` holds both the `ast` sweep (`_collect_pass_criterion_repr_sites()`)
+and the recorded `PASS_CRITERION_REPR_ALLOWLIST`, and `58-REPR-CENSUS.md` transcribes that sweep's own
+output. A separate `tests/_repr_census.py` would move the allowlist away from the sweep and make the
+mandatory self-exclusion (D-09) span two files for no gain.
 
 ---
 
