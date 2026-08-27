@@ -2,9 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
+current_phase: 58
+current_phase_name: "`repr()`-Format Decoupling (test-side only)"
 status: planning
-last_updated: "2026-08-27T13:40:00.000Z"
+stopped_at: Phase 58 context gathered
+last_updated: "2026-08-27T14:01:25.975Z"
 last_activity: 2026-08-27
+last_activity_desc: "Phase 58 context gathered: 10 decisions locked (D-01..D-10), 4 gray areas delegated by owner"
+state_head: 19bc9cdc02fedbebf90dd32d59a7b004f9189dcf
 progress:
   total_phases: 4
   completed_phases: 0
@@ -92,12 +97,14 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — not started
+Phase: 58 of 61 — `repr()`-Format Decoupling (test-side only) — context gathered, not planned
 Plan: — (no plans yet; run `/gsd-plan-phase 58`)
-Status: Roadmap created — awaiting phase planning
+Status: Context captured — awaiting phase planning
 Progress: [                    ] 0% (0/4 phases, 0 plans complete)
-Last activity: 2026-08-27 — v0.9.1 roadmap created: Phases 58–61, 11/11 v1 requirements mapped,
-zero orphans, zero duplicates
+Last activity: 2026-08-27 — Phase 58 context gathered: D-01..D-10 locked (two-form naming
+predicate applied to the extracted warning line, `tests/_path_naming.py` leaf helper, both
+falsification routes required, two-axis census + AST guard). All four gray areas delegated by the
+owner; four matched todos reviewed, none folded (they carry `resolves_phase` 59/60/46).
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because
@@ -953,12 +960,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in flight.
+**Resume file:** .planning/phases/58-repr-format-decoupling-test-side-only/58-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-27 — v0.9.1 roadmap created (Phases 58–61)
-Stopped at: roadmap written, 11/11 requirements mapped, no phase planned yet
+Last session: 2026-08-27T14:01:25.960Z
+Stopped at: Phase 58 context gathered
 Resume: `/gsd-plan-phase 58` — `repr()`-Format Decoupling, test-side only, and the phase that pushes
 `gsd/v0.9.1-windows-path-correctness` to `origin`.
 
