@@ -761,7 +761,7 @@ evidence.
   real-compile gate.
 
 - **2026-08-27** — Milestone invariant #5 encoded as Phase 58's SC#5, with the branch **measured
-  rather than assumed**: `gsd/v0.9.1-milestone` is three commits ahead of `main`, has no upstream
+  rather than assumed**: at roadmap time `gsd/v0.9.1-milestone` was three commits ahead of `main`, had no upstream
   configured, and nothing matching `0.9.1` exists on `origin`. v0.9.0 had to correct an
   identically-named decoy mid-milestone (`gsd/v0.9.0-milestone` sat at the merge-base with zero
   milestone commits); this one is the real milestone branch, checked before it was written down.
@@ -960,7 +960,7 @@ directory for each earlier milestone).
 Last session: 2026-08-27 — v0.9.1 roadmap created (Phases 58–61)
 Stopped at: roadmap written, 11/11 requirements mapped, no phase planned yet
 Resume: `/gsd-plan-phase 58` — `repr()`-Format Decoupling, test-side only, and the phase that pushes
-`gsd/v0.9.1-milestone` to `origin`.
+`gsd/v0.9.1-windows-path-correctness` to `origin`.
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API
@@ -980,7 +980,7 @@ structural risk on the horizon and has never been scoped into any milestone, and
 ## Operator Next Steps
 
 - Plan the first phase with `/gsd-plan-phase 58`. It is test-side only (MSG-01) and ships no
-  `typsphinx/` change; its SC#5 also pushes `gsd/v0.9.1-milestone` to `origin`, which has never been
+  `typsphinx/` change; its SC#5 also pushes `gsd/v0.9.1-windows-path-correctness` to `origin`, which has never been
   done for this milestone.
 
 - Read ROADMAP.md's 14 binding constraints before planning any phase. Constraints 2, 3, 4 and 5 are

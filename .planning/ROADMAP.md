@@ -146,7 +146,8 @@ questions):
 
 12. **Push the milestone branch to `origin` from the FIRST phase** (milestone invariant #5, adopted
     v0.7.1, paid four times over in v0.8.0). Measured 2026-08-27: the branch actually carrying this
-    milestone's commits is **`gsd/v0.9.1-milestone`** — three commits ahead of `main`, no upstream
+    milestone's commits is **`gsd/v0.9.1-windows-path-correctness`** — see the CORRECTED note in Roadmap
+    Evolution below. No upstream
     configured, and nothing matching `0.9.1` on `origin`. Unlike v0.9.0's identically-shaped decoy
     (`gsd/v0.9.0-milestone`, which sat at the merge-base with zero milestone commits), this one *is*
     the milestone branch. Phase 58 carries it as SC#5; every later phase inherits it.
@@ -222,7 +223,9 @@ backslash-free path is the `!r` form the message already contains) and breaks on
      phase's own range. This is a test-side decoupling; a product change here would confound the
      next two phases' evidence.
 
-  5. **The milestone branch is on `origin`.** `gsd/v0.9.1-milestone` — measured at roadmap time as
+  5. **The milestone branch is on `origin`.** `gsd/v0.9.1-windows-path-correctness` (see the
+     CORRECTED 2026-08-27 note in Roadmap Evolution — the roadmapper named
+     `gsd/v0.9.1-milestone`, which the commit helper then superseded) — measured at roadmap time as
      three commits ahead of `main` with no upstream and nothing matching `0.9.1` on the remote — is
      pushed and tracking, from this first phase rather than at the release PR (milestone invariant
      #5).
@@ -429,7 +432,22 @@ the active milestone only.
     have landed — which is possible in exactly one phase.
 
 - **2026-08-27** — Milestone invariant #5 (push the branch from the first phase) encoded as Phase
-  58's SC#5. The milestone branch was **measured, not assumed**: `gsd/v0.9.1-milestone` is three
+  58's SC#5. The milestone branch was **measured, not assumed**: `gsd/v0.9.1-windows-path-correctness`
+
+    **CORRECTED 2026-08-27, after the roadmap commit.** The roadmapper measured
+    `gsd/v0.9.1-milestone` as the live milestone branch, and that was true when it measured. The
+    very next `commit` call then derived the canonical name from `config.json`'s
+    `git.milestone_branch_template` (`gsd/{milestone}-{slug}`), created
+    `gsd/v0.9.1-windows-path-correctness`, and switched to it -- so the roadmap commit `e257e70d`
+    landed there while the three earlier commits' branch pointer stayed behind at `441266a4`.
+    Measured immediately after: the two were strictly linear (merge-base `441266a4`, 1 commit ahead,
+    0 behind), so nothing diverged and nothing was lost. `gsd/v0.9.1-milestone` was deleted as a
+    zero-unique-commit ancestor, precisely so it could not become the mid-milestone decoy v0.9.0
+    had to correct. **The canonical branch is `gsd/v0.9.1-windows-path-correctness`** -- the name
+    the tooling will keep re-deriving on every commit, so it is the one Phase 58's SC#5 pushes.
+    Restore the deleted pointer with `git branch gsd/v0.9.1-milestone 441266a4` if ever needed.
+
+  At roadmap time `gsd/v0.9.1-milestone` was three
   commits ahead of `main`, has no upstream configured, and nothing matching `0.9.1` exists on
   `origin`. v0.9.0's roadmap had to correct an identically-named decoy mid-milestone; this one is the
   real branch, checked before it was written down.
