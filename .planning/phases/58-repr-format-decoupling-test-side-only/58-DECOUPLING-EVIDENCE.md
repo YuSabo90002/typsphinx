@@ -943,3 +943,183 @@ tests/test_repr_census_guard.py ....                                     [100%]
 load-bearing, and this one has now been seen RED against a real, deliberately introduced
 pass-criterion site — attributed specifically to the census-equality assertion, reverted cleanly,
 and re-proven green on the restored tree.
+
+## Phase gate — full suite, formatting, lint
+
+`uv run pytest -q` — the full suite, verbatim final summary line (full transcript run in this
+worktree; zero failures):
+
+```
+================= 1437 passed, 5 skipped in 123.26s (0:02:03) ==================
+```
+
+All zero failures — no re-run against the phase-base SHA is needed. For completeness, the five
+skips (re-run with `-rs` to capture reasons) are all pre-existing and environment-gated, unrelated
+to this phase's changes:
+
+```
+SKIPPED [1] tests/test_changelog_page_gate.py:167: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:176: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:186: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:218: myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01)
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1437 passed, 5 skipped in 121.58s (0:02:01) ==================
+```
+
+`uv run black --check .` — whole tree, verbatim:
+
+```
+All done! ✨ 🍰 ✨
+342 files would be left unchanged.
+```
+
+Exit code 0.
+
+`uv run ruff check .` — whole tree, in this worktree's venv:
+
+```
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+### ruff could not execute in this worktree
+
+The same NixOS dynamic-linker hazard recorded in plans 58-01 and 58-02's evidence: the
+freshly-synced worktree venv's `ruff` binary is a generic-linux ELF that cannot exec on this NixOS
+host — an environment defect, not a code RED. Retry via
+`nix-shell -p ruff --run "ruff check ."`:
+
+```
+All checks passed!
+```
+
+Lint authority for this phase falls to CI, consistent with plans 58-01 and 58-02.
+
+`uv run mypy typsphinx/` — recorded as a no-change control, since this phase changes no file under
+`typsphinx/`:
+
+```
+Success: no issues found in 8 source files
+```
+
+This result must be, and is, byte-identical in shape to the pre-phase baseline: `typsphinx/` has
+zero commits in this phase's range (proven in `## SC#4` below), so mypy has nothing new to report.
+
+## SC#4 — no file under typsphinx/ changed by this phase
+
+The phase-base SHA is `3b0f2b93f924f28eba94a0e92ea76996e9d743ad`, recorded in the `## SC#2 (a)`
+section above (`git rev-parse HEAD` — this worktree's HEAD before any edit in plan 58-01).
+
+`git status --porcelain typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --name-only -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git diff --stat 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/`:
+
+```
+```
+
+Empty — no output.
+
+`git log --oneline 3b0f2b93f924f28eba94a0e92ea76996e9d743ad..HEAD -- typsphinx/`:
+
+```
+```
+
+Empty — no output. No commit in this phase's range touches `typsphinx/` at all, proven at phase
+scope (not merely per task) against the same base SHA plans 58-01 and 58-02 measured their own
+per-task checks against.
+
+## SC#5 — milestone branch on origin
+
+`git rev-parse gsd/v0.9.1-windows-path-correctness` — the local tip about to be published:
+
+```
+3bce62b793824e23671059a600c2bd10ebe52580
+```
+
+`git ls-remote --heads origin` filtered for `0.9.1` — expected to match nothing before the push:
+
+```
+(no match)
+```
+
+`git branch --list 'gsd/v0.9.1-milestone'` — expected empty. This project's commit helper creates a
+decoy `gsd/<milestone>-milestone` sibling most rounds; none exists this round:
+
+```
+(empty)
+```
+
+`git push -u origin gsd/v0.9.1-windows-path-correctness` — whole output verbatim:
+
+```
+remote:
+remote: Create a pull request for 'gsd/v0.9.1-windows-path-correctness' on GitHub by visiting:
+remote:      https://github.com/YuSabo90002/typsphinx/pull/new/gsd/v0.9.1-windows-path-correctness
+remote:
+To https://github.com/YuSabo90002/typsphinx.git
+ * [new branch]        gsd/v0.9.1-windows-path-correctness -> gsd/v0.9.1-windows-path-correctness
+branch 'gsd/v0.9.1-windows-path-correctness' set up to track 'origin/gsd/v0.9.1-windows-path-correctness'.
+```
+
+`git branch -vv` filtered to the milestone branch — the line carries the
+`[origin/gsd/v0.9.1-windows-path-correctness]` tracking marker:
+
+```
++ gsd/v0.9.1-windows-path-correctness      3bce62b7 (/home/yuta/Documents/typsphinx) [origin/gsd/v0.9.1-windows-path-correctness] docs(phase-58): update tracking after wave 2
+```
+
+`git ls-remote --heads origin gsd/v0.9.1-windows-path-correctness` — returns a SHA:
+
+```
+3bce62b793824e23671059a600c2bd10ebe52580	refs/heads/gsd/v0.9.1-windows-path-correctness
+```
+
+`git ls-remote --heads origin 'gsd/v0.9.1-milestone'` — must return nothing:
+
+```
+(no output)
+```
+
+`git rev-parse --abbrev-ref 'gsd/v0.9.1-windows-path-correctness@{upstream}'` — must print exactly
+`origin/gsd/v0.9.1-windows-path-correctness`:
+
+```
+origin/gsd/v0.9.1-windows-path-correctness
+```
+
+`git tag -l 'v0.9.1*'` and `git ls-remote --tags origin 'v0.9.1*'` — both must produce no output,
+proving this phase created no tag:
+
+```
+(no output)
+(no output)
+```
+
+**Two honest notes.**
+
+First: the pushed tip is this worktree's view of the milestone branch as of this wave's start
+(`3bce62b7`, carrying plans 58-01 and 58-02's commits, but not this plan's own three commits, which
+land on the branch only after the orchestrator merges this worktree back). A remote that is a few
+commits behind the phase's final tip is expected and is not a failure of SC#5, whose wording is
+about the branch being on `origin` and tracking, not about the remote holding every commit this
+phase will ever produce.
+
+Second: `.github/workflows/ci.yml`'s `push` and `pull_request` triggers are scoped to `main` and
+`develop` only (verified: lines 3-8 of that file), so this push dispatches no CI run. Phase 58's
+SC#5 does not require one — the fresh 3-OS lane belongs to the product-code phases (59-61) whose
+success criteria name it explicitly. Recorded as RESEARCH.md Assumption A2, resolved by re-reading
+SC#5's literal wording at plan time, not by preference.
