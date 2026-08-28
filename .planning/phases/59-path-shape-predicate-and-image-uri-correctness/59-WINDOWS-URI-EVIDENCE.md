@@ -79,7 +79,66 @@ $ git diff --stat -- typsphinx/builder.py
 (empty)
 ```
 
-(filled further by plan 59-01 task 3: the through-call-site characterization pin)
+### Characterization: byte-identical at both call sites
+
+D-09/D-10: `TestEscapesOutdirCallSiteCharacterization` runs THROUGH both production call sites
+(`_resolve_target_stem()` and `_track_image()`), parametrized over the five documented shapes
+(driveless-absolute, unc, drive-qualified, posix-absolute, ordinary-relative). Command, run
+identically against both trees:
+
+```
+uv run pytest tests/test_path_shape_predicate_gate.py -k characterization -q
+```
+
+**Pre-fix tree.** `git checkout ec6bd3a4714a578379ee45e02295abc31fdd8fe3 -- typsphinx/builder.py`
+(restoring the pre-fix `_escapes_outdir()` while keeping the new tests), then the command above —
+whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a370176102829d43d
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 14 items / 2 deselected / 12 selected
+
+tests/test_path_shape_predicate_gate.py ............                     [100%]
+
+======================= 12 passed, 2 deselected in 0.27s =======================
+```
+
+**Post-fix tree.** `git checkout HEAD -- typsphinx/builder.py` (restoring the fixed predicate;
+`git diff --stat -- typsphinx/builder.py` confirmed empty immediately after), then the identical
+command — whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a370176102829d43d
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 14 items / 2 deselected / 12 selected
+
+tests/test_path_shape_predicate_gate.py ............                     [100%]
+
+======================= 12 passed, 2 deselected in 0.21s =======================
+```
+
+**The two runs are byte-identical** in every substantive respect: same collection count (14
+collected / 2 deselected / 12 selected), same per-test dot pattern (`............`, all 12 pass),
+same summary shape (`12 passed, 2 deselected`). The only differing bytes are the wall-clock timing
+figures (`0.27s` vs `0.21s`), which is expected run-to-run non-determinism, not a behavioral
+difference — no test result (pass/fail) differs between the two trees. This proves `_resolve_target_stem()`
+and `_track_image()` classify all five documented shapes identically before and after PATH-01's
+fix, exactly as `_RESOLVE_TARGET_STEM_EXPECTED`'s comment and the call sites' own pre-normalization
+(`_resolve_target_stem`) / always-carries-`".."` (`_track_image`'s `relpath()` result) predict.
+
+`git status --porcelain typsphinx/builder.py` after the restore, confirming the temporary checkout
+left no trace:
+
+```
+(empty)
+```
 
 ## IMG-04 / IMG-06
 
