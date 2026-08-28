@@ -963,3 +963,36 @@ contributes to that count.
 | IMG-06 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-04 / IMG-06" § "RED (pre-fix)" | Recorded RED on the unfixed tree (the `263`-byte pre-fix measurement and the swallowed `[Errno 36]` warning) before the 255-byte bound landed, in the same plan (59-02). |
 | IMG-05 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-05" § "RED (pre-fix)" | Recorded RED on the unfixed tree before `visit_image()`'s `escape_typst_string()` routing landed, in the same plan (59-03). |
 | IMG-07 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-07 four-combination table" § "RED (pre-fix, all four tree combinations) -- MEASURED (plan 59-05)" | IMG-07's RED is the four-combination two-tree reconstruction in this plan's Task 1, because ROADMAP constraint 5 forces its gate into the wave after both fixes and a same-tree pre-fix RED is therefore impossible for it — the RED-then-green record here substitutes the reconstructed unfixed/partial/both trees for a same-tree pre-fix run. |
+
+### 3-OS CI dispatch
+
+**PENDING — owner dispatch required.**
+
+This plan (59-05) executed as a parallel executor inside an isolated git worktree, on branch
+`worktree-agent-afec2fca805df4370` — not `gsd/v0.9.1-windows-path-correctness`, the milestone
+branch that carries the phase's merged waves (ROADMAP constraint 12). Per this task's own
+`<action>` instruction ("If the push or the dispatch cannot complete from this worktree ... do not
+fabricate a result and do not cite an older run ... mark the section `PENDING — owner dispatch
+required`"), the push and dispatch are not performed from this worktree. Local tip SHA at the time
+this section was written: `ccb0079ef6e99e54897a6707922a9439d8a81d1d` (this plan's Task 2 commit,
+recorded here for comparison against whatever SHA the eventual CI run reports).
+
+**Exact commands the owner must run**, after this plan's commits (and the rest of Phase 59's waves)
+are merged onto `gsd/v0.9.1-windows-path-correctness`:
+
+```bash
+git push origin gsd/v0.9.1-windows-path-correctness
+gh workflow run ci.yml --ref gsd/v0.9.1-windows-path-correctness
+gh run list --workflow=ci.yml --branch gsd/v0.9.1-windows-path-correctness --limit 1
+gh run watch <run-id>
+```
+
+Once the run completes, upgrade this subsection from `PENDING` to the recorded run URL, the head
+SHA the run was dispatched against (which must equal the phase's own post-fix tip on
+`gsd/v0.9.1-windows-path-correctness`, not this worktree's branch tip above), and a per-job
+conclusion line for every matrix job in `.github/workflows/ci.yml`'s `os: [ubuntu-latest,
+windows-latest, macos-latest]` matrix — with an explicit line for the `windows-latest` job(s), the
+acceptance bar this phase names. A `PENDING` marker here is an honest open item, not a gap silently
+omitted; the orchestrator owns completing this dispatch after merge (per this plan's own scope
+note: a parallel worktree executor must not push its own `worktree-agent-*` branch as if it carried
+the phase's merged work).
