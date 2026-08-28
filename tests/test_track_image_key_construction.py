@@ -225,6 +225,47 @@ class TestRelocationKeyLengthBound:
         ), f"expected at least one stem byte to survive, got {result!r}"
         assert len(result.encode("utf-8")) <= 255
 
+    def test_length_bound_multibyte_leading_stem_survives_tight_budget(self):
+        """D-07's "never emptied" holds when the stem's FIRST character is
+        multi-byte and the extension leaves it under one character of room.
+
+        Regression gate for the pre-fix defect: reserving a single BYTE for
+        the stem is not enough for a 3-byte leading character, so the UTF-8
+        boundary walk-back landed on `b""` and dropped the whole stem while
+        the lower-priority extension kept its allotment -- inverting the
+        precedence `_bound_relocation_component` documents. The ASCII
+        sibling below is what made the defect invisible: an ASCII stem fits
+        the one reserved byte, so only a multi-byte leading character
+        exposes it.
+        """
+        digest = "a1b2c3d4"
+
+        multibyte = _bound_relocation_component(digest, "\u56f3" + "." + "e" * 244)
+        ascii_sibling = _bound_relocation_component(digest, "a" + "." + "e" * 244)
+
+        for label, result in (("multibyte", multibyte), ("ascii", ascii_sibling)):
+            stem = result[len(f"{digest}-") :].rsplit(".", 1)[0]
+            assert stem != "", (
+                f"D-07 violated for the {label} stem: "
+                f"the stem was emptied entirely, got {result!r}"
+            )
+            assert len(result.encode("utf-8")) <= 255
+
+        assert multibyte[len(f"{digest}-") :].startswith("\u56f3")
+
+    def test_length_bound_multibyte_stem_kept_when_extension_exceeds_budget(self):
+        """The extension-truncation branch also preserves a multi-byte
+        leading stem character, not only the untruncated-extension path."""
+        digest = "a1b2c3d4"
+        result = _bound_relocation_component(digest, "\u56f3" + "." + "e" * 300)
+
+        stem = result[len(f"{digest}-") :].rsplit(".", 1)[0]
+        assert stem.startswith("\u56f3"), (
+            "the multi-byte stem character must survive even when the "
+            f"extension alone exceeded the budget, got {result!r}"
+        )
+        assert len(result.encode("utf-8")) <= 255
+
     def test_length_bound_anchor_survives_truncation_with_extension(self):
         """Every truncated component still starts with `f"{digest}-"` and,
         when an extension survives at all, still ends with it."""

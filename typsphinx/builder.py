@@ -260,6 +260,38 @@ def _escapes_outdir(stem: str) -> bool:
     )
 
 
+def _decode_to_boundary(data: bytes) -> str:
+    """Decode ``data`` as UTF-8, walking back to a character boundary.
+
+    Trailing bytes are dropped one at a time until ``.decode("utf-8")``
+    succeeds. Returns ``""`` when no prefix of ``data`` decodes -- which
+    is only reachable when the caller's byte budget is smaller than the
+    first character, a case its caller is responsible for avoiding.
+
+    Byte-level slicing is deliberate: the 255-byte limit these callers
+    enforce is in BYTES, and a naive ``str`` slice gets a multi-byte
+    character wrong.
+
+    Args:
+        data: The already-sliced UTF-8 bytes to decode.
+
+    Returns:
+        The longest prefix of ``data`` that decodes as UTF-8.
+
+    Examples:
+        >>> _decode_to_boundary("図".encode("utf-8")[:2])
+        ''
+        >>> _decode_to_boundary("a図".encode("utf-8")[:2])
+        'a'
+    """
+    while data:
+        try:
+            return data.decode("utf-8")
+        except UnicodeDecodeError:
+            data = data[:-1]
+    return ""
+
+
 def _bound_relocation_component(
     digest: str, raw_basename: str, limit: int = MAX_PATH_COMPONENT_BYTES
 ) -> str:
@@ -277,9 +309,14 @@ def _bound_relocation_component(
 
     Truncation precedence when the budget is tight (D-07): the digest and
     its hyphen survive whole first (truncating them would reintroduce the
-    collision IMG-03 closed); then at least one byte of stem; then the
+    collision IMG-03 closed); then at least one CHARACTER of stem -- not
+    one byte, which is the same thing only for ASCII and empties a
+    multi-byte stem entirely once the boundary walk-back runs; then the
     extension -- if the extension alone would consume the whole remaining
-    budget, it is truncated too rather than squeezing the stem to nothing.
+    budget, it is truncated too rather than squeezing the stem to nothing,
+    and if it still leaves the stem under one character, the shortfall is
+    borrowed back from it. The stem is emptied only when ``limit`` itself
+    cannot hold the prefix plus that first character.
     Every cut lands on a UTF-8 character boundary: bytes are sliced first,
     then walked back one byte at a time until ``.decode("utf-8")``
     succeeds -- never a `str`-level slice, since the 255 limit is in
@@ -308,8 +345,7 @@ def _bound_relocation_component(
         253
     """
     prefix = f"{digest}-"
-    prefix_bytes = prefix.encode("utf-8")
-    budget = limit - len(prefix_bytes)
+    budget = limit - len(prefix.encode("utf-8"))
 
     stem, ext = posixpath.splitext(raw_basename)
     ext_bytes = ext.encode("utf-8")
@@ -318,28 +354,28 @@ def _bound_relocation_component(
         # D-07: the extension alone would consume the whole remaining
         # budget -- truncate it too rather than squeeze the stem to
         # nothing.
-        ext_bytes = ext_bytes[: max(budget - 1, 0)]
-        while ext_bytes:
-            try:
-                ext = ext_bytes.decode("utf-8")
-                break
-            except UnicodeDecodeError:
-                ext_bytes = ext_bytes[:-1]  # walk back to a UTF-8 boundary
-        else:
-            ext = ""
-        stem_budget = budget - len(ext_bytes)
-    else:
-        stem_budget = budget - len(ext_bytes)
+        ext = _decode_to_boundary(ext_bytes[: max(budget - 1, 0)])
+        ext_bytes = ext.encode("utf-8")
 
+    # Single source of truth for the stem's allotment -- recomputed after
+    # any change to `ext_bytes`, never duplicated per branch.
+    stem_budget = budget - len(ext_bytes)
     stem_bytes = stem.encode("utf-8")
+
     if len(stem_bytes) > stem_budget:
-        stem_bytes = stem_bytes[: max(stem_budget, 1)]  # D-07: never empty
-        while True:
-            try:
-                stem = stem_bytes.decode("utf-8")
-                break
-            except UnicodeDecodeError:
-                stem_bytes = stem_bytes[:-1]  # walk back to a UTF-8 boundary
+        # D-07: the stem is never emptied. Reserving one BYTE is not
+        # enough when the stem's first character is multi-byte -- the
+        # boundary walk-back would then land on b"", dropping the whole
+        # stem while the lower-priority extension kept its allotment, and
+        # inverting the precedence this function documents. Borrow the
+        # shortfall back from the extension so that first character
+        # survives whenever the total budget can hold it at all.
+        first_char_bytes = len(stem[0].encode("utf-8"))
+        if stem_budget < first_char_bytes <= budget:
+            ext = _decode_to_boundary(ext_bytes[: budget - first_char_bytes])
+            ext_bytes = ext.encode("utf-8")
+            stem_budget = budget - len(ext_bytes)
+        stem = _decode_to_boundary(stem_bytes[: max(stem_budget, 1)])
 
     return f"{prefix}{stem}{ext}"
 
