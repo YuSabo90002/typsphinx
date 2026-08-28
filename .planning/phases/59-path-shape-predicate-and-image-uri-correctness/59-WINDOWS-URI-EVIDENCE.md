@@ -772,6 +772,10 @@ falsified by research"), after which this plan's Task 1 acceptance criteria shou
 the corrected table; or (b) some other resolution. Tasks 2 and 3 of this plan are unexecuted pending
 that decision.
 
+**Resolved 2026-08-29:** the owner approved option (a) above. `59-CONTEXT.md` now carries
+`D-01a: AMENDED` (commit `ab7a42ae`), independently re-measured by the orchestrator before approval.
+This plan's Tasks 2 and 3 resumed under `## SC#5 acceptance` below.
+
 ### GREEN (post-fix, both halves present)
 
 Recorded in this worktree with both IMG-04 (`typsphinx/builder.py`, plan 59-02) and IMG-05
@@ -853,4 +857,109 @@ fixed as a correctness matter per CLAUDE.md's project conventions.
 
 ## SC#5 acceptance
 
-(filled by plan 59-05)
+**Owner disposition on the D-01 divergence recorded above:** the halt this section's placeholder was
+waiting on is CLOSED. The owner reviewed the measured divergence recorded in `### HALT — owner
+decision required` above and approved amending `59-CONTEXT.md` D-01 in place — recorded as
+`D-01a: AMENDED` (committed `ab7a42ae`), which the orchestrator independently re-measured against
+`typst.compile()` directly on the four literal shapes before approving, on 2026-08-29. SC#2's core
+claim is unaffected by the amendment (A, B, C all fail to compile and only D compiles — see the
+measured table and its conclusion above). Tasks 2 and 3 below resume per that approval.
+
+### Zero test edits (measured)
+
+`git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` (`PHASE_BASE_SHA=ec6bd3a4714a578379ee45e02295abc31fdd8fe3`),
+whole output verbatim:
+
+```
+A	tests/fixtures/windows_shaped_image_uri_gate/_static/converted_stand_in.png
+A	tests/fixtures/windows_shaped_image_uri_gate/conf.py
+A	tests/fixtures/windows_shaped_image_uri_gate/index.rst
+A	tests/test_copy_image_files_name_too_long.py
+A	tests/test_image_literal_escaping_gate.py
+A	tests/test_path_shape_predicate_gate.py
+A	tests/test_track_image_key_construction.py
+A	tests/test_windows_image_uri_render_gate.py
+```
+
+Every line begins with `A` (added). No `M` and no `D` line anywhere under `tests/` — zero
+cross-check against `58-REPR-CENSUS.md` is needed because there is no modified or deleted path to
+cross-check; all eight paths are new files this phase introduced.
+
+`git diff --numstat $PHASE_BASE_SHA..HEAD -- tests/`, whole output verbatim (added-lines-only shape
+confirmed numerically as well as by status; the binary PNG fixture reports `-\t-` per git's own
+convention for binary files, not a deletion):
+
+```
+-	-	tests/fixtures/windows_shaped_image_uri_gate/_static/converted_stand_in.png
+154	0	tests/fixtures/windows_shaped_image_uri_gate/conf.py
+10	0	tests/fixtures/windows_shaped_image_uri_gate/index.rst
+112	0	tests/test_copy_image_files_name_too_long.py
+170	0	tests/test_image_literal_escaping_gate.py
+170	0	tests/test_path_shape_predicate_gate.py
+260	0	tests/test_track_image_key_construction.py
+288	0	tests/test_windows_image_uri_render_gate.py
+```
+
+None of the eight new paths appear anywhere in `58-REPR-CENSUS.md`'s pass-criterion table or its
+third bucket (`TestWindowsPathEscapingRegressionGuard` in
+`tests/test_templates_path_collision_gate.py`, untouched by this phase) — the census's nine
+enumerated sites are unaffected by this phase's diff.
+
+### Final local gate (phase tip)
+
+`uv run pytest -q`, verbatim tail:
+
+```
+tests/test_xref_compile_time_guard_render_gate.py ......                 [ 99%]
+tests/test_xref_orphan_degrade_render_gate.py .                          [ 99%]
+tests/test_xref_whole_document_guard_render_gate.py ........             [100%]
+
+================= 1465 passed, 5 skipped in 120.51s (0:02:00) ==================
+```
+
+`uv run black --check .`, verbatim tail:
+
+```
+All done! ✨ 🍰 ✨
+348 files would be left unchanged.
+```
+
+`uv run mypy typsphinx/`, verbatim tail:
+
+```
+Success: no issues found in 8 source files
+```
+
+`ruff check .` is **DEFERRED TO CI** — per `59-VALIDATION.md` § "Sampling Rate": "`ruff check .` is
+deferred to CI — it is not runnable on this NixOS dev machine, and CI is the lint authority."
+
+### Per-module skip census (five new gate modules)
+
+Each of the five new gate modules run standalone with `-q`, on this dev machine, immediately after
+the full-suite run above:
+
+| Module | Command | Result |
+|---|---|---|
+| `tests/test_path_shape_predicate_gate.py` | `uv run pytest tests/test_path_shape_predicate_gate.py -q` | `14 passed in 0.19s` — **0 skipped** |
+| `tests/test_track_image_key_construction.py` | `uv run pytest tests/test_track_image_key_construction.py -q` | `10 passed in 0.12s` — **0 skipped** |
+| `tests/test_copy_image_files_name_too_long.py` | `uv run pytest tests/test_copy_image_files_name_too_long.py -q` | `1 passed in 0.18s` — **0 skipped** |
+| `tests/test_image_literal_escaping_gate.py` | `uv run pytest tests/test_image_literal_escaping_gate.py -q` | `1 passed in 0.23s` — **0 skipped** |
+| `tests/test_windows_image_uri_render_gate.py` | `uv run pytest tests/test_windows_image_uri_render_gate.py -q` | `2 passed in 0.53s` — **0 skipped** |
+
+All five report `0 skipped`. `typst` is a core dependency (`pyproject.toml:29`), so this confirms
+the worktree venv is correctly provisioned rather than merely reporting a pass that hides an
+unprovisioned environment (T-59-06).
+
+The full suite's `5 skipped` are pre-existing skips outside these five modules (unrelated to this
+phase — the same baseline count Phase 58's own evidence recorded); none of the five new gate modules
+contributes to that count.
+
+### RED-first ledger
+
+| Requirement | Evidence section holding its recorded failure | Mechanism |
+|---|---|---|
+| PATH-01 | `59-WINDOWS-URI-EVIDENCE.md` § "PATH-01" § "RED (pre-fix, direct call)" | Recorded RED on the unfixed tree (`PHASE_BASE_SHA`) before `_escapes_outdir()`'s fix landed, in the same plan (59-01). |
+| IMG-04 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-04 / IMG-06" § "RED (pre-fix)" | Recorded RED on the unfixed tree before `_track_image()`'s escape-branch key-normalization fix landed, in the same plan (59-02). |
+| IMG-06 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-04 / IMG-06" § "RED (pre-fix)" | Recorded RED on the unfixed tree (the `263`-byte pre-fix measurement and the swallowed `[Errno 36]` warning) before the 255-byte bound landed, in the same plan (59-02). |
+| IMG-05 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-05" § "RED (pre-fix)" | Recorded RED on the unfixed tree before `visit_image()`'s `escape_typst_string()` routing landed, in the same plan (59-03). |
+| IMG-07 | `59-WINDOWS-URI-EVIDENCE.md` § "IMG-07 four-combination table" § "RED (pre-fix, all four tree combinations) -- MEASURED (plan 59-05)" | IMG-07's RED is the four-combination two-tree reconstruction in this plan's Task 1, because ROADMAP constraint 5 forces its gate into the wave after both fixes and a same-tree pre-fix RED is therefore impossible for it — the RED-then-green record here substitutes the reconstructed unfixed/partial/both trees for a same-tree pre-fix run. |
