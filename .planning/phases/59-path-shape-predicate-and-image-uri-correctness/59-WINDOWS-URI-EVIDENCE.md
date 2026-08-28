@@ -342,6 +342,47 @@ own transcript carries Typst's platform-native refusal verbatim:
 '{outdir}/_typst_converted/b2e8281c-{254 x's}.png'` -- the pre-fix `copy_image_files()` swallow
 this fix closes.
 
+### GREEN (post-fix)
+
+Recorded after `_bound_relocation_component()`/`_build_relocation_key()` were added and
+`_track_image()`'s escape branch was wired to call `_build_relocation_key(resolved_uri)`. Same
+command as the RED run above, plus the task 3 pure-string property gates (11 tests total now
+collected, up from 3):
+
+```
+uv run pytest tests/test_track_image_key_construction.py tests/test_copy_image_files_name_too_long.py -q
+```
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-add2e5170089418aa
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 11 items
+
+tests/test_track_image_key_construction.py ..........                    [ 90%]
+tests/test_copy_image_files_name_too_long.py .                           [100%]
+
+============================== 11 passed in 0.15s ==============================
+```
+
+`11 passed`, zero failed, zero skipped. Full suite also re-confirmed green: `uv run pytest -q` ->
+`1462 passed, 5 skipped` (up from 1454 passed pre-task-3, the +8 new pure-string property tests
+this task added). `uv run black --check .` and `uv run mypy typsphinx/` both clean.
+
+**Before/after pair, measured directly against the post-fix helpers:**
+
+- IMG-04's Windows-shaped URI (`r'C:\Users\runner\assets\sub\we\"ird.png'`) now produces key
+  `_typst_converted/95a448fa-we"ird.png` -- no backslash (`'\\' in key` is `False`), versus the
+  pre-fix `_typst_converted/ffe13a61-C:\Users\runner\assets\sub\we\"ird.png` recorded above.
+- IMG-06's 250-ASCII-character basename now produces a final path component of exactly `255`
+  UTF-8 bytes (`30232faf-{242 x's}.png`), versus the pre-fix `263` bytes recorded above -- the
+  9-byte `{digest}-` prefix is accounted for and the stem is truncated by 8 bytes (250 -> 242) to
+  land exactly at the limit.
+
 ## IMG-05
 
 (filled by plan 59-03)
