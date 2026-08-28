@@ -562,13 +562,215 @@ A backslash-only fixture would already be green with IMG-04 (key normalization) 
 not prove SC#2's "neither alone would have closed it" -- the literal double quote in the basename
 is what keeps IMG-05 (escaping) load-bearing too.
 
-### RED (pre-fix, all four tree combinations)
+### RED (pre-fix, all four tree combinations) -- MEASURED (plan 59-05)
 
-Not recorded in this plan -- IMG-07 has no same-tree pre-fix RED by construction (D-05: the gate is
-coupled to BOTH the IMG-04 and IMG-05 fixes, and both are already merged onto this worktree by the
-time this plan's wave (wave 4) runs). **Plan 59-05** reconstructs all four tree combinations via
-`git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py` and re-runs this exact gate
-against each reconstructed tree -- the direct proof of SC#2's "neither alone would have closed it".
+IMG-07 has no same-tree pre-fix RED by construction (D-05: the gate is coupled to BOTH the IMG-04
+and IMG-05 fixes, and both are already merged onto this worktree by the time this plan's wave runs).
+Plan 59-05 reconstructs all four tree combinations via
+`git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py`
+(`PHASE_BASE_SHA=ec6bd3a4714a578379ee45e02295abc31fdd8fe3`, the value recorded at the top of this
+file), running `git checkout HEAD -- typsphinx/builder.py typsphinx/translator.py` and confirming
+`git status --porcelain typsphinx/` empty after EVERY combination before moving to the next.
+
+For each combination, two measurements were taken: (1) `uv run pytest
+tests/test_windows_image_uri_render_gate.py -q`, whole output; (2) a direct standalone
+`python -m sphinx -b typstpdf tests/fixtures/windows_shaped_image_uri_gate <fresh temp dir>` with
+`TYPSPHINX_WIN_URI_MODE=file`, capturing Typst's own error text and the emitted `image(...)` literal
+independent of pytest's own output capture.
+
+**MEASURED outcome table** (compare against the design-target table above, reproduced from
+`59-CONTEXT.md` D-01):
+
+| tree | emitted `image(...)` literal (measured) | Typst outcome (measured) | matches design target? |
+|------|-------------------------------------------|---------------------------|--------------------------|
+| (A) unfixed | `..._typst_converted/{d}-sub\we"ird.png` | `TypstError: unclosed delimiter` | **NO -- DIVERGENT** (target predicted `path must not contain a backslash`) |
+| (B) key normalization only | `..._typst_converted/{d}-we"ird.png` | `TypstError: unclosed delimiter` | yes |
+| (C) escaping only | `..._typst_converted/{d}-sub\\we\"ird.png` | `TypstError: path must not contain a backslash` | yes |
+| (D) both | `..._typst_converted/{d}-we\"ird.png` | **compiles** (`master.pdf`, 29419 bytes, `%PDF` magic) | yes |
+
+**SC#2 conclusion, unaffected by the divergence:** all three of A, B, C fail to compile and only D
+compiles, so neither half alone closes the compile failure -- the conjunction is still genuinely
+necessary on this fixture, regardless of which exact `TypstError` text fires on the unfixed tree.
+
+**DIVERGENCE -- HALT condition (plan `59-05-PLAN.md` Task 1 instruction):** row (A)'s measured Typst
+refusal is `unclosed delimiter`, not the `path must not contain a backslash` that `59-CONTEXT.md`
+D-01 predicted for the unfixed tree. The plan's own instruction is explicit: "If any combination's
+measured outcome differs from the expectation above, do NOT edit the expectation to match -- record
+the measurement, mark the row DIVERGENT, and HALT for the owner." This section records the
+measurement as directed and does not alter the prediction above it. A plausible explanation (not
+asserted as fact, since the plan forbids resolving this without the owner): D-01's `59-CONTEXT.md`
+table was inferred from four ISOLATED single-defect hand-compiled runs (`image("dir\logo.png")`,
+`image("dir\\logo.png")`, `image("we"ird.png")`, `image("we\"ird.png")`) -- never from a single
+literal carrying BOTH the raw backslash and the raw unescaped double quote simultaneously, which is
+what the real "unfixed" tree's `_track_image()` + `visit_image()` pipeline actually emits. When both
+defects are present in one string, the unescaped `"` terminates the Typst string literal early
+(parse-level failure), so `ird.png")` becomes trailing unparsed tokens -- a parse-time
+`unclosed delimiter` -- before Typst's semantic-level backslash-in-path check would ever run. This
+is a hypothesis about the *design document's* prediction, not a claim about the product code, and
+not resolved by this plan per its own instruction.
+
+#### (A) unfixed -- verbatim transcripts
+
+`uv run pytest tests/test_windows_image_uri_render_gate.py -q` (2 failed):
+
+```
+tests/test_windows_image_uri_render_gate.py FF                           [100%]
+
+=================================== FAILURES ===================================
+_ TestWindowsShapedImageUriStringShape.test_string_shape_emitted_image_literal_is_escaped_and_separator_free _
+...
+E       AssertionError: No image("...") literal found in the emitted .typ:
+...
+E         image("_typst_converted/95a448fa-C:\Users\runner\assets\sub\we"ird.png")
+...
+_ TestWindowsShapedImageUriCompileGate.test_compile_windows_shaped_absolute_image_uri_produces_pdf _
+...
+E       AssertionError: sphinx-build -b typstpdf failed:
+...
+E         stderr: WARNING: could not rehome image URI '.../sub\\we"ird.png' relative to the doctree directory -- relocated to '_typst_converted/467636ee-sub\\we"ird.png'
+E         Typst compilation failed at .../build/master.typ: TypstError: unclosed delimiter
+E         ERROR: Failed to compile .../build/master.typ: Typst compilation failed: TypstError: unclosed delimiter
+E         Location: .../build/master.typ
+E         Details: unclosed delimiter
+...
+=========================== short test summary info ============================
+FAILED tests/test_windows_image_uri_render_gate.py::TestWindowsShapedImageUriStringShape::test_string_shape_emitted_image_literal_is_escaped_and_separator_free
+FAILED tests/test_windows_image_uri_render_gate.py::TestWindowsShapedImageUriCompileGate::test_compile_windows_shaped_absolute_image_uri_produces_pdf
+============================== 2 failed in 0.62s ===============================
+```
+
+Direct standalone build (`TYPSPHINX_WIN_URI_MODE=file python -m sphinx -b typstpdf
+tests/fixtures/windows_shaped_image_uri_gate <tmp>`), exit code 2, stderr verbatim (trimmed to the
+load-bearing lines; the full traceback is the same Sphinx `ExtensionError` shape as every other
+combination below):
+
+```
+WARNING: could not rehome image URI '.../sub\\we"ird.png' relative to the doctree directory -- relocated to '_typst_converted/a6bf4142-sub\\we"ird.png'
+Typst compilation failed at .../master.typ: TypstError: unclosed delimiter
+ERROR: Failed to compile .../master.typ: Typst compilation failed: TypstError: unclosed delimiter
+Location: .../master.typ
+Details: unclosed delimiter
+```
+
+Emitted `image(...)` literal, read from `index.typ` of the direct build:
+
+```
+image("_typst_converted/a6bf4142-sub\we"ird.png")
+```
+
+`git status --porcelain typsphinx/` after restore: empty (confirmed before moving to combination B).
+
+#### (B) key normalization only -- verbatim transcripts
+
+`uv run pytest tests/test_windows_image_uri_render_gate.py -q` (2 failed) -- key difference from (A):
+the literal now carries no separator backslash (only the raw quote survives), and the error text is
+IDENTICAL to (A)'s (`unclosed delimiter`), because the parse-level failure fires regardless of
+whether a backslash is also present:
+
+```
+E         image("_typst_converted/95a448fa-we"ird.png")
+...
+E         stderr: WARNING: could not rehome image URI '.../sub\\we"ird.png' relative to the doctree directory -- relocated to '_typst_converted/d110e5f2-we"ird.png'
+E         Typst compilation failed at .../master.typ: TypstError: unclosed delimiter
+E         ERROR: Failed to compile .../master.typ: Typst compilation failed: TypstError: unclosed delimiter
+E         Location: .../master.typ
+E         Details: unclosed delimiter
+...
+============================== 2 failed in 0.63s ===============================
+```
+
+Direct standalone build, exit code 2, stderr verbatim (trimmed):
+
+```
+Typst compilation failed at .../master.typ: TypstError: unclosed delimiter
+ERROR: Failed to compile .../master.typ: Typst compilation failed: TypstError: unclosed delimiter
+Details: unclosed delimiter
+```
+
+Emitted `image(...)` literal, read from `index.typ` of the direct build:
+
+```
+image("_typst_converted/8bcb3de9-we"ird.png")
+```
+
+`git status --porcelain typsphinx/` after restore: empty (confirmed before moving to combination C).
+This combination MATCHES the design-target table's prediction.
+
+#### (C) escaping only -- verbatim transcripts
+
+`uv run pytest tests/test_windows_image_uri_render_gate.py -q` (2 failed) -- the string-shape gate's
+own assertion fires first this time (a stray, non-quote-following backslash is found, because the
+separator backslashes are still present and merely doubled by escaping):
+
+```
+E       AssertionError: Found a backslash NOT immediately followed by a double quote (a raw separator backslash, or a doubled escape from escaping without key normalization) in literal '_typst_converted/95a448fa-C:\\\\Users\\\\runner\\\\assets\\\\sub\\\\we\\"ird.png'
+...
+E         stderr: WARNING: could not rehome image URI '.../sub\\we"ird.png' relative to the doctree directory -- relocated to '_typst_converted/d43b9008-sub\\we"ird.png'
+E         Typst compilation failed at .../master.typ: TypstError: path must not contain a backslash
+E         ERROR: Failed to compile .../master.typ: Typst compilation failed: TypstError: path must not contain a backslash
+E         Location: .../master.typ
+E         Details: path must not contain a backslash
+...
+============================== 2 failed in 0.54s ===============================
+```
+
+Direct standalone build, exit code 2, stderr verbatim (trimmed):
+
+```
+Typst compilation failed at .../master.typ: TypstError: path must not contain a backslash
+ERROR: Failed to compile .../master.typ: Typst compilation failed: TypstError: path must not contain a backslash
+Details: path must not contain a backslash
+```
+
+Emitted `image(...)` literal, read from `index.typ` of the direct build:
+
+```
+image("_typst_converted/b90ae4ad-sub\\we\"ird.png")
+```
+
+`git status --porcelain typsphinx/` after restore: empty (confirmed before moving to combination D).
+This combination MATCHES the design-target table's prediction.
+
+#### (D) both -- verbatim transcripts
+
+`uv run pytest tests/test_windows_image_uri_render_gate.py -q`:
+
+```
+tests/test_windows_image_uri_render_gate.py ..                           [100%]
+
+============================== 2 passed in 0.54s ===============================
+```
+
+Direct standalone build, exit code 0. Emitted `image(...)` literal:
+
+```
+image("_typst_converted/33ea9149-we\"ird.png")
+```
+
+`master.pdf`: 29419 bytes, first four bytes `%PDF` -- a real, valid PDF. This combination MATCHES the
+design-target table's prediction (confirming plan 59-04's own recorded GREEN transcript above).
+
+`git status --porcelain typsphinx/` after restore: empty. `git status --porcelain typsphinx/` was
+also re-confirmed empty immediately before this task's own commit below.
+
+### HALT -- owner decision required
+
+Per this task's own instruction, execution HALTS here rather than proceeding to Task 2 (SC#5
+measurement) and Task 3 (CI dispatch) in this same plan run. The core SC#2 claim
+("neither alone would have closed it") is proven true by the measurements above regardless of the
+divergence -- three of four trees fail to compile and only the tree carrying both fixes compiles.
+What is NOT resolved is whether `59-CONTEXT.md` D-01's table should be corrected in place (its
+"unfixed" row's predicted error text was inferred from isolated single-defect probes, not measured
+against the actual combined-defect literal this fixture emits) or whether some other explanation
+applies. This plan's own acceptance criteria for Task 1 literally require the string
+`path must not contain a backslash` to appear for combination A, which the real measurement does not
+support -- committing that criterion as satisfied would misrepresent what was measured. The owner
+should review this section and instruct either: (a) amend `59-CONTEXT.md` D-01 in place with this
+measurement (the project's own established pattern for a locked decision falsified by measurement,
+see STATE.md "[Phase 56] D-03 was AMENDED..." and the MEMORY.md entry "locked decisions can be
+falsified by research"), after which this plan's Task 1 acceptance criteria should be read against
+the corrected table; or (b) some other resolution. Tasks 2 and 3 of this plan are unexecuted pending
+that decision.
 
 ### GREEN (post-fix, both halves present)
 
