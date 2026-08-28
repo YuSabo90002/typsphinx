@@ -5,15 +5,15 @@ milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
 status: planning
-stopped_at: Phase 59 context gathered
-last_updated: "2026-08-28T14:48:33.799Z"
-last_activity: 2026-08-28
-last_activity_desc: Phase 59 context gathered (CONTEXT.md + DISCUSSION-LOG.md committed)
-state_head: 51ca15974607113eda9521f97e31462768796c11
+stopped_at: Phase 59 planned (5 plans, 5 waves) - ready to execute
+last_updated: "2026-08-28T15:35:31.167Z"
+last_activity: 2026-08-29
+last_activity_desc: "Phase 59 planned: 5 plans in 5 waves; plan-checker passed at iteration 1; 13/13 decisions and all 5 requirement IDs covered"
+state_head: 2465683b8cc41b6394b6604c1917930b0d81ca4a
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
+  total_plans: 8
   completed_plans: 3
   percent: 25
 ---
@@ -97,21 +97,29 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 59 of 61 (Path-Shape Predicate and Image-URI Correctness)
-Plan: Not started
-Status: Ready to plan
+Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — planned, ready to execute
+Plan: — (5 plans, none started; run `/gsd-execute-phase 59`)
+Status: Planned — 5 plans in 5 waves, verified by gsd-plan-checker, ready to execute
 Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-28 — Phase 58 complete (3/3 plans, verification 5/5 must-haves,
-code review clean), transitioned to Phase 59. 58-01 landed the tracer slice
-(`tests/_path_naming.py` predicate + escape-target gate rewritten onto it + SC#2's pre-rewrite
-baseline for both target tests + the recorded RED under a reverted `builder.py:697` falsification +
-D-05(a) meta-tests); 58-02 rewrites the second call site with its own recorded RED; 58-03 adds the
-AST census guard, the two-axis `58-REPR-CENSUS.md`, SC#4 at phase scope and the SC#5 branch push.
-Waves are sequential by construction: 58-02 consumes 58-01's predicate module, and 58-03 asserts on
-an AST sweep whose result 58-02 changes — disjoint `files_modified` would not have prevented that
-merge-time collision. gsd-plan-checker passed at iteration 2 (iteration 1 raised one BLOCKER: the
-census guard's own falsification cycle was specified in `<acceptance_criteria>` but absent from
-`<action>`). Decision coverage 10/10, requirement coverage MSG-01 1/1.
+Last activity: 2026-08-29 — Phase 59 planned: 5 plans in 5 waves. 59-01 is the tracer slice
+(`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
+rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
+59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural
+RED and both of D-08's gates; 59-03 routes `visit_image()` through `escape_typst_string()` once
+(IMG-05), RED-gated on a *relative* URI so it never reaches the escape branch and stays independent
+of the builder half; 59-04 builds the two-mode Windows-shaped fixture, the all-lane `-b typst`
+string-shape gate and the real `typst.compile()` gate; 59-05 records D-01's four-combination two-tree
+table (SC#2), the measured zero-test-edit proof (SC#5) and the fresh 3-OS CI dispatch.
+**All five plans run one per wave.** The planner declined the `translator.py` parallel-safety
+permission on measurement: every plan appends to the single D-11-named `59-WINDOWS-URI-EVIDENCE.md`,
+so any two in one wave would collide at merge even with disjoint `files_modified` — the same hazard
+Phase 58 paid for. IMG-07 has no same-tree pre-fix RED by construction (it is coupled to both fixes
+and constraint 5 forces it into a later wave); 59-05 substitutes a four-tree reconstruction via
+`git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py`, which is also the direct proof
+of SC#2's "neither alone would have closed it". gsd-plan-checker passed at iteration 1 (17
+phase-specific constraints checked, no BLOCKER). Decision coverage 13/13, requirement coverage 5/5
+(PATH-01, IMG-04, IMG-05, IMG-06, IMG-07). Edge-probe accounting: 9 surfaced = 6 resolved-explicit +
+3 flagged assumptions, no silent drops.
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because
