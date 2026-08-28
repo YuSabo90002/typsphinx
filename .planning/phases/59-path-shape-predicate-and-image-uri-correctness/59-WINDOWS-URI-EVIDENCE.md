@@ -1052,7 +1052,7 @@ found in 8 source files*, `pytest tests/test_track_image_key_construction.py -q`
 measurement is unchanged — re-run after the fix commit,
 `git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` still yields zero non-`A` lines.
 
-#### Run 2 — `2deeae1a` — SUCCESS (the acceptance run)
+#### Run 2 — `2deeae1a` — SUCCESS (superseded by Run 3)
 
 - Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33212148974
 - Dispatched head SHA: `2deeae1a55680fbf8523dcc9e566ad1f7e8abe6f`
@@ -1077,4 +1077,67 @@ measurement is unchanged — re-run after the fix commit,
 Both `windows-latest` jobs — the acceptance bar this phase names — concluded successfully on a run
 whose head SHA is this phase's own post-fix tip, newer than every one of the phase's commits. No
 earlier run is cited anywhere in this section.
+
+#### Run 3 — `924f21d8` — SUCCESS (the acceptance run)
+
+Run 2 was green, but the phase's own code review (`59-REVIEW.md`, CR-01) then found a real defect in
+`_bound_relocation_component()` that Run 2 could not have caught, because no test exercised it. The
+owner approved fixing it inside this phase rather than deferring it, so the acceptance bar moved to a
+third run dispatched on the post-fix tip.
+
+- Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33214830110
+- Dispatched head SHA: `924f21d818f32c79d2bcb4e3d2287e8b969c6899`
+- Local tip SHA at dispatch: `924f21d818f32c79d2bcb4e3d2287e8b969c6899` (equal)
+- Run conclusion: **success** — all 12 jobs
+
+| job | conclusion |
+|---|---|
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| **Test Python 3.12 on windows-latest** | **success** |
+| **Test Python 3.13 on windows-latest** | **success** |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Lint and Format Check | success |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+
+**What CR-01 was.** `_bound_relocation_component()` documents D-07's precedence as digest whole, then
+at least one byte of stem, then extension. Reserving one *byte* is only equivalent to reserving one
+*character* for ASCII: when the stem's first character is multi-byte and `stem_budget` was smaller
+than it, the UTF-8 boundary walk-back had no valid non-empty prefix and landed on `b""`, dropping the
+whole stem while the lower-priority extension kept its allotment — inverting the documented
+precedence. Reproduced independently by the orchestrator before acting:
+
+```
+_bound_relocation_component("a1b2c3d4", "図" + "." + "e"*244)
+  pre-fix  -> 'a1b2c3d4-.eeee…'   254 bytes, stem EMPTY
+  ASCII sibling "a" + "." + "e"*244
+           -> 'a1b2c3d4-a.eee…'   255 bytes, stem 'a' survives
+```
+
+The ASCII sibling is what hid it: an ASCII stem fits the one reserved byte, so only a multi-byte
+leading character exposes the defect, and no test combined that with a tight `stem_budget`.
+
+**Fix** — `924f21d8`: the reserved unit became one *character*, with the shortfall borrowed back from
+the extension whenever the total budget can hold it; the duplicated `stem_budget` formula (WR-01) was
+hoisted to a single computation; and the boundary walk-back was extracted to `_decode_to_boundary()`.
+Two regression gates were added to `tests/test_track_image_key_construction.py`, and both were proven
+RED against the pre-fix tree before the fix was committed:
+
+```
+FAILED …::test_length_bound_multibyte_leading_stem_survives_tight_budget
+FAILED …::test_length_bound_multibyte_stem_kept_when_extension_exceeds_budget
+========================= 2 failed, 10 passed in 0.14s =========================
+```
+
+Post-fix: 12 passed in that module; full suite `1471 passed, 1 skipped`; `black --check .`,
+`ruff check .` and `mypy typsphinx/` all clean.
+
+**SC#5 remains intact.** `tests/test_track_image_key_construction.py` is a file this phase *added*,
+so `git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` still yields zero non-`A` lines after
+this commit — re-measured.
 
