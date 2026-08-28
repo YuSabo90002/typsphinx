@@ -8,8 +8,8 @@ the gate calls `_escapes_outdir()` DIRECTLY -- an integration test routed
 through either production call site (`_resolve_target_stem()` or
 `_track_image()`) is tautologically green before and after the fix and
 proves nothing, because both call sites already pre-normalize or always
-carry a `".."` segment before reaching this predicate. This class imports
-nothing from `TypstBuilder`, `_resolve_target_stem`, or `_track_image`.
+carry a `".."` segment before reaching this predicate. This class instantiates no builder object and imports neither
+`_resolve_target_stem` nor `_track_image`.
 No `os.name` branch is used anywhere in this module: path-shape
 classification is a string decision on every platform, per this module's
 own D-05 platform-independence principle (`typsphinx/builder.py`'s
