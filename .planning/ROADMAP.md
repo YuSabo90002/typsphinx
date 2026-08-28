@@ -293,7 +293,7 @@ not beside them.
      post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
      prior run.
 
-**Plans**: 2/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
+**Plans**: 3/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
 
 Plans:
 
@@ -307,7 +307,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 59-03-PLAN.md — IMG-05: `visit_image()` routes the adjusted URI through `escape_typst_string()` once, gated by a relative-URI escaping gate independent of the builder half
+- [x] 59-03-PLAN.md — IMG-05: `visit_image()` routes the adjusted URI through `escape_typst_string()` once, gated by a relative-URI escaping gate independent of the builder half
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -449,7 +449,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 2/5 | In Progress | - |
+| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 3/5 | In Progress | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
