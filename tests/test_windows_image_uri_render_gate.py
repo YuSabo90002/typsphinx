@@ -22,10 +22,10 @@ subsets of CI lanes, and never share a skip condition:
   filesystem can hold a basename containing both a backslash and a
   double quote (illegal on NTFS), so it skips via a MEASURED runtime
   probe inside the test body -- never a collection-time marker decorator
-  that references a fixture-scoped value, and never a branch on
-  ``os.name`` (D-03). It drives a REAL ``typst.compile()`` through
-  ``-b typstpdf`` and proves the fixture's own copied asset compiles to
-  a genuine PDF.
+  that references a fixture-scoped value, and never a belief about
+  which platform is running (D-03). It drives a REAL
+  ``typst.compile()`` through ``-b typstpdf`` and proves the fixture's
+  own copied asset compiles to a genuine PDF.
 
 Both classes share ``_assert_image_literal_escaped_and_separator_free()``
 so the string-level claim and the compile-level claim can never drift
@@ -38,7 +38,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from typsphinx.translator import escape_typst_string
+
+try:
+    import typst  # noqa: F401
+
+    TYPST_AVAILABLE = True
+except ImportError:
+    TYPST_AVAILABLE = False
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 WINDOWS_SHAPED_IMAGE_URI_GATE_FIXTURE_DIR = (
@@ -180,3 +189,100 @@ class TestWindowsShapedImageUriStringShape:
 
         literal = _assert_image_literal_escaped_and_separator_free(typ_text)
         assert literal, f"Extracted an empty image(...) literal from:\n{typ_text}"
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the Windows-shaped image URI compile gate",
+)
+class TestWindowsShapedImageUriCompileGate:
+    """D-02/D-03: a real ``typst.compile()``, driven through
+    ``-b typstpdf``, proves the Windows-shaped absolute image URI now
+    compiles -- through the fixture's "file" mode, which creates a REAL
+    file with the raw basename ``sub\\we"ird.png`` outside doctreedir.
+
+    Skips ONLY via a measured runtime probe inside the test body (D-03) --
+    never on a belief about which platform is running -- because a
+    backslash-and-quote basename is illegal on NTFS and this class
+    cannot run on ``windows-latest``.
+    """
+
+    def test_compile_windows_shaped_absolute_image_uri_produces_pdf(self, tmp_path):
+        # D-03: the FIRST statements of this test are a measured
+        # filesystem probe -- inside the test body, never a collection-
+        # time decorator, because decorators are evaluated before
+        # tmp_path exists (RESEARCH.md Pitfall 1).
+        probe_dir = tmp_path / "probe"
+        try:
+            probe_dir.mkdir(parents=True, exist_ok=True)
+            probe_path = probe_dir / 'sub\\we"ird.png'
+            probe_path.write_bytes(b"probe")
+            probe_path.unlink()
+        except OSError as e:
+            pytest.skip(f"filesystem cannot hold a backslash+quote basename: {e}")
+
+        build_dir = tmp_path / "build"
+        result = _run_sphinx_build(
+            WINDOWS_SHAPED_IMAGE_URI_GATE_FIXTURE_DIR,
+            build_dir,
+            "typstpdf",
+            env={"TYPSPHINX_WIN_URI_MODE": "file"},
+        )
+
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+        # (2) The copied destination image EXISTS -- asserted BEFORE any
+        # compile assertion (59-CONTEXT.md Specific Idea #3): a green
+        # compile is not evidence unless the source file was actually
+        # copied, otherwise a "file not found" failure would be chasing
+        # the fixture rather than the defect.
+        converted_dir = build_dir / "_typst_converted"
+        assert converted_dir.is_dir(), (
+            f"Expected {converted_dir} to exist after copy_image_files():\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        copied_candidates = list(converted_dir.glob('*we"ird.png'))
+        assert len(copied_candidates) == 1, (
+            f'Expected exactly one copied file ending in we"ird.png under '
+            f"{converted_dir}, found {copied_candidates}"
+        )
+
+        combined_output = result.stdout + result.stderr
+        assert "Image file not found" not in combined_output, (
+            f"Unexpected 'Image file not found' warning -- the 'file' "
+            f"mode fixture creates a real file, so this warning means the "
+            f"fixture, not the product, is broken:\n{combined_output}"
+        )
+        assert "path must not contain a backslash" not in combined_output, (
+            f"Typst refused the emitted path with a raw backslash:\n"
+            f"{combined_output}"
+        )
+        assert "unclosed delimiter" not in combined_output, (
+            f"Typst refused the emitted path with an unescaped quote:\n"
+            f"{combined_output}"
+        )
+        # A fatal inside TypstPDFBuilder.finish() is logged (not raised)
+        # as an ERROR, so returncode alone is not enough.
+        assert "Typst compilation failed" not in combined_output, (
+            f"TypstPDFBuilder.finish() logged a compilation failure:\n"
+            f"{combined_output}"
+        )
+
+        typ_output = build_dir / "index.typ"
+        assert typ_output.exists(), "index.typ was not emitted"
+        typ_text = typ_output.read_text(encoding="utf-8")
+        _assert_image_literal_escaped_and_separator_free(typ_text)
+
+        # The emitted .typ must have compiled to a real, non-empty PDF.
+        pdf_output = build_dir / "master.pdf"
+        assert pdf_output.exists(), (
+            f"master.pdf was not produced -- typst.compile() aborted:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert pdf_output.stat().st_size > 0, "PDF file is empty"
+        with open(pdf_output, "rb") as f:
+            magic = f.read(4)
+            assert magic == b"%PDF", "Generated file is not a valid PDF"

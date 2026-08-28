@@ -128,7 +128,11 @@ class WindowsShapedImageUriTransform(SphinxTransform):
         a compile that then failed for "file not found" would be
         indistinguishable from a fixture bug.
         """
-        sibling_dir = self.env.doctreedir.rstrip(os.sep) + "_win_uri_sibling"
+        # os.fspath(), never a direct str method on env.doctreedir --
+        # Sphinx 9.1 warns (RemovedInSphinx10Warning) on implicit
+        # str-conversion of its own PathLike config/env attributes.
+        doctreedir = os.fspath(self.env.doctreedir)
+        sibling_dir = doctreedir.rstrip(os.sep) + "_win_uri_sibling"
         os.makedirs(sibling_dir, exist_ok=True)
 
         # A single filename COMPONENT (never a subdirectory) carrying
