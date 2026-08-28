@@ -293,13 +293,13 @@ not beside them.
      post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
      prior run.
 
-**Plans**: 5 plans (strictly sequential — 5 waves; see the plan-ordering note below)
+**Plans**: 1/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 59-01-PLAN.md — PATH-01: `_escapes_outdir()` normalize-then-decide, its direct-call RED gate, the two-call-site characterization pin, and the phase evidence spine
+- [x] 59-01-PLAN.md — PATH-01: `_escapes_outdir()` normalize-then-decide, its direct-call RED gate, the two-call-site characterization pin, and the phase evidence spine
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -449,7 +449,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 0/TBD | Not started | - |
+| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 1/5 | In Progress | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 

@@ -4,17 +4,17 @@ milestone: v0.9.1
 milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
-status: planning
-stopped_at: Phase 59 planned (5 plans, 5 waves) - ready to execute
-last_updated: "2026-08-28T15:35:31.167Z"
+status: executing
+stopped_at: Phase 59 wave 1 complete (59-01) - wave 2 next
+last_updated: "2026-08-28T16:26:25.420Z"
 last_activity: 2026-08-29
-last_activity_desc: "Phase 59 planned: 5 plans in 5 waves; plan-checker passed at iteration 1; 13/13 decisions and all 5 requirement IDs covered"
-state_head: 2465683b8cc41b6394b6604c1917930b0d81ca4a
+last_activity_desc: "Phase 59 wave 1 complete: 59-01 closed PATH-01 (_escapes_outdir normalize-then-decide)"
+state_head: 817a1d1646562948e318e024ca6613994bc34f66
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 3
+  completed_plans: 4
   percent: 25
 ---
 
@@ -97,11 +97,11 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — planned, ready to execute
-Plan: — (5 plans, none started; run `/gsd-execute-phase 59`)
-Status: Planned — 5 plans in 5 waves, verified by gsd-plan-checker, ready to execute
+Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — executing
+Plan: 1 of 5 complete (wave 1 of 5 merged; 59-02 next)
+Status: Executing — wave 1 merged, post-merge suite 1455 passed / 1 skipped
 Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-29 — Phase 59 planned: 5 plans in 5 waves. 59-01 is the tracer slice
+Last activity: 2026-08-29 — Phase 59 wave 1 complete: 59-01 closed PATH-01. Plan set: 59-01 is the tracer slice
 (`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
 rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
 59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural
