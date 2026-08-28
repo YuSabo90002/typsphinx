@@ -293,7 +293,22 @@ not beside them.
      post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
      prior run.
 
-**Plans**: TBD
+**Plans**: 5 plans (strictly sequential — 5 waves; see the plan-ordering note below)
+
+Plans:
+- [ ] 59-01-PLAN.md — PATH-01: `_escapes_outdir()` normalize-then-decide, its direct-call RED gate, the two-call-site characterization pin, and the phase evidence spine
+- [ ] 59-02-PLAN.md — IMG-04 + IMG-06: normalized, 255-byte-bounded relocation key via two new builder helpers, with a pure-string gate and an ENAMETOOLONG integration gate
+- [ ] 59-03-PLAN.md — IMG-05: `visit_image()` routes the adjusted URI through `escape_typst_string()` once, gated by a relative-URI escaping gate independent of the builder half
+- [ ] 59-04-PLAN.md — IMG-07: the two-mode Windows-shaped fixture project, the all-lane `-b typst` string-shape gate, and the real `typst.compile()` gate with a runtime probe-skip
+- [ ] 59-05-PLAN.md — Acceptance: D-01's four-combination two-tree table (SC#2), the measured zero-test-edit proof (SC#5), and the fresh 3-OS CI dispatch
+
+**Plan ordering note.** Constraint 3 forbids parallel worktrees against `builder.py`, and constraint
+4 forbids a plan that changes an emitted string from sharing a wave with a plan that asserts on it.
+Independently, every plan appends its RED/GREEN transcript to the single D-11-named
+`59-WINDOWS-URI-EVIDENCE.md`, so any two plans in one wave would collide there at merge even with
+disjoint code files. The five plans therefore run one per wave; `translator.py`'s parallel-safety
+(noted above) is a permission this decomposition declines to use.
+
 **UI hint**: no
 
 ### Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
