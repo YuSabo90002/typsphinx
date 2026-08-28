@@ -38,6 +38,15 @@ logger = logging.getLogger(__name__)
 # (`_template/`) and in Sphinx itself (`_images`, `_static`, `_sources`).
 RESERVED_IMAGE_NAMESPACE = "_typst_converted"
 
+# IMG-06 (Phase 59, D-06/D-07): the maximum size, in UTF-8 bytes, of the
+# relocation key's final path component (``{sha1[:8]}-{basename}``). A
+# hardcoded owner decision (ROADMAP constraint 7), not a live filesystem
+# probe: ``os.pathconf()``/``os.statvfs()`` are documented Unix-only and
+# unusable on the ``windows-latest`` CI lane, 255 matches ext4/APFS's own
+# byte limit, and it is safely under NTFS's 255-UTF-16-unit limit. No CI
+# probe is dispatched to measure it.
+MAX_PATH_COMPONENT_BYTES = 255
+
 # Phase 54 (D-04): the bundle-copy driver's exclusion set is EXACTLY the
 # four kinds ROADMAP SC#3 names and nothing more -- do not exceed the
 # roadmap text (the same stance Phase 53's D-02 took on the
@@ -248,6 +257,141 @@ def _escapes_outdir(stem: str) -> bool:
         ".." in segments
         or posixpath.isabs(normalized)
         or _is_drive_qualified(normalized)
+    )
+
+
+def _bound_relocation_component(
+    digest: str, raw_basename: str, limit: int = MAX_PATH_COMPONENT_BYTES
+) -> str:
+    """IMG-06: bound ``{digest}-{raw_basename}`` to at most ``limit`` UTF-8
+    bytes, keeping the ``{digest}-`` collision anchor whole (D-06/D-07).
+
+    ``raw_basename`` must already be the IMG-04-normalized basename (the
+    result of ``posixpath.basename()`` applied to the forward-slash-
+    normalized URI) -- this helper does not itself normalize backslashes;
+    it only bounds length. The 255-byte limit is on the WHOLE final path
+    component, never on the basename alone (D-06): a 250-byte basename
+    plus the 9-byte ``{digest}-`` prefix is 259 bytes, which already
+    raises ``OSError 36 (ENAMETOOLONG)`` on ext4 -- bounding only the
+    basename would ship a gate that passes while the defect survives.
+
+    Truncation precedence when the budget is tight (D-07): the digest and
+    its hyphen survive whole first (truncating them would reintroduce the
+    collision IMG-03 closed); then at least one byte of stem; then the
+    extension -- if the extension alone would consume the whole remaining
+    budget, it is truncated too rather than squeezing the stem to nothing.
+    Every cut lands on a UTF-8 character boundary: bytes are sliced first,
+    then walked back one byte at a time until ``.decode("utf-8")``
+    succeeds -- never a `str`-level slice, since the 255 limit is in
+    BYTES and a naive `str` slice gets a multi-byte character wrong.
+
+    Args:
+        digest: The short collision-anchor hex digest (no trailing
+            hyphen).
+        raw_basename: The already-normalized basename to bound.
+        limit: The maximum size, in UTF-8 bytes, of the returned
+            component. Defaults to ``MAX_PATH_COMPONENT_BYTES``.
+
+    Returns:
+        The bounded ``{digest}-{basename}`` component, at most ``limit``
+        UTF-8 bytes.
+
+    Examples:
+        >>> _bound_relocation_component("a1b2c3d4", "x" * 250 + ".png")
+        ... # doctest: +SKIP
+        # 255 UTF-8 bytes: "a1b2c3d4-" + 242 "x"s + ".png"
+        >>> len(
+        ...     _bound_relocation_component("deadbeef", "図" * 100 + ".png").encode(
+        ...         "utf-8"
+        ...     )
+        ... )
+        253
+    """
+    prefix = f"{digest}-"
+    prefix_bytes = prefix.encode("utf-8")
+    budget = limit - len(prefix_bytes)
+
+    stem, ext = posixpath.splitext(raw_basename)
+    ext_bytes = ext.encode("utf-8")
+
+    if len(ext_bytes) >= budget:
+        # D-07: the extension alone would consume the whole remaining
+        # budget -- truncate it too rather than squeeze the stem to
+        # nothing.
+        ext_bytes = ext_bytes[: max(budget - 1, 0)]
+        while ext_bytes:
+            try:
+                ext = ext_bytes.decode("utf-8")
+                break
+            except UnicodeDecodeError:
+                ext_bytes = ext_bytes[:-1]  # walk back to a UTF-8 boundary
+        else:
+            ext = ""
+        stem_budget = budget - len(ext_bytes)
+    else:
+        stem_budget = budget - len(ext_bytes)
+
+    stem_bytes = stem.encode("utf-8")
+    if len(stem_bytes) > stem_budget:
+        stem_bytes = stem_bytes[: max(stem_budget, 1)]  # D-07: never empty
+        while True:
+            try:
+                stem = stem_bytes.decode("utf-8")
+                break
+            except UnicodeDecodeError:
+                stem_bytes = stem_bytes[:-1]  # walk back to a UTF-8 boundary
+
+    return f"{prefix}{stem}{ext}"
+
+
+def _build_relocation_key(resolved_uri: str) -> str:
+    """IMG-04 (normalize) + IMG-06 (bound): the full escape-branch
+    relocation key for ``resolved_uri``, the single construction site
+    ``_track_image()``'s escape branch calls.
+
+    IMG-03 (Phase 55) rationale, carried onto this helper: the digest
+    prefix is taken over the WHOLE ``resolved_uri``, not just its
+    basename -- restoring the injectivity two escaping URIs sharing a
+    basename would otherwise lose, while the basename itself stays
+    visible in the emitted filename. It is a PURE function of
+    ``resolved_uri`` alone, with no dependence on ``self.images`` or on
+    ``write()``'s ``sorted(docnames)`` order (Phase 50 D-02); it
+    introduces no parent-traversal segment (Phase 50 SC#2 outdir
+    containment); and it must be ``.encode()``\\ d first -- ``hashlib``
+    takes bytes, not `str`. Python's own built-in string hash is unusable
+    here: it is randomized per process unless seeded, so two builds of
+    the identical project would emit two different filenames. This is a
+    non-cryptographic collision-avoidance key over a build-local path
+    string, not a security boundary -- this project's ruff selection does
+    not include the security rule set, and this comment is the answer if
+    a future, stricter scanner ever flags it.
+
+    IMG-04 (Phase 59): the digest input stays the RAW, un-normalized
+    ``resolved_uri`` -- normalizing it before hashing would silently
+    change the collision-anchor formula for exactly the Windows shape
+    this phase newly exercises (59-RESEARCH.md Pitfall 2). Only the
+    basename half is normalized, via a distinctly-named
+    ``basename_source`` local, and extracted with ``posixpath.basename``
+    -- never the OS-native ``path.basename``, because on a POSIX build
+    host ``path`` IS ``posixpath``, which does not split on a backslash
+    -- the exact defect IMG-04 fixes.
+
+    Args:
+        resolved_uri: The concrete, un-normalized absolute image URI
+            being relocated (as passed to ``_track_image()``).
+
+    Returns:
+        The full ``{RESERVED_IMAGE_NAMESPACE}/{digest}-{basename}`` key,
+        with the basename half backslash-free (IMG-04) and the whole
+        final component bounded to ``MAX_PATH_COMPONENT_BYTES`` UTF-8
+        bytes (IMG-06).
+    """
+    digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
+    basename_source = resolved_uri.replace("\\", "/")
+    normalized_basename = posixpath.basename(basename_source)
+    return (
+        f"{RESERVED_IMAGE_NAMESPACE}/"
+        f"{_bound_relocation_component(digest, normalized_basename)}"
     )
 
 
@@ -1753,29 +1897,12 @@ class TypstBuilder(Builder):
                 # URI somewhere none of Sphinx's own post-transforms ever
                 # do.
                 #
-                # IMG-03 (Phase 55): the digest prefix is taken over the
-                # WHOLE resolved_uri, not just its basename -- restoring
-                # the injectivity two escaping URIs sharing a basename lost
-                # under the old basename-only key, while the basename
-                # itself stays visible in the emitted filename. It is a
-                # PURE function of resolved_uri alone, with no dependence
-                # on self.images or on write()'s sorted(docnames) order
-                # (Phase 50 D-02); it introduces no parent-traversal
-                # segment (Phase 50 SC#2 outdir containment); and it must
-                # be .encode()d first -- hashlib takes bytes, not str.
-                # Python's own built-in string hash is unusable here: it
-                # is randomized per process unless seeded, so two builds
-                # of the identical project would emit two different
-                # filenames. This is a non-cryptographic collision-
-                # avoidance key over a build-local path string, not a
-                # security boundary -- this project's ruff selection does
-                # not include the security rule set, and this comment is
-                # the answer if a future, stricter scanner ever flags it.
-                digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
-                key = (
-                    f"{RESERVED_IMAGE_NAMESPACE}/{digest}-"
-                    f"{path.basename(resolved_uri)}"
-                )
+                # IMG-04/IMG-06 (Phase 59): key construction extracted to
+                # _build_relocation_key() -- see that function's own
+                # docstring for the IMG-03 collision-anchor rationale it
+                # carries forward, the IMG-04 normalize-then-basename
+                # ordering, and the IMG-06 255-byte bound.
+                key = _build_relocation_key(resolved_uri)
                 logger.warning(
                     f"could not rehome image URI {resolved_uri!r} relative "
                     f"to the doctree directory -- relocated to {key!r}"

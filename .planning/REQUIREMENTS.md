@@ -49,7 +49,7 @@ see PATH-01's reachability note and MSG-01's existence.
       `_compute_relative_image_path()`, never the raw `uri` before that call — it is a
       syntax-literal transform and must run last.
 
-- [ ] **IMG-06**: the relocation key's basename is bounded to 255 UTF-8 bytes, with the
+- [x] **IMG-06**: the relocation key's basename is bounded to 255 UTF-8 bytes, with the
       `{sha1[:8]}-` digest kept whole as the collision anchor (truncating the digest would
       reintroduce the collision IMG-03 closed). Truncation lands on a UTF-8 character boundary and
       never yields an empty basename.
@@ -136,8 +136,10 @@ Deferred to a future milestone. Tracked, not in this roadmap.
 
 - **CONF-xx**: the `templates_path` collision check resolves against `confdir` rather than
   `srcdir`, so `-c`/confdir projects are covered (54.1-REVIEW WR-02, shipped silent in v0.9.0).
+
 - **DOC-xx**: `numref` numbers diverge per master and vanish entirely for figures reachable only
   from a non-root master (still excluded from every published surface by owner override D-07).
+
 - **CONF-xx**: the "Custom template not found" warning fires three times instead of two for one
   narrow shape (54.1-REVIEW WR-01).
 
@@ -146,13 +148,17 @@ Deferred to a future milestone. Tracked, not in this roadmap.
 - **CI-xx**: every dependabot PR dies before running a single test — it bumps `pyproject.toml`
   without regenerating `uv.lock`, and all ten `uv sync --locked` steps refuse the stale lockfile
   (`severity: major`).
+
 - **QUA-06**: `ruff` cannot run on the maintainer's NixOS machine — a freshly-provisioned worktree
   venv pulls a generic-linux wheel whose ELF the loader rejects. Re-measured live 2026-08-22; the
   main tree's stale binary masks it. CI holds lint authority, so nothing is blocked.
+
 - **QUA-07**: split the `dev` extra into PEP 735 `[dependency-groups]` so each tox environment
   installs only what it needs (SEED-003).
+
 - **LNK-01**: add a `sphinx-build -b linkcheck` CI job (`links.yml`'s repo-wide lychee check
   already covers the links each release adds).
+
 - **QUA-xx**: modernize typing imports and drop the `UP006`/`UP035` ruff ignore. Deferred
   *doubly* — `CLAUDE.md` independently instructs not to modernize until that todo lands.
 
@@ -191,7 +197,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PATH-01 | Phase 59 | Pending |
 | IMG-04 | Phase 59 | Pending |
 | IMG-05 | Phase 59 | Pending |
-| IMG-06 | Phase 59 | Pending |
+| IMG-06 | Phase 59 | Complete |
 | IMG-07 | Phase 59 | Pending |
 | MSG-02 | Phase 60 | Pending |
 | MSG-03 | Phase 60 | Pending |
@@ -204,6 +210,7 @@ requirement that changes a message string, and IMG-04's value change precedes MS
 the same warning. See ROADMAP.md binding constraints 2 and 4.
 
 **Coverage:**
+
 - v1 requirements: 11 total
 - Mapped to phases: 11
 - Unmapped: 0 ✓
@@ -224,20 +231,25 @@ These are not requirements; they are the conditions any plan in this milestone m
 1. **RED-first is mandatory, and the bar is not "CI green".** All three defect families are latent:
    no test covers any of them today, and the `windows-latest` lane is green at HEAD and would stay
    green if nothing were fixed. Each gate must FAIL against the unfixed tree before its fix lands.
+
 2. **At least one gate is a real `typst.compile()`** (IMG-GATE). An assertion that stops at
    `node["uri"]` cannot see the property that failed here.
+
 3. **Zero test edits in the product-code requirements.** MSG-01 exists to make this achievable; if
    a later plan finds it must edit a test, that is a signal the census was incomplete, not a
    licence to edit.
+
 4. **Build order respects two measured collision hazards.** PATH-01, IMG-04 and IMG-06 all land in
    the same ~30-line region of `builder.py` — `_escapes_outdir()` is called from inside
    `_track_image()`, and MSG-03's line-1767 site is the exact warning whose `key` value IMG-04
    changes. They must not run as parallel worktree plans against the same file. Separately, a plan
    that changes an emitted message string and a plan that asserts on that string must not share a
    wave — this project has already paid for that once.
+
 5. **Worktree isolation is the standing execution mode.** Every executor provisions its own venv
    (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`) and runs everything via
    `uv run`, per `CLAUDE.md`.
+
 6. **Acceptance bar:** the 3-OS CI lane, `windows-latest` included, green over the fix — dispatched
    on the post-fix tip, not inferred from a prior run.
 
