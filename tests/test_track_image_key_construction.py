@@ -211,7 +211,7 @@ class TestRelocationKeyLengthBound:
         extension longer than the whole budget is itself truncated while
         at least one stem byte survives."""
         digest = "a1b2c3d4"
-        prefix_byte_length = len(f"{digest}-".encode("utf-8"))
+        prefix_byte_length = len(f"{digest}-".encode())
         budget = 255 - prefix_byte_length
 
         basename = "s" + "." + "e" * 300
