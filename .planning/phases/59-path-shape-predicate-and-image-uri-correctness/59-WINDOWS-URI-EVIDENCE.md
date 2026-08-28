@@ -492,6 +492,59 @@ FAILED tests/test_image_literal_escaping_gate.py::TestImageLiteralEscaping::test
 verbatim -- the raw, unescaped double quote sits inside the Typst string literal exactly where
 IMG-05 says it must not. `typsphinx/translator.py` is untouched at this point.
 
+### GREEN (post-fix)
+
+Recorded after `visit_image()` was changed to bind `escaped_uri = escape_typst_string(adjusted_uri)`
+immediately after the `_compute_relative_image_path()` call, and to interpolate `escaped_uri`
+(instead of `adjusted_uri`) at both the in-figure and standalone `add_text` sites. Same command as
+the RED run above:
+
+```
+uv run pytest tests/test_image_literal_escaping_gate.py -q
+```
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7641101195cd2619
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_image_literal_escaping_gate.py .                              [100%]
+
+============================== 1 passed in 0.24s ===============================
+```
+
+`1 passed`, zero failed, zero skipped. Full suite also re-confirmed green:
+`uv run pytest -q` -> `1463 passed, 5 skipped` -- identical skip count to plan 59-02's post-fix
+baseline, and only +1 over that baseline's `1462 passed` (this plan's own new gate test), meaning
+zero pre-existing test assertions changed anywhere in the suite. `uv run black --check .` and
+`uv run mypy typsphinx/` both clean.
+
+**Before/after pair, measured directly against a real build (same fixture shape as the gate, run
+standalone to capture the full emitted content document):**
+
+Pre-fix (from the RED transcript above), the emitted content document `index.typ` contained:
+
+```
+image("images/we"ird.png")
+```
+
+Post-fix, the identical build now emits:
+
+```
+image("images/we\"ird.png")
+```
+
+with a `WARNING: Image file not found: .../images/we"ird.png` build warning still present in both
+runs (expected -- no file with that name is ever created; the warning is about the copy step, not
+the escaping this gate measures). The literal double quote inside the string is now preceded by a
+backslash, matching `escape_typst_string()`'s documented quote-escaping rule, and the emitted text
+contains no raw `we"ird.png` fragment anywhere.
+
 ## IMG-07 four-combination table
 
 (filled by plan 59-04)

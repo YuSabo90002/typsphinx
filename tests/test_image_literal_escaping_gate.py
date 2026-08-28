@@ -151,7 +151,9 @@ class TestImageLiteralEscaping:
         )
 
         content_typ = outdir / "index.typ"
-        assert content_typ.exists(), "index.typ (the content document) was not generated"
+        assert (
+            content_typ.exists()
+        ), "index.typ (the content document) was not generated"
         emitted_text = content_typ.read_text()
 
         raw_uri = 'images/we"ird.png'
