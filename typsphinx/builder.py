@@ -226,8 +226,13 @@ def _escapes_outdir(stem: str) -> bool:
         True
         >>> _escapes_outdir("C:manual")
         True
+        >>> _escapes_outdir("\\\\manuals\\\\guide")
+        True
+        >>> _escapes_outdir("\\\\\\\\srv\\\\share\\\\g")
+        True
     """
-    segments = stem.replace("\\", "/").split("/")
+    normalized = stem.replace("\\", "/")
+    segments = normalized.split("/")
     # posixpath.isabs(), not path.isabs(): this function's own contract is
     # platform-independent (D-05) -- the OS-native `path` (== ntpath on a
     # Windows CI runner) disagrees with posixpath on which of these shapes
@@ -235,7 +240,15 @@ def _escapes_outdir(stem: str) -> bool:
     # ntpath requires a drive letter or a UNC-style leading "//"), which
     # would let a POSIX-shaped escape target through unrefused on Windows.
     # Measured on the windows-latest CI lane, 47-10/T2.
-    return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)
+    # PATH-01 (Phase 59): both the ``isabs``/drive-qualified terms now read
+    # ``normalized``, the same backslash-normalized string the ``".."``
+    # term already used -- matching ``_is_absolute_image_uri()``'s own
+    # single-``normalized`` idiom above.
+    return (
+        ".." in segments
+        or posixpath.isabs(normalized)
+        or _is_drive_qualified(normalized)
+    )
 
 
 def _paths_related(path_a: str, path_b: str) -> bool:
