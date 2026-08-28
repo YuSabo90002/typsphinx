@@ -72,6 +72,33 @@ through the project's own `.venv` typst-py — not from recall.
 
   — **Reversibility:** reversible.
 
+- **D-01a: AMENDED — D-01's `unfixed` row is wrong. The measured refusal is `unclosed delimiter`,
+  not `path must not contain a backslash`.** Measured by plan 59-05's four-tree reconstruction
+  (`git checkout ec6bd3a4 -- typsphinx/{builder,translator}.py`, restored and verified clean after
+  every combination) and independently re-measured by the orchestrator against `typst.compile()`
+  directly on the four literal shapes. Corrected row:
+
+  | tree | emitted `image(...)` literal | Typst (measured) |
+  |---|---|---|
+  | unfixed | `..._typst_converted/{d}-sub\we"ird.png` | `unclosed delimiter` |
+
+  Rows `IMG-04 only`, `IMG-05 only` and `both` all measured exactly as D-01 predicted.
+
+  **Why D-01 got it wrong:** its four `typst.compile()` runs each carried exactly ONE defect —
+  `image("dir\logo.png")`, `image("dir\\logo.png")`, `image("we"ird.png")`, `image("we\"ird.png")`.
+  None carried a raw backslash and a raw unescaped `"` *simultaneously*, which is what the unfixed
+  `_track_image()` + `visit_image()` pipeline actually emits. With both present, the unescaped `"`
+  terminates the Typst string literal at parse time, so the semantic backslash-in-path check never
+  runs. The `\` in the unfixed row is therefore not load-bearing for the refusal at all — the `"`
+  alone decides it, which is why the `IMG-04 only` row shows the same `unclosed delimiter`.
+
+  **SC#2 is unaffected.** A, B and C all fail to compile and only D compiles, so "neither alone
+  would have closed it" still holds on this fixture — only the *reason* the unfixed tree fails
+  changes. **No test is affected either:** `tests/test_windows_image_uri_render_gate.py:259,263`
+  assert that *neither* error string appears on the fixed tree, so nothing was bound to the
+  falsified prediction.
+  — **Reversibility:** reversible. Owner-approved 2026-08-29 after independent re-measurement.
+
 - **D-02: The gate is an end-to-end `sphinx-build -b typstpdf` run, not a hand-written `.typ`.**
   It must exercise `_track_image()`'s key construction *and* `visit_image()`'s interpolation *and*
   `copy_image_files()`'s copy in one pass; a hand-written `.typ` proves only what its author already
