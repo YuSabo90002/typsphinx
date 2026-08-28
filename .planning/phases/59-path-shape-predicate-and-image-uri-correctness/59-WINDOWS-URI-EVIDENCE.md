@@ -142,7 +142,205 @@ left no trace:
 
 ## IMG-04 / IMG-06
 
-(filled by plan 59-02)
+### RED (pre-fix)
+
+Recorded at `PHASE_BASE_SHA` (`34db72b6567e373a8628c7388efd53cfc981692b`, this plan's own base
+commit -- plan 59-01 already merged, `typsphinx/builder.py` still carries the pre-fix
+`_track_image()` escape-branch key construction). Command:
+
+```
+uv run pytest tests/test_track_image_key_construction.py tests/test_copy_image_files_name_too_long.py -q
+```
+
+`git diff --stat -- typsphinx/builder.py` at this point: empty (confirmed above the run; the
+product file is untouched by this task).
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-add2e5170089418aa
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 3 items
+
+tests/test_track_image_key_construction.py FF                            [ 66%]
+tests/test_copy_image_files_name_too_long.py F                           [100%]
+
+=================================== FAILURES ===================================
+_ TestRelocationKeyNoBackslash.test_relocation_key_no_backslash_for_windows_shaped_uri _
+
+self = <test_track_image_key_construction.TestRelocationKeyNoBackslash object at 0x749441fa5d10>
+temp_sphinx_app = <SphinxTestApp buildername='html'>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x749440801400>
+
+    def test_relocation_key_no_backslash_for_windows_shaped_uri(
+        self, temp_sphinx_app, caplog
+    ):
+        """A Windows-shaped absolute URI whose basename carries both a
+        backslash-delimited directory structure and a literal double
+        quote must relocate to a key containing no backslash at all."""
+        builder = TypstBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.init()
+
+        # Raw string: exactly one backslash per Windows path separator,
+        # plus one literal double quote in the basename (the D-01 shape
+        # this phase's IMG-07 gate later reuses).
+        uri = r"C:\Users\runner\assets\sub\we\"ird.png"
+        doc = _build_single_image_document(uri)
+
+        with caplog.at_level("WARNING"):
+            builder.post_process_images(doc)
+
+        img = doc[0]
+        key = img["uri"]
+
+        assert key.startswith(f"{RESERVED_IMAGE_NAMESPACE}/"), (
+            f"expected the escape branch to fire and relocate under "
+            f"{RESERVED_IMAGE_NAMESPACE!r}, got key {key!r}"
+        )
+>       assert "\\" not in key, (
+            f"relocation key must contain no backslash for a "
+            f"Windows-shaped URI, got key {key!r}"
+        )
+E       AssertionError: relocation key must contain no backslash for a Windows-shaped URI, got key '_typst_converted/ffe13a61-C:\\Users\\runner\\assets\\sub\\we\\"ird.png'
+E       assert '\\' not in '_typst_conv...we\\"ird.png'
+E
+E         '\\' is contained here:
+E           _typst_converted/ffe13a61-C:\Users\runner\assets\sub\we\"ird.png
+E         ?                             +
+
+tests/test_track_image_key_construction.py:87: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: could not rehome image URI 'C:\\Users\\runner\\assets\\sub\\we\\"ird.png' relative to the doctree directory -- relocated to '_typst_converted/ffe13a61-C:\\Users\\runner\\assets\\sub\\we\\"ird.png'
+_ TestRelocationKeyLengthBound.test_relocation_key_length_bound_through_track_image _
+
+self = <test_track_image_key_construction.TestRelocationKeyLengthBound object at 0x749441fa6350>
+temp_sphinx_app = <SphinxTestApp buildername='html'>
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1635/test_relocation_key_length_bou0')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x749440676710>
+
+    def test_relocation_key_length_bound_through_track_image(
+        self, temp_sphinx_app, tmp_path, caplog
+    ):
+        """A 250-character ASCII basename, rehomed through the real
+        escape branch, must produce a final path component of at most
+        255 UTF-8 bytes.
+
+        Pre-fix this is 263 bytes (9 bytes of ``{digest}-`` plus the
+        254-byte basename `"x" * 250 + ".png"`) -- D-06's measured
+        "bounding the basename alone still fails" case; this gate proves
+        the bound applies to the WHOLE final component, not merely
+        caps at 255-minus-nothing.
+        """
+        builder = TypstBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.init()
+
+        long_basename = "x" * 250 + ".png"
+        # Outside doctreedir (builddir/.doctrees) by construction --
+        # tmp_path/"outside"/<basename> never lives under
+        # tmp_path/"build"/.doctrees, so the escape branch always fires.
+        uri = os.path.join(str(tmp_path), "outside", long_basename)
+        doc = _build_single_image_document(uri)
+
+        with caplog.at_level("WARNING"):
+            builder.post_process_images(doc)
+
+        img = doc[0]
+        final_component = img["uri"].rsplit("/", 1)[-1]
+        byte_length = len(final_component.encode("utf-8"))
+
+>       assert byte_length <= 255, (
+            f"relocation key's final path component must be at most 255 "
+            f"UTF-8 bytes, got {byte_length} bytes: {final_component!r}"
+        )
+E       AssertionError: relocation key's final path component must be at most 255 UTF-8 bytes, got 263 bytes: 'bfd33c49-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'
+E       assert 263 <= 255
+
+tests/test_track_image_key_construction.py:129: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: could not rehome image URI '/tmp/pytest-of-yuta/pytest-1635/test_relocation_key_length_bou0/outside/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png' relative to the doctree directory -- relocated to '_typst_converted/bfd33c49-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'
+_ TestCopyImageFilesNameTooLong.test_copy_image_files_length_bound_no_name_too_long_warning _
+
+self = <test_copy_image_files_name_too_long.TestCopyImageFilesNameTooLong object at 0x749441fa6490>
+temp_sphinx_app = <SphinxTestApp buildername='html'>
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1635/test_copy_image_files_length_b0')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7494406b9810>
+
+    def test_copy_image_files_length_bound_no_name_too_long_warning(
+        self, temp_sphinx_app, tmp_path, caplog
+    ):
+        long_basename = "x" * 250 + ".png"
+
+        # In-body filesystem probe (Pitfall 1) -- never a collection-time
+        # marker decorator.
+        probe_dir = tmp_path / "probe"
+        try:
+            probe_dir.mkdir(parents=True, exist_ok=True)
+            probe_path = probe_dir / long_basename
+            probe_path.write_bytes(b"probe")
+            probe_path.unlink()
+        except OSError as e:
+            pytest.skip(
+                f"filesystem cannot hold a {len(long_basename)}-byte " f"basename: {e}"
+            )
+
+        # Real long-basename file, outside doctreedir so the escape
+        # branch fires, with valid PNG bytes copied from the existing
+        # render-gate fixture (never a synthetic/empty file).
+        source_dir = tmp_path / "outside"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / long_basename
+        shutil.copy2(_FIXTURE_PNG, source_path)
+
+        builder = TypstBuilder(temp_sphinx_app, temp_sphinx_app.env)
+        builder.init()
+
+        doc = _build_single_image_document(str(source_path))
+
+        with caplog.at_level("WARNING"):
+            builder.post_process_images(doc)
+            builder.copy_image_files()
+
+        img = doc[0]
+
+        warning_messages = [
+            r.getMessage() for r in caplog.records if r.levelname == "WARNING"
+        ]
+        # Substring, not a strict prefix check: sphinx's own logging setup
+        # (installed on temp_sphinx_app's real Sphinx application) prepends
+        # a "WARNING: " translator prefix onto WARNING-level messages
+        # before caplog observes them, so the literal text always begins
+        # with that prefix rather than with "Failed to copy image" itself.
+>       assert not any(
+            "Failed to copy image" in m for m in warning_messages
+        ), f"unexpected copy failure warning(s): {warning_messages!r}"
+E       AssertionError: unexpected copy failure warning(s): ["WARNING: could not rehome image URI '/tmp/pytest-of-yuta/pytest-1635/test_copy_image_files_length_b0/outside/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png' relative to the doctree directory -- relocated to '_typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'", "WARNING: Failed to copy image _typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png: [Errno 36] File name too long: '/tmp/pytest-of-yuta/pytest-1635/test_copy_image_files_length_b0/build/html/_typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'"]
+E       assert not True
+E        +  where True = any(<generator object TestCopyImageFilesNameTooLong.test_copy_image_files_length_bound_no_name_too_long_warning.<locals>.<genexpr> at 0x74944085e810>)
+
+tests/test_copy_image_files_name_too_long.py:104: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: could not rehome image URI '/tmp/pytest-of-yuta/pytest-1635/test_copy_image_files_length_b0/outside/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png' relative to the doctree directory -- relocated to '_typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'
+INFO     sphinx.typsphinx.builder:logging.py:138 Copying 1 image file(s)...
+WARNING  sphinx.typsphinx.builder:logging.py:138 WARNING: Failed to copy image _typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png: [Errno 36] File name too long: '/tmp/pytest-of-yuta/pytest-1635/test_copy_image_files_length_b0/build/html/_typst_converted/b2e8281c-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.png'
+=========================== short test summary info ============================
+FAILED tests/test_track_image_key_construction.py::TestRelocationKeyNoBackslash::test_relocation_key_no_backslash_for_windows_shaped_uri
+FAILED tests/test_track_image_key_construction.py::TestRelocationKeyLengthBound::test_relocation_key_length_bound_through_track_image
+FAILED tests/test_copy_image_files_name_too_long.py::TestCopyImageFilesNameTooLong::test_copy_image_files_length_bound_no_name_too_long_warning
+============================== 3 failed in 0.16s ===============================
+```
+
+`3 failed`, zero skipped. IMG-04's failure names the offending key verbatim:
+`_typst_converted/ffe13a61-C:\Users\runner\assets\sub\we\"ird.png` (one literal backslash
+surviving from the raw, un-normalized `path.basename(resolved_uri)` call). IMG-06's failure
+shows `263` bytes measured for the 250-ASCII-character basename (9-byte `{digest}-` prefix plus
+the 254-byte basename), matching D-06's predicted pre-fix number exactly. The integration gate's
+own transcript carries Typst's platform-native refusal verbatim:
+`Failed to copy image _typst_converted/b2e8281c-{254 x's}.png: [Errno 36] File name too long:
+'{outdir}/_typst_converted/b2e8281c-{254 x's}.png'` -- the pre-fix `copy_image_files()` swallow
+this fix closes.
 
 ## IMG-05
 
