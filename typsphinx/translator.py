@@ -4741,12 +4741,18 @@ class TypstTranslator(SphinxTranslator):
         # Adjust path based on output file location (Issue #69)
         adjusted_uri = self._compute_relative_image_path(uri, current_docname)
 
+        # IMG-05: escape LAST, on the RETURN VALUE of the path-shape
+        # transform above, never on the raw `uri` before it -- computed
+        # once so the string-literal syntax transform stays structurally
+        # last regardless of which branch below interpolates it.
+        escaped_uri = escape_typst_string(adjusted_uri)
+
         # Add proper indentation if inside a figure
         if self.in_figure:
-            self.add_text(f'  image("{adjusted_uri}"')
+            self.add_text(f'  image("{escaped_uri}"')
         else:
             # No # prefix in code mode
-            self.add_text(f'image("{adjusted_uri}"')
+            self.add_text(f'image("{escaped_uri}"')
 
         # Add optional attributes. Length values from docutils (:width:/:height:)
         # may use CSS units Typst does not understand (e.g. raw "px"), which

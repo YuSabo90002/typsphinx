@@ -385,7 +385,169 @@ this task added). `uv run black --check .` and `uv run mypy typsphinx/` both cle
 
 ## IMG-05
 
-(filled by plan 59-03)
+### RED (pre-fix)
+
+Recorded at `b1c84fef9a89b69e11661a1a4bd2188e7b9d2587` (this plan's own base commit -- plan
+59-02 already merged, `typsphinx/translator.py` still carries the pre-fix `visit_image()`
+interpolating `adjusted_uri` directly, unescaped). Command:
+
+```
+uv run pytest tests/test_image_literal_escaping_gate.py -q
+```
+
+`git diff --stat -- typsphinx/translator.py` at this point: empty (confirmed above the run; the
+product file is untouched by this task).
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7641101195cd2619
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_image_literal_escaping_gate.py F                              [100%]
+
+=================================== FAILURES ===================================
+_ TestImageLiteralEscaping.test_image_literal_escaping_quote_is_escaped_in_emitted_typ _
+
+self = <test_image_literal_escaping_gate.TestImageLiteralEscaping object at 0x7fc6a3251f90>
+tmp_path = PosixPath('/tmp/pytest-of-yuta/pytest-1646/test_image_literal_escaping_qu0')
+
+    def test_image_literal_escaping_quote_is_escaped_in_emitted_typ(self, tmp_path):
+        """A relative image URI whose basename contains a literal double
+        quote must emit an ESCAPED quote inside the ``image("...")``
+        literal, never a raw one.
+
+        Two properties of the chosen URI are load-bearing:
+
+        1. It is RELATIVE (``images/we"ird.png``), so
+           ``_is_absolute_image_uri()`` is False and the node never
+           reaches the escape branch inside
+           ``typsphinx/builder.py::_track_image()`` that plan 59-02
+           already rewrote -- this test therefore measures
+           ``visit_image()`` alone, independent of every other plan in
+           this phase.
+        2. No file named ``we"ird.png`` is ever created on disk, so this
+           gate runs on every CI lane including ``windows-latest``, where
+           a double quote is an illegal filename character.
+           ``copy_image_files()`` logs ``Image file not found`` and the
+           build continues -- that warning is expected and is never
+           asserted against below.
+        """
+        srcdir = tmp_path / "source"
+        _make_source_tree(srcdir)
+        outdir = tmp_path / "build"
+
+        result = _run_sphinx_build_typst(srcdir, outdir)
+
+        assert result.returncode == 0, (
+            f"Sphinx build failed:\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        content_typ = outdir / "index.typ"
+        assert content_typ.exists(), "index.typ (the content document) was not generated"
+        emitted_text = content_typ.read_text()
+
+        raw_uri = 'images/we"ird.png'
+        escaped_fragment = f'image("{escape_typst_string(raw_uri)}"'
+        raw_fragment = f'image("{raw_uri}"'
+
+>       assert escaped_fragment in emitted_text, (
+            f"Expected the escaped literal {escaped_fragment!r} in the "
+            f"emitted .typ, got:\n{emitted_text}"
+        )
+E       AssertionError: Expected the escaped literal 'image("images/we\\"ird.png"' in the emitted .typ, got:
+E         // Essential imports for included document
+E         #import "@preview/codly:1.3.0": *
+E         #import "@preview/codly-languages:0.1.10": *
+E         #import "@preview/mitex:0.2.7": mi, mitex
+E         #import "@preview/gentle-clues:1.3.1": *
+E         
+E         // Initialize codly
+E         #show: codly-init.with()
+E         #codly(languages: codly-languages)
+E         
+E         #{
+E         [#metadata(none) <index:__tsx-doc__>]
+E         [#heading(depth: 1, {text("Test Document")}) <index:test-document>]
+E         
+E         image("images/we"ird.png")
+E         
+E         
+E         }
+E         
+E       assert 'image("images/we\\"ird.png"' in '// Essential imports for included document\n#import "@preview/codly:1.3.0": *\n#import "@preview/codly-languages:0.1....sx-doc__>]\n[#heading(depth: 1, {text("Test Document")}) <index:test-document>]\n\nimage("images/we"ird.png")\n\n\n}\n'
+
+tests/test_image_literal_escaping_gate.py:161: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_image_literal_escaping_gate.py::TestImageLiteralEscaping::test_image_literal_escaping_quote_is_escaped_in_emitted_typ
+============================== 1 failed in 0.31s ===============================
+```
+
+`1 failed`, zero skipped. The pre-fix `visit_image()` emits the literal `image("images/we"ird.png")`
+verbatim -- the raw, unescaped double quote sits inside the Typst string literal exactly where
+IMG-05 says it must not. `typsphinx/translator.py` is untouched at this point.
+
+### GREEN (post-fix)
+
+Recorded after `visit_image()` was changed to bind `escaped_uri = escape_typst_string(adjusted_uri)`
+immediately after the `_compute_relative_image_path()` call, and to interpolate `escaped_uri`
+(instead of `adjusted_uri`) at both the in-figure and standalone `add_text` sites. Same command as
+the RED run above:
+
+```
+uv run pytest tests/test_image_literal_escaping_gate.py -q
+```
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7641101195cd2619
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 1 item
+
+tests/test_image_literal_escaping_gate.py .                              [100%]
+
+============================== 1 passed in 0.24s ===============================
+```
+
+`1 passed`, zero failed, zero skipped. Full suite also re-confirmed green:
+`uv run pytest -q` -> `1463 passed, 5 skipped` -- identical skip count to plan 59-02's post-fix
+baseline, and only +1 over that baseline's `1462 passed` (this plan's own new gate test), meaning
+zero pre-existing test assertions changed anywhere in the suite. `uv run black --check .` and
+`uv run mypy typsphinx/` both clean.
+
+**Before/after pair, measured directly against a real build (same fixture shape as the gate, run
+standalone to capture the full emitted content document):**
+
+Pre-fix (from the RED transcript above), the emitted content document `index.typ` contained:
+
+```
+image("images/we"ird.png")
+```
+
+Post-fix, the identical build now emits:
+
+```
+image("images/we\"ird.png")
+```
+
+with a `WARNING: Image file not found: .../images/we"ird.png` build warning still present in both
+runs (expected -- no file with that name is ever created; the warning is about the copy step, not
+the escaping this gate measures). The literal double quote inside the string is now preceded by a
+backslash, matching `escape_typst_string()`'s documented quote-escaping rule, and the emitted text
+contains no raw `we"ird.png` fragment anywhere.
+
+## IMG-07 four-combination table
+
+(filled by plan 59-04)
 
 ## IMG-07 four-combination table
 
