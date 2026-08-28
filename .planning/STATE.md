@@ -5,16 +5,16 @@ milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
 status: executing
-stopped_at: Phase 59 wave 3 complete (59-01..59-03) - wave 4 next
-last_updated: "2026-08-28T17:00:17.729Z"
+stopped_at: Phase 59 wave 4 complete (59-01..59-04) - wave 5 next
+last_updated: "2026-08-28T17:25:35.116Z"
 last_activity: 2026-08-29
-last_activity_desc: "Phase 59 wave 3 complete: 59-03 closed IMG-05 (visit_image routes through escape_typst_string)"
-state_head: c6cb6e12587068c69c116d91c5fc3ab85ea8a10c
+last_activity_desc: "Phase 59 wave 4 complete: 59-04 landed the IMG-07 Windows-shaped fixture, the all-lane string-shape gate and the real typst.compile() gate"
+state_head: 4be3b913f889b1ea41f97350184aeb3f3f5219a2
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 25
 ---
 
@@ -98,10 +98,10 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — executing
-Plan: 3 of 5 complete (wave 3 of 5 merged; 59-04 next)
-Status: Executing — wave 3 merged, post-merge suite 1467 passed / 1 skipped
+Plan: 4 of 5 complete (wave 4 of 5 merged; 59-05 next)
+Status: Executing — wave 4 merged, post-merge suite 1469 passed / 1 skipped
 Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-29 — Phase 59 wave 3 complete: 59-01 (PATH-01), 59-02 (IMG-06), 59-03 (IMG-05). Plan set: 59-01 is the tracer slice
+Last activity: 2026-08-29 — Phase 59 wave 4 complete: 59-01 (PATH-01), 59-02 (IMG-06), 59-03 (IMG-05), 59-04 (IMG-07 gates). Plan set: 59-01 is the tracer slice
 (`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
 rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
 59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural
