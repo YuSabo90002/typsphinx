@@ -509,6 +509,14 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**Measured 2026-08-29: eleven open in `.planning/todos/pending/`.** The eleventh was captured
+2026-08-29 (`inline-image-in-paragraph-emits-unseparated-expression`, **blocker**, owner report,
+reproduced and root-caused at capture time): any image node preceded by sibling content in the same
+paragraph or list item is emitted as `par({text("…")image("…")` — two juxtaposed code-mode
+expressions on one line — so Typst aborts with `expected semicolon or line break` and the
+`typstpdf` builder raises `ExtensionError`, writing **no** PDF for any master document. Inserting a
+single `\n` before `image(` makes the identical file compile. Not in any current milestone's scope.
+
 **Measured 2026-08-16: nine open in `.planning/todos/pending/`.** The narrative below is a v0.7.1-era
 record kept for provenance; it is not the current count.
 `root-toctree-duplicates-section-children-in-html-sidebar` was **filed 2026-08-16** (minor, owner
