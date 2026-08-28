@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-28 after Phase 58 complete)
+See: .planning/PROJECT.md (updated 2026-08-29 after Phase 59 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 59 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28). A
+**Current focus:** Phase 60 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28, Phase 59 complete 2026-08-29). A
 bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
 the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
 path-quoting helper that closes **both** halves of
@@ -669,6 +669,25 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 (→ CIT-01..06), `visit-math-block-redundant-blank-line-in-list-items` (→ MATH-02),
 `release-notes-body-from-changelog-section` (→ REL-04), `captioned-table-drops-preceding-target-label`
 (→ TBL-03, backlog 999.2).
+
+- [Phase 59] D-01a **AMENDED on measurement, owner-approved**: the unfixed tree is refused by Typst
+  with `unclosed delimiter`, not `path must not contain a backslash` — a literal carrying a raw
+  backslash AND a raw unescaped `"` has its string terminated at parse time before the semantic
+  backslash check runs. ROADMAP SC#2 carried the same falsified string and was amended the same way.
+  The substantive "neither half alone closes it" claim was measured true and is unaffected.
+
+- [Phase 59] The relocation key's digest is taken over the **raw** `resolved_uri`, never the
+  normalized one: the digest is the collision anchor IMG-03 closed, and normalizing it first would
+  map two distinct URIs onto one key. Only the basename half is normalized.
+
+- [Phase 59] `_bound_relocation_component()` reserves one **character**, not one byte. Reserving a
+  byte is equivalent only for ASCII; a multi-byte leading character is dropped entirely by the UTF-8
+  walk-back, which is how CR-01 shipped past five plans and a full suite. The shortfall is borrowed
+  back from the extension whenever the total budget can hold it.
+
+- [Phase 59] **CI is the lint authority for a narrower reason than previously recorded**: ruff runs
+  fine in the main `.venv`, but not in a freshly `uv sync`ed worktree — which is where every
+  executor runs. No worktree executor in this phase could have caught the UP012 that CI run 1 found.
 
 ### Blockers/Concerns
 
