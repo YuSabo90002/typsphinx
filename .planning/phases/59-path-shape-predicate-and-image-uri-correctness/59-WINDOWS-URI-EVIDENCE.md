@@ -933,6 +933,36 @@ Success: no issues found in 8 source files
 `ruff check .` is **DEFERRED TO CI** — per `59-VALIDATION.md` § "Sampling Rate": "`ruff check .` is
 deferred to CI — it is not runnable on this NixOS dev machine, and CI is the lint authority."
 
+### Post-merge gate (orchestrator, milestone branch `gsd/v0.9.1-windows-path-correctness`)
+
+The section above was measured inside plan 59-05's isolated worktree. The authoritative measurement
+is the merged milestone branch, re-run by the orchestrator at tip `2deeae1a` (all five waves merged
+plus the UP012 fix):
+
+```
+================= 1469 passed, 1 skipped in 125.62s (0:02:05) ==================
+```
+
+`uv run black --check .` → 348 files unchanged. `uv run mypy typsphinx/` → *Success: no issues found
+in 8 source files*.
+
+**On the 5-vs-1 skip difference:** the worktree run reports 5 skipped, the merged main tree 1. The
+merged tree's single skip is identified verbatim as
+`tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set
+TYPSPHINX_CORPUS_REPORT=1 to run it`, a pre-existing env-gated corpus check unrelated to this phase.
+The four additional skips seen in the worktree are an artifact of the freshly-provisioned worktree
+venv, not of this phase's code; the per-module census below independently confirms `0 skipped` for
+all five of this phase's own new gate modules in both environments, which is the property that
+actually matters here.
+
+**Correction to the `ruff` DEFERRED note above:** ruff is *not* universally unrunnable on this dev
+machine. The orchestrator's main `.venv` carries a working ruff wheel (0.15.20, the same version CI
+resolves) and ran `ruff check .` to *All checks passed!* after the UP012 fix. What is unrunnable is
+ruff inside a **freshly `uv sync`-ed worktree venv**, whose wheel's generic-linux ELF cannot exec
+under NixOS — which is precisely the environment every plan in this phase executed in, so the
+DEFERRED note was correct as written from there. CI remains the declared lint authority, and Run 1
+below is the demonstration of why: no worktree executor in this phase could have caught UP012.
+
 ### Per-module skip census (five new gate modules)
 
 Each of the five new gate modules run standalone with `-q`, on this dev machine, immediately after
@@ -966,33 +996,85 @@ contributes to that count.
 
 ### 3-OS CI dispatch
 
-**PENDING — owner dispatch required.**
+**MEASURED — dispatched fresh on this phase's own post-fix tip by the orchestrator on the milestone
+branch `gsd/v0.9.1-windows-path-correctness` after all five waves were merged.** Two runs were
+dispatched: the first found a real, CI-only defect; the second is the acceptance run.
 
-This plan (59-05) executed as a parallel executor inside an isolated git worktree, on branch
-`worktree-agent-afec2fca805df4370` — not `gsd/v0.9.1-windows-path-correctness`, the milestone
-branch that carries the phase's merged waves (ROADMAP constraint 12). Per this task's own
-`<action>` instruction ("If the push or the dispatch cannot complete from this worktree ... do not
-fabricate a result and do not cite an older run ... mark the section `PENDING — owner dispatch
-required`"), the push and dispatch are not performed from this worktree. Local tip SHA at the time
-this section was written: `ccb0079ef6e99e54897a6707922a9439d8a81d1d` (this plan's Task 2 commit,
-recorded here for comparison against whatever SHA the eventual CI run reports).
+#### Run 1 — `36874e0e` — FAILURE (lint only), and what it caught
 
-**Exact commands the owner must run**, after this plan's commits (and the rest of Phase 59's waves)
-are merged onto `gsd/v0.9.1-windows-path-correctness`:
+- Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33211569732
+- Dispatched head SHA: `36874e0ee77560cf11b4807e892c095ee2d06e28`
+- Local tip SHA at dispatch: `36874e0ee77560cf11b4807e892c095ee2d06e28` (equal)
 
-```bash
-git push origin gsd/v0.9.1-windows-path-correctness
-gh workflow run ci.yml --ref gsd/v0.9.1-windows-path-correctness
-gh run list --workflow=ci.yml --branch gsd/v0.9.1-windows-path-correctness --limit 1
-gh run watch <run-id>
+| job | conclusion |
+|---|---|
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| **Test Python 3.12 on windows-latest** | **success** |
+| **Test Python 3.13 on windows-latest** | **success** |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Lint and Format Check | **failure** |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+
+Every matrix test job passed, including both `windows-latest` jobs. The single failure was
+`ruff check .` inside `tox -e lint`:
+
+```
+UP012 [*] Unnecessary UTF-8 `encoding` argument to `encode`
+   --> tests/test_track_image_key_construction.py:214:34
+    |
+214 |         prefix_byte_length = len(f"{digest}-".encode("utf-8"))
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Found 1 error.
 ```
 
-Once the run completes, upgrade this subsection from `PENDING` to the recorded run URL, the head
-SHA the run was dispatched against (which must equal the phase's own post-fix tip on
-`gsd/v0.9.1-windows-path-correctness`, not this worktree's branch tip above), and a per-job
-conclusion line for every matrix job in `.github/workflows/ci.yml`'s `os: [ubuntu-latest,
-windows-latest, macos-latest]` matrix — with an explicit line for the `windows-latest` job(s), the
-acceptance bar this phase names. A `PENDING` marker here is an honest open item, not a gap silently
-omitted; the orchestrator owns completing this dispatch after merge (per this plan's own scope
-note: a parallel worktree executor must not push its own `worktree-agent-*` branch as if it carried
-the phase's merged work).
+`black --check .` passed (348 files unchanged) and `Type Check` passed in the same run; only ruff
+failed. This is exactly the defect class `59-VALIDATION.md` predicted when it recorded `ruff check .`
+as DEFERRED TO CI: ruff is not runnable under the worktree-provisioned venv on this NixOS dev
+machine, so CI is this project's lint authority and is the only place this could surface. Note that
+UP012 fired on line 214 alone and not on the module's ten other `.encode("utf-8")` calls, because
+only line 214 applies it to a **string literal** (an f-string); the rest apply it to variables,
+which UP012 does not flag.
+
+**Fix:** `2deeae1a` — `fix(59): drop redundant utf-8 arg tripping ruff UP012 in the IMG-06 gate`,
+changing that one expression to `f"{digest}-".encode()`. `.encode()` already defaults to UTF-8, so
+the semantics are unchanged, and the line now matches its own docstring one line above
+(`255 - len(f"{digest}-".encode())`). Re-measured locally after the fix: `ruff check .` → *All
+checks passed!*, `black --check .` → 348 files unchanged, `mypy typsphinx/` → *Success: no issues
+found in 8 source files*, `pytest tests/test_track_image_key_construction.py -q` → 10 passed.
+
+**SC#5 is unaffected by this fix.** The edited file is one this phase *added*, so the zero-test-edit
+measurement is unchanged — re-run after the fix commit,
+`git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` still yields zero non-`A` lines.
+
+#### Run 2 — `2deeae1a` — SUCCESS (the acceptance run)
+
+- Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33212148974
+- Dispatched head SHA: `2deeae1a55680fbf8523dcc9e566ad1f7e8abe6f`
+- Local tip SHA at dispatch: `2deeae1a55680fbf8523dcc9e566ad1f7e8abe6f` (equal)
+- Run conclusion: **success**
+
+| job | conclusion |
+|---|---|
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| **Test Python 3.12 on windows-latest** | **success** |
+| **Test Python 3.13 on windows-latest** | **success** |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Lint and Format Check | success |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+
+Both `windows-latest` jobs — the acceptance bar this phase names — concluded successfully on a run
+whose head SHA is this phase's own post-fix tip, newer than every one of the phase's commits. No
+earlier run is cited anywhere in this section.
+
