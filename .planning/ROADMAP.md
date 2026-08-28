@@ -180,7 +180,7 @@ translator and release work. `ui.plan-gate` false-positives on words this milest
 a per-run `--skip-ui`.
 
 - [x] **Phase 58: `repr()`-Format Decoupling (test-side only)** - The two tests that hard-code `repr()`'s backslash-doubling as their pass criterion assert the *meaning* instead, so every later phase in this milestone can change a message string with genuinely zero test edits (completed 2026-08-28)
-- [ ] **Phase 59: Path-Shape Predicate and Image-URI Correctness** - A Windows-shaped absolute image URI survives the whole pipeline: classified correctly by a predicate that normalizes before it decides, relocated under a key carrying no separator and bounded to a portable filesystem limit, and emitted into an `image("...")` a real `typst.compile()` accepts
+- [x] **Phase 59: Path-Shape Predicate and Image-URI Correctness** - A Windows-shaped absolute image URI survives the whole pipeline: classified correctly by a predicate that normalizes before it decides, relocated under a key carrying no separator and bounded to a portable filesystem limit, and emitted into an `image("...")` a real `typst.compile()` accepts (completed 2026-08-29)
 - [ ] **Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere** - Every path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py` quotes through one helper in a new leaf module that never doubles a backslash and never closes its quote early, while identifier-valued `!r` stays untouched
 - [ ] **Phase 61: v0.9.1 Release Prep (prep-only)** - The v0.9.1 tree is bumped, its CHANGELOG curated around the three defect families, proven green on a fresh 3-OS run, and handed off with no irreversible action taken
 
@@ -276,6 +276,19 @@ not beside them.
      `path must not contain a backslash` refusal in the evidence, and green after — proving both
      coupled halves (relocation-key normalization and literal escaping at the emission point) are
      present, and that neither alone would have closed it.
+
+     **AMENDED 2026-08-29 (owner-approved, after measurement).** The error string named above was
+     inherited from `59-CONTEXT.md` D-01's prediction, which measurement falsified for the *unfixed*
+     row only. Measured, the unfixed tree is refused with `unclosed delimiter`;
+     `path must not contain a backslash` is real but fires on the **escaping-only** row. Cause: the
+     unfixed pipeline emits a literal carrying BOTH a raw backslash and a raw unescaped `"`, and the
+     `"` terminates the Typst string at parse time, so the semantic backslash check never runs —
+     D-01's four probe runs each carried only ONE defect, so none of them exercised that literal. The
+     substantive claim of this criterion is unchanged and **is met**: all three of unfixed,
+     key-normalization-only and escaping-only fail to compile, and only the tree carrying both halves
+     compiles, so neither alone would have closed it. Evidence:
+     `59-WINDOWS-URI-EVIDENCE.md` § "IMG-07 four-combination table"; decision record:
+     `59-CONTEXT.md` § D-01a; both readings judged separately in `59-VERIFICATION.md`.
 
   3. **The relocation key is separator-free and length-bounded, with the collision anchor intact.**
      No backslash from the original URI survives into the key for any Windows-shaped input; the
@@ -449,7 +462,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | In Progress | - |
+| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 

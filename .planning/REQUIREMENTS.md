@@ -18,7 +18,7 @@ see PATH-01's reachability note and MSG-01's existence.
 
 ### PATH — path-shape predicate correctness
 
-- [ ] **PATH-01**: `_escapes_outdir()` (`typsphinx/builder.py:238`) applies its absolute-path and
+- [x] **PATH-01**: `_escapes_outdir()` (`typsphinx/builder.py:238`) applies its absolute-path and
       drive-qualified checks to the backslash-normalized string, not the raw stem, matching the
       idiom its sibling `_is_absolute_image_uri()` (`builder.py:194`) already uses.
 
@@ -37,13 +37,13 @@ see PATH-01's reachability note and MSG-01's existence.
 
 ### IMG — image URI safety
 
-- [ ] **IMG-04**: `_track_image()`'s escape branch (`typsphinx/builder.py:1772`) builds its
+- [x] **IMG-04**: `_track_image()`'s escape branch (`typsphinx/builder.py:1772`) builds its
       relocation key from a forward-slash-normalized basename, so no backslash from the original
       URI survives into the emitted `image()` path value. Today it calls `path.basename()` on the
       RAW URI; on a POSIX build host `path` is `posixpath`, which does not split on `\`, so the
       whole URI comes back and its separators land inside the key.
 
-- [ ] **IMG-05**: `visit_image()` (`typsphinx/translator.py:4746,4749`) routes `adjusted_uri`
+- [x] **IMG-05**: `visit_image()` (`typsphinx/translator.py:4746,4749`) routes `adjusted_uri`
       through the existing `escape_typst_string()` (`translator.py:156`) before interpolating it
       into the `image("...")` literal. The escaper wraps the **return value** of
       `_compute_relative_image_path()`, never the raw `uri` before that call — it is a
@@ -63,7 +63,7 @@ see PATH-01's reachability note and MSG-01's existence.
       `OSError` at `copy_image_files()` time — so a compile gate will not force it out. It needs
       its own.
 
-- [ ] **IMG-07**: at least one gate in this milestone is a real `typst.compile()` proving a
+- [x] **IMG-07**: at least one gate in this milestone is a real `typst.compile()` proving a
       Windows-shaped absolute image URI now compiles. **Measured 2026-08-27: Typst refuses a
       backslash in an `image()` path BY VALUE, not by syntax** — escaping the backslash in the
       source (so it decodes to one `\`) still produces `TypstError: path must not contain a
@@ -194,11 +194,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | MSG-01 | Phase 58 | Complete |
-| PATH-01 | Phase 59 | Pending |
-| IMG-04 | Phase 59 | Pending |
-| IMG-05 | Phase 59 | Pending |
+| PATH-01 | Phase 59 | Complete |
+| IMG-04 | Phase 59 | Complete |
+| IMG-05 | Phase 59 | Complete |
 | IMG-06 | Phase 59 | Complete |
-| IMG-07 | Phase 59 | Pending |
+| IMG-07 | Phase 59 | Complete |
 | MSG-02 | Phase 60 | Pending |
 | MSG-03 | Phase 60 | Pending |
 | MSG-04 | Phase 60 | Pending |

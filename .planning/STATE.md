@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
-current_phase: 59
-current_phase_name: Path-Shape Predicate and Image-URI Correctness
-status: executing
-stopped_at: Phase 59 all 5 plans complete - CI dispatch + verification next
-last_updated: "2026-08-28T21:12:36.365Z"
+current_phase: 60
+current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
+status: planning
+stopped_at: Phase 59 complete, ready to plan Phase 60
+last_updated: "2026-08-28T22:39:48.196Z"
 last_activity: 2026-08-29
-last_activity_desc: "Phase 59 wave 5 complete: 59-05 recorded the four-combination table (D-01 amended after owner-approved re-measurement), the SC#5 zero-test-edit measurement and the RED-first ledger"
-state_head: ad98028b4734532877db71a18b27cbf67c3cffde
+last_activity_desc: Phase 59 complete, transitioned to Phase 60
+state_head: df495fddfac421a89ff581bbfe8aab0e730d76a5
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
   completed_plans: 8
-  percent: 25
+  percent: 50
 ---
 
 # Project State
@@ -97,29 +97,23 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — executing
-Plan: 5 of 5 complete (all waves merged)
-Status: Executing — all waves merged, post-merge suite 1469 passed / 1 skipped; 3-OS CI dispatch + verification pending
-Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-29 — Phase 59 all 5 plans merged: 59-01 (PATH-01), 59-02 (IMG-04/IMG-06), 59-03 (IMG-05), 59-04 (IMG-07 gates), 59-05 (evidence). Plan set: 59-01 is the tracer slice
-(`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
-rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
-59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural
-RED and both of D-08's gates; 59-03 routes `visit_image()` through `escape_typst_string()` once
-(IMG-05), RED-gated on a *relative* URI so it never reaches the escape branch and stays independent
-of the builder half; 59-04 builds the two-mode Windows-shaped fixture, the all-lane `-b typst`
-string-shape gate and the real `typst.compile()` gate; 59-05 records D-01's four-combination two-tree
-table (SC#2), the measured zero-test-edit proof (SC#5) and the fresh 3-OS CI dispatch.
-**All five plans run one per wave.** The planner declined the `translator.py` parallel-safety
-permission on measurement: every plan appends to the single D-11-named `59-WINDOWS-URI-EVIDENCE.md`,
-so any two in one wave would collide at merge even with disjoint `files_modified` — the same hazard
-Phase 58 paid for. IMG-07 has no same-tree pre-fix RED by construction (it is coupled to both fixes
-and constraint 5 forces it into a later wave); 59-05 substitutes a four-tree reconstruction via
-`git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py`, which is also the direct proof
-of SC#2's "neither alone would have closed it". gsd-plan-checker passed at iteration 1 (17
-phase-specific constraints checked, no BLOCKER). Decision coverage 13/13, requirement coverage 5/5
-(PATH-01, IMG-04, IMG-05, IMG-06, IMG-07). Edge-probe accounting: 9 surfaced = 6 resolved-explicit +
-3 flagged assumptions, no silent drops.
+Phase: 60 of 61 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere)
+Plan: Not started
+Status: Ready to plan
+Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
+Last activity: 2026-08-29 — Phase 59 complete (verification passed, 5/5 must-haves). PATH-01,
+IMG-04, IMG-05, IMG-06 and IMG-07 all Complete. `_escapes_outdir()` now normalizes before it
+decides; `_track_image()`'s relocation key is separator-free and bounded to 255 UTF-8 bytes with the
+`{sha1[:8]}-` anchor whole; `visit_image()` escapes last, at both emission sites. Eight new test
+files, zero pre-existing test edits (measured, not claimed). Two decisions were AMENDED after
+measurement falsified them, both owner-approved: `59-CONTEXT.md` D-01a and ROADMAP SC#2 — the
+unfixed tree is refused by Typst with `unclosed delimiter`, not `path must not contain a backslash`,
+because the unescaped `"` ends the string literal at parse time before the backslash check runs; the
+substantive "neither half alone closes it" claim is unaffected and measured true. Code review found
+one blocker (CR-01: `_bound_relocation_component()` emptied a multi-byte stem under a tight budget,
+violating D-07) — fixed in-phase at `924f21d8` with two regression gates proven RED first. CI was
+dispatched three times on this branch; run 3 (`924f21d8`) is the acceptance run, all 12 jobs green
+including both `windows-latest`. Full evidence: `59-WINDOWS-URI-EVIDENCE.md`.
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because
@@ -988,9 +982,9 @@ Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and 
 directory for each earlier milestone).
 
 Last session: 2026-08-28T14:48:33.776Z
-Stopped at: Phase 59 context gathered
-Resume: `/gsd-discuss-phase 59` — Path-Shape Predicate and Image-URI Correctness. Phase 58 is
-complete and `gsd/v0.9.1-windows-path-correctness` is already on `origin` with tracking.
+Stopped at: Phase 59 complete, ready to plan Phase 60
+Resume: `/gsd-plan-phase 60` — One Delimiter-Aware Path-Quoting Helper, Routed Everywhere. Phases
+58 and 59 are complete and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `df495fdd`.
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API
