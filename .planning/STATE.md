@@ -5,11 +5,11 @@ milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
 status: planning
-stopped_at: Phase 58 complete, ready to plan Phase 59
-last_updated: "2026-08-27T20:56:09.617Z"
+stopped_at: Phase 59 context gathered
+last_updated: "2026-08-28T14:48:33.799Z"
 last_activity: 2026-08-28
-last_activity_desc: Phase 58 complete, transitioned to Phase 59
-state_head: 2a52b90627eeeead6fc8524db4c7583cf192688c
+last_activity_desc: Phase 59 context gathered (CONTEXT.md + DISCUSSION-LOG.md committed)
+state_head: 51ca15974607113eda9521f97e31462768796c11
 progress:
   total_phases: 4
   completed_phases: 1
@@ -967,12 +967,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/58-repr-format-decoupling-test-side-only/58-CONTEXT.md
+**Resume file:** .planning/phases/59-path-shape-predicate-and-image-uri-correctness/59-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-27T14:01:25.960Z
-Stopped at: Phase 58 complete, ready to plan Phase 59
+Last session: 2026-08-28T14:48:33.776Z
+Stopped at: Phase 59 context gathered
 Resume: `/gsd-discuss-phase 59` — Path-Shape Predicate and Image-URI Correctness. Phase 58 is
 complete and `gsd/v0.9.1-windows-path-correctness` is already on `origin` with tracking.
 
