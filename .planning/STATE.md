@@ -5,16 +5,16 @@ milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
 status: executing
-stopped_at: Phase 59 wave 4 complete (59-01..59-04) - wave 5 next
-last_updated: "2026-08-28T17:25:35.116Z"
+stopped_at: Phase 59 all 5 plans complete - CI dispatch + verification next
+last_updated: "2026-08-28T21:12:36.365Z"
 last_activity: 2026-08-29
-last_activity_desc: "Phase 59 wave 4 complete: 59-04 landed the IMG-07 Windows-shaped fixture, the all-lane string-shape gate and the real typst.compile() gate"
-state_head: 4be3b913f889b1ea41f97350184aeb3f3f5219a2
+last_activity_desc: "Phase 59 wave 5 complete: 59-05 recorded the four-combination table (D-01 amended after owner-approved re-measurement), the SC#5 zero-test-edit measurement and the RED-first ledger"
+state_head: ad98028b4734532877db71a18b27cbf67c3cffde
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 25
 ---
 
@@ -98,10 +98,10 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — executing
-Plan: 4 of 5 complete (wave 4 of 5 merged; 59-05 next)
-Status: Executing — wave 4 merged, post-merge suite 1469 passed / 1 skipped
+Plan: 5 of 5 complete (all waves merged)
+Status: Executing — all waves merged, post-merge suite 1469 passed / 1 skipped; 3-OS CI dispatch + verification pending
 Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-29 — Phase 59 wave 4 complete: 59-01 (PATH-01), 59-02 (IMG-06), 59-03 (IMG-05), 59-04 (IMG-07 gates). Plan set: 59-01 is the tracer slice
+Last activity: 2026-08-29 — Phase 59 all 5 plans merged: 59-01 (PATH-01), 59-02 (IMG-04/IMG-06), 59-03 (IMG-05), 59-04 (IMG-07 gates), 59-05 (evidence). Plan set: 59-01 is the tracer slice
 (`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
 rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
 59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural

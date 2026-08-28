@@ -293,7 +293,7 @@ not beside them.
      post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
      prior run.
 
-**Plans**: 4/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
+**Plans**: 5/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
 
 Plans:
 
@@ -315,7 +315,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 59-05-PLAN.md — Acceptance: D-01's four-combination two-tree table (SC#2), the measured zero-test-edit proof (SC#5), and the fresh 3-OS CI dispatch
+- [x] 59-05-PLAN.md — Acceptance: D-01's four-combination two-tree table (SC#2), the measured zero-test-edit proof (SC#5), and the fresh 3-OS CI dispatch
 
 **Plan ordering note.** Constraint 3 forbids parallel worktrees against `builder.py`, and constraint
 4 forbids a plan that changes an emitted string from sharing a wave with a plan that asserts on it.
@@ -449,7 +449,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 4/5 | In Progress | - |
+| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | In Progress | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
