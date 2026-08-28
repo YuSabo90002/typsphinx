@@ -547,11 +547,107 @@ contains no raw `we"ird.png` fragment anywhere.
 
 ## IMG-07 four-combination table
 
-(filled by plan 59-04)
+D-01's measured four-combination table (`59-CONTEXT.md`), reproduced here as the concrete design
+target the compile gate built by this plan (`tests/test_windows_image_uri_render_gate.py`) proves
+against. Raw basename: `sub\we"ird.png` -- normalized basename: `we"ird.png`.
 
-## IMG-07 four-combination table
+| tree        | emitted `image(...)` literal               | Typst refusal                       |
+|-------------|---------------------------------------------|---------------------------------------|
+| unfixed     | `..._typst_converted/{d}-sub\we"ird.png`     | `path must not contain a backslash`   |
+| IMG-04 only | `..._typst_converted/{d}-we"ird.png`         | `unclosed delimiter`                  |
+| IMG-05 only | `..._typst_converted/{d}-sub\\we\"ird.png`   | `path must not contain a backslash`   |
+| both        | `..._typst_converted/{d}-we\"ird.png`        | **compiles**                          |
 
-(filled by plan 59-04)
+A backslash-only fixture would already be green with IMG-04 (key normalization) alone and could
+not prove SC#2's "neither alone would have closed it" -- the literal double quote in the basename
+is what keeps IMG-05 (escaping) load-bearing too.
+
+### RED (pre-fix, all four tree combinations)
+
+Not recorded in this plan -- IMG-07 has no same-tree pre-fix RED by construction (D-05: the gate is
+coupled to BOTH the IMG-04 and IMG-05 fixes, and both are already merged onto this worktree by the
+time this plan's wave (wave 4) runs). **Plan 59-05** reconstructs all four tree combinations via
+`git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py` and re-runs this exact gate
+against each reconstructed tree -- the direct proof of SC#2's "neither alone would have closed it".
+
+### GREEN (post-fix, both halves present)
+
+Recorded in this worktree with both IMG-04 (`typsphinx/builder.py`, plan 59-02) and IMG-05
+(`typsphinx/translator.py`, plan 59-03) already merged. Command:
+
+```
+uv run pytest tests/test_windows_image_uri_render_gate.py -k compile -v
+```
+
+Whole output verbatim:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7c21024584698d3/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7c21024584698d3
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 2 items / 1 deselected / 1 selected
+
+tests/test_windows_image_uri_render_gate.py::TestWindowsShapedImageUriCompileGate::test_compile_windows_shaped_absolute_image_uri_produces_pdf PASSED [100%]
+
+======================= 1 passed, 1 deselected in 0.33s ========================
+```
+
+`1 passed`, **`0 skipped`** -- the probe-and-skip in `TestWindowsShapedImageUriCompileGate` did NOT
+fire on this worktree's filesystem (ext4), and the `TYPST_AVAILABLE` guard was satisfied (the
+worktree venv's `typst-py 0.15.0` imported cleanly). A `skipped` line here would mean the worktree
+venv lacks `typst` or the filesystem rejected the probe, and either reads as a pass in a summary
+line while proving nothing (`59-CONTEXT.md` Specific Idea #4) -- neither happened.
+
+Both gates in the module also pass together, `2 passed, 0 skipped`:
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7c21024584698d3
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 2 items
+
+tests/test_windows_image_uri_render_gate.py ..                           [100%]
+
+============================== 2 passed in 0.55s ===============================
+```
+
+**Measured emitted literal** (standalone `-b typstpdf` build of the fixture in `"file"` mode,
+`TYPSPHINX_WIN_URI_MODE=file`, run separately from pytest to capture the full content document):
+
+```
+image("_typst_converted/d0092ecb-we\"ird.png")
+```
+
+No raw backslash survives (the `we"ird.png` basename carries no directory separator at all after
+normalization), and the literal double quote is escaped (`\"`) -- both of D-04's properties, and
+this is the exact "both" row of the table above.
+
+**Resolved name of the copied destination file**, asserted present BEFORE the compile result
+(`59-CONTEXT.md` Specific Idea #3 -- a green compile is not evidence unless the source file
+existed):
+
+```
+$ ls _typst_converted/
+d0092ecb-we"ird.png
+```
+
+**`master.pdf`**: 29419 bytes, first four bytes `b'%PDF'` -- a real, non-empty, valid PDF produced
+by a real `typst.compile()` call through `TypstPDFBuilder.finish()`.
+
+**Deviation recorded during this plan**: the fixture's `_rehome_to_real_file()` originally called
+`self.env.doctreedir.rstrip(os.sep)` directly, which Sphinx 9.1 flags with
+`RemovedInSphinx10Warning` (a `DeprecationWarning` subclass) -- "Sphinx 10 will drop support for
+representing paths as strings. Use `pathlib.Path` or `os.fspath` instead." Fixed by wrapping with
+`os.fspath(self.env.doctreedir)` before calling `.rstrip()`. Confirmed by a standalone `-b typstpdf`
+build before and after: the warning line was present pre-fix and absent post-fix, with the build's
+warning count dropping from 2 to 1 (only the expected rehome warning remains). This did not affect
+any assertion (the warning fires inside a subprocess pytest's `filterwarnings` cannot see), but is
+fixed as a correctness matter per CLAUDE.md's project conventions.
 
 ## SC#5 acceptance
 
