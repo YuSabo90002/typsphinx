@@ -5,16 +5,16 @@ milestone_name: Windows path correctness
 current_phase: 59
 current_phase_name: Path-Shape Predicate and Image-URI Correctness
 status: executing
-stopped_at: Phase 59 wave 1 complete (59-01) - wave 2 next
-last_updated: "2026-08-28T16:26:25.420Z"
+stopped_at: Phase 59 wave 2 complete (59-01, 59-02) - wave 3 next
+last_updated: "2026-08-28T16:45:33.605Z"
 last_activity: 2026-08-29
-last_activity_desc: "Phase 59 wave 1 complete: 59-01 closed PATH-01 (_escapes_outdir normalize-then-decide)"
-state_head: 817a1d1646562948e318e024ca6613994bc34f66
+last_activity_desc: "Phase 59 wave 2 complete: 59-02 closed IMG-06 and landed the normalized, 255-byte-bounded relocation key"
+state_head: 221a95e60a7de76d6e6a73b771ea0d3257287730
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 25
 ---
 
@@ -98,10 +98,10 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 59 of 61 — Path-Shape Predicate and Image-URI Correctness — executing
-Plan: 1 of 5 complete (wave 1 of 5 merged; 59-02 next)
-Status: Executing — wave 1 merged, post-merge suite 1455 passed / 1 skipped
+Plan: 2 of 5 complete (wave 2 of 5 merged; 59-03 next)
+Status: Executing — wave 2 merged, post-merge suite 1466 passed / 1 skipped
 Progress: [#####               ] 25% (1/4 phases; Phase 58 3/3 plans complete)
-Last activity: 2026-08-29 — Phase 59 wave 1 complete: 59-01 closed PATH-01. Plan set: 59-01 is the tracer slice
+Last activity: 2026-08-29 — Phase 59 wave 2 complete: 59-01 (PATH-01) + 59-02 (IMG-06, relocation key). Plan set: 59-01 is the tracer slice
 (`PHASE_BASE_SHA` + the direct-call PATH-01 RED, then `_escapes_outdir()`'s normalize-then-decide
 rewrite, then the through-call-site characterization pin and the `59-WINDOWS-URI-EVIDENCE.md` spine);
 59-02 lands the normalized, 255-byte-bounded relocation key (IMG-04 + IMG-06) behind a behavioural

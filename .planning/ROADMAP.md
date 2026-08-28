@@ -293,7 +293,7 @@ not beside them.
      post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
      prior run.
 
-**Plans**: 1/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
+**Plans**: 2/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
 
 Plans:
 
@@ -303,7 +303,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 59-02-PLAN.md — IMG-04 + IMG-06: normalized, 255-byte-bounded relocation key via two new builder helpers, with a pure-string gate and an ENAMETOOLONG integration gate
+- [x] 59-02-PLAN.md — IMG-04 + IMG-06: normalized, 255-byte-bounded relocation key via two new builder helpers, with a pure-string gate and an ENAMETOOLONG integration gate
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -449,7 +449,7 @@ the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 1/5 | In Progress | - |
+| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 2/5 | In Progress | - |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
