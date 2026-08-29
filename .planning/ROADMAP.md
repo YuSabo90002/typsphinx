@@ -182,7 +182,7 @@ a per-run `--skip-ui`.
 - [x] **Phase 58: `repr()`-Format Decoupling (test-side only)** - The two tests that hard-code `repr()`'s backslash-doubling as their pass criterion assert the *meaning* instead, so every later phase in this milestone can change a message string with genuinely zero test edits (completed 2026-08-28)
 - [x] **Phase 59: Path-Shape Predicate and Image-URI Correctness** - A Windows-shaped absolute image URI survives the whole pipeline: classified correctly by a predicate that normalizes before it decides, relocated under a key carrying no separator and bounded to a portable filesystem limit, and emitted into an `image("...")` a real `typst.compile()` accepts (completed 2026-08-29)
 - [x] **Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere** - Every path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py` quotes through one helper in a new leaf module that never doubles a backslash and never closes its quote early, while identifier-valued `!r` stays untouched (completed 2026-08-29)
-- [ ] **Phase 61: v0.9.1 Release Prep (prep-only)** - The v0.9.1 tree is bumped, its CHANGELOG curated around the three defect families, proven green on a fresh 3-OS run, and handed off with no irreversible action taken
+- [x] **Phase 61: v0.9.1 Release Prep (prep-only)** - The v0.9.1 tree is bumped, its CHANGELOG curated around the three defect families, proven green on a fresh 3-OS run, and handed off with no irreversible action taken (completed 2026-08-30)
 
 ## Phase Details
 
@@ -539,7 +539,7 @@ the active milestone only.
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 4/4 | In Progress | - |
+| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 4/4 | Complete | 2026-08-30 |
 
 ## Roadmap Evolution
 

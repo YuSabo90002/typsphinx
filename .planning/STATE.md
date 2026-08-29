@@ -4,18 +4,18 @@ milestone: v0.9.1
 milestone_name: Windows path correctness
 current_phase: 61
 current_phase_name: v0.9.1 Release Prep (prep-only)
-status: executing
-stopped_at: Phase 61 planned (4 plans in 3 waves)
-last_updated: "2026-08-29T15:01:14.314Z"
+status: completed
+stopped_at: Phase 61 complete — all phases complete
+last_updated: "2026-08-29T16:07:02.418Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 61 execution started
-state_head: 5e28fa9dac8576f1f1665560eb5c4ccbd2e13b41
+last_activity_desc: Phase 61 complete
+state_head: 5a36adf9a75ba17e6c3321ce5ca4602a1e69bba8
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 17
-  completed_plans: 13
-  percent: 75
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -102,11 +102,11 @@ inheritance record for the v0.9.2 milestone rather than as instructions to execu
 
 ## Current Position
 
-Phase: 61 (v0.9.1 Release Prep (prep-only)) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 61
-Progress: [###############     ] 75% (3/4 phases; Phase 58 3/3, Phase 59 5/5, Phase 60 5/5 plans complete)
-Last activity: 2026-08-30 — Phase 61 execution started
+Phase: 61 (v0.9.1 Release Prep (prep-only)) — COMPLETE
+Plan: 4 of 4 complete
+Status: All phases complete
+Progress: [####################] 100% (4/4 phases; Phase 58 3/3, Phase 59 5/5, Phase 60 5/5, Phase 61 4/4 plans complete)
+Last activity: 2026-08-30 — Phase 61 complete
 The phase changed shape at discuss-phase: **v0.9.1 will never be published** (D-02), so there is
 no version bump (D-01) and no `## [0.9.1]` CHANGELOG section (D-03) — the three defect families
 are authored under the existing `## [Unreleased]` heading and the tail link-reference block is
@@ -1016,9 +1016,9 @@ Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and 
 directory for each earlier milestone).
 
 Last session: 2026-08-29T13:24:00.163Z
-Stopped at: Phase 61 context gathered
-Resume: `/gsd-plan-phase 61` — v0.9.1 Release Prep (prep-only). Phases 58, 59 and 60 are complete
-and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `4e113c6a`.
+Stopped at: Phase 61 complete — all phases complete
+Resume: `/gsd-secure-phase 61` — security enforcement is active and 61-SECURITY.md does not exist yet.
+All four phases of v0.9.1 are complete; the milestone publishes nothing (see 61-HANDOFF.md).
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API
