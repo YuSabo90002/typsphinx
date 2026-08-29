@@ -19,6 +19,7 @@ from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.osutil import ensuredir, make_filename_from_project
 
+from typsphinx.pathfmt import quote_path
 from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.template_registry import (
     TemplateRegistryEntry,
@@ -37,6 +38,15 @@ logger = logging.getLogger(__name__)
 # "owned by typsphinx, not the user's source tree" in this codebase
 # (`_template/`) and in Sphinx itself (`_images`, `_static`, `_sources`).
 RESERVED_IMAGE_NAMESPACE = "_typst_converted"
+
+# IMG-06 (Phase 59, D-06/D-07): the maximum size, in UTF-8 bytes, of the
+# relocation key's final path component (``{sha1[:8]}-{basename}``). A
+# hardcoded owner decision (ROADMAP constraint 7), not a live filesystem
+# probe: ``os.pathconf()``/``os.statvfs()`` are documented Unix-only and
+# unusable on the ``windows-latest`` CI lane, 255 matches ext4/APFS's own
+# byte limit, and it is safely under NTFS's 255-UTF-16-unit limit. No CI
+# probe is dispatched to measure it.
+MAX_PATH_COMPONENT_BYTES = 255
 
 # Phase 54 (D-04): the bundle-copy driver's exclusion set is EXACTLY the
 # four kinds ROADMAP SC#3 names and nothing more -- do not exceed the
@@ -226,8 +236,13 @@ def _escapes_outdir(stem: str) -> bool:
         True
         >>> _escapes_outdir("C:manual")
         True
+        >>> _escapes_outdir("\\\\manuals\\\\guide")
+        True
+        >>> _escapes_outdir("\\\\\\\\srv\\\\share\\\\g")
+        True
     """
-    segments = stem.replace("\\", "/").split("/")
+    normalized = stem.replace("\\", "/")
+    segments = normalized.split("/")
     # posixpath.isabs(), not path.isabs(): this function's own contract is
     # platform-independent (D-05) -- the OS-native `path` (== ntpath on a
     # Windows CI runner) disagrees with posixpath on which of these shapes
@@ -235,7 +250,186 @@ def _escapes_outdir(stem: str) -> bool:
     # ntpath requires a drive letter or a UNC-style leading "//"), which
     # would let a POSIX-shaped escape target through unrefused on Windows.
     # Measured on the windows-latest CI lane, 47-10/T2.
-    return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)
+    # PATH-01 (Phase 59): both the ``isabs``/drive-qualified terms now read
+    # ``normalized``, the same backslash-normalized string the ``".."``
+    # term already used -- matching ``_is_absolute_image_uri()``'s own
+    # single-``normalized`` idiom above.
+    return (
+        ".." in segments
+        or posixpath.isabs(normalized)
+        or _is_drive_qualified(normalized)
+    )
+
+
+def _decode_to_boundary(data: bytes) -> str:
+    """Decode ``data`` as UTF-8, walking back to a character boundary.
+
+    Trailing bytes are dropped one at a time until ``.decode("utf-8")``
+    succeeds. Returns ``""`` when no prefix of ``data`` decodes -- which
+    is only reachable when the caller's byte budget is smaller than the
+    first character, a case its caller is responsible for avoiding.
+
+    Byte-level slicing is deliberate: the 255-byte limit these callers
+    enforce is in BYTES, and a naive ``str`` slice gets a multi-byte
+    character wrong.
+
+    Args:
+        data: The already-sliced UTF-8 bytes to decode.
+
+    Returns:
+        The longest prefix of ``data`` that decodes as UTF-8.
+
+    Examples:
+        >>> _decode_to_boundary("図".encode("utf-8")[:2])
+        ''
+        >>> _decode_to_boundary("a図".encode("utf-8")[:2])
+        'a'
+    """
+    while data:
+        try:
+            return data.decode("utf-8")
+        except UnicodeDecodeError:
+            data = data[:-1]
+    return ""
+
+
+def _bound_relocation_component(
+    digest: str, raw_basename: str, limit: int = MAX_PATH_COMPONENT_BYTES
+) -> str:
+    """IMG-06: bound ``{digest}-{raw_basename}`` to at most ``limit`` UTF-8
+    bytes, keeping the ``{digest}-`` collision anchor whole (D-06/D-07).
+
+    ``raw_basename`` must already be the IMG-04-normalized basename (the
+    result of ``posixpath.basename()`` applied to the forward-slash-
+    normalized URI) -- this helper does not itself normalize backslashes;
+    it only bounds length. The 255-byte limit is on the WHOLE final path
+    component, never on the basename alone (D-06): a 250-byte basename
+    plus the 9-byte ``{digest}-`` prefix is 259 bytes, which already
+    raises ``OSError 36 (ENAMETOOLONG)`` on ext4 -- bounding only the
+    basename would ship a gate that passes while the defect survives.
+
+    Truncation precedence when the budget is tight (D-07): the digest and
+    its hyphen survive whole first (truncating them would reintroduce the
+    collision IMG-03 closed); then at least one CHARACTER of stem -- not
+    one byte, which is the same thing only for ASCII and empties a
+    multi-byte stem entirely once the boundary walk-back runs; then the
+    extension -- if the extension alone would consume the whole remaining
+    budget, it is truncated too rather than squeezing the stem to nothing,
+    and if it still leaves the stem under one character, the shortfall is
+    borrowed back from it. The stem is emptied only when ``limit`` itself
+    cannot hold the prefix plus that first character.
+    Every cut lands on a UTF-8 character boundary: bytes are sliced first,
+    then walked back one byte at a time until ``.decode("utf-8")``
+    succeeds -- never a `str`-level slice, since the 255 limit is in
+    BYTES and a naive `str` slice gets a multi-byte character wrong.
+
+    Args:
+        digest: The short collision-anchor hex digest (no trailing
+            hyphen).
+        raw_basename: The already-normalized basename to bound.
+        limit: The maximum size, in UTF-8 bytes, of the returned
+            component. Defaults to ``MAX_PATH_COMPONENT_BYTES``.
+
+    Returns:
+        The bounded ``{digest}-{basename}`` component, at most ``limit``
+        UTF-8 bytes.
+
+    Examples:
+        >>> _bound_relocation_component("a1b2c3d4", "x" * 250 + ".png")
+        ... # doctest: +SKIP
+        # 255 UTF-8 bytes: "a1b2c3d4-" + 242 "x"s + ".png"
+        >>> len(
+        ...     _bound_relocation_component("deadbeef", "図" * 100 + ".png").encode(
+        ...         "utf-8"
+        ...     )
+        ... )
+        253
+    """
+    prefix = f"{digest}-"
+    budget = limit - len(prefix.encode("utf-8"))
+
+    stem, ext = posixpath.splitext(raw_basename)
+    ext_bytes = ext.encode("utf-8")
+
+    if len(ext_bytes) >= budget:
+        # D-07: the extension alone would consume the whole remaining
+        # budget -- truncate it too rather than squeeze the stem to
+        # nothing.
+        ext = _decode_to_boundary(ext_bytes[: max(budget - 1, 0)])
+        ext_bytes = ext.encode("utf-8")
+
+    # Single source of truth for the stem's allotment -- recomputed after
+    # any change to `ext_bytes`, never duplicated per branch.
+    stem_budget = budget - len(ext_bytes)
+    stem_bytes = stem.encode("utf-8")
+
+    if len(stem_bytes) > stem_budget:
+        # D-07: the stem is never emptied. Reserving one BYTE is not
+        # enough when the stem's first character is multi-byte -- the
+        # boundary walk-back would then land on b"", dropping the whole
+        # stem while the lower-priority extension kept its allotment, and
+        # inverting the precedence this function documents. Borrow the
+        # shortfall back from the extension so that first character
+        # survives whenever the total budget can hold it at all.
+        first_char_bytes = len(stem[0].encode("utf-8"))
+        if stem_budget < first_char_bytes <= budget:
+            ext = _decode_to_boundary(ext_bytes[: budget - first_char_bytes])
+            ext_bytes = ext.encode("utf-8")
+            stem_budget = budget - len(ext_bytes)
+        stem = _decode_to_boundary(stem_bytes[: max(stem_budget, 1)])
+
+    return f"{prefix}{stem}{ext}"
+
+
+def _build_relocation_key(resolved_uri: str) -> str:
+    """IMG-04 (normalize) + IMG-06 (bound): the full escape-branch
+    relocation key for ``resolved_uri``, the single construction site
+    ``_track_image()``'s escape branch calls.
+
+    IMG-03 (Phase 55) rationale, carried onto this helper: the digest
+    prefix is taken over the WHOLE ``resolved_uri``, not just its
+    basename -- restoring the injectivity two escaping URIs sharing a
+    basename would otherwise lose, while the basename itself stays
+    visible in the emitted filename. It is a PURE function of
+    ``resolved_uri`` alone, with no dependence on ``self.images`` or on
+    ``write()``'s ``sorted(docnames)`` order (Phase 50 D-02); it
+    introduces no parent-traversal segment (Phase 50 SC#2 outdir
+    containment); and it must be ``.encode()``\\ d first -- ``hashlib``
+    takes bytes, not `str`. Python's own built-in string hash is unusable
+    here: it is randomized per process unless seeded, so two builds of
+    the identical project would emit two different filenames. This is a
+    non-cryptographic collision-avoidance key over a build-local path
+    string, not a security boundary -- this project's ruff selection does
+    not include the security rule set, and this comment is the answer if
+    a future, stricter scanner ever flags it.
+
+    IMG-04 (Phase 59): the digest input stays the RAW, un-normalized
+    ``resolved_uri`` -- normalizing it before hashing would silently
+    change the collision-anchor formula for exactly the Windows shape
+    this phase newly exercises (59-RESEARCH.md Pitfall 2). Only the
+    basename half is normalized, via a distinctly-named
+    ``basename_source`` local, and extracted with ``posixpath.basename``
+    -- never the OS-native ``path.basename``, because on a POSIX build
+    host ``path`` IS ``posixpath``, which does not split on a backslash
+    -- the exact defect IMG-04 fixes.
+
+    Args:
+        resolved_uri: The concrete, un-normalized absolute image URI
+            being relocated (as passed to ``_track_image()``).
+
+    Returns:
+        The full ``{RESERVED_IMAGE_NAMESPACE}/{digest}-{basename}`` key,
+        with the basename half backslash-free (IMG-04) and the whole
+        final component bounded to ``MAX_PATH_COMPONENT_BYTES`` UTF-8
+        bytes (IMG-06).
+    """
+    digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
+    basename_source = resolved_uri.replace("\\", "/")
+    normalized_basename = posixpath.basename(basename_source)
+    return (
+        f"{RESERVED_IMAGE_NAMESPACE}/"
+        f"{_bound_relocation_component(digest, normalized_basename)}"
+    )
 
 
 def _paths_related(path_a: str, path_b: str) -> bool:
@@ -318,9 +512,13 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     Args:
         key: The registry key whose resolved template violates CONF-17.
         resolved_path: The RESOLVED template path (already ``str()``'d by
-            the caller) -- never the declared string.
+            the caller) -- never the declared string. Quoted with
+            ``typsphinx.pathfmt.quote_path()`` (MSG-03), which selects a
+            delimiter the value cannot close early, rather than an
+            explicit hardcoded ``'...'``.
         srcdir: The build's source directory (already ``str()``'d by the
-            caller).
+            caller). Quoted with ``quote_path()``, same rule as
+            ``resolved_path``.
 
     Returns:
         The CONF-17/A-01 violation sentence, identical regardless of
@@ -328,9 +526,9 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     """
     return (
         f"typst_document_templates: registry key {key!r}'s "
-        f"resolved template '{resolved_path}' has a "
+        f"resolved template {quote_path(resolved_path)} has a "
         "parent directory that is srcdir itself, or an "
-        f"ancestor of srcdir ('{srcdir}') -- put "
+        f"ancestor of srcdir ({quote_path(srcdir)}) -- put "
         "the template in its own subdirectory (CONF-17, A-01)"
     )
 
@@ -349,9 +547,11 @@ def _templates_path_collision_message(
     Args:
         key: The registry key whose resolved template bundle collides.
         bundle_dir: The resolved template's bundle directory (a
-            filesystem path -- quoted with explicit ``'...'``, never
-            ``!r``, so a Windows backslash is not doubled by
-            ``repr()``).
+            filesystem path -- quoted with
+            ``typsphinx.pathfmt.quote_path()`` (MSG-03), never ``!r``,
+            so a Windows backslash is not doubled by ``repr()`` and a
+            literal apostrophe in the path cannot close the delimiter
+            early).
         raw_tp_entry: The colliding ``templates_path`` entry exactly as
             configured (may be a bare, unresolved fragment).
         resolved_tp_entry: ``raw_tp_entry`` resolved against ``srcdir``
@@ -362,10 +562,10 @@ def _templates_path_collision_message(
     """
     return (
         f"registry key {key!r}'s resolved template "
-        f"bundle directory '{bundle_dir}' collides "
+        f"bundle directory {quote_path(bundle_dir)} collides "
         "with the Sphinx templates_path entry "
-        f"'{raw_tp_entry}' (resolved to "
-        f"'{resolved_tp_entry}') -- the whole "
+        f"{quote_path(raw_tp_entry)} (resolved to "
+        f"{quote_path(resolved_tp_entry)}) -- the whole "
         "bundle directory is copied to the build "
         "output, so this would republish the "
         "project's Sphinx template directory; move "
@@ -390,7 +590,8 @@ def _bundle_destination_collision_message(
         existing_key: The registry key that already claimed ``dest_dir``.
         key: The registry key that collides with it.
         dest_dir: The shared bundle destination (a filesystem path --
-            quoted with explicit ``'...'``, never ``!r``).
+            quoted with ``typsphinx.pathfmt.quote_path()`` (MSG-03),
+            never ``!r``).
 
     Returns:
         The bundle-destination collision sentence.
@@ -398,7 +599,7 @@ def _bundle_destination_collision_message(
     return (
         f"registry key {existing_key!r} and registry key "
         f"{key!r} both resolve to the same bundle "
-        f"destination '{dest_dir}'"
+        f"destination {quote_path(dest_dir)}"
     )
 
 
@@ -694,7 +895,8 @@ class TypstBuilder(Builder):
                     return docname
                 logger.warning(
                     "a path is not supported in a typst_documents target "
-                    f"name: {target!r} -- using {fallback!r} instead"
+                    f"name: {quote_path(target)} -- using "
+                    f"{quote_path(fallback)} instead"
                 )
                 stem = fallback
             elif "/" in stem and not posixpath.basename(stem).strip():
@@ -939,7 +1141,7 @@ class TypstBuilder(Builder):
                     (
                         relpath,
                         f"{existing} and {description} both resolve to "
-                        f"the same output path {relpath!r}",
+                        f"the same output path {quote_path(relpath)}",
                     )
                 )
                 return
@@ -961,8 +1163,9 @@ class TypstBuilder(Builder):
                     (
                         content_relpath,
                         f"the content file for docname {docname!r} would "
-                        f"be written to {content_relpath!r}, whose first "
-                        f"path segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        f"be written to {quote_path(content_relpath)}, "
+                        f"whose first path segment is "
+                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
                         "directory is reserved for template bundles",
                     )
                 )
@@ -992,27 +1195,40 @@ class TypstBuilder(Builder):
                 continue
             docname = entry[0]
             target = entry[1]
+            # MSG-03 (D-06 AMENDED, plan-time addendum): _is_usable_typst_
+            # documents_entry() constrains only entry[0] (the docname) to
+            # be a str -- entry[1] (this target) may be ANY type a user
+            # wrote in conf.py (None, an int, a list). quote_path() raises
+            # TypeError for a non-str, so an unconditional route here
+            # would turn a today-warned config typo into an unhandled
+            # crash on every build. One binding, read at both message
+            # sites below, so the narrowing cannot drift between them; the
+            # non-str rendering is deliberately unchanged from today's.
+            target_text = (
+                quote_path(target) if isinstance(target, str) else repr(target)
+            )
             wrapper_relpath = self._wrapper_output_relpath(entry) + ".typ"
             _claim(
                 wrapper_relpath,
                 f"typst_documents entry {index} (docname {docname!r}, "
-                f"target {target!r})",
+                f"target {target_text})",
             )
             if self._reserves_template_prefix(wrapper_relpath):
                 failures.append(
                     (
                         wrapper_relpath,
                         f"typst_documents entry {index} (docname "
-                        f"{docname!r}, target {target!r}) would write its "
-                        f"wrapper to {wrapper_relpath!r}, whose first path "
-                        f"segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        f"{docname!r}, target {target_text}) would write "
+                        f"its wrapper to {quote_path(wrapper_relpath)}, "
+                        f"whose first path segment is "
+                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
                         "directory is reserved for template bundles",
                     )
                 )
 
         if failures:
             summary = "; ".join(
-                f"{relpath!r}: {message}" for relpath, message in failures
+                f"{quote_path(relpath)}: {message}" for relpath, message in failures
             )
             raise ExtensionError(
                 f"typst: {len(failures)} output path collision(s): {summary}"
@@ -1740,32 +1956,16 @@ class TypstBuilder(Builder):
                 # URI somewhere none of Sphinx's own post-transforms ever
                 # do.
                 #
-                # IMG-03 (Phase 55): the digest prefix is taken over the
-                # WHOLE resolved_uri, not just its basename -- restoring
-                # the injectivity two escaping URIs sharing a basename lost
-                # under the old basename-only key, while the basename
-                # itself stays visible in the emitted filename. It is a
-                # PURE function of resolved_uri alone, with no dependence
-                # on self.images or on write()'s sorted(docnames) order
-                # (Phase 50 D-02); it introduces no parent-traversal
-                # segment (Phase 50 SC#2 outdir containment); and it must
-                # be .encode()d first -- hashlib takes bytes, not str.
-                # Python's own built-in string hash is unusable here: it
-                # is randomized per process unless seeded, so two builds
-                # of the identical project would emit two different
-                # filenames. This is a non-cryptographic collision-
-                # avoidance key over a build-local path string, not a
-                # security boundary -- this project's ruff selection does
-                # not include the security rule set, and this comment is
-                # the answer if a future, stricter scanner ever flags it.
-                digest = hashlib.sha1(resolved_uri.encode("utf-8")).hexdigest()[:8]
-                key = (
-                    f"{RESERVED_IMAGE_NAMESPACE}/{digest}-"
-                    f"{path.basename(resolved_uri)}"
-                )
+                # IMG-04/IMG-06 (Phase 59): key construction extracted to
+                # _build_relocation_key() -- see that function's own
+                # docstring for the IMG-03 collision-anchor rationale it
+                # carries forward, the IMG-04 normalize-then-basename
+                # ordering, and the IMG-06 255-byte bound.
+                key = _build_relocation_key(resolved_uri)
                 logger.warning(
-                    f"could not rehome image URI {resolved_uri!r} relative "
-                    f"to the doctree directory -- relocated to {key!r}"
+                    f"could not rehome image URI {quote_path(resolved_uri)} "
+                    f"relative to the doctree directory -- relocated to "
+                    f"{quote_path(key)}"
                 )
             elif path.isfile(path.join(self.srcdir, rel_uri)):
                 # D-01/D-03/D-04: a REAL source image already occupies the
@@ -2053,7 +2253,8 @@ class TypstBuilder(Builder):
                         raise ExtensionError(
                             f"typst_document_templates: failed to copy the "
                             f"resolved template for registry key {key!r} "
-                            f"from {src_file!r} to {dest_file!r}: {e}"
+                            f"from {quote_path(src_file)} to "
+                            f"{quote_path(dest_file)}: {e}"
                         ) from e
                     logger.warning(
                         f"Failed to copy template bundle file {rel_path}: {e}"
@@ -2062,9 +2263,10 @@ class TypstBuilder(Builder):
         if not template_copied:
             raise ExtensionError(
                 f"typst_document_templates: the resolved template for "
-                f"registry key {key!r} ({template_filename!r}) was never "
-                f"copied from {src_dir!r} to {dest_dir!r} -- a wrapper "
-                "naming this key would import a file that does not exist"
+                f"registry key {key!r} ({quote_path(template_filename)}) "
+                f"was never copied from {quote_path(src_dir)} to "
+                f"{quote_path(dest_dir)} -- a wrapper naming this key "
+                "would import a file that does not exist"
             )
 
     def _copy_used_template_bundles(self) -> None:

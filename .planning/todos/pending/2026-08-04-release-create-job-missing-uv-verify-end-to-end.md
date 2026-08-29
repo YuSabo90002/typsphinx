@@ -6,7 +6,12 @@ resolves_phase: 46
 severity: warning
 source: v0.7.0 milestone close (/gsd-complete-milestone) — release run 30848860064
 files:
+
   - .github/workflows/release.yml (the `create-release` job)
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -43,9 +48,11 @@ Consequence at the time: PyPI published fine, but the GitHub Release was left as
 
 - `release.yml`'s `create-release` job gained the missing `Install uv` + `Set up Python` steps on
   `main` (owner decision: match the other jobs rather than drop `uv run`).
+
 - The `v0.7.0` GitHub Release was repaired **by hand**: renamed to `Release v0.7.0`, body set to the
   extractor's output for `0.7.0` + the Installation block + GitHub's auto-generated notes, and the
   wheel (122,514 B) and sdist (477,342 B) uploaded alongside the existing `typsphinx.pdf`.
+
 - REL-04 was reverted to `[ ]` / Pending in `milestones/v0.7.0-REQUIREMENTS.md` and recorded as
   v0.7.0's one Known Gap, because the *automation* has still never produced the body — only a human
   has.
@@ -61,6 +68,7 @@ at the next release.
 - The next `v*` tag push produces a green `create-release` job in its release run.
 - The resulting GitHub Release body begins with the curated `## [X.Y.Z]` CHANGELOG section (not a
   `git log` dump, not empty), and its assets include the wheel and the sdist.
+
 - No hand editing of that release is performed before the check.
 - REL-04 is then marked Complete in the milestone that observes it.
 

@@ -2,7 +2,7 @@
 created: 2026-08-17
 title: "Path quoting in user-facing messages is unfinished on BOTH sides: path-valued `!r` still doubles backslashes at the sites 57-11 did NOT touch, and the three sites it DID fix lost `repr()`'s quote-disambiguation for paths containing a literal single quote"
 area: builder, writer, template_registry
-resolves_phase: unassigned
+resolves_phase: 60
 severity: minor
 source: 57-11 task 1's whole-file `!r` census over typsphinx/, taken from the DEFECT PROPERTY
   ("a filesystem path interpolated with !r into a message a user is expected to read and act

@@ -1,5 +1,121 @@
 # Milestones: typsphinx
 
+## v0.9.1 Windows path correctness (Completed: 2026-08-30 — **NOT published**)
+
+**Delivered:** three latent Windows path defect families closed on the product side, behind gates
+that were RED against the unfixed tree first — and then the release was deliberately cancelled for
+an unrelated, pre-existing blocker. This is the first milestone in this project's history that ships
+nothing: no tag (local or remote), no PyPI upload, no GitHub Release, no pull request.
+`pyproject.toml` stays at `0.9.0`; the next published release is **0.9.2** (D-02).
+
+**Closeout:** override_closeout — but for the first time in seven closes, on a **real
+`v0.9.1-MILESTONE-AUDIT.md`** rather than in the absence of one. The audit reports requirements
+10/11, phases 4/4, integration 11/11, flows 1/1, `status: tech_debt`, `fail_gate.triggered: false`.
+Known verification overrides: 16 newly acknowledged, 0 carried forward from a prior close (see
+STATE.md Deferred Items) — 9 pending todos, 3 dormant seeds, 1 human-needed verification gap from
+the archived Phase 22.3, and 3 archived deferred-item entries whose heading-delimited shape the
+acknowledge writer refuses, marked by direct file edit instead.
+**Phases:** 4 (58–61) · **Plans:** 17 · **Tasks:** 48
+**Requirements:** 10/11 v1 requirements complete · **Timeline:** 2026-08-27 → 2026-08-30 (4 days)
+**Git:** milestone branch `gsd/v0.9.1-windows-path-correctness` (163 commits), **kept unmerged and
+untagged** by owner decision at this close — the same handling v0.7.0 through v0.9.0 branches
+received. `main` is unchanged.
+**Code delta (milestone scope, excl. `.planning/`):** 23 files, +3,011 / −72 lines. One new runtime
+module (`typsphinx/pathfmt.py`, a zero-import stdlib leaf) and one new test helper
+(`tests/_path_naming.py`); everything else is `builder.py`/`translator.py`/`writer.py`/
+`template_registry.py` diagnostics and the gate corpus. **Zero runtime dependencies added and no new
+`typst_*` config value** — a bug-fix round by construction.
+
+**Key accomplishments:**
+
+- **A message site can move off `!r` without a single test edit** (MSG-01, Phase 58) — the two tests
+  that hard-coded `repr()`'s output format as their pass criterion now assert the *meaning* through
+  a shared `path_named_in()` predicate, each rewrite proven neither regression nor tautology by a
+  real, recorded RED against a temporarily-edited `builder.py`. A self-excluding AST sweep over
+  `tests/` brought the whole-tree `repr()`/`!r` pass-criterion census to exactly 7 with **zero
+  path-valued sites left** — and `58-REPR-CENSUS.md` then became the instrument Phases 59 and 60
+  each used to *measure* their zero-test-edit claims instead of asserting them. Ships no product
+  change.
+
+- **A Windows-shaped absolute image URI survives the whole pipeline into a real PDF** (PATH-01,
+  IMG-04..IMG-07, Phase 59) — `_escapes_outdir()` decides on the backslash-normalized string,
+  proven to change nothing live by a two-tree byte-identity measurement at both production call
+  sites; `_build_relocation_key()` normalizes only the basename while still hashing the **raw** URI
+  for the collision anchor; `_bound_relocation_component()` bounds the component to 255 UTF-8 bytes
+  on character boundaries with the `{sha1[:8]}-` prefix kept whole; and `visit_image()` binds
+  `escape_typst_string()` once and interpolates it at **both** emission sites. The acceptance gate
+  is a real `typst.compile()` driven through `-b typstpdf`, with an all-lane string-shape sibling
+  for `windows-latest`, where the compile gate itself cannot run.
+
+- **One delimiter-aware path-quoting helper, routed everywhere** (MSG-02..MSG-05, Phase 60) —
+  `typsphinx/pathfmt.py::quote_path()` reproduces `repr()`'s delimiter-selection rule minus the
+  backslash doubling that made a Windows path unmatchable, in a zero-import leaf module gated by a
+  27-test RED-first suite. All 23 path-valued interpolations in `builder.py` route through it
+  (**including two `target` sites the original enumeration missed**), 3 in `writer.py`, and 2 in
+  `template_registry.py` — the latter closing a leaked `PosixPath(...)` wrapper defect as well. The
+  adjacent type-check message stays measurably on `repr()` as a deliberate exclusion: its value is
+  reached only when it is *not* path-shaped.
+
+- **A locked decision was falsified by measurement and amended rather than read to fit** (Phase 59,
+  D-01a) — `59-CONTEXT.md` D-01 and ROADMAP SC#2 both predicted the unfixed tree would be refused
+  with `path must not contain a backslash`; it is actually `unclosed delimiter`, because the unfixed
+  pipeline emits a raw backslash **and** a raw unescaped `"` at once and the quote ends the string
+  before the semantic check runs. D-01's four probe runs had each carried only one defect.
+  Re-measured independently, put to the owner, closed with an `AMENDED` block. The substantive claim
+  survived intact: only the tree with *both* halves fixed compiles.
+
+- **Two defects were found by gates after every plan in their phase reported complete** — Phase 59's
+  own code review found a blocker in `_bound_relocation_component()` (one reserved *byte* empties a
+  multi-byte leading character, violating the "never an empty basename" property), fixed in-phase
+  with two regression gates proven RED against the pre-fix tree first; and Phase 60's repo-wide
+  discovery grep found a **fourth** module carrying the same hardcoded-delimiter shape
+  (`translator.py`'s relative-path DEBUG logs) and **filed it as a todo rather than fixing it**,
+  outside the requirement scope.
+
+- **The prep-only fence held, and it has slipped at five consecutive prior release-prep closes**
+  (Phase 61) — REL-09's checkbox was guarded by a SHA-256 of `.planning/REQUIREMENTS.md` recorded at
+  phase head, re-verified at phase close, again inside `61-HANDOFF.md`, and once more by the
+  operator at this close: MATCH every time, with `git tag -l 'v0.9.1'` empty at each observation.
+  SC#4's proof rests on two observations 38m16s apart spanning two waves and a full 3-OS CI
+  dispatch, each network probe carrying a real positive control, with the empty `typsphinx/` diff
+  proven non-vacuous by a live widened control.
+
+### Known Gaps
+
+- **REL-09 — v0.9.1 released to PyPI** (Phase 61): **deliberately unmet, and the correct outcome.**
+  Owner decisions D-01/D-02/D-08 amended this milestone's definition of done to exclude publication
+  entirely. The requirement carries forward to v0.9.2 with its literal wording unchanged, including
+  its `v0.9.1` version string — the owner declined both rewriting it and closing it as superseded.
+  A checked box would have been the defect. The milestone audit classifies it `deferred`, not
+  `unsatisfied`, and `fail_gate` did not trigger.
+
+### Why the release was cancelled
+
+An owner report on 2026-08-29, mid-milestone, surfaced a `severity: blocker` defect: an image node
+that is not the first thing in its paragraph is emitted directly adjacent to the preceding code-mode
+expression, so Typst refuses the file with `expected semicolon or line break` and `-b typstpdf` does
+not degrade — it raises `ExtensionError` and writes **no PDF for any master document in the
+project**. Measured **pre-existing, not a regression** (D-06):
+`git diff v0.9.0..HEAD -- typsphinx/translator.py` is 25 lines, all IMG-05's
+`escape_typst_string()` call, and `visit_image()`'s missing leading separator is byte-identical to
+the `v0.9.0` tag. Publishing a release that cannot compile a document containing an inline
+substitution image was declined. The blocker was **not fixed here** (D-07 — `translator.py` was
+outside both Phase 61's fence and the milestone's requirement set) and **not disclosed on any public
+surface** (D-05): no `README.md` Known Limitations entry, no CHANGELOG `### Known Limitations`
+section, no GitHub issue — the fourth consecutive cycle at which such a section was declined. It is
+tracked as `.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`
+and is v0.9.2's first requirement.
+
+**Verification:** all 4 phases `phase_complete=true` / `verification_status=passed` (58: 5/5, 59:
+5/5, 60: 5/5, 61: 9/9 must-haves; 0 gaps and 0 human-verification items across all four). Local at
+the milestone-final tree: 1513 passed / 5 skipped, `black` and `mypy` clean, version-sync guard
+family green. CI acceptance run `33260111745`: **12/12 `success`, both `windows-latest` lanes
+included.** `ruff` authority is CI's, not this host's — Phase 59's CI run 1 failed on `ruff` alone
+while all six matrix test jobs passed, because `ruff` is unrunnable in the freshly-`uv sync`ed
+worktrees every executor runs in.
+
+---
+
 ## v0.9.0 per-document templates (Shipped: 2026-08-22)
 
 **Closeout:** override_closeout — no `v0.9.0-MILESTONE-AUDIT.md` was run (owner decision at close:
@@ -71,6 +187,7 @@ declares nothing new keeps producing the same PDF.
   hashes and PDF page counts across all four existing configuration shapes from real `-b typstpdf`
   runs **before any code changed**, so "the built-in `"typst"` key produces byte-identical output"
   became a diff against a stored artifact instead of a claim.
+
 - **One bundle rule replaced four mechanisms** (TPL-02, CONF-19, OUT-04..07, BLD-05, BLD-06) — every
   used key's resolved bundle directory is copied **wholesale** to `<outdir>/_template/<key>/`, the
   synthesized built-in key under the same rule with no exception (which closed a previously-unnamed
@@ -80,6 +197,7 @@ declares nothing new keeps producing the same PDF.
   was deregistered in the same commit that connected `typsphinx/removed_config.py` — so a `conf.py`
   still setting any of three removed values gets a warning naming the value, its replacement, and
   the observable consequence instead of silently different output.
+
 - **The safety defects that rule created were closed in an inserted phase, not deferred** (WR-01,
   CR-01) — a bundle directory colliding with Sphinx's own `templates_path` now refuses the build
   **before any `.typ` file is written**, closing a hole that would have republished a project's
@@ -87,6 +205,7 @@ declares nothing new keeps producing the same PDF.
   layout; and a bundle-escape violation on the built-in key is caught pre-write instead of at
   `finish()`. Two different failure kinds in one build raise once, with a byte-identical,
   declaration-order-independent message.
+
 - **The five v0.8.0-derived defects closed on the product side** (XREF-05, BLD-07..09, IMG-03) —
   each with a RED-recorded reproduction whose ancestry was checked against git history rather than
   taken from prose. `_sanitize_label` was made injective and **proven general by an exhaustive
@@ -94,6 +213,7 @@ declares nothing new keeps producing the same PDF.
   their own separators; the chain walk is bounded at 500 frames with a named `ExtensionError`; and
   the image absolute-URI gate moved onto a backslash-normalized predicate with a SHA-1-prefixed
   relocation key.
+
 - **The documentation describes what shipped, bound to code by import and by AST** (DOC-15..17) — a
   two-way AST-pinned error catalogue (AST-based because one raise site uses a shared helper and
   another implicit string concatenation), a seven-case key-naming table bound by import rather than
@@ -102,6 +222,7 @@ declares nothing new keeps producing the same PDF.
   pins them**. The hand-compile `--root` note ships **conditionally** on the target's own path shape,
   both branches proven by a real `typst.compile()` gate — after the CONTEXT-time claim was
   reproduced twice and found false.
+
 - **The release was prepped without taking any irreversible action, and the fence is provable**
   (REL-08 prep half) — version lockstep across `pyproject.toml`/`uv.lock`/`README.md`, a curated
   `## [0.9.0]` section with four `**Breaking` marks and a rolled-over tail link block, a
@@ -124,8 +245,10 @@ forward" and `.planning/todos/pending/` — the **third consecutive release** to
   that was declined, and the shipped sentence ("template layout is now validated before anything is
   written") therefore reads as unconditional — an over-broad true-sounding claim rather than a true
   claim with a missing footnote.
+
 - **54.1 WR-01** — the "Custom template not found" warning fires three times instead of two for one
   narrow shape (a synthesized `"typst"` key whose `typst_template` names a nonexistent path).
+
 - **57 WR-01** — the pre-write refusal messages quote path values with a fixed `'...'` delimiter, so
   a path containing a literal single quote closes the quote early. Filed forward into the existing
   `2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages.md` rather than as a new record;

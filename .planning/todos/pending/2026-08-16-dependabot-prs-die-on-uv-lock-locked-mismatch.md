@@ -4,11 +4,16 @@ title: "Every dependabot PR dies before running a single test: it bumps `pyproje
 area: ci, tooling
 severity: major
 files:
+
   - .github/dependabot.yml
   - .github/workflows/ci.yml:37,67,88,109,174,202
   - .github/workflows/docs.yml:29
   - .github/workflows/release.yml:36,113
   - .github/workflows/drift.yml:29-32
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -76,10 +81,12 @@ TBD — three candidate shapes, in rough order of preference. This needs a decis
    branch, so the existing `--locked` steps then pass. Keeps `--locked`'s reproducibility guarantee
    intact everywhere. Costs a `permissions: contents: write` on that workflow and care about
    re-triggering CI on the pushed commit.
+
 2. **Let `drift.yml` be the only dependency-update path and stop dependabot from opening pip PRs.**
    `drift.yml` already re-resolves weekly and files an issue on breakage; the pip half of
    `.github/dependabot.yml` would be dropped, keeping the `github-actions` half (Actions bumps do
    not touch `uv.lock` and are unaffected). Smallest change; loses per-package PR granularity.
+
 3. **Drop `--locked`** from the CI steps. Cheapest to write and the worst of the three — it removes
    the guarantee that CI installs exactly the resolved set, which is the property the flag was added
    for. Recorded only so it is explicitly rejected rather than silently rediscovered.

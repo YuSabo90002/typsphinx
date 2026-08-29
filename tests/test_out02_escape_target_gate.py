@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from _path_naming import path_named_in
 
 try:
     import typst  # noqa: F401
@@ -127,13 +128,45 @@ def test_escape_shape_refused_with_containment_proof(shape, tmp_path):
         f"Expected the path-guard warning naming the refused target:\n"
         f"stdout: {result.stdout}\nstderr: {result.stderr}"
     )
-    # The warning formats the target via `!r` (repr) -- for a target
-    # carrying a literal backslash (the drive-qualified shape), repr()
-    # doubles it for display, so the warning-text search must match the
-    # repr'd form the actual log line contains, not the raw target string.
-    assert repr(target) in combined_output, (
-        f"Expected the warning to name the offending target {target!r}:\n"
-        f"stdout: {result.stdout}\nstderr: {result.stderr}"
+    # D-02: apply the naming predicate to the extracted warning LINE, not
+    # to the whole captured output -- a raw path leaking from any other
+    # source (a config echo, a traceback, a path Sphinx prints) would
+    # otherwise keep this test green after the path is removed from the
+    # warning itself, which would make Task 2's falsification prove
+    # nothing about the thing under test.
+    #
+    # `_resolve_target_stem()` is invoked multiple times per build for the
+    # SAME docname (once via `get_target_uri()`'s cross-reference/toctree
+    # resolution calls, once via the wrapper-output-path resolution during
+    # writing) -- measured live this session: an unmodified single-docname
+    # fixture build emits the IDENTICAL warning line 3 times, not once.
+    # De-duplicating before counting keeps D-02's actual guarantee (a
+    # DIFFERENT raw path leaking from an unrelated source produces a
+    # DIFFERENT line and still fails loudly here) without making this
+    # assertion depend on how many internal call sites happen to log the
+    # same message.
+    warning_lines = list(
+        dict.fromkeys(
+            line
+            for line in combined_output.splitlines()
+            if ESCAPE_WARNING_SUBSTRING in line
+        )
+    )
+    assert len(warning_lines) == 1, (
+        f"Expected exactly one DISTINCT warning line naming the refused "
+        f"target (repeats of the identical line are expected and "
+        f"collapsed; a second, DIFFERENT line would indicate a raw path "
+        f"leaking from an unrelated source):\n{combined_output}"
+    )
+    # D-01/D-03: assert MEANING, not representation format -- the
+    # offending target is NAMED in the warning line, whether the message
+    # site quotes it with `!r`, a hardcoded `'{value}'`, or a future
+    # delimiter-aware helper. `path_named_in` requires the FULL target
+    # value, never a basename, so a message that only still names the
+    # same-basename `fallback` field (the D-03 trap) fails this assertion.
+    assert path_named_in(target, warning_lines[0]), (
+        f"Expected the warning to name the offending target {target!r} "
+        f"(raw or repr()'d):\n{warning_lines[0]}"
     )
 
     wrapper_file = build_dir / "escape.typ"

@@ -3,10 +3,15 @@ created: 2026-07-22T23:55:07+09:00
 title: `sphinx-build -b linkcheck` の CI ジョブを追加する
 area: ci, docs
 files:
+
   - .github/workflows/ci.yml (既存の py312/py313 + lint/type/cov マトリクスに新ジョブを追加する候補先)
   - .github/workflows/docs.yml (ドキュメント系ワークフロー。linkcheck をここに追加する案もあり得る)
   - tox.ini (新 `[testenv:linkcheck]` の追加先)
   - docs/source/conf.py (`linkcheck_ignore` 等の Sphinx linkcheck 設定を書く先)
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -26,9 +31,11 @@ Phase 22.4 は grep ベースの手動検証（`curl` による実測）で発�
 
 - `tox.ini` に `[testenv:linkcheck]` を追加し（`sphinx-build -b linkcheck docs/source build/linkcheck`
   相当）、CI から呼ぶ。
+
 - レート制限や外部サイトの一時障害でジョブが不安定にならないよう、
   `docs/source/conf.py` に `linkcheck_ignore` を設定し、外部ドメイン（github.io 以外の外部サイトへの
   リンクなど）を必要に応じて除外する。
+
 - 導入初期は「失敗しても `main` をブロックしない」扱い（advisory ジョブ、必須チェックにしない）から
   始め、安定性を見てから required 化を検討する — `drift.yml` が advisory ジョブとして運用されている
   前例（`.planning/PROJECT.md` の D-07「drift ジョブは常に advisory」）に倣う。

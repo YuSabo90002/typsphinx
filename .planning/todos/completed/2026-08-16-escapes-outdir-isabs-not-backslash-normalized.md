@@ -2,7 +2,7 @@
 created: 2026-08-16
 title: "`_escapes_outdir()` normalizes backslashes for its parent-traversal split but calls `posixpath.isabs()` on the RAW stem for its absolute-path branch -- it returns False for a driveless-absolute Windows stem"
 area: builder
-resolves_phase: unassigned
+resolves_phase: 59
 severity: minor
 source: Phase 55 plan 55-03, filed while closing BLD-09; measured in
   .planning/phases/55-v0-8-0-derived-defects/55-03-RED-EVIDENCE.md

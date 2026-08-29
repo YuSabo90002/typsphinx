@@ -1,229 +1,405 @@
 # Pitfalls Research
 
-**Domain:** Adding a per-document template registry (`typst_document_templates`) to an existing, mature Sphinx→Typst extension — directory-copy output layout, registry-key-as-path-segment, deletion of a live config value, relocation of an existing output artifact
-**Researched:** 2026-08-15
-**Confidence:** MEDIUM (general findings cross-checked across multiple independent web sources); HIGH where grounded directly in this repository's own code (`builder.py`'s existing escape/collision guards, `pyproject.toml` packaging config)
+**Domain:** Bug-fix milestone on a mature Sphinx→Typst build tool — Windows path-shape correctness
+(three related defect families: an un-normalized escape predicate, an un-escaped/un-normalized
+image-relocation path, and a codebase-wide `!r`-vs-delimiter message-quoting inconsistency)
+**Researched:** 2026-08-27
+**Confidence:** HIGH — every pitfall below is anchored to a line number, a docstring, a real grep
+result, or a named test in this repository at HEAD, not to generic cross-platform-Python folklore.
 
 ## Critical Pitfalls
 
-### Pitfall 1: Registry key validation that stops at the wrong layer (string-shape only, or filesystem-probe only)
+### Pitfall 1: Two existing tests hard-code the CURRENT (backslash-doubling) `repr()` output as
+their pass criterion at two of the ~20 in-scope message sites — the quoting-helper fix breaks
+them by design, on POSIX, with no Windows CI required to see it
 
 **What goes wrong:**
-The v0.8.0 `_escapes_outdir()`/`_is_drive_qualified()` pair already solved "is this user string safe to become a path segment" for `typst_documents` target stems — but only for the **traversal/absolute/drive-qualified** shape. A registry key has a *stricter* contract than a target stem: a target stem is a whole relative path (`"manuals/guide"` is legal), but a registry key becomes exactly one path segment (`<outdir>/_template/<key>/`), so anything that makes it *multi-segment*, *empty*, *reserved*, or *colliding-after-folding* is newly in scope and the existing guard does not cover it. Concretely: a key containing `/` or `\` silently creates (or escapes into) a subdirectory instead of raising; a key that is empty, all-dot (`"."`, `".."`), or whitespace resolves to a nonsensical or dangerous segment; a key that differs from another only by case (`"Paper"`/`"paper"`) writes to the same path on Windows/macOS's default filesystems while looking like two independent bundles on Linux CI; a key matching a Windows reserved device name (`CON`, `NUL`, `AUX`, `COM1`...) makes directory creation fail outright on Windows, case-insensitively, with or without a trailing extension; and a key with trailing dots/spaces (`"paper. "`) is silently stripped by the Win32 API, so `"paper."` and `"paper"` collide there without colliding anywhere else.
+`tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[drive]`
+asserts `assert repr(target) in combined_output` for `target = "C:\\escape.typ"` (line 134) — this
+targets `builder.py:697`'s `f"name: {target!r} -- using {fallback!r} instead"`, one of the sites
+PROJECT.md's group 3 names for the new helper. `tests/test_builder.py`'s
+`test_post_process_images_rehome_escape_relocates_with_warning` asserts
+`assert repr(abs_uri) in message` (line 598) against `builder.py:1767`'s
+`f"could not rehome image URI {resolved_uri!r} relative..."`. Both docstrings/comments explicitly
+acknowledge `repr()` doubles a backslash and assert *for* that doubling, not around it:
+`test_out02_escape_target_gate.py`'s own comment reads "repr() doubles it for display, so the
+warning-text search must match the repr'd form"; `test_builder.py`'s reads "on Windows repr()
+doubles every backslash ... Asserting against repr(abs_uri) holds on both." The `[drive]`
+parametrization is explicitly marked to run "on every platform (including the drive-qualified
+case)" — it is not Windows-only, so it fails on THIS POSIX machine the moment `builder.py:697` is
+rewired to the new delimiter-aware helper (which, by design, stops doubling the backslash). The
+`test_builder.py` case is subtler: on POSIX its `abs_uri` (`os.path.join(os.sep, ...)`) contains no
+backslash, so `repr(abs_uri)` happens to equal the new helper's output too — it stays green
+*here*, unedited, but will go red the moment the SAME test runs on the `windows-latest` lane, where
+`os.sep == "\\"` makes `abs_uri` backslash-bearing and `repr()`'s doubling and the new helper's
+non-doubling diverge.
 
 **Why it happens:**
-The temptation is to reuse `_escapes_outdir()` verbatim because "it already handles bad target stems" — but that function's contract (per its own docstring) is "may contain a `/`", which is the opposite of what a single path segment needs. Reviewers who don't re-read the docstring's stated contract will approve reuse that quietly widens the escape surface.
+The two sites were fixed shape-first ("stop doubling backslashes") without auditing every existing
+assertion that already depends on the OLD shape. `repr(value) in message` is an attractive,
+DRY-looking assertion (it reuses the product's own quoting instead of hardcoding a literal), but
+that is exactly what makes it silently track whatever the product currently does, including a
+defect.
 
 **How to avoid:**
-Write a **new, narrower** predicate for registry keys — reject on: contains `/` or `\`; empty or whitespace-only; equals `.` or `..`; strips to a different string after removing trailing `.`/space characters (Windows-shape, but checked on every platform per this project's own D-05 platform-independence precedent — see `_is_drive_qualified()`'s docstring, which validates Windows-shaped input identically on POSIX CI); casefolds to a Windows reserved device name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`, `CLOCK$`) with or without a trailing extension. Then, separately, extend `TypstBuilder._collision_key()`'s existing casefold-and-normalize comparison (already NFC/NFD-deliberately-non-normalizing, already cross-platform by design per its own docstring) to also index `_template/<key>/` bundle destinations, so two registry keys that differ only by case are caught by the *same* collision map the wrapper/content files already go through — not a second, independently-written check that can drift from the first. **Validation is theatre if it only rejects at string-shape and never re-checks after `casefold()`** — the case-collision hazard is invisible to a shape-only test.
-Length limits are lower priority: a registry key is one path segment appended to `<outdir>/_template/`, and Windows' historical 260-char `MAX_PATH` is rarely reached by a plausible key name — flag but do not gate on this unless a plan explicitly targets long-path Windows support.
+Before writing the shared quoting helper, run `grep -rn "repr(" tests/*.py` (already run for this
+research — 20 hits; the other 18 are all on identifier/list/bytes/int values, never a plain path
+string, and correctly stay `!r`/`repr()`) and manually triage every hit for "is the asserted value
+path-shaped." Rewrite `test_escape_shape_refused_with_containment_proof[drive]`'s assertion to
+expect the new helper's actual (non-doubled, correctly-delimited) output instead of `repr(target)`.
+For `test_post_process_images_rehome_escape_relocates_with_warning`, either parametrize it with an
+explicitly Windows-shaped `abs_uri` literal (not `os.sep`-derived, so its expectation is the same
+on every host) asserting the NEW helper's output, or add a comment recording that the existing
+`os.sep`-derived assertion is POSIX-coincidental and will need a matching edit if this test is ever
+run against a real Windows-shaped `abs_uri`.
 
 **Warning signs:**
-A code review that reuses `_escapes_outdir()` for the new key validator without a written justification for why its "path is now legal" (OUT-01) reversal is safe for a single-segment context. A guard test suite that only exercises `../`, `/abs`, `C:` shapes (copy-pasted from the existing target-stem tests) and never exercises `""`, `"."`, `"CON"`, `"Paper"` vs `"paper"`, or `"paper. "`.
+`pytest tests/test_out02_escape_target_gate.py -k drive` or
+`pytest tests/test_builder.py -k rehome_escape` goes red immediately after the source edit, on this
+machine, with no CI dispatch needed — treat that red as EXPECTED and required, not as a signal to
+revert the source fix.
 
 **Phase to address:**
-The phase that introduces `typst_document_templates` config parsing/validation (the "fail-loud configuration errors" phase named in PROJECT.md) — this is where `ExtensionError` on an unregistered/malformed key already needs to be raised, so the stricter key-shape check belongs in the same validation pass, before any directory copy runs.
+The quoting-helper phase (defect family 3) itself. The two test edits must land in the SAME plan
+that touches `builder.py:697` and `builder.py:1767` — never deferred as "tests still pass, ship
+now," because for the `[drive]` case they do NOT still pass, and for the rehome case they pass for
+the wrong reason (POSIX coincidence) and will silently stop being evidence of anything once a
+Windows-shaped value is ever asserted against.
 
 ---
 
-### Pitfall 2: `copytree`'s symlink default silently changes what gets published, in either direction
+### Pitfall 2: The type-check failure at `template_registry.py:410` interpolates `template`
+*before* its type is known to be path-shaped — routing it through a string-only quoting helper
+built for family 3 will misbehave on the exact non-str values three existing tests deliberately
+supply
 
 **What goes wrong:**
-`shutil.copytree(src, dst, symlinks=False, ...)` — the default — **dereferences** every symlink in the source tree, copying the *contents* of whatever the symlink points to, including something outside the template's own directory (a symlink to a shared fonts folder, a build artifact, or accidentally `/etc/passwd` in a malicious/careless template repo). Explicitly passing `symlinks=True` instead **preserves** the symlink as a symlink in the copied output — which means an absolute-target symlink inside a user's template directory now appears verbatim inside `<outdir>/_template/<key>/`, and following it from the published output directory can escape entirely outside the project's intended publish tree. Neither default is safe on its own for a **user-designated, arbitrary directory being copied into a project's build output** (this is a materially different trust boundary than copying a hand-authored template file with a known-safe origin, which is what this project has copied to date via `_write_template_file()`).
+`template_registry.py:408-412`:
+```python
+if template and not isinstance(template, (str, os.PathLike)):
+    failures.append(
+        f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
+        f"not a {type(template).__name__}"
+    )
+```
+This branch is reached PRECISELY when `template` is *not* `str`/`os.PathLike` — by construction,
+the value here is never a plain path string. `tests/test_template_registry.py` exercises this with
+`template = ["a", "b"]` (asserting `repr(["a", "b"]) in message`, line 832) and
+`template = b"base.typ"` (asserting `repr(b"base.typ") in message`, line 847). A quoting helper
+built to choose a delimiter based on whether a *string* contains `'`/`"` will either raise
+(`AttributeError`/`TypeError` calling `.replace()` on a `list` or `bytes`) or silently produce the
+wrong quoting shape if naively applied to this f-string too. This is the SAME family PROJECT.md
+groups under "template_registry.py:410,422,433," but 410 is structurally different from its two
+siblings.
 
 **Why it happens:**
-`copytree` is reached for because it's the one-line stdlib answer to "copy this whole directory," and the `symlinks=` decision is easy to skip because both defaults *look* reasonable in isolation and the difference has zero visible effect on an ordinary local dev machine where no template directory contains a symlink.
+Grouping "the three `template_registry.py` sites" as one unit (as the source todo and PROJECT.md
+both do, reasonably, since they are textually adjacent and share the `{template!r}` shape) hides
+that line 410 fires on the FAILURE of the very isinstance check that lines 422/433 rely on having
+already passed (`elif template:` — only reached when the outer `if` is False, i.e. `template` IS
+`str`/`os.PathLike`).
 
 **How to avoid:**
-Decide the symlink policy explicitly and encode it as a comment next to the call, not as an implicit stdlib default: either (a) `symlinks=False` (dereference) plus a size/type guard that refuses to copy a target outside `src`'s own tree (rejecting a symlink whose resolved real path is not a descendant of the template directory), or (b) reject symlinks outright via an `ignore=` callable that flags any `os.path.islink()` entry and raises/warns rather than silently copying or silently dropping it. Given this project's existing posture (fail-loud `ExtensionError` on malformed config, per PROJECT.md), rejecting an escaping symlink with a named error is the more consistent choice than silently resolving or silently preserving it.
-Separately, exclude publish-inappropriate files unconditionally — `.git`, `.DS_Store`, `Thumbs.db`, editor backup suffixes (`~`, `.swp`), and anything matching common secret-file shapes — via an `ignore=` callable, the same mechanism `shutil.copytree` already exposes for this purpose. Do not rely on the template author to keep their template directory clean; a user pointing `template` at an existing docs `_templates/` subdirectory that also happens to be their whole git-tracked assets folder is a realistic case for this project given `docs/source/_typst/custom_template.typ` and `examples/*/  _templates/` already exist as real precedent directories in this repo.
-Also decide the re-run behavior explicitly: `dirs_exist_ok=True` merges into an existing destination without pruning files the source directory no longer has — an incremental build that copies over a stale `_template/<key>/` will leave orphaned files from a prior template revision. Either `shutil.rmtree()` the destination bundle before each copy, or accept staleness as a known, documented limitation (do not leave it undecided).
+Treat `template_registry.py:410` as excluded from the new helper, with a one-line comment
+explaining why (the value is guaranteed non-path-shaped there); route only lines 422 and 433
+(inside the `elif template:` block, where `template` is guaranteed `str`/`os.PathLike`) through it.
 
 **Warning signs:**
-A guard test that only checks "the file I expect is present" and never checks "no file I didn't expect is present" (i.e., an allowlist-by-omission test rather than a manifest-diff test). A template fixture directory in the test suite that never contains a symlink, so the whole symlink branch is untested by construction.
+`pytest tests/test_template_registry.py -k "list_template_field or bytes_template_field"` raises
+an unhandled exception (not the expected `ExtensionError`) or produces a mangled message.
 
 **Phase to address:**
-The phase that implements the directory-copy mechanism itself (the "one output rule, no exceptions" bullet in PROJECT.md, replacing `_copy_template_directory`/`copy_template_assets`). The `ignore=` callable and the symlink-escape guard are the SAME function's responsibility — do not defer the symlink decision to a later hardening phase, since it is cheap to decide correctly the first time and expensive to retrofit onto call sites that have already shipped without it.
+The quoting-helper phase (defect family 3), as an explicit per-site classification step, not an
+incidental side effect of a codebase-wide find/replace on `{...!r}` fragments.
 
 ---
 
-### Pitfall 3: The bundled `"typst"` template's own directory is not safely copyable via `Path(__file__).parent`, and `pyproject.toml`'s package-data glob already only covers `.typ`
+### Pitfall 3: `os.PathLike` values (e.g. a `pathlib.Path` `template`) reaching the quoting helper
+break it unless the helper stringifies first — the codebase already deliberately accepts `Path`
+here, and a working shape must not regress
 
 **What goes wrong:**
-This project already has a concrete, present-tense instance of the general "copying a directory out of an installed package" hazard: `pyproject.toml:73` declares `[tool.setuptools.package-data] "typsphinx" = ["templates/*.typ"]` — a glob scoped to `.typ` files only. Today that is harmless because `typsphinx/templates/` contains exactly one file, `base.typ`. The moment the "typst" built-in key's bundle directory needs a companion non-`.typ` asset (an example font, a logo used in a demo, a `.bib` fixture), the *wheel a user actually `pip install`s* silently omits it — the file exists in the git checkout and in an editable/dev install (`pip install -e .`), so local testing and even CI running against the source tree never notices, but a real PyPI install's copied bundle is missing the file. This is the exact "works everywhere except the one environment nobody develops in" shape this project has already been bitten by once (the `tox-uv-bare` ELF hazard, the case-insensitive-filesystem hazard from v0.8.0).
-Separately, whatever code resolves "the parent directory of the resolved template" for the `"typst"` built-in key must not assume `Path(__file__).parent` names a real, walkable directory on disk — that assumption breaks under zipimport, a PEP 302 non-filesystem loader, or (less likely for this project's own packaging, but a real distribution-side risk) a `--only-binary`/vendored/frozen install path. `importlib.resources.files()`/`as_file()` is the loader-agnostic answer; walking a `Path(__file__).parent`-derived directory with `os.walk()`/`copytree()` is not guaranteed to work identically to how it works in the dev checkout.
+`template_registry.py`'s own design comment (lines 398-407) documents that `template` accepting
+BOTH `str` and `os.PathLike` is deliberate ("a `pathlib.Path` `template` works end to end TODAY,
+and blanket-rejecting it would withdraw a working shape rather than close a crash"), and
+`tests/test_template_registry.py`'s "Test H (control)" (line 851, `declared_template =
+Path("sub/path_tpl.typ")`) exercises exactly this. `Path.__repr__` renders as
+`PosixPath('sub/path_tpl.typ')` (or `WindowsPath(...)` on Windows) — not a bare quoted string —
+and `Path` has no `.replace(old, new)` string method (it has `.replace()` for filesystem rename,
+a completely different signature). A helper written assuming `str` input will either raise
+`TypeError` calling a string method on a `Path`, or leak a `PosixPath(...)` wrapper into a
+user-facing refusal message if it falls back to bare `f"{value}"`.
 
 **Why it happens:**
-The dev/CI loop for this project runs almost exclusively against an editable install of the source tree (per this project's own worktree-isolation `uv sync --extra dev` convention) or a sdist-adjacent checkout, where `Path(__file__).parent` and the package-data glob are both irrelevant — the files are just *there*, on disk, unconditionally. The gap between "installed from a wheel" and "running from source" is invisible to every test that never actually builds and installs the wheel.
+Every failing example seen while writing the fix will likely be a plain `str` (that's what a
+`conf.py` author normally writes), so a `Path`-valued `template` is easy to never exercise by hand
+before shipping — it only surfaces via the one existing control test, or a real user who wrote
+`Path("template.typ")` in `conf.py`.
 
 **How to avoid:**
-Two independent fixes, not one: (a) widen the `pyproject.toml` package-data glob for `typsphinx/templates/` to `**/*` (or itemize every file kind the bundle will ever need) the moment a second file kind enters that directory — treat "add a non-.typ file under templates/" as requiring a `pyproject.toml` diff in the same commit, and add a CI check that builds the wheel and asserts the expected files are present inside it (`python -m build && unzip -l dist/*.whl | grep templates/`) rather than trusting the glob by inspection. (b) Resolve the `"typst"` built-in key's bundle directory through `importlib.resources.files("typsphinx") / "templates"`, and when a real on-disk directory is needed for `copytree()`, do so inside an `importlib.resources.as_file()` context manager rather than constructing the path via `Path(__file__).parent`. This is strictly more portable and costs one extra import.
+The shared helper's first action should be `value = str(value)` (or every call site does the
+`str(...)` conversion before calling it) — never assume the incoming value is already `str`.
 
 **Warning signs:**
-Grepping the diff for `Path(__file__).parent` (or `os.path.dirname(__file__)`) anywhere near the new template-bundle-resolution code. A `pyproject.toml` package-data glob whose extension list doesn't match the actual file extensions present in `typsphinx/templates/` after the change (a one-line `find typsphinx/templates -type f` vs. the glob is enough to catch drift). No CI job that builds and installs the actual wheel/sdist and runs even a smoke test against it.
+A new/changed message for a `Path`-valued `template` shows `PosixPath('...')` or
+`WindowsPath('...')` instead of a plain quoted path, or the existing "Test H" control test starts
+raising instead of resolving successfully.
 
 **Phase to address:**
-The phase that implements "the resolved template's parent directory is copied wholesale" for the built-in `"typst"` key specifically — this is the one registry entry whose bundle lives inside the installed package rather than under `srcdir`, so it is the one call site that needs the `importlib.resources` treatment; every other registry key's bundle is already a real on-disk directory under `srcdir` and doesn't have this hazard. Add the wheel-build CI smoke test in the same phase, since a later phase has no organic reason to add it once this one ships without noticing the gap.
+The quoting-helper phase (defect family 3) — add a unit test with a `pathlib.Path` `template`
+value that *also* violates CONF-17 or is missing (exercising lines 422/433, not just the
+already-covered happy-path "Test H"), asserting the emitted message is a plain quoted string.
 
 ---
 
-### Pitfall 4: Relocating `_template.typ` from outdir root to `_template/typst/` changes relative-path resolution inside every EXISTING custom template — and the failure mode is not uniformly loud
+### Pitfall 4: Fixing `translator.py:4746/4749` by ALSO folding `\` to `/` (not just adding
+`escape_typst_string()`) would repeat this project's own accepted classification tradeoff at the
+wrong layer, turning a loud compile error into a silent wrong-file reference
 
 **What goes wrong:**
-Today `_write_template_file()` writes `_template.typ` at the outdir root, and any relative path a custom template's own Typst code contains (`#image("logo.png")`, `#bibliography("refs.bib")`, `read("data.csv")`) resolves relative to that root. Moving the same logical file to `_template/typst/_template.typ` (one directory deeper) means every such relative reference now needs to walk up one extra level, or — since this milestone's whole point is that the template's bundle directory is copied alongside it — the reference should resolve correctly again *if and only if* the referenced asset lived in the same source directory as the template file and got swept into the wholesale copy. The failure mode splits three ways, not one:
-1. **Loud (best case):** `#image("logo.png")` where `logo.png` was never adjacent to the template file (e.g. it lived at the outdir root via the old `advanced.rst:129-138`-documented `"_templates/refs.bib"` convention) — Typst's compiler raises a file-not-found compile fatal. This is the easy case; it aborts the build and points roughly at the cause.
-2. **Silent wrong content, not silent failure:** a font referenced by **family name** (as all three real custom templates in this repository already do, per PROJECT.md's own measurement) is unaffected by this relocation at all — Typst resolves font families from the compiler's font search path, not from the `.typ` file's own directory, so this case is a non-issue for this project's *current* real templates but remains a live hazard for any future or third-party template that references a font by file path instead.
-3. **Silent wrong render (worst case, no error at all):** if a same-named asset happens to exist at *both* the old outdir-root location and the new bundle-relative location (e.g. a stale `_templates/refs.bib` left over at outdir root from a prior build, per Pitfall 2's "re-run over existing destination" staleness risk, alongside a *different* `refs.bib` now correctly copied into the bundle) — the compile succeeds, but resolves to the wrong file, and nothing in the build output indicates this happened.
+`_is_absolute_image_uri()`'s docstring (required reading, `builder.py:160-165`) states the
+project's own accepted tradeoff explicitly: normalizing `\`→`/` before classifying a URI as
+absolute means "a POSIX filename that literally contains a backslash character is classified as
+absolute here, on every platform, even though a bare backslash carries no special meaning in a
+POSIX filename." That tradeoff is accepted at the CLASSIFICATION boundary — a false positive there
+only causes an unnecessary rehome (a distinct, well-tested, warned-about branch). It would be a
+DIFFERENT and strictly worse tradeoff to repeat `.replace("\\", "/")` inside `visit_image()`'s
+emission (`translator.py:4746`/`4749`), because by that point the string is CONTENT — the literal
+path Typst will open — not a classification input. Silently rewriting a legal POSIX filename's
+literal backslash to a slash there changes WHICH FILE Typst looks for: a loud, debuggable
+"path must not contain a backslash" compile error becomes a silent "file not found" (or, worse, a
+silently-wrong file if the slash-substituted name happens to resolve to something that exists).
 
 **Why it happens:**
-Typst's `#image()`/`#bibliography()`/`read()` all resolve relative paths relative to the **file doing the referencing**, not relative to the compile root or the outdir — this is exactly the same "no import inheritance across `#include()`" semantics `writer.py`'s own docstring (per CLAUDE.md's architecture section) already documents as the reason included documents need their own `@preview` imports. The same file-relative resolution rule that motivated the multi-file include design in v0.8.0 is what makes relocating `_template.typ` a resolution-changing move, not a cosmetic one — this is entirely internally consistent with decisions this project has already made, which is exactly why it is easy to overlook as "just a file move."
+The fix sketch for this defect family is naturally read as "make this path safe for Typst," and
+`.replace("\\", "/")` is the exact idiom used two call sites away (`_is_absolute_image_uri`,
+`_escapes_outdir`) for a *different* purpose (classification) — pattern-matching on the idiom
+without re-deriving why it is safe at those two sites (pure classification, no effect on the
+written bytes) but not at this third one (the written bytes ARE the classification's own subject)
+is an easy, plausible-looking mistake.
 
 **How to avoid:**
-PROJECT.md's own decision log (D-block "`\"typst\"` gets no exception in the output layout") already measured this against the three real templates in this repository and found zero `#image()`/`#bibliography()`/`read()` path references — so the *known* blast radius for this codebase's own templates is genuinely zero. What is NOT yet covered: (a) a regression fixture that pins this measured-safe finding as a real-compile test (a template with a `#image("logo.png")` reference alongside `logo.png` in the same directory, asserting the compile succeeds *after* the relocation to `_template/<key>/`) — turning "we measured no template in this repo uses path-relative assets" into "we assert path-relative assets keep working going forward," since the whole point of moving the template into its own bundle is that `#image()` "starts working" per PROJECT.md's own stated goal; (b) `templates.rst`'s asset-reference documentation and `advanced.rst:129-138`'s `"_templates/refs.bib"` outdir-root-relative guidance must be corrected in the SAME phase that ships the relocation, not left stale — a stale doc describing the old resolution path is worse than no doc, since it actively teaches users to break their own template; (c) explicitly do NOT special-case a leftover stale asset at the old outdir-root location — if Pitfall 2's staleness concern is resolved by `rmtree`-before-copy, a stale same-named file at the old flat location has no home to hide in and case 3 above cannot occur silently.
+The fix at `translator.py:4746`/`4749` is exactly one change: wrap `adjusted_uri` in
+`escape_typst_string(adjusted_uri)` (the existing helper, `translator.py:156`, which already
+escapes a literal backslash to `\\` — content-preserving, not shape-changing). Land it as its own
+diff hunk so a reviewer can confirm no `.replace()` call was added alongside it.
 
 **Warning signs:**
-A real-`typst.compile()` regression fixture that only tests the bundled `"typst"` built-in template (which this project's own measurement shows has no path-relative assets) and never tests a *user-supplied* template with a `#image()` reference — the built-in template passing tells you nothing about the relocation's effect on the case that actually matters. `advanced.rst` still showing `"_templates/refs.bib"` after the phase ships.
+A regression test asserting that an ordinary (non-absolute, non-escaping) relative image URI
+containing a literal backslash character in its basename renders with `\\` (escaped) in the
+`.typ` output — not with `/` silently substituted.
 
 **Phase to address:**
-The phase that deletes `_write_template_file()` and routes the `"typst"` key through the same wholesale-directory-copy rule as every other key (the "four mechanisms are deleted, not extended" bullet in PROJECT.md) is where the relocation itself happens, and must ship the new real-compile regression fixture in the same phase, not deferred. The documentation phase named in PROJECT.md (`templates.rst`, `advanced.rst`) must land in the same milestone, ideally the same phase or the immediately adjacent one, given how actively misleading stale asset-path guidance would be.
+The `_track_image()`/`visit_image()` slice (defect family 2).
 
 ---
 
-### Pitfall 5: Deleting `typst_template_assets` from `add_config_value()` turns it into permanently-silent dead config, with no user-visible signal at all
+### Pitfall 5: A naive length bound on `{digest8}-{basename}` reintroduces the exact collision the
+digest was added (IMG-03) to prevent, or produces an unopenable filename — five distinct failure
+shapes, all reachable from this project's specific `f"{RESERVED_IMAGE_NAMESPACE}/{digest}-{basename}"`
+construction
 
-**What goes wrong:**
-Sphinx's config system only recognizes a name once an extension calls `app.add_config_value()` for it; there is no reverse mechanism ("this name used to be registered, now warn if still set"). A `conf.py` that still sets `typst_template_assets = [...]` after this milestone ships continues to load and build successfully — Sphinx accepts arbitrary names into the `conf.py` module namespace and simply never looks at ones no extension registered. The user gets **zero warning, zero error, and a completely successful build** that silently does something different from what their `typst_template_assets` setting used to select (the whole bundle directory is now copied wholesale regardless of what that list said). This is the single named user-visible breaking change PROJECT.md calls out, and it is also the one this project's own architecture makes structurally impossible to detect automatically at the point of removal.
+**What goes wrong, enumerated against the actual construction (`builder.py:1761-1765`):**
+
+1. **Wrong component truncated.** The key is a TWO-segment relative path
+   (`_typst_converted/<digest>-<basename>`); POSIX's 255-byte `NAME_MAX` applies PER COMPONENT.
+   Truncating the whole `key` string risks eating into `RESERVED_IMAGE_NAMESPACE` or the digest
+   itself; the bound belongs on `f"{digest}-{basename}"` alone.
+2. **Mid-character UTF-8 split.** `NAME_MAX` is a byte limit; slicing a UTF-8-encoded basename by
+   raw byte count (needed to respect that limit) can split a multi-byte character, producing
+   invalid UTF-8 that some filesystems refuse to create — trading today's `ENAMETOOLONG` for a
+   different, equally opaque `OSError` at the same call site.
+3. **Extension lost.** Truncating from the tail with no extension awareness turns
+   `long-name.png` into `long-nam` — Typst's `image()` (and this project's own
+   `supported_image_types` mimetype-preference logic) can rely on the extension to select an
+   embedder, so a working image silently becomes a compile error or a mis-rendered one.
+4. **Collision reintroduced.** Two different long basenames sharing the same truncated prefix
+   collide again UNLESS the digest (already unique per full `resolved_uri`, not per basename)
+   stays untruncated and is what any later collision-avoidance logic anchors on — this is exactly
+   what the source todo's fix sketch flags: "the digest must stay the collision anchor when the
+   basename is truncated."
+5. **Empty-stem edge.** A pathological basename that truncates to nothing (name shorter than the
+   fixed digest+separator overhead budgeted for) can yield a leading-dot result (e.g. bare
+   `.png`), silently changing POSIX visibility semantics (a hidden file) as a side effect of a
+   length fix nobody asked for.
 
 **Why it happens:**
-`add_config_value()`'s absence is not an error condition from Sphinx's point of view — an unregistered name in `conf.py` is indistinguishable, to Sphinx, from a user's own unrelated helper variable (`conf.py` is an executed Python module, and Sphinx only reads back the names it explicitly asked for). This is exactly the same shape CLAUDE.md's own history already names for `typst_toctree_defaults` (v0.6.3's CONF-05) — this project has removed a live config value at least once before and the removal itself carries no built-in detection.
+"Add a length cap" sounds like a one-line `[:N]` slice; the digest-collision-anchor requirement,
+the per-component (not whole-path) scope of `NAME_MAX`, and the byte-vs-character slicing
+distinction are all easy to miss under that framing.
 
 **How to avoid:**
-Sphinx has no built-in "deprecated config key" mechanism as of the versions this project targets, so the only lever available is a **manual, explicit deprecation check inside `setup(app)`** (or a `config-inited` event handler): read `config._raw_config` (or equivalent) for the literal string `"typst_template_assets"` at config-init time, and if present, emit a `logger.warning()` naming it as removed and pointing at the CHANGELOG/migration note. This is strictly better than silence and costs a handful of lines; it is the same category of fix as this project's own `_is_usable_typst_documents_entry()` philosophy of "one predicate, checked explicitly, rather than trusting a framework default to catch it." Also: the CHANGELOG entry and any migration doc must state plainly that the setting is now silently ignored if left in place — not merely that it "was removed" — so a user grep-searching their own `conf.py` after an upgrade knows *why* their template assets look different (the whole directory now copies unconditionally) without needing to read the extension's source.
+Bound only the `f"{digest}-{basename}"` component; split the extension first (e.g. via
+`os.path.splitext`) and preserve it; truncate the STEM portion (never the digest, never the
+extension); slice in `str` space (Python `str` indexing is already character-safe — the byte-split
+risk appears only if the implementation re-encodes to UTF-8 bytes to check the length and then
+slices the BYTES rather than the `str`); size-check against the encoded byte length but slice the
+decoded characters.
 
 **Warning signs:**
-No `config-inited` (or equivalent) handler anywhere in `__init__.py`/`builder.py` after the `add_config_value()` call for `typst_template_assets` is deleted. A migration/CHANGELOG entry that says only "removed `typst_template_assets`" without stating the observable behavioral consequence for a `conf.py` that still sets it.
+A test with a >255-character basename should assert THREE things, not just "build succeeds": (a)
+no `ENAMETOOLONG`/`OSError`, (b) the resulting file is present with its original extension intact,
+and (c) two DIFFERENT long-but-truncation-colliding basenames still produce two DIFFERENT keys
+(collision preservation, not merely length compliance) — a test that only checks (a) would pass
+even for a fix that reintroduces gap 4.
 
 **Phase to address:**
-The same phase that deletes the `add_config_value()` registration (paired with the `copy_template_assets()`-deletion phase in PROJECT.md) should add the explicit deprecated-key warning in the identical commit — this is cheap to do at removal time and essentially impossible to retrofit usefully later (there is no way to detect, after the fact, whether a given historical build silently ignored the setting).
+Defect family 2's length-bound sub-task. Per PROJECT.md's binding constraint #3 this needs its OWN
+gate — "no compile-visible symptom... a compile gate will not force it out" — sequenced separately
+from the `escape_typst_string()` gate in Pitfall 4.
+
+---
+
+### Pitfall 6: A POSIX-only "no doubled separator" unit test is necessary but was already proven
+insufficient once at this exact site family (Phase 57) — the discipline this project has since
+adopted for it must be applied to all ~20 sites from the start, not re-derived by trial dispatch
+
+**What goes wrong:**
+Phase 57 burned two full CI matrix dispatches (`31956166848`, `31959060298`) on this same
+`typst_document_templates`-registry message family before landing 57-11's fix, and even after
+57-11 landed, `57-REVIEW.md`'s WR-01 finding shows the fix ITSELF was incomplete (it removed
+backslash-doubling but also dropped `repr()`'s quote-disambiguation, so a path containing a literal
+`'` now closes the message's quoting early) — meaning even a real green `windows-latest` dispatch
+did not, by itself, prove the fix was fully correct. The pattern that DOES work and IS already
+proven — `TestWindowsPathEscapingRegressionGuard` in `tests/test_templates_path_collision_gate.py`
+calling the message-building functions DIRECTLY with a Windows-shaped string literal, asserting no
+doubled separator, entirely on POSIX, no real Windows filesystem needed — exists in this repo
+today and is exactly what PROJECT.md's binding constraint #4 requires be extended with the sibling
+single-quote case (57-REVIEW's IN-01).
+
+**Why it happens:**
+"Push and see what `windows-latest` says" is a faster first step to try than writing a
+function-level Windows-shaped-string test, especially when the failure mode (backslash doubling)
+seems like it should be visible in a diff review — Phase 57's own history shows it was
+misdiagnosed as a path-SEPARATOR problem twice before being correctly diagnosed as an ESCAPING
+problem, which is a strong empirical signal that eyeballing the diff is not reliable for this
+defect class.
+
+**How to avoid:**
+For every one of the ~20 sites plus both `_escapes_outdir()`/`_track_image()` defect families:
+write the Windows-shaped-string (and, for family 2, a real `typst.compile()`) RED fixture FIRST,
+confirm it fails against the unfixed function via a plain `pytest`/`python -c` invocation on this
+POSIX machine, THEN fix, THEN reconfirm green — all before the first CI dispatch. Reserve the
+`windows-latest` lane for FINAL confirmation (constraint #6), never for diagnosis.
+
+**Warning signs:**
+A plan for this milestone that proposes "dispatch to `windows-latest` and see" as a discovery step,
+rather than a POSIX-runnable RED-first fixture, is repeating Phase 57's exact costly pattern.
+
+**Phase to address:**
+Cross-cutting — call it out once in the roadmap's shared discipline rather than per-phase; every
+phase in this milestone inherits it.
 
 ---
 
 ## Technical Debt Patterns
 
-Shortcuts that seem reasonable but create long-term problems.
-
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|-----------------|
-| Reusing `_escapes_outdir()` unmodified for registry-key validation | Zero new code, "proven" guard | Misses empty/reserved/case-collision/multi-segment shapes a single path segment needs rejected that a whole relative path does not (Pitfall 1) | Never — write the narrower predicate |
-| `copytree(..., symlinks=False)` with no `ignore=` callable | One-line implementation | Silently follows symlinks outside the template dir, or copies `.git`/secrets/editor backups into a published output tree (Pitfall 2) | Only if the template source is verified first-party (never for `srcdir`-relative user templates) |
-| Trusting the existing `.typ`-only `package-data` glob unchanged | No `pyproject.toml` diff needed today | Silently drops any future non-`.typ` asset from the built wheel, invisible in editable/dev installs (Pitfall 3) | Only as long as `typsphinx/templates/` truly contains nothing but `.typ` files — revisit the moment that changes |
-| Shipping the `_template.typ` relocation with only the built-in-template regression fixture | Reuses existing test infra | The built-in template has zero path-relative assets by design — the fixture proves nothing about the case that actually breaks (Pitfall 4) | Never as the *sole* fixture; add a user-template-shaped fixture in the same phase |
-| Relying on Sphinx to warn about the removed `typst_template_assets` config key | No extra code | Sphinx has no such mechanism — silence is permanent without an explicit handler (Pitfall 5) | Never |
+|----------|-------------------|-----------------|------------------|
+| Leaving `template_registry.py:410`'s type-check message on plain `!r` instead of routing it through the new quoting helper | Avoids building type-dispatch logic into the helper (Pitfall 2) | A `list`/`bytes`/`int` `template` value's repr stays possibly-ugly (e.g. `b'base.typ'`) forever, inconsistent in STYLE with its two path-valued siblings two lines below | Always acceptable here — the value is provably never path-shaped at that line, so there is no correctness gap, only a cosmetic asymmetry the source todo itself does not ask to close |
+| Not adding a compile-visible OR filesystem-visible regression test for `writer.py:511-513`'s debug log before quoting-fixing it | Faster — this site has zero existing test coverage (confirmed: `grep -rn "Rendering wrapper for docname" tests/` returns nothing) | The fix itself is permanently unverified; a future regression here is invisible to CI forever | Never — add at least one `caplog`-based assertion alongside the fix, mirroring the pattern `test_builder.py:591` already uses for the sibling `logger.warning` site |
+| Treating the "3-OS CI green" acceptance bar (constraint #6) as sufficient proof on its own | Simpler mental model — one gate to watch | Constraint #6's own bar was already shown insufficient once for this exact area: 57-11 shipped, CI went green (12/12, run `32557477023`), and WR-01 (single-quote quote-disambiguation) still shipped broken because no test asserted the quote-disambiguation property | Never for this milestone specifically — always pair the 3-OS lane with the function-level RED-first fixtures (Pitfall 6) |
 
 ## Integration Gotchas
 
-Common mistakes when connecting to external services/components.
-
 | Integration | Common Mistake | Correct Approach |
 |-------------|-----------------|-------------------|
-| `shutil.copytree()` (stdlib) | Leaving `symlinks=` at its implicit default without a written rationale | Decide and comment the symlink policy explicitly; add an `ignore=` callable for `.git`/`.DS_Store`/backup-suffix exclusion |
-| `importlib.resources` vs. `Path(__file__).parent` | Assuming the installed package always lives as loose files on disk | Resolve the built-in `"typst"` bundle through `importlib.resources.files()`/`as_file()`, not `__file__`-relative path math |
-| `setuptools` `package-data` glob | Assuming `templates/*.typ` covers "the templates directory" | Widen the glob (or itemize) the moment a non-`.typ` file is added; verify with a built-wheel content check in CI, not by inspection |
-| Sphinx `add_config_value()` deletion | Assuming Sphinx will surface a stale `conf.py` setting for a value nobody registers anymore | Add an explicit `config-inited`-time check that warns by name when the removed key is still set |
-| Typst's own relative-path resolution (`#image()`, `#bibliography()`, `read()`) | Assuming a file move at the Python/Sphinx layer has no effect because "it's the same logical template" | Typst resolves these relative to the referencing `.typ` file's own on-disk location, not the compile root — any relocation of `_template.typ` is a resolution-changing move for path-relative (not family-name) asset references |
+| Worktree-isolated execution (CLAUDE.md, standing mode) | Editing `builder.py`/`translator.py`/`template_registry.py` in a worktree without its own `uv sync --extra dev`, so `pytest` imports the MAIN tree's unchanged editable install and every RED-first fixture in this milestone falsely reports GREEN against the unfixed code | `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` then `uv run pytest ...` for every command in every worktree, per CLAUDE.md's "Worktree-isolated execution" section (mandatory, not conditional, per the project owner's 2026-07-20 decision) |
+| `ruff` on this NixOS dev machine | Trusting a local `ruff check .` result inside a freshly-provisioned worktree venv, which pulls a generic-linux wheel whose ELF the loader rejects — silently reporting nothing or erroring out, mistaken for "clean" | Treat CI's `lint` job as sole lint authority for this milestone (per user memory: "ruff は未解消... lint 権威は CI"); do not gate a local commit decision on a worktree `ruff` run |
+| The 3-OS CI matrix (`ubuntu-latest`/`windows-latest`/`macos-latest`, confirmed in `.github/workflows/ci.yml`) | Using a real CI dispatch as the FIRST signal for a Windows-shape defect (Phase 57's proven-costly pattern, Pitfall 6) | Front-load every Windows-shape assertion into a POSIX-runnable, function-level fixture (mirroring `TestWindowsPathEscapingRegressionGuard`) and reserve CI for final confirmation only |
+| This project's "RED before fix" hard rule (binding constraint #1, all three defects latent, `windows-latest` currently green and would stay green unfixed) | Writing the fix first and the regression test second, then never actually confirming the test fails against the PRE-fix code (since the pre-fix code is gone by the time the test exists) | Commit the failing test against the unfixed tree (or capture its failure output) BEFORE the fix commit, per this project's standing GATE-01 discipline already invoked by both source todos read for this research |
 
 ## Performance Traps
 
-Patterns that work at small scale but fail as usage grows.
-
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|-----------------|
-| Wholesale `copytree()` of a user's `template`-adjacent directory with no size/file-count bound | Build time balloons; disk usage doubles per registry key | Document that the bundle directory should contain only template-relevant files (not a whole shared `_static/` assets folder); consider a warning above some file-count threshold (e.g. hundreds of files) rather than a hard limit | A template author points `template` at a large pre-existing `_templates/` directory shared with other tooling (this repository's own `examples/*/_templates/` are exactly this shape today, currently small) |
-| Re-running an incremental build over an existing `_template/<key>/` destination without pruning | Stale files accumulate silently across template revisions; disk usage grows unbounded across many local builds | `rmtree()` the destination bundle before each copy rather than relying on `dirs_exist_ok=True`'s merge-only semantics | Any project doing frequent local incremental rebuilds over months without a clean `outdir` |
+| Byte-slicing a UTF-8 basename for the WR-01 length bound without character-boundary awareness (Pitfall 5.2) | An intermittent `UnicodeDecodeError` or filesystem-level rejection, reproducible only with non-ASCII (e.g. this project's own documented Japanese-filename edge cases) basenames long enough to trip the 255-byte cap | Slice in `str`/character space, size-check against the UTF-8-encoded byte length, never slice the encoded bytes directly | Any project with a non-ASCII image filename near or past 255 UTF-8 bytes (roughly 85+ multi-byte CJK characters) |
+| `NAME_MAX` differs by filesystem/OS (POSIX ext4/APFS: 255 bytes; Windows without long-path opt-in: `MAX_PATH` 260 total, a different limit shape entirely) | A length-bound fix validated only via a POSIX `ENAMETOOLONG` reproduction may not reproduce — or may fail differently — on the `windows-latest` CI lane | Do not assume the POSIX reproduction generalizes; if the `windows-latest` lane is silent on this specific gate, verify it is silent because the fix works there, not because Windows' different length semantics never triggered the code path at all | Whenever the length-bound gate is asserted only via one platform's error class/errno |
 
 ## Security Mistakes
 
-Domain-specific security issues beyond general web security.
-
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Copying a symlink verbatim (`symlinks=True`) from a `srcdir`-relative template directory with no target-containment check | An absolute-target symlink inside a template bundle surfaces inside the published `<outdir>/_template/<key>/`, potentially exposing or aliasing a file outside the intended publish tree when the outdir itself is later published (e.g. to a static host or RTD artifact) | Reject any symlink whose resolved real path is not a descendant of the template's own source directory; fail loud (`ExtensionError`) rather than silently dropping or silently following |
-| No `.git`/dotfile/backup-file exclusion in the wholesale copy | A template author's `.git` directory, `.DS_Store`, editor swap files, or an accidentally-committed credentials file (`.env`, an API key checked in next to a template for local testing) gets copied verbatim into build output that may be published | An `ignore=` callable excluding dotfiles-by-default (with an explicit opt-in escape hatch only if a real use case demands it) rather than an allowlist the template author must remember to maintain |
-| Registry key used directly as a path segment without charset validation | A key containing shell-metacharacter-adjacent or control characters (even though PROJECT.md already commits to charset-validating keys at config-read time) reaching a raw `path.join()` before validation runs | Validate BEFORE any `path.join()`/`mkdir()` call touches the key — validation-then-use, never use-then-catch |
+| Treating the quoting helper as a security boundary (escaping a path for LOG-MESSAGE legibility) and conflating it with the SHA-1 relocation digest (a collision-avoidance key, explicitly documented in `builder.py` as non-cryptographic and outside this project's ruff security-rule selection) | None directly — both are correctly non-security-boundary constructs today — but a future contributor "hardening" one in response to a scanner finding could accidentally change the digest's determinism (e.g. adding a random salt), breaking the documented "two builds of the identical project emit the same filename" invariant | Preserve the existing `builder.py` comment explaining the digest is a collision-avoidance key, not a security boundary, when touching the surrounding code for the length-bound fix (Pitfall 5) |
 
 ## UX Pitfalls
 
-Common user experience mistakes in this domain.
-
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-------------------|
-| A rejected registry key (reserved name, case collision, empty) reported with a generic "invalid key" message | User has to guess which of several possible reasons (Windows-reserved? case-collides with another key? empty?) caused the rejection | Name the SPECIFIC reason in the `ExtensionError` message, following this project's own established pattern (`_resolve_target_stem()`'s warnings each name the specific escape shape detected) |
-| Silently-ignored `typst_template_assets` after removal (Pitfall 5) produces a successful build with different-looking output and no diagnostic | User spends time debugging "why did my template assets change" with no lead at all | Explicit deprecated-key warning naming the setting and the CHANGELOG/migration doc |
-| `#image()` path that resolved before the `_template.typ` relocation now fails after an otherwise-unrelated version bump | User's previously-working custom template breaks on upgrade with a Typst compile fatal that gives no hint the CAUSE was a Sphinx-extension-side file relocation | CHANGELOG entry naming the relocation explicitly as a breaking change with a "if your template references an asset by relative path, it must now live inside the template's own directory" migration note |
+| A refusal message whose path is delimited with a single quote (`'...'`) when the path itself contains a literal `'` (57-REVIEW's WR-01/IN-01) reads as if it closes early, hiding the rest of the actual path from the reader | A `conf.py` author debugging a template-path collision on a path like `/home/O'Brien's Projects/_templates/nested` sees a message that appears to truncate mid-sentence | Choose `"` as the delimiter when the value contains `'` and not `"`, otherwise `'`, escaping only the chosen delimiter if both appear (exactly the suggested fix already recorded in the source todo) |
+| A message that leaks a `PosixPath(...)`/`WindowsPath(...)` repr wrapper (Pitfall 3) instead of a plain path string | Reads as an internal implementation detail leaking into user-facing output, undermining trust that the tool understands its own configuration | Stringify every value before it reaches the quoting helper |
 
 ## "Looks Done But Isn't" Checklist
 
-Things that appear complete but are missing critical pieces.
-
-- [ ] **Registry key validation:** Often only tests `../`/absolute/drive-qualified shapes copy-pasted from the existing target-stem guard — verify a dedicated test exercises empty, `.`/`..`, Windows-reserved-device-name, trailing-dot/space, and case-collision (`"Paper"` vs `"paper"`) shapes, and that the case-collision check runs through the SAME casefold-comparison route as the existing `_collision_key()` mechanism.
-- [ ] **Directory copy security:** Often copies everything in the source directory unconditionally — verify an `ignore=` callable excludes `.git`, `.DS_Store`, editor backups, and that the symlink policy (follow vs. preserve vs. reject-if-escaping) is a deliberate, commented choice rather than the unexamined stdlib default.
-- [ ] **Built-in `"typst"` bundle packaging:** Often verified only against an editable/dev install — verify a CI step builds the actual wheel/sdist and confirms every file the `"typst"` bundle needs is present inside it, and that the bundle-resolution code path uses `importlib.resources`, not `Path(__file__).parent`.
-- [ ] **`_template.typ` relocation regression coverage:** Often tested only against the built-in template (which this project has already measured has zero path-relative asset references) — verify a real-compile fixture exists for a USER-supplied template with a `#image()`/`#bibliography()` reference to a same-directory asset, proving the relocation doesn't break the case PROJECT.md's own "start working" goal depends on.
-- [ ] **Removed `typst_template_assets` deprecation signal:** Often assumed covered by "Sphinx will handle it" — verify an explicit `config-inited`-time (or equivalent) warning fires when a `conf.py` still sets the removed key, and that the CHANGELOG states the observable behavior change, not just the removal.
-- [ ] **Cross-platform invisibility:** Often "verified" by running the full test suite on the Linux CI runner alone — verify which of the above are asserted as pure string-shape/logic tests (runnable identically on every platform, per this project's own D-05 precedent) versus which genuinely require a Windows or macOS filesystem to observe (see the Cross-Platform section below) and that the latter have either a Windows/macOS CI lane or an explicitly-filed follow-up, not silent omission.
+- [ ] **Quoting-helper rollout across all ~20 sites:** Often missing the per-site type/shape audit
+  (Pitfalls 1–3) — verify each site's interpolated value is guaranteed `str`/path-shaped before
+  routing it through the new helper, not just textually similar to a site that is.
+- [ ] **`_track_image()`'s three gaps (basename normalization, escaping, length bound):** Often
+  fixed as "gap 1 only" (the smallest useful step the source todo itself calls out) while gaps 2/3
+  are silently left latent — verify all three have their OWN RED-first gate, per PROJECT.md's
+  explicit "Gap 3 has no compile-visible symptom... needs its own gate."
+  Their prevention/verification: a real `typst.compile()` for gap 2 (per binding constraint #2 —
+  an assertion stopping at `node["uri"]` cannot see it), and a >255-char basename fixture asserting
+  collision-preservation (not just length) for gap 3.
+- [ ] **The two existing tests that hard-code `repr()`'s doubling as their pass criterion
+  (Pitfall 1):** Often missed because they currently pass (on POSIX, for the non-drive-shaped
+  parametrizations) right up until the exact line they target is rewired — verify by running them
+  BEFORE claiming the quoting-helper phase complete, expecting and confirming the `[drive]` one
+  goes red.
+- [ ] **`_escapes_outdir()`'s widened predicate:** Often verified only against the driveless-
+  absolute shape the todo measures — verify the existing OUT-01/OUT-02 regression suite (drive-
+  qualified and POSIX-absolute branches) still passes unchanged, since those two shapes were
+  already correctly classified pre-fix and must not regress.
 
 ## Recovery Strategies
 
-When pitfalls occur despite prevention, how to recover.
-
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|----------------|-----------------|
-| Registry key validation gap ships and a case/reserved-name collision reaches a user | LOW | Ship a point release tightening the validator; the failure mode is a clear build-time error or an obviously-wrong output directory layout, not silent data loss |
-| Symlink escape or unwanted-file leak into published output | MEDIUM | Audit and `rmtree` the affected `_template/<key>/` bundle from any already-published output (e.g. RTD-hosted artifacts), tighten the `ignore=` callable, document the incident in CHANGELOG if user-facing assets were exposed |
-| Wheel-packaging glob omission (Pitfall 3) discovered post-release | LOW | Widen the `package-data` glob, cut a patch release; affected users re-`pip install --upgrade` |
-| `_template.typ` relocation silently breaks a real user's path-relative asset reference | MEDIUM | The failure is a loud Typst compile fatal (case 1 in Pitfall 4) for the common sub-case, which is self-diagnosing from the error message; the silent-wrong-render sub-case (case 3) requires a user bug report to surface — respond by adding the exact fixture shape they hit as a permanent regression test |
-| Removed config value's silent-ignore surprises a user post-upgrade | LOW | Cannot retroactively detect past silent builds; forward-fix by adding the deprecated-key warning in the very next patch release |
+|---------|----------------|------------------|
+| Pitfall 1 (two tests break on the intended fix) | LOW | Edit the two named tests to assert the new helper's output instead of `repr(...)`; this is expected work, not a regression to revert |
+| Pitfall 2/3 (helper misapplied to a non-str or PathLike value) | LOW | Add the type guard/stringify-first step to the shared helper; re-run `tests/test_template_registry.py -k "list_template_field or bytes_template_field or pathlike"` |
+| Pitfall 4 (backslash silently folded to slash in emitted content) | MEDIUM | Revert the extra `.replace()` call; re-verify via the regression test that a literal-backslash relative basename round-trips escaped, not substituted |
+| Pitfall 5 (length-bound truncation reintroduces a collision or invalid name) | MEDIUM | Add the missing extension-preservation/digest-anchor step; add the two-adversarial-basenames collision test before re-shipping |
+| Pitfall 6 (CI dispatch used for diagnosis, burning matrix runs) | HIGH (time cost, not correctness cost) | Stop dispatching; write the POSIX-runnable function-level fixture first, confirm RED against the unfixed function locally, then fix and re-dispatch once |
 
 ## Pitfall-to-Phase Mapping
 
-How roadmap phases should address these pitfalls.
-
 | Pitfall | Prevention Phase | Verification |
 |---------|-------------------|----------------|
-| Registry key becomes an unsafe/colliding path segment | Config-parsing/validation phase (`typst_document_templates` registry + `ExtensionError` fail-loud phase) | New string-shape unit tests for empty/`.`/`..`/reserved-name/trailing-dot-space/case-fold shapes, runnable on Linux CI (no real filesystem needed — pure predicate tests, per this project's D-05 precedent) |
-| Wholesale `copytree` follows escaping symlinks or leaks unwanted files | Directory-copy-mechanism phase (replacing `_copy_template_directory`/`copy_template_assets`) | A filesystem-backed integration test with a fixture directory containing a symlink (in-tree and escaping), a `.git`-shaped subdirectory, and a dotfile — asserting the copy excludes/rejects each; this ONE test genuinely needs a real filesystem, not a string-shape test |
-| Built-in `"typst"` bundle mis-packaged or mis-resolved under a non-filesystem loader | Same directory-copy-mechanism phase, for the `"typst"` key's specific resolution code path | A CI step building the actual wheel and asserting file presence inside it; a unit test mocking/using `importlib.resources` rather than `Path(__file__)` |
-| `_template.typ` relocation breaks a path-relative asset reference | Same directory-copy-mechanism phase (where `_write_template_file()` is deleted) | A real-`typst.compile()` regression fixture using a USER-shaped template with a same-directory `#image()` reference, plus the corresponding `templates.rst`/`advanced.rst` doc corrections in the same phase |
-| `typst_template_assets` removal is invisible to a user who kept it set | Same config-deletion phase (pairs with the `add_config_value()` removal) | A test asserting a `logger.warning` fires when `typst_template_assets` is present in `conf.py`'s raw config after the value is unregistered |
-| Cross-platform hazards invisible on Linux-only local/CI runs | Any phase touching path validation or directory copy — flag explicitly rather than deferring silently | See the Cross-Platform section below for the split between string-shape-testable (Linux-safe) and genuinely filesystem-dependent (needs Windows/macOS CI or an explicit owner-accepted gap) |
-
-## Cross-Platform: What Is Structurally Invisible on Linux-Only Local Runs
-
-This project's own history already contains three confirmed instances of exactly this class of gap (per the milestone context: the path-separator `file not found` defect, the case-insensitive-filesystem collision hazard flagged but not caught locally in v0.8.0 research, and the CPython 3.13 `ntpath.isabs()` narrowing that silently disabled a Windows branch, caught only by Windows CI). The same split applies here:
-
-**Testable as a pure string-shape assertion, on ANY platform (Linux CI is sufficient) — per this project's own D-05 "platform-independence" precedent already applied to `_is_drive_qualified()`/`_escapes_outdir()`:**
-- Registry key contains `/` or `\`, is empty, is `.`/`..`, casefolds to a Windows reserved device name, or differs from another registered key only by case after `casefold()`.
-- Trailing-dot/trailing-space stripping: this is a Windows API behavior, but the *check* ("does this key differ from its Windows-stripped form?") is a pure string operation testable identically on Linux — do not wait for Windows CI to write this test, following the exact reasoning `_is_drive_qualified()`'s own docstring already documents for why Windows-shaped input must be validated on POSIX too.
-- The `_collision_key()`-style comparison extension for `_template/<key>/` bundle paths.
-
-**Genuinely requires a real filesystem with the relevant semantics — needs Windows or macOS CI, or must be explicitly flagged as an accepted gap rather than silently skipped:**
-- Case-insensitive collision on an ACTUAL filesystem (two registry keys `"Paper"`/`"paper"` producing genuinely conflicting `mkdir()` calls) — a Linux ext4 test tree cannot observe this; it can only observe the string-comparison-level detection described above. The v0.8.0 research already named this exact gap for the wrapper/content file layer; it now recurs identically at the registry-key layer and needs the same disposition (documented-and-accepted, or a Windows CI lane).
-- Windows reserved-device-name `mkdir()` failure — the actual OS-level rejection can only be observed on Windows; Linux can only pre-empt it via the string check above.
-- NFC/NFD Unicode-normalization mismatches on macOS (APFS does not normalize; a Finder-created vs. shell-created directory of visually-identical names can differ at the byte level) — this project's own `_collision_key()` already deliberately does NOT apply Unicode normalization (a documented, measured decision, not an oversight) for the WRITTEN filename; whether the same non-normalizing choice is correct for registry-key COMPARISON needs the same explicit measurement this project already applied to output-path collision keys, not a silent assumption that it transfers unchanged.
-- Symlink-following/escape behavior differs across platforms in subtle ways (Windows symlinks require elevated privileges or Developer Mode to create at all, so a Windows CI symlink test may need to be skipped or specially provisioned rather than assumed to run identically to POSIX).
-- The wheel-packaging/`importlib.resources` gap (Pitfall 3) is NOT a cross-platform issue in the OS sense — it is invisible specifically to an **editable/dev install**, which is this project's own standard local AND CI dev loop (per CLAUDE.md's worktree `uv sync --extra dev` convention). The mitigation is a wheel-build-and-inspect CI step, not a different-OS CI lane.
+| 1: hard-coded `repr()` test expectations | Quoting-helper phase (family 3) | `pytest tests/test_out02_escape_target_gate.py -k drive` and `tests/test_builder.py -k rehome_escape` both green, asserting the NEW (non-doubled, delimiter-aware) form, not `repr(...)` |
+| 2: `template_registry.py:410` type-check site wrongly routed through the helper | Quoting-helper phase (family 3) | `pytest tests/test_template_registry.py -k "list_template_field or bytes_template_field"` stays green with `ExtensionError` (not an unhandled exception) |
+| 3: `os.PathLike` value breaks the helper | Quoting-helper phase (family 3) | New unit test: a `pathlib.Path` `template` that also fails CONF-17/existence emits a plain quoted string |
+| 4: backslash silently folded to slash at image emission | `_track_image()`/`visit_image()` phase (family 2) | New regression test: literal-backslash relative basename renders `\\`-escaped in `.typ`, not slash-substituted |
+| 5: naive length-bound truncation | `_track_image()`/`visit_image()` phase (family 2), its own gate per binding constraint #3 | Two adversarially-truncation-colliding >255-char basenames produce two distinct keys; extension survives |
+| 6: CI-dispatch-as-diagnosis | Cross-cutting, stated once in roadmap shared discipline | Every phase's plan shows a POSIX-runnable RED fixture committed/confirmed BEFORE the corresponding fix commit |
 
 ## Sources
 
-- This repository, `typsphinx/builder.py` (`_escapes_outdir()`, `_is_drive_qualified()`, `_collision_key()`, `_validate_output_path_collisions()`, `_write_template_file()`, `copy_template_assets()`/`_copy_template_directory()`/`_copy_explicit_assets()`) — HIGH confidence, first-party source, read directly for this research.
-- This repository, `.planning/PROJECT.md` lines 1-140 (v0.9.0 milestone brief, decisions D-block) — HIGH confidence, first-party source.
-- This repository, `pyproject.toml` (`[tool.setuptools.package-data]`) — HIGH confidence, first-party source.
-- Python official docs, `shutil.copytree()` reference (symlinks/dirs_exist_ok/ignore= semantics) — MEDIUM confidence (web, cross-checked across multiple independent mirrors/versions of the same official documentation).
-- Python official docs, `importlib.resources` reference and multiple independent explainer sources on `Path(__file__)` vs. `importlib.resources.as_file()` under zipimport — MEDIUM confidence (web, cross-checked).
-- Sphinx official `extdev/appapi` documentation, `Sphinx.add_config_value()` — MEDIUM confidence (web, cross-checked; the "unregistered config value is silently ignored, not an error" behavior is corroborated by Sphinx's own documented `conf.py`-is-an-executed-namespace design, not merely inferred).
-- Multiple independent sources on Windows reserved device filenames (`CON`/`PRN`/`AUX`/`NUL`/`COM1`-`9`/`LPT1`-`9`/`CLOCK$`), including Microsoft's own documented list as quoted across secondary sources — MEDIUM confidence (web, cross-checked across independent citations of the same underlying Microsoft documentation).
-- Multiple independent sources on macOS HFS+/APFS Unicode normalization behavior (including a JDK bug tracker discussion and an in-depth explainer) — MEDIUM confidence (web, cross-checked across independent technical sources describing consistent behavior).
+- `typsphinx/builder.py` (this repository, HEAD) — `_is_absolute_image_uri()` docstring
+  (lines 121-194, especially 160-165's stated tradeoff), `_escapes_outdir()` (197-238),
+  `_track_image()` (1637-1792), the message-builder helpers (`_conf17_violation_message`,
+  `_templates_path_collision_message`, `_bundle_destination_collision_message`, lines 303-402).
+- `typsphinx/translator.py` (this repository, HEAD) — `escape_typst_string()` (156-187),
+  `visit_image()` (4718-4766).
+- `typsphinx/template_registry.py` (this repository, HEAD) — lines 395-434 (the type-check/
+  CONF-17/existence failure trio).
+- `.planning/todos/pending/2026-08-16-track-image-escape-branch-basename-not-normalized.md`
+- `.planning/todos/pending/2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages.md`
+- `.planning/todos/pending/2026-08-16-escapes-outdir-isabs-not-backslash-normalized.md`
+- `tests/test_out02_escape_target_gate.py` (lines 79-138, especially the `[drive]` parametrization
+  and its `repr(target)` assertion) — grepped and read directly for this research.
+- `tests/test_builder.py` (lines 560-599, `test_post_process_images_rehome_escape_relocates_with_warning`)
+  — grepped and read directly for this research.
+- `tests/test_template_registry.py` (lines 820-1005, the type/bytes/pathlike-value tests) —
+  grepped and read directly for this research.
+- `tests/test_templates_path_collision_gate.py` (lines 440-491,
+  `TestWindowsPathEscapingRegressionGuard`) — the existing proven POSIX-runnable Windows-shape
+  test pattern this milestone's binding constraint #4 requires extending.
+- `.github/workflows/ci.yml` (lines 12-46) — confirms the 3-OS (`ubuntu-latest`/`windows-latest`/
+  `macos-latest`) matrix binding constraint #6 references.
+- `.planning/PROJECT.md` — "## Current Milestone: v0.9.1 Windows path correctness" section (goal,
+  target features, binding constraints, deferred items).
+- `CLAUDE.md` — "Conventions & gotchas" and "Worktree-isolated execution" sections.
 
 ---
-*Pitfalls research for: adding a per-document template registry to typsphinx (v0.9.0)*
-*Researched: 2026-08-15*
+*Pitfalls research for: typsphinx v0.9.1 "Windows path correctness"*
+*Researched: 2026-08-27*

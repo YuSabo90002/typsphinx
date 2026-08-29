@@ -3,6 +3,7 @@ created: 2026-07-22T23:55:07+09:00
 title: typing の modernize（`UP006`/`UP035` の ignore 解除と組み込みジェネリクスへの書き換え）
 area: source
 files:
+
   - pyproject.toml:122 (ruff `[tool.ruff.lint] ignore` の `"UP035",  # typing.Dict/List/Set deprecation (Python 3.10+ support)` 行)
   - pyproject.toml:123 (ruff `[tool.ruff.lint] ignore` の `"UP006",  # Use dict instead of Dict (Python 3.10+ support)` 行)
   - typsphinx/__init__.py:15 (`from typing import Any, Dict`)
@@ -10,6 +11,10 @@ files:
   - typsphinx/template_engine.py:10 (`from typing import Any, Dict, List`)
   - typsphinx/builder.py:12 (`from typing import List, Set, Tuple`)
   - typsphinx/translator.py:9 (`from typing import Any, List, Tuple`)
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -38,6 +43,7 @@ files:
    インポートと型注釈を組み込みジェネリクス（`dict`/`list`/`set`/`tuple`）へ書き換える。
    `typsphinx/writer.py` は現状 `Dict`/`List` 等を使っていない可能性が高いため、対象外なら
    スキップしてよい（着手時に `grep -n 'Dict\|List\|Set\|Tuple' typsphinx/writer.py` で再確認）。
+
 3. `mypy typsphinx/` と全テストスイート（`pytest`、`uv run pytest`）が green であることを確認する。
 4. `CLAUDE.md` の該当記述（Phase 22.4 で「D-15 が着地するまでの意図的な先送り」と書き換えられる箇所）を、
    本 todo 着地時に「モダナイズ完了」を反映するよう再度更新する。

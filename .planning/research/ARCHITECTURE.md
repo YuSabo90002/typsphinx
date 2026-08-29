@@ -1,143 +1,234 @@
 # Architecture Research
 
-**Domain:** Integrating a per-document template registry into typsphinx's existing Sphinx builder/writer/translator pipeline (v0.9.0 milestone)
-**Researched:** 2026-08-15
-**Confidence:** HIGH — every claim below is traced to a file:line read directly from `typsphinx/builder.py` (1565 lines), `typsphinx/writer.py` (452 lines), `typsphinx/template_engine.py` (785 lines), `typsphinx/__init__.py`, and confirmed against the actual `typsphinx/templates/` package contents and the test suite (grep counts, not estimates).
+**Domain:** Bug-fix integration for a mature Sphinx→Typst extension (v0.9.1 "Windows path correctness")
+**Researched:** 2026-08-27
+**Confidence:** HIGH (every claim below is read directly from `typsphinx/*.py` at HEAD or verified by executing the actual predicate logic in Python; the one place confidence drops to MEDIUM is called out inline)
 
-This is **not** a greenfield ecosystem survey. It answers the five owner questions about wiring `typst_document_templates` into the existing content/wrapper pipeline, with file:line citations for every integration point.
+This is not greenfield research — it answers the four integration questions in the task prompt against the existing 5-module pipeline (`builder.py` / `writer.py` / `translator.py` / `template_registry.py` / `template_engine.py` / `pdf.py`). The generic template's "System Overview" / "Scaling" / project-structure sections do not apply to a bug-fix milestone and are omitted; the template's Integration Points / Internal Boundaries / Anti-Patterns sections are kept and filled with real answers.
 
----
+## (a) Where the delimiter-aware path-quoting helper must live
 
-## 1. Ordering: does the bundle copy have to run where `_write_template_file()` runs today?
-
-**No — it can and should move to `finish()`, alongside `copy_image_files()`/`copy_template_assets()`. Nothing in the write phase reads template bytes off disk.**
-
-Traced call graph, in `builder.py`:
-
-- `write()` (line 675) runs `_validate_output_path_collisions()` **first**, at line 713 — before anything else in the method.
-- `prepare_writing(docnames)` is called next, at line 716, and it alone calls `self._write_template_file()` (line 673), which writes `_template.typ`'s bytes to `outdir` **immediately**, before any per-docname write happens.
-- The per-docname write loop (lines 734–746) calls `write_doc()` → `_write_typst_files()` → `self.writer.render_wrapper()` (writer.py:1084). `render_wrapper()` never opens `_template.typ` from disk — it only **computes a string path** to it via `compute_template_import_path_for_dir()` (writer.py:64–101, called at writer.py:445) and embeds that string as a Typst `#import "…/_template.typ": project` line in the wrapper's text (writer.py:451‑452 → `template_engine.render()`, template_engine.py:652–656). The bytes at that path are read by **Typst's own compiler**, not by typsphinx, and only at `TypstPDFBuilder.finish()`'s compile step (builder.py:1541–1545) — which is later than `finish()`'s asset-copy step (builder.py:1400‑1401, 1453).
-- `finish()` (builder.py:1393) is Sphinx's own post-write hook (`Builder.build()`'s standard read → write → finish contract) and always runs strictly after `write()` returns. `TypstBuilder.finish()` calls `copy_image_files()` then `copy_template_assets()` (1400‑1401); `TypstPDFBuilder.finish()` calls `super().finish()` (1453) before compiling.
-
-So the write phase's only dependency on the template is a **path string**, never file content. The comment at builder.py:705‑712 ("D-02/D-03: validate BEFORE anything is written — including `prepare_writing()`'s own `_write_template_file()` call") is about the collision check preceding **any disk write**, not about anything needing to *read* the template early. Since `_validate_output_path_collisions()` already runs unconditionally at the top of `write()` (line 713), before `prepare_writing()` (716) and long before `finish()`, moving the bundle copy to `finish()` keeps it strictly after validation — the comment's binding *principle* survives even though its literal subject (`_write_template_file()`) is deleted.
-
-**Constraint that does bind:** the bundle copy must know **which registry keys are actually used** by this build's wrapper entries. Because incremental builds pass a subset of `docnames` to `write()` (line 700: `docnames = set(build_docnames) | set(updated_docnames)`), and only entries whose `entry[0]` is in that set produce a wrapper (`_write_typst_files()`'s guard, builder.py:1075), the set of keys actually needed is not known until the write loop has run. This mirrors the existing `self.images` accumulator (`init()`, builder.py:226; populated in `post_process_images()`/`_track_image()` during write; consumed in `copy_image_files()` during finish, builder.py:1181‑1218) — the same pattern should be reused: a new per-build accumulator (e.g. `self._used_template_keys: set[str]`) populated during the write loop, consumed by the new bundle-copy driver in `finish()`.
-
-**Net answer:** the copy belongs in `finish()`, driven by a write-time-collected key set — not in `prepare_writing()`. The comment near line 707 states a principle that still holds (validate before writing) but no longer requires the copy to happen inside `prepare_writing()`, because collision validation is symbolic (path-string claims in a dict, `_validate_output_path_collisions()`), not a check against actual bytes on disk.
-
----
-
-## 2. Integration inventory — file:line, NEW vs MODIFIED
-
-### NEW components
-
-| Component | Location | Why new |
-|---|---|---|
-| `resolve_registry_definitions(config)` | new module, e.g. `typsphinx/template_registry.py` | Builds the full `typst_document_templates` resolution **once per build** (answers Q3): validates each entry (`template` xor `package`, reserved `"typst"` key rejected if user-defined, unregistered key referenced by an entry → `ExtensionError`, registry-key charset validation since keys become path segments), and synthesizes the built-in `"typst"` entry from the four existing global config values (`typst_template`/`typst_package`/`typst_template_function`/`typst_template_mapping`) — mirroring what `_write_template_file()` (builder.py:1109‑1179) and `render_wrapper()` (writer.py:324‑351) each currently derive independently from `config`. |
-| `TemplateEngine.resolve_template_path()` (or widen `TemplateResolution`) | `typsphinx/template_engine.py`, extending `TemplateResolution` (lines 37–56) and `resolve_template()` (lines 280–336) | `resolve_template()` today returns `(content, source_label)` and **discards the concrete path** at every one of its three priority branches (`self.template_path` directly at line 308; `Path(search_dir) / self.template_name` at line 320; `get_default_template_path()` at line 327). The bundle copy needs "the resolved template's **parent directory**" (owner's exact wording), which requires the actual `Path`, not just content — this is a genuinely new capability, not a rename. Must preserve the "single priority walk, no second duplicated check" rule the class already documents (CONF-07/D-06, template_engine.py:290‑295). |
-| `_copy_registry_bundle(key, definition)` / bundle-copy driver | `typsphinx/builder.py`, replacing the `copy_template_assets()` call site (1219‑1261) | Iterates `self._used_template_keys` (new accumulator), and for each key whose definition carries a `template` (not `package`), resolves the parent directory via the new `TemplateEngine` method above and copies it wholesale to `<outdir>/_template/<key>/` — reusing `_copy_template_directory()`'s walk (1263‑1317) but generalized to take an **absolute source directory** directly (see MODIFIED below), since the bundled-package source (`typsphinx/templates/`) is not srcdir-relative. |
-| Reserved-prefix collision check | `typsphinx/builder.py`, replacing the single `_claim("_template.typ", …)` line (571) | The old check is an exact-string claim on one reserved file. The new rule reserves an entire **prefix** (`_template/`), so any docname content file or wrapper path whose first `/`-segment is `_template` (e.g. a docname literally under a `_template/` source subdirectory) must now also raise, not just an entry that collides byte-for-byte with `_template.typ`. This is a materially different (prefix-match vs exact-match) predicate and needs its own function. **See the risk flagged under §5 below — a real fixture (`tests/fixtures/template_named_dir_master/conf.py`) already exercises a docname tree rooted at `_template/`, which this new prefix rule will now catch as a collision where the old exact-match rule did not.** |
-
-### MODIFIED components
-
-| File:line | Current behavior | Required change |
-|---|---|---|
-| `typsphinx/__init__.py:44‑58` | Registers `typst_template`, `typst_template_mapping`, `typst_package`, `typst_package_imports`, `typst_template_function`, `typst_template_assets` (line 58) | Add `app.add_config_value("typst_document_templates", {}, "html", [dict])`. **Delete** line 58 (`typst_template_assets`) — matches the CONF-05 "no inert config" precedent the milestone brief cites. |
-| `builder.py` `prepare_writing()` (659‑673) | Line 673 calls `self._write_template_file()` | Delete the call; method reduces to constructing `self.writer` (line 670). |
-| `builder.py` `_write_template_file()` (1109‑1179) | Reads `typst_template`/`typst_package`/etc. off global config once per build, writes `_template.typ` at outdir root | **Delete entirely.** Its routing logic (the `typst_package`-and-`typst_template`-both-set warning at 1141‑1146, and the `resolve_package_for_engine()` call at 1166) moves into the new registry resolver's synthesis of the built-in `"typst"` key. |
-| `builder.py` `_validate_output_path_collisions()` (502‑613) | Line 571: `_claim("_template.typ", "the reserved _template.typ infrastructure file")` | Replace with the new prefix-reservation check (see NEW table above); must also re-derive the map's docstring claim at lines 517‑519 ("no output file is written when any collision is found") to state the reserved *prefix*, not a reserved *file*. |
-| `builder.py` `_write_typst_files()` wrapper loop (1074‑1092) | Loop resolves nothing about templates; `render_wrapper()` reads config directly | Resolve each entry's registry key ONCE per entry (element `[4]`, default `"typst"`) using the registry resolver's output (built once per build — see Q3), pass the resolved `TemplateEngine`-construction inputs into `render_wrapper()` instead of letting it re-read `config`, and record the key into `self._used_template_keys`. |
-| `builder.py` `copy_template_assets()` (1219‑1261) | Three early returns (unset `typst_template` → return; `typst_package` set → return; `typst_template_assets == []` → return) | **Delete all three early returns.** The method (or its replacement, the NEW bundle-copy driver above) must run unconditionally whenever any used key has a `template`-bearing definition — "has no bundle" becomes a per-key property (a `package`-only definition has nothing to copy), not a single global gate. |
-| `builder.py` `_copy_template_directory()` (1263‑1317) | Signature takes `template_path: str` **relative to `self.srcdir`** (line 1282: `src_dir = path.join(self.srcdir, template_dir)`); skips `.typ` files (1296‑1297) | Delete the `.typ` skip (the bundle copy carries the template now — `resolve_template()` reads it verbatim, no substitution). Generalize the signature to accept an **absolute** `src_dir` and `dest_dir` directly — the bundled-package source (`Path(__file__).parent / "templates"`) is not srcdir-relative, so the current signature cannot serve both the user-template and bundled-package cases without this change. |
-| `builder.py` `_copy_explicit_assets()` / `_copy_single_asset()` (1319‑1391) | Serve `typst_template_assets`'s explicit-list mode | **Delete both** — with `typst_template_assets` removed there is no caller left. |
-| `builder.py` `finish()` (1393‑1401) | Line 1401: `self.copy_template_assets()` | Point at the new bundle-copy driver, iterating `self._used_template_keys`. |
-| `builder.py` `init()` (217‑245) | Initializes `self.images`, `self._master_include_edges` | Add `self._used_template_keys: set[str] = set()` initialization, alongside the existing accumulators, for the same reason `self.images` exists (write-time collection, finish-time consumption). |
-| `writer.py` `compute_template_import_path_for_dir()` (64‑101) | Computes a depth-only `"../"*depth + "_template.typ"` string, assuming ONE global file at outdir root | Generalize to take the resolved key and the template's own filename (no longer always `base.typ` — a user template keeps its original filename inside its own bundle) and compute `"../"*depth + f"_template/{key}/{filename}"`. This is a signature change, not a rename — it now needs two more inputs than the docstring's current single-purpose depth calculation. |
-| `writer.py` `render_wrapper()` (262‑451) | Lines 324‑351 read `typst_template`/`typst_package` straight off `config` and construct one `TemplateEngine` from those raw globals, identically for every entry | Resolve the entry's registry key (`entry[4]`, default `"typst"`) against the per-build registry-resolution result (passed in — see Q3, threaded the same way `edge_keys` already is at line 268/318), and construct `TemplateEngine` from THAT definition's `template`/`package`/`template_function` instead of global config. **`typst_template_mapping` stays global** per the owner's explicit decision ("Global `typst_template_mapping` is untouched here") — line 348's `getattr(config, "typst_template_mapping", None)` is the one field that does **not** move to the registry. |
-| `writer.py` render_wrapper's import-path branch (442‑445) | `template_file = compute_template_import_path_for_dir(wrapper_relative_dir)` else `None` for the package-alone case, gated on the single global `typst_package`/`raw_template_path` pair | Gate on the RESOLVED entry's definition (package-only key → `None`; template-bearing key, including the built-in `"typst"` → the new two-argument import path). |
-| `template_engine.py` `TemplateResolution` (37‑56) + `resolve_template()` (280‑336) | Returns `(content, source)`, discarding the concrete path at each priority branch | Widen to also carry the resolved `Path` (or `None` for the package-only case with nothing to load), threading it through the SAME priority walk rather than adding a second lookup (preserves the class's own CONF-07/D-06 "single priority walk" invariant). |
-
-### Explicitly unaffected (verified, not merely assumed)
-
-- `writer.py` `translate()` (218‑260) — content-file generation is untouched; content files carry their own unconditional `@preview` imports regardless of any per-document template, and the registry has no bearing on them.
-- `template_engine.py` `render()` (602‑709) — its inline-template branch (`template_file is None`, no package: lines 658‑663, load-and-inline `load_template()`'s content) is exercised directly and extensively by `tests/test_template_engine.py` (16 direct `.render(params, body)` calls with no `template_file` argument, e.g. lines 410, 708, 730, 750…) — this is unit-level `TemplateEngine` API surface independent of the builder/writer pipeline and must **not** be deleted; only `render_wrapper()`'s calling pattern into it changes (it will pass `template_file=` in effectively every case now, since "typst" is no longer special-cased out of the copy+import route).
-- `template_engine.py` `map_parameters()` (404‑514), `ELEMENTS_ALLOWLIST` (77‑81), `extract_toctree_options()` (542‑587) — the milestone brief's decisions explicitly keep `package_imports`/`elements` global; these methods have no per-entry dependency to add.
-- `writer.py` `_compute_template_import_path()` static method (170‑216) — already **dead code** today (grep confirms zero non-docstring callers; superseded by `compute_template_import_path_for_dir()`). Not this milestone's responsibility to delete, but flag it for the roadmapper as adjacent cleanup opportunity — do not let it be mistaken for the function that needs generalizing (that's `compute_template_import_path_for_dir()`, a different function).
-
----
-
-## 3. Data flow: where does key → definition resolution belong?
-
-**Once per build, in `write()`, immediately after `_validate_output_path_collisions()` and before the per-docname write loop — not once per wrapper inside `render_wrapper()`.**
-
-Reasoning:
-
-- Two `typst_documents` entries may name the **same docname** (D-04, already a first-class case in this codebase — see `_wrapper_output_relpath()`'s docstring at builder.py:985‑1010 and the `template_named_dir_master` fixture, which deliberately uses two entries against one docname tree). Two such entries can each name a **different** registry key. If resolution happened per-wrapper inside `render_wrapper()`, the same registry-validation work (parsing `template_function`, xor-checking `template`/`package`, charset-validating the key) would repeat once per wrapper call — correct but wasteful, and worse, an `ExtensionError` for a bad registry entry would only surface when the FIRST wrapper naming it happens to be written, making failure order-dependent across a multi-master build. Config-shaped validation errors (unregistered key, both `template` and `package` set, user-defined `"typst"`, a `template` path directly under `srcdir` with no parent to copy) belong with the OTHER build-wide validators this codebase already runs exactly once at a fixed point — `_validate_output_path_collisions()` itself is the existing precedent (builder.py:502, "Runs ONCE, called from write() at the very top").
-- The entry tuple is **already threaded into `render_wrapper()`** (writer.py:262‑269, `entry: tuple` is the first parameter) — the wrapper-writing loop in `_write_typst_files()` (builder.py:1074‑1092) already has the specific entry in hand. The natural shape is: resolve the full `dict[key, TemplateRegistryEntry]` ONCE (mirroring `self._master_include_edges = self._build_include_edge_map()` at builder.py:730, which is the SAME "derive once in `write()`, thread into the per-docname loop" pattern already used for the include-edge mapping), then per-entry the loop does only a cheap `registry[entry[4] if len(entry) > 4 else "typst"]` dict lookup — no re-validation.
-- This placement also directly enables the `finish()`-time bundle copy from Q1: the same once-per-build resolution result is consulted both by the write loop (to build `self._used_template_keys`) and, implicitly, by the finish-time copy driver (which re-derives directory locations from the same resolved definitions, not a second independent lookup).
-
-**Concretely:** add a `self._document_template_registry: dict[str, TemplateRegistryEntry]` (or equivalent) populated in `write()` right after line 713 (`_validate_output_path_collisions()`) and before line 716 (`prepare_writing()`) — or folded into an expanded `_validate_output_path_collisions()`-adjacent validation pass, since registry-entry validation is conceptually the same kind of "fail loud before any output is written" check the collision validator already embodies. Thread it into `_write_typst_files()`'s wrapper loop (1074) the same way `self._master_include_edges` already is (1083), and into `render_wrapper()`'s new `registry_entry` parameter.
-
----
-
-## 4. Build order: keeping the tree green while deleting `_write_template_file()`
-
-Deleting `_write_template_file()` in one shot breaks the 31 test files (not ~20 — a direct grep count) that assert `_template.typ` at the outdir root:
+### Measured import graph (module-scope imports only, read from each file's own `import`/`from` lines)
 
 ```
-tests/fixtures/{admonition_greyscale_probe,bld02_template_clobber_gate,derived_template_collision_gate,
-  explicit_template_collision_gate,package_only_config_gate,template_named_dir_master}/conf.py
-tests/test_{admonition_greyscale_pipeline,builder_output_stem,collision_predicate_completeness_gate,
-  default_typst_documents_gate,docs_contract_claims_gate,empty_typst_documents_optout_gate,
-  entry_metadata_route_uniformity,examples_charged_ieee_gate,external_link_style_render_gate,
-  heading_depth_render_gate,integration_advanced,integration_basic,nested_master_render_gate,
-  output_layout_docs_gate,package_only_config_gate,package_template_routing,readthedocs_config,
-  signature_overflow_render_gate,signature_page_boundary_render_gate,target_name_render_gate,
-  template_assets,template_engine,template_import_path,two_layer_output_gate,
-  typst_documents_collision_gate,typst_lang_gate}.py
+typsphinx/__init__.py
+        │
+        ▼
+typsphinx/builder.py ───────► typsphinx/pdf.py                (leaf: stdlib only)
+        │  │  │                     ▲
+        │  │  └──────────────────────────────────────────────┐
+        │  ▼                                                  │
+        │  typsphinx/template_registry.py ────(module scope)──┤ NOTHING from typsphinx
+        │        │                                            │
+        │        └─(FUNCTION-scoped, lazy)──► typsphinx.builder.TypstBuilder
+        │                                       (deliberate cycle-breaker, see below)
+        ▼
+typsphinx/writer.py
+        │  │
+        │  ├──► typsphinx/template_engine.py    (leaf: stdlib + sphinx only)
+        │  ├──► typsphinx/template_registry.py  (already a dependency of builder.py too)
+        │  └──► typsphinx/translator.py         (leaf: stdlib + docutils/sphinx only)
+
+typsphinx/translator.py       — leaf. Zero `from typsphinx...` imports.
+typsphinx/template_engine.py  — leaf. Zero `from typsphinx...` imports.
+typsphinx/pdf.py              — leaf. Zero `from typsphinx...` imports.
 ```
 
-Recommended sequence (each step keeps `pytest` green or is itself the RED-then-fix step in a documented TDD pass — do not attempt to land all files atomically):
+Concretely, from the files themselves:
 
-1. **Additive-first: build the registry resolver and the widened `TemplateEngine` path-return, with NO behavior change yet.** Add `typst_document_templates` config registration (`__init__.py`), the new `TemplateEngine.resolve_template_path()`/widened `TemplateResolution`, and the new `template_registry.py` module, all unused by the write/finish path so far. This can land with pure additive unit tests (no existing test touches new code) and zero risk to the 31 files above.
-2. **Point `render_wrapper()` at the registry for the built-in `"typst"` key only, output-identical.** Change `render_wrapper()` to resolve `entry[4]` (defaulting to `"typst"`) against the registry and construct `TemplateEngine` from the resolved definition — but since the `"typst"` built-in is defined to synthesize the exact same four global-config values `render_wrapper()` reads today (per the milestone brief: `"typst"` "defers to global config"), this step is a **behavior-preserving refactor**: every existing test asserting wrapper *content* (imports, `#show` calls, parameters) should still pass unchanged, because the resolved values are identical to today's. This isolates "does the registry plumbing work" from "does the output layout change" as two separate, separately-verifiable steps.
-3. **Introduce the new output layout (`_template/<key>/…`) and the accumulator, still keeping `_write_template_file()` alive in parallel.** Add `self._used_template_keys`, the bundle-copy driver, and the new `compute_template_import_path_for_dir()` signature — but do NOT yet delete `_write_template_file()` or the collision claim at line 571. At this point the outdir temporarily gets BOTH the old `_template.typ` (unused by any wrapper's import, since step 2/here's new import points at `_template/<key>/…`) and the new bundle. This is intentionally wasteful but safe — it lets the ~31 files be migrated test-by-test onto asserting the new path shape, without a single flag-day cutover, and it's the point where you re-point tests from `_template.typ` assertions to `_template/typst/base.typ` (or the specific key each fixture uses).
-4. **Migrate the 31 test files' path assertions**, fixture-by-fixture, from `outdir/_template.typ` to `outdir/_template/<key>/<filename>` — grouped by which fixture/gate they exercise (the `*_render_gate.py` files likely share one boilerplate assertion helper worth updating once; the six `tests/fixtures/*/conf.py` files need their accompanying test module's assertions updated in the same commit as each fixture, since fixture and gate-test are paired).
-5. **Delete `_write_template_file()`, its call site in `prepare_writing()`, and the old exact-string collision claim; land the new prefix-reservation collision check.** This is now a clean deletion because every consumer was migrated in step 4. Run the full suite; this is the step most likely to surface the `_template/` prefix vs. `template_named_dir_master`-style docname collision risk flagged in §5 — resolve that BEFORE this step lands, not during.
-6. **Delete `typst_template_assets`, `_copy_explicit_assets()`, `_copy_single_asset()`, and the `.typ`-skip in `_copy_template_directory()`; remove config registration.** Last, because `tests/test_template_assets.py` is the one file most directly about the config value being removed — landing this after the layout migration (step 4) avoids that file's failures being conflated with layout-shape failures.
-7. **Documentation pass** (`configuration.rst`, `templates.rst`, `quickstart.rst`, `output_layout.rst`, `builders.rst`) — last, once the shipped behavior is final, per this project's own convention (docs describe what shipped, not what's planned).
+| File | `from typsphinx.X import ...` (module scope) |
+|------|---|
+| `builder.py:22-29` | `pdf`, `template_registry`, `translator` (`derive_master_edge_keys`), `writer` (`TEMPLATE_OUTPUT_DIR`, `TypstWriter`) |
+| `writer.py:15-26` | `template_engine`, `template_registry`, `translator` |
+| `template_registry.py` | **none** at module scope. `template_registry.py:92` (`_has_case_collision`) does `from typsphinx.builder import TypstBuilder` **inside the function body**, with an explicit comment explaining this is deliberate: importing `builder` at `template_registry.py`'s own module scope would deadlock the import graph, because `builder.py` already imports `template_registry.py` at ITS module scope. |
+| `translator.py` | none |
+| `template_engine.py` | none |
+| `pdf.py` | none |
 
-The key ordering principle: **separate "plumbing exists" (1) from "plumbing is used, output unchanged" (2) from "output layout changes" (3‑4) from "old mechanism deleted" (5‑6)** — each of these is independently testable and avoids a single multi-hundred-line commit that breaks 31 files simultaneously with no intermediate green state.
+So the graph already has one hard fact that determines the answer: **`builder.py` and `template_registry.py` form a module-scope-import cycle in the "back" direction only** (`builder.py → template_registry.py` at module scope; `template_registry.py → builder.py` only lazily, function-scoped, at runtime). `writer.py` also already imports both `template_registry.py` and `translator.py` at module scope, and `builder.py` imports `writer.py` at module scope too.
 
----
+### The answer
 
-## 5. Bundled-package copy: reading `typsphinx/templates/` as a directory
+**New module.** Name it `typsphinx/pathfmt.py` (or `path_quoting.py` — any name distinct from the existing five role-named files; the point is it must be a **leaf**: it imports nothing from `typsphinx` itself, only stdlib, matching the shape `translator.py`/`template_engine.py`/`pdf.py` already have).
 
-Verified directly: `typsphinx/templates/` contains exactly one file, `base.typ` (2438 bytes) — confirmed by `ls`, matching the milestone brief's claim ("one file, `base.typ`"). Packaging is already declared in `pyproject.toml:73`: `"typsphinx" = ["templates/*.typ"]` under package-data.
+Why a new leaf module, and not one of the existing files:
 
-**What reading it as a directory (not a single file) requires, beyond today's code:**
+- **Not `builder.py`.** `writer.py` already imports `builder.py`'s sibling role — no, more precisely: `builder.py` imports `writer.py` at module scope (`builder.py:29`). If the quoting helper lived in `builder.py` and `writer.py` needed to import it, `writer.py` would need `from typsphinx.builder import quote_path` at module scope — but `builder.py` already does `from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter` at its own module scope. That is a direct, unconditional two-file cycle (`builder → writer → builder`), which Python cannot resolve at module-scope-import time (whichever module starts importing first will hit a partially-initialized sibling module and raise `ImportError`/`AttributeError` on the not-yet-defined name). This is not hypothetical — it is the identical shape `template_registry.py`'s own comment at line ~86-90 was written to avoid with `builder.py`, and that comment is the direct evidence for this conclusion.
+- **Not `writer.py`.** `builder.py` already imports `writer.py` (`TEMPLATE_OUTPUT_DIR`, `TypstWriter`) at module scope. If the helper lived in `writer.py`, `builder.py`'s existing import line would need to grow to include it — no NEW cycle there — but `template_registry.py` would then need `from typsphinx.writer import quote_path` at module scope. `writer.py` does not import `template_registry.py`... wait, it does (`writer.py:21-25`, `from typsphinx.template_registry import RESERVED_REGISTRY_KEY, TemplateRegistryEntry, resolve_template_registry`). So `template_registry.py → writer.py` would create `writer.py → template_registry.py → writer.py`, a direct two-file cycle. Also structurally wrong home: `writer.py` is the per-document rendering driver, not naturally where a builder-side and registry-side message-formatting utility belongs.
+- **Not `template_registry.py`.** This module already has ONE deliberately-broken cycle with `builder.py` (via the lazy, function-scoped import). Adding new content here that `builder.py` and `writer.py` both need to import back would either (i) require a second lazy-import trick at every call site in two other files (fragile, and the existing trick is scoped narrowly to a single internal predicate, not meant to be a general pattern), or (ii) create the same `builder.py ↔ template_registry.py` cycle at module scope that the existing lazy import exists specifically to avoid.
+- **Not `translator.py`.** Technically safe — `translator.py` is already a leaf, `builder.py` already imports one name from it (`derive_master_edge_keys`, `builder.py:28`) and `writer.py` already imports two names from it (`translator.py:26`), so adding a quoting-helper import here creates zero NEW cycle risk. This is a legitimate technical fallback if a project-owner strongly prefers not adding a sixth file. But it is a poor thematic fit: `translator.py` is exclusively "doctree node → Typst markup" (its own existing helper, `escape_typst_string()`, is a `.typ`-*syntax* escaper for content embedded in emitted Typst source); the new helper is a *human-readable diagnostic/log/error-message* formatter for filesystem paths, consumed only by `builder.py`/`writer.py`/`template_registry.py`'s `logger.warning`/`ExtensionError`/`logger.debug` call sites — none of which touch doctree translation. Mixing the two would make `translator.py`'s already-large surface (8,009 lines) carry an unrelated responsibility.
+- **A new leaf module has zero cycle risk by construction.** Since `builder.py`, `writer.py`, and `template_registry.py` all either already import each other or are imported by each other, the only shape guaranteed to be importable from all three at module scope with no cycle is a module that imports NOTHING from `typsphinx` back — exactly what `translator.py`/`template_engine.py`/`pdf.py` already are. The new module joins that leaf tier. `builder.py` gains one more `from typsphinx.pathfmt import ...` line beside its existing four; `writer.py` gains one beside its existing three; `template_registry.py` gains its FIRST module-scope `typsphinx`-internal import (previously it had none — this is a new, but safe, edge in the graph, running module→leaf, never leaf→module).
 
-- Today, `TemplateEngine.get_default_template_path()` (template_engine.py:266‑278) does `Path(__file__).parent / "templates" / "base.typ"` — a **plain filesystem path**, not `importlib.resources`. This already assumes a normal on-disk install (not a zipimport/zipapp), which is a **pre-existing** assumption, not a new risk this milestone introduces — the single-file case has the identical constraint today. No new dependency or API (e.g. `importlib.resources.files()`) is required; the bundle-copy code can reuse `get_default_template_path().parent` to get the directory to copy, consistent with the existing access pattern.
-- The generalized `_copy_template_directory()` (see MODIFIED table, Q2) already does the actual directory walk (`os.walk`, `shutil.copy2`, `ensuredir` — builder.py:1263‑1317) — it just needs its `src_dir` computed from an **absolute** path for the bundled-package case (`Path(__file__).parent / "templates"`) rather than the current `path.join(self.srcdir, template_dir)` (srcdir-relative only). This is the same generalization already needed for user templates whose parent directory isn't under `srcdir` at all in the registry world — one signature change serves both.
-- This code belongs in `builder.py`, next to (or as) the existing `_copy_template_directory()` — not in `template_engine.py`, which has no `shutil`/filesystem-copy responsibilities today (it only ever *reads* files via `_try_load_file()`, template_engine.py:770‑784) and shouldn't gain them; keeping the read/resolve responsibility in `template_engine.py` and the copy responsibility in `builder.py` preserves the existing module boundary (`template_engine.py` = pure content/parameter logic, `builder.py` = filesystem orchestration, matching `copy_image_files()`'s existing precedent at builder.py:1181).
+**Cycle risk, stated concretely:** the risk is not diffuse — it is exactly two named two-file cycles (`builder.py↔writer.py` if the helper lives in either one of that pair, `builder.py↔template_registry.py` if it lives in `template_registry.py`), both of which already exist as *directed* edges today and would become *bidirectional* the moment either file imports the helper from the other. A new leaf module sidesteps both by definition — it has no back-edge to create.
 
----
+## (b) `escape_typst_string()` / `visit_image()` — confirmed local to translator.py
 
-## Risk flagged during this research (not explicitly asked, but load-bearing for Q2/Q4)
+Both live in `typsphinx/translator.py`:
 
-**The new `_template/` prefix reservation is a strictly wider collision surface than the old exact-string `_template.typ` claim, and at least one existing fixture is purpose-built to exercise a docname tree literally rooted at a directory named `_template`:** `tests/fixtures/template_named_dir_master/conf.py` sets `root_doc = "_template/index"` specifically to reproduce "a project whose master documents live inside a source subdirectory literally named `_template`" (its own docstring, lines 4‑9). Under COMP-01/OUT-03 (builder.py:967‑983), every docname unconditionally gets a content file at `docname + ".typ"` — so this fixture's content files land at `_template/index.typ` and `_template/sub/index.typ` regardless of where its wrappers resolve. Under the new prefix rule, those content-file paths **would now collide with the reserved `_template/` prefix**, where the OLD exact-match rule did not (it only reserved the single file `_template.typ`, not the directory `_template/`). This must be resolved explicitly — either the fixture's docname tree needs to move (breaking its own stated purpose and its CR-01/G-22.1-4 regression coverage), or the reserved-prefix collision check needs a narrower rule than "any path with `_template` as its first segment" (e.g. reserving `_template/` only at the outdir root's own namespace and not walking into it for arbitrary depth-1 docname collisions — needs an owner decision, not an inference). Surface this to the roadmapper as a scoping question for whichever phase implements the collision-detector change (§2, MODIFIED table, reserved-prefix collision check), not a purely mechanical rename.
+- `escape_typst_string()` — `translator.py:156-187`. Pure string function, no dependencies beyond stdlib `str` methods (already imported `re` is unused by it). Escapes `\`, `"`, `\n`, `\r`, `\t` in that order, for embedding inside a Typst `"..."` string literal — this is the module's "single source of truth for string-literal escaping" per its own docstring, already consumed elsewhere in the file (e.g. `visit_literal`, per the docstring's own claim, and the Phase-38 IND-04 comment at `translator.py:6090` referenced in PROJECT.md's footer).
+- `visit_image()` — `translator.py:4718-4766`. The two unescaped emission sites are:
+  - `translator.py:4746`: `self.add_text(f'  image("{adjusted_uri}"')` (inside a figure — 2-space indent variant)
+  - `translator.py:4749`: `self.add_text(f'image("{adjusted_uri}"')` (block-level, no `#` prefix, code-mode variant)
 
----
+Both are in the SAME method, in the SAME file as `escape_typst_string()`. **Confirmed: defect 2 gap 2 is a pure local change — one file (`translator.py`), no cross-module import needed at all**, since the helper is already module-local.
+
+### Ordering relative to `_compute_relative_image_path()`
+
+`translator.py:4736-4749`:
+```python
+uri = node.get("uri", "")
+current_docname = getattr(self.builder, "current_docname", None)
+adjusted_uri = self._compute_relative_image_path(uri, current_docname)   # transform FIRST
+if self.in_figure:
+    self.add_text(f'  image("{adjusted_uri}"')                          # emit SECOND — unescaped today
+else:
+    self.add_text(f'image("{adjusted_uri}"')                            # emit SECOND — unescaped today
+```
+
+`_compute_relative_image_path()` (`translator.py:5047-5140+`) is a `PurePosixPath`-only computation — it never touches `os.path`/`ntpath`, so its OWN internal arithmetic always produces forward-slash-joined output (`str(rel_path)`, `"/".join(down_parts)`, `"../" * up_count`). It does **not**, however, strip or reject backslashes that were already present in its `image_uri` input (the `node["uri"]` value, which for a rehomed absolute image is the key `_track_image()` built — see part (c) — and for an ordinary image is the source-root-relative URI Sphinx supplied, verbatim). So `adjusted_uri` can still contain a literal backslash character today (e.g. if `_track_image()`'s gap-1 basename bug — part (c) below — carries one through into the relocation key, or if a third-party extension sets `node["uri"]` to a raw backslash-separated string that never reached `_track_image()`'s absolute-URI branch at all).
+
+**Escaping must happen AFTER `_compute_relative_image_path()`, at the interpolation point** — i.e. wrap `adjusted_uri` itself, not `uri`:
+
+```python
+adjusted_uri = self._compute_relative_image_path(uri, current_docname)
+escaped_uri = escape_typst_string(adjusted_uri)
+...
+self.add_text(f'  image("{escaped_uri}"')   # and the non-figure branch identically
+```
+
+Escaping `uri` before the `_compute_relative_image_path()` call instead would be wrong: that method does its own `PurePosixPath(...)`/`.relative_to(...)`/`.parts` arithmetic on the raw value, and feeding it an already-`\\`-doubled or `\"`-escaped string would corrupt that arithmetic (e.g. a doubled backslash is no longer recognized as a single path separator by anything downstream, and `PurePosixPath` never treated backslash as a separator to begin with — the corruption would be in the STRING CONTENT, not the parsing, but it is still the wrong value to relativize). `escape_typst_string()` is a syntax-literal escaper, not a path-shape transform, so it belongs strictly after every path-shape transform is finished and immediately before the value is written into Typst source.
+
+## (c) `_escapes_outdir()` — blast radius of normalizing it, per call site (measured, not asserted)
+
+`_escapes_outdir()` (`builder.py:197-238`) has exactly **two** call sites in the whole package (grep-verified — no third site exists in `builder.py`, and it is not imported/re-called from `writer.py`, `translator.py`, or `template_registry.py`):
+
+1. `builder.py:670`, inside `_resolve_target_stem()` (the `typst_documents` target-stem guard, OUT-02).
+2. `builder.py:1727`, inside `_track_image()` (the image-rehome escape decision).
+
+The current body:
+```python
+def _escapes_outdir(stem: str) -> bool:
+    segments = stem.replace("\\", "/").split("/")          # normalized, used only for the ".." test
+    return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)  # RAW stem
+```
+
+The candidate fix (mirroring `_is_absolute_image_uri()`'s own idiom, `builder.py:121-194`): normalize once, then test everything against the normalized string:
+```python
+def _escapes_outdir(stem: str) -> bool:
+    normalized = stem.replace("\\", "/")
+    segments = normalized.split("/")
+    return ".." in segments or posixpath.isabs(normalized) or _is_drive_qualified(normalized)
+```
+
+**Called in isolation (bypassing both production call sites), this fix DOES flip two shapes** — verified by direct execution on this machine (CPython 3, Linux, `posixpath`):
+
+| Input (raw, as if `_escapes_outdir()` were called directly) | Current (buggy) | Fixed |
+|---|---|---|
+| `"\foo\bar"` (driveless-absolute, one leading backslash) | `False` | `True` |
+| `"\\server\share\bar"` (UNC) | `False` | `True` |
+| `"C:manual"` (drive-qualified) | `True` (unaffected — `_is_drive_qualified` never looked at slashes) | `True` |
+| `"manuals/guide"` (ordinary relative) | `False` | `False` (unaffected) |
+| `"/abs/manual"` (posix-absolute) | `True` (unaffected — already starts with `/`) | `True` |
+
+This confirms the function-level defect PROJECT.md describes is real: `_escapes_outdir()` is not, by itself, the platform-independent pure-string predicate its sibling `_is_absolute_image_uri()` already is (and which its own docstring's doctest style — `_escapes_outdir("/abs/manual")` — implies it should be).
+
+**But at BOTH of the two actual production call sites, the fix changes NOTHING**, because both callers already hand `_escapes_outdir()` an argument that has already been backslash-normalized before the call — the two shapes that flip in isolation never reach `_escapes_outdir()` in their raw form through either call site:
+
+- **Call site 1 (`_resolve_target_stem()`, `builder.py:608-732`).** Line 662, `stem = stem.replace("\\", "/")`, runs UNCONDITIONALLY before `_escapes_outdir(stem)` is called at line 670 (comment at 654-661 names this "OUT-01: normalize a Windows-authored separator to POSIX style up front, unconditionally"). By the time `_escapes_outdir()` sees `stem`, it already contains zero backslash characters — normalizing again inside `_escapes_outdir()` is an idempotent no-op. Verified by simulating the exact call-site sequence:
+  ```
+  raw target            → pre-normalized stem → _escapes_outdir(stem) BEFORE fix → AFTER fix
+  '\foo\bar.typ'         '/foo/bar'             True                              True   (no flip)
+  '\\server\share\file.typ' '//server/share/file' True                            True   (no flip)
+  'C:manual.typ'          'C:manual'             True                              True   (no flip)
+  'manuals/guide.typ'     'manuals/guide'        False                             False  (no flip)
+  '../escape.typ'         '../escape'            True                              True   (no flip)
+  ```
+- **Call site 2 (`_track_image()`, `builder.py:1637-1790`).** Line 1719-1721, `rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(path.sep, "/")`, runs before `_escapes_outdir(rel_uri)` at line 1727. On POSIX (`path` = `posixpath`), `path.sep` is `"/"`, so this `.replace()` call is literally a no-op for backslash characters — it does NOT strip them the way call site 1's literal `.replace("\\", "/")` does. Despite that, no flip was observed for any of five tested absolute/UNC/drive-qualified shapes, because `posixpath.relpath()` itself — called with a `resolved_uri` that doesn't start with `/` — treats the whole string as ONE relative path component and prepends `os.getcwd()`-derived `"../"` segments to reach `doctreedir`; the resulting `rel_uri` therefore already contains a literal `".."` segment, which the PRE-EXISTING (never-buggy) `".." in segments` disjunct already catches, before the isabs/drive-qualified disjuncts are even relevant. Verified directly (Linux, this repo's actual `doctreedir` shape):
+  ```
+  resolved_uri                  rel_uri (both before/after fix, identical string)                          before  after
+  '\foo\bar.png'                 '../../home/.../typsphinx/\foo\bar.png'                                    True    True
+  '\\server\share\bar.png'       '../../home/.../typsphinx/\\server\share\bar.png'                          True    True
+  'C:\foo\bar.png'               '../../home/.../typsphinx/C:\foo\bar.png'                                  True    True
+  'C:foo/bar.png'                '../../home/.../typsphinx/C:foo/bar.png'                                   True    True
+  '/abs/foo/bar.png'             '../../abs/foo/bar.png'                                                    True    True
+  ```
+
+**Precise blast-radius conclusion:** normalizing `_escapes_outdir()` changes the CLASSIFICATION OF NEITHER call site for any shape tested (both remain byte-identical before/after, `escaped=True` for every escaping shape, unchanged). The fix's value is (i) making the function correct and self-sufficient as a standalone predicate — matching this module's own D-05 platform-independence precedent and closing the gap a future third call site or a direct unit test would otherwise hit, and (ii) removing the latent inconsistency between `_escapes_outdir()` and its sibling `_is_absolute_image_uri()`, which the PROJECT.md milestone text explicitly calls out as the reason to fix it now. It is **not** a fix that changes observed build behavior at either of today's two call sites — a regression test asserting on `_resolve_target_stem()`'s or `_track_image()`'s OUTPUT for these shapes would already pass both before and after this change; a test must call `_escapes_outdir()` directly (as its own doctests already do) to observe the flip. This has a direct planning consequence: the RED-first gate for this defect must be a **direct unit test on `_escapes_outdir()` itself**, not an integration assertion through either call site (an integration-level test would be tautologically green both before and after, which is exactly the "no test covers it, CI is green" trap PROJECT.md's footer already names for all three defects in this milestone).
+
+## (d) Build order — files touched per fix, and the two named hazards
+
+### Files each fix touches (function/line granularity)
+
+| Fix | New file | `builder.py` | `translator.py` | `writer.py` | `template_registry.py` |
+|---|---|---|---|---|---|
+| **1. `_escapes_outdir()` normalization** | — | `197-238` (`_escapes_outdir` body only) | — | — | — |
+| **2. `_track_image()` escape branch** (3 gaps) | — | `~1761-1772` (gap 1 basename, gap 3 key length) | `4746`, `4749` (gap 2, `visit_image`) | — | — |
+| **3. Path-quoting helper rollout** | new leaf module (part a) | `303-402` (3 message-builder fns), `697`, `942/964/965/999/1007/1008/1015`, `1767`, `2056/2066` | — | `511-513` | `410/422/433` |
+
+Two overlaps are load-bearing for the wave decomposition:
+
+1. **File-level overlap: Fix 1, Fix 2, and Fix 3 ALL touch `builder.py`.** Per this project's own standing hazard (`.claude` memory: "disjoint files still collide at merge" / worktree isolation is the standing execution mode per `CLAUDE.md`) — even where the edited LINE RANGES within `builder.py` don't literally overlap in a diff, this project's convention is that same-file edits across parallel plans in the same wave are treated as a collision risk, not treated as safe-by-line-range.
+2. **Line-level adjacency, not just same-file: Fix 1's `_escapes_outdir()` (lines 197-238) is called FROM inside `_track_image()` at line 1727** — i.e. the exact method Fix 2 is editing at lines ~1761-1772 (13 lines further down the SAME method). **Fix 3's quoting-helper migration explicitly names `builder.py:1767`** (the `_track_image()` escape-branch warning, `"could not rehome image URI {resolved_uri!r} ... relocated to {key!r}"`) as one of its 20 target sites — and `key` at line 1767 is exactly the value Fix 2's gap 1 (basename normalization) and gap 3 (length bound) change. **All three fixes converge on the same ~30-line region of `_track_image()` and its immediate caller `_escapes_outdir()`.** This is not a hand-wavy "same file" claim — it is the same method plus the function it calls, and the same emitted warning string that Fix 2 changes the VALUE of and Fix 3 changes the QUOTING of.
+3. **Shared test file: `TestWindowsPathEscapingRegressionGuard`** (`tests/test_templates_path_collision_gate.py:412` onward) is the existing regression-guard class 57-11 wrote for the three `builder.py` message sites it already fixed (`_conf17_violation_message`, `_templates_path_collision_message`, `_bundle_destination_collision_message`, lines 303-402). PROJECT.md's footer states the quoting helper "must ... be gated by both `TestWindowsPathEscapingRegressionGuard` and the single-quote case 57-REVIEW IN-01 named as missing" — i.e. this ONE class is the natural home for Fix 3's new coverage across ALL of `builder.py`/`writer.py`/`template_registry.py`'s sites. If Fix 3 is split into parallel plans (one per file) that each extend this same class/file with new test methods in the same wave, that is exactly the "one plan changes an emitted string, another plan asserts on it, same wave" hazard this project has already hit once (57-11's own CI-matrix cost) and named as a standing risk in the operator's own memory.
+
+### Proposed decomposition
+
+**Wave 1 — two genuinely independent plans, zero file overlap with anything else in this milestone, safe to run in parallel:**
+
+- **Plan 1a — new quoting-helper module.** Create the new leaf module (part a) with the delimiter-aware helper and its own unit tests (including the single-quote-in-path case 57-REVIEW named as missing, `.planning/PROJECT.md:71-72`). Touches only the new file + its own new test file. No existing file is edited yet — this plan does not wire the helper into any call site.
+- **Plan 1b — `visit_image()` escaping (defect 2 gap 2).** Wrap `adjusted_uri` in `escape_typst_string()` at both `translator.py:4746` and `4749` (part b). Touches only `translator.py` + its own test file. Fully independent of Plan 1a (uses the PRE-EXISTING `escape_typst_string()`, not the new helper) and of everything in Wave 2 below (never touches `builder.py`).
+
+**Wave 2 — depends on Wave 1 Plan 1a (the helper must exist to be imported); internally sequenced, not parallel, for the `builder.py`-touching parts:**
+
+- **Plan 2a (sequential, single plan) — the whole `builder.py` change set: Fix 1 + Fix 2 gaps 1/3 + Fix 3's `builder.py` rollout, as ONE plan.** Given finding (c) — Fix 1 changes NOTHING observable at either call site, so it carries near-zero risk to bundle — and given the tight line-level adjacency named above (Fix 2's gap 1/3 sit 13-45 lines from the `_escapes_outdir()` call Fix 1 touches, and Fix 3's line-1767 message site is the SAME warning Fix 2 changes the value of), splitting these three into separate parallel plans against the same file/method is the exact hazard this project has already paid for once. Doing them as one sequential plan (or, if the executing agent prefers smaller reviewable units, as 2-3 STRICTLY SEQUENTIAL sub-plans in the SAME wave-ordinal — never parallel worktrees — each waiting on the prior one's merge) removes both the same-file and the same-string hazards structurally, because there is only ever one active edit to `builder.py` at a time. This plan also extends `TestWindowsPathEscapingRegressionGuard` for every `builder.py` site (owns that file exclusively for this wave).
+- **Plan 2b (parallel-safe alongside 2a — disjoint file, `writer.py` only) — Fix 3's `writer.py` rollout.** `writer.py:511-513`, the wrapper-render debug log. Genuinely independent of `builder.py` (no shared import, no shared emitted string, no shared assertion target) — safe to parallelize with 2a PROVIDED it does not also extend `TestWindowsPathEscapingRegressionGuard` (route its own new assertions through a writer-scoped test module/class instead, to avoid the same-test-file hazard named above even though the files under test differ).
+- **Plan 2c (parallel-safe alongside 2a — disjoint file, `template_registry.py` only) — Fix 3's `template_registry.py` rollout.** `template_registry.py:410/422/433`, the declared-template validation messages. Same independence argument and same same-test-file caveat as 2b.
+
+**Why this order and not, e.g., Fix-1-then-Fix-2-then-Fix-3 as three fully separate waves:** part (c)'s finding that Fix 1 has zero observable effect at either production call site means there is no CORRECTNESS dependency forcing Fix 1 to land before Fix 2 (Fix 2's gap 1/3 do not read `_escapes_outdir()`'s return value at all — they touch the KEY CONSTRUCTION inside the `escaped` branch, which is already reached correctly today). The only real ordering constraint in this milestone is Wave 1 → Wave 2 (the quoting helper must exist before anything imports it), plus the internal sequencing of `builder.py`'s three fixes to avoid the file/line/string collisions documented above. Fix 2's gap 2 (`translator.py`) and Fix 3's `writer.py`/`template_registry.py` legs have no dependency on `builder.py`'s internal sequencing and should not be blocked behind it.
+
+## Internal Boundaries (template section, filled)
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `builder.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge, no cycle risk (leaf has no back-import) |
+| `writer.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge, no cycle risk |
+| `template_registry.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge — `template_registry.py`'s FIRST module-scope `typsphinx`-internal import; still safe because the target is a leaf |
+| `builder.py` ↔ `writer.py` | `builder.py` imports `writer.py` at module scope (pre-existing) | Do NOT add a `writer.py → builder.py` import for the quoting helper — direct cycle |
+| `builder.py` ↔ `template_registry.py` | `builder.py` imports `template_registry.py` at module scope; `template_registry.py` imports `builder.py` only lazily/function-scoped (pre-existing, deliberate) | Do NOT add a second module-scope `template_registry.py → builder.py` import for the quoting helper — would re-create the exact cycle the lazy import already works around |
+| `_escapes_outdir()` (builder.py:197) ↔ `_resolve_target_stem()` (builder.py:608) | direct call, same file | Call site 1; argument already backslash-normalized by caller (part c) |
+| `_escapes_outdir()` (builder.py:197) ↔ `_track_image()` (builder.py:1637) | direct call, same file, "cross-domain reuse" per the existing comment at builder.py:1719-1725 | Call site 2; argument already backslash-normalized by caller (part c) |
+| `escape_typst_string()` (translator.py:156) ↔ `visit_image()` (translator.py:4718) | direct call, same file, same method | Gap 2's whole fix; must wrap `adjusted_uri` (post-`_compute_relative_image_path()`), never `uri` (part b) |
+
+## Anti-Patterns (specific to this integration)
+
+### Anti-Pattern 1: Putting the quoting helper in `builder.py` or `writer.py` "because that's where the call sites are"
+
+**What people do:** Add the new helper as a private function inside `builder.py` (most call sites are there) and have `writer.py`/`template_registry.py` import it from there.
+**Why it's wrong:** `builder.py` already imports `writer.py` at module scope; `writer.py` importing back from `builder.py` is an unconditional two-file import cycle that fails at interpreter start, not at call time — this is not a style objection, it is a hard `ImportError`.
+**Do this instead:** New leaf module (part a).
+
+### Anti-Pattern 2: Treating Fix 1 as a blocking prerequisite for Fix 2
+
+**What people do:** Sequence "fix `_escapes_outdir()` first, then fix `_track_image()`'s basename/key-length gaps, because they're in the same function family."
+**Why it's wrong:** Part (c) shows Fix 1 changes nothing observable at either call site; Fix 2's gaps 1 and 3 are about the KEY STRING CONSTRUCTION inside the already-correctly-reached `escaped` branch, not about whether that branch is reached. Treating them as strictly ordered adds a false dependency and unnecessarily serializes work that could, in principle, be reviewed independently — the real reason to keep them in one plan is the file/line-adjacency collision risk (item 2 under "two overlaps"), not a correctness dependency.
+
+### Anti-Pattern 3: Parallel plans that each extend `TestWindowsPathEscapingRegressionGuard` in the same wave
+
+**What people do:** Split Fix 3's rollout into "builder.py plan", "writer.py plan", "template_registry.py plan" and let each add its own new test methods to the existing `TestWindowsPathEscapingRegressionGuard` class for coverage symmetry.
+**Why it's wrong:** All three plans editing the same test class/file in the same wave reproduces exactly the "emitted string changed by one plan, asserted on by another, same wave" hazard already named in this project's own operating history (57-11's two burned CI matrices were a variant of this same class of defect — a message-formatting change whose test coverage didn't match the real message builder).
+**Do this instead:** Either keep all `TestWindowsPathEscapingRegressionGuard` edits inside the single sequential `builder.py` plan (2a) and give the parallel `writer.py`/`template_registry.py` plans (2b/2c) their own separate test classes/modules, or run 2b/2c strictly after 2a merges if shared-class coverage is required.
 
 ## Sources
 
-All findings are primary-source reads of this repository at commit `aed773c9` (HEAD at research time), specifically:
-- `/home/yuta/Documents/typsphinx/typsphinx/builder.py` (full read, 1565 lines)
-- `/home/yuta/Documents/typsphinx/typsphinx/writer.py` (full read, 452 lines)
-- `/home/yuta/Documents/typsphinx/typsphinx/template_engine.py` (full read, 785 lines)
-- `/home/yuta/Documents/typsphinx/typsphinx/__init__.py` (config registration block)
-- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (lines 1‑140, milestone brief and locked decisions)
-- `/home/yuta/Documents/typsphinx/pyproject.toml` (package-data declaration, line 73)
-- Direct filesystem check: `ls typsphinx/templates/` (confirms single-file bundle)
-- Direct grep counts: `_write_template_file` callers, `_template.typ` references across `tests/`, `typst_template_assets` references, `copy_template_assets`/`_copy_template_directory`/`_copy_explicit_assets`/`_copy_single_asset` callers, `.render(` call sites (confirms `render()`'s inline-template branch is live, tested API surface)
-- `/home/yuta/Documents/typsphinx/tests/fixtures/template_named_dir_master/conf.py` (full read — source of the §5 risk finding)
+- `typsphinx/builder.py` (read in full, 2440 lines) — import block (8-29), `_is_drive_qualified` (86-118), `_is_absolute_image_uri` (121-194), `_escapes_outdir` (197-238), the three 57-11 message builders (303-402), `_validate_output_path_collisions` (866-1019, the census lines 942/964/965/999/1007/1008/1015), `_track_image` (1637-1790, including the 1767 warning and the 1761-1772 key construction), `_copy_bundle_directory` (the 2056/2066 census lines)
+- `typsphinx/translator.py` lines 1-200 (`escape_typst_string`, 156-187) and 4690-4770 (`visit_image`/`depart_image`, 4718-4769), plus `_compute_relative_image_path` (5047-5140+)
+- `typsphinx/writer.py` (read in full, 515 lines) — import block (8-26), `render_wrapper`'s debug log (511-513)
+- `typsphinx/template_registry.py` (read in full, 529 lines) — import block (27-31), the lazy cycle-breaking comment (`_has_case_collision`, ~79-98), the three census lines (410/422/433)
+- `/home/yuta/Documents/typsphinx/CLAUDE.md` (Architecture section, worktree-isolated execution section)
+- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (top "Current Milestone: v0.9.1" section, plus the 2026-08-27 and 2026-08-22 footer entries for the 57-11 prior-art and `TestWindowsPathEscapingRegressionGuard` context)
+- `tests/test_templates_path_collision_gate.py` (grep-verified location and line number of `TestWindowsPathEscapingRegressionGuard`, line 412)
+- Direct execution (Python 3, this machine, `posixpath`) of both the current and the candidate-fixed `_escapes_outdir()` bodies against all five documented shapes, at both call sites' actual invocation contexts — the basis for the part (c) blast-radius table
+
+---
+*Architecture research for: typsphinx v0.9.1 Windows path correctness (bug-fix integration, not greenfield)*
+*Researched: 2026-08-27*

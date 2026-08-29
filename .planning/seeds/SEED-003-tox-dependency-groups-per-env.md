@@ -5,6 +5,10 @@ planted: 2026-08-10
 planted_during: v0.7.1 (bug-fix round) — Phase 45.2 discussion
 trigger_when: when relevant
 scope: tooling
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
+  status: dormant
 ---
 
 # SEED-003: Split the `dev` extra into PEP 735 `[dependency-groups]` so each tox environment installs only what it needs
@@ -51,6 +55,7 @@ tool surface explicit rather than inherited.
 - What happens to the existing `dev` extra — kept as an aggregate that references the groups, or
   retired in favour of them? Contributors currently install with `uv sync --extra dev` and
   `pip install -e ".[dev]"`, and `docs/source/contributing.rst` documents that form.
+
 - How large is the resulting `uv.lock` diff, and does anything in CI (`uv sync --extra dev
   --locked`) need to change in lockstep?
 

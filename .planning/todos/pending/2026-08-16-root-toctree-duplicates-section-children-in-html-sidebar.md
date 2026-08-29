@@ -4,10 +4,15 @@ title: "The root `index.rst` lists section indexes AND their children in the sam
 area: docs
 severity: minor
 files:
+
   - docs/source/index.rst:41-48   # the "User Guide" toctree
   - docs/source/index.rst:50-56   # the "Examples" toctree, same shape
   - docs/source/user_guide/index.rst:6-12
   - docs/source/examples/index.rst:6-10
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -88,6 +93,7 @@ Two secondary observations from the same measurement, neither a defect on its ow
 1. The typst builder emits dead `include(...)` lines for the duplicated entries. Harmless and by
    design (the edge encodes which parent was selected), but it is extra output that disappears once
    the source toctree is deduplicated.
+
 2. HTML and Typst nest `examples/basic` under **different** parents — Sphinx HTML selected `index`,
    while the typst edge map recorded `examples/index#0>examples/basic`. Both render the page once, so
    nothing is broken, but the two builders' navigation trees are not identical for that page. Worth a

@@ -2,7 +2,7 @@
 created: 2026-08-16
 title: "`_track_image()`'s escape branch builds its relocation key with `path.basename()` on the RAW URI, so a backslash-shaped absolute image URI emits an `image(\"...\")` path Typst refuses to compile"
 area: builder
-resolves_phase: unassigned
+resolves_phase: 59
 severity: major
 source: Phase 55 code review CR-01 + WR-01
   (.planning/phases/55-v0-8-0-derived-defects/55-REVIEW.md, including the

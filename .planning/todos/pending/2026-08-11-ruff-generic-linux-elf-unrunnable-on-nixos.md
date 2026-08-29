@@ -6,7 +6,12 @@ resolves_phase: null
 severity: warning
 source: 45.2 discussion (2026-08-10) D-03, reconfirmed live by 45.2-01 Step 1 and 45.2-04 Step 6
 files:
+
   - flake.nix (candidate fix site)
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -53,9 +58,11 @@ confirmed green across every 45.2-05 CI dispatch (`45.2-TOOLCHAIN-EVIDENCE.md` S
    `ruff>=0.15,<0.16` floor (`pyproject.toml` line 40), so a version-compatible nix-store build is
    available today. This would put a working `ruff` on `PATH` outside any venv, the same way the
    nix-store `uv` already sits on `PATH` (resolved via `shutil.which`, not `.venv/bin`).
+
 2. **`patchelf` on the `.venv`/`.tox` wheel-installed `ruff` binary**, rewriting its interpreter to
    point at the nix-store glibc dynamic linker instead of the generic `/lib64/ld-linux-x86-64.so.2`.
    Would need to run after every `uv sync`/`tox` provisioning step (a hook, not a one-shot fix).
+
 3. **System `nix-ld`** — a NixOS module that makes the standard `/lib64/ld-linux-x86-64.so.2` path
    resolve to a real, generic-linux-compatible loader machine-wide, fixing this class of defect for
    every generic-linux binary (not just `ruff`), at the cost of a system-level (not project-level)
@@ -92,8 +99,10 @@ declarations should read both together.
 
 - `ruff check .` (and `tox -e lint`'s `ruff` command) runs to completion on this NixOS machine,
   producing real lint output rather than the stub-loader rejection.
+
 - `tox -e py312` (and the full `env_list`) runs to completion on this NixOS machine with a real
   Python 3.12 interpreter, not an auto-downloaded generic-linux build.
+
 - Neither repair regresses CI, which already has working `ruff`/`py312` today.
 
 ## 2026-08-22 evidence — this milestone's re-measurement, KEPT OPEN (owner decision, Phase 57)

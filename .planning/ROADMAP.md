@@ -14,13 +14,44 @@
 - ✅ **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1, 44.2, 45.1, 45.2) (shipped 2026-08-11) → [archive](milestones/v0.7.1-ROADMAP.md)
 - ✅ **v0.8.0 — multi-master composition** — Phases 47–52 (shipped 2026-08-15) → [archive](milestones/v0.8.0-ROADMAP.md)
 - ✅ **v0.9.0 — per-document templates** — Phases 53–57 (+54.1) (shipped 2026-08-22) → [archive](milestones/v0.9.0-ROADMAP.md)
+- ✅ **v0.9.1 — Windows path correctness** — Phases 58–61 (completed 2026-08-30, **never published**) → [archive](milestones/v0.9.1-ROADMAP.md)
 
-**No active milestone.** Start the next one with `/gsd-new-milestone`.
+**No active milestone.** Run `/gsd-new-milestone` to scope the next one.
 
-Phase numbering is **continuous across milestones** — v0.9.0 ran Phases 53–57, so the next
-milestone starts at **Phase 58**.
+**v0.9.1 completed but was never released, and the next published version is 0.9.2.** Its three
+Windows path defect families closed on the product side; the release was then cancelled for an
+unrelated, pre-existing `blocker` — an inline image not first in its paragraph aborts the whole
+Typst compile, so `-b typstpdf` writes no PDF at all. No `v0.9.1` tag exists, locally or on the
+remote; `pyproject.toml` is still `0.9.0` and the milestone's CHANGELOG bullets wait under
+`## [Unreleased]`. **v0.9.2's first requirement is already known**: the blocker, tracked as
+`.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`.
+REL-09 carries forward unmet with its literal wording — including its `v0.9.1` version string —
+unchanged by owner decision D-08.
 
 ## Phases
+
+**Phase Numbering:**
+
+- Integer phases (62, 63, …): Planned milestone work
+- Decimal phases (62.1, 62.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order. Numbering is
+**continuous across milestones** — each milestone continues from the prior one's last phase
+(never resets to 1). v0.9.1 ran Phases 58–61, so the next milestone starts at **Phase 62**.
+
+<details>
+<summary>✅ v0.9.1 Windows path correctness (Phases 58–61) — COMPLETED 2026-08-30, NOT PUBLISHED</summary>
+
+- [x] Phase 58: `repr()`-Format Decoupling (test-side only) (3/3 plans) — completed 2026-08-28
+- [x] Phase 59: Path-Shape Predicate and Image-URI Correctness (5/5 plans) — completed 2026-08-29
+- [x] Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere (5/5 plans) — completed 2026-08-29
+- [x] Phase 61: v0.9.1 Release Prep (prep-only) (4/4 plans) — completed 2026-08-30
+
+10/11 v1 requirements complete. REL-09 (publish to PyPI) deliberately unmet — the release was
+cancelled, not missed. Full phase detail, the 14 binding constraints, success criteria and
+decisions: [milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md)
+
+</details>
 
 <details>
 <summary>✅ v0.9.0 per-document templates (Phases 53–57, +54.1) — SHIPPED 2026-08-22</summary>
@@ -42,6 +73,28 @@ Full phase detail, success criteria, and decisions: [milestones/v0.9.0-ROADMAP.m
 Each milestone's phase detail lives in its own archive, linked from the **Milestones** list above.
 
 </details>
+
+## Progress
+
+**No milestone is active.** Phases 1–61 shipped or completed across v0.4.4 → v0.9.1; their per-phase
+plan counts, statuses and completion dates are preserved in each milestone's archived roadmap under
+`milestones/`. This table is re-created for the active milestone by `/gsd-new-milestone`.
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| — | — | — | No active milestone | — |
+
+## Roadmap Evolution
+
+Per-milestone evolution notes are archived with their milestone. v0.9.1's — the three structural
+decisions baked into the 58–61 phase split, the `gsd/v0.9.1-milestone` decoy-branch correction, and
+the deliberate decision to give the 3-OS matrix run no REQ-ID — live in
+[milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md).
+
+- **2026-08-30** — v0.9.1 closed and reorganized here. The milestone completed all four phases and
+  **published nothing**: the close performed no tag, no PyPI upload, no GitHub Release and no pull
+  request (D-02, D-12), the first time in this project's history. Phase detail, requirements and the
+  milestone audit archived to `milestones/v0.9.1-*`.
 
 ## Backlog
 
@@ -100,21 +153,41 @@ unfixed by decision D-01 or with only a test-side fix, all closed on the product
 - `escape-branch-relocation-key-uses-basename-only-two-escaping-images-can-collide` → Phase 55 (IMG-03)
 - `track-image-isabs-not-drive-aware-on-py313-windows` → Phase 55 (BLD-09)
 
-**Still open and deferred after the v0.9.0 close** (2026-08-22) — full dispositions in
+**Todos promoted into v0.9.1** (2026-08-27) — the three path-handling records Phase 57's prep-only
+fence held back, each now carrying a REQ-ID and a phase:
+
+- `2026-08-16-escapes-outdir-isabs-not-backslash-normalized` → Phase 59 (**PATH-01**). Re-measured at
+  roadmap time: **not reachable from either production call site**, because both pre-normalize. Kept
+  in scope deliberately as hardening of the function's own contract — a future third call site would
+  inherit the gap silently — with the standing instruction that its gate call `_escapes_outdir()`
+  directly, since an integration test through either call site is tautologically green.
+
+- `2026-08-16-track-image-escape-branch-basename-not-normalized` → Phase 59 (**IMG-04**), together
+  with its two never-filed siblings scoped in alongside it: the unescaped `image("...")` emission
+  (**IMG-05**) and the unbounded key length (**IMG-06**). IMG-04 and IMG-05 are coupled by Typst's
+  value-level backslash refusal, so the real-compile gate (**IMG-07**) closes both at once.
+
+- `2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages` → Phase 60 (**MSG-02** through
+  **MSG-05**), with its test-side prerequisite split out as **MSG-01** in Phase 58. This record
+  carries **both** halves of the defect — the `!r` backslash-doubling at the sites 57-11 left alone,
+  and 57-REVIEW WR-01's fixed-`'...'` delimiter that closes early on a path containing a single
+  quote — and one delimiter-aware helper closes both.
+
+Each todo record stays **pending** until its phase executes; the todo is the detail record, the phase
+entry above is the sequencing record.
+
+**Still open and deferred after the v0.9.0 close** (2026-08-22), and **not** in v0.9.1 scope — full
+dispositions in
 `.planning/milestones/v0.9.0-phases/57-v0-9-0-release-prep-prep-only/57-HANDOFF.md`
 § "Deferrals carried forward", and one row each in STATE.md's Deferred Items ledger:
 
 - `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` — **kept open with a live 2026-08-22
-  recurrence annotated**, which falsified this milestone's own 2026-08-16 "ruff works here"
-  measurement. The main tree's stale binary masks it; only a freshly-provisioned venv reproduces it.
-- `2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages` — the `!r`-path-escaping shape at
-  the sites Phase 57's one fence exception deliberately left alone, widened at the close to cover the
-  fixed-`'...'`-delimiter defect the code review found. One delimiter-aware helper closes both.
+  recurrence annotated**, which falsified v0.9.0's own 2026-08-16 "ruff works here" measurement. The
+  main tree's stale binary masks it; only a freshly-provisioned venv reproduces it. Tracked as Future
+  requirement QUA-06. CI holds lint authority, so it blocks nothing — including this milestone's
+  worktree-isolated executors.
 - `2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch` — `severity: major`; its `--locked`
-  census is what made v0.9.0's D-13 sequencing constraint concrete.
-- `2026-08-16-escapes-outdir-isabs-not-backslash-normalized` and
-  `2026-08-16-track-image-escape-branch-basename-not-normalized` — two `builder.py` path predicates
-  held behind Phase 57's prep-only fence.
+  census is what made v0.9.0's D-13 sequencing constraint concrete. Tracked as a Future CI requirement.
 - `2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar` — an HTML sidebar defect in
   this project's own docs.
 - `2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures` — still
@@ -128,13 +201,57 @@ unfixed by decision D-01 or with only a test-side fix, all closed on the product
 - Dormant seeds: `SEED-001-readme-quickstart-typst-documents-pdf`,
   `SEED-003-tox-dependency-groups-per-env` (Future QUA-07), and **`SEED-004-typst-py-maintenance-risk-vendored-compile-path`**
   — `typst-py` upstream maintenance is slowing and typsphinx may eventually need to carry an
-  equivalent compile path. The largest structural risk on the horizon; never scoped into a milestone.
+  equivalent compile path. The largest structural risk on the horizon; never scoped into a milestone,
+  and explicitly not scoped into this bug-fix round either.
 
 **Known limitations shipped in v0.9.0**, deferred by owner decision with no published surface:
 WR-02 (`templates_path` resolved against `srcdir`, not `confdir`, so `-c`/confdir projects keep the
 republication hole — shipped *silent*, making the CHANGELOG's validation sentence read
-unconditional), the tripled "Custom template not found" warning, and the fixed-delimiter path
-quoting above.
+unconditional) and the tripled "Custom template not found" warning; both are carried forward as v2
+requirements and are **not** in v0.9.1 scope. The third — the fixed-`'...'`-delimiter path quoting —
+**is** closed this milestone, by MSG-02's delimiter-aware helper.
+
+**Closed by v0.9.1** (2026-08-30) — the three records promoted above all executed:
+`2026-08-16-escapes-outdir-isabs-not-backslash-normalized` (PATH-01),
+`2026-08-16-track-image-escape-branch-basename-not-normalized` (IMG-04), and
+`2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages` — **both** halves, by MSG-01
+through MSG-05.
+
+**Filed during v0.9.1 and open** (2026-08-30), both in `translator.py`, neither in that milestone's
+requirement scope:
+
+- `2026-08-29-inline-image-in-paragraph-emits-unseparated-expression` — `severity: blocker`, and
+  **the single strongest candidate for the next milestone**. An image node that is not the first
+  thing in its paragraph is emitted adjacent to the preceding code-mode expression, so Typst refuses
+  the file with `expected semicolon or line break` and `-b typstpdf` raises `ExtensionError`
+  rather than degrading — **no PDF is produced for any master document in the project**. Owner-
+  reported 2026-08-29 and root-caused the same day; measured **pre-existing, not a v0.9.1
+  regression** (D-06), so it is live in the published 0.9.0. It is the reason v0.9.1 was never
+  released (D-02), was deliberately not fixed in that milestone (D-07), and has **no public-surface
+  disclosure** (D-05).
+- `2026-08-29-hardcoded-delimiter-path-fragments-in-translator-relative-path-debug-logs` —
+  `severity: minor`. `translator.py`'s two relative-path DEBUG logs carry the same
+  hardcoded-`'...'`-delimiter shape Phase 60 closed in three other modules; found by that phase's own
+  repo-wide discovery grep and filed rather than fixed, being a fourth module outside
+  MSG-02..MSG-05's scope. The one-line fix is `quote_path()`, which now exists.
+
+**Still open and deferred after the v0.9.1 close** (2026-08-30), one row each in STATE.md's Deferred
+Items ledger: `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` (Future QUA-06),
+`2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch` (`severity: major`),
+`2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar`,
+`2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures` (still
+excluded from every published surface by D-07),
+`2026-08-04-release-create-job-missing-uv-verify-end-to-end` (untestable at this close, since
+nothing was published), `2026-07-22-add-sphinx-linkcheck-ci-job` (Future LNK-01),
+`2026-07-22-modernize-typing-imports-drop-up006-up035-ignore` (forbidden by `CLAUDE.md` until the
+todo itself lands), and the three dormant seeds — SEED-001, SEED-003 (Future QUA-07) and
+**SEED-004** (`typst-py` upstream maintenance slowing; the largest structural risk on the horizon,
+never scoped into any milestone across three consecutive closes).
+
+**Known limitations still shipped with no published surface** after v0.9.1: WR-02's `confdir` gap
+and the tripled "Custom template not found" warning, both carried unchanged from v0.9.0, joined now
+by the inline-image blocker. That is the **fourth consecutive** cycle at which a
+`### Known Limitations` section was declined.
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22), v0.9.1 (2026-08-30 — completed, not published). Per-milestone phase detail, success criteria, and decisions for completed milestones live in `milestones/vX.Y-ROADMAP.md`.*

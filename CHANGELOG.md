@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Windows-shaped `typst_documents` target that reaches outside the output directory is now
+  refused on the normalized path, matching its sibling image-URI check (PATH-01).** The
+  `typst_documents` escape predicate now applies its absolute-path and drive-qualified checks to
+  the same backslash-normalized string its sibling image-URI predicate already used, rather than
+  to the raw stem. Neither of the predicate's two real call sites can currently reach the gap this
+  closes — both normalize or otherwise guarantee a safe value before calling it — so this is
+  contract hardening for a future caller, not the repair of a defect any user was hitting.
+
+- **A Windows-shaped absolute image URI now compiles instead of aborting the PDF build (IMG-04,
+  IMG-05, IMG-06, IMG-07).** The relocation key built for a relocated image is now derived from a
+  forward-slash-normalized basename, so no backslash or drive letter from the original URI
+  survives into the emitted `image(...)` path value, and that value is now escaped as a Typst
+  syntax literal before it is interpolated. The two halves are coupled — neither alone closes the
+  compile-time failure, because Typst refuses a backslash in an `image()` path by value, not by
+  syntax. The relocation basename is also bounded to 255 UTF-8 bytes, with the collision-avoidance
+  digest kept whole so two images that would otherwise collide on a shared filename still resolve
+  to distinct files.
+
+- **A path named in a diagnostic message now reads exactly as it appears on disk (MSG-02, MSG-03,
+  MSG-04, MSG-05).** Path-valued messages across the extension no longer double a Windows
+  separator, and the quoting that wraps a path no longer closes early on a path containing a
+  quote character — a POSIX path with an apostrophe in it (for example, a directory named
+  `O'Brien`) was affected by the same defect family as a Windows-shaped path, so this is not a
+  Windows-exclusive fix. Identifier-valued messages (registry keys, docnames) are unaffected;
+  only path-valued messages route through the new quoting.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation

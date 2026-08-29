@@ -5,6 +5,10 @@ planted: 2026-08-16
 planted_during: v0.9.0 / Phase 56 (per-document-template-documentation)
 trigger_when: when relevant
 scope: unknown
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
+  status: dormant
 ---
 
 # SEED-004: typst-py upstream maintenance is slowing — typsphinx may need to carry an equivalent compile mechanism itself
@@ -29,6 +33,7 @@ merely a version pin — is what is at risk.
 This seed will surface during `/gsd-new-milestone` when the milestone scope matches.
 
 Candidate narrower triggers to consider at enrich time (not yet chosen):
+
 - when `typst>=0.15.0,<0.16` can no longer be widened to a current Typst release
 - when the weekly `drift.yml` re-resolution starts failing on the typst pin
 - when a needed Typst compiler feature exists in the CLI but not in the Python binding
@@ -45,15 +50,19 @@ Coupling surface is narrow, which is favourable for this idea:
   `get_typst_version()`, and the compile call, plus `TypstCompilationError` which carries the
   underlying typst error. Everything else in the pipeline produces `.typ` text and is
   binding-agnostic.
+
 - `pyproject.toml:30` — `"typst>=0.15.0,<0.16"`, the pinned dependency
 - `pyproject.toml:97` — an existing comment referencing typst-py 0.15.0 and its
   verified zero-third-party-warnings behaviour (recorded in `08-RESEARCH.md`)
+
 - `.github/workflows/drift.yml` — weekly re-resolution of latest allowed deps; this is the
   existing early-warning channel for the pin going stale
+
 - `CLAUDE.md`, `README.md`, `docs/source/index.rst` — all state the
   "no external Typst CLI required" property that this seed is really about protecting
 
 Related planning context:
+
 - `.planning/todos/pending/` — no existing todo covers the typst-py dependency
 - No prior seed overlaps (SEED-001 README quickstart, SEED-002 captioned-table label,
   SEED-003 tox dependency groups)
