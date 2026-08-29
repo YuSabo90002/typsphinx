@@ -92,9 +92,15 @@ the deliberate decision to give the 3-OS matrix run no REQ-ID — live in
 [milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md).
 
 - **2026-08-30** — v0.9.1 closed and reorganized here. The milestone completed all four phases and
-  **published nothing**: the close performed no tag, no PyPI upload, no GitHub Release and no pull
-  request (D-02, D-12), the first time in this project's history. Phase detail, requirements and the
-  milestone audit archived to `milestones/v0.9.1-*`.
+  **published nothing**: the close performed no tag, no PyPI upload and no GitHub Release (D-02),
+  the first time in this project's history. Phase detail, requirements and the milestone audit
+  archived to `milestones/v0.9.1-*`.
+
+- **2026-08-29T22:31Z** — `gsd/v0.9.1-windows-path-correctness` merged to `main` as `9db2274c` via
+  **merge-only PR #135**, at owner instruction after the close was taken, overriding D-12's "no pull
+  request for this milestone". 15/15 checks green on the PR head, both `windows-latest` lanes
+  included; branch deleted on merge. **D-02's no-release half stands** — still no tag, no PyPI
+  upload, no GitHub Release. The merge exists so 0.9.2 can carry the fixes.
 
 ## Backlog
 

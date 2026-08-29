@@ -5,8 +5,9 @@
 **Delivered:** three latent Windows path defect families closed on the product side, behind gates
 that were RED against the unfixed tree first — and then the release was deliberately cancelled for
 an unrelated, pre-existing blocker. This is the first milestone in this project's history that ships
-nothing: no tag (local or remote), no PyPI upload, no GitHub Release, no pull request.
-`pyproject.toml` stays at `0.9.0`; the next published release is **0.9.2** (D-02).
+nothing: no tag (local or remote), no PyPI upload and no GitHub Release.
+`pyproject.toml` stays at `0.9.0`; the next published release is **0.9.2** (D-02). The work was
+merged to `main` after the close via a merge-only PR (see **Git** below) so 0.9.2 can carry it.
 
 **Closeout:** override_closeout — but for the first time in seven closes, on a **real
 `v0.9.1-MILESTONE-AUDIT.md`** rather than in the absence of one. The audit reports requirements
@@ -17,9 +18,14 @@ the archived Phase 22.3, and 3 archived deferred-item entries whose heading-deli
 acknowledge writer refuses, marked by direct file edit instead.
 **Phases:** 4 (58–61) · **Plans:** 17 · **Tasks:** 48
 **Requirements:** 10/11 v1 requirements complete · **Timeline:** 2026-08-27 → 2026-08-30 (4 days)
-**Git:** milestone branch `gsd/v0.9.1-windows-path-correctness` (163 commits), **kept unmerged and
-untagged** by owner decision at this close — the same handling v0.7.0 through v0.9.0 branches
-received. `main` is unchanged.
+**Git:** milestone branch `gsd/v0.9.1-windows-path-correctness` (163 commits) merged to `main` as
+`9db2274c` via **PR #135** on 2026-08-29T22:31Z, at owner instruction after the close had already
+been taken. The PR was **merge-only** — `61-HANDOFF.md`'s D-12 had ruled out a PR for this
+milestone, and the owner overrode that; the no-release half of D-02 was not overridden and still
+holds. 15/15 checks green on the PR head, both `windows-latest` lanes and `Lint and Format Check`
+included; branch deleted on merge. **Still untagged** — the tag belongs to 0.9.2's release-prep
+phase. This is the first v0.x milestone branch to be merged and deleted rather than left standing
+alongside v0.7.0–v0.9.0's.
 **Code delta (milestone scope, excl. `.planning/`):** 23 files, +3,011 / −72 lines. One new runtime
 module (`typsphinx/pathfmt.py`, a zero-import stdlib leaf) and one new test helper
 (`tests/_path_naming.py`); everything else is `builder.py`/`translator.py`/`writer.py`/

@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
 status: Awaiting next milestone
-stopped_at: Milestone v0.9.1 closed and archived — no publish performed (D-02)
-last_updated: "2026-08-29T21:34:10.137Z"
+stopped_at: Milestone v0.9.1 closed, archived, and merged to main — no publish performed (D-02)
+last_updated: "2026-08-29T22:40:00.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Milestone v0.9.1 completed and archived
-state_head: dae55109732409c5b838ed38c72612a57f7f5e46
+last_activity_desc: Milestone v0.9.1 archived; branch merged to main via PR #135 (no release)
+state_head: 9db2274c3ff3384a5de03137188bf9e35b207b25
 progress:
   total_phases: 4
   completed_phases: 4
@@ -37,7 +37,7 @@ Full phase detail, binding constraints and success criteria:
 
 **Completed 2026-08-30. Deliberately never published — and this is the headline, not a footnote.**
 4 phases (58–61), 17 plans, 48 tasks, **10/11 v1 requirements complete**. There is no `v0.9.1` tag,
-local or remote; no PyPI upload; no GitHub Release; no pull request; `pyproject.toml` is still
+local or remote; no PyPI upload; no GitHub Release; `pyproject.toml` is still
 `0.9.0`; the milestone's CHANGELOG bullets sit under `## [Unreleased]`. The next published release
 is **0.9.2** (D-02). First close in this project's history to publish nothing.
 
@@ -88,8 +88,12 @@ Plan: —
 Status: Awaiting next milestone (`/gsd-new-milestone`)
 Progress: [####################] 100% (4/4 phases; 58 3/3, 59 5/5, 60 5/5, 61 4/4 plans)
 Last activity: 2026-08-30 — milestone v0.9.1 completed and archived, with no publish step performed
-Branch: `gsd/v0.9.1-windows-path-correctness`, kept unmerged by owner decision at this close (the
-same handling v0.7.0 through v0.9.0 received). `main` is unchanged.
+Branch: merged and deleted. `gsd/v0.9.1-windows-path-correctness` went to `main` as `9db2274c`
+via **PR #135** on 2026-08-29T22:31Z, at owner instruction after the close was taken — 15/15 checks
+green on the PR head, both `windows-latest` lanes included. `main` is at `9db2274c` and the local
+checkout is on it. D-12 (no PR for this milestone) was overridden by the owner; **D-02's no-release
+half was not** — there is still no tag, no PyPI upload and no GitHub Release, and the next published
+version is 0.9.2. v0.7.0–v0.9.0's milestone branches are still standing, local and remote.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
