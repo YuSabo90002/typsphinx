@@ -159,6 +159,95 @@ $ git status --porcelain .planning/REQUIREMENTS.md
 Byte-unchanged. REL-09 remains `- [ ]` and Pending, exactly as recorded in § "The lines under
 guard" above.
 
+## Re-verification at phase close
+
+Run by plan 61-04 (the SC#4 fence-observation-2 owner), inside this plan's own worktree, at the
+phase's own close, running exactly the commands this file's own "Re-verification protocol (phase
+close)" section named above.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-29T15:46:13Z
+```
+
+**Verdict: MATCH.** This is the close-time observation timestamp.
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+4682f8cde6b068c2ebbe42201fdff4b0b4cf17558d68c889baaf2f4506d531e1  .planning/REQUIREMENTS.md
+```
+
+**Verdict: MATCH.** Byte-identical to the recorded Baseline digest
+(`4682f8cde6b068c2ebbe42201fdff4b0b4cf17558d68c889baaf2f4506d531e1`).
+
+```
+$ wc -l .planning/REQUIREMENTS.md
+258 .planning/REQUIREMENTS.md
+```
+
+**Verdict: MATCH.** Identical to the recorded Baseline line count (`258`).
+
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+**Verdict: MATCH.** No output — the file carries no uncommitted change against the tree's own HEAD.
+
+```
+$ grep -n 'REL-09' .planning/REQUIREMENTS.md
+127:- [ ] **REL-09**: v0.9.1 released to PyPI with a curated `## [0.9.1]` CHANGELOG entry, the version
+206:| REL-09 | Phase 61 | Pending |
+220:Phase 60 → 4 (MSG-02, MSG-03, MSG-04, MSG-05) · Phase 61 → 1 (REL-09).
+```
+
+**Verdict: MATCH, line-for-line.** Byte-identical to the three quoted lines in § "The lines under
+guard" above — line 127's checkbox is still `- [ ]`, line 206's Traceability row still reads
+`Phase 61 | Pending`, and line 220's phase-totals line is unchanged.
+
+**Overall verdict: no divergence detected.** REL-09 is still an unchecked box, its Traceability row
+still reads `Phase 61` and `Pending`, and no plan in this phase — including this one — touched it.
+Per D-08 it carries forward unmet to the v0.9.2 milestone with its literal wording unchanged,
+including its `v0.9.1` version string, which the owner explicitly declined to rewrite and explicitly
+declined to close as superseded. The only inconsistency this leaves behind is a version number
+inside a requirement that has never been satisfied, which is accurate, because nothing was released.
+
+No `### Divergence detected and reverted` subsection is needed — every comparison above is a
+MATCH, so there is nothing to revert.
+
+## For the operator running phase.complete
+
+This section is reproduced in `61-HANDOFF.md` so an operator following the handoff reaches it
+without opening this file.
+
+After `phase.complete`-family tooling has run for Phase 61 — outside any plan's reach, and
+precisely the moment at which the flip has historically landed at **five consecutive** prior
+release-prep closes — run:
+
+```bash
+sha256sum .planning/REQUIREMENTS.md
+# compare against the Baseline: 4682f8cde6b068c2ebbe42201fdff4b0b4cf17558d68c889baaf2f4506d531e1
+
+git diff --name-only -- .planning/REQUIREMENTS.md
+# expected: no output
+
+grep -n 'REL-09' .planning/REQUIREMENTS.md
+# expected: byte-identical to:
+#   127:- [ ] **REL-09**: v0.9.1 released to PyPI with a curated `## [0.9.1]` CHANGELOG entry, the version
+#   206:| REL-09 | Phase 61 | Pending |
+#   220:Phase 60 → 4 (MSG-02, MSG-03, MSG-04, MSG-05) · Phase 61 → 1 (REL-09).
+```
+
+If any comparison diverges, revert it by hand:
+
+```bash
+git checkout -- .planning/REQUIREMENTS.md
+```
+
+**The flip is reverted and reported, never accepted and never committed.** Do not proceed with
+`/gsd-complete-milestone` or any subsequent step until the reversion is confirmed by re-running the
+three commands above and observing MATCH on all three.
+
 ---
 *Phase: 61-v0-9-1-release-prep-prep-only*
-*Plan: 02*
+*Plan: 02, 04*
