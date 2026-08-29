@@ -5,10 +5,10 @@ milestone_name: Windows path correctness
 current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
 status: executing
-stopped_at: Phase 60 wave 1 complete (60-01 merged); wave 2 next
-last_updated: "2026-08-29T10:18:54.427Z"
+stopped_at: Phase 60 wave 2 complete (60-02/60-03/60-04 merged); wave 3 next
+last_updated: "2026-08-29T11:21:19.000Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 60 execution started
+last_activity_desc: Phase 60 waves 1-2 complete — pathfmt.quote_path() landed and routed into builder.py/writer.py/template_registry.py
 state_head: 31441d09bd8168f1bcc5170749f6d9646a1d5151
 progress:
   total_phases: 4
@@ -98,10 +98,10 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 60 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere) — EXECUTING
-Plan: 1 of 5 complete — wave 1 merged, wave 2 (60-02/60-03/60-04, parallel) next
+Plan: 4 of 5 complete — waves 1-2 merged, wave 3 (60-05 acceptance) next
 Status: Executing Phase 60
 Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 60 executing; wave 1 (`60-01`) complete and merged (the
+Last activity: 2026-08-29 — Phase 60 executing; waves 1-2 complete and merged — `60-01` (the
 `typsphinx/pathfmt.py` leaf module + `quote_path()` + `tests/test_pathfmt.py`); wave 2 is three
 merge-isolated wiring plans in parallel (`60-02` builder.py, `60-03` writer.py, `60-04`
 template_registry.py), each with its own new gate module and its own `60-0N-EVIDENCE.md`; wave 3 is

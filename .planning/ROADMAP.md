@@ -384,7 +384,7 @@ follow the value settling, never accompany it.
      is modified — Phase 58 removed the only two that would have forced it — and the 3-OS CI lane,
      `windows-latest` included, is green on the post-fix tip, dispatched fresh.
 
-**Plans**: 1/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
+**Plans**: 4/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
 
 Plans:
 
@@ -396,12 +396,12 @@ Plans:
 **Wave 2** *(blocked on Wave 1; the three plans run IN PARALLEL — disjoint modules, disjoint test
 modules, per-plan evidence files)*
 
-- [ ] 60-02-PLAN.md — MSG-03: all 23 path-valued interpolations in `typsphinx/builder.py` routed,
+- [x] 60-02-PLAN.md — MSG-03: all 23 path-valued interpolations in `typsphinx/builder.py` routed,
   five message families RED-recorded first, plus the three added single-quote methods on
   `TestWindowsPathEscapingRegressionGuard` (a one-plan privilege, D-11)
-- [ ] 60-03-PLAN.md — MSG-04: `typsphinx/writer.py`'s wrapper-render debug log routed, gated via
+- [x] 60-03-PLAN.md — MSG-04: `typsphinx/writer.py`'s wrapper-render debug log routed, gated via
   `caplog` at DEBUG, with a two-tree byte-identity pin for the package-alone `None` path
-- [ ] 60-04-PLAN.md — MSG-05: `typsphinx/template_registry.py`'s CONF-17 and existence messages
+- [x] 60-04-PLAN.md — MSG-05: `typsphinx/template_registry.py`'s CONF-17 and existence messages
   routed, both of D-12's RED shapes recorded, and the type-check message measurably left excluded
 
 **Wave 3** *(blocked on Wave 2 completion — the audit runs one wave later than what it audits)*
@@ -488,7 +488,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 1/5 | In Progress | - |
+| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 4/5 | In Progress | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
