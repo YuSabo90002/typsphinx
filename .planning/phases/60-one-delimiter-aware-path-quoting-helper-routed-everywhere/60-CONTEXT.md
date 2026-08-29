@@ -127,6 +127,29 @@ makes an execution-time repo-wide grep the discovery authority.
   (`:511-513`). `template_registry.py`: `template` at `:422` and `:433`.
   — **Reversibility:** reversible.
 
+  **AMENDED 2026-08-29 (post-research, owner-approved).** `60-RESEARCH.md`'s execution-time discovery
+  grep found two path-valued sites the enumeration above missed, and the owner elected to fold them
+  into this phase rather than defer them. Re-measured by the orchestrator against the live tree:
+  `grep -n "{target!r}" typsphinx/builder.py` returns exactly three hits — `:890` (already routed
+  above), plus **`:1192`** (`f"target {target!r})"`) and **`:1199`**
+  (`f"{docname!r}, target {target!r}) would write its "`). Both live inside
+  `_validate_output_path_collisions()`, where `target = entry[1]` is the raw `typst_documents`
+  target — **the identical semantic value D-08a already classifies as PATH-valued at `:890`**, merely
+  read at a second call site. This is not a contradiction of a locked decision; it is a gap in D-06's
+  enumeration, and it is exactly the outcome SC#2 anticipates when it names the execution-time grep,
+  not the line list, as the discovery authority. Both sites therefore **route through
+  `quote_path()`**, and they belong to `builder.py`'s wave-2 wiring plan (the same function that plan
+  already edits for `relpath` at `:1135`/`:1208` and `wrapper_relpath` at `:1199-1201`). Note `:1199`
+  is a *mixed* f-string after this amendment: its `docname!r` stays `!r` (D-07) while its `target`
+  routes — a second useful mixed site for SC#3's audit alongside D-08d's `:2242`.
+  **Zero-test-edit impact, measured:** the only backslash-bearing `typst_documents` targets in the
+  suite are in `tests/test_out02_escape_target_gate.py` and its fixture, and that fixture's target is
+  *refused* (exit 0 + warning) rather than colliding, so neither `:1192` nor `:1199` ever emits with
+  it. Every target reaching a collision message in the suite (`master.typ`, `chapter1.typ`,
+  `C:manual`, the `./`-prefixed shapes) renders byte-identically under `repr()` and `quote_path()`.
+  No existing test assertion changes.
+  — **Reversibility:** reversible.
+
 - **D-07: Stays `!r` (identifier-valued), and SC#3's audit measures exactly these.**
   Registry keys (`key`, `existing_key`, `declared_key`, `RESERVED_REGISTRY_KEY`, and every
   `f"{key!r}: {message}"` summary joiner at `builder.py:1565`/`:2410` and throughout
