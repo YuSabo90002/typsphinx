@@ -384,7 +384,32 @@ follow the value settling, never accompany it.
      is modified — Phase 58 removed the only two that would have forced it — and the 3-OS CI lane,
      `windows-latest` included, is green on the post-fix tip, dispatched fresh.
 
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
+
+Plans:
+
+**Wave 1**
+
+- [ ] 60-01-PLAN.md — MSG-02: the `typsphinx/pathfmt.py` leaf module and `quote_path()`, its own
+  RED-first gate module, the two-form leaf-import proof, and the phase evidence spine
+
+**Wave 2** *(blocked on Wave 1; the three plans run IN PARALLEL — disjoint modules, disjoint test
+modules, per-plan evidence files)*
+
+- [ ] 60-02-PLAN.md — MSG-03: all 23 path-valued interpolations in `typsphinx/builder.py` routed,
+  five message families RED-recorded first, plus the three added single-quote methods on
+  `TestWindowsPathEscapingRegressionGuard` (a one-plan privilege, D-11)
+- [ ] 60-03-PLAN.md — MSG-04: `typsphinx/writer.py`'s wrapper-render debug log routed, gated via
+  `caplog` at DEBUG, with a two-tree byte-identity pin for the package-alone `None` path
+- [ ] 60-04-PLAN.md — MSG-05: `typsphinx/template_registry.py`'s CONF-17 and existence messages
+  routed, both of D-12's RED shapes recorded, and the type-check message measurably left excluded
+
+**Wave 3** *(blocked on Wave 2 completion — the audit runs one wave later than what it audits)*
+
+- [ ] 60-05-PLAN.md — acceptance: SC#2's repo-wide discovery grep, SC#3's over-reach measurement,
+  SC#5's zero-test-edit proof against `58-REPR-CENSUS.md`, the read-only consolidation into
+  `60-PATH-QUOTING-EVIDENCE.md`, and a fresh 3-OS CI dispatch on the post-fix tip
+
 **UI hint**: no
 
 ### Phase 61: v0.9.1 Release Prep (prep-only)
@@ -463,7 +488,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/TBD | Not started | - |
+| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/5 | Planned | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

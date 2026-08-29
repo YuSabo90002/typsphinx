@@ -55,20 +55,31 @@ a `DeprecationWarning`/`PendingDeprecationWarning`. `pathfmt.py`'s stdlib-only s
 
 ## Per-Task Verification Map
 
-Task IDs are provisional — the planner assigns the final ones. Test-module names beyond D-11's
-placement rule are Claude's Discretion per CONTEXT.md; the names below are the research's proposals.
+Task IDs below are the FINAL ones assigned at plan time (`{plan}-T{task}`). Test-module names beyond
+D-11's placement rule were Claude's Discretion per CONTEXT.md; the names below are the ones the plans
+actually create.
+
+**Correction to `60-RESEARCH.md`'s proposed leaf-import proof (measured at plan time):**
+`typsphinx/__init__.py` imports `typsphinx.builder` at module scope, so
+`import typsphinx.pathfmt` + a `sys.modules` scan FAILS even for a perfect leaf module and would
+prove the opposite of SC#1. The proof is therefore (a) an AST read of `pathfmt.py`'s import block and
+(b) a fresh-interpreter load BY FILE PATH via `importlib.util.spec_from_file_location`, both inside
+`tests/test_pathfmt.py::TestPathfmtLeafModule`.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 60-01-xx | 01 | 1 | MSG-02 | — | N/A | unit | `uv run pytest tests/test_pathfmt.py -x` | ❌ W1 creates | ⬜ pending |
-| 60-01-xx | 01 | 1 | MSG-02 (leaf-import proof, SC#1) | — | N/A | unit (import-graph) | `uv run python -c "import sys; import typsphinx.pathfmt; assert not any(m.startswith('typsphinx.') and m not in ('typsphinx','typsphinx.pathfmt') for m in sys.modules)"` | ❌ W1 creates | ⬜ pending |
-| 60-02-xx | 02 | 2 | MSG-03 | — | N/A | unit | `uv run pytest tests/test_templates_path_collision_gate.py::TestWindowsPathEscapingRegressionGuard -x` | ✅ exists (new methods added by **this plan only**, D-11) | ⬜ pending |
-| 60-03-xx | 03 | 2 | MSG-04 | — | N/A | unit (`caplog` @ DEBUG) | `uv run pytest tests/test_writer_path_quoting_gate.py -x` | ❌ W2 creates | ⬜ pending |
-| 60-04-xx | 04 | 2 | MSG-05 | — | N/A | unit (`pytest.raises` + `str(excinfo.value)`) | `uv run pytest tests/test_template_registry_path_quoting_gate.py -x` | ❌ W2 creates | ⬜ pending |
-| 60-05-xx | 05 | 3 | MSG-03 (SC#2 audit) | — | N/A | audit (repo-wide grep) | grep over `typsphinx/{builder,writer,template_registry}.py` — no path-valued `!r` remains | ✅ tooling exists | ⬜ pending |
-| 60-05-xx | 05 | 3 | SC#3 (over-reach) | — | N/A | audit | `template_registry.py:410` measurably still `!r`; registry keys / docnames / config tuples still `!r`; existing `repr(["a","b"])` / `repr(b"base.typ")` assertions green **unmodified** | ✅ exists | ⬜ pending |
-| 60-05-xx | 05 | 3 | SC#5 (zero test edits) | — | N/A | audit | measured diff over the phase range vs `58-REPR-CENSUS.md`, plus green `uv run pytest tests/test_repr_census_guard.py` | ✅ exists | ⬜ pending |
-| 60-05-xx | 05 | 3 | SC#5 (3-OS matrix) | — | N/A | CI | fresh `windows-latest` / `ubuntu-latest` / `macos-latest` dispatch on the post-fix tip | ✅ `.github/workflows/ci.yml` | ⬜ pending |
+| 60-01-T1 | 01 | 1 | MSG-02 (RED) | T-60-01/02 | explicit `TypeError` at the helper's type boundary; delimiter selection prevents a path closing its own quote | unit | `! uv run pytest tests/test_pathfmt.py -x` (must FAIL — module absent) | ❌ W1 creates | ⬜ pending |
+| 60-01-T2 | 01 | 1 | MSG-02 (GREEN) | T-60-01/02 | same | unit | `uv run pytest tests/test_pathfmt.py -q` | ❌ W1 creates | ⬜ pending |
+| 60-01-T3 | 01 | 1 | MSG-02 (leaf-import proof, SC#1) | — | N/A | unit (import-graph, AST + fresh-interpreter path load) | `uv run pytest tests/test_pathfmt.py -q -k leaf` and `grep -nE '^(import\|from) ' typsphinx/pathfmt.py` | ❌ W1 creates | ⬜ pending |
+| 60-02-T1 | 02 | 2 | MSG-03 (RED, 5 families + 3 single-quote methods) | T-60-04/05 | non-`str` target keeps warning rather than crashing; paths quoted unambiguously | unit | `! uv run pytest tests/test_builder_path_quoting_gate.py -q` and `! uv run pytest tests/test_templates_path_collision_gate.py -q -k disambiguates_embedded_single_quote` | ❌ W2 creates (new module) · ✅ exists (methods ADDED by **this plan only**, D-11) | ⬜ pending |
+| 60-02-T2 | 02 | 2 | MSG-03 (GREEN) | T-60-04/05/06 | same | unit | `uv run pytest tests/test_builder_path_quoting_gate.py tests/test_templates_path_collision_gate.py -q` | ❌/✅ | ⬜ pending |
+| 60-03-T1 | 03 | 2 | MSG-04 (RED + `None` pin) | T-60-07/08 | `quote_path(None)` keeps the package-alone build path alive | unit (`caplog` @ DEBUG) | `! uv run pytest tests/test_writer_path_quoting_gate.py -q` and `uv run pytest tests/test_writer_path_quoting_gate.py -q -k template_file_none` | ❌ W2 creates | ⬜ pending |
+| 60-03-T2 | 03 | 2 | MSG-04 (GREEN + two-tree `None` byte-identity) | T-60-07 | same | unit (`caplog` @ DEBUG) | `uv run pytest tests/test_writer_path_quoting_gate.py -q` | ❌ W2 creates | ⬜ pending |
+| 60-04-T1 | 04 | 2 | MSG-05 (RED shapes 1 and 2 + exclusion control) | T-60-10/11 | excluded type-check branch keeps reporting `list`/`bytes` values instead of raising | unit (`pytest.raises` + `str(excinfo.value)`) | `! uv run pytest tests/test_template_registry_path_quoting_gate.py -q` and `uv run pytest tests/test_template_registry_path_quoting_gate.py -q -k type_check_message_stays_repr_quoted` | ❌ W2 creates | ⬜ pending |
+| 60-04-T2 | 04 | 2 | MSG-05 (GREEN + two-tree exclusion pin) | T-60-10/11/12 | same | unit | `uv run pytest tests/test_template_registry_path_quoting_gate.py tests/test_template_registry.py -q` | ❌/✅ | ⬜ pending |
+| 60-05-T1 | 05 | 3 | SC#2 (repo-wide discovery grep) + SC#3 (over-reach) | T-60-16 | scope widening is filed as a new requirement, never fixed in-phase | audit (repo-wide grep) | `grep -rn` over the WHOLE `typsphinx/` package (four forms), then the routed-value negative grep prints nothing | ✅ tooling exists | ⬜ pending |
+| 60-05-T2 | 05 | 3 | SC#5 (zero test edits) + final local gate | T-60-13/14 | no skipped gate recorded as a pass | audit | `git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` (only `A` plus one pure-addition `M`), plus green `uv run pytest tests/test_repr_census_guard.py -q` | ✅ exists | ⬜ pending |
+| 60-05-T3 | 05 | 3 | SC#5 (consolidation + 3-OS matrix) | T-60-13/15 | per-plan evidence files are read-only to the consolidation | CI + audit | fresh `gh workflow run ci.yml --ref <branch>` dispatch on the post-fix tip; `windows-latest` / `ubuntu-latest` / `macos-latest` all green | ✅ `.github/workflows/ci.yml` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -83,9 +94,13 @@ leaf-module precedent are all already established in this suite.
 
 New **files** created by the phase's own waves (not Wave 0 prerequisites):
 
-- [ ] `tests/test_pathfmt.py` — MSG-02's gate (wave 1, alongside `typsphinx/pathfmt.py`)
-- [ ] `tests/test_writer_path_quoting_gate.py` — MSG-04's gate (wave 2, name at planner discretion)
-- [ ] `tests/test_template_registry_path_quoting_gate.py` — MSG-05's gate (wave 2, name at planner discretion)
+- [ ] `tests/test_pathfmt.py` — MSG-02's gate (wave 1, plan 01, alongside `typsphinx/pathfmt.py`)
+- [ ] `tests/test_builder_path_quoting_gate.py` — MSG-03's gate for the INLINE (non-extracted) message
+      sites in `builder.py` (wave 2, plan 02). The three 57-11 extracted builders are gated instead by
+      three methods ADDED to `TestWindowsPathEscapingRegressionGuard` in the existing
+      `tests/test_templates_path_collision_gate.py` — plan 02's exclusive privilege (D-11)
+- [ ] `tests/test_writer_path_quoting_gate.py` — MSG-04's gate (wave 2, plan 03)
+- [ ] `tests/test_template_registry_path_quoting_gate.py` — MSG-05's gate (wave 2, plan 04)
 
 ---
 

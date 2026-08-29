@@ -5,15 +5,15 @@ milestone_name: Windows path correctness
 current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
 status: planning
-stopped_at: Phase 60 context gathered
-last_updated: "2026-08-29T04:53:35.280Z"
+stopped_at: Phase 60 planned (5 plans in 3 waves)
+last_updated: "2026-08-29T09:10:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 60 context gathered (60-CONTEXT.md committed)
+last_activity_desc: Phase 60 planned — 60-01..60-05-PLAN.md committed (wave 1 -> 3 parallel wiring plans -> acceptance)
 state_head: c170576e7d74927a8afde2c3551c17c357c486b4
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
+  total_plans: 13
   completed_plans: 8
   percent: 50
 ---
@@ -98,8 +98,8 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 60 of 61 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere)
-Plan: Not started
-Status: Ready to plan
+Plan: 0/5 (60-01 through 60-05 written, none executed)
+Status: Planned — ready to execute
 Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
 Last activity: 2026-08-29 — Phase 59 complete (verification passed, 5/5 must-haves). PATH-01,
 IMG-04, IMG-05, IMG-06 and IMG-07 all Complete. `_escapes_outdir()` now normalizes before it
