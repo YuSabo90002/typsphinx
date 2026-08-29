@@ -4,12 +4,12 @@ milestone: v0.9.1
 milestone_name: Windows path correctness
 current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
-status: planning
-stopped_at: Phase 60 planned (5 plans in 3 waves)
-last_updated: "2026-08-29T10:06:22.124Z"
+status: executing
+stopped_at: Phase 60 wave 1 complete (60-01 merged); wave 2 next
+last_updated: "2026-08-29T10:18:54.427Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 60 planned — 60-01..60-05-PLAN.md committed (wave 1 -> 3 parallel wiring plans -> acceptance)
-state_head: ade85376fff7fcf5379b08d20939d2add0fa4589
+last_activity_desc: Phase 60 execution started
+state_head: 31441d09bd8168f1bcc5170749f6d9646a1d5151
 progress:
   total_phases: 4
   completed_phases: 2
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-29 after Phase 59 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 60 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28, Phase 59 complete 2026-08-29). A
+**Current focus:** Phase 60 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28, Phase 59 complete 2026-08-29). Phase 60 is executing. A
 bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
 the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
 path-quoting helper that closes **both** halves of
@@ -97,11 +97,11 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 60 of 61 — One Delimiter-Aware Path-Quoting Helper, Routed Everywhere — planned, ready to execute
-Plan: — (5 plans, none started; run `/gsd-execute-phase 60`)
-Status: Planned — 5 plans in 3 waves, verified by gsd-plan-checker, ready to execute
+Phase: 60 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere) — EXECUTING
+Plan: 1 of 5 complete — wave 1 merged, wave 2 (60-02/60-03/60-04, parallel) next
+Status: Executing Phase 60
 Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 60 planned: 5 plans in 3 waves. Wave 1 is `60-01` (the
+Last activity: 2026-08-29 — Phase 60 executing; wave 1 (`60-01`) complete and merged (the
 `typsphinx/pathfmt.py` leaf module + `quote_path()` + `tests/test_pathfmt.py`); wave 2 is three
 merge-isolated wiring plans in parallel (`60-02` builder.py, `60-03` writer.py, `60-04`
 template_registry.py), each with its own new gate module and its own `60-0N-EVIDENCE.md`; wave 3 is

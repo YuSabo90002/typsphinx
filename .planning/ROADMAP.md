@@ -384,13 +384,13 @@ follow the value settling, never accompany it.
      is modified — Phase 58 removed the only two that would have forced it — and the 3-OS CI lane,
      `windows-latest` included, is green on the post-fix tip, dispatched fresh.
 
-**Plans**: 5 plans in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
+**Plans**: 1/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 60-01-PLAN.md — MSG-02: the `typsphinx/pathfmt.py` leaf module and `quote_path()`, its own
+- [x] 60-01-PLAN.md — MSG-02: the `typsphinx/pathfmt.py` leaf module and `quote_path()`, its own
   RED-first gate module, the two-form leaf-import proof, and the phase evidence spine
 
 **Wave 2** *(blocked on Wave 1; the three plans run IN PARALLEL — disjoint modules, disjoint test
@@ -488,7 +488,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 0/5 | Planned | - |
+| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 1/5 | In Progress | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
