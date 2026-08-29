@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
-current_phase: 60
-current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
-status: executing
-stopped_at: Phase 60 all 5 plans executed and merged; phase gates + verification pending
-last_updated: "2026-08-29T11:21:19.000Z"
+current_phase: 61
+current_phase_name: v0.9.1 Release Prep (prep-only)
+status: planning
+stopped_at: Phase 60 complete, ready to plan Phase 61
+last_updated: "2026-08-29T12:38:32.789Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 60 waves 1-2 complete — pathfmt.quote_path() landed and routed into builder.py/writer.py/template_registry.py
-state_head: 31441d09bd8168f1bcc5170749f6d9646a1d5151
+last_activity_desc: Phase 60 complete, transitioned to Phase 61
+state_head: 4e113c6a632147b103aa4644b81ff37b106badbf
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 8
-  percent: 50
+  completed_plans: 13
+  percent: 75
 ---
 
 # Project State
@@ -97,27 +97,22 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 60 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere) — EXECUTING
-Plan: 5 of 5 complete — all waves merged; phase gates + verification pending
-Status: Executing Phase 60
-Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 60 executing; waves 1-2 complete and merged — `60-01` (the
-`typsphinx/pathfmt.py` leaf module + `quote_path()` + `tests/test_pathfmt.py`); wave 2 is three
-merge-isolated wiring plans in parallel (`60-02` builder.py, `60-03` writer.py, `60-04`
-template_registry.py), each with its own new gate module and its own `60-0N-EVIDENCE.md`; wave 3 is
-`60-05`, the acceptance audit (SC#2's repo-wide discovery grep, SC#3's over-reach measurement, SC#5's
-zero-test-edit diff against `58-REPR-CENSUS.md` + `tests/test_repr_census_guard.py`, and the fresh
-3-OS CI dispatch on the post-fix tip). Two findings were folded in during planning, both measured
-first: (a) **owner-approved AMENDMENT to D-06** — `builder.py:1192`/`:1199` interpolate the same
-`target` value D-08a already calls path-valued at `:890`, but appeared in neither D-06's routed list
-nor D-07's exclusion list; they now route, with a plan-time addendum requiring an `isinstance(target,
-str)` narrowing because `_is_usable_typst_documents_entry()` constrains only `entry[0]`, so an
-unconditional route would turn a today-warned config typo into an unhandled `TypeError` on every
-build; (b) `60-RESEARCH.md`'s proposed leaf-import proof would have proven the *opposite* of SC#1
-(`typsphinx/__init__.py:25` imports `typsphinx.builder` at module scope), replaced by an AST read plus
-a fresh-interpreter load by file path. Spec-less edge fallback resolved 15/15 items (14 explicit, 1
-backstop, 0 dismissed, 0 dropped). Decision coverage 13/13 after a format-only fix to D-03's and
-D-05's bullet titles, which carried a second colon the gate's parser cannot read.
+Phase: 61 — v0.9.1 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
+Progress: [###############     ] 75% (3/4 phases; Phase 58 3/3, Phase 59 5/5, Phase 60 5/5 plans complete)
+Last activity: 2026-08-29 — Phase 60 complete and verified 5/5. `typsphinx/pathfmt.py`'s
+`quote_path()` landed as a zero-internal-import leaf module and is routed through every
+path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py`; the
+identifier-valued `!r` sites are measurably untouched. Three defects surfaced AFTER all five
+plans reported complete and are fixed on the tip: `ruff F401` and a windows-latest-only test
+assumption (both first found by this phase's own CI dispatch, neither reachable on this dev
+host), and 60-REVIEW.md CR-01 — `quote_path()`'s both-quotes branch produced a doubled
+backslash when the value's own `\` sat immediately before an apostrophe, falsifying D-01a.
+D-01 was AMENDED (owner-approved) to SQL-style apostrophe doubling, which inserts no backslash
+at all and makes the guarantee unconditional. CI run 33252336287 is green on 12/12 jobs at
+head `130f614e`, identical to the phase tip. A fourth module (`translator.py:5047`/`:5152`)
+carries the same defect class and was filed as a todo, deliberately out of scope.
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because
@@ -1000,14 +995,14 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-CONTEXT.md
+**Resume file:** .planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-VERIFICATION.md
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
 Last session: 2026-08-29T04:53:35.230Z
-Stopped at: Phase 60 context gathered
-Resume: `/gsd-plan-phase 60` — One Delimiter-Aware Path-Quoting Helper, Routed Everywhere. Phases
-58 and 59 are complete and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `df495fdd`.
+Stopped at: Phase 60 complete, ready to plan Phase 61
+Resume: `/gsd-plan-phase 61` — v0.9.1 Release Prep (prep-only). Phases 58, 59 and 60 are complete
+and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `4e113c6a`.
 
 **Nothing is owed forward from the publish.** All six `57-HANDOFF.md` checklist items are discharged,
 including item 6 (Read the Docs), measured live 2026-08-22 through RTD's unauthenticated public API
