@@ -42,6 +42,12 @@ APOSTROPHE_ONLY = "/home/O'Brien/x"
 DOUBLE_QUOTE_ONLY = '/tmp/we"ird.png'
 BOTH_QUOTES = "/tmp/bo'th\"quotes.png"
 COMBINED_BACKSLASH_AND_BOTH_QUOTES = "C:\\both'quotes\"here"
+# CR-01 / D-01 AMENDED: the one shape that falsified the original
+# backslash-escaping rule -- a backslash IMMEDIATELY BEFORE an apostrophe,
+# with a double quote also present so the both-quotes branch fires. The
+# value's own longest backslash run is 1; under the pre-amendment rule the
+# inserted escape backslash concatenated with it and produced a run of 2.
+BACKSLASH_ADJACENT_TO_APOSTROPHE = "C:\\'and\"there"
 
 _PATHFMT_MODULE_PATH = (
     pathlib.Path(__file__).resolve().parent.parent / "typsphinx" / "pathfmt.py"
@@ -77,32 +83,84 @@ class TestQuotePathDelimiterSelection:
         self,
     ):
         """A value containing BOTH quote characters wraps in apostrophes
-        with a single backslash inserted before each apostrophe and NO
-        backslash inserted before any existing character."""
-        expected = "'" + BOTH_QUOTES.replace("'", "\\'") + "'"
+        with each embedded apostrophe DOUBLED (SQL-style) and NO backslash
+        inserted anywhere (D-01 AMENDED 2026-08-29)."""
+        expected = "'" + BOTH_QUOTES.replace("'", "''") + "'"
         assert quote_path(BOTH_QUOTES) == expected
+        # The escape introduces no backslash at all.
+        assert "\\" not in quote_path(BOTH_QUOTES)
 
     def test_combined_backslash_and_both_quotes(self):
         """The combined edge case: a value carrying a backslash AND both
         quote characters. The both-quotes branch fires (apostrophe
-        wrapping, apostrophe escaped) and the pre-existing backslash is
+        wrapping, apostrophe doubled) and the pre-existing backslash is
         left completely untouched -- never doubled, never escaped."""
-        expected = "'" + COMBINED_BACKSLASH_AND_BOTH_QUOTES.replace("'", "\\'") + "'"
+        expected = "'" + COMBINED_BACKSLASH_AND_BOTH_QUOTES.replace("'", "''") + "'"
         assert quote_path(COMBINED_BACKSLASH_AND_BOTH_QUOTES) == expected
-        # The one pre-existing backslash survives singly.
-        assert quote_path(COMBINED_BACKSLASH_AND_BOTH_QUOTES).count("\\") == 2
-        # (one original separator backslash + one inserted apostrophe escape)
+        # The one pre-existing backslash survives singly, and the escape
+        # adds none of its own (D-01 AMENDED).
+        assert quote_path(COMBINED_BACKSLASH_AND_BOTH_QUOTES).count("\\") == 1
+
+    def test_backslash_immediately_before_apostrophe_forms_no_doubled_run(self):
+        """CR-01 regression (D-01 AMENDED 2026-08-29). The one adjacency
+        the original backslash-escaping rule could not survive: a value
+        whose own ``\\`` sits IMMEDIATELY BEFORE an apostrophe, with a
+        double quote present so the both-quotes branch fires.
+
+        Under the pre-amendment rule the inserted escape backslash
+        concatenated with the value's own and produced a run of two --
+        the exact doubled-separator shape this phase exists to eliminate,
+        and the exact thing D-01a asserted was impossible. The apostrophe
+        doubling that replaced it inserts no backslash, so the output's
+        longest backslash run can never exceed the input's.
+        """
+        value = BACKSLASH_ADJACENT_TO_APOSTROPHE
+        result = quote_path(value)
+
+        expected = "'" + value.replace("'", "''") + "'"
+        assert result == expected
+
+        # The invariant D-01a actually promises, stated as a measurement
+        # rather than as a claim about the implementation.
+        def _longest_backslash_run(text: str) -> int:
+            return max((len(m) for m in re.findall(r"\\+", text)), default=0)
+
+        assert _longest_backslash_run(value) == 1
+        assert _longest_backslash_run(result) == 1
+
+        # And the guard the phase is measured against stays green over it.
+        assert not re.findall(r"\\\\+", result)
 
 
 class TestQuotePathVersusRepr:
-    """The byte-identity contract: for each of D-01's five values, assert
-    that ``quote_path(v)`` equals ``repr(v)`` EXCEPT where ``repr(v)``
-    doubles a backslash, and record the difference explicitly."""
+    """The byte-identity contract: ``quote_path(v)`` equals ``repr(v)``
+    except for TWO documented differences, each recorded explicitly here.
 
-    NO_BACKSLASH_VALUES = [APOSTROPHE_ONLY, DOUBLE_QUOTE_ONLY, BOTH_QUOTES]
-    BACKSLASH_BEARING_VALUES = [WINDOWS_PATH, COMBINED_BACKSLASH_AND_BOTH_QUOTES]
+    1. ``repr()`` doubles every backslash; ``quote_path()`` never does.
+    2. D-01 AMENDED 2026-08-29: in the both-quotes branch ``repr()``
+       backslash-escapes the apostrophe (``\\'``) while ``quote_path()``
+       doubles it (``''``). That divergence is deliberate -- reusing
+       ``repr()``'s backslash escape is what produced a run of two
+       backslashes whenever the value's own ``\\`` sat immediately before
+       an apostrophe (CR-01), which is the shape D-01a forbids.
 
-    @pytest.mark.parametrize("value", NO_BACKSLASH_VALUES)
+    Values are grouped so each test asserts exactly one contract; a value
+    exhibiting both differences is never checked by a test that claims
+    only one of them.
+    """
+
+    # Neither difference applies: no backslash, and not both-quotes.
+    IDENTICAL_TO_REPR_VALUES = [APOSTROPHE_ONLY, DOUBLE_QUOTE_ONLY]
+    # Difference 1 only: backslash-bearing, not both-quotes.
+    DOUBLING_ONLY_VALUES = [WINDOWS_PATH]
+    # Difference 2 applies (and difference 1 too, where a backslash is present).
+    BOTH_QUOTES_VALUES = [
+        BOTH_QUOTES,
+        COMBINED_BACKSLASH_AND_BOTH_QUOTES,
+        BACKSLASH_ADJACENT_TO_APOSTROPHE,
+    ]
+
+    @pytest.mark.parametrize("value", IDENTICAL_TO_REPR_VALUES)
     def test_no_backslash_values_are_byte_identical_to_repr(self, value):
         # `repr(value)` is bound to a local BEFORE the assert's own test
         # expression (never written as `repr(...)` inline inside an
@@ -114,7 +172,7 @@ class TestQuotePathVersusRepr:
         result = quote_path(value)
         assert result == expected
 
-    @pytest.mark.parametrize("value", BACKSLASH_BEARING_VALUES)
+    @pytest.mark.parametrize("value", DOUBLING_ONLY_VALUES)
     def test_backslash_bearing_values_differ_from_repr_only_in_doubling(self, value):
         two_backslashes = chr(92) + chr(92)
         one_backslash = chr(92)
@@ -123,6 +181,27 @@ class TestQuotePathVersusRepr:
         result = quote_path(value)
         assert result != repr_value
         assert result == undoubled_repr
+
+    @pytest.mark.parametrize("value", BOTH_QUOTES_VALUES)
+    def test_both_quotes_values_differ_from_repr_in_doubling_and_escape(self, value):
+        """D-01 AMENDED: undo ``repr()``'s backslash doubling AND rewrite
+        its apostrophe escape into the doubling this branch now uses. The
+        result must then be byte-identical -- no third, unrecorded
+        divergence is permitted to hide behind this exception."""
+        two_backslashes = chr(92) + chr(92)
+        one_backslash = chr(92)
+        apostrophe = chr(39)
+        repr_value = repr(value)
+        undoubled_repr = repr_value.replace(two_backslashes, one_backslash)
+        # repr() escapes the embedded apostrophe as \' ; this branch doubles it.
+        normalized_repr = undoubled_repr.replace(
+            one_backslash + apostrophe, apostrophe + apostrophe
+        )
+        result = quote_path(value)
+        assert result != repr_value
+        assert result == normalized_repr
+        # Difference 2 is real, not vacuous: the two escapes actually differ.
+        assert undoubled_repr != normalized_repr
 
 
 class TestQuotePathNoDoubledSeparator:

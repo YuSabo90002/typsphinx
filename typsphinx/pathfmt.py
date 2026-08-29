@@ -18,13 +18,23 @@ empty value, because an assertion predicate handed an empty needle would
 match vacuously -- a formatter handed ``""`` must render something, and
 ``''`` is byte-identical to ``repr("")``).
 
-D-01: the delimiter rule reproduces ``repr()``'s exactly, minus the
-backslash doubling -- the value's own characters are never touched except
-for the both-quotes branch's apostrophe escape. D-01a: that one inserted
-backslash per escaped apostrophe can never form a run of two or more
-consecutive backslashes, so the existing
+D-01 (AMENDED 2026-08-29): the delimiter rule reproduces ``repr()``'s
+exactly, minus the backslash doubling -- the value's own characters are
+never touched except for the both-quotes branch's apostrophe escape, and
+that escape inserts NO backslash. The branch doubles the apostrophe
+(``'`` -> ``''``, SQL-style) rather than backslash-escaping it. This is
+load-bearing, not stylistic: the original backslash escape violated D-01a
+whenever the value itself placed a ``\\`` immediately before a ``'`` --
+the inserted backslash concatenated with the pre-existing one and formed
+a run of two, the exact shape this phase exists to eliminate (measured:
+``C:\\'and"there`` carries zero adjacent-backslash runs, and the
+backslash-escaping rule turned it into one run of two). D-01a: because
+this function now inserts no backslash anywhere, its output can never
+contain a longer backslash run than the value already did, so the
+existing
 ``TestWindowsPathEscapingRegressionGuard._assert_no_doubled_separator``
-guard stays green over this function's output. D-03: ``None`` renders as
+guard stays green over this function's output UNCONDITIONALLY -- not
+merely for the fixture shapes that happen to be tested. D-03: ``None`` renders as
 the bare four-character string ``None`` (``writer.py``'s package-alone
 build path really does hand this function a live ``None``); ``str`` and
 ``os.PathLike`` values are quoted; everything else raises ``TypeError``.
@@ -54,10 +64,12 @@ def quote_path(value: str | os.PathLike[str] | None) -> str:
     - apostrophe present, no double quote -> wrap in double quotes
       (``"..."``) so an embedded apostrophe cannot close the delimiter
       early (57-REVIEW.md IN-01)
-    - both quote characters present -> wrap in apostrophes, with a single
-      backslash inserted before each apostrophe and NO backslash inserted
-      before any other character -- a pre-existing backslash in the value
-      is never doubled, never escaped, never touched (D-01a)
+    - both quote characters present -> wrap in apostrophes, with each
+      embedded apostrophe DOUBLED (``'`` -> ``''``, SQL-style) and NO
+      backslash inserted anywhere -- a pre-existing backslash in the
+      value is never doubled, never escaped, never touched, and the
+      escape can never combine with one to form a run of two (D-01a, as
+      amended 2026-08-29)
 
     D-04: an empty string is quoted as ``''`` and does NOT raise --
     deliberately unlike ``tests/_path_naming.py``'s ``path_named_in()``.
@@ -80,5 +92,5 @@ def quote_path(value: str | os.PathLike[str] | None) -> str:
         return f"'{value_str}'"
     if '"' not in value_str:
         return f'"{value_str}"'
-    escaped = value_str.replace("'", "\\'")
+    escaped = value_str.replace("'", "''")
     return f"'{escaped}'"

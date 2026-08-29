@@ -82,6 +82,29 @@ makes an execution-time repo-wide grep the discovery authority.
   practice, and the escape it introduces can never collide with a Windows separator.
   — **Reversibility:** reversible.
 
+  **AMENDED 2026-08-29 (post-execution, owner-approved).** D-01's "backslash-escape only the `'`
+  characters" and D-01a's "the guard stays green" are **mutually unsatisfiable** on one input shape,
+  and D-01a's stated reasoning is false. Measured after wave 3, reproduced independently by the
+  orchestrator and by `60-REVIEW.md` CR-01: when the value itself places a `\` immediately before a
+  `'`, the single inserted escape backslash concatenates with the pre-existing one and forms a run of
+  two. Input `C:\'and"there` carries **zero** adjacent-backslash runs; `quote_path()`'s output under
+  the original rule carries a run of **two** — exactly what `_assert_no_doubled_separator` exists to
+  reject, and exactly what D-01a asserts as impossible. D-01a's premise ("the single inserted
+  backslash never forms a run of two") overlooked that the run can be completed by a backslash the
+  *value* supplies, not one the helper inserts. Note this is reachable only on a POSIX-style value:
+  the both-quotes branch requires a `"`, which Windows filenames cannot contain — so D-01a's
+  Windows-collision claim stands; only its guard-stays-green claim falls.
+
+  **Resolution (owner decision, 2026-08-29):** the both-quotes branch escapes an embedded apostrophe
+  by **SQL-style doubling** (`'` → `''`), inserting no backslash at all. This makes D-01a's guarantee
+  unconditionally true rather than true-for-the-fixtures-that-happen-to-be-tested, at the cost of
+  D-01's original "backslash-escape" wording, which is hereby superseded for this branch only. Every
+  other branch of D-01 (no apostrophe → `'…'`; apostrophe but no double quote → `"…"`) is unchanged,
+  and the value's own characters are still never touched apart from the apostrophe doubling. Both
+  branches are test-bound: the adjacency shape that falsified the original rule now has its own
+  regression test alongside the existing both-quotes fixtures.
+  — **Reversibility:** reversible.
+
 - **D-02: The module is `typsphinx/pathfmt.py` and the function is `quote_path()`, public-named but not re-exported.**
   `research/SUMMARY.md:125` already names `pathfmt.py`; keeping that name means the research, the
   architecture note and the plans all say the same word. No leading underscore, because three
