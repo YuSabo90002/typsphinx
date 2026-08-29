@@ -295,4 +295,140 @@ same line is untouched (`grep -cE '\{docname!r\}' typsphinx/writer.py` returns `
 
 ## D-07 confirmation
 
+Re-measured (not restated) against `_entry_element_value()` (`typsphinx/writer.py:116-158`)
+and its two call sites in `render_wrapper()` (`:421-422`):
+
+- `entry[0]` (line 154's `f"{entry[0]!r} is not a str: ..."`) receives the docname --
+  the first element of the specific `typst_documents` tuple the wrapper is being
+  generated for. Both call sites (`_entry_element_value(entry, 2, config.project)` at
+  `:421` and `_entry_element_value(entry, 3, config.author)` at `:422`) pass the SAME
+  `entry` argument, so `entry[0]` is always this wrapper's own docname regardless of
+  which call raised the warning.
+- `value` (line 154's `f"... : {value!r} -- "`) receives `entry[index]` -- the
+  non-`str` element that tripped the `not isinstance(value, str)` branch. At the `:421`
+  call site (`index=2`), this is the entry's own title-slot element; at the `:422` call
+  site (`index=3`), this is the entry's own author-slot element.
+- `default` (line 155's `f"falling back to {default!r}"`) receives the third
+  positional argument passed by the caller: `config.project` at the `:421` call site
+  (the "project" key of `sphinx_metadata`) and `config.author` at the `:422` call site
+  (the "author" key).
+
+Source lines this rests on:
+```python
+sphinx_metadata = {
+    "project": _entry_element_value(entry, 2, config.project),
+    "author": _entry_element_value(entry, 3, config.author),
+    "release": config.release,
+}
+```
+```python
+    if not isinstance(value, str):
+        logger.warning(
+            f"typst_documents element [{index}] for docname "
+            f"{entry[0]!r} is not a str: {value!r} -- "
+            f"falling back to {default!r}"
+        )
+        return default
+```
+
+**Conclusion:** none of `entry[0]` (a docname), `value` (a title-or-author-typed
+element from `typst_documents`), or `default` (`config.project` or `config.author`) is
+a filesystem location under D-05's role rule ("does the reader read this as a location
+on a filesystem, or as a name in a namespace?"). All three are identifier/title/author
+values. MSG-04's restriction to the wrapper-render debug log at `:511-514` is therefore
+correct as written, not an oversight -- this fallback warning is untouched by this
+plan, exactly as `60-CONTEXT.md`'s D-07 states.
+
+## RED-first ledger
+
+MSG-04's caplog gate was recorded RED first, then turned GREEN, then pinned across two
+trees:
+
+- **RED:** see `## RED — wrapper-render debug log` above -- the verbatim
+  `1 failed, 1 passed` transcript against the plan base SHA
+  (`1118199a577533f598a799b51d08b7bc3e9bcc49`), before `typsphinx/writer.py` was edited.
+- **GREEN:** see `## GREEN` above -- the verbatim `2 passed` transcript after the fix
+  landed, plus the full suite (1496 passed, 5 skipped), `black --check`, `mypy`, and the
+  repr census guard, all green.
+- **None pin (two-tree):** see `## None pin (two-tree)` above -- the package-alone
+  `template_file = None` build path's debug line is byte-identical before and after the
+  fix.
+
+## Zero test edits (measured)
+
+Command: `git diff --name-status 1118199a577533f598a799b51d08b7bc3e9bcc49..HEAD -- tests/`
+
+```
+A	tests/test_writer_path_quoting_gate.py
+```
+
+Every line begins with `A` (added) -- no pre-existing test file under `tests/` was
+modified by this plan.
+
+Command: `uv run pytest tests/test_repr_census_guard.py -q`
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a82773657d1290632
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.61s ===============================
+```
+
+No entry was appended to that module's `PASS_CRITERION_REPR_ALLOWLIST` (or any other
+allowlist it holds) -- the guard stays green with the census exactly as
+`58-REPR-CENSUS.md` recorded it, confirming this plan neither added nor removed a
+`repr()`/`!r` occurrence inside an `ast.Assert(...).test` anywhere under `tests/`.
+
 ## Known gate gaps
+
+`template_file`'s NON-`None` rendering (the branch at `typsphinx/writer.py:506-509`,
+where `template_file = compute_template_import_path(resolved_entry.key,
+resolution.path.name)`) has **no behavioural backslash gate in this plan**. That value
+is built entirely from a registry key and a resolved template's basename via
+`f"/{TEMPLATE_OUTPUT_DIR}/{key}/{template_filename}"` (`compute_template_import_path()`,
+`:78-112`) -- forward-slash-only by construction, since `TEMPLATE_OUTPUT_DIR` is the
+literal `"_template"` and the two interpolated values are a registry key string and a
+`pathlib.Path.name` basename, neither of which can itself contain a path separator on
+any supported platform. There is therefore no portable unit-test shape that puts a
+backslash into this branch's `template_file` value, and the doubled-backslash RED gate
+(`TestWrapperDebugLogPathQuoting`) exercises only the `wrapper_relative_dir` /
+`include_path` half of the routed triple.
+
+This gap is not left silent: `template_file`'s NON-`None` routing through
+`quote_path()` is proven by the source route itself (`grep -c 'quote_path(' typsphinx/
+writer.py` returns `3`, covering all three call-site interpolations including this
+one) plus wave 3's repo-wide grep audit (SC#2), which re-derives the discovery grep
+across all three wired modules and confirms no path-valued `!r` survives. The `None`
+half of `template_file`'s two possible values IS behaviourally gated, by
+`TestWrapperDebugLogTemplateFileNone`'s two-tree byte-identity pin above.
+
+`ruff check .` is deferred to CI: a freshly-provisioned worktree venv on this
+NixOS-sandboxed dev machine pulls a generic-linux `ruff` wheel whose ELF the loader
+rejects (a known, pre-existing environment limitation unrelated to this plan's changes
+-- see `MEMORY.md`'s "NixOS sandbox test env" note). CI holds lint authority for this
+plan's diff, as it does for every other plan in this milestone.
+
+## Wave-3 handoff
+
+Audit command (scoped to this module):
+```
+grep -n "!r" typsphinx/writer.py
+```
+
+Expected post-phase result for `typsphinx/writer.py`:
+- `grep -c 'quote_path(' typsphinx/writer.py` → `3` (the three routed interpolations
+  this plan wired: `wrapper_relative_dir`, `include_path`, `template_file`).
+- Four interpolations in this module must still render through Python's `!r` repr
+  conversion after the phase -- the wrapper-render debug log's `docname`
+  (`typsphinx/writer.py:511`), and `_entry_element_value()`'s fallback warning's three
+  values: `entry[0]`, `value`, and `default` (`typsphinx/writer.py:154-155`). All four
+  are identifier/title/author-valued per D-07, confirmed above, not path-valued, and
+  none is touched by this plan or expected to be touched by any other wave-2 plan
+  (each wave-2 plan asserts only on its own module's output, D-11).
+
