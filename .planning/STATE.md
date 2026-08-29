@@ -4,12 +4,12 @@ milestone: v0.9.1
 milestone_name: Windows path correctness
 current_phase: 61
 current_phase_name: v0.9.1 Release Prep (prep-only)
-status: planning
+status: executing
 stopped_at: Phase 61 planned (4 plans in 3 waves)
-last_updated: "2026-08-29T14:07:11.542Z"
-last_activity: 2026-08-29
-last_activity_desc: Phase 61 planned — 61-01..61-04-PLAN.md committed (wave 1 CHANGELOG + fence obs.1 -> wave 2 green tree + 3-OS CI -> wave 3 fence obs.2 + handoff); v0.9.1 will not be published, see 61-CONTEXT.md D-01..D-13
-state_head: 328c7e943b2ff230cf2faaaa6aaee3aeab952fa4
+last_updated: "2026-08-29T15:01:14.314Z"
+last_activity: 2026-08-30
+last_activity_desc: Phase 61 execution started
+state_head: 5e28fa9dac8576f1f1665560eb5c4ccbd2e13b41
 progress:
   total_phases: 4
   completed_phases: 3
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-29 after Phase 59 complete)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 60 of v0.9.1 — Windows path correctness (Phases 58–61, roadmap created 2026-08-27; Phase 58 complete 2026-08-28, Phase 59 complete 2026-08-29). Phase 60 is executing. A
+**Current focus:** Phase 61 — v0.9.1 Release Prep (prep-only)
 bug-fix round: no new capability, no new runtime dependency, no new `typst_*` config value. Three of
 the candidates the v0.9.0 close named are now in scope with REQ-IDs — the delimiter-aware
 path-quoting helper that closes **both** halves of
@@ -102,11 +102,11 @@ inheritance record for the v0.9.2 milestone rather than as instructions to execu
 
 ## Current Position
 
-Phase: 61 (v0.9.1 Release Prep (prep-only)) — READY TO EXECUTE
-Plan: Not started (4 plans in 3 waves: 61-01 + 61-02 → 61-03 → 61-04)
-Status: Ready to execute
+Phase: 61 (v0.9.1 Release Prep (prep-only)) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 61
 Progress: [###############     ] 75% (3/4 phases; Phase 58 3/3, Phase 59 5/5, Phase 60 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 61 planned. Four plans in three waves, all `autonomous: true`.
+Last activity: 2026-08-30 — Phase 61 execution started
 The phase changed shape at discuss-phase: **v0.9.1 will never be published** (D-02), so there is
 no version bump (D-01) and no `## [0.9.1]` CHANGELOG section (D-03) — the three defect families
 are authored under the existing `## [Unreleased]` heading and the tail link-reference block is

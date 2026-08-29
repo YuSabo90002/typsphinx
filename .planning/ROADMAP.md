@@ -460,7 +460,7 @@ double separators or close their quote early.
      projects, and the GitHub Release body being byte-identical to
      `scripts/extract_changelog_section.py 0.9.1`'s stdout.
 
-**Plans**: 4 plans in 3 waves
+**Plans**: 2/4 plans executed in 3 waves
 
 > **Scope reframe — read `61-CONTEXT.md` D-11 before judging the plans against SC#1–SC#5 above.**
 > The phase's shape changed during discuss-phase and the owner deliberately left this entry as the
@@ -477,12 +477,12 @@ Plans:
 
 **Wave 1** *(no dependencies — 61-01 and 61-02 run in parallel; their `files_modified` sets are disjoint)*
 
-- [ ] 61-01-PLAN.md — SC#2 (reworded): the three defect families authored as user-visible bullets
+- [x] 61-01-PLAN.md — SC#2 (reworded): the three defect families authored as user-visible bullets
       under the existing `## [Unreleased]` heading, led by a tracer slice that carries one bullet
       end-to-end through MyST into a rendered docs page; both docs builds run post-edit against the
       measured 3 / 5 warning baseline; the edit proven pure addition with every version literal and
       the tail link block unmoved.
-- [ ] 61-02-PLAN.md — SC#4 (first half), at phase head: the `REQUIREMENTS.md` checksum guard against
+- [x] 61-02-PLAN.md — SC#4 (first half), at phase head: the `REQUIREMENTS.md` checksum guard against
       the `phase.complete` REL-09 auto-flip that has fired at five consecutive release-prep closes,
       fence observation 1 of 2 with a positive control on every remote probe, the phase base SHA, and
       the external-API coverage declaration.
@@ -539,7 +539,7 @@ the active milestone only.
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
+| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 2/4 | In Progress | - |
 
 ## Roadmap Evolution
 
