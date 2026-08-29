@@ -113,10 +113,10 @@ see PATH-01's reachability note and MSG-01's existence.
       target warnings), and 1767 (image-rehome warning). Identifier-valued `!r` — registry keys,
       docnames, config tuples — stays `!r` and is not touched.
 
-- [ ] **MSG-04**: `typsphinx/writer.py`'s wrapper-render debug log (lines 511-513 —
+- [x] **MSG-04**: `typsphinx/writer.py`'s wrapper-render debug log (lines 511-513 —
       `wrapper_relative_dir`, `include_path`, `template_file`) routes through the helper.
 
-- [ ] **MSG-05**: `typsphinx/template_registry.py`'s CONF-17 violation (line 422) and existence
+- [x] **MSG-05**: `typsphinx/template_registry.py`'s CONF-17 violation (line 422) and existence
       check (line 433) route through the helper. **Line 410 is deliberately excluded**: its
       type-check message interpolates `template` *before* the value is known to be path-shaped —
       it is reached precisely when the value is a `list`, `bytes`, or another non-path type — so
@@ -201,8 +201,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | IMG-07 | Phase 59 | Complete |
 | MSG-02 | Phase 60 | Complete |
 | MSG-03 | Phase 60 | Complete |
-| MSG-04 | Phase 60 | Pending |
-| MSG-05 | Phase 60 | Pending |
+| MSG-04 | Phase 60 | Complete |
+| MSG-05 | Phase 60 | Complete |
 | REL-09 | Phase 61 | Pending |
 
 Ordered by phase, not by REQ-ID, because the ordering is itself load-bearing: MSG-01 precedes every
