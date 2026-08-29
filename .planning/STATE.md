@@ -5,11 +5,11 @@ milestone_name: Windows path correctness
 current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
 status: planning
-stopped_at: Phase 59 complete, ready to plan Phase 60
-last_updated: "2026-08-28T22:39:48.196Z"
+stopped_at: Phase 60 context gathered
+last_updated: "2026-08-29T04:53:35.280Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 59 complete, transitioned to Phase 60
-state_head: df495fddfac421a89ff581bbfe8aab0e730d76a5
+last_activity_desc: Phase 60 context gathered (60-CONTEXT.md committed)
+state_head: c170576e7d74927a8afde2c3551c17c357c486b4
 progress:
   total_phases: 4
   completed_phases: 2
@@ -996,12 +996,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/59-path-shape-predicate-and-image-uri-correctness/59-CONTEXT.md
+**Resume file:** .planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-28T14:48:33.776Z
-Stopped at: Phase 59 complete, ready to plan Phase 60
+Last session: 2026-08-29T04:53:35.230Z
+Stopped at: Phase 60 context gathered
 Resume: `/gsd-plan-phase 60` — One Delimiter-Aware Path-Quoting Helper, Routed Everywhere. Phases
 58 and 59 are complete and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `df495fdd`.
 
