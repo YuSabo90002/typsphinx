@@ -332,3 +332,227 @@ Command: `git status --porcelain typsphinx/ tests/`
 
 This task edited neither `typsphinx/` nor `tests/` — only this evidence file and the one new
 todo record under `.planning/todos/pending/`.
+
+## SC#5 zero test edits (measured)
+
+`PHASE_BASE_SHA` read from `60-01-EVIDENCE.md`'s `## Phase base SHA` section:
+`31441d09bd8168f1bcc5170749f6d9646a1d5151`.
+
+### Full `tests/` diff, name-status
+
+Command: `git diff --name-status 31441d09bd8168f1bcc5170749f6d9646a1d5151..HEAD -- tests/`
+
+```
+A	tests/test_builder_path_quoting_gate.py
+A	tests/test_pathfmt.py
+A	tests/test_template_registry_path_quoting_gate.py
+M	tests/test_templates_path_collision_gate.py
+A	tests/test_writer_path_quoting_gate.py
+```
+
+Every line begins with `A` except exactly one `M` line, for
+`tests/test_templates_path_collision_gate.py` — exactly as required. No other file appears
+with `M` or `D`.
+
+### The one modified file — pure addition
+
+Command: `git diff -U0 31441d09bd8168f1bcc5170749f6d9646a1d5151..HEAD -- tests/test_templates_path_collision_gate.py`
+
+```
+diff --git a/tests/test_templates_path_collision_gate.py b/tests/test_templates_path_collision_gate.py
+index a9eb85e5..e0b51294 100644
+--- a/tests/test_templates_path_collision_gate.py
++++ b/tests/test_templates_path_collision_gate.py
+@@ -442,0 +443,4 @@ class TestWindowsPathEscapingRegressionGuard:
++    # MSG-03/D-12: a path-shaped value containing a literal apostrophe --
++    # the single-quote half of the D-01 delimiter-selection rule (the
++    # backslash half is already green here since Phase 57).
++    SINGLE_QUOTE_SHAPED_PATH = "/home/O'Brien's Projects/_templates/nested"
+@@ -491,0 +496,46 @@ class TestWindowsPathEscapingRegressionGuard:
++
++    def test_conf17_violation_message_disambiguates_embedded_single_quote(self):
++        """MSG-03/D-12: the SINGLE-QUOTE half of the D-01 delimiter rule,
++        not the backslash half. These three 57-11 message builders
++        stopped doubling backslashes in Phase 57 -- a backslash-doubling
++        assertion here would be tautologically green and prove nothing.
++        The defect this test targets is the one 57-11 introduced by
++        hardcoding an apostrophe delimiter (``'...'``) instead of
++        reproducing ``repr()``'s delimiter SELECTION: a path containing a
++        literal apostrophe can visually close that hardcoded delimiter
++        early. MSG-02's ``quote_path()`` selects double quotes instead
++        whenever the value contains an apostrophe and no double quote, so
++        the double-quote-delimited form of the value must appear intact
++        as a substring of the message.
++        """
++        message = _conf17_violation_message(
++            "mykey", self.SINGLE_QUOTE_SHAPED_PATH, "/srcdir"
++        )
++        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message
++
++    def test_templates_path_collision_message_disambiguates_embedded_single_quote(
++        self,
++    ):
++        """MSG-03/D-12: same single-quote-half rationale as
++        ``test_conf17_violation_message_disambiguates_embedded_single_quote``
++        above, for ``_templates_path_collision_message()``'s
++        ``bundle_dir`` argument."""
++        message = _templates_path_collision_message(
++            "mykey",
++            self.SINGLE_QUOTE_SHAPED_PATH,
++            "_templates",
++            "/srcdir/_templates",
++        )
++        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message
++
++    def test_bundle_destination_collision_message_disambiguates_embedded_single_quote(
++        self,
++    ):
++        """MSG-03/D-12: same single-quote-half rationale as
++        ``test_conf17_violation_message_disambiguates_embedded_single_quote``
++        above, for ``_bundle_destination_collision_message()``'s
++        ``dest_dir`` argument."""
++        message = _bundle_destination_collision_message(
++            "alpha", "beta", self.SINGLE_QUOTE_SHAPED_PATH
++        )
++        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message
+```
+
+`git diff -U0 ... | grep -c '^-'` returns `1` — the single unified-diff header line
+(`--- a/tests/...`) only. **Zero removed source lines.** The touch to this pre-existing test
+file was pure addition: one constant plus three whole new test methods appended after the
+pre-existing `test_registry_keys_stay_repr_quoted`.
+
+**`_assert_no_doubled_separator` is byte-identical.** It is defined at line 449 of the current
+file (`grep -n "_assert_no_doubled_separator" tests/test_templates_path_collision_gate.py`)
+and does not appear anywhere inside the diff hunk above — the diff's two hunks touch only
+lines 443 (a new class constant) and 492 onward (three brand-new methods appended after the
+last pre-existing method), never the `_assert_no_doubled_separator` static method itself or
+any of its sixteen pre-existing call sites. `58-REPR-CENSUS.md`'s third bucket names this
+exact predicate as must-not-be-rewritten and must-not-be-re-litigated; it was not touched.
+
+### Cross-check against `58-REPR-CENSUS.md`
+
+`58-REPR-CENSUS.md`'s pass-criterion table enumerates these test modules (excluding the two
+MSG-01 already rewrote before this phase began):
+
+| Census module | Modified in this phase's `tests/` diff? |
+|---|---|
+| `tests/test_registry_container_shape_gate.py` | No |
+| `tests/test_registry_prewrite_validation_gate.py` | No |
+| `tests/test_template_engine.py` | No |
+| `tests/test_template_registry.py` | No |
+
+Confirmed with: `git diff --name-status 31441d09bd8168f1bcc5170749f6d9646a1d5151..HEAD -- tests/test_registry_container_shape_gate.py tests/test_registry_prewrite_validation_gate.py tests/test_template_engine.py tests/test_template_registry.py`
+
+```
+(no output)
+```
+
+None of the four census-enumerated modules appears as modified — matching the full `tests/`
+diff above, which lists only the one already-discussed `M` line for a file the census does
+NOT enumerate (`test_templates_path_collision_gate.py` carries the format-asserting "third
+bucket" predicate, not a pass-criterion site).
+
+### AST census guard
+
+Command: `uv run pytest tests/test_repr_census_guard.py -q`
+
+```
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a81cc5ed13e7db22e
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 4 items
+
+tests/test_repr_census_guard.py ....                                     [100%]
+
+============================== 4 passed in 0.61s ===============================
+```
+
+No entry was appended to `PASS_CRITERION_REPR_ALLOWLIST` — the allowlist stays at its recorded
+7 entries.
+
+Command: `git diff 31441d09bd8168f1bcc5170749f6d9646a1d5151..HEAD -- tests/test_repr_census_guard.py`
+
+```
+(no output)
+```
+
+## Final local gate
+
+Command: `uv run pytest -q`
+
+```
+================= 1511 passed, 5 skipped in 121.34s (0:02:01) ==================
+```
+
+**Reconciled against each plan's own isolated-worktree count:** wave 1 baseline (`60-01-EVIDENCE.md`)
+was `1494 passed, 5 skipped`. Each wave-2 plan ran in its own worktree against that same
+baseline plus only its own new tests: `60-02-EVIDENCE.md` (builder.py — 7 new tests in
+`tests/test_builder_path_quoting_gate.py` + 3 new methods added to the existing
+`TestWindowsPathEscapingRegressionGuard` class = +10) recorded `1504 passed`;
+`60-03-EVIDENCE.md` (writer.py — 2 new tests) recorded `1496 passed`; `60-04-EVIDENCE.md`
+(template_registry.py — 5 new tests) recorded `1499 passed`. Summed on top of the 1494
+baseline once all three wave-2 plans are merged together: `1494 + 10 + 2 + 5 = 1511` — matching
+this task's measured full-suite count exactly. No test was added or removed by this task.
+
+Command: `uv run black --check .`
+
+```
+All done! ✨ 🍰 ✨
+353 files would be left unchanged.
+```
+
+Command: `uv run mypy typsphinx/`
+
+```
+Success: no issues found in 9 source files
+```
+
+### Per-module skip census — the four new gate modules
+
+Command: `uv run pytest tests/test_pathfmt.py tests/test_builder_path_quoting_gate.py tests/test_writer_path_quoting_gate.py tests/test_template_registry_path_quoting_gate.py -v -rs`
+
+```
+============================== 41 passed in 0.28s ==============================
+```
+
+**0 skipped** across all four new gate modules — `tests/test_pathfmt.py` (MSG-02, 27 tests),
+`tests/test_builder_path_quoting_gate.py` (MSG-03, 7 tests), `tests/test_writer_path_quoting_gate.py`
+(MSG-04, 2 tests), `tests/test_template_registry_path_quoting_gate.py` (MSG-05, 5 tests) — 41
+total, all passed, 0 skipped, 0 deselected in this combined run. A skipped test is never
+recorded as a pass: every one of these four modules is a pure string, `caplog`, or
+`ExtensionError` assertion needing no Windows host and no compiler, so a skip here can only
+mean the worktree venv is wrong. It is not — this worktree was provisioned per `CLAUDE.md`'s
+`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` before any command in this
+plan ran, confirmed by `tests/test_pathfmt.py`'s own successful import of `typsphinx.pathfmt`
+in the very first task of wave 1.
+
+### `ruff check .` — deferred to CI
+
+Command: `uv run ruff check .`
+
+```
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+```
+
+This is an environment limitation, not a code defect — a freshly-provisioned worktree venv on
+this NixOS-sandboxed development machine pulls a generic-linux `ruff` wheel whose ELF the
+loader rejects at exec time (`MEMORY.md`'s "NixOS sandbox test env" note: "ruff は未解消").
+CI holds lint authority for this project (`CLAUDE.md`'s own commands section).
+
+## RED-first ledger (phase-wide)
+
+Every one of MSG-02, MSG-03, MSG-04 and MSG-05 has a recorded local RED that preceded its
+green. No row below is filled with a green-only reference.
+
+| Requirement | Per-plan evidence file | RED section | GREEN section |
+|---|---|---|---|
+| MSG-02 | `60-01-EVIDENCE.md` | `## MSG-02 RED` (`ModuleNotFoundError: No module named 'typsphinx.pathfmt'`, exit code 2, before `typsphinx/pathfmt.py` existed) | `## MSG-02 GREEN` (`27 passed`, zero failed, zero skipped) |
+| MSG-03 | `60-02-EVIDENCE.md` | `## RED — three 57-11 builders (single-quote half)`, `## RED — _resolve_target_stem`, `## RED — _track_image rehome warning`, `## RED — _validate_output_path_collisions`, `## RED — _copy_bundle_directory` (8 recorded failures across 5 message families, all in commit `f62788de`, before any product edit) | `## GREEN` (`26 passed` for the two gate modules combined; full suite, black, mypy and census guard all green) |
+| MSG-04 | `60-03-EVIDENCE.md` | `## RED — wrapper-render debug log` (`1 failed, 1 passed` — `AssertionError: Expected every backslash run to be a single unescaped separator`, before `typsphinx/writer.py` was edited) | `## GREEN` (`2 passed`; full suite 1496 passed, 5 skipped; black/mypy/census guard all green) |
+| MSG-05 | `60-04-EVIDENCE.md` | `## RED shape 1 — doubled backslash (str template)` and `## RED shape 2 — leaked class-name wrapper (Path template)` (`3 failed, 2 passed` at that point in the plan, before any product-code edit) | `## GREEN` (`5 passed` across all three classes; `tests/test_template_registry.py` 76 passed with zero edits) |
