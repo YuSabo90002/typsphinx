@@ -135,6 +135,18 @@ None - no external service configuration required.
 - `61-HANDOFF.md` (a later plan) reproduces this plan's post-`phase.complete` detection-and-reversion protocol verbatim per `61-CLOSEOUT-GUARD.md`'s own instruction.
 - No blockers or concerns for downstream plans in this phase.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/61-v0-9-1-release-prep-prep-only/61-CLOSEOUT-GUARD.md`
+- FOUND: `.planning/phases/61-v0-9-1-release-prep-prep-only/61-SC4-INVARIANTS.md`
+- FOUND: `.planning/phases/61-v0-9-1-release-prep-prep-only/COVERAGE.md`
+- FOUND commit: `4fd89d92` (Task 1)
+- FOUND commit: `333de2dc` (Task 2)
+- FOUND commit: `e9a3fa4e` (Task 3)
+- Recorded checksum/PHASE_BASE_SHA re-verified against live measurements at self-check time: match.
+- `git status --porcelain .planning/REQUIREMENTS.md` and `git status --porcelain typsphinx/ tests/ CHANGELOG.md pyproject.toml README.md`: both empty.
+- No `61-VERIFICATION.md` file exists under the phase directory.
+
 ---
 *Phase: 61-v0-9-1-release-prep-prep-only*
 *Completed: 2026-08-29*
