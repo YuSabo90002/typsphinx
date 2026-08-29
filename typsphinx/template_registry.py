@@ -408,13 +408,13 @@ def resolve_template_registry(
         #    `template` works end to end TODAY, and blanket-rejecting it
         #    would withdraw a working shape rather than close a crash.
         #
-        # MSG-05/SC#3: this branch's `{template!r}` is a DELIBERATE
-        # exclusion from MSG-05's path-quoting-helper rollout, not an
-        # oversight. It is reached precisely when `template` is neither
-        # `str` nor `os.PathLike` (a `list`, `bytes`, an `int`), so the
-        # path-quoting helper would raise `TypeError` on the exact values
-        # this branch exists to report. SC#3 measures this message
-        # staying on Python's own `repr()` conversion.
+        # MSG-05/SC#3: this branch's `template` interpolation below is a
+        # DELIBERATE exclusion from MSG-05's path-quoting-helper rollout,
+        # not an oversight. It is reached precisely when `template` is
+        # neither `str` nor `os.PathLike` (a `list`, `bytes`, an `int`),
+        # so the path-quoting helper would raise `TypeError` on the exact
+        # values this branch exists to report. SC#3 measures this message
+        # staying on Python's own repr conversion.
         if template and not isinstance(template, (str, os.PathLike)):
             failures.append(
                 f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
