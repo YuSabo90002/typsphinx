@@ -556,3 +556,51 @@ green. No row below is filled with a green-only reference.
 | MSG-03 | `60-02-EVIDENCE.md` | `## RED — three 57-11 builders (single-quote half)`, `## RED — _resolve_target_stem`, `## RED — _track_image rehome warning`, `## RED — _validate_output_path_collisions`, `## RED — _copy_bundle_directory` (8 recorded failures across 5 message families, all in commit `f62788de`, before any product edit) | `## GREEN` (`26 passed` for the two gate modules combined; full suite, black, mypy and census guard all green) |
 | MSG-04 | `60-03-EVIDENCE.md` | `## RED — wrapper-render debug log` (`1 failed, 1 passed` — `AssertionError: Expected every backslash run to be a single unescaped separator`, before `typsphinx/writer.py` was edited) | `## GREEN` (`2 passed`; full suite 1496 passed, 5 skipped; black/mypy/census guard all green) |
 | MSG-05 | `60-04-EVIDENCE.md` | `## RED shape 1 — doubled backslash (str template)` and `## RED shape 2 — leaked class-name wrapper (Path template)` (`3 failed, 2 passed` at that point in the plan, before any product-code edit) | `## GREEN` (`5 passed` across all three classes; `tests/test_template_registry.py` 76 passed with zero edits) |
+
+## SC#5 3-OS CI dispatch
+
+**PENDING — owner dispatch required**
+
+**Why pending:** this task runs inside a worktree isolated from the orchestrator's own tree
+(`.git` is a file, not a directory — the standing worktree-isolation mode per `CLAUDE.md`). This
+worktree's HEAD is on a per-agent branch (`worktree-agent-a81cc5ed13e7db22e`) that does not exist
+on `origin` and is not the phase's real post-fix tip. The phase's actual tip is the merge commit
+the orchestrator creates when it merges this worktree back into
+`gsd/v0.9.1-windows-path-correctness` — a commit that does not exist yet while this task runs.
+Dispatching CI now would run against a tip that is NOT the phase tip, which is exactly the
+stale/wrong-tree citation T-60-13 forbids. Per ROADMAP constraint 10, local RED-then-green is
+already complete for all four requirements (see the RED-first ledger above) — CI is the final
+confirmation, never the first discovery, and this PENDING marker is what keeps that ordering
+honest rather than fabricating a result.
+
+**Exact commands the owner (or the orchestrator, immediately after merging this worktree) must
+run, on the milestone branch:**
+
+```bash
+git push origin gsd/v0.9.1-windows-path-correctness
+gh workflow run ci.yml --ref gsd/v0.9.1-windows-path-correctness
+gh run list --workflow=ci.yml --branch gsd/v0.9.1-windows-path-correctness --limit 1
+gh run watch <run-id>
+```
+
+**To be filled in by whoever runs the dispatch above:**
+
+- Run URL:
+- Dispatched head SHA:
+- Local tip SHA (for comparison against the dispatched head SHA):
+- Per-job conclusions (one line per matrix job, `windows-latest` jobs included):
+
+| job | conclusion |
+|---|---|
+| Test Python 3.12 on ubuntu-latest | |
+| Test Python 3.13 on ubuntu-latest | |
+| Test Python 3.12 on windows-latest | |
+| Test Python 3.13 on windows-latest | |
+| Test Python 3.12 on macos-latest | |
+| Test Python 3.13 on macos-latest | |
+| Lint and Format Check | |
+| Type Check | |
+| Code Coverage | |
+| Build Package | |
+| Integration Test - basic | |
+| Integration Test - advanced | |
