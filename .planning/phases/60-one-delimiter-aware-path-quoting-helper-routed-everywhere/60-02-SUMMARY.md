@@ -211,3 +211,15 @@ should check against.
 ---
 *Phase: 60-one-delimiter-aware-path-quoting-helper-routed-everywhere*
 *Completed: 2026-08-29*
+
+## Self-Check: PASSED
+
+- FOUND: `typsphinx/pathfmt.py`
+- FOUND: `typsphinx/builder.py`
+- FOUND: `tests/test_builder_path_quoting_gate.py`
+- FOUND: `.planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-02-EVIDENCE.md`
+- FOUND: `.planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-02-SUMMARY.md`
+- FOUND commit: `f62788de` (test)
+- FOUND commit: `3d2c6c96` (feat)
+- FOUND commit: `1db98996` (docs)
+- FOUND commit: `73017de8` (docs)
