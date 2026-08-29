@@ -5,11 +5,11 @@ milestone_name: Windows path correctness
 current_phase: 61
 current_phase_name: v0.9.1 Release Prep (prep-only)
 status: planning
-stopped_at: Phase 60 complete, ready to plan Phase 61
-last_updated: "2026-08-29T12:38:32.789Z"
+stopped_at: Phase 61 context gathered
+last_updated: "2026-08-29T13:24:00.201Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 60 complete, transitioned to Phase 61
-state_head: 4e113c6a632147b103aa4644b81ff37b106badbf
+last_activity_desc: Phase 61 context gathered (v0.9.1 will not be published; see 61-CONTEXT.md D-01..D-11)
+state_head: 674847446c626875b41457cb26a5615df013eace
 progress:
   total_phases: 4
   completed_phases: 3
@@ -995,12 +995,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/60-one-delimiter-aware-path-quoting-helper-routed-everywhere/60-VERIFICATION.md
+**Resume file:** .planning/phases/61-v0-9-1-release-prep-prep-only/61-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.0-phases/` (and the equivalent
 directory for each earlier milestone).
 
-Last session: 2026-08-29T04:53:35.230Z
-Stopped at: Phase 60 complete, ready to plan Phase 61
+Last session: 2026-08-29T13:24:00.163Z
+Stopped at: Phase 61 context gathered
 Resume: `/gsd-plan-phase 61` — v0.9.1 Release Prep (prep-only). Phases 58, 59 and 60 are complete
 and `gsd/v0.9.1-windows-path-correctness` is on `origin` at `4e113c6a`.
 
