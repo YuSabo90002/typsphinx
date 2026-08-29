@@ -88,7 +88,7 @@ see PATH-01's reachability note and MSG-01's existence.
       assertions in the suite are on identifier / list / bytes / int values and correctly stay
       untouched.
 
-- [ ] **MSG-02**: a delimiter-aware path-quoting helper exists in a **new leaf module** with zero
+- [x] **MSG-02**: a delimiter-aware path-quoting helper exists in a **new leaf module** with zero
       `typsphinx`-internal imports. It does **not** escape backslashes, and it selects a delimiter
       that cannot appear unescaped inside the value — restoring the half of `repr()` that 57-11's
       hardcoded `'{value}'` dropped, while keeping the half it correctly removed. It accepts
@@ -199,7 +199,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | IMG-05 | Phase 59 | Complete |
 | IMG-06 | Phase 59 | Complete |
 | IMG-07 | Phase 59 | Complete |
-| MSG-02 | Phase 60 | Pending |
+| MSG-02 | Phase 60 | Complete |
 | MSG-03 | Phase 60 | Pending |
 | MSG-04 | Phase 60 | Pending |
 | MSG-05 | Phase 60 | Pending |
