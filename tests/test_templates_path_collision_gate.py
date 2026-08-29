@@ -440,6 +440,10 @@ class TestWindowsPathEscapingRegressionGuard:
 
     WINDOWS_SHAPED_PATH = "C:\\Users\\runner\\project\\_templates\\nested"
     WINDOWS_SHAPED_SRCDIR = "C:\\Users\\runner\\project\\source"
+    # MSG-03/D-12: a path-shaped value containing a literal apostrophe --
+    # the single-quote half of the D-01 delimiter-selection rule (the
+    # backslash half is already green here since Phase 57).
+    SINGLE_QUOTE_SHAPED_PATH = "/home/O'Brien's Projects/_templates/nested"
 
     @staticmethod
     def _assert_no_doubled_separator(message: str) -> None:
@@ -489,3 +493,49 @@ class TestWindowsPathEscapingRegressionGuard:
         )
         assert "'alpha'" in message
         assert "'beta'" in message
+
+    def test_conf17_violation_message_disambiguates_embedded_single_quote(self):
+        """MSG-03/D-12: the SINGLE-QUOTE half of the D-01 delimiter rule,
+        not the backslash half. These three 57-11 message builders
+        stopped doubling backslashes in Phase 57 -- a backslash-doubling
+        assertion here would be tautologically green and prove nothing.
+        The defect this test targets is the one 57-11 introduced by
+        hardcoding an apostrophe delimiter (``'...'``) instead of
+        reproducing ``repr()``'s delimiter SELECTION: a path containing a
+        literal apostrophe can visually close that hardcoded delimiter
+        early. MSG-02's ``quote_path()`` selects double quotes instead
+        whenever the value contains an apostrophe and no double quote, so
+        the double-quote-delimited form of the value must appear intact
+        as a substring of the message.
+        """
+        message = _conf17_violation_message(
+            "mykey", self.SINGLE_QUOTE_SHAPED_PATH, "/srcdir"
+        )
+        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message
+
+    def test_templates_path_collision_message_disambiguates_embedded_single_quote(
+        self,
+    ):
+        """MSG-03/D-12: same single-quote-half rationale as
+        ``test_conf17_violation_message_disambiguates_embedded_single_quote``
+        above, for ``_templates_path_collision_message()``'s
+        ``bundle_dir`` argument."""
+        message = _templates_path_collision_message(
+            "mykey",
+            self.SINGLE_QUOTE_SHAPED_PATH,
+            "_templates",
+            "/srcdir/_templates",
+        )
+        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message
+
+    def test_bundle_destination_collision_message_disambiguates_embedded_single_quote(
+        self,
+    ):
+        """MSG-03/D-12: same single-quote-half rationale as
+        ``test_conf17_violation_message_disambiguates_embedded_single_quote``
+        above, for ``_bundle_destination_collision_message()``'s
+        ``dest_dir`` argument."""
+        message = _bundle_destination_collision_message(
+            "alpha", "beta", self.SINGLE_QUOTE_SHAPED_PATH
+        )
+        assert f'"{self.SINGLE_QUOTE_SHAPED_PATH}"' in message

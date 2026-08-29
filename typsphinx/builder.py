@@ -19,6 +19,7 @@ from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.osutil import ensuredir, make_filename_from_project
 
+from typsphinx.pathfmt import quote_path
 from typsphinx.pdf import compile_typst_file_to_pdf
 from typsphinx.template_registry import (
     TemplateRegistryEntry,
@@ -511,9 +512,13 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     Args:
         key: The registry key whose resolved template violates CONF-17.
         resolved_path: The RESOLVED template path (already ``str()``'d by
-            the caller) -- never the declared string.
+            the caller) -- never the declared string. Quoted with
+            ``typsphinx.pathfmt.quote_path()`` (MSG-03), which selects a
+            delimiter the value cannot close early, rather than an
+            explicit hardcoded ``'...'``.
         srcdir: The build's source directory (already ``str()``'d by the
-            caller).
+            caller). Quoted with ``quote_path()``, same rule as
+            ``resolved_path``.
 
     Returns:
         The CONF-17/A-01 violation sentence, identical regardless of
@@ -521,9 +526,9 @@ def _conf17_violation_message(key: str, resolved_path: str, srcdir: str) -> str:
     """
     return (
         f"typst_document_templates: registry key {key!r}'s "
-        f"resolved template '{resolved_path}' has a "
+        f"resolved template {quote_path(resolved_path)} has a "
         "parent directory that is srcdir itself, or an "
-        f"ancestor of srcdir ('{srcdir}') -- put "
+        f"ancestor of srcdir ({quote_path(srcdir)}) -- put "
         "the template in its own subdirectory (CONF-17, A-01)"
     )
 
@@ -542,9 +547,11 @@ def _templates_path_collision_message(
     Args:
         key: The registry key whose resolved template bundle collides.
         bundle_dir: The resolved template's bundle directory (a
-            filesystem path -- quoted with explicit ``'...'``, never
-            ``!r``, so a Windows backslash is not doubled by
-            ``repr()``).
+            filesystem path -- quoted with
+            ``typsphinx.pathfmt.quote_path()`` (MSG-03), never ``!r``,
+            so a Windows backslash is not doubled by ``repr()`` and a
+            literal apostrophe in the path cannot close the delimiter
+            early).
         raw_tp_entry: The colliding ``templates_path`` entry exactly as
             configured (may be a bare, unresolved fragment).
         resolved_tp_entry: ``raw_tp_entry`` resolved against ``srcdir``
@@ -555,10 +562,10 @@ def _templates_path_collision_message(
     """
     return (
         f"registry key {key!r}'s resolved template "
-        f"bundle directory '{bundle_dir}' collides "
+        f"bundle directory {quote_path(bundle_dir)} collides "
         "with the Sphinx templates_path entry "
-        f"'{raw_tp_entry}' (resolved to "
-        f"'{resolved_tp_entry}') -- the whole "
+        f"{quote_path(raw_tp_entry)} (resolved to "
+        f"{quote_path(resolved_tp_entry)}) -- the whole "
         "bundle directory is copied to the build "
         "output, so this would republish the "
         "project's Sphinx template directory; move "
@@ -583,7 +590,8 @@ def _bundle_destination_collision_message(
         existing_key: The registry key that already claimed ``dest_dir``.
         key: The registry key that collides with it.
         dest_dir: The shared bundle destination (a filesystem path --
-            quoted with explicit ``'...'``, never ``!r``).
+            quoted with ``typsphinx.pathfmt.quote_path()`` (MSG-03),
+            never ``!r``).
 
     Returns:
         The bundle-destination collision sentence.
@@ -591,7 +599,7 @@ def _bundle_destination_collision_message(
     return (
         f"registry key {existing_key!r} and registry key "
         f"{key!r} both resolve to the same bundle "
-        f"destination '{dest_dir}'"
+        f"destination {quote_path(dest_dir)}"
     )
 
 
@@ -887,7 +895,8 @@ class TypstBuilder(Builder):
                     return docname
                 logger.warning(
                     "a path is not supported in a typst_documents target "
-                    f"name: {target!r} -- using {fallback!r} instead"
+                    f"name: {quote_path(target)} -- using "
+                    f"{quote_path(fallback)} instead"
                 )
                 stem = fallback
             elif "/" in stem and not posixpath.basename(stem).strip():
@@ -1132,7 +1141,7 @@ class TypstBuilder(Builder):
                     (
                         relpath,
                         f"{existing} and {description} both resolve to "
-                        f"the same output path {relpath!r}",
+                        f"the same output path {quote_path(relpath)}",
                     )
                 )
                 return
@@ -1154,8 +1163,9 @@ class TypstBuilder(Builder):
                     (
                         content_relpath,
                         f"the content file for docname {docname!r} would "
-                        f"be written to {content_relpath!r}, whose first "
-                        f"path segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        f"be written to {quote_path(content_relpath)}, "
+                        f"whose first path segment is "
+                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
                         "directory is reserved for template bundles",
                     )
                 )
@@ -1185,27 +1195,40 @@ class TypstBuilder(Builder):
                 continue
             docname = entry[0]
             target = entry[1]
+            # MSG-03 (D-06 AMENDED, plan-time addendum): _is_usable_typst_
+            # documents_entry() constrains only entry[0] (the docname) to
+            # be a str -- entry[1] (this target) may be ANY type a user
+            # wrote in conf.py (None, an int, a list). quote_path() raises
+            # TypeError for a non-str, so an unconditional route here
+            # would turn a today-warned config typo into an unhandled
+            # crash on every build. One binding, read at both message
+            # sites below, so the narrowing cannot drift between them; the
+            # non-str rendering is deliberately unchanged from today's.
+            target_text = (
+                quote_path(target) if isinstance(target, str) else repr(target)
+            )
             wrapper_relpath = self._wrapper_output_relpath(entry) + ".typ"
             _claim(
                 wrapper_relpath,
                 f"typst_documents entry {index} (docname {docname!r}, "
-                f"target {target!r})",
+                f"target {target_text})",
             )
             if self._reserves_template_prefix(wrapper_relpath):
                 failures.append(
                     (
                         wrapper_relpath,
                         f"typst_documents entry {index} (docname "
-                        f"{docname!r}, target {target!r}) would write its "
-                        f"wrapper to {wrapper_relpath!r}, whose first path "
-                        f"segment is {TEMPLATE_OUTPUT_DIR!r} -- that "
+                        f"{docname!r}, target {target_text}) would write "
+                        f"its wrapper to {quote_path(wrapper_relpath)}, "
+                        f"whose first path segment is "
+                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
                         "directory is reserved for template bundles",
                     )
                 )
 
         if failures:
             summary = "; ".join(
-                f"{relpath!r}: {message}" for relpath, message in failures
+                f"{quote_path(relpath)}: {message}" for relpath, message in failures
             )
             raise ExtensionError(
                 f"typst: {len(failures)} output path collision(s): {summary}"
@@ -1940,8 +1963,9 @@ class TypstBuilder(Builder):
                 # ordering, and the IMG-06 255-byte bound.
                 key = _build_relocation_key(resolved_uri)
                 logger.warning(
-                    f"could not rehome image URI {resolved_uri!r} relative "
-                    f"to the doctree directory -- relocated to {key!r}"
+                    f"could not rehome image URI {quote_path(resolved_uri)} "
+                    f"relative to the doctree directory -- relocated to "
+                    f"{quote_path(key)}"
                 )
             elif path.isfile(path.join(self.srcdir, rel_uri)):
                 # D-01/D-03/D-04: a REAL source image already occupies the
@@ -2229,7 +2253,8 @@ class TypstBuilder(Builder):
                         raise ExtensionError(
                             f"typst_document_templates: failed to copy the "
                             f"resolved template for registry key {key!r} "
-                            f"from {src_file!r} to {dest_file!r}: {e}"
+                            f"from {quote_path(src_file)} to "
+                            f"{quote_path(dest_file)}: {e}"
                         ) from e
                     logger.warning(
                         f"Failed to copy template bundle file {rel_path}: {e}"
@@ -2238,9 +2263,10 @@ class TypstBuilder(Builder):
         if not template_copied:
             raise ExtensionError(
                 f"typst_document_templates: the resolved template for "
-                f"registry key {key!r} ({template_filename!r}) was never "
-                f"copied from {src_dir!r} to {dest_dir!r} -- a wrapper "
-                "naming this key would import a file that does not exist"
+                f"registry key {key!r} ({quote_path(template_filename)}) "
+                f"was never copied from {quote_path(src_dir)} to "
+                f"{quote_path(dest_dir)} -- a wrapper naming this key "
+                "would import a file that does not exist"
             )
 
     def _copy_used_template_bundles(self) -> None:
