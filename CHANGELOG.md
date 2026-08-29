@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A Windows-shaped `typst_documents` target that reaches outside the output directory is now
+  refused on the normalized path, matching its sibling image-URI check (PATH-01).** The
+  `typst_documents` escape predicate now applies its absolute-path and drive-qualified checks to
+  the same backslash-normalized string its sibling image-URI predicate already used, rather than
+  to the raw stem. Neither of the predicate's two real call sites can currently reach the gap this
+  closes — both normalize or otherwise guarantee a safe value before calling it — so this is
+  contract hardening for a future caller, not the repair of a defect any user was hitting.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
