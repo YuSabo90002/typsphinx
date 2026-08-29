@@ -203,3 +203,11 @@ None — no external service configuration required.
 ---
 *Phase: 61-v0-9-1-release-prep-prep-only*
 *Completed: 2026-08-29*
+
+## Self-Check: PASSED
+
+- `.planning/phases/61-v0-9-1-release-prep-prep-only/61-CHANGELOG-EVIDENCE.md` — FOUND
+- `.planning/phases/61-v0-9-1-release-prep-prep-only/61-01-SUMMARY.md` — FOUND
+- Task 1 commit `70b2823b` — FOUND in `git log --oneline --all`
+- Task 2 commit `8bb0288e` — FOUND in `git log --oneline --all`
+- Plan metadata commit `01afe7db` — FOUND in `git log --oneline --all`
