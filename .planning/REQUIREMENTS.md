@@ -105,7 +105,7 @@ see PATH-01's reachability note and MSG-01's existence.
       **and** the sibling case `57-REVIEW.md` IN-01 named as missing: a path containing a literal
       single quote, asserted to be delimited unambiguously.
 
-- [ ] **MSG-03**: every path-valued interpolation in `typsphinx/builder.py` routes through the
+- [x] **MSG-03**: every path-valued interpolation in `typsphinx/builder.py` routes through the
       helper — the three sites 57-11 already fixed (`_conf17_violation_message`,
       `_templates_path_collision_message`, `_bundle_destination_collision_message`, ~lines 329-402)
       plus the census groups confirmed live at HEAD: lines 942, 964, 965, 999, 1007, 1008, 1015
@@ -200,7 +200,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | IMG-06 | Phase 59 | Complete |
 | IMG-07 | Phase 59 | Complete |
 | MSG-02 | Phase 60 | Complete |
-| MSG-03 | Phase 60 | Pending |
+| MSG-03 | Phase 60 | Complete |
 | MSG-04 | Phase 60 | Pending |
 | MSG-05 | Phase 60 | Pending |
 | REL-09 | Phase 61 | Pending |
