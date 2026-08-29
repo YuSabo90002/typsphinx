@@ -5,15 +5,15 @@ milestone_name: Windows path correctness
 current_phase: 61
 current_phase_name: v0.9.1 Release Prep (prep-only)
 status: planning
-stopped_at: Phase 61 context gathered
-last_updated: "2026-08-29T13:24:00.201Z"
+stopped_at: Phase 61 planned (4 plans in 3 waves)
+last_updated: "2026-08-29T14:07:11.542Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 61 context gathered (v0.9.1 will not be published; see 61-CONTEXT.md D-01..D-11)
-state_head: 674847446c626875b41457cb26a5615df013eace
+last_activity_desc: Phase 61 planned — 61-01..61-04-PLAN.md committed (wave 1 CHANGELOG + fence obs.1 -> wave 2 green tree + 3-OS CI -> wave 3 fence obs.2 + handoff); v0.9.1 will not be published, see 61-CONTEXT.md D-01..D-13
+state_head: 328c7e943b2ff230cf2faaaa6aaee3aeab952fa4
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 13
+  total_plans: 17
   completed_plans: 13
   percent: 75
 ---
@@ -93,15 +93,31 @@ v0.8.0 shipped 2026-08-15 (6 phases, 45 plans, 24/24 requirements, zero known ga
 its 12 deferred artifacts are in § Deferred Items below, five of which — XREF-05, BLD-07, BLD-08,
 BLD-09, IMG-03 — are now **v0.9.0 requirements mapped to Phase 55** rather than open todos.
 
-Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish checklist. REL-08 closes there, not here.
+Next action: `/gsd-execute-phase 61`. **The line that stood here previously — pointing at
+`/gsd-complete-milestone` to execute 57-HANDOFF.md's publish checklist — belonged to the v0.9.0
+close and is retired.** For THIS milestone, `/gsd-complete-milestone` runs but performs **no**
+publish step: no tag, no PyPI upload, no GitHub Release (D-02, D-12). Phase 61 produces
+`61-HANDOFF.md`, which states that negative first and preserves the standing publish steps as an
+inheritance record for the v0.9.2 milestone rather than as instructions to execute now.
 
 ## Current Position
 
-Phase: 61 — v0.9.1 Release Prep (prep-only)
-Plan: Not started
-Status: Ready to plan
+Phase: 61 (v0.9.1 Release Prep (prep-only)) — READY TO EXECUTE
+Plan: Not started (4 plans in 3 waves: 61-01 + 61-02 → 61-03 → 61-04)
+Status: Ready to execute
 Progress: [###############     ] 75% (3/4 phases; Phase 58 3/3, Phase 59 5/5, Phase 60 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 60 complete and verified 5/5. `typsphinx/pathfmt.py`'s
+Last activity: 2026-08-29 — Phase 61 planned. Four plans in three waves, all `autonomous: true`.
+The phase changed shape at discuss-phase: **v0.9.1 will never be published** (D-02), so there is
+no version bump (D-01) and no `## [0.9.1]` CHANGELOG section (D-03) — the three defect families
+are authored under the existing `## [Unreleased]` heading and the tail link-reference block is
+left untouched (D-04), because `docs/source/changelog.rst` includes `CHANGELOG.md` wholesale and
+a `[0.9.1]` tag link would 404 on Read the Docs. D-11 maps this onto ROADMAP SC#1–SC#5 (SC#1
+DROPPED, SC#2 REWORDED, SC#3/SC#4 RETAINED, SC#5 RE-AIMED) and every downstream agent must read
+it before judging the phase against the roadmap. REL-09 is held at `[ ]` and carries forward
+unmet to a v0.9.2 milestone that will also carry the inline-image blocker fix (D-07, D-08). The
+union of `files_modified` across all four plans contains exactly one product file, `CHANGELOG.md`.
+
+Prior activity: 2026-08-29 — Phase 60 complete and verified 5/5. `typsphinx/pathfmt.py`'s
 `quote_path()` landed as a zero-internal-import leaf module and is routed through every
 path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py`; the
 identifier-valued `!r` sites are measurably untouched. Three defects surfaced AFTER all five

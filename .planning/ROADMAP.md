@@ -474,6 +474,9 @@ double separators or close their quote early.
 > plan** and carries forward unmet.
 
 Plans:
+
+**Wave 1** *(no dependencies — 61-01 and 61-02 run in parallel; their `files_modified` sets are disjoint)*
+
 - [ ] 61-01-PLAN.md — SC#2 (reworded): the three defect families authored as user-visible bullets
       under the existing `## [Unreleased]` heading, led by a tracer slice that carries one bullet
       end-to-end through MyST into a rendered docs page; both docs builds run post-edit against the
@@ -483,15 +486,30 @@ Plans:
       the `phase.complete` REL-09 auto-flip that has fired at five consecutive release-prep closes,
       fence observation 1 of 2 with a positive control on every remote probe, the phase base SHA, and
       the external-API coverage declaration.
+
+**Wave 2** *(blocked on Wave 1 completion — the CI dispatch must run on the tip that already carries 61-01's CHANGELOG edit)*
+
 - [ ] 61-03-PLAN.md — SC#3 (retained, re-anchored): the milestone-final tree proven green on runs
       executed in this phase — full pytest, `black`, `mypy` and the version-sync guard family — plus
       one fresh 3-OS CI dispatch on the tip carrying this phase's own CHANGELOG edit, all 12 job
       conclusions transcribed literally with both `windows-latest` lanes named.
+
+**Wave 3** *(blocked on Wave 2 completion — fence observation 2 must be separated from observation 1 by the two intervening waves, not by wall-clock luck)*
+
 - [ ] 61-04-PLAN.md — SC#4 (second half) and SC#5 (re-aimed): fence observation 2 at a genuinely
       later timestamp, the scoped `typsphinx/` diff with a real positive control, the close-time
       checksum re-verification with a hand reversion path, and `61-HANDOFF.md` — which opens by
       stating that this milestone publishes nothing, then preserves the three standing publish steps
       as an inheritance record with the version left as a placeholder.
+
+**Cross-cutting constraints** *(a `must_haves` truth carried by two or more of the four plans)*:
+
+- REL-09 is cited by every plan as the phase's only requirement ID **for coverage purposes only**.
+  No plan closes it and no plan touches its checkbox; per D-08 it stays `[ ]` and carries forward
+  unmet to the v0.9.2 milestone with its literal wording unchanged. 61-02 records the
+  `REQUIREMENTS.md` checksum at phase head and 61-04 re-verifies it at close, because
+  `phase.complete` has auto-flipped this requirement against the phase's own recorded decision at
+  five consecutive release-prep closes.
 
 **UI hint**: no
 
