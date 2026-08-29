@@ -228,6 +228,16 @@ None - no external service configuration required.
 - REL-09 remains untouched at `[ ]` per D-08; this plan cites it for coverage purposes only and
   does not close it, consistent with the phase's must_haves.
 
+## Self-Check: PASSED
+
+- `61-GREEN-TREE-EVIDENCE.md`: FOUND
+- `61-CI-EVIDENCE.md`: FOUND
+- `61-03-SUMMARY.md`: FOUND
+- Commit `521d6622` (Task 1): FOUND
+- Commit `14fcb460` (Task 2): FOUND
+- Commit `546b8751` (Task 3): FOUND
+- Commit `06da1f18` (this SUMMARY): FOUND
+
 ---
 *Phase: 61-v0-9-1-release-prep-prep-only*
 *Completed: 2026-08-29*
