@@ -460,7 +460,39 @@ double separators or close their quote early.
      projects, and the GitHub Release body being byte-identical to
      `scripts/extract_changelog_section.py 0.9.1`'s stdout.
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
+
+> **Scope reframe — read `61-CONTEXT.md` D-11 before judging the plans against SC#1–SC#5 above.**
+> The phase's shape changed during discuss-phase and the owner deliberately left this entry as the
+> historical record of what was originally planned. D-11 is the authoritative mapping: **SC#1 is
+> DROPPED** (no version bump — `pyproject.toml` stays at 0.9.0), **SC#2 is REWORDED** (the curated
+> content is authored under the existing `## [Unreleased]` heading, the tail link-reference block is
+> untouched, and the extraction-script reproduction check moves to the v0.9.2 release-prep phase),
+> **SC#3 and SC#4 are RETAINED** (SC#3 re-anchored to the milestone-final tip rather than a bumped
+> one), and **SC#5 is RETAINED but RE-AIMED** at what the *v0.9.2* milestone inherits. v0.9.1 is
+> never published; the next published release is 0.9.2. **REL-09 is held at `[ ]` through every
+> plan** and carries forward unmet.
+
+Plans:
+- [ ] 61-01-PLAN.md — SC#2 (reworded): the three defect families authored as user-visible bullets
+      under the existing `## [Unreleased]` heading, led by a tracer slice that carries one bullet
+      end-to-end through MyST into a rendered docs page; both docs builds run post-edit against the
+      measured 3 / 5 warning baseline; the edit proven pure addition with every version literal and
+      the tail link block unmoved.
+- [ ] 61-02-PLAN.md — SC#4 (first half), at phase head: the `REQUIREMENTS.md` checksum guard against
+      the `phase.complete` REL-09 auto-flip that has fired at five consecutive release-prep closes,
+      fence observation 1 of 2 with a positive control on every remote probe, the phase base SHA, and
+      the external-API coverage declaration.
+- [ ] 61-03-PLAN.md — SC#3 (retained, re-anchored): the milestone-final tree proven green on runs
+      executed in this phase — full pytest, `black`, `mypy` and the version-sync guard family — plus
+      one fresh 3-OS CI dispatch on the tip carrying this phase's own CHANGELOG edit, all 12 job
+      conclusions transcribed literally with both `windows-latest` lanes named.
+- [ ] 61-04-PLAN.md — SC#4 (second half) and SC#5 (re-aimed): fence observation 2 at a genuinely
+      later timestamp, the scoped `typsphinx/` diff with a real positive control, the close-time
+      checksum re-verification with a hand reversion path, and `61-HANDOFF.md` — which opens by
+      stating that this milestone publishes nothing, then preserves the three standing publish steps
+      as an inheritance record with the version left as a placeholder.
+
 **UI hint**: no
 
 ## Progress
