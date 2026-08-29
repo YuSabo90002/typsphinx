@@ -126,9 +126,7 @@ class TestOutputPathCollisionMessagePathQuoting:
     ``target`` interpolations D-06's original enumeration missed
     (``:1192``, ``:1199``)."""
 
-    def test_collision_branch_message_has_no_doubled_separator(
-        self, temp_sphinx_app
-    ):
+    def test_collision_branch_message_has_no_doubled_separator(self, temp_sphinx_app):
         builder = TypstBuilder(temp_sphinx_app, temp_sphinx_app.env)
         builder.env = types.SimpleNamespace(found_docs={"index", "chapter1"})
         builder.config.typst_documents = [
