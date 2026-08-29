@@ -25,7 +25,6 @@ UNLIKE ``tests/_path_naming.py``'s ``path_named_in()``, which raises
 """
 
 import ast
-import importlib.util
 import pathlib
 import re
 import subprocess
