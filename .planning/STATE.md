@@ -6,10 +6,10 @@ current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
 status: planning
 stopped_at: Phase 60 planned (5 plans in 3 waves)
-last_updated: "2026-08-29T09:10:00.000Z"
+last_updated: "2026-08-29T10:06:22.124Z"
 last_activity: 2026-08-29
 last_activity_desc: Phase 60 planned — 60-01..60-05-PLAN.md committed (wave 1 -> 3 parallel wiring plans -> acceptance)
-state_head: c170576e7d74927a8afde2c3551c17c357c486b4
+state_head: ade85376fff7fcf5379b08d20939d2add0fa4589
 progress:
   total_phases: 4
   completed_phases: 2
@@ -97,23 +97,27 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 
 ## Current Position
 
-Phase: 60 of 61 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere)
-Plan: 0/5 (60-01 through 60-05 written, none executed)
-Status: Planned — ready to execute
+Phase: 60 of 61 — One Delimiter-Aware Path-Quoting Helper, Routed Everywhere — planned, ready to execute
+Plan: — (5 plans, none started; run `/gsd-execute-phase 60`)
+Status: Planned — 5 plans in 3 waves, verified by gsd-plan-checker, ready to execute
 Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
-Last activity: 2026-08-29 — Phase 59 complete (verification passed, 5/5 must-haves). PATH-01,
-IMG-04, IMG-05, IMG-06 and IMG-07 all Complete. `_escapes_outdir()` now normalizes before it
-decides; `_track_image()`'s relocation key is separator-free and bounded to 255 UTF-8 bytes with the
-`{sha1[:8]}-` anchor whole; `visit_image()` escapes last, at both emission sites. Eight new test
-files, zero pre-existing test edits (measured, not claimed). Two decisions were AMENDED after
-measurement falsified them, both owner-approved: `59-CONTEXT.md` D-01a and ROADMAP SC#2 — the
-unfixed tree is refused by Typst with `unclosed delimiter`, not `path must not contain a backslash`,
-because the unescaped `"` ends the string literal at parse time before the backslash check runs; the
-substantive "neither half alone closes it" claim is unaffected and measured true. Code review found
-one blocker (CR-01: `_bound_relocation_component()` emptied a multi-byte stem under a tight budget,
-violating D-07) — fixed in-phase at `924f21d8` with two regression gates proven RED first. CI was
-dispatched three times on this branch; run 3 (`924f21d8`) is the acceptance run, all 12 jobs green
-including both `windows-latest`. Full evidence: `59-WINDOWS-URI-EVIDENCE.md`.
+Last activity: 2026-08-29 — Phase 60 planned: 5 plans in 3 waves. Wave 1 is `60-01` (the
+`typsphinx/pathfmt.py` leaf module + `quote_path()` + `tests/test_pathfmt.py`); wave 2 is three
+merge-isolated wiring plans in parallel (`60-02` builder.py, `60-03` writer.py, `60-04`
+template_registry.py), each with its own new gate module and its own `60-0N-EVIDENCE.md`; wave 3 is
+`60-05`, the acceptance audit (SC#2's repo-wide discovery grep, SC#3's over-reach measurement, SC#5's
+zero-test-edit diff against `58-REPR-CENSUS.md` + `tests/test_repr_census_guard.py`, and the fresh
+3-OS CI dispatch on the post-fix tip). Two findings were folded in during planning, both measured
+first: (a) **owner-approved AMENDMENT to D-06** — `builder.py:1192`/`:1199` interpolate the same
+`target` value D-08a already calls path-valued at `:890`, but appeared in neither D-06's routed list
+nor D-07's exclusion list; they now route, with a plan-time addendum requiring an `isinstance(target,
+str)` narrowing because `_is_usable_typst_documents_entry()` constrains only `entry[0]`, so an
+unconditional route would turn a today-warned config typo into an unhandled `TypeError` on every
+build; (b) `60-RESEARCH.md`'s proposed leaf-import proof would have proven the *opposite* of SC#1
+(`typsphinx/__init__.py:25` imports `typsphinx.builder` at module scope), replaced by an AST read plus
+a fresh-interpreter load by file path. Spec-less edge fallback resolved 15/15 items (14 explicit, 1
+backstop, 0 dismissed, 0 dropped). Decision coverage 13/13 after a format-only fix to D-03's and
+D-05's bullet titles, which carried a second colon the gate's parser cannot read.
 
 **Execution order is 58 → 59 → 60 → 61, and two of those arrows are measured constraints, not
 convention.** Phase 58 is test-side only and must precede any message-string change, because

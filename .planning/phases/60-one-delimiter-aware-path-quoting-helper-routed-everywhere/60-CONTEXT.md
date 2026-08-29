@@ -89,7 +89,7 @@ makes an execution-time repo-wide grep the discovery authority.
   documentation — this is a bug-fix round with no new capability (ROADMAP constraint 14).
   — **Reversibility:** reversible.
 
-- **D-03: The contract for non-path inputs: `None` renders as bare `None`; `str`/`os.PathLike` are quoted; everything else raises `TypeError`.**
+- **D-03: The contract for non-path inputs — `None` renders as bare `None`; `str`/`os.PathLike` are quoted; everything else raises `TypeError`.**
   **Measured and load-bearing:** `writer.py:503` sets `template_file = None` on the package-alone
   path (`if typst_package and not raw_template_path`), so MSG-04's site really does hand the helper
   a `None` on a live build path. Returning the bare four-character string `None` keeps `:513` a
@@ -111,7 +111,7 @@ makes an execution-time repo-wide grep the discovery authority.
 
 ### MSG-03/04/05 — the path-valued vs identifier-valued boundary
 
-- **D-05: The classification rule is the value's ROLE in the message, not its Python type: "does the reader read this as a location on a filesystem, or as a name in a namespace?"**
+- **D-05: The classification rule is the value's ROLE in the message, not its Python type — "does the reader read this as a location on a filesystem, or as a name in a namespace?"**
   A repo-wide grep at execution time is the discovery authority (SC#2); this rule is what the grep's
   hits are then classified by. Its two halves are both load-bearing — SC#2 requires no path-valued
   `!r` left in the three modules, and SC#3 requires the identifier-valued ones measurably untouched.
@@ -148,6 +148,19 @@ makes an execution-time repo-wide grep the discovery authority.
   it. Every target reaching a collision message in the suite (`master.typ`, `chapter1.typ`,
   `C:manual`, the `./`-prefixed shapes) renders byte-identically under `repr()` and `quote_path()`.
   No existing test assertion changes.
+
+  **Addendum (plan time, measured):** these two sites need a **type narrowing** that `:890` does not.
+  `_is_usable_typst_documents_entry()` (`builder.py:598`) admits an entry on `len(entry) >= 2` and
+  `isinstance(entry[0], str)` alone — its own docstring spells the check as
+  `not entry or len(entry) < 2 or not isinstance(entry[0], str)` — so it places **no** constraint on
+  `entry[1]`. A config typo like `typst_documents = [("index", None, "T", "A")]` therefore reaches
+  both sites, and `:1192`'s `_claim` description is built on **every** build, not only on collision.
+  Because `quote_path()` raises `TypeError` on a non-`str` by D-03, an *unconditional* route would
+  turn a today-warned config typo into an unhandled crash. Both sites therefore bind
+  `target_text = quote_path(target) if isinstance(target, str) else repr(target)` once and
+  interpolate that — still routed exactly as this amendment decided, with the non-path branch falling
+  back to the pre-existing `!r` rendering. `:890` needs no such guard: its warning already sits
+  inside an `isinstance(target, str)` branch.
   — **Reversibility:** reversible.
 
 - **D-07: Stays `!r` (identifier-valued), and SC#3's audit measures exactly these.**
