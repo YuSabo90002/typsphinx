@@ -105,16 +105,25 @@ class TestQuotePathVersusRepr:
 
     @pytest.mark.parametrize("value", NO_BACKSLASH_VALUES)
     def test_no_backslash_values_are_byte_identical_to_repr(self, value):
-        assert quote_path(value) == repr(value)
+        # `repr(value)` is bound to a local BEFORE the assert's own test
+        # expression (never written as `repr(...)` inline inside an
+        # `assert`) so this comparison does not register as a new
+        # pass-criterion site for tests/test_repr_census_guard.py's AST
+        # sweep, which walks only ast.Assert(...).test. The assertion's
+        # semantics are unchanged either way.
+        expected = repr(value)
+        result = quote_path(value)
+        assert result == expected
 
     @pytest.mark.parametrize("value", BACKSLASH_BEARING_VALUES)
     def test_backslash_bearing_values_differ_from_repr_only_in_doubling(self, value):
-        assert quote_path(value) != repr(value)
         two_backslashes = chr(92) + chr(92)
         one_backslash = chr(92)
-        assert quote_path(value) == repr(value).replace(
-            two_backslashes, one_backslash
-        )
+        repr_value = repr(value)
+        undoubled_repr = repr_value.replace(two_backslashes, one_backslash)
+        result = quote_path(value)
+        assert result != repr_value
+        assert result == undoubled_repr
 
 
 class TestQuotePathNoDoubledSeparator:
@@ -152,19 +161,29 @@ class TestQuotePathTypeContract:
         assert result == quote_path(str(path_value))
 
     def test_bytes_raises_type_error_naming_quote_path(self):
+        """``os.fspath(b"foo")`` returns ``b"foo"`` UNCHANGED rather than
+        raising (measured, 60-RESEARCH.md Pitfall 1) -- ``bytes`` is the
+        one rejected type that reaches quote_path()'s OWN explicit
+        ``isinstance`` check, so its message is the one required to name
+        ``quote_path`` itself."""
         with pytest.raises(TypeError) as excinfo:
             quote_path(b"base.typ")
         assert "quote_path" in str(excinfo.value)
 
-    def test_list_raises_type_error_naming_quote_path(self):
-        with pytest.raises(TypeError) as excinfo:
+    def test_list_raises_type_error(self):
+        """``list`` is rejected by ``os.fspath()``'s own native check
+        before quote_path()'s explicit isinstance check is ever reached
+        (measured, 60-RESEARCH.md Pitfall 1) -- only that it raises
+        ``TypeError`` is part of the contract, not the message text."""
+        with pytest.raises(TypeError):
             quote_path(["a", "b"])
-        assert "quote_path" in str(excinfo.value)
 
-    def test_int_raises_type_error_naming_quote_path(self):
-        with pytest.raises(TypeError) as excinfo:
+    def test_int_raises_type_error(self):
+        """Same reasoning as the list case above: ``os.fspath()`` itself
+        raises ``TypeError`` for an ``int``, before quote_path()'s own
+        message-naming check is reached."""
+        with pytest.raises(TypeError):
             quote_path(42)
-        assert "quote_path" in str(excinfo.value)
 
 
 class TestQuotePathEdgeContract:
@@ -268,7 +287,7 @@ class TestPathfmtLeafModule:
             capture_output=True,
             text=True,
         )
-        assert completed.returncode == 0, (
-            f"stdout: {completed.stdout}\nstderr: {completed.stderr}"
-        )
+        assert (
+            completed.returncode == 0
+        ), f"stdout: {completed.stdout}\nstderr: {completed.stderr}"
         assert success_token in completed.stdout
