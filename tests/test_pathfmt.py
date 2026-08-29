@@ -4,15 +4,22 @@ no builder, no Sphinx app, no filesystem. Every Windows shape in this module
 is a hand-built string literal (never an ``os.name``-gated fixture), so the
 whole module runs on every CI lane including the non-Windows ones.
 
-D-01: the delimiter rule reproduces ``repr()``'s exactly, minus the backslash
-doubling -- value contains no ``'`` -> wrap in ``'...'``; contains ``'`` and
-no ``"`` -> wrap in ``"..."``; contains both -> wrap in ``'...'`` and
-backslash-escape ONLY the ``'`` characters, never the ``\\`` characters.
+D-01 (AMENDED 2026-08-29): the delimiter rule reproduces ``repr()``'s exactly,
+minus the backslash doubling -- value contains no ``'`` -> wrap in ``'...'``;
+contains ``'`` and no ``"`` -> wrap in ``"..."``; contains both -> wrap in
+``'...'`` with each embedded ``'`` DOUBLED (``''``, SQL-style) and NO backslash
+inserted anywhere. The original rule backslash-escaped the apostrophe; that was
+amended because it violated D-01a whenever the value's own ``\\`` sat
+immediately before a ``'`` (60-REVIEW.md CR-01).
 
-D-01a: the both-quotes branch's own ``\\'`` escape never forms a run of two
-or more consecutive backslashes, so ``TestWindowsPathEscapingRegressionGuard``
+D-01a: because the both-quotes branch inserts no backslash at all, this
+function's output can never contain a longer backslash run than the value
+already did, so ``TestWindowsPathEscapingRegressionGuard``
 (``tests/test_templates_path_collision_gate.py``) stays green over
-``quote_path()`` output.
+``quote_path()`` output UNCONDITIONALLY -- not merely for the fixture shapes
+this module happens to test. The regression test for the one adjacency that
+falsified the original rule is
+``TestQuotePathDelimiterSelection.test_backslash_immediately_before_apostrophe_forms_no_doubled_run``.
 
 D-03: ``None`` renders as the bare string ``None``; ``str``/``os.PathLike``
 are quoted (a ``pathlib.Path`` is normalized via ``os.fspath()`` BEFORE any
