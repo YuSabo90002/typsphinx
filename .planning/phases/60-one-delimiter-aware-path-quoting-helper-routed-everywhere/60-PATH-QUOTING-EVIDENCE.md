@@ -46,4 +46,35 @@ Referenced by section, not copied — see `60-05-EVIDENCE.md`:
 - **RED-first ledger (phase-wide)**: `60-05-EVIDENCE.md` § "RED-first ledger (phase-wide)" — the
   same requirement-by-requirement table this document's own reference table above restates in
   D-12's shape language.
-- **SC#5 3-OS CI dispatch**: `60-05-EVIDENCE.md` § "SC#5 3-OS CI dispatch" (below).
+- **SC#5 3-OS CI dispatch**: `60-05-EVIDENCE.md` § "SC#5 3-OS CI dispatch". That section was
+  recorded as `PENDING — owner dispatch required` by 60-05 (a worktree cannot dispatch against a
+  tip that does not exist yet) and was resolved by the orchestrator after the final merge; it now
+  carries both dispatches, the failing one included.
+
+## Post-plan gate findings and their fixes (orchestrator, after wave 3)
+
+Recorded here because three defects were found *after* every plan reported complete and every local
+suite was green — the phase's own closing evidence would misrepresent how it closed without them.
+None of the five per-plan evidence files is modified by this section; it references commits.
+
+| # | Found by | Defect | Fix | Reachable locally? |
+|---|---|---|---|---|
+| 1 | CI dispatch 1, `Lint and Format Check` | `ruff F401` — unused module-scope `importlib.util` in `tests/test_pathfmt.py:28` (the name is used only inside a docstring and inside the string literal executed as a subprocess, which carries its own import) | `78c85fe4` | **No** — `ruff`'s PyPI generic-linux wheel cannot exec in this dev sandbox (QUA-06); CI holds lint authority |
+| 2 | CI dispatch 1, both `windows-latest` test jobs | `test_conf17_violation_message_has_no_doubled_separator` asserted a POSIX-only branch outcome unguarded on all three OSes | `130f614e` — branch asserted per platform; MSG-05's real invariants asserted on both | **No** — POSIX-only dev host; production code was already correct on Windows |
+| 3 | `60-REVIEW.md` CR-01 (code-review gate) | `quote_path()`'s both-quotes branch produced a run of two backslashes when the value's own `\` sat immediately before an apostrophe — falsifying D-01a, which the module docstring stated as settled fact | `e3399825` — SQL-style apostrophe doubling; D-01 AMENDED in `60-CONTEXT.md` | Yes in principle, but **no fixture placed the backslash in that adjacency**, so the suite stayed green over a false invariant |
+
+**SC#5 re-measured after all three fixes** (the fixes touch `tests/`, so the zero-test-edit claim
+must be re-established, not assumed):
+
+- `git diff --name-status <PHASE_BASE_SHA>..HEAD -- tests/` is still **only `A` plus one `M`** —
+  the four new gate modules added, and `tests/test_templates_path_collision_gate.py` modified.
+- That one `M` is still a **pure addition**: `git diff --numstat` reports `50  0` (50 added, 0
+  removed).
+- `tests/test_repr_census_guard.py`, `tests/test_out02_escape_target_gate.py` and
+  `tests/test_builder.py` are **untouched** across the whole phase.
+- Both edited test files (`tests/test_pathfmt.py`,
+  `tests/test_template_registry_path_quoting_gate.py`) are themselves `A` in this diff — files this
+  phase created. No pre-existing test was edited, so SC#5 holds as stated.
+
+**Cross-phase regression gate** (not a plan obligation; run by the orchestrator before
+verification): Phase 58 + 59 test files, 83 tests, all passed on the final tip.

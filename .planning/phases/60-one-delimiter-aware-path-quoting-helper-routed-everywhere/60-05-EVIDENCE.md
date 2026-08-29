@@ -559,48 +559,93 @@ green. No row below is filled with a green-only reference.
 
 ## SC#5 3-OS CI dispatch
 
-**PENDING — owner dispatch required**
+**RESOLVED — dispatched fresh by the orchestrator on the phase's own post-fix tip.**
 
-**Why pending:** this task runs inside a worktree isolated from the orchestrator's own tree
-(`.git` is a file, not a directory — the standing worktree-isolation mode per `CLAUDE.md`). This
-worktree's HEAD is on a per-agent branch (`worktree-agent-a81cc5ed13e7db22e`) that does not exist
-on `origin` and is not the phase's real post-fix tip. The phase's actual tip is the merge commit
-the orchestrator creates when it merges this worktree back into
-`gsd/v0.9.1-windows-path-correctness` — a commit that does not exist yet while this task runs.
-Dispatching CI now would run against a tip that is NOT the phase tip, which is exactly the
-stale/wrong-tree citation T-60-13 forbids. Per ROADMAP constraint 10, local RED-then-green is
-already complete for all four requirements (see the RED-first ledger above) — CI is the final
-confirmation, never the first discovery, and this PENDING marker is what keeps that ordering
-honest rather than fabricating a result.
+This section replaces the `PENDING — owner dispatch required` marker 60-05 recorded. The reason
+that marker existed is unchanged and worth keeping on the record: 60-05 ran inside an isolated
+worktree whose HEAD was a per-agent branch (`worktree-agent-a81cc5ed13e7db22e`) that does not exist
+on `origin` and is not the phase tip. Dispatching from there would have cited a tip that is NOT the
+phase tip — exactly the stale/wrong-tree citation T-60-13 forbids. The orchestrator performed the
+dispatch after merging every wave, on the real tip.
 
-**Exact commands the owner (or the orchestrator, immediately after merging this worktree) must
-run, on the milestone branch:**
+### Dispatch 1 (2026-08-29) — FAILED, and this is the record of why
 
-```bash
-git push origin gsd/v0.9.1-windows-path-correctness
-gh workflow run ci.yml --ref gsd/v0.9.1-windows-path-correctness
-gh run list --workflow=ci.yml --branch gsd/v0.9.1-windows-path-correctness --limit 1
-gh run watch <run-id>
-```
+- Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33250839303
+- Dispatched head SHA: `516e0b2fafc78909a4621a00625c2e4191ed4a6a`
+- Local tip SHA at dispatch: `516e0b2fafc78909a4621a00625c2e4191ed4a6a` (identical)
+- Conclusion: **failure** — 3 of 12 jobs red
 
-**To be filled in by whoever runs the dispatch above:**
-
-- Run URL:
-- Dispatched head SHA:
-- Local tip SHA (for comparison against the dispatched head SHA):
-- Per-job conclusions (one line per matrix job, `windows-latest` jobs included):
+This dispatch is retained deliberately rather than discarded. ROADMAP constraint 10 says CI is the
+final confirmation and never the first discovery; here it *was* first discovery for two defect
+classes that no local gate in this environment could reach, and hiding that would misrepresent how
+the phase closed.
 
 | job | conclusion |
 |---|---|
-| Test Python 3.12 on ubuntu-latest | |
-| Test Python 3.13 on ubuntu-latest | |
-| Test Python 3.12 on windows-latest | |
-| Test Python 3.13 on windows-latest | |
-| Test Python 3.12 on macos-latest | |
-| Test Python 3.13 on macos-latest | |
-| Lint and Format Check | |
-| Type Check | |
-| Code Coverage | |
-| Build Package | |
-| Integration Test - basic | |
-| Integration Test - advanced | |
+| Lint and Format Check | **failure** — `ruff F401`: unused module-scope `importlib.util` in `tests/test_pathfmt.py:28` |
+| Test Python 3.12 on windows-latest | **failure** — 1 failed, 1505 passed, 10 skipped |
+| Test Python 3.13 on windows-latest | **failure** — 1 failed, 1505 passed, 10 skipped |
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+
+**What it caught (both fixed before dispatch 2):**
+
+1. `ruff F401` — unreachable locally: `ruff`'s PyPI generic-linux wheel cannot exec in this dev
+   sandbox (QUA-06), so every executor correctly deferred lint to CI, and CI is where it surfaced.
+   Fixed in `78c85fe4`.
+2. `tests/test_template_registry_path_quoting_gate.py::TestRegistryTemplatePathQuoting::test_conf17_violation_message_has_no_doubled_separator`
+   failed on **windows-latest only**, both Python versions. The fixture
+   `C:\Users\runner\base.typ` is one plain filename component on POSIX (a backslash is not a
+   separator there) so its parent is `srcdir` and the CONF-17 branch fires — the premise the test's
+   own docstring stated. On Windows the same string is an ABSOLUTE path, the parent is never
+   `srcdir`, and only the existence-check branch fires. Fixed in `130f614e` by asserting the branch
+   per platform rather than skipping Windows. **Note the production code was clean on Windows
+   throughout**: the observed failure message rendered the template as
+   `'C:\Users\runner\base.typ'` with single backslashes, i.e. `quote_path()` was already correct
+   there; only the test's branch assumption was not.
+
+A third defect was fixed between the two dispatches from a different source — `60-REVIEW.md` CR-01,
+the `quote_path()` both-quotes escape (`e3399825`, D-01 AMENDED). See `60-CONTEXT.md`'s AMENDED
+block under D-01/D-01a.
+
+### Dispatch 2 (2026-08-29) — SUCCESS, this is SC#5's acceptance record
+
+- Run URL: https://github.com/YuSabo90002/typsphinx/actions/runs/33252336287
+- Dispatched head SHA: `130f614e451cb873684755c4ec1b60531ca90f76`
+- Local tip SHA at dispatch: `130f614e451cb873684755c4ec1b60531ca90f76` (**identical** — the run is
+  against this phase's own post-fix tip, not inferred from any earlier run)
+- Conclusion: **success** — 12 of 12 jobs green
+- The dispatched head SHA is newer than every commit this phase produced in waves 1–3, and newer
+  than the two fix commits above.
+
+| job | conclusion |
+|---|---|
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+| Lint and Format Check | success |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+
+### Orchestrator-side local gates on the same tip
+
+- Full suite: `1517 passed, 1 skipped`
+- Full suite under `LC_ALL=C LANG=C`: same result — the locale-dependent CI-only failure class is
+  pre-empted, not merely unobserved
+- `black --check .`: clean (353 files); `mypy typsphinx/`: clean (9 source files)
+- Cross-phase regression gate (Phase 58 + 59 test files, 83 tests): all passed, with
+  `tests/test_repr_census_guard.py` and `tests/test_out02_escape_target_gate.py` green and
+  **unedited** — the live substance of SC#5's zero-test-edit claim
