@@ -24,6 +24,7 @@ misrepresent a ``list``/``bytes`` value as a filesystem location AND
 raise ``TypeError`` on the exact values it exists to report.
 """
 
+import os
 import pathlib
 import re
 
@@ -52,13 +53,27 @@ class TestRegistryTemplatePathQuoting:
     is what ``!r``'s backslash-doubling produces today."""
 
     def test_conf17_violation_message_has_no_doubled_separator(self, temp_sphinx_app):
-        """A Windows-shaped ``str`` template whose join with ``srcdir``
-        leaves the parent directory equal to ``srcdir`` itself fires the
-        CONF-17 branch (a plain filename component has no separator that
-        moves it below ``srcdir`` on a POSIX host, since a backslash is
-        not a path separator there). The existence check also fires,
-        since the file cannot exist -- both failures accumulate in one
-        raise (D-09)."""
+        """A Windows-shaped ``str`` template, asserted per platform.
+
+        Which branch this fixture reaches is genuinely OS-dependent, and
+        the difference is the milestone's own subject matter, so it is
+        written out rather than skipped (owner decision, 2026-08-29):
+
+        - On POSIX a backslash is NOT a path separator, so
+          ``C:\\Users\\runner\\base.typ`` is one plain filename component;
+          joined with ``srcdir`` its parent IS ``srcdir``, which fires the
+          CONF-17 branch. The existence check fires too, since the file
+          cannot exist -- both failures accumulate in one raise (D-09).
+        - On Windows the same string is an ABSOLUTE path, so the parent is
+          never ``srcdir`` and CONF-17 does not fire; only the existence
+          check does.
+
+        The invariants MSG-05 actually gates -- no doubled separator, and
+        the template reproduced verbatim -- are asserted on both platforms,
+        against whichever message the platform really produces. Measured on
+        windows-latest: ``quote_path()`` renders this value with single
+        backslashes there, so only the branch selection differs.
+        """
         app = temp_sphinx_app
         template = "C:\\Users\\runner\\base.typ"
         app.config.typst_document_templates = {"mykey": {"template": template}}
@@ -67,7 +82,11 @@ class TestRegistryTemplatePathQuoting:
             resolve_template_registry(app.config, str(app.srcdir))
 
         message = str(excinfo.value)
-        assert "CONF-17" in message
+        if os.name == "nt":
+            assert "does not exist" in message
+            assert "CONF-17" not in message
+        else:
+            assert "CONF-17" in message
         _assert_no_doubled_separator(message)
         assert template in message
 
