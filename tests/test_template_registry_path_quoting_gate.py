@@ -51,9 +51,7 @@ class TestRegistryTemplatePathQuoting:
     must show single, unescaped separators -- never a doubled run, which
     is what ``!r``'s backslash-doubling produces today."""
 
-    def test_conf17_violation_message_has_no_doubled_separator(
-        self, temp_sphinx_app
-    ):
+    def test_conf17_violation_message_has_no_doubled_separator(self, temp_sphinx_app):
         """A Windows-shaped ``str`` template whose join with ``srcdir``
         leaves the parent directory equal to ``srcdir`` itself fires the
         CONF-17 branch (a plain filename component has no separator that
@@ -73,9 +71,7 @@ class TestRegistryTemplatePathQuoting:
         _assert_no_doubled_separator(message)
         assert template in message
 
-    def test_existence_check_message_has_no_doubled_separator(
-        self, temp_sphinx_app
-    ):
+    def test_existence_check_message_has_no_doubled_separator(self, temp_sphinx_app):
         """A Windows-shaped ``str`` template prefixed with a forward-slash
         path component (``_typst/nested/...``) moves its resolved parent
         directory BELOW ``srcdir``, so the CONF-17 branch does NOT fire --
@@ -135,9 +131,7 @@ class TestRegistryTypeCheckMessageStaysReprQuoted:
     ``-k type_check_message_stays_repr_quoted`` selects exactly this
     class."""
 
-    def test_list_template_type_check_message_stays_repr_quoted(
-        self, temp_sphinx_app
-    ):
+    def test_list_template_type_check_message_stays_repr_quoted(self, temp_sphinx_app):
         app = temp_sphinx_app
         template = ["a", "b"]
         app.config.typst_document_templates = {"bad_tpl": {"template": template}}
@@ -150,9 +144,7 @@ class TestRegistryTypeCheckMessageStaysReprQuoted:
         expected_repr = repr(template)
         assert expected_repr in message
 
-    def test_bytes_template_type_check_message_stays_repr_quoted(
-        self, temp_sphinx_app
-    ):
+    def test_bytes_template_type_check_message_stays_repr_quoted(self, temp_sphinx_app):
         app = temp_sphinx_app
         template = b"base.typ"
         app.config.typst_document_templates = {"bad_tpl": {"template": template}}

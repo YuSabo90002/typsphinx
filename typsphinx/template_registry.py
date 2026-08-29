@@ -30,6 +30,8 @@ from typing import Any, Dict
 
 from sphinx.errors import ExtensionError
 
+from typsphinx.pathfmt import quote_path
+
 # Phase 53 (CONF-16/D-04): the ONLY reserved registry key, compared as a
 # literal string. "Typst"/"TYPST" are ordinary user-defined keys (D-04) --
 # the case-collision check (plan 53-03's CONF-18 case 7) compares
@@ -405,6 +407,14 @@ def resolve_template_registry(
         #    of which accept `os.PathLike` -- so a `pathlib.Path`
         #    `template` works end to end TODAY, and blanket-rejecting it
         #    would withdraw a working shape rather than close a crash.
+        #
+        # MSG-05/SC#3: this branch's `{template!r}` is a DELIBERATE
+        # exclusion from MSG-05's path-quoting-helper rollout, not an
+        # oversight. It is reached precisely when `template` is neither
+        # `str` nor `os.PathLike` (a `list`, `bytes`, an `int`), so the
+        # path-quoting helper would raise `TypeError` on the exact values
+        # this branch exists to report. SC#3 measures this message
+        # staying on Python's own `repr()` conversion.
         if template and not isinstance(template, (str, os.PathLike)):
             failures.append(
                 f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
@@ -418,8 +428,16 @@ def resolve_template_registry(
             # reports BOTH failures in the same accumulated raise (D-09).
             template_abs_path = os.path.join(srcdir, template)
             if _violates_conf17(template_abs_path, srcdir):
+                # MSG-05/D-06: `template` is PATH-valued here -- the
+                # `isinstance(template, (str, os.PathLike))` guard above
+                # (the `if` this `elif` follows) already establishes that
+                # fact, so the path-quoting helper can never raise
+                # `TypeError` at this call site. `key` stays `!r` -- it is
+                # identifier-valued (D-07) and CONF-18 already forbids a
+                # path separator in it, so it is never a filesystem
+                # location.
                 failures.append(
-                    f"registry key {key!r}'s template {template!r} "
+                    f"registry key {key!r}'s template {quote_path(template)} "
                     "resolves to a parent directory that is srcdir "
                     "itself, or an ancestor of srcdir (CONF-17)"
                 )
@@ -429,8 +447,11 @@ def resolve_template_registry(
                 # method's multi-priority walk always succeeds via
                 # fallback and can therefore never itself signal
                 # "not found" (PITFALLS.md's Phase-53-specific pitfall).
+                # MSG-05/D-06: `template` is PATH-valued here too, for the
+                # same reason as the CONF-17 branch above.
                 failures.append(
-                    f"registry key {key!r}'s template {template!r} does " "not exist"
+                    f"registry key {key!r}'s template {quote_path(template)} "
+                    "does not exist"
                 )
 
     if failures:
