@@ -12,6 +12,7 @@ from typing import Any, Tuple
 from docutils import writers
 from sphinx.util import logging
 
+from typsphinx.pathfmt import quote_path
 from typsphinx.template_engine import (
     TEMPLATE_SEARCH_SUBDIR,
     TemplateEngine,
@@ -509,7 +510,8 @@ class TypstWriter(writers.Writer):
             )
         logger.debug(
             f"Rendering wrapper for docname {docname!r} at "
-            f"wrapper_relative_dir={wrapper_relative_dir!r}, "
-            f"include_path={include_path!r}, template_file={template_file!r}"
+            f"wrapper_relative_dir={quote_path(wrapper_relative_dir)}, "
+            f"include_path={quote_path(include_path)}, "
+            f"template_file={quote_path(template_file)}"
         )
         return template_engine.render(params, body, template_file=template_file)
