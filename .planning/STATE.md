@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v0.9.1
 milestone_name: Windows path correctness
 status: Awaiting next milestone
-stopped_at: Phase 61 complete — all phases complete
+stopped_at: Milestone v0.9.1 closed and archived — no publish performed (D-02)
 last_updated: "2026-08-29T21:34:10.137Z"
 last_activity: 2026-08-30
 last_activity_desc: Milestone v0.9.1 completed and archived
-state_head: a736ce5c3b1e44f0cc789faac9dbcb08118923ef
+state_head: dae55109732409c5b838ed38c72612a57f7f5e46
 progress:
   total_phases: 4
   completed_phases: 4
