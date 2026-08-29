@@ -460,7 +460,7 @@ double separators or close their quote early.
      projects, and the GitHub Release body being byte-identical to
      `scripts/extract_changelog_section.py 0.9.1`'s stdout.
 
-**Plans**: 3/4 plans executed in 3 waves
+**Plans**: 4/4 plans executed in 3 waves
 
 > **Scope reframe — read `61-CONTEXT.md` D-11 before judging the plans against SC#1–SC#5 above.**
 > The phase's shape changed during discuss-phase and the owner deliberately left this entry as the
@@ -496,7 +496,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion — fence observation 2 must be separated from observation 1 by the two intervening waves, not by wall-clock luck)*
 
-- [ ] 61-04-PLAN.md — SC#4 (second half) and SC#5 (re-aimed): fence observation 2 at a genuinely
+- [x] 61-04-PLAN.md — SC#4 (second half) and SC#5 (re-aimed): fence observation 2 at a genuinely
       later timestamp, the scoped `typsphinx/` diff with a real positive control, the close-time
       checksum re-verification with a hand reversion path, and `61-HANDOFF.md` — which opens by
       stating that this milestone publishes nothing, then preserves the three standing publish steps
@@ -539,7 +539,7 @@ the active milestone only.
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
 | 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 3/4 | In Progress | - |
+| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 4/4 | In Progress | - |
 
 ## Roadmap Evolution
 
