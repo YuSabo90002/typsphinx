@@ -182,3 +182,17 @@ None - no external service configuration required.
 ---
 *Phase: 61-v0-9-1-release-prep-prep-only*
 *Completed: 2026-08-29*
+
+## Self-Check: PASSED
+
+- `[ -f .planning/phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md ]` → FOUND
+- `[ -f .planning/phases/61-v0-9-1-release-prep-prep-only/61-SC4-INVARIANTS.md ]` → FOUND
+- `[ -f .planning/phases/61-v0-9-1-release-prep-prep-only/61-CLOSEOUT-GUARD.md ]` → FOUND
+- `git log --oneline --all | grep -q ff72202d` → FOUND (Task 1 commit)
+- `git log --oneline --all | grep -q 094e4c62` → FOUND (Task 2 commit)
+- `git log --oneline --all | grep -q 83e6b1d6` → FOUND (Task 3 commit)
+
+All plan-level `<verification>` re-runs (fence observations, scoped/widened diff, post-dispatch
+commit check, REQUIREMENTS.md checksum MATCH, `61-HANDOFF.md` acceptance grep gates, `git tag -l
+'v0.9.1'` empty, `git status --porcelain` clean, no `61-VERIFICATION.md` present) were executed
+live during task execution above and all passed.
