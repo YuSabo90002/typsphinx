@@ -28,6 +28,10 @@ Items observed during execution that are out of scope for the current task
   plan's diff) and `uv run black --check typsphinx/` (black itself runs fine via `uv run`, only
   ruff's own binary hit the ELF issue). `mypy typsphinx/` ran cleanly via `uv run mypy`.
 
+- **Status:** acknowledged
+- Audit acknowledged at the v0.9.1 milestone close (2026-08-30): carried forward, still open, deliberately not fixed in this milestone.
+
+
 ## Plan 12-02
 
 - **Pre-existing gap (NOT caused by this plan's changes):** `sphinx-build -b typst` on the
@@ -42,3 +46,5 @@ Items observed during execution that are out of scope for the current task
   (confirmed present). Out of scope per the SCOPE BOUNDARY rule — not fixed here. A future
   maintenance item could add an explicit no-op `visit_glossary`/`depart_glossary` pass-through to
   silence the warning.
+- **Status:** acknowledged
+- Audit acknowledged at the v0.9.1 milestone close (2026-08-30): carried forward, still open, deliberately not fixed in this milestone.

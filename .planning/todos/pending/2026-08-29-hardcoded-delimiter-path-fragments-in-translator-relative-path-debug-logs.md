@@ -14,8 +14,13 @@ source: Phase 60 plan 05's SC#2 repo-wide discovery grep, run REPO-WIDE per the 
   pattern at a different pair of lines).
 severity: minor
 files:
+
   - typsphinx/translator.py:5047  # _compute_relative_include_path()'s cross-directory debug log
   - typsphinx/translator.py:5152  # _compute_relative_image_path()'s cross-directory debug log
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem

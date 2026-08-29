@@ -45,6 +45,10 @@ future maintenance task should migrate these five files' subprocess
 invocations from `["uv", "run", "sphinx-build", ...]` to `[sys.executable,
 "-m", "sphinx", ...]`, matching every other subprocess gate in this suite.
 
+- **Status:** acknowledged
+- Audit acknowledged at the v0.9.1 milestone close (2026-08-30): carried forward, still open, deliberately not fixed in this milestone.
+
+
 ## `ruff check .` requires `nix-shell -p ruff`, not `uv run ruff`
 
 `uv run ruff check .` and `.venv/bin/ruff check .` both fail identically in

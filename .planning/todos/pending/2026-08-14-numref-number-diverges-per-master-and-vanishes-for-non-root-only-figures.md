@@ -6,9 +6,14 @@ resolves_phase: null
 source: .planning/phases/49-per-master-include-graph-with-state-guarded-includes/49-EVIDENCE.md (## numref measurement)
 severity: major
 files:
+
   - typsphinx/translator.py  # figure/caption emission -- no numref override exists here today; a future fix would need to touch it
   - tests/fixtures/state_guard_numref_two_case_gate/  # the live fixture this todo's own measurement came from
   - tests/test_state_guard_numref_gate.py  # the measurement gate (not an assertion gate for the numbering outcome)
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -29,6 +34,7 @@ wrapper ごとに独立**している。両者の食い違いを検知するコ�
   `fig-x` が唯一の図なので Typst 番号 `1`（たまたま一致）。`other_master` コンパイルでは
   `fig-x` の手前に2つの図（filler 図と `fig-y`）があるため Typst 番号は `3`（不一致）。
   同じ参照文言 `"Fig. 1."` が、片方の master では正しく、もう片方では誤った番号を指す。
+
 - **Case (b) — 番号が一切割り当てられない:** 図 `fig-y` は `other_master` からしか到達できず
   （`root_doc` である `index` からは一切到達不能）、`root_doc` 起点の `env.toc_fignumbers` 走査
   には現れない。`get_fignumber()` が `ValueError` を送出し、`_resolve_numref_xref()` は生の
@@ -58,9 +64,11 @@ entry 10 はいずれも Case (b) を「ゼロ警告での静かなフォール�
 - **Phase 51（ドキュメント）: 一切書かない。** `docs/source/**` にも `README.md` にも、節・
   admonition・一文のいずれの形でも登場させない。`.planning/ROADMAP.md` の Phase 51 SC#3 は
   この決定に合わせて 2026-08-14 に改訂済み（`:numref:` を明示的に除外）。
+
 - **Phase 52（CHANGELOG）: 一切書かない。** `.planning/ROADMAP.md` の Phase 52 SC#2 も同日に
   改訂済み（「Phase 49 が測定・文書化した制限は CHANGELOG にも現れる」という要求から
   `:numref:` を明示的に除外）。
+
 - **この todo が唯一の追跡先になる。** `resolves_phase` は `52` から `null` に変更した
   （v0.8.0 のどのフェーズもこれを解決しない）。将来のマイルストーンで拾うこと。
 

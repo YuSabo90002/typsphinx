@@ -6,8 +6,13 @@ severity: blocker
 source: owner report 2026-08-29 ("par(image(...)) になるパターンが存在するっぽい / typst
   によってエラーが出て画像が出力されない"), reproduced and root-caused during capture
 files:
+
   - typsphinx/translator.py:4718  # visit_image() -- emits `image("...")` with no preceding separator
   - typsphinx/translator.py:4768  # depart_image() -- emits the trailing "\n\n" that saves the FOLLOWING boundary only
+
+audit_acknowledged:
+  milestone: v0.9.1
+  at: 2026-08-29
 ---
 
 ## Problem
@@ -33,7 +38,6 @@ Inline substitution |sub| in a sentence.
 
 ```typst
 par({text("Inline substitution ")image("img.png")
-
 
 text(" in a sentence.")})
 ```

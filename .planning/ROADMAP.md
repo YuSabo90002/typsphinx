@@ -14,27 +14,44 @@
 - ✅ **v0.7.1 — bug-fix round** — Phases 43–46 (+44.1, 44.2, 45.1, 45.2) (shipped 2026-08-11) → [archive](milestones/v0.7.1-ROADMAP.md)
 - ✅ **v0.8.0 — multi-master composition** — Phases 47–52 (shipped 2026-08-15) → [archive](milestones/v0.8.0-ROADMAP.md)
 - ✅ **v0.9.0 — per-document templates** — Phases 53–57 (+54.1) (shipped 2026-08-22) → [archive](milestones/v0.9.0-ROADMAP.md)
-- 🚧 **v0.9.1 — Windows path correctness** — Phases 58–61 (active, started 2026-08-27)
+- ✅ **v0.9.1 — Windows path correctness** — Phases 58–61 (completed 2026-08-30, **never published**) → [archive](milestones/v0.9.1-ROADMAP.md)
 
-**Active milestone: v0.9.1 — Windows path correctness.** Four phases (58–61): decouple the two tests
-that hard-code `repr()`'s output format so every later phase can change a message with zero test
-edits; normalize the path-shape predicate and make a Windows-shaped absolute image URI survive the
-whole pipeline into an `image("...")` Typst actually compiles; route every path-valued message
-through one delimiter-aware quoting helper living in a new leaf module; then prep-only release.
+**No active milestone.** Run `/gsd-new-milestone` to scope the next one.
 
-Phase numbering is **continuous across milestones** — v0.9.0 ran Phases 53–57 (+54.1), so v0.9.1
-starts at **Phase 58**.
+**v0.9.1 completed but was never released, and the next published version is 0.9.2.** Its three
+Windows path defect families closed on the product side; the release was then cancelled for an
+unrelated, pre-existing `blocker` — an inline image not first in its paragraph aborts the whole
+Typst compile, so `-b typstpdf` writes no PDF at all. No `v0.9.1` tag exists, locally or on the
+remote; `pyproject.toml` is still `0.9.0` and the milestone's CHANGELOG bullets wait under
+`## [Unreleased]`. **v0.9.2's first requirement is already known**: the blocker, tracked as
+`.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`.
+REL-09 carries forward unmet with its literal wording — including its `v0.9.1` version string —
+unchanged by owner decision D-08.
 
 ## Phases
 
 **Phase Numbering:**
 
-- Integer phases (58, 59, …): Planned milestone work
-- Decimal phases (58.1, 58.2): Urgent insertions (marked with INSERTED)
+- Integer phases (62, 63, …): Planned milestone work
+- Decimal phases (62.1, 62.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order. Numbering is
 **continuous across milestones** — each milestone continues from the prior one's last phase
-(never resets to 1). v0.9.0 ran Phases 53–57, so v0.9.1 starts at **Phase 58**.
+(never resets to 1). v0.9.1 ran Phases 58–61, so the next milestone starts at **Phase 62**.
+
+<details>
+<summary>✅ v0.9.1 Windows path correctness (Phases 58–61) — COMPLETED 2026-08-30, NOT PUBLISHED</summary>
+
+- [x] Phase 58: `repr()`-Format Decoupling (test-side only) (3/3 plans) — completed 2026-08-28
+- [x] Phase 59: Path-Shape Predicate and Image-URI Correctness (5/5 plans) — completed 2026-08-29
+- [x] Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere (5/5 plans) — completed 2026-08-29
+- [x] Phase 61: v0.9.1 Release Prep (prep-only) (4/4 plans) — completed 2026-08-30
+
+10/11 v1 requirements complete. REL-09 (publish to PyPI) deliberately unmet — the release was
+cancelled, not missed. Full phase detail, the 14 binding constraints, success criteria and
+decisions: [milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md)
+
+</details>
 
 <details>
 <summary>✅ v0.9.0 per-document templates (Phases 53–57, +54.1) — SHIPPED 2026-08-22</summary>
@@ -57,536 +74,27 @@ Each milestone's phase detail lives in its own archive, linked from the **Milest
 
 </details>
 
-## 🚧 v0.9.1 — Windows path correctness (ACTIVE)
-
-**Milestone Goal:** a path this extension writes, emits, or quotes back to the user is correct on
-every supported platform, not only on the one the maintainer develops on. This is a bug-fix round —
-no new user-facing capability, no new runtime dependency, no new `typst_*` config value. Its scope is
-the Windows path defects Phase 57's prep-only fence held back, closed together with their whole
-sibling family: the path-shape predicate that decides on the raw stem, the image URI that carries a
-backslash into an `image()` Typst refuses to compile, the relocation key with no length bound, and
-the twelve-odd user-facing messages that quote a path with `!r` or a hardcoded `'...'`.
-
-**Everything this roadmap is built on was re-measured at HEAD** (2026-08-27) before being written.
-Where a research finding contradicted the milestone's own initial framing, the finding won — see
-PATH-01's reachability note and MSG-01's existence, both in `REQUIREMENTS.md`.
-
-**Binding constraints this roadmap is built on** (settled decisions and measured facts, not open
-questions):
-
-1. **All three defect families are latent, so "CI green" is evidence of nothing.** No test covers any
-   of them today; the `windows-latest` lane is green at HEAD and would stay green if nothing were
-   fixed. The acceptance bar is only meaningful in its RED-first form: every gate must FAIL against
-   the unfixed tree, recorded, before its fix lands.
-
-2. **MSG-01 comes first, alone, and is test-side only.** Two existing tests hard-code `repr()`'s
-   backslash-doubling as their pass criterion:
-   `tests/test_out02_escape_target_gate.py:134` (`assert repr(target) in combined_output` for
-   `target = "C:\\escape.typ"`, parametrized to run **unconditionally on every platform**) and
-   `tests/test_builder.py:598` (`assert repr(abs_uri) in message`, green on POSIX by coincidence and
-   breaking only on `windows-latest`). The first goes RED **on POSIX** the instant MSG-03 rewires
-   `builder.py:697`. Decoupling them in their own phase, before any message string changes, is what
-   makes the "zero test edits proves POSIX-identical output" discipline 57-11 established survive
-   this milestone. This **supersedes** `research/SUMMARY.md`'s finding #4 ("the zero-test-edits
-   discipline cannot hold; the two edits must land in the same wave as the source fixes") — that
-   finding was written before MSG-01 existed and must not be re-litigated during planning.
-
-3. **Three requirements share one ~30-line region of `builder.py`.** `_escapes_outdir()`
-   (`builder.py:197-238`, PATH-01) is called from *inside* `_track_image()` at line 1727, thirteen
-   lines above IMG-04's and IMG-06's key construction at ~1761-1772. They are one phase, and inside
-   it one sequential plan — or strictly sequential sub-plans in one wave ordinal, never parallel
-   worktrees against the same file.
-
-4. **A plan that changes an emitted string and a plan that asserts on that string must not share a
-   wave.** `builder.py:1767`'s image-rehome warning interpolates the exact `key` value IMG-04 and
-   IMG-06 change *and* is one of the sites MSG-03 re-quotes. This is why Phase 59 (the value) and
-   Phase 60 (the quoting) are separate phases rather than two waves of one — this project has
-   already paid for that collision once.
-
-5. **IMG-04 and IMG-05 are coupled by a measured Typst property.** Typst refuses a backslash in an
-   `image()` path **BY VALUE, not by syntax** — escaping the backslash in the source so it decodes to
-   one `\` still produces `TypstError: path must not contain a backslash`. Neither fix alone closes
-   the compile failure, so IMG-07's real `typst.compile()` gate can only be green once **both** have
-   landed, and belongs in the wave after them. This is also why the defect survived Phase 55's suite,
-   whose tests stop at `node["uri"]` and never render.
-
-6. **The quoting helper must be a NEW LEAF MODULE with zero `typsphinx`-internal imports.**
-   `builder.py` imports `writer.py` at module scope, and `template_registry.py` avoids a cycle with
-   `builder.py` only via a lazy function-scoped import. Putting the helper in any of those three
-   files creates an unconditional two-file import cycle the moment the other two import it back.
-   Placement is forced, not stylistic.
-
-7. **IMG-06's bound is a hardcoded 255, not a probe** (owner decision 2026-08-27):
-   `os.pathconf()`/`os.statvfs()` are documented `Availability: Unix` and unusable on the
-   `windows-latest` lane. And IMG-06 has **no compile-visible symptom** — it surfaces as an
-   `ENAMETOOLONG` `OSError` at `copy_image_files()` time — so it needs a gate of its own; the
-   milestone's compile gate will not force it out.
-
-8. **PATH-01's gate must call `_escapes_outdir()` directly.** Measured: the gap is not reachable from
-   either production call site — `_resolve_target_stem()` normalizes at `builder.py:662` before
-   calling, and `_track_image()` passes a `relpath()` result that always carries a `..` segment. An
-   integration test routed through either call site is tautologically green before and after the fix
-   and proves nothing. PATH-01 is scoped in as hardening of the function's own contract, deliberately.
-
-9. **Zero test edits in the product-code phases (59 and 60).** MSG-01 exists to make this achievable.
-   If a plan finds it must edit a test, that is a signal the census was incomplete, not a licence to
-   edit.
-
-10. **CI is not first discovery.** Phase 57 burned two matrix runs on this exact defect family. Each
-    product-code phase confirms RED, then green, locally — on POSIX-runnable string-shape assertions,
-    the proven `TestWindowsPathEscapingRegressionGuard` pattern — and only then dispatches the 3-OS
-    lane. The acceptance bar is that lane, `windows-latest` included, green on the phase's own
-    **post-fix tip**, dispatched fresh rather than inferred from a prior run.
-
-11. **Worktree isolation is the standing execution mode** (owner decision, `CLAUDE.md`). Every
-    executor provisions its own venv with
-    `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` and runs everything via
-    `uv run`. Do **not** degrade to sequential main-tree execution merely because a phase has low
-    parallelism benefit.
-
-12. **Push the milestone branch to `origin` from the FIRST phase** (milestone invariant #5, adopted
-    v0.7.1, paid four times over in v0.8.0). Measured 2026-08-27: the branch actually carrying this
-    milestone's commits is **`gsd/v0.9.1-windows-path-correctness`** — see the CORRECTED note in Roadmap
-    Evolution below. No upstream
-    configured, and nothing matching `0.9.1` on `origin`. Unlike v0.9.0's identically-shaped decoy
-    (`gsd/v0.9.0-milestone`, which sat at the merge-base with zero milestone commits), this one *is*
-    the milestone branch. Phase 58 carries it as SC#5; every later phase inherits it.
-
-13. **The final phase (61) is prep-only and takes zero irreversible action.** Version bump, curated
-    CHANGELOG entry, evidence gathering, handoff checklist. No tag, no publish, no GitHub Release, no
-    PR. **REL-09 closes at `/gsd-complete-milestone`, not in the phase** — and the `phase.complete`
-    auto-flip has fired against the release-prep requirement at **five consecutive** closes, so Phase
-    61 records a `REQUIREMENTS.md` checksum at phase head to catch and revert it.
-
-14. **Standing invariants carried forward:** zero new runtime dependencies (every fix is stdlib-only
-    by construction, verified against the research — no candidate solution required one); no new
-    `typst_*` config value (the configuration surface is unchanged this round); the `@preview` package
-    count stays at **four** with no new version-lockstep site (`writer.py` / `template_engine.py` /
-    `templates/base.typ`); typing-import modernization is forbidden (`CLAUDE.md` independently
-    instructs it); every phase closes green on the full pytest suite plus `black` / `ruff` / `mypy`;
-    and "anywhere under X" success criteria are checked by a repo-wide grep at discovery time, never
-    against the files a requirement happens to name (milestone invariant #4).
-
-**`research/SUMMARY.md`'s suggested A–F structure is adopted in sequence, not in count.** Its six
-"phases" are plan-sized units, and it was written before two owner decisions landed: MSG-01's
-existence (constraint 2) and the Phase-59-before-Phase-60 ordering that constraint 4 forces. Its
-Wave-1/Wave-2 decomposition survives intact *inside* Phases 59 and 60 and should be read as planning
-input there.
-
-**Not a frontend UI milestone** (standing project note): every phase below is builder, writer,
-translator and release work. `ui.plan-gate` false-positives on words this milestone cannot avoid —
-"image", "render", "template", "page". Each phase detail therefore carries an explicit
-`**UI hint**: no` line, the authoritative override `ui-safety-gate.cjs` reads, rather than relying on
-a per-run `--skip-ui`.
-
-- [x] **Phase 58: `repr()`-Format Decoupling (test-side only)** - The two tests that hard-code `repr()`'s backslash-doubling as their pass criterion assert the *meaning* instead, so every later phase in this milestone can change a message string with genuinely zero test edits (completed 2026-08-28)
-- [x] **Phase 59: Path-Shape Predicate and Image-URI Correctness** - A Windows-shaped absolute image URI survives the whole pipeline: classified correctly by a predicate that normalizes before it decides, relocated under a key carrying no separator and bounded to a portable filesystem limit, and emitted into an `image("...")` a real `typst.compile()` accepts (completed 2026-08-29)
-- [x] **Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere** - Every path-valued interpolation in `builder.py`, `writer.py` and `template_registry.py` quotes through one helper in a new leaf module that never doubles a backslash and never closes its quote early, while identifier-valued `!r` stays untouched (completed 2026-08-29)
-- [x] **Phase 61: v0.9.1 Release Prep (prep-only)** - The v0.9.1 tree is bumped, its CHANGELOG curated around the three defect families, proven green on a fresh 3-OS run, and handed off with no irreversible action taken (completed 2026-08-30)
-
-## Phase Details
-
-### Phase 58: `repr()`-Format Decoupling (test-side only)
-
-**Goal**: The two existing tests that hard-code `repr()`'s output format as their pass criterion
-assert the *meaning* — that the offending path is named in the message — instead. After this phase,
-a message site can move off `!r` without a single test edit, which is the whole mechanism by which
-Phases 59 and 60 prove POSIX output stayed identical.
-
-This phase ships **no product change**. It is first because
-`tests/test_out02_escape_target_gate.py:134` runs unconditionally on every platform and goes RED
-**on POSIX** the instant MSG-03 rewires `builder.py:697` — before any Windows lane is even consulted.
-Its sibling `tests/test_builder.py:598` is green on POSIX by coincidence (`repr()` of a
-backslash-free path is the `!r` form the message already contains) and breaks only on
-`windows-latest`, which is exactly the shape that cost Phase 57 two matrix runs.
-
-**Depends on**: Nothing (first phase of the milestone)
-**Requirements**: MSG-01
-**Success Criteria** (what must be TRUE):
-
-  1. **Neither test asserts on `repr()`'s output format for a path value any more.** The drive-shape
-     escape gate and the image-rehome warning test each assert that the offending path is *named* in
-     the message, by a property that holds whether the message quotes with `repr()`, with a
-     hardcoded `'...'`, or with a delimiter-aware helper.
-
-  2. **The rewrite is proven neither a regression nor a tautology.** Both tests are recorded green on
-     the pre-rewrite tree and on the post-rewrite tree (real runs, not asserted), *and* a recorded
-     falsification — the path removed from the message — turns each one RED. A rewritten assertion
-     that would pass against a message naming no path at all does not satisfy this.
-
-  3. **The `repr(...)` / `!r` census in `tests/` is recorded and classified.** Every remaining
-     occurrence is labelled path-valued or identifier/list/bytes/int-valued, the path-valued count is
-     zero, and the list is written down — so Phases 59 and 60 can check their zero-test-edit claim
-     against an enumeration rather than against a belief.
-
-  4. **No file under `typsphinx/` changes in this phase**, proven by `git diff --stat` over the
-     phase's own range. This is a test-side decoupling; a product change here would confound the
-     next two phases' evidence.
-
-  5. **The milestone branch is on `origin`.** `gsd/v0.9.1-windows-path-correctness` (see the
-     CORRECTED 2026-08-27 note in Roadmap Evolution — the roadmapper named
-     `gsd/v0.9.1-milestone`, which the commit helper then superseded) — measured at roadmap time as
-     three commits ahead of `main` with no upstream and nothing matching `0.9.1` on the remote — is
-     pushed and tracking, from this first phase rather than at the release PR (milestone invariant
-     #5).
-
-**Plans**: 3/3 plans executed in 3 waves
-
-Plans:
-**Wave 1**
-
-- [x] 58-01-PLAN.md — Tracer: the `tests/_path_naming.py` predicate, the escape-target gate rewritten onto it with D-02 line narrowing, SC#2's pre-rewrite baseline for both target tests, the recorded RED under a reverted `builder.py:697` falsification, and D-05(a)'s durable meta-tests
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 58-02-PLAN.md — The second call site: `tests/test_builder.py`'s image-rehome assertion rewritten onto the predicate, plus the recorded RED under a reverted `builder.py:1767` falsification; brings the pass-criterion count to 7 with zero path-valued sites
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 58-03-PLAN.md — The AST-backed census guard, the two-axis classified `58-REPR-CENSUS.md`, the phase gate, SC#4 proven at phase scope, and the milestone branch pushed to `origin` and tracking
-
-**UI hint**: no
-
-### Phase 59: Path-Shape Predicate and Image-URI Correctness
-
-**Goal**: A Windows-shaped absolute image URI survives the whole pipeline. `_escapes_outdir()`
-decides on the normalized string like its sibling `_is_absolute_image_uri()` already does; the
-relocation key `_track_image()` builds carries no backslash and cannot exceed a portable filesystem
-component limit; and the URI `visit_image()` interpolates is escaped last, after every path-shape
-transform, so what reaches Typst is a string it accepts.
-
-The three `builder.py` changes are **one sequential plan** by constraint 3 — `_escapes_outdir()` is
-called from inside the very method whose key construction IMG-04 and IMG-06 rewrite. `translator.py`
-is a disjoint file and parallel-safe alongside it. IMG-07's real `typst.compile()` gate is coupled to
-**both** halves by a measured Typst property (constraint 5), so it belongs in the wave after them,
-not beside them.
-
-**Depends on**: Phase 58
-**Requirements**: PATH-01, IMG-04, IMG-05, IMG-06, IMG-07
-**Success Criteria** (what must be TRUE):
-
-  1. **`_escapes_outdir()` is a correct standalone predicate.** Called **directly** — never through
-     either production call site — it returns `True` for a driveless-absolute stem (`\manuals\guide`)
-     and a UNC stem (`\\srv\share\g`), with the pre-fix `False` recorded as RED first. Both existing
-     call sites are separately measured to classify every tested shape byte-identically before and
-     after, so the hardening is proven to have changed no live behaviour.
-
-  2. **A real `typst.compile()` accepts a document whose image URI was a Windows-shaped absolute
-     path.** The gate is recorded RED against the unfixed tree with Typst's own
-     `path must not contain a backslash` refusal in the evidence, and green after — proving both
-     coupled halves (relocation-key normalization and literal escaping at the emission point) are
-     present, and that neither alone would have closed it.
-
-     **AMENDED 2026-08-29 (owner-approved, after measurement).** The error string named above was
-     inherited from `59-CONTEXT.md` D-01's prediction, which measurement falsified for the *unfixed*
-     row only. Measured, the unfixed tree is refused with `unclosed delimiter`;
-     `path must not contain a backslash` is real but fires on the **escaping-only** row. Cause: the
-     unfixed pipeline emits a literal carrying BOTH a raw backslash and a raw unescaped `"`, and the
-     `"` terminates the Typst string at parse time, so the semantic backslash check never runs —
-     D-01's four probe runs each carried only ONE defect, so none of them exercised that literal. The
-     substantive claim of this criterion is unchanged and **is met**: all three of unfixed,
-     key-normalization-only and escaping-only fail to compile, and only the tree carrying both halves
-     compiles, so neither alone would have closed it. Evidence:
-     `59-WINDOWS-URI-EVIDENCE.md` § "IMG-07 four-combination table"; decision record:
-     `59-CONTEXT.md` § D-01a; both readings judged separately in `59-VERIFICATION.md`.
-
-  3. **The relocation key is separator-free and length-bounded, with the collision anchor intact.**
-     No backslash from the original URI survives into the key for any Windows-shaped input; the
-     basename is bounded to 255 UTF-8 bytes with the `{sha1[:8]}-` digest kept whole, truncation
-     landing on a UTF-8 character boundary, the extension preserved, and never an empty basename. The
-     collision property IMG-03 closed is re-proven for two long URIs sharing a basename.
-
-  4. **The length bound has its own gate, not a compile gate.** It fails against the unfixed tree
-     with the `ENAMETOOLONG` `OSError` raised at `copy_image_files()` time and passes after — because
-     this defect has no compile-visible symptom and criterion 2's gate cannot see it.
-
-  5. **Zero test edits, and the matrix is green on this phase's own tip.** No existing test
-     assertion anywhere under `tests/` is modified over this phase's diff (measured against Phase
-     58's census, not claimed), and the 3-OS CI lane — `windows-latest` included — is green on the
-     post-fix tip, dispatched fresh after a local RED-then-green run rather than inferred from a
-     prior run.
-
-**Plans**: 5/5 plans executed (strictly sequential — 5 waves; see the plan-ordering note below)
-
-Plans:
-
-**Wave 1**
-
-- [x] 59-01-PLAN.md — PATH-01: `_escapes_outdir()` normalize-then-decide, its direct-call RED gate, the two-call-site characterization pin, and the phase evidence spine
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 59-02-PLAN.md — IMG-04 + IMG-06: normalized, 255-byte-bounded relocation key via two new builder helpers, with a pure-string gate and an ENAMETOOLONG integration gate
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 59-03-PLAN.md — IMG-05: `visit_image()` routes the adjusted URI through `escape_typst_string()` once, gated by a relative-URI escaping gate independent of the builder half
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 59-04-PLAN.md — IMG-07: the two-mode Windows-shaped fixture project, the all-lane `-b typst` string-shape gate, and the real `typst.compile()` gate with a runtime probe-skip
-
-**Wave 5** *(blocked on Wave 4 completion)*
-
-- [x] 59-05-PLAN.md — Acceptance: D-01's four-combination two-tree table (SC#2), the measured zero-test-edit proof (SC#5), and the fresh 3-OS CI dispatch
-
-**Plan ordering note.** Constraint 3 forbids parallel worktrees against `builder.py`, and constraint
-4 forbids a plan that changes an emitted string from sharing a wave with a plan that asserts on it.
-Independently, every plan appends its RED/GREEN transcript to the single D-11-named
-`59-WINDOWS-URI-EVIDENCE.md`, so any two plans in one wave would collide there at merge even with
-disjoint code files. The five plans therefore run one per wave; `translator.py`'s parallel-safety
-(noted above) is a permission this decomposition declines to use.
-
-**UI hint**: no
-
-### Phase 60: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
-
-**Goal**: Every user-facing message that names a path quotes it unambiguously and without
-backslash-doubling, through one helper that lives where nothing can import-cycle on it. This restores
-the half of `repr()` that 57-11's hardcoded `'{value}'` dropped — automatic delimiter selection —
-while keeping the half it correctly removed.
-
-The helper is created first (a new leaf module, new tests, no existing file touched), then wired into
-three disjoint modules. It runs **after** Phase 59 by constraint 4: `builder.py:1767` interpolates
-the very `key` value Phase 59 changes, so quoting it — and asserting on the quoted result — must
-follow the value settling, never accompany it.
-
-**Depends on**: Phase 59
-**Requirements**: MSG-02, MSG-03, MSG-04, MSG-05
-**Success Criteria** (what must be TRUE):
-
-  1. **The helper exists in a new leaf module and behaves on both halves.** Its import block names no
-     `typsphinx` module (read from the source, and proven by importing it standalone); it accepts
-     `str` **and** `os.PathLike`, because `template` values are deliberately allowed to be
-     `pathlib.Path`; it never doubles a backslash; and it selects a delimiter that cannot appear
-     unescaped in the value, so a path containing a literal single quote comes back unambiguously
-     delimited — the sibling case `57-REVIEW.md` IN-01 named as missing.
-
-  2. **Every path-valued interpolation in the census routes through it.** `builder.py`'s three
-     message builders (~329-402) plus lines 697, 942, 964, 965, 999, 1007, 1008, 1015, 1767, 2056 and
-     2066; `writer.py`'s wrapper-render debug log (511-513); and `template_registry.py`'s CONF-17
-     violation (422) and existence check (433). A repo-wide grep run at execution time — not the
-     line list above — is the discovery authority, and it shows no path-valued `!r` left in those
-     three modules.
-
-  3. **The rollout is proven not to have over-reached.** Identifier-valued interpolations — registry
-     keys, docnames, config tuples — still render with `!r`, and `template_registry.py:410` is
-     measurably still `!r`, because it is reached precisely when the value is a `list`, `bytes` or
-     another non-path type and quoting it as a path would be actively wrong.
-
-  4. **Both gate halves are green, each RED-recorded first.** The existing no-doubled-separator
-     property (`TestWindowsPathEscapingRegressionGuard`) is extended to the newly-routed sites, and
-     the single-quote-in-path case is asserted — with `writer.py`'s and `template_registry.py`'s
-     coverage living in their own test modules rather than all three files' plans extending one
-     shared class in one wave.
-
-  5. **Zero test edits, and the matrix is green on this phase's own tip.** No existing test assertion
-     is modified — Phase 58 removed the only two that would have forced it — and the 3-OS CI lane,
-     `windows-latest` included, is green on the post-fix tip, dispatched fresh.
-
-**Plans**: 5/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
-
-Plans:
-
-**Wave 1**
-
-- [x] 60-01-PLAN.md — MSG-02: the `typsphinx/pathfmt.py` leaf module and `quote_path()`, its own
-  RED-first gate module, the two-form leaf-import proof, and the phase evidence spine
-
-**Wave 2** *(blocked on Wave 1; the three plans run IN PARALLEL — disjoint modules, disjoint test
-modules, per-plan evidence files)*
-
-- [x] 60-02-PLAN.md — MSG-03: all 23 path-valued interpolations in `typsphinx/builder.py` routed,
-  five message families RED-recorded first, plus the three added single-quote methods on
-  `TestWindowsPathEscapingRegressionGuard` (a one-plan privilege, D-11)
-- [x] 60-03-PLAN.md — MSG-04: `typsphinx/writer.py`'s wrapper-render debug log routed, gated via
-  `caplog` at DEBUG, with a two-tree byte-identity pin for the package-alone `None` path
-- [x] 60-04-PLAN.md — MSG-05: `typsphinx/template_registry.py`'s CONF-17 and existence messages
-  routed, both of D-12's RED shapes recorded, and the type-check message measurably left excluded
-
-**Wave 3** *(blocked on Wave 2 completion — the audit runs one wave later than what it audits)*
-
-- [x] 60-05-PLAN.md — acceptance: SC#2's repo-wide discovery grep, SC#3's over-reach measurement,
-  SC#5's zero-test-edit proof against `58-REPR-CENSUS.md`, the read-only consolidation into
-  `60-PATH-QUOTING-EVIDENCE.md`, and a fresh 3-OS CI dispatch on the post-fix tip
-
-**UI hint**: no
-
-### Phase 61: v0.9.1 Release Prep (prep-only)
-
-**Goal**: The v0.9.1 tree is bumped, its CHANGELOG curated, its claims re-proven on live runs against
-the bumped tree, and handed off — with **zero irreversible action**. No tag, local or remote; no
-publish; no GitHub Release; no PR. This is the standing pattern held for seven consecutive milestones
-(Phases 10, 41, 46, 52, 57) under `branching_strategy: milestone`. **REL-09 closes at
-`/gsd-complete-milestone`, not in this phase** — it is held at `[ ]` through every plan.
-
-v0.9.1 is a **patch release with no breaking change**: no new capability, no new runtime dependency,
-no new `typst_*` config value. The CHANGELOG entry describes three defect families as user-visible
-fixes — a Windows-shaped `typst_documents` target now refused by a predicate that normalizes first, a
-Windows-shaped absolute image URI that now compiles, and path-naming diagnostics that no longer
-double separators or close their quote early.
-
-**Depends on**: Phase 60
-**Requirements**: REL-09
-**Success Criteria** (what must be TRUE):
-
-  1. **The version moves atomically to 0.9.1.** `pyproject.toml` (the sole literal), `uv.lock` and
-     `README.md`'s Status line move in lockstep, the editable-install metadata is regenerated so
-     `typsphinx.__version__` reports `0.9.1`, and every version-sync guard test stays green.
-
-  2. **The CHANGELOG entry is curated, not generated.** A `## [0.9.1]` section names the three defect
-     families, states plainly that nothing breaks and no configuration changed, and the tail
-     link-reference block is rolled over in this same phase (the `[Unreleased]` compare link advanced
-     and a `0.9.1` release/tag link added) — release-prep work, not a version-bump side effect. The
-     GitHub Release body's source, `scripts/extract_changelog_section.py 0.9.1`, reproduces that
-     section byte-for-byte.
-
-  3. **The bumped tree is proven green on live runs, not on the preceding phases' word.** Full pytest
-     suite, `black` / `ruff` / `mypy`, both docs tox environments against their measured warning
-     baselines, and a fresh 3-OS CI run dispatched on the **bumped** tip with both `windows-latest`
-     lanes green — the milestone's acceptance bar, observed here rather than inherited.
-
-  4. **The fence is proven held.** No local or remote `v0.9.1` tag exists and no release or publish
-     has occurred — probed and recorded twice at separated times, as at every previous close.
-     `git diff` over the phase shows **no unintended change under `typsphinx/`**, and a checksum of
-     `REQUIREMENTS.md` recorded at phase head catches the known `phase.complete` auto-flip of the
-     release requirement — which has fired at **five consecutive** release-prep closes — so it is
-     reverted rather than shipped.
-
-  5. **The handoff checklist is standalone and complete.** A `61-HANDOFF.md` enumerates every step
-     `/gsd-complete-milestone` must execute, including the standing second-repository tag
-     (`typsphinx-doc-translations`, advanced by dispatching that repository's own `update-pin.yml`
-     rather than by a hand-made clone-edit-push), the Read the Docs `stable` measurement for both
-     projects, and the GitHub Release body being byte-identical to
-     `scripts/extract_changelog_section.py 0.9.1`'s stdout.
-
-**Plans**: 4/4 plans executed in 3 waves
-
-> **Scope reframe — read `61-CONTEXT.md` D-11 before judging the plans against SC#1–SC#5 above.**
-> The phase's shape changed during discuss-phase and the owner deliberately left this entry as the
-> historical record of what was originally planned. D-11 is the authoritative mapping: **SC#1 is
-> DROPPED** (no version bump — `pyproject.toml` stays at 0.9.0), **SC#2 is REWORDED** (the curated
-> content is authored under the existing `## [Unreleased]` heading, the tail link-reference block is
-> untouched, and the extraction-script reproduction check moves to the v0.9.2 release-prep phase),
-> **SC#3 and SC#4 are RETAINED** (SC#3 re-anchored to the milestone-final tip rather than a bumped
-> one), and **SC#5 is RETAINED but RE-AIMED** at what the *v0.9.2* milestone inherits. v0.9.1 is
-> never published; the next published release is 0.9.2. **REL-09 is held at `[ ]` through every
-> plan** and carries forward unmet.
-
-Plans:
-
-**Wave 1** *(no dependencies — 61-01 and 61-02 run in parallel; their `files_modified` sets are disjoint)*
-
-- [x] 61-01-PLAN.md — SC#2 (reworded): the three defect families authored as user-visible bullets
-      under the existing `## [Unreleased]` heading, led by a tracer slice that carries one bullet
-      end-to-end through MyST into a rendered docs page; both docs builds run post-edit against the
-      measured 3 / 5 warning baseline; the edit proven pure addition with every version literal and
-      the tail link block unmoved.
-- [x] 61-02-PLAN.md — SC#4 (first half), at phase head: the `REQUIREMENTS.md` checksum guard against
-      the `phase.complete` REL-09 auto-flip that has fired at five consecutive release-prep closes,
-      fence observation 1 of 2 with a positive control on every remote probe, the phase base SHA, and
-      the external-API coverage declaration.
-
-**Wave 2** *(blocked on Wave 1 completion — the CI dispatch must run on the tip that already carries 61-01's CHANGELOG edit)*
-
-- [x] 61-03-PLAN.md — SC#3 (retained, re-anchored): the milestone-final tree proven green on runs
-      executed in this phase — full pytest, `black`, `mypy` and the version-sync guard family — plus
-      one fresh 3-OS CI dispatch on the tip carrying this phase's own CHANGELOG edit, all 12 job
-      conclusions transcribed literally with both `windows-latest` lanes named.
-
-**Wave 3** *(blocked on Wave 2 completion — fence observation 2 must be separated from observation 1 by the two intervening waves, not by wall-clock luck)*
-
-- [x] 61-04-PLAN.md — SC#4 (second half) and SC#5 (re-aimed): fence observation 2 at a genuinely
-      later timestamp, the scoped `typsphinx/` diff with a real positive control, the close-time
-      checksum re-verification with a hand reversion path, and `61-HANDOFF.md` — which opens by
-      stating that this milestone publishes nothing, then preserves the three standing publish steps
-      as an inheritance record with the version left as a placeholder.
-
-**Cross-cutting constraints** *(a `must_haves` truth carried by two or more of the four plans)*:
-
-- REL-09 is cited by every plan as the phase's only requirement ID **for coverage purposes only**.
-  No plan closes it and no plan touches its checkbox; per D-08 it stays `[ ]` and carries forward
-  unmet to the v0.9.2 milestone with its literal wording unchanged. 61-02 records the
-  `REQUIREMENTS.md` checksum at phase head and 61-04 re-verifies it at close, because
-  `phase.complete` has auto-flipped this requirement against the phase's own recorded decision at
-  five consecutive release-prep closes.
-
-**UI hint**: no
-
 ## Progress
 
-**Execution Order:**
-Active milestone phases execute in numeric order (decimal insertions between their surrounding
-integers), with the prep-only Release phase last so its CHANGELOG entry describes work already proven
-by the preceding phases' gates. v0.9.1 executes **58 → 59 → 60 → 61**, and every one of those three
-arrows is a measured constraint rather than a convention:
-
-- **58 before 59 and 60** because `tests/test_out02_escape_target_gate.py:134` runs on every platform
-  and goes RED on POSIX the moment a message site moves off `!r`. Decoupling it first is what makes
-  the later phases' zero-test-edit claim mean something.
-- **59 before 60** because `builder.py:1767` interpolates the exact `key` value Phase 59 changes and
-  Phase 60 re-quotes. Landing the value first means Phase 60's assertions are written against a
-  settled string; landing them together is the same-wave string/assertion collision this project has
-  already paid for once.
-- **60 before 61** only in the ordinary sense that release prep describes finished work.
-
-Phases 1–57 shipped across v0.4.4 → v0.9.0; their per-phase plan counts, statuses and completion
-dates are preserved in each milestone's archived roadmap under `milestones/`. The table below tracks
-the active milestone only.
+**No milestone is active.** Phases 1–61 shipped or completed across v0.4.4 → v0.9.1; their per-phase
+plan counts, statuses and completion dates are preserved in each milestone's archived roadmap under
+`milestones/`. This table is re-created for the active milestone by `/gsd-new-milestone`.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
-| 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 4/4 | Complete | 2026-08-30 |
+| — | — | — | No active milestone | — |
 
 ## Roadmap Evolution
 
-- **2026-08-27** — v0.9.1 roadmap created: **Phases 58–61**, 11/11 v1 requirements mapped, zero
-  orphans, continuing numbering from v0.9.0's Phase 57. Four phases at `granularity: standard`.
-  Three decisions are baked into the structure and should not be re-derived during planning:
+Per-milestone evolution notes are archived with their milestone. v0.9.1's — the three structural
+decisions baked into the 58–61 phase split, the `gsd/v0.9.1-milestone` decoy-branch correction, and
+the deliberate decision to give the 3-OS matrix run no REQ-ID — live in
+[milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md).
 
-  - **MSG-01 is its own phase and comes first** (Phase 58), superseding `research/SUMMARY.md`'s
-    finding #4 that the two `repr()`-dependent test edits "must land in the same wave as the source
-    fixes". That finding predates MSG-01's owner decision (2026-08-27). Landing the edits in their
-    own test-only phase preserves the zero-test-edits discipline for the phases that change product
-    code, which is the only reason the discipline is evidence of anything.
-
-  - **PATH-01, IMG-04 and IMG-06 are one phase, not three** (Phase 59), because `_escapes_outdir()`
-    is called from inside `_track_image()` and all three land in the same ~30-line region of
-    `builder.py`. `research/SUMMARY.md`'s A–F suggestion splits them across two of its units; the
-    split survives as *plan* structure inside Phase 59, not as phase structure.
-
-  - **IMG-07 is mapped to Phase 59**, the phase that actually writes the real `typst.compile()`
-    gate, rather than being carried as a cross-cutting milestone-level obligation. Typst's
-    value-level backslash refusal couples IMG-04 and IMG-05, so the gate is only green once both
-    have landed — which is possible in exactly one phase.
-
-- **2026-08-27** — Milestone invariant #5 (push the branch from the first phase) encoded as Phase
-  58's SC#5. The milestone branch was **measured, not assumed**: `gsd/v0.9.1-windows-path-correctness`
-
-    **CORRECTED 2026-08-27, after the roadmap commit.** The roadmapper measured
-    `gsd/v0.9.1-milestone` as the live milestone branch, and that was true when it measured. The
-    very next `commit` call then derived the canonical name from `config.json`'s
-    `git.milestone_branch_template` (`gsd/{milestone}-{slug}`), created
-    `gsd/v0.9.1-windows-path-correctness`, and switched to it -- so the roadmap commit `e257e70d`
-    landed there while the three earlier commits' branch pointer stayed behind at `441266a4`.
-    Measured immediately after: the two were strictly linear (merge-base `441266a4`, 1 commit ahead,
-    0 behind), so nothing diverged and nothing was lost. `gsd/v0.9.1-milestone` was deleted as a
-    zero-unique-commit ancestor, precisely so it could not become the mid-milestone decoy v0.9.0
-    had to correct. **The canonical branch is `gsd/v0.9.1-windows-path-correctness`** -- the name
-    the tooling will keep re-deriving on every commit, so it is the one Phase 58's SC#5 pushes.
-    Restore the deleted pointer with `git branch gsd/v0.9.1-milestone 441266a4` if ever needed.
-
-  At roadmap time `gsd/v0.9.1-milestone` was three
-  commits ahead of `main`, has no upstream configured, and nothing matching `0.9.1` exists on
-  `origin`. v0.9.0's roadmap had to correct an identically-named decoy mid-milestone; this one is the
-  real branch, checked before it was written down.
-
-- **2026-08-27** — The 3-OS matrix run was deliberately **not** given a REQ-ID (`REQUIREMENTS.md`
-  Out of Scope). It remains the milestone's acceptance bar and is carried in the success criteria of
-  each phase that changes product code (59, 60) and re-run on the bumped tree in 61.
+- **2026-08-30** — v0.9.1 closed and reorganized here. The milestone completed all four phases and
+  **published nothing**: the close performed no tag, no PyPI upload, no GitHub Release and no pull
+  request (D-02, D-12), the first time in this project's history. Phase detail, requirements and the
+  milestone audit archived to `milestones/v0.9.1-*`.
 
 ## Backlog
 
@@ -703,5 +211,47 @@ unconditional) and the tripled "Custom template not found" warning; both are car
 requirements and are **not** in v0.9.1 scope. The third — the fixed-`'...'`-delimiter path quoting —
 **is** closed this milestone, by MSG-02's delimiter-aware helper.
 
+**Closed by v0.9.1** (2026-08-30) — the three records promoted above all executed:
+`2026-08-16-escapes-outdir-isabs-not-backslash-normalized` (PATH-01),
+`2026-08-16-track-image-escape-branch-basename-not-normalized` (IMG-04), and
+`2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages` — **both** halves, by MSG-01
+through MSG-05.
+
+**Filed during v0.9.1 and open** (2026-08-30), both in `translator.py`, neither in that milestone's
+requirement scope:
+
+- `2026-08-29-inline-image-in-paragraph-emits-unseparated-expression` — `severity: blocker`, and
+  **the single strongest candidate for the next milestone**. An image node that is not the first
+  thing in its paragraph is emitted adjacent to the preceding code-mode expression, so Typst refuses
+  the file with `expected semicolon or line break` and `-b typstpdf` raises `ExtensionError`
+  rather than degrading — **no PDF is produced for any master document in the project**. Owner-
+  reported 2026-08-29 and root-caused the same day; measured **pre-existing, not a v0.9.1
+  regression** (D-06), so it is live in the published 0.9.0. It is the reason v0.9.1 was never
+  released (D-02), was deliberately not fixed in that milestone (D-07), and has **no public-surface
+  disclosure** (D-05).
+- `2026-08-29-hardcoded-delimiter-path-fragments-in-translator-relative-path-debug-logs` —
+  `severity: minor`. `translator.py`'s two relative-path DEBUG logs carry the same
+  hardcoded-`'...'`-delimiter shape Phase 60 closed in three other modules; found by that phase's own
+  repo-wide discovery grep and filed rather than fixed, being a fourth module outside
+  MSG-02..MSG-05's scope. The one-line fix is `quote_path()`, which now exists.
+
+**Still open and deferred after the v0.9.1 close** (2026-08-30), one row each in STATE.md's Deferred
+Items ledger: `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` (Future QUA-06),
+`2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch` (`severity: major`),
+`2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar`,
+`2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures` (still
+excluded from every published surface by D-07),
+`2026-08-04-release-create-job-missing-uv-verify-end-to-end` (untestable at this close, since
+nothing was published), `2026-07-22-add-sphinx-linkcheck-ci-job` (Future LNK-01),
+`2026-07-22-modernize-typing-imports-drop-up006-up035-ignore` (forbidden by `CLAUDE.md` until the
+todo itself lands), and the three dormant seeds — SEED-001, SEED-003 (Future QUA-07) and
+**SEED-004** (`typst-py` upstream maintenance slowing; the largest structural risk on the horizon,
+never scoped into any milestone across three consecutive closes).
+
+**Known limitations still shipped with no published surface** after v0.9.1: WR-02's `confdir` gap
+and the tripled "Custom template not found" warning, both carried unchanged from v0.9.0, joined now
+by the inline-image blocker. That is the **fourth consecutive** cycle at which a
+`### Known Limitations` section was declined.
+
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22) · Active milestone section added: v0.9.1 (2026-08-27). Per-milestone phase detail, success criteria, and decisions for shipped milestones live in `milestones/vX.Y-ROADMAP.md`.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22), v0.9.1 (2026-08-30 — completed, not published). Per-milestone phase detail, success criteria, and decisions for completed milestones live in `milestones/vX.Y-ROADMAP.md`.*
