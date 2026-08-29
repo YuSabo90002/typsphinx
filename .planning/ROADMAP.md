@@ -384,7 +384,7 @@ follow the value settling, never accompany it.
      is modified — Phase 58 removed the only two that would have forced it — and the 3-OS CI lane,
      `windows-latest` included, is green on the post-fix tip, dispatched fresh.
 
-**Plans**: 4/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
+**Plans**: 5/5 plans executed in 3 waves (D-09: helper → three parallel wiring plans → acceptance)
 
 Plans:
 
@@ -406,7 +406,7 @@ modules, per-plan evidence files)*
 
 **Wave 3** *(blocked on Wave 2 completion — the audit runs one wave later than what it audits)*
 
-- [ ] 60-05-PLAN.md — acceptance: SC#2's repo-wide discovery grep, SC#3's over-reach measurement,
+- [x] 60-05-PLAN.md — acceptance: SC#2's repo-wide discovery grep, SC#3's over-reach measurement,
   SC#5's zero-test-edit proof against `58-REPR-CENSUS.md`, the read-only consolidation into
   `60-PATH-QUOTING-EVIDENCE.md`, and a fresh 3-OS CI dispatch on the post-fix tip
 
@@ -488,7 +488,7 @@ the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 58. `repr()`-Format Decoupling (test-side only) | v0.9.1 | 3/3 | Complete | 2026-08-28 |
 | 59. Path-Shape Predicate and Image-URI Correctness | v0.9.1 | 5/5 | Complete | 2026-08-29 |
-| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 4/5 | In Progress | - |
+| 60. One Delimiter-Aware Path-Quoting Helper, Routed Everywhere | v0.9.1 | 5/5 | In Progress | - |
 | 61. v0.9.1 Release Prep (prep-only) | v0.9.1 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

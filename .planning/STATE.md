@@ -5,7 +5,7 @@ milestone_name: Windows path correctness
 current_phase: 60
 current_phase_name: One Delimiter-Aware Path-Quoting Helper, Routed Everywhere
 status: executing
-stopped_at: Phase 60 wave 2 complete (60-02/60-03/60-04 merged); wave 3 next
+stopped_at: Phase 60 all 5 plans executed and merged; phase gates + verification pending
 last_updated: "2026-08-29T11:21:19.000Z"
 last_activity: 2026-08-29
 last_activity_desc: Phase 60 waves 1-2 complete — pathfmt.quote_path() landed and routed into builder.py/writer.py/template_registry.py
@@ -98,7 +98,7 @@ Next action: `/gsd-complete-milestone` — executes 57-HANDOFF.md's publish chec
 ## Current Position
 
 Phase: 60 (One Delimiter-Aware Path-Quoting Helper, Routed Everywhere) — EXECUTING
-Plan: 4 of 5 complete — waves 1-2 merged, wave 3 (60-05 acceptance) next
+Plan: 5 of 5 complete — all waves merged; phase gates + verification pending
 Status: Executing Phase 60
 Progress: [##########          ] 50% (2/4 phases; Phase 58 3/3, Phase 59 5/5 plans complete)
 Last activity: 2026-08-29 — Phase 60 executing; waves 1-2 complete and merged — `60-01` (the
