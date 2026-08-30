@@ -15,7 +15,7 @@ from the pending todo's prose.
 
 ### IMG — inline image separator
 
-- [ ] **IMG-08**: An image node preceded by any sibling content in the same container is emitted
+- [x] **IMG-08**: An image node preceded by any sibling content in the same container is emitted
       with a separator before `image(`, so Typst accepts the file instead of refusing it with
       `expected semicolon or line break`. The container set is the **16 measured failing shapes**,
       not the four the pending todo recorded: a substitution image mid-sentence; two substitution
@@ -24,12 +24,14 @@ from the pending todo's prose.
       body; an image inside an admonition; an image inside a footnote; an image inside a
       field-list body; an image inside a section title; an image inside a figure's legend body;
       and an image following inline literal / emphasis / a reference rather than plain text.
-- [ ] **IMG-09**: `sphinx-build -b typstpdf` produces a PDF for **every** master document of a
+
+- [x] **IMG-09**: `sphinx-build -b typstpdf` produces a PDF for **every** master document of a
       project containing a mid-paragraph inline image. Today it raises `ExtensionError` and writes
       no PDF for any master — including masters that contain no image at all, because Typst's
       `#include()` re-parses the included content file, so one refused file poisons every master
       that transitively includes it.
-- [ ] **IMG-10**: The fix routes through the separator triad the translator already uses —
+
+- [x] **IMG-10**: The fix routes through the separator triad the translator already uses —
       `_add_paragraph_separator()`, `_emit_inline_concat_separator()`, and the
       `in_list_item` / `list_item_needs_separator` pair — driven from `visit_image()`'s
       non-`in_figure` branch with the matching mark calls in `depart_image()`. The `in_figure`
@@ -54,7 +56,7 @@ from the pending todo's prose.
 
 ### TEST — regression gate
 
-- [ ] **TEST-05**: One regression gate module binds the 16 failing shapes **and** the shapes that
+- [x] **TEST-05**: One regression gate module binds the 16 failing shapes **and** the shapes that
       must keep passing (a standalone block-level `.. image::`; a `.. figure::`; an image first in
       its paragraph; an image carrying `:width:` / `:height:` / `:scale:` / `:align:`; an image
       receiving a propagated explicit target's id; a figure that also has a legend; a figure nested
@@ -76,12 +78,14 @@ from the pending todo's prose.
       such release exists. `uv.lock` carries its own `version = "0.9.0"` literal for the
       self-package and must be regenerated — omitting it reproduces the exact `uv sync --locked`
       failure class that is already killing every dependabot PR, across eleven CI steps.
+
 - [ ] **REL-10**: The "Planned for Future Releases" scratch block currently nested under
       `## [Unreleased]` is relocated beneath a fresh empty `## [Unreleased]` heading before that
       heading becomes `## [0.9.2]`, and the extractor's actual output is inspected to confirm the
       block does not leak into the GitHub Release body. `scripts/extract_changelog_section.py`
       selects by **position**, not by heading name, so renaming the heading in place would carry
       the scratch block into the published release notes.
+
 - [ ] **REL-11**: The release requirement's checkbox is protected by a SHA-256 of
       `.planning/REQUIREMENTS.md` recorded at release-phase head and re-verified at phase close and
       at milestone close, following `61-CLOSEOUT-GUARD.md`. `phase.complete` has auto-flipped the
@@ -96,19 +100,25 @@ Deferred to a future milestone. Tracked, not in this roadmap.
 
 - **NUM-01**: `numref` numbers diverge per master and vanish for figures reachable only from a
   non-root master.
+
 - **CI-01**: Every dependabot PR dies before running a test — it bumps `pyproject.toml` without
   regenerating `uv.lock`, and all eleven `uv sync --locked` steps refuse the stale lockfile.
+
 - **REL-04**: The `create-release` job proven end to end. *(Read at HEAD during research: the
   `uv: command not found` failure is fixed — explicit `Install uv` steps are present and the job
   ran green at the v0.8.0 and v0.9.0 real tag pushes. This milestone's own tag push exercises it
   again; a failure there is handled inside the release phase rather than deferred, but it is not a
   requirement of this milestone.)*
+
 - **MSG-06**: `typsphinx/translator.py:5047,5152` quote `up_path`/`down_path` with a hardcoded
   `'...'` delimiter — the same MSG-02 shape Phase 60 fixed in three other modules.
+
 - **WR-02**: `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
   so `-c`/confdir projects are uncovered.
+
 - **WR-03**: The "Custom template not found" warning fires three times instead of two for one
   narrow shape (54.1 WR-01).
+
 - **QUA-08**: `sphinx-build -b linkcheck` CI job.
 - **QUA-09**: Typing modernization — drop the `UP006`/`UP035` ruff ignores.
 - **QUA-10**: `ruff` cannot run on this NixOS machine; CI holds lint authority.
@@ -137,15 +147,16 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMG-08 | Phase 62 | Pending |
-| IMG-09 | Phase 62 | Pending |
-| IMG-10 | Phase 62 | Pending |
-| TEST-05 | Phase 62 | Pending |
+| IMG-08 | Phase 62 | Complete |
+| IMG-09 | Phase 62 | Complete |
+| IMG-10 | Phase 62 | Complete |
+| TEST-05 | Phase 62 | Complete |
 | REL-09 | Phase 63 | Pending |
 | REL-10 | Phase 63 | Pending |
 | REL-11 | Phase 63 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 7 total
 - Mapped to phases: 7 ✓
 - Unmapped: 0
