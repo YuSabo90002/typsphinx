@@ -194,9 +194,13 @@ questions):
     `uv sync --extra dev`-provisioned worktree venv — the exact provisioning `CLAUDE.md` mandates —
     failing with `Could not start dynamically linked executable: ruff` / exit 127, reproduced as
     recently as 2026-08-22. A green `black --check .` + `mypy typsphinx/` is **not** "lint clean".
-    Either run `nix run nixpkgs#ruff -- check .` or take the verdict from a dispatched CI run's
-    `Run linters` step. Compounding: the post-merge wave gate runs `pytest` only, so a lint-breaking
-    file can merge on a green pytest.
+    Either run `nix run nixpkgs#ruff -- check .` or take the verdict from a dispatched `ci.yml`
+    run's **`Lint and Format Check`** job — whose one step, **`Run lint with tox`** (`ci.yml:69`),
+    runs `uv run tox -e lint` = `black --check .` + `ruff check .`. `ci.yml` carries no step named
+    `Run linters`; that name exists only at `release.yml:84`, which prep-only phases must never
+    trigger (measured 2026-08-30; Phase 62's executor hit the same mismatch and recorded it as a
+    paraphrase in `62-RED-EVIDENCE.md`). Compounding: the post-merge wave gate runs `pytest` only,
+    so a lint-breaking file can merge on a green pytest.
 
 12. **Worktree isolation is the standing execution mode** (owner decision, `CLAUDE.md`). Every
     executor provisions its own venv with
@@ -291,7 +295,8 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
      constraint 10 for the live decoy pair and the pointer-advance that must precede any deletion —
      is pushed and tracking, and a run dispatched with `gh workflow run CI --ref <branch>` has
      **completed**, with the `windows-latest` and `macos-latest` lanes named individually and green,
-     and `ruff`'s verdict taken from that run's `Run linters` step rather than from this machine.
+     and `ruff`'s verdict taken from that run's `Lint and Format Check` job (step `Run lint with
+     tox`) rather than from this machine.
 
 **Plans**: 4/4 plans executed
 
@@ -372,8 +377,9 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
      environments against a warning baseline taken from a **clean** build (`rm -rf docs/_build`
      first — an incremental rebuild under-reports warnings and manufactures a false "baseline
      match"), and one fresh 3-OS CI run dispatched on the **bumped** tip with every job conclusion
-     transcribed literally, both `windows-latest` lanes named, and `ruff` green in its `Run linters`
-     step.
+     transcribed literally, both `windows-latest` lanes named, and `ruff` green in that run's
+     `Lint and Format Check` job (its one step, `Run lint with tox`, runs `tox -e lint` =
+     `black --check .` + `ruff check .`; `ci.yml` carries no step named `Run linters`).
 
   5. **Zero irreversible action, probed twice, and the handoff is standalone.** `git tag -l 'v0.9.2'`
      and a remote tag probe both come back empty, with a positive control on each remote probe, at

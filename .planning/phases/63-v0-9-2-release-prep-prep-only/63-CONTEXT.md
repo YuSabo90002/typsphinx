@@ -210,7 +210,8 @@ them.
   `release.yml`'s `validate`/`build` jobs on the real tag push, before any test runs. `uv.lock` is
   regenerated with `uv lock` and **never hand-edited**. — **Reversibility:** reversible.
 
-- **D-18: One CI dispatch, on the phase's final tip, after the bump commit.** Phase 57 ran two
+- **D-18 (AMENDED — see § Amendments item 1 for the corrected step name; the rest stands):
+  One CI dispatch, on the phase's final tip, after the bump commit.** Phase 57 ran two
   (pre-bump and post-bump); Phase 61 ran one, since it had no bump to split around. SC#4 names "the
   **bumped** tip", and this phase's only code-affecting change is `D-11`'s one-tuple test edit which
   lands with the release work — so one dispatch on the last commit is the default.
@@ -218,7 +219,10 @@ them.
   **completion**, with both `windows-latest` lanes and `macos-latest` named individually and every
   job conclusion transcribed literally. `ruff`'s verdict is taken from that run's `Run linters`
   step — never from this machine, where `ruff` is an unrunnable generic-linux ELF in any freshly
-  `uv sync`-provisioned worktree venv. A plan that lands a second code-affecting change mid-phase
+  `uv sync`-provisioned worktree venv. **[AMENDED: `ci.yml` has no step named `Run linters` — that
+  name exists only at `release.yml:84`, which this phase must never trigger. Read the verdict from
+  `ci.yml`'s `Lint and Format Check` job, step `Run lint with tox` (`ci.yml:69`). § Amendments
+  item 1.]** A plan that lands a second code-affecting change mid-phase
   adds a second dispatch; that is the only justification for one. — **Reversibility:** reversible.
 
 - **D-19: Evidence files follow `61-*`'s naming set exactly, and `63-VERIFICATION.md` is
@@ -272,6 +276,46 @@ Todos below. REL-04's todo is *named in the handoff* by D-14, which is a record,
 in this phase executes anything against it.
 
 </decisions>
+
+<amendments>
+## Amendments (2026-08-30, planning time — owner-approved)
+
+One item above was corrected by a direct read of both workflow files during planning: the
+`gsd-phase-researcher` reported it under `63-RESEARCH.md` § "Contradictions Found", and the
+orchestrator independently reproduced it with `grep -rn 'Run linters' .github/` before bringing it
+to the owner. The locked text above is left as written; this is an additive correction. The same
+correction was applied to the three matching sentences in `.planning/ROADMAP.md` (milestone
+constraint 11, Phase 62's SC#5, and **Phase 63's own SC#4**) so the planner, the executor and the
+verifier all read one wording.
+
+1. **D-18 — `ruff`'s CI verdict comes from `ci.yml`'s `Lint and Format Check` job, not from a step
+   named "Run linters".** Measured: `grep -rn 'Run linters' .github/` returns exactly **one** hit,
+   `.github/workflows/release.yml:84`. `.github/workflows/ci.yml` has **no** such step. Its `lint`
+   job (`ci.yml:51-70`, display name **`Lint and Format Check`**) has exactly one substantive step,
+   named **`Run lint with tox`** (`ci.yml:69`), running `uv run tox -e lint` → `tox.ini`'s
+   `[testenv:lint]` → `black --check .` then `ruff check .`.
+
+   D-18's *intent* — CI holds lint authority, never this machine, where `ruff` is an unrunnable
+   generic-linux ELF in a freshly `uv sync`-provisioned worktree venv — is **unaffected and
+   stands**. Only the identifier was wrong; it was copied from `release.yml`, the one workflow this
+   prep-only phase must never trigger. Two failure modes this closes: a plan searching literally for
+   a step named "Run linters" inside the dispatched `ci.yml` run finds nothing, or — worse —
+   concludes it must dispatch `release.yml` instead, breaching the prep-only fence.
+
+   **This is the third recurrence, and the first one fixed at the source.** Phase 62 carried the
+   identical wording (`62-CONTEXT.md:122`, `62-04-PLAN.md:21`); its executor hit the mismatch live
+   and handled it honestly rather than silently — `62-RED-EVIDENCE.md:468-471` and
+   `62-04-SUMMARY.md:36` both record "Run linters" as *a paraphrase, not the literal step name*, and
+   `62-VERIFICATION.md` verified SC#5 against `Lint and Format Check = success`. Correcting
+   ROADMAP's Phase 62 SC#5 therefore aligns the criterion with what was actually verified; it
+   weakens nothing retroactively.
+
+   **Binding on every plan in this phase:** `ruff`'s verdict is read as the **`Lint and Format
+   Check`** job's conclusion in `gh run view <id> --json jobs` (the same row `61-CI-EVIDENCE.md`
+   recorded as `success`), with the `Run lint with tox` step's own `ruff check .` output quoted
+   verbatim in `63-CI-EVIDENCE.md`. No plan drills for a step named `Run linters` in either
+   workflow, and no plan triggers `release.yml` for any reason.
+</amendments>
 
 <canonical_refs>
 ## Canonical References
@@ -351,7 +395,9 @@ in this phase executes anything against it.
 - `.github/workflows/release.yml` — the publish path; **recorded in the handoff, never triggered**.
   Its `create-release` job is D-14's subject.
 - `.github/workflows/ci.yml` — triggers scoped to `main`/`develop` plus `workflow_dispatch`; the
-  3-OS × py312/py313 matrix and the `Run linters` step D-18 takes `ruff`'s verdict from.
+  3-OS × py312/py313 matrix and the `Lint and Format Check` job (step `Run lint with tox`,
+  `ci.yml:69`) D-18 takes `ruff`'s verdict from — see § Amendments item 1: `ci.yml` carries no step
+  named `Run linters`.
 - `.github/workflows/links.yml` — the repo-wide lychee scan **excludes `CHANGELOG.md`**, so a dead
   tail link would not be caught by CI. The `[0.9.2]` link this phase adds points at a tag that does
   not exist until `/gsd-complete-milestone`; that is expected and is the same state every prior
