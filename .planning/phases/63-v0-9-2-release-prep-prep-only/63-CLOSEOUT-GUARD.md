@@ -226,6 +226,97 @@ precisely because it runs after the tooling and outside any plan's reach — it 
 has landed at five consecutive prior release-prep closes, and the one Phase 61 caught it at for the
 first time.
 
+## Re-verification at phase close
+
+Run by plan 63-04, inside its own isolated worktree (`worktree-agent-a4d2b14ab7009647a`), at a fresh
+UTC timestamp distinct from the Baseline's:
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-30T12:03:06Z
+```
+
+The protocol's own triad, re-run and compared side by side against the Baseline recorded above:
+
+**SHA-256 digest**
+
+| | Value |
+|---|---|
+| Baseline (recorded at phase head) | `f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33` |
+| Live (this re-verification) | `f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33` |
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33  .planning/REQUIREMENTS.md
+```
+
+**Line count**
+
+| | Value |
+|---|---|
+| Baseline (recorded at phase head) | `184` |
+| Live (this re-verification) | `184` |
+
+```
+$ wc -l .planning/REQUIREMENTS.md
+184 .planning/REQUIREMENTS.md
+```
+
+**Name-only diff, scoped to `.planning/REQUIREMENTS.md`**
+
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+Expected no output; observed no output.
+
+**The `REL-09` grep, compared line-for-line against the Baseline's quoted hits**
+
+| Line | Baseline (§ "The lines under guard") | Live |
+|---|---|---|
+| 70 | `- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `\`## [0.9.2]\`` CHANGELOG entry, the version` | identical |
+| 154 | `\| REL-09 \| Phase 63 \| Pending \|` | identical |
+| 175 (informational-only) | `- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for` | identical |
+
+```
+$ grep -n 'REL-09' .planning/REQUIREMENTS.md
+70:- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `## [0.9.2]` CHANGELOG entry, the version
+154:| REL-09 | Phase 63 | Pending |
+175:- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for
+```
+
+Byte-identical to the Baseline's § "The lines under guard" on all three lines, both line numbers and
+byte content of the two state-bearing lines (70's checkbox and 154's Traceability row), and the
+presence of the informational-only third hit (175).
+
+**Verdict: MATCH.** All four comparisons above — the SHA-256 digest, the line count, the empty
+name-only diff, and the byte-identical `REL-09` grep hits — hold at phase close exactly as they held
+at phase head. No divergence occurred, so the reversion procedure below was **not** exercised this
+time; it is recorded for completeness in case a future re-run of this section finds one.
+
+**If a comparison had diverged** (most likely REL-09's checkbox flipped to checked against this
+phase's explicit decision), the response would be: do not accept it, do not commit it. Run
+`git checkout -- .planning/REQUIREMENTS.md`, re-run the full triad above, and record the before
+state, the reversion command, and the after state in this same section, then report the divergence
+in this plan's SUMMARY. The flip has landed at five consecutive prior release-prep closes and
+Phase 61 was the first to hold; the only thing that made the difference was recording, comparing and
+reverting rather than assuming — the same discipline this MATCH verdict confirms held again here.
+
+**The decisive observation is still owed, and it is not this plan's to take.** It runs after
+`phase.complete`-family tooling, outside any plan's reach, and its protocol is already written into
+this file's § "For the operator running phase.complete" section above, confirmed present at this
+re-verification. `63-HANDOFF.md` points at that section by name so an operator following the handoff
+reaches it without opening this file separately.
+
+**REL-09's state, read directly out of `.planning/REQUIREMENTS.md` at this close** — never inferred
+from any plan's frontmatter:
+
+Checkbox line (70): `- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `\`## [0.9.2]\`` CHANGELOG entry, the version`
+— unchecked.
+
+Traceability row (154): `| REL-09 | Phase 63 | Pending |` — Pending.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 02*
+*Plan: 02, 04*
