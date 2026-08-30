@@ -227,6 +227,262 @@ bump commit and the tuple edit touch** — `pyproject.toml`, `uv.lock`, `README.
 and `tests/test_changelog_page_gate.py` — not Phase 61's single-file (`CHANGELOG.md`-only) result,
 because Phase 63 performs an actual version bump where Phase 61 did not.
 
+## Observation 2 of 2
+
+Recorded inside plan 63-04's own isolated worktree (`worktree-agent-a4d2b14ab7009647a`), after
+`unset VIRTUAL_ENV UV_PROJECT_ENVIRONMENT; uv sync --extra dev`.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-30T11:58:23Z
+```
+
+This timestamp is distinct from observation 1's `2026-08-30T11:17:14Z` — roughly 41 minutes later —
+and, more importantly, sits in **wave 3**, two waves after observation 1's **wave 1**. The
+significance is the intervening work stated explicitly below, not the wall-clock gap alone.
+
+### Local tag probe
+
+```
+$ git tag -l 'v0.9.2'
+(no output)
+
+$ git tag -l 'v0.9.0'
+v0.9.0
+```
+
+**Positive control:** `v0.9.0` — a tag known to exist — is returned non-empty, proving the local tag
+listing mechanism itself works, at this later point in the phase, independent of observation 1's own
+run of the same mechanism. **The actual assertion:** no local `v0.9.2` tag exists.
+
+### Remote tag probe (unfiltered, with positive control)
+
+A fresh, single unfiltered `git ls-remote --tags origin` fetch (never copied from observation 1's
+own listing):
+
+```
+$ git ls-remote --tags origin
+375e6a5a54eef042193f56dc29d8d0dd5646d88d	refs/tags/v0.1.0b1
+6ca477b53f00baec532686008947ee17c2f307d5	refs/tags/v0.1.0b1^{}
+f0309a2ed8f8241ee693d31c46db5eeb712b5de4	refs/tags/v0.2.0
+d22590e05854e33470ea1bea2b793f530f22cb58	refs/tags/v0.2.1
+d4fc5df65b986e7fd16f0b0436ae0068d6181f8f	refs/tags/v0.2.2
+c1e2db714cfacd8ef96759ccdebf6e09f5c9152a	refs/tags/v0.2.2^{}
+7df99929c9e490506cc7ef1eb6af3e4298856b1c	refs/tags/v0.3.0
+28a80a6cc13288eb8c75612693d34a25ae865142	refs/tags/v0.3.0^{}
+25778f58c42c7fb0c6b4aa6515269c12d8659611	refs/tags/v0.4.0
+08aeb4b3cfba2293103aefa201b85c89397f50f3	refs/tags/v0.4.0^{}
+fb47d6930e24e5071f9911e6f6fee30f8b7f7040	refs/tags/v0.4.1
+0ed33d10acbee8fa935850bcf77404d55832edc9	refs/tags/v0.4.1^{}
+e19b0eb202ee7e6131f9aca6687b1272bb2709d8	refs/tags/v0.4.2
+445af8c4b8a30d924d30341bd87b476fa7d0b486	refs/tags/v0.4.2^{}
+415498a8cfa7dc21aa09871d4d3b061ed7ba48a2	refs/tags/v0.4.3
+d299dd7007b529b7b197a62f6c4ab2630b5217c7	refs/tags/v0.4.4
+dae500a1f2065691972e03cc70a9bf73a90cd26f	refs/tags/v0.4.4^{}
+fc78e1daa02317b34f5cd448ec036bff78a02755	refs/tags/v0.5.0
+ea153bfca933b92ea23fdfa72efba2afb100f29b	refs/tags/v0.5.0^{}
+a3b7fad1645374fe17dc84dc1967949c9282f6dd	refs/tags/v0.6.0
+cc26b4723f671c0ac0dfdae687b6bee722aa6dd0	refs/tags/v0.6.0^{}
+06f45470f79c9e67cf057c61f46669dd67bd8fe1	refs/tags/v0.6.1
+27e77403f1d62ebec9f36c2c4a9b7c8e16067fc9	refs/tags/v0.6.1^{}
+87d929ef74c1f19a435ff0bedb6ecb0f530ac9a3	refs/tags/v0.6.2
+54b8fc90df0359b049a1cd9936f03c76d1169f74	refs/tags/v0.6.2^{}
+0d823c5ab8cb2e5b86dbe97a6d795b6c55b50b09	refs/tags/v0.6.3
+7f6db629351aa1229a2a07614b6a6f201001ad80	refs/tags/v0.6.3^{}
+ee06fee074510f18c127fece68302e683897ba4c	refs/tags/v0.6.4
+2bf6ef318773b239e4ab20b41fbe40ce91337584	refs/tags/v0.6.4^{}
+bd4096b966d213756ad3fbe1055c35d79d560347	refs/tags/v0.6.5
+839d77f38ffa67f18696265b361f7dcef92f679b	refs/tags/v0.6.5^{}
+7327d0160571519d8b7c8c4ef56a19ca55756e31	refs/tags/v0.7.0
+75fd8ed55f4fca206474f9e3aa934921588b52d5	refs/tags/v0.7.0^{}
+a8afd6549448e9f6e7635f0573d7efc04179dbd4	refs/tags/v0.7.1
+48bf135428bb093a77a432d93d16088ce6930342	refs/tags/v0.7.1^{}
+d9523ea43d884f9ce6763da0f7f8e690fe859eb4	refs/tags/v0.8.0
+78e01e53641433a34c1bd8834b6252187fcae4ba	refs/tags/v0.8.0^{}
+ada0b845cf1f5a495dc7c522b80e79ed5c76004d	refs/tags/v0.9.0
+68b92e24e6ca3df410ca0435d226629ef7ef1e2e	refs/tags/v0.9.0^{}
+```
+
+(fetched once, redirected to `/tmp/63-tags2.txt`; both counts below are derived from that single
+fetch, never from a second network round-trip — and never copied from observation 1's own
+`/tmp/63-tags.txt`)
+
+```
+$ grep -c 'refs/tags/v0\.9\.0' /tmp/63-tags2.txt
+2
+
+$ grep -c 'refs/tags/v0\.9\.2' /tmp/63-tags2.txt
+0
+```
+
+**Positive control:** the count of lines matching the `v0.9.0` tag reference is `2` (the lightweight
+tag line and its `^{}` dereferenced-commit line) — proving the remote was actually reached at this
+later moment. **Negative assertion:** the count of lines mentioning the skipped version's tag
+reference is `0` — still no `v0.9.2` tag exists on the remote.
+
+### Publish probe
+
+```
+$ gh release list --limit 20
+Release v0.9.0	Latest	v0.9.0	2026-08-22T07:46:15Z
+Release v0.8.0		v0.8.0	2026-08-15T03:09:31Z
+Release v0.7.1		v0.7.1	2026-08-11T05:34:10Z
+Release v0.7.0		v0.7.0	2026-08-03T20:09:13Z
+Release v0.6.5		v0.6.5	2026-07-28T20:58:41Z
+Release v0.6.4		v0.6.4	2026-07-27T22:03:45Z
+Release v0.6.3		v0.6.3	2026-07-25T10:07:05Z
+Release v0.6.2		v0.6.2	2026-07-23T11:16:50Z
+Release v0.6.1		v0.6.1	2026-07-20T03:19:22Z
+Release v0.6.0		v0.6.0	2026-07-12T22:05:29Z
+Release v0.5.0		v0.5.0	2026-07-11T13:05:54Z
+Release v0.4.4		v0.4.4	2026-07-05T06:12:55Z
+Release v0.4.3		v0.4.3	2025-11-01T03:40:30Z
+Release v0.4.2		v0.4.2	2025-10-29T12:39:56Z
+Release v0.4.1		v0.4.1	2025-10-26T06:47:43Z
+Release v0.4.0		v0.4.0	2025-10-26T06:05:44Z
+Release v0.3.0		v0.3.0	2025-10-23T14:20:00Z
+Release v0.2.2		v0.2.2	2025-10-23T12:46:07Z
+Release v0.2.1		v0.2.1	2025-10-18T05:12:00Z
+Release v0.2.0		v0.2.0	2025-10-16T13:30:48Z
+```
+
+(fetched once, redirected to `/tmp/63-releases2.txt`; both counts below are derived from that single
+fetch, never from a second network round-trip)
+
+```
+$ grep -c 'Latest' /tmp/63-releases2.txt
+1
+
+$ grep -c 'v0\.9\.2' /tmp/63-releases2.txt
+0
+```
+
+**Positive control:** the listing is non-empty and its first row still carries the `Latest` marker
+against `v0.9.0` — proving the command reached GitHub at this later moment too. **Negative
+assertion:** no row names `v0.9.2`.
+
+```
+$ gh release view v0.9.2
+release not found
+```
+
+Exit code: `1` (non-zero, confirmed separately from the piped command above).
+
+### Release-workflow probe
+
+```
+$ gh run list --workflow=release.yml --limit 5
+completed	success	Merge pull request #134: release v0.9.0 — per-document templates	Release	v0.9.0	push	32560457509	2h9m46s	2026-08-22T07:45:31Z
+completed	success	Merge pull request #133: release v0.8.0 — multi-master composition	Release	v0.8.0	push	31861043480	19m35s	2026-08-15T03:08:42Z
+completed	success	Merge pull request #132: release v0.7.1 — bug-fix round	Release	v0.7.1	push	31462027486	19m37s	2026-08-11T05:33:22Z
+completed	failure	Merge pull request #129: release v0.7.0 — API rendering design overhaul	Release	v0.7.0	push	30848860064	18m55s	2026-08-03T20:08:22Z
+completed	success	Merge pull request #125: release v0.6.5 — inline-math separator hotfix	Release	v0.6.5	push	30398631991	18m6s	2026-07-28T20:57:57Z
+```
+
+This is a READ-ONLY listing — no command in this plan dispatches `release.yml`, by tag push or by
+`workflow_dispatch`. Still no run corresponds to a tag push for this release: the most recent
+release-workflow run remains `32560457509` for `v0.9.0`, dated 2026-08-22, well before this phase,
+and unchanged from observation 1's own reading of the same list. The workflow was never dispatched
+by any plan in this phase.
+
+### Observation 2 verdict — the separation, stated explicitly
+
+Observation 1 was timestamped **2026-08-30T11:17:14Z** and taken in **wave 1** (plan 63-02, at phase
+head, before any product-tree or version-literal edit landed). Observation 2 is timestamped
+**2026-08-30T11:58:23Z** and taken in **wave 3** (this plan, 63-04) — two full waves later, not the
+next command in the same session.
+
+Between the two observations, the following intervening work actually landed, each already
+evidenced in its own plan's artifact:
+
+- **Wave 1 (the remainder of it, after observation 1):** plan 63-01 bumped the version literal to
+  0.9.2 across `pyproject.toml`, `uv.lock`, and `README.md` in one commit, then promoted
+  `## [Unreleased]` into a curated `## [0.9.2]` CHANGELOG section and extended `RELEASE_VERSIONS` —
+  `63-CHANGELOG-EVIDENCE.md`.
+- **Wave 2:** plan 63-03 proved the bumped tree green on runs executed in this phase (full pytest
+  suite, format/type/version-sync gates, two clean documentation builds) and dispatched one 3-OS
+  `ci.yml` run on the bumped tip, transcribing all twelve job conclusions —
+  `63-GREEN-TREE-EVIDENCE.md` and `63-CI-EVIDENCE.md`.
+
+SC#5 requires the two fence observations to be separated by intervening waves rather than by
+wall-clock luck alone; the paragraph above is where that separation is made legible rather than left
+to be inferred from two nearby timestamps.
+
+## The typsphinx/ diff (SC#5)
+
+`PHASE_BASE_SHA` is read back out of `63-CLOSEOUT-GUARD.md` § "Baseline" rather than re-derived:
+
+```
+$ grep -oE '\b[0-9a-f]{40}\b' .planning/phases/63-v0-9-2-release-prep-prep-only/63-CLOSEOUT-GUARD.md | head -1
+c31bb048bf5a92b7550bc2aa68efb114437533fa
+
+$ git cat-file -e c31bb048bf5a92b7550bc2aa68efb114437533fa && echo "resolves"
+resolves
+```
+
+### The scoped diff (the SC#5 claim)
+
+```
+$ git diff c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- typsphinx/
+(no output)
+```
+
+Empty — this phase makes no product-tree behaviour change under `typsphinx/`.
+
+### The widened diff (the positive control)
+
+```
+$ git diff --stat c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- . ':(exclude).planning'
+ CHANGELOG.md                      | 44 ++++++++++++++++++++++++++++++++-------
+ README.md                         |  2 +-
+ pyproject.toml                    |  2 +-
+ tests/test_changelog_page_gate.py |  3 ++-
+ uv.lock                           |  2 +-
+ 5 files changed, 42 insertions(+), 11 deletions(-)
+
+$ git diff --name-only c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- . ':(exclude).planning' | LC_ALL=C sort
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+NON-empty, and its file list is exactly this phase's five touched files — `CHANGELOG.md`,
+`README.md`, `pyproject.toml`, `tests/test_changelog_page_gate.py`, and `uv.lock` — not Phase 61's
+single-file (`CHANGELOG.md`-only) result, because this phase performs an actual version bump where
+Phase 61 did not. **Why this pairing exists, in one line:** an empty scoped diff produced by a wrong
+or unreachable anchor is indistinguishable from a genuinely clean tree, and only a non-empty
+same-anchor widened result — landing on exactly the files this phase's own plans touched — proves the
+anchor is real and the emptiness under `typsphinx/` is a finding rather than an artifact of a broken
+measurement.
+
+## Commits after the CI dispatch
+
+`63-CI-EVIDENCE.md` § "Run" records the dispatched CI run (`33309565005`) against head SHA
+`225c6618ffd94ec5e1601de538438c47b4d558a9`. Every commit that landed after that SHA, up to this
+plan's own tip, with its path list:
+
+```
+$ git log --oneline 225c6618ffd94ec5e1601de538438c47b4d558a9..HEAD
+d22e533b docs(phase-63): update tracking after wave 2
+bc2e7701 chore: merge executor worktree (worktree-agent-a207bd1b50c05442b)
+1035fe2d docs(63-03): complete green-tree local gates and 3-OS CI dispatch plan
+7ffe1bf3 docs(63-03): dispatch and record the 3-OS CI run on the bumped tip
+
+$ git diff --name-only 225c6618ffd94ec5e1601de538438c47b4d558a9..HEAD
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/phases/63-v0-9-2-release-prep-prep-only/63-03-SUMMARY.md
+.planning/phases/63-v0-9-2-release-prep-prep-only/63-CI-EVIDENCE.md
+```
+
+All four commits are confined to `.planning/` (the merge commit `bc2e7701` carries no file changes
+of its own — it is the merge marker for plan 63-03's worktree, whose own commits `7ffe1bf3` and
+`1035fe2d` are listed individually above). No commit outside `.planning/` landed after the dispatch,
+which is why this one CI run still covers the tree as it stands at this plan's own tip — D-18 is
+satisfied and no second dispatch is owed.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
 *Plan: 02, 04*
