@@ -293,7 +293,24 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
      **completed**, with the `windows-latest` and `macos-latest` lanes named individually and green,
      and `ruff`'s verdict taken from that run's `Run linters` step rather than from this machine.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 62-01-PLAN.md — Tracer: one failing shape end to end (3-master fixture, the separator triad fix, a real-compile gate) plus the milestone branch to `origin`
+- [ ] 62-02-PLAN.md — Expand to the full measured matrix: 16 FAIL + 9 PASS documents, 18 masters, 27 documents, and the widened gate
+- [ ] 62-03-PLAN.md — RED-first evidence against a restored unfixed tree, the 9 committed goldens, and the byte-identity binding
+- [ ] 62-04-PLAN.md — The single authority 3-OS CI run and the phase-close measurements (zero test edits, `in_figure` bodies untouched, release fence held)
+
+**Planning note (2026-08-30):** two locked decisions were falsified by measurement during planning and
+are AMENDED in `62-01-PLAN.md`'s `<amendments>` block. (1) The triad scoped to `visit_image()`'s
+non-`in_figure` branch alone leaves 3 of the 16 FAIL shapes broken (both legend shapes, because a
+legend image has `in_figure` true; and the field-list body, where the trailing newlines break the
+concat expression with a NEW `cannot apply unary '+' to content` refusal); the leading half is
+therefore hoisted above the figure/non-figure split and the trailing half made concat-aware — measured
+18/18 masters compiling, with both branch bodies still textually unmodified, so SC#3's literal check
+holds. (2) 8 of the 9 must-keep-passing shapes are byte-identical, not 9: an image first in its
+paragraph gains exactly one empty line. D-06 is not weakened to "compiles" — that shape is bound by
+two committed goldens and an exact-delta assertion.
 
 **UI hint**: no
 
