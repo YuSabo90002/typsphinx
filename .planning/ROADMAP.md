@@ -293,7 +293,7 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
      **completed**, with the `windows-latest` and `macos-latest` lanes named individually and green,
      and `ruff`'s verdict taken from that run's `Run linters` step rather than from this machine.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -306,7 +306,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 62-03-PLAN.md — RED-first evidence against a restored unfixed tree, the 9 committed goldens, and the byte-identity binding
+- [x] 62-03-PLAN.md — RED-first evidence against a restored unfixed tree, the 9 committed goldens, and the byte-identity binding
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -420,7 +420,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 2/4 | In Progress | - |
+| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 3/4 | In Progress | - |
 | 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 0/? | Not started | - |
 
 ## Roadmap Evolution
