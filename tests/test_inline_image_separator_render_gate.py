@@ -23,8 +23,21 @@ NOT merely a structural/string check on the emitted ``.typ`` -- text-mode
 reads with an explicit utf-8 encoding on both sides, never a binary read,
 so a build's Windows CR-newline write-mode translation cannot spuriously
 fail this gate.
+
+``TestInlineImageSeparatorGoldens`` (62-03-PLAN.md, D-06/D-07) binds all 9
+PASS shapes to committed goldens captured from the unfixed tree during the
+RED-evidence choreography (``62-RED-EVIDENCE.md``). Eight of the nine
+goldens are unfixed-tree captures the fixed translator reproduces
+byte-for-byte; the ninth (``pass_c_image_first_in_paragraph``) is a
+post-fix capture whose delta against its own committed pre-fix capture is
+pinned to an exact one-empty-line diff by a separate assertion, so a
+future reader does not mistake the asymmetry for an oversight. Every
+comparison in this class is a text-mode read with an explicit utf-8
+encoding on both sides -- never a binary read -- for the same Windows
+CR-newline write-mode reason as the rest of this module.
 """
 
+import difflib
 import subprocess
 import sys
 from pathlib import Path
@@ -277,4 +290,114 @@ class TestInlineImageSeparatorFailShapes:
             "Expected fail_16's :width: 50px to still convert to "
             "width: 37.5pt -- this phase must not change dimension "
             f"conversion behaviour:\n{body}"
+        )
+
+
+@pytest.mark.skipif(
+    not TYPST_AVAILABLE,
+    reason="typst-py is required for the inline-image-separator render gate",
+)
+class TestInlineImageSeparatorGoldens:
+    """
+    Binds all 9 PASS shapes to committed goldens captured from the unfixed
+    tree during the RED-evidence choreography (62-RED-EVIDENCE.md, D-07).
+    Reuses ``full_matrix_build`` so no additional 18-master build is
+    performed for this class.
+
+    Eight of the nine goldens are unfixed-tree captures the fixed
+    translator reproduces byte-for-byte; the ninth
+    (``pass_c_image_first_in_paragraph``) is a post-fix capture whose
+    delta against its own committed pre-fix capture is pinned to an exact
+    one-empty-line diff by a separate assertion below, so a future reader
+    does not mistake the asymmetry for an oversight.
+    """
+
+    @pytest.mark.parametrize("docname", PASS_DOCNAMES)
+    def test_pass_shape_content_matches_committed_golden(
+        self, full_matrix_build, inline_image_separator_render_gate_dir, docname
+    ):
+        result, build_dir = full_matrix_build
+        assert result.returncode == 0, (
+            f"sphinx-build -b typstpdf failed:\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        content_typ = build_dir / f"{docname}.typ"
+        assert content_typ.exists(), f"{docname}.typ was not emitted"
+        # Text-mode reads with an explicit utf-8 encoding on both sides --
+        # never a binary read -- so the windows-latest CI lane's write-time
+        # newline translation cannot produce a spurious mismatch.
+        actual_typ = content_typ.read_text(encoding="utf-8")
+
+        golden_path = (
+            inline_image_separator_render_gate_dir / "goldens" / f"{docname}.typ"
+        )
+        golden_typ = golden_path.read_text(encoding="utf-8")
+
+        assert actual_typ == golden_typ, (
+            f"{docname}: emitted .typ differs from the committed golden -- "
+            "byte-identity requirement is violated:\n"
+            + "\n".join(
+                difflib.unified_diff(
+                    golden_typ.splitlines(),
+                    actual_typ.splitlines(),
+                    fromfile=f"goldens/{docname}.typ",
+                    tofile=f"actual {docname}.typ",
+                    lineterm="",
+                )
+            )
+        )
+
+    def test_pass_c_delta_against_unfixed_capture_is_exactly_one_blank_line(
+        self, inline_image_separator_render_gate_dir
+    ):
+        """
+        The amended D-06 binding (62-01-PLAN.md <amendments> Amendment 2):
+        pass_c is the one measured non-byte-identical PASS shape, and its
+        delta against its own unfixed-tree capture is pinned to an exact
+        shape -- one added empty line, zero removed lines -- rather than
+        waived. A second changed line anywhere, or a change of any other
+        kind, turns this red.
+        """
+        goldens_dir = inline_image_separator_render_gate_dir / "goldens"
+        pre_fix_typ = goldens_dir / "pass_c_image_first_in_paragraph.pre_fix.typ"
+        post_fix_typ = goldens_dir / "pass_c_image_first_in_paragraph.typ"
+
+        # Text-mode reads with an explicit utf-8 encoding on both sides --
+        # never a binary read.
+        pre_fix_text = pre_fix_typ.read_text(encoding="utf-8")
+        post_fix_text = post_fix_typ.read_text(encoding="utf-8")
+
+        diff_lines = list(
+            difflib.unified_diff(
+                pre_fix_text.splitlines(),
+                post_fix_text.splitlines(),
+                fromfile="pass_c_image_first_in_paragraph.pre_fix.typ",
+                tofile="pass_c_image_first_in_paragraph.typ",
+                lineterm="",
+            )
+        )
+        added_lines = [
+            line[1:]
+            for line in diff_lines
+            if line.startswith("+") and not line.startswith("+++")
+        ]
+        removed_lines = [
+            line[1:]
+            for line in diff_lines
+            if line.startswith("-") and not line.startswith("---")
+        ]
+
+        assert len(added_lines) == 1, (
+            "Expected exactly one added line between pass_c's pre-fix and "
+            f"post-fix goldens, found {len(added_lines)}:\n" + "\n".join(diff_lines)
+        )
+        assert len(removed_lines) == 0, (
+            "Expected zero removed lines between pass_c's pre-fix and "
+            f"post-fix goldens, found {len(removed_lines)}:\n" + "\n".join(diff_lines)
+        )
+        assert added_lines[0].strip() == "", (
+            "Expected the single added line to be empty once stripped, "
+            f"got {added_lines[0]!r}:\n" + "\n".join(diff_lines)
         )
