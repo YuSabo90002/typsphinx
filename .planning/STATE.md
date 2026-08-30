@@ -5,11 +5,11 @@ milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
 status: planning
-stopped_at: Phase 62 complete, ready to plan Phase 63
-last_updated: "2026-08-30T09:14:07.906Z"
+stopped_at: Phase 63 context gathered
+last_updated: "2026-08-30T09:46:50.516Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 62 complete, transitioned to Phase 63
-state_head: 3ba18a17d4f280b64bddcff3bd8ec195b4c1d985
+last_activity_desc: Phase 63 context gathered (all four gray areas delegated, D-01..D-21 recorded)
+state_head: 6e1b781f70bacfb614dba749d06d3d449a8b5bdb
 progress:
   total_phases: 2
   completed_phases: 1
@@ -1069,7 +1069,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None — Phase 62 is complete and verified; transitions do not use resume files.
+**Resume file:** .planning/phases/63-v0-9-2-release-prep-prep-only/63-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1077,8 +1077,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-08-30T09:17:32.000Z
-Stopped at: Phase 62 complete, ready to plan Phase 63
+Last session: 2026-08-30T09:46:50.495Z
+Stopped at: Phase 63 context gathered
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the
