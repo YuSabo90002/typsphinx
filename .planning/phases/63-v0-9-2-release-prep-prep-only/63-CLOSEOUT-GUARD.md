@@ -417,6 +417,77 @@ this file's § "For the operator running phase.complete" section above — confi
 unedited by this re-verification. `63-HANDOFF.md` continues to point at that section by name so an
 operator following the handoff reaches it without opening this file separately.
 
+## Third observation — taken after `phase.complete` (the decisive one)
+
+Taken by the orchestrator running `/gsd-execute-phase 63 --gaps-only`, immediately after
+`gsd-tools query phase.complete 63` returned, outside any plan's reach. This is the observation
+§ "For the operator running phase.complete" above exists to compel.
+
+**VERDICT: the flip landed for a SIXTH consecutive release-prep close, and was reverted.**
+
+`phase.complete` reported `"requirements_updated": true` and wrote `.planning/REQUIREMENTS.md`,
+flipping THREE requirements against the CONTEXT's explicit decision — not only REL-09:
+
+```
+-- [ ] **REL-09**  ->  - [x] **REL-09**
+-- [ ] **REL-10**  ->  - [x] **REL-10**
+-- [ ] **REL-11**  ->  - [x] **REL-11**
+| REL-09 | Phase 63 | Pending |  ->  | REL-09 | Phase 63 | Complete |
+| REL-10 | Phase 63 | Pending |  ->  | REL-10 | Phase 63 | Complete |
+| REL-11 | Phase 63 | Pending |  ->  | REL-11 | Phase 63 | Complete |
+```
+
+All three are unwarranted: every one of Phase 63's six plans declares `requirements-completed: []`.
+Note the widened blast radius versus the five prior closes, where REL-09 alone was recorded as the
+flip target — a guard scoped to REL-09's grep alone would have caught this one, but the whole-file
+SHA-256 is what proved REL-10 and REL-11 moved with it.
+
+Probes at the moment of detection, before reversion:
+
+```
+sha256sum .planning/REQUIREMENTS.md
+  83079312ea63def8d576d8ecfd322aa6110d28666049ffbe6f01504e88520bf6   <- DIVERGED from Baseline
+wc -l < .planning/REQUIREMENTS.md
+  184                                                                <- unchanged (the flip is
+                                                                        line-count-neutral, which
+                                                                        is why the digest, not the
+                                                                        line count, is the probe
+                                                                        that catches it)
+git diff --name-only -- .planning/REQUIREMENTS.md
+  .planning/REQUIREMENTS.md                                          <- expected no output
+grep -n 'REL-09' .planning/REQUIREMENTS.md
+  70:- [x] **REL-09**: ...                                            <- expected `- [ ]`
+  154:| REL-09 | Phase 63 | Complete |                                <- expected `Pending`
+```
+
+Reverted with the prescribed command, never committed in the flipped state:
+
+```bash
+git checkout -- .planning/REQUIREMENTS.md
+```
+
+Probes re-run after reversion — **MATCH on all four**:
+
+```
+sha256sum .planning/REQUIREMENTS.md
+  f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33   <- MATCHES Baseline
+wc -l < .planning/REQUIREMENTS.md
+  184                                                                <- MATCHES
+git diff --name-only -- .planning/REQUIREMENTS.md
+  (no output)                                                        <- MATCHES
+grep -n 'REL-09' .planning/REQUIREMENTS.md
+  70:- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `## [0.9.2]` CHANGELOG entry, the version
+  154:| REL-09 | Phase 63 | Pending |
+  175:- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for
+                                                                     <- byte-identical to Baseline
+```
+
+The `docs(phase-63): complete phase execution` commit (`7bafcb967498aa1dd320cb0fe2eb69c3b60994b1`) therefore carries
+`.planning/ROADMAP.md`, `.planning/STATE.md` and `63-VERIFICATION.md` only. `.planning/REQUIREMENTS.md`
+is NOT in it, and no commit anywhere in Phase 63 records the flipped state.
+
+REL-09, REL-10 and REL-11 remain open and close at `/gsd-complete-milestone`.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 02, 04, 06*
+*Plan: 02, 04, 06 + orchestrator post-`phase.complete` observation*
