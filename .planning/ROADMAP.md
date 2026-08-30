@@ -393,7 +393,8 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
      parent repo's tag push), and the Read the Docs `en` and `ja` `stable` endpoints reporting
      `0.9.2`.
 
-**Plans**: 4/4 plans executed across 3 waves
+**Plans**: 4/4 original plans executed across 3 waves; 2 gap-closure plans added across 2 further
+waves after verification returned `gaps_found` (4/5) on SC#2 — 4/6 complete
 
 Plans:
 **Wave 1**
@@ -408,6 +409,14 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 63-04-PLAN.md — Take SC#5 fence observation 2 of 2 with the scoped/widened `typsphinx/` diff pair, re-verify the checksum fence at phase close, and author the standalone `63-HANDOFF.md` (wave 3)
+
+**Wave 4** *(gap closure — SC#2, blocked on Wave 3 completion)*
+
+- [ ] 63-05-PLAN.md — Delete the false blanket file-confinement claim from the `## [0.9.2]` intro and re-scope a measured true one into the IMG-08/IMG-09/IMG-10 bullet (CR-01, D-23), re-run the extractor and re-verify SC#2's byte-identity and structural set against the corrected text, and re-prove the tree green with the reasoned CI-dispatch decision recorded (wave 4, `gap_closure`, tracer-led)
+
+**Wave 5** *(gap closure — blocked on Wave 4 completion)*
+
+- [ ] 63-06-PLAN.md — Take fence observation 3 against the post-correction tip with full positive controls and annotate the superseded post-dispatch commit statement, re-verify the REL-09 checksum fence after the gap-closure commits move HEAD, and bring `63-HANDOFF.md` back into accuracy without weakening its standalone property (wave 5, `gap_closure`)
 
 **Cross-cutting constraints** *(truths any plan in this phase must carry)*:
 
