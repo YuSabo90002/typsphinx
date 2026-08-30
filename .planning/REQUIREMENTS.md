@@ -121,19 +121,37 @@ Which phases cover which requirements. Filled during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMG-08 | TBD | Pending |
-| IMG-09 | TBD | Pending |
-| IMG-10 | TBD | Pending |
-| TEST-05 | TBD | Pending |
-| REL-09 | TBD | Pending |
-| REL-10 | TBD | Pending |
-| REL-11 | TBD | Pending |
+| IMG-08 | Phase 62 | Pending |
+| IMG-09 | Phase 62 | Pending |
+| IMG-10 | Phase 62 | Pending |
+| TEST-05 | Phase 62 | Pending |
+| REL-09 | Phase 63 | Pending |
+| REL-10 | Phase 63 | Pending |
+| REL-11 | Phase 63 | Pending |
 
 **Coverage:**
 - v1 requirements: 7 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 7 ⚠️
+- Mapped to phases: 7 ✓
+- Unmapped: 0
+- Orphaned (no phase): none
+- Duplicated (more than one phase): none
+
+**Phase mapping notes:**
+
+- **Phase 62 — The `visit_image()` Separator Fix and Its Real-Compile Gate** carries the whole
+  product half: the separator itself (IMG-08), the per-master PDF it unblocks (IMG-09), the
+  mechanism and zero-test-edit constraints on how it is written (IMG-10), and the real-compile
+  regression gate that is its acceptance criterion (TEST-05). TEST-05 is mapped here rather than
+  carried as a cross-cutting obligation because the gate must be recorded RED against the unfixed
+  tree *before* the fix lands — an ordering only achievable inside the phase that writes both.
+
+- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for
+  coverage only and closes at `/gsd-complete-milestone`, not inside the phase** — the phase takes
+  zero irreversible action (no tag, no publish, no GitHub Release, no PR), matching the prep-only
+  pattern held for eight consecutive milestones and v0.9.1's own explicit handling of the same
+  requirement. Its checkbox is held at `[ ]` through every plan, guarded by REL-11's checksum fence,
+  and every plan in the phase declares `requirements-completed: []` for it.
 
 ---
 *Requirements defined: 2026-08-30*
-*Last updated: 2026-08-30 after initial definition*
+*Last updated: 2026-08-30 — traceability filled during roadmap creation (Phases 62–63)*
