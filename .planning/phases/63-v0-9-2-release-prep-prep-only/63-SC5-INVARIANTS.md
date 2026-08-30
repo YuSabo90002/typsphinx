@@ -483,6 +483,257 @@ of its own — it is the merge marker for plan 63-03's worktree, whose own commi
 which is why this one CI run still covers the tree as it stands at this plan's own tip — D-18 is
 satisfied and no second dispatch is owed.
 
+## Observation 3 — post-gap-closure re-probe
+
+**Why this observation exists.** The "of 2" in the two headings above refers to SC#5's own
+requirement of two waves-separated observations — both `## Observation 1 of 2` and
+`## Observation 2 of 2` were taken *before* plan 63-05's gap-closure correction commit
+(`2a0bc3be`, which deleted a false file-confinement claim from `CHANGELOG.md`'s `## [0.9.2]` intro
+and re-scoped a measured true version into the IMG-08/IMG-09/IMG-10 bullet). Neither prior
+observation says anything about the tree that exists now. This third observation is **additional**,
+not a renumbering of the first two — both of which stay exactly as recorded above, byte-identical.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-30T13:40:00Z
+
+$ git rev-parse HEAD
+26fa619a370c0713f848619731c4733861f5e0fb
+```
+
+This timestamp is distinct from both prior observations' timestamps (`2026-08-30T11:17:14Z` and
+`2026-08-30T11:58:23Z`) and from the gap-closure correction commit `2a0bc3be` itself, which landed
+between observation 2 and this one.
+
+### Local tag probe
+
+```
+$ git tag -l 'v0.9.2'
+(no output)
+
+$ git tag -l 'v0.9.0'
+v0.9.0
+```
+
+**Positive control:** `v0.9.0` — a tag known to exist — is returned non-empty, proving the local tag
+listing mechanism itself works at this later, post-correction point. **The actual assertion:** no
+local `v0.9.2` tag exists.
+
+### Remote tag probe (unfiltered, with positive control)
+
+A fresh, single unfiltered `git ls-remote --tags origin` fetch (never copied from observation 1's or
+observation 2's own listings):
+
+```
+$ git ls-remote --tags origin > /tmp/63g-tags3.txt
+$ wc -l /tmp/63g-tags3.txt
+39 /tmp/63g-tags3.txt
+```
+
+**Total line count comparison:** this fetch returns **39** lines. Observation 2's own unfiltered
+fetch (recorded in `/tmp/63-tags2.txt`, transcribed in full in § "Observation 2 of 2" above) also
+listed 39 tag-reference lines (`v0.1.0b1` through `v0.9.0`, counting each lightweight tag's own line
+and, where present, its `^{}` dereferenced-commit line). **No difference** — this is reported as a
+finding-that-there-is-no-finding, not silently skipped: no tag was pushed or deleted on the remote
+between observation 2 and this observation.
+
+```
+$ grep -c 'refs/tags/v0\.9\.0' /tmp/63g-tags3.txt
+2
+
+$ grep -c 'refs/tags/v0\.9\.2' /tmp/63g-tags3.txt
+0
+```
+
+**Positive control:** the count of lines matching the `v0.9.0` tag reference is `2` (the lightweight
+tag line and its `^{}` dereferenced-commit line), derived from this same single fetch — proving the
+remote was actually reached at this later, post-correction moment. **Negative assertion:** the count
+of lines mentioning the skipped version's tag reference is `0` — no `v0.9.2` tag exists on the
+remote.
+
+### Publish probe
+
+```
+$ gh release list --limit 20 > /tmp/63g-rel3.txt
+$ cat /tmp/63g-rel3.txt
+Release v0.9.0	Latest	v0.9.0	2026-08-22T07:46:15Z
+Release v0.8.0		v0.8.0	2026-08-15T03:09:31Z
+Release v0.7.1		v0.7.1	2026-08-11T05:34:10Z
+Release v0.7.0		v0.7.0	2026-08-03T20:09:13Z
+Release v0.6.5		v0.6.5	2026-07-28T20:58:41Z
+Release v0.6.4		v0.6.4	2026-07-27T22:03:45Z
+Release v0.6.3		v0.6.3	2026-07-25T10:07:05Z
+Release v0.6.2		v0.6.2	2026-07-23T11:16:50Z
+Release v0.6.1		v0.6.1	2026-07-20T03:19:22Z
+Release v0.6.0		v0.6.0	2026-07-12T22:05:29Z
+Release v0.5.0		v0.5.0	2026-07-11T13:05:54Z
+Release v0.4.4		v0.4.4	2026-07-05T06:12:55Z
+Release v0.4.3		v0.4.3	2025-11-01T03:40:30Z
+Release v0.4.2		v0.4.2	2025-10-29T12:39:56Z
+Release v0.4.1		v0.4.1	2025-10-26T06:47:43Z
+Release v0.4.0		v0.4.0	2025-10-26T06:05:44Z
+Release v0.3.0		v0.3.0	2025-10-23T14:20:00Z
+Release v0.2.2		v0.2.2	2025-10-23T12:46:07Z
+Release v0.2.1		v0.2.1	2025-10-18T05:12:00Z
+Release v0.2.0		v0.2.0	2025-10-16T13:30:48Z
+```
+
+(fetched once; both counts below are derived from that single fetch, never from a second network
+round-trip)
+
+```
+$ grep -c 'Latest' /tmp/63g-rel3.txt
+1
+
+$ grep -c 'v0\.9\.2' /tmp/63g-rel3.txt
+0
+```
+
+**Positive control:** the listing is non-empty and its first row still carries the `Latest` marker
+against `v0.9.0`, proving the command reached GitHub at this later, post-correction moment.
+**Negative assertion:** no row names `v0.9.2`.
+
+```
+$ gh release view v0.9.2
+release not found
+```
+
+Exit code: `1` (non-zero, confirmed separately from the command above).
+
+### Release-workflow probe
+
+```
+$ gh run list --workflow=release.yml --limit 20 --json headBranch,headSha,conclusion,url
+```
+
+Read-only listing over the twenty most recent `release.yml` runs — every `headBranch` is a prior
+release tag (`v0.9.0`, `v0.8.0`, `v0.7.1`, `v0.7.0`, `v0.6.5`, `v0.6.4`, `v0.6.3`, `v0.6.2`,
+`v0.6.1`, `v0.6.0`, `v0.5.0`, `v0.4.4` ×2, `v0.4.3`, `v0.4.2`, `v0.4.1`, `v0.4.0`, `v0.3.0`,
+`v0.2.2`, `v0.2.1`). **No run has this milestone's branch,
+`gsd/v0.9.2-inline-image-blocker-fix-and-release` (or any `v0.9.2` tag), as its `headBranch`.**
+Confirmed by a direct filter over the same fetch:
+
+```
+$ gh run list --workflow=release.yml --limit 20 --json headBranch -q '.[].headBranch' | grep -c 'v0.9.2-inline-image-blocker-fix-and-release'
+0
+```
+
+`release.yml` was never dispatched for this branch, by tag push or by `workflow_dispatch`, at any
+point in this phase including the gap closure.
+
+### Pull-request probe
+
+```
+$ gh pr list --state open --json number,headRefName,title,createdAt
+[{"createdAt":"2026-08-03T00:06:14Z","headRefName":"dependabot/pip/sphinx-typst-stack-12b5b89b5a","number":128,"title":"chore(deps): update docutils requirement from <0.23,>=0.21 to >=0.21,<0.24 in the sphinx-typst-stack group across 1 directory"},{"createdAt":"2026-07-27T00:07:03Z","headRefName":"dependabot/pip/ruff-gte-0.15-and-lt-0.17","number":123,"title":"chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17"}]
+```
+
+Two open pull requests exist, and both **pre-date this phase**: `#128`
+(`dependabot/pip/sphinx-typst-stack-12b5b89b5a`, opened `2026-08-03`) and `#123`
+(`dependabot/pip/ruff-gte-0.15-and-lt-0.17`, opened `2026-07-27`) — both routine dependabot
+version-bump PRs, named here by number and date so a reader can see neither has anything to do with
+this phase or its milestone branch.
+
+```
+$ gh pr list --state open --json headRefName -q '.[].headRefName' | grep -c 'v0.9.2-inline-image-blocker-fix-and-release'
+0
+```
+
+No open PR has this milestone branch as its head.
+
+### Re-taken scoped and widened diff pair
+
+`PHASE_BASE_SHA` is read back out of `63-CLOSEOUT-GUARD.md` § "Baseline" rather than re-derived:
+
+```
+$ grep -oE '\b[0-9a-f]{40}\b' .planning/phases/63-v0-9-2-release-prep-prep-only/63-CLOSEOUT-GUARD.md | head -1
+c31bb048bf5a92b7550bc2aa68efb114437533fa
+
+$ git cat-file -e c31bb048bf5a92b7550bc2aa68efb114437533fa && echo "resolves"
+resolves
+```
+
+**Why this pairing exists, in one line:** an empty scoped diff produced by a wrong or unreachable
+anchor is indistinguishable from a genuinely clean tree, and only a non-empty same-anchor widened
+result — landing on exactly the files this phase's plans touched, including the gap-closure
+correction — proves the anchor is real and the emptiness under `typsphinx/` is a finding rather
+than an artifact of a broken measurement.
+
+```
+$ git diff c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- typsphinx/
+(no output)
+```
+
+Empty — the gap closure, like the rest of this phase, makes no product-tree behaviour change under
+`typsphinx/`.
+
+```
+$ git diff --stat c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- . ':(exclude).planning'
+ CHANGELOG.md                      | 44 ++++++++++++++++++++++++++++++++-------
+ README.md                         |  2 +-
+ pyproject.toml                    |  2 +-
+ tests/test_changelog_page_gate.py |  3 ++-
+ uv.lock                           |  2 +-
+ 5 files changed, 42 insertions(+), 11 deletions(-)
+
+$ git diff --name-only c31bb048bf5a92b7550bc2aa68efb114437533fa..HEAD -- . ':(exclude).planning' | LC_ALL=C sort
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+NON-empty, and still exactly the five files this phase touches — `CHANGELOG.md`, `README.md`,
+`pyproject.toml`, `tests/test_changelog_page_gate.py`, and `uv.lock`. The gap-closure correction
+(commit `2a0bc3be`) edits `CHANGELOG.md`, which was already in this set before the correction
+landed — no sixth file appears. `git status --porcelain typsphinx/ .planning/REQUIREMENTS.md
+tests/test_changelog_page_gate.py` is empty at this observation, confirmed separately below.
+
+```
+$ git status --porcelain typsphinx/ .planning/REQUIREMENTS.md tests/test_changelog_page_gate.py
+(no output)
+```
+
+### Observation 3 verdict
+
+**The fence still holds, re-established against the post-correction tip.** `v0.9.0` remains the
+latest published release; no tag for the target version (`v0.9.2`) exists locally or on the remote;
+nothing has been published for `v0.9.2`; `release.yml` has never been dispatched for this branch;
+no open PR has this branch as its head; and the widened diff still lists exactly the five files
+this phase touches, with the `typsphinx/`-scoped diff empty. This observation was taken **after**
+plan 63-05's gap-closure correction commit `2a0bc3be` landed — the exact tree observations 1 and 2
+could not speak to.
+
+## Correction: § "Commits after the CI dispatch" is superseded
+
+§ "Commits after the CI dispatch" above states that all four commits landing after the recorded CI
+dispatch (run `33309565005`, head SHA `225c6618ffd94ec5e1601de538438c47b4d558a9`) were confined to
+`.planning/`. **That statement is SUPERSEDED as of commit `2a0bc3be`.** The gap-closure plan 63-05
+landed a fifth post-dispatch commit, `2a0bc3be`, which touches `CHANGELOG.md` — a file outside
+`.planning/`:
+
+```
+$ git diff --name-only 225c6618ffd94ec5e1601de538438c47b4d558a9..HEAD -- . ':(exclude).planning'
+CHANGELOG.md
+```
+
+The original sentence in § "Commits after the CI dispatch" is left in place, unedited — this
+section is an appended annotation, not an in-place correction, per this plan's own
+`must_haves.prohibitions` against overwriting existing sections.
+
+**Why no re-dispatch of the already-recorded CI run `33309565005` is owed.**
+`.planning/phases/63-v0-9-2-release-prep-prep-only/63-GAP-CLOSURE-EVIDENCE.md` § "The CI-dispatch
+decision, measured rather than assumed" carries the full measurement: every `ci.yml` job/tox
+environment installs `--extra dev` only, never `--extra docs`, so no dispatched CI lane imports
+`myst_parser` and none reads `CHANGELOG.md` content at all — a prose-only diff confined to that file
+cannot change any of the twelve jobs' verdicts, including `Lint and Format Check`'s `ruff`/`black`
+verdict (neither command reads Markdown). Lint authority for this closure therefore remains with
+run `33309565005`'s own `Lint and Format Check` job, exactly as recorded in `63-CI-EVIDENCE.md`.
+Leaving § "Commits after the CI dispatch" standing without this annotation would reproduce, one
+level down, the exact defect (a statement true when written, false against the tree that now
+exists, left unqualified) this whole closure exists to fix.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 02, 04*
+*Plan: 02, 04, 06*
