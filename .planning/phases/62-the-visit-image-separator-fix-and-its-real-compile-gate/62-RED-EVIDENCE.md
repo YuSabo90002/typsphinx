@@ -395,3 +395,114 @@ registered as a GitHub required status check, so a red or cancelled run never bl
 it is not the D-11 authority run, it completed `success` in seconds, and it did not run the
 test/lint matrix this push was deliberately timed to avoid. See the plan's SUMMARY.md
 "Deviations from Plan" section for the acknowledgment.
+
+## SC#5 - authority CI run
+
+**Push to origin at the phase's final code tip.** Before dispatch, re-ran `git branch -vv`: exactly
+one `0.9.2` branch, `gsd/v0.9.2-inline-image-blocker-fix-and-release`, at the local worktree tip
+`0366eca47c483e7a1ee735e737a015fc094e7091` (ahead of origin's copy, which still held plan 01's push at
+`5a837238`). No decoy `gsd/v0.9.2-milestone` was present, so D-12's pointer-advance-before-deletion
+choreography was not needed. Pushed the canonical branch's local tip to `origin`:
+
+```
+$ git push origin gsd/v0.9.2-inline-image-blocker-fix-and-release
+To https://github.com/YuSabo90002/typsphinx.git
+   5a837238..0366eca4  gsd/v0.9.2-inline-image-blocker-fix-and-release -> gsd/v0.9.2-inline-image-blocker-fix-and-release
+```
+
+`git ls-remote --heads origin gsd/v0.9.2-inline-image-blocker-fix-and-release` confirmed origin now
+carries `0366eca47c483e7a1ee735e737a015fc094e7091` -- the tip that includes plans 01, 02 and 03 in
+full, including the fix, the 27-document fixture, the widened gate module and the RED-first evidence
+this document itself carries above.
+
+**Dispatch command (D-11, exactly one authority run):**
+
+```
+gh workflow run CI --ref gsd/v0.9.2-inline-image-blocker-fix-and-release
+```
+
+**Run id and URL:** `33302087913` --
+<https://github.com/YuSabo90002/typsphinx/actions/runs/33302087913>. `event: "workflow_dispatch"`
+(confirmed via `gh run list --json event` on this run), never a `push` event -- this run was caused
+by the explicit dispatch above, not by the branch push (`ci.yml`'s `push`/`pull_request` triggers are
+scoped to `main`/`develop`; this branch is neither, matching plan 01's `## SC#5 - branch on origin`
+measurement that the push itself started no `ci.yml` run).
+
+Dispatched at `2026-08-30T08:38:32Z`. Waited to completion via `gh run watch 33302087913
+--exit-status`, which exited `0` once the run finished polling. Re-confirmed independently via
+`gh run view 33302087913 --json status,conclusion`:
+
+**Final status:** `completed`
+**Final conclusion:** `success`
+
+Only one CI run exists on this branch for the whole phase (`gh run list --workflow CI --branch
+gsd/v0.9.2-inline-image-blocker-fix-and-release --json databaseId,status,conclusion,event,createdAt`
+returns exactly this one entry) -- D-11's "exactly one authority run" and the Phase 53 precedent's
+"a second run is justified only by a failure demonstrably unrelated to this phase" were both
+satisfied trivially: the run succeeded on its first dispatch, so no second run was needed or made.
+
+**Per-job table, every job named individually** (from `gh run view 33302087913 --json jobs`):
+
+| Job | Conclusion |
+|---|---|
+| Type Check | success |
+| Lint and Format Check | success |
+| Test Python 3.12 on `ubuntu-latest` | success |
+| Test Python 3.13 on `ubuntu-latest` | success |
+| Test Python 3.12 on `windows-latest` | success |
+| Test Python 3.13 on `windows-latest` | success |
+| Test Python 3.12 on `macos-latest` | success |
+| Test Python 3.13 on `macos-latest` | success |
+| Code Coverage | success |
+| Integration Test - basic | success |
+| Integration Test - advanced | success |
+| Build Package | success |
+
+**The two non-Linux lanes, named individually per SC#5's explicit requirement (not summarised as
+"all green"):** `windows-latest` -- both `Test Python 3.12 on windows-latest` and `Test Python 3.13
+on windows-latest` concluded `success`. `macos-latest` -- both `Test Python 3.12 on macos-latest` and
+`Test Python 3.13 on macos-latest` concluded `success`. All four jobs, and the `ubuntu-latest` pair
+alongside them, completed with `conclusion: "success"`.
+
+**`ruff`'s verdict -- taken from this run's lint step, and from nowhere else.** The workflow's single
+lint job is named `Lint and Format Check` (`ci.yml`'s `lint:` job); its one substantive step is
+literally titled `Run lint with tox` in the run's own step list (`gh run view --job <id> --json
+jobs` -- the plan text's phrase "Run linters" is a paraphrase of this step, not its literal name; the
+job carries no step named exactly "Run linters"). That step runs `uv run tox -e lint`, which
+executes, in order, `black --check .` then `ruff check .` (`tox.ini`'s `[testenv:lint]` block,
+read this session). Both commands' own verbatim output, from the step's log:
+
+```
+lint: commands[0]> black --check .
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+lint: commands[1]> ruff check .
+All checks passed!
+  lint: OK (3.15=setup[0.18]+cmd[2.92,0.05] seconds)
+  congratulations :) (3.21 seconds)
+```
+
+**This is the ONLY source of this phase's `ruff` verdict, and the reason is explicit:** in a freshly
+`uv sync`-provisioned worktree venv on this host, the `ruff` binary installed by `uv sync --extra dev`
+is a generic-linux ELF that fails to exec -- measured and recorded standing knowledge (`CLAUDE.md`,
+this project's `MEMORY.md`), reconfirmed by this plan's own `<worktree_provisioning>` instruction not
+to attempt a local `ruff` invocation even after provisioning. A green local `black --check .` plus
+`mypy` (both re-run and confirmed green in `## Phase-close measurements` below) is therefore NOT
+"lint clean" by itself -- ROADMAP constraint 11 requires `ruff`'s verdict specifically from CI, and
+this run's `Run lint with tox` step, quoted verbatim above, is that verdict: **`ruff check .` passed
+with `All checks passed!` and zero reported violations.**
+
+**Release fence, measured at this same observation point:** `git branch --list 'gsd/v0.9.2*' | wc -l`
+returns `1`. `git tag -l 'v0.9.2*'` and `git ls-remote --tags origin 'v0.9.2*'` are both empty. `gh pr
+list --head gsd/v0.9.2-inline-image-blocker-fix-and-release` returns no pull request. No PyPI upload
+or GitHub Release exists or was attempted -- the release half belongs to Phase 63 and
+`/gsd-complete-milestone`, per this plan's own prohibitions.
+
+**Only `.planning/` documentation commits follow this dispatch, and they cannot affect the result.**
+The dispatched run compiled and tested the tree at `0366eca47c483e7a1ee735e737a015fc094e7091` --
+`typsphinx/translator.py`'s fix, the full 27-document fixture, the widened gate module and this
+evidence file's own RED/golden/restore sections through plan 03. Every commit this plan (04) makes
+after this dispatch touches only this evidence file, this plan's own SUMMARY, and (outside worktree
+mode) shared planning documents -- none of which is part of the code tip GitHub Actions checked out
+and ran. This run is therefore authoritative for the phase's code tip: no later commit in this phase
+can invalidate a conclusion CI already reached against the fix as shipped.
