@@ -393,13 +393,13 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
      parent repo's tag push), and the Read the Docs `en` and `ja` `stable` endpoints reporting
      `0.9.2`.
 
-**Plans**: 4 plans across 3 waves
+**Plans**: 2/4 plans executed across 3 waves
 
 Plans:
 **Wave 1**
 
-- [ ] 63-01-PLAN.md — Bump the version literal, lockfile and README, promote `## [Unreleased]` into a curated `## [0.9.2]` section in the load-bearing four-step order, extend `RELEASE_VERSIONS`, and prove it by running the extractor and reading its stdout (wave 1, tracer-led)
-- [ ] 63-02-PLAN.md — Record the phase-head REL-09 checksum fence with its PHASE_BASE_SHA anchor and the three-observation protocol, take SC#5 fence observation 1 of 2 with positive controls, and write the external-API coverage declaration (wave 1)
+- [x] 63-01-PLAN.md — Bump the version literal, lockfile and README, promote `## [Unreleased]` into a curated `## [0.9.2]` section in the load-bearing four-step order, extend `RELEASE_VERSIONS`, and prove it by running the extractor and reading its stdout (wave 1, tracer-led)
+- [x] 63-02-PLAN.md — Record the phase-head REL-09 checksum fence with its PHASE_BASE_SHA anchor and the three-observation protocol, take SC#5 fence observation 1 of 2 with positive controls, and write the external-API coverage declaration (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -441,7 +441,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
-| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 0/4 | Planned | - |
+| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 2/4 | In Progress | - |
 
 ## Roadmap Evolution
 

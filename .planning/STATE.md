@@ -4,12 +4,12 @@ milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
-status: planning
-stopped_at: Phase 63 planned (4 plans in 3 waves)
-last_updated: "2026-08-30T11:00:56.875Z"
+status: executing
+stopped_at: Phase 63 wave 1 complete (63-01, 63-02)
+last_updated: "2026-08-30T11:11:54.813Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 63 planned — 63-01..63-04-PLAN.md committed (wave 1 tracer bump + curated `## [0.9.2]` + REL-11 fence baseline and SC#5 observation 1 -> wave 2 green-tree proof + one 3-OS CI dispatch on the bumped tip -> wave 3 SC#5 observation 2 + close-time fence re-verification + 63-HANDOFF.md). D-18 AMENDED by measurement and acknowledged by the owner (ruff's CI verdict comes from ci.yml's `Lint and Format Check` job, step `Run lint with tox` — `ci.yml` has no step named `Run linters`); see 63-CONTEXT.md § Amendments
-state_head: c178569f5f0105b36e4b4ca61a304692577e09ca
+last_activity_desc: Phase 63 execution started
+state_head: c31bb048bf5a92b7550bc2aa68efb114437533fa
 progress:
   total_phases: 2
   completed_phases: 1
@@ -83,11 +83,11 @@ land here.
 
 ## Current Position
 
-Phase: 63 (v0.9.2 Release Prep (prep-only)) — READY TO EXECUTE
-Plan: Not started — 4 plans across 3 waves
-Status: Ready to execute
+Phase: 63 (v0.9.2 Release Prep (prep-only)) — EXECUTING
+Plan: 2 of 4 complete (wave 1 done)
+Status: Executing Phase 63
 Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
-Last activity: 2026-08-30 — Phase 63 planned (research, pattern map, 4 plans, plan-checker PASSED)
+Last activity: 2026-08-30 — Phase 63 execution started
 Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
 `ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
 returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
