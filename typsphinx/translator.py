@@ -4747,6 +4747,11 @@ class TypstTranslator(SphinxTranslator):
         # last regardless of which branch below interpolates it.
         escaped_uri = escape_typst_string(adjusted_uri)
 
+        # IMG-08 (AMENDED D-08): mirrors visit_Text's in_signature_text triad.
+        self._add_paragraph_separator()
+        if not self._emit_inline_concat_separator():
+            if self.in_list_item and self.list_item_needs_separator:
+                self.add_text("\n")
         # Add proper indentation if inside a figure
         if self.in_figure:
             self.add_text(f'  image("{escaped_uri}"')
@@ -4780,6 +4785,10 @@ class TypstTranslator(SphinxTranslator):
         """
         # If inside a figure, don't add extra newlines (figure will handle spacing)
         if not self.in_figure:
+            if self._mark_inline_concat_content():
+                return
+            if self.in_list_item:
+                self.list_item_needs_separator = True
             self.add_text("\n\n")
 
     def visit_target(self, node: nodes.target) -> None:
