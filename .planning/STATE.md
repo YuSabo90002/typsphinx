@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
 current_phase: 62
-current_phase_name: "The `visit_image()` Separator Fix and Its Real-Compile Gate"
-status: planning
+current_phase_name: The `visit_image()` Separator Fix and Its Real-Compile Gate
+status: executing
 stopped_at: Phase 62 planned (4 plans in 4 waves)
-last_updated: "2026-08-30T06:59:03.180Z"
+last_updated: "2026-08-30T07:36:41.246Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 62 planned — 62-01..62-04-PLAN.md committed (wave 1 tracer + branch to origin -> wave 2 full 16+9 matrix -> wave 3 RED evidence + goldens -> wave 4 authority CI). Two locked decisions AMENDED by measurement and acknowledged by the owner; see 62-01-PLAN.md <amendments>
-state_head: bb28b5979fbaee195a5f1b68f6c52f1cd35360de
+last_activity_desc: Phase 62 execution started
+state_head: 5a837238aadc126611b175228cbed5ac8b1058f8
 progress:
   total_phases: 2
   completed_phases: 0
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-30 — v0.9.2 scoped via `/gsd-new-milestone`)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Milestone **v0.9.2 Inline image blocker fix and release** — close the mid-paragraph inline-image blocker that stopped v0.9.1 from being published, then publish v0.9.1's completed work and this fix together as 0.9.2. Roadmap created 2026-08-30: **Phases 62–63**, 7/7 v1 requirements mapped, zero orphans. Next: `/gsd-plan-phase 62`.
+**Current focus:** Phase 62 — The `visit_image()` Separator Fix and Its Real-Compile Gate
 
 ## Shipped Milestone (v0.9.1 — archived, NOT published)
 
@@ -83,11 +83,11 @@ land here.
 
 ## Current Position
 
-Phase: 62 (The `visit_image()` Separator Fix and Its Real-Compile Gate) — READY TO EXECUTE
-Plan: Not started (4 plans, 4 sequential waves: 62-01 -> 62-02 -> 62-03 -> 62-04)
-Status: Ready to execute
+Phase: 62 (The `visit_image()` Separator Fix and Its Real-Compile Gate) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 62
 Progress: [__________] 0% (0/2 phases)
-Last activity: 2026-08-30 — Phase 62 planned. Four plans in four sequential waves, tracer-first.
+Last activity: 2026-08-30 — Phase 62 execution started
 Live measurement during planning falsified two locked decisions, both acknowledged by the owner:
 the triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves 4 of 18 masters red (the
 leading half is hoisted above the `in_figure`/`else` split instead — 18/18 compiling, measured), and
