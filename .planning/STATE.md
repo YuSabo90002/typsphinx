@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
-current_phase: 62
-current_phase_name: The `visit_image()` Separator Fix and Its Real-Compile Gate
-status: executing
-stopped_at: Phase 62 planned (4 plans in 4 waves)
-last_updated: "2026-08-30T07:36:41.246Z"
+current_phase: 63
+current_phase_name: v0.9.2 Release Prep (prep-only)
+status: planning
+stopped_at: Phase 62 complete, ready to plan Phase 63
+last_updated: "2026-08-30T09:14:07.906Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 62 execution started
-state_head: 5a837238aadc126611b175228cbed5ac8b1058f8
+last_activity_desc: Phase 62 complete, transitioned to Phase 63
+state_head: 3ba18a17d4f280b64bddcff3bd8ec195b4c1d985
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -83,11 +83,11 @@ land here.
 
 ## Current Position
 
-Phase: 62 (The `visit_image()` Separator Fix and Its Real-Compile Gate) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 62
-Progress: [__________] 0% (0/2 phases)
-Last activity: 2026-08-30 — Phase 62 execution started
+Phase: 63 — v0.9.2 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
+Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
+Last activity: 2026-08-30 — Phase 62 complete, transitioned to Phase 63
 Live measurement during planning falsified two locked decisions, both acknowledged by the owner:
 the triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves 4 of 18 masters red (the
 leading half is hoisted above the `in_figure`/`else` split instead — 18/18 compiling, measured), and
@@ -1055,7 +1055,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-08-30T05:59:39.195Z
-Stopped at: Phase 62 context gathered
+Stopped at: Phase 62 complete, ready to plan Phase 63
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the

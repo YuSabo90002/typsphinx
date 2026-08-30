@@ -230,7 +230,7 @@ zero irreversible action, with the tag push, PyPI upload, GitHub Release, `typsp
 Every step research listed under its Phase C is preserved as Phase 63's handoff checklist (SC#5), so
 nothing is lost — only relocated to where this project actually performs it.
 
-- [ ] **Phase 62: The `visit_image()` Separator Fix and Its Real-Compile Gate** - An image node preceded by any sibling content in the same container is separated before `image(` by the same triad every other inline emitter already uses, proven by a gate that drives a real `typst.compile()` over all 16 measured failing shapes and all 9 that must keep passing, recorded RED against the unfixed tree first
+- [x] **Phase 62: The `visit_image()` Separator Fix and Its Real-Compile Gate** - An image node preceded by any sibling content in the same container is separated before `image(` by the same triad every other inline emitter already uses, proven by a gate that drives a real `typst.compile()` over all 16 measured failing shapes and all 9 that must keep passing, recorded RED against the unfixed tree first (completed 2026-08-30)
 - [ ] **Phase 63: v0.9.2 Release Prep (prep-only)** - The tree is bumped to 0.9.2 in one commit carrying `pyproject.toml`, a regenerated `uv.lock`, `README.md` and a curated `## [0.9.2]` CHANGELOG entry whose extracted body was read rather than assumed, behind a checksum fence on the release checkbox and with zero irreversible action taken
 
 ## Phase Details
@@ -420,7 +420,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | In Progress | - |
+| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
 | 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 0/? | Not started | - |
 
 ## Roadmap Evolution
