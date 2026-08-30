@@ -412,7 +412,7 @@ Plans:
 
 **Wave 4** *(gap closure — SC#2, blocked on Wave 3 completion)*
 
-- [ ] 63-05-PLAN.md — Delete the false blanket file-confinement claim from the `## [0.9.2]` intro and re-scope a measured true one into the IMG-08/IMG-09/IMG-10 bullet (CR-01, D-23), re-run the extractor and re-verify SC#2's byte-identity and structural set against the corrected text, and re-prove the tree green with the reasoned CI-dispatch decision recorded (wave 4, `gap_closure`, tracer-led)
+- [x] 63-05-PLAN.md — Delete the false blanket file-confinement claim from the `## [0.9.2]` intro and re-scope a measured true one into the IMG-08/IMG-09/IMG-10 bullet (CR-01, D-23), re-run the extractor and re-verify SC#2's byte-identity and structural set against the corrected text, and re-prove the tree green with the reasoned CI-dispatch decision recorded (wave 4, `gap_closure`, tracer-led)
 
 **Wave 5** *(gap closure — blocked on Wave 4 completion)*
 
@@ -450,7 +450,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
-| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 4/4 | In Progress | - |
+| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 5/6 | In Progress | - |
 
 ## Roadmap Evolution
 
