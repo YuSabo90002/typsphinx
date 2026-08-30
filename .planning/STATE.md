@@ -1,31 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.9.1
-milestone_name: Windows path correctness
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.1 closed, archived, and merged to main — no publish performed (D-02)
-last_updated: "2026-08-29T22:40:00.000Z"
+milestone: v0.9.2
+milestone_name: Inline image blocker fix and release
+status: planning
+last_updated: "2026-08-30T03:54:29.612Z"
 last_activity: 2026-08-30
-last_activity_desc: Milestone v0.9.1 archived; branch merged to main via PR #135 (no release)
-state_head: 9db2274c3ff3384a5de03137188bf9e35b207b25
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
-  percent: 100
-current_phase: 61
-current_phase_name: v0.9.1 Release Prep (prep-only)
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-30 at the v0.9.1 milestone close — full evolution review)
+See: .planning/PROJECT.md (updated 2026-08-30 — v0.9.2 scoped via `/gsd-new-milestone`)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Planning the next milestone. v0.9.1 is complete and archived; nothing is in flight.
+**Current focus:** Milestone **v0.9.2 Inline image blocker fix and release** — close the mid-paragraph inline-image blocker that stopped v0.9.1 from being published, then publish v0.9.1's completed work and this fix together as 0.9.2. Defining requirements.
 
 ## Shipped Milestone (v0.9.1 — archived, NOT published)
 
@@ -83,17 +78,10 @@ land here.
 
 ## Current Position
 
-Phase: none — milestone v0.9.1 complete and archived
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone (`/gsd-new-milestone`)
-Progress: [####################] 100% (4/4 phases; 58 3/3, 59 5/5, 60 5/5, 61 4/4 plans)
-Last activity: 2026-08-30 — milestone v0.9.1 completed and archived, with no publish step performed
-Branch: merged and deleted. `gsd/v0.9.1-windows-path-correctness` went to `main` as `9db2274c`
-via **PR #135** on 2026-08-29T22:31Z, at owner instruction after the close was taken — 15/15 checks
-green on the PR head, both `windows-latest` lanes included. `main` is at `9db2274c` and the local
-checkout is on it. D-12 (no PR for this milestone) was overridden by the owner; **D-02's no-release
-half was not** — there is still no tag, no PyPI upload and no GitHub Release, and the next published
-version is 0.9.2. v0.7.0–v0.9.0's milestone branches are still standing, local and remote.
+Status: Defining requirements
+Last activity: 2026-08-30 — Milestone v0.9.2 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
