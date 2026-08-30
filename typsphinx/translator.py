@@ -4785,8 +4785,22 @@ class TypstTranslator(SphinxTranslator):
         """
         # If inside a figure, don't add extra newlines (figure will handle spacing)
         if not self.in_figure:
+            # IMG-09: the concat half of visit_image's AMENDED D-08 triad. In an
+            # inline concat context the image IS the sibling expression, so record
+            # it and return -- the trailing "\n\n" below is a block-level break and
+            # would land INSIDE the enclosing code-mode expression.
             if self._mark_inline_concat_content():
                 return
+            # fail_04_block_image_second_in_list_item's root cause: a block image
+            # never armed the SIBLING-boundary protocol, so a following block-level
+            # sibling was juxtaposed straight against it. This is NOT redundant with
+            # the "\n\n" below -- that is this node's own trailing text, whereas the
+            # flag is what a FOLLOWING sibling reads to emit its own LEADING "\n"
+            # (the `in_list_item and list_item_needs_separator` check repeated at
+            # ~40 visit_* sites; see _emit_forced_break's docstring for the
+            # two-halves convention and depart_paragraph for this exact piece
+            # having been "previously MISSING" there). Deleting it as redundant
+            # silently reopens fail_04.
             if self.in_list_item:
                 self.list_item_needs_separator = True
             self.add_text("\n\n")
