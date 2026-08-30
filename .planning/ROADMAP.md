@@ -293,7 +293,7 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
      **completed**, with the `windows-latest` and `macos-latest` lanes named individually and green,
      and `ruff`'s verdict taken from that run's `Run linters` step rather than from this machine.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -310,7 +310,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 62-04-PLAN.md — The single authority 3-OS CI run and the phase-close measurements (zero test edits, `in_figure` bodies untouched, release fence held)
+- [x] 62-04-PLAN.md — The single authority 3-OS CI run and the phase-close measurements (zero test edits, `in_figure` bodies untouched, release fence held)
 
 **Planning note (2026-08-30):** two locked decisions were falsified by measurement during planning and
 are AMENDED in `62-01-PLAN.md`'s `<amendments>` block. (1) The triad scoped to `visit_image()`'s
@@ -420,7 +420,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 3/4 | In Progress | - |
+| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | In Progress | - |
 | 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 0/? | Not started | - |
 
 ## Roadmap Evolution
