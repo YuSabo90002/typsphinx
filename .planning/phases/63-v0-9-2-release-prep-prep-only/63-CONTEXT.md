@@ -55,8 +55,7 @@ them.
   the prose counterpart of REQUIREMENTS.md's binding ban on a `## [0.9.1]` heading and a `[0.9.1]`
   tail link. — **Reversibility:** reversible.
 
-- **D-03: The inline-image blocker leads the `### Fixed` list; the three path bullets follow in the
-  roadmap's own order** (PATH-01 → IMG-04..IMG-07 → MSG-02..MSG-05). Rationale, measured: the image
+- **D-03: The inline-image blocker leads the `### Fixed` list; the three path bullets follow in the roadmap's own order** (PATH-01 → IMG-04..IMG-07 → MSG-02..MSG-05). Rationale, measured: the image
   defect refuses **every master** of any project containing an image anywhere but first in its
   container — including masters with no image at all, because Typst's `#include()` re-parses the
   included content file (ROADMAP constraint 2, proven by 62's 17-red/1-green aggregate
@@ -76,8 +75,7 @@ them.
   **doubling** it). A lead paragraph calling this release "Windows fixes" would be inaccurate.
   — **Reversibility:** reversible.
 
-- **D-05: One new `### Fixed` bullet is authored for the image separator, citing IMG-08, IMG-09 and
-  IMG-10 in trailing parentheses** (house style since Phase 33 — measured on every 0.9.0 bullet).
+- **D-05: One new `### Fixed` bullet is authored for the image separator, citing IMG-08, IMG-09 and IMG-10 in trailing parentheses** (house style since Phase 33 — measured on every 0.9.0 bullet).
   It must describe the user-visible shape, not the mechanism: an image node preceded by any sibling
   content in the same container was emitted adjacent to the preceding code-mode expression, so Typst
   refused the file with `expected semicolon or line break` and `-b typstpdf` raised `ExtensionError`
@@ -154,8 +152,7 @@ them.
 
 ### The handoff, and REL-04
 
-- **D-13: `63-HANDOFF.md` follows `61-HANDOFF.md`'s structure with `vX.Y.Z` resolved to `v0.9.2`,
-  but opens by stating the POSITIVE.** 61's first line stated the negative ("this milestone
+- **D-13: `63-HANDOFF.md` follows `61-HANDOFF.md`'s structure with `vX.Y.Z` resolved to `v0.9.2`, but opens by stating the POSITIVE.** 61's first line stated the negative ("this milestone
   publishes nothing") precisely because that was the anomaly; restoring the standing shape is the
   correction, not an oversight. The opening line says that this milestone **does** publish and that
   the checklist below **is** the sequence `/gsd-complete-milestone` executes. The three inherited
@@ -166,8 +163,7 @@ them.
   API calls; and the GitHub Release body being byte-identical to
   `scripts/extract_changelog_section.py 0.9.2`'s stdout. — **Reversibility:** reversible.
 
-- **D-14: REL-04 is re-offered as a named pre-flight/post-flight observation inside
-  `63-HANDOFF.md` — not folded into any plan, and not promoted to a requirement.** 61-HANDOFF
+- **D-14: REL-04 is re-offered as a named pre-flight/post-flight observation inside `63-HANDOFF.md` — not folded into any plan, and not promoted to a requirement.** 61-HANDOFF
   § "What v0.9.2 must also pick up" explicitly instructs that it "should be re-offered at the
   v0.9.2 release-prep phase's own handoff, where a real tag push will finally exercise it"; this
   decision is that re-offer, and it lands where the instruction pointed. REQUIREMENTS.md keeps
@@ -183,15 +179,13 @@ them.
   `pending/` and is closed only by an observed green `create-release` on a real tag push, which does
   not happen in this phase. — **Reversibility:** reversible.
 
-- **D-15: The `pypi` GitHub Environment's manual approval is named as an EXPECTED gate, in the
-  operator's own reading order.** SC#5 already requires this; the handoff must say it before the
+- **D-15: The `pypi` GitHub Environment's manual approval is named as an EXPECTED gate, in the operator's own reading order.** SC#5 already requires this; the handoff must say it before the
   step that triggers it, because a workflow paused on an environment approval looks exactly like a
   failed workflow to an operator scanning `gh run list`. — **Reversibility:** reversible.
 
 ### Mechanics that bind every plan
 
-- **D-16: The fence is `63-CLOSEOUT-GUARD.md`, reusing `61-CLOSEOUT-GUARD.md`'s procedure
-  verbatim.** `sha256sum .planning/REQUIREMENTS.md` + `wc -l` + `git rev-parse HEAD` +
+- **D-16: The fence is `63-CLOSEOUT-GUARD.md`, reusing `61-CLOSEOUT-GUARD.md`'s procedure verbatim.** `sha256sum .planning/REQUIREMENTS.md` + `wc -l` + `git rev-parse HEAD` +
   `grep -n 'REL-09' .planning/REQUIREMENTS.md` recorded at phase head; the same commands re-run and
   compared at phase close; **and once more after `phase.complete`-family tooling has run** — that
   third observation is the one that actually catches the flip, because it runs outside any plan's
@@ -210,8 +204,8 @@ them.
   `release.yml`'s `validate`/`build` jobs on the real tag push, before any test runs. `uv.lock` is
   regenerated with `uv lock` and **never hand-edited**. — **Reversibility:** reversible.
 
-- **D-18 (AMENDED — see § Amendments item 1 for the corrected step name; the rest stands):
-  One CI dispatch, on the phase's final tip, after the bump commit.** Phase 57 ran two
+- **D-18: One CI dispatch, on the phase's final tip, after the bump commit.** *(AMENDED — see
+  § Amendments item 1 for the corrected step name; the rest of the decision stands.)* Phase 57 ran two
   (pre-bump and post-bump); Phase 61 ran one, since it had no bump to split around. SC#4 names "the
   **bumped** tip", and this phase's only code-affecting change is `D-11`'s one-tuple test edit which
   lands with the release work — so one dispatch on the last commit is the default.
@@ -225,14 +219,12 @@ them.
   item 1.]** A plan that lands a second code-affecting change mid-phase
   adds a second dispatch; that is the only justification for one. — **Reversibility:** reversible.
 
-- **D-19: Evidence files follow `61-*`'s naming set exactly, and `63-VERIFICATION.md` is
-  forbidden.** `{padded_phase}-VERIFICATION.md` is `gsd-verifier`'s reserved output name and a
+- **D-19: Evidence files follow Phase 61's naming set exactly, and `63-VERIFICATION.md` is forbidden.** `{padded_phase}-VERIFICATION.md` is `gsd-verifier`'s reserved output name and a
   plan-authored file there is clobbered at verify time. Suggested set, mirroring Phase 61's:
   `63-CLOSEOUT-GUARD.md`, `63-CHANGELOG-EVIDENCE.md`, `63-GREEN-TREE-EVIDENCE.md`,
   `63-CI-EVIDENCE.md`, `63-SC5-INVARIANTS.md`, `63-HANDOFF.md`. — **Reversibility:** reversible.
 
-- **D-20: The extractor's stdout is transcribed verbatim into `63-CHANGELOG-EVIDENCE.md`, with
-  three named greps recorded beside it.** Measured why this matters:
+- **D-20: The extractor's stdout is transcribed verbatim into `63-CHANGELOG-EVIDENCE.md`, with three named greps recorded beside it.** Measured why this matters:
   `scripts/extract_changelog_section.py`'s `_SECTION_HEADER_RE` matches **every** `## [...]` heading
   and the algorithm is purely positional — first heading naming the requested version, everything up
   to the next heading of any name. So the scratch block at `CHANGELOG.md:38`
