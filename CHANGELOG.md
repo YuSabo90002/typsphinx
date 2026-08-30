@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for Future Releases
+- BibTeX/bibliography support
+- Glossary generation
+- Index generation
+- Pre-commit hooks
+- Additional Typst Universe template integration
+
+## [0.9.2] - 2026-08-30
+
+This release curates the Windows-shaped path-handling hardening accumulated since 0.9.0 — an
+output-directory escape check, an absolute image URI that aborted the PDF build, and diagnostic
+message quoting — together with a separate compile-blocking defect in the image visitor. A project
+built with the published 0.9.0 release produced no PDF for any master document when an image was
+not first in its container, and 0.9.0 users should upgrade to this release. The runtime changes are
+confined to `typsphinx/translator.py`, with no other file under `typsphinx/` touched. Zero new
+runtime dependencies; the bundled `@preview` version-sync surface is untouched.
+
 ### Fixed
+
+- **An image not first in its container no longer aborts the `typstpdf` compile (IMG-08, IMG-09,
+  IMG-10).** Whenever an image followed other content in the same container — mid-sentence, in a
+  list item, a table cell, a definition-list body, an admonition, a footnote, a field-list body, a
+  section title, or a figure's legend — the emitted Typst lacked a separator from the preceding
+  expression, so Typst refused the file with `expected semicolon or line break` and the `typstpdf`
+  builder raised an extension error, producing no PDF for any master document in the project,
+  including masters that contained no image at all. `visit_image()` now joins the translator's
+  existing separator discipline, so every one of those containers compiles.
 
 - **A Windows-shaped `typst_documents` target that reaches outside the output directory is now
   refused on the normalized path, matching its sibling image-URI check (PATH-01).** The
@@ -35,12 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Windows-exclusive fix. Identifier-valued messages (registry keys, docnames) are unaffected;
   only path-valued messages route through the new quoting.
 
-### Planned for Future Releases
-- BibTeX/bibliography support
-- Glossary generation
-- Index generation
-- Pre-commit hooks
-- Additional Typst Universe template integration
+### Verified
+
+- Zero new runtime or dev dependencies across this milestone's diff (`v0.9.0..HEAD`) — the only
+  change to `pyproject.toml` and `uv.lock` is the version literal itself.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The `visit_image()` separator fix is bound by a real `typst.compile()` gate covering the 16
+  previously-failing and 9 must-keep-passing image shapes (TEST-05), with 18 of 18 master
+  documents compiling.
 
 ## [0.9.0] - 2026-08-17
 
@@ -1243,6 +1272,7 @@ untouched.
 
 ---
 
+[0.9.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.2
 [0.9.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.0
 [0.8.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.8.0
 [0.7.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.7.1
@@ -1264,4 +1294,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.2...HEAD
