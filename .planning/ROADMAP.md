@@ -416,7 +416,7 @@ Plans:
 
 **Wave 5** *(gap closure — blocked on Wave 4 completion)*
 
-- [ ] 63-06-PLAN.md — Take fence observation 3 against the post-correction tip with full positive controls and annotate the superseded post-dispatch commit statement, re-verify the REL-09 checksum fence after the gap-closure commits move HEAD, and bring `63-HANDOFF.md` back into accuracy without weakening its standalone property (wave 5, `gap_closure`)
+- [x] 63-06-PLAN.md — Take fence observation 3 against the post-correction tip with full positive controls and annotate the superseded post-dispatch commit statement, re-verify the REL-09 checksum fence after the gap-closure commits move HEAD, and bring `63-HANDOFF.md` back into accuracy without weakening its standalone property (wave 5, `gap_closure`)
 
 **Cross-cutting constraints** *(truths any plan in this phase must carry)*:
 
@@ -450,7 +450,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
-| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 5/6 | In Progress | - |
+| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 6/6 | In Progress | - |
 
 ## Roadmap Evolution
 

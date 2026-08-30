@@ -5,16 +5,16 @@ milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
 status: executing
-stopped_at: "Phase 63 gap closure planned (63-05, 63-06) — SC#2 open, awaiting --gaps-only execution"
-last_updated: "2026-08-30T13:15:32.920Z"
+stopped_at: "Phase 63 gap-closure plans 63-05 and 63-06 executed and merged — awaiting phase verification"
+last_updated: "2026-08-30T13:53:04.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 63 execution started
-state_head: 2d7183f738957831cf60b5608df876020fbaa001
+last_activity_desc: Phase 63 gap closure (63-05, 63-06) executed — SC#2 correction landed
+state_head: 6732171f171763dd6eb7deadca6c44bf2af22b85
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 10
   percent: 50
 ---
 
@@ -84,10 +84,10 @@ land here.
 ## Current Position
 
 Phase: 63 (v0.9.2 Release Prep (prep-only)) — EXECUTING
-Plan: 5 of 6 — gap closure (63-05, 63-06) executing; 63-01..63-04 complete
+Plan: 6 of 6 — gap closure (63-05, 63-06) complete; awaiting phase verification
 Status: Executing Phase 63
 Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
-Last activity: 2026-08-30 — Phase 63 execution started
+Last activity: 2026-08-30 — Phase 63 gap closure executed (63-05, 63-06)
 Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
 `ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
 returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
