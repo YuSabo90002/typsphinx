@@ -4,18 +4,18 @@ milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
-status: executing
-stopped_at: "Phase 63 gap-closure plans 63-05 and 63-06 executed and merged — awaiting phase verification"
-last_updated: "2026-08-30T13:53:04.000Z"
+status: completed
+stopped_at: "Phase 63 complete (verified 5/5) — milestone v0.9.2 ready for /gsd-complete-milestone"
+last_updated: "2026-08-30T14:10:34.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 63 gap closure (63-05, 63-06) executed — SC#2 correction landed
-state_head: 6732171f171763dd6eb7deadca6c44bf2af22b85
+last_activity_desc: Phase 63 complete — verification passed 5/5 after gap closure
+state_head: 6e37ece7e0bd68029170654cbcf210210804fe24
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
   completed_plans: 10
-  percent: 50
+  percent: 100
 ---
 
 # Project State
@@ -83,11 +83,11 @@ land here.
 
 ## Current Position
 
-Phase: 63 (v0.9.2 Release Prep (prep-only)) — EXECUTING
-Plan: 6 of 6 — gap closure (63-05, 63-06) complete; awaiting phase verification
-Status: Executing Phase 63
-Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
-Last activity: 2026-08-30 — Phase 63 gap closure executed (63-05, 63-06)
+Phase: 63 (v0.9.2 Release Prep (prep-only)) — COMPLETE
+Plan: 6 of 6 complete
+Status: All phases complete — milestone v0.9.2 ready to ship
+Progress: [████████████████████] 100% (2/2 phases)
+Last activity: 2026-08-30 — Phase 63 complete, verification passed 5/5
 Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
 `ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
 returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
@@ -1081,7 +1081,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-08-30T09:46:50.495Z
-Stopped at: Phase 63 context gathered
+Stopped at: Phase 63 complete — milestone v0.9.2 ready for /gsd-complete-milestone
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the
