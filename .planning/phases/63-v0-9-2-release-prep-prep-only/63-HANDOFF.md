@@ -5,9 +5,11 @@ executes for v0.9.2 — the tag push, the `pypi` GitHub Environment's manual app
 Release body's byte-identity check, the `typsphinx-doc-translations` `update-pin.yml` dispatch and
 that repository's own separate tag, and the Read the Docs `en`/`ja` `stable` verification. Nothing
 in it was performed during this phase: this phase itself took **zero irreversible action**, proven
-by `63-SC5-INVARIANTS.md`'s two waves-separated fence observations (`## Observation 1 of 2`, taken
-at phase head in wave 1, and `## Observation 2 of 2`, taken in wave 3 with the scoped/widened
-`typsphinx/` diff pair as its positive control).
+by `63-SC5-INVARIANTS.md`'s three fence observations — `## Observation 1 of 2` (phase head, wave 1),
+`## Observation 2 of 2` (phase close, wave 3, with the scoped/widened `typsphinx/` diff pair as its
+positive control), and `## Observation 3 — post-gap-closure re-probe` (taken after the gap-closure
+correction commit `2a0bc3be`, because the first two pre-date it and say nothing about the tree that
+exists now).
 
 Seven prior handoffs (`46-HANDOFF.md` through `57-HANDOFF.md`) opened this way because every one of
 those milestones actually published. The eighth, `61-HANDOFF.md`, opened with the negative because
@@ -33,10 +35,21 @@ than restating or re-deriving the verdict:
 - **SC#1** (the version moves to 0.9.2 in one commit touching all four files) — **MET**.
   `63-CHANGELOG-EVIDENCE.md` § "SC#1 — version-literal lockstep" and the bump commit `10d9d95d`
   (`pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md` together).
-- **SC#2** (the extractor was run and its output inspected) — **MET**. `63-CHANGELOG-EVIDENCE.md`'s
-  extractor run-and-read section: `scripts/extract_changelog_section.py 0.9.2` exit 0, 4087-byte
+- **SC#2** (the extractor was run and its output inspected) — **MET, after a correction.**
+  `63-CHANGELOG-EVIDENCE.md`'s original extractor run-and-read section found the structural set
+  clean, but a false blanket claim survived that inspection in the extracted body's intro paragraph
+  ("The runtime changes are confined to `typsphinx/translator.py`, with no other file under
+  `typsphinx/` touched") — falsified by that same file's own milestone-invariant-sweep diff showing
+  five files changed. `63-REVIEW.md` CR-01 (Critical) and `63-VERIFICATION.md` SC#2's `gaps:` block
+  both caught this independently. The gap closure (`63-05-PLAN.md`, commit `2a0bc3be`) deleted the
+  blanket sentence and re-scoped a narrower, measured version into the IMG-08/IMG-09/IMG-10 bullet —
+  the one fix it is actually true for. The structural set and the byte-identity proof were then
+  re-run against the corrected text: `scripts/extract_changelog_section.py 0.9.2` exit 0, **4083**-byte
   non-empty stdout, zero scratch-block leakage, byte-identical to the section on disk (proven by a
-  positive-control comparison against the pre-existing `## [0.6.5]` section).
+  positive-control comparison against the pre-existing `## [0.6.5]` section). See
+  `63-CHANGELOG-EVIDENCE.md` § "Post-correction re-run (gap closure, SC#2)" for the full re-run, and
+  `63-SC5-INVARIANTS.md` § "Correction: § \"Commits after the CI dispatch\" is superseded" for the
+  related evidence-integrity annotation.
 - **SC#3** (the release-checkbox fence is proven held by a recorded SHA-256) — **MET**.
   `63-CLOSEOUT-GUARD.md` § "Baseline" (phase head) and § "Re-verification at phase close" (this
   plan) — both a MATCH on the SHA-256 digest, `wc -l`, the name-only diff, and the `REL-09` grep
@@ -48,11 +61,13 @@ than restating or re-deriving the verdict:
   `3 warnings.` / `5 warnings.`) and `63-CI-EVIDENCE.md` (one dispatched `ci.yml` run, `33309565005`,
   all 12 jobs `success` including both `windows-latest` and both `macos-latest` lanes, `ruff`'s
   verdict read from the `Lint and Format Check` job's own `Run lint with tox` step).
-- **SC#5** (zero irreversible action, probed twice, and the handoff is standalone) — **MET**.
+- **SC#5** (zero irreversible action, probed three times, and the handoff is standalone) — **MET**.
   `63-SC5-INVARIANTS.md` § "Observation 1 of 2" and § "Observation 2 of 2" for the two
-  waves-separated fence probes, § "The typsphinx/ diff (SC#5)" for the empty scoped diff paired with
-  the non-empty five-file widened positive control, and this document itself for the standalone
-  handoff half.
+  waves-separated fence probes taken before the gap-closure correction, § "Observation 3 —
+  post-gap-closure re-probe" for the third probe taken after commit `2a0bc3be` (necessary because
+  the first two say nothing about the tree that exists now), § "The typsphinx/ diff (SC#5)" and its
+  post-correction re-take in Observation 3 for the empty scoped diff paired with the non-empty
+  five-file widened positive control, and this document itself for the standalone handoff half.
 
 **Not satisfied by this phase, and structurally out of reach here:** the entire publish half — the
 `v0.9.2` tag push, `release.yml` firing to publish to PyPI and create the GitHub Release, and the
@@ -63,8 +78,9 @@ also out of reach here. This is a handoff, not a claim that any of it has alread
 ## The publish checklist
 
 Every step below is recorded as what `/gsd-complete-milestone` executes. **None of it was performed
-in this phase** — the prohibitions block in `63-04-PLAN.md` forbids every one of these actions, and
-the fence assertions above confirm none occurred.
+in this phase** — the prohibitions block in `63-04-PLAN.md`, carried forward unchanged by the
+gap-closure plans `63-05-PLAN.md` and `63-06-PLAN.md`, forbids every one of these actions across the
+whole phase including the closure, and the fence assertions above confirm none occurred.
 
 ### Before the tag push — the `pypi` Environment approval is an EXPECTED gate
 
@@ -136,10 +152,13 @@ diff /tmp/expected-notes.md <(head -n "$(wc -l < /tmp/expected-notes.md)" /tmp/a
 A **non-empty `diff` is a hard failure**, not a formatting difference — `create-release` appends an
 `## Installation` block and GitHub's own auto-generated notes after the extractor's output, so the
 comparison truncates the actual body to the extractor's own line count before diffing. Plan `63-01`
-already proved the extractor's stdout byte-identical to the section as it sits in `CHANGELOG.md`
-(`63-CHANGELOG-EVIDENCE.md`'s byte-identity proof, with the 0.6.5 positive control); this check
-closes the second half of that same chain, against the *published* body rather than the file on
-disk.
+originally proved the extractor's stdout byte-identical to the section as it sat in `CHANGELOG.md`
+at that time; the gap closure (`63-05-PLAN.md`) then corrected a false claim in that same section
+and **re-took the byte-identity proof against the corrected text** — `63-CHANGELOG-EVIDENCE.md`
+§ "Post-correction re-run (gap closure, SC#2)" § "SC#2's structural set, re-run against the
+corrected text" is the evidence this operator's diff must match against, not the pre-correction
+proof. This check closes the second half of that same chain, against the *published* body rather
+than the file on disk.
 
 ### 4. Advance the second repository's pin, then tag it — two separate actions
 
@@ -207,4 +226,4 @@ has no migration guide either, so nothing about migration is owed at this close.
 
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 04*
+*Plan: 04, 06*

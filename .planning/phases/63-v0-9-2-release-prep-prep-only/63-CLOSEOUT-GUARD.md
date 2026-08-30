@@ -317,6 +317,106 @@ Checkbox line (70): `- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `\`
 
 Traceability row (154): `| REL-09 | Phase 63 | Pending |` — Pending.
 
+## Re-verification after gap closure
+
+**Why this section exists.** Plan 63-05's gap-closure correction commit (`2a0bc3be`) and this
+plan's own commits move HEAD forward from the "Re-verification at phase close" observation above.
+Moving HEAD is precisely the condition under which the historical checkbox flip has landed at
+**five consecutive** prior release-prep closes. A fence verified before those commits says nothing
+about the tree after them — this section re-runs the same triad against the tree as it now stands.
+
+Run inside this plan's own isolated worktree (`worktree-agent-ae5c12953cb4748a0`), at a fresh UTC
+timestamp distinct from both the Baseline's and the phase-close re-verification's:
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-08-30T13:43:18Z
+```
+
+The protocol's own triad, re-run and compared side by side against the Baseline recorded above:
+
+**SHA-256 digest**
+
+| | Value |
+|---|---|
+| Baseline (recorded at phase head) | `f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33` |
+| Live (this re-verification, post-gap-closure) | `f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33` |
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33  .planning/REQUIREMENTS.md
+```
+
+**Line count**
+
+| | Value |
+|---|---|
+| Baseline (recorded at phase head) | `184` |
+| Live (this re-verification, post-gap-closure) | `184` |
+
+```
+$ wc -l .planning/REQUIREMENTS.md
+184 .planning/REQUIREMENTS.md
+```
+
+**Name-only diff and porcelain status, scoped to `.planning/REQUIREMENTS.md`**
+
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+
+$ git status --porcelain .planning/REQUIREMENTS.md
+(no output)
+```
+
+Both expected no output; both observed no output.
+
+**The `REL-09` grep, compared line-for-line against the Baseline's quoted hits**
+
+| Line | Baseline (§ "The lines under guard") | Live (post-gap-closure) |
+|---|---|---|
+| 70 | `- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `\`## [0.9.2]\`` CHANGELOG entry, the version` | identical |
+| 154 | `\| REL-09 \| Phase 63 \| Pending \|` | identical |
+| 175 (informational-only) | `- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for` | identical |
+
+```
+$ grep -n 'REL-09' .planning/REQUIREMENTS.md
+70:- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `## [0.9.2]` CHANGELOG entry, the version
+154:| REL-09 | Phase 63 | Pending |
+175:- **Phase 63 — v0.9.2 Release Prep (prep-only)** carries the release half. **REL-09 is cited for
+```
+
+Byte-identical to the Baseline's § "The lines under guard" on all three lines, both line numbers
+and byte content of the two state-bearing lines (70's checkbox and 154's Traceability row), and the
+presence of the informational-only third hit (175).
+
+**Verdict: MATCH.** All four comparisons above — the SHA-256 digest, the line count, the empty
+name-only diff / porcelain status, and the byte-identical `REL-09` grep hits — hold after the
+gap-closure commits (`2a0bc3be`, `41eb46be`, `c9f929b2`, and this plan's own Task 1 commit) exactly
+as they held at phase head and at phase close. No divergence occurred, so the reversion procedure
+was **not** exercised this time.
+
+**If a comparison had diverged** (most likely REL-09's checkbox flipped to checked against this
+phase's explicit decision), the response would have been: do not accept it, do not commit it. Run
+`git checkout -- .planning/REQUIREMENTS.md`, re-run the full triad above, and record the before
+state, the literal reversion command, and the after state in this same section, then report the
+divergence in this plan's SUMMARY. No such divergence occurred here.
+
+**REL-09's state, read directly out of `.planning/REQUIREMENTS.md` at this re-verification** — never
+inferred from any plan's frontmatter:
+
+Checkbox line (70): `- [ ] **REL-09**: 0.9.2 released to PyPI with a curated `\`## [0.9.2]\`` CHANGELOG entry, the version`
+— unchecked.
+
+Traceability row (154): `| REL-09 | Phase 63 | Pending |` — Pending. Both `63-05-PLAN.md` and
+`63-06-PLAN.md` (this plan) declare `requirements-completed: []` for REL-09.
+
+**The decisive observation is still owed, and it is still not a plan's to take.** It runs after
+`phase.complete`-family tooling, outside any plan's reach, and its protocol is already written into
+this file's § "For the operator running phase.complete" section above — confirmed still present and
+unedited by this re-verification. `63-HANDOFF.md` continues to point at that section by name so an
+operator following the handoff reaches it without opening this file separately.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 02, 04*
+*Plan: 02, 04, 06*
