@@ -2,9 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
+current_phase: 62
+current_phase_name: "The `visit_image()` Separator Fix and Its Real-Compile Gate"
 status: roadmap_ready
-last_updated: "2026-08-30T00:00:00.000Z"
+stopped_at: Phase 62 context gathered
+last_updated: "2026-08-30T05:59:39.207Z"
 last_activity: 2026-08-30
+last_activity_desc: Phase 62 context gathered (13 decisions, 4 gray areas delegated)
+state_head: 2946a304fd40d53edd71b3461d93fc98c221bb5d
 progress:
   total_phases: 2
   completed_phases: 0
@@ -1036,7 +1041,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is in flight. Next action: `/gsd-plan-phase 62`.
+**Resume file:** .planning/phases/62-the-visit-image-separator-fix-and-its-real-compile-gate/62-CONTEXT.md
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1044,8 +1049,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-08-30 — v0.9.2 requirements defined, research run, roadmap created (Phases 62–63).
-Stopped at: roadmap written; no phase planned yet.
+Last session: 2026-08-30T05:59:39.195Z
+Stopped at: Phase 62 context gathered
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the
